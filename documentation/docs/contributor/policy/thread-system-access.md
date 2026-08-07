@@ -4,7 +4,7 @@ sidebar_position: 6
 description: "How many threads of which class the supervised code may create."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 A thread is the program doing two things at once.
 
 Left unbounded, a student's program can create thousands of them and bring the build

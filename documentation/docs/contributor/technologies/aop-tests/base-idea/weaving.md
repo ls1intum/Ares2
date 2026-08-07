@@ -4,7 +4,7 @@ sidebar_position: 6
 description: "How advice is placed into the bytecode: at compile time, at load time or at runtime."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 At some point the checking code has to actually get *into* the program.
 
 That can happen when the program is compiled, or when each class is loaded into memory, or

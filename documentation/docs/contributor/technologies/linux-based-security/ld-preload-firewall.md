@@ -4,7 +4,7 @@ sidebar_position: 3
 description: "Blocking network access by interposing a shared library ahead of libc."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 When a program wants to open a network connection, it asks the system library to do it.
 
 Linux lets you slip your own library in front, so the program asks *you* instead. You look

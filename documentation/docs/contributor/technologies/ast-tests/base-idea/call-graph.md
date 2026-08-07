@@ -4,7 +4,7 @@ sidebar_position: 2
 description: "Deriving call relationships from the syntax tree, and how that differs from a bytecode call graph."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 You can work out from the source which method calls which, and draw the same kind of map
 the bytecode analysis draws.
 
@@ -31,7 +31,7 @@ recursion is detected.
 Resolving *which* method a call refers to needs more than the tree, which is why Ares
 depends on `javaparser-symbol-solver-core` and not only on `javaparser-core`.
 
-:::warning Not a security boundary
+:::warning[Not a security boundary]
 The AST layer answers questions about how code is written. It is not an enforcement
 mechanism: source-level analysis cannot bind what a program does at runtime.
 :::

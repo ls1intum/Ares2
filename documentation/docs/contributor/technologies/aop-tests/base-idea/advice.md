@@ -4,7 +4,7 @@ sidebar_position: 4
 description: "The code that runs at a matched join point, and when it runs relative to it."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 Advice is what actually happens at the moment you interrupted.
 
 You can act just before, just after, or wrap yourself around the moment so that you decide

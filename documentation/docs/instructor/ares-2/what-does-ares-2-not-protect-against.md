@@ -12,7 +12,7 @@ Ares 2 trusts only two things:
 
 Everything else is untrusted and subject to the policy.
 
-:::danger Student code must never use a reserved package
+:::danger[Student code must never use a reserved package]
 If student code can place a class into a reserved package, it can shadow the classes Ares 2
 and the test harness rely on, and the sandbox can be bypassed. This is why the build-side
 check described in [Postcompile Mode](../protect-a-java-project/postcompile.md#3-what-you-need-to-do-outside-ares-2)

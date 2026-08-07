@@ -80,7 +80,7 @@ See also `IOTester` and, for more examples, the
 [`InputOutputUser`](https://github.com/ls1intum/Ares2/blob/main/src/test/java/de/tum/cit/ase/ares/integration/testuser/InputOutputUser.java)
 test.
 
-:::tip Custom IO managers
+:::tip[Custom IO managers]
 If the default `IOTester` does not meet your requirements, provide a custom implementation by
 applying `@WithIOManager(MyCustomOne.class)` to, for example, the test class or individual
 methods. This also lets you register a custom parameter to control IO testing conveniently

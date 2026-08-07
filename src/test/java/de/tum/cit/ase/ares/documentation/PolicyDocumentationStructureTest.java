@@ -1,4 +1,4 @@
-package de.tum.cit.ase.ares.api.policy;
+package de.tum.cit.ase.ares.documentation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -80,8 +80,11 @@ class PolicyDocumentationStructureTest {
 			assertTrue(content.contains(field), page + " front matter must declare " + field);
 		}
 
-		assertTrue(content.contains(":::tip ELI5"), page + " must open with an ELI5 box (:::tip ELI5).");
-		assertTrue(content.contains(":::"), page + " ELI5 box must be closed.");
+		assertTrue(content.contains(":::tip[ELI5]"),
+				page + " must open with an ELI5 box written as ':::tip[ELI5]'. The Docusaurus 2 form\n"
+						+ "':::tip ELI5' is not a directive and renders as literal text.");
+		assertFalse(DocumentationPages.LEGACY_ADMONITION.matcher(content).find(),
+				page + " uses an admonition form that renders as plain text.");
 
 		List<String> headings = content.lines().filter(line -> line.startsWith("## ")).toList();
 		assertEquals(REQUIRED_HEADINGS, headings,

@@ -4,7 +4,7 @@ sidebar_position: 1
 description: "The JUnit 5 engine Ares 2 builds on, and the extension points it hooks into."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 JUnit is the thing that runs the tests and tells you which ones passed.
 
 Ares does not replace it. Ares stands **next to** it: JUnit still decides what a test is

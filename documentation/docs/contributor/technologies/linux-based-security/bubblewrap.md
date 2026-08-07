@@ -4,7 +4,7 @@ sidebar_position: 2
 description: "Filesystem isolation through mount namespaces, without requiring root."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 Bubblewrap builds the program a private view of the file system before letting it start.
 
 Folders you did not hand it simply are not there. Not forbidden, not protected: absent.

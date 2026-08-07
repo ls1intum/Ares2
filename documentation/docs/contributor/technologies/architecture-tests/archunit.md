@@ -4,7 +4,7 @@ sidebar_position: 2
 description: "Static dependency analysis over imported bytecode: what ArchUnit sees, and what it cannot."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 ArchUnit reads the compiled program and checks statements about how its parts refer to one
 another, without running any of it.
 

@@ -4,7 +4,7 @@ sidebar_position: 1
 description: "A single syntactic construct in the parsed source: a class, a method, a loop, an expression."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 When a tool reads source code, it does not keep it as text. It turns it into a tree.
 
 The whole file is the trunk, each class is a branch, each method a smaller branch, each

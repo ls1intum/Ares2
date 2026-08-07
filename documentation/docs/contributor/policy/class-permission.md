@@ -4,7 +4,7 @@ sidebar_position: 2
 description: "The classes that are trusted rather than sandboxed, derived from the declared test classes and the essential classes."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 Some code has to be allowed to do the things everyone else is forbidden from doing.
 
 The test class itself, for example, may need to read a file in order to check that the

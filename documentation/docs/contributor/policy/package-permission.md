@@ -4,7 +4,7 @@ sidebar_position: 7
 description: "Which packages the supervised code may import, matched by prefix."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 Java code borrows tools from libraries by importing them.
 
 Some of those tools are harmless, and some are a way straight around the fence. This list

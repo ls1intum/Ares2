@@ -4,7 +4,7 @@ sidebar_position: 8
 description: "The wall-clock budget the supervised code is given."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 An endless loop never fails on its own. It just runs, and runs, and the build never
 finishes.
 

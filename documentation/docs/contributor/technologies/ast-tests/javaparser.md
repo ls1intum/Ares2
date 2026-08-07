@@ -4,7 +4,7 @@ sidebar_position: 2
 description: "Parsing Java source into an AST, and resolving what its names refer to."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 JavaParser turns a `.java` file into a tree you can ask questions about, and can also work
 out what each name in that file actually refers to.
 :::

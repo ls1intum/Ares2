@@ -4,7 +4,7 @@ sidebar_position: 1
 description: "The pipeline selector and the identity of the supervised code: build system, static analysis tool, instrumentation backend, root package and main class."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 Before Ares can guard anything, it has to know **what it is guarding and how**.
 
 Think of it like hiring a security guard for a building. First you tell the guard which

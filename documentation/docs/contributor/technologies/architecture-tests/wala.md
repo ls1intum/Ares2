@@ -4,7 +4,7 @@ sidebar_position: 3
 description: "Inter-procedural call-graph analysis: reachability, sinks and false-positive filtering."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 WALA builds the full map of which method can call which, then asks whether any route leads
 from the student's code to something forbidden.
 

@@ -13,7 +13,7 @@ configuration.
 
 You can create the file manually, or with [Ares2UI](https://github.com/ls1intum/Ares2UI).
 
-:::tip Full reference
+:::tip[Full reference]
 This page introduces the format. For every supported option and how each is enforced, see the
 [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual).
 :::
@@ -80,7 +80,7 @@ regardingTheSupervisedCode:
 | `regardingPackageImports` | External packages the supervised code may import. |
 | `regardingTimeouts` | Time limits for supervised code execution. |
 
-:::warning Everything is default-deny
+:::warning[Everything is default-deny]
 Any resource not listed is denied. An empty list such as `regardingNetworkConnections: [ ]`
 forbids all network access.
 :::

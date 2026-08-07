@@ -4,7 +4,7 @@ sidebar_position: 3
 description: "The traversal pattern used to walk the syntax tree and collect findings."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 You want to do something at every node of a big tree, but only actually care about a few
 kinds of node.
 

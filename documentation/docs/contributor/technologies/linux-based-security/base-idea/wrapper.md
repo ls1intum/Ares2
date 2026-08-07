@@ -4,6 +4,16 @@ sidebar_position: 3
 description: "Why enforcement lives in a process that wraps the supervised command rather than inside it."
 ---
 
+:::tip[ELI5]
+The guard stands outside the room, not inside it.
+
+That sounds like a detail and it is the whole point. A program that has been taken over
+can switch off a guard that lives inside it. It cannot switch off one that started before
+it did and is holding the door from the other side.
+:::
+
+## What it is
+
 All three layers are wrappers: a process that configures its restriction and then executes the
 next layer, with the supervised build command innermost.
 
@@ -15,3 +25,9 @@ switch the restriction off, however much control it gains over its own JVM.
 
 The layers are composed by `phobos.sh` and each can be disabled independently with
 `--no-timeout`, `--no-network` and `--no-filesystem`.
+
+## Further reading
+
+- [`namespaces(7)`](https://man7.org/linux/man-pages/man7/namespaces.7.html) — Linux manual page
+- [`timeout(1)`](https://man7.org/linux/man-pages/man1/timeout.1.html) — Linux manual page
+- [containers/bubblewrap](https://github.com/containers/bubblewrap) — source repository

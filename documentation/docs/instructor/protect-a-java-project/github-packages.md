@@ -4,7 +4,7 @@ sidebar_position: 11
 description: "Consuming Ares 2 from GitHub Packages instead of Maven Central."
 ---
 
-:::tip Maven Central is recommended
+:::tip[Maven Central is recommended]
 Maven Central requires no authentication and is the simpler choice for most users. See
 [Installation](installation.md). Use GitHub Packages only if you specifically need it.
 :::
@@ -62,7 +62,7 @@ repositories {
 2. Generate a new token with the `read:packages` scope.
 3. Store the token securely in your settings.
 
-:::warning Keep the token out of the repository
+:::warning[Keep the token out of the repository]
 Read it from an environment variable or from `~/.gradle/gradle.properties`, never from a file
 committed alongside the exercise.
 :::

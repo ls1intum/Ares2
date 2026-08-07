@@ -103,7 +103,7 @@ This is especially problematic if they shadow library classes, such as JUnit's `
 
 To prevent that, the build must ensure that no student content lands in a trusted package.
 
-:::danger This step is not optional
+:::danger[This step is not optional]
 Ares 2 cannot enforce this from inside the JVM it is trying to protect. Without the build-side
 check below, the sandbox can be bypassed. See
 [Security trust boundary](../ares-2/what-does-ares-2-not-protect-against.md).
@@ -361,7 +361,7 @@ shadowing the test harness itself (JUnit, jqwik, AssertJ, Logback, Gradle).
 Keep it aligned with `WalaPathClassification.RESERVED_PACKAGE_PREFIX_VERSION` (the prefix data)
 and `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION` (the build-side contract), and do not disable it.
 
-:::warning Hook the check onto every `Test` task, not onto `check`
+:::warning[Hook the check onto every `Test` task, not onto `check`]
 Gradle defines `check.dependsOn test` and not the reverse, so a `check`-only hook never runs
 for `gradlew test`.
 :::

@@ -77,7 +77,7 @@ predictable, student-friendly feedback.
 Both rely on the same configuration file, which is introduced in
 [Policy Configuration](../protect-a-java-project/policy-configuration.md).
 
-:::info How it works internally
+:::info[How it works internally]
 The developer guide describes the enforcement machinery itself: the
 [enforcement model](/contributor/subsystems/policy/enforcement-model), the
 [AOP layer](/contributor/subsystems/aop/block-file-system-access) and the

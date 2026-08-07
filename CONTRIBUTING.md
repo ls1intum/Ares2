@@ -85,8 +85,14 @@ cd documentation
 corepack enable                  # one-time: activate the pinned pnpm version
 pnpm install --frozen-lockfile
 pnpm start                       # local dev server with hot reload
+pnpm run lint                    # ESLint over the site sources
+pnpm run typecheck               # TypeScript check
 pnpm run build                   # production build, as CI runs it
+pnpm run test                    # Playwright integration tests against the built site
+pnpm run update                  # interactive dependency update (npm-check-updates)
 ```
+
+`pnpm run test` needs a browser once: `pnpm run test:install`.
 
 The site is built with `onBrokenLinks` and `onBrokenAnchors` set to `throw`, so a dangling
 cross-reference fails the build. Run `pnpm run build` before pushing documentation changes.

@@ -4,7 +4,7 @@ sidebar_position: 2
 description: "Compile-time weaving with AspectJ, and the consequences of intercepting at the call site."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 AspectJ edits the program's compiled code so that your check sits at every place a
 forbidden operation is *written*.
 

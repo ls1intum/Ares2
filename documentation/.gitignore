@@ -11,6 +11,10 @@
 # PlantUML renderer cache (the rendered .svg files themselves are committed)
 /.plantuml-cache
 
+# Playwright
+/test-results
+/playwright-report
+
 # Misc
 .DS_Store
 .env.local

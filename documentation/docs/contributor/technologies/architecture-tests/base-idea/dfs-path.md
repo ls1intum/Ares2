@@ -4,7 +4,7 @@ sidebar_position: 3
 description: "Depth-first traversal of the call graph, used to find a route from student code to a forbidden operation."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 You are in a maze and want to know whether any route reaches the treasure.
 
 Depth-first search means: always take the next unexplored corridor, keep going until you

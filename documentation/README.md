@@ -32,7 +32,31 @@ without restarting.
 ```bash
 pnpm run build     # static site into build/
 pnpm run serve     # serve the built site locally
+pnpm run lint      # ESLint over the site sources
 pnpm run typecheck # TypeScript check
+```
+
+## Tests
+
+```bash
+pnpm run test:install   # one-time: install the Chromium shell
+pnpm run test           # Playwright integration tests against the built site
+```
+
+These drive the built site in a browser, so they check what a reader actually gets. The
+Docusaurus build proves that every link resolves; it does not prove that a page renders. The
+suite covers navigation between the two guides, the red marking on the policy pages, the ELI5
+boxes, search, and the 404 page.
+
+Structure is pinned on the Java side as well, under
+`src/test/java/de/tum/cit/ase/ares/documentation`: the policy pages must all share one shape
+and walk the example top to bottom, the technology pages must cite only permitted sources, and
+no page anywhere may use an admonition syntax that renders as plain text.
+
+## Dependencies
+
+```bash
+pnpm run update    # interactive update through npm-check-updates
 ```
 
 The build runs with `onBrokenLinks` and `onBrokenAnchors` set to `throw`, so a dangling

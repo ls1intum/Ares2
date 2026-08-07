@@ -4,7 +4,7 @@ sidebar_position: 2
 description: "Property-based testing on the JUnit platform, and how Ares 2 supervises it."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 An ordinary test checks one example: "if I pass 5, I should get 25".
 
 A property test instead states a rule that should hold for *every* input, and then the
@@ -34,7 +34,7 @@ This is why the annotations are duplicated per engine. A test class must import 
 `jupiter` annotations or the `jqwik` ones to match the engine that will actually run it;
 mixing them silently produces a test that is not supervised.
 
-:::warning Import the annotations that match your engine
+:::warning[Import the annotations that match your engine]
 `de.tum.cit.ase.ares.api.jupiter.*` for `@Test`, `de.tum.cit.ase.ares.api.jqwik.*` for
 `@Property`. This is the single most common integration mistake.
 :::

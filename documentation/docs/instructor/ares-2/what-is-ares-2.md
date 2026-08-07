@@ -18,7 +18,7 @@ Its main features are:
   pointing at a likely location that caused an exception
 - utilities for comfortably testing exercises that use `System.out` and `System.in`
 
-:::warning Read the basics before using Ares 2 in production
+:::warning[Read the basics before using Ares 2 in production]
 Ares 2 provides a high level of security, and that comes at the cost of usability. Several
 steps are needed to make tests work properly, and it takes some time to understand what Ares 2
 does. Please read at least [Setup](../protect-a-java-project/setup.md), [Test Annotations](../protect-a-java-project/test-annotations.md) and

@@ -71,7 +71,7 @@ org.opentest4j.AssertionFailedError: hidden tests will be executed after the dea
 and the test was not executed, because the deadline is always checked before any hidden test
 case runs.
 
-:::warning Always specify the time zone
+:::warning[Always specify the time zone]
 The annotation parser permits leaving the time zone unspecified, but doing so risks running
 the tests at the wrong time when the build agent's time zone differs from the one on your own
 machine, or from the one you assume. Ares 2 warns in the logs when it runs tests whose time

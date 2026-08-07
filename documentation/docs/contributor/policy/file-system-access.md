@@ -4,7 +4,7 @@ sidebar_position: 3
 description: "Which paths the supervised code may read, overwrite, create, execute or delete."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 This is a list of doors the student's program is allowed to open, and what it may do once
 inside each one.
 

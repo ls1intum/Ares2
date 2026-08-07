@@ -4,7 +4,7 @@ sidebar_position: 1
 description: "The unit the architecture layer reasons about: a class, a method or a field of the analysed program."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 Imagine the program drawn as a map of dots joined by arrows.
 
 A node is one dot. Depending on how closely you look, a dot might be a whole class or a

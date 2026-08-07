@@ -4,7 +4,7 @@ sidebar_position: 4
 description: "Bounding wall-clock execution time from outside the supervised process."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 An endless loop never finishes and never fails. It just sits there.
 
 So something outside the program holds a stopwatch, and when the time is up it stops the

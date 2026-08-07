@@ -4,7 +4,7 @@ sidebar_position: 5
 description: "How the arguments and context of the intercepted operation reach the advice."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 Knowing that a file is about to be opened is not enough. You need to know **which** file.
 
 Binding is how that information is handed to your check. Without it you could only ever

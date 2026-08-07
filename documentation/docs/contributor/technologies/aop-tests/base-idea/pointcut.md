@@ -4,7 +4,7 @@ sidebar_position: 3
 description: "The predicate that selects which join points an aspect applies to."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 There are millions of moments where you *could* interrupt the program. You care about a
 handful.
 

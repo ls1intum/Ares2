@@ -4,7 +4,7 @@ sidebar_position: 3
 description: "Load-time bytecode rewriting through a Java agent and Byte Buddy."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 A Java agent gets to inspect and rewrite every class as it is loaded, before it runs.
 
 That is a much better place to stand than the compiler, because by then you see classes

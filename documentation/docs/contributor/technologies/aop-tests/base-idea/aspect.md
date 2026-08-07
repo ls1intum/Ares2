@@ -4,7 +4,7 @@ sidebar_position: 1
 description: "A cross-cutting concern captured in one place instead of scattered through the code."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 Some requirements do not belong to any one class. "Check permission before touching a file"
 applies everywhere a file is touched.
 

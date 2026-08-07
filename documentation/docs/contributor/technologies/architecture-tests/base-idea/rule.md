@@ -4,7 +4,7 @@ sidebar_position: 4
 description: "A condition asserted over the analysed program, and what it means for one to be violated."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 A rule is a sentence about the program that must be true, such as "nothing the student
 wrote may reach the code that deletes files".
 

@@ -4,7 +4,7 @@ sidebar_position: 2
 description: "Protecting a Gradle-based Java project with Ares 2, from dependency to enforced policy."
 ---
 
-:::note This page is a stub
+:::note[This page is a stub]
 The end-to-end Gradle walkthrough has not been written as a single page yet. Every step already
 exists in the reference pages linked below, and the
 [Complete Setup Manual](./complete-setup-manual.md) covers the whole path for both build tools.
@@ -26,7 +26,7 @@ exists in the reference pages linked below, and the
    For Gradle this is the `forbiddenPackageFolders` assertion described in
    [Postcompile Mode](./postcompile.md#gradle). It is **not optional**.
 
-:::warning Hook the check onto every `Test` task, not onto `check`
+:::warning[Hook the check onto every `Test` task, not onto `check`]
 Gradle defines `check.dependsOn test` and not the reverse, so a `check`-only hook never runs for
 `gradlew test`.
 :::

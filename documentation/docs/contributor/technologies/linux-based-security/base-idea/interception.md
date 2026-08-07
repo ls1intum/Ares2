@@ -4,6 +4,15 @@ sidebar_position: 1
 description: "Where each layer places itself between the supervised program and the resource it asks for."
 ---
 
+:::tip[ELI5]
+Every one of these three layers works by standing in the doorway.
+
+The program asks for something, and instead of reaching the thing it asked for, it reaches
+the guard first. What differs between the three is *which* doorway they stand in.
+:::
+
+## What it is
+
 Every Linux-based layer works by putting itself between the supervised program and the resource
 it requests, but each does so at a different level:
 
@@ -15,3 +24,9 @@ it requests, but each does so at a different level:
 
 This is the same idea as a [pointcut](/contributor/technologies/aop-tests/base-idea/pointcut) in
 the AOP layer, moved outside the JVM.
+
+## Further reading
+
+- [`ld.so(8)`](https://man7.org/linux/man-pages/man8/ld.so.8.html) — Linux manual page
+- [`mount_namespaces(7)`](https://man7.org/linux/man-pages/man7/mount_namespaces.7.html) — Linux manual page
+- [containers/bubblewrap](https://github.com/containers/bubblewrap) — source repository

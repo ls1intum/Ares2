@@ -4,7 +4,7 @@ sidebar_position: 3
 description: "Adding the Ares 2 dependency to a Maven or Gradle project."
 ---
 
-:::note Requirements
+:::note[Requirements]
 Ares 2 requires at least **Java 17**.
 :::
 

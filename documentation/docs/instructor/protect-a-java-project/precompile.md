@@ -172,7 +172,7 @@ example_project/
 The generated directory contains Ares 2 specific helper code, instrumentation logic and
 metadata required during test execution.
 
-:::danger Do not edit the generated files
+:::danger[Do not edit the generated files]
 They are produced automatically by the precompile phase and must not be modified by hand.
 :::
 

@@ -69,6 +69,10 @@ jobs:
         working-directory: documentation
         run: pnpm install --frozen-lockfile
 
+      - name: Code style
+        working-directory: documentation
+        run: pnpm run lint
+
       - name: Type check
         working-directory: documentation
         run: pnpm run typecheck
@@ -86,6 +90,18 @@ jobs:
       - name: Build Docusaurus site
         working-directory: documentation
         run: pnpm run build
+
+      # Drives the built site in a real browser. This is the only check that sees what a
+      # reader actually gets: the build verifies that every link resolves, but not that a page
+      # renders. It is what caught 53 admonitions that were silently rendering as plain text
+      # because they used the Docusaurus 2 title syntax.
+      - name: Install the test browser
+        working-directory: documentation
+        run: pnpm exec playwright install --with-deps --only-shell chromium
+
+      - name: Documentation integration tests
+        working-directory: documentation
+        run: pnpm run test
 
       # Only on the deploy path; the deploy job consumes this. Uploading needs no extra
       # permissions of its own, `pages: write` lives on the deploy job.

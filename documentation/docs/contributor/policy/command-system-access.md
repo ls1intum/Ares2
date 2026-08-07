@@ -4,7 +4,7 @@ sidebar_position: 5
 description: "Which external commands the supervised code may execute, and with which arguments."
 ---
 
-:::tip ELI5
+:::tip[ELI5]
 Sometimes a program needs to ask the operating system to run another program.
 
 That is an enormous hole if left open, because it can be used to run anything at all. So
