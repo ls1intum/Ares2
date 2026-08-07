@@ -415,9 +415,13 @@ Your build must run the AspectJ compiler to weave the Ares security aspects into
 
 The [Enforcement Model](/developer/policy/enforcement-model) specifies this boundary and calls it a deployment prerequisite, not an optional Ares runtime feature. Ares ships the executable snippets, so copy them rather than writing your own:
 
-- `configuration/reservedPackages/GradleReservedPackages.gradle`
-- `configuration/reservedPackages/MavenReservedPackages.xml`
-- `configuration/reservedPackages/ReservedPackagePrefixes.txt` (the machine-readable prefix list)
+They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reservedPackages/`,
+and live in the repository at
+[`src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`](https://github.com/ls1intum/Ares2/tree/main/src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages):
+
+- `GradleReservedPackages.gradle`
+- `MavenReservedPackages.xml`
+- `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
 Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its CI must pin both.
 

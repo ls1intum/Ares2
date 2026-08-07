@@ -72,9 +72,11 @@ bypassable and must be migrated. In a multi-project build, apply the snippet to
 every project that compiles student code, because `tasks.withType(Test)` covers
 only the project it is applied to.
 
-The executable, versioned snippets are shipped with Ares at
-`configuration/reservedPackages/MavenReservedPackages.xml` and
-`configuration/reservedPackages/GradleReservedPackages.gradle`; their common
+The executable, versioned snippets are shipped inside the Ares JAR under
+`de/tum/cit/ase/ares/api/configuration/reservedPackages/`, and live in the
+repository at
+[`src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`](https://github.com/ls1intum/Ares2/tree/main/src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages):
+`MavenReservedPackages.xml` and `GradleReservedPackages.gradle`; their common
 machine-readable list is `ReservedPackagePrefixes.txt`. They deliberately define
 no Maven property, Gradle property, system property or profile which can skip
 the check. Removing the plugin/script or detaching its task is equivalent to
