@@ -124,6 +124,8 @@ check below, the sandbox can be bypassed. See
         <studentOutputDir>${project.basedir}/build/classes/java/main</studentOutputDir>
         <ares.version>2.1.2</ares.version>
         <agent.dir>${project.build.directory}/agents</agent.dir>
+        <!-- Keeps @{argLine} resolvable on a run that does not include JaCoCo. -->
+        <argLine></argLine>
     </properties>
 
     <dependencies>
@@ -234,6 +236,7 @@ check below, the sandbox can be bypassed. See
             <configuration>
                 <useSystemClassLoader>false</useSystemClassLoader>
                 <argLine>
+                    @{argLine}
                     -javaagent:${agent.dir}/ares-agent.jar
                     --add-opens java.base/jdk.internal.misc=ALL-UNNAMED
                     --add-opens java.base/java.lang=ALL-UNNAMED
@@ -247,6 +250,17 @@ check below, the sandbox can be bypassed. See
     </plugins>
 </build>
 ```
+
+:::warning[Keep `@{argLine}` first]
+Surefire's `argLine` is a single value. A plain `<argLine>` **replaces** whatever other plugins
+contributed to it rather than adding to it, most importantly the JaCoCo agent injected by
+`jacoco:prepare-agent`. The agent is then dropped with no warning and a still-green build, and
+coverage silently reports nothing.
+
+Keep `@{argLine}` as the first entry even if you do not use JaCoCo today, so that adding a
+coverage or profiling plugin later does not quietly disable it. The empty `<argLine>` property
+above is what keeps the placeholder resolvable when no such plugin is present.
+:::
 
 ### Gradle
 
