@@ -48,6 +48,18 @@ const JAR_PATH = path.join(CACHE_DIR, `plantuml-asl-${PLANTUML_VERSION}.jar`);
 
 const check = process.argv.includes('--check');
 
+/**
+ * Normalises an SVG for comparison.
+ *
+ * This is load-bearing rather than cosmetic. .gitattributes checks this repository out with
+ * CRLF (`* text=auto eol=crlf`, and `*.svg text` does not opt out), while PlantUML always
+ * writes LF. Comparing the bytes directly would therefore report every committed diagram as
+ * out of date on any fresh clone, and the CI check would fail permanently.
+ */
+function normalise(svg) {
+    return svg.replace(/\r\n/g, '\n').trim();
+}
+
 /** Recursively collects every file under `dir` whose name ends with `suffix`. */
 async function collect(dir, suffix) {
     if (!existsSync(dir)) {
@@ -182,7 +194,7 @@ async function main() {
                 continue;
             }
             const [a, b] = await Promise.all([readFile(expected, 'utf8'), readFile(committed, 'utf8')]);
-            if (a.trim() !== b.trim()) {
+            if (normalise(a) !== normalise(b)) {
                 stale.push(`${path.relative(ROOT, committed)} (out of date)`);
             }
         }
