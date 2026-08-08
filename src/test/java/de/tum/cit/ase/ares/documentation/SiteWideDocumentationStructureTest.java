@@ -57,11 +57,11 @@ class SiteWideDocumentationStructureTest {
 			"policy-cookbook/reading-a-file-from-resources.md", "policy-cookbook/setting-time-and-memory-budgets.md",
 			"policy-cookbook/using-a-library-that-reflects.md", "policy-cookbook/using-threads.md",
 			"policy-cookbook/writing-an-output-file.md", "policy-reference/index.md",
-			"protect-a-java-project/complete-setup-manual.md", "protect-a-java-project/further-options.md",
-			"protect-a-java-project/github-packages.md", "protect-a-java-project/gradle.md",
-			"protect-a-java-project/installation.md", "protect-a-java-project/maven.md",
-			"protect-a-java-project/policy-configuration.md", "protect-a-java-project/postcompile.md",
-			"protect-a-java-project/precompile.md", "protect-a-java-project/setup.md",
+			"protect-a-java-project/further-options.md", "protect-a-java-project/github-packages.md",
+			"protect-a-java-project/installation.md", "protect-a-java-project/policy-configuration.md",
+			"protect-a-java-project/postcompile/gradle.md", "protect-a-java-project/postcompile/maven.md",
+			"protect-a-java-project/precompile-or-postcompile.md", "protect-a-java-project/precompile/gradle.md",
+			"protect-a-java-project/precompile/maven.md", "protect-a-java-project/setup.md",
 			"protect-a-java-project/test-annotations.md", "transform-ares-1-into-ares-2.md", "troubleshooting.md");
 
 	/** Every page of the contributor guide, as a guide-relative path. */

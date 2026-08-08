@@ -1,6 +1,6 @@
 ---
 title: "GitHub Packages"
-sidebar_position: 11
+sidebar_position: 7
 description: "Consuming Ares 2 from GitHub Packages instead of Maven Central."
 ---
 

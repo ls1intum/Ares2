@@ -1,6 +1,6 @@
 ---
 title: "Test Annotations"
-sidebar_position: 5
+sidebar_position: 4
 description: "The @Public, @Hidden, @PublicTest, @HiddenTest and @Deadline annotations."
 ---
 
