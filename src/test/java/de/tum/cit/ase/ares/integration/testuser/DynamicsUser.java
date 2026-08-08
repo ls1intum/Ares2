@@ -197,7 +197,7 @@ public class DynamicsUser {
 	void field_setStaticSuccess() {
 		de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeAbstractClass.someInt = 7;
 		var field = DynamicClass.toDynamic(SomeAbstractClass.class).field(int.class, "someInt");
-		assertThat(field.exists());
+		assertThat(field.exists()).isTrue();
 		field.setStatic(2);
 		assertThat(field.getStatic()).isEqualTo(2);
 	}
