@@ -62,7 +62,10 @@ class SiteWideDocumentationStructureTest {
 			"transform-ares-1-into-ares-2.md");
 
 	/** Every page of the contributor guide, as a guide-relative path. */
-	private static final List<String> EXPECTED_CONTRIBUTOR_PAGES = List.of("how-can-you-contribute.md",
+	private static final List<String> EXPECTED_CONTRIBUTOR_PAGES = List.of("extending-ares-2/index.md",
+			"extending-ares-2/new-analysis-technology.md", "extending-ares-2/new-build-tools.md",
+			"extending-ares-2/new-enforcement-mechanism.md", "extending-ares-2/new-policy-domains.md",
+			"extending-ares-2/new-programming-languages.md", "how-can-you-contribute.md", "life-of-a-test-execution.md",
 			"policy/class-permission.md", "policy/command-system-access.md", "policy/file-system-access.md",
 			"policy/network-system-access.md", "policy/package-permission.md",
 			"policy/programming-language-configuration.md", "policy/resource-limits.md",
@@ -87,7 +90,8 @@ class SiteWideDocumentationStructureTest {
 			"technologies/linux-based-security/base-idea/allow-list.md",
 			"technologies/linux-based-security/base-idea/interception.md",
 			"technologies/linux-based-security/base-idea/wrapper.md", "technologies/linux-based-security/bubblewrap.md",
-			"technologies/linux-based-security/ld-preload-firewall.md", "technologies/linux-based-security/timeout.md");
+			"technologies/linux-based-security/ld-preload-firewall.md", "technologies/linux-based-security/timeout.md",
+			"testing-conventions.md");
 
 	@Test
 	void theInstructorGuideHoldsExactlyTheExpectedPages() {
