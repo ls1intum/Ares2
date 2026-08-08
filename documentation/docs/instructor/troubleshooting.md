@@ -10,12 +10,10 @@ When something goes wrong, the error message usually names the mechanism rather 
 This page translates the messages back into what you actually have to change.
 :::
 
-:::note[Still being consolidated]
-The symptom table below came from the setup manual. The Ares 1 migration guide has a second
-table that has not been merged in yet; until it is, check that page as well.
-:::
+The two tables below are the fastest route: find the message you actually saw. The sections
+after them cover the failures that show up as wrong behaviour rather than as a message.
 
-## Symptom table
+## Symptom table: setting Ares 2 up
 
 | Problem | Possible Cause | Solution |
 |---------|---------------|----------|
@@ -34,6 +32,26 @@ table that has not been merged in yet; until it is, check that page as well.
 | `logback.xml occurs multiple times on the classpath` | The agent JAR and the ordinary Ares JAR each carry one | A warning only; enforcement is unaffected |
 | The reserved-package check never runs under `gradlew test` | A boundary version 1 snippet hooked `check` alone | Migrate to boundary version 2, which also gates every `Test` task (the Gradle step above) |
 | Policy seems to have no effect | Wrong `withinPath` | Gradle: `classes/java/main/<package/path>`, Maven: `classes/<package/path>` |
+
+## Symptom table: migrating from Ares 1
+
+| Problem | Cause | Solution |
+|---|---|---|
+| `The artifact de.tum.cit.ase:ares referenced in aspectj plugin as an aspect library, is not found the project dependencies` | Maven only: you carried `<scope>test</scope>` across from Ares 1 | Change the scope to `provided` (the step named in section 4.2 of this guide) |
+| `package de.tum.in.test.api does not exist` | An Ares 1 import survived the rewrite | Search for `de.tum.in.test` across the test sources; any remaining hit is either a rename (the step named in section 5 of this guide) or a security annotation to translate (the step named in section 6 of this guide) |
+| `cannot find symbol: class WhitelistPath` (and similar) | These annotations do not exist in Ares 2 | Translate them into the policy file, then delete them |
+| The build succeeds but nothing is enforced | The Ares JAR is on the compile classpath but not on the **aspect path** | Add `aspect "de.tum.cit.ase:ares:..."` (Gradle) or the `<aspectLibraries>` entry (Maven). `ajc` ignores binary aspects that are not on the aspect path, so this fails silently |
+| Tests pass, and nothing is restricted, and no error appears | The test carries a plain `@Test` and `@Policy` but no Ares test annotation, so the extension was never registered | Add `@Public`, `@Hidden`, `@PublicTest` or `@HiddenTest` (the step named in section 7 of this guide) |
+| Your own test code is blocked by the policy | `theFollowingClassesAreTestClasses` names a package instead of exact class names | List every test class by its fully qualified name (the step named in section 6.4 of this guide) |
+| A policy is rejected on load | `thisPolicyFileCompliesToThePolicyVersion` is missing or is not `1`, or one of the six lists is absent | All six lists must be present even when empty (the step named in section 6.1 of this guide) |
+| A policy loads but the run fails with a supervised-code error | `theSupervisedCodeUsesTheFollowingPackage` is missing or blank. The schema tolerates that, but a **present** policy must name the package, and Ares fails closed rather than guessing it | Set the supervised package (the step named in section 6.1 of this guide) |
+| A `timeout` value of `0` is rejected | `timeout` must be strictly positive | Use a positive value, or leave the list empty |
+| Policy seems to have no effect | Wrong `withinPath` | Gradle: `classes/java/main/<package/path>`; Maven: `classes/<package/path>` |
+| A `@StrictTimeout` was replaced by `regardingTimeouts` and no longer bounds anything | Timeouts are Phobos cases, and the Phobos stage is generated but not yet dispatched in-process in Ares 2.1.1 | Restore `@StrictTimeout` (the step named in section 6.2 of this guide) |
+| `InaccessibleObjectException` at runtime | An incomplete list of module-access flags | Use the complete list from the step named in section 4.1 of this guide or the step named in section 4.2 of this guide |
+| Coverage reports nothing after the migration | A plain `<argLine>` overwrote the property JaCoCo sets | Prefix Surefire's `<argLine>` with `@{argLine}` and declare an empty `<argLine>` property |
+| The reserved-package check never runs under `gradlew test` | The snippet hooks `check` alone | Use boundary version 2, which also gates every `Test` task (the step named in section 8.1 of this guide) |
+| `Ambiguous project: both Maven and Gradle descriptors are active` | The project has both a `pom.xml` and a `build.gradle`, and no policy names the build tool | Remove the descriptor you do not use, or supply a policy that names the configuration explicitly |
 
 ## The build succeeds but nothing is enforced
 

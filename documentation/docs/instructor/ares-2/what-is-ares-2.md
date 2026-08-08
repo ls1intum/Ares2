@@ -43,7 +43,7 @@ does. Please read at least [Setup](../protect-a-java-project/setup.md), [Test An
 | Restrict what student code may do | [Security Overview](what-does-ares-2-protect-against.md) |
 | Write a policy file | [Policy Configuration](../protect-a-java-project/policy-configuration.md) and the [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual) |
 | Set up a complete exercise from scratch | [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md) |
-| Migrate an Ares 1 exercise | [Converting an Ares 1 Exercise](../transform-ares-1-into-ares-2.md) |
+| Migrate an Ares 1 exercise | [Converting an Ares 1 Exercise](../transform-ares-1-into-ares-2/index.md) |
 | Understand how Ares 2 works internally | The [Developer Guide](/contributor/subsystems/package-overview) |
 
 ## Licence

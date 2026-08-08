@@ -107,7 +107,7 @@ trusts and be trusted along with it.
 
 ## Related documentation
 
-- [How to transform an Ares 1 protected project into an Ares 2 protected project](../transform-ares-1-into-ares-2.md),
+- [How to transform an Ares 1 protected project into an Ares 2 protected project](../transform-ares-1-into-ares-2/index.md),
   if you are converting an existing `de.tum.in.ase:artemis-java-test-sandbox` exercise. Start there
   rather than here; it is self-contained and adds the annotation-to-policy translation.
 - [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual), which explains how

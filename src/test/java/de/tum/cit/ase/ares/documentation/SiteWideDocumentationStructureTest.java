@@ -62,7 +62,11 @@ class SiteWideDocumentationStructureTest {
 			"protect-a-java-project/postcompile/gradle.md", "protect-a-java-project/postcompile/maven.md",
 			"protect-a-java-project/precompile-or-postcompile.md", "protect-a-java-project/precompile/gradle.md",
 			"protect-a-java-project/precompile/maven.md", "protect-a-java-project/setup.md",
-			"protect-a-java-project/test-annotations.md", "transform-ares-1-into-ares-2.md", "troubleshooting.md");
+			"protect-a-java-project/test-annotations.md", "transform-ares-1-into-ares-2/index.md",
+			"transform-ares-1-into-ares-2/postcompile-or-precompile.md",
+			"transform-ares-1-into-ares-2/postcompile/gradle.md", "transform-ares-1-into-ares-2/postcompile/maven.md",
+			"transform-ares-1-into-ares-2/precompile/gradle.md", "transform-ares-1-into-ares-2/precompile/maven.md",
+			"troubleshooting.md");
 
 	/** Every page of the contributor guide, as a guide-relative path. */
 	private static final List<String> EXPECTED_CONTRIBUTOR_PAGES = List.of("extending-ares-2/index.md",
