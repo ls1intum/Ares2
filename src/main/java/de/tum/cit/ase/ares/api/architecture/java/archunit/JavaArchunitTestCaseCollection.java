@@ -215,6 +215,13 @@ public final class JavaArchunitTestCaseCollection {
 	/**
 	 * Package-import rule that also exempts the allow-listed classes (an empty
 	 * allow-list reproduces the original behaviour).
+	 * <p>
+	 * The allow-list is a union: a dependency is permitted as soon as <em>any</em>
+	 * entry matches. So if the same package is present both as an exact-match entry
+	 * and as a subpackage-inclusive one, the subpackage-inclusive entry wins
+	 * because it is the more permissive of the two. That is intentional: the JDK
+	 * baseline is exact-matched, and a policy author who additionally grants a JDK
+	 * package as a subtree is making an explicit, visible choice to widen it.
 	 */
 	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages,
 			Set<ClassPermission> allowedClasses) {
@@ -233,8 +240,16 @@ public final class JavaArchunitTestCaseCollection {
 							String normalizedAllowed = allowed.endsWith(".")
 									? allowed.substring(0, allowed.length() - 1)
 									: allowed;
-							return packageName.equals(normalizedAllowed)
-									|| packageName.startsWith(normalizedAllowed + ".");
+							if (packageName.equals(normalizedAllowed)) {
+								return true;
+							}
+							// An exact-match permission must not extend to subpackages. Allowing
+							// "java.lang" as a subtree would silently re-admit java.lang.reflect,
+							// java.lang.invoke, java.lang.instrument, java.lang.management,
+							// java.lang.foreign and java.lang.module, which are governed by the
+							// separate reflection, agent-attach, environment, native-code and
+							// module-system rules.
+							return !allowedPackage.exactMatchOnly() && packageName.startsWith(normalizedAllowed + ".");
 						});
 					}
 				}).as(Messages.localized("security.architecture.package.import"));
