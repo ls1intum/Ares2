@@ -1,9 +1,13 @@
 package de.tum.cit.ase.ares.api.phobos;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +38,45 @@ class JavaPhobosTestCaseTest {
 		JavaPhobosTestCase timeout = JavaPhobosTestCase.builder()
 				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.TIMEOUT)
 				.resourceAccessSupplier(() -> List.of(new ResourceLimitsPermission(1234))).build();
-		assertTrue(timeout.writePhobosTestCase().contains("timeout=1234"));
+		assertTrue(timeout.writePhobosTestCase().contains("timeout=1.234"));
+	}
+
+	@Test
+	void timeoutIsSerialisedAsCanonicalDecimalSeconds() {
+		// ResourceLimitsPermission carries milliseconds, but the Phobos [limits]
+		// timeout
+		// field is seconds. The generator converts once at this serialisation boundary,
+		// emitting canonical S.mmm decimal seconds (locale-independent, full
+		// millisecond
+		// precision, digits and one dot only).
+		assertEquals("2.000", timeoutValue(2000));
+		assertEquals("10.000", timeoutValue(10000));
+		assertEquals("2.500", timeoutValue(2500));
+		// Sub-second must not collapse to zero (which Phobos would treat as disabled).
+		assertEquals("0.500", timeoutValue(500));
+		assertEquals("0.001", timeoutValue(1));
+
+		// An absent timeout yields no [limits] section; its default behaviour is
+		// decided
+		// elsewhere, not at this serialisation boundary.
+		JavaPhobosTestCase none = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.TIMEOUT)
+				.resourceAccessSupplier(() -> List.of()).build();
+		assertFalse(none.writePhobosTestCase().contains("[limits]"));
+
+		// Non-positive milliseconds are rejected at the API boundary (unchanged).
+		assertThrows(IllegalArgumentException.class, () -> new ResourceLimitsPermission(0));
+		assertThrows(IllegalArgumentException.class, () -> new ResourceLimitsPermission(-1));
+	}
+
+	private static String timeoutValue(long millis) {
+		JavaPhobosTestCase timeout = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.TIMEOUT)
+				.resourceAccessSupplier(() -> List.of(new ResourceLimitsPermission(millis))).build();
+		String cfg = timeout.writePhobosTestCase();
+		Matcher matcher = Pattern.compile("(?m)^timeout=(\\S+)$").matcher(cfg);
+		assertTrue(matcher.find(), "generated cfg must contain a timeout line, was:\n" + cfg);
+		return matcher.group(1);
 	}
 
 	@Test
