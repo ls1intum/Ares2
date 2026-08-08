@@ -63,11 +63,26 @@ class PolicyDocumentationStructureTest {
 		return Files.readString(page, StandardCharsets.UTF_8).replace("\r\n", "\n");
 	}
 
+	/**
+	 * The eight domains, by filename.
+	 * <p>
+	 * Named rather than counted. A count of eight stays satisfied when one domain
+	 * page is deleted and an unrelated one is added, which is precisely the mistake
+	 * a restructure makes.
+	 */
+	private static final List<String> EXPECTED_POLICY_PAGES = List.of("class-permission.md", "command-system-access.md",
+			"file-system-access.md", "network-system-access.md", "package-permission.md",
+			"programming-language-configuration.md", "resource-limits.md", "thread-system-access.md");
+
 	@Test
 	void policyDocumentationDirectoryHoldsOnePagePerPolicyDomain() throws IOException {
 		assertTrue(Files.isDirectory(POLICY_DOCUMENTATION),
 				"Expected the policy documentation at " + POLICY_DOCUMENTATION.toAbsolutePath());
-		assertEquals(8, policyPages().size(), "Every policy domain needs exactly one page, and no page needs two.");
+
+		List<String> actual = policyPages().stream().map(page -> page.getFileName().toString()).sorted().toList();
+
+		assertEquals(EXPECTED_POLICY_PAGES, actual,
+				"Every policy domain needs exactly one page, and no page needs two.");
 	}
 
 	@ParameterizedTest(name = "{0} has the required structure")
