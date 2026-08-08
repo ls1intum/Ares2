@@ -126,7 +126,7 @@ test.describe('policy documentation', () => {
         ];
 
         for (const name of pages) {
-            await page.goto(`./contributor/policy/${name}`);
+            await page.goto(`./instructor/policy-reference/${name}`);
 
             const marked = page.locator('.code-block-policy-focus');
             await expect(marked, `${name} must mark part of the example`).not.toHaveCount(0);
@@ -138,7 +138,7 @@ test.describe('policy documentation', () => {
     });
 
     test('the marked region is visually distinct from the surrounding code', async ({ page }) => {
-        await page.goto('./contributor/policy/file-system-access');
+        await page.goto('./instructor/policy-reference/file-system-access');
         const marked = page.locator('.code-block-policy-focus').first();
         const background = await marked.evaluate((element) => getComputedStyle(element).backgroundColor);
 
@@ -166,7 +166,7 @@ test.describe('site behaviour', () => {
     });
 
     test('the ELI5 boxes render as admonitions', async ({ page }) => {
-        await page.goto('./contributor/policy/file-system-access');
+        await page.goto('./instructor/policy-reference/file-system-access');
         const eli5 = page.locator('.theme-admonition').filter({ hasText: 'ELI5' });
         await expect(eli5).toHaveCount(1);
         await expect(eli5).toBeVisible();

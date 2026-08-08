@@ -1,77 +1,49 @@
 ---
-title: "Package Permission"
+title: "Package permission"
 sidebar_position: 7
-description: "Which packages the supervised code may import, matched by prefix."
+description: "How import restrictions are enforced, and why this domain is architecture-only."
 ---
 
 :::tip[ELI5]
-Java code borrows tools from libraries by importing them.
+This domain is about which packages student code may import at all.
 
-Some of those tools are harmless, and some are a way straight around the fence. This list
-names the libraries the student's program may borrow from. Naming a package also covers
-everything inside it, so allowing `java.util` allows `java.util.concurrent` too.
+It is decided by reading the bytecode, not by watching the program run.
 :::
 
-## Position in the example policy file
+For the fields an exercise author writes, see
+[Package permission](/instructor/policy-reference/package-permission) in the instructor guide. This page is
+about how the domain is enforced.
 
-The section documented on this page is marked in red. Every page in this section shows the
-same example file, so reading them in order walks it from top to bottom.
+## Model
 
-```yaml title="security-policy.yaml"
-regardingTheSupervisedCode:
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
-  theSupervisedCodeUsesTheFollowingPackage: "org.example"
-  theMainClassInsideThisPackageIs: "Main"
+`PackagePermission`, one record per permitted package prefix.
 
-  theFollowingClassesAreTestClasses:
-    - "org.example.PenguinTest"
+## Validation and normalisation
 
-  theFollowingResourceAccessesArePermitted:
+Prefix matching is boundary aware, so permitting `java.util` does not silently permit
+`java.utilities`.
 
-    regardingFileSystemInteractions:
-      - onThisPathAndAllPathsBelow: "something.txt"
-        readAllFiles: true
-        overwriteAllFiles: true
-        createAllFiles: true
-        executeAllFiles: false
-        deleteAllFiles: false
+## What it generates
 
-    regardingNetworkConnections:
-      - onTheHost: "www.example.com"
-        onThePort: 80
-        openConnections: true
-        sendData: true
-        receiveData: true
+Architecture test cases only.
 
-    regardingCommandExecutions:
-      - executeTheCommand: "ls"
-        withTheseArguments:
-          - "-l"
+## Static enforcement
 
-    regardingThreadCreations:
-      - createTheFollowingNumberOfThreads: 10
-        ofThisClass: "org.example.Worker"
+This is the whole of its enforcement. The rule inspects the imports of the supervised
+bytecode; there is no runtime counterpart, because by the time a class runs its imports have
+already been resolved.
 
-# policy-focus-start
-    regardingPackageImports:
-      - importTheFollowingPackage: "java.util"
-# policy-focus-end
+## Runtime enforcement
 
-    regardingTimeouts:
-      - timeout: 120
-```
+None. A package restriction that a static analyser misses is not caught later.
 
-## Fields
+## Where the code lives
 
-Implemented by `PackagePermission` in
-[`policy/policySubComponents/PackagePermission.java`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/policy/policySubComponents/PackagePermission.java).
+- `policy/policySubComponents/PackagePermission.java`, which is also one of the classes copied
+  into a Precompile-generated exercise (`ArchunitJavaCopyFiles.csv`)
+- `architecture/java/archunit/JavaArchunitTestCaseCollection.java`
 
-| Field | Datatype | Explanation | Example | Regex or Range |
-| --- | --- | --- | --- | --- |
-| `importTheFollowingPackage` | `String` | The package this entry permits, and every package beneath it. | `java.util` | Either the wildcard `*`, or `JAVA_PACKAGE_PATTERN`: a dot-separated Java package name, each segment a Java identifier that is not a reserved word (`\p{javaJavaIdentifierStart}\p{javaJavaIdentifierPart}*`). |
+## Known gaps
 
-## Notes
-
-Matching is by **prefix**. A permitted package `java.util` matches any package whose name starts with it, so `java.util.concurrent` and `java.util.stream` are covered by the single entry above.
-
-`*` is accepted as a whole value by `matchesPackageImport`, which checks for it before falling through to the package pattern. It is not a general glob: `java.*` is not valid.
+Being architecture-only makes this the domain most sensitive to the ArchUnit-versus-WALA
+choice, since the two build their view of the code differently.

@@ -20,10 +20,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * Architecture test for the policy documentation.
  * <p>
- * Every page under {@code documentation/docs/contributor/policy} documents one
- * section of the same example security policy file, and the pages are meant to
- * be read in order: each shows the whole example and marks its own section in
- * red, so that the section as a whole walks the example from top to bottom.
+ * Every domain page under
+ * {@code documentation/docs/instructor/policy-reference} documents one section
+ * of the same example security policy file, and the pages are meant to be read
+ * in order: each shows the whole example and marks its own section in red, so
+ * that the section as a whole walks the example from top to bottom.
  * <p>
  * That only works while every page keeps the identical shape. This test pins
  * that shape, so a page that grows an extra heading, loses its ELI5 box,
@@ -36,7 +37,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 class PolicyDocumentationStructureTest {
 
 	/** The documentation directory, resolved from the module root. */
-	private static final Path POLICY_DOCUMENTATION = Path.of("documentation", "docs", "contributor", "policy");
+	private static final Path POLICY_DOCUMENTATION = Path.of("documentation", "docs", "instructor", "policy-reference");
 
 	/**
 	 * The headings every page must carry, in this order and with nothing else at
@@ -53,9 +54,17 @@ class PolicyDocumentationStructureTest {
 	private static final Pattern YAML_BLOCK = Pattern.compile("```yaml title=\"security-policy\\.yaml\"\\R(.*?)\\R```",
 			Pattern.DOTALL);
 
+	/**
+	 * The eight domain pages, excluding the section index.
+	 * <p>
+	 * The index is a page of this directory but not a domain page: it carries no
+	 * field table and marks no part of the example, so the shared shape asserted
+	 * here does not apply to it.
+	 */
 	private static List<Path> policyPages() throws IOException {
 		try (Stream<Path> entries = Files.list(POLICY_DOCUMENTATION)) {
-			return entries.filter(path -> path.getFileName().toString().endsWith(".md")).sorted().toList();
+			return entries.filter(path -> path.getFileName().toString().endsWith(".md"))
+					.filter(path -> !"index.md".equals(path.getFileName().toString())).sorted().toList();
 		}
 	}
 

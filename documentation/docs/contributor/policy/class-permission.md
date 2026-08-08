@@ -1,85 +1,58 @@
 ---
-title: "Class Permission"
+title: "Class permission"
 sidebar_position: 2
-description: "The classes that are trusted rather than sandboxed, derived from the declared test classes and the essential classes."
+description: "How the derived ClassPermission set is built and how it reaches both enforcement layers."
 ---
 
 :::tip[ELI5]
-Some code has to be allowed to do the things everyone else is forbidden from doing.
+Some classes are trusted rather than sandboxed, and this is where that set comes from.
 
-The test class itself, for example, may need to read a file in order to check that the
-student's program wrote it correctly. If Ares sandboxed the test too, the test could never
-check anything. So the classes listed here get a staff pass: the rules still exist, but
-these classes are on the other side of the counter.
+It is the only permission in the model that nobody writes by hand.
 :::
 
-## Position in the example policy file
+For the fields an exercise author writes, see
+[Class permission](/instructor/policy-reference/class-permission) in the instructor guide. This page is
+about how the domain is enforced.
 
-The section documented on this page is marked in red. Every page in this section shows the
-same example file, so reading them in order walks it from top to bottom.
+## Model
 
-```yaml title="security-policy.yaml"
-regardingTheSupervisedCode:
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
-  theSupervisedCodeUsesTheFollowingPackage: "org.example"
-  theMainClassInsideThisPackageIs: "Main"
+`ClassPermission` is a record, but unlike every other domain it has **no field of its own in
+the policy file**. It is derived. What an author writes is
+`theFollowingClassesAreTestClasses`; see
+[Test class exemptions](/instructor/policy-reference/class-permission) for the field itself.
 
-# policy-focus-start
-  theFollowingClassesAreTestClasses:
-    - "org.example.PenguinTest"
-# policy-focus-end
+## Validation and normalisation
 
-  theFollowingResourceAccessesArePermitted:
+Each declared test class is validated against `JAVA_CLASS_PATH_PATTERN`, a fully qualified
+Java class name. Entries that are `null` or blank are filtered out **before** a
+`ClassPermission` is constructed, because the constructor throws on both and a single
+malformed entry from a scanned project would otherwise abort the creation of every test case.
 
-    regardingFileSystemInteractions:
-      - onThisPathAndAllPathsBelow: "something.txt"
-        readAllFiles: true
-        overwriteAllFiles: true
-        createAllFiles: true
-        executeAllFiles: false
-        deleteAllFiles: false
+## What it generates
 
-    regardingNetworkConnections:
-      - onTheHost: "www.example.com"
-        onThePort: 80
-        openConnections: true
-        sendData: true
-        receiveData: true
+`JavaCreator.prepareAllowedClasses` concatenates two streams into one set: the **essential
+classes**, which are Ares' own infrastructure, and the **declared test classes**.
 
-    regardingCommandExecutions:
-      - executeTheCommand: "ls"
-        withTheseArguments:
-          - "-l"
+## Static enforcement
 
-    regardingThreadCreations:
-      - createTheFollowingNumberOfThreads: 10
-        ofThisClass: "org.example.Worker"
+The set reaches `JavaArchitectureTestCase` as `allowedClasses`, so a call made from a trusted
+class is not reported.
 
-    regardingPackageImports:
-      - importTheFollowingPackage: "java.util"
+## Runtime enforcement
 
-    regardingTimeouts:
-      - timeout: 120
-```
+The same set reaches `JavaAOPTestCase` as `allowedClasses`, and is published by
+`JavaExecuter.executeTestCases` as `allowedListedClasses` **before** `restrictedPackage` arms
+call-stack enforcement. The ordering is deliberate: an instrumented class-loading operation
+must never observe a partially armed policy.
 
-## Fields
+## Where the code lives
 
-Implemented by `ClassPermission` in
-[`policy/policySubComponents/ClassPermission.java`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/policy/policySubComponents/ClassPermission.java).
+- `securitytest/java/creator/JavaCreator.prepareAllowedClasses`, the derivation
+- `policy/policySubComponents/ClassPermission.java`, the record
+- `securitytest/java/executer/JavaExecuter.executeTestCases`, the publication order
 
-| Field | Datatype | Explanation | Example | Regex or Range |
-| --- | --- | --- | --- | --- |
-| `className` | `String` | A fully qualified class name that is trusted and therefore not sandboxed. Never written directly in the policy file; see the note below. | `org.example.PenguinTest` | Must not be `null` and must not be blank. No pattern is applied, because the values are produced internally rather than authored. |
+## Known gaps
 
-## Notes
-
-**This is the one entry in this section with no field of its own in the policy file.** `ClassPermission` is derived, not authored. `JavaCreator.prepareAllowedClasses` builds the set by concatenating two streams:
-
-1. the **essential classes**, which are Ares' own infrastructure, and
-2. the **test classes** declared in `theFollowingClassesAreTestClasses`, the field marked above.
-
-Entries that are `null` or blank are filtered out *before* a `ClassPermission` is constructed, because its constructor throws on both, and one malformed entry from a scanned project would otherwise abort the creation of every test case.
-
-The resulting set reaches both enforcement layers as `allowedClasses`, on `JavaAOPTestCase` and on `JavaArchitectureTestCase`.
-
-Each entry in `theFollowingClassesAreTestClasses` is itself validated against `JAVA_CLASS_PATH_PATTERN`, a fully qualified Java class name.
+Trust is granted by **name**. A class that manages to declare a trusted name inherits the
+trust, which is why the reserved-package build boundary is a deployment prerequisite rather
+than an optional extra. Ares generates that boundary in neither Precompile nor Postcompile.

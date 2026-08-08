@@ -1,78 +1,53 @@
 ---
-title: "Resource Limits"
+title: "Resource limits"
 sidebar_position: 8
-description: "The wall-clock budget the supervised code is given."
+description: "How time and memory budgets are generated, which mechanism enforces them, and which one does not."
 ---
 
 :::tip[ELI5]
-An endless loop never fails on its own. It just runs, and runs, and the build never
-finishes.
+This domain is the clearest example of a policy field that parses without being enforced.
 
-So Ares hands the student's program an egg timer. When the time is up, the program is
-stopped and the test reports a timeout, instead of a build that hangs until someone
-notices.
+Read the gaps section before relying on it.
 :::
 
-## Position in the example policy file
+For the fields an exercise author writes, see
+[Resource limits](/instructor/policy-reference/resource-limits) in the instructor guide. This page is
+about how the domain is enforced.
 
-The section documented on this page is marked in red. Every page in this section shows the
-same example file, so reading them in order walks it from top to bottom.
+## Model
 
-```yaml title="security-policy.yaml"
-regardingTheSupervisedCode:
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
-  theSupervisedCodeUsesTheFollowingPackage: "org.example"
-  theMainClassInsideThisPackageIs: "Main"
+`ResourceLimitsPermission`, carrying the time and memory budgets as a map of named limits.
 
-  theFollowingClassesAreTestClasses:
-    - "org.example.PenguinTest"
+## Validation and normalisation
 
-  theFollowingResourceAccessesArePermitted:
+`JavaResourceLimitsExtractor.collectResourceLimits` normalises the declared limits into
+that map. Unit handling here has been a source of defects, so check the current parser
+rather than assuming.
 
-    regardingFileSystemInteractions:
-      - onThisPathAndAllPathsBelow: "something.txt"
-        readAllFiles: true
-        overwriteAllFiles: true
-        createAllFiles: true
-        executeAllFiles: false
-        deleteAllFiles: false
+## What it generates
 
-    regardingNetworkConnections:
-      - onTheHost: "www.example.com"
-        onThePort: 80
-        openConnections: true
-        sendData: true
-        receiveData: true
+Phobos test cases only. `JavaPhobosTestCase.writePhobosSecurityTestCaseFile` turns the map
+into the `limits` section of `SpecificExercise.cfg`, and `phobos-timeout.sh` reads
+`timeout.sec` from the resolved specification.
 
-    regardingCommandExecutions:
-      - executeTheCommand: "ls"
-        withTheseArguments:
-          - "-l"
+## Static enforcement
 
-    regardingThreadCreations:
-      - createTheFollowingNumberOfThreads: 10
-        ofThisClass: "org.example.Worker"
+None.
 
-    regardingPackageImports:
-      - importTheFollowingPackage: "java.util"
+## Runtime enforcement
 
-# policy-focus-start
-    regardingTimeouts:
-      - timeout: 120
-# policy-focus-end
-```
+Out of process only. The Phobos timeout layer wraps the build command with coreutils
+`timeout`. Nothing inside the JVM consults these values.
 
-## Fields
+## Where the code lives
 
-Implemented by `ResourceLimitsPermission` in
-[`policy/policySubComponents/ResourceLimitsPermission.java`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/policy/policySubComponents/ResourceLimitsPermission.java).
+- `policy/policySubComponents/ResourceLimitsPermission.java`
+- `phobos/JavaPhobosTestCase.writePhobosSecurityTestCaseFile`, the `limits` section
+- `templates/phobos/phobos-timeout.sh`
 
-| Field | Datatype | Explanation | Example | Regex or Range |
-| --- | --- | --- | --- | --- |
-| `timeout` | `long` | The wall-clock budget, in seconds, for the supervised code. | `120` | Range `1` to `Long.MAX_VALUE`. Zero and negative values are rejected, so a policy cannot express an instantly expiring or unbounded budget through this field. |
+## Known gaps
 
-## Notes
-
-`regardingTimeouts` is the one list in `ResourceAccesses` whose restrictive default is not empty: `ResourceAccesses.createRestrictive()` seeds it with `ResourceLimitsPermission.createRestrictive()`. Every other domain defaults to an empty list, which means deny; a timeout has to have *some* value, so the restrictive default is a value rather than an absence.
-
-The field is a `long` rather than an `int`, so the budget is not capped at roughly 68 years of seconds. That is not a practical concern; it simply avoids a needless narrowing.
+**A policy timeout does not bound a Postcompile test today.** `JavaTestCaseFactoryAndBuilder.writeTestCases` passes the Phobos cases to the writer, but
+`executeTestCases` passes only the architecture and AOP cases to the executer, so the limits
+are parsed, validated and written and then never dispatched. This is a pending migration
+rather than a defect. `@StrictTimeout` is the mechanism that actually bounds a test.
