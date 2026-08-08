@@ -53,13 +53,16 @@ class SiteWideDocumentationStructureTest {
 	 */
 	private static final List<String> EXPECTED_INSTRUCTOR_PAGES = List.of(
 			"ares-2/what-does-ares-2-not-protect-against.md", "ares-2/what-does-ares-2-protect-against.md",
-			"ares-2/what-is-ares-2.md", "protect-a-java-project/complete-setup-manual.md",
-			"protect-a-java-project/further-options.md", "protect-a-java-project/github-packages.md",
-			"protect-a-java-project/gradle.md", "protect-a-java-project/installation.md",
-			"protect-a-java-project/maven.md", "protect-a-java-project/policy-configuration.md",
-			"protect-a-java-project/postcompile.md", "protect-a-java-project/precompile.md",
-			"protect-a-java-project/setup.md", "protect-a-java-project/test-annotations.md",
-			"transform-ares-1-into-ares-2.md");
+			"ares-2/what-is-ares-2.md", "policy-cookbook/allowing-exactly-one-host.md", "policy-cookbook/index.md",
+			"policy-cookbook/reading-a-file-from-resources.md", "policy-cookbook/setting-time-and-memory-budgets.md",
+			"policy-cookbook/using-a-library-that-reflects.md", "policy-cookbook/using-threads.md",
+			"policy-cookbook/writing-an-output-file.md", "policy-reference/index.md",
+			"protect-a-java-project/complete-setup-manual.md", "protect-a-java-project/further-options.md",
+			"protect-a-java-project/github-packages.md", "protect-a-java-project/gradle.md",
+			"protect-a-java-project/installation.md", "protect-a-java-project/maven.md",
+			"protect-a-java-project/policy-configuration.md", "protect-a-java-project/postcompile.md",
+			"protect-a-java-project/precompile.md", "protect-a-java-project/setup.md",
+			"protect-a-java-project/test-annotations.md", "transform-ares-1-into-ares-2.md", "troubleshooting.md");
 
 	/** Every page of the contributor guide, as a guide-relative path. */
 	private static final List<String> EXPECTED_CONTRIBUTOR_PAGES = List.of("extending-ares-2/index.md",
