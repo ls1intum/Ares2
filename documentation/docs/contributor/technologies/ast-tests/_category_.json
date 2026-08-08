@@ -1,0 +1,8 @@
+{
+    "label": "Abstract Syntax Tree Tests",
+    "position": 5,
+    "link": {
+        "type": "generated-index",
+        "description": "Structural analysis of the source itself."
+    }
+}
