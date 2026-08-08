@@ -131,7 +131,7 @@ jobs:
       # step failed, so the aggregate still reflects everything that did run.
       - name: Upload coverage execution data
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: jacoco-exec-unit-tests
           path: target/jacoco.exec
@@ -196,7 +196,7 @@ jobs:
 
       - name: Upload coverage execution data
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: jacoco-exec-${{ matrix.slug }}
           path: target/jacoco.exec
@@ -230,7 +230,7 @@ jobs:
 
       - name: Upload coverage execution data
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: jacoco-exec-core-integration-tests
           path: target/jacoco.exec
@@ -258,12 +258,12 @@ jobs:
       contents: read
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v5.7.0
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -274,7 +274,7 @@ jobs:
       # strict: if the test jobs ran but produced no execution data at all, that is a
       # defect in the coverage wiring and should be visible rather than swallowed.
       - name: Download coverage execution data
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: jacoco-exec-*
           path: target/jacoco-exec
@@ -341,7 +341,7 @@ jobs:
 
       - name: Upload coverage report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report
           path: |
