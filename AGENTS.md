@@ -65,3 +65,12 @@ of the body and is a required status check. It verifies that every section exist
 none is empty and that no unfilled stub survived. It deliberately does not require
 checklist boxes to be ticked. It re-runs when the description is edited, so a failure is
 fixed by editing the body rather than by pushing a commit.
+
+Check a body before opening the pull request, from the repository root:
+
+```
+PR_BODY="$(cat body.md)" java .github/scripts/CheckPullRequestTemplate.java
+```
+
+The checker is a single-file Java program, run through the source-code launcher, so it
+needs no build step and adds no language to the repository.

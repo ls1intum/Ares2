@@ -32,10 +32,6 @@ pom.xml    text eol=lf
 # otherwise apply and leave it with CRLF line endings, which makes ./gradlew fail
 # with "bad interpreter" on Linux and macOS.
 gradlew    text eol=lf
-# Python scripts carry a shebang and run on the Linux CI runners. The eol=crlf default
-# above would give them CRLF line endings even on Linux, which breaks direct execution
-# with "bad interpreter" exactly as it would for gradlew.
-*.py       text eol=lf
 # These are explicitly windows files and should use crlf
 *.bat      text eol=crlf
 *.cmd      text eol=crlf
