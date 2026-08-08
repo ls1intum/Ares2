@@ -1,0 +1,36 @@
+name: Pull Request Template
+
+on:
+  pull_request:
+    # No `paths` filter on purpose. This job is a required status check, and a required
+    # check that never runs leaves a pull request blocked rather than passing.
+    branches: [ "main" ]
+    types: [ opened, edited, reopened, ready_for_review, synchronize ]
+
+permissions: {}
+
+concurrency:
+  group: pullrequest-template-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-template:
+    name: pr-template
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The pull request body is untrusted input: on a fork pull request an outside
+      # contributor controls it verbatim. It is therefore passed through the environment
+      # and read with os.environ, never interpolated into the shell with ${{ }}, which
+      # would be a script injection sink.
+      - name: Check the pull request body against the template
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: python3 .github/scripts/check_pull_request_template.py
