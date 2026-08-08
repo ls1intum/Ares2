@@ -30,6 +30,8 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.type.ArrayType;
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
@@ -78,6 +80,18 @@ public class JavaProjectScanner implements ProjectScanner {
 		this.buildConfiguration = Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
 	}
 
+	/**
+	 * The last-resort supervised package, used only when neither the production
+	 * sources nor the compiled production output declares one.
+	 * <p>
+	 * Prefer detection over this hook. A default that the project does not contain
+	 * mis-scopes enforcement silently: the analysis path resolves to a directory
+	 * that does not exist, no class is imported, and no resource domain is
+	 * enforced, while nothing fails. {@link #scanForPackageName()} therefore
+	 * reaches this value only when the project offers nothing to detect.
+	 *
+	 * @return the default package name
+	 */
 	@Nonnull
 	protected String getDefaultPackage() {
 		return "";
@@ -415,6 +429,31 @@ public class JavaProjectScanner implements ProjectScanner {
 		return packageName.isEmpty() ? nestedName : packageName + "." + nestedName;
 	}
 
+	/**
+	 * Derives the supervised package from the project, never from a default that
+	 * the project does not contain.
+	 * <p>
+	 * Resolution runs in three steps, and each falls through only when it finds
+	 * nothing at all:
+	 * <ol>
+	 * <li>the most frequent non-reserved package declared by the production
+	 * <em>sources</em>;</li>
+	 * <li>otherwise the most frequent non-reserved package declared by the compiled
+	 * production <em>output</em>. This covers every project whose build descriptor
+	 * the source-root discovery cannot parse, because the compiled output sits at
+	 * the build tool's own location whatever the descriptor says;</li>
+	 * <li>otherwise {@link #getDefaultPackage()}, with a warning naming the roots
+	 * that were searched. Reaching this step means the project declared nothing to
+	 * detect, and a default the project does not contain mis-scopes enforcement
+	 * silently, so the warning is the only signal a reader gets.</li>
+	 * </ol>
+	 * Step 2 is what keeps step 3 out of reach for a real project. The compiled
+	 * output is authoritative whatever the build descriptor says, because the build
+	 * tool writes it to its own location, so a descriptor that source-root
+	 * discovery cannot parse no longer costs the supervised scope.
+	 *
+	 * @return the supervised package name, possibly empty; never null
+	 */
 	@Override
 	@Nonnull
 	public String scanForPackageName() {
@@ -425,10 +464,69 @@ public class JavaProjectScanner implements ProjectScanner {
 				counts.merge(name, 1L, Long::sum);
 			}
 		}
-		return counts.entrySet().stream()
-				.sorted(Map.Entry.<String, Long>comparingByValue(Comparator.reverseOrder())
-						.thenComparing(Map.Entry::getKey))
-				.map(Map.Entry::getKey).findFirst().orElse(getDefaultPackage());
+		if (counts.isEmpty()) {
+			counts = compiledPackageCounts();
+		}
+		if (counts.isEmpty()) {
+			String defaultPackage = getDefaultPackage();
+			LOG.warn(
+					"No supervised package could be detected: no production source declared one under {} and no compiled class declared one under {}. "
+							+ "Falling back to the configured default \"{}\", which enforces nothing if the project does not contain it.",
+					productionRoots(), productionOutputRoot(), defaultPackage);
+			return defaultPackage;
+		}
+		return counts.entrySet().stream().sorted(
+				Map.Entry.<String, Long>comparingByValue(Comparator.reverseOrder()).thenComparing(Map.Entry::getKey))
+				.map(Map.Entry::getKey).findFirst().orElseThrow();
+	}
+
+	/**
+	 * Counts the non-reserved packages declared by the compiled production classes.
+	 * <p>
+	 * Only top-level classes are counted: a nested or anonymous class produces its
+	 * own class file, so counting every file would weight a package by how many
+	 * inner classes it happens to contain. Blank package names are skipped, which
+	 * also disposes of {@code module-info.class} at the root of the output tree.
+	 *
+	 * @return the package counts, empty when nothing is compiled or readable
+	 */
+	@Nonnull
+	private Map<String, Long> compiledPackageCounts() {
+		Path outputRoot = productionOutputRoot();
+		if (!Files.isDirectory(outputRoot) || !Files.isReadable(outputRoot)) {
+			return Map.of();
+		}
+		Map<String, Long> counts = new HashMap<>();
+		for (JavaClass javaClass : new ClassFileImporter().importPath(outputRoot)) {
+			// The binary name carries the '$', so it is what distinguishes a nested or
+			// anonymous class here. getSimpleName() does not: it answers "Inner" for
+			// Busy$Inner and the empty string for Busy$1.
+			if (javaClass.getName().contains("$")) {
+				continue;
+			}
+			String name = javaClass.getPackageName();
+			if (!name.isBlank() && ReservedPackageGuard.reservedPrefixOf(name) == null) {
+				counts.merge(name, 1L, Long::sum);
+			}
+		}
+		return counts;
+	}
+
+	/**
+	 * Resolves the compiled production output root for the discovered build tool.
+	 * <p>
+	 * Without a build configuration this mirrors
+	 * {@link BuildMode#getClasspath(Path, String)}, which resolves the build-tool
+	 * directory against the working directory of the test run.
+	 *
+	 * @return the production output root; never null
+	 */
+	@Nonnull
+	private Path productionOutputRoot() {
+		if (buildConfiguration != null) {
+			return buildConfiguration.productionOutputRoot();
+		}
+		return Path.of(scanForBuildMode().getBuildDirectory()).toAbsolutePath();
 	}
 
 	@Override

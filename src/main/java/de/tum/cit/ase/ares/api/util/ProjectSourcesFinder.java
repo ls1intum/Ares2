@@ -36,8 +36,21 @@ public final class ProjectSourcesFinder {
 	private static final String DEFAULT_TEST_SOURCE = "src/test/java";
 	private static final Pattern PROPERTY_ASSIGNMENT = Pattern
 			.compile("(?m)^\\s*(?:def|val|var)?\\s*([A-Za-z_][A-Za-z0-9_.-]*)\\s*=\\s*['\"]([^'\"]+)['\"]");
+	// The plural alternative must come first, and the singular one must refuse a
+	// following 's'. Matched the other way round, 'srcDir' consumes the prefix of
+	// 'srcDirs' and the capture starts at the leftover "s = [", which
+	// resolveGradlePath cannot resolve: every srcDirs declaration was then dropped
+	// without a trace, and a project declaring its main sources that way looked to
+	// Ares like a project with no production sources at all.
+	//
+	// Known gaps, deliberately not covered here: Kotlin's setSrcDirs(...) and
+	// srcDirs.set(...)/from(...), and lists spread over several lines. A
+	// line-oriented regex cannot follow the Gradle DSL, and pretending otherwise
+	// trades one silent failure for another. They are non-fatal instead: when the
+	// descriptor cannot be parsed, JavaProjectScanner.scanForPackageName falls back
+	// to the compiled output, which is authoritative whatever the build file says.
 	private static final Pattern SOURCE_DIRECTORY = Pattern
-			.compile("(?:srcDir\\s*(?:\\(\\s*)?|srcDirs\\s*(?:=|\\()\\s*)([^)\\]\\n}]+)");
+			.compile("(?:srcDirs\\s*(?:\\+?=|\\()\\s*|srcDir(?!s)\\s*(?:\\(\\s*)?)([^)\\]\\n}]+)");
 	private static String pomXmlPath = "pom.xml";
 	private static String buildGradlePath = "build.gradle";
 
