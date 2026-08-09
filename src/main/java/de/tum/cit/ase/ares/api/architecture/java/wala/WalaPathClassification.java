@@ -69,6 +69,23 @@ public final class WalaPathClassification {
 	public static final String RESERVED_PACKAGE_PREFIX_VERSION = "1";
 
 	/**
+	 * Version of the build-side contract that enforces
+	 * {@link #RESERVED_PACKAGE_PREFIXES}, which is versioned separately from the
+	 * prefix data because the two change for different reasons.
+	 * <p>
+	 * Version 2 gates every Gradle {@code Test} task, not only {@code check}.
+	 * Version 1 attached the validation to {@code check} alone, and Gradle's Java
+	 * plugin defines {@code check.dependsOn test} rather than the reverse, so
+	 * {@code gradlew test} never ran it: a grading run that invoked only
+	 * {@code test} accepted student classes under a reserved package. The prefix
+	 * data is unchanged, so {@link #RESERVED_PACKAGE_PREFIX_VERSION} stays at 1,
+	 * but an exercise carrying a version 1 snippet is bypassable and must be
+	 * migrated, which is why it must not keep the same identifier.
+	 * </p>
+	 */
+	public static final String RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = "2";
+
+	/**
 	 * Application-loaded subset of {@link #INFRA_PREFIXES} that genuinely indicates
 	 * a transitive false-positive path: the student called a permitted JDK or
 	 * framework API and the JDK or framework internally invoked a forbidden one.

@@ -69,13 +69,32 @@
   Write these steps so that a reviewer who did not write the code can follow them from a
   cold start. Where possible, begin from the perspective "I have an Ares exercise".
 
+  Start from a runnable exercise, do not make the reviewer build one. `examples/`
+  contains `ares-exercise-gradle` and `ares-exercise-maven`; point at one of them and
+  describe only the delta. A reviewer who has to guess how to wire up Ares is testing
+  their own setup rather than your change.
+
+  Name the build tool explicitly, and prefer the one the affected users have. Most
+  Artemis Java exercises are Gradle; a Maven-only manual leaves a Gradle reviewer
+  translating as they go. If the change is build-tool independent, say so.
+
   Prerequisites: which Ares version or branch to build and install, which exercise or
   test repository and which security policy file to use, and any environment requirement
   (JDK, Maven or Gradle, the echo server on port 25565 for network tests, see AGENTS.md).
 
   Steps: numbered, one action per line, with the exact commands.
 
-  Expected result: what a reviewer should see when the change works.
+  Use only platform-independent paths. `/etc/hosts` does not exist on Windows, and
+  neither do `/tmp` or `~/.bashrc` in the form you expect. Create a file such as
+  `secret.txt` in the project directory instead.
+
+  Expected result: state it per step, not once for the whole scenario. "Run `mvn test`
+  again" tells a reviewer nothing about what they are looking for; "run `mvn test` again
+  and confirm that PenguinTest.name() still executes, while Spoof.grab() is neither
+  recognised nor executed as a test method" does. Say what must be observable, and where
+  it is observable: name the log line, the report file or the build output the reviewer
+  should read. If a claim cannot be observed anywhere, either add the diagnostic that
+  makes it observable, or do not ask for it.
 
   Negative case: equally important for a security tool. State what must still be
   rejected, and how a reviewer confirms that Ares has not become more permissive.
@@ -118,22 +137,41 @@
   Coverage is produced by the "Coverage Report" job of the Maven workflow. It merges the
   JaCoCo execution data of every test job, publishes an aggregated table in the job
   summary and uploads a "coverage-report" artefact containing the HTML and CSV report.
-  Read the per-class line coverage out of that report and list every class this pull
-  request adds or changes non-trivially. Leave out rows for purely cosmetic changes.
+  List every class this pull request adds or changes non-trivially, and leave out rows
+  for purely cosmetic changes.
+
+  Report every counter JaCoCo produces per class, not lines alone. Read them from
+  `site/jacoco/jacoco.csv` inside the artefact, where each counter is a MISSED/COVERED
+  column pair: INSTRUCTION, BRANCH, LINE, COMPLEXITY and METHOD. Give each as a
+  percentage with the raw counts behind it, and write those counts as COVERED out of
+  MISSED plus COVERED rather than as the raw pair, for example `81.0% (272/336)` for a
+  class whose LINE_COVERED is 272 and whose LINE_MISSED is 64, so a reviewer can
+  recompute the row. Where a counter has no total at all, for example a class without
+  branches, write `n/a (0/0)` rather than 100%.
+
+  Lines alone hide what matters here. Ares is itself the security boundary, so an
+  untaken branch is a decision that was never enforced under test, and the advice and
+  rule classes are mostly branches. A class can read as well covered by line and still
+  have half of its denial paths never taken; branch coverage is what says so. Method
+  coverage shows how many methods nothing reached at all, and complexity summarises how
+  much of the remaining execution-path space is still untested.
 
   The last column confirms that the covered lines are backed by meaningful assertions,
   not merely executed.
 
   Note that the aggregated figures are repository-wide and that the JaCoCo thresholds
-  are currently advisory, so they do not fail the build.
+  are currently advisory, so they do not fail the build. Only `src/main/java` is
+  reported on, so test classes never appear in the report and do not belong in the
+  table, even though the agent does instrument the ones under `de.tum.cit.ase.ares.api`.
 
-  If this pull request changes no Java code (documentation, CI or build configuration
-  only), replace the table with "No Java code changed".
+  If this pull request changes no production Java code (documentation, CI, build
+  configuration or tests only), replace the table with "No production Java code
+  changed".
 -->
 
-| Class | Line coverage | Confirmation (meaningful assertions) |
-| --- | ---: | :---: |
-|  |  |  |
+| Class | Instruction coverage | Branch coverage | Line coverage | Complexity coverage | Method coverage | Confirmation (meaningful assertions) |
+| --- | ---: | ---: | ---: | ---: | ---: | :---: |
+|  |  |  |  |  |  |  |
 
 ## Breaking changes and migration
 

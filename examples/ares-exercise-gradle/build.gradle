@@ -1,0 +1,100 @@
+// Minimal, runnable Ares 2 exercise (Gradle).
+// Explained step by step in docs/HowToMakeAProjectAnAresProject.md.
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.testing.Test
+import org.gradle.process.CommandLineArgumentProvider
+
+plugins {
+    id 'java'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.2.0'
+}
+
+ext {
+    aresVersion = '2.1.1'
+    aspectjVersion = '1.9.25.1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    // transitive = false is what makes singleFile below safe: each bucket then
+    // holds exactly the one artefact declared for it, so no file-name matching
+    // is needed and no wrong JAR can be picked up.
+    aresAgent {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+    aresAspectjRuntime {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+}
+
+dependencies {
+    aresAgent "de.tum.cit.ase:ares:${aresVersion}:agent"
+    aresAspectjRuntime "org.aspectj:aspectjrt:${aspectjVersion}"
+    testImplementation "de.tum.cit.ase:ares:${aresVersion}"
+    // Puts the Ares JAR on ajc's aspect path. Without this the plugin runs but
+    // weaves nothing, because ajc ignores binary aspects on the plain classpath.
+    aspect "de.tum.cit.ase:ares:${aresVersion}"
+    implementation "org.aspectj:aspectjrt:${aspectjVersion}"
+}
+
+// Computes the test JVM arguments when the test task runs rather than while the
+// build is configured. Declaring the JARs as @InputFiles keeps the build
+// configuration-cache compatible and stops an unrelated task from triggering
+// dependency resolution.
+abstract class AresJvmArguments implements CommandLineArgumentProvider {
+    @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
+    abstract ConfigurableFileCollection getAgentJar()
+
+    @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
+    abstract ConfigurableFileCollection getAspectjRuntimeJar()
+
+    @Override
+    Iterable<String> asArguments() {
+        [
+                "-javaagent:${agentJar.singleFile.absolutePath}".toString(),
+                "-Xbootclasspath/a:${aspectjRuntimeJar.singleFile.absolutePath}".toString(),
+                '--add-exports', 'java.base/java.lang=ALL-UNNAMED',
+                '--add-exports', 'java.base/jdk.internal.misc=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.io=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.net=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.nio=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.nio.channels=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util.concurrent=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util.concurrent.atomic=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util.concurrent.locks=ALL-UNNAMED',
+                '--add-opens', 'java.base/jdk.internal.misc=ALL-UNNAMED',
+                '--add-opens', 'java.base/sun.net.www.protocol.http=ALL-UNNAMED',
+                '--add-opens', 'java.base/sun.net.www.protocol.https=ALL-UNNAMED',
+                '--add-opens', 'java.base/sun.nio.ch=ALL-UNNAMED',
+                '--add-opens', 'jdk.unsupported/sun.misc=ALL-UNNAMED'
+        ]
+    }
+}
+
+def aresJvmArguments = objects.newInstance(AresJvmArguments)
+aresJvmArguments.agentJar.from(configurations.aresAgent)
+aresJvmArguments.aspectjRuntimeJar.from(configurations.aresAspectjRuntime)
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    jvmArgumentProviders.add(aresJvmArguments)
+}
+
+// Ares reserved-package build boundary, version 2. Required; see Section 4 of
+// the manual. It gates every Test task as well as check, because
+// check.dependsOn test and not the reverse.
+apply from: 'gradle/AresReservedPackages.gradle'

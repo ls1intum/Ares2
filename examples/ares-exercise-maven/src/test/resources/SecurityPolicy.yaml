@@ -1,0 +1,28 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "org.example"
+  theMainClassInsideThisPackageIs: "Penguin"
+  theFollowingClassesAreTestClasses:
+    - "org.example.PenguinTest"
+  theFollowingResourceAccessesArePermitted:
+    # Exactly one permitted file, and that is deliberate. Ares adds a static
+    # deny-all rule only while a domain has NO allowance. Under a fully
+    # restrictive file policy, ArchUnit or WALA would reject the forbidden read
+    # before any runtime mechanism was consulted, and the negative control below
+    # would pass even with the agent detached and the weaving switched off. One
+    # allowance makes the runtime layer authoritative for the file domain, so
+    # the negative control actually exercises it.
+    regardingFileSystemInteractions:
+      - readAllFiles: true
+        overwriteAllFiles: false
+        createAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "allowed.txt"
+    regardingNetworkConnections: [ ]
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations: [ ]
+    regardingPackageImports: [ ]
+    regardingTimeouts:
+      - timeout: 3000

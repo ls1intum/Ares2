@@ -71,11 +71,17 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 public class CustomCallgraphBuilder {
 
 	/**
-	 * Canonical code-source locations of the concrete framework artefacts loaded by
-	 * Ares. Trust is an origin decision: filenames and directory fragments are
-	 * entirely student-controlled and must never remove an entry from WALA's scope.
+	 * Canonical code-source locations of the concrete framework artefacts that Ares
+	 * always ships. Trust is an origin decision: filenames and directory fragments
+	 * are entirely student-controlled and must never remove an entry from WALA's
+	 * scope.
+	 * <p>
+	 * Every entry here comes from a compile-scope dependency, so the class literals
+	 * are guaranteed to resolve in any consumer and keep their compile-time
+	 * checking. Optional frameworks must never be added to this list; see
+	 * {@link #OPTIONAL_FRAMEWORK_CANDIDATE_CODE_SOURCES}.
 	 */
-	private static final Set<Path> TRUSTED_FRAMEWORK_CODE_SOURCES = trustedFrameworkCodeSources(
+	private static final Set<Path> REQUIRED_TRUSTED_FRAMEWORK_CODE_SOURCES = trustedFrameworkCodeSources(
 			CustomCallgraphBuilder.class, CallGraph.class, JavaClasses.class, org.apiguardian.api.API.class,
 			org.aspectj.lang.JoinPoint.class, org.assertj.core.api.Assertions.class, org.hamcrest.Matcher.class,
 			org.junit.Test.class, org.junit.jupiter.api.Test.class, org.junit.jupiter.params.ParameterizedTest.class,
@@ -83,13 +89,47 @@ public class CustomCallgraphBuilder {
 			org.junit.platform.engine.TestDescriptor.class, org.junit.platform.launcher.Launcher.class,
 			org.junit.platform.testkit.engine.EngineTestKit.class, org.mockito.Mockito.class,
 			org.opentest4j.AssertionFailedError.class, net.bytebuddy.ByteBuddy.class,
-			net.bytebuddy.agent.ByteBuddyAgent.class, net.jqwik.api.Property.class,
-			net.jqwik.engine.JqwikTestEngine.class);
+			net.bytebuddy.agent.ByteBuddyAgent.class);
+
+	/**
+	 * Fully qualified names of the optional framework classes whose origins may be
+	 * trusted when they are present.
+	 * <p>
+	 * jqwik is a {@code provided}-scope dependency, so it is absent from every
+	 * consumer that does not depend on it directly. Referencing it through a class
+	 * literal in a static initialiser made the whole class unusable in those
+	 * consumers, because the resulting {@link NoClassDefFoundError} is raised while
+	 * the argument array is built and therefore escapes the defensive handling in
+	 * {@link #trustedFrameworkCodeSources(Class...)}. Resolving these by name keeps
+	 * the optionality explicit and confined to the frameworks that really are
+	 * optional.
+	 */
+	private static final List<String> OPTIONAL_FRAMEWORK_CLASS_NAMES = List.of("net.jqwik.api.Property", //$NON-NLS-1$
+			"net.jqwik.engine.JqwikTestEngine"); //$NON-NLS-1$
+
+	/**
+	 * Candidate code-source locations of the optional frameworks. These are
+	 * candidates, not trusted origins: they become effective only after
+	 * {@link #effectiveTrustedFrameworkCodeSources(String)} has proven that none of
+	 * them lies inside the supervised project, and only ever as a complete set.
+	 */
+	private static final Set<Path> OPTIONAL_FRAMEWORK_CANDIDATE_CODE_SOURCES = optionalFrameworkCandidateCodeSources();
+
+	/**
+	 * Trusted framework origins effective for this analysis session, derived from
+	 * the unfiltered classpath handed to the constructor.
+	 */
+	private final Set<Path> trustedFrameworkCodeSources;
+
+	/**
+	 * The filtered classpath this builder's scope, hierarchy and trust boundary
+	 * were derived from. A builder cannot analyse anything else.
+	 */
+	private final String constructionClassPath;
 
 	private final ClassFileImporter classFileImporter;
 	private final AnalysisScope scope;
 	private final ClassHierarchy classHierarchy;
-	private String analysedClassPath;
 	private CallGraph callGraph;
 
 	/**
@@ -99,8 +139,11 @@ public class CustomCallgraphBuilder {
 	 */
 	public CustomCallgraphBuilder(String classPath) {
 		this.classFileImporter = new ClassFileImporter();
-		String filteredClassPath = filterClassPath(classPath);
-		String expandedClassPath = expandClassPathWithReachableDependencies(filteredClassPath);
+		this.trustedFrameworkCodeSources = effectiveTrustedFrameworkCodeSources(classPath);
+		String filteredClassPath = filterClassPath(classPath, trustedFrameworkCodeSources);
+		this.constructionClassPath = filteredClassPath;
+		String expandedClassPath = expandClassPathWithReachableDependencies(filteredClassPath,
+				trustedFrameworkCodeSources);
 		try {
 			this.scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(expandedClassPath,
 					FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates", "architecture", "java",
@@ -121,7 +164,7 @@ public class CustomCallgraphBuilder {
 	 * dispatch over every unrelated {@link Runnable} implementation prohibitively
 	 * expensive.
 	 */
-	private static String expandClassPathWithReachableDependencies(String classPath) {
+	private static String expandClassPathWithReachableDependencies(String classPath, Set<Path> trustedCodeSources) {
 		LinkedHashSet<String> entries = Arrays.stream(classPath.split(File.pathSeparator))
 				.filter(entry -> !entry.isBlank()).collect(Collectors.toCollection(LinkedHashSet::new));
 		Set<Path> projectClassRoots = discoverProjectClassRoots(entries);
@@ -140,7 +183,7 @@ public class CustomCallgraphBuilder {
 			}
 		}
 
-		addReachableDependencies(entries, pending, importer, projectClassRoots);
+		addReachableDependencies(entries, pending, importer, projectClassRoots, trustedCodeSources);
 		return String.join(File.pathSeparator, entries);
 	}
 
@@ -149,16 +192,24 @@ public class CustomCallgraphBuilder {
 	 * imported application classes. This is the same dependency expansion used for
 	 * the WALA scope and therefore invalidates cached verdicts when a reachable JAR
 	 * or class directory is replaced at the same path.
+	 * <p>
+	 * Only required framework origins are excluded here. This method has no
+	 * analysis classpath and therefore no supervised-project boundary to validate
+	 * optional origins against, so applying optional trust could drop
+	 * student-controlled bytecode from the fingerprint and leave a stale verdict
+	 * cached. Excluding less is always safe for a cache key; excluding too much is
+	 * not.
 	 */
 	static String dependencyFingerprint(JavaClasses applicationClasses) {
 		LinkedHashSet<String> entries = new LinkedHashSet<>();
 		Deque<JavaClass> pending = new ArrayDeque<>(applicationClasses);
-		addReachableDependencies(entries, pending, new ClassFileImporter(), Set.of());
+		addReachableDependencies(entries, pending, new ClassFileImporter(), Set.of(),
+				REQUIRED_TRUSTED_FRAMEWORK_CODE_SOURCES);
 		return fingerprintAnalysisEntries(entries);
 	}
 
 	private static void addReachableDependencies(LinkedHashSet<String> entries, Deque<JavaClass> pending,
-			ClassFileImporter importer, Set<Path> projectClassRoots) {
+			ClassFileImporter importer, Set<Path> projectClassRoots, Set<Path> trustedCodeSources) {
 		Set<String> visitedClasses = new HashSet<>();
 		Map<String, JavaClasses> importedJars = new HashMap<>();
 		while (!pending.isEmpty()) {
@@ -194,7 +245,7 @@ public class CustomCallgraphBuilder {
 					throw new SecurityException("Could not derive a classpath entry for reachable dependency " //$NON-NLS-1$
 							+ targetName);
 				}
-				if (isTrustedFrameworkLocation(location, classpathEntry.get())) {
+				if (isTrustedFrameworkLocation(location, classpathEntry.get(), trustedCodeSources)) {
 					visitedClasses.add(targetName);
 					continue;
 				}
@@ -321,16 +372,17 @@ public class CustomCallgraphBuilder {
 		}
 	}
 
-	private static boolean isTrustedFrameworkLocation(String classpathEntry) {
+	private static boolean isTrustedFrameworkLocation(String classpathEntry, Set<Path> trustedCodeSources) {
 		try {
-			return TRUSTED_FRAMEWORK_CODE_SOURCES.contains(Path.of(classpathEntry).toRealPath());
+			return trustedCodeSources.contains(Path.of(classpathEntry).toRealPath());
 		} catch (IOException | RuntimeException unavailableLocation) {
 			return false;
 		}
 	}
 
-	private static boolean isTrustedFrameworkLocation(URL classResource, String classpathEntry) {
-		if (isTrustedFrameworkLocation(classpathEntry)) {
+	private static boolean isTrustedFrameworkLocation(URL classResource, String classpathEntry,
+			Set<Path> trustedCodeSources) {
+		if (isTrustedFrameworkLocation(classpathEntry, trustedCodeSources)) {
 			return true;
 		}
 		if (!"file".equals(classResource.getProtocol())) { //$NON-NLS-1$
@@ -338,9 +390,113 @@ public class CustomCallgraphBuilder {
 		}
 		try {
 			Path classFile = Path.of(classResource.toURI()).toRealPath();
-			return TRUSTED_FRAMEWORK_CODE_SOURCES.stream().filter(Files::isDirectory).anyMatch(classFile::startsWith);
+			return trustedCodeSources.stream().filter(Files::isDirectory).anyMatch(classFile::startsWith);
 		} catch (IOException | java.net.URISyntaxException | RuntimeException unavailableLocation) {
 			return false;
+		}
+	}
+
+	/**
+	 * Resolves the trusted framework origins effective for one analysis session.
+	 * <p>
+	 * Required origins are always trusted. Optional origins are admitted only as a
+	 * complete set, and only once every candidate has been proven to lie outside
+	 * the supervised project. A student who places a forged {@code net.jqwik.api}
+	 * class in the project's own output tree therefore cannot have that output tree
+	 * dropped from WALA's scope. This cannot authenticate an unsigned artefact that
+	 * a student supplies from elsewhere on the classpath; that requires the
+	 * reserved-package boundary to cover every framework namespace.
+	 *
+	 * @param rawClassPath the unfiltered classpath handed to this analysis
+	 * @return the effective trusted origins, never {@code null}
+	 */
+	private static Set<Path> effectiveTrustedFrameworkCodeSources(String rawClassPath) {
+		return effectiveTrustedFrameworkCodeSources(rawClassPath, OPTIONAL_FRAMEWORK_CANDIDATE_CODE_SOURCES);
+	}
+
+	static Set<Path> effectiveTrustedFrameworkCodeSources(String rawClassPath, Set<Path> optionalCandidates) {
+		if (optionalCandidates.isEmpty()) {
+			return REQUIRED_TRUSTED_FRAMEWORK_CODE_SOURCES;
+		}
+		Set<Path> supervisedRoots = supervisedOriginRoots(rawClassPath);
+		for (Path candidate : optionalCandidates) {
+			if (isBeneathAny(candidate, supervisedRoots)) {
+				// All-or-nothing: one candidate inside the supervised project discards
+				// every optional origin rather than admitting a partially forged set.
+				return REQUIRED_TRUSTED_FRAMEWORK_CODE_SOURCES;
+			}
+		}
+		LinkedHashSet<Path> effective = new LinkedHashSet<>(REQUIRED_TRUSTED_FRAMEWORK_CODE_SOURCES);
+		effective.addAll(optionalCandidates);
+		return Set.copyOf(effective);
+	}
+
+	/**
+	 * Derives the supervised project boundary from the original, unfiltered
+	 * classpath entries. Both the conventional class-output roots and the project
+	 * roots containing them are returned, so a candidate anywhere in the project
+	 * tree is recognised.
+	 */
+	private static Set<Path> supervisedOriginRoots(String rawClassPath) {
+		LinkedHashSet<String> entries = Arrays.stream(rawClassPath.split(File.pathSeparator))
+				.filter(entry -> !entry.isBlank()).collect(Collectors.toCollection(LinkedHashSet::new));
+		LinkedHashSet<Path> roots = new LinkedHashSet<>();
+		for (Path outputRoot : discoverProjectClassRoots(entries)) {
+			canonicalOrigin(outputRoot).ifPresent(roots::add);
+			canonicalOrigin(containingProjectRoot(outputRoot)).ifPresent(roots::add);
+		}
+		return Set.copyOf(roots);
+	}
+
+	private static boolean isBeneathAny(Path candidate, Set<Path> roots) {
+		return roots.stream().anyMatch(root -> candidate.equals(root) || candidate.startsWith(root));
+	}
+
+	private static Optional<Path> canonicalOrigin(Path path) {
+		try {
+			return Optional.of(path.toRealPath());
+		} catch (IOException | RuntimeException unavailableLocation) {
+			return Optional.empty();
+		}
+	}
+
+	/**
+	 * Resolves the code sources of the optional frameworks, all of them or none.
+	 * <p>
+	 * Every name is probed with the loader that defined this class and without
+	 * running the framework's static initialisers. A single unresolvable name, an
+	 * unprovable origin, or any linkage failure yields an empty set, so a partially
+	 * present framework can never contribute a lone trusted origin.
+	 */
+	private static Set<Path> optionalFrameworkCandidateCodeSources() {
+		return optionalFrameworkCandidateCodeSources(OPTIONAL_FRAMEWORK_CLASS_NAMES);
+	}
+
+	static Set<Path> optionalFrameworkCandidateCodeSources(List<String> optionalFrameworkClassNames) {
+		ClassLoader definingLoader = CustomCallgraphBuilder.class.getClassLoader();
+		LinkedHashSet<Path> candidates = new LinkedHashSet<>();
+		for (String frameworkClassName : optionalFrameworkClassNames) {
+			Optional<Path> codeSource = optionalFrameworkCodeSource(frameworkClassName, definingLoader);
+			if (codeSource.isEmpty()) {
+				return Set.of();
+			}
+			candidates.add(codeSource.get());
+		}
+		return Set.copyOf(candidates);
+	}
+
+	private static Optional<Path> optionalFrameworkCodeSource(String frameworkClassName, ClassLoader definingLoader) {
+		try {
+			Class<?> frameworkClass = Class.forName(frameworkClassName, false, definingLoader);
+			var codeSource = frameworkClass.getProtectionDomain().getCodeSource();
+			if (codeSource == null || codeSource.getLocation() == null) {
+				return Optional.empty();
+			}
+			return Optional.of(Path.of(codeSource.getLocation().toURI()).toRealPath());
+		} catch (ClassNotFoundException | IOException | java.net.URISyntaxException | RuntimeException
+				| LinkageError unavailableLocation) {
+			// If an origin cannot be proven, do not trust it and leave it in the scope.
+			return Optional.empty();
 		}
 	}
 
@@ -452,10 +608,10 @@ public class CustomCallgraphBuilder {
 	 * analysis: only entries actually referenced from student-code entry points end
 	 * up in the call graph.
 	 */
-	private static String filterClassPath(String classPath) {
+	private static String filterClassPath(String classPath, Set<Path> trustedCodeSources) {
 		String[] entries = classPath.split(File.pathSeparator);
 		LinkedHashSet<String> kept = Arrays.stream(entries).filter(entry -> !entry.isBlank())
-				.filter(entry -> !isTrustedFrameworkLocation(entry))
+				.filter(entry -> !isTrustedFrameworkLocation(entry, trustedCodeSources))
 				.collect(Collectors.toCollection(LinkedHashSet::new));
 
 		// Ares' BuildMode.getClasspath narrows the analysis classpath to a single
@@ -567,12 +723,16 @@ public class CustomCallgraphBuilder {
 	 * @return the constructed or cached call graph
 	 */
 	public synchronized CallGraph buildCallGraph(String classPathToAnalyze) {
-		String filteredClassPathToAnalyse = filterClassPath(classPathToAnalyze);
+		String filteredClassPathToAnalyse = filterClassPath(classPathToAnalyze, trustedFrameworkCodeSources);
 		validateClassPath(filteredClassPathToAnalyse);
+		// The class hierarchy and the effective trust boundary are both fixed at
+		// construction time from the constructor's classpath. Analysing a different
+		// target would silently reuse them, so reject it on the first call too and
+		// not only once a graph has been cached.
+		if (!constructionClassPath.equals(filteredClassPathToAnalyse)) {
+			throw new SecurityException(Messages.localized("security.architecture.build.call.graph.error"));
+		}
 		if (callGraph != null) {
-			if (!analysedClassPath.equals(filteredClassPathToAnalyse)) {
-				throw new SecurityException(Messages.localized("security.architecture.build.call.graph.error"));
-			}
 			return callGraph;
 		}
 		try {
@@ -611,7 +771,6 @@ public class CustomCallgraphBuilder {
 			// takes effect.
 			options.setSelector(new JdkOpaqueMethodTargetSelector(options.getMethodTargetSelector(), classHierarchy));
 			callGraph = builder.makeCallGraph(options, null);
-			analysedClassPath = filteredClassPathToAnalyse;
 			return callGraph;
 		} catch (Exception e) {
 			// Chain the cause so a genuine analysis failure is diagnosable and never
