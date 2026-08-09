@@ -1,80 +1,57 @@
 ---
-title: "Programming Language Configuration"
+title: "Programming language configuration"
 sidebar_position: 1
-description: "The pipeline selector and the identity of the supervised code: build system, static analysis tool, instrumentation backend, root package and main class."
+description: "How the configuration value is dispatched into a director, an analyser and a weaving mechanism."
 ---
 
 :::tip[ELI5]
-Before Ares can guard anything, it has to know **what it is guarding and how**.
+This one field decides which of Ares 2's interchangeable engines actually run.
 
-Think of it like hiring a security guard for a building. First you tell the guard which
-building it is (the package), where the front door is (the main class), and which set of
-tools they should bring (Maven or Gradle, ArchUnit or WALA, AspectJ or instrumentation).
-None of that says what is forbidden yet. It just sets up who is on duty and where.
+Everything else in the policy says *what* is allowed. This says *who enforces it*.
 :::
 
-## Position in the example policy file
+For the fields an exercise author writes, see
+[Programming language configuration](/instructor/policy-reference/programming-language-configuration) in the instructor guide. This page is
+about how the domain is enforced.
 
-The section documented on this page is marked in red. Every page in this section shows the
-same example file, so reading them in order walks it from top to bottom.
+## Model
 
-```yaml title="security-policy.yaml"
-regardingTheSupervisedCode:
-# policy-focus-start
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
-  theSupervisedCodeUsesTheFollowingPackage: "org.example"
-  theMainClassInsideThisPackageIs: "Main"
-# policy-focus-end
+`ProgrammingLanguageConfiguration` is an enum, not a record: eight values, each naming a
+language, a build tool, an architecture analyser and a weaving mechanism. It is the only
+policy field that selects code paths rather than permissions.
 
-  theFollowingClassesAreTestClasses:
-    - "org.example.PenguinTest"
+## Validation and normalisation
 
-  theFollowingResourceAccessesArePermitted:
+The value is parsed by the reader and must match an enum constant exactly. `getNameRules()`
+maps every Java value onto `JavaNameRules.INSTANCE`, which is what makes the enum extensible
+to a second language without touching the reader.
 
-    regardingFileSystemInteractions:
-      - onThisPathAndAllPathsBelow: "something.txt"
-        readAllFiles: true
-        overwriteAllFiles: true
-        createAllFiles: true
-        executeAllFiles: false
-        deleteAllFiles: false
+## What it generates
 
-    regardingNetworkConnections:
-      - onTheHost: "www.example.com"
-        onThePort: 80
-        openConnections: true
-        sendData: true
-        receiveData: true
+Nothing directly. It selects the director, and the director builds the
+`TestCaseAbstractFactoryAndBuilder` that generates everything else.
 
-    regardingCommandExecutions:
-      - executeTheCommand: "ls"
-        withTheseArguments:
-          - "-l"
+## Static enforcement
 
-    regardingThreadCreations:
-      - createTheFollowingNumberOfThreads: 10
-        ofThisClass: "org.example.Worker"
+Chooses between ArchUnit and WALA for every architecture test case in the run. The two are
+meant to reach the same verdicts; a disagreement between them is a finding, not a tuning
+parameter.
 
-    regardingPackageImports:
-      - importTheFollowingPackage: "java.util"
+## Runtime enforcement
 
-    regardingTimeouts:
-      - timeout: 120
-```
+Chooses between AspectJ weaving and Byte Buddy instrumentation. Note that this axis is
+**independent** of Precompile and Postcompile: `examples/ares-exercise-gradle` runs an
+`_ASPECTJ` configuration in Postcompile, and the Precompile generator can emit
+instrumentation.
 
-## Fields
+## Where the code lives
 
-Implemented by `SupervisedCode` in
-[`policy/policySubComponents/SupervisedCode.java`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/policy/policySubComponents/SupervisedCode.java).
+- `policy/policySubComponents/ProgrammingLanguageConfiguration.java`, the enum and its name rules
+- `policy/director/SecurityPolicyDirector.selectSecurityPolicyDirector`, which dispatches on it
+- `policy/director/java/SecurityPolicyJavaDirector.generateFactoryAndBuilder`, which turns the
+  value into a `BuildMode`, an `ArchitectureMode` and an `AOPMode`
 
-| Field | Datatype | Explanation | Example | Regex or Range |
-| --- | --- | --- | --- | --- |
-| `theFollowingProgrammingLanguageConfigurationIsUsed` | enum `ProgrammingLanguageConfiguration` | Selects the whole supervision pipeline: build system, static analysis tool and runtime instrumentation backend. Required. | `JAVA_USING_MAVEN_WALA_AND_ASPECTJ` | `^JAVA_USING_(?:MAVEN\|GRADLE)_(?:ARCHUNIT\|WALA)_AND_(?:ASPECTJ\|INSTRUMENTATION)$` |
-| `theSupervisedCodeUsesTheFollowingPackage` | `String` (nullable) | The root package holding the student code to supervise. May be omitted, in which case the project is scanned. | `org.example` | `JAVA_PACKAGE_PATTERN`: a dot-separated Java package name, each segment a Java identifier that is not a reserved word (`\p{javaJavaIdentifierStart}\p{javaJavaIdentifierPart}*`) |
-| `theMainClassInsideThisPackageIs` | `String` (nullable) | The entrypoint class used to build the call graph of the student program. | `Main` | `JAVA_CLASS_NAME_PATTERN`: a single Java type name, excluding `var`, `yield`, `record`, `sealed` and `permits` |
+## Known gaps
 
-## Notes
-
-The eight accepted values are the full cross product of the three dimensions: `MAVEN`/`GRADLE` × `ARCHUNIT`/`WALA` × `ASPECTJ`/`INSTRUMENTATION`. CI exercises all four analysis and weaving combinations on every change.
-
-Both nullable fields are validated only when present; a `null` is accepted and triggers project discovery instead. A blank string is not the same as absent and is rejected.
+With no policy at all there is no explicitly selected build tool, so a project carrying both a
+`pom.xml` and a `build.gradle` is rejected during discovery rather than guessed at.

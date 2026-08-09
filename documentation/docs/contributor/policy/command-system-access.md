@@ -1,78 +1,50 @@
 ---
-title: "Command System Access"
+title: "Command system access"
 sidebar_position: 5
-description: "Which external commands the supervised code may execute, and with which arguments."
+description: "How permitted executables and arguments are enforced, and why this domain has no Phobos section."
 ---
 
 :::tip[ELI5]
-Sometimes a program needs to ask the operating system to run another program.
+This domain governs starting other programs.
 
-That is an enormous hole if left open, because it can be used to run anything at all. So
-Ares keeps a short list of exactly which commands may be run, and exactly which arguments
-they may be run with. Nothing else is allowed to start.
+It is the smallest surface and the one with the widest blast radius if it is wrong.
 :::
 
-## Position in the example policy file
+For the fields an exercise author writes, see
+[Command system access](/instructor/policy-reference/command-system-access) in the instructor guide. This page is
+about how the domain is enforced.
 
-The section documented on this page is marked in red. Every page in this section shows the
-same example file, so reading them in order walks it from top to bottom.
+## Model
 
-```yaml title="security-policy.yaml"
-regardingTheSupervisedCode:
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
-  theSupervisedCodeUsesTheFollowingPackage: "org.example"
-  theMainClassInsideThisPackageIs: "Main"
+`CommandPermission`, naming an executable and the arguments it may be started with.
 
-  theFollowingClassesAreTestClasses:
-    - "org.example.PenguinTest"
+## Validation and normalisation
 
-  theFollowingResourceAccessesArePermitted:
+The executable and its argument list are validated separately, so a permitted executable
+does not imply permitted arguments.
 
-    regardingFileSystemInteractions:
-      - onThisPathAndAllPathsBelow: "something.txt"
-        readAllFiles: true
-        overwriteAllFiles: true
-        createAllFiles: true
-        executeAllFiles: false
-        deleteAllFiles: false
+## What it generates
 
-    regardingNetworkConnections:
-      - onTheHost: "www.example.com"
-        onThePort: 80
-        openConnections: true
-        sendData: true
-        receiveData: true
+Architecture and AOP test cases. Unlike the file-system and network domains, this one has
+**no** Phobos section: `JavaPhobosTestCaseSupported` covers only filesystem, network and
+timeout.
 
-# policy-focus-start
-    regardingCommandExecutions:
-      - executeTheCommand: "ls"
-        withTheseArguments:
-          - "-l"
-# policy-focus-end
+## Static enforcement
 
-    regardingThreadCreations:
-      - createTheFollowingNumberOfThreads: 10
-        ofThisClass: "org.example.Worker"
+Matched against `command-execution-methods.txt`.
 
-    regardingPackageImports:
-      - importTheFollowingPackage: "java.util"
+## Runtime enforcement
 
-    regardingTimeouts:
-      - timeout: 120
-```
+`JavaInstrumentationAdviceCommandSystemToolbox`, or the corresponding aspect.
 
-## Fields
+## Where the code lives
 
-Implemented by `CommandPermission` in
-[`policy/policySubComponents/CommandPermission.java`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/policy/policySubComponents/CommandPermission.java).
+- `policy/policySubComponents/CommandPermission.java`
+- `aop/java/instrumentation/advice/JavaInstrumentationAdviceCommandSystemToolbox.java`
+- `templates/architecture/java/archunit/methods/command-execution-methods.txt`
 
-| Field | Datatype | Explanation | Example | Regex or Range |
-| --- | --- | --- | --- | --- |
-| `executeTheCommand` | `String` | The command this entry permits. | `ls` | Must not be `null` and must not be blank. No pattern is applied: a command name is an operating-system concept, not a Java one. |
-| `withTheseArguments` | `List<String>` | The arguments the command may be executed with. Stored as an unmodifiable defensive copy. | `["-l"]` | Must not be `null`. An empty list means the command may be run without arguments; `allowWithoutArguments` is the shorthand for that. |
+## Known gaps
 
-## Notes
-
-`CommandPermission` also accepts a plain string through a delegating `@JsonCreator`, so a policy may write a bare command instead of the mapping form. `fromString` splits it into the command and its arguments.
-
-The argument list is copied defensively and wrapped unmodifiable, so the record is genuinely immutable and a caller cannot widen a permission after construction.
+Because there is no Phobos section for this domain, a subprocess started outside the JVM is not
+constrained by the policy even when the Phobos wrapper is active. The filesystem and network
+sandboxes still apply to it.

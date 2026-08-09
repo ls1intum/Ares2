@@ -1,83 +1,53 @@
 ---
-title: "File System Access"
+title: "File system access"
 sidebar_position: 3
-description: "Which paths the supervised code may read, overwrite, create, execute or delete."
+description: "How read, overwrite, execute and delete permissions are enforced by the architecture layer, the advice and Phobos."
 ---
 
 :::tip[ELI5]
-This is a list of doors the student's program is allowed to open, and what it may do once
-inside each one.
+This is the domain with the most ways to reach it, so it has the most enforcement surface.
 
-Every door not on the list is locked. And being allowed through a door does not mean you
-may do anything in the room: reading a file, replacing it, creating it, running it and
-deleting it are five separate permissions, each switched on or off by itself.
+Three independent layers can each stop a file operation, and they do not all behave alike.
 :::
 
-## Position in the example policy file
+For the fields an exercise author writes, see
+[File system access](/instructor/policy-reference/file-system-access) in the instructor guide. This page is
+about how the domain is enforced.
 
-The section documented on this page is marked in red. Every page in this section shows the
-same example file, so reading them in order walks it from top to bottom.
+## Model
 
-```yaml title="security-policy.yaml"
-regardingTheSupervisedCode:
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
-  theSupervisedCodeUsesTheFollowingPackage: "org.example"
-  theMainClassInsideThisPackageIs: "Main"
+`FilePermission`, one record per path, carrying the four booleans for read, overwrite, execute
+and delete.
 
-  theFollowingClassesAreTestClasses:
-    - "org.example.PenguinTest"
+## Validation and normalisation
 
-  theFollowingResourceAccessesArePermitted:
+Paths are normalised before comparison. The distinction that matters is create versus
+overwrite: the advice reserves "create" for APIs that specifically create a new file.
 
-# policy-focus-start
-    regardingFileSystemInteractions:
-      - onThisPathAndAllPathsBelow: "something.txt"
-        readAllFiles: true
-        overwriteAllFiles: true
-        createAllFiles: true
-        executeAllFiles: false
-        deleteAllFiles: false
-# policy-focus-end
+## What it generates
 
-    regardingNetworkConnections:
-      - onTheHost: "www.example.com"
-        onThePort: 80
-        openConnections: true
-        sendData: true
-        receiveData: true
+Architecture test cases, AOP test cases and Phobos test cases. The Phobos path turns the
+permissions into the `readonly` and `write` sections of `SpecificExercise.cfg`.
 
-    regardingCommandExecutions:
-      - executeTheCommand: "ls"
-        withTheseArguments:
-          - "-l"
+## Static enforcement
 
-    regardingThreadCreations:
-      - createTheFollowingNumberOfThreads: 10
-        ofThisClass: "org.example.Worker"
+`JavaArchunitTestCaseCollection` for ArchUnit, or the WALA call-graph equivalent, matched
+against `templates/architecture/java/archunit/methods/file-system-access-methods.txt`. A
+domain with **no** allowance at all gets a static deny-all rule, which is why a negative
+control needs at least one permitted file to exercise the runtime layer.
 
-    regardingPackageImports:
-      - importTheFollowingPackage: "java.util"
+## Runtime enforcement
 
-    regardingTimeouts:
-      - timeout: 120
-```
+`JavaInstrumentationAdviceFileSystemToolbox`, or the AspectJ aspect for the same join points.
 
-## Fields
+## Where the code lives
 
-Implemented by `FilePermission` in
-[`policy/policySubComponents/FilePermission.java`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/policy/policySubComponents/FilePermission.java).
+- `policy/policySubComponents/FilePermission.java`
+- `aop/java/instrumentation/advice/JavaInstrumentationAdviceFileSystemToolbox.java`
+- `architecture/java/archunit/JavaArchunitTestCaseCollection.java`
+- `phobos/JavaPhobosTestCase.writePhobosSecurityTestCaseFile`, the `readonly` and `write` sections
 
-| Field | Datatype | Explanation | Example | Regex or Range |
-| --- | --- | --- | --- | --- |
-| `onThisPathAndAllPathsBelow` | `String` | The path this entry governs, and everything beneath it. | `something.txt` | `FILE_PATH_PATTERN`: either `*`, or a non-blank path containing no `*` and no NUL byte, which must not traverse upwards with `..`. The placeholders `${PROJECT_ROOT}`, `${java.home}`, `${user.home}` and `${java.io.tmpdir}` are recognised; any other `${...}` is rejected. |
-| `readAllFiles` | `boolean` | Permits reading below the path. | `true` | `true` or `false`. Absent means `false`. |
-| `overwriteAllFiles` | `boolean` | Permits replacing the contents of existing files below the path. | `true` | `true` or `false`. Absent means `false`. |
-| `createAllFiles` | `boolean` | Permits creating new files below the path. | `true` | `true` or `false`. Absent means `false`. |
-| `executeAllFiles` | `boolean` | Permits executing files below the path. | `false` | `true` or `false`. Absent means `false`. |
-| `deleteAllFiles` | `boolean` | Permits deleting files below the path. | `false` | `true` or `false`. Absent means `false`. |
+## Known gaps
 
-## Notes
-
-`createRestrictive(path)` builds an entry that names a path and grants nothing, which is how a deny-all default is expressed for a path that must still be mentioned.
-
-The `..` rejection is a security property rather than a convenience: without it a policy entry could name a path inside the project and resolve to one outside it.
+The Phobos sections are written but only enforced when the Phobos wrapper runs the build. In
+Postcompile the Phobos cases are generated and never dispatched.

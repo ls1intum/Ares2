@@ -1,78 +1,52 @@
 ---
-title: "Thread System Access"
+title: "Thread system access"
 sidebar_position: 6
-description: "How many threads of which class the supervised code may create."
+description: "How thread creation is enforced, and why Object monitor methods need call-site rewriting."
 ---
 
 :::tip[ELI5]
-A thread is the program doing two things at once.
+Threads are the domain where enforcement has to touch code Ares does not own.
 
-Left unbounded, a student's program can create thousands of them and bring the build
-machine to its knees, whether by accident or on purpose. So a policy says which kind of
-worker may be started, and how many of them at most.
+That is why one part of it is switched on after everything else.
 :::
 
-## Position in the example policy file
+For the fields an exercise author writes, see
+[Thread system access](/instructor/policy-reference/thread-system-access) in the instructor guide. This page is
+about how the domain is enforced.
 
-The section documented on this page is marked in red. Every page in this section shows the
-same example file, so reading them in order walks it from top to bottom.
+## Model
 
-```yaml title="security-policy.yaml"
-regardingTheSupervisedCode:
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
-  theSupervisedCodeUsesTheFollowingPackage: "org.example"
-  theMainClassInsideThisPackageIs: "Main"
+`ThreadPermission`, carrying the number of threads permitted and the class permitted to create
+them.
 
-  theFollowingClassesAreTestClasses:
-    - "org.example.PenguinTest"
+## Validation and normalisation
 
-  theFollowingResourceAccessesArePermitted:
+The count is bounded; a policy that permits threads without a bound lets a runaway
+submission exhaust the runner rather than failing its own test.
 
-    regardingFileSystemInteractions:
-      - onThisPathAndAllPathsBelow: "something.txt"
-        readAllFiles: true
-        overwriteAllFiles: true
-        createAllFiles: true
-        executeAllFiles: false
-        deleteAllFiles: false
+## What it generates
 
-    regardingNetworkConnections:
-      - onTheHost: "www.example.com"
-        onThePort: 80
-        openConnections: true
-        sendData: true
-        receiveData: true
+Architecture and AOP test cases.
 
-    regardingCommandExecutions:
-      - executeTheCommand: "ls"
-        withTheseArguments:
-          - "-l"
+## Static enforcement
 
-# policy-focus-start
-    regardingThreadCreations:
-      - createTheFollowingNumberOfThreads: 10
-        ofThisClass: "org.example.Worker"
-# policy-focus-end
+Matched against `thread-manipulation-methods.txt`.
 
-    regardingPackageImports:
-      - importTheFollowingPackage: "java.util"
+## Runtime enforcement
 
-    regardingTimeouts:
-      - timeout: 120
-```
+`JavaInstrumentationAdviceThreadSystemToolbox`. `Object`'s final monitor methods cannot be
+intercepted at the callee, so they need application call-site rewriting:
+`JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage` is called **last** in
+`JavaExecuter.executeTestCases`, after the complete policy is installed, so a retransformed
+class can never observe a partially configured policy.
 
-## Fields
+## Where the code lives
 
-Implemented by `ThreadPermission` in
-[`policy/policySubComponents/ThreadPermission.java`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/policy/policySubComponents/ThreadPermission.java).
+- `policy/policySubComponents/ThreadPermission.java`
+- `aop/java/instrumentation/advice/JavaInstrumentationAdviceThreadSystemToolbox.java`
+- `aop/java/instrumentation/JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage`
 
-| Field | Datatype | Explanation | Example | Regex or Range |
-| --- | --- | --- | --- | --- |
-| `createTheFollowingNumberOfThreads` | `int` | The maximum number of threads of this class that may be created. | `10` | Range `0` to `Integer.MAX_VALUE`. Negative values are rejected; `0` permits the class but no instances. |
-| `ofThisClass` | `String` | The thread class this entry governs. | `org.example.Worker` | `THREAD_CLASS_PATTERN`: a fully qualified Java class name, `*`, `Lambda-Expression`, or one of the implicit tokens `<implicit-thread-op:parallelStream>`, `<implicit-thread-op:parallel>`, `<implicit-thread-op:Thread.sleep>`, `<implicit-thread-op:SubmissionPublisher.submit>` and `<implicit-thread-op:SubmissionPublisher.offer>`. |
+## Known gaps
 
-## Notes
-
-The implicit tokens exist because not every thread is created by name. A parallel stream, a `Thread.sleep` or a `SubmissionPublisher` submission all reach the threading machinery without the student ever writing `new Thread(...)`, so each needs a token a policy can refer to.
-
-`Lambda-Expression` covers a thread body supplied as a lambda, which has no nameable class.
+The call-site rewriting applies to the restricted package only, so monitor operations reached
+through a permitted library are not rewritten.
