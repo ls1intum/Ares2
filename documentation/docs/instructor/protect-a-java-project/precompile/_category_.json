@@ -1,0 +1,8 @@
+{
+    "label": "Precompile",
+    "position": 9,
+    "link": {
+        "type": "generated-index",
+        "description": "Generating the enforcement artefacts into an exercise before its own build compiles them."
+    }
+}

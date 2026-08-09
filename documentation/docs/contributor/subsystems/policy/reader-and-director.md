@@ -18,7 +18,7 @@ separate.
 
 **Related documentation:**
 - [Security Policy Manual](security-policy-manual.md), how to write a security policy YAML file
-- [How to Make a Project an Ares Project](/instructor/protect-a-java-project/complete-setup-manual), project setup (build.gradle / pom.xml)
+- [Precompile or Postcompile](/instructor/protect-a-java-project/precompile-or-postcompile), and from there the walkthrough for your build tool
 
 ---
 
@@ -367,7 +367,7 @@ In practice, instructors do not call `SecurityPolicyReaderAndDirector` directly.
 | `IllegalStateException`, `Ambiguous project: both Maven and Gradle descriptors are active` | No policy was set, so no build mode is explicitly selected, and the project root carries both a `pom.xml` and a Gradle descriptor. Discovery fails before the restrictive fallback of Section 7.3 is reached | Remove the descriptor you do not use, or supply a policy whose configuration names the build tool |
 | `IllegalStateException`, `Unsupported project: no pom.xml, build.gradle or build.gradle.kts` | The project root carries no supported build descriptor, so discovery cannot determine a build mode | Run against the project root that holds the build descriptor, or pass the correct `projectFolderPath` |
 | `IllegalStateException`, `Maven was selected but pom.xml is absent` (or the Gradle equivalent) | A policy names a `JAVA_USING_MAVEN_…` configuration while the project root has no `pom.xml`, or the reverse | Align `theFollowingProgrammingLanguageConfigurationIsUsed` with the build tool the project actually uses |
-| Architecture tests pass but runtime enforcement is missing | Agent JAR not loaded via `-javaagent` | See [How to Make a Project an Ares Project](/instructor/protect-a-java-project/complete-setup-manual) |
+| Architecture tests pass but runtime enforcement is missing | Agent JAR not loaded via `-javaagent` | See the [Maven](/instructor/protect-a-java-project/postcompile/maven) or [Gradle](/instructor/protect-a-java-project/postcompile/gradle) walkthrough |
 
 ---
 

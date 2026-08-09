@@ -17,12 +17,12 @@ label becomes which new setting.
 > **From:** Ares 1 (`de.tum.in.ase:artemis-java-test-sandbox:1.15.0`)
 > **To:** Ares 2 (`de.tum.cit.ase:ares:2.1.1`)
 
-> **Note:** This guide is **self-contained**. Everything needed to complete a migration is here, including the full build configuration, so you do not need a second document open. Where it duplicates the [Ares-Protected Student Exercise Manual](protect-a-java-project/complete-setup-manual.md), that manual is the canonical source: if the two ever disagree, follow it and report the discrepancy.
+> **Note:** This guide is **self-contained**. Everything needed to complete a migration is here, including the full build configuration, so you do not need a second document open. Where it duplicates the [Postcompile walkthroughs](protect-a-java-project/precompile-or-postcompile.md), those pages are the canonical source: if the two ever disagree, follow it and report the discrepancy.
 
 > **Version snapshot:** the configuration below is correct for Ares 2.1.1. Later releases may change it; check the setup manual before copying this into a new exercise.
 
 **Related documentation:**
-- [Ares-Protected Student Exercise Manual](protect-a-java-project/complete-setup-manual.md), the canonical setup guide
+- [Precompile or Postcompile](protect-a-java-project/precompile-or-postcompile.md), the canonical setup guide
 - [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual), the reference for the policy file
 - [Enforcement Model](/contributor/subsystems/policy/enforcement-model), which defines what static analysis and the runtime layer are each responsible for
 

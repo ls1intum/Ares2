@@ -52,7 +52,7 @@ enforce the security policy.
 - clear separation between policy definition and enforcement
 - exercise creators can validate the generated tests before release
 
-See [Precompile Mode](../protect-a-java-project/precompile.md) for the integration steps.
+See [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md) for the integration steps.
 
 ## Postcompile
 
@@ -75,7 +75,7 @@ student code execution without requiring pre-generated test files.
 - fine-grained control over individual test cases
 - detailed security violation messages
 
-See [Postcompile Mode](../protect-a-java-project/postcompile.md) for the integration steps.
+See [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md) for the integration steps.
 
 ## Both modes together
 

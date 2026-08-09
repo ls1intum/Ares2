@@ -1,6 +1,6 @@
 ---
 title: "Installation"
-sidebar_position: 3
+sidebar_position: 2
 description: "Adding the Ares 2 dependency to a Maven or Gradle project."
 ---
 
@@ -16,6 +16,12 @@ Ares 2 requires at least **Java 17**.
 :::
 
 Ares 2 is published to Maven Central as a Maven and Gradle dependency.
+
+## Prerequisites
+
+- **Java 17** or later
+- **Gradle** in a version compatible with the chosen freefair AspectJ plugin (the freefair 9.x line used in this guide requires Gradle 9; older Gradle versions need an older freefair line) or **Maven 3.8+**
+- **JUnit 5** (Jupiter) for test execution
 
 ## Maven
 

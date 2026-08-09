@@ -15,7 +15,7 @@ Every option, what it means, and what actually happens when you set it.
 > **Ares Version:** 2.1.1
 
 **Related documentation:**
-- [How to Make a Project an Ares Project](/instructor/protect-a-java-project/complete-setup-manual), project setup (build.gradle / pom.xml)
+- [Precompile or Postcompile](/instructor/protect-a-java-project/precompile-or-postcompile), and from there the walkthrough for your build tool
 - [Security Policy Reader and Director Manual](reader-and-director.md), internal processing pipeline
 
 ---
@@ -728,7 +728,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.r
 | Using **tabs** instead of spaces in YAML | YAML parse error | Use spaces only (2-space indentation recommended) |
 | Wrong `withinPath` for Gradle vs. Maven | Ares analyses or instruments the wrong bytecode path, which can produce missing-class/import errors, fail-closed WALA entry-point errors, or missing runtime coverage for the intended classes | Gradle: `classes/java/main/...`, Maven: `classes/...` |
 | Empty lists `[]` vs. missing field | Varying behaviour | Always include all six `regarding*` lists explicitly, even if empty |
-| Agent not loaded (`-javaagent` missing) | Static analysis works but runtime enforcement does not | See [How to Make a Project an Ares Project](/instructor/protect-a-java-project/complete-setup-manual) |
+| Agent not loaded (`-javaagent` missing) | Static analysis works but runtime enforcement does not | See the [Maven](/instructor/protect-a-java-project/postcompile/maven) or [Gradle](/instructor/protect-a-java-project/postcompile/gradle) walkthrough |
 | Expecting method-level and class-level `@Policy` to combine | Only the method-level policy applies | A class-level `@Policy` applies to all test methods in the class; a method-level `@Policy` takes precedence over (does not merge with) the class-level one |
 
 ### Runtime Violations
@@ -763,7 +763,7 @@ java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: E
 | YAML parse error on startup | Using **tabs** instead of spaces | Use spaces only (2-space indentation recommended) |
 | Ares analyses or instruments the wrong bytecode path | Wrong `withinPath` for Gradle vs. Maven | Gradle: `classes/java/main/...`, Maven: `classes/...` |
 | Varying behaviour with empty vs. missing fields | Some `regarding*` lists omitted instead of set to `[]` | Always include all six `regarding*` lists explicitly, even if empty |
-| Static analysis works but runtime enforcement does not | Agent not loaded (`-javaagent` missing) | See [How to Make a Project an Ares Project](/instructor/protect-a-java-project/complete-setup-manual) |
+| Static analysis works but runtime enforcement does not | Agent not loaded (`-javaagent` missing) | See the [Maven](/instructor/protect-a-java-project/postcompile/maven) or [Gradle](/instructor/protect-a-java-project/postcompile/gradle) walkthrough |
 | A different policy applies than expected | Both a method-level and a class-level `@Policy` are present; the method-level one takes precedence (no merging) | Check both annotation levels; class-level `@Policy` applies to all test methods unless a method-level `@Policy` overrides it |
 | `IllegalArgumentException` when loading the policy | A required field is `null`, blank, or out of range | Check validation rules above |
 | `SecurityException` at runtime in student code | Student code accesses a resource not listed in the policy | Either the policy is working as intended, or add the missing permission |

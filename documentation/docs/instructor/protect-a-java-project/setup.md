@@ -1,6 +1,6 @@
 ---
 title: "Setup"
-sidebar_position: 4
+sidebar_position: 3
 description: "The problem Ares 2 solves, using a worked example with a public and a hidden test."
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "Policy Configuration"
-sidebar_position: 6
+sidebar_position: 5
 description: "The security-policy.yaml file and the eight supported programming language configurations."
 ---
 
@@ -15,7 +15,7 @@ Ares 2 security enforcement is driven by a central configuration file. It define
 supervised program is built, analysed and instrumented, as well as which resources and
 operations are permitted at runtime.
 
-Both [precompile](precompile.md) and [postcompile](postcompile.md) mode rely on this
+Both [Precompile and Postcompile](precompile-or-postcompile.md) mode rely on this
 configuration.
 
 You can create the file manually, or with [Ares2UI](https://github.com/ls1intum/Ares2UI).

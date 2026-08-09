@@ -18,7 +18,7 @@ will enforce it.
 **Related documentation:**
 - [Security Policy Manual](../policy/security-policy-manual.md) — how to write a security policy YAML file
 - [Security Policy Reader and Director Manual](../policy/reader-and-director.md) — how the policy is read, directed, and handed to this factory
-- [How to Make a Project an Ares Project](/instructor/protect-a-java-project/complete-setup-manual) — project setup (build.gradle / pom.xml)
+- [Precompile or Postcompile](/instructor/protect-a-java-project/precompile-or-postcompile) — choosing a mode, and the walkthrough for your build tool
 
 ---
 
@@ -654,7 +654,7 @@ class SecurityTest {
 | `NullPointerException` in `JavaTestCaseFactoryAndBuilder.build()` | A mandatory builder parameter (creator, writer, executer, essentialDataReader, projectScanner, or an essential-data path) was not set | Ensure all 7 mandatory parameters are set before calling `build()` |
 | `NullPointerException` with message "essentialClassesPath must not be null" | The path to `EssentialClasses.yaml` was not provided | Verify that the director or builder sets `essentialClassesPath` and `essentialPackagesPath` |
 | `SecurityException` from `EssentialDataYAMLReader` — "read failed" or "data bind failed" | The `EssentialClasses.yaml` or `EssentialPackages.yaml` file is malformed or missing | Check that the YAML files exist at the expected classpath location and have the correct schema (7 list fields each) |
-| Architecture tests pass but runtime enforcement is missing | The Java agent JAR is not loaded via `-javaagent` | See [How to Make a Project an Ares Project](/instructor/protect-a-java-project/complete-setup-manual) for agent setup |
+| Architecture tests pass but runtime enforcement is missing | The Java agent JAR is not loaded via `-javaagent` | See the [Maven](/instructor/protect-a-java-project/postcompile/maven) or [Gradle](/instructor/protect-a-java-project/postcompile/gradle) walkthrough for agent setup |
 | Scanner detects the wrong package name | The most-frequent-package heuristic picks a utility package instead of the student's main package | Specify `theSupervisedCodeUsesTheFollowingPackage` explicitly in the security policy YAML |
 | Scanner finds no test classes | Java source files do not contain `@Test` or `@Property` annotations (or `extends TestCase`), or files are not under the test source directory | Specify `theFollowingClassesAreTestClasses` explicitly in the security policy YAML (note: with a policy present, test classes come **only** from the policy — the scanner is not consulted) |
 | `SecurityException` from `PathLocationProvider` — "can only be used on classes annotated with…" | The test class using `PathLocationProvider` is missing the `@StudentCompiledClassesPath` annotation | Add `@StudentCompiledClassesPath("build/classes/java/main")` to the test class |

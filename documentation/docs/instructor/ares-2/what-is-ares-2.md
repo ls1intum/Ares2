@@ -42,7 +42,7 @@ does. Please read at least [Setup](../protect-a-java-project/setup.md), [Test An
 | Understand the public/hidden test model | [Setup](../protect-a-java-project/setup.md) and [Test Annotations](../protect-a-java-project/test-annotations.md) |
 | Restrict what student code may do | [Security Overview](what-does-ares-2-protect-against.md) |
 | Write a policy file | [Policy Configuration](../protect-a-java-project/policy-configuration.md) and the [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual) |
-| Set up a complete exercise from scratch | [Making a Project an Ares Project](../protect-a-java-project/complete-setup-manual.md) |
+| Set up a complete exercise from scratch | [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md) |
 | Migrate an Ares 1 exercise | [Converting an Ares 1 Exercise](../transform-ares-1-into-ares-2.md) |
 | Understand how Ares 2 works internally | The [Developer Guide](/contributor/subsystems/package-overview) |
 
