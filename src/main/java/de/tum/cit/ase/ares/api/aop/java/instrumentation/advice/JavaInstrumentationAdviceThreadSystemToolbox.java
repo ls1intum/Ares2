@@ -144,9 +144,9 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 				// Ares's own infrastructure frames (this advice, internals) are never student
 				// code, even when restrictedPackage is a broad prefix that nominally covers
 				// them
-				// (e.g. the self-test fallback "de.tum.cit.ase"). Skipping them lets the walk
-				// reach the TimeoutUtils frame that legitimately owns this @StrictTimeout
-				// worker.
+				// (e.g. the broad "de.tum.cit.ase" scope Ares' own self-tests configure).
+				// Skipping them lets the walk reach the TimeoutUtils frame that legitimately
+				// owns this @StrictTimeout worker.
 				if (className.startsWith("de.tum.cit.ase.ares.api.")) {
 					continue;
 				}

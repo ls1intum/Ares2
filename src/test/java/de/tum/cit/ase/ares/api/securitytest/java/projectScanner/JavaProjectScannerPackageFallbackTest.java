@@ -105,18 +105,22 @@ class JavaProjectScannerPackageFallbackTest {
 	@Test
 	@DisplayName("Prefers the compiled output over the configured default package")
 	void prefersCompiledOutputOverTheConfiguredDefault() throws IOException {
+		// The compiled package must differ from the configured default, or the
+		// assertion would hold just as well when the fallback fired and the test would
+		// prove nothing. The other cases here drive the base scanner, whose default is
+		// the empty string, so they can use any package name.
 		Path outputRoot = compile("""
-				package de.tum.cit.aet;
+				package de.tum.cit.detected;
 
 				public class Calculator {
 				}
-				""", "de/tum/cit/aet/Calculator.java");
+				""", "de/tum/cit/detected/Calculator.java");
 
 		String packageName = new JavaProgrammingExerciseProjectScanner(configurationWithoutSourceRoots(outputRoot))
 				.scanForPackageName();
 
-		assertEquals("de.tum.cit.aet", packageName);
-		assertNotEquals("de.tum.cit.ase", packageName);
+		assertEquals("de.tum.cit.detected", packageName);
+		assertNotEquals("de.tum.cit.aet", packageName);
 	}
 
 	/**
@@ -130,7 +134,7 @@ class JavaProjectScannerPackageFallbackTest {
 		BuildToolConfiguration configuration = configurationWithoutSourceRoots(outputRoot);
 
 		assertEquals("", new JavaProjectScanner(configuration).scanForPackageName());
-		assertEquals("de.tum.cit.ase", new JavaProgrammingExerciseProjectScanner(configuration).scanForPackageName());
+		assertEquals("de.tum.cit.aet", new JavaProgrammingExerciseProjectScanner(configuration).scanForPackageName());
 	}
 
 	@Test

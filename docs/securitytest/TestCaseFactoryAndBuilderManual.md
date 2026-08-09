@@ -532,7 +532,7 @@ ProjectSourcesFinder.findProjectSourcesPath()
 
 | Override | Default in `JavaProjectScanner` | Override in `JavaProgrammingExerciseProjectScanner` |
 |---|---|---|
-| Default package | `""` (empty string) | `"de.tum.cit.ase"` |
+| Default package | `""` (empty string) | `"de.tum.cit.aet"` |
 | Default main class | `"Main"` | `"Main"` (unchanged) |
 
 When the base scanner finds no package or main class, these TUM-specific defaults ensure reasonable behaviour for Artemis-hosted exercises.

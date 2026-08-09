@@ -21,6 +21,12 @@ public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
 	 * declares no package. Overriding the {@code protected} default (rather than
 	 * re-implementing {@code scanForPackageName}) lets the parent's polymorphic
 	 * fallback pick this up.
+	 * <p>
+	 * This is the root package the Artemis exercise templates at TUM are generated
+	 * with. It is deliberately not Ares' own {@code de.tum.cit.ase} namespace: that
+	 * one identifies this library, whereas this value is a guess about the
+	 * supervised project, and the two looking alike is what makes them easy to
+	 * conflate.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -29,7 +35,7 @@ public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
 	@Override
 	@Nonnull
 	protected String getDefaultPackage() {
-		return "de.tum.cit.ase";
+		return "de.tum.cit.aet";
 	}
 
 	/**
