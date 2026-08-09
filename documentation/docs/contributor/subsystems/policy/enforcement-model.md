@@ -136,7 +136,7 @@ are never merged, so an additive configuration must be consolidated into one
 complete policy per scope.
 
 A step-by-step migration, including the complete build configuration, is in
-[HowToConvertAnAres1ProjectIntoAnAres2Project.md](/instructor/transform-ares-1-into-ares-2).
+[the Ares 1 migration guide](/instructor/transform-ares-1-into-ares-2/).
 
 ## See also
 
