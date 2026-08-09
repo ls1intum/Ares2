@@ -1,6 +1,6 @@
 {
     "label": "Securitytest",
-    "position": 4,
+    "position": 5,
     "link": {
         "type": "generated-index",
         "description": "Turning a policy into generated security tests."

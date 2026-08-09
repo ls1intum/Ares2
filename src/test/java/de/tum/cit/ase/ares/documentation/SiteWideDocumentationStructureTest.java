@@ -1,6 +1,5 @@
 package de.tum.cit.ase.ares.documentation;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,6 +26,11 @@ import org.junit.jupiter.params.provider.MethodSource;
  * Nothing warns: the build succeeds, the page renders, and the box is simply
  * absent. 53 of them shipped that way, including every ELI5 box, and were only
  * found once the Playwright suite looked at a rendered page.
+ * <p>
+ * It also owns the inventory of the site: one expected set of page paths per
+ * guide. Everything else here is a rule about a page's contents, but a rule
+ * about contents cannot notice a page that is missing, duplicated, or filed
+ * under the wrong audience. The two sets are the only assertion that can.
  *
  * @since 2.1.2
  * @author Markus Paulsen
@@ -38,10 +42,88 @@ class SiteWideDocumentationStructureTest {
 		return DocumentationPages.pagesBelow();
 	}
 
+	/**
+	 * Every page of the instructor guide, as a guide-relative path.
+	 * <p>
+	 * This replaced a single assertion on the total page count. A count detects a
+	 * net change and nothing else: deleting one required page while adding an
+	 * accidental one, keeping a page that should have moved, or filing a page under
+	 * the wrong audience all leave the total untouched. Restructuring is exactly
+	 * when those mistakes happen, so the invariant has to name the pages.
+	 */
+	private static final List<String> EXPECTED_INSTRUCTOR_PAGES = List.of(
+			"ares-2/what-does-ares-2-not-protect-against.md", "ares-2/what-does-ares-2-protect-against.md",
+			"ares-2/what-is-ares-2.md", "policy-cookbook/allowing-exactly-one-host.md", "policy-cookbook/index.md",
+			"policy-cookbook/reading-a-file-from-resources.md", "policy-cookbook/setting-time-and-memory-budgets.md",
+			"policy-cookbook/using-a-library-that-reflects.md", "policy-cookbook/using-threads.md",
+			"policy-cookbook/writing-an-output-file.md", "policy-reference/index.md",
+			"protect-a-java-project/complete-setup-manual.md", "protect-a-java-project/further-options.md",
+			"protect-a-java-project/github-packages.md", "protect-a-java-project/gradle.md",
+			"protect-a-java-project/installation.md", "protect-a-java-project/maven.md",
+			"protect-a-java-project/policy-configuration.md", "protect-a-java-project/postcompile.md",
+			"protect-a-java-project/precompile.md", "protect-a-java-project/setup.md",
+			"protect-a-java-project/test-annotations.md", "transform-ares-1-into-ares-2.md", "troubleshooting.md");
+
+	/** Every page of the contributor guide, as a guide-relative path. */
+	private static final List<String> EXPECTED_CONTRIBUTOR_PAGES = List.of("extending-ares-2/index.md",
+			"extending-ares-2/new-analysis-technology.md", "extending-ares-2/new-build-tools.md",
+			"extending-ares-2/new-enforcement-mechanism.md", "extending-ares-2/new-policy-domains.md",
+			"extending-ares-2/new-programming-languages.md", "how-can-you-contribute.md", "life-of-a-test-execution.md",
+			"policy/class-permission.md", "policy/command-system-access.md", "policy/file-system-access.md",
+			"policy/network-system-access.md", "policy/package-permission.md",
+			"policy/programming-language-configuration.md", "policy/resource-limits.md",
+			"policy/thread-system-access.md", "subsystems/aop/aspectj-vs-instrumentation-weaknesses.md",
+			"subsystems/aop/block-command-system-access.md", "subsystems/aop/block-file-system-access.md",
+			"subsystems/aop/block-thread-system-access.md", "subsystems/architecture/block-command-system-access.md",
+			"subsystems/architecture/block-file-system-access.md",
+			"subsystems/architecture/block-thread-system-access.md", "subsystems/ast.md", "subsystems/jqwik.md",
+			"subsystems/jupiter.md", "subsystems/package-overview.md", "subsystems/phobos.md",
+			"subsystems/policy/enforcement-model.md", "subsystems/policy/reader-and-director.md",
+			"subsystems/policy/security-policy-manual.md", "subsystems/securitytest/test-case-factory-and-builder.md",
+			"technologies/aop-tests/aspectj.md", "technologies/aop-tests/base-idea/advice.md",
+			"technologies/aop-tests/base-idea/aspect.md", "technologies/aop-tests/base-idea/binding.md",
+			"technologies/aop-tests/base-idea/join-point.md", "technologies/aop-tests/base-idea/pointcut.md",
+			"technologies/aop-tests/base-idea/weaving.md", "technologies/aop-tests/instrumentation-with-bytebuddy.md",
+			"technologies/architecture-tests/archunit.md", "technologies/architecture-tests/base-idea/call-graph.md",
+			"technologies/architecture-tests/base-idea/dfs-path.md",
+			"technologies/architecture-tests/base-idea/node.md", "technologies/architecture-tests/base-idea/rule.md",
+			"technologies/architecture-tests/wala.md", "technologies/ast-tests/base-idea/call-graph.md",
+			"technologies/ast-tests/base-idea/node.md", "technologies/ast-tests/base-idea/visitor.md",
+			"technologies/ast-tests/javaparser.md", "technologies/jqwik.md", "technologies/junit-jupiter.md",
+			"technologies/linux-based-security/base-idea/allow-list.md",
+			"technologies/linux-based-security/base-idea/interception.md",
+			"technologies/linux-based-security/base-idea/wrapper.md", "technologies/linux-based-security/bubblewrap.md",
+			"technologies/linux-based-security/ld-preload-firewall.md", "technologies/linux-based-security/timeout.md",
+			"testing-conventions.md");
+
 	@Test
-	void theDocumentationHoldsEveryPageOfBothGuides() {
-		assertEquals(66, allPages().size(),
-				"The page count changed. Add or remove a page deliberately rather than by accident.");
+	void theInstructorGuideHoldsExactlyTheExpectedPages() {
+		assertPagesOf("instructor", EXPECTED_INSTRUCTOR_PAGES);
+	}
+
+	@Test
+	void theContributorGuideHoldsExactlyTheExpectedPages() {
+		assertPagesOf("contributor", EXPECTED_CONTRIBUTOR_PAGES);
+	}
+
+	/**
+	 * Compares one guide against its expected set, reporting what is missing and
+	 * what is unexpected separately.
+	 * <p>
+	 * Reported separately on purpose: a rename shows up as one of each, and reading
+	 * the two lists side by side tells you immediately whether a page moved or a
+	 * page was lost.
+	 */
+	private static void assertPagesOf(String guide, List<String> expected) {
+		List<String> actual = DocumentationPages.pagePathsOf(guide);
+
+		List<String> missing = expected.stream().filter(page -> !actual.contains(page)).toList();
+		List<String> unexpected = actual.stream().filter(page -> !expected.contains(page)).toList();
+
+		assertTrue(missing.isEmpty() && unexpected.isEmpty(),
+				() -> "The " + guide + " guide no longer matches its expected pages. Update the expected set in "
+						+ "this test deliberately, in the same commit as the change." + System.lineSeparator()
+						+ "  missing:    " + missing + System.lineSeparator() + "  unexpected: " + unexpected);
 	}
 
 	@ParameterizedTest(name = "{0} declares the front matter Docusaurus needs")

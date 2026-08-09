@@ -84,6 +84,24 @@ public final class DocumentationPages {
 	}
 
 	/**
+	 * Returns every Markdown page of one guide, as slash-separated paths relative
+	 * to that guide's own root.
+	 * <p>
+	 * The guide-relative form is what the expected-path sets are written in: it is
+	 * stable across operating systems, and it reads as the route a page will be
+	 * published at rather than as a filesystem location.
+	 */
+	public static List<String> pagePathsOf(String guide) {
+		Path root = DOCS.resolve(guide);
+		try (Stream<Path> entries = Files.walk(root)) {
+			return entries.filter(Files::isRegularFile).filter(path -> path.getFileName().toString().endsWith(".md"))
+					.map(path -> root.relativize(path).toString().replace('\\', '/')).sorted().toList();
+		} catch (IOException exception) {
+			throw new UncheckedIOException("Could not walk " + root, exception);
+		}
+	}
+
+	/**
 	 * Reads a page with line endings normalised, so the assertions are platform
 	 * independent.
 	 */
