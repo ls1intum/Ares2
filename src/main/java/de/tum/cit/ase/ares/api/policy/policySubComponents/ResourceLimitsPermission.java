@@ -42,7 +42,8 @@ public record ResourceLimitsPermission(long timeout) {
 	 * <p>
 	 * Unlike the other restrictive factories in this package, this one cannot deny
 	 * everything: a policy without any execution limit would leave a
-	 * non-terminating submission running forever. It therefore grants ten seconds.
+	 * non-terminating submission running forever. It therefore grants three
+	 * seconds.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -51,7 +52,7 @@ public record ResourceLimitsPermission(long timeout) {
 	 */
 	@Nonnull
 	public static ResourceLimitsPermission createRestrictive() {
-		return builder().withTimeout(10000).build();
+		return builder().withTimeout(3000).build();
 	}
 
 	/**

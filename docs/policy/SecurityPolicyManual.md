@@ -737,7 +737,7 @@ Ares 2 validates all policy fields when the YAML file is parsed. If validation f
 | `createTheFollowingNumberOfThreads` | Must be ≥ 0 | `IllegalArgumentException` with a localised message |
 | `ofThisClass` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
 | `importTheFollowingPackage` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
-| `timeout` | Must be ≥ 0 (default: 10000 ms) | `IllegalArgumentException` with a localised message |
+| `timeout` | Must be > 0 (restrictive default: 3000 ms) | `IllegalArgumentException` with a localised message |
 
 When a student's code violates a policy at runtime, Ares throws a `SecurityException` with a descriptive single-line message such as:
 
