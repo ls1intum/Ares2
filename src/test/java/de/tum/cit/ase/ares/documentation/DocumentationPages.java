@@ -139,15 +139,34 @@ public final class DocumentationPages {
 
 	/**
 	 * Returns true when the page body, after the front matter and any blank lines,
-	 * begins with the ELI5 admonition.
+	 * begins with the ELI5 admonition, and that admonition is closed before
+	 * anything else opens.
 	 * <p>
 	 * "Opens with" is the actual rule. Merely containing the box somewhere lets a
 	 * page bury it below several paragraphs, which defeats the purpose: it is meant
 	 * to be the first thing a reader who is new to the subject sees.
+	 * <p>
+	 * The closing fence belongs in the same check rather than being left to the
+	 * build. An unclosed {@code :::tip[ELI5]} swallows everything beneath it until
+	 * some later directive happens to close it, so a page can read correctly in
+	 * source, render as one enormous admonition, and still satisfy an assertion
+	 * that only looks for the opening line.
 	 */
 	public static boolean opensWithEli5(String content) {
-		String body = content.substring(frontMatterEnd(content)).stripLeading();
-		return body.startsWith(ELI5);
+		List<String> body = content.substring(frontMatterEnd(content)).stripLeading().lines().toList();
+		if (body.isEmpty() || !body.get(0).startsWith(ELI5)) {
+			return false;
+		}
+		for (String line : body.subList(1, body.size())) {
+			if (":::".equals(line.stripTrailing())) {
+				return true;
+			}
+			if (line.startsWith(":::")) {
+				// A second directive opened while the ELI5 box was still open.
+				return false;
+			}
+		}
+		return false;
 	}
 
 	private static int frontMatterEnd(String content) {
