@@ -45,6 +45,13 @@ validate_config_file_keys() {
     exit "${PHB_EPOLICY}"
   fi
 }
+# Records a parsed timeout value, treating a numeric zero (0, 0.0, 0.000) as
+# "no timeout". The zero test is textual on purpose: [[ -eq ]] is integer
+# arithmetic and aborts with a syntax error on a decimal value.
+set_parsed_timeout() {
+  local value="$1"
+  if [[ "$value" =~ ^0+(\.0+)?$ ]]; then PARSED_TIMEOUT=""; else PARSED_TIMEOUT="$value"; fi
+}
 parse_cfg_policy() {
   local cfg="$1"
   validate_config_file_keys "$cfg"
@@ -68,10 +75,21 @@ parse_cfg_policy() {
           host="${host#[}"; host="${host%]}"; printf '%s %s\n' "$host" "$port" >>"$net"
         fi ;;
       limits|timeout)
-        if [[ "$line" =~ ^timeout[[:space:]]*=[[:space:]]*([0-9]+)$ ]]; then
-          local t="${BASH_REMATCH[1]}"; [[ "$t" -eq 0 ]] && PARSED_TIMEOUT="" || PARSED_TIMEOUT="$t"
-        elif [[ "$line" =~ ^[0-9]+$ ]]; then
-          local t="$line"; [[ "$t" -eq 0 ]] && PARSED_TIMEOUT="" || PARSED_TIMEOUT="$t"
+        # The generator writes the timeout as canonical decimal seconds, S.mmm
+        # (JavaPhobosTestCase#serialiseLimitValue), so the value is not an
+        # integer. An integer-only pattern matched nothing, left PARSED_TIMEOUT
+        # empty and thereby disabled the timeout entirely, which is why an
+        # unrecognised timeout assignment now fails closed instead.
+        if [[ "$line" =~ ^timeout[[:space:]]*=[[:space:]]*([0-9]+(\.[0-9]+)?)$ ]]; then
+          set_parsed_timeout "${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+          set_parsed_timeout "$line"
+        elif [[ "$line" =~ ^timeout[[:space:]]*= || "$sec" == "timeout" ]]; then
+          # Every line of a dedicated [timeout] section is the timeout itself, so
+          # anything unreadable there is an error too, not just an unreadable
+          # assignment. A [limits] section may carry other keys and stays lenient.
+          report "Policy invalid: timeout must be a number of seconds, but was '${line}'. (PHB-EPOLICY)"
+          exit "${PHB_EPOLICY}"
         fi ;;
       *) ;;
     esac

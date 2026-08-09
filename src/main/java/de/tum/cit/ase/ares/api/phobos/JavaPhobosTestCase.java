@@ -253,10 +253,11 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	 * conversion point: milliseconds are rendered as canonical decimal seconds
 	 * {@code S.mmm} (exactly three fractional digits, formatted with
 	 * {@link java.util.Locale#ROOT} so it never depends on the platform locale, and
-	 * containing only digits and one dot). The Phobos runtime validates that exact
-	 * representation and appends an {@code s} suffix before handing it to GNU
-	 * {@code timeout}, so no second conversion happens anywhere else and no
-	 * sub-second precision is lost. All other keys are emitted verbatim.
+	 * containing only digits and one dot). The Phobos runtime reads that form in
+	 * {@code phobos-common.sh#parse_cfg_policy} and passes the bare number on to
+	 * GNU {@code timeout}, which reads a suffixless value as seconds. No second
+	 * conversion happens anywhere else and no sub-second precision is lost. All
+	 * other keys are emitted verbatim.
 	 *
 	 * @param key   the limit key, e.g. {@code "timeout"}
 	 * @param value the limit value; for {@code timeout} this is milliseconds
