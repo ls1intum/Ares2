@@ -46,9 +46,19 @@ class ContributorPolicyDocumentationStructureTest {
 			"## What it generates", "## Static enforcement", "## Runtime enforcement", "## Where the code lives",
 			"## Known gaps");
 
+	/**
+	 * The domain pages, excluding a section index.
+	 * <p>
+	 * Excluded for the same reason as on the instructor side, and with the same
+	 * filter as {@link #fileNamesIn}: an index is a page of the directory but not a
+	 * domain page, so neither the shared headings nor the counterpart link apply to
+	 * it. The instructor section already has one, so this directory acquiring one
+	 * is a question of when.
+	 */
 	private static List<Path> enforcementPages() {
 		try (Stream<Path> entries = Files.list(CONTRIBUTOR_POLICY)) {
-			return entries.filter(path -> path.getFileName().toString().endsWith(".md")).sorted().toList();
+			return entries.filter(path -> path.getFileName().toString().endsWith(".md"))
+					.filter(path -> !"index.md".equals(path.getFileName().toString())).sorted().toList();
 		} catch (IOException exception) {
 			throw new UncheckedIOException("Could not list " + CONTRIBUTOR_POLICY, exception);
 		}

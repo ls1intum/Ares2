@@ -5,7 +5,9 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -183,19 +185,37 @@ public final class DocumentationPages {
 	 * that is to stop documenting the mistake.
 	 */
 	public static List<String> legacyAdmonitionsIn(String content) {
-		List<String> offenders = new java.util.ArrayList<>();
-		boolean fence = false;
+		return outsideFencedCode(content, line -> LEGACY_ADMONITION.matcher(line).matches());
+	}
+
+	/**
+	 * Returns every line satisfying the predicate that is not inside a fenced code
+	 * block.
+	 * <p>
+	 * The fence state is the opening token rather than a boolean, and a block ends
+	 * only on the token that opened it. A boolean toggling on both {@code ```} and
+	 * {@code ~~~} desynchronises as soon as one appears inside a block delimited by
+	 * the other, after which every subsequent line is classified backwards.
+	 */
+	private static List<String> outsideFencedCode(String content, Predicate<String> predicate) {
+		List<String> matches = new ArrayList<>();
+		String fence = null;
 		for (String line : content.lines().toList()) {
 			String trimmed = line.stripLeading();
 			if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
-				fence = !fence;
+				String token = trimmed.substring(0, 1);
+				if (fence == null) {
+					fence = token;
+				} else if (fence.equals(token)) {
+					fence = null;
+				}
 				continue;
 			}
-			if (!fence && LEGACY_ADMONITION.matcher(line).matches()) {
-				offenders.add(line);
+			if (fence == null && predicate.test(line)) {
+				matches.add(line);
 			}
 		}
-		return List.copyOf(offenders);
+		return List.copyOf(matches);
 	}
 
 	/**
@@ -231,23 +251,6 @@ public final class DocumentationPages {
 	 */
 	private static List<String> headingsAtDepth(String content, int depth) {
 		String prefix = "#".repeat(depth) + " ";
-		List<String> headings = new java.util.ArrayList<>();
-		String fence = null;
-		for (String line : content.lines().toList()) {
-			String trimmed = line.stripLeading();
-			if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
-				String token = trimmed.substring(0, 1);
-				if (fence == null) {
-					fence = token;
-				} else if (fence.equals(token)) {
-					fence = null;
-				}
-				continue;
-			}
-			if (fence == null && line.startsWith(prefix)) {
-				headings.add(line);
-			}
-		}
-		return List.copyOf(headings);
+		return outsideFencedCode(content, line -> line.startsWith(prefix));
 	}
 }

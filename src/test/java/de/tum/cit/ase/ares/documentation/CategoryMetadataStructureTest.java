@@ -13,13 +13,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * The rules that hold for every {@code _category_.json} in both guides.
@@ -39,11 +40,15 @@ import org.junit.jupiter.params.provider.MethodSource;
  */
 class CategoryMetadataStructureTest {
 
-	private static final Pattern LABEL = Pattern.compile("\"label\"\\s*:\\s*\"([^\"]*)\"");
-
-	private static final Pattern POSITION = Pattern.compile("\"position\"\\s*:\\s*(-?\\d+)");
-
-	private static final Pattern LINK_TYPE = Pattern.compile("\"type\"\\s*:\\s*\"([^\"]*)\"");
+	/**
+	 * Parsed rather than matched with regular expressions.
+	 * <p>
+	 * A pattern for {@code "type"} finds the first such key anywhere in the file,
+	 * which is not necessarily the one inside {@code link}, and a pattern for
+	 * {@code "label"} cannot survive a label containing an escaped quotation mark.
+	 * Both would report a verdict about a field the file does not actually declare.
+	 */
+	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	/** Every category file of both guides. */
 	private static List<Path> categoryFiles() {
@@ -55,26 +60,24 @@ class CategoryMetadataStructureTest {
 		}
 	}
 
-	private static String read(Path file) {
+	private static JsonNode read(Path file) {
 		try {
-			return Files.readString(file, StandardCharsets.UTF_8).replace("\r\n", "\n");
+			return MAPPER.readTree(Files.readString(file, StandardCharsets.UTF_8));
 		} catch (IOException exception) {
-			throw new UncheckedIOException("Could not read " + file, exception);
+			throw new UncheckedIOException(file + " is not valid JSON", exception);
 		}
 	}
 
 	@ParameterizedTest(name = "{0} declares a label and a usable position")
 	@MethodSource("categoryFiles")
 	void everyCategoryDeclaresALabelAndAPosition(Path file) {
-		String content = read(file);
+		JsonNode category = read(file);
 
-		Matcher label = LABEL.matcher(content);
-		assertTrue(label.find(), file + " must declare a \"label\".");
-		assertFalse(label.group(1).isBlank(), file + " must declare a non-empty \"label\".");
+		assertTrue(category.hasNonNull("label"), file + " must declare a \"label\".");
+		assertFalse(category.get("label").asText().isBlank(), file + " must declare a non-empty \"label\".");
 
-		Matcher position = POSITION.matcher(content);
-		assertTrue(position.find(), file + " must declare a \"position\".");
-		assertTrue(Integer.parseInt(position.group(1)) > 0, file + " must declare a positive \"position\".");
+		assertTrue(category.hasNonNull("position"), file + " must declare a \"position\".");
+		assertTrue(category.get("position").asInt() > 0, file + " must declare a positive \"position\".");
 	}
 
 	/**
@@ -90,8 +93,8 @@ class CategoryMetadataStructureTest {
 	void noCategoryDeclaresAGeneratedIndexBesideARealOne(Path file) {
 		boolean hasIndexDocument = Files.isRegularFile(file.resolveSibling("index.md"));
 
-		Matcher linkType = LINK_TYPE.matcher(read(file));
-		boolean declaresGeneratedIndex = linkType.find() && "generated-index".equals(linkType.group(1));
+		JsonNode linkType = read(file).path("link").path("type");
+		boolean declaresGeneratedIndex = "generated-index".equals(linkType.asText(""));
 
 		if (hasIndexDocument) {
 			assertFalse(declaresGeneratedIndex,
@@ -117,9 +120,9 @@ class CategoryMetadataStructureTest {
 		Map<Path, Map<Integer, List<String>>> byDirectory = new HashMap<>();
 
 		for (Path category : categoryFiles()) {
-			Matcher position = POSITION.matcher(read(category));
-			if (position.find()) {
-				record(byDirectory, category.getParent().getParent(), Integer.parseInt(position.group(1)),
+			JsonNode position = read(category).path("position");
+			if (position.isInt()) {
+				record(byDirectory, category.getParent().getParent(), position.asInt(),
 						category.getParent().getFileName() + "/");
 			}
 		}
