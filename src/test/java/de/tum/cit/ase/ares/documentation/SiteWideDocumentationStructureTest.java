@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.regex.Matcher;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -140,8 +139,9 @@ class SiteWideDocumentationStructureTest {
 		String content = DocumentationPages.read(page);
 
 		assertTrue(DocumentationPages.hasFrontMatter(content), page + " must start with YAML front matter.");
-		DocumentationPages.REQUIRED_FRONT_MATTER
-				.forEach(field -> assertTrue(content.contains(field), page + " front matter must declare " + field));
+		String frontMatter = DocumentationPages.frontMatterOf(content);
+		DocumentationPages.REQUIRED_FRONT_MATTER.forEach(
+				field -> assertTrue(frontMatter.contains(field), page + " front matter must declare " + field));
 		assertTrue(DocumentationPages.sidebarPosition(content) > 0,
 				page + " must declare a positive sidebar_position.");
 	}
@@ -157,8 +157,9 @@ class SiteWideDocumentationStructureTest {
 	@ParameterizedTest(name = "{0} opens with an ELI5 box")
 	@MethodSource("allPages")
 	void everyPageOpensWithAnEli5Box(Path page) {
-		assertTrue(DocumentationPages.read(page).contains(":::tip[ELI5]"),
-				page + " must open with an ELI5 box written as ':::tip[ELI5]'.");
+		assertTrue(DocumentationPages.opensWithEli5(DocumentationPages.read(page)),
+				page + " must open with an ELI5 box written as ':::tip[ELI5]'. Carrying one further down "
+						+ "the page does not count: it is meant to be the first thing a new reader sees.");
 	}
 
 	@ParameterizedTest(name = "{0} is divided into sections")
@@ -175,9 +176,8 @@ class SiteWideDocumentationStructureTest {
 		// extent at once instead of one file at a time.
 		StringBuilder offenders = new StringBuilder();
 		for (Path page : allPages()) {
-			Matcher matcher = DocumentationPages.LEGACY_ADMONITION.matcher(DocumentationPages.read(page));
-			while (matcher.find()) {
-				offenders.append(System.lineSeparator()).append("  ").append(page).append(": ").append(matcher.group());
+			for (String offender : DocumentationPages.legacyAdmonitionsIn(DocumentationPages.read(page))) {
+				offenders.append(System.lineSeparator()).append("  ").append(page).append(": ").append(offender);
 			}
 		}
 

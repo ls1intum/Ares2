@@ -79,8 +79,9 @@ class TechnologiesDocumentationStructureTest {
 		assertTrue(DocumentationPages.sidebarPosition(content) > 0,
 				page + " must declare a positive sidebar_position.");
 
-		assertTrue(content.contains(":::tip[ELI5]"), page + " must open with an ELI5 box written as ':::tip[ELI5]'.");
-		assertFalse(DocumentationPages.LEGACY_ADMONITION.matcher(content).find(),
+		assertTrue(DocumentationPages.opensWithEli5(content),
+				page + " must open with an ELI5 box written as ':::tip[ELI5]'.");
+		assertFalse(!DocumentationPages.legacyAdmonitionsIn(content).isEmpty(),
 				page + " uses an admonition form that renders as plain text.");
 
 		List<String> headings = DocumentationPages.sectionHeadings(content);

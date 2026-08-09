@@ -46,6 +46,9 @@ public final class DocumentationPages {
 			"^:::(?:secondary|info|success|danger|note|tip|warning|important|caution)[ \\t]+(?!\\[).+$",
 			Pattern.MULTILINE);
 
+	/** The admonition that must open every page. */
+	public static final String ELI5 = ":::tip[ELI5]";
+
 	private DocumentationPages() {
 		throw new IllegalStateException("Utility class");
 	}
@@ -118,9 +121,73 @@ public final class DocumentationPages {
 		return FRONT_MATTER.matcher(content).find();
 	}
 
-	/** Returns the declared sidebar position, or -1 when the page declares none. */
+	/**
+	 * Returns the contents of the front matter block, without its delimiters, or
+	 * the empty string when the page has none.
+	 * <p>
+	 * Every check on a metadata field has to run against this rather than against
+	 * the whole page. A page whose prose happens to contain the text
+	 * {@code description:} otherwise satisfies a front-matter assertion while
+	 * declaring no description at all, and the same page can carry a
+	 * {@code sidebar_position:} line inside a YAML example that has nothing to do
+	 * with its own position in the sidebar.
+	 */
+	public static String frontMatterOf(String content) {
+		Matcher matcher = FRONT_MATTER.matcher(content);
+		return matcher.find() ? matcher.group(1) : "";
+	}
+
+	/**
+	 * Returns true when the page body, after the front matter and any blank lines,
+	 * begins with the ELI5 admonition.
+	 * <p>
+	 * "Opens with" is the actual rule. Merely containing the box somewhere lets a
+	 * page bury it below several paragraphs, which defeats the purpose: it is meant
+	 * to be the first thing a reader who is new to the subject sees.
+	 */
+	public static boolean opensWithEli5(String content) {
+		String body = content.substring(frontMatterEnd(content)).stripLeading();
+		return body.startsWith(ELI5);
+	}
+
+	private static int frontMatterEnd(String content) {
+		Matcher matcher = FRONT_MATTER.matcher(content);
+		return matcher.find() ? matcher.end() : 0;
+	}
+
+	/**
+	 * Returns every legacy admonition on the page, ignoring fenced code blocks.
+	 * <p>
+	 * The fence tracking is not cosmetic. A page that documents this very mistake,
+	 * or that shows a Docusaurus 2 snippet as an example of what not to write,
+	 * would otherwise be reported for its own example, and the only way to silence
+	 * that is to stop documenting the mistake.
+	 */
+	public static List<String> legacyAdmonitionsIn(String content) {
+		List<String> offenders = new java.util.ArrayList<>();
+		boolean fence = false;
+		for (String line : content.lines().toList()) {
+			String trimmed = line.stripLeading();
+			if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+				fence = !fence;
+				continue;
+			}
+			if (!fence && LEGACY_ADMONITION.matcher(line).matches()) {
+				offenders.add(line);
+			}
+		}
+		return List.copyOf(offenders);
+	}
+
+	/**
+	 * Returns the declared sidebar position, or -1 when the page declares none.
+	 * <p>
+	 * Read from the front matter only. A YAML example inside the prose can carry a
+	 * {@code sidebar_position:} line of its own, and matching that would report a
+	 * position the sidebar never sees.
+	 */
 	public static int sidebarPosition(String content) {
-		Matcher matcher = SIDEBAR_POSITION.matcher(content);
+		Matcher matcher = SIDEBAR_POSITION.matcher(frontMatterOf(content));
 		return matcher.find() ? Integer.parseInt(matcher.group(1)) : -1;
 	}
 

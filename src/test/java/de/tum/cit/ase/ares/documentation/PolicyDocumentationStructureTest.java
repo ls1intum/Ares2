@@ -100,14 +100,15 @@ class PolicyDocumentationStructureTest {
 		String content = read(page);
 
 		assertTrue(FRONT_MATTER.matcher(content).find(), page + " must start with YAML front matter.");
+		String frontMatter = DocumentationPages.frontMatterOf(content);
 		for (String field : List.of("title:", "sidebar_position:", "description:")) {
-			assertTrue(content.contains(field), page + " front matter must declare " + field);
+			assertTrue(frontMatter.contains(field), page + " front matter must declare " + field);
 		}
 
-		assertTrue(content.contains(":::tip[ELI5]"),
+		assertTrue(DocumentationPages.opensWithEli5(content),
 				page + " must open with an ELI5 box written as ':::tip[ELI5]'. The Docusaurus 2 form\n"
 						+ "':::tip ELI5' is not a directive and renders as literal text.");
-		assertFalse(DocumentationPages.LEGACY_ADMONITION.matcher(content).find(),
+		assertFalse(!DocumentationPages.legacyAdmonitionsIn(content).isEmpty(),
 				page + " uses an admonition form that renders as plain text.");
 
 		List<String> headings = content.lines().filter(line -> line.startsWith("## ")).toList();
@@ -165,13 +166,49 @@ class PolicyDocumentationStructureTest {
 		List<Path> inSidebarOrder = new ArrayList<>(pages);
 		inSidebarOrder.sort((left, right) -> Integer.compare(sidebarPositionOf(left), sidebarPositionOf(right)));
 
+		List<String> example = exampleWithoutMarkersOf(inSidebarOrder.get(0));
+		boolean[] covered = new boolean[example.size()];
+
 		int previousLast = -1;
 		for (Path page : inSidebarOrder) {
-			int[] range = markedRangeOf(page);
-			assertTrue(range[0] > previousLast, page + " marks a section at or above the previous page's section. The "
-					+ "pages must walk the example from top to bottom in sidebar order.");
-			previousLast = range[1];
+			MarkedRange range = markedRangeOf(page);
+			assertTrue(range.first() > previousLast,
+					page + " marks a section at or above the previous page's section. The "
+							+ "pages must walk the example from top to bottom in sidebar order.");
+			for (int line = range.first(); line <= range.last(); line++) {
+				covered[line] = true;
+			}
+			previousLast = range.last();
 		}
+
+		assertEquals(example.size() - 1, previousLast,
+				"The pages stop short of the end of the example. The last domain page must mark the last "
+						+ "line, otherwise the section silently omits whatever comes after it.");
+
+		// Between two marked sections there may be structure but never content. A field
+		// line that no page marks is a field nobody documents, which is exactly the gap
+		// this section exists to prevent.
+		List<String> unmarked = new ArrayList<>();
+		for (int line = 0; line < example.size(); line++) {
+			if (!covered[line] && !isStructural(example.get(line))) {
+				unmarked.add((line + 1) + ": " + example.get(line));
+			}
+		}
+		assertEquals(List.of(), unmarked,
+				"These lines of the example policy are marked by no page, and they are not structural "
+						+ "parent keys or blank lines, so they document a field nobody explains.");
+	}
+
+	/**
+	 * A line that carries no field of its own: a blank line, or a parent key whose
+	 * value is the block beneath it.
+	 */
+	private static boolean isStructural(String line) {
+		return line.isBlank() || line.stripTrailing().endsWith(":");
+	}
+
+	private static List<String> exampleWithoutMarkersOf(Path page) throws IOException {
+		return yamlBlockOf(page).lines().filter(line -> !line.startsWith("# policy-focus-")).toList();
 	}
 
 	/**
@@ -183,7 +220,10 @@ class PolicyDocumentationStructureTest {
 	 * two pages relative to one another so that the comparison across pages became
 	 * meaningless.
 	 */
-	private static int[] markedRangeOf(Path page) throws IOException {
+	private record MarkedRange(int first, int last) {
+	}
+
+	private static MarkedRange markedRangeOf(Path page) throws IOException {
 		int index = -1;
 		int first = -1;
 		int last = -1;
@@ -205,7 +245,7 @@ class PolicyDocumentationStructureTest {
 				last = index;
 			}
 		}
-		return new int[] { first, last };
+		return new MarkedRange(first, last);
 	}
 
 	private static int sidebarPositionOf(Path page) {
