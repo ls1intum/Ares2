@@ -93,6 +93,31 @@ public final class InstrumentationSecurityProbe {
 	}
 
 	/**
+	 * Simulates a woven {@code Files.createTempFile(...)} call whose captured
+	 * parameters are unresolved or wrongly shaped (matching neither known
+	 * overload), so the fail-closed handling of that case
+	 * (I-baseline-low-risk-jdk-read-exemptions, Sandbox Fail-Closed Behaviour) can
+	 * be exercised directly.
+	 */
+	public static void checkFilesCreateTempFileMalformed(Object[] rawParameters) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.nio.file.Files",
+				"createTempFile",
+				"(Ljava/nio/file/Path;Ljava/lang/String;Ljava/lang/String;[Ljava/nio/file/attribute/FileAttribute;)Ljava/nio/file/Path;",
+				null, rawParameters, null);
+	}
+
+	/**
+	 * Simulates a woven {@code File.createTempFile(...)} call whose captured
+	 * parameters are unresolved or wrongly shaped (matching neither known
+	 * overload), mirroring {@link #checkFilesCreateTempFileMalformed}.
+	 */
+	public static void checkFileCreateTempFileMalformed(Object[] rawParameters) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.io.File",
+				"createTempFile", "(Ljava/lang/String;Ljava/lang/String;Ljava/io/File;)Ljava/io/File;", null,
+				rawParameters, null);
+	}
+
+	/**
 	 * Simulates the "read" leg of a woven
 	 * {@code Files.copy(source, destination, ...)} call (I-114): the real advice
 	 * fires this action from a separate pointcut match than "overwrite", so the two
