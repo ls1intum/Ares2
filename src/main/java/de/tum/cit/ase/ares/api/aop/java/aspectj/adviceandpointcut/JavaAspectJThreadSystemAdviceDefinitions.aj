@@ -131,26 +131,39 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * Returns true when the intercepted thread creation is owned by Ares's own
 	 * {@code @StrictTimeout} machinery ({@code TimeoutUtils.executeWithTimeout}
 	 * submits each timed test invocation to an executor) rather than by student
-	 * code. Walking from the top of the stack, a {@code TimeoutUtils} frame reached
+	 * code. Walking from the top of the stack, {@code executeWithTimeout} reached
 	 * before any restricted-package (student) frame means the timeout machinery
 	 * created the thread (exempt); a student frame seen first means the student
-	 * created it (still blocked). The student's test body runs on a separate worker
-	 * thread whose stack does not contain {@code TimeoutUtils}, so a student thread
-	 * is never exempted.
+	 * created it (still blocked).
+	 * <p>
+	 * The method name matters. A student's test body does <em>not</em> run on a
+	 * stack free of {@code TimeoutUtils}: it runs inside
+	 * {@code TimeoutUtils.rethrowThrowableSafe} on the timeout worker, so that class
+	 * appears below the student's own frames. While the restricted package matched,
+	 * the student frame was always seen first and the distinction never surfaced.
+	 * The moment it stopped matching, every thread operation under a
+	 * {@code @StrictTimeout} was exempted instead, silently and without any failure.
+	 * Keying the exemption to the creating method rather than to the class removes
+	 * that dependency on a correctly scoped package.
 	 */
 	private static boolean isThreadCreationFromAresTimeout(String restrictedPackage) {
 		return java.lang.StackWalker.getInstance().walk(frames -> {
 			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
-				String className = iterator.next().getClassName();
+				java.lang.StackWalker.StackFrame frame = iterator.next();
+				String className = frame.getClassName();
 				if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
-					return Boolean.TRUE;
+					// Only the frame that actually creates the worker grants the exemption.
+					// TimeoutUtils sits on the student's stack too, as rethrowThrowableSafe, which
+					// is what runs the student's test body, so accepting any TimeoutUtils frame
+					// exempts student code the moment restrictedPackage stops matching.
+					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
 				}
 				// Ares's own infrastructure frames (this advice, internals) are never student
 				// code, even when restrictedPackage is a broad prefix that nominally covers them
-				// (e.g. the broad "de.tum.cit.ase" scope Ares' own self-tests configure).
-				// Skipping them lets the walk reach the TimeoutUtils frame that legitimately
-				// owns this @StrictTimeout worker.
+				// (e.g. the "de.tum.cit.ase" scope Ares' own self-tests run under). Skipping
+				// them lets the walk reach the TimeoutUtils frame that legitimately owns this
+				// @StrictTimeout worker.
 				if (className.startsWith("de.tum.cit.ase.ares.api.")) {
 					continue;
 				}

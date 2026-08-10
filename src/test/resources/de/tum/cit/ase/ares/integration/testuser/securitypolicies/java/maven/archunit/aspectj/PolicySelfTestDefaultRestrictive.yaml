@@ -1,0 +1,37 @@
+# Pins the supervised package for the self-tests that used to run without a policy.
+#
+# Those tests declared @Policy(withinPath = ...) but no policy file, so the supervised
+# package came from JavaProgrammingExerciseProjectScanner's TUM default. That default
+# happened to be a textual prefix of Ares' own packages, so the self-test subjects
+# counted as student code by coincidence rather than by declaration, and changing the
+# production default switched their runtime enforcement off without any failure.
+#
+# This is close to what the no-policy path derived, not identical to it. The
+# differences are deliberate:
+#   - the supervised package is de.tum.cit.ase.ares rather than the broader
+#     de.tum.cit.ase the old default supplied; it still covers testuser.subject.* and
+#     matches what every other pinned self-test policy declares;
+#   - the exempt test classes are declared instead of scanned, so only these two are
+#     exempt rather than every recognised test class in the repository. The subjects
+#     under testuser.subject.* stay supervised, which is the point of these tests;
+#   - the timeout is inert here. These tests are bounded by their class-level
+#     @StrictTimeout; this value is only serialised into the Phobos configuration.
+# The architecture and enforcement modes match what the no-policy branch selects in
+# SecurityPolicyJavaDirector, ArchUnit and AspectJ, so the backend under test does not
+# change.
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.testuser.SecurityUser"
+    - "de.tum.cit.ase.ares.integration.testuser.PackageAccessUser"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: [ ]
+    regardingNetworkConnections: [ ]
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations: [ ]
+    regardingPackageImports: [ ]
+    regardingTimeouts:
+      - timeout: 3000
