@@ -373,6 +373,33 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
+	 * Returns {@code true} when the current call stack shows {@code java.time} (or
+	 * its {@code sun.util.calendar}/{@code java.util.TimeZone} JDK internals)
+	 * actively resolving the platform default timezone, as opposed to student code
+	 * opening the system timezone symlink (e.g. {@code /etc/localtime}) directly.
+	 * That read is JVM infrastructure only when initiated from within the JDK's own
+	 * timezone-resolution machinery; a student calling
+	 * {@code new FileInputStream("/etc/localtime")} directly has no such frame on
+	 * the stack, so that access stays blocked.
+	 *
+	 * @return {@code true} if a trusted timezone-resolution frame is present on the
+	 *         current stack
+	 */
+	static boolean isTimezoneResolutionInProgress() {
+		return STACK_WALKER.walk(frames -> {
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+				String className = iterator.next().getClassName();
+				if (className.startsWith("java.time.") || className.startsWith("sun.util.calendar.")
+						|| "java.util.TimeZone".equals(className)) {
+					return Boolean.TRUE;
+				}
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
 	 * Returns {@code true} only while Ares itself is reading framework support
 	 * files for structural and architecture test setup through one of its trusted
 	 * utilities ({@code ProjectSourcesFinder}, {@code ClassNameScanner},

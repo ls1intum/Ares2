@@ -63,11 +63,17 @@ public final class InstrumentationSecurityProbe {
 	 * explicit directory argument (I-baseline-low-risk-jdk-read-exemptions).
 	 */
 	public static void checkFilesCreateTempFile(Path directory, String prefix, String suffix) {
-		Object[] parameters = directory == null ? new Object[] { prefix, suffix, new FileAttribute<?>[0] }
-				: new Object[] { directory, prefix, suffix, new FileAttribute<?>[0] };
-		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.nio.file.Files",
-				"createTempFile", "(Ljava/nio/file/Path;Ljava/lang/String;Ljava/lang/String;)Ljava/nio/file/Path;",
-				null, parameters, null);
+		if (directory == null) {
+			JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.nio.file.Files",
+					"createTempFile",
+					"(Ljava/lang/String;Ljava/lang/String;[Ljava/nio/file/attribute/FileAttribute;)Ljava/nio/file/Path;",
+					null, new Object[] { prefix, suffix, new FileAttribute<?>[0] }, null);
+		} else {
+			JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.nio.file.Files",
+					"createTempFile",
+					"(Ljava/nio/file/Path;Ljava/lang/String;Ljava/lang/String;[Ljava/nio/file/attribute/FileAttribute;)Ljava/nio/file/Path;",
+					null, new Object[] { directory, prefix, suffix, new FileAttribute<?>[0] }, null);
+		}
 	}
 
 	/**
@@ -75,11 +81,15 @@ public final class InstrumentationSecurityProbe {
 	 * explicit directory argument (I-baseline-low-risk-jdk-read-exemptions).
 	 */
 	public static void checkFileCreateTempFile(String prefix, String suffix, File directory) {
-		Object[] parameters = directory == null ? new Object[] { prefix, suffix }
-				: new Object[] { prefix, suffix, directory };
-		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.io.File",
-				"createTempFile", "(Ljava/lang/String;Ljava/lang/String;Ljava/io/File;)Ljava/io/File;", null,
-				parameters, null);
+		if (directory == null) {
+			JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.io.File",
+					"createTempFile", "(Ljava/lang/String;Ljava/lang/String;)Ljava/io/File;", null,
+					new Object[] { prefix, suffix }, null);
+		} else {
+			JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.io.File",
+					"createTempFile", "(Ljava/lang/String;Ljava/lang/String;Ljava/io/File;)Ljava/io/File;", null,
+					new Object[] { prefix, suffix, directory }, null);
+		}
 	}
 
 	/**

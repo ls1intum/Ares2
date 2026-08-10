@@ -12,6 +12,9 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.security.Provider;
+import java.security.SecureRandom;
+import java.security.SecureRandomSpi;
 import java.util.List;
 
 import org.junit.jupiter.api.Assumptions;
@@ -466,15 +469,38 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	}
 
 	@Test
-	void systemTimezoneReadIsExemptWithoutAllowlistEntry() throws Exception {
+	void secureRandomSeedingPermitsTheEntropyDeviceReadExemption() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			// A real java.security.SecureRandom.generateSeed(...) call genuinely carries
+			// a java.security.SecureRandom frame, so the simulated entropy-device read it
+			// triggers must be permitted even though the active policy allows no read
+			// paths at all. No actual OS entropy device needs to exist for this: the
+			// synthetic SecureRandomSpi below simulates the read from within a real
+			// SecureRandom-seeding call stack.
+			assertDoesNotThrow(() -> triggerRealSecureRandomSeeding(
+					() -> InstrumentationSecurityProbe.checkEntropyDeviceReadDirectly("/dev/urandom")));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void systemTimezoneReadDirectlyByStudentCodeIsStillDenied() throws Exception {
 		Assumptions.assumeTrue(Files.exists(Path.of("/etc/localtime")), "requires /etc/localtime (Linux/BSD)");
 		try {
 			resetSettings();
 			configureInstrumentationMode();
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
 
-			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkSystemFileReadDirectly("/etc/localtime"),
-					"ZoneId.systemDefault()'s read of the system timezone symlink should be exempt");
+			// No trusted java.time timezone-resolution frame on this stack, so the
+			// system-timezone exemption must NOT apply: a student opening the symlink
+			// directly stays blocked.
+			assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkSystemFileReadDirectly("/etc/localtime"));
 		} finally {
 			resetSettings();
 		}
@@ -606,13 +632,71 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	 * {@code target/} tree, which - unlike JUnit's {@code @TempDir} - does not
 	 * itself live under {@code java.io.tmpdir}, so it is a genuine "explicit
 	 * non-default directory" fixture for the temp-file-creation exemption tests
-	 * above.
+	 * above. Aborts rather than silently passing if {@code target/} itself happens
+	 * to live under {@code java.io.tmpdir} in this environment (e.g. some CI
+	 * runners place the whole workspace under the system temp directory), since the
+	 * denial tests would then no longer exercise a genuinely non-default directory.
 	 */
 	private static File createNonTempDirOutsideDefaultTempDir(String name) throws IOException {
 		Path dir = Path.of("target", "baseline-low-risk-test-dirs", name);
 		Files.createDirectories(dir);
 		dir.toFile().deleteOnExit();
+
+		Path realDir = dir.toRealPath();
+		Path realDefaultTempDir = Path.of(System.getProperty("java.io.tmpdir")).toRealPath();
+		if (realDir.startsWith(realDefaultTempDir)) {
+			Assumptions.abort("fixture directory " + realDir + " is inside java.io.tmpdir (" + realDefaultTempDir
+					+ ") in this environment; cannot exercise a genuine non-default-temp-directory denial here");
+		}
 		return dir.toFile();
+	}
+
+	/**
+	 * Registers a synthetic {@link SecureRandomSpi} whose
+	 * {@code engineGenerateSeed} runs the given probe, then calls
+	 * {@link SecureRandom#generateSeed(int)} on it. This makes
+	 * {@code java.security.SecureRandom.generateSeed(...)} a genuine caller frame
+	 * on the real stack while the probe runs, without needing an actual OS entropy
+	 * device to exist or be read.
+	 */
+	private static void triggerRealSecureRandomSeeding(SeedingProbe probe) throws Exception {
+		ProbingSecureRandomSpi.PROBE = probe;
+		try {
+			Provider provider = new Provider("ares-hotfix-test-secure-random-provider", "1.0",
+					"Ares test fixture provider for exercising the SecureRandom-seeding stack detector") {
+				private static final long serialVersionUID = 1L;
+			};
+			provider.put("SecureRandom.AresProbe", ProbingSecureRandomSpi.class.getName());
+			SecureRandom.getInstance("AresProbe", provider).generateSeed(1);
+		} finally {
+			ProbingSecureRandomSpi.PROBE = null;
+		}
+	}
+
+	@FunctionalInterface
+	private interface SeedingProbe {
+		void run();
+	}
+
+	public static final class ProbingSecureRandomSpi extends SecureRandomSpi {
+
+		private static volatile SeedingProbe PROBE;
+
+		@Override
+		protected byte[] engineGenerateSeed(int numBytes) {
+			PROBE.run();
+			return new byte[numBytes];
+		}
+
+		@Override
+		protected void engineSetSeed(byte[] seed) {
+			// Not exercised by these tests.
+		}
+
+		@Override
+		protected void engineNextBytes(byte[] bytes) {
+			// Not exercised by these tests.
+		}
 	}
 
 	// </editor-fold>
