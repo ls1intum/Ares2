@@ -486,7 +486,7 @@ Defines five scanning methods that auto-detect project metadata:
 |---|---|---|
 | `scanForBuildMode()` | `BuildMode` | Whether the project uses Maven (`pom.xml`) or Gradle (`build.gradle`) |
 | `scanForTestClasses()` | `String[]` | Fully qualified names of all classes in the **test source directory** containing `@Test` or `@Property` annotations, or extending JUnit 3's `TestCase` |
-| `scanForPackageName()` | `String` | The most frequently used non-reserved package declaration across all `.java` files |
+| `scanForPackageName()` | `String` | The most frequently used non-reserved package: taken from the production sources, otherwise from the compiled production output, otherwise the configured default |
 | `scanForMainClassInPackage()` | `String` | The class containing `public static void main(String[])` |
 | `scanForTestPath()` | `Path` | The file system path to the test source directory |
 
@@ -515,7 +515,13 @@ ProjectSourcesFinder.findProjectSourcesPath()
       → extractor.apply(content)
 ```
 
-**`scanForPackageName()` algorithm:** First filters out reserved infrastructure prefixes (via `ReservedPackageGuard.reservedPrefixOf(...)`) so a student cannot flood the project with files in a trusted namespace to make it the derived enforcement scope → counts the frequency of every remaining `package` declaration across all files → returns the most common one. This heuristic works because in a typical student project, the main source package appears in the majority of files.
+**`scanForPackageName()` algorithm:** Resolution runs in three steps, each reached only when the previous one finds nothing at all.
+
+1. **Production sources.** Reserved infrastructure prefixes are filtered out first (via `ReservedPackageGuard.reservedPrefixOf(...)`), so a student cannot flood the project with files in a trusted namespace to make it the derived enforcement scope. The frequency of every remaining `package` declaration is counted and the most common one wins. This heuristic works because in a typical student project the main source package appears in the majority of files.
+2. **Compiled production output.** Only top-level classes are counted, so a package is not weighted by how many nested or anonymous classes it happens to contain. This step covers every project whose build descriptor the source-root discovery cannot parse, because the build tool writes its output to its own location whatever the descriptor says.
+3. **The configured default** (see [Section 10.3](#103-javaprogrammingexerciseprojectscanner)), with a warning naming the roots that were searched.
+
+> **Limitation.** Step 3 is a last resort and guarantees nothing. If the project does not contain the default package, the analysis path resolves to a directory that does not exist: no class is imported, no resource domain is enforced at runtime, and nothing fails. The warning in the log is the only signal. Step 2 is what keeps step 3 out of reach for a real project, and an exercise should still declare its package in the security policy rather than rely on detection.
 
 **`scanForTestClasses()` algorithm:** Scans only the **test source directory** (see `scanForTestPath()`) and returns every class whose file contains a `@Test` / `@Property` annotation or `extends TestCase`.
 

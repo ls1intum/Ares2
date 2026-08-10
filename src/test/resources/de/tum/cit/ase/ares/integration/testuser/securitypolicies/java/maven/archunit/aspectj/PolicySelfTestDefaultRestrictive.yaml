@@ -28,10 +28,10 @@ regardingTheSupervisedCode:
     - "de.tum.cit.ase.ares.integration.testuser.SecurityUser"
     - "de.tum.cit.ase.ares.integration.testuser.PackageAccessUser"
   theFollowingResourceAccessesArePermitted:
-    regardingFileSystemInteractions: [ ]
-    regardingNetworkConnections: [ ]
-    regardingCommandExecutions: [ ]
-    regardingThreadCreations: [ ]
-    regardingPackageImports: [ ]
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
     regardingTimeouts:
       - timeout: 3000
