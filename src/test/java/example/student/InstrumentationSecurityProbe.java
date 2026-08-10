@@ -1,11 +1,13 @@
 package example.student;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.net.SocketAddress;
 import java.net.URL;
 import java.nio.channels.FileChannel;
 import java.nio.file.CopyOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
 import java.util.List;
 
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
@@ -33,6 +35,51 @@ public final class InstrumentationSecurityProbe {
 	public static void checkDeleteIfExists(Path path) {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("delete", "java.nio.file.Files",
 				"deleteIfExists", "(Ljava/nio/file/Path;)Z", null, new Object[] { path }, null);
+	}
+
+	/**
+	 * Simulates a direct read of an OS entropy device (e.g.
+	 * {@code new FileInputStream("/dev/urandom")}), as student code might attempt
+	 * without going through {@link java.security.SecureRandom}
+	 * (I-baseline-low-risk-jdk-read-exemptions).
+	 */
+	public static void checkEntropyDeviceReadDirectly(String devicePath) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read", "java.io.FileInputStream",
+				"<init>", "(Ljava/lang/String;)V", null, new Object[] { devicePath }, null);
+	}
+
+	/**
+	 * Simulates a system-file read (e.g. the system timezone symlink or the
+	 * JDK-bundled cacerts file) via {@code FileInputStream}
+	 * (I-baseline-low-risk-jdk-read-exemptions).
+	 */
+	public static void checkSystemFileReadDirectly(String path) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read", "java.io.FileInputStream",
+				"<init>", "(Ljava/lang/String;)V", null, new Object[] { path }, null);
+	}
+
+	/**
+	 * Simulates a woven {@code Files.createTempFile(...)} call, with or without an
+	 * explicit directory argument (I-baseline-low-risk-jdk-read-exemptions).
+	 */
+	public static void checkFilesCreateTempFile(Path directory, String prefix, String suffix) {
+		Object[] parameters = directory == null ? new Object[] { prefix, suffix, new FileAttribute<?>[0] }
+				: new Object[] { directory, prefix, suffix, new FileAttribute<?>[0] };
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.nio.file.Files",
+				"createTempFile", "(Ljava/nio/file/Path;Ljava/lang/String;Ljava/lang/String;)Ljava/nio/file/Path;",
+				null, parameters, null);
+	}
+
+	/**
+	 * Simulates a woven {@code File.createTempFile(...)} call, with or without an
+	 * explicit directory argument (I-baseline-low-risk-jdk-read-exemptions).
+	 */
+	public static void checkFileCreateTempFile(String prefix, String suffix, File directory) {
+		Object[] parameters = directory == null ? new Object[] { prefix, suffix }
+				: new Object[] { prefix, suffix, directory };
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.io.File",
+				"createTempFile", "(Ljava/lang/String;Ljava/lang/String;Ljava/io/File;)Ljava/io/File;", null,
+				parameters, null);
 	}
 
 	/**

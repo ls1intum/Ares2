@@ -3,6 +3,8 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
@@ -12,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -438,6 +441,178 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 		} finally {
 			resetSettings();
 		}
+	}
+
+	// </editor-fold>
+
+	// <editor-fold desc="baseline-low-risk-jdk-read-exemptions">
+
+	@Test
+	void entropySourceReadDirectlyByStudentCodeIsStillDenied() throws Exception {
+		Assumptions.assumeTrue(Files.exists(Path.of("/dev/urandom")), "requires /dev/urandom (Linux/BSD)");
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			// No SecureRandom-seeding frame on this stack, so the entropy-device
+			// exemption must NOT apply: a student opening the device directly stays
+			// blocked.
+			assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkEntropyDeviceReadDirectly("/dev/urandom"));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void systemTimezoneReadIsExemptWithoutAllowlistEntry() throws Exception {
+		Assumptions.assumeTrue(Files.exists(Path.of("/etc/localtime")), "requires /etc/localtime (Linux/BSD)");
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkSystemFileReadDirectly("/etc/localtime"),
+					"ZoneId.systemDefault()'s read of the system timezone symlink should be exempt");
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void cacertsReadUnderJavaHomeIsAlreadyExemptWithoutAllowlistEntry() throws Exception {
+		String cacertsPath = Path.of(System.getProperty("java.home"), "lib", "security", "cacerts").toString();
+		Assumptions.assumeTrue(Files.exists(Path.of(cacertsPath)), "requires a JDK-bundled cacerts file");
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			// SSLContext/TrustManagerFactory's default init reads cacerts under java.home,
+			// already covered by the pre-existing isExemptSystemFileAccess java.home
+			// read exemption - locked in here so a future change cannot silently narrow
+			// it.
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkSystemFileReadDirectly(cacertsPath));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void filesCreateTempFileWithoutExplicitDirectoryIsExemptWithoutAllowlistEntry() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			assertDoesNotThrow(
+					() -> InstrumentationSecurityProbe.checkFilesCreateTempFile(null, "ares-baseline-", ".tmp"),
+					"Files.createTempFile without an explicit directory defaults to java.io.tmpdir and should be exempt");
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void fileCreateTempFileTwoArgOverloadIsExemptWithoutAllowlistEntry() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			assertDoesNotThrow(
+					() -> InstrumentationSecurityProbe.checkFileCreateTempFile("ares-baseline-", ".tmp", null));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void fileCreateTempFileExplicitDefaultTempDirectoryIsExempt() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			File tmpDir = new File(System.getProperty("java.io.tmpdir"));
+			assertDoesNotThrow(
+					() -> InstrumentationSecurityProbe.checkFileCreateTempFile("ares-baseline-", ".tmp", tmpDir),
+					"An explicit directory argument that IS java.io.tmpdir should still be exempt");
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void fileCreateTempFileExplicitNonDefaultDirectoryStillRequiresAllowlistEntry() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			// Regression guard for the latent bypass this feature closes: before, EVERY
+			// parameter of File.createTempFile (including an explicit, non-default
+			// directory) was ignored outright, so this call was allowed unconditionally.
+			// The directory must genuinely sit outside java.io.tmpdir - unlike @TempDir,
+			// which JUnit itself creates below the system temp directory.
+			File explicitDir = createNonTempDirOutsideDefaultTempDir("fileCreateTempFileExplicitNonDefault");
+			assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkFileCreateTempFile("ares-baseline-", ".tmp", explicitDir));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void filesCreateTempFileWithExplicitAllowedDirectoryIsPermitted() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path explicitDir = createNonTempDirOutsideDefaultTempDir("filesCreateTempFileExplicitAllowed").toPath();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated",
+					new String[] { explicitDir.toString() }, "ARCH", "INSTRUMENTATION");
+
+			assertDoesNotThrow(
+					() -> InstrumentationSecurityProbe.checkFilesCreateTempFile(explicitDir, "ares-baseline-", ".tmp"),
+					"An explicit directory that IS in pathsAllowedToBeCreated should still be permitted through the special case");
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void filesCreateTempFileWithExplicitNonAllowedDirectoryIsDenied() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+			Path explicitDir = createNonTempDirOutsideDefaultTempDir("filesCreateTempFileExplicitNonAllowed").toPath();
+
+			assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkFilesCreateTempFile(explicitDir, "ares-baseline-", ".tmp"));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * Creates (and registers for deletion) a directory under the build's
+	 * {@code target/} tree, which - unlike JUnit's {@code @TempDir} - does not
+	 * itself live under {@code java.io.tmpdir}, so it is a genuine "explicit
+	 * non-default directory" fixture for the temp-file-creation exemption tests
+	 * above.
+	 */
+	private static File createNonTempDirOutsideDefaultTempDir(String name) throws IOException {
+		Path dir = Path.of("target", "baseline-low-risk-test-dirs", name);
+		Files.createDirectories(dir);
+		dir.toFile().deleteOnExit();
+		return dir.toFile();
 	}
 
 	// </editor-fold>
