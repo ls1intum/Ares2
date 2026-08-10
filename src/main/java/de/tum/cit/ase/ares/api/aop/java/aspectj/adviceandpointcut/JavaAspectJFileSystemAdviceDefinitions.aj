@@ -1204,14 +1204,21 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * ({@code /etc/localtime}) consulted by {@code java.time} internals (e.g.
 	 * {@code ZoneId.systemDefault()}) to resolve the platform default zone. This
 	 * is JVM/OS infrastructure with no attacker-controlled input, not student file
-	 * access.
+	 * access. Matched exactly, and only when
+	 * {@link #isTimezoneResolutionInProgress()} confirms the read originates from
+	 * the JDK's own timezone-resolution machinery, so a student directly opening
+	 * the symlink is never exempted by path name alone.
 	 *
 	 * @param action the concrete file-system action under inspection
 	 * @param path   the already-resolved path string under inspection
-	 * @return true if the path is the system timezone file being read
+	 * @return true if the path is the system timezone file being read by a
+	 *         trusted JDK timezone-resolution frame
 	 */
 	private static boolean isSystemTimezoneRead(@Nonnull String action, @Nullable String path) {
-		return "read".equals(action) && SYSTEM_TIMEZONE_PATH.equals(path);
+		if (!"read".equals(action) || !SYSTEM_TIMEZONE_PATH.equals(path)) {
+			return false;
+		}
+		return isTimezoneResolutionInProgress();
 	}
 
 	/**
