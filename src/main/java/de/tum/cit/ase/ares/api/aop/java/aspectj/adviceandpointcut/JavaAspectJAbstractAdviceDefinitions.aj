@@ -355,6 +355,35 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	}
 
 	/**
+	 * Returns {@code true} when the current call stack shows
+	 * {@link java.security.SecureRandom} (or one of its JDK provider
+	 * implementations, e.g. {@code sun.security.provider.NativePRNG}/
+	 * {@code SeedGenerator}) actively seeding itself, as opposed to student code
+	 * opening an entropy-device path (e.g. {@code /dev/urandom}) directly. Reads of
+	 * that device are JVM cryptography infrastructure only when initiated from
+	 * within {@code SecureRandom}'s own seeding machinery; a student calling
+	 * {@code new FileInputStream("/dev/urandom")} directly has no such frame on the
+	 * stack, so that access stays blocked. Also covers {@link java.util.UUID}'s
+	 * {@code randomUUID()}, which seeds itself through a shared
+	 * {@code SecureRandom} instance and therefore already carries the same frame.
+	 *
+	 * @return {@code true} if a SecureRandom-seeding frame is present on the
+	 *         current stack
+	 */
+	static boolean isSecureRandomSeedingInProgress() {
+		return STACK_WALKER.walk(frames -> {
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+				String className = iterator.next().getClassName();
+				if (className.equals("java.security.SecureRandom") || className.startsWith("sun.security.provider.")) {
+					return Boolean.TRUE;
+				}
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
 	 * Returns {@code true} only while Ares itself is reading framework support
 	 * files for structural and architecture test setup through one of its trusted
 	 * utilities ({@code ProjectSourcesFinder}, {@code ClassNameScanner},

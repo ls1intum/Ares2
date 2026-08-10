@@ -86,9 +86,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 */
 	@Nonnull
 	private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries(
-			// Files.createTempFile(Path dir, String prefix, String suffix,
-			// FileAttribute<?>...) - only check dir (index 0)
-			Map.entry("java.nio.file.Files.createTempFile", IgnoreValues.allExcept(0)),
+			// Files.createTempFile and File.createTempFile are deliberately absent here:
+			// their overloads mix a leading directory parameter (a real path) with
+			// leading prefix/suffix String parameters (not paths) at the SAME positions
+			// across overloads, which this fixed-index ignore-mask cannot express safely.
+			// See checkTempFileCreationSpecialCase, which resolves the effective
+			// directory per-overload instead.
 			// Files.writeString(Path path, CharSequence csq, OpenOption...) - only check
 			// path (index 0)
 			Map.entry("java.nio.file.Files.writeString", IgnoreValues.allExcept(0)),
@@ -97,8 +100,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			Map.entry("java.nio.file.Files.write", IgnoreValues.allExcept(0)),
 			// Files.readString(Path path, Charset cs) - only check path (index 0)
 			Map.entry("java.nio.file.Files.readString", IgnoreValues.allExcept(0)),
-			// File.createTempFile(String prefix, String suffix) - no path parameter at all
-			Map.entry("java.io.File.createTempFile", IgnoreValues.ALL),
 			// Runtime.exec(String[]) - only check command (index 0), not flags like "-c"
 			Map.entry("java.lang.Runtime.exec", IgnoreValues.allExcept(0)),
 			// RandomAccessFile(File|String file, String mode) - only check the file
@@ -141,6 +142,27 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			"exempt_local.policy", "{default,exempt}_*.policy");
 
 	/**
+	 * The fixed set of OS entropy-device paths that
+	 * {@link java.security.SecureRandom} seeds itself from. Matched exactly, and
+	 * only when {@link #isSecureRandomSeedingInProgress()} confirms the read
+	 * originates from SecureRandom's own seeding machinery, so a student directly
+	 * opening one of these devices is never exempted by name alone.
+	 */
+	@Nonnull
+	private static final Set<String> ENTROPY_SOURCE_PATHS = Set.of("/dev/urandom", "/dev/random");
+
+	/**
+	 * The system timezone symlink read by {@code java.time} internals (e.g.
+	 * {@code ZoneId.systemDefault()}) on Linux/BSD to determine the platform
+	 * default zone. The JDK's own bundled zoneinfo database ({@code tzdb.dat})
+	 * lives under {@code java.home} and is already covered by
+	 * {@link #isExemptSystemFileAccess(String, String)}; this constant only closes
+	 * the gap for the one system file that lives outside {@code java.home}.
+	 */
+	@Nonnull
+	private static final String SYSTEM_TIMEZONE_PATH = "/etc/localtime";
+
+	/**
 	 * Trusted JVM home captured at class-initialisation time, before student code
 	 * runs, so a later {@code System.setProperty("java.home", ...)} cannot widen
 	 * the system-file access exemption into a fail-open read/execute bypass.
@@ -155,6 +177,15 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 */
 	@Nullable
 	private static final String TRUSTED_MAVEN_REPOSITORY = resolveTrustedMavenRepository();
+
+	/**
+	 * Trusted JVM default temp directory ({@code java.io.tmpdir}) captured at
+	 * class-initialisation time, before student code runs, so a later
+	 * {@code System.setProperty("java.io.tmpdir", ...)} cannot widen the
+	 * default-temp-file exemption into a fail-open create bypass.
+	 */
+	@Nullable
+	private static final String TRUSTED_DEFAULT_TEMP_DIR = System.getProperty("java.io.tmpdir");
 
 	// </editor-fold>
 
@@ -772,6 +803,76 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
+	 * Special-cases {@code Files.createTempFile} and {@code File.createTempFile},
+	 * whose overloads mix a leading directory parameter (a real path) with leading
+	 * prefix/suffix String parameters (not paths) at the same argument positions
+	 * across overloads — a shape the generic per-method ignore-mask
+	 * ({@link #FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT}, which addresses only one
+	 * fixed parameter index per method name) cannot express safely. Resolves the
+	 * effective creation directory — the explicit directory argument if the caller
+	 * supplied one, or the JVM's default temp directory ({@code java.io.tmpdir})
+	 * when none was — and validates ONLY that directory.
+	 * <p>
+	 * When the effective directory is the default temp directory, the write is
+	 * exempt from needing an explicit {@code pathsAllowedToBeCreated} entry:
+	 * {@code java.io.tmpdir} is a JVM/library default, not a location the student
+	 * chose. An explicit non-default directory argument is still validated against
+	 * the policy's create allow-list, closing a previous gap where
+	 * {@code File.createTempFile(prefix, suffix, directory)}'s directory argument
+	 * was never checked at all (the old ignore-mask ignored every parameter for
+	 * that method name, including the directory).
+	 *
+	 * @return {@code true} if the call was one of the special-cased methods and has
+	 *         been fully handled (the generic path must be skipped)
+	 */
+	private static boolean checkTempFileCreationSpecialCase(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nullable Object[] parameters, @Nonnull String fileSystemMethodToCheck,
+			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature) {
+		boolean isFilesCreateTempFile = "java.nio.file.Files".equals(declaringTypeName)
+				&& "createTempFile".equals(methodName);
+		boolean isFileCreateTempFile = "java.io.File".equals(declaringTypeName) && "createTempFile".equals(methodName);
+		if (!isFilesCreateTempFile && !isFileCreateTempFile) {
+			return false;
+		}
+		if (!"create".equals(action)) {
+			throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+		}
+		// The directory argument is only present, at a fixed position, on the overloads
+		// that declare one: Files.createTempFile(Path dir, ...) at index 0,
+		// File.createTempFile(prefix, suffix, File directory) at index 2. An instanceof
+		// check distinguishes these from their dir-less siblings (whose same-position
+		// argument is a prefix/suffix String), so a prefix/suffix string is never
+		// mistaken for a path.
+		Object explicitDirectory = null;
+		if (isFilesCreateTempFile && parameters != null && parameters.length > 0 && parameters[0] instanceof Path) {
+			explicitDirectory = parameters[0];
+		} else if (isFileCreateTempFile && parameters != null && parameters.length > 2
+				&& parameters[2] instanceof File) {
+			explicitDirectory = parameters[2];
+		}
+		if (explicitDirectory == null) {
+			// No explicit directory: the JVM writes to java.io.tmpdir, a JVM/library
+			// default, not a location the student chose.
+			return true;
+		}
+		@Nullable
+		String[] allowedPaths = getValueFromSettings("pathsAllowedToBeCreated");
+		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
+		@Nullable
+		String violation = checkIfVariableCriteriaIsViolated(new Object[] { explicitDirectory }, allowedPaths,
+				IgnoreValues.NONE, true);
+		if (violation == null || isPathWithin(violation, TRUSTED_DEFAULT_TEMP_DIR)
+				|| INTERNAL_PATH_SUFFIXES.stream().anyMatch(violation::endsWith)) {
+			return true;
+		}
+		throw new SecurityException(
+				localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, "create", violation,
+						fullMethodSignature
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+								+ " | " + buildDenialReason(noAllowRuleConfigured)));
+	}
+
+	/**
 	 * Checks a single isolated parameter/receiver candidate array against one
 	 * specific allow-list, throwing {@code SecurityException} on violation. Applies
 	 * only the internal-path-suffix exemption (Ares's own framework files) — the
@@ -1354,6 +1455,39 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
+	 * Determines whether a read targets an OS entropy device
+	 * ({@code /dev/urandom}/{@code /dev/random}) as part of
+	 * {@link java.security.SecureRandom}'s own internal seeding, rather than
+	 * student code opening that device directly.
+	 *
+	 * @param action the concrete file-system action under inspection
+	 * @param path   the already-resolved path string under inspection
+	 * @return true if the path is an entropy device being read by SecureRandom's
+	 *         seeding machinery
+	 */
+	private static boolean isEntropySourceRead(@Nonnull String action, @Nullable String path) {
+		if (!"read".equals(action) || path == null || !ENTROPY_SOURCE_PATHS.contains(path)) {
+			return false;
+		}
+		return isSecureRandomSeedingInProgress();
+	}
+
+	/**
+	 * Determines whether a read targets the system timezone symlink
+	 * ({@code /etc/localtime}) consulted by {@code java.time} internals (e.g.
+	 * {@code ZoneId.systemDefault()}) to resolve the platform default zone. This is
+	 * JVM/OS infrastructure with no attacker-controlled input, not student file
+	 * access.
+	 *
+	 * @param action the concrete file-system action under inspection
+	 * @param path   the already-resolved path string under inspection
+	 * @return true if the path is the system timezone file being read
+	 */
+	private static boolean isSystemTimezoneRead(@Nonnull String action, @Nullable String path) {
+		return "read".equals(action) && SYSTEM_TIMEZONE_PATH.equals(path);
+	}
+
+	/**
 	 * Performs the security validation for a single derived file-system action.
 	 * <p>
 	 * Description: Reuses the previously gathered contextual information to
@@ -1483,8 +1617,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					pathIllegallyInteractedThroughParameter);
 			boolean isCryptoPolicyRead = "read".equals(action)
 					&& isCryptoPolicyPath(pathIllegallyInteractedThroughParameter);
+			boolean isEntropySourceRead = isEntropySourceRead(action, pathIllegallyInteractedThroughParameter);
+			boolean isSystemTimezoneRead = isSystemTimezoneRead(action, pathIllegallyInteractedThroughParameter);
 			if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess
-					&& !isJarResourceRead && !isCryptoPolicyRead) {
+					&& !isJarResourceRead && !isCryptoPolicyRead && !isEntropySourceRead && !isSystemTimezoneRead) {
 				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
 						messageAction, pathIllegallyInteractedThroughParameter,
 						fullMethodSignature
@@ -1532,6 +1668,15 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// infrastructure (see isCryptoPolicyPath).
 			if (!isInternalAllowed && "read".equals(action)
 					&& isCryptoPolicyPath(pathIllegallyInteractedThroughReceiver)) {
+				isInternalAllowed = true;
+			}
+
+			// SecureRandom's own entropy-device seeding and the system timezone symlink
+			// read are JVM/OS infrastructure, not student file access.
+			if (!isInternalAllowed && isEntropySourceRead(action, pathIllegallyInteractedThroughReceiver)) {
+				isInternalAllowed = true;
+			}
+			if (!isInternalAllowed && isSystemTimezoneRead(action, pathIllegallyInteractedThroughReceiver)) {
 				isInternalAllowed = true;
 			}
 
@@ -1611,6 +1756,15 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				isInternalAllowed = true;
 			}
 
+			// SecureRandom's own entropy-device seeding and the system timezone symlink
+			// read are JVM/OS infrastructure, not student file access.
+			if (!isInternalAllowed && isEntropySourceRead(action, pathIllegallyInteractedThroughAttribute)) {
+				isInternalAllowed = true;
+			}
+			if (!isInternalAllowed && isSystemTimezoneRead(action, pathIllegallyInteractedThroughAttribute)) {
+				isInternalAllowed = true;
+			}
+
 			if (!isInternalAllowed) {
 				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
 						messageAction, pathIllegallyInteractedThroughAttribute,
@@ -1684,6 +1838,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// </editor-fold>
 
 			if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
+					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature)) {
+				return;
+			}
+			if (checkTempFileCreationSpecialCase(action, declaringTypeName, methodName, parameters,
 					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature)) {
 				return;
 			}
