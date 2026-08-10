@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
@@ -39,6 +40,18 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 */
 	@Nonnull
 	private static final StackWalker STACK_WALKER = StackWalker.getInstance();
+
+	/**
+	 * Second StackWalker, kept separate from {@link #STACK_WALKER} above, that
+	 * retains {@code Class} references so {@link #isTrustedJdkFrame(Set, Set)} can
+	 * additionally verify a matched frame's class-loader provenance. Only the two
+	 * trust-boundary checks that grant a security exemption based on stack shape
+	 * (entropy-device and system-timezone reads) pay this extra JNI cost; every
+	 * other stack inspector keeps using the cheaper {@link #STACK_WALKER}.
+	 */
+	@Nonnull
+	private static final StackWalker STACK_WALKER_WITH_CLASS_REFERENCE = StackWalker
+			.getInstance(Set.of(StackWalker.Option.RETAIN_CLASS_REFERENCE));
 
 	/**
 	 * Lazily resolved Class&lt;?&gt; reference for the AOP settings holder, cached
@@ -355,27 +368,38 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	}
 
 	/**
-	 * Returns {@code true} when the current call stack shows
-	 * {@link java.security.SecureRandom} (or one of its JDK provider
-	 * implementations, e.g. {@code sun.security.provider.NativePRNG}/
-	 * {@code SeedGenerator}) actively seeding itself, as opposed to student code
-	 * opening an entropy-device path (e.g. {@code /dev/urandom}) directly. Reads of
-	 * that device are JVM cryptography infrastructure only when initiated from
-	 * within {@code SecureRandom}'s own seeding machinery; a student calling
-	 * {@code new FileInputStream("/dev/urandom")} directly has no such frame on the
-	 * stack, so that access stays blocked. Also covers {@link java.util.UUID}'s
-	 * {@code randomUUID()}, which seeds itself through a shared
-	 * {@code SecureRandom} instance and therefore already carries the same frame.
+	 * Returns {@code true} when a frame further up the real call stack is both (a)
+	 * declared by a class whose name is one of {@code exactClassNames} or starts
+	 * with one of {@code packagePrefixes}, and (b) loaded by the bootstrap class
+	 * loader ({@code getClassLoader() == null}). Both conditions matter: matching
+	 * only by name would let student code forge the same frame shape by routing a
+	 * restricted call through a public JDK API that dispatches to caller-supplied
+	 * code from within a matching frame (e.g. a custom
+	 * {@link java.security.SecureRandomSpi} registered under a throwaway
+	 * {@link java.security.Provider}, whose {@code engineGenerateSeed} genuinely
+	 * runs beneath a real {@code java.security.SecureRandom.generateSeed(...)}
+	 * frame) — which is exactly why the trusted name sets below are restricted to
+	 * internal implementation packages student code cannot reach, reference, or
+	 * subclass, rather than public dispatch/callback-accepting classes. The
+	 * class-loader check is defence in depth against a class-loader impersonating
+	 * one of those package names.
 	 *
-	 * @return {@code true} if a SecureRandom-seeding frame is present on the
+	 * @param exactClassNames trusted fully qualified class names, matched exactly
+	 * @param packagePrefixes trusted package-name prefixes, matched with
+	 *                        {@code startsWith}
+	 * @return {@code true} if a trusted, bootstrap-loaded frame is present on the
 	 *         current stack
 	 */
-	static boolean isSecureRandomSeedingInProgress() {
-		return STACK_WALKER.walk(frames -> {
+	private static boolean isTrustedJdkFrame(@Nonnull Set<String> exactClassNames,
+			@Nonnull Set<String> packagePrefixes) {
+		return STACK_WALKER_WITH_CLASS_REFERENCE.walk(frames -> {
 			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
-				String className = iterator.next().getClassName();
-				if (className.equals("java.security.SecureRandom") || className.startsWith("sun.security.provider.")) {
+				StackWalker.StackFrame frame = iterator.next();
+				String className = frame.getClassName();
+				boolean nameIsTrusted = exactClassNames.contains(className)
+						|| packagePrefixes.stream().anyMatch(className::startsWith);
+				if (nameIsTrusted && frame.getDeclaringClass().getClassLoader() == null) {
 					return Boolean.TRUE;
 				}
 			}
@@ -384,30 +408,48 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	}
 
 	/**
-	 * Returns {@code true} when the current call stack shows {@code java.time}
-	 * (or its {@code sun.util.calendar}/{@code java.util.TimeZone} JDK internals)
-	 * actively resolving the platform default timezone, as opposed to student
-	 * code opening the system timezone symlink (e.g. {@code /etc/localtime})
-	 * directly. That read is JVM infrastructure only when initiated from within
-	 * the JDK's own timezone-resolution machinery; a student calling
-	 * {@code new FileInputStream("/etc/localtime")} directly has no such frame on
-	 * the stack, so that access stays blocked.
+	 * Returns {@code true} when the current call stack shows one of the JDK's own
+	 * {@link java.security.SecureRandom} provider implementations (e.g.
+	 * {@code sun.security.provider.NativePRNG}/{@code SeedGenerator}) actively
+	 * seeding itself, as opposed to student code opening an entropy-device path
+	 * (e.g. {@code /dev/urandom}) directly. Reads of that device are JVM
+	 * cryptography infrastructure only when initiated from within one of these
+	 * internal, non-subclassable provider classes; a student calling
+	 * {@code new FileInputStream("/dev/urandom")} directly has no such frame on
+	 * the stack, so that access stays blocked. Deliberately does <b>not</b> trust
+	 * the public {@code java.security.SecureRandom} class itself: any code can
+	 * register a custom {@link java.security.SecureRandomSpi} and observe that
+	 * frame on its own call stack without performing any genuine JDK seeding, so
+	 * trusting it would let a student's own entropy-device read forge this
+	 * exemption. Also covers {@link java.util.UUID}'s {@code randomUUID()}, whose
+	 * one-time internal seeding runs through the same trusted provider classes.
+	 *
+	 * @return {@code true} if a trusted SecureRandom-seeding frame is present on
+	 *         the current stack
+	 */
+	static boolean isSecureRandomSeedingInProgress() {
+		return isTrustedJdkFrame(Set.of(), Set.of("sun.security.provider."));
+	}
+
+	/**
+	 * Returns {@code true} when the current call stack shows the JDK's own
+	 * internal calendar/timezone-data machinery ({@code sun.util.calendar.*})
+	 * actively resolving the platform default timezone, as opposed to student code
+	 * opening the system timezone symlink (e.g. {@code /etc/localtime}) directly.
+	 * Deliberately does <b>not</b> trust the broader {@code java.time.*} package:
+	 * several of its interfaces (e.g. {@link java.time.temporal.Temporal#query})
+	 * dispatch synchronously to caller-supplied callback objects from within a
+	 * genuinely JDK-declared frame, so trusting that prefix would let a student
+	 * forge this exemption by implementing such a callback and reading the file
+	 * directly from within it — with no actual timezone resolution taking place.
+	 * {@code sun.util.calendar} is internal, non-public JDK implementation with no
+	 * such callback surface reachable from application code.
 	 *
 	 * @return {@code true} if a trusted timezone-resolution frame is present on
 	 *         the current stack
 	 */
 	static boolean isTimezoneResolutionInProgress() {
-		return STACK_WALKER.walk(frames -> {
-			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
-			while (iterator.hasNext()) {
-				String className = iterator.next().getClassName();
-				if (className.startsWith("java.time.") || className.startsWith("sun.util.calendar.")
-						|| className.equals("java.util.TimeZone")) {
-					return Boolean.TRUE;
-				}
-			}
-			return Boolean.FALSE;
-		});
+		return isTrustedJdkFrame(Set.of(), Set.of("sun.util.calendar."));
 	}
 
 	/**
