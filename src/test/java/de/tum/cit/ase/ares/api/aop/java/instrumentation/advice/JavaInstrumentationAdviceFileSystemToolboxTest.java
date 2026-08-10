@@ -12,9 +12,12 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileAttribute;
 import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.SecureRandomSpi;
+import java.time.LocalDate;
+import java.time.temporal.TemporalQuery;
 import java.util.List;
 
 import org.junit.jupiter.api.Assumptions;
@@ -469,20 +472,41 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	}
 
 	@Test
-	void secureRandomSeedingPermitsTheEntropyDeviceReadExemption() throws Exception {
+	void customSecureRandomSpiCannotForgeTheEntropyDeviceReadExemption() throws Exception {
 		try {
 			resetSettings();
 			configureInstrumentationMode();
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
 
-			// A real java.security.SecureRandom.generateSeed(...) call genuinely carries
-			// a java.security.SecureRandom frame, so the simulated entropy-device read it
-			// triggers must be permitted even though the active policy allows no read
-			// paths at all. No actual OS entropy device needs to exist for this: the
-			// synthetic SecureRandomSpi below simulates the read from within a real
-			// SecureRandom-seeding call stack.
-			assertDoesNotThrow(() -> triggerRealSecureRandomSeeding(
+			// Adversarial test (Trusted Boundary Preservation): a student-authored
+			// SecureRandomSpi's engineGenerateSeed genuinely runs beneath a real
+			// java.security.SecureRandom.generateSeed(...) frame, but that public
+			// dispatch frame is not itself trusted - only genuine
+			// sun.security.provider.* internal implementation frames are - so a
+			// simulated entropy-device read from within it must still be denied.
+			assertThrows(SecurityException.class, () -> triggerFakeSecureRandomSeeding(
 					() -> InstrumentationSecurityProbe.checkEntropyDeviceReadDirectly("/dev/urandom")));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void genuineSecureRandomEntropySeedingIsPermittedByAnActivePolicy() throws Exception {
+		Assumptions.assumeTrue(Files.exists(Path.of("/dev/urandom")) || Files.exists(Path.of("/dev/random")),
+				"requires an OS entropy device (Linux/BSD)");
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			// An unforced, genuinely fresh SecureRandom.generateSeed(...) call on the
+			// JDK's own default provider must still be permitted even though the active
+			// policy allows no read paths at all - proving the narrowed
+			// sun.security.provider.*-only trust still recognises real JDK seeding, not
+			// just the (now-denied) forged case above. Runs against the real
+			// java-agent-instrumented FileInputStream constructor, not a simulated call.
+			assertDoesNotThrow(() -> new SecureRandom().generateSeed(8));
 		} finally {
 			resetSettings();
 		}
@@ -501,6 +525,32 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 			// directly stays blocked.
 			assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkSystemFileReadDirectly("/etc/localtime"));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void temporalQueryCallbackCannotForgeTheSystemTimezoneReadExemption() throws Exception {
+		Assumptions.assumeTrue(Files.exists(Path.of("/etc/localtime")), "requires /etc/localtime (Linux/BSD)");
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			// Adversarial test (Trusted Boundary Preservation): java.time.temporal's
+			// default query(...) method dispatches synchronously to a caller-supplied
+			// TemporalQuery from within a genuinely JDK-declared java.time.temporal.*
+			// frame. Broadly trusting the "java.time." prefix (as a prior version of this
+			// exemption did) would let a student forge the system-timezone exemption this
+			// way; only sun.util.calendar.* internals are trusted now, so this must still
+			// be denied.
+			TemporalQuery<Void> maliciousQuery = temporal -> {
+				InstrumentationSecurityProbe.checkSystemFileReadDirectly("/etc/localtime");
+				return null;
+			};
+
+			assertThrows(SecurityException.class, () -> LocalDate.now().query(maliciousQuery));
 		} finally {
 			resetSettings();
 		}
@@ -627,6 +677,80 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 		}
 	}
 
+	@Test
+	void filesCreateTempFileWithWrongParameterCountFailsClosed() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			// Sandbox Fail-Closed Behaviour: a parameter count matching neither known
+			// Files.createTempFile overload (3 args = no directory, 4 args = explicit
+			// directory) is unresolved/malformed and must be denied outright, not
+			// silently treated as "no directory supplied".
+			assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+					.checkFilesCreateTempFileMalformed(new Object[] { "ares-baseline-" }));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void filesCreateTempFileWithNonPathDirectoryPositionFailsClosed() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			// Sandbox Fail-Closed Behaviour: 4 parameters (the directory-overload shape)
+			// but the directory-position argument is not a Path (an unresolved/failed
+			// conversion, or a genuinely wrong type) must be denied, not fall through to
+			// the "no directory" default-allow branch.
+			assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe.checkFilesCreateTempFileMalformed(
+					new Object[] { "not-a-path", "ares-baseline-", ".tmp", new FileAttribute<?>[0] }));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void fileCreateTempFileWithWrongParameterCountFailsClosed() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			// Sandbox Fail-Closed Behaviour: a parameter count matching neither known
+			// File.createTempFile overload (2 args = no directory, 3 args = explicit
+			// directory) must be denied outright.
+			assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+					.checkFileCreateTempFileMalformed(new Object[] { "ares-baseline-" }));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void fileCreateTempFileWithNonFileDirectoryPositionFailsClosed() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			// Sandbox Fail-Closed Behaviour: 3 parameters (the directory-overload shape)
+			// but a non-null, non-File directory-position argument must be denied, not
+			// treated as the legitimate "null means default temp dir" case.
+			assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+					.checkFileCreateTempFileMalformed(new Object[] { "ares-baseline-", ".tmp", "not-a-file" }));
+		} finally {
+			resetSettings();
+		}
+	}
+
 	/**
 	 * Creates (and registers for deletion) a directory under the build's
 	 * {@code target/} tree, which - unlike JUnit's {@code @TempDir} - does not
@@ -652,14 +776,15 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	}
 
 	/**
-	 * Registers a synthetic {@link SecureRandomSpi} whose
+	 * Registers a synthetic, student-authored-style {@link SecureRandomSpi} whose
 	 * {@code engineGenerateSeed} runs the given probe, then calls
 	 * {@link SecureRandom#generateSeed(int)} on it. This makes
 	 * {@code java.security.SecureRandom.generateSeed(...)} a genuine caller frame
-	 * on the real stack while the probe runs, without needing an actual OS entropy
-	 * device to exist or be read.
+	 * on the real stack while the probe runs — the exact spoof the narrowed
+	 * {@code sun.security.provider.*}-only trust set is designed to reject, since
+	 * no genuine JDK seeding is actually taking place.
 	 */
-	private static void triggerRealSecureRandomSeeding(SeedingProbe probe) throws Exception {
+	private static void triggerFakeSecureRandomSeeding(SeedingProbe probe) throws Exception {
 		ProbingSecureRandomSpi.PROBE = probe;
 		try {
 			Provider provider = new Provider("ares-hotfix-test-secure-random-provider", "1.0",

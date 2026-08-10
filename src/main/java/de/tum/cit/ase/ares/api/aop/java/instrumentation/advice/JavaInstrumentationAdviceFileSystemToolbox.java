@@ -824,6 +824,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 *
 	 * @return {@code true} if the call was one of the special-cased methods and has
 	 *         been fully handled (the generic path must be skipped)
+	 * @throws SecurityException if the action is not {@code "create"}, or if the
+	 *                           captured parameters do not match the shape of any
+	 *                           known overload of the intercepted method — an
+	 *                           unresolved or wrongly shaped directory argument is
+	 *                           denied outright rather than silently treated as "no
+	 *                           directory supplied"
 	 */
 	private static boolean checkTempFileCreationSpecialCase(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nullable Object[] parameters, @Nonnull String fileSystemMethodToCheck,
@@ -838,17 +844,48 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 		}
 		// The directory argument is only present, at a fixed position, on the overloads
-		// that declare one: Files.createTempFile(Path dir, ...) at index 0,
-		// File.createTempFile(prefix, suffix, File directory) at index 2. An instanceof
-		// check distinguishes these from their dir-less siblings (whose same-position
-		// argument is a prefix/suffix String), so a prefix/suffix string is never
-		// mistaken for a path.
-		Object explicitDirectory = null;
-		if (isFilesCreateTempFile && parameters != null && parameters.length > 0 && parameters[0] instanceof Path) {
-			explicitDirectory = parameters[0];
-		} else if (isFileCreateTempFile && parameters != null && parameters.length > 2
-				&& parameters[2] instanceof File) {
-			explicitDirectory = parameters[2];
+		// that declare one: Files.createTempFile(Path dir, prefix, suffix, attrs...) at
+		// index 0 (4 parameters total), File.createTempFile(prefix, suffix, File
+		// directory) at index 2 (3 parameters total, directory legitimately nullable).
+		// Parameter COUNT identifies which overload was actually called; an instanceof
+		// check on the directory-position argument then additionally guards against a
+		// prefix/suffix string being mistaken for a path. A parameter count or shape
+		// that matches neither known overload is unresolved/malformed and must fail
+		// closed — NOT be silently treated as "no directory supplied" (the
+		// default-temp-
+		// dir exemption), which would let a genuinely-unvalidated directory through.
+		Object explicitDirectory;
+		if (isFilesCreateTempFile) {
+			if (parameters == null || parameters.length < 3 || parameters.length > 4) {
+				throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
+						fileSystemMethodToCheck, fullMethodSignature));
+			}
+			if (parameters.length == 3) {
+				// Files.createTempFile(prefix, suffix, attrs...): no directory argument.
+				explicitDirectory = null;
+			} else if (parameters[0] instanceof Path) {
+				// Files.createTempFile(dir, prefix, suffix, attrs...).
+				explicitDirectory = parameters[0];
+			} else {
+				throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
+						fileSystemMethodToCheck, fullMethodSignature));
+			}
+		} else {
+			if (parameters == null || (parameters.length != 2 && parameters.length != 3)) {
+				throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
+						fileSystemMethodToCheck, fullMethodSignature));
+			}
+			if (parameters.length == 2) {
+				// File.createTempFile(prefix, suffix): no directory argument.
+				explicitDirectory = null;
+			} else if (parameters[2] == null || parameters[2] instanceof File) {
+				// File.createTempFile(prefix, suffix, directory): directory is legitimately
+				// nullable here (null means "use the default temp directory").
+				explicitDirectory = parameters[2];
+			} else {
+				throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
+						fileSystemMethodToCheck, fullMethodSignature));
+			}
 		}
 		if (explicitDirectory == null) {
 			// No explicit directory: the JVM writes to java.io.tmpdir, a JVM/library
