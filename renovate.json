@@ -3,6 +3,7 @@
   "extends": [
     "config:recommended"
   ],
+  "pinDigests": true,
   "packageRules": [
     {
       "matchPackageNames": [

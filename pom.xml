@@ -12,8 +12,8 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<!-- 1. Testing: 1.1 JUnit -->
-		<junit-jupiter-version>6.1.2</junit-jupiter-version>
-		<junit-platform-version>6.1.2</junit-platform-version>
+		<junit-jupiter-version>6.1.3</junit-jupiter-version>
+		<junit-platform-version>6.1.3</junit-platform-version>
 		<!-- 1. Testing: 1.2 jqwik -->
 		<!-- Pinned to 1.9.3 (newest 1.9.x): the jqwik 1.10.x engine is not stable under
 			Ares here. Running the full suite, its lifecycle store hits a concurrent
@@ -28,7 +28,7 @@
 		<!-- 1. Testing: 1.4 Mockito -->
 		<mockito-version>5.23.0</mockito-version>
 		<!-- 2. Architecture: 2.1 Archunit -->
-		<archunit-version>1.4.2</archunit-version>
+		<archunit-version>1.5.0</archunit-version>
 		<!-- 2. Architecture: 2.2 Wala -->
 		<wala-version>1.8.0</wala-version>
 		<!-- Test fixture: genuine third-party JAR in the javax.* namespace -->
