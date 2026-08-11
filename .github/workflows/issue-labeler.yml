@@ -15,7 +15,7 @@ jobs:
       contents: read
     steps:
       - name: Label issue
-        uses: MaximilianAnzinger/issue-labeler@00977a029cf7d460956aa4d48af58a91a28c139a
+        uses: MaximilianAnzinger/issue-labeler@00977a029cf7d460956aa4d48af58a91a28c139a # 1.0.2
         with:
           configuration-path: .github/issue-labeler.yml
           repo-token: ${{ github.token }}

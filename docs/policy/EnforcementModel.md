@@ -41,44 +41,86 @@ annotations, environment substitution or this value.
 
 Ares trusts runtime identities by name. The exercise build must therefore reject
 student classes beneath every prefix in
-`WalaPathClassification.RESERVED_PACKAGE_PREFIXES`. The list carries version
-`RESERVED_PACKAGE_PREFIX_VERSION = 1`; templates and CI must pin the same
-version. Build validation is a deployment prerequisite, not an optional Ares
-runtime feature.
+`WalaPathClassification.RESERVED_PACKAGE_PREFIXES`. Build validation is a
+deployment prerequisite, not an optional Ares runtime feature.
 
-Canonical Maven configuration uses a verify-phase rule (for example a
-`maven-antrun-plugin` task) that scans `${project.build.outputDirectory}` and
-fails for `java/**`, `javax/**`, `sun/**`, `jdk/**`, `com/sun/**`,
+Two versions are pinned, because the data and the contract that enforces it
+change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the
+prefix list. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side
+contract. Templates and CI must pin both.
+
+Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
+`process-classes` that scans `${project.build.outputDirectory}` and fails for
+`java/**`, `javax/**`, `sun/**`, `jdk/**`, `com/sun/**`,
 `de/tum/cit/ase/ares/api/**`, `net/bytebuddy/**`, `org/aspectj/**`,
 `com/ibm/wala/**`, `com/tngtech/archunit/**`, `anonymous/toolclasses/**` and
-`metatest/**`. Canonical Gradle configuration registers a `verifyReservedPackages`
-task over `sourceSets.main.output.classesDirs` with the same paths and makes
-`check` depend on it. Exercise templates must keep that validation enabled.
+`metatest/**`. `process-classes` precedes `test`, so `mvn test` runs it.
+
+Canonical Gradle configuration registers a `verifyAresReservedPackagesV2` task
+over `sourceSets.main.output.classesDirs` with the same paths, and **both**
+makes `check` depend on it and gates every `Test` task with
+`tasks.withType(Test).configureEach`. Both hooks are required. Boundary
+version 1 hung the validation off `check` alone, and Gradle's Java plugin
+defines `check.dependsOn test` rather than the reverse, so `gradlew test`, which
+is what a grading run invokes, never ran it: student classes under a reserved
+package survived. An exercise still carrying a boundary version 1 snippet is
+bypassable and must be migrated. In a multi-project build, apply the snippet to
+every project that compiles student code, because `tasks.withType(Test)` covers
+only the project it is applied to.
 
 The executable, versioned snippets are shipped with Ares at
 `configuration/reservedPackages/MavenReservedPackages.xml` and
 `configuration/reservedPackages/GradleReservedPackages.gradle`; their common
-machine-readable list is `ReservedPackagePrefixes.txt`. Version 1 deliberately
-defines no Maven property, Gradle property, system property or profile which can
-skip the check. Removing the plugin/script or detaching its task is equivalent to
+machine-readable list is `ReservedPackagePrefixes.txt`. They deliberately define
+no Maven property, Gradle property, system property or profile which can skip
+the check. Removing the plugin/script or detaching its task is equivalent to
 disabling the security boundary and must be reported visibly by template CI.
 
 Any system property, Gradle flag or Maven profile that skips the exercise's
 reserved-package validation must print a prominent diagnostic. Such a run does
 not provide the class-shadowing security boundary.
 
+### What this boundary does not defend against
+
+The build descriptor and the command used to invoke it are **trusted instructor
+configuration**, on the same footing as `Policy.withinPath` above. "No bypass
+flag is supported" means the shipped snippets offer no opt-out of their own; it
+does not mean the check survives an adversary who controls the build. Whoever
+can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV2`
+or `-Dmaven.antrun.skip`, can remove the boundary outright. The threat this
+boundary addresses is student *code* that declares a reserved package, not
+student control over the build. Exercise templates and their CI must therefore
+own the build descriptor and the invocation, and must fail visibly if either is
+altered.
+
 ## Legacy annotation migration
 
 The detached annotation configuration was removed because no active enforcement
 pipeline consumed it. `@Policy` and its YAML document are now the sole authority.
 
-| Removed annotation | Policy replacement |
-| --- | --- |
-| `WhitelistPath` / `BlacklistPath` | add the permitted path and booleans under `regardingFileSystemInteractions`; omit an entry to deny it |
-| package/class whitelist or blacklist | `regardingPackageImports`, supervised package and explicit test-class list; omission means denial |
-| `AddTrustedPackage` | declare only the minimum trusted test classes; infrastructure packages stay in the versioned essential configuration |
-| `AllowLocalPort` | `regardingNetworkConnections` with explicit host, port and operation booleans |
-| `AllowThreads` / `TrustedThreads` | `regardingThreadCreations` with an explicit class and count |
+The policy model is an **allowlist only**. It has no deny rule, so an annotation
+whose purpose was to carve an exception out of a broader permission has no
+counterpart, and the intent must be re-expressed by granting less.
+
+| Removed annotation | Fidelity | Policy replacement |
+| --- | --- | --- |
+| `WhitelistPath` | approximate | a permitted path and its booleans under `regardingFileSystemInteractions`. Only prefix-shaped paths map naturally; glob and regex path types do not |
+| `BlacklistPath` | **none** | there is no deny rule. Grant narrower paths instead of the parent. "Allow a directory except one file inside it" is not representable |
+| `WhitelistPackage` | approximate | `regardingPackageImports`, after recomputing the effective permission set |
+| `BlacklistPackage` | **none** | there is no negative package rule. Note that the `java` prefix is always permitted as an essential package, so a blacklist of a `java.*` package cannot be reproduced |
+| `WhitelistClass` | conditional | `theFollowingClassesAreTestClasses`, **only** for instructor-owned, student-unmodifiable test infrastructure. An entry there is exempt from both the static and the runtime checks |
+| `AddTrustedPackage` | **none** | do not place a package name in `theFollowingClassesAreTestClasses`: entries match an exact fully qualified class name, or a nested class on the `$` boundary, so a package name grants no exemption. It is not inert either, because a permitted package is derived from every entry by stripping the last dotted component, so such an entry silently widens the package allowlist. Infrastructure packages stay in the versioned essential configuration |
+| `AllowLocalPort` | approximate | `regardingNetworkConnections` with explicit host, port and operation booleans. Range-with-exclusion forms do not map. Note that port `0` is a **wildcard** matching every port, which makes an unrestricted threshold representable and makes a literal `0` dangerously broad |
+| `AllowThreads` | approximate | `regardingThreadCreations` with an explicit class and count. The original capped concurrently active threads, so the accounting differs and the limit must be re-derived |
+| `TrustedThreads`, `DisableThreadGroupCheckFor` | **none** | these controlled the trusted execution context, not permission to create a thread |
 
 Method-specific behaviour uses a method-level `@Policy`; shared behaviour uses a
-class-level `@Policy`. The method annotation takes precedence.
+class-level `@Policy`. The method annotation takes precedence. The removed whitelist
+and blacklist annotations were repeatable and additive across class and method
+level (others, such as `AllowLocalPort` and `AllowThreads`, already resolved
+nearest-first), whereas `@Policy` resolution is always nearest-wins and policies
+are never merged, so an additive configuration must be consolidated into one
+complete policy per scope.
+
+A step-by-step migration, including the complete build configuration, is in
+[HowToConvertAnAres1ProjectIntoAnAres2Project.md](../HowToConvertAnAres1ProjectIntoAnAres2Project.md).

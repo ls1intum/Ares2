@@ -1,0 +1,210 @@
+# Builds and runs the exercises in examples/ so they cannot rot silently.
+#
+# The setup manual now points readers at these two projects, so a change that
+# breaks them breaks the documented setup. They are consumed here against the
+# Ares built from this commit, which also makes them an end-to-end check of the
+# agent, the weaving and the reserved-package boundary.
+name: Examples
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'examples/**'
+      - 'src/main/**'
+      - 'pom.xml'
+      - 'docs/HowToMakeAProjectAnAresProject.md'
+      - '.github/workflows/examples.yml'
+  push:
+    branches: [ "main" ]
+  schedule:
+    - cron: "0 15 * * 0"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: examples-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  examples:
+    name: Run the ${{ matrix.tool }} exercise
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [ maven, gradle ]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The examples target Java 17, the minimum Ares supports, so that they stay
+      # valid for the oldest exercise still in use.
+      - name: Set up JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # The examples pin the version a tutor downloads, which is the last release.
+      # The version built here is the development version, which runs ahead of it
+      # between a version bump and the release that catches up. Reading it from the
+      # POM is what keeps those two facts independent: without it, this job resolves
+      # a coordinate that the local repository does not hold, and main turns red for
+      # the bump rather than for anything wrong with the examples.
+      #
+      # The help plugin is pinned to a version rather than invoked by prefix, so that
+      # the reading does not depend on whichever plugin release is current on the day
+      # of the run.
+      #
+      # The value is validated before it is exported, because it is interpolated into
+      # GITHUB_ENV, into the generated Groovy below and into a path that is removed
+      # with `rm -rf`. The first character must be alphanumeric for that last reason
+      # in particular: `..` consists only of permitted characters and would name the
+      # parent of the coordinate.
+      - name: Read the version built in this job
+        run: |
+          ares_version="$(mvn -B -ntp -q -Dstyle.color=never \
+            org.apache.maven.plugins:maven-help-plugin:3.5.2:evaluate \
+            -Dexpression=project.version -DforceStdout)"
+          case "${ares_version}" in
+            '' | [!0-9A-Za-z]* | *[!0-9A-Za-z.-]*)
+              echo "::error::project.version did not read as a version"
+              exit 1
+              ;;
+          esac
+          echo "ARES_VERSION=${ares_version}" >> "${GITHUB_ENV}"
+          echo "Testing the examples against Ares ${ares_version}"
+
+      # setup-java caches the whole local repository, so a previous run of this
+      # workflow can leave a `de.tum.cit.ase:ares` of exactly this version behind.
+      # `install` overwrites what this build produces, but it does not remove what it
+      # no longer produces, so a packaging regression that dropped the agent
+      # classifier would be masked by the cached agent JAR from the run before. The
+      # coordinate is therefore emptied first, which makes "the artefact built in this
+      # job" true of the version as well as of the repository.
+      - name: Empty this coordinate in the local repository
+        run: rm -rf "${HOME}/.m2/repository/de/tum/cit/ase/ares/${ARES_VERSION}"
+
+      - name: Install Ares from this commit
+        run: mvn -B -ntp install -DskipTests
+
+      # Asserted rather than assumed: everything downstream reads the local
+      # repository, and an absent classifier there fails as a resolution error in an
+      # example, which reads like a broken example rather than a broken packaging.
+      - name: Confirm the local repository holds the JARs this build produced
+        run: |
+          repository="${HOME}/.m2/repository/de/tum/cit/ase/ares/${ARES_VERSION}"
+          for classifier in "" "-agent"; do
+            built="target/ares-${ARES_VERSION}${classifier}.jar"
+            installed="${repository}/ares-${ARES_VERSION}${classifier}.jar"
+            if ! cmp -s "${built}" "${installed}"; then
+              echo "::error::${installed} is absent or differs from ${built}"
+              exit 1
+            fi
+            echo "${installed} is the JAR this build produced"
+          done
+
+      - name: Verify the Gradle wrapper JAR is the one we generated
+        if: matrix.tool == 'gradle'
+        run: |
+          echo "497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7  examples/ares-exercise-gradle/gradle/wrapper/gradle-wrapper.jar" \
+            | sha256sum --check --strict
+
+      # The examples resolve from Maven Central as shipped. CI consumes the
+      # just-built artefact instead, so the exercise files stay exactly what a
+      # tutor downloads.
+      #
+      # exclusiveContent, rather than a plain mavenLocal(): it makes the local
+      # repository the ONLY source of de.tum.cit.ase, so this job cannot quietly
+      # fall through to Central and test a published artefact instead of the one
+      # built above. Every released version is on Central, so a plain mavenLocal()
+      # would fall through and make this whole workflow vacuous without failing:
+      # it would report on the published artefact rather than on this commit.
+      # Being first in the repository order is not enough, because Gradle
+      # continues to the next repository when a module is absent from the first.
+      #
+      # The version is redirected for the same reason the repository is: the
+      # exercise file names the released coordinate, and this job has to resolve
+      # the one it built. eachDependency rewrites every requested version of the
+      # module, so the plain dependency and the one carrying the agent classifier
+      # are both redirected, and the exercise file stays untouched.
+      - name: Pin Ares to the artefact built in this job (CI only)
+        run: |
+          cat > "${RUNNER_TEMP}/local-repo.init.gradle" <<EOF
+          allprojects {
+              repositories {
+                  exclusiveContent {
+                      forRepository { mavenLocal() }
+                      filter { includeGroup "de.tum.cit.ase" }
+                  }
+              }
+              configurations.all {
+                  resolutionStrategy.eachDependency { details ->
+                      if (details.requested.group == "de.tum.cit.ase" && details.requested.name == "ares") {
+                          details.useVersion "${ARES_VERSION}"
+                          details.because "CI tests the artefact built in this job"
+                      }
+                  }
+              }
+          }
+          EOF
+          cat "${RUNNER_TEMP}/local-repo.init.gradle"
+
+      - name: Run the exercise
+        working-directory: examples/ares-exercise-${{ matrix.tool }}
+        env:
+          TOOL: ${{ matrix.tool }}
+        run: |
+          if [ "${TOOL}" = "maven" ]; then
+            mvn -B -ntp -Dares.version="${ARES_VERSION}" test
+          else
+            ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test
+          fi
+
+      - name: Confirm the reserved-package boundary rejects an impostor
+        env:
+          TOOL: ${{ matrix.tool }}
+        run: |
+          set -u
+          # Run in a copy, so the canonical example tree is never edited.
+          work="${RUNNER_TEMP}/impostor"
+          cp -R "examples/ares-exercise-${TOOL}" "${work}"
+          mkdir -p "${work}/src/main/java/de/tum/cit/ase/ares/api"
+          printf 'package de.tum.cit.ase.ares.api;\n\npublic class Impostor {\n    public static String hello() {\n        return "trusted";\n    }\n}\n' \
+            > "${work}/src/main/java/de/tum/cit/ase/ares/api/Impostor.java"
+          cd "${work}"
+          if [ "${TOOL}" = "maven" ]; then
+            mvn -B -ntp -Dares.version="${ARES_VERSION}" test > output.log 2>&1 && status=0 || status=$?
+          else
+            ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test > output.log 2>&1 && status=0 || status=$?
+          fi
+          if [ "${status}" -eq 0 ]; then
+            echo "::error::A class in de.tum.cit.ase.ares.api survived the build. The reserved-package boundary is not active."
+            tail -50 output.log
+            exit 1
+          fi
+          # A non-zero status alone is not enough: any compile error would produce
+          # one. Require the boundary's own diagnostic.
+          if ! grep -q 'Ares reserved-package validation 2 rejected student output' output.log; then
+            echo "::error::The build failed, but not with the reserved-package diagnostic, so something else broke."
+            tail -50 output.log
+            exit 1
+          fi
+          echo "Reserved-package boundary rejected the impostor class, as required."
+
+      - name: Confirm the Gradle setup is configuration-cache compatible
+        if: matrix.tool == 'gradle'
+        working-directory: examples/ares-exercise-gradle
+        run: |
+          ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test --configuration-cache
+          ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test --configuration-cache --rerun-tasks \
+            | tee second-run.log
+          grep -q 'Configuration cache entry reused' second-run.log

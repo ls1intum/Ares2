@@ -291,11 +291,15 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nonnull
 		String targetResolved = target != null ? target : "unknown";
 
-		// Extract parent caller from the caller (class.method -> extract class)
+		// Extract parent caller from the caller (class.method -> extract class).
+		//
+		// The separator is searched before the parameter list, not across the whole
+		// string. A caller carrying a fully qualified parameter type ends in a dot of
+		// its own, so searching the whole string cuts inside the parameter list:
+		// "a.b.C.m(java.lang.String)" yielded "a.b.C.m(java.lang". This surfaced
+		// through the WALA path, whose callers carry such parameter types.
 		@Nonnull
-		String parentCaller = callerResolved.contains(".")
-				? callerResolved.substring(0, callerResolved.lastIndexOf('.'))
-				: callerResolved;
+		String parentCaller = extractDeclaringType(callerResolved);
 
 		// Determine the action based on the rule name
 		@Nonnull
@@ -303,6 +307,32 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
 		throw new SecurityException(Messages.localized("security.archunit.violation.error", callerResolved, action,
 				targetResolved, parentCaller));
+	}
+
+	/**
+	 * Extracts the declaring type from a rendered method or constructor reference.
+	 * <p>
+	 * The reference may carry a parameter list, and a fully qualified parameter
+	 * type contains dots of its own. The method separator is therefore searched
+	 * only in the part preceding the parameter list, so that
+	 * {@code a.b.C.m(java.lang.String)} yields {@code a.b.C} rather than
+	 * {@code a.b.C.m(java.lang}.
+	 *
+	 * @since 2.1.3
+	 * @author Markus Paulsen
+	 * @param reference The rendered method or constructor reference
+	 * @return The declaring type, or the reference itself when it carries no
+	 *         separator
+	 */
+	@Nonnull
+	private static String extractDeclaringType(@Nonnull String reference) {
+		int parameterListStart = reference.indexOf('(');
+		int searchEnd = parameterListStart >= 0 ? parameterListStart - 1 : reference.length() - 1;
+		if (searchEnd < 0) {
+			return reference;
+		}
+		int methodSeparator = reference.lastIndexOf('.', searchEnd);
+		return methodSeparator >= 0 ? reference.substring(0, methodSeparator) : reference;
 	}
 
 	/**
