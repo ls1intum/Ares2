@@ -7,6 +7,7 @@ import java.lang.annotation.*;
 import java.lang.reflect.*;
 import java.time.*;
 import java.time.format.DateTimeParseException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -58,7 +59,7 @@ public final class TestGuardUtils {
 			}
 			throw localizedFailure("test_guard.hidden_test_before_deadline_message"); //$NON-NLS-1$
 		}
-		if (hasAnnotation(context, Deadline.class) || hasAnnotation(context, ExtendedDeadline.class)) {
+		if (resolveDeadlineAnnotations(context).hasAnyDeadlineAnnotation()) {
 			throw new AnnotationFormatError(
 					localized("test_guard.public_test_cannot_have_deadline", context.displayName())); //$NON-NLS-1$
 		}
@@ -67,6 +68,27 @@ public final class TestGuardUtils {
 	public static boolean hasAnnotation(TestContext context, Class<? extends Annotation> type) {
 		Optional<Method> element = context.testMethod();
 		return findAnnotation(element, type).isPresent();
+	}
+
+	public static ResolvedDeadlineAnnotations resolveDeadlineAnnotations(TestContext context) {
+		return resolveDeadlineAnnotations(context.testClass(), context.testMethod());
+	}
+
+	public static ResolvedDeadlineAnnotations resolveDeadlineAnnotations(Optional<Class<?>> testClass,
+			Optional<Method> testMethod) {
+		Optional<ZonedDateTime> methodDeadline = getDeadlineOf(testMethod);
+		Optional<Duration> methodExtension = getExtensionDurationOf(testMethod);
+		Optional<ZonedDateTime> classDeadline = getDeadlineOf(testClass);
+		Optional<Duration> classExtension = getExtensionDurationOf(testClass);
+		Optional<ZonedDateTime> effectiveDeadline;
+		if (methodDeadline.isPresent()) {
+			effectiveDeadline = methodDeadline.map(value -> value.plus(methodExtension.orElse(Duration.ZERO)));
+		} else {
+			effectiveDeadline = classDeadline.map(value -> value.plus(classExtension.orElse(Duration.ZERO)))
+					.map(value -> value.plus(methodExtension.orElse(Duration.ZERO)));
+		}
+		return new ResolvedDeadlineAnnotations(effectiveDeadline, methodDeadline.isPresent(), classDeadline.isPresent(),
+				methodExtension.isPresent(), classExtension.isPresent());
 	}
 
 	public static boolean hasAnnotationType(TestContext context, TestType type) {
@@ -82,20 +104,18 @@ public final class TestGuardUtils {
 	}
 
 	public static Optional<ZonedDateTime> extractDeadline(Optional<Class<?>> testClass, Optional<Method> testMethod) {
-		var methodLevel = getDeadlineOf(testMethod);
-		var methodDelta = getExtensionDurationOf(testMethod);
-		// Then only the method counts ("override"), because it has its own deadline
+		return resolveDeadlineAnnotations(testClass, testMethod).effectiveDeadline();
+	}
 
-		if (methodLevel.isPresent()) {
-			return methodLevel.map(dl -> dl.plus(methodDelta.orElse(Duration.ZERO)));
+	public record ResolvedDeadlineAnnotations(Optional<ZonedDateTime> effectiveDeadline, boolean methodDeadline,
+			boolean classDeadline, boolean methodExtension, boolean classExtension) {
+		public ResolvedDeadlineAnnotations {
+			effectiveDeadline = Objects.requireNonNull(effectiveDeadline, "effectiveDeadline must not be null");
 		}
-		// look in the class otherwise
-		var classLevel = findAnnotation(testClass, Deadline.class).map(Deadline::value)
-				.map(TestGuardUtils::parseDeadline);
-		var classDelta = findAnnotation(testClass, ExtendedDeadline.class).map(ExtendedDeadline::value)
-				.map(TestGuardUtils::parseDuration);
-		return classLevel.map(dl -> dl.plus(classDelta.orElse(Duration.ZERO)))
-				.map(dl -> dl.plus(methodDelta.orElse(Duration.ZERO)));
+
+		public boolean hasAnyDeadlineAnnotation() {
+			return methodDeadline || classDeadline || methodExtension || classExtension;
+		}
 	}
 
 	public static Optional<ZonedDateTime> extractActivationBefore(TestContext context) {

@@ -1,11 +1,12 @@
 package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdPartyAccess;
 
+import java.io.File;
 import java.io.IOException;
 
-import de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage.ThirdPartyPackagePenguin;
+import org.apache.commons.io.FileUtils;
 
 public class ThirdPartyAccessPenguin {
 	public void accessPathThroughThirdPartyPackage() throws IOException {
-		ThirdPartyPackagePenguin.readFile();
+		FileUtils.forceDelete(new File("third-party-fixture.txt"));
 	}
 }

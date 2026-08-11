@@ -1,16 +1,18 @@
 package de.tum.cit.ase.ares.api.securitytest.java;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 import javax.annotation.Nonnull;
 
 /**
  * Specifies the path of the compiled student classes.
  * <p>
- * Description: Exercise Instructors use this annotation to mark a field or
- * method with the file system path where the respective Learning Management
- * Systems locates compiled student classes.
+ * Description: Exercise instructors use this annotation on the protected test
+ * class to specify the file-system path where the respective learning
+ * management system locates compiled student classes.
  * </p>
  * <p>
  * Design Rationale: This annotation facilitates the automated detection and
@@ -23,6 +25,7 @@ import javax.annotation.Nonnull;
  * @version 2.0.0
  */
 @Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
 public @interface StudentCompiledClassesPath {
 
 	/**

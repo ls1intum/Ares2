@@ -41,6 +41,8 @@ if [[ -f "${NETBLOCKER_SO}" ]]; then
     : > "$RULES"
     export NETBLOCKER_CONF="$RULES"
   fi
+else
+  die "Network sandbox library missing: ${NETBLOCKER_SO}. (PHB-ERUNTIME)" "${PHB_ERUNTIME}"
 fi
 
 exec "${HERE}/phobos-filesystem.sh" "${SPEC_DIR}" -- "${CMD[@]}"

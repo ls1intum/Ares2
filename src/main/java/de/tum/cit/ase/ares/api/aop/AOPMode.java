@@ -17,6 +17,7 @@ import com.opencsv.exceptions.CsvException;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaFileLoader;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
@@ -53,10 +54,26 @@ public enum AOPMode {
 	 */
 	ASPECTJ;
 
+	private static JavaFileLoader fileLoader = new JavaCSVFileLoader();
+
+	/**
+	 * Replaces the configuration loader used by every AOP mode.
+	 *
+	 * @param loader the non-null loader to use
+	 */
+	public static void setFileLoader(JavaFileLoader loader) {
+		fileLoader = java.util.Objects.requireNonNull(loader, "loader must not be null");
+	}
+
 	// <editor-fold desc="Load configuration">
+	/**
+	 * Loads the filesystem copy configuration for this mode.
+	 *
+	 * @return the validated configuration rows
+	 */
 	public List<List<String>> getCopyFSConfigurationEntries() {
 		try {
-			List<List<String>> entries = (new JavaCSVFileLoader()).loadCopyData(this, true);
+			List<List<String>> entries = fileLoader.loadCopyData(this, true);
 			validateConfigurationRows(entries, 3, "copy.fs", false);
 			return entries;
 		} catch (IOException | CsvException e) {
@@ -64,9 +81,14 @@ public enum AOPMode {
 		}
 	}
 
+	/**
+	 * Loads the non-filesystem copy configuration for this mode.
+	 *
+	 * @return the validated configuration rows
+	 */
 	public List<List<String>> getCopyNonFSConfigurationEntries() {
 		try {
-			List<List<String>> entries = (new JavaCSVFileLoader()).loadCopyData(this, false);
+			List<List<String>> entries = fileLoader.loadCopyData(this, false);
 			validateConfigurationRows(entries, 3, "copy.nonfs", false);
 			return entries;
 		} catch (IOException | CsvException e) {
@@ -74,9 +96,14 @@ public enum AOPMode {
 		}
 	}
 
+	/**
+	 * Loads the edit configuration for this mode.
+	 *
+	 * @return the validated, non-empty configuration rows
+	 */
 	public List<List<String>> getEditConfigurationEntries() {
 		try {
-			List<List<String>> entries = (new JavaCSVFileLoader()).loadEditData(this);
+			List<List<String>> entries = fileLoader.loadEditData(this);
 			// Edit entries are also consumed positionally via .get(0) on the whole list by
 			// the single-file methods, so the list must be non-empty as well.
 			validateConfigurationRows(entries, 3, "edit", true);
@@ -152,18 +179,33 @@ public enum AOPMode {
 
 	// <editor-fold desc="Multi-file methods">
 
+	/**
+	 * Resolves the filesystem templates copied for this mode.
+	 *
+	 * @return the template paths
+	 */
 	@Nonnull
 	public List<Path> fsFilesToCopy() {
 		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
 				.map(FileTools::resolveFileOnSourceDirectory).toList();
 	}
 
+	/**
+	 * Resolves the non-filesystem templates copied for this mode.
+	 *
+	 * @return the template paths
+	 */
 	@Nonnull
 	public List<Path> nonFSFilesToCopy() {
 		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
 				.map(FileTools::resolveFileOnSourceDirectory).toList();
 	}
 
+	/**
+	 * Builds the placeholder values for non-filesystem templates.
+	 *
+	 * @return one placeholder array per configured template
+	 */
 	@Nonnull
 	public List<String[]> placeholderValues() {
 		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
@@ -173,6 +215,13 @@ public enum AOPMode {
 				}).toList();
 	}
 
+	/**
+	 * Builds the placeholder values for filesystem templates.
+	 *
+	 * @param packageName            the supervised package name
+	 * @param mainClassInPackageName the supervised main-class name
+	 * @return one placeholder array per configured template
+	 */
 	@Nonnull
 	public List<String[]> fsFormatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
 		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
@@ -182,6 +231,13 @@ public enum AOPMode {
 				}).toList();
 	}
 
+	/**
+	 * Builds the placeholder values for non-filesystem templates.
+	 *
+	 * @param packageName            the supervised package name
+	 * @param mainClassInPackageName the supervised main-class name
+	 * @return one placeholder array per configured template
+	 */
 	@Nonnull
 	public List<String[]> nonFSFormatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
 		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
@@ -191,12 +247,24 @@ public enum AOPMode {
 				}).toList();
 	}
 
+	/**
+	 * Resolves the filesystem template destinations below a target directory.
+	 *
+	 * @param targetPath the target directory
+	 * @return the destination paths
+	 */
 	@Nonnull
 	public List<Path> fsTargetsToCopyTo(@Nonnull Path targetPath) {
 		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
 				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
 	}
 
+	/**
+	 * Resolves the non-filesystem template destinations below a target directory.
+	 *
+	 * @param targetPath the target directory
+	 * @return the destination paths
+	 */
 	@Nonnull
 	public List<Path> nonFSTargetsToCopyTo(@Nonnull Path targetPath) {
 		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))

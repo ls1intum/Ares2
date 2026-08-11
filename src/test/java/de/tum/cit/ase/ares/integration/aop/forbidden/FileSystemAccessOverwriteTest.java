@@ -1838,28 +1838,28 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
 	// <editor-fold desc="accessFileSystemViaFilesCopyFromInputStream">
 	@PublicTest
-	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyFromInputStreamMavenArchunitAspectJ() {
 		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesCopyFromInputStream,
 				WriteFilesWriteMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyFromInputStreamMavenArchunitInstrumentation() {
 		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesCopyFromInputStream,
 				WriteFilesWriteMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
+	@Policy(value = WALA_ASPECTJ_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyFromInputStreamMavenWalaAspectJ() {
 		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesCopyFromInputStream,
 				WriteFilesWriteMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyFromInputStreamMavenWalaInstrumentation() {
 		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesCopyFromInputStream,
 				WriteFilesWriteMain.class);
@@ -1868,28 +1868,28 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
 	// <editor-fold desc="accessFileSystemViaFilesCopy">
 	@PublicTest
-	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyMavenArchunitAspectJ() {
 		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesCopy,
 				WriteFilesWriteMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyMavenArchunitInstrumentation() {
 		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesCopy,
 				WriteFilesWriteMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
+	@Policy(value = WALA_ASPECTJ_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyMavenWalaAspectJ() {
 		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesCopy,
 				WriteFilesWriteMain.class);
 	}
 
 	@PublicTest
-	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = FILES_WITHIN_PATH)
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY, withinPath = FILES_WITHIN_PATH)
 	void test_accessFileSystemViaFilesCopyMavenWalaInstrumentation() {
 		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesCopy,
 				WriteFilesWriteMain.class);

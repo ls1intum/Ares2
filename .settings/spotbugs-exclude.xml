@@ -124,6 +124,22 @@
 	</Match>
 
 	<!--
+		getSettingsLock() has to return the exact same SETTINGS_LOCK instance to callers
+		outside this class (I-032): the settings live as two separate copies of this class, one
+		per classloader, and JavaAOPTestCase / the AspectJ and instrumentation advice toolboxes
+		reach the *other* copy's lock reflectively so a write on one classloader's copy and
+		reset() on the other cannot interleave. That cross-classloader coordination is only
+		possible if the accessor is public, which is exactly the pattern this bug flags when
+		reset() also synchronises on the same field internally. Narrowing the accessor's
+		visibility would defeat the fix it exists to support.
+	-->
+	<Match>
+		<Class name="de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings"/>
+		<Method name="reset"/>
+		<Bug pattern="USO_UNSAFE_ACCESSIBLE_OBJECT_SYNCHRONIZATION"/>
+	</Match>
+
+	<!--
 		This method is a transparent replacement for one Object.wait() invocation. It must call
 		wait exactly once and return with the same semantics as the original call site; introducing
 		a condition loop in the wrapper would change application behaviour. The caller remains

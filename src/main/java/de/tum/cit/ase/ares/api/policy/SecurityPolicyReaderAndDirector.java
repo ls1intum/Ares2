@@ -61,6 +61,9 @@ public class SecurityPolicyReaderAndDirector {
 	@Nullable
 	private final Path projectFolderPath;
 
+	@Nonnull
+	private final Path withinPath;
+
 	/**
 	 * The manager for creating and handling security test cases.
 	 */
@@ -79,8 +82,14 @@ public class SecurityPolicyReaderAndDirector {
 	 * @param projectFolderPath      the path to the project folder.
 	 */
 	public SecurityPolicyReaderAndDirector(@Nullable Path securityPolicyFilePath, @Nullable Path projectFolderPath) {
+		this(securityPolicyFilePath, projectFolderPath, Path.of(""));
+	}
+
+	public SecurityPolicyReaderAndDirector(@Nullable Path securityPolicyFilePath, @Nullable Path projectFolderPath,
+			@Nonnull Path withinPath) {
 		this.securityPolicyFilePath = securityPolicyFilePath;
 		this.projectFolderPath = projectFolderPath;
+		this.withinPath = Objects.requireNonNull(withinPath, "withinPath must not be null");
 	}
 	// </editor-fold>
 
@@ -100,12 +109,13 @@ public class SecurityPolicyReaderAndDirector {
 			Path nonNullPolicyPath = securityPolicyFilePath;
 			// selectSecurityPolicyReader either returns a reader or throws on an
 			// unsupported policy format, so there is no null case to handle here.
-			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath);
+			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath,
+					projectFolderPath);
 			securityPolicy = securityPolicyReader.readSecurityPolicyFrom(nonNullPolicyPath);
 		}
 		securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicy);
 		this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy,
-				projectFolderPath);
+				projectFolderPath, withinPath);
 		return this;
 	}
 	// </editor-fold>
@@ -162,6 +172,13 @@ public class SecurityPolicyReaderAndDirector {
 				"securityTestCaseFactoryAndBuilder must not be null").executeTestCases();
 		return this;
 	}
+
+	/** Returns the created factory for diagnostics and integration verification. */
+	@Nonnull
+	public TestCaseAbstractFactoryAndBuilder factoryAndBuilder() {
+		return Objects.requireNonNull(securityTestCaseFactoryAndBuilder,
+				"createTestCases() must be called before factoryAndBuilder()");
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Builder">
@@ -174,6 +191,8 @@ public class SecurityPolicyReaderAndDirector {
 		private Path securityPolicyFilePath;
 		@Nullable
 		private Path projectFolderPath;
+		@Nonnull
+		private Path withinPath = Path.of("");
 
 		@Nonnull
 		public Builder securityPolicyFilePath(@Nullable Path securityPolicyFilePath) {
@@ -188,8 +207,14 @@ public class SecurityPolicyReaderAndDirector {
 		}
 
 		@Nonnull
+		public Builder withinPath(@Nonnull Path withinPath) {
+			this.withinPath = Objects.requireNonNull(withinPath, "withinPath must not be null");
+			return this;
+		}
+
+		@Nonnull
 		public SecurityPolicyReaderAndDirector build() {
-			return new SecurityPolicyReaderAndDirector(securityPolicyFilePath, projectFolderPath);
+			return new SecurityPolicyReaderAndDirector(securityPolicyFilePath, projectFolderPath, withinPath);
 		}
 	}
 	// </editor-fold>

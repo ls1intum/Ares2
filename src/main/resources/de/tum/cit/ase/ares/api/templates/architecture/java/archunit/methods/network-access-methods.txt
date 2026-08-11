@@ -1308,3 +1308,4 @@ sun.net.httpserver.UnmodifiableHeaders.remove(java.lang.Object)
 sun.net.httpserver.UnmodifiableHeaders.put(java.lang.Object, java.lang.Object)
 sun.net.httpserver.UnmodifiableHeaders.replace(java.lang.Object, java.lang.Object)
 sun.net.httpserver.UnmodifiableHeaders.replace(java.lang.Object, java.lang.Object, java.lang.Object)
+java.net.Socket

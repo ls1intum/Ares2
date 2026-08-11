@@ -5,8 +5,6 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import de.tum.cit.ase.ares.api.localization.Messages;
-
 /**
  * Allowed package import.
  * <p>
@@ -33,9 +31,7 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage, boole
 	 */
 	public PackagePermission {
 		Objects.requireNonNull(importTheFollowingPackage, "Package name must not be null");
-		if (importTheFollowingPackage.isBlank()) {
-			throw new IllegalArgumentException(Messages.localized("policy.permission.package.blank"));
-		}
+		PolicyValueValidator.requirePackageImport(importTheFollowingPackage);
 	}
 
 	/**
@@ -59,12 +55,11 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage, boole
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param importTheFollowingPackage the package name for which import is
-	 *                                  restricted.
+	 * @param importTheFollowingPackage the package name to allow.
 	 * @return a new PackagePermission instance.
 	 */
 	@Nonnull
-	public static PackagePermission createRestrictive(@Nonnull String importTheFollowingPackage) {
+	public static PackagePermission allowPackage(@Nonnull String importTheFollowingPackage) {
 		return builder()
 				.importTheFollowingPackage(
 						Objects.requireNonNull(importTheFollowingPackage, "importTheFollowingPackage must not be null"))

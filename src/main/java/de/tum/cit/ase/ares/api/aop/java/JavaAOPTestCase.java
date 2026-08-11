@@ -4,9 +4,12 @@ package de.tum.cit.ase.ares.api.aop.java;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -239,8 +242,27 @@ public class JavaAOPTestCase extends AOPTestCase {
 		}
 		Field field = adviceSettingsClass.getDeclaredField(adviceSetting);
 		field.setAccessible(true);
-		field.set(null, value);
-		field.setAccessible(false);
+		// I-032 (scoped): synchronise each individual field write on the same lock
+		// JavaAOPTestCaseSettings.reset() now uses, so a reset() cannot interleave
+		// with a concurrent settings write. This is a bootstrap-classloader-safe way
+		// to reach the lock: JavaAOPTestCaseSettings.getSettingsLock() is called on
+		// the SAME resolved class (whichever loader owns it), not the caller's own
+		// static import, so this still works when this write targets the bootstrap
+		// loader's copy from application code. See JavaAOPTestCaseSettings.reset()'s
+		// Javadoc for why this does not by itself make a multi-field settings batch
+		// atomic from a reader's perspective (a larger, deferred follow-up).
+		try {
+			Method getSettingsLock = adviceSettingsClass.getDeclaredMethod("getSettingsLock");
+			Object lock = getSettingsLock.invoke(null);
+			synchronized (lock) {
+				field.set(null, value);
+			}
+		} catch (NoSuchMethodException | InvocationTargetException reflectionFailure) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.creation.advice.settings.lock.exception", adviceSetting), reflectionFailure);
+		} finally {
+			field.setAccessible(false);
+		}
 	}
 	// </editor-fold>
 
@@ -249,9 +271,8 @@ public class JavaAOPTestCase extends AOPTestCase {
 	/**
 	 * Generates the content for the AOP security test case.
 	 * <p>
-	 * This method provides an empty implementation for now but will be overridden
-	 * in future configurations to generate aspect configuration files based on the
-	 * provided security policies.
+	 * Serialises this case's permission domain into the Java advice-settings source
+	 * consumed by AspectJ and instrumentation.
 	 * </p>
 	 *
 	 * @return a string representing the content of the aspect configuration.
@@ -259,7 +280,22 @@ public class JavaAOPTestCase extends AOPTestCase {
 	@Override
 	@Nonnull
 	public String writeAOPTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
-		return "";
+		Objects.requireNonNull(architectureMode, "architectureMode must not be null");
+		List<?> permissions = resourceAccessSupplier.get();
+		List<FilePermission> files = List.of();
+		List<NetworkPermission> networks = List.of();
+		List<CommandPermission> commands = List.of();
+		List<ThreadPermission> threads = List.of();
+		switch ((JavaAOPTestCaseSupported) aopTestCaseSupported) {
+		case FILESYSTEM_INTERACTION -> files = permissions.stream().map(FilePermission.class::cast).toList();
+		case NETWORK_CONNECTION -> networks = permissions.stream().map(NetworkPermission.class::cast).toList();
+		case COMMAND_EXECUTION -> commands = permissions.stream().map(CommandPermission.class::cast).toList();
+		case THREAD_CREATION -> threads = permissions.stream().map(ThreadPermission.class::cast).toList();
+		default -> throw new IllegalStateException("Unsupported Java AOP test case: " + aopTestCaseSupported);
+		}
+		return writeAOPTestCaseFile(aopMode, architectureMode,
+				allowedClasses.stream().map(ClassPermission::className).sorted().toList(), files, networks, commands,
+				threads);
 	}
 	// </editor-fold>
 

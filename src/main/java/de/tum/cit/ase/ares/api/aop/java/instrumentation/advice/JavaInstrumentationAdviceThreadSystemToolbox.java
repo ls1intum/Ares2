@@ -583,6 +583,11 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		}
 	}
 
+	@Nullable
+	static String resolveThreadClass(@Nonnull Thread thread) {
+		return variableToClassname(thread);
+	}
+
 	// </editor-fold>
 
 	// <editor-fold desc="Violation analysis">

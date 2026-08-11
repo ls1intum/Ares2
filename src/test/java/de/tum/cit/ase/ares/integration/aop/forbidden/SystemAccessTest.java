@@ -253,6 +253,59 @@ abstract class SystemAccessTest {
 
 	// </editor-fold>
 
+	// <editor-fold desc="Composite Network Action Policy Files">
+
+	/**
+	 * Base path for Archunit AspectJ policy - SEND allowed, RECEIVE denied (I-068)
+	 */
+	protected static final String ARCHUNIT_ASPECTJ_POLICY_HTTP_SEND_ALLOWED_RECEIVE_DENIED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyHttpSendAllowedReceiveDenied.yaml";
+
+	/**
+	 * Base path for Archunit Instrumentation policy - SEND allowed, RECEIVE denied
+	 * (I-068)
+	 */
+	protected static final String ARCHUNIT_INSTRUMENTATION_POLICY_HTTP_SEND_ALLOWED_RECEIVE_DENIED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyHttpSendAllowedReceiveDenied.yaml";
+
+	/**
+	 * Base path for Wala AspectJ policy - SEND allowed, RECEIVE denied (I-068)
+	 */
+	protected static final String WALA_ASPECTJ_POLICY_HTTP_SEND_ALLOWED_RECEIVE_DENIED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyHttpSendAllowedReceiveDenied.yaml";
+
+	/**
+	 * Base path for Wala Instrumentation policy - SEND allowed, RECEIVE denied
+	 * (I-068)
+	 */
+	protected static final String WALA_INSTRUMENTATION_POLICY_HTTP_SEND_ALLOWED_RECEIVE_DENIED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyHttpSendAllowedReceiveDenied.yaml";
+
+	// </editor-fold>
+
+	// <editor-fold desc="Files.copy Per-Parameter Role Policy Files">
+
+	/**
+	 * Base path for Archunit AspectJ policy - Files.copy source OVERWRITE-only
+	 * (I-114)
+	 */
+	protected static final String ARCHUNIT_ASPECTJ_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFilesCopySourceOverwriteOnly.yaml";
+
+	/**
+	 * Base path for Archunit Instrumentation policy - Files.copy source
+	 * OVERWRITE-only (I-114)
+	 */
+	protected static final String ARCHUNIT_INSTRUMENTATION_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyFilesCopySourceOverwriteOnly.yaml";
+
+	/**
+	 * Base path for Wala AspectJ policy - Files.copy source OVERWRITE-only (I-114)
+	 */
+	protected static final String WALA_ASPECTJ_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyFilesCopySourceOverwriteOnly.yaml";
+
+	/**
+	 * Base path for Wala Instrumentation policy - Files.copy source OVERWRITE-only
+	 * (I-114)
+	 */
+	protected static final String WALA_INSTRUMENTATION_POLICY_FILES_COPY_SOURCE_OVERWRITE_ONLY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyFilesCopySourceOverwriteOnly.yaml";
+
+	// </editor-fold>
+
 	// <editor-fold desc="General Access Tests">
 	/**
 	 * Common helper that verifies the expected general parts of the error message.

@@ -41,6 +41,11 @@ This document explains how Ares 2 decides whether student code may access the fi
 - Which methods are reachable from student code
 - Whether the calling classes are on the allow-list of exempt classes (`allowedClasses`)
 
+Static analysis cannot compare a runtime path with a policy path. It supplies a
+domain-wide deny rule only when no file allowance exists. With any file allowance,
+the runtime backend is authoritative for permitting the matching path and rejecting
+representative non-matching paths; see `docs/policy/EnforcementModel.md`.
+
 ---
 
 ## Summary for Programming Instructors (TL;DR)

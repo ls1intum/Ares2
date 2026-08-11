@@ -27,11 +27,18 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param regardingTheSupervisedCode the details of the supervised code; must
- *                                   not be null.
+ * @param thisPolicyFileCompliesToThePolicyVersion the policy format version;
+ *                                                 must be exactly
+ *                                                 {@value #CURRENT_POLICY_VERSION}.
+ * @param regardingTheSupervisedCode               the details of the supervised
+ *                                                 code; must not be null.
  */
 @SuppressWarnings("unused")
-public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode) {
+public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
+		@Nonnull SupervisedCode regardingTheSupervisedCode) {
+
+	/** The policy-format version supported by this Ares release. */
+	public static final int CURRENT_POLICY_VERSION = 1;
 
 	/**
 	 * Constructs a SecurityPolicy instance with validated supervised code.
@@ -40,6 +47,10 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
 	 * @author Markus Paulsen
 	 */
 	public SecurityPolicy {
+		if (thisPolicyFileCompliesToThePolicyVersion != CURRENT_POLICY_VERSION) {
+			throw new IllegalArgumentException(
+					"thisPolicyFileCompliesToThePolicyVersion must be exactly " + CURRENT_POLICY_VERSION);
+		}
 		Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
 	}
 
@@ -87,11 +98,28 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
 	 */
 	public static class Builder {
 
+		private int thisPolicyFileCompliesToThePolicyVersion = CURRENT_POLICY_VERSION;
+
 		/**
 		 * The supervised code for the SecurityPolicy.
 		 */
 		@Nullable
 		private SupervisedCode regardingTheSupervisedCode;
+
+		/**
+		 * Sets the policy-format version declared by the policy file.
+		 *
+		 * @param thisPolicyFileCompliesToThePolicyVersion the declared policy-format
+		 *                                                 version
+		 * @return this builder
+		 * @since 2.0.0
+		 * @author Markus Paulsen
+		 */
+		@Nonnull
+		public Builder thisPolicyFileCompliesToThePolicyVersion(int thisPolicyFileCompliesToThePolicyVersion) {
+			this.thisPolicyFileCompliesToThePolicyVersion = thisPolicyFileCompliesToThePolicyVersion;
+			return this;
+		}
 
 		/**
 		 * Sets the supervised code for the SecurityPolicy.
@@ -117,7 +145,7 @@ public record SecurityPolicy(@Nonnull SupervisedCode regardingTheSupervisedCode)
 		 */
 		@Nonnull
 		public SecurityPolicy build() {
-			return new SecurityPolicy(
+			return new SecurityPolicy(thisPolicyFileCompliesToThePolicyVersion,
 					Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null"));
 		}
 	}

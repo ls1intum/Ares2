@@ -14,6 +14,10 @@ BWRAP="${BWRAP_BIN:-bwrap}"; TIMEOUT_BIN="${TIMEOUT_BIN:-timeout}"
 
 enable_fs="${PHB_ENABLE_FILESYSTEM:-1}"
 
+if [[ -n "${PHB_TIMEOUT_SEC:-}" ]]; then
+  command -v "${TIMEOUT_BIN}" >/dev/null 2>&1 || die "Timeout executable missing: ${TIMEOUT_BIN}. (PHB-ERUNTIME)" "${PHB_ERUNTIME}"
+fi
+
 # If filesystem layer is disabled, run the command directly,
 # but still respect PHB_TIMEOUT_SEC if the timeout layer is active.
 if [[ "$enable_fs" != "1" ]]; then
@@ -37,6 +41,8 @@ if [[ "$enable_fs" != "1" ]]; then
     exec "${CMD[@]}"
   fi
 fi
+
+command -v "${BWRAP}" >/dev/null 2>&1 || die "Filesystem sandbox executable missing: ${BWRAP}. (PHB-ERUNTIME)" "${PHB_ERUNTIME}"
 
 args=()
 

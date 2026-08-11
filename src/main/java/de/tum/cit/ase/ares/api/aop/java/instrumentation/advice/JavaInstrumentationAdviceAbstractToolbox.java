@@ -445,7 +445,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 		// directly above it so the companion findFirstMethodOutsideOfRestrictedPackage
 		// call that immediately follows can read from the thread-local cache instead
 		// of walking the stack a second time.
-		String[] inspection = inspectCallstackOnce(restrictedPackage, allowedClasses);
+		String[] allowedPackages = getValueFromSettings("allowedListedPackages");
+		String[] inspection = inspectCallstackOnce(restrictedPackage, allowedPackages, allowedClasses);
 		if (inspection != null) {
 			CALLSTACK_INSPECTION_CACHE.set(inspection);
 		} else {
@@ -469,7 +470,8 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * per-interception stack-walk cost on hot paths.
 	 */
 	@Nullable
-	private static String[] inspectCallstackOnce(String restrictedPackage, String[] allowedClasses) {
+	private static String[] inspectCallstackOnce(String restrictedPackage, String[] allowedPackages,
+			String[] allowedClasses) {
 		return STACK_WALKER.walk(frames -> {
 			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
 			String violation = null;
@@ -501,7 +503,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 				}
 				// First restricted, non-allowed frame is the violation.
 				if (violation == null && inRestricted) {
-					boolean allowed = false;
+					boolean allowed = startsWithAny(className, allowedPackages);
 					// allowedClasses may be null when the per-test settings are only
 					// partially armed: the volatile fields in JavaAOPTestCaseSettings are
 					// written one-by-one, so a class woven on another thread can observe
@@ -512,7 +514,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 					if (allowedClasses != null) {
 						for (@Nonnull
 						String allowedClass : allowedClasses) {
-							if (className.startsWith(allowedClass)) {
+							if (className.equals(allowedClass) || className.startsWith(allowedClass + "$")) {
 								allowed = true;
 								break;
 							}
@@ -528,6 +530,22 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			}
 			return violation == null ? null : new String[] { violation, callerAbove };
 		});
+	}
+
+	private static boolean startsWithAny(String className, String[] prefixes) {
+		if (prefixes == null) {
+			return false;
+		}
+		for (String prefix : prefixes) {
+			// '.'-boundary match: an allowed package "com.foo" must not also match the
+			// unrelated sibling package "com.foobar" (I-105). Mirrors the '$'-boundary
+			// used for the allowed-class comparison above and the exact-or-'$'-boundary
+			// JavaArchitectureTestCase.isAllowedClass already uses on the static side.
+			if (prefix != null && (className.equals(prefix) || className.startsWith(prefix + "."))) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

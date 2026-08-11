@@ -2,30 +2,22 @@ package de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.netwo
 
 import java.io.IOException;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
-import java.util.concurrent.Callable;
 
 public final class NetworkPenguin {
 
 	private NetworkPenguin() {
 	}
 
-	public static void tryStartServer(int port, String expectLine) throws Exception {
-		try (ServerSocket socket = new ServerSocket(port)) {
-			socket.setSoTimeout(2000);
-			connectAndCheckSentLine(socket::accept, expectLine);
-		}
-	}
-
 	public static void tryConnect(String host, int port, String expectLine) throws Exception {
-		connectAndCheckSentLine(() -> new Socket(host, port), expectLine);
-	}
-
-	private static void connectAndCheckSentLine(Callable<Socket> socketSupplier, String expectLine) throws Exception {
-		try (Socket s = socketSupplier.call(); Scanner in = new Scanner(s.getInputStream())) {
+		try (Socket s = new Socket(host, port); Scanner in = new Scanner(s.getInputStream(), StandardCharsets.UTF_8)) {
 			if (expectLine != null) {
 				s.setSoTimeout(200);
-				// assertEquals(expectLine, in.nextLine());
+				String actualLine = in.nextLine();
+				if (!expectLine.equals(actualLine)) {
+					throw new AssertionError("Expected '" + expectLine + "' but received '" + actualLine + "'");
+				}
 			}
 		}
 	}

@@ -5,6 +5,7 @@ public aspect JavaAspectJCommandSystemPointcutDefinitions {
     pointcut commandExecuteMethods(): (
             call(* java.lang.Runtime+.exec(..)) ||
             call(java.lang.ProcessBuilder+.new(..)) ||
-            call(* java.lang.ProcessBuilder+.start(..))
+            call(* java.lang.ProcessBuilder+.start(..)) ||
+            call(* java.lang.ProcessBuilder+.startPipeline(..))
             );
 }

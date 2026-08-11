@@ -3,6 +3,8 @@ package de.tum.cit.ase.ares.api.securitytest.java.writer;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -42,8 +44,10 @@ public class JavaWriterTest {
 	Path tempDir;
 
 	@BeforeEach
-	void setUp() {
-		javaWriter = new JavaWriter();
+	void setUp() throws IOException {
+		Files.writeString(tempDir.resolve("pom.xml"), "<project/>");
+		Files.writeString(tempDir.resolve("build.gradle"), "plugins { id 'java' }");
+		javaWriter = new JavaWriter(tempDir);
 		buildMode = BuildMode.MAVEN;
 		architectureMode = mock(ArchitectureMode.class);
 		aopMode = mock(AOPMode.class);
@@ -60,6 +64,33 @@ public class JavaWriterTest {
 	@Nested
 	@DisplayName("writeTestCases() Tests")
 	class WriteTestCasesTests {
+		@Test
+		void confinesRelativeAbsoluteTraversalSiblingAndSymlinkTargets() throws IOException {
+			Path inside = Files.createDirectories(tempDir.resolve("inside"));
+			assertEquals(inside.toRealPath(), javaWriter.confineToProject(Path.of("inside")));
+			assertEquals(inside.toRealPath(), javaWriter.confineToProject(inside));
+			assertThrows(SecurityException.class, () -> javaWriter.confineToProject(Path.of("../outside")));
+			Path siblingPrefix = Files.createDirectory(tempDir.resolveSibling(tempDir.getFileName() + "-sibling"));
+			assertThrows(SecurityException.class, () -> javaWriter.confineToProject(siblingPrefix));
+
+			Path external = Files.createDirectory(tempDir.resolveSibling(tempDir.getFileName() + "-external"));
+			Path link = tempDir.resolve("external-link");
+			try {
+				Files.createSymbolicLink(link, external);
+				assertThrows(SecurityException.class, () -> javaWriter.confineToProject(link.resolve("new-file")));
+			} catch (UnsupportedOperationException exception) {
+				org.junit.jupiter.api.Assumptions.abort("Symbolic links are unsupported on this platform");
+			}
+		}
+
+		@Test
+		void rejectsASelectedBuildModeWithoutItsDescriptor() throws IOException {
+			Files.delete(tempDir.resolve("pom.xml"));
+			assertThrows(IllegalStateException.class,
+					() -> javaWriter.writeTestCases(BuildMode.MAVEN, architectureMode, aopMode, essentialPackages,
+							essentialClasses, testClasses, packageName, mainClassInPackageName,
+							javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases, tempDir));
+		}
 
 		@Test
 		@DisplayName("Should implement Writer interface")
@@ -318,8 +349,9 @@ public class JavaWriterTest {
 				// Assert - verify that merged list contains both essential and test classes
 				verify(aopMode).threePartedFileBody(eq("INSTRUMENTATION"), eq(packageName), argThat(list -> {
 					List<String> allowedClasses = (List<String>) list;
-					return allowedClasses.containsAll(essentialClasses) && allowedClasses.containsAll(testClasses)
-							&& allowedClasses.size() == essentialClasses.size() + testClasses.size();
+					return allowedClasses.containsAll(essentialPackages) && allowedClasses.containsAll(essentialClasses)
+							&& allowedClasses.containsAll(testClasses) && allowedClasses
+									.size() == essentialPackages.size() + essentialClasses.size() + testClasses.size();
 				}), eq(javaAOPTestCases));
 			}
 		}

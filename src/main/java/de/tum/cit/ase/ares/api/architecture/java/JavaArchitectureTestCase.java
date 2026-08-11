@@ -323,7 +323,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		case "executes commands" -> "execute a command";
 		case "manipulates threads" -> "manipulate threads";
 		case "imports forbidden packages" -> "import forbidden packages";
-		case "serializes objects" -> "serialize objects";
+		case "serialises objects" -> "serialise objects";
 		case "manipulates the loading of classes" -> "manipulate class loading";
 		case "accesses native code" -> "access native code";
 		case "attaches agents" -> "attach an agent";

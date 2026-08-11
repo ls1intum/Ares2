@@ -1,10 +1,26 @@
 package de.tum.cit.ase.ares.api.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 import org.junit.jupiter.api.Test;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 class YamlPlaceholderResolverTest {
+
+	@Test
+	void rejectsInstantiationWithTheStandardUtilityError() throws Exception {
+		Constructor<YamlPlaceholderResolver> constructor = YamlPlaceholderResolver.class.getDeclaredConstructor();
+		constructor.setAccessible(true);
+
+		assertThatThrownBy(constructor::newInstance).isInstanceOf(InvocationTargetException.class)
+				.hasCauseInstanceOf(SecurityException.class).cause()
+				.hasMessage(Messages.localized("security.general.utility.initialization", "YamlPlaceholderResolver"));
+	}
 
 	@Test
 	void expandsProjectRootPlaceholder() {

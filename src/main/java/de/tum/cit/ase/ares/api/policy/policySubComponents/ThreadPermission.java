@@ -37,9 +37,7 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 		if (createTheFollowingNumberOfThreads < 0) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.thread.count.negative"));
 		}
-		if (ofThisClass.isBlank()) {
-			throw new IllegalArgumentException(Messages.localized("policy.permission.thread.class.blank"));
-		}
+		PolicyValueValidator.requireMatch("ofThisClass", ofThisClass, PolicyValueValidator.THREAD_CLASS_PATTERN);
 	}
 
 	/**

@@ -88,3 +88,4 @@ java.util.stream.Stream.parallel()
 java.util.stream.BaseStream.parallel()
 java.lang.Thread.start()
 java.util.Timer.<init>
+java.lang.Thread

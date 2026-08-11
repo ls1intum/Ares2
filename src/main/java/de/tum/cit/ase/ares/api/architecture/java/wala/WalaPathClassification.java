@@ -66,6 +66,7 @@ public final class WalaPathClassification {
 	public static final List<String> RESERVED_PACKAGE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
 			"de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
 			"anonymous.toolclasses.", "metatest.");
+	public static final String RESERVED_PACKAGE_PREFIX_VERSION = "1";
 
 	/**
 	 * Application-loaded subset of {@link #INFRA_PREFIXES} that genuinely indicates
@@ -104,12 +105,8 @@ public final class WalaPathClassification {
 	 */
 	static OptionalInt nearestStudentFrame(List<CGNode> path) {
 		for (int i = path.size() - 1; i >= 0; i--) {
-			try {
-				if (!isInfraFrame(path.get(i))) {
-					return OptionalInt.of(i);
-				}
-			} catch (RuntimeException | UnimplementedError ignored) {
-				// skip malformed / synthetic frame
+			if (!isInfraFrame(path.get(i))) {
+				return OptionalInt.of(i);
 			}
 		}
 		return OptionalInt.empty();
@@ -154,22 +151,7 @@ public final class WalaPathClassification {
 	 * boot/extension/synthetic classes or any package in {@link #INFRA_PREFIXES}.
 	 */
 	static boolean isInfraFrame(CGNode node) {
-		try {
-			IClass cls = node.getMethod().getDeclaringClass();
-			if (cls == null) {
-				return true;
-			}
-			ClassLoaderReference loader = cls.getClassLoader().getReference();
-			if (loader.equals(ClassLoaderReference.Primordial) || loader.equals(ClassLoaderReference.Extension)) {
-				// Primordial covers JDK boot classes and WALA's synthetic FakeRoot
-				// nodes, which use Primordial loader in WALA 1.6.x.
-				return true;
-			}
-			String pkg = packageNameOf(cls);
-			return INFRA_PREFIXES.stream().anyMatch(pkg::startsWith);
-		} catch (RuntimeException | UnimplementedError ignored) {
-			return true; // malformed frame treated as infrastructure
-		}
+		return hasInfrastructureOrigin(node, INFRA_PREFIXES);
 	}
 
 	/**
@@ -181,20 +163,39 @@ public final class WalaPathClassification {
 	 * violation.
 	 */
 	static boolean isTransitiveFalsePositiveFrame(CGNode node) {
+		return hasInfrastructureOrigin(node, TRANSITIVE_FALSE_POSITIVE_PREFIXES);
+	}
+
+	private static boolean hasInfrastructureOrigin(CGNode node, List<String> applicationPrefixes) {
 		try {
+			if (node == null || node.getMethod() == null) {
+				throw unclassifiableNode("missing call-graph node or method", null);
+			}
 			IClass cls = node.getMethod().getDeclaringClass();
 			if (cls == null) {
-				return true;
+				throw unclassifiableNode("missing declaring class", null);
+			}
+			if (cls.getClassLoader() == null || cls.getClassLoader().getReference() == null) {
+				throw unclassifiableNode("missing class-loader identity", null);
 			}
 			ClassLoaderReference loader = cls.getClassLoader().getReference();
 			if (loader.equals(ClassLoaderReference.Primordial) || loader.equals(ClassLoaderReference.Extension)) {
+				// Primordial covers JDK boot classes and WALA's synthetic FakeRoot
+				// nodes, which use Primordial loader in WALA 1.6.x.
 				return true;
 			}
 			String pkg = packageNameOf(cls);
-			return TRANSITIVE_FALSE_POSITIVE_PREFIXES.stream().anyMatch(pkg::startsWith);
-		} catch (RuntimeException | UnimplementedError ignored) {
-			return true;
+			return applicationPrefixes.stream().anyMatch(pkg::startsWith);
+		} catch (SecurityException failClosed) {
+			throw failClosed;
+		} catch (RuntimeException | UnimplementedError unclassifiable) {
+			throw unclassifiableNode("WALA could not classify the declaring class", unclassifiable);
 		}
+	}
+
+	private static SecurityException unclassifiableNode(String reason, Throwable cause) {
+		String message = Messages.localized("security.architecture.wala.unclassifiable.node", reason);
+		return cause == null ? new SecurityException(message) : new SecurityException(message, cause);
 	}
 	// </editor-fold>
 

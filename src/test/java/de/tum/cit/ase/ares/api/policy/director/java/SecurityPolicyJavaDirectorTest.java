@@ -12,9 +12,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import de.tum.cit.ase.ares.api.aop.AOPMode;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
@@ -65,6 +71,8 @@ public class SecurityPolicyJavaDirectorTest {
 		Files.createFile(essentialPackagesPath);
 		Files.createFile(essentialClassesPath);
 		Files.createDirectories(projectPath);
+		Files.writeString(projectPath.resolve("pom.xml"), "<project/>");
+		Files.writeString(projectPath.resolve("build.gradle"), "plugins { id 'java' }");
 
 		// Setup mock for EssentialDataYAMLReader to return valid mock objects
 		setupEssentialDataMocks();
@@ -84,7 +92,7 @@ public class SecurityPolicyJavaDirectorTest {
 
 		supervisedCodeWithValidConfig = new SupervisedCode(
 				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, "de.example.test", "MainClass",
-				new String[] { "TestClass1", "TestClass2" }, validResourceAccesses);
+				List.of("TestClass1", "TestClass2"), validResourceAccesses);
 
 		// Note: We cannot create a SupervisedCode with null config directly
 		// because the Record constructor validates parameters.
@@ -96,7 +104,7 @@ public class SecurityPolicyJavaDirectorTest {
 				.regardingNetworkConnections(List.of()).regardingCommandExecutions(List.of())
 				.regardingThreadCreations(List.of()).regardingPackageImports(List.of()).build();
 
-		return new SupervisedCode(config, "de.example.test", "MainClass", new String[] { "TestClass1", "TestClass2" },
+		return new SupervisedCode(config, "de.example.test", "MainClass", List.of("TestClass1", "TestClass2"),
 				resourceAccesses);
 	}
 
@@ -201,6 +209,62 @@ public class SecurityPolicyJavaDirectorTest {
 			assertThrows(NullPointerException.class, () -> SecurityPolicyJavaDirector.javaBuilder().build());
 		}
 
+		@ParameterizedTest
+		@ValueSource(strings = { "creator", "writer", "executer", "essentialDataReader", "javaScanner",
+				"essentialPackagesPath", "essentialClassesPath" })
+		void rejectsEveryIndividuallyMissingBuilderDependency(String missing) {
+			SecurityPolicyJavaDirector.Builder builder = SecurityPolicyJavaDirector.javaBuilder();
+			if (!"creator".equals(missing)) {
+				builder.creator(mockCreator);
+			}
+			if (!"writer".equals(missing)) {
+				builder.writer(mockWriter);
+			}
+			if (!"executer".equals(missing)) {
+				builder.executer(mockExecuter);
+			}
+			if (!"essentialDataReader".equals(missing)) {
+				builder.essentialDataReader(mockEssentialDataReader);
+			}
+			if (!"javaScanner".equals(missing)) {
+				builder.javaScanner(mockProjectScanner);
+			}
+			if (!"essentialPackagesPath".equals(missing)) {
+				builder.essentialPackagesPath(essentialPackagesPath);
+			}
+			if (!"essentialClassesPath".equals(missing)) {
+				builder.essentialClassesPath(essentialClassesPath);
+			}
+			NullPointerException failure = assertThrows(NullPointerException.class, builder::build);
+			assertTrue(failure.getMessage().contains(missing));
+		}
+
+		@Test
+		void rejectsEveryNullConstructorDependency() {
+			assertAll(() -> assertThrows(NullPointerException.class,
+					() -> new SecurityPolicyJavaDirector(null, mockWriter, mockExecuter, mockEssentialDataReader,
+							mockProjectScanner, essentialPackagesPath, essentialClassesPath)),
+					() -> assertThrows(NullPointerException.class,
+							() -> new SecurityPolicyJavaDirector(mockCreator, null, mockExecuter,
+									mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
+									essentialClassesPath)),
+					() -> assertThrows(NullPointerException.class,
+							() -> new SecurityPolicyJavaDirector(mockCreator, mockWriter, null, mockEssentialDataReader,
+									mockProjectScanner, essentialPackagesPath, essentialClassesPath)),
+					() -> assertThrows(NullPointerException.class,
+							() -> new SecurityPolicyJavaDirector(mockCreator, mockWriter, mockExecuter, null,
+									mockProjectScanner, essentialPackagesPath, essentialClassesPath)),
+					() -> assertThrows(NullPointerException.class,
+							() -> new SecurityPolicyJavaDirector(mockCreator, mockWriter, mockExecuter,
+									mockEssentialDataReader, null, essentialPackagesPath, essentialClassesPath)),
+					() -> assertThrows(NullPointerException.class,
+							() -> new SecurityPolicyJavaDirector(mockCreator, mockWriter, mockExecuter,
+									mockEssentialDataReader, mockProjectScanner, null, essentialClassesPath)),
+					() -> assertThrows(NullPointerException.class,
+							() -> new SecurityPolicyJavaDirector(mockCreator, mockWriter, mockExecuter,
+									mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, null)));
+		}
+
 		@Test
 		@DisplayName("Should allow chaining builder methods")
 		void shouldAllowChainingBuilderMethods() {
@@ -231,11 +295,47 @@ public class SecurityPolicyJavaDirectorTest {
 
 		@Test
 		@DisplayName("Should fall back to the default configuration when the security policy is null")
-		void shouldFallBackToDefaultConfigurationWhenCreatingTestCasesWithNullSecurityPolicy() {
-			// A null SecurityPolicy is explicitly supported: createTestCases falls back to
-			// the MAVEN / ARCHUNIT / ASPECTJ default configuration rather than throwing.
-			TestCaseAbstractFactoryAndBuilder result = director.createTestCases(null, null);
-			assertNotNull(result);
+		void shouldFallBackToDefaultConfigurationWhenCreatingTestCasesWithNullSecurityPolicy() throws Exception {
+			Path maven = Files.createDirectory(tempDir.resolve("default-maven-project"));
+			Files.writeString(maven.resolve("pom.xml"), "<project/>");
+			TestCaseAbstractFactoryAndBuilder result = director.createTestCases(null, maven);
+			assertEquals(BuildMode.MAVEN, result.buildMode());
+			assertEquals(ArchitectureMode.ARCHUNIT, result.architectureMode());
+			assertEquals(AOPMode.ASPECTJ, result.aopMode());
+		}
+
+		@ParameterizedTest
+		@EnumSource(ProgrammingLanguageConfiguration.class)
+		void selectsEveryExplicitModeExactly(ProgrammingLanguageConfiguration configuration) {
+			SecurityPolicy policy = SecurityPolicy.builder()
+					.regardingTheSupervisedCode(createSupervisedCodeWithConfig(configuration)).build();
+			TestCaseAbstractFactoryAndBuilder result = director.createTestCases(policy, projectPath);
+			String name = configuration.name();
+			assertEquals(name.contains("MAVEN") ? BuildMode.MAVEN : BuildMode.GRADLE, result.buildMode());
+			assertEquals(name.contains("ARCHUNIT") ? ArchitectureMode.ARCHUNIT : ArchitectureMode.WALA,
+					result.architectureMode());
+			assertEquals(name.contains("ASPECTJ") ? AOPMode.ASPECTJ : AOPMode.INSTRUMENTATION, result.aopMode());
+		}
+
+		@Test
+		void recognisesBothNoPolicyBuildToolsAndRejectsInvalidDiscovery() throws Exception {
+			Path maven = Files.createDirectory(tempDir.resolve("maven-project"));
+			Files.writeString(maven.resolve("pom.xml"), "<project/>");
+			Path gradle = Files.createDirectory(tempDir.resolve("gradle-project"));
+			Files.writeString(gradle.resolve("build.gradle.kts"), "plugins { java }");
+			TestCaseAbstractFactoryAndBuilder mavenFactory = director.createTestCases(null, maven);
+			TestCaseAbstractFactoryAndBuilder gradleFactory = director.createTestCases(null, gradle);
+			assertEquals(BuildMode.MAVEN, mavenFactory.buildMode());
+			assertEquals(BuildMode.GRADLE, gradleFactory.buildMode());
+			assertEquals(ArchitectureMode.ARCHUNIT, gradleFactory.architectureMode());
+			assertEquals(AOPMode.ASPECTJ, gradleFactory.aopMode());
+
+			Path ambiguous = Files.createDirectory(tempDir.resolve("ambiguous-project"));
+			Files.writeString(ambiguous.resolve("pom.xml"), "<project/>");
+			Files.writeString(ambiguous.resolve("build.gradle"), "plugins { id 'java' }");
+			Path unsupported = Files.createDirectory(tempDir.resolve("unsupported-project"));
+			assertThrows(IllegalStateException.class, () -> director.createTestCases(null, ambiguous));
+			assertThrows(IllegalStateException.class, () -> director.createTestCases(null, unsupported));
 		}
 
 		@Test
@@ -423,15 +523,19 @@ public class SecurityPolicyJavaDirectorTest {
 		@Test
 		@DisplayName("Should have non-null default essential packages path")
 		void shouldHaveNonNullDefaultEssentialPackagesPath() {
-			// Assert
-			assertNotNull(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_PACKAGES_PATH);
+			assertTrue(Files.isReadable(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_PACKAGES_PATH));
+			assertFalse(new EssentialDataYAMLReader()
+					.readEssentialPackagesFrom(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_PACKAGES_PATH)
+					.getEssentialPackages().isEmpty());
 		}
 
 		@Test
 		@DisplayName("Should have non-null default essential classes path")
 		void shouldHaveNonNullDefaultEssentialClassesPath() {
-			// Assert
-			assertNotNull(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH);
+			assertTrue(Files.isReadable(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH));
+			assertFalse(new EssentialDataYAMLReader()
+					.readEssentialClassesFrom(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH)
+					.getEssentialClasses().isEmpty());
 		}
 	}
 }

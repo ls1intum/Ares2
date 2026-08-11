@@ -1,3 +1,4 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
@@ -5,7 +6,7 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.InternalErrorLeakageTemporaryUser"
     - "de.tum.cit.ase.ares.integration.InternalErrorLeakageTemporaryTest"
-    - "de.tum.cit.ase.ares.testutilities."
+    - "de.tum.cit.ase.ares.testutilities"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: []
     regardingNetworkConnections: []

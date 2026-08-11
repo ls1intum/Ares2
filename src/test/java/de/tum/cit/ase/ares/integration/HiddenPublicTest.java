@@ -59,6 +59,6 @@ class HiddenPublicTest {
 
 	@TestTest
 	void test_testPublicNormal() {
-		tests.assertThatEvents().haveExactly(1, finishedSuccessfully(testPublicNormal));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicNormal, AnnotationFormatError.class));
 	}
 }

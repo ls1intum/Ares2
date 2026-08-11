@@ -64,7 +64,7 @@ environment of a Maven project, include
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.0.1-Beta6</version>
+    <version>2.1.0</version>
 </dependency>
 ----
 
@@ -73,7 +73,7 @@ in the `dependencies` section.
 For Gradle projects, include
 [source,groovy]
 ----
-implementation("de.tum.cit.ase:ares:2.0.1-Beta6")
+implementation("de.tum.cit.ase:ares:2.1.0")
 ----
 
 in the `dependencies` section.
@@ -107,7 +107,7 @@ looks like this:
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.0.1-Beta6</version>
+        <version>2.1.0</version>
     </dependency>
 </dependencies>
 ----
@@ -992,7 +992,7 @@ Maven:
 ----
 <properties>
         <studentOutputDir>${project.basedir}/build/classes/java/main</studentOutputDir>
-        <ares.version>2.0.1-Beta6</ares.version>
+        <ares.version>2.1.0</ares.version>
         <agent.dir>${project.build.directory}/agents</agent.dir>
     </properties>
 
@@ -1129,8 +1129,8 @@ configurations {
 }
 
 dependencies {
-    aresAgent 'de.tum.cit.ase:ares:2.0.1-Beta6'
-    testImplementation("de.tum.cit.ase:ares:2.0.1-Beta6")
+    aresAgent 'de.tum.cit.ase:ares:2.1.0'
+    testImplementation("de.tum.cit.ase:ares:2.1.0")
 }
 
 def forbiddenPackageFolders = [
@@ -1167,7 +1167,7 @@ tasks.register('buildInstrumentationAgent', Jar) {
     description 'Builds a proper Java agent from the Ares JAR with correct manifest'
     archiveFileName = 'ares-agent.jar'
     destinationDirectory = layout.buildDirectory.dir("agents")
-    from zipTree(layout.buildDirectory.file("agents/ares-2.0.1-Beta6.jar").get().asFile)
+    from zipTree(configurations.aresAgent.filter { it.name.startsWith('ares-') }.singleFile)
     manifest {
         attributes(
                 'Manifest-Version': '1.0',
@@ -1204,69 +1204,15 @@ test {
     //</editor-fold>
 }
 ----
-<1> This is where all folders/packages go that we don't want to exist
-    in student code. You will always find the most recent recommendation
-    for Ares2 here. If you use additional third-party libraries that need
-    to be configured using `@AddTrustedPackage`, you should add those
-    packages here as well. Ares2 will check that all entries are present. +
-    If you don't want Ares2 to do so, set the `ares.maven.ignore` or
-    `ares.gradle.ignore` system property to `true`. In case you want Ares2
-    to look into a different file, you can set the `ares.maven.pom` or
-    `ares.gradle.build` to a path other than the default `pom.xml` or
-    `build.gradle`.
+<1> This is the versioned reserved-package boundary. Keep the exercise build validation aligned with
+    `WalaPathClassification.RESERVED_PACKAGE_PREFIX_VERSION` and do not disable it. The canonical
+    Maven and Gradle contract is documented in `docs/policy/EnforcementModel.md`.
 
-=== But what is whitelisted?
+=== Security trust boundary
 
-By default, Ares2 trusts certain core packages and classes that are necessary for the testing framework itself to function. The following packages are automatically whitelisted and excluded from security restrictions:
-
-*Core Java and JDK packages:*
-
-* `java.*` - Core Java API classes
-* `javax.*` - Java extension APIs
-* `jdk.*` - JDK internal classes
-* `sun.*` - Sun/Oracle internal implementation classes
-
-*Testing frameworks:*
-
-* `org.junit.*` - JUnit 5 and JUnit 4 (Vintage)
-* `org.opentest4j.*` - Open Test Alliance
-* `net.jqwik.*` - jqwik property-based testing
-* `org.assertj.*` - AssertJ assertion library
-* `org.hamcrest.*` - Hamcrest matchers
-* `org.mockito.*` - Mockito mocking framework
-
-*Ares2 framework:*
-
-* `de.tum.cit.ase.ares.api.*` - All Ares2 classes
-
-*Build and analysis tools:*
-
-* `org.apache.*` - Apache Commons and Maven
-* `org.gradle.*` - Gradle build system
-* `org.eclipse.*` - Eclipse compiler and tooling
-* `com.intellij.*` - IntelliJ IDEA integration
-* `org.jacoco.*` - JaCoCo code coverage
-
-*Static analysis and AOP:*
-
-* `com.tngtech.archunit.*` - ArchUnit
-* `com.ibm.wala.*` - WALA call graph analysis
-* `org.aspectj.*` - AspectJ
-* `net.bytebuddy.*` - Byte Buddy instrumentation
-
-*Additional libraries:*
-
-* `ch.qos.logback.*` - Logback logging
-* `com.github.javaparser.*` - JavaParser AST analysis
-* `org.json.*` - JSON parsing
-
-You can extend the whitelist for your specific needs using annotations:
-
-* `@AddTrustedPackage("com.example.library")` - Trust an additional package
-* `@WhitelistPackage("com.student.helpers")` - Allow student code in specific package
-* `@WhitelistClass("com.example.UtilityClass")` - Allow specific class
-
-*Important:* Student code should never be placed in trusted packages, as this would bypass all security restrictions. The enforcer plugin in your `pom.xml` or `build.gradle` prevents this.
+Ares trusts only its versioned infrastructure boundary and the test classes named by the active
+security policy. Student code must never use a reserved package. See
+`docs/policy/EnforcementModel.md` for the runtime inventory, build prerequisite and migration table.
 
 === Further Important Options
 
@@ -1278,74 +1224,9 @@ annoyed or even enraged. To prevent that, please read on.
 
 ==== Path Access and Class Loading
 
-Ares2 carefully controls which files and directories student code can access. Understanding path access rules is crucial for writing secure tests.
-
-*Default behaviour:*
-
-* Student code runs in a restricted sandbox
-* Access to most file system paths is blocked by default
-* Only explicitly whitelisted paths are accessible
-* Test classes run with elevated privileges (trusted)
-
-*Configuring path access:*
-
-Use the security configuration file to specify allowed paths:
-
-[source,yaml]
-----
-regardingFileSystemInteractions:
-  - onThisPathAndAllPathsBelow: "data/input.txt"
-    readAllFiles: true
-    overwriteAllFiles: false
-    createAllFiles: false
-    executeAllFiles: false
-    deleteAllFiles: false
-----
-
-Or use annotations directly in test code:
-
-[source,java]
-----
-@WhitelistPath(value = "data", type = PathType.DIRECTORY)
-@WhitelistPath(value = "**/*.txt", type = PathType.GLOB)
-@PublicTest
-void testFileAccess() {
-    // Student code can now read from data/ directory
-}
-----
-
-*Path types:*
-
-* `PathType.EXACT` - Exact file/directory path
-* `PathType.GLOB` - Glob pattern (e.g., `**/*.txt`)
-* `PathType.DIRECTORY` - Directory and all contents
-
-*Blacklisting paths:*
-
-[source,java]
-----
-@BlacklistPath(value = "secret.txt")
-@PublicTest
-void testRestrictedAccess() {
-    // Access to secret.txt will throw SecurityException
-}
-----
-
-*Class loading considerations:*
-
-* Ares2 uses a custom class loader hierarchy to isolate student code
-* Test classes are loaded by the system class loader (trusted)
-* Student classes are loaded by a restricted class loader
-* This prevents students from shadowing trusted classes
-* The enforcer plugin validates that no student code exists in trusted packages
-
-*Best practices:*
-
-* Keep whitelist as restrictive as possible
-* Use relative paths, not absolute paths
-* Whitelist only directories needed for the exercise
-* Test your path restrictions before releasing the exercise
-* Document which files students should create/modify
+File access is default-deny and is granted only through
+`regardingFileSystemInteractions` in the YAML policy referenced by `@Policy`. Generated files
+are confined to the explicit canonical project root. See `docs/policy/SecurityPolicyManual.md`.
 
 ==== Testing the Exercise before Release
 
@@ -1371,78 +1252,8 @@ extensions will be added together.
 
 ==== Threads and Concurrency
 
-Ares2 provides comprehensive control over thread creation and management to prevent students from:
-
-* Creating excessive threads that could impact system performance
-* Using threads to bypass time limits
-* Exploiting concurrency to circumvent security restrictions
-* Causing deadlocks or race conditions in the test environment
-
-*Controlling thread creation:*
-
-In your security configuration:
-
-[source,yaml]
-----
-regardingThreadCreations:
-  - createTheFollowingNumberOfThreads: 5
-    ofThisClass: "java.lang.Thread"
-----
-
-Or using annotations:
-
-[source,java]
-----
-@AllowThreads(maxActiveCount = 5)
-@PublicTest
-void testConcurrentCode() {
-    // Student code can create up to 5 threads
-}
-----
-
-*Thread trust scopes:*
-
-Ares2 distinguishes between trusted and untrusted threads:
-
-[source,java]
-----
-@TrustedThreads(TrustScope.MINIMAL)  // Only test threads trusted
-@TrustedThreads(TrustScope.EXTENDED) // Test + whitelisted student threads
-----
-
-*Handling concurrent tests:*
-
-[source,java]
-----
-@PublicTest
-@AllowThreads(maxActiveCount = 10)
-void testThreadPoolExecution() {
-    ExecutorService executor = Executors.newFixedThreadPool(5);
-    List<Future<String>> futures = new ArrayList<>();
-    
-    for (int i = 0; i < 10; i++) {
-        futures.add(executor.submit(() -> studentCode.processTask()));
-    }
-    
-    // All threads are monitored by Ares2
-    executor.shutdown();
-    executor.awaitTermination(10, TimeUnit.SECONDS);
-}
-----
-
-*Security considerations:*
-
-* Threads created by student code inherit security restrictions
-* Each thread is monitored for resource access violations
-* Thread count limits prevent resource exhaustion
-* Uncaught exceptions in student threads are properly captured
-* Daemon threads are automatically stopped after test completion
-
-*Common issues:*
-
-* *Exceeded thread limit:* Increase `maxActiveCount` or refactor student code
-* *Threads not terminating:* Use timeouts with `@StrictTimeout`
-* *Race conditions:* Consider using `@RepeatedTest` to detect flaky tests
+Thread creation is configured only through `regardingThreadCreations` in the active policy.
+Specify the permitted class and maximum count; omission means denial.
 
 [#testing-console-interaction]
 ==== Testing Console Interaction
@@ -1501,106 +1312,9 @@ https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/ap
 
 ==== Networking
 
-Ares2 controls all network operations to prevent students from:
-
-* Accessing external resources not required for the exercise
-* Exfiltrating data or test solutions
-* Performing denial-of-service attacks
-* Bypassing security through network-based exploits
-
-*Allowing network access:*
-
-In your security configuration:
-
-[source,yaml]
-----
-regardingNetworkConnections:
-  - onTheHost: "api.example.com"
-    onThePort: 443
-    openConnections: true
-    sendData: true
-    receiveData: true
-  - onTheHost: "localhost"
-    onThePort: 8080
-    openConnections: true
-    sendData: true
-    receiveData: true
-----
-
-Or using annotations:
-
-[source,java]
-----
-@AllowLocalPort(8080)
-@PublicTest
-void testHttpServer() {
-    // Student code can connect to localhost:8080
-}
-----
-
-*Port ranges:*
-
-[source,java]
-----
-@AllowLocalPort(above = 8000, mode = PortMode.ABOVE)
-@PublicTest
-void testDynamicPorts() {
-    // Allows all ports above 8000
-}
-----
-
-*Testing REST APIs:*
-
-[source,java]
-----
-@Policy("network-config.yaml")
-@PublicTest
-void testRestClient() {
-    // Configuration allows api.example.com:443
-    String response = studentCode.fetchData("https://api.example.com/data");
-    assertThat(response).isNotEmpty();
-}
-----
-
-*Common patterns:*
-
-*Testing a local HTTP server:*
-[source,java]
-----
-@AllowLocalPort(8080)
-@PublicTest
-void testWebServer() {
-    studentCode.startServer(8080);
-    HttpClient client = HttpClient.newHttpClient();
-    HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create("http://localhost:8080/"))
-        .build();
-    HttpResponse<String> response = client.send(request, 
-        HttpResponse.BodyHandlers.ofString());
-    assertEquals(200, response.statusCode());
-}
-----
-
-*Mocking external services:*
-[source,java]
-----
-@PublicTest
-void testWithMockedService() {
-    // Use WireMock or similar instead of real network access
-    WireMockServer mockServer = new WireMockServer(8089);
-    mockServer.start();
-    // No @AllowLocalPort needed for test infrastructure
-    mockServer.stop();
-}
-----
-
-*Security notes:*
-
-* By default, all network access is blocked
-* DNS lookups are also controlled
-* Socket connections require explicit permission
-* Multicast and broadcast are blocked
-* Consider using mocks instead of real network access when possible
+Network access is default-deny. Configure each host, explicit port and operation boolean under
+`regardingNetworkConnections`; port `0` is the sole any-port wildcard. Narrow allowances remain
+narrow at runtime even though argument-insensitive static analysis cannot represent them.
 
 ==== Locale
 
@@ -1682,7 +1396,7 @@ repositories {
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.0.1-Beta6</version>
+    <version>2.1.0</version>
 </dependency>
 ----
 

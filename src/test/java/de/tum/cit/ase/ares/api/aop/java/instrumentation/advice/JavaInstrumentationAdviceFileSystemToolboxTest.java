@@ -4,9 +4,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -20,6 +24,22 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumenta
 import example.student.InstrumentationSecurityProbe;
 
 class JavaInstrumentationAdviceFileSystemToolboxTest {
+
+	@Test
+	void pathWildcardAllowsEveryPath(@TempDir Path tempDir) throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path file = tempDir.resolve("anywhere.txt");
+			Files.writeString(file, "allowed by wildcard");
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { "*" }, "ARCH",
+					"INSTRUMENTATION");
+
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkFileUrlOpenStream(file.toUri().toURL()));
+		} finally {
+			resetSettings();
+		}
+	}
 
 	/**
 	 * Loads the localization bundle while still unrestricted, so that building a
@@ -99,6 +119,14 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 				.get("org.apache.commons.io.FileUtils").contains("forceDelete"));
 		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES
 				.get("java.nio.file.spi.FileSystemProvider").contains("delete"));
+		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES.get("java.nio.file.Files")
+				.containsAll(List.of("copy", "mismatch")));
+		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES.get("java.nio.file.Files")
+				.contains("copy"));
+		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES
+				.get("java.nio.channels.FileChannel").contains("transferTo"));
+		assertTrue(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES
+				.get("java.nio.channels.FileChannel").containsAll(List.of("transferTo", "transferFrom")));
 	}
 
 	@Test
@@ -220,4 +248,197 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 						|| notPermitted.contains("Keine konfigurierte Erlaubnisregel gestattet diesen Zugriff"),
 				() -> "Unexpected not-permitted reason: " + notPermitted);
 	}
+
+	// <editor-fold desc="I-114: Files.copy / FileChannel.transferTo/transferFrom
+	// per-parameter roles">
+
+	@Test
+	void checkFileSystemInteraction_filesCopySourceRequiresReadPermissionNotJustOverwrite(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path source = tempDir.resolve("secret.txt");
+			Files.writeString(source, "secret content");
+
+			// I-114 privilege escalation: an OVERWRITE-only grant for source's own path
+			// must
+			// NOT let Files.copy read it.
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten", new String[] { source.toString() },
+					"ARCH", "INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkFilesCopyReadLeg(source, tempDir.resolve("copy.txt")));
+			assertTrue(exception.getMessage().contains("read"),
+					() -> "Expected the denial to name the 'read' action, but was:\n" + exception.getMessage());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void checkFileSystemInteraction_filesCopyAllowsSourceWithReadPermissionOnly(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path source = tempDir.resolve("readable.txt");
+			Files.writeString(source, "content");
+
+			// Only READ granted (no OVERWRITE at all) - copy's source-read leg must
+			// succeed.
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { source.toString() },
+					"ARCH", "INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			assertDoesNotThrow(
+					() -> InstrumentationSecurityProbe.checkFilesCopyReadLeg(source, tempDir.resolve("copy.txt")));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void checkFileSystemInteraction_filesCopyDestinationChecksCreateOrOverwriteBasedOnReplaceExisting(
+			@TempDir Path tempDir) throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path source = tempDir.resolve("source.txt");
+			Path destination = tempDir.resolve("dest.txt");
+
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			SecurityException withoutReplace = assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkFilesCopyOverwriteLeg(source, destination));
+			assertTrue(withoutReplace.getMessage().contains("create"),
+					() -> "Expected 'create' without REPLACE_EXISTING, but was:\n" + withoutReplace.getMessage());
+
+			SecurityException withReplace = assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkFilesCopyOverwriteLeg(source, destination,
+							java.nio.file.StandardCopyOption.REPLACE_EXISTING));
+			assertTrue(withReplace.getMessage().contains("overwrite"),
+					() -> "Expected 'overwrite' with REPLACE_EXISTING, but was:\n" + withReplace.getMessage());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void checkFileSystemInteraction_fileChannelTransferToChecksSourceReceiverAsRead(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path source = tempDir.resolve("source.txt");
+			Files.writeString(source, "content");
+			Path destination = tempDir.resolve("dest.txt");
+			Files.createFile(destination);
+
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			try (FileChannel sourceChannel = FileChannel.open(source, StandardOpenOption.READ);
+					FileChannel destinationChannel = FileChannel.open(destination, StandardOpenOption.WRITE)) {
+				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileChannelTransferToReadLeg(sourceChannel, 0, 10, destinationChannel));
+				assertTrue(exception.getMessage().contains("read"),
+						() -> "Expected the denial to name the 'read' action, but was:\n" + exception.getMessage());
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void checkFileSystemInteraction_fileChannelTransferFromChecksDestinationReceiverAsOverwrite(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path source = tempDir.resolve("source.txt");
+			Files.writeString(source, "content");
+			Path destination = tempDir.resolve("dest.txt");
+			Files.createFile(destination);
+
+			// I-114: transferFrom was previously not intercepted by either backend at all.
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			try (FileChannel sourceChannel = FileChannel.open(source, StandardOpenOption.READ);
+					FileChannel destinationChannel = FileChannel.open(destination, StandardOpenOption.WRITE)) {
+				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileChannelTransferFromOverwriteLeg(destinationChannel, sourceChannel, 0, 10));
+				assertTrue(exception.getMessage().contains("overwrite"),
+						() -> "Expected the denial to name the 'overwrite' action, but was:\n"
+								+ exception.getMessage());
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void checkFileSystemInteraction_fileChannelTransferToDatagramChannelChecksNetworkSend(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			Path source = tempDir.resolve("source.txt");
+			Files.writeString(source, "content");
+
+			try (FileChannel sourceChannel = FileChannel.open(source, StandardOpenOption.READ);
+					DatagramChannel targetChannel = DatagramChannel.open()) {
+				targetChannel.connect(new InetSocketAddress("203.0.113.1", 80));
+				configureInstrumentationMode();
+				JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { source.toString() },
+						"ARCH", "INSTRUMENTATION");
+				JavaAOPTestCase.setJavaAdviceSettingValue("hostsAllowedToBeSentTo", new String[0], "ARCH",
+						"INSTRUMENTATION");
+				JavaAOPTestCase.setJavaAdviceSettingValue("portsAllowedToBeSentTo", new int[0], "ARCH",
+						"INSTRUMENTATION");
+
+				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileChannelTransferToReadLeg(sourceChannel, 0, 10, targetChannel));
+				assertTrue(exception.getMessage().contains("send"),
+						() -> "Expected the denial to name the 'send' action, but was:\n" + exception.getMessage());
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void checkFileSystemInteraction_fileChannelTransferFromDatagramChannelChecksNetworkReceive(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			Path destination = tempDir.resolve("destination.txt");
+			Files.createFile(destination);
+
+			try (FileChannel destinationChannel = FileChannel.open(destination, StandardOpenOption.WRITE);
+					DatagramChannel sourceChannel = DatagramChannel.open()) {
+				sourceChannel.connect(new InetSocketAddress("203.0.113.1", 80));
+				configureInstrumentationMode();
+				JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten",
+						new String[] { destination.toString() }, "ARCH", "INSTRUMENTATION");
+				JavaAOPTestCase.setJavaAdviceSettingValue("hostsAllowedToBeReceivedFrom", new String[0], "ARCH",
+						"INSTRUMENTATION");
+				JavaAOPTestCase.setJavaAdviceSettingValue("portsAllowedToBeReceivedFrom", new int[0], "ARCH",
+						"INSTRUMENTATION");
+
+				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileChannelTransferFromOverwriteLeg(destinationChannel, sourceChannel, 0, 10));
+				assertTrue(exception.getMessage().contains("receive"),
+						() -> "Expected the denial to name the 'receive' action, but was:\n" + exception.getMessage());
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	// </editor-fold>
 }

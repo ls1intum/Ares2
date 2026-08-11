@@ -7,9 +7,13 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.databind.DatabindException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLParser;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
@@ -34,6 +38,8 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  * @version 2.0.0
  */
 public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
+	@Nullable
+	private final Path projectRootPath;
 
 	// <editor-fold desc="Constructor">
 
@@ -46,7 +52,16 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 	 * @param yamlMapper the non-null YAML object mapper for reading YAML files.
 	 */
 	public SecurityPolicyYAMLReader(@Nonnull YAMLMapper yamlMapper) {
+		this(yamlMapper, null);
+	}
+
+	public SecurityPolicyYAMLReader(@Nonnull YAMLMapper yamlMapper, @Nullable Path projectRootPath) {
 		super(yamlMapper);
+		yamlMapper.enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
+		yamlMapper.enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+		yamlMapper.getFactory().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+		yamlMapper.getFactory().enable(YAMLParser.Feature.PARSE_BOOLEAN_LIKE_WORDS_AS_STRINGS);
+		this.projectRootPath = projectRootPath == null ? null : projectRootPath.toAbsolutePath().normalize();
 	}
 	// </editor-fold>
 
@@ -69,7 +84,18 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 		Class<SecurityPolicy> yamlClass = Objects.requireNonNull(SecurityPolicy.class,
 				"The security policy class must not be null.");
 		try {
-			return FileTools.readYamlFile(FileTools.readFile(path), yamlClass);
+			Path effectiveProjectRoot = projectRootPath;
+			if (effectiveProjectRoot == null) {
+				Path absolutePolicyPath = path.toAbsolutePath().normalize();
+				effectiveProjectRoot = Objects.requireNonNullElse(absolutePolicyPath.getParent(), absolutePolicyPath);
+			}
+			JsonNode root = FileTools.readYamlTree(FileTools.readFile(path), objectMapper, effectiveProjectRoot);
+			SecurityPolicySchemaValidator.validate(root);
+			SecurityPolicy policy = objectMapper.treeToValue(root, yamlClass);
+			if (policy == null) {
+				throw new SecurityException(Messages.localized("security.policy.data.bind.failed", path.toString()));
+			}
+			return policy;
 		} catch (StreamReadException e) {
 			throw new SecurityException(Messages.localized("security.policy.read.failed", path.toString()), e);
 		} catch (DatabindException e) {
@@ -91,6 +117,8 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 	public static class Builder {
 		@Nullable
 		private YAMLMapper yamlMapper;
+		@Nullable
+		private Path projectRootPath;
 
 		@Nonnull
 		public Builder yamlMapper(@Nonnull YAMLMapper yamlMapper) {
@@ -99,8 +127,15 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 		}
 
 		@Nonnull
+		public Builder projectRootPath(@Nonnull Path projectRootPath) {
+			this.projectRootPath = Objects.requireNonNull(projectRootPath, "projectRootPath must not be null");
+			return this;
+		}
+
+		@Nonnull
 		public SecurityPolicyYAMLReader build() {
-			return new SecurityPolicyYAMLReader(Objects.requireNonNull(yamlMapper, "yamlMapper must not be null"));
+			return new SecurityPolicyYAMLReader(Objects.requireNonNull(yamlMapper, "yamlMapper must not be null"),
+					projectRootPath);
 		}
 	}
 	// </editor-fold>

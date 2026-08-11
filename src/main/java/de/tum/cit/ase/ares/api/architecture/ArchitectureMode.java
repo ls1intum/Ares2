@@ -1,9 +1,18 @@
 package de.tum.cit.ase.ares.api.architecture;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -14,12 +23,15 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaCSVFileLoader;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPModeData.JavaFileLoader;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.util.FileTools;
+import de.tum.cit.ase.ares.api.util.LruCache;
 
 /**
  * Enum representing the architecture modes for Java security test cases.
@@ -50,46 +62,141 @@ public enum ArchitectureMode {
 	 */
 	WALA;
 
+	private static JavaFileLoader fileLoader = new JavaCSVFileLoader();
+	private static final int MAX_CONFIGURATION_COUNT = 100;
+	private static final int MAX_JAVA_CLASSES_CACHE_ENTRIES = 256;
+	private static final Map<String, FutureTask<JavaClasses>> JAVA_CLASSES_CACHE = LruCache
+			.synchronizedCache(MAX_JAVA_CLASSES_CACHE_ENTRIES);
+
+	/**
+	 * Replaces the configuration loader used by every architecture mode.
+	 *
+	 * @param loader the non-null loader to use
+	 */
+	public static void setFileLoader(JavaFileLoader loader) {
+		fileLoader = java.util.Objects.requireNonNull(loader, "loader must not be null");
+	}
+
 	// <editor-fold desc="Load configuration">
+	/**
+	 * Loads the filesystem copy configuration for this mode.
+	 *
+	 * @return the validated configuration rows
+	 */
 	public List<List<String>> getCopyFSConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadCopyData(this, true);
+			List<List<String>> entries = fileLoader.loadCopyData(this, true);
+			validateConfigurationRows(entries, "copy.fs", false);
+			return entries;
 		} catch (IOException | CsvException e) {
-			throw new RuntimeException(e);
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.configuration.load.failure", "copy.fs", name()), e);
 		}
 	}
 
+	/**
+	 * Loads the non-filesystem copy configuration for this mode.
+	 *
+	 * @return the validated configuration rows
+	 */
 	public List<List<String>> getCopyNonFSConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadCopyData(this, false);
+			List<List<String>> entries = fileLoader.loadCopyData(this, false);
+			validateConfigurationRows(entries, "copy.nonfs", false);
+			return entries;
 		} catch (IOException | CsvException e) {
-			throw new RuntimeException(e);
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.configuration.load.failure", "copy.nonfs", name()),
+					e);
 		}
 	}
 
+	/**
+	 * Loads the edit configuration for this mode.
+	 *
+	 * @return the validated, non-empty configuration rows
+	 */
 	public List<List<String>> getEditConfigurationEntries() {
 		try {
-			return (new JavaCSVFileLoader()).loadEditData(this);
+			List<List<String>> entries = fileLoader.loadEditData(this);
+			validateConfigurationRows(entries, "edit", true);
+			return entries;
 		} catch (IOException | CsvException e) {
-			throw new RuntimeException(e);
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.configuration.load.failure", "edit", name()), e);
+		}
+	}
+
+	private void validateConfigurationRows(@Nonnull List<List<String>> entries, @Nonnull String context,
+			boolean requireNonEmpty) {
+		if (entries == null || requireNonEmpty && entries.isEmpty()) {
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.configuration.empty", context, name()));
+		}
+		boolean validateCountColumn = context.startsWith("copy");
+		for (int row = 0; row < entries.size(); row++) {
+			List<String> entry = entries.get(row);
+			if (entry == null || entry.size() < 3) {
+				throw new SecurityException(Messages.localized("security.architecture.mode.configuration.malformed.row",
+						context, row, name(), entry == null ? 0 : entry.size()));
+			}
+			for (int column = 0; column < 3; column++) {
+				String cell = entry.get(column);
+				if (cell == null || cell.isBlank()) {
+					throw new SecurityException(Messages.localized(
+							"security.architecture.mode.configuration.blank.cell", context, row, column, name()));
+				}
+			}
+			if (validateCountColumn) {
+				validateConfigurationCount(entry.get(1).trim(), context, row);
+			}
+		}
+	}
+
+	private void validateConfigurationCount(@Nonnull String countCell, @Nonnull String context, int row) {
+		int count;
+		try {
+			count = Integer.parseInt(countCell);
+		} catch (NumberFormatException notAnInteger) {
+			throw new SecurityException(Messages.localized("security.architecture.mode.configuration.invalid.count",
+					context, row, name(), countCell), notAnInteger);
+		}
+		if (count < 0 || count > MAX_CONFIGURATION_COUNT) {
+			throw new SecurityException(Messages.localized("security.architecture.mode.configuration.invalid.count",
+					context, row, name(), countCell));
 		}
 	}
 	// </editor-fold>
 
 	// <editor-fold desc="Multi-file methods">
 
+	/**
+	 * Resolves the filesystem templates copied for this mode.
+	 *
+	 * @return the template paths
+	 */
 	@Nonnull
 	public List<Path> fsFilesToCopy() {
 		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
 				.map(FileTools::resolveFileOnSourceDirectory).toList();
 	}
 
+	/**
+	 * Resolves the non-filesystem templates copied for this mode.
+	 *
+	 * @return the template paths
+	 */
 	@Nonnull
 	public List<Path> nonFSFilesToCopy() {
 		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(0).split("/"))
 				.map(FileTools::resolveFileOnSourceDirectory).toList();
 	}
 
+	/**
+	 * Builds the placeholder values for non-filesystem templates.
+	 *
+	 * @return one placeholder array per configured template
+	 */
 	@Nonnull
 	public List<String[]> placeholderValues() {
 		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
@@ -99,6 +206,13 @@ public enum ArchitectureMode {
 				}).toList();
 	}
 
+	/**
+	 * Builds the placeholder values for filesystem templates.
+	 *
+	 * @param packageName            the supervised package name
+	 * @param mainClassInPackageName the supervised main-class name
+	 * @return one placeholder array per configured template
+	 */
 	@Nonnull
 	public List<String[]> fsFormatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
 		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
@@ -108,6 +222,13 @@ public enum ArchitectureMode {
 				}).toList();
 	}
 
+	/**
+	 * Builds the placeholder values for non-filesystem templates.
+	 *
+	 * @param packageName            the supervised package name
+	 * @param mainClassInPackageName the supervised main-class name
+	 * @return one placeholder array per configured template
+	 */
 	@Nonnull
 	public List<String[]> nonFSFormatValues(@Nonnull String packageName, @Nonnull String mainClassInPackageName) {
 		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(1)).map(Integer::parseInt)
@@ -117,12 +238,24 @@ public enum ArchitectureMode {
 				}).toList();
 	}
 
+	/**
+	 * Resolves the filesystem template destinations below a target directory.
+	 *
+	 * @param targetPath the target directory
+	 * @return the destination paths
+	 */
 	@Nonnull
 	public List<Path> fsTargetsToCopyTo(@Nonnull Path targetPath) {
 		return getCopyFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
 				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList();
 	}
 
+	/**
+	 * Resolves the non-filesystem template destinations below a target directory.
+	 *
+	 * @param targetPath the target directory
+	 * @return the destination paths
+	 */
 	@Nonnull
 	public List<Path> nonFSTargetsToCopyTo(@Nonnull Path targetPath) {
 		return getCopyNonFSConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
@@ -232,6 +365,30 @@ public enum ArchitectureMode {
 	 */
 	@Nonnull
 	public JavaClasses getJavaClasses(String classPath) {
+		Path analysisPath = Path.of(classPath).toAbsolutePath().normalize();
+		while (true) {
+			String fingerprintBeforeImport = analysisInputFingerprint(analysisPath);
+			String cacheKey = analysisPath + "\0" + fingerprintBeforeImport;
+			FutureTask<JavaClasses> importTask;
+			synchronized (JAVA_CLASSES_CACHE) {
+				importTask = JAVA_CLASSES_CACHE.computeIfAbsent(cacheKey,
+						unusedKey -> new FutureTask<>(() -> importJavaClasses(analysisPath)));
+			}
+			importTask.run();
+			JavaClasses importedClasses = awaitJavaClasses(importTask, analysisPath);
+			if (fingerprintBeforeImport.equals(analysisInputFingerprint(analysisPath))) {
+				return importedClasses;
+			}
+			// Compilation changed the analysis input while it was being imported. Never
+			// publish that mixed snapshot under either fingerprint; retry from a stable
+			// bytecode state instead.
+			synchronized (JAVA_CLASSES_CACHE) {
+				JAVA_CLASSES_CACHE.remove(cacheKey, importTask);
+			}
+		}
+	}
+
+	private static JavaClasses importJavaClasses(Path analysisPath) {
 		// Exclude Ares' own framework classes from analysis: the architecture rules
 		// must only inspect the student/project code, never Ares' trusted advice (which
 		// legitimately calls e.g. System.getProperty), otherwise the rules flag the
@@ -239,7 +396,69 @@ public enum ArchitectureMode {
 		return new ClassFileImporter()
 				.withImportOption(
 						location -> !location.toString().replace("\\", "/").contains("/de/tum/cit/ase/ares/api/"))
-				.importPath(classPath);
+				.importPath(analysisPath);
+	}
+
+	private static JavaClasses awaitJavaClasses(FutureTask<JavaClasses> importTask, Path analysisPath) {
+		try {
+			return importTask.get();
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.analysis.input.failure", analysisPath), interrupted);
+		} catch (ExecutionException importFailure) {
+			Throwable cause = importFailure.getCause();
+			if (cause instanceof RuntimeException runtimeCause) {
+				throw runtimeCause;
+			}
+			if (cause instanceof Error errorCause) {
+				throw errorCause;
+			}
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.analysis.input.failure", analysisPath), cause);
+		}
+	}
+
+	private static String analysisInputFingerprint(Path analysisPath) {
+		if (Files.notExists(analysisPath)) {
+			return "missing";
+		}
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			if (Files.isRegularFile(analysisPath)) {
+				Path fileName = analysisPath.getFileName();
+				updateAnalysisInputDigest(digest, fileName == null ? analysisPath : fileName, analysisPath);
+			} else {
+				try (Stream<Path> files = Files.walk(analysisPath)) {
+					for (Path file : files.filter(Files::isRegularFile).filter(ArchitectureMode::isArchitectureInput)
+							.sorted().toList()) {
+						updateAnalysisInputDigest(digest, analysisPath.relativize(file), file);
+					}
+				}
+			}
+			return HexFormat.of().formatHex(digest.digest());
+		} catch (IOException | NoSuchAlgorithmException fingerprintFailure) {
+			throw new SecurityException(
+					Messages.localized("security.architecture.mode.analysis.input.failure", analysisPath),
+					fingerprintFailure);
+		}
+	}
+
+	private static boolean isArchitectureInput(Path file) {
+		Path fileNamePath = file.getFileName();
+		if (fileNamePath == null) {
+			return false;
+		}
+		String fileName = fileNamePath.toString();
+		return fileName.endsWith(".class") || fileName.endsWith(".jar");
+	}
+
+	private static void updateAnalysisInputDigest(MessageDigest digest, Path relativePath, Path file)
+			throws IOException {
+		digest.update(relativePath.toString().replace('\\', '/').getBytes(StandardCharsets.UTF_8));
+		digest.update((byte) 0);
+		digest.update(Files.readAllBytes(file));
+		digest.update((byte) 0);
 	}
 
 	/**

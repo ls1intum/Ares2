@@ -137,6 +137,12 @@ public abstract class SecurityPolicyDirector {
 	@Nonnull
 	public abstract TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
 			@Nullable Path projectFolderPath);
+
+	@Nonnull
+	public TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
+			@Nullable Path projectRootPath, @Nonnull Path withinPath) {
+		return createTestCases(securityPolicy, projectRootPath);
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Static methods">

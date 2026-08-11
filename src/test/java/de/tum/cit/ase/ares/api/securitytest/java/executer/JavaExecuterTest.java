@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -55,19 +56,31 @@ public class JavaExecuterTest {
 				MockedStatic<JavaInstrumentationAgent> mockedAgent = mockStatic(JavaInstrumentationAgent.class)) {
 			AtomicInteger appliedSettings = new AtomicInteger();
 			AtomicInteger executedAopCases = new AtomicInteger();
+			AtomicInteger executedArchitectureCases = new AtomicInteger();
+			AtomicBoolean restrictedPackagePublished = new AtomicBoolean();
 			mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(any(String.class), any(),
 					any(String.class), any(String.class))).thenAnswer(invocation -> {
 						appliedSettings.incrementAndGet();
+						if ("restrictedPackage".equals(invocation.getArgument(0))) {
+							restrictedPackagePublished.set(true);
+						}
 						return null;
 					});
 			javaAOPTestCases.forEach(testCase -> doAnswer(invocation -> {
 				executedAopCases.incrementAndGet();
 				return null;
 			}).when(testCase).executeAOPTestCase("ARCHUNIT", "INSTRUMENTATION"));
+			javaArchitectureTestCases.forEach(testCase -> doAnswer(invocation -> {
+				assertFalse(restrictedPackagePublished.get());
+				executedArchitectureCases.incrementAndGet();
+				return null;
+			}).when(testCase).executeArchitectureTestCase("ARCHUNIT", "INSTRUMENTATION"));
 			mockedAgent.when(() -> JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage(packageName))
 					.thenAnswer(invocation -> {
 						assertEquals(7, appliedSettings.get());
 						assertEquals(javaAOPTestCases.size(), executedAopCases.get());
+						assertEquals(javaArchitectureTestCases.size(), executedArchitectureCases.get());
+						assertTrue(restrictedPackagePublished.get());
 						return null;
 					});
 
@@ -76,6 +89,7 @@ public class JavaExecuterTest {
 					javaAOPTestCases);
 
 			mockedAgent.verify(() -> JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage(packageName));
+			assertEquals(javaArchitectureTestCases.size(), executedArchitectureCases.get());
 		}
 	}
 

@@ -2,7 +2,16 @@ package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
 import javax.annotation.Nonnull;
 
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+
 public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
+	public JavaProgrammingExerciseProjectScanner() {
+		super();
+	}
+
+	public JavaProgrammingExerciseProjectScanner(BuildToolConfiguration buildConfiguration) {
+		super(buildConfiguration);
+	}
 
 	// <editor-fold desc="TUM-specific scan defaults">
 

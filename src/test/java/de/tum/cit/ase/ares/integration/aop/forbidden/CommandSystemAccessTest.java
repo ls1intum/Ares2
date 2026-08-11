@@ -156,4 +156,34 @@ class CommandSystemAccessTest extends SystemAccessTest {
 				ProcessBuilderExecuteMain.class);
 	}
 	// </editor-fold>
+
+	// <editor-fold desc="accessCommandSystemViaProcessBuilderStartPipeline">
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
+	void test_executeCommandViaProcessBuilderStartPipelineMavenArchunitAspectJ() {
+		assertAresSecurityExceptionCommand(ProcessBuilderExecuteMain::executeCommandViaProcessBuilderStartPipeline,
+				ProcessBuilderExecuteMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
+	void test_executeCommandViaProcessBuilderStartPipelineMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionCommand(ProcessBuilderExecuteMain::executeCommandViaProcessBuilderStartPipeline,
+				ProcessBuilderExecuteMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
+	void test_executeCommandViaProcessBuilderStartPipelineMavenWalaAspectJ() {
+		assertAresSecurityExceptionCommand(ProcessBuilderExecuteMain::executeCommandViaProcessBuilderStartPipeline,
+				ProcessBuilderExecuteMain.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = PROCESS_BUILDER_WITHIN_PATH)
+	void test_executeCommandViaProcessBuilderStartPipelineMavenWalaInstrumentation() {
+		assertAresSecurityExceptionCommand(ProcessBuilderExecuteMain::executeCommandViaProcessBuilderStartPipeline,
+				ProcessBuilderExecuteMain.class);
+	}
+	// </editor-fold>
 }

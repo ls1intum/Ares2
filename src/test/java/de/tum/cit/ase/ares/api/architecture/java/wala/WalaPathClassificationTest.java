@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -190,12 +191,35 @@ class WalaPathClassificationTest {
 	}
 
 	@Test
-	void declaringClassThrowsIsInfra() {
+	void declaringClassFailureFailsClosed() {
 		CGNode node = mock(CGNode.class);
 		IMethod method = mock(IMethod.class);
 		when(node.getMethod()).thenReturn(method);
 		when(method.getDeclaringClass()).thenThrow(new RuntimeException("simulated WALA error"));
-		assertThat(WalaPathClassification.isInfraFrame(node)).isTrue();
+		assertThatThrownBy(() -> WalaPathClassification.isInfraFrame(node)).isInstanceOf(SecurityException.class)
+				.hasMessageContaining("WALA").hasCauseInstanceOf(RuntimeException.class);
+	}
+
+	@Test
+	void nullNodeFailsClosed() {
+		assertThatThrownBy(() -> WalaPathClassification.isInfraFrame(null)).isInstanceOf(SecurityException.class)
+				.hasMessageContaining("missing call-graph node or method");
+	}
+
+	@Test
+	void missingMethodFailsClosed() {
+		CGNode node = mock(CGNode.class);
+		assertThatThrownBy(() -> WalaPathClassification.nearestStudentFrame(List.of(node)))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("missing call-graph node or method");
+	}
+
+	@Test
+	void missingDeclaringClassFailsClosedForTransitiveClassification() {
+		CGNode node = mock(CGNode.class);
+		IMethod method = mock(IMethod.class);
+		when(node.getMethod()).thenReturn(method);
+		assertThatThrownBy(() -> WalaPathClassification.isTransitiveFalsePositiveFrame(node))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("missing declaring class");
 	}
 
 	// ----------------------------------------------------------------

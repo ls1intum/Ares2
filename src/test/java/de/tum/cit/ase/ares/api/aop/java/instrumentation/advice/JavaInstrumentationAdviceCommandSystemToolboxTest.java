@@ -1,10 +1,12 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,24 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import example.student.InstrumentationSecurityProbe;
 
 class JavaInstrumentationAdviceCommandSystemToolboxTest {
+
+	@Test
+	void wildcardCommandAndArgumentsMatchAnyRuntimeValues() throws Exception {
+		Method commandMatches = JavaInstrumentationAdviceCommandSystemToolbox.class.getDeclaredMethod("commandMatches",
+				String.class, String.class);
+		commandMatches.setAccessible(true);
+		Method argumentsMatch = JavaInstrumentationAdviceCommandSystemToolbox.class.getDeclaredMethod("argumentsMatch",
+				String[].class, String[].class);
+		argumentsMatch.setAccessible(true);
+
+		assertTrue((boolean) commandMatches.invoke(null, "java", "*"));
+		assertTrue((boolean) argumentsMatch.invoke(null, (Object) new String[] { "*" },
+				(Object) new String[] { "--version", "--help" }));
+		assertTrue((boolean) argumentsMatch.invoke(null, (Object) new String[] { "run", "*" },
+				(Object) new String[] { "run", "anything" }));
+		assertFalse((boolean) argumentsMatch.invoke(null, (Object) new String[] { "run", "*" },
+				(Object) new String[] { "run", "anything", "else" }));
+	}
 
 	/**
 	 * Loads the localization bundle while still unrestricted, so that building a
@@ -91,6 +111,51 @@ class JavaInstrumentationAdviceCommandSystemToolboxTest {
 					exception.getMessage().contains("No allow rule configured")
 							|| exception.getMessage().contains("Keine Erlaubnisregel"),
 					() -> "Did not expect the no-allowlist reason, but was:\n" + exception.getMessage());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void checkCommandSystemInteraction_blocksStartPipelineCommandMutatedAfterConstruction() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("commandsAllowedToBeExecuted", new String[] { "echo" }, "ARCH",
+					"INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("argumentsAllowedToBePassed", new String[][] { { "hello" } },
+					"ARCH", "INSTRUMENTATION");
+
+			ProcessBuilder producer = new ProcessBuilder("echo", "hello");
+			ProcessBuilder consumer = new ProcessBuilder("echo", "hello");
+			// Allowed at construction time, mutated to a forbidden command before
+			// startPipeline is invoked - the exact TD-019 bypass this test defends against.
+			consumer.command(List.of("forbidden-command"));
+
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkProcessBuilderStartPipeline(List.of(producer, consumer)));
+			assertTrue(exception.getMessage().contains("forbidden-command"),
+					() -> "Expected the mutated forbidden command in the message, but was:\n" + exception.getMessage());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void checkCommandSystemInteraction_allowsStartPipelineWhenEveryBuilderCommandIsAllowed() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("commandsAllowedToBeExecuted", new String[] { "echo" }, "ARCH",
+					"INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("argumentsAllowedToBePassed", new String[][] { { "hello" } },
+					"ARCH", "INSTRUMENTATION");
+
+			ProcessBuilder producer = new ProcessBuilder("echo", "hello");
+			ProcessBuilder consumer = new ProcessBuilder("echo", "hello");
+
+			assertDoesNotThrow(
+					() -> InstrumentationSecurityProbe.checkProcessBuilderStartPipeline(List.of(producer, consumer)));
 		} finally {
 			resetSettings();
 		}

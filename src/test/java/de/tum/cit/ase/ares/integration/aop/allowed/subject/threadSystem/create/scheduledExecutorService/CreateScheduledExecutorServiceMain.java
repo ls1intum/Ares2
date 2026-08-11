@@ -19,7 +19,11 @@ public class CreateScheduledExecutorServiceMain {
 	 */
 	public static void scheduleRunnable() {
 		ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-		scheduledExecutorService.schedule(new LegalThread(), 1, TimeUnit.SECONDS);
+		try {
+			scheduledExecutorService.schedule(new LegalThread(), 1, TimeUnit.SECONDS);
+		} finally {
+			scheduledExecutorService.shutdownNow();
+		}
 	}
 
 	/**
@@ -27,8 +31,12 @@ public class CreateScheduledExecutorServiceMain {
 	 */
 	public static void scheduleCallable() {
 		ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-		Callable<String> callable = () -> "test";
-		scheduledExecutorService.schedule(callable, 1, TimeUnit.SECONDS);
+		try {
+			Callable<String> callable = () -> "test";
+			scheduledExecutorService.schedule(callable, 1, TimeUnit.SECONDS);
+		} finally {
+			scheduledExecutorService.shutdownNow();
+		}
 	}
 
 	/**
@@ -37,6 +45,10 @@ public class CreateScheduledExecutorServiceMain {
 	 */
 	public static void scheduleAtFixedRate() {
 		ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-		scheduledExecutorService.scheduleAtFixedRate(new LegalThread(), 1, 2, TimeUnit.SECONDS);
+		try {
+			scheduledExecutorService.scheduleAtFixedRate(new LegalThread(), 1, 2, TimeUnit.SECONDS);
+		} finally {
+			scheduledExecutorService.shutdownNow();
+		}
 	}
 }

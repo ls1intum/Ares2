@@ -121,13 +121,13 @@ public class SecurityPolicyReaderAndDirectorTest {
 			try (MockedStatic<SecurityPolicyReader> readerMock = mockStatic(SecurityPolicyReader.class);
 					MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
 				// Arrange
-				readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath))
-						.thenReturn(mockSecurityPolicyReader);
+				readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath,
+						projectFolderPath)).thenReturn(mockSecurityPolicyReader);
 				when(mockSecurityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath))
 						.thenReturn(mockSecurityPolicy);
 				directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(mockSecurityPolicy))
 						.thenReturn(mockSecurityPolicyDirector);
-				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, projectFolderPath))
+				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, projectFolderPath, Path.of("")))
 						.thenReturn(mockFactoryAndBuilder);
 
 				SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(securityPolicyFilePath,
@@ -140,7 +140,7 @@ public class SecurityPolicyReaderAndDirectorTest {
 				assertNotNull(result);
 				assertSame(instance, result);
 				verify(mockSecurityPolicyReader).readSecurityPolicyFrom(securityPolicyFilePath);
-				verify(mockSecurityPolicyDirector).createTestCases(mockSecurityPolicy, projectFolderPath);
+				verify(mockSecurityPolicyDirector).createTestCases(mockSecurityPolicy, projectFolderPath, Path.of(""));
 			}
 		}
 
@@ -151,7 +151,7 @@ public class SecurityPolicyReaderAndDirectorTest {
 				// Arrange
 				directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(null))
 						.thenReturn(mockSecurityPolicyDirector);
-				when(mockSecurityPolicyDirector.createTestCases(null, projectFolderPath))
+				when(mockSecurityPolicyDirector.createTestCases(null, projectFolderPath, Path.of("")))
 						.thenReturn(mockFactoryAndBuilder);
 
 				SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(null, projectFolderPath);
@@ -162,7 +162,7 @@ public class SecurityPolicyReaderAndDirectorTest {
 				// Assert
 				assertNotNull(result);
 				assertSame(instance, result);
-				verify(mockSecurityPolicyDirector).createTestCases(null, projectFolderPath);
+				verify(mockSecurityPolicyDirector).createTestCases(null, projectFolderPath, Path.of(""));
 			}
 		}
 
@@ -172,13 +172,13 @@ public class SecurityPolicyReaderAndDirectorTest {
 			try (MockedStatic<SecurityPolicyReader> readerMock = mockStatic(SecurityPolicyReader.class);
 					MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
 				// Arrange
-				readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath))
+				readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath, null))
 						.thenReturn(mockSecurityPolicyReader);
 				when(mockSecurityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath))
 						.thenReturn(mockSecurityPolicy);
 				directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(mockSecurityPolicy))
 						.thenReturn(mockSecurityPolicyDirector);
-				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, null))
+				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, null, Path.of("")))
 						.thenReturn(mockFactoryAndBuilder);
 
 				SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(securityPolicyFilePath,
@@ -190,7 +190,7 @@ public class SecurityPolicyReaderAndDirectorTest {
 				// Assert
 				assertNotNull(result);
 				assertSame(instance, result);
-				verify(mockSecurityPolicyDirector).createTestCases(mockSecurityPolicy, null);
+				verify(mockSecurityPolicyDirector).createTestCases(mockSecurityPolicy, null, Path.of(""));
 			}
 		}
 	}
@@ -207,13 +207,13 @@ public class SecurityPolicyReaderAndDirectorTest {
 				// Arrange
 				List<Path> expectedPaths = Arrays.asList(tempDir.resolve("test1.java"), tempDir.resolve("test2.java"));
 
-				readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath))
-						.thenReturn(mockSecurityPolicyReader);
+				readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath,
+						projectFolderPath)).thenReturn(mockSecurityPolicyReader);
 				when(mockSecurityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath))
 						.thenReturn(mockSecurityPolicy);
 				directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(mockSecurityPolicy))
 						.thenReturn(mockSecurityPolicyDirector);
-				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, projectFolderPath))
+				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, projectFolderPath, Path.of("")))
 						.thenReturn(mockFactoryAndBuilder);
 				when(mockFactoryAndBuilder.writeTestCases(any(Path.class))).thenReturn(expectedPaths);
 
@@ -259,13 +259,13 @@ public class SecurityPolicyReaderAndDirectorTest {
 				// Arrange
 				List<Path> expectedPaths = List.of(tempDir.resolve("test1.java"));
 
-				readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath))
-						.thenReturn(mockSecurityPolicyReader);
+				readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath,
+						projectFolderPath)).thenReturn(mockSecurityPolicyReader);
 				when(mockSecurityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath))
 						.thenReturn(mockSecurityPolicy);
 				directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(mockSecurityPolicy))
 						.thenReturn(mockSecurityPolicyDirector);
-				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, projectFolderPath))
+				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, projectFolderPath, Path.of("")))
 						.thenReturn(mockFactoryAndBuilder);
 				when(mockFactoryAndBuilder.writeTestCases(any(Path.class))).thenReturn(expectedPaths);
 
@@ -308,13 +308,13 @@ public class SecurityPolicyReaderAndDirectorTest {
 			try (MockedStatic<SecurityPolicyReader> readerMock = mockStatic(SecurityPolicyReader.class);
 					MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
 				// Arrange
-				readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath))
-						.thenReturn(mockSecurityPolicyReader);
+				readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath,
+						projectFolderPath)).thenReturn(mockSecurityPolicyReader);
 				when(mockSecurityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath))
 						.thenReturn(mockSecurityPolicy);
 				directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(mockSecurityPolicy))
 						.thenReturn(mockSecurityPolicyDirector);
-				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, projectFolderPath))
+				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, projectFolderPath, Path.of("")))
 						.thenReturn(mockFactoryAndBuilder);
 
 				SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(securityPolicyFilePath,

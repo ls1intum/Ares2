@@ -22,6 +22,20 @@ public final class JavaInstrumentationThreadSystemCallSite {
 				"security.instrumentation.utility.initialization", "JavaInstrumentationThreadSystemCallSite"));
 	}
 
+	/**
+	 * Starts a thread while preserving the effective task class for later monitor
+	 * operations. The actual {@link Thread#start()} call remains subject to the
+	 * ordinary instrumentation advice; the association is recorded only when that
+	 * checked call returns successfully.
+	 *
+	 * @param receiver thread to start
+	 */
+	public static void start(Thread receiver) {
+		String effectiveClass = JavaInstrumentationAdviceThreadSystemToolbox.resolveThreadClass(receiver);
+		receiver.start();
+		recordAllowedThread(receiver, effectiveClass);
+	}
+
 	public static void notify(Object receiver) {
 		checkMonitorInteraction(receiver, "notify", "()V", new Object[0]);
 		receiver.notify();

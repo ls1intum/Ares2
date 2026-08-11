@@ -12,12 +12,12 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
+import de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
-import de.tum.cit.ase.ares.api.util.FileTools;
 //</editor-fold>
 
 /**
@@ -77,17 +77,23 @@ public final class JavaArchunitTestCaseCollection {
 			Set<ClassPermission> allowedClasses) {
 		return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses))
 				.should(new TransitivelyAccessesMethodsCondition(new DescribedPredicate<>(ruleName) {
-					private Set<String> forbiddenMethods;
+					private Set<String> exactForbiddenMethods;
+
+					private Set<String> forbiddenMethodPrefixes;
 
 					@Override
 					public boolean test(JavaAccess<?> javaAccess) {
-						if (forbiddenMethods == null) {
-							forbiddenMethods = FileTools.readMethodsFile(FileTools.readFile(methodsFilePath)).stream()
-									.map(JavaArchunitTestCaseCollection::convertArrayNotation)
-									.collect(Collectors.toSet());
+						if (exactForbiddenMethods == null) {
+							Set<String> forbiddenMethods = ForbiddenMethodMatcher.effectiveMethods(methodsFilePath);
+							exactForbiddenMethods = forbiddenMethods.stream().filter(method -> method.indexOf('(') >= 0)
+									.collect(Collectors.toUnmodifiableSet());
+							forbiddenMethodPrefixes = forbiddenMethods.stream()
+									.filter(method -> method.indexOf('(') < 0).collect(Collectors.toUnmodifiableSet());
 						}
-						return forbiddenMethods.stream().filter(method -> !method.isEmpty())
-								.anyMatch(method -> javaAccess.getTarget().getFullName().startsWith(method));
+						String accessedMethod = ForbiddenMethodMatcher
+								.canonicalise(convertArrayNotation(javaAccess.getTarget().getFullName()));
+						return exactForbiddenMethods.contains(accessedMethod) || forbiddenMethodPrefixes.stream()
+								.anyMatch(method -> ForbiddenMethodMatcher.matches(accessedMethod, method));
 					}
 				})).as(ruleName);
 	}
@@ -226,6 +232,9 @@ public final class JavaArchunitTestCaseCollection {
 						String packageName = javaClass.getPackageName();
 						return allowedPackages.stream().noneMatch(allowedPackage -> {
 							String allowed = allowedPackage.importTheFollowingPackage();
+							if ("*".equals(allowed)) {
+								return true;
+							}
 							// Trailing-dot tolerant, boundary-aware match: a bare startsWith would
 							// let allowed "com.foo" also cover the unrelated package "com.foobar".
 							String normalizedAllowed = allowed.endsWith(".")

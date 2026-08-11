@@ -1,0 +1,22 @@
+// Ares reserved-package build boundary, version 1. Apply from the exercise build.
+def aresReservedPackageBoundaryVersion = '1'
+def aresReservedPackagePatterns = [
+        'java/**', 'javax/**', 'sun/**', 'jdk/**', 'com/sun/**',
+        'de/tum/cit/ase/ares/api/**', 'net/bytebuddy/**', 'org/aspectj/**',
+        'com/ibm/wala/**', 'com/tngtech/archunit/**', 'anonymous/toolclasses/**', 'metatest/**'
+]
+
+tasks.register('verifyAresReservedPackagesV1') {
+    dependsOn tasks.named('classes')
+    doLast {
+        def forbidden = sourceSets.main.output.classesDirs.files.collectMany { directory ->
+            fileTree(directory) { aresReservedPackagePatterns.each { include it } }.files
+        }
+        if (!forbidden.isEmpty()) {
+            throw new GradleException("Ares reserved-package validation ${aresReservedPackageBoundaryVersion} " +
+                    "rejected student output: ${forbidden}. No bypass flag is supported.")
+        }
+    }
+}
+
+tasks.named('check') { dependsOn tasks.named('verifyAresReservedPackagesV1') }

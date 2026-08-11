@@ -7,6 +7,7 @@ import org.junit.jupiter.api.*;
 import com.github.javaparser.ParserConfiguration;
 
 import de.tum.cit.ase.ares.api.*;
+import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.ast.asserting.UnwantedNodesAssert;
 import de.tum.cit.ase.ares.api.ast.asserting.UnwantedRecursionAssert;
 import de.tum.cit.ase.ares.api.ast.type.*;
@@ -14,6 +15,7 @@ import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 
 @Public
+@Policy(activated = false)
 @UseLocale("en")
 @StrictTimeout(10)
 public class AstAssertionUser {

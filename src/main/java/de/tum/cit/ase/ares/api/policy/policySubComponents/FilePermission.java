@@ -5,8 +5,6 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import de.tum.cit.ase.ares.api.localization.Messages;
-
 /**
  * Allowed file operations.
  * <p>
@@ -23,8 +21,8 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @param createAllFiles             whether creating files is permitted.
  * @param executeAllFiles            whether executing all files is permitted.
  * @param deleteAllFiles             whether deleting all files is permitted.
- * @param onThisPathAndAllPathsBelow the path where these permissions apply;
- *                                   must not be null.
+ * @param onThisPathAndAllPathsBelow the path where these permissions apply, or
+ *                                   {@code *} for every path; must not be null.
  */
 public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean readAllFiles,
 		boolean overwriteAllFiles, boolean createAllFiles, boolean executeAllFiles, boolean deleteAllFiles) {
@@ -37,9 +35,8 @@ public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean
 	 */
 	public FilePermission {
 		Objects.requireNonNull(onThisPathAndAllPathsBelow, "onThisPathAndAllPathsBelow must not be null");
-		if (onThisPathAndAllPathsBelow.isBlank()) {
-			throw new IllegalArgumentException(Messages.localized("policy.permission.file.path.blank"));
-		}
+		PolicyValueValidator.requireMatch("onThisPathAndAllPathsBelow", onThisPathAndAllPathsBelow,
+				PolicyValueValidator.FILE_PATH_PATTERN);
 	}
 
 	/**

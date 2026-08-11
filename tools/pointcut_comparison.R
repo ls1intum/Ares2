@@ -1,6 +1,15 @@
 #!/usr/bin/env Rscript
 # Pointcut Comparison Tool
 # Reads pointcuts from multiple sources and merges them into one CSV
+#
+# KNOWN UNRELIABILITY (I-049): every parser below matches Java/AspectJ/Markdown
+# source with plain regexes, not a real parser for any of those languages. It
+# has no notion of nesting, string literals containing "||", multi-line method
+# signatures split across braces it doesn't track, or Markdown tables that wrap
+# differently than the ones this script was written against. Treat its output
+# as a starting point for manual review, not as a proof of (mis)match - a
+# silent gap or a false discrepancy here does not necessarily mean the
+# underlying pointcuts/docs actually agree or disagree.
 
 library(stringr)
 
@@ -8,7 +17,24 @@ library(stringr)
 # Configuration
 # ============================================================================
 
-ARES_ROOT <- "/Users/markuspaulsen/Documents/Ares2"
+# Resolve the repository root relative to this script's own location (not a
+# hardcoded developer machine path), so the script works from any checkout.
+# Rscript exposes the invoking command line via commandArgs(trailingOnly =
+# FALSE); the "--file=<path>" entry is the only portable way to learn a
+# script's own path without an extra package (no here::here() dependency).
+resolve_repo_root <- function() {
+  args <- commandArgs(trailingOnly = FALSE)
+  file_arg <- args[grepl("^--file=", args)]
+  if (length(file_arg) == 0) {
+    stop("Could not determine this script's own path (expected to be run via ",
+         "'Rscript tools/pointcut_comparison.R', which sets --file= on the ",
+         "command line).")
+  }
+  script_path <- sub("^--file=", "", file_arg[1])
+  normalizePath(file.path(dirname(script_path), ".."))
+}
+
+ARES_ROOT <- resolve_repo_root()
 
 INSTRUMENTATION_FILE <- file.path(ARES_ROOT, 
   "src/main/java/de/tum/cit/ase/ares/api/aop/java/instrumentation/pointcut/JavaInstrumentationPointcutDefinitions.java")

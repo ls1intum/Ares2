@@ -9,6 +9,7 @@ import javax.annotation.Nullable;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
@@ -17,9 +18,11 @@ import de.tum.cit.ase.ares.api.securitytest.java.JavaTestCaseFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader;
 import de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter;
+import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProgrammingExerciseProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
 import de.tum.cit.ase.ares.api.util.FileTools;
+import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 /**
  * Java security policy director.
@@ -91,30 +94,15 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 
 	// <editor-fold desc="Create security test cases methods">
 
-	/**
-	 * Generates a JavaTestCaseFactoryAndBuilder with the provided configuration.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @param buildMode        the Java build mode to use; may be null.
-	 * @param architectureMode the Java architecture mode to use; may be null.
-	 * @param aopMode          the Java AOP mode to use; may be null.
-	 * @param projectPath      the project directory path where test cases will be
-	 *                         applied; may be null.
-	 * @param securityPolicy   the security policy to base test case creation on;
-	 *                         may be null.
-	 * @return a non-null instance of JavaTestCaseFactoryAndBuilder configured
-	 *         according to the provided parameters.
-	 */
-	@Nonnull
 	private TestCaseAbstractFactoryAndBuilder generateFactoryAndBuilder(@Nullable BuildMode buildMode,
 			@Nullable ArchitectureMode architectureMode, @Nullable AOPMode aopMode,
-			@Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath) {
-		return JavaTestCaseFactoryAndBuilder.builder().creator((JavaCreator) creator).writer((JavaWriter) writer)
-				.executer((JavaExecuter) executer).essentialDataReader(essentialDataReader)
-				.projectScanner((JavaProjectScanner) projectScanner).essentialPackagesPath(essentialPackagesPath)
-				.essentialClassesPath(essentialClassesPath).buildMode(buildMode).architectureMode(architectureMode)
-				.aopMode(aopMode).securityPolicy(securityPolicy).projectPath(projectPath).build();
+			@Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath, @Nonnull JavaCreator effectiveCreator,
+			@Nonnull JavaProjectScanner scanner, @Nonnull JavaWriter effectiveWriter) {
+		return JavaTestCaseFactoryAndBuilder.builder().creator(effectiveCreator).writer(effectiveWriter)
+				.executer((JavaExecuter) executer).essentialDataReader(essentialDataReader).projectScanner(scanner)
+				.essentialPackagesPath(essentialPackagesPath).essentialClassesPath(essentialClassesPath)
+				.buildMode(buildMode).architectureMode(architectureMode).aopMode(aopMode).securityPolicy(securityPolicy)
+				.projectPath(projectPath).build();
 	}
 
 	/**
@@ -134,30 +122,59 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 	@Override
 	public TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
 			@Nullable Path projectFolderPath) {
+		return createTestCases(securityPolicy, projectFolderPath, Path.of(""));
+	}
+
+	@Override
+	@Nonnull
+	public TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
+			@Nullable Path projectRootPath, @Nonnull Path withinPath) {
+		Path root = projectRootPath == null ? Path.of("").toAbsolutePath() : projectRootPath;
+		BuildMode selectedMode = securityPolicy == null ? null : buildModeOf(securityPolicy);
+		BuildToolConfiguration configuration = ProjectSourcesFinder.discover(root, selectedMode);
+		JavaProjectScanner configuredScanner = projectScanner instanceof JavaProgrammingExerciseProjectScanner
+				? new JavaProgrammingExerciseProjectScanner(configuration)
+				: new JavaProjectScanner(configuration);
+		JavaCreator configuredCreator = creator.getClass() == JavaCreator.class ? new JavaCreator(configuration)
+				: (JavaCreator) creator;
+		JavaWriter configuredWriter = new JavaWriter(configuration);
 		if (securityPolicy == null) {
-			return generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, null,
-					projectFolderPath);
+			return generateFactoryAndBuilder(configuration.buildMode(), ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ,
+					null, withinPath, configuredCreator, configuredScanner, configuredWriter);
 		}
 		@Nonnull
 		ProgrammingLanguageConfiguration config = Objects.requireNonNull(
 				securityPolicy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
 		return switch (config) {
 		case JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ -> generateFactoryAndBuilder(BuildMode.MAVEN,
-				ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
+				ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, securityPolicy, withinPath, configuredCreator,
+				configuredScanner, configuredWriter);
 		case JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION -> generateFactoryAndBuilder(BuildMode.MAVEN,
-				ArchitectureMode.ARCHUNIT, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
+				ArchitectureMode.ARCHUNIT, AOPMode.INSTRUMENTATION, securityPolicy, withinPath, configuredCreator,
+				configuredScanner, configuredWriter);
 		case JAVA_USING_MAVEN_WALA_AND_ASPECTJ -> generateFactoryAndBuilder(BuildMode.MAVEN, ArchitectureMode.WALA,
-				AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
+				AOPMode.ASPECTJ, securityPolicy, withinPath, configuredCreator, configuredScanner, configuredWriter);
 		case JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION -> generateFactoryAndBuilder(BuildMode.MAVEN,
-				ArchitectureMode.WALA, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
+				ArchitectureMode.WALA, AOPMode.INSTRUMENTATION, securityPolicy, withinPath, configuredCreator,
+				configuredScanner, configuredWriter);
 		case JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ -> generateFactoryAndBuilder(BuildMode.GRADLE,
-				ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
+				ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, securityPolicy, withinPath, configuredCreator,
+				configuredScanner, configuredWriter);
 		case JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION -> generateFactoryAndBuilder(BuildMode.GRADLE,
-				ArchitectureMode.ARCHUNIT, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
+				ArchitectureMode.ARCHUNIT, AOPMode.INSTRUMENTATION, securityPolicy, withinPath, configuredCreator,
+				configuredScanner, configuredWriter);
 		case JAVA_USING_GRADLE_WALA_AND_ASPECTJ -> generateFactoryAndBuilder(BuildMode.GRADLE, ArchitectureMode.WALA,
-				AOPMode.ASPECTJ, securityPolicy, projectFolderPath);
+				AOPMode.ASPECTJ, securityPolicy, withinPath, configuredCreator, configuredScanner, configuredWriter);
 		case JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION -> generateFactoryAndBuilder(BuildMode.GRADLE,
-				ArchitectureMode.WALA, AOPMode.INSTRUMENTATION, securityPolicy, projectFolderPath);
+				ArchitectureMode.WALA, AOPMode.INSTRUMENTATION, securityPolicy, withinPath, configuredCreator,
+				configuredScanner, configuredWriter);
+		};
+	}
+
+	private BuildMode buildModeOf(SecurityPolicy policy) {
+		return switch (policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed()) {
+		case JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION, JAVA_USING_MAVEN_WALA_AND_ASPECTJ, JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION -> BuildMode.MAVEN;
+		case JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ, JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION, JAVA_USING_GRADLE_WALA_AND_ASPECTJ, JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION -> BuildMode.GRADLE;
 		};
 	}
 	// </editor-fold>

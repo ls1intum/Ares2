@@ -1,0 +1,14 @@
+# Ares reserved-package build boundary
+# version=1
+java/**
+javax/**
+sun/**
+jdk/**
+com/sun/**
+de/tum/cit/ase/ares/api/**
+net/bytebuddy/**
+org/aspectj/**
+com/ibm/wala/**
+com/tngtech/archunit/**
+anonymous/toolclasses/**
+metatest/**

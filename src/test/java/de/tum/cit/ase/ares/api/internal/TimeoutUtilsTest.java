@@ -2,22 +2,41 @@ package de.tum.cit.ase.ares.api.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.opentest4j.AssertionFailedError;
 
 import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.context.TestContext;
 
 class TimeoutUtilsTest {
+	@Test
+	void timedOutExecutionUsesOneCancellationInterrupt() {
+		Future<?> future = mock(Future.class);
+		ExecutorService executorService = mock(ExecutorService.class);
+		when(executorService.isTerminated()).thenReturn(true);
+
+		TimeoutUtils.terminateTimedOutExecution(future, executorService, Duration.ofSeconds(1),
+				exitCode -> fail("Interruption-aware execution must not request fatal termination")); //$NON-NLS-1$
+
+		InOrder cancellationOrder = inOrder(executorService, future);
+		cancellationOrder.verify(executorService).shutdown();
+		cancellationOrder.verify(future).cancel(true);
+		verify(executorService, never()).shutdownNow();
+	}
 
 	@Test
 	void interruptionAwareExecutionFinishesBeforeControlReturns() throws Exception {

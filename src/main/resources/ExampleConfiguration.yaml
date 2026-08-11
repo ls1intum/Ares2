@@ -1,3 +1,4 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.aresUI"
@@ -9,6 +10,7 @@ regardingTheSupervisedCode:
       - onThisPathAndAllPathsBelow: "pom.xml"
         readAllFiles: true
         overwriteAllFiles: true
+        createAllFiles: true
         executeAllFiles: true
         deleteAllFiles: true
     regardingNetworkConnections:

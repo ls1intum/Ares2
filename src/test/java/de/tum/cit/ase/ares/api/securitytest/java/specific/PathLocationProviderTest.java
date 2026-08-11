@@ -2,6 +2,8 @@ package de.tum.cit.ase.ares.api.securitytest.java.specific;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Target;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +31,11 @@ import de.tum.cit.ase.ares.api.securitytest.java.StudentCompiledClassesPath;
  */
 @DisplayName("PathLocationProvider Tests")
 public class PathLocationProviderTest {
+	@Test
+	void annotationIsClassOnly() {
+		Target target = StudentCompiledClassesPath.class.getAnnotation(Target.class);
+		assertArrayEquals(new ElementType[] { ElementType.TYPE }, target.value());
+	}
 
 	private PathLocationProvider provider;
 

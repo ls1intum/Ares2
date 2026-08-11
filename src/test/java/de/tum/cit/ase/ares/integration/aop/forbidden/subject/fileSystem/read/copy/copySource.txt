@@ -1,0 +1,2 @@
+This file is OVERWRITE-permitted but not READ-permitted under PolicyFilesCopySourceOverwriteOnly.yaml.
+I-114: Files.copy must not use an OVERWRITE grant to satisfy the READ requirement on its source path.

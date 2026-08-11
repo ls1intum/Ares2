@@ -17,6 +17,13 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import example.student.InstrumentationSecurityProbe;
 
 class JavaInstrumentationAdviceThreadSystemToolboxTest {
+	private static final class ShortLivedTask implements Runnable {
+		@Override
+		public void run() {
+			// Deliberately finish immediately so Thread may clear its task field.
+		}
+	}
+
 	private static final class EqualitySpoofingThread extends Thread {
 		private final Thread spoofedThread;
 
@@ -70,6 +77,17 @@ class JavaInstrumentationAdviceThreadSystemToolboxTest {
 
 		assertEquals("allowed.Task", JavaInstrumentationThreadSystemCallSite.getRecordedThreadClass(admittedThread));
 		assertNull(JavaInstrumentationThreadSystemCallSite.getRecordedThreadClass(spoofingThread));
+	}
+
+	@Test
+	void startCallSiteRetainsTaskClassAfterShortLivedThreadFinishes() throws InterruptedException {
+		Thread thread = new Thread(new ShortLivedTask());
+
+		JavaInstrumentationThreadSystemCallSite.start(thread);
+		thread.join();
+
+		assertEquals(ShortLivedTask.class.getName(),
+				JavaInstrumentationThreadSystemCallSite.getRecordedThreadClass(thread));
 	}
 
 	@Test

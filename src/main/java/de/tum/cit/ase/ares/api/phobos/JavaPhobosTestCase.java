@@ -173,7 +173,7 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 
 		Set<String> allowed = new LinkedHashSet<>();
 
-		for (String verb : List.of("connect", "send")) { // add "receive" if/when needed
+		for (String verb : List.of("connect", "send", "receive")) {
 			List<String> hosts = net.getPermittedNetworkHosts(verb);
 			List<Integer> ports = net.getPermittedNetworkPorts(verb);
 
@@ -247,16 +247,25 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	/**
 	 * Generates the content for the phobos security test case.
 	 * <p>
-	 * This method provides an empty implementation for now but will be overridden
-	 * in future configurations to generate phobos configuration files based on the
-	 * provided security policies.
+	 * Serialises this case's permission domain into the Phobos configuration format
+	 * consumed by the shell sandbox.
 	 * </p>
 	 *
 	 * @return a string representing the content of the configuration.
 	 */
 	@Override
 	public String writePhobosTestCase() {
-		return "";
+		List<?> permissions = resourceAccessSupplier.get();
+		List<FilePermission> files = List.of();
+		List<NetworkPermission> networks = List.of();
+		List<ResourceLimitsPermission> limits = List.of();
+		switch ((JavaPhobosTestCaseSupported) phobosTestCaseSupported) {
+		case FILESYSTEM_INTERACTION -> files = permissions.stream().map(FilePermission.class::cast).toList();
+		case NETWORK_CONNECTION -> networks = permissions.stream().map(NetworkPermission.class::cast).toList();
+		case TIMEOUT -> limits = permissions.stream().map(ResourceLimitsPermission.class::cast).toList();
+		default -> throw new IllegalStateException("Unsupported Java Phobos test case: " + phobosTestCaseSupported);
+		}
+		return writePhobosSecurityTestCaseFile(files, networks, limits);
 	}
 
 	public static class Builder {

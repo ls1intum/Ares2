@@ -21,18 +21,20 @@ canon_paths() {
 }
 allowed_keys() {
   cat <<'EOF'
-TIMEOUT_SECONDS
-NET_ALLOWLIST_FILE
-RO_PATHS_FILE
-RW_PATHS_FILE
-HIDE_PATHS_FILE
-TAIL_FLAGS_FILE
+readonly
+read
+write
+hide
+tmpfs
+network
+limits
+timeout
 EOF
 }
 validate_config_file_keys() {
   local file="$1"
   local keys ok unknown=""
-  keys=$(sed -E -n 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' "$file" | sed 's/[[:space:]]//g' | sort -u)
+  keys=$(sed -E -n 's/^[[:space:]]*\[([^]]+)\][[:space:]]*$/\1/p' "$file" | sed 's/[[:space:]]//g' | sort -u)
   ok=$(allowed_keys | sort -u)
   while IFS= read -r k; do
     [[ -z "$k" ]] && continue
@@ -45,6 +47,7 @@ validate_config_file_keys() {
 }
 parse_cfg_policy() {
   local cfg="$1"
+  validate_config_file_keys "$cfg"
   local tdir; tdir="$(mktemp -d -t phobos-cfg.XXXXXX)"
   INI_TMP_DIRS+=" ${tdir}"
   local ro="${tdir}/ro.paths" rw="${tdir}/rw.paths" hide="${tdir}/hide.paths" net="${tdir}/net.rules"

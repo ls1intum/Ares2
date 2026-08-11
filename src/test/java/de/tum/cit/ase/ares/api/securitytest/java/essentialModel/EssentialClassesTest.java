@@ -2,15 +2,55 @@ package de.tum.cit.ase.ares.api.securitytest.java.essentialModel;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector;
+import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader;
+
 @DisplayName("EssentialClasses Tests")
 public class EssentialClassesTest {
+	@Test
+	void productionConfigurationContainsOnlyExistingDistinctExactClasses() throws ClassNotFoundException {
+		EssentialClasses configured = new EssentialDataYAMLReader()
+				.readEssentialClassesFrom(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH);
+		List<String> entries = configured.getEssentialClasses();
+		assertEquals(entries.size(), new HashSet<>(entries).size());
+		List<String> exactClasses = entries.stream().filter(name -> {
+			String simpleName = name.substring(name.lastIndexOf('.') + 1);
+			return !simpleName.isEmpty() && Character.isUpperCase(simpleName.charAt(0));
+		}).toList();
+		for (String className : exactClasses) {
+			assertNotNull(Class.forName(className));
+		}
+		assertTrue(entries.contains("de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter"));
+		assertTrue(entries.contains("de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator"));
+		assertTrue(entries.contains("de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter"));
+		assertTrue(entries.contains("de.tum.cit.ase.ares.api.securitytest.java.JavaTestCaseFactoryAndBuilder"));
+	}
+
+	@Test
+	void productionConfigurationContainsOnlyExistingDistinctPackagePrefixes() throws ClassNotFoundException {
+		EssentialPackages configured = new EssentialDataYAMLReader()
+				.readEssentialPackagesFrom(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_PACKAGES_PATH);
+		List<String> entries = configured.getEssentialPackages();
+		assertEquals(entries.size(), new HashSet<>(entries).size());
+		Map<String, String> representativeClasses = Map.of("java", "java.lang.String", "org.aspectj",
+				"org.aspectj.lang.JoinPoint", "de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut",
+				"de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.CommandTarget");
+		assertEquals(representativeClasses.keySet(), new HashSet<>(entries));
+		for (String packagePrefix : entries) {
+			String packageName = Class.forName(representativeClasses.get(packagePrefix)).getPackageName();
+			assertTrue(packageName.equals(packagePrefix) || packageName.startsWith(packagePrefix + "."));
+		}
+		assertFalse(entries.contains("org.java.aspectj"));
+	}
 
 	private List<String> javaClasses;
 	private List<String> archUnitClasses;

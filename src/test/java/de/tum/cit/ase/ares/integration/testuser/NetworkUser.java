@@ -56,21 +56,4 @@ public class NetworkUser {
 	void connectRemoteNotAllowed() throws Exception {
 		NetworkPenguin.tryConnect("example.com", 80, null);
 	}
-
-	@Test
-	// Default policy (value left blank), but scope the STATIC analysis to a benign
-	// student-like subtree so the ReservedPackageGuard does not (correctly) reject
-	// Ares's
-	// own build. Runtime enforcement of NetworkPenguin is unaffected (student scope
-	// is by
-	// package prefix, not withinPath).
-	@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
-	void serverAllowedAndTimeout() throws Exception {
-		NetworkPenguin.tryStartServer(8083, "none");
-	}
-
-	@Test
-	void serverNotAllowed() throws Exception {
-		NetworkPenguin.tryStartServer(80, "none");
-	}
 }

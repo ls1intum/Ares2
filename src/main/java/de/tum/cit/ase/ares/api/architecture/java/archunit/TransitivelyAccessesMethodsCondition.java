@@ -2,8 +2,18 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -17,7 +27,6 @@ import com.tngtech.archunit.lang.ConditionEvent;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions;
-import com.tngtech.archunit.thirdparty.com.google.common.collect.ImmutableList;
 import com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables;
 //</editor-fold>
 
@@ -49,6 +58,16 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 	 * analysis.
 	 */
 	private final DescribedPredicate<? super JavaAccess<?>> checkIfAccessIsViolating;
+
+	private final Map<String, List<JavaAccess<?>>> outgoingAccessesByMethod = new HashMap<>();
+
+	private final Map<String, List<JavaAccess<?>>> violationPathsByMethod = new HashMap<>();
+
+	private final Set<String> methodsWithoutViolation = new HashSet<>();
+
+	private final Map<JavaAccess<?>, Boolean> violationByAccess = new IdentityHashMap<>();
+
+	private final Set<JavaClass> indexedClasses = Collections.newSetFromMap(new IdentityHashMap<>());
 
 	/**
 	 * Helper class that finds paths through method call dependencies.
@@ -151,6 +170,15 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 			}
 		}
 	}
+
+	@Override
+	public void init(Collection<JavaClass> allObjectsToTest) {
+		outgoingAccessesByMethod.clear();
+		violationPathsByMethod.clear();
+		methodsWithoutViolation.clear();
+		violationByAccess.clear();
+		indexedClasses.clear();
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="TransitiveAccessPath">
@@ -181,102 +209,112 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 		 * @param javaClass          The class whose outgoing accesses are being
 		 *                           examined
 		 * @param specificMethodName The name of the target method to filter for
-		 * @return Set of matching method accesses from the class
+		 * @return matching method accesses from the class
 		 */
-		private Set<JavaAccess<?>> getAccessesFromClassCalledBySpecificMethod(JavaClass javaClass,
+		private List<JavaAccess<?>> getAccessesFromClassCalledBySpecificMethod(JavaClass javaClass,
 				String specificMethodName) {
-			Set<JavaAccess<?>> accessesInsideJavaClass = javaClass.getAccessesFromSelf();
-			// Filters the accesses to find those that match the specific method name
-			return accessesInsideJavaClass.stream().filter(accessInsideJavaClass -> {
-				JavaCodeUnit callingMethod = accessInsideJavaClass.getOrigin();
-				return callingMethod.getFullName().equals(specificMethodName);
-			}).collect(Collectors.toSet());
+			indexClass(javaClass);
+			return outgoingAccessesByMethod.getOrDefault(specificMethodName, List.of());
+		}
+
+		private void indexClass(JavaClass javaClass) {
+			if (!indexedClasses.add(javaClass)) {
+				return;
+			}
+			Map<String, List<JavaAccess<?>>> accessesByOrigin = new LinkedHashMap<>();
+			for (JavaAccess<?> access : javaClass.getAccessesFromSelf()) {
+				JavaCodeUnit origin = access.getOrigin();
+				accessesByOrigin.computeIfAbsent(origin.getFullName(), unusedKey -> new ArrayList<>()).add(access);
+			}
+			accessesByOrigin.forEach((method, accesses) -> outgoingAccessesByMethod.put(method, List.copyOf(accesses)));
 		}
 
 		/**
-		 * Finds all outgoing accesses from the target of the given
-		 * accessInsideJavaClass.
-		 * <p>
-		 * Description: Retrieves all method accesses from the class that owns the
-		 * target method of the supplied accessInsideJavaClass.
+		 * Classifies an imported access once and reuses the result when another path
+		 * reaches the same access.
 		 *
-		 * @since 2.0.0
-		 * @author Sarp Sahinalp
-		 * @param accessInsideJavaClass The method accessInsideJavaClass whose target
-		 *                              class is being analysed
-		 * @return Set of method accesses originating from the target owner class
+		 * @param access access to classify
+		 * @return whether the access is forbidden
 		 */
-		private Set<JavaAccess<?>> getTransitiveAccessesFrom(JavaAccess<?> accessInsideJavaClass) {
-			JavaClass relatedClassWhichIsCalledByAccess = accessInsideJavaClass.getTargetOwner();
-			AccessTarget relatedMethodWhichIsCalledByAccess = accessInsideJavaClass.getTarget();
-
-			// Check for null target owner to prevent NullPointerException
-			if (relatedClassWhichIsCalledByAccess == null) {
-				return Set.of();
-			}
-
-			// The accesses that continue the transitive path are those whose ORIGIN is the
-			// target method itself, identified by its fully-qualified name. The previous
-			// code stripped the class prefix (yielding ".method(args)") and then compared
-			// that against the caller's fully-qualified name in
-			// getAccessesFromClassCalledBySpecificMethod, which could never match - so the
-			// traversal silently returned empty and never recursed past depth 1.
-			String nameOfRelatedMethodWhichIsCalledByAccess = relatedMethodWhichIsCalledByAccess.getFullName();
-			// Finds all method accesses originating from the target method
-			return getAccessesFromClassCalledBySpecificMethod(relatedClassWhichIsCalledByAccess,
-					nameOfRelatedMethodWhichIsCalledByAccess);
+		private boolean isViolating(JavaAccess<?> access) {
+			return violationByAccess.computeIfAbsent(access, checkIfAccessIsViolating::test);
 		}
 
-		/**
-		 * Recursively builds a path to a method matching the predicate.
-		 * <p>
-		 * Description: Depth-first search algorithm that explores the call graph,
-		 * tracking visited methods to prevent cycles and building a path when a
-		 * matching method is violating.
-		 *
-		 * @since 2.0.0
-		 * @author Sarp Sahinalp
-		 * @param access                      Current access being examined
-		 * @param transitiveAccessPathBuilder Builder for collecting the access path
-		 * @param namesOfAnalyzedMethods      Set of already visited methods to avoid
-		 *                                    cycles
-		 * @return True if a path to a violating method was found, false otherwise
-		 */
-		private boolean recursivelyFindPathFromViolatingMethodTo(JavaAccess<?> access,
-				ImmutableList.Builder<JavaAccess<?>> transitiveAccessPathBuilder, Set<String> namesOfAnalyzedMethods) {
-			// Checks if the access is violating (matches the predicate).
-			// If it is, adds it to the path and returns true
-			if (checkIfAccessIsViolating.test(access)) {
-				transitiveAccessPathBuilder.add(access);
-				return true;
+		private Optional<List<JavaAccess<?>>> findPathFromMethod(String startingMethod, JavaClass startingClass) {
+			if (methodsWithoutViolation.contains(startingMethod)) {
+				return Optional.empty();
 			}
-			// If the access is not violating, it checks if the method has already been
-			// analysed to avoid cycles
-			else {
-				AccessTarget calledMethod = access.getTarget();
-				String nameOfCalledMethod = calledMethod.getFullName();
-				namesOfAnalyzedMethods.add(nameOfCalledMethod);
-				// If the method has not been analysed, it retrieves all direct accesses to
-				// other methods
-				for (JavaAccess<?> directAccess : getTransitiveAccessesFrom(access)) {
-					AccessTarget directAccessedMethod = directAccess.getTarget();
-					String nameOfDirectAccessedMethod = directAccessedMethod.getFullName();
-					// Checks if the direct access is not already analysed and recursively searches
-					// for a path
-					if (
-					// Avoid cycles by checking if the method has already been analysed
-					!namesOfAnalyzedMethods.contains(nameOfDirectAccessedMethod)
-							// Goes deeper in the call graph
-							&& recursivelyFindPathFromViolatingMethodTo(directAccess, transitiveAccessPathBuilder,
-									namesOfAnalyzedMethods)) {
-						// If a path to a matching method is found, adds the direct access to the path
-						// and returns true
-						transitiveAccessPathBuilder.add(directAccess);
-						return true;
+			List<JavaAccess<?>> cachedPath = violationPathsByMethod.get(startingMethod);
+			if (cachedPath != null) {
+				return Optional.of(cachedPath);
+			}
+
+			Queue<MethodNode> methodsToVisit = new ArrayDeque<>();
+			Map<String, JavaAccess<?>> parentAccessByMethod = new HashMap<>();
+			Map<String, MethodNode> visitedMethods = new LinkedHashMap<>();
+			MethodNode startingNode = new MethodNode(startingMethod, startingClass);
+			methodsToVisit.add(startingNode);
+			visitedMethods.put(startingMethod, startingNode);
+
+			while (!methodsToVisit.isEmpty()) {
+				MethodNode currentMethod = methodsToVisit.remove();
+				List<JavaAccess<?>> currentCachedPath = violationPathsByMethod.get(currentMethod.name());
+				if (currentCachedPath != null) {
+					List<JavaAccess<?>> path = pathTo(currentMethod.name(), startingMethod, parentAccessByMethod);
+					path.addAll(currentCachedPath);
+					cacheViolationPath(startingMethod, path);
+					return Optional.of(List.copyOf(path));
+				}
+				if (methodsWithoutViolation.contains(currentMethod.name())) {
+					continue;
+				}
+
+				for (JavaAccess<?> outgoingAccess : getAccessesFromClassCalledBySpecificMethod(currentMethod.owner(),
+						currentMethod.name())) {
+					if (isViolating(outgoingAccess)) {
+						List<JavaAccess<?>> path = pathTo(currentMethod.name(), startingMethod, parentAccessByMethod);
+						path.add(outgoingAccess);
+						cacheViolationPath(startingMethod, path);
+						return Optional.of(List.copyOf(path));
+					}
+					String targetMethod = outgoingAccess.getTarget().getFullName();
+					JavaClass targetClass = outgoingAccess.getTargetOwner();
+					if (targetClass != null && !visitedMethods.containsKey(targetMethod)
+							&& !methodsWithoutViolation.contains(targetMethod)) {
+						MethodNode targetNode = new MethodNode(targetMethod, targetClass);
+						visitedMethods.put(targetMethod, targetNode);
+						parentAccessByMethod.put(targetMethod, outgoingAccess);
+						methodsToVisit.add(targetNode);
 					}
 				}
-				// If no path to a matching method is found, return false
-				return false;
+			}
+
+			methodsWithoutViolation.addAll(visitedMethods.keySet());
+			return Optional.empty();
+		}
+
+		private List<JavaAccess<?>> pathTo(String targetMethod, String startingMethod,
+				Map<String, JavaAccess<?>> parentAccessByMethod) {
+			List<JavaAccess<?>> reversedPath = new ArrayList<>();
+			String currentMethod = targetMethod;
+			while (!currentMethod.equals(startingMethod)) {
+				JavaAccess<?> parentAccess = parentAccessByMethod.get(currentMethod);
+				if (parentAccess == null) {
+					break;
+				}
+				reversedPath.add(parentAccess);
+				currentMethod = parentAccess.getOrigin().getFullName();
+			}
+			Collections.reverse(reversedPath);
+			return reversedPath;
+		}
+
+		private void cacheViolationPath(String startingMethod, List<JavaAccess<?>> path) {
+			violationPathsByMethod.put(startingMethod, List.copyOf(path));
+			for (int index = 0; index < path.size(); index++) {
+				JavaAccess<?> access = path.get(index);
+				violationPathsByMethod.putIfAbsent(access.getOrigin().getFullName(),
+						List.copyOf(path.subList(index, path.size())));
 			}
 		}
 
@@ -285,7 +323,7 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 		 * <p>
 		 * Description: Starting from the specified method access, builds a path through
 		 * the call graph to a violating method, if one exists. The path is built in
-		 * reverse order.
+		 * traversal order.
 		 *
 		 * @since 2.0.0
 		 * @author Sarp Sahinalp
@@ -294,14 +332,26 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 		 *         none found
 		 */
 		List<JavaAccess<?>> findPathFromViolatingMethodTo(JavaAccess<?> access) {
-			// Creates a new ImmutableList to track visited methods
-			ImmutableList.Builder<JavaAccess<?>> transitiveAccessPathBuilder = ImmutableList.builder();
-			// Transitively adds accesses to the path, starting from the given access
-			recursivelyFindPathFromViolatingMethodTo(access, transitiveAccessPathBuilder, new HashSet<>());
-			// Builds the path and reverses the order of the path to show the correct
-			// traversal from start to end
-			return transitiveAccessPathBuilder.build().reverse();
+			if (isViolating(access)) {
+				return List.of(access);
+			}
+			AccessTarget target = access.getTarget();
+			JavaClass targetClass = access.getTargetOwner();
+			if (targetClass == null) {
+				return List.of();
+			}
+			Optional<List<JavaAccess<?>>> suffix = findPathFromMethod(target.getFullName(), targetClass);
+			if (suffix.isEmpty()) {
+				return List.of();
+			}
+			List<JavaAccess<?>> completePath = new ArrayList<>(suffix.get().size() + 1);
+			completePath.add(access);
+			completePath.addAll(suffix.get());
+			return List.copyOf(completePath);
 		}
+	}
+
+	private record MethodNode(String name, JavaClass owner) {
 	}
 	// </editor-fold>
 }

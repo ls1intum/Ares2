@@ -252,31 +252,33 @@ class FileSystemAccessDeleteTest extends SystemAccessTest {
 
 	// <editor-fold desc="accessFileSystemViaThirdPartyPackage">
 
-	/*
-	 * Archunit cannot handle third party packages, so we skip this test
-	 * @Test void
-	 * test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ_test() {
-	 * executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class,
-	 * "test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ"); }
-	 * @Disabled
-	 * @PublicTest
-	 * @Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath =
-	 * THIRD_PARTY_PACKAGE_PATH) void
-	 * test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
-	 * assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::
-	 * accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class); }
-	 * @Test void
-	 * test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation_test()
-	 * { executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class,
-	 * "test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation"); }
-	 * @Disabled
-	 * @PublicTest
-	 * @Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath =
-	 * THIRD_PARTY_PACKAGE_PATH) void
-	 * test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
-	 * assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::
-	 * accessFileSystemViaThirdPartyPackage, ThirdPartyPackagePenguin.class); } }
-	 */
+	@Test
+	void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ_test() {
+		executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class,
+				"test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
+	void test_accessFileSystemViaThirdPartyPackageMavenArchunitAspectJ() {
+		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+				ThirdPartyPackagePenguin.class);
+	}
+
+	@Test
+	void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation_test() {
+		executeTestAndExpectSecurityException(FileSystemAccessDeleteTest.class,
+				"test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = THIRD_PARTY_PACKAGE_PATH)
+	void test_accessFileSystemViaThirdPartyPackageMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionDelete(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage,
+				ThirdPartyPackagePenguin.class);
+	}
 
 	@Test
 	void test_accessFileSystemViaThirdPartyPackageMavenWalaAspectJ_test() {

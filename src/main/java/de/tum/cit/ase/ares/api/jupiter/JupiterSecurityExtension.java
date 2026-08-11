@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.jupiter;
 
 import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
-import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -16,14 +15,21 @@ import org.junit.platform.commons.function.Try;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
+import de.tum.cit.ase.ares.api.context.TestContextUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
 @API(status = Status.INTERNAL)
-public final class JupiterSecurityExtension
+public class JupiterSecurityExtension
 		implements UnifiedInvocationInterceptor, BeforeTestExecutionCallback, AfterTestExecutionCallback {
 	private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace
 			.create(JupiterSecurityExtension.class);
 	private static final String POLICY_PREPARED_KEY = "policy-prepared";
+
+	private enum LifecycleState {
+		PREPARING,
+		PREPARED,
+		CLOSED
+	}
 
 	// <editor-fold desc="Lifecycle Callbacks">
 
@@ -34,14 +40,28 @@ public final class JupiterSecurityExtension
 	}
 
 	@Override
+	public <T> T interceptTestClassConstructor(Invocation<T> invocation,
+			ReflectiveInvocationContext<java.lang.reflect.Constructor<T>> invocationContext,
+			ExtensionContext extensionContext) throws Throwable {
+		return invocation.proceed();
+	}
+
+	@Override
+	public void interceptBeforeAllMethod(Invocation<Void> invocation,
+			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+		invocation.proceed();
+	}
+
+	@Override
 	public void interceptAfterEachMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		try {
-			invocation.proceed();
-		} finally {
-			resetSettingsInStandardClassLoader();
-			resetSettingsInBootstrapClassLoader();
-		}
+		invocation.proceed();
+	}
+
+	@Override
+	public void interceptAfterAllMethod(Invocation<Void> invocation,
+			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
+		invocation.proceed();
 	}
 
 	/**
@@ -56,12 +76,38 @@ public final class JupiterSecurityExtension
 	 */
 	@Override
 	public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
-		resetSettingsInStandardClassLoader();
-		resetSettingsInBootstrapClassLoader();
+		prepareSecurityOnce(extensionContext);
+	}
+
+	private void prepareSecurityOnce(ExtensionContext extensionContext) {
+		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
+		synchronized (store) {
+			LifecycleState state = store.get(POLICY_PREPARED_KEY, LifecycleState.class);
+			if (state == LifecycleState.PREPARED || state == LifecycleState.PREPARING) {
+				return;
+			}
+			store.put(POLICY_PREPARED_KEY, LifecycleState.PREPARING);
+		}
+		try {
+			resetSettingsInStandardClassLoader();
+			resetSettingsInBootstrapClassLoader();
+			prepareSecurity(extensionContext);
+			store.put(POLICY_PREPARED_KEY, LifecycleState.PREPARED);
+		} catch (RuntimeException | Error failure) {
+			store.remove(POLICY_PREPARED_KEY);
+			try {
+				resetSettingsInStandardClassLoader();
+				resetSettingsInBootstrapClassLoader();
+			} catch (RuntimeException | Error resetFailure) {
+				failure.addSuppressed(resetFailure);
+			}
+			throw failure;
+		}
+	}
+
+	void prepareSecurity(ExtensionContext extensionContext) {
 		JupiterContext testContext = JupiterContext.of(extensionContext);
-		Optional<Policy> methodPolicy = findAnnotation(testContext.testMethod(), Policy.class);
-		Optional<Policy> classPolicy = findAnnotation(testContext.testClass(), Policy.class);
-		Optional<Policy> policyOpt = methodPolicy.or(() -> classPolicy);
+		Optional<Policy> policyOpt = TestContextUtils.findAnnotationIn(testContext, Policy.class);
 		boolean hasPolicyAnnotation = policyOpt.isPresent();
 		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
 		boolean isTestMethodPresent = testContext.testMethod().isPresent();
@@ -71,10 +117,10 @@ public final class JupiterSecurityExtension
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyWithinPath).orElse(Path.of(""));
-			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
-					.build().createTestCases().executeTestCases();
+			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath)
+					.projectFolderPath(Path.of("").toAbsolutePath()).withinPath(withinPath).build().createTestCases()
+					.executeTestCases();
 		}
-		extensionContext.getStore(NAMESPACE).put(POLICY_PREPARED_KEY, Boolean.TRUE);
 	}
 
 	/**
@@ -82,12 +128,24 @@ public final class JupiterSecurityExtension
 	 */
 	@Override
 	public void afterTestExecution(ExtensionContext extensionContext) throws Exception {
+		closeSecurityOnce(extensionContext);
+	}
+
+	private static void closeSecurityOnce(ExtensionContext extensionContext) {
+		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
+		synchronized (store) {
+			LifecycleState state = store.get(POLICY_PREPARED_KEY, LifecycleState.class);
+			if (state == null || state == LifecycleState.CLOSED) {
+				return;
+			}
+			store.put(POLICY_PREPARED_KEY, LifecycleState.CLOSED);
+		}
 		try {
 			JavaInstrumentationAgent.throwIfTransformationFailed();
 		} finally {
-			extensionContext.getStore(NAMESPACE).remove(POLICY_PREPARED_KEY);
 			resetSettingsInStandardClassLoader();
 			resetSettingsInBootstrapClassLoader();
+			store.remove(POLICY_PREPARED_KEY);
 		}
 	}
 
@@ -96,39 +154,7 @@ public final class JupiterSecurityExtension
 	@Override
 	public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext,
 			Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
-		JupiterContext testContext = JupiterContext.of(extensionContext);
-
-		Optional<Policy> methodPolicy = findAnnotation(testContext.testMethod(), Policy.class);
-		Optional<Policy> classPolicy = findAnnotation(testContext.testClass(), Policy.class);
-		Optional<Policy> policyOpt = methodPolicy.or(() -> classPolicy);
-		boolean hasPolicyAnnotation = policyOpt.isPresent();
-		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
-
-		boolean policyAlreadyPrepared = Boolean.TRUE
-				.equals(extensionContext.getStore(NAMESPACE).get(POLICY_PREPARED_KEY, Boolean.class));
-
-		// Determine security enforcement:
-		// - @Policy(activated=true) → enforce with custom policy from file
-		// - no @Policy on @Test method → enforce with default policy (null path)
-		// - @Policy(activated=false) → Ares deactivated (no security checks)
-		// Skip enforcement during constructor interception (no test method present
-		// yet).
-		boolean isTestMethodPresent = testContext.testMethod().isPresent();
-		if (!policyAlreadyPrepared) {
-			// Invocation interception is the fallback for execution environments that do
-			// not invoke BeforeTestExecutionCallback. Normal Jupiter execution has already
-			// prepared the policy and must not build the same WALA graph twice.
-			resetSettingsInStandardClassLoader();
-			resetSettingsInBootstrapClassLoader();
-		}
-		if (!policyAlreadyPrepared && isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
-			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
-					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
-			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
-					.map(JupiterSecurityExtension::testAndGetPolicyWithinPath).orElse(Path.of(""));
-			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath).projectFolderPath(withinPath)
-					.build().createTestCases().executeTestCases();
-		}
+		prepareSecurityOnce(extensionContext);
 		T result = null;
 		Throwable failure = null;
 		try {
@@ -136,37 +162,13 @@ public final class JupiterSecurityExtension
 		} catch (Throwable t) {
 			failure = t;
 		} finally {
-			Throwable transformationFailure = null;
 			try {
-				JavaInstrumentationAgent.throwIfTransformationFailed();
-			} catch (SecurityException e) {
-				transformationFailure = e;
-			}
-			try {
-				// ALWAYS reset settings AFTER the test to ensure clean state for subsequent
-				// tests, since security is now enforced by default.
-				resetSettingsInStandardClassLoader();
-				resetSettingsInBootstrapClassLoader();
-			} catch (Exception e) {
-				if (failure == null && transformationFailure == null) {
-					// The test itself passed, so invocation.proceed() left a pending return on
-					// this method. Assigning to failure would let that return run and swallow
-					// this teardown failure, leaving the next test with un-reset security
-					// settings (fail-open). Throwing from the finally overrides the pending
-					// return and propagates the teardown failure instead.
-					throw e;
+				closeSecurityOnce(extensionContext);
+			} catch (Throwable teardownFailure) {
+				if (failure == null) {
+					throw teardownFailure;
 				}
-				if (transformationFailure != null) {
-					transformationFailure.addSuppressed(e);
-				} else {
-					failure.addSuppressed(e);
-				}
-			}
-			if (transformationFailure != null) {
-				if (failure != null) {
-					transformationFailure.addSuppressed(failure);
-				}
-				throw transformationFailure;
+				failure.addSuppressed(teardownFailure);
 			}
 		}
 		if (failure != null) {

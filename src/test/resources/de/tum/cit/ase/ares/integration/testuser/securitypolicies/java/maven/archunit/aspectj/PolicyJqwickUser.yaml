@@ -1,3 +1,4 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
@@ -5,7 +6,7 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.JqwickUser"
     - "de.tum.cit.ase.ares.integration.JqwickTest"
-    - "de.tum.cit.ase.ares.testutilities."
+    - "de.tum.cit.ase.ares.testutilities"
   # Captures JqwickUser's former @TrustedThreads(ALL_THREADS), @WhitelistPath("target/{classes,test-classes}/de/tum**")
   # and @WhitelistPath("**/*jdk*/**/bin/**"). The Ares 2 file model uses a path-and-below prefix rather
   # than a glob, so the jdk-bin glob is approximated by permitting the build-output tree; the trusted-threads
