@@ -9,6 +9,8 @@ import org.mockito.Mockito;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 public class JavaArchitectureTestCaseTest {
 
 	@Test
@@ -120,5 +122,42 @@ public class JavaArchitectureTestCaseTest {
 				() -> "Exception message should use the normalised serialisation action: " + thrown.getMessage());
 		assertFalse(thrown.getMessage().contains("Serialises objects"),
 				() -> "Exception message must not leak the original capitalised rule label: " + thrown.getMessage());
+	}
+
+	@Test
+	void testParseErrorMessage_callerWithQualifiedParameterType_namesTheDeclaringType() {
+		// A caller rendered with a fully qualified parameter type ends in a dot of its
+		// own. The declaring type must be taken from the part before the parameter
+		// list, otherwise the reported caller is cut inside that list.
+		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Accesses file system' was violated (1 times):\n"
+				+ "Method <com.example.Sender.sendWithDataOutputStream(java.lang.String)> "
+				+ "calls method <java.io.DataOutputStream.writeUTF(java.lang.String)> in (Sender.java:1)";
+		AssertionError error = new AssertionError(message);
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error),
+				"parseErrorMessage should throw SecurityException for a file system violation");
+		// Compared against the localized message for the whole expected parse, so the
+		// assertion holds in any locale and pins every argument rather than a suffix.
+		String expected = Messages.localized("security.archunit.violation.error",
+				"com.example.Sender.sendWithDataOutputStream(java.lang.String)", "access the file system",
+				"java.io.DataOutputStream.writeUTF(java.lang.String)", "com.example.Sender");
+		assertEquals(expected, thrown.getMessage(),
+				"The declaring type should be reported without cutting inside the parameter list");
+	}
+
+	@Test
+	void testParseErrorMessage_callerWithEmptyParameterList_namesTheDeclaringType() {
+		// The shape the ArchUnit path produces, kept as a regression guard: an empty
+		// parameter list carries no dot, so this spelling was already handled and must
+		// keep reporting the same declaring type.
+		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Accesses network' was violated (1 times):\n"
+				+ "Method <com.example.Sender.send()> calls method <java.net.Socket.connect()> in (Sender.java:1)";
+		AssertionError error = new AssertionError(message);
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error),
+				"parseErrorMessage should throw SecurityException for a network violation");
+		String expected = Messages.localized("security.archunit.violation.error", "com.example.Sender.send()",
+				"access the network", "java.net.Socket.connect()", "com.example.Sender");
+		assertEquals(expected, thrown.getMessage(), "The declaring type should be reported unchanged");
 	}
 }

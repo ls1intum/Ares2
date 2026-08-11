@@ -32,3 +32,45 @@ to start. A fixture must live **outside** the boundary it helps test.
 `NetworkUser` follows this rule: it no longer starts an in-process echo server;
 `connectLocallyAllowed` targets the external echo server and skips when it is
 absent.
+
+## Opening a pull request
+
+Every pull request body must follow `.github/PULL_REQUEST_TEMPLATE.md`. **Read that
+file before writing the body**, do not reconstruct it from memory or from another
+repository's conventions.
+
+**Why:** GitHub inserts the template only as a prefill in the web UI. Creating a pull
+request from the command line with `gh pr create --body` or `--body-file` bypasses it
+entirely and GitHub never validates the result, so an agent that has not read the
+template will silently submit a body in the wrong shape. This is the single most common
+way an otherwise correct contribution arrives unreviewable.
+
+**Rule:**
+
+- Build the body from the template. The reliable command is
+  `gh pr create --body-file .github/PULL_REQUEST_TEMPLATE.md` followed by
+  `gh pr edit --body-file <filled-in copy>`, or simply fill in a copy of the template
+  and pass that as `--body-file`.
+- Fill in every section. The template states what to write when a section does not
+  apply; use those documented escape hatches (`No Improvement`, `None`,
+  `No production Java code changed`, `Not reproducible from an exercise`,
+  `No mode-specific behaviour changed`) rather than deleting the section.
+- Do not delete, rename or reorder the `##` headings. The `pr-template` check reads the
+  required headings out of the template itself, so a renamed heading fails the check.
+- Tick boxes as `[x]`. When a checklist item does not apply, wrap that line in an HTML
+  comment stating the reason, so the diff still records that it was considered.
+
+The `pr-template` job in `.github/workflows/pullrequest-template.yml` enforces the shape
+of the body and is a required status check. It verifies that every section exists, that
+none is empty and that no unfilled stub survived. It deliberately does not require
+checklist boxes to be ticked. It re-runs when the description is edited, so a failure is
+fixed by editing the body rather than by pushing a commit.
+
+Check a body before opening the pull request, from the repository root:
+
+```
+PR_BODY="$(cat body.md)" java .github/scripts/CheckPullRequestTemplate.java
+```
+
+The checker is a single-file Java program, run through the source-code launcher, so it
+needs no build step and adds no language to the repository.

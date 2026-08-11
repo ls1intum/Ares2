@@ -12,9 +12,11 @@
 
 The Artemis Java Test Sandbox
 
-image:https://github.com/ls1intum/Ares2/workflows/Java%20CI/badge.svg?branch=main[Java CI]
-https://maven-badges.herokuapp.com/maven-central/de.tum.cit.ase/ares[image:https://img.shields.io/maven-central/v/de.tum.cit.ase/ares[Maven Central]]
-image:https://img.shields.io/nexus/s/de.tum.cit.ase/ares?label=latest%20snapshot&server=https%3A%2F%2Foss.sonatype.org[Sonatype Nexus (Snapshots)]
+https://github.com/ls1intum/Ares2/actions/workflows/maven.yml[image:https://github.com/ls1intum/Ares2/actions/workflows/maven.yml/badge.svg?event=push[Java CI with Maven]]
+https://github.com/ls1intum/Ares2/actions/workflows/codeql.yml[image:https://github.com/ls1intum/Ares2/actions/workflows/codeql.yml/badge.svg?event=push[CodeQL]]
+https://central.sonatype.com/artifact/de.tum.cit.ase/ares[image:https://img.shields.io/maven-central/v/de.tum.cit.ase/ares[Maven Central]]
+https://github.com/ls1intum/Ares2/blob/main/LICENSE[image:https://img.shields.io/github/license/ls1intum/Ares2[License: MIT]]
+image:https://img.shields.io/badge/Java-17%2B-blue[Java 17+]
 
 // ----------------------------------------------------------
 // Display the following for standard GitHub AsciiDoc display
@@ -27,7 +29,7 @@ endif::env-github[]
 
 
 Ares 2 is a framework for easy and secure remote execution of student submissions on the interactive learning platform.
-It is the second Java-based implementation of the Secure COder Remote Execution (SCORE) framework and the first one supporting Java 17 and later versions.
+It is the second Java-based implementation of the Secure COder Remote Execution (SCORE) framework and the first one supporting Java 25 and later versions.
 
 Its main features are:
 
@@ -37,20 +39,6 @@ Its main features are:
 * utilities for improved feedback in Artemis like processing multiline error
   messages or pointing to a possible location that caused an Exception
 * utilities to test exercises using System.out and System.in comfortably
-
-*Project Status*
-
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=alert_status[Quality Gate Status]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=sqale_rating[Maintainability Rating]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=security_rating[Security Rating]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=reliability_rating[Reliability Rating]]
-
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=ncloc[Lines of Code]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=coverage[Coverage]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=sqale_index[Technical Debt]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=vulnerabilities[Vulnerabilities]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=bugs[Bugs]]
-https://sonarcloud.io/dashboard?id=ls1intum_Ares2[image:https://sonarcloud.io/api/project_badges/measure?project=ls1intum_Ares2&metric=duplicated_lines_density[Duplicated Lines (%)]]
 
 == Installation
 
@@ -64,7 +52,7 @@ environment of a Maven project, include
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.1.0</version>
+    <version>2.1.1</version>
 </dependency>
 ----
 
@@ -73,7 +61,7 @@ in the `dependencies` section.
 For Gradle projects, include
 [source,groovy]
 ----
-implementation("de.tum.cit.ase:ares:2.1.0")
+implementation("de.tum.cit.ase:ares:2.1.1")
 ----
 
 in the `dependencies` section.
@@ -93,7 +81,7 @@ in production._
 
 === Setup
 
-Assume you have a Java 17 Maven project, and the inside of `pom.xml`
+Assume you have a Java 25 Maven project, and the inside of `pom.xml`
 looks like this:
 
 [source,xml]
@@ -107,7 +95,7 @@ looks like this:
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.1.0</version>
+        <version>2.1.1</version>
     </dependency>
 </dependencies>
 ----
@@ -992,7 +980,7 @@ Maven:
 ----
 <properties>
         <studentOutputDir>${project.basedir}/build/classes/java/main</studentOutputDir>
-        <ares.version>2.1.0</ares.version>
+        <ares.version>2.1.1</ares.version>
         <agent.dir>${project.build.directory}/agents</agent.dir>
     </properties>
 
@@ -1124,13 +1112,36 @@ Maven:
 Gradle:
 [source,groovy]
 ----
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.testing.Test
+import org.gradle.process.CommandLineArgumentProvider
+
 configurations {
-    aresAgent
+    // transitive = false keeps exactly one artefact per bucket, so the agent JAR
+    // is selected by coordinate rather than by matching on file names.
+    aresAgent {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+    aresAspectjRuntime {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
 }
 
 dependencies {
-    aresAgent 'de.tum.cit.ase:ares:2.1.0'
-    testImplementation("de.tum.cit.ase:ares:2.1.0")
+    // The published `agent` classifier already carries the Premain-Class manifest
+    // entry, so the exercise does not have to repackage the JAR itself.
+    aresAgent 'de.tum.cit.ase:ares:2.1.1:agent'
+    aresAspectjRuntime 'org.aspectj:aspectjrt:1.9.25.1'
+    testImplementation('de.tum.cit.ase:ares:2.1.1')
+    // Puts the Ares JAR on ajc's aspect path; without it nothing is woven.
+    aspect 'de.tum.cit.ase:ares:2.1.1'
+    implementation 'org.aspectj:aspectjrt:1.9.25.1'
 }
 
 def forbiddenPackageFolders = [
@@ -1155,33 +1166,50 @@ def forbiddenPackageFolders = [
     "$studentOutputDir/sun/",
     "$studentOutputDir/worker/org/gradle/"
 ]
-tasks.register('prepareInstrumentationAgentFiles', Copy) {
-    dependsOn configurations.aresAgent
-    description 'Extracts Ares agent from JAR for JVM injection'
-    from configurations.aresAgent.filter { it.name.startsWith('ares-') }
-    into layout.buildDirectory.dir("agents")
-}
 
-tasks.register('buildInstrumentationAgent', Jar) {
-    dependsOn prepareInstrumentationAgentFiles
-    description 'Builds a proper Java agent from the Ares JAR with correct manifest'
-    archiveFileName = 'ares-agent.jar'
-    destinationDirectory = layout.buildDirectory.dir("agents")
-    from zipTree(configurations.aresAgent.filter { it.name.startsWith('ares-') }.singleFile)
-    manifest {
-        attributes(
-                'Manifest-Version': '1.0',
-                'Premain-Class': 'de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent',
-                'Can-Redefine-Classes': 'true',
-                'Can-Retransform-Classes': 'true',
-                'Can-Set-Native-Method-Prefix': 'true',
-                'Boot-Class-Path': '',
-                'Main-Class': 'de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent'
-        )
+// Computed when the test task runs rather than while the build is configured, so
+// an unrelated task does not trigger dependency resolution and the configuration
+// cache stays usable.
+abstract class AresJvmArguments implements CommandLineArgumentProvider {
+    @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
+    abstract ConfigurableFileCollection getAgentJar()
+
+    @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
+    abstract ConfigurableFileCollection getAspectjRuntimeJar()
+
+    @Override
+    Iterable<String> asArguments() {
+        [
+                "-javaagent:${agentJar.singleFile.absolutePath}".toString(),
+                "-Xbootclasspath/a:${aspectjRuntimeJar.singleFile.absolutePath}".toString(),
+                '--add-exports', 'java.base/java.lang=ALL-UNNAMED',
+                '--add-exports', 'java.base/jdk.internal.misc=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.io=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.net=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.nio=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.nio.channels=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util.concurrent=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util.concurrent.atomic=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util.concurrent.locks=ALL-UNNAMED',
+                '--add-opens', 'java.base/jdk.internal.misc=ALL-UNNAMED',
+                '--add-opens', 'java.base/sun.net.www.protocol.http=ALL-UNNAMED',
+                '--add-opens', 'java.base/sun.net.www.protocol.https=ALL-UNNAMED',
+                '--add-opens', 'java.base/sun.nio.ch=ALL-UNNAMED',
+                '--add-opens', 'jdk.unsupported/sun.misc=ALL-UNNAMED'
+        ]
     }
 }
 
-test {
+def aresJvmArguments = objects.newInstance(AresJvmArguments)
+aresJvmArguments.agentJar.from(configurations.aresAgent)
+aresJvmArguments.aspectjRuntimeJar.from(configurations.aresAspectjRuntime)
+
+tasks.withType(Test).configureEach {
     doFirst {
         for (String packageFolder in forbiddenPackageFolders) {
             assert !file(packageFolder).exists(): "$packageFolder must not exist within the submission."
@@ -1190,23 +1218,19 @@ test {
     defaultCharacterEncoding = 'UTF-8'
     testLogging.showStandardStreams = true
     useJUnitPlatform()
-
-    //<editor-fold desc="Instrumentation (1)">
-    jvmArgs += [
-            "-javaagent:${new File(buildDir, 'agents/ares-agent.jar').absolutePath}",
-            "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED",
-            "--add-exports", "java.base/jdk.internal.misc=ALL-UNNAMED",
-            "--add-opens", "java.base/java.lang=ALL-UNNAMED",
-            "--add-exports", "java.base/java.lang=ALL-UNNAMED"
-    ]
-
-    dependsOn buildInstrumentationAgent
-    //</editor-fold>
+    jvmArgumentProviders.add(aresJvmArguments)
 }
 ----
-<1> This is the versioned reserved-package boundary. Keep the exercise build validation aligned with
-    `WalaPathClassification.RESERVED_PACKAGE_PREFIX_VERSION` and do not disable it. The canonical
-    Maven and Gradle contract is documented in `docs/policy/EnforcementModel.md`.
+<1> This is the versioned reserved-package boundary, and it is deliberately a superset of the
+    canonical Ares list: besides the packages Ares trusts by name, it also stops student code
+    shadowing the test harness itself (JUnit, jqwik, AssertJ, Logback, Gradle). Keep it aligned with
+    `WalaPathClassification.RESERVED_PACKAGE_PREFIX_VERSION` (the prefix data) and
+    `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION` (the build-side contract), and do not disable it. Note
+    that the check must hang off every `Test` task, not off `check`: Gradle defines
+    `check.dependsOn test` and not the reverse, so a `check`-only hook is never run by
+    `gradlew test`. The canonical Maven and Gradle contract is documented in
+    `docs/policy/EnforcementModel.md`, the executable snippets ship at
+    `configuration/reservedPackages/`, and a complete working exercise is in `examples/`.
 
 === Security trust boundary
 
@@ -1396,7 +1420,7 @@ repositories {
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.1.0</version>
+    <version>2.1.1</version>
 </dependency>
 ----
 

@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Minimal, runnable Ares 2 exercise (Maven).
+  Explained step by step in docs/HowToMakeAProjectAnAresProject.md.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.example</groupId>
+    <artifactId>ares-exercise-maven</artifactId>
+    <version>1.0.0</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <ares.version>2.1.1</ares.version>
+        <aspectj.version>1.9.25.1</aspectj.version>
+        <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
+        <argLine></argLine>
+    </properties>
+
+    <dependencies>
+        <!-- provided, not test. The aspectj-maven-plugin resolves <aspectLibraries>
+             against the compile-visible project dependencies, and it weaves the MAIN
+             classes during process-classes, where a test-scoped artifact is invisible:
+             a test-scoped Ares fails the build with "is not found the project
+             dependencies". provided scope is compile-visible and test-visible, yet
+             still absent from the packaged artefact and from transitive consumers,
+             which is exactly what an exercise needs. -->
+        <dependency>
+            <groupId>de.tum.cit.ase</groupId>
+            <artifactId>ares</artifactId>
+            <version>${ares.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Not test-scoped: ajc weaves the main classes during process-classes,
+             when only the compile-scope classpath is visible. -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>${aspectj.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- 1. Weave the Ares aspects into the supervised classes. -->
+            <plugin>
+                <groupId>dev.aspectj</groupId>
+                <artifactId>aspectj-maven-plugin</artifactId>
+                <version>1.14.1</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.aspectj</groupId>
+                        <artifactId>aspectjtools</artifactId>
+                        <version>${aspectj.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <forceAjcCompile>true</forceAjcCompile>
+                    <complianceLevel>${maven.compiler.source}</complianceLevel>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <aspectLibraries>
+                        <aspectLibrary>
+                            <groupId>de.tum.cit.ase</groupId>
+                            <artifactId>ares</artifactId>
+                        </aspectLibrary>
+                    </aspectLibraries>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>weave-main-classes</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 2. Ares reserved-package build boundary, version 2.
+                 Copied verbatim from
+                 src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/MavenReservedPackages.xml.
+                 process-classes precedes test, so `mvn test` runs it. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>verify-ares-reserved-packages-v2</id>
+                        <phase>process-classes</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <target>
+                                <resourcecount property="ares.reserved.package.count">
+                                    <fileset dir="${project.build.outputDirectory}">
+                                        <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
+                                        <include name="jdk/**"/><include name="com/sun/**"/>
+                                        <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
+                                        <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
+                                        <include name="com/tngtech/archunit/**"/><include name="anonymous/toolclasses/**"/>
+                                        <include name="metatest/**"/>
+                                    </fileset>
+                                </resourcecount>
+                                <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">
+                                    <condition><not><equals arg1="${ares.reserved.package.count}" arg2="0"/></not></condition>
+                                </fail>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 3. Put the agent and the AspectJ runtime at a known path, so the
+                 -javaagent argument needs no repository-layout knowledge. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.9.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-ares-runtime-jars</id>
+                        <phase>process-test-classes</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>de.tum.cit.ase</groupId>
+                                    <artifactId>ares</artifactId>
+                                    <version>${ares.version}</version>
+                                    <classifier>agent</classifier>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${project.build.directory}/ares</outputDirectory>
+                                    <destFileName>ares-agent.jar</destFileName>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.aspectj</groupId>
+                                    <artifactId>aspectjrt</artifactId>
+                                    <version>${aspectj.version}</version>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${project.build.directory}/ares</outputDirectory>
+                                    <destFileName>aspectjrt.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 4. Attach the agent and open the JDK internals Ares introspects.
+                 The two paths are quoted so a project directory containing a
+                 space still works. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.4</version>
+                <configuration>
+                    <argLine>
+                        @{argLine}
+                        "-javaagent:${project.build.directory}/ares/ares-agent.jar"
+                        "-Xbootclasspath/a:${project.build.directory}/ares/aspectjrt.jar"
+                        --add-exports java.base/java.lang=ALL-UNNAMED
+                        --add-exports java.base/jdk.internal.misc=ALL-UNNAMED
+                        --add-opens java.base/java.io=ALL-UNNAMED
+                        --add-opens java.base/java.lang=ALL-UNNAMED
+                        --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+                        --add-opens java.base/java.net=ALL-UNNAMED
+                        --add-opens java.base/java.nio=ALL-UNNAMED
+                        --add-opens java.base/java.nio.channels=ALL-UNNAMED
+                        --add-opens java.base/java.util=ALL-UNNAMED
+                        --add-opens java.base/java.util.concurrent=ALL-UNNAMED
+                        --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED
+                        --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED
+                        --add-opens java.base/jdk.internal.misc=ALL-UNNAMED
+                        --add-opens java.base/sun.net.www.protocol.http=ALL-UNNAMED
+                        --add-opens java.base/sun.net.www.protocol.https=ALL-UNNAMED
+                        --add-opens java.base/sun.nio.ch=ALL-UNNAMED
+                        --add-opens jdk.unsupported/sun.misc=ALL-UNNAMED
+                    </argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

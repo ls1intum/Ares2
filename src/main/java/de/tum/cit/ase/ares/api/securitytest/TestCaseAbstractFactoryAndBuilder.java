@@ -257,7 +257,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 			// check.
 			this.testClasses = new ArrayList<>(supervisedCode.theFollowingClassesAreTestClasses());
 		} else {
-			// Legacy no-policy path: derive scope and exemptions from the project scan.
+			// No-policy path: derive scope and exemptions from the project scan.
 			this.packageName = projectScanner.scanForPackageName();
 			this.mainClassInPackageName = projectScanner.scanForMainClassInPackage();
 			this.resourceAccesses = ResourceAccesses.createRestrictive();
