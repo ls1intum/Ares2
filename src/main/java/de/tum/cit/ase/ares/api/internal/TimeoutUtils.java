@@ -20,6 +20,19 @@ import de.tum.cit.ase.ares.api.context.*;
 @API(status = Status.INTERNAL)
 public final class TimeoutUtils {
 	private static final Duration DEFAULT_TERMINATION_GRACE_PERIOD = Duration.ofMillis(50);
+	/**
+	 * The largest termination grace period an instructor may configure.
+	 * <p>
+	 * A bound is needed because the period became instructor-controlled: the wait
+	 * is expressed in nanoseconds against a deadline, and a period long enough to
+	 * overflow that arithmetic would make the wait expire at once or, worse, throw
+	 * out of {@link #terminateTimedOutExecution} before the fatal terminator runs,
+	 * leaving a contaminated fork alive. Rejecting it when the annotation is read,
+	 * which is before the worker starts, keeps that failure impossible rather than
+	 * merely unlikely. A day is far beyond any period a test can want and well
+	 * inside what the arithmetic holds.
+	 */
+	private static final Duration MAXIMUM_TERMINATION_GRACE_PERIOD = Duration.ofDays(1);
 	private static final int UNRESPONSIVE_TIMEOUT_EXIT_CODE = 124;
 
 	private TimeoutUtils() {
@@ -30,29 +43,101 @@ public final class TimeoutUtils {
 		return strictTimeout.map(st -> Duration.of(st.value(), st.unit().toChronoUnit()));
 	}
 
+	/**
+	 * The termination grace period the instructor configured, if any.
+	 * <p>
+	 * Empty when no {@link StrictTimeout} is in scope, and equally when one is but
+	 * leaves {@link StrictTimeout#terminationGrace()} negative, which is how the
+	 * annotation expresses "not configured". Distinguishing the two matters because
+	 * the extensions do not share one period: an absent value has to fall back to
+	 * the caller's own, which is 50 ms for JUnit and one second for jqwik, and an
+	 * attribute default could only ever have named one of them.
+	 *
+	 * @param context the test context to read the annotation from.
+	 * @return the configured period, or empty if none was configured.
+	 */
 	static Optional<Duration> findTerminationGracePeriod(TestContext context) {
 		var strictTimeout = TestContextUtils.findAnnotationIn(context, StrictTimeout.class);
-		return strictTimeout.map(st -> Duration.of(st.terminationGrace(), st.terminationGraceUnit().toChronoUnit()));
+		if (strictTimeout.isEmpty() || strictTimeout.get().terminationGrace() < 0) {
+			return Optional.empty();
+		}
+		StrictTimeout annotation = strictTimeout.get();
+		try {
+			Duration configured = Duration.of(annotation.terminationGrace(),
+					annotation.terminationGraceUnit().toChronoUnit());
+			terminationGraceNanos(configured, "@StrictTimeout terminationGrace"); //$NON-NLS-1$
+			return Optional.of(configured);
+		} catch (@SuppressWarnings("unused") ArithmeticException tooLarge) {
+			throw new IllegalArgumentException("@StrictTimeout terminationGrace of " //$NON-NLS-1$
+					+ annotation.terminationGrace() + " " + annotation.terminationGraceUnit() //$NON-NLS-1$
+					+ " must not exceed " + MAXIMUM_TERMINATION_GRACE_PERIOD); //$NON-NLS-1$
+		}
+	}
+
+	/**
+	 * The period as a nanosecond count, refusing anything the wait cannot hold.
+	 * <p>
+	 * Every termination grace period passes through here, whether it came from the
+	 * annotation or from the extension that supplied the default, and it does so
+	 * before the worker is created. That ordering is the point: converting after
+	 * the worker has timed out and been cancelled would let an overflow throw out
+	 * of {@link #terminateTimedOutExecution} before the fatal terminator runs, and
+	 * a fork whose untrusted code ignores interruption would then outlive its
+	 * security lifecycle. Nothing is converted after cancellation.
+	 *
+	 * @param period the period to convert; must be non-null, non-negative and at
+	 *               most {@link #MAXIMUM_TERMINATION_GRACE_PERIOD}.
+	 * @param source what to name in the message if it is unusable.
+	 * @return the period in nanoseconds.
+	 * @throws IllegalArgumentException if the period is unusable.
+	 */
+	private static long terminationGraceNanos(Duration period, String source) {
+		if (period == null || period.isNegative() || period.compareTo(MAXIMUM_TERMINATION_GRACE_PERIOD) > 0) {
+			throw new IllegalArgumentException(
+					source + " must be between zero and " + MAXIMUM_TERMINATION_GRACE_PERIOD + ", but was " + period); //$NON-NLS-1$ //$NON-NLS-2$
+		}
+		return period.toNanos();
 	}
 
 	public static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context) throws Throwable {
-		Duration terminationGracePeriod = findTerminationGracePeriod(context).orElse(DEFAULT_TERMINATION_GRACE_PERIOD);
-		return performTimeoutExecution(execution, context, terminationGracePeriod);
+		return performTimeoutExecution(execution, context, DEFAULT_TERMINATION_GRACE_PERIOD);
 	}
 
+	/**
+	 * Runs the execution under its {@link StrictTimeout}, if it has one.
+	 *
+	 * @param execution                     the execution to bound.
+	 * @param context                       the test context carrying the
+	 *                                      annotation.
+	 * @param defaultTerminationGracePeriod the period to allow for termination
+	 *                                      after the interruption when the
+	 *                                      annotation does not configure one. It is
+	 *                                      the caller's default, not an override:
+	 *                                      an instructor-configured
+	 *                                      {@code terminationGrace} always wins.
+	 * @return whatever the execution returned.
+	 * @throws Throwable whatever the execution threw.
+	 */
 	public static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context,
-			Duration terminationGracePeriod) throws Throwable {
-		return performTimeoutExecution(execution, context, terminationGracePeriod,
+			Duration defaultTerminationGracePeriod) throws Throwable {
+		return performTimeoutExecution(execution, context, defaultTerminationGracePeriod,
 				exitCode -> Runtime.getRuntime().halt(exitCode));
 	}
 
 	static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context,
-			Duration terminationGracePeriod, IntConsumer fatalProcessTerminator) throws Throwable {
+			Duration defaultTerminationGracePeriod, IntConsumer fatalProcessTerminator) throws Throwable {
 		var timeout = findTimeout(context);
 		if (timeout.isEmpty()) {
 			return execution.get();
 		}
-		return executeWithTimeout(timeout.get(), () -> rethrowThrowableSafe(execution), context, terminationGracePeriod,
+		// Resolved here rather than in the entry points, so the annotation is read a
+		// second time only for an execution that is actually bounded, and so every
+		// overload resolves it the same way. The caller's default is held to the same
+		// bound as a configured value: the parameter is public, so "the callers in
+		// this repository pass a constant" is not an invariant.
+		Duration terminationGracePeriod = findTerminationGracePeriod(context).orElse(defaultTerminationGracePeriod);
+		long terminationGraceNanos = terminationGraceNanos(terminationGracePeriod, "terminationGracePeriod"); //$NON-NLS-1$
+		return executeWithTimeout(timeout.get(), () -> rethrowThrowableSafe(execution), context, terminationGraceNanos,
 				fatalProcessTerminator);
 	}
 
@@ -71,7 +156,7 @@ public final class TimeoutUtils {
 	}
 
 	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context,
-			Duration terminationGracePeriod, IntConsumer fatalProcessTerminator) throws Throwable { // NOSONAR
+			long terminationGraceNanos, IntConsumer fatalProcessTerminator) throws Throwable { // NOSONAR
 		var threadFactory = new WhitelistedThreadFactory();
 		var executorService = Executors.newSingleThreadExecutor(threadFactory);
 		Future<T> future = executorService.submit(action);
@@ -84,7 +169,7 @@ public final class TimeoutUtils {
 			}
 			throw ex.getCause();
 		} catch (@SuppressWarnings("unused") TimeoutException ex) {
-			terminateTimedOutExecution(future, executorService, terminationGracePeriod, fatalProcessTerminator);
+			terminateTimedOutExecution(future, executorService, terminationGraceNanos, fatalProcessTerminator);
 			throw generateTimeoutFailure(timeout, context);
 		} finally {
 			executorService.shutdownNow();
@@ -92,7 +177,7 @@ public final class TimeoutUtils {
 	}
 
 	static void terminateTimedOutExecution(Future<?> future, ExecutorService executorService,
-			Duration terminationGracePeriod, IntConsumer fatalProcessTerminator) {
+			long terminationGraceNanos, IntConsumer fatalProcessTerminator) {
 		executorService.shutdown();
 		future.cancel(true);
 		/*
@@ -106,14 +191,18 @@ public final class TimeoutUtils {
 		 * reliably, so fail closed by terminating the complete worker process and let
 		 * Maven, Gradle or the IDE report the crashed test fork.
 		 */
-		if (!awaitTermination(executorService, terminationGracePeriod.toMillis())) {
+		// Nanoseconds, converted and bounds-checked before the worker was created: the
+		// period is instructor-configurable in any TimeUnit now, and rounding it down
+		// to milliseconds would turn a configured sub-millisecond grace into the zero
+		// that means "terminate at once".
+		if (!awaitTermination(executorService, terminationGraceNanos)) {
 			fatalProcessTerminator.accept(UNRESPONSIVE_TIMEOUT_EXIT_CODE);
 			throw new AssertionError("Fatal process terminator returned without terminating the test worker"); //$NON-NLS-1$
 		}
 	}
 
-	private static boolean awaitTermination(ExecutorService executorService, long timeoutMillis) {
-		long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
+	private static boolean awaitTermination(ExecutorService executorService, long timeoutNanos) {
+		long deadline = System.nanoTime() + timeoutNanos;
 		boolean interrupted = false;
 		try {
 			while (!executorService.isTerminated()) {
