@@ -38,7 +38,7 @@ There is no repository step for Maven: the super-POM already defines Central at 
 <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <ares.version>2.1.1</ares.version>
+    <ares.version>2.1.2</ares.version>
     <aspectj.version>1.9.25.1</aspectj.version>
     <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
     <argLine></argLine>
@@ -381,7 +381,7 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <ares.version>2.1.1</ares.version>
+        <ares.version>2.1.2</ares.version>
         <aspectj.version>1.9.25.1</aspectj.version>
         <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
         <argLine></argLine>

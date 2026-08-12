@@ -57,7 +57,7 @@ repositories {
 
 ```gradle
 ext {
-    aresVersion = '2.1.1'
+    aresVersion = '2.1.2'
     aspectjVersion = '1.9.25.1'
 }
 ```
@@ -68,7 +68,7 @@ ext {
 >
 > ```toml
 > [versions]
-> ares = "2.1.1"
+> ares = "2.1.2"
 > aspectjrt = "1.9.25.1"
 > [libraries]
 > ares = { module = "de.tum.cit.ase:ares", version.ref = "ares" }
@@ -399,7 +399,7 @@ plugins {
 }
 
 ext {
-    aresVersion = '2.1.1'
+    aresVersion = '2.1.2'
     aspectjVersion = '1.9.25.1'
 }
 

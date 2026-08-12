@@ -12,7 +12,7 @@ plugins {
 }
 
 ext {
-    aresVersion = '2.1.1'
+    aresVersion = '2.1.2'
     aspectjVersion = '1.9.25.1'
 }
 

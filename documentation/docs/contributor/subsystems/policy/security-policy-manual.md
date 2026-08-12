@@ -12,7 +12,7 @@ Every option, what it means, and what actually happens when you set it.
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `SecurityPolicy.java`, and the `policySubComponents` package.
-> **Ares Version:** 2.1.1
+> **Ares Version:** 2.1.2
 
 **Related documentation:**
 - [Precompile or Postcompile](/instructor/protect-a-java-project/precompile-or-postcompile), and from there the walkthrough for your build tool
@@ -110,7 +110,7 @@ This policy forbids all file, network, command and thread operations.
 
 > **`thisPolicyFileCompliesToThePolicyVersion` is required** and must be exactly `1`. A policy file that omits it, or that declares any other value, is rejected on load.
 
-> **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.1.1. Use [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
+> **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.1.2. Use [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
 
 ### 5.2 Step 2: Apply the Policy to Your Test
 
@@ -197,7 +197,7 @@ When you define a security policy file, you start with maximum security (everyth
 | Commands | Executing system commands with specific arguments | Allow running `python --version` |
 | Threads | Which thread classes can be created and how many of each | Allow up to 10 `java.lang.Thread` instances |
 | Packages | Importing Java packages | Allow `java.util` (including subpackages via prefix match) |
-| Timeouts | Declared maximum execution time. **Not enforced by the JUnit extension path in Ares 2.1.1**; use `@StrictTimeout` for an actual deadline | Record an intended limit of 10 seconds |
+| Timeouts | Declared maximum execution time. **Not enforced by the JUnit extension path in Ares 2.1.2**; use `@StrictTimeout` for an actual deadline | Record an intended limit of 10 seconds |
 
 ### 6.3 What Cannot Be Controlled?
 
@@ -563,7 +563,7 @@ regardingPackageImports:
 
 ### 8.6 Timeout Permissions
 
-Declares an intended maximum execution time in milliseconds. **In Ares 2.1.1 this declaration does not yet take effect**; see the note below.
+Declares an intended maximum execution time in milliseconds. **In Ares 2.1.2 this declaration does not yet take effect**; see the note below.
 
 ```yaml
 regardingTimeouts:
@@ -586,7 +586,7 @@ regardingTimeouts:
   - timeout: 60000
 ```
 
-> **Not in effect yet.** `regardingTimeouts` is parsed and validated into the policy model, but the resulting limit becomes a **Phobos** test case. Phobos is the test-case family covering the file-system, network and timeout domains, and in Ares 2.1.1 it is a generation-only stage: Ares writes those cases out, but the in-process execution path used by the JUnit extension does not dispatch them yet. That migration is still in progress. A timeout expressed here therefore does not bound test execution today, whether the list is populated or empty. Use `@StrictTimeout` on the test class or method wherever a deadline is required. The list must still be present in the file, because all six resource-access lists are structurally required; `regardingTimeouts: []` is the clearest form unless you want to record an intended value for a later release.
+> **Not in effect yet.** `regardingTimeouts` is parsed and validated into the policy model, but the resulting limit becomes a **Phobos** test case. Phobos is the test-case family covering the file-system, network and timeout domains, and in Ares 2.1.2 it is a generation-only stage: Ares writes those cases out, but the in-process execution path used by the JUnit extension does not dispatch them yet. That migration is still in progress. A timeout expressed here therefore does not bound test execution today, whether the list is populated or empty. Use `@StrictTimeout` on the test class or method wherever a deadline is required. The list must still be present in the file, because all six resource-access lists are structurally required; `regardingTimeouts: []` is the clearest form unless you want to record an intended value for a later release.
 
 ### 8.7 Internal Record: `ClassPermission`
 

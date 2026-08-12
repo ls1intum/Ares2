@@ -139,7 +139,7 @@ With the extension registered and no policy present, Ares builds a restrictive c
 
 - **File system, network, command execution and thread creation: denied.** No allowance exists in any of those domains, so nothing is permitted.
 - **Package imports: denied *outside an implicit allowlist*.** This is the part that is commonly overstated. Ares always unions three sources into the permitted set: the essential packages it ships, the supervised package itself, and the packages of the recognised test classes. The shipped essential list includes the `java` prefix, so all of `java.*` remains importable. Package imports are restricted, not eliminated.
-- **No default execution timeout applies yet.** The policy-free configuration does construct a 10,000 ms limit, but timeouts belong to the **Phobos** test-case family, which Ares 2.1.1 generates without yet dispatching it from the in-process execution path. That part of the pipeline has not been migrated across, so the limit does not bound a test today. Add [`@StrictTimeout`](./precompile-or-postcompile.md#glossary) wherever a test needs a deadline.
+- **No default execution timeout applies yet.** The policy-free configuration does construct a 10,000 ms limit, but timeouts belong to the **Phobos** test-case family, which Ares 2.1.2 generates without yet dispatching it from the in-process execution path. That part of the pipeline has not been migrated across, so the limit does not bound a test today. Add [`@StrictTimeout`](./precompile-or-postcompile.md#glossary) wherever a test needs a deadline.
 
 Two further points apply whether or not a policy is present:
 
