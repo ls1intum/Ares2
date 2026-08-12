@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Minimal, runnable Ares 2 exercise (Maven).
-  Explained step by step in documentation/docs/user/make-a-project-an-ares-project.md.
+  Explained step by step in documentation/docs/instructor/protect-a-java-project/postcompile/maven.md.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

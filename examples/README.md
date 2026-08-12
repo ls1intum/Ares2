@@ -1,6 +1,6 @@
 # Runnable Ares 2 exercises
 
-Two complete, minimal exercises that build and run as they stand. They exist so that setting up Ares does not start from a blank file, and so that the snippets in [the setup manual](../documentation/docs/user/make-a-project-an-ares-project.md) are demonstrably correct rather than merely plausible.
+Two complete, minimal exercises that build and run as they stand. They exist so that setting up Ares does not start from a blank file, and so that the snippets in the setup manual for [Maven](../documentation/docs/instructor/protect-a-java-project/postcompile/maven.md) and [Gradle](../documentation/docs/instructor/protect-a-java-project/postcompile/gradle.md) are demonstrably correct rather than merely plausible.
 
 | Example | Build tool | Configuration |
 |---|---|---|
@@ -20,7 +20,7 @@ The policy permits **exactly one** file, `allowed.txt`, and nothing else. That s
 
 Both reads happen in `Penguin`, never in the test. A test class named in the policy is exempt, so a read performed by the test itself would legitimately succeed and would demonstrate nothing.
 
-The one allowance is equally deliberate. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](../documentation/docs/developer/policy/enforcement-model.md)). Under a fully restrictive file policy, ArchUnit or WALA would reject the forbidden read before any runtime mechanism was consulted, so the negative control would still pass with the agent detached and the weaving switched off. Permitting one file makes the runtime layer authoritative for the file domain, and only then does the negative control actually exercise it.
+The one allowance is equally deliberate. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](../documentation/docs/contributor/subsystems/policy/enforcement-model.md)). Under a fully restrictive file policy, ArchUnit or WALA would reject the forbidden read before any runtime mechanism was consulted, so the negative control would still pass with the agent detached and the weaving switched off. Permitting one file makes the runtime layer authoritative for the file domain, and only then does the negative control actually exercise it.
 
 ## Expected result
 

@@ -49,10 +49,10 @@ WALA_FILE <- file.path(ARES_ROOT,
   "src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/file-system-access-methods.txt")
 
 DOCUMENTATION_FILE <- file.path(ARES_ROOT,
-  "docs/aop/BlockFileSystemAccessAOP.md")
+  "documentation/docs/contributor/subsystems/aop/block-file-system-access.md")
 
 ARCHITECTURE_DOCUMENTATION_FILE <- file.path(ARES_ROOT,
-  "docs/architecture/BlockFileSystemAccessArchitecture.md")
+  "documentation/docs/contributor/subsystems/architecture/block-file-system-access.md")
 
 OUTPUT_FILE <- file.path(ARES_ROOT, "tools/pointcut_comparison.csv")
 

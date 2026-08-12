@@ -1,5 +1,5 @@
 // Minimal, runnable Ares 2 exercise (Gradle).
-// Explained step by step in docs/HowToMakeAProjectAnAresProject.md.
+// Explained step by step in documentation/docs/instructor/protect-a-java-project/postcompile/gradle.md.
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
