@@ -72,13 +72,17 @@ The root version field is implemented by `SecurityPolicy`, everything else by `S
 | --- | --- | --- | --- | --- |
 | `thisPolicyFileCompliesToThePolicyVersion` | `int` | The policy format the file is written against. This is a root field, a sibling of `regardingTheSupervisedCode` rather than one of its members, which is why it sits above it in the example. Required. | `1` | Exactly `1`. Any other value, and any file that omits the field, is rejected on load. |
 | `theFollowingProgrammingLanguageConfigurationIsUsed` | enum `ProgrammingLanguageConfiguration` | Selects the whole supervision pipeline: build system, static analysis tool and runtime instrumentation backend. Required. | `JAVA_USING_MAVEN_WALA_AND_ASPECTJ` | `^JAVA_USING_(?:MAVEN\|GRADLE)_(?:ARCHUNIT\|WALA)_AND_(?:ASPECTJ\|INSTRUMENTATION)$` |
-| `theSupervisedCodeUsesTheFollowingPackage` | `String` (nullable) | The root package holding the student code to supervise. May be omitted, in which case the project is scanned. | `org.example` | `JAVA_PACKAGE_PATTERN`: a dot-separated Java package name, each segment a Java identifier that is not a reserved word (`\p{javaJavaIdentifierStart}\p{javaJavaIdentifierPart}*`) |
-| `theMainClassInsideThisPackageIs` | `String` (nullable) | The entrypoint class used to build the call graph of the student program. | `Main` | `JAVA_CLASS_NAME_PATTERN`: a single Java type name, excluding `var`, `yield`, `record`, `sealed` and `permits` |
+| `theSupervisedCodeUsesTheFollowingPackage` | `String` | The root package holding the student code to supervise. **Required whenever a policy file is used.** The schema tolerates its absence, but the run then refuses to start rather than scanning for it. | `org.example` | `JAVA_PACKAGE_PATTERN`: a dot-separated Java package name, each segment a Java identifier that is not a reserved word (`\p{javaJavaIdentifierStart}\p{javaJavaIdentifierPart}*`) |
+| `theMainClassInsideThisPackageIs` | `String` (nullable) | The entrypoint class used to build the call graph of the student program. Omitting it is safe: the project is scanned for it. | `Main` | `JAVA_CLASS_NAME_PATTERN`: a single Java type name, excluding `var`, `yield`, `record`, `sealed` and `permits` |
 
 ## Notes
 
 The eight accepted values are the full cross product of the three dimensions: `MAVEN`/`GRADLE` × `ARCHUNIT`/`WALA` × `ASPECTJ`/`INSTRUMENTATION`. CI exercises all four analysis and weaving combinations on every change.
 
-Both nullable fields are validated only when present; a `null` is accepted and triggers project discovery instead. A blank string is not the same as absent and is rejected.
+**Omitting the package does not fall back to scanning.** The schema accepts a `null`, so the file loads, and `TestCaseAbstractFactoryAndBuilder` then refuses to set up the run at all, with `security.policy.supervised.package.required`. That is deliberate: a policy is the authoritative statement of what is supervised, and deriving the scope from the project instead would let the supervised code influence the boundary drawn around it. Project discovery is what the [policy-free configuration](../protect-a-java-project/further-options.md) does, and it is the only place it happens.
+
+The main class is different, and it is the one nullable field of the two. It is used to build the call graph, never to decide what is supervised, so scanning for it cannot widen or narrow the boundary. Omitting it is ordinary.
+
+Both fields are validated only when present. A blank string is not the same as absent and is rejected either way.
 
 The version field is rejected before anything else is looked at, so a policy that omits it never reaches the pipeline it selects. That is worth knowing when a file that looks complete is refused: the diagnostic names the missing root field, not the section you were editing.

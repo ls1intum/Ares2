@@ -192,30 +192,66 @@ public final class DocumentationPages {
 	 * Returns every line satisfying the predicate that is not inside a fenced code
 	 * block.
 	 * <p>
-	 * The fence state is the opening token rather than a boolean, and a block ends
-	 * only on the token that opened it. A boolean toggling on both {@code ```} and
-	 * {@code ~~~} desynchronises as soon as one appears inside a block delimited by
-	 * the other, after which every subsequent line is classified backwards.
+	 * The fence state is the opening marker and its length, not a boolean. A
+	 * boolean toggling on both {@code ```} and {@code ~~~} desynchronises as soon
+	 * as one appears inside a block delimited by the other, and a state that
+	 * ignores the length closes a four-backtick block on the three-backtick example
+	 * it exists to contain. Both leave every following line classified backwards,
+	 * which is how a page about writing documentation gets reported for the
+	 * examples it is documenting.
 	 */
 	private static List<String> outsideFencedCode(String content, Predicate<String> predicate) {
 		List<String> matches = new ArrayList<>();
-		String fence = null;
+		char fence = 0;
+		int fenceLength = 0;
 		for (String line : content.lines().toList()) {
 			String trimmed = line.stripLeading();
-			if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
-				String token = trimmed.substring(0, 1);
-				if (fence == null) {
-					fence = token;
-				} else if (fence.equals(token)) {
-					fence = null;
+			char marker = fenceMarkerOf(trimmed);
+			int length = marker == 0 ? 0 : fenceLengthOf(trimmed, marker);
+			if (fence == 0) {
+				if (marker != 0) {
+					fence = marker;
+					fenceLength = length;
+				} else if (predicate.test(line)) {
+					matches.add(line);
 				}
 				continue;
 			}
-			if (fence == null && predicate.test(line)) {
-				matches.add(line);
+			if (closesFence(trimmed, marker, length, fence, fenceLength)) {
+				fence = 0;
+				fenceLength = 0;
 			}
 		}
 		return List.copyOf(matches);
+	}
+
+	/**
+	 * Returns the fence character a line opens or closes with, or 0 when it is not
+	 * a fence at all. Three of the character are the minimum a fence can be.
+	 */
+	public static char fenceMarkerOf(String trimmedLine) {
+		if (trimmedLine.startsWith("```")) {
+			return '`';
+		}
+		return trimmedLine.startsWith("~~~") ? '~' : 0;
+	}
+
+	/** Returns how many fence characters the line opens or closes with. */
+	public static int fenceLengthOf(String trimmedLine, char marker) {
+		int length = 0;
+		while (length < trimmedLine.length() && trimmedLine.charAt(length) == marker) {
+			length++;
+		}
+		return length;
+	}
+
+	/**
+	 * Whether this line closes the open fence: the same character, at least as
+	 * long, and carrying nothing else. An info string such as {@code ```yaml}
+	 * opens, so a line that has one cannot close.
+	 */
+	public static boolean closesFence(String trimmedLine, char marker, int length, char fence, int fenceLength) {
+		return marker == fence && length >= fenceLength && trimmedLine.substring(length).isBlank();
 	}
 
 	/**

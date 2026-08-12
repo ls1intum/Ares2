@@ -120,25 +120,75 @@ class PolicyExampleValidityTest {
 		return current.getMessage();
 	}
 
-	/** Returns the content of every fenced YAML block, in document order. */
-	private static List<String> yamlBlocksIn(String content) {
+	/**
+	 * Returns the content of every fenced YAML block, in document order.
+	 * <p>
+	 * Every fence is tracked, not only the YAML ones, and a block ends on its own
+	 * marker at its own length or longer. A page that shows a fenced example inside
+	 * a longer fence would otherwise have the inner fence close the outer block,
+	 * after which the rest of the page is read as if it were content.
+	 */
+	static List<String> yamlBlocksIn(String content) {
 		List<String> blocks = new ArrayList<>();
 		StringBuilder current = null;
+		char fence = 0;
+		int fenceLength = 0;
 		for (String line : content.lines().toList()) {
-			if (current == null) {
-				if (line.startsWith("```yaml")) {
-					current = new StringBuilder();
+			String trimmed = line.stripLeading();
+			char marker = DocumentationPages.fenceMarkerOf(trimmed);
+			int length = marker == 0 ? 0 : DocumentationPages.fenceLengthOf(trimmed, marker);
+			if (fence == 0) {
+				if (marker != 0) {
+					fence = marker;
+					fenceLength = length;
+					current = trimmed.substring(length).stripLeading().startsWith("yaml") ? new StringBuilder() : null;
 				}
 				continue;
 			}
-			if ("```".equals(line.stripTrailing())) {
-				blocks.add(current.toString());
-				current = null;
+			if (DocumentationPages.closesFence(trimmed, marker, length, fence, fenceLength)) {
+				if (current != null) {
+					blocks.add(current.toString());
+					current = null;
+				}
+				fence = 0;
+				fenceLength = 0;
 				continue;
 			}
-			current.append(line).append('\n');
+			if (current != null) {
+				current.append(line).append('\n');
+			}
 		}
 		return List.copyOf(blocks);
+	}
+
+	@Test
+	void readsAPolicyFromATildeFencedBlock() {
+		List<String> blocks = yamlBlocksIn("""
+				~~~yaml
+				regardingTheSupervisedCode:
+				~~~
+				""");
+
+		assertEquals(List.of("regardingTheSupervisedCode:\n"), blocks);
+	}
+
+	@Test
+	void doesNotCloseALongFenceOnAShorterOneInsideIt() {
+		List<String> blocks = yamlBlocksIn("""
+				````markdown
+				```yaml
+				not: a policy, an example of one
+				```
+				````
+
+				```yaml
+				regardingTheSupervisedCode:
+				```
+				""");
+
+		assertEquals(List.of("regardingTheSupervisedCode:\n"), blocks,
+				"the three-backtick example belongs to the four-backtick block that contains it, and the "
+						+ "policy after it is the only block this reads");
 	}
 
 	/** Returns true when the block declares a root key of the policy file. */

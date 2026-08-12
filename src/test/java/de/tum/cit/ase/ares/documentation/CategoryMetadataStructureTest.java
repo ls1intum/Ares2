@@ -77,7 +77,11 @@ class CategoryMetadataStructureTest {
 		assertFalse(category.get("label").asText().isBlank(), file + " must declare a non-empty \"label\".");
 
 		assertTrue(category.hasNonNull("position"), file + " must declare a \"position\".");
-		assertTrue(category.get("position").asInt() > 0, file + " must declare a positive \"position\".");
+		// asInt() reads "1" as 1, while the sibling-collision check below skips
+		// anything that is not an integer node. A quoted position would satisfy this
+		// assertion and never be compared against its siblings.
+		assertTrue(category.get("position").isInt() && category.get("position").asInt() > 0,
+				file + " must declare a positive integer \"position\", written without quotation marks.");
 	}
 
 	/**
