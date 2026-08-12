@@ -178,7 +178,7 @@ public final class ProjectSourcesFinder {
 		} catch (IOException exception) {
 			throw new IllegalStateException("Cannot read Gradle descriptor " + descriptor, exception);
 		}
-		String code = maskInactiveRegions(content, descriptor.getFileName().toString().endsWith(".kts"));
+		String code = maskInactiveRegions(content, Objects.toString(descriptor.getFileName(), "").endsWith(".kts"));
 		Map<String, String> properties = loadGradleProperties(root);
 		// Read from the mask so that an assignment inside a comment or a string
 		// cannot define a property, and taken from the original at the very same
@@ -293,10 +293,9 @@ public final class ProjectSourcesFinder {
 		}
 		for (int outer = sourceSets + 1; outer < path.size(); outer++) {
 			String name = path.get(outer);
-			if (!"main".equals(name) && !"test".equals(name)) {
-				continue;
+			if ("main".equals(name) || "test".equals(name)) {
+				return path.subList(outer + 1, path.size()).contains("java") ? name : null;
 			}
-			return path.subList(outer + 1, path.size()).contains("java") ? name : null;
 		}
 		return null;
 	}
@@ -493,10 +492,9 @@ public final class ProjectSourcesFinder {
 	 */
 	private static boolean startsAnExpression(char[] masked, int slash) {
 		for (int index = slash - 1; index >= 0; index--) {
-			if (Character.isWhitespace(masked[index])) {
-				continue;
+			if (!Character.isWhitespace(masked[index])) {
+				return "=([{,:;+-*%&|!<>?".indexOf(masked[index]) >= 0;
 			}
-			return "=([{,:;+-*%&|!<>?".indexOf(masked[index]) >= 0;
 		}
 		return true;
 	}
