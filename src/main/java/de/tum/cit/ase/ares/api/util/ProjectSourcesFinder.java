@@ -46,9 +46,12 @@ public final class ProjectSourcesFinder {
 	// Known gaps, deliberately not covered here: Kotlin's setSrcDirs(...) and
 	// srcDirs.set(...)/from(...), and lists spread over several lines. A
 	// line-oriented regex cannot follow the Gradle DSL, and pretending otherwise
-	// trades one silent failure for another. They are non-fatal instead: when the
-	// descriptor cannot be parsed, JavaProjectScanner.scanForPackageName falls back
-	// to the compiled output, which is authoritative whatever the build file says.
+	// trades one silent failure for another. They are non-fatal in the common case
+	// instead: when the descriptor cannot be parsed,
+	// JavaProjectScanner.scanForPackageName falls back to the compiled output. That
+	// is not a guarantee either, because the fallback reads the build tool's
+	// conventional output directory rather than one taken from the descriptor, so a
+	// build that also moves its output destination is not followed there.
 	private static final Pattern SOURCE_DIRECTORY = Pattern
 			.compile("(?:srcDirs\\s*(?:\\+?=|\\()\\s*|srcDir(?!s)\\s*(?:\\(\\s*)?)([^)\\]\\n}]+)");
 	private static String pomXmlPath = "pom.xml";

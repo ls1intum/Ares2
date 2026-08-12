@@ -430,8 +430,8 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
-	 * Derives the supervised package from the project, never from a default that
-	 * the project does not contain.
+	 * Derives the supervised package from what the project declares, and falls back
+	 * to a configured default only where it declares nothing.
 	 * <p>
 	 * Resolution runs in three steps, and each falls through only when it finds
 	 * nothing at all:
@@ -439,18 +439,32 @@ public class JavaProjectScanner implements ProjectScanner {
 	 * <li>the most frequent non-reserved package declared by the production
 	 * <em>sources</em>;</li>
 	 * <li>otherwise the most frequent non-reserved package declared by the compiled
-	 * production <em>output</em>. This covers every project whose build descriptor
-	 * the source-root discovery cannot parse, because the compiled output sits at
-	 * the build tool's own location whatever the descriptor says;</li>
+	 * production <em>output</em>. This covers a project whose build descriptor the
+	 * source-root discovery cannot parse, because the build tool writes its output
+	 * to the conventional location this scanner reads;</li>
 	 * <li>otherwise {@link #getDefaultPackage()}, with a warning naming the roots
-	 * that were searched. Reaching this step means the project declared nothing to
-	 * detect, and a default the project does not contain mis-scopes enforcement
-	 * silently, so the warning is the only signal a reader gets.</li>
+	 * that were searched. Reaching this step means nothing eligible was declared,
+	 * and a default the project does not contain mis-scopes enforcement silently,
+	 * so the warning is the only signal a reader gets.</li>
 	 * </ol>
-	 * Step 2 is what keeps step 3 out of reach for a real project. The compiled
-	 * output is authoritative whatever the build descriptor says, because the build
-	 * tool writes it to its own location, so a descriptor that source-root
-	 * discovery cannot parse no longer costs the supervised scope.
+	 * <b>What the result is not.</b> It is a heuristic, and the steps above narrow
+	 * the ways it goes wrong rather than closing them:
+	 * <ul>
+	 * <li>The vote is influenceable by whoever can add files to the project.
+	 * Reserved prefixes are filtered out, so a trusted namespace cannot win, but no
+	 * other namespace is protected: enough classes under a package of the
+	 * submitter's choosing make that package the derived scope, and enforcement
+	 * then covers it instead of the assignment. Step 2 changes the unit that is
+	 * counted, not who controls it.</li>
+	 * <li>Step 2 reads the build tool's conventional output directory rather than
+	 * one taken from the descriptor, so a build that writes elsewhere is not
+	 * followed there and the step finds nothing.</li>
+	 * <li>Nothing here asserts that the derived package covers every production
+	 * class, so a scope that omits part of the project passes unremarked.</li>
+	 * </ul>
+	 * An exercise that needs a scope it can rely on pins
+	 * {@code theSupervisedCodeUsesTheFollowingPackage} in a policy; this method is
+	 * then not consulted at all.
 	 *
 	 * @return the supervised package name, possibly empty; never null
 	 */
@@ -470,7 +484,8 @@ public class JavaProjectScanner implements ProjectScanner {
 		if (counts.isEmpty()) {
 			String defaultPackage = getDefaultPackage();
 			LOG.warn(
-					"No supervised package could be detected: no production source declared one under {} and no compiled class declared one under {}. "
+					"No supervised package could be detected: neither a production source under {} nor a compiled class under {} declared an eligible package, "
+							+ "that is one that is neither the default package nor a reserved one. "
 							+ "Falling back to the configured default \"{}\", which enforces nothing if the project does not contain it.",
 					productionRoots(), productionOutputRoot(), defaultPackage);
 			return defaultPackage;
@@ -487,6 +502,11 @@ public class JavaProjectScanner implements ProjectScanner {
 	 * own class file, so counting every file would weight a package by how many
 	 * inner classes it happens to contain. Blank package names are skipped, which
 	 * also disposes of {@code module-info.class} at the root of the output tree.
+	 * <p>
+	 * Nesting is read from the class file, not from the binary name. A {@code '$'}
+	 * in the name does not mean nested: it is a legal identifier character, so a
+	 * top-level {@code Payload$Hidden} carries one and a name-based test drops it
+	 * from the count.
 	 *
 	 * @return the package counts, empty when nothing is compiled or readable
 	 */
@@ -498,10 +518,7 @@ public class JavaProjectScanner implements ProjectScanner {
 		}
 		Map<String, Long> counts = new HashMap<>();
 		for (JavaClass javaClass : new ClassFileImporter().importPath(outputRoot)) {
-			// The binary name carries the '$', so it is what distinguishes a nested or
-			// anonymous class here. getSimpleName() does not: it answers "Inner" for
-			// Busy$Inner and the empty string for Busy$1.
-			if (javaClass.getName().contains("$")) {
+			if (!javaClass.isTopLevelClass()) {
 				continue;
 			}
 			String name = javaClass.getPackageName();

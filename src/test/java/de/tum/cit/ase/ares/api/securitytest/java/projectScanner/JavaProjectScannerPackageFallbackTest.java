@@ -25,10 +25,12 @@ import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 /**
  * Covers the supervised-package fallback of {@link JavaProjectScanner}.
  * <p>
- * The scanner must derive the supervised package from the project and never
- * invent one. A package that the project does not contain resolves to an
- * analysis directory that does not exist, so no class is imported and no
- * resource domain is enforced, without anything failing.
+ * The scanner must prefer what the project declares over what it is configured
+ * to assume, at every step: a package the project does not contain resolves to
+ * an analysis directory that does not exist, so no class is imported and no
+ * resource domain is enforced, without anything failing. The configured default
+ * is reached only where nothing eligible is declared at all, and the cases
+ * below pin both halves of that, the detection and the last resort.
  */
 @DisplayName("JavaProjectScanner supervised-package fallback")
 class JavaProjectScannerPackageFallbackTest {
@@ -95,6 +97,43 @@ class JavaProjectScannerPackageFallbackTest {
 		String packageName = new JavaProjectScanner(configurationWithoutSourceRoots(outputRoot)).scanForPackageName();
 
 		assertEquals("sparse", packageName);
+	}
+
+	/**
+	 * A dollar sign in a binary name does not mean the class is nested. It is a
+	 * legal identifier character, so a name-based test discards a top-level class
+	 * that carries one, and the package it belongs to is undercounted by exactly
+	 * the classes an author chose to name that way.
+	 */
+	@Test
+	@DisplayName("Counts a top-level class whose own name contains a dollar sign")
+	void countsTopLevelClassesWhoseNameContainsADollarSign() throws IOException {
+		// 'zeta' holds two top-level classes, one of them dollar-named; 'alpha' holds
+		// one. Discarding the dollar-named class makes it a tie, which the ordering
+		// then resolves to 'alpha', so this fixture separates the two behaviours
+		// rather than relying on the tie-break.
+		Path outputRoot = compile("""
+				package zeta;
+
+				public class Payload$Hidden {
+				}
+				""", "zeta/Payload$Hidden.java");
+		compileInto(outputRoot, """
+				package zeta;
+
+				public class Plain {
+				}
+				""", "zeta/Plain.java");
+		compileInto(outputRoot, """
+				package alpha;
+
+				public class Only {
+				}
+				""", "alpha/Only.java");
+
+		String packageName = new JavaProjectScanner(configurationWithoutSourceRoots(outputRoot)).scanForPackageName();
+
+		assertEquals("zeta", packageName);
 	}
 
 	/**

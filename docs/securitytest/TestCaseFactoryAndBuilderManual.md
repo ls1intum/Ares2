@@ -495,16 +495,18 @@ Defines five scanning methods that auto-detect project metadata:
 | Aspect | Detail |
 |---|---|
 | **Implements** | `ProjectScanner` |
-| **Technique** | Regex-based source code analysis. Walks all `.java` files under the project root and applies four compiled regex patterns. |
+| **Technique** | JavaParser-backed source analysis. Walks the `.java` files under the discovered source roots and reads the parsed syntax tree; the compiled output is read with ArchUnit's `ClassFileImporter` where the sources yield nothing. |
 
-**Regex patterns:**
+**What is read from the syntax tree:**
 
-| Pattern | Matches | Used by |
+| Fact | Read from | Used by |
 |---|---|---|
-| `CLASS_PATTERN` | `public [final\|abstract\|strictfp] class ClassName` | `extractClassName()` |
-| `PACKAGE_PATTERN` | `package com.example.foo;` | `extractPackageName()` |
-| `MAIN_METHOD_PATTERN` | `public static void main(String[] args)` (including varargs) | `extractMainClass()` |
-| `TEST_ANNOTATION_PATTERN` | `@Test` or `@Property` | `extractTestClass()` (which additionally treats classes containing `extends TestCase` as test classes) |
+| Package declaration | the compilation unit's `PackageDeclaration` | `scanForPackageName()` |
+| Type declarations | the top-level `TypeDeclaration`s, nested types included | `scanForMainClassInPackage()`, `scanForTestClasses()` |
+| `main` method | a `public static void main(String[])` declaration, varargs included | `scanForMainClassInPackage()` |
+| Test classes | a `@Test` or `@Property` annotation, or a JUnit 3 `TestCase` supertype resolved through the imports of the file | `scanForTestClasses()` |
+
+Resolving the supertype through the imports is why this is not a regex: `extends TestCase` names a type, and which type it names depends on what the file imported.
 
 **Scanning pipeline:**
 
@@ -517,11 +519,19 @@ ProjectSourcesFinder.findProjectSourcesPath()
 
 **`scanForPackageName()` algorithm:** Resolution runs in three steps, each reached only when the previous one finds nothing at all.
 
-1. **Production sources.** Reserved infrastructure prefixes are filtered out first (via `ReservedPackageGuard.reservedPrefixOf(...)`), so a student cannot flood the project with files in a trusted namespace to make it the derived enforcement scope. The frequency of every remaining `package` declaration is counted and the most common one wins. This heuristic works because in a typical student project the main source package appears in the majority of files.
-2. **Compiled production output.** Only top-level classes are counted, so a package is not weighted by how many nested or anonymous classes it happens to contain. This step covers every project whose build descriptor the source-root discovery cannot parse, because the build tool writes its output to its own location whatever the descriptor says.
+1. **Production sources.** Reserved infrastructure prefixes are filtered out first (via `ReservedPackageGuard.reservedPrefixOf(...)`), so a package inside a trusted namespace cannot become the derived enforcement scope. The frequency of every remaining `package` declaration is counted and the most common one wins. This heuristic works because in a typical student project the main source package appears in the majority of files.
+2. **Compiled production output.** Only top-level classes are counted, so a package is not weighted by how many nested or anonymous classes it happens to contain; nesting is read from the class file rather than from the `$` in the binary name, which is a legal identifier character. This step covers a project whose build descriptor the source-root discovery cannot parse, because the build tool writes its output to the conventional directory the scanner reads.
 3. **The configured default** (see [Section 10.3](#103-javaprogrammingexerciseprojectscanner)), with a warning naming the roots that were searched.
 
-> **Limitation.** Step 3 is a last resort and guarantees nothing. If the project does not contain the default package, the analysis path resolves to a directory that does not exist: no class is imported, no resource domain is enforced at runtime, and nothing fails. The warning in the log is the only signal. Step 2 is what keeps step 3 out of reach for a real project, and an exercise should still declare its package in the security policy rather than rely on detection.
+> **Limitation: the derived package is a heuristic, not a boundary.** Three things it does not establish.
+>
+> The **vote is influenceable by whoever can add files to the project**, and in an Artemis exercise that includes the student. Only reserved prefixes are filtered out; every other namespace is fair game, so enough classes under a package of the submitter's choosing make that package the derived scope, and the five resource domains are then enforced over it instead of over the assignment. Counting compiled classes in step 2 changes the unit that is counted, not who controls it.
+>
+> The **output directory is assumed, not read**. Step 2 looks in `target/classes` or `build/classes/java/main`, so a build that writes its output elsewhere is not followed there and the step finds nothing rather than finding the truth.
+>
+> **Step 3 guarantees nothing.** If the project does not contain the default package, the analysis path resolves to a directory that does not exist: no class is imported, no resource domain is enforced at runtime, and nothing fails. The warning in the log is the only signal.
+>
+> An exercise that needs a scope it can rely on declares its package in the security policy. The scanner is then not consulted at all, which is the only version of this that cannot be steered from the submission.
 
 **`scanForTestClasses()` algorithm:** Scans only the **test source directory** (see `scanForTestPath()`) and returns every class whose file contains a `@Test` / `@Property` annotation or `extends TestCase`.
 
