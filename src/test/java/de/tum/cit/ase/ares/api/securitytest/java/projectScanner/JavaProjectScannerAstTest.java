@@ -157,19 +157,30 @@ class JavaProjectScannerAstTest {
 				class Application { public static void main(String[] arguments) {} }
 				class Main { public static void main(String[] arguments) {} }
 				""");
+		// The class-level case is written the only way it compiles: Jupiter's @Test
+		// targets ANNOTATION_TYPE and METHOD, never TYPE, so a class can carry it only
+		// through a composed annotation that declares @Target(TYPE) for itself. The
+		// type-level branch of the scan is therefore reachable from real project code,
+		// which is why it exists, and this fixture is code a compiler would accept.
 		Files.writeString(tests.resolve("LegacyTests.java"), """
 				package pref;
+				import java.lang.annotation.ElementType;
+				import java.lang.annotation.Retention;
+				import java.lang.annotation.RetentionPolicy;
+				import java.lang.annotation.Target;
 				import junit.framework.TestCase;
 				import org.junit.jupiter.api.Test;
 				class LegacyCase extends TestCase { public void testSomething() {} }
-				@Test class ClassLevelAnnotated {}
+				@Test @Target(ElementType.TYPE) @Retention(RetentionPolicy.RUNTIME) @interface ClassLevelTest {}
+				@ClassLevelTest class ClassLevelAnnotated {}
 				class PlainHelper extends Object { void doWork() {} }
 				""");
 		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
 		// Main is preferred over Application, which is preferred over any other name.
 		assertEquals("Main", scanner.scanForMainClassInPackage());
-		// A JUnit 3 class extending TestCase and a class with a class-level test
+		// A JUnit 3 class extending TestCase and a class carrying a composed test
 		// annotation are both recognised, while a plain class that does neither is not.
+		// The annotation declaration itself is not a test class.
 		assertArrayEquals(new String[] { "pref.ClassLevelAnnotated", "pref.LegacyCase" }, scanner.scanForTestClasses());
 	}
 
@@ -242,6 +253,15 @@ class JavaProjectScannerAstTest {
 		// package name.
 		Files.writeString(production.resolve("Reserved.java"), "package metatest; class Reserved {}\n");
 		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		// Deliberately unresolvable, and deliberately not compilable: TestCase is
+		// neither imported nor declared in this package. The scan has no classpath, so
+		// it meets names it cannot resolve in files that do compile against
+		// dependencies it cannot see, and extendsTestCase answers that with
+		// candidates.isEmpty() || candidates.equals(Set.of(JUNIT_THREE_TEST_CASE)),
+		// accepting the unresolvable name. This fixture is what pins that first
+		// disjunct; the resolved spelling is covered by the imported fixture in
+		// prefersMainThenApplicationAndRecognisesJUnitThreeTestCases. Adding the import
+		// here would collapse both onto the second disjunct.
 		Files.writeString(tests.resolve("LegacyCase.java"), """
 				package checks;
 				class LegacyCase extends TestCase { public void testLegacy() {} }
@@ -251,13 +271,24 @@ class JavaProjectScannerAstTest {
 				package checks;
 				class PlainHelper {}
 				""");
+		// A composed annotation, the only compilable way to mark a class rather than a
+		// method, declared once and used from its own package and from the default
+		// package, so both the package lookup and the single-type import resolve to it.
+		Files.writeString(tests.resolve("TypeLevelTest.java"), """
+				package checks;
+				@org.junit.jupiter.api.Test
+				@java.lang.annotation.Target(java.lang.annotation.ElementType.TYPE)
+				@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+				public @interface TypeLevelTest {}
+				""");
 		Files.writeString(tests.resolve("TypeAnnotated.java"), """
 				package checks;
-				@org.junit.jupiter.api.Test class TypeAnnotated {}
+				@TypeLevelTest class TypeAnnotated {}
 				""");
 		// A default-package test class exercises the empty-package qualified-name join.
 		Files.writeString(tests.resolve("DefaultPackageCase.java"), """
-				@org.junit.jupiter.api.Test class DefaultPackageCase {}
+				import checks.TypeLevelTest;
+				@TypeLevelTest class DefaultPackageCase {}
 				""");
 		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
 		assertEquals("sol", scanner.scanForPackageName());

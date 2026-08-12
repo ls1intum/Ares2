@@ -52,6 +52,21 @@ class SecurityPolicyStrictSchemaTest {
 		assertEquals(0, resources.regardingNetworkConnections().get(0).onThePort());
 	}
 
+	@Test
+	void stillLoadsTheDeprecatedBareScalarCommandForm() throws IOException {
+		// Policy-format version 1 accepted a command as a bare scalar meaning "this
+		// command with no arguments". The form is deprecated, not removed: version 1 is
+		// still the only supported version, so a policy file written against 2.1.0 has
+		// to keep loading with the meaning it had then.
+		SecurityPolicy policy = read(validYaml()
+				.replace("      - executeTheCommand: java\n        withTheseArguments: [--version]", "      - java"));
+		var commands = policy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
+				.regardingCommandExecutions();
+		assertEquals(1, commands.size());
+		assertEquals("java", commands.get(0).executeTheCommand());
+		assertEquals(List.of(), commands.get(0).withTheseArguments());
+	}
+
 	static Stream<Arguments> invalidScalarCases() {
 		return Stream.of(Arguments.of("onThePort: 0", "onThePort: null"),
 				Arguments.of("onThePort: 0", "onThePort: \"443\""),
@@ -319,12 +334,15 @@ class SecurityPolicyStrictSchemaTest {
 				Arguments.of("onTheHost: localhost", "onTheHost: 256.1.1.1"),
 				Arguments.of("ofThisClass: java.lang.Thread", "ofThisClass: java.lang."),
 				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: java.*"),
-				// A command permission has exactly one shape. The bare scalar form was
-				// accepted once and is not part of the format any more. A non-string
-				// argument is covered by invalidSchemaShapes, and matters because Jackson
-				// would coerce 1 to "1" when binding: the schema gate is what refuses it.
+				// The deprecated bare scalar form of a command permission is still held to
+				// COMMAND_PATTERN, so a scalar carrying a control character is refused on
+				// the same terms as the mapping form. A non-string argument is covered by
+				// invalidSchemaShapes, and matters because Jackson would coerce 1 to "1"
+				// when binding: the schema gate is what refuses it.
 				Arguments.of("      - executeTheCommand: java\n        withTheseArguments: [--version]",
-						"      - java"));
+						"      - \"ja\\nva\""),
+				Arguments.of("      - executeTheCommand: java\n        withTheseArguments: [--version]",
+						"      - \" \""));
 	}
 
 	@ParameterizedTest

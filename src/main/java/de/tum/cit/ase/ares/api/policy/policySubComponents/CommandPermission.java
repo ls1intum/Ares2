@@ -7,6 +7,9 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 
@@ -19,13 +22,15 @@ import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
  * Design Rationale: Explicitly defining command execution permissions helps
  * prevent unauthorised or harmful commands.
  * <p>
- * A policy declares a command permission in exactly one shape, the mapping
- * {@code {executeTheCommand: git, withTheseArguments: [status]}}, so Jackson
- * binds this record through its canonical constructor like every other
- * permission. The bare scalar form {@code - git} was also accepted once, which
- * is why this record carried a {@code @JsonCreator} that the others do not; it
- * meant "this command with no arguments", the opposite of what most readers
- * assumed, and it is no longer part of the format.
+ * A policy should declare a command permission in one shape, the mapping
+ * {@code {executeTheCommand: git, withTheseArguments: [status]}}. The bare
+ * scalar form {@code - git} is also accepted, which is why this record carries
+ * a {@code @JsonCreator} that the others do not; it means "this command with no
+ * arguments", the opposite of what most readers assume. That form is deprecated
+ * rather than removed: it is part of policy-format version 1, which is still
+ * the only version this release supports, so a policy file written against
+ * 2.1.0 has to keep loading. It will go with the next policy-format version,
+ * and until then {@link #fromJson} names it in one place.
  * <p>
  * This record also used to override {@code toString()} to return the command
  * alone, a remnant of serialising it as a bare string through
@@ -108,6 +113,97 @@ public record CommandPermission(@Nonnull String executeTheCommand, @Nonnull List
 		return builder()
 				.executeTheCommand(Objects.requireNonNull(executeTheCommand, "executeTheCommand must not be null"))
 				.withTheseArguments(new ArrayList<>()).build();
+	}
+
+	/**
+	 * Binds a command permission from either policy-format version 1 form, used by
+	 * Jackson.
+	 * <ul>
+	 * <li>a mapping {@code {executeTheCommand: git, withTheseArguments: [status]}}
+	 * gives the command with the declared arguments. This is the form to
+	 * write;</li>
+	 * <li>a bare scalar {@code git} gives the command with an <em>empty</em>
+	 * argument list, so it permits {@code git} only when invoked with no arguments
+	 * at all. This reads as the opposite to most authors, which is why it is
+	 * deprecated.</li>
+	 * </ul>
+	 * <p>
+	 * Every value still goes through the canonical constructor, so both forms are
+	 * validated identically; this creator decides only which shape maps to which
+	 * components.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param node the parsed policy node, a string scalar or an object.
+	 * @return the command permission the node denotes.
+	 * @throws IllegalArgumentException if the node is null, is neither a scalar nor
+	 *                                  an object, or carries a malformed command or
+	 *                                  argument list.
+	 * @deprecated The scalar form is deprecated, not this method's mapping
+	 *             behaviour. Write the mapping form; a caller constructing a
+	 *             permission in code should use {@link #builder()},
+	 *             {@link #allowWithoutArguments} or {@link #allowWithAnyArguments}
+	 *             rather than assembling a {@link JsonNode}.
+	 */
+	@Deprecated(forRemoval = true)
+	@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+	@Nonnull
+	public static CommandPermission fromJson(@Nullable JsonNode node) {
+		if (node == null || node.isNull()) {
+			throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
+		}
+		if (node.isTextual()) {
+			return allowWithoutArguments(node.textValue());
+		}
+		if (!node.isObject()) {
+			throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
+		}
+		// Exactly the two fields, as the released creator required. A creator binds the
+		// whole node itself, so Jackson's own unknown-property handling never sees it;
+		// without this check a mapping carrying a misspelt or extra field would bind
+		// silently through a bare mapper, and a policy author correcting
+		// "withTheseArgument" would be told nothing.
+		if (node.size() != 2 || !node.has("executeTheCommand") || !node.has("withTheseArguments")) {
+			throw new IllegalArgumentException(Messages.localized("policy.permission.command.mapping.fields"));
+		}
+		JsonNode command = node.get("executeTheCommand");
+		if (!command.isTextual() || command.textValue().isBlank()) {
+			throw new IllegalArgumentException(Messages.localized("policy.permission.command.blank"));
+		}
+		JsonNode arguments = node.get("withTheseArguments");
+		if (!arguments.isArray()) {
+			throw new IllegalArgumentException(Messages.localized("policy.permission.command.arguments.array"));
+		}
+		List<String> declared = new ArrayList<>();
+		for (JsonNode argument : arguments) {
+			if (!argument.isTextual()) {
+				throw new IllegalArgumentException(Messages.localized("policy.permission.command.arguments.strings"));
+			}
+			declared.add(argument.textValue());
+		}
+		// The canonical constructor still applies COMMAND_PATTERN and
+		// COMMAND_ARGUMENT_PATTERN, so what this creator decides is only the shape.
+		return new CommandPermission(command.textValue(), declared);
+	}
+
+	/**
+	 * Creates a permission for the exact command without arguments.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param command the command to allow; must be neither null nor blank.
+	 * @return a new CommandPermission instance with empty arguments.
+	 * @throws NullPointerException     if the command is null.
+	 * @throws IllegalArgumentException if the command is blank or otherwise
+	 *                                  malformed.
+	 * @deprecated Use {@link #allowWithoutArguments}, which names what the empty
+	 *             argument list means. Retained because it is part of the released
+	 *             2.1.0 API.
+	 */
+	@Deprecated(forRemoval = true)
+	@Nonnull
+	public static CommandPermission fromString(@Nonnull String command) {
+		return allowWithoutArguments(command);
 	}
 
 	/**

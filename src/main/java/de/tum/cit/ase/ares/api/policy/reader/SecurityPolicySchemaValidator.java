@@ -172,10 +172,20 @@ public final class SecurityPolicySchemaValidator {
 			fail("regardingCommandExecutions must be an array");
 		}
 		for (JsonNode command : commands) {
-			// A command permission has exactly one shape, the mapping. The bare scalar
-			// form was also accepted once; it meant "this command with no arguments",
-			// which read as the opposite to most authors, and it is no longer part of
-			// the format.
+			// A command permission should be written as the mapping. The bare scalar
+			// form means "this command with no arguments", which reads as the opposite
+			// to most authors, but it is part of policy-format version 1 and this
+			// release still supports only version 1, so rejecting it here would break
+			// policy files that load today. It is deprecated on CommandPermission and
+			// goes with the next format version; until then the command it carries is
+			// held to the same pattern as the mapping form.
+			if (command != null && command.isTextual()) {
+				if (!PolicyValueValidator.matches(command.textValue(), PolicyValueValidator.COMMAND_PATTERN)) {
+					fail("regardingCommandExecutions entry must match "
+							+ PolicyValueValidator.COMMAND_PATTERN.pattern());
+				}
+				continue;
+			}
 			requireObject(command, "regardingCommandExecutions entry", COMMAND_FIELDS, COMMAND_FIELDS);
 			requireText(command, "executeTheCommand", "regardingCommandExecutions entry");
 			requirePattern(command, "executeTheCommand", "regardingCommandExecutions entry",
