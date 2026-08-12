@@ -65,6 +65,22 @@ class TestProfileCoverageTest {
 	private static final Pattern TEST_FLAG = Pattern.compile("-Dtest=(?:'([^']*)'|\"([^\"]*)\"|(\\S+))");
 
 	/**
+	 * Every annotation that marks a method or class as a test here.
+	 * <p>
+	 * The same set {@code JavaProjectScanner.TEST_ANNOTATIONS} recognises, and for
+	 * the same reason: whichever of them appears, the file runs tests. Searching
+	 * for {@code @Test} alone would not even find {@code @ParameterizedTest}, whose
+	 * name contains {@code Test} but never the {@code @Test} the search is looking
+	 * for. Both the simple and the fully qualified form are accepted, since either
+	 * compiles.
+	 */
+	private static final Pattern TEST_ANNOTATION = Pattern
+			.compile("@(?:" + "(?:org\\.junit\\.jupiter\\.api\\.)?(?:Test|RepeatedTest|TestFactory|TestTemplate)"
+					+ "|(?:org\\.junit\\.)?Test" + "|(?:org\\.junit\\.jupiter\\.params\\.)?ParameterizedTest"
+					+ "|(?:net\\.jqwik\\.api\\.)?(?:Property|Example)"
+					+ "|(?:de\\.tum\\.cit\\.ase\\.ares\\.api\\.jupiter\\.)?(?:PublicTest|HiddenTest)" + ")\\b");
+
+	/**
 	 * Files that end in {@code Test.java} without being tests.
 	 * <p>
 	 * Named individually and with the reason, because the alternative is a pattern
@@ -107,9 +123,42 @@ class TestProfileCoverageTest {
 
 			assertTrue(Files.isRegularFile(file),
 					exemption.getKey() + " is exempted from test-profile coverage but no longer exists.");
-			assertFalse(read(file).contains("@Test"),
+			assertFalse(TEST_ANNOTATION.matcher(read(file)).find(),
 					exemption.getKey() + " is exempted from test-profile coverage, but it declares a test. "
 							+ "The exemption reads: " + exemption.getValue());
+		}
+	}
+
+	@Test
+	@DisplayName("A -Dtest is recognised in every form Surefire accepts")
+	void recognisesEveryFormOfASelection() {
+		String testClass = "de/tum/cit/ase/ares/testutilities/TestProfileCoverageTest.java";
+
+		for (String selection : List.of("de.tum.cit.ase.ares.testutilities.TestProfileCoverageTest",
+				"de.tum.cit.ase.ares.testutilities.*Test", "TestProfileCoverageTest", "*ProfileCoverageTest",
+				"**/TestProfileCoverageTest.java", "de.tum.cit.ase.ares.testutilities.TestProfileCoverageTest#someTest",
+				"de.tum.cit.ase.ares.testutilities.TestProfileCoverageTest$*")) {
+			assertTrue(matchesClass(testClass, selection),
+					"Surefire runs the class for -Dtest=" + selection + ", so this must count it as selected. "
+							+ "Reporting a correctly configured workflow as a gap is the worse of the two mistakes "
+							+ "a check like this can make.");
+		}
+		for (String selection : List.of("SomeOtherTest", "de.tum.cit.ase.ares.api.*Test", "**/SomeOtherTest.java")) {
+			assertFalse(matchesClass(testClass, selection), selection + " does not name this class.");
+		}
+	}
+
+	@Test
+	@DisplayName("Every annotation that marks a test is detected in an exemption")
+	void detectsEveryAnnotationThatMarksATest() {
+		for (String annotation : List.of("@Test", "@ParameterizedTest", "@RepeatedTest", "@TestFactory",
+				"@TestTemplate", "@Property", "@Example", "@PublicTest", "@HiddenTest", "@org.junit.jupiter.api.Test",
+				"@org.junit.Test", "@net.jqwik.api.Property", "@de.tum.cit.ase.ares.api.jupiter.PublicTest")) {
+			assertTrue(TEST_ANNOTATION.matcher("\t" + annotation + "\n\tvoid something() {}").find(),
+					annotation + " marks a test, so a file carrying it is not a fixture.");
+		}
+		for (String notATest : List.of("@TestOnly", "@Testcontainers", "@DisplayName(\"Test\")")) {
+			assertFalse(TEST_ANNOTATION.matcher(notATest).find(), notATest + " does not mark a test.");
 		}
 	}
 
@@ -156,18 +205,36 @@ class TestProfileCoverageTest {
 	/**
 	 * Matches one comma-separated entry of a {@code -Dtest} against a class.
 	 * <p>
-	 * The method filter after {@code #} selects which tests of the class run, not
-	 * whether the class runs, and {@code $*} selects its nested classes, so both
-	 * are dropped before the comparison.
+	 * Surefire accepts three forms of the same selection, and all three run the
+	 * class: a fully qualified name, the simple name on its own, and a
+	 * source-relative path ending in {@code .java}. Recognising only the first
+	 * would make this test fail a workflow that is perfectly correct, which for a
+	 * check whose whole purpose is to be trusted is the worse mistake of the two.
+	 * <p>
+	 * The method filter after {@code #} selects which tests of the class run rather
+	 * than whether it runs, and {@code $*} selects its nested classes, so both are
+	 * dropped before the comparison.
 	 */
 	private static boolean matchesClass(String testClass, String selection) {
-		String name = testClass.substring(0, testClass.length() - ".java".length()).replace('/', '.');
-		String wanted = selection.split("#", 2)[0].replace("$*", "");
+		String wanted = selection.split("#", 2)[0].replace("$*", "").trim();
+		if (wanted.isEmpty()) {
+			return false;
+		}
+		if (wanted.endsWith(".java")) {
+			return testClass.matches(antPatternAsRegex(wanted));
+		}
+		String qualified = testClass.substring(0, testClass.length() - ".java".length()).replace('/', '.');
+		String candidate = wanted.contains(".") || wanted.contains("/") ? qualified
+				: qualified.substring(qualified.lastIndexOf('.') + 1);
+		return candidate.matches(dottedPatternAsRegex(wanted.replace('/', '.')));
+	}
+
+	private static String dottedPatternAsRegex(String pattern) {
 		StringBuilder regex = new StringBuilder();
-		for (char character : wanted.toCharArray()) {
+		for (char character : pattern.toCharArray()) {
 			regex.append(character == '*' ? "[^.]*" : Pattern.quote(String.valueOf(character)));
 		}
-		return name.matches(regex.toString());
+		return regex.toString();
 	}
 
 	/** The profiles and class selections every workflow step asks Surefire for. */
@@ -195,7 +262,10 @@ class TestProfileCoverageTest {
 
 	private static List<Path> workflowFiles() {
 		try (Stream<Path> entries = Files.list(WORKFLOWS)) {
-			return entries.filter(path -> path.getFileName().toString().endsWith(".yml")).sorted().toList();
+			// Both suffixes, because GitHub Actions reads both. Missing one would hide
+			// the selections that workflow makes and report its tests as unexecuted.
+			return entries.filter(path -> path.getFileName().toString().endsWith(".yml")
+					|| path.getFileName().toString().endsWith(".yaml")).sorted().toList();
 		} catch (IOException exception) {
 			throw new UncheckedIOException("Could not list " + WORKFLOWS, exception);
 		}
