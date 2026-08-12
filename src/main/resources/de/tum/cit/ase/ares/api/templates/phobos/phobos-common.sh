@@ -84,10 +84,13 @@ parse_cfg_policy() {
           set_parsed_timeout "${BASH_REMATCH[1]}"
         elif [[ "$line" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
           set_parsed_timeout "$line"
-        elif [[ "$line" =~ ^timeout[[:space:]]*= || "$sec" == "timeout" ]]; then
-          # Every line of a dedicated [timeout] section is the timeout itself, so
-          # anything unreadable there is an error too, not just an unreadable
-          # assignment. A [limits] section may carry other keys and stays lenient.
+        elif [[ "$line" =~ ^timeout([[:space:]:=]|$) || "$sec" == "timeout" ]]; then
+          # Every line of a dedicated [timeout] section is the timeout value
+          # itself, so anything unreadable there is an error too. A [limits]
+          # section may contain unrelated entries. Treat timeout as a
+          # declaration only when it ends the line or is followed by whitespace,
+          # '=' or ':', so malformed timeout declarations fail closed without
+          # policing other keys.
           report "Policy invalid: timeout must be a number of seconds, but was '${line}'. (PHB-EPOLICY)"
           exit "${PHB_EPOLICY}"
         fi ;;
