@@ -19,8 +19,9 @@ The section documented on this page is marked in red. Every page in this section
 same example file, so reading them in order walks it from top to bottom.
 
 ```yaml title="security-policy.yaml"
-regardingTheSupervisedCode:
 # policy-focus-start
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "org.example"
   theMainClassInsideThisPackageIs: "Main"
@@ -59,16 +60,17 @@ regardingTheSupervisedCode:
       - importTheFollowingPackage: "java.util"
 
     regardingTimeouts:
-      - timeout: 120
+      - timeout: 120000
 ```
 
 ## Fields
 
-Implemented by `SupervisedCode` in
+The root version field is implemented by `SecurityPolicy`, everything else by `SupervisedCode` in
 [`policy/policySubComponents/SupervisedCode.java`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/policy/policySubComponents/SupervisedCode.java).
 
 | Field | Datatype | Explanation | Example | Regex or Range |
 | --- | --- | --- | --- | --- |
+| `thisPolicyFileCompliesToThePolicyVersion` | `int` | The policy format the file is written against. This is a root field, a sibling of `regardingTheSupervisedCode` rather than one of its members, which is why it sits above it in the example. Required. | `1` | Exactly `1`. Any other value, and any file that omits the field, is rejected on load. |
 | `theFollowingProgrammingLanguageConfigurationIsUsed` | enum `ProgrammingLanguageConfiguration` | Selects the whole supervision pipeline: build system, static analysis tool and runtime instrumentation backend. Required. | `JAVA_USING_MAVEN_WALA_AND_ASPECTJ` | `^JAVA_USING_(?:MAVEN\|GRADLE)_(?:ARCHUNIT\|WALA)_AND_(?:ASPECTJ\|INSTRUMENTATION)$` |
 | `theSupervisedCodeUsesTheFollowingPackage` | `String` (nullable) | The root package holding the student code to supervise. May be omitted, in which case the project is scanned. | `org.example` | `JAVA_PACKAGE_PATTERN`: a dot-separated Java package name, each segment a Java identifier that is not a reserved word (`\p{javaJavaIdentifierStart}\p{javaJavaIdentifierPart}*`) |
 | `theMainClassInsideThisPackageIs` | `String` (nullable) | The entrypoint class used to build the call graph of the student program. | `Main` | `JAVA_CLASS_NAME_PATTERN`: a single Java type name, excluding `var`, `yield`, `record`, `sealed` and `permits` |
@@ -78,3 +80,5 @@ Implemented by `SupervisedCode` in
 The eight accepted values are the full cross product of the three dimensions: `MAVEN`/`GRADLE` × `ARCHUNIT`/`WALA` × `ASPECTJ`/`INSTRUMENTATION`. CI exercises all four analysis and weaving combinations on every change.
 
 Both nullable fields are validated only when present; a `null` is accepted and triggers project discovery instead. A blank string is not the same as absent and is rejected.
+
+The version field is rejected before anything else is looked at, so a policy that omits it never reaches the pipeline it selects. That is worth knowing when a file that looks complete is refused: the diagnostic names the missing root field, not the section you were editing.

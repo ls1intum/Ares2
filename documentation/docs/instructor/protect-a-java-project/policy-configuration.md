@@ -31,6 +31,7 @@ The file has two main parts: metadata describing the supervised code, and resour
 rules that define the sandbox policy.
 
 ```yaml
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.aresUI"
@@ -69,13 +70,14 @@ regardingTheSupervisedCode:
       - importTheFollowingPackage: "instrumentation.util"
 
     regardingTimeouts:
-      - timeout: 120
+      - timeout: 120000
 ```
 
 ## Field reference
 
 | Field | Meaning |
 | --- | --- |
+| `thisPolicyFileCompliesToThePolicyVersion` | The policy format the file is written against. A root field rather than a member of `regardingTheSupervisedCode`. Must be exactly `1`; a file that omits it is rejected on load. |
 | `theFollowingProgrammingLanguageConfigurationIsUsed` | Selects the processing pipeline (build system, static analysis tool and instrumentation backend). See the table below. |
 | `theSupervisedCodeUsesTheFollowingPackage` | The root package containing all student code to be supervised. |
 | `theMainClassInsideThisPackageIs` | The entrypoint class used to construct the call graph of the student program. |
@@ -85,7 +87,7 @@ regardingTheSupervisedCode:
 | `regardingCommandExecutions` | System commands the supervised program may execute. |
 | `regardingThreadCreations` | Thread creation limits and allowed thread classes. |
 | `regardingPackageImports` | External packages the supervised code may import. |
-| `regardingTimeouts` | Time limits for supervised code execution. |
+| `regardingTimeouts` | The execution budget for supervised code, in milliseconds. Parsed and validated, but not dispatched from the in-process path today; see [Resource Limits](../policy-reference/resource-limits.md). |
 
 :::warning[Everything is default-deny]
 Any resource not listed is denied. An empty list such as `regardingNetworkConnections: [ ]`

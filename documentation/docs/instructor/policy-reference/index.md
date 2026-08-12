@@ -38,7 +38,7 @@ so that a field's meaning and its implementation cannot drift apart in two half-
 | [Command System Access](./command-system-access.md) | Which executables may be started, with which arguments |
 | [Thread System Access](./thread-system-access.md) | Thread creation and the bounds on it |
 | [Package Permission](./package-permission.md) | Which packages may be imported |
-| [Resource Limits](./resource-limits.md) | Time and memory budgets |
+| [Resource Limits](./resource-limits.md) | The execution budget, in milliseconds |
 
 ## Notes
 

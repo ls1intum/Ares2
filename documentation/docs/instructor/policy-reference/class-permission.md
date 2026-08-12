@@ -19,6 +19,7 @@ The section documented on this page is marked in red. Every page in this section
 same example file, so reading them in order walks it from top to bottom.
 
 ```yaml title="security-policy.yaml"
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "org.example"
@@ -59,7 +60,7 @@ regardingTheSupervisedCode:
       - importTheFollowingPackage: "java.util"
 
     regardingTimeouts:
-      - timeout: 120
+      - timeout: 120000
 ```
 
 ## Fields

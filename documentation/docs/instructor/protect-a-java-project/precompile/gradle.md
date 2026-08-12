@@ -62,6 +62,7 @@ With the following minimal configuration, virtually all actions are denied by de
 providing a strict precompile sandbox for the sample test:
 
 ```yaml
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION
   theSupervisedCodeUsesTheFollowingPackage: "org.example"

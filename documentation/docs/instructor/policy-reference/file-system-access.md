@@ -19,6 +19,7 @@ The section documented on this page is marked in red. Every page in this section
 same example file, so reading them in order walks it from top to bottom.
 
 ```yaml title="security-policy.yaml"
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "org.example"
@@ -59,7 +60,7 @@ regardingTheSupervisedCode:
       - importTheFollowingPackage: "java.util"
 
     regardingTimeouts:
-      - timeout: 120
+      - timeout: 120000
 ```
 
 ## Fields
@@ -70,14 +71,16 @@ Implemented by `FilePermission` in
 | Field | Datatype | Explanation | Example | Regex or Range |
 | --- | --- | --- | --- | --- |
 | `onThisPathAndAllPathsBelow` | `String` | The path this entry governs, and everything beneath it. | `something.txt` | `FILE_PATH_PATTERN`: either `*`, or a non-blank path containing no `*` and no NUL byte, which must not traverse upwards with `..`. The placeholders `${PROJECT_ROOT}`, `${java.home}`, `${user.home}` and `${java.io.tmpdir}` are recognised; any other `${...}` is rejected. |
-| `readAllFiles` | `boolean` | Permits reading below the path. | `true` | `true` or `false`. Absent means `false`. |
-| `overwriteAllFiles` | `boolean` | Permits replacing the contents of existing files below the path. | `true` | `true` or `false`. Absent means `false`. |
-| `createAllFiles` | `boolean` | Permits creating new files below the path. | `true` | `true` or `false`. Absent means `false`. |
-| `executeAllFiles` | `boolean` | Permits executing files below the path. | `false` | `true` or `false`. Absent means `false`. |
-| `deleteAllFiles` | `boolean` | Permits deleting files below the path. | `false` | `true` or `false`. Absent means `false`. |
+| `readAllFiles` | `boolean` | Permits reading below the path. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
+| `overwriteAllFiles` | `boolean` | Permits replacing the contents of existing files below the path. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
+| `createAllFiles` | `boolean` | Permits creating new files below the path. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
+| `executeAllFiles` | `boolean` | Permits executing files below the path. | `false` | `true` or `false`. Required: an entry that omits it is rejected on load. |
+| `deleteAllFiles` | `boolean` | Permits deleting files below the path. | `false` | `true` or `false`. Required: an entry that omits it is rejected on load. |
 
 ## Notes
 
 `createRestrictive(path)` builds an entry that names a path and grants nothing, which is how a deny-all default is expressed for a path that must still be mentioned.
+
+**All six fields are required.** `SecurityPolicySchemaValidator` passes the file field set as both the accepted and the required set, so an entry that leaves a boolean out is rejected when the policy is loaded rather than read as a denial. Write `false` explicitly for every operation the entry does not permit. Omitting the whole entry is what expresses "nothing is permitted here".
 
 The `..` rejection is a security property rather than a convenience: without it a policy entry could name a path inside the project and resolve to one outside it.

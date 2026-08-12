@@ -593,6 +593,7 @@ The following diagram shows the end-to-end flow from a `SecurityPolicy` object t
 **1. Instructor writes `SecurityConfiguration.yaml`:**
 
 ```yaml
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION
   theSupervisedCodeUsesTheFollowingPackage: com.student

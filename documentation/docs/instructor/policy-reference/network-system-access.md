@@ -18,6 +18,7 @@ The section documented on this page is marked in red. Every page in this section
 same example file, so reading them in order walks it from top to bottom.
 
 ```yaml title="security-policy.yaml"
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "org.example"
@@ -58,7 +59,7 @@ regardingTheSupervisedCode:
       - importTheFollowingPackage: "java.util"
 
     regardingTimeouts:
-      - timeout: 120
+      - timeout: 120000
 ```
 
 ## Fields
@@ -70,11 +71,13 @@ Implemented by `NetworkPermission` in
 | --- | --- | --- | --- | --- |
 | `onTheHost` | `String` | The host this entry governs. | `www.example.com` | `HOST_PATTERN`: `*`, `localhost`, an IPv4 address, an IPv6 address (including IPv4-mapped forms), or a DNS name of at most 253 characters whose labels are at most 63 characters. A bare four-part numeric string is rejected as a DNS name so that it must parse as an IP address. |
 | `onThePort` | `int` | The port this entry governs. `0` is the any-port wildcard. | `80` | Range `0`–`65535` inclusive. Outside that range the constructor throws. |
-| `openConnections` | `boolean` | Permits opening a connection to the host and port. | `true` | `true` or `false`. Absent means `false`. |
-| `sendData` | `boolean` | Permits sending data on the connection. | `true` | `true` or `false`. Absent means `false`. |
-| `receiveData` | `boolean` | Permits receiving data on the connection. | `true` | `true` or `false`. Absent means `false`. |
+| `openConnections` | `boolean` | Permits opening a connection to the host and port. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
+| `sendData` | `boolean` | Permits sending data on the connection. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
+| `receiveData` | `boolean` | Permits receiving data on the connection. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
 
 ## Notes
+
+**All five fields are required.** `SecurityPolicySchemaValidator` passes the network field set as both the accepted and the required set, so an entry that leaves a boolean out is rejected when the policy is loaded rather than read as a denial. Write `false` explicitly for every operation the entry does not permit.
 
 Port `0` is the **only** any-port wildcard. There is no range syntax.
 

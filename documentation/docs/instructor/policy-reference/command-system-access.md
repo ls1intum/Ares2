@@ -18,6 +18,7 @@ The section documented on this page is marked in red. Every page in this section
 same example file, so reading them in order walks it from top to bottom.
 
 ```yaml title="security-policy.yaml"
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "org.example"
@@ -58,7 +59,7 @@ regardingTheSupervisedCode:
       - importTheFollowingPackage: "java.util"
 
     regardingTimeouts:
-      - timeout: 120
+      - timeout: 120000
 ```
 
 ## Fields
@@ -73,6 +74,6 @@ Implemented by `CommandPermission` in
 
 ## Notes
 
-`CommandPermission` also accepts a plain string through a delegating `@JsonCreator`, so a policy may write a bare command instead of the mapping form. `fromString` splits it into the command and its arguments.
+`CommandPermission` also accepts a plain string through a delegating `@JsonCreator`, so a policy may write a bare command instead of the mapping form. It is not a shorthand for a command line: `fromString` delegates to `allowWithoutArguments`, which takes the scalar as the executable in full and leaves the argument list empty. A bare `"ls -l"` therefore permits an executable literally named `ls -l`, and denies `ls` invoked with `-l`. Use the mapping form whenever arguments are involved.
 
 The argument list is copied defensively and wrapped unmodifiable, so the record is genuinely immutable and a caller cannot widen a permission after construction.
