@@ -178,8 +178,11 @@ public final class SecurityPolicySchemaValidator {
 			// release still supports only version 1, so rejecting it here would break
 			// policy files that load today. It is deprecated on CommandPermission and
 			// goes with the next format version; until then the command it carries is
-			// held to the same pattern as the mapping form.
-			if (command != null && command.isTextual()) {
+			// held to the same pattern as the mapping form. No null check: iterating a
+			// parsed array yields a NullNode for a written null, never a Java null, and
+			// requireObject below is what rejects a null entry, as in every sibling loop
+			// here.
+			if (command.isTextual()) {
 				if (!PolicyValueValidator.matches(command.textValue(), PolicyValueValidator.COMMAND_PATTERN)) {
 					fail("regardingCommandExecutions entry must match "
 							+ PolicyValueValidator.COMMAND_PATTERN.pattern());
