@@ -2,10 +2,12 @@ package de.tum.cit.ase.ares.api.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -106,5 +108,172 @@ class ProjectSourcesFinderTest {
 				"sourceSets { main { java { srcDir '../" + escape.getFileName() + "' } } }");
 		assertThrows(SecurityException.class,
 				() -> ProjectSourcesFinder.discover(temporaryDirectory, BuildMode.GRADLE));
+	}
+
+	/**
+	 * Regression: an occurrence of srcDirs that Gradle never executes used to be
+	 * read as a declaration. Since a declared root that is not a directory is
+	 * rejected, a commented-out line, or one inside a string, aborted discovery for
+	 * a descriptor Gradle accepts.
+	 */
+	@Test
+	void ignoresSourceDirectoriesInsideCommentsAndStrings() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDir 'assignment' } }
+				}
+
+				/*
+				srcDirs = ['old/path']
+				*/
+				println "srcDirs = ['not/a/real/dir']"
+				// srcDirs = ['commented/out']
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath()),
+				configuration.productionSourceRoots());
+	}
+
+	/**
+	 * Regression: the source set used to be tracked per line, so a declaration
+	 * sharing its line with the block that opens it was attributed to whatever the
+	 * previous line left behind. A test root then counted as production, which
+	 * feeds the supervised-package vote directly.
+	 */
+	@Test
+	void attributesSourceSetsDeclaredOnASingleLine() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment"));
+		Files.createDirectories(temporaryDirectory.resolve("testsources"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets { main { java { srcDirs = ['assignment'] } } }
+				sourceSets { test { java { srcDirs = ['testsources'] } } }
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath()),
+				configuration.productionSourceRoots());
+		assertEquals(List.of(temporaryDirectory.resolve("testsources").toRealPath()), configuration.testSourceRoots());
+	}
+
+	/**
+	 * Regression: the source set used to be decided by asking whether the line
+	 * contained the text "test" anywhere, so a main source root whose own path
+	 * contains it, such as 'contest', became a test root and production was left
+	 * empty.
+	 */
+	@Test
+	void classifiesBySourceSetNameRatherThanBySubstring() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("contest"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDir 'contest' } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("contest").toRealPath()),
+				configuration.productionSourceRoots());
+		assertTrue(configuration.testSourceRoots().isEmpty());
+	}
+
+	/**
+	 * A resources directory is not a Java source root, and JavaProjectScanner reads
+	 * every .java file under a production root without asking Gradle whether it
+	 * treats the directory as Java source. Attributing one would therefore let
+	 * files Gradle does not compile influence the supervised package.
+	 */
+	@Test
+	void ignoresDirectoriesDeclaredOutsideTheJavaBlock() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment"));
+		Files.createDirectories(temporaryDirectory.resolve("assets"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main {
+				    java { srcDir 'assignment' }
+				    resources { srcDir 'assets' }
+				  }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath()),
+				configuration.productionSourceRoots());
+	}
+
+	/**
+	 * A block called main that is not a source set declares no source root. Without
+	 * the enclosing sourceSets requirement any such block would, and the name is
+	 * common enough in build logic for that to matter.
+	 */
+	@Test
+	void ignoresSourceSetNamesOutsideTheSourceSetsBlock() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("src/main/java"));
+		Files.createDirectories(temporaryDirectory.resolve("elsewhere"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				application {
+				  main { java { srcDir 'elsewhere' } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("src/main/java").toRealPath()),
+				configuration.productionSourceRoots());
+	}
+
+	/**
+	 * Gradle's srcDir and srcDirs += add to the source set rather than defining it,
+	 * so the conventional root stays. Dropping it, as an accumulate-everything
+	 * reading does, silently narrows the supervised scope to the added directory.
+	 */
+	@Test
+	void keepsTheConventionalRootWhenADeclarationOnlyAdds() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("src/main/java"));
+		Files.createDirectories(temporaryDirectory.resolve("generated"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDirs += ['generated'] } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		// BuildToolConfiguration sorts the roots, so this is both of them rather than
+		// the order they were declared in.
+		assertEquals(
+				List.of(temporaryDirectory.resolve("generated").toRealPath(),
+						temporaryDirectory.resolve("src/main/java").toRealPath()),
+				configuration.productionSourceRoots());
+	}
+
+	/**
+	 * An assignment replaces what came before it, so two of them are not two source
+	 * roots. Accumulating them keeps a directory the descriptor has already
+	 * discarded, and the conventional root goes with the first replacement.
+	 */
+	@Test
+	void appliesRepeatedAssignmentsInOrderSoTheLastOneWins() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("src/main/java"));
+		Files.createDirectories(temporaryDirectory.resolve("discarded"));
+		Files.createDirectories(temporaryDirectory.resolve("effective"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main {
+				    java { srcDirs = ['discarded'] }
+				    java { srcDirs = ['effective'] }
+				  }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("effective").toRealPath()),
+				configuration.productionSourceRoots());
 	}
 }

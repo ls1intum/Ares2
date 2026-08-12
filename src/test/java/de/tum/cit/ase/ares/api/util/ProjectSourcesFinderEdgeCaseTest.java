@@ -295,9 +295,10 @@ class ProjectSourcesFinderEdgeCaseTest {
 
 		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
 
-		assertEquals(temporaryDirectory.resolve("src/main/java").toRealPath(),
-				configuration.productionSourceRoots().get(0),
-				"neither half-quoted token resolves, so the conventional root applies");
+		assertTrue(configuration.productionSourceRoots().isEmpty(),
+				"the assignment replaced the conventional root and neither half-quoted token resolves, so nothing "
+						+ "is declared. Answering src/main/java here would name a root the descriptor has ruled "
+						+ "out; the supervised package comes from the compiled output instead.");
 	}
 
 	@Test
