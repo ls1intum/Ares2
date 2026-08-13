@@ -56,16 +56,27 @@ See [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcomp
 
 ## Postcompile
 
-Postcompile mode enforces security policies at **runtime**, by instrumenting the compiled
-bytecode during test execution. When a test is annotated with `@Policy`, Ares 2:
+Postcompile mode enforces security policies at **runtime**, without writing any generated
+files into the repository. When a test is annotated with `@Policy`, Ares 2:
 
 - loads the security configuration file
-- instruments student code using Java agents (Byte Buddy)
+- arms the runtime interception the policy asks for
 - intercepts method calls to protected resources (files, network, threads, commands)
 - validates each operation against the policy and blocks unauthorised access
 
 This mode activates dynamically when tests run, and gives immediate, fine-grained control over
 student code execution without requiring pre-generated test files.
+
+:::warning[The mode does not decide the interception mechanism]
+Which mechanism does the intercepting comes from the policy's
+`theFollowingProgrammingLanguageConfigurationIsUsed`, not from the mode. An `_ASPECTJ`
+configuration needs the aspects woven into the bytecode by the AspectJ compiler during the
+build; an `_INSTRUMENTATION` configuration needs the Byte Buddy agent attached to the test JVM.
+Both work in Postcompile, and the two shipped examples run Postcompile with AspectJ. Setting up
+only the agent leaves an `_ASPECTJ` policy with nothing to intercept with, and the run stays
+green while enforcing nothing. [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md)
+sets out the same distinction and lists which combination needs which build step.
+:::
 
 **Key advantages:**
 
