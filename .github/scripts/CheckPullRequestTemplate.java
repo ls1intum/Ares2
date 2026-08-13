@@ -12,66 +12,40 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Checks a pull request body against {@code .github/PULL_REQUEST_TEMPLATE.md}.
+ * Checks that a pull request description follows {@code .github/PULL_REQUEST_TEMPLATE.md}.
  *
- * <p>Run with {@code java .github/scripts/CheckPullRequestTemplate.java} (single-file source-code
- * mode, Java 11 and later). The body arrives through the {@code PR_BODY} environment variable. It
- * is untrusted input on fork pull requests and must never be interpolated into a shell command.
+ * <p>Run with {@code java .github/scripts/CheckPullRequestTemplate.java}, which needs no build step.
+ * The description arrives in the {@code PR_BODY} environment variable. On a pull request from a fork
+ * an outsider writes that text, so it must never be put into a shell command.
  *
- * <p>The required section headings, the character limits and the phrases that answer a whole
- * section when it does not apply are listed here, in {@link #SECTIONS}, and the template states the
- * same rules in prose for the contributor who is filling it in. The two files are kept in step by hand:
- * <b>a section renamed, added, removed, given a different limit or given a different phrase in the
- * template has to be changed here in the same commit</b>, or the check will enforce yesterday's
- * shape. Nothing detects that drift, which is the price of having the rules readable in one file
- * rather than parsed out of a Markdown comment.
+ * <p>The rules live in {@link #SECTIONS} and the template says the same things in prose to whoever
+ * fills it in. This program never reads the template, so <b>a section renamed, added, removed or
+ * given a different limit or whole-section phrase has to change in both files in the same
+ * commit</b>. Nothing notices if they drift apart.
  *
- * <p>The check validates shape, not substance: that every section exists, that none was left empty,
- * that none runs past its limit, and that no unfilled stub survived in a section that did not
- * answer itself with one of its own phrases. It deliberately does not require checkboxes to be
- * ticked, which would only train contributors to tick them.
+ * <p>It checks shape, not quality: every section present, once, in order, not empty, not too long,
+ * and no blank left where the template shipped one. It does not ask for the boxes to be ticked,
+ * which would only teach people to tick them.
  */
 public class CheckPullRequestTemplate {
 
     /**
-     * Where the template lives, quoted in the messages so a contributor knows which file to copy.
-     * A path and nothing more: this program never opens that file, which is why the rules it
-     * enforces are written out in {@link #SECTIONS} instead.
+     * Where the template lives. It only names the file in the messages, so a contributor knows which one
+     * to copy. This program never opens it: the rules are written out in {@link #SECTIONS} instead.
      */
     private static final String TEMPLATE = ".github/PULL_REQUEST_TEMPLATE.md";
 
     /**
-     * Every section a body must carry, spelled exactly as the template heads it, in the order the
-     * template puts them in, each with the rules that section is held to.
-     *
-     * <p>The rules are always two strings. The first is the character limit, the second is the
-     * phrase that answers the <em>whole</em> section when it does not apply, and an empty string in
-     * either place means the section has none of that: no limit, or no phrase. Every section states
-     * both, so a section is read the same way as every other and a missing entry is a mistake
-     * rather than a shorthand.
-     *
-     * <p>Finding the phrase is what excuses a section from the leftover-stub scan, so a phrase that
-     * answers only a part of a section does not belong here: it would excuse the rest of the
-     * section along with the part it speaks for.
-     *
-     * <p>Holding the phrases here rather than in one list for the whole document is what makes them
-     * belong to a section. "No production Java code changed" now answers the coverage table and
-     * nothing else, where before a sentence of ordinary prose containing those words anywhere would
-     * have excused any section from the leftover-stub scan.
-     *
-     * <p>One ordered map rather than a list of headings beside a map of rules: a rule cannot then
-     * name a section that is not required, because there is nowhere to write it, and the order the
-     * presence and order checks rely on is the order it is read in here. A {@code LinkedHashMap} is
-     * what makes that true; {@code Map.of} deliberately varies its iteration order between runs.
-     *
-     * <p>A list of strings cannot say which entry is what, so the meaning of the first one is a
-     * convention rather than a type, and a limit that is not a number is a mistake this file cannot
-     * fail to compile over. {@link #miswritten()} is what stands in for the compiler here, and it
-     * runs before any body is judged.
+     * Every section a description must have, in the order the template puts them, each with two rules: how
+     * many characters it may hold, and the phrase that answers the whole section when it does not apply.
+     * An empty string means it has no limit, or no phrase. One ordered map, so a rule cannot name a
+     * section nobody requires, and so the order below is the order sections are expected in.
      */
     private static final Map<String, List<String>> SECTIONS;
 
     static {
+        // A LinkedHashMap, because Map.of does not promise any order at all and the order check
+        // reads this one.
         Map<String, List<String>> sections = new LinkedHashMap<>();
         sections.put("## Summary", List.of("500", ""));
         sections.put("## Linked issues", List.of("1000", "No linked issues"));
@@ -94,81 +68,60 @@ public class CheckPullRequestTemplate {
         SECTIONS = Collections.unmodifiableMap(sections);
     }
 
+    /** A section heading: a line that starts with {@code ## } and has something after it. */
     private static final Pattern HEADING = Pattern.compile("^## .+$", Pattern.MULTILINE);
 
     /**
-     * The constructs whose contents are not ordinary prose: an HTML comment, a fenced code block,
-     * and an inline code span. The comment and fence alternatives run to the end of the text when
-     * they are never closed, which is what Markdown renders and therefore what a reader sees.
-     *
-     * <p>They are matched by one pattern rather than one after the other, because each can contain
-     * another's opening marker and only the one that starts first is real. Matching comments first
-     * would let a {@code <!--} shown in code swallow everything up to the next genuine {@code -->},
-     * and the text in between would then be counted by nobody although a reader sees all of it;
-     * matching code first would let a fence quoted inside a comment do the same. A single
-     * left-to-right scan asks the only question that has an answer: which one starts here?
-     *
-     * <p>The fence alternatives follow CommonMark: up to three spaces of indent, at least three
-     * backticks or tildes, closed by a run of the same character at least as long as the opening
-     * one. The length matters, because the usual way to show a fenced block is to wrap it in a
-     * longer fence; a closing run shorter than the opening one is content, not a close. The opening
-     * run is matched possessively so that it cannot be given back to let an inner, shorter run pass
-     * as the close, and a backtick fence's info string may not contain a backtick, as CommonMark
-     * requires.
-     *
-     * <p>The inline alternative is a code span: a whole run of backticks, closed by a whole run of
-     * the same length. Both ends are guarded on both sides, because a run of two that opens nothing
-     * would otherwise close on the last two backticks of a run of three further down, and swallow
-     * the heading in between. It comes last, so a fence opening a line is
-     * read as a fence. A span may wrap onto the next line, but the search for its close stops
-     * where the block it sits in does: at a blank line, and at a heading, which needs no blank line
-     * to interrupt a paragraph. A stray backtick above a heading must not swallow it. Both the
-     * opening run and the search for the close are written
-     * so that neither can be given back. A body is untrusted input on a fork pull request, and a
-     * run of backticks that never closes must cost one scan rather than an exponential one.
-     *
-     * <p>Two code contexts are deliberately not recognised: an indented code block, and a fence
-     * nested inside a list item or a block quote, where CommonMark measures the indent against the
-     * container rather than against the margin. Comment markers written in either of those are
-     * still read as a comment, so their text is not counted, and an unclosed one there can reach
-     * the next real {@code -->} and mask a heading in between.
-     *
-     * <p>The stopping point is deliberate. Recognising those two means tracking container
-     * indentation and the block that precedes each line, which is a Markdown parser, and an
-     * attempt at one that stops halfway costs more than it buys: the version of this check that
-     * matched four-space indentation without its container read a paragraph continued under a
-     * numbered list as code, which is ordinary Markdown that any contributor may write. This is a
-     * check on a body its own author writes, not a boundary that keeps anyone out, so a hole that
-     * has to be entered on purpose is a fair price for not failing bodies that are written in good
-     * faith. What this check reads is stated plainly rather than described as what a reader sees.
+     * Three things whose insides must not be read as ordinary text: an HTML comment, which never shows on
+     * the page, a fenced code block, and code between backticks. One pattern finds all three, so that
+     * whichever starts first wins, because each can hold another's opening marks. A comment or a fence
+     * that is never closed runs to the end of the text, which is what GitHub shows.
      */
     private static final Pattern NOT_PROSE = Pattern.compile(
             "(?<comment><!--.*?(?:-->|\\z))"
+                    // A fence closes only on a run of its own character at least as long as the one
+                    // that opened it, which is how a longer fence shows a shorter one. The opening
+                    // run cannot be given back, or an inner shorter run would close it early, and
+                    // what follows the opening backticks may hold none, as CommonMark has it.
                     + "|^ {0,3}(?<backticks>`{3,}+)[^`\\n]*\\n.*?(?:^ {0,3}\\k<backticks>`*[ \\t]*$|\\z)"
                     + "|^ {0,3}(?<tildes>~{3,}+)[^\\n]*\\n.*?(?:^ {0,3}\\k<tildes>~*[ \\t]*$|\\z)"
+                    // Guarded on both sides, so two backticks cannot close on the last two of three,
+                    // and stopped at a blank line or a heading, so a stray one cannot swallow them.
+                    // The opening run cannot be given back either: a run that never closes must cost
+                    // one scan, since an outsider writes this text on a fork pull request.
                     + "|(?<!`)(?<span>`++)(?:(?!\\n(?:[ \\t]*\\n| {0,3}#{1,6}(?:[ \\t]|$))).)+?(?<!`)\\k<span>(?!`)",
+            // Code indented four spaces, or fenced inside a list or a quote, is not recognised:
+            // reading those means tracking the block above each line, which is a Markdown parser.
             Pattern.DOTALL | Pattern.MULTILINE);
 
     /**
-     * The numbered blank the testing manual ships under Prerequisites and under Steps, left as it
-     * came: a line that is a number and a full stop and nothing else. It is looked for in every
-     * section, since a stub is a leftover wherever it survives, but section 4 is where the template
-     * puts one.
+     * The numbered blank the testing manual ships under Prerequisites and under Steps, left as it came: a
+     * line holding a number and a full stop and nothing else. Looked for in every section, since a
+     * leftover is a leftover wherever it sits.
      */
     private static final Pattern TESTING_MANUAL_STUB = Pattern.compile("\\s*\\d+\\.\\s*");
 
     /**
-     * The blank row the test case coverage table ships, left as it came: a row whose every cell is
-     * whitespace. The table's separator row ({@code | --- | ---: |}) never matches, because dashes
-     * are not whitespace, so no separate exclusion is needed. As with the numbered blank, it is
-     * looked for in every section, and section 5 is where the template puts one.
+     * The blank row the coverage table ships, left as it came: a row whose cells are all empty. The line of
+     * dashes under the header never matches, because dashes are not empty. Looked for in every section
+     * too.
      */
     private static final Pattern TEST_CASE_COVERAGE_STUB = Pattern.compile("\\s*\\|(\\s*\\|)+\\s*");
 
+    /**
+     * Runs the check and exits with the verdict: 0 if it passed, 1 if either the description or this
+     * file's own rules failed it. That number is what makes the check green or red.
+     */
     public static void main(String[] args) throws IOException {
         System.exit(run());
     }
 
+    /**
+     * The whole check, in order: this file's own rules first, then the description, then the headings it
+     * has, then each section against its rules. It gathers complaints rather than stopping at the first,
+     * so one edit can answer several, but it gives up early if this file's own rules are broken or the
+     * description is empty.
+     */
     private static int run() throws IOException {
         List<String> required = List.copyOf(SECTIONS.keySet());
         List<String> problems = new ArrayList<>(miswritten());
@@ -206,8 +159,8 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The required headings the body does not have. Counted against the headings the body really
-     * has, so one merely quoted inside a sentence does not answer for the section it names.
+     * The required headings the description does not have. Compared against the headings it really has, so
+     * one quoted inside a sentence does not count as the section it names.
      */
     private static List<String> missing(List<String> required, List<String> found) {
         List<String> problems = new ArrayList<>();
@@ -220,8 +173,8 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The required headings the body has more than once. Of two occurrences only the last would be
-     * inspected, which would leave everything above it, its length included, unchecked.
+     * The required headings the description has more than once. Of two, only the last would be looked at,
+     * which would leave everything above it, its length included, unchecked.
      */
     private static List<String> duplicated(List<String> required, List<String> found) {
         List<String> problems = new ArrayList<>();
@@ -236,9 +189,8 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The required headings the body has exactly once, which are the only ones worth cutting a
-     * section out for. A missing one has nothing to cut, and a repeated one has already been
-     * complained about.
+     * The required headings that appear exactly once, which are the only ones worth cutting a section out
+     * for. A missing one has nothing to cut, and a repeated one has been complained about already.
      */
     private static List<String> once(List<String> required, List<String> found) {
         List<String> usable = new ArrayList<>();
@@ -251,24 +203,10 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The complaints about this file rather than about a pull request body: no required section at
-     * all, which would pass everything; a heading spelled so that {@link #HEADING} could never
-     * match it, which would fail every body with a missing section nobody can act on; a section
-     * that does not state exactly a limit and a phrase; a limit that is neither empty nor a whole
-     * number of at least one that fits in an {@code int}; and a phrase of whitespace, which is
-     * neither a phrase nor the empty string that says the section has none.
-     *
-     * <p>This is where a list of strings costs something. The first entry means the limit only by
-     * convention, so nothing but this method notices {@code List.of("one thousand")}, and it has to
-     * notice before a body is judged rather than when {@link #inspect} parses it and throws.
-     *
-     * <p>Two mistakes the older shape could make are gone rather than caught. A rule for a section
-     * that is not required has nowhere to be written, and a section required twice collapses into
-     * the one entry a map can hold. An unbounded section is a legitimate state, so a blank limit is
-     * never a complaint.
-     *
-     * <p>It says nothing about the template, which this check no longer reads; keeping that in step
-     * is a human job.
+     * The complaints about this file rather than about a description: no sections listed at all, a heading
+     * it could never find, a section not stating exactly a limit and a phrase, a limit that is not a whole
+     * number of at least one that Java can hold, or a phrase of nothing but whitespace. Checked before any
+     * description is judged, and every message says which file to fix.
      */
     private static List<String> miswritten() {
         List<String> problems = new ArrayList<>();
@@ -302,9 +240,8 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The complaint about one section's limit, or an empty list when it reads. An empty limit means
-     * the section is unbounded; anything else must be a whole number of at least one that fits in
-     * an {@code int}, which is every length a section could sensibly be held to.
+     * Whether one section's limit can be used. Empty means the section has no limit. Anything else must be
+     * a whole number of at least one, and small enough for Java to hold.
      */
     private static List<String> miswrittenLimit(String heading, String declared) {
         if (declared.isEmpty()) {
@@ -329,14 +266,9 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * Collects the problems in a single section, or an empty list when it is well formed. The rules
-     * are the section's own entry of {@link #SECTIONS}: its limit first, then the phrase that
-     * answers it when it does not apply, either of which may be empty.
-     *
-     * <p>Four questions in the order they stop mattering. An empty section is nothing but empty. A
-     * section that says only its phrase is finished, and neither its length nor its skeleton is
-     * anyone's business. Everything else is held to its limit, and to having filled in what the
-     * template handed it.
+     * The problems in one section, or none. Four questions in the order they stop mattering: an empty
+     * section is only empty; a section that says just its phrase is finished; anything else has to fit its
+     * limit, and must not still hold the blanks the template shipped.
      */
     private static List<String> inspect(String heading, String content, List<String> rules) {
         String prose = visible(content);
@@ -354,34 +286,23 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * Whether the section says its phrase and nothing else, which finishes it. The phrase has to be
-     * the whole answer rather than appear somewhere in one: a section that says "No linked issues,
-     * the report came by email" has more to check, and reading a phrase as an answer wherever it
-     * turned up is how the older document-wide list excused sections it had never heard of.
-     *
-     * <p>A trailing full stop does not spoil it. The template writes the phrases without one and
-     * people write sentences with one, and refusing to see that is pedantry a contributor cannot
-     * guess their way out of.
-     *
-     * <p>A section with no phrase is never answered this way; every string equals nothing after
-     * enough stripping, and an empty phrase asked as a question would finish every section there is.
+     * Whether the section says its phrase and nothing else, which finishes it. A full stop at the end is
+     * fine. The phrase has to be the whole answer rather than a few words inside one, and a section with
+     * no phrase is never finished this way.
      */
     private static boolean answered(String prose, String phrase) {
         return !phrase.isEmpty() && stripped(prose).equalsIgnoreCase(stripped(phrase));
     }
 
-    /** Text without the trailing full stops and whitespace that carry no meaning here. */
+    /** Text without the full stops and whitespace at the end, which carry no meaning here. */
     private static String stripped(String text) {
         return text.replaceAll("[.\\s]+$", "");
     }
 
     /**
-     * The complaint about a section that runs past its limit, or an empty list. Measured on the
-     * prose left once the instruction comments are removed, so the guidance a contributor keeps in
-     * the body costs nothing, and on normalised line endings, so the same text does not measure
-     * longer because GitHub delivered it with CRLF. Counted in Unicode code points rather than in
-     * Java chars, so that a character outside the basic plane, an emoji for instance, counts once
-     * rather than twice.
+     * The complaint about a section longer than its limit, or none. Counted on what is left once the
+     * instruction notes are removed, so keeping them costs nothing, and counted in Unicode code points, so
+     * that a character outside the basic set counts once rather than twice.
      */
     private static List<String> tooLong(String heading, String prose, String declared) {
         if (declared.isEmpty()) {
@@ -398,10 +319,9 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The complaints about skeleton the template shipped and nobody filled in. Read from a masked
-     * copy rather than the text itself, so that a '1.' inside a fenced example, where it is sample
-     * text rather than an unfilled stub, no longer reads as one: a blanked line holds no digit and
-     * no table pipe, so neither pattern can match it.
+     * The complaints about blanks the template shipped and nobody filled in. Read from a copy with every
+     * comment, fence and backtick run this program recognises painted over, so that their contents are
+     * not mistaken for a blank somebody forgot.
      */
     private static List<String> leftoverStubs(String heading, String content) {
         List<String> problems = new ArrayList<>();
@@ -424,10 +344,8 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The complaint about the first required section that sits in the wrong place, or an empty list
-     * when the order matches the template. Sections read as a story, and a reviewer who has to hunt
-     * for the testing manual above the problem it solves is reading a different document from the
-     * one the template describes.
+     * The complaint about the first required section in the wrong place, or none. The sections read as a
+     * story, and one that has moved sends a reader hunting for it.
      */
     private static List<String> outOfOrder(List<String> required, List<String> found) {
         List<String> asWritten = new ArrayList<>();
@@ -449,14 +367,10 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The text with every comment, fenced block and inline code span replaced by spaces of its own
-     * length,
-     * newlines kept. Headings are located in this copy and sections are then cut out of the
-     * original at the same offsets, which the equal length guarantees stays exact.
-     *
-     * <p>Masking rather than deleting is what makes both directions safe: a heading written inside
-     * a comment, or shown inside a fenced example, is no longer mistaken for a real one, while the
-     * section content, and therefore the length that is measured, is still the original text.
+     * The text with every comment, fence and backtick run this program recognises painted over in spaces,
+     * the line breaks kept. Same length is the point: headings are found in this copy and the real text is
+     * cut out of the original at the same places, so a heading inside a note, or shown in a fenced
+     * example, is not taken for a real one.
      */
     private static String masked(String text) {
         StringBuilder result = new StringBuilder(text);
@@ -471,7 +385,7 @@ public class CheckPullRequestTemplate {
         return result.toString();
     }
 
-    /** The '## ' headings of a document, in order, trimmed. */
+    /** The {@code ## } headings of a text, in order, with the spaces around them trimmed. */
     private static List<String> headings(String text) {
         List<String> found = new ArrayList<>();
         Matcher matcher = HEADING.matcher(text);
@@ -482,9 +396,9 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * Splits text into heading to body, for the given headings only, in document order. The
-     * headings are located in {@code masked}, the content is cut out of {@code text}; the two are
-     * the same length, so an offset means the same thing in both.
+     * Cuts a text into each wanted heading and the text under it. The headings are found in the painted
+     * copy and the text is cut out of the original, which is the same length, so a place means the same
+     * thing in both.
      */
     private static Map<String, String> sections(String text, String masked, List<String> wanted) {
         List<int[]> bounds = new ArrayList<>();
@@ -507,10 +421,9 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The text left once the comments are removed and the surrounding whitespace trimmed. A fenced
-     * block is kept: a reader sees it, so it counts towards a length limit, and a {@code <!--}
-     * shown inside one is text rather than the start of a comment. Which of the two a match is, is
-     * asked of the pattern itself, through the {@code comment} group of {@link #NOT_PROSE}.
+     * The text left once the comments this program recognises are removed, with the ends trimmed. Code is
+     * kept, since a reader sees it. This is what empty and too long are measured on, which is why keeping
+     * the template's instruction notes costs nothing.
      */
     private static String visible(String text) {
         StringBuilder result = new StringBuilder();
@@ -528,14 +441,17 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * Normalises line endings. The repository checks Markdown out with CRLF (see .gitattributes)
-     * and GitHub delivers pull request bodies with CRLF, so every pattern here would otherwise have
-     * to tolerate a stray carriage return.
+     * Makes every line ending the same. GitHub sends Windows line endings and this repository stores
+     * Markdown with them too, so without this the same text would measure longer than it reads.
      */
     private static String normalise(String text) {
         return text.replace("\r\n", "\n").replace("\r", "\n");
     }
 
+    /**
+     * Writes the verdict where people look: {@code ::error::} lines for GitHub's annotations when
+     * something is wrong, and a short Markdown summary on the job page when the workflow provides one.
+     */
     private static void report(List<String> problems, List<String> required) throws IOException {
         List<String> lines = new ArrayList<>();
         if (problems.isEmpty()) {

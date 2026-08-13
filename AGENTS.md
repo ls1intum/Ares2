@@ -112,15 +112,16 @@ needs no build step and adds no language to the repository.
 **Changing the template is two edits, not one.** The required headings, the character
 limits and the phrases that answer a section live in one ordered map, `SECTIONS`, at the
 top of `.github/scripts/CheckPullRequestTemplate.java`, in the order the template puts them
-in. Each entry is a heading and exactly two strings: the character limit, then that
-section's phrase for when it does not apply, with an empty string in either place meaning
-the section has none of that. `No mode-specific
+in. Each entry is a heading and exactly two strings: the character limit, then the phrase
+that answers that whole section when it does not apply, with an empty string in either
+place meaning the section has none of that. The two phrases that answer only a part of
+section 4 are not in it, so changing one of those changes the template alone. `No mode-specific
 behaviour changed` is not among them on purpose, because it answers the modes rather than
 the testing manual they sit inside, and a phrase excuses its whole section from the
 leftover-stub scan. The template states the same rules in prose for whoever is filling it
 in. The checker does not read the template, so a section renamed, added, removed, given a
-different limit or given a different phrase has to be changed in both files in the same
-commit. Nothing detects the drift: the template
+different limit or given a different whole-section phrase has to be changed in both files
+in the same commit. Nothing detects the drift: the template
 would keep promising 1000 characters while the check went on enforcing 500. The checker
 does verify itself, but only against itself, refusing to run if it requires no sections at
 all, spells a heading so that it could never match one, states anything other than a limit
