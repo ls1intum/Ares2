@@ -32,15 +32,16 @@ public class CheckPullRequestTemplate {
     private static final Pattern HEADING = Pattern.compile("^## .+$", Pattern.MULTILINE);
 
     /**
-     * The two constructs whose contents are not ordinary prose: an HTML comment, and a fenced code
-     * block. Both alternatives run to the end of the text when they are never closed, which is what
-     * Markdown renders and therefore what a reader sees.
+     * The constructs whose contents are not ordinary prose: an HTML comment, a fenced code block,
+     * and an inline code span. The comment and fence alternatives run to the end of the text when
+     * they are never closed, which is what Markdown renders and therefore what a reader sees.
      *
-     * <p>They are matched by one pattern rather than one after the other, because either can contain
-     * the other's opening marker and only the one that starts first is real. Matching comments first
-     * would let a {@code <!--} shown inside a code block swallow everything up to the next genuine
-     * {@code -->}; matching fences first would let a fence quoted inside a comment do the same. A
-     * single left-to-right scan asks the only question that has an answer: which one starts here?
+     * <p>They are matched by one pattern rather than one after the other, because each can contain
+     * another's opening marker and only the one that starts first is real. Matching comments first
+     * would let a {@code <!--} shown in code swallow everything up to the next genuine {@code -->},
+     * and the text in between would then be counted by nobody although a reader sees all of it;
+     * matching code first would let a fence quoted inside a comment do the same. A single
+     * left-to-right scan asks the only question that has an answer: which one starts here?
      *
      * <p>The fence alternatives follow CommonMark: up to three spaces of indent, at least three
      * backticks or tildes, closed by a run of the same character at least as long as the opening
@@ -49,11 +50,23 @@ public class CheckPullRequestTemplate {
      * run is matched possessively so that it cannot be given back to let an inner, shorter run pass
      * as the close, and a backtick fence's info string may not contain a backtick, as CommonMark
      * requires.
+     *
+     * <p>The inline alternative is a code span: a whole run of backticks, closed by a whole run of
+     * the same length. Both ends are guarded on both sides, because a run of two that opens nothing
+     * would otherwise close on the last two backticks of a run of three further down, and swallow
+     * the heading in between. It comes last, so a fence opening a line is
+     * read as a fence. A span may wrap onto the next line, but the search for its close stops
+     * where the block it sits in does: at a blank line, and at a heading, which needs no blank line
+     * to interrupt a paragraph. A stray backtick above a heading must not swallow it. Both the
+     * opening run and the search for the close are written
+     * so that neither can be given back. A body is untrusted input on a fork pull request, and a
+     * run of backticks that never closes must cost one scan rather than an exponential one.
      */
     private static final Pattern NOT_PROSE = Pattern.compile(
             "<!--.*?(?:-->|\\z)"
                     + "|^ {0,3}(?<backticks>`{3,}+)[^`\\n]*\\n.*?(?:^ {0,3}\\k<backticks>`*[ \\t]*$|\\z)"
-                    + "|^ {0,3}(?<tildes>~{3,}+)[^\\n]*\\n.*?(?:^ {0,3}\\k<tildes>~*[ \\t]*$|\\z)",
+                    + "|^ {0,3}(?<tildes>~{3,}+)[^\\n]*\\n.*?(?:^ {0,3}\\k<tildes>~*[ \\t]*$|\\z)"
+                    + "|(?<!`)(?<span>`++)(?:(?!\\n(?:[ \\t]*\\n| {0,3}#{1,6}(?:[ \\t]|$))).)+?(?<!`)\\k<span>(?!`)",
             Pattern.DOTALL | Pattern.MULTILINE);
 
     /** The opening of the comment alternative of {@link #NOT_PROSE}, to tell the two apart. */
@@ -291,7 +304,8 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The text with every comment and every fenced block replaced by spaces of its own length,
+     * The text with every comment, fenced block and inline code span replaced by spaces of its own
+     * length,
      * newlines kept. Headings are located in this copy and sections are then cut out of the
      * original at the same offsets, which the equal length guarantees stays exact.
      *
