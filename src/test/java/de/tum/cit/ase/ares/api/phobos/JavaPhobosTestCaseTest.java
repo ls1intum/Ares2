@@ -93,14 +93,18 @@ class JavaPhobosTestCaseTest {
 
 	@Test
 	void aWhitespaceLeadingRelativePathIsSerialisedWithADotSlashPrefix() {
-		// The parser trims a leading space or tab off a line before reading it, which
-		// would name a different file. After the prefix the space or tab is interior
-		// and survives, so the path still reaches the sandbox as it was written.
+		// The parser trims leading blank characters off a line before reading it,
+		// which would name a different file. After the prefix the character is
+		// interior and survives, so the path still reaches the sandbox as written.
 		assertEquals("./ [draft", readOnlyLineFor(" [draft"));
 		assertEquals("./\t[draft", readOnlyLineFor("\t[draft"));
-		// The bracket is not what matters here; any leading space or tab is trimmed.
+		// The bracket is not what matters here; any trimmed leading character counts.
 		assertEquals("./ file", readOnlyLineFor(" file"));
 		assertEquals("./\tfile", readOnlyLineFor("\tfile"));
+		// The remaining single-line blanks the parser trims are handled explicitly.
+		assertEquals("./\rfile", readOnlyLineFor("\rfile"));
+		assertEquals("./\u000Bfile", readOnlyLineFor("\u000Bfile"));
+		assertEquals("./\ffile", readOnlyLineFor("\ffile"));
 	}
 
 	@Test
@@ -141,14 +145,23 @@ class JavaPhobosTestCaseTest {
 		return singleFilesystemLine(new FilePermission(path, true, true, false, false, false), "write");
 	}
 
+	/**
+	 * The configuration is split on the newline the generator writes rather than by
+	 * a line-oriented regex, because a carriage return inside a path would end a
+	 * regex line and hide the very characters these cases are about.
+	 */
 	private static String singleFilesystemLine(FilePermission permission, String section) {
 		JavaPhobosTestCase testCase = JavaPhobosTestCase.builder()
 				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
 				.resourceAccessSupplier(() -> List.of(permission)).build();
 		String configuration = testCase.writePhobosTestCase();
-		Matcher matcher = Pattern.compile("(?m)^\\[" + section + "]\\n(.+)$").matcher(configuration);
-		assertTrue(matcher.find(), "generated cfg must contain a [" + section + "] entry, was:\n" + configuration);
-		return matcher.group(1);
+		String[] lines = configuration.split("\n", -1);
+		for (int index = 0; index < lines.length - 1; index++) {
+			if (lines[index].equals("[" + section + "]")) {
+				return lines[index + 1];
+			}
+		}
+		throw new AssertionError("generated cfg must contain a [" + section + "] entry, was:\n" + configuration);
 	}
 
 	@Test

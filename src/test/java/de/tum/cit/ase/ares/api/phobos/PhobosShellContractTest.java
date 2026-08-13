@@ -273,16 +273,26 @@ class PhobosShellContractTest {
 
 	@Test
 	void aGeneratedWhitespaceLeadingPathReachesTheSandboxWithItsSpaceIntact() throws Exception {
-		// The parser trims a leading space off a line before it classifies it, so an
-		// unprefixed " [draft" would arrive as "[draft" and be read as a header. The
-		// generated './' form has to carry the space through to the sandbox unchanged.
+		// The parser trims leading blank characters off a line before it classifies
+		// it, so an unprefixed " [draft" would arrive as "[draft" and be read as a
+		// header, and the others would silently name a different file. One generated
+		// policy carries every character the serialiser protects, so the whole set is
+		// proven through the real parser at once rather than one test each.
 		String generated = JavaPhobosTestCase.builder()
 				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
 				.resourceAccessSupplier(() -> List.of(new FilePermission(" [draft", true, false, false, false, false),
+						new FilePermission("\ttabbed", true, false, false, false, false),
+						new FilePermission("\rreturned", true, false, false, false, false),
+						new FilePermission("\u000Bvertical", true, false, false, false, false),
+						new FilePermission("\ffed", true, false, false, false, false),
 						new FilePermission(" out", true, true, false, false, false)))
 				.build().writePhobosTestCase();
 
-		assertTrue(generated.contains("[readonly]\n./ [draft\n"), generated);
+		assertTrue(generated.contains("[readonly]\n"), generated);
+		for (String expected : new String[] { "./ [draft", "./\ttabbed", "./\rreturned", "./\u000Bvertical",
+				"./\ffed" }) {
+			assertTrue(generated.contains("\n" + expected + "\n"), expected + " missing from:\n" + generated);
+		}
 		assertTrue(generated.contains("[write]\n./ out\n"), generated);
 
 		Path config = temporaryDirectory.resolve("generated-whitespace-path.cfg");
@@ -291,7 +301,11 @@ class PhobosShellContractTest {
 
 		assertEquals(0, result.exitCode(), result.output());
 		assertFalse(result.output().contains("PHB-EPOLICY"), result.output());
-		assertEquals("./ [draft\n./ out\n", result.output(), "the leading space must survive to the sandbox");
+		for (String expected : new String[] { "./ [draft", "./\ttabbed", "./\rreturned", "./\u000Bvertical", "./\ffed",
+				"./ out" }) {
+			assertTrue(result.output().contains(expected + "\n"),
+					expected + " did not survive to the sandbox, got:\n" + result.output());
+		}
 	}
 
 	@Test

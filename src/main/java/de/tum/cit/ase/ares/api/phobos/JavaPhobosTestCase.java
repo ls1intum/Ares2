@@ -146,23 +146,27 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	/**
 	 * Serialises a single filesystem path for the Phobos configuration.
 	 * <p>
-	 * Two kinds of first character would not survive the journey to the sandbox. A
-	 * line beginning with {@code [} is reserved for a section header, and the
-	 * parser trims a leading space or tab off every line before it reads it, which
-	 * would quietly name a different file. Both are emitted with an equivalent
+	 * Some first characters would not survive the journey to the sandbox. A line
+	 * beginning with {@code [} is reserved for a section header, and the parser
+	 * trims leading blank characters off every line before it reads it, which would
+	 * quietly name a different file. Such a path is emitted with an equivalent
 	 * {@code ./} prefix: {@code [draft} and {@code ./[draft}, or {@code " [draft"}
 	 * and {@code "./ [draft"}, name the same relative path once the sandbox
-	 * canonicalises them, and after the prefix the space or tab is interior and so
+	 * canonicalises them, and after the prefix the character is interior and so
 	 * survives trimming. The prefix carries no meaning of its own.
 	 * <p>
+	 * The protected set is written out explicitly and is exactly {@code [}, space,
+	 * tab, carriage return, vertical tab and form feed: the bracket the grammar
+	 * reserves, plus the blank characters the parser trims on a single line. It is
+	 * deliberately a list rather than a general whitespace test, because a broader
+	 * notion would rewrite paths the parser would have kept verbatim.
+	 * <p>
 	 * The test is deliberately the raw first character alone. In the POSIX
-	 * configuration syntax Phobos consumes, a path starting with {@code [}, a space
-	 * or a tab is necessarily relative, so no host-dependent absolute-path check is
-	 * involved: generation may run on Windows while the configuration targets
-	 * Linux. Space and tab are the characters the parser actually trims here; a
-	 * broader whitespace notion would rewrite paths the parser would have kept.
-	 * Every other path, absolute or relative, is emitted verbatim, including one
-	 * that merely contains a bracket or a space later on.
+	 * configuration syntax Phobos consumes, a path starting with any of those
+	 * characters is necessarily relative, so no host-dependent absolute-path check
+	 * is involved: generation may run on Windows while the configuration targets
+	 * Linux. Every other path, absolute or relative, is emitted verbatim, including
+	 * one that merely contains a bracket or a blank character later on.
 	 *
 	 * @param path the path collected from the permission model
 	 * @return the path as written into a filesystem section
@@ -172,7 +176,9 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 			return path;
 		}
 		char first = path.charAt(0);
-		return first == '[' || first == ' ' || first == '\t' ? "./" + path : path;
+		boolean reserved = first == '[' || first == ' ' || first == '\t' || first == '\r' || first == '\u000B'
+				|| first == '\f';
+		return reserved ? "./" + path : path;
 	}
 
 	@Nonnull
