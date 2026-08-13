@@ -45,12 +45,15 @@ public class CheckPullRequestTemplate {
      * Every section a body must carry, spelled exactly as the template heads it, in the order the
      * template puts them in, each with the rules that section is held to.
      *
-     * <p>The rules are one list of strings. The first entry is the character limit, and an empty
-     * one means the section has no limit. The entries after it, of which there may be none, are the
-     * phrases that answer the <em>whole</em> section, and finding one is what excuses that section
-     * from the leftover-stub scan. A phrase that answers only a part of a section does not belong
-     * here, for the same reason: it would excuse the rest of the section along with the part it
-     * speaks for.
+     * <p>The rules are always two strings. The first is the character limit, the second is the
+     * phrase that answers the <em>whole</em> section when it does not apply, and an empty string in
+     * either place means the section has none of that: no limit, or no phrase. Every section states
+     * both, so a section is read the same way as every other and a missing entry is a mistake
+     * rather than a shorthand.
+     *
+     * <p>Finding the phrase is what excuses a section from the leftover-stub scan, so a phrase that
+     * answers only a part of a section does not belong here: it would excuse the rest of the
+     * section along with the part it speaks for.
      *
      * <p>Holding the phrases here rather than in one list for the whole document is what makes them
      * belong to a section. "No production Java code changed" now answers the coverage table and
@@ -71,23 +74,23 @@ public class CheckPullRequestTemplate {
 
     static {
         Map<String, List<String>> sections = new LinkedHashMap<>();
-        sections.put("## Summary", List.of("500"));
+        sections.put("## Summary", List.of("500", ""));
         sections.put("## Linked issues", List.of("1000", "No linked issues"));
-        sections.put("## 1. Problem", List.of("1000"));
+        sections.put("## 1. Problem", List.of("1000", ""));
         sections.put("## 2. Improvement from the user's perspective",
                 List.of("1000", "No Improvement from the user's perspective"));
         sections.put("## 3. Improvement from the maintainer's perspective",
                 List.of("1000", "No Improvement from the maintainer's perspective"));
-        // "No mode-specific behaviour changed" is deliberately absent. It answers the modes, which
-        // sit inside this section, and a phrase here excuses the whole section from the stub scan,
-        // so listing it would let an unfilled Steps stub through on the strength of an answer about
-        // something else. It exempts nothing it needs to: the mode boxes are never required to be
-        // ticked, so nothing about the modes is ever reported in the first place.
+        // "No mode-specific behaviour changed" is deliberately not the phrase here. It answers the
+        // modes, which sit inside this section, and the phrase excuses the whole section from the
+        // stub scan, so using it would let an unfilled Steps stub through on the strength of an
+        // answer about something else. It exempts nothing it needs to: the mode boxes are never
+        // required to be ticked, so nothing about the modes is ever reported in the first place.
         sections.put("## 4. Testing manual", List.of("5000", "Not reproducible from an exercise"));
         sections.put("## 5. Test case coverage regarding this PR", List.of("", "No production Java code changed"));
         sections.put("## Breaking changes and migration", List.of("1000", "No breaking changes or migration"));
-        sections.put("## Checklist", List.of(""));
-        sections.put("## Review progress", List.of(""));
+        sections.put("## Checklist", List.of("", ""));
+        sections.put("## Review progress", List.of("", ""));
         SECTIONS = Collections.unmodifiableMap(sections);
     }
 
@@ -152,12 +155,6 @@ public class CheckPullRequestTemplate {
     private static final Pattern BARE_LIST_MARKER = Pattern.compile("\\s*\\d+\\.\\s*");
 
     /**
-     * The largest limit that reads as a limit. Well past any section anyone would write, and low
-     * enough that a typo such as an extra digit reads as the mistake it is rather than as no limit.
-     */
-    private static final int MAX_LIMIT = 100_000;
-
-    /**
      * A table row whose every cell is blank. The template's separator row ({@code | --- | ---: |})
      * never matches this, because its cells are not whitespace, so no separate exclusion is needed.
      */
@@ -217,9 +214,9 @@ public class CheckPullRequestTemplate {
      * The complaints about this file rather than about a pull request body: no required section at
      * all, which would pass everything; a heading spelled so that {@link #HEADING} could never
      * match it, which would fail every body with a missing section nobody can act on; a section
-     * whose rules are empty, so that not even its limit is stated; a limit that is neither blank
-     * nor a sensible number; and a blank phrase, which every section contains and which would
-     * therefore excuse every section from the leftover-stub scan.
+     * that does not state exactly a limit and a phrase; a limit that is neither empty nor a whole
+     * number of at least one that fits in an {@code int}; and a phrase of whitespace, which is
+     * neither a phrase nor the empty string that says the section has none.
      *
      * <p>This is where a list of strings costs something. The first entry means the limit only by
      * convention, so nothing but this method notices {@code List.of("one thousand")}, and it has to
@@ -247,24 +244,28 @@ public class CheckPullRequestTemplate {
                         + "' is not a heading it can ever match. Fix CheckPullRequestTemplate.java, "
                         + "not the pull request body.");
             }
-            if (rules.isEmpty()) {
-                problems.add("This check is miswritten: '" + heading + "' states no rules at all, not even "
-                        + "an empty limit. Fix CheckPullRequestTemplate.java, not the pull request body.");
+            if (rules.size() != 2) {
+                problems.add("This check is miswritten: the rules for '" + heading + "' are not the two "
+                        + "expected, a limit and a phrase, either of which may be empty (found "
+                        + rules.size() + "). Fix CheckPullRequestTemplate.java, not the pull request body.");
                 continue;
             }
             problems.addAll(miswrittenLimit(heading, rules.get(0)));
-            for (String hatch : rules.subList(1, rules.size())) {
-                if (hatch.isBlank()) {
-                    problems.add("This check is miswritten: '" + heading + "' offers a blank phrase for a "
-                            + "section that does not apply, which every section contains. Fix "
-                            + "CheckPullRequestTemplate.java, not the pull request body.");
-                }
+            String phrase = rules.get(1);
+            if (!phrase.isEmpty() && phrase.isBlank()) {
+                problems.add("This check is miswritten: the phrase for '" + heading + "' is whitespace, "
+                        + "which is neither a phrase nor the empty string that means it has none. Fix "
+                        + "CheckPullRequestTemplate.java, not the pull request body.");
             }
         }
         return problems;
     }
 
-    /** The complaint about one section's limit, blank for unbounded, or an empty list when it reads. */
+    /**
+     * The complaint about one section's limit, or an empty list when it reads. An empty limit means
+     * the section is unbounded; anything else must be a whole number of at least one that fits in
+     * an {@code int}, which is every length a section could sensibly be held to.
+     */
     private static List<String> miswrittenLimit(String heading, String declared) {
         if (declared.isEmpty()) {
             return List.of();
@@ -273,21 +274,24 @@ public class CheckPullRequestTemplate {
         try {
             limit = Integer.parseInt(declared);
         } catch (NumberFormatException error) {
+            // Also the answer for a number too large to hold, which is a mistake either way: a
+            // section bounded above two billion characters is a section nobody meant to bound.
             return List.of("This check is miswritten: the limit '" + declared + "' for '" + heading
-                    + "' is not a number. Fix CheckPullRequestTemplate.java, not the pull request body.");
+                    + "' is not a whole number this program can hold. Fix CheckPullRequestTemplate.java, "
+                    + "not the pull request body.");
         }
-        if (limit < 1 || limit > MAX_LIMIT) {
+        if (limit < 1) {
             return List.of("This check is miswritten: the limit " + limit + " for '" + heading
-                    + "' is outside 1 to " + MAX_LIMIT + ". Fix CheckPullRequestTemplate.java, not the "
-                    + "pull request body.");
+                    + "' is not a length any section could keep to. Write an empty limit for a section "
+                    + "that has none. Fix CheckPullRequestTemplate.java, not the pull request body.");
         }
         return List.of();
     }
 
     /**
      * Collects the problems in a single section, or an empty list when it is well formed. The rules
-     * are the section's own entry of {@link #SECTIONS}: its limit first, then the phrases that
-     * answer it when it does not apply.
+     * are the section's own entry of {@link #SECTIONS}: its limit first, then the phrase that
+     * answers it when it does not apply, either of which may be empty.
      */
     private static List<String> inspect(String heading, String content, List<String> rules) {
         List<String> problems = new ArrayList<>();
@@ -315,12 +319,12 @@ public class CheckPullRequestTemplate {
             }
         }
 
-        // Only this section's own phrases, so answering one section does not excuse another.
-        String lowered = prose.toLowerCase(Locale.ROOT);
-        for (String hatch : rules.subList(1, rules.size())) {
-            if (lowered.contains(hatch.toLowerCase(Locale.ROOT))) {
-                return problems;
-            }
+        // Only this section's own phrase, so answering one section does not excuse another, and
+        // only when it has one: every string contains the empty string, so an empty phrase asked
+        // this way would excuse every section there is.
+        String phrase = rules.get(1);
+        if (!phrase.isEmpty() && prose.toLowerCase(Locale.ROOT).contains(phrase.toLowerCase(Locale.ROOT))) {
+            return problems;
         }
 
         // Blanked rather than deleted, so that a '1.' left inside a fenced example, where it is
