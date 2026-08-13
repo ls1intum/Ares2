@@ -35,7 +35,10 @@
   For example "Closes #123" or "Relates to #456".
 
   This section is always required. If this pull request relates to no issue, write
-  "None".
+  "No linked issues".
+
+  Limit: 1000 characters, counted over the text left once every instruction comment such
+  as this one is removed, so keeping the comment costs nothing.
 -->
 
 ## 1. Problem
@@ -86,7 +89,7 @@
   run, or a newly supported language or build tool.
 
   This section is always required. If this side gains nothing from this pull request,
-  write "No Improvement".
+  write "No Improvement from the user's perspective".
 
   Limit: 1000 characters, counted over the text left once every instruction comment such
   as this one is removed, so keeping the comment costs nothing.
@@ -108,7 +111,7 @@
   dependency or CI setup.
 
   This section is always required. If this side gains nothing from this pull request,
-  write "No Improvement".
+  write "No Improvement from the maintainer's perspective".
 
   Limit: 1000 characters, counted over the text left once every instruction comment such
   as this one is removed, so keeping the comment costs nothing.

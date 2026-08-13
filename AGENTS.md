@@ -52,7 +52,8 @@ way an otherwise correct contribution arrives unreviewable.
   `gh pr edit --body-file <filled-in copy>`, or simply fill in a copy of the template
   and pass that as `--body-file`.
 - Fill in every section. The template states what to write when a section does not
-  apply; use those documented escape hatches (`No Improvement`, `None`,
+  apply; use those documented escape hatches (`No linked issues`, `No Improvement from
+  the user's perspective`, `No Improvement from the maintainer's perspective`,
   `No breaking changes or migration`, `No production Java code changed`,
   `Not reproducible from an exercise`, `No mode-specific behaviour changed`) rather than
   deleting the section.
@@ -66,9 +67,9 @@ way an otherwise correct contribution arrives unreviewable.
   section is always required`, which also says what to write when the section does not
   apply to your change, then `Limit`, then `Simple words`.
 - Respect the character limit a section declares. Summary carries `Limit: 500
-  characters`; sections 1 to 3 and `Breaking changes and migration` carry `Limit: 1000
-  characters`; section 4 carries `Limit: 5000 characters`, counted over the whole section
-  including the modes below it. The count is in code points over the text left once every
+  characters`; `Linked issues`, sections 1 to 3 and `Breaking changes and migration` carry
+  `Limit: 1000 characters`; section 4 carries `Limit: 5000 characters`, counted over the
+  whole section including the modes below it. The count is in code points over the text left once every
   instruction comment is removed, so a comment kept in the body does not count towards it.
 - Write for an instructor who does not know the inside of Ares. Every section that
   carries the `Simple words` block asks for this, section 1 while still naming the part of
