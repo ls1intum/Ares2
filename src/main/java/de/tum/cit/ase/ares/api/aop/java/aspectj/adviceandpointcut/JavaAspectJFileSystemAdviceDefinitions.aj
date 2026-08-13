@@ -1215,14 +1215,24 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * infrastructure, not student file access; blocking it makes cryptography fail
 	 * to initialise ({@code NoClassDefFoundError} / "Can not initialize
 	 * cryptographic mechanism"). The instrumentation backend applies this same
-	 * exemption, so this keeps the two backends consistent. The match is
-	 * restricted to the JCE policy naming scheme, which no student test file uses.
+	 * exemption, so this keeps the two backends consistent. The match requires the
+	 * path to resolve under the trusted JDK installation ({@code java.home}) in
+	 * addition to the JCE policy naming scheme, so a student-controlled file
+	 * living outside {@code java.home} cannot bypass the read policy merely by
+	 * being given one of the exempt names.
 	 *
 	 * @param path the already-resolved path string under inspection
 	 * @return true if the path is a JCE crypto policy file or scan glob
 	 */
 	private static boolean isCryptoPolicyPath(@Nullable String path) {
 		if (path == null) {
+			return false;
+		}
+		// SECURITY: The name match alone is not sufficient — a student-controlled file
+		// living outside java.home could be given one of these exact names to bypass the
+		// read policy. Require the path to actually resolve under the trusted JDK
+		// installation first, the same trust root isExemptSystemFileAccess uses.
+		if (!isPathWithin(path, TRUSTED_JAVA_HOME)) {
 			return false;
 		}
 		int slash = path.lastIndexOf('/');
