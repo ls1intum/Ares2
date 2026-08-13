@@ -695,6 +695,54 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	}
 
 	@Test
+	void explicitTempDirectoryEndingInInternalPathSuffixIsNoLongerExemptFromAllowlist() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			// Regression guard: INTERNAL_PATH_SUFFIXES exists to exempt Ares's own fixed,
+			// hardcoded classpath-resource reads (e.g. its localization bundle), not
+			// student-supplied create directories. A student who names their own
+			// directory tree to end with one of those exact suffix strings must still
+			// be denied, not silently treated as "internal Ares file access".
+			File explicitDir = Path.of("target", "baseline-low-risk-test-dirs", "student-crafted", "ares", "api",
+					"localization", "Messages.class").toFile();
+			assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkFileCreateTempFile("ares-baseline-", ".tmp", explicitDir));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void javaIoTmpdirRedirectionAfterStartupIsDeniedForImplicitDirectoryCreation() throws Exception {
+		String originalTmpDir = System.getProperty("java.io.tmpdir");
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+
+			// Regression guard: java.io.tmpdir is mutable at runtime via
+			// System.setProperty, while TRUSTED_DEFAULT_TEMP_DIR is captured once, at
+			// class-initialisation time, before student code could run. If a later
+			// mutation weren't detected, the no-directory overloads would stay
+			// unconditionally exempt even though the JDK's own temp-directory helpers
+			// may end up using the redirected (student-controlled) location instead.
+			System.setProperty("java.io.tmpdir",
+					createNonTempDirOutsideDefaultTempDir("javaIoTmpdirRedirection").getAbsolutePath());
+
+			assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkFilesCreateTempFile(null, "ares-baseline-", ".tmp"));
+		} finally {
+			System.setProperty("java.io.tmpdir", originalTmpDir);
+			resetSettings();
+		}
+	}
+
+	@Test
 	void filesCreateTempFileWithWrongParameterCountFailsClosed() throws Exception {
 		try {
 			resetSettings();
