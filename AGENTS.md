@@ -57,8 +57,8 @@ way an otherwise correct contribution arrives unreviewable.
   `No breaking changes or migration`, `No production Java code changed`,
   `Not reproducible from an exercise`, `No mode-specific behaviour changed`) rather than
   deleting the section.
-- Do not delete, rename or reorder the `##` headings. The `pr-template` check reads the
-  required headings out of the template itself, so a renamed heading fails the check.
+- Do not delete, rename or reorder the `##` headings. The `pr-template` check knows them
+  by name, so a renamed heading fails the check.
 - Tick boxes as `[x]`. When a checklist item does not apply, wrap that line in an HTML
   comment stating the reason, so the diff still records that it was considered.
 - Read the section you are filling in, not this list. Each recurring instruction is
@@ -77,8 +77,8 @@ way an otherwise correct contribution arrives unreviewable.
 
 The `pr-template` job in `.github/workflows/pullrequest-template.yml` enforces the shape
 of the body and is a required status check. It verifies that every section exists exactly
-once and in the order of the template, that none is empty, that none runs past the limit
-its template section declares, and that no unfilled stub survived. A heading inside a
+once and in the order the checker lists them, that none is empty, that none runs past its
+limit, and that no unfilled stub survived. A heading inside a
 comment does not count as a section, and a heading or a comment marker shown inside a
 fenced block or a code span is text rather than markup. Two code contexts are not read,
 namely an indented code block and a fence nested inside a list or a block quote, so a
@@ -95,3 +95,15 @@ PR_BODY="$(cat body.md)" java .github/scripts/CheckPullRequestTemplate.java
 
 The checker is a single-file Java program, run through the source-code launcher, so it
 needs no build step and adds no language to the repository.
+
+**Changing the template is two edits, not one.** The required headings and the character
+limits live in `REQUIRED_HEADINGS` and `LIMITS` at the top of
+`.github/scripts/CheckPullRequestTemplate.java`, and the template states the same rules in
+prose for whoever is filling it in. The checker does not read the template, so a section
+renamed, added, removed or given a different limit has to be changed in both files in the
+same commit. Nothing detects the drift: the template would keep promising 1000 characters
+while the check went on enforcing 500. The checker does verify itself, but only against
+itself, refusing to run if it requires no headings at all, requires the same heading
+twice, spells a required heading so that it could never match one, limits a heading it
+does not require, or names a limit outside 1 to 100000. A required heading with no limit
+is allowed, since an unbounded section is a legitimate state.
