@@ -59,11 +59,18 @@ way an otherwise correct contribution arrives unreviewable.
   required headings out of the template itself, so a renamed heading fails the check.
 - Tick boxes as `[x]`. When a checklist item does not apply, wrap that line in an HTML
   comment stating the reason, so the diff still records that it was considered.
+- Read the section you are filling in, not this list. Each recurring instruction is
+  repeated, in the same words, in every section where it applies, so each section states
+  its own rules:
+  `Simple words` says who has to be able to follow it, `This section is always required`
+  or a sentence naming what to write instead says what to do when it does not apply, and
+  `Limit` says how long it may be.
 - Respect the character limit a section declares. Sections 1 to 3 carry
   `Limit: 1000 characters`, counted in code points over the text left once every
-  instruction comment is removed, so a comment kept in the body does not count towards
-  it. Write those three in simple words an instructor can follow without knowing the
-  inside of Ares, while still naming the part of Ares a defect sits in.
+  instruction comment is removed, so a comment kept in the body does not count towards it.
+- Write for an instructor who does not know the inside of Ares. Every section that
+  carries the `Simple words` block asks for this, section 1 while still naming the part of
+  Ares a defect sits in.
 
 The `pr-template` job in `.github/workflows/pullrequest-template.yml` enforces the shape
 of the body and is a required status check. It verifies that every section exists exactly

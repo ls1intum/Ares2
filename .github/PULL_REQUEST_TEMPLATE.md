@@ -4,12 +4,24 @@
   Tick boxes as [x], not [ x] and not [x ].
   If a checklist task does not apply, wrap that line in an HTML comment and state the
   reason inside the comment, so the diff still records that the task was considered.
+
+  Each recurring instruction is repeated, in the same words, in every section where it
+  applies, so that reading the one section you are filling in is enough. Anything a
+  single section adds to one of them stands in a paragraph of its own:
+  - "Simple words" says who has to be able to follow the section.
+  - "This section is always required", or a sentence naming what to write instead, says
+    what to do when the section does not apply to your change.
+  - "Limit" says how long the section may be, where there is a limit.
 -->
 
 ## Summary
 
 <!--
   At most three lines: what changes, and why it matters. No implementation detail.
+
+  Simple words: write this so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid.
+
   This section is always required.
 -->
 
@@ -17,33 +29,47 @@
 
 <!--
   For example "Closes #123" or "Relates to #456".
-  If this pull request does not relate to any issue, write "None".
+
+  If this pull request relates to no issue, write "None".
 -->
 
 ## 1. Problem
 
 <!--
-  What is wrong today? Write it in simple words, so that an instructor who does not know
-  the inside of Ares can follow it. Spell out any Ares term you cannot avoid.
+  What is wrong today?
   Useful to cover:
   - What did you see, and in which setup (Java version, Maven or Gradle, AspectJ or
     instrumentation, ArchUnit or WALA, operating system)?
   - What should have happened instead?
-  - Which part of Ares is at fault? Name one: reading the security policy, writing the
-    security test out of it, blocking a forbidden call while the code runs (AspectJ or
-    instrumentation), looking for forbidden calls in the code without running it
-    (ArchUnit or WALA), or plugging Ares into the build. A reviewer of a security tool
-    needs to know which of these to look at, so name it even where the rest stays plain.
-  - Why does it matter? Either Ares let forbidden student code through, or it failed a
-    correct submission. Say which of the two this is.
+  - Which part of Ares is at fault? Name it. Examples, not a complete list: reading the
+    security policy, writing the security test out of it, blocking a forbidden call while
+    the code runs (AspectJ or instrumentation), finding a forbidden call or package
+    without running the code (ArchUnit or WALA), reading the shape of the source itself
+    (the AST check, for example a forbidden statement or unwanted recursion), keeping
+    student code out of the packages Ares reserves for itself, generating the files an
+    external Phobos sandbox runs a submission with, checking that a submission has the
+    classes, methods, fields and annotations it should (the structural check), the
+    console input and output testing, the dynamic access API, the wording a student is
+    shown (localisation), how Ares hooks into JUnit or jqwik, or how it is plugged into
+    the build (Maven or Gradle). If the part you mean is not listed, name it in your own
+    words. A reviewer of a security tool needs to know where to look, so name it even
+    where the rest stays plain.
+  - Why does it matter? If something is broken, say which way round it went: Ares let
+    forbidden student code through, or it failed a correct submission.
 
-  This section is always required. If nothing is broken, describe the gap or the extra
-  work that made you open this pull request instead.
+  Simple words: write this so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid.
+
+  This section is always required.
+
+  If nothing is broken, describe the gap or the extra work that made you open this pull
+  request instead.
 
   Limit: 1000 characters, counted over the text left once every instruction comment such
-  as this one is removed, so keeping the comment costs nothing. Say less, not more: a
-  reviewer who cannot follow a short answer will ask, and the detail belongs in the code
-  or in the linked issue.
+  as this one is removed, so keeping the comment costs nothing.
+
+  Say less, not more: a reviewer who cannot follow a short answer will ask, and the
+  detail belongs in the code or in the linked issue.
 -->
 
 ## 2. Improvement from the user's perspective
@@ -52,9 +78,12 @@
   Users are everyone who uses Ares: students whose submissions run under a security
   policy, and instructors who write those policies and ship Ares inside an exercise test
   repository.
-  Say in simple words what gets better for them, for example a clearer failure message,
-  fewer correct submissions failed by mistake, a rule that could not be written before, a
-  faster test run, or a newly supported language or build tool.
+  Say what gets better for them, for example a clearer failure message, fewer correct
+  submissions failed by mistake, a rule that could not be written before, a faster test
+  run, or a newly supported language or build tool.
+
+  Simple words: write this so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid.
 
   If this side gains nothing from this pull request, write "No Improvement".
 
@@ -66,9 +95,12 @@
 
 <!--
   Maintainers are the people who develop Ares itself.
-  Say in simple words what gets better for them, for example less duplicated code, a
-  clearer structure, a flaky test removed, better error output, less manual release work,
-  or a simpler dependency or CI setup.
+  Say what gets better for them, for example less duplicated code, a clearer structure, a
+  flaky test removed, better error output, less manual release work, or a simpler
+  dependency or CI setup.
+
+  Simple words: write this so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid.
 
   If this side gains nothing from this pull request, write "No Improvement".
 
@@ -112,6 +144,11 @@
   Negative case: equally important for a security tool. State what must still be
   rejected, and how a reviewer confirms that Ares has not become more permissive.
 
+  Simple words: write this so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid.
+
+  A step nobody can follow is a step nobody runs.
+
   If the change cannot be exercised from an exercise (for example a CI workflow, build
   or documentation change), write "Not reproducible from an exercise" under Steps and
   describe instead how a reviewer verifies the change, for example which workflow run
@@ -135,6 +172,7 @@
 <!--
   Ares runs four combinations in CI. Tick the ones you verified, and say below why a
   subset is sufficient if you did not verify all four.
+
   If the change cannot alter mode-specific behaviour, tick nothing and write
   "No mode-specific behaviour changed".
 -->
@@ -178,8 +216,7 @@
   table, even though the agent does instrument the ones under `de.tum.cit.ase.ares.api`.
 
   If this pull request changes no production Java code (documentation, CI, build
-  configuration or tests only), replace the table with "No production Java code
-  changed".
+  configuration or tests only), replace the table with "No production Java code changed".
 -->
 
 | Class | Instruction coverage | Branch coverage | Line coverage | Complexity coverage | Method coverage | Confirmation (meaningful assertions) |
@@ -196,6 +233,11 @@
   - the generated security test code that exercise repositories rely on
   - the minimum JDK, Maven or Gradle version
   If it does, describe what an instructor has to do to upgrade an existing exercise.
+
+  Simple words: write this so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid.
+
+  This is the section an instructor reads before upgrading.
 
   If the change is fully backwards compatible, write "None".
 -->
