@@ -47,6 +47,24 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		@Nonnull SupervisedCode regardingTheSupervisedCode) {
 
 	/**
+	 * The policy-format version supported by this Ares release.
+	 *
+	 * @since 2.0.0
+	 * @deprecated Superseded by the supported range,
+	 *             {@link AresConstants#MINIMUM_POLICY_VERSION} to
+	 *             {@link AresConstants#MAXIMUM_POLICY_VERSION}, because one
+	 *             constant cannot express a set of versions whose two ends move
+	 *             independently. Retained as an alias of the maximum, which carries
+	 *             the value and the meaning this constant had, because it shipped
+	 *             in the released 2.1.0 API. Migrate to
+	 *             {@code AresConstants.MAXIMUM_POLICY_VERSION}, and note that a
+	 *             comparison for equality against it should become a range check,
+	 *             or it will reject a version 1 policy once version 2 exists.
+	 */
+	@Deprecated(forRemoval = true)
+	public static final int CURRENT_POLICY_VERSION = AresConstants.MAXIMUM_POLICY_VERSION;
+
+	/**
 	 * Constructs a SecurityPolicy instance with a validated policy-format version
 	 * and validated supervised code.
 	 * <p>

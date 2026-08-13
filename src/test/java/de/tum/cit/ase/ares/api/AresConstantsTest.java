@@ -20,6 +20,17 @@ class AresConstantsTest {
 	}
 
 	@Test
+	@SuppressWarnings("removal")
+	void keepsTheReleasedVersionConstantAsAnAliasOfTheMaximum() {
+		// SecurityPolicy.CURRENT_POLICY_VERSION shipped in v2.1.0 and is retained as a
+		// deprecated alias, so a downstream source that names it still compiles. It
+		// aliases the maximum rather than the minimum, since it meant "the version this
+		// release writes", which is what the builder still defaults to.
+		assertEquals(AresConstants.MAXIMUM_POLICY_VERSION,
+				de.tum.cit.ase.ares.api.policy.SecurityPolicy.CURRENT_POLICY_VERSION);
+	}
+
+	@Test
 	void cannotBeInstantiatedReflectively() throws NoSuchMethodException {
 		Constructor<AresConstants> constructor = AresConstants.class.getDeclaredConstructor();
 		constructor.setAccessible(true);
