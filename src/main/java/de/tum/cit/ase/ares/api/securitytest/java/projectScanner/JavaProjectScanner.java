@@ -35,6 +35,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
@@ -493,6 +494,115 @@ public class JavaProjectScanner implements ProjectScanner {
 		return counts.entrySet().stream().sorted(
 				Map.Entry.<String, Long>comparingByValue(Comparator.reverseOrder()).thenComparing(Map.Entry::getKey))
 				.map(Map.Entry::getKey).findFirst().orElseThrow();
+	}
+
+	/**
+	 * Refuses a derived supervised scope that the compiled project contradicts.
+	 * <p>
+	 * {@link #scanForPackageName()} answers a heuristic. This is the check that
+	 * turns it into a boundary, and it is deliberately separate: derivation runs
+	 * while test cases are still being written, when nothing is compiled yet, while
+	 * this runs immediately before enforcement is armed, when the compiled output
+	 * is the whole truth about what will execute.
+	 * <p>
+	 * The invariant: every executable top-level class in the production output
+	 * declares a non-blank, non-reserved package that is the derived scope or lies
+	 * below it, compared on segment boundaries. Anything else is refused, because
+	 * each alternative is a way for supervised code to sit outside the boundary
+	 * drawn around it:
+	 * <ul>
+	 * <li>a class in a package the scope does not cover is simply unsupervised, and
+	 * that is what a decoy package buys whoever adds it;</li>
+	 * <li>a class in the default package cannot be covered by any scope at
+	 * all.</li>
+	 * </ul>
+	 * A class no scope could cover is left out of the inventory rather than
+	 * refused, and where that leaves nothing at all the check passes with a
+	 * warning: there is then no supervisable code, so enforcement is vacuous rather
+	 * than mis-scoped. Refusing is the point. A mis-scoped run reports nothing,
+	 * passes, and enforces nothing; a refusal names the offending package and tells
+	 * the instructor to pin {@code theSupervisedCodeUsesTheFollowingPackage}, which
+	 * is the one form of the scope that cannot be steered from the submission.
+	 * <p>
+	 * Only the policy-free path calls this. A pinned policy may deliberately
+	 * supervise part of the output, and narrowing it is then the instructor's
+	 * decision rather than a heuristic's mistake.
+	 *
+	 * @param derivedPackage the scope {@link #scanForPackageName()} answered
+	 * @throws SecurityException when the compiled project contradicts it
+	 */
+	public void requireDerivedScopeToCoverTheProject(@Nonnull String derivedPackage) {
+		Path outputRoot = productionOutputRoot();
+		if (Files.exists(outputRoot) && !Files.isReadable(outputRoot)) {
+			// Present but unreadable is a failure to verify, which is not the same as
+			// nothing being there, and only the second of those is safe to wave through.
+			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()));
+		}
+		List<JavaClass> supervisable = Files.isDirectory(outputRoot) ? supervisableClassesIn(outputRoot) : List.of();
+		if (supervisable.isEmpty()) {
+			LOG.warn("No supervisable production class was found under {}, so the supervised scope \"{}\" was not "
+					+ "verified against the compiled output. Nothing found there can be supervised whatever the "
+					+ "scope is.", outputRoot, derivedPackage);
+			return;
+		}
+		if (derivedPackage.isBlank()) {
+			throw new SecurityException(Messages.localized("security.scope.blank", outputRoot.toString()));
+		}
+		for (JavaClass javaClass : supervisable) {
+			String declared = javaClass.getPackageName();
+			if (declared.isBlank()) {
+				throw new SecurityException(Messages.localized("security.scope.default.package", javaClass.getName(),
+						outputRoot.toString()));
+			}
+			if (!isWithinScope(declared, derivedPackage)) {
+				throw new SecurityException(Messages.localized("security.scope.not.covered", derivedPackage, declared,
+						javaClass.getName(), outputRoot.toString()));
+			}
+		}
+	}
+
+	/**
+	 * The compiled production classes that any scope could cover.
+	 * <p>
+	 * Package and module descriptors are excluded because they cannot run, and
+	 * reserved-package classes because no scope may name them: the guard refuses a
+	 * reserved scope, and the runtime exempts those frames by name whatever the
+	 * scope is. Demanding that the derived scope cover them would demand the
+	 * impossible, and would refuse every project whose production output is
+	 * infrastructure, which is what Ares' own build is. Keeping supervised code out
+	 * of that namespace is the reserved-package build boundary's job, and this
+	 * check neither performs nor replaces it.
+	 */
+	@Nonnull
+	private List<JavaClass> supervisableClassesIn(Path outputRoot) {
+		List<JavaClass> supervisable = new ArrayList<>();
+		for (JavaClass javaClass : new ClassFileImporter().importPath(outputRoot)) {
+			if (javaClass.isTopLevelClass() && !isCompilationMetadata(javaClass)
+					&& ReservedPackageGuard.reservedPrefixOf(javaClass.getPackageName()) == null) {
+				supervisable.add(javaClass);
+			}
+		}
+		return supervisable;
+	}
+
+	/**
+	 * Whether the declared package is the scope or lies below it.
+	 * <p>
+	 * Compared on a segment boundary, so that a scope of {@code de.tum.cit.aet}
+	 * does not swallow the unrelated {@code de.tum.cit.aetevil}, which a bare
+	 * prefix test would.
+	 */
+	private static boolean isWithinScope(String declared, String scope) {
+		return declared.equals(scope) || declared.startsWith(scope + ".");
+	}
+
+	/**
+	 * Whether the class file describes a package or a module rather than code that
+	 * can run. Neither can be supervised and neither says anything about the scope.
+	 */
+	private static boolean isCompilationMetadata(JavaClass javaClass) {
+		String simpleName = javaClass.getName().substring(javaClass.getName().lastIndexOf('.') + 1);
+		return "package-info".equals(simpleName) || "module-info".equals(simpleName);
 	}
 
 	/**

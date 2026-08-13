@@ -83,7 +83,17 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 			@Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath) {
 		super(creator, writer, executer, essentialDataReader, projectScanner, essentialPackagesPath,
 				essentialClassesPath, buildMode, architectureMode, aopMode, securityPolicy, projectPath);
+		this.javaProjectScanner = projectScanner;
 	}
+
+	/**
+	 * The scanner, kept at its own type so that the coverage check can be reached.
+	 * The inherited field is declared as the interface, which the check is
+	 * deliberately not part of: it belongs to deriving a scope from a Java project,
+	 * not to scanning one.
+	 */
+	@Nonnull
+	private final JavaProjectScanner javaProjectScanner;
 	// </editor-fold>
 
 	// <editor-fold desc="Write security test cases methods">
@@ -126,6 +136,13 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	 */
 	@Override
 	public void executeTestCases() {
+		if (supervisedScopeWasDerived) {
+			// Here rather than where the scope was derived: derivation also runs while
+			// test cases are being written, before anything is compiled. This is the last
+			// point at which nothing is armed yet and the compiled output already says
+			// what will run.
+			javaProjectScanner.requireDerivedScopeToCoverTheProject(packageName);
+		}
 		executer.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 				testClasses, packageName, mainClassInPackageName,
 				this.architectureTestCases.stream()
