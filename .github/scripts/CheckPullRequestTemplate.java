@@ -76,8 +76,8 @@ public class CheckPullRequestTemplate {
                     // The opening run cannot be given back either: a run that never closes must cost
                     // one scan, since an outsider writes this text on a fork pull request.
                     + "|(?<!`)(?<span>`++)(?:(?!\\n(?:[ \\t]*\\n| {0,3}#{1,6}(?:[ \\t]|$))).)+?(?<!`)\\k<span>(?!`)",
-            // Code indented four spaces, or fenced inside a list or a quote, is not recognised:
-            // reading those means tracking the block above each line, which is a Markdown parser.
+            // A fence indented against its container rather than the margin, inside a list or a
+            // quote, is not recognised: reading those means tracking each container, a Markdown parser.
             Pattern.DOTALL | Pattern.MULTILINE);
 
     /**
@@ -313,8 +313,8 @@ public class CheckPullRequestTemplate {
 
     /**
      * The complaint about a section longer than its limit, or none. Counted on what is left once the
-     * instruction notes are removed, so keeping them costs nothing, and counted in Unicode code points, so
-     * that a character outside the basic set counts once rather than twice.
+     * instruction notes this program recognises are removed, so keeping those costs nothing, and in
+     * Unicode code points, so a character outside the basic set counts once rather than twice.
      */
     private static List<String> tooLong(String heading, String prose, String declared) {
         if (declared.isEmpty()) {
@@ -389,13 +389,16 @@ public class CheckPullRequestTemplate {
     /**
      * The text with every comment, fence and backtick run this program recognises painted over in spaces,
      * the line breaks kept. Same length is the point: headings are found in this copy and the real text is
-     * cut out of the original at the same places, so a heading inside a note, or shown in a fenced
-     * example, is not taken for a real one.
+     * cut out of the original at the same places, so a heading inside a note it recognises, or shown
+     * in a fenced example, is not taken for a real one.
      */
     private static String masked(String text) {
         StringBuilder result = new StringBuilder(text);
         Matcher matcher = NOT_PROSE.matcher(text);
         while (matcher.find()) {
+            if (matcher.group("comment") != null && treatedAsIndentedCode(text, matcher.start())) {
+                continue;
+            }
             for (int index = matcher.start(); index < matcher.end(); index++) {
                 if (result.charAt(index) != '\n') {
                     result.setCharAt(index, ' ');
@@ -442,15 +445,15 @@ public class CheckPullRequestTemplate {
 
     /**
      * The text left once the comments this program recognises are removed, with the ends trimmed. Code is
-     * kept, since a reader sees it. This is what empty and too long are measured on, which is why keeping
-     * the template's instruction notes costs nothing.
+     * kept, since a reader sees it. This is what empty and too long are measured on, which is why the
+     * template's instruction notes cost nothing when they are left in place.
      */
     private static String visible(String text) {
         StringBuilder result = new StringBuilder();
         Matcher matcher = NOT_PROSE.matcher(text);
         int cursor = 0;
         while (matcher.find()) {
-            if (matcher.group("comment") == null) {
+            if (matcher.group("comment") == null || treatedAsIndentedCode(text, matcher.start())) {
                 continue;
             }
             result.append(text, cursor, matcher.start());
@@ -458,6 +461,31 @@ public class CheckPullRequestTemplate {
         }
         result.append(text, cursor, text.length());
         return result.toString().trim();
+    }
+
+    /**
+     * Whether this place is preceded on its line by four columns of nothing but indentation, counting a
+     * tab to the next multiple of four. This check then treats a comment marker there as code shown to
+     * a reader rather than as markup. It approximates Markdown, which also asks what the line above
+     * was, so four columns under a paragraph are called code here where Markdown continues the
+     * paragraph and keeps the comment hidden.
+     */
+    private static boolean treatedAsIndentedCode(String text, int place) {
+        int column = 0;
+        for (int index = text.lastIndexOf(10, place - 1) + 1; index < place; index++) {
+            char character = text.charAt(index);
+            if (character == 32) {
+                column++;
+            } else if (character == 9) {
+                column += 4 - column % 4;
+            } else {
+                return false;
+            }
+            if (column >= 4) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

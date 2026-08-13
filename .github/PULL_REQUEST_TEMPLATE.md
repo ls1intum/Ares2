@@ -1,3 +1,4 @@
+<!-- markdownlint-disable-file MD041 -->
 <!--
   Thanks for contributing to Ares 2.
   Fill in every section. Each section states what to write when it does not apply.

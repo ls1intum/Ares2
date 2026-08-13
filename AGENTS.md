@@ -82,7 +82,8 @@ way an otherwise correct contribution arrives unreviewable.
   characters`; `Linked issues`, sections 1 to 3 and `Breaking changes and migration` carry
   `Limit: 1000 characters`; section 4 carries `Limit: 5000 characters`, counted over the
   whole section including the modes below it. The count is in code points over the text left once every
-  instruction comment is removed, so a comment kept in the body does not count towards it.
+  instruction comment the checker recognises is removed, so a comment kept in the body does
+  not count towards it.
 - Write for an instructor who does not know the inside of Ares. Every section that
   carries the `Simple words` block asks for this, section 1 while still naming the part of
   Ares a defect sits in.
@@ -92,11 +93,22 @@ of the body and is a required status check. It verifies that every section exist
 once and in the order the checker lists them, that none is empty, that none runs past its
 limit, and that no unfilled stub survived in a section that was not answered with one of
 its own documented phrases. A heading inside a
-comment does not count as a section, and a heading or a comment marker shown inside a
-fenced block or a code span is text rather than markup. Two code contexts are not read,
-namely an indented code block and a fence nested inside a list or a block quote, so a
-comment marker written there still counts as a comment; the Javadoc of the checker says
-why that line was drawn. It deliberately does not require checklist boxes to be ticked. It
+comment it recognises does not count as a section, and a heading or a comment marker shown inside a
+fenced block or a code span is text rather than markup, and so is a comment marker on a
+line indented four columns, counting a tab as up to four, which is read as code. What is not
+read is a fence indented against its container rather than the margin, inside a list or a
+block quote, so a comment marker written there still counts as a comment. The four-column
+rule is an approximation in the other direction too, since four columns under a paragraph
+continue that paragraph in Markdown; the Javadoc of the checker says why the line is drawn
+where it is.
+
+Two shapes pay for that four-column rule, and both were accepted knowingly. An indented
+example showing the template's own skeleton, a bare `1.` inside a comment, is read as a
+blank somebody forgot. And a literal comment marker inside code, above a genuine comment
+further down, can leave the genuine one unhidden, so a heading inside it is counted and the
+author is told they wrote a section twice. Both are wrong about a body written in good
+faith, and both are the accepted cost of the rule that closes a hole where text hid from
+the length count. It deliberately does not require checklist boxes to be ticked. It
 re-runs when the description is edited, so a failure is fixed by editing the body rather
 than by pushing a commit.
 
