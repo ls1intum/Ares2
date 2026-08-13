@@ -140,6 +140,7 @@ This policy forbids all file, network, command and thread operations.
 
 > **`thisPolicyFileCompliesToThePolicyVersion` is required** and must be exactly `1`. A policy file that omits it, or that declares any other value, is rejected on load.
 
+<!-- -->
 > **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.1.1. Use [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
 
 ### 5.2 Step 2: Apply the Policy to Your Test
@@ -171,6 +172,7 @@ The `@Policy` annotation has three parameters:
 
 > **Note:** Both `JupiterSecurityExtension` and `JqwikSecurityExtension` evaluate `activated`. Setting `@Policy(activated = false)` is the only way to disable enforcement for a supervised test.
 
+<!-- -->
 > **Important:** The `@Policy` annotation can be placed on the **test method** or on the **test class**. A class-level annotation applies to all test methods in that class and its nested test classes. Resolution proceeds from the method through the innermost test class to its enclosing classes, so the nearest annotation takes precedence (policies are not merged).
 
 **`withinPath` mapping, project structure to bytecode path:**
@@ -196,6 +198,7 @@ The interaction between test annotations (`@Public`, `@Hidden`, `@Test`, `@Publi
 
 > **Opting out:** Once an Ares test annotation has registered the extension, the only way to disable enforcement is an explicit `@Policy(activated = false)`.
 
+<!-- -->
 > **Note:** `@PublicTest` and `@HiddenTest` are themselves executable test annotations and need no separate `@Test`. `@Public` and `@Hidden` only mark the test type, so they must accompany a JUnit test annotation.
 
 ### 5.3 Step 3: Run the Tests
@@ -213,7 +216,7 @@ When you run the tests, Ares 2 will automatically enforce the security policy. I
 Ares 2's behaviour depends on whether test supervision is active and whether a `@Policy` annotation is present. Supervision is activated by an **Ares** test annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`), which carries the `@JupiterAresTest` meta-annotation that registers the extension. A plain JUnit `@Test` does **not** activate Ares, and neither does `@Policy`, which carries no `@ExtendWith` and registers nothing:
 
 - **Without supervision** (no Ares test annotation present): Student code runs freely with no restrictions, whether or not a `@Policy` is present.
-- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **default most-restricted configuration**. It detects Maven or Gradle from the project root, uses ArchUnit and AspectJ as the analysis and enforcement modes, derives the supervised scope by scanning the project, and applies `ResourceAccesses.createRestrictive()`, which denies file, network, command and thread access outright. Package imports are **restricted rather than eliminated**: Ares always permits an implicit allowlist made of the essential packages it ships (which include the `java` prefix), the supervised package itself, and the packages of the recognised test classes. `createRestrictive()` also constructs a 10,000 ms limit, but that becomes a Phobos test case, and the Phobos stage is not yet dispatched in-process, so no execution timeout applies today; use `@StrictTimeout` where a deadline is needed. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so code that is not AspectJ-woven is covered by the static checks only. The only opt-out is an explicit `@Policy(activated = false)`.
+- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **default most-restricted configuration**. It detects Maven or Gradle from the project root, uses ArchUnit and AspectJ as the analysis and enforcement modes, derives the supervised scope by scanning the project, and applies `ResourceAccesses.createRestrictive()`, which denies file, network, command and thread access outright. Package imports are **restricted rather than eliminated**: Ares always permits an implicit allowlist made of the essential packages it ships (which include the `java` prefix), the supervised package itself, and the packages of the recognised test classes. `createRestrictive()` also constructs a 3,000 ms limit, but that becomes a Phobos test case, and the Phobos stage is not yet dispatched in-process, so no execution timeout applies today; use `@StrictTimeout` where a deadline is needed. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so code that is not AspectJ-woven is covered by the static checks only. The only opt-out is an explicit `@Policy(activated = false)`.
 - **With supervision and a policy** (test annotation present, policy annotation present): Ares 2 enforces only the permissions explicitly listed in the policy file. Everything else is forbidden.
 
 When you define a security policy file, you start with maximum security (everything forbidden) and selectively allow only what the exercise absolutely requires. Specifying an explicit `@Policy` annotation with a restrictive policy object (for example, `theFollowingResourceAccessesArePermitted` containing six empty lists) enforces default-deny for policy-controlled resources. This is equivalent in strictness to supervision without a policy; the difference is that an explicit `@Policy` lets you choose the configuration (build tool, analysis framework, enforcement mechanism) and selectively grant permissions.
@@ -342,12 +345,14 @@ The `theSupervisedCodeUsesTheFollowingPackage` field specifies the root package 
 **Examples:**
 
 Using a shallow package prefix:
+
 ```yaml
 theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.aet"
 ```
 This matches all classes under `de.tum.cit.aet` (including `de.tum.cit.aet.solution`, `de.tum.cit.aet.util`, etc.).
 
 Using a deep package path:
+
 ```yaml
 theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.aet.solution"
 ```
@@ -365,6 +370,7 @@ The `theMainClassInsideThisPackageIs` field identifies the main entry point clas
 - **Description:** The simple class name (without package prefix) of the main class
 
 **Example:**
+
 ```yaml
 theMainClassInsideThisPackageIs: "Main"
 ```
@@ -383,6 +389,7 @@ The `theFollowingClassesAreTestClasses` field lists the fully qualified names of
 **Examples:**
 
 List every test class by its fully qualified name:
+
 ```yaml
 theFollowingClassesAreTestClasses:
   - "com.instructor.ExerciseTest"
@@ -422,6 +429,7 @@ regardingFileSystemInteractions:
 | `deleteAllFiles` | true/false | Allow deleting files |
 
 **Example: Allow reading from a data folder**
+
 ```yaml
 regardingFileSystemInteractions:
   - onThisPathAndAllPathsBelow: "src/main/resources/data"
@@ -433,6 +441,7 @@ regardingFileSystemInteractions:
 ```
 
 **Example: Allow reading and writing to a temp folder**
+
 ```yaml
 regardingFileSystemInteractions:
   - onThisPathAndAllPathsBelow: "temp"
@@ -465,6 +474,7 @@ regardingNetworkConnections:
 | `receiveData` | true/false | Allow receiving data |
 
 **Example 1: Allow HTTP requests to a specific API**
+
 ```yaml
 regardingNetworkConnections:
   - onTheHost: "api.openweathermap.org"
@@ -474,6 +484,7 @@ regardingNetworkConnections:
     receiveData: true
 ```
 **Example 2: Allow localhost connections for testing**
+
 ```yaml
 regardingNetworkConnections:
   - onTheHost: "localhost"
@@ -501,6 +512,7 @@ regardingCommandExecutions:
 > **Note:** In YAML, a command can also be specified as a single string (e.g., `"echo hello"`) instead of the structured format. Ares uses Jackson's `@JsonCreator` to parse both formats.
 
 **Example 1: Allow running a specific Python script**
+
 ```yaml
 regardingCommandExecutions:
   - executeTheCommand: "python"
@@ -510,6 +522,7 @@ regardingCommandExecutions:
 ```
 
 **Example 2: Allow running a Maven build**
+
 ```yaml
 regardingCommandExecutions:
   - executeTheCommand: "mvn"
@@ -520,6 +533,7 @@ regardingCommandExecutions:
 ```
 
 **Example 3: Allow running a shell script without arguments**
+
 ```yaml
 regardingCommandExecutions:
   - executeTheCommand: "./run_tests.sh"
@@ -542,6 +556,7 @@ regardingThreadCreations:
 | `ofThisClass` | text | Fully qualified class name (must not be blank) |
 
 **Example 1: Allow basic threads**
+
 ```yaml
 regardingThreadCreations:
   - createTheFollowingNumberOfThreads: 10
@@ -549,6 +564,7 @@ regardingThreadCreations:
 ```
 
 **Example 2: Allow multiple thread types**
+
 ```yaml
 regardingThreadCreations:
   - createTheFollowingNumberOfThreads: 10
@@ -576,6 +592,7 @@ regardingPackageImports:
 > **Matching semantics:** Package matching uses a **prefix match** (`startsWith`). Listing `"java.util"` automatically permits all subpackages such as `java.util.concurrent`, `java.util.stream`, `java.util.function`, etc. You do **not** need to list subpackages separately. Be careful with short prefixes, e.g., `"java"` would permit all standard library packages.
 
 **Example 1: Allow common standard library packages**
+
 ```yaml
 regardingPackageImports:
   - importTheFollowingPackage: "java.util"
@@ -584,6 +601,7 @@ regardingPackageImports:
 ```
 
 **Example 2: Allow collections and concurrency packages**
+
 ```yaml
 regardingPackageImports:
   - importTheFollowingPackage: "java.util"
@@ -605,12 +623,14 @@ regardingTimeouts:
 | `timeout` | number | Intended maximum execution time in milliseconds. Must be **strictly positive**; `0` is rejected. Does not yet take effect at run time, see the note below |
 
 **Example 1: Short timeout for simple computations**
+
 ```yaml
 regardingTimeouts:
   - timeout: 5000
 ```
 
 **Example 2: Extended timeout for file processing**
+
 ```yaml
 regardingTimeouts:
   - timeout: 60000
@@ -766,6 +786,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.r
 **Example: What a violation looks like in practice**
 
 Given this policy:
+
 ```yaml
 regardingFileSystemInteractions:
   - onThisPathAndAllPathsBelow: "data"
@@ -777,11 +798,13 @@ regardingFileSystemInteractions:
 ```
 
 If a student's code calls `new FileWriter("data/output.txt")`, the test fails because `overwriteAllFiles` is `false` (the message is a single line):
+
 ```
 java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.writeOutput tried to illegally overwrite File data/output.txt via java.io.FileWriter.<init>(java.lang.String) | Reason: No allow rule configured for this resource type. but was blocked by Ares.
 ```
 
 If the student's code calls `Files.readString(Path.of("/etc/shadow"))`, the test fails because `/etc/shadow` is not under the allowed path `data` (the message is a single line):
+
 ```
 java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read File /etc/shadow via java.nio.file.Files.readString(java.nio.file.Path) | Reason: No configured allow rule permits this access. but was blocked by Ares.
 ```
