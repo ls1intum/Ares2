@@ -128,3 +128,37 @@ all, spells a heading so that it could never match one, states anything other th
 and a phrase for a section, gives a limit that is not a whole number of at least one that
 fits in an `int`, or gives a phrase of whitespace, which is neither a phrase nor the empty
 string that says there is none.
+
+## Documenting Java
+
+Every method and every field carries Javadoc, and each one stays under 500 characters.
+The class comment stays under 500 characters too.
+
+**Why:** the two failure modes are a file that explains nothing and a file that explains
+its hardest idea three times. A cap forces the choice of what the reader has to know, and
+a comment on everything means the reader never wonders whether the silence was deliberate.
+Long comments also rot fastest, because nobody rereads a page of prose when changing a
+line of code.
+
+**Rule:**
+
+- Write it in simple words, so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid. Say less, not more: a reader who
+  cannot follow a short answer will ask.
+- Say what the thing is and what it is for. Where the reasoning behind how it does that
+  will not fit, keep the part a future editor could break unknowingly and drop the rest.
+- No comments inside a method or a static block. A method that needs one is a method that
+  should be two, each named after the question it answers, and a step explained in prose
+  is a step whose name was not chosen carefully enough. A comment beside a field's value,
+  at class level, is allowed, since a value cannot be split into smaller values.
+- Never put a line comment between a Javadoc comment and the declaration it documents. It
+  detaches the two, and the Javadoc then documents nothing.
+- Claim only what the code does. Shortening is where documentation turns into fiction:
+  "what a reader sees" claims a Markdown renderer, "every code block" claims the ones that
+  are deliberately not read, "collects every complaint" claims there is no early exit. If a
+  sentence would need a paragraph of exceptions, say the narrow true thing instead.
+- Existing Javadoc that predates this rule is not rewritten wholesale. Bring a comment up
+  to this shape when you change the code it documents.
+
+The same applies to any code an agent writes here, not only to Java: `.github/scripts` and
+the workflows are held to the same standard, in whatever comment syntax they have.

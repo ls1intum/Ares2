@@ -14,18 +14,11 @@ import java.util.regex.Pattern;
 /**
  * Checks that a pull request description follows {@code .github/PULL_REQUEST_TEMPLATE.md}.
  *
- * <p>Run with {@code java .github/scripts/CheckPullRequestTemplate.java}, which needs no build step.
- * The description arrives in the {@code PR_BODY} environment variable. On a pull request from a fork
- * an outsider writes that text, so it must never be put into a shell command.
+ * <p>The description arrives in {@code PR_BODY}. An outsider writes it on a fork, so it must never
+ * be interpolated into a shell command. The rules are in {@link #SECTIONS}, not the template, so a
+ * heading, a limit or a whole-section phrase changed in one file has to change in the other too.
  *
- * <p>The rules live in {@link #SECTIONS} and the template says the same things in prose to whoever
- * fills it in. This program never reads the template, so <b>a section renamed, added, removed or
- * given a different limit or whole-section phrase has to change in both files in the same
- * commit</b>. Nothing notices if they drift apart.
- *
- * <p>It checks shape, not quality: every section present, once, in order, not empty, not too long,
- * and no blank left where the template shipped one. It does not ask for the boxes to be ticked,
- * which would only teach people to tick them.
+ * <p>It checks shape, not quality, and never asks for a box to be ticked.
  */
 public class CheckPullRequestTemplate {
 
@@ -38,14 +31,12 @@ public class CheckPullRequestTemplate {
     /**
      * Every section a description must have, in the order the template puts them, each with two rules: how
      * many characters it may hold, and the phrase that answers the whole section when it does not apply.
-     * An empty string means it has no limit, or no phrase. One ordered map, so a rule cannot name a
-     * section nobody requires, and so the order below is the order sections are expected in.
+     * An empty string means it has no limit, or no phrase. A LinkedHashMap, because Map.of promises no
+     * order, and this one is read as the order sections come in.
      */
     private static final Map<String, List<String>> SECTIONS;
 
     static {
-        // A LinkedHashMap, because Map.of does not promise any order at all and the order check
-        // reads this one.
         Map<String, List<String>> sections = new LinkedHashMap<>();
         sections.put("## Summary", List.of("500", ""));
         sections.put("## Linked issues", List.of("1000", "No linked issues"));
@@ -54,12 +45,6 @@ public class CheckPullRequestTemplate {
                 List.of("1000", "No Improvement from the user's perspective"));
         sections.put("## 3. Improvement from the maintainer's perspective",
                 List.of("1000", "No Improvement from the maintainer's perspective"));
-        // This section has no whole-section phrase, and neither of the two the template offers here
-        // belongs in that slot. "Not reproducible from an exercise" answers Steps and "No
-        // mode-specific behaviour changed" answers the modes, both of which sit inside this
-        // section, so neither may switch off the length and stub checks for the whole of it.
-        // Nothing here requires a section to have steps at all; the slot is empty because these
-        // phrases do not answer the section, not because a body saying only one of them is caught.
         sections.put("## 4. Testing manual", List.of("5000", ""));
         sections.put("## 5. Test case coverage regarding this PR", List.of("", "No production Java code changed"));
         sections.put("## Breaking changes and migration", List.of("1000", "No breaking changes or migration"));
@@ -72,10 +57,11 @@ public class CheckPullRequestTemplate {
     private static final Pattern HEADING = Pattern.compile("^## .+$", Pattern.MULTILINE);
 
     /**
-     * Three things whose insides must not be read as ordinary text: an HTML comment, which never shows on
-     * the page, a fenced code block, and code between backticks. One pattern finds all three, so that
-     * whichever starts first wins, because each can hold another's opening marks. A comment or a fence
-     * that is never closed runs to the end of the text, which is what GitHub shows.
+     * Three things whose insides are not markup for this check: an HTML comment, which never shows on the
+     * page, a fenced code block, and code between backticks. Code still counts towards a section's length,
+     * but a comment marker, a heading or a numbered blank inside it is an example rather than markup, and
+     * obeying it would hide text or invent a section nobody wrote. One pattern finds all three, so the one
+     * starting first wins.
      */
     private static final Pattern NOT_PROSE = Pattern.compile(
             "(?<comment><!--.*?(?:-->|\\z))"
@@ -138,11 +124,6 @@ public class CheckPullRequestTemplate {
             return 1;
         }
 
-        // Matched against the headings the body really has rather than with contains, and rejected
-        // when a heading occurs twice. A heading merely quoted inside a sentence would otherwise
-        // count as present while sections() never finds it, and of two real occurrences only the
-        // last would be inspected, which leaves everything above it, its length included,
-        // unchecked.
         String maskedBody = masked(body);
         List<String> found = headings(maskedBody);
         problems.addAll(missing(required, found));
@@ -209,39 +190,72 @@ public class CheckPullRequestTemplate {
      * description is judged, and every message says which file to fix.
      */
     private static List<String> miswritten() {
-        List<String> problems = new ArrayList<>();
-        if (SECTIONS.isEmpty()) {
-            problems.add("This check is miswritten: it requires no sections at all, so it would pass any "
-                    + "body. Fix CheckPullRequestTemplate.java, not the pull request body.");
-        }
+        List<String> problems = new ArrayList<>(miswrittenSectionList());
         for (Map.Entry<String, List<String>> section : SECTIONS.entrySet()) {
-            String heading = section.getKey();
-            List<String> rules = section.getValue();
-            if (!HEADING.matcher(heading).matches() || !heading.equals(heading.trim())) {
-                problems.add("This check is miswritten: the required heading '" + heading
-                        + "' is not a heading it can ever match. Fix CheckPullRequestTemplate.java, "
-                        + "not the pull request body.");
-            }
-            if (rules.size() != 2) {
-                problems.add("This check is miswritten: the rules for '" + heading + "' are not the two "
-                        + "expected, a limit and a phrase, either of which may be empty (found "
-                        + rules.size() + "). Fix CheckPullRequestTemplate.java, not the pull request body.");
-                continue;
-            }
-            problems.addAll(miswrittenLimit(heading, rules.get(0)));
-            String phrase = rules.get(1);
-            if (!phrase.isEmpty() && phrase.isBlank()) {
-                problems.add("This check is miswritten: the phrase for '" + heading + "' is whitespace, "
-                        + "which is neither a phrase nor the empty string that means it has none. Fix "
-                        + "CheckPullRequestTemplate.java, not the pull request body.");
-            }
+            problems.addAll(miswrittenSection(section.getKey(), section.getValue()));
         }
         return problems;
     }
 
     /**
+     * Whether this file lists any section at all. An empty list would pass every description, silently,
+     * since a check with nothing to require has nothing to complain about.
+     */
+    private static List<String> miswrittenSectionList() {
+        if (!SECTIONS.isEmpty()) {
+            return List.of();
+        }
+        return List.of("This check is miswritten: it requires no sections at all, so it would pass any "
+                + "body. Fix CheckPullRequestTemplate.java, not the pull request body.");
+    }
+
+    /**
+     * The complaints about one entry of {@link #SECTIONS}: its heading, then its two rules. The rules are
+     * read only when there are exactly two, which is the shape {@link #inspect} expects of them.
+     */
+    private static List<String> miswrittenSection(String heading, List<String> rules) {
+        List<String> problems = new ArrayList<>(miswrittenHeading(heading));
+        if (rules.size() != 2) {
+            problems.add("This check is miswritten: the rules for '" + heading + "' are not the two "
+                    + "expected, a limit and a phrase, either of which may be empty (found "
+                    + rules.size() + "). Fix CheckPullRequestTemplate.java, not the pull request body.");
+            return problems;
+        }
+        problems.addAll(miswrittenLimit(heading, rules.get(0)));
+        problems.addAll(miswrittenPhrase(heading, rules.get(1)));
+        return problems;
+    }
+
+    /**
+     * Whether a required heading is one this program could ever find in a description. A heading it cannot
+     * match would fail every description with a missing section nobody can do anything about.
+     */
+    private static List<String> miswrittenHeading(String heading) {
+        if (HEADING.matcher(heading).matches() && heading.equals(heading.trim())) {
+            return List.of();
+        }
+        return List.of("This check is miswritten: the required heading '" + heading
+                + "' is not a heading it can ever match. Fix CheckPullRequestTemplate.java, "
+                + "not the pull request body.");
+    }
+
+    /**
+     * Whether one section's phrase can be used. Empty means the section has none, and whitespace is
+     * neither that nor a phrase.
+     */
+    private static List<String> miswrittenPhrase(String heading, String phrase) {
+        if (phrase.isEmpty() || !phrase.isBlank()) {
+            return List.of();
+        }
+        return List.of("This check is miswritten: the phrase for '" + heading + "' is whitespace, "
+                + "which is neither a phrase nor the empty string that means it has none. Fix "
+                + "CheckPullRequestTemplate.java, not the pull request body.");
+    }
+
+    /**
      * Whether one section's limit can be used. Empty means the section has no limit. Anything else must be
-     * a whole number of at least one, and small enough for Java to hold.
+     * a whole number of at least one that Java can hold; a number too large to hold is reported the same
+     * way as one that is not a number, since either is a mistake in this file.
      */
     private static List<String> miswrittenLimit(String heading, String declared) {
         if (declared.isEmpty()) {
@@ -251,8 +265,6 @@ public class CheckPullRequestTemplate {
         try {
             limit = Integer.parseInt(declared);
         } catch (NumberFormatException error) {
-            // Also the answer for a number too large to hold, which is a mistake either way: a
-            // section bounded above two billion characters is a section nobody meant to bound.
             return List.of("This check is miswritten: the limit '" + declared + "' for '" + heading
                     + "' is not a whole number this program can hold. Fix CheckPullRequestTemplate.java, "
                     + "not the pull request body.");
@@ -324,23 +336,31 @@ public class CheckPullRequestTemplate {
      * not mistaken for a blank somebody forgot.
      */
     private static List<String> leftoverStubs(String heading, String content) {
-        List<String> problems = new ArrayList<>();
         String scannable = masked(content);
-        for (String line : scannable.split("\n", -1)) {
-            if (TESTING_MANUAL_STUB.matcher(line).matches()) {
-                problems.add("Section '" + heading + "' still contains an unfilled list stub ('"
-                        + line.trim() + "' with nothing after it).");
-                break;
-            }
+        List<String> problems = new ArrayList<>();
+        String stub = firstLineMatching(scannable, TESTING_MANUAL_STUB);
+        if (stub != null) {
+            problems.add("Section '" + heading + "' still contains an unfilled list stub ('"
+                    + stub.trim() + "' with nothing after it).");
         }
-        for (String line : scannable.split("\n", -1)) {
-            if (TEST_CASE_COVERAGE_STUB.matcher(line).matches()) {
-                problems.add("Section '" + heading + "' still contains the empty template table row. "
-                        + "Fill it in, or use the documented escape hatch.");
-                break;
-            }
+        if (firstLineMatching(scannable, TEST_CASE_COVERAGE_STUB) != null) {
+            problems.add("Section '" + heading + "' still contains the empty template table row. "
+                    + "Fill it in, or use the documented escape hatch.");
         }
         return problems;
+    }
+
+    /**
+     * The first line of a text that is nothing but the given pattern, or null when no line is. Whole lines,
+     * because a blank the template shipped stands on its own; a number in a sentence is not one.
+     */
+    private static String firstLineMatching(String text, Pattern pattern) {
+        for (String line : text.split("\n", -1)) {
+            if (pattern.matcher(line).matches()) {
+                return line;
+            }
+        }
+        return null;
     }
 
     /**
@@ -453,31 +473,47 @@ public class CheckPullRequestTemplate {
      * something is wrong, and a short Markdown summary on the job page when the workflow provides one.
      */
     private static void report(List<String> problems, List<String> required) throws IOException {
-        List<String> lines = new ArrayList<>();
+        List<String> lines = problems.isEmpty() ? passed(required) : failed(problems, required);
+        problems.forEach(problem -> System.out.println("::error::" + problem));
         if (problems.isEmpty()) {
-            lines.add("## Pull request template check passed");
-            lines.add("");
-            lines.add("All " + required.size() + " required sections are present and filled in.");
             System.out.println("All " + required.size() + " required sections are present and filled in.");
-        } else {
-            lines.add("## Pull request template check failed");
-            lines.add("");
-            lines.add("The body does not follow [" + TEMPLATE + "](" + TEMPLATE + "). It declares "
-                    + required.size() + " required sections.");
-            lines.add("");
-            for (String problem : problems) {
-                lines.add("- " + problem);
-                System.out.println("::error::" + problem);
-            }
-            lines.add("");
-            lines.add("Copy the template into the body, fill in every section, and the check re-runs "
-                    + "automatically when the description is edited.");
         }
+        writeSummary(lines);
+    }
 
+    /**
+     * The summary written when the description is in order.
+     */
+    private static List<String> passed(List<String> required) {
+        return List.of("## Pull request template check passed", "",
+                "All " + required.size() + " required sections are present and filled in.");
+    }
+
+    /**
+     * The summary written when it is not: what the body should follow, then every complaint, then how to
+     * put it right. Editing the description is the fix, since the check runs again when it is edited.
+     */
+    private static List<String> failed(List<String> problems, List<String> required) {
+        List<String> lines = new ArrayList<>(List.of("## Pull request template check failed", "",
+                "The body does not follow [" + TEMPLATE + "](" + TEMPLATE + "). It declares "
+                        + required.size() + " required sections.", ""));
+        problems.forEach(problem -> lines.add("- " + problem));
+        lines.add("");
+        lines.add("Copy the template into the body, fill in every section, and the check re-runs "
+                + "automatically when the description is edited.");
+        return lines;
+    }
+
+    /**
+     * Appends the summary to the page GitHub shows for the job, when the workflow gives one to write to.
+     * Run from a terminal there is none, and the {@code ::error::} lines have already said everything.
+     */
+    private static void writeSummary(List<String> lines) throws IOException {
         String summaryPath = System.getenv("GITHUB_STEP_SUMMARY");
-        if (summaryPath != null && !summaryPath.isBlank()) {
-            Files.writeString(Path.of(summaryPath), String.join("\n", lines) + "\n", StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        if (summaryPath == null || summaryPath.isBlank()) {
+            return;
         }
+        Files.writeString(Path.of(summaryPath), String.join("\n", lines) + "\n", StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
 }
