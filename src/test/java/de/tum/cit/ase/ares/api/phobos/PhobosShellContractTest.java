@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermission;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -243,6 +244,31 @@ class PhobosShellContractTest {
 		assertEquals("/tmp/x]", parsedReadPathsOf("trailing-bracket-path.cfg", "[read]\n/tmp/x]\n"));
 		assertEquals("/tmp/a b c", parsedReadPathsOf("spaced-path.cfg", "[read]\n/tmp/a b c\n"));
 		assertEquals("/tmp/a.*b", parsedReadPathsOf("pattern-path.cfg", "[read]\n/tmp/a.*b\n"));
+	}
+
+	@Test
+	void aGeneratedBracketLeadingPathReachesTheSandboxInsteadOfBeingRejected() throws Exception {
+		// The generator and the parser are two halves of one contract. The policy model
+		// accepts a relative path that starts with '[', and a line spelled that way is
+		// a section header to the parser, so the generator has to emit the equivalent
+		// './' form. Generating the configuration here rather than writing one by hand
+		// is what proves the two halves agree.
+		String generated = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(() -> List.of(new FilePermission("[draft", true, false, false, false, false),
+						new FilePermission("[out", true, true, false, false, false)))
+				.build().writePhobosTestCase();
+
+		assertTrue(generated.contains("[readonly]\n./[draft\n"), generated);
+		assertTrue(generated.contains("[write]\n./[out\n"), generated);
+
+		Path config = temporaryDirectory.resolve("generated-bracket-path.cfg");
+		Files.writeString(config, generated);
+		ProcessResult result = run(sourceCommonAndParse(config) + "; cat \"${PARSED_RO_FILE}\" \"${PARSED_RW_FILE}\"");
+
+		assertEquals(0, result.exitCode(), result.output());
+		assertFalse(result.output().contains("PHB-EPOLICY"), result.output());
+		assertEquals("./[draft\n./[out\n", result.output(), "both generated paths must reach the sandbox");
 	}
 
 	@Test

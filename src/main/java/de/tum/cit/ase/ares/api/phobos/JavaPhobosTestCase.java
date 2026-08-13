@@ -139,8 +139,31 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 		out.append('[').append(header).append("]\n");
 
 		List<String> sortedPaths = paths.stream().sorted().toList();
-		sortedPaths.forEach(p -> out.append(p).append('\n'));
+		sortedPaths.forEach(p -> out.append(serialiseFilesystemPath(p)).append('\n'));
 		out.append('\n');
+	}
+
+	/**
+	 * Serialises a single filesystem path for the Phobos configuration.
+	 * <p>
+	 * A line beginning with {@code [} is reserved for a Phobos section header, so a
+	 * bracket-leading relative path is emitted with the equivalent {@code ./}
+	 * prefix. {@code [draft} and {@code ./[draft} name the same relative path once
+	 * the sandbox canonicalises them, so the prefix carries no meaning of its own
+	 * and only keeps the line unambiguous.
+	 * <p>
+	 * The test is deliberately the first character alone. In the POSIX
+	 * configuration syntax Phobos consumes, a path starting with {@code [} is
+	 * necessarily relative, so no host-dependent absolute-path check is involved:
+	 * generation may run on Windows while the configuration targets Linux. Every
+	 * other path, absolute or relative, is emitted verbatim, including one that
+	 * merely contains a bracket later on.
+	 *
+	 * @param path the path collected from the permission model
+	 * @return the path as written into a filesystem section
+	 */
+	private static String serialiseFilesystemPath(String path) {
+		return path.startsWith("[") ? "./" + path : path;
 	}
 
 	@Nonnull
