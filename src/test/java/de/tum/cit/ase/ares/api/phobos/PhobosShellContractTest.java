@@ -488,11 +488,27 @@ class PhobosShellContractTest {
 		Path shellRoot = Files.createDirectory(temporaryDirectory.resolve("wrapper"));
 		for (String script : new String[] { "phobos.sh", "phobos-common.sh", "phobos-timeout.sh", "phobos-network.sh",
 				"phobos-filesystem.sh" }) {
-			Files.copy(TEMPLATES.resolve(script), shellRoot.resolve(script));
+			makeExecutable(Files.copy(TEMPLATES.resolve(script), shellRoot.resolve(script)));
 		}
 		Files.writeString(shellRoot.resolve("Base.cfg"), baseConfiguration);
 		Files.createFile(shellRoot.resolve("TailPhobos.cfg"));
 		return shellRoot;
+	}
+
+	/**
+	 * Reproduces the precondition the Phobos image establishes with
+	 * {@code chmod +x} over its script directory. The layers hand over to one
+	 * another with {@code exec}, so a copy that is only readable stops part-way
+	 * through the chain with "Permission denied". The bundled resources are not
+	 * tracked as executable and a copy inherits that, which is why the fixture
+	 * grants the bit on the copy rather than on the resource it came from. A
+	 * fixture that cannot establish it is a setup failure, never a skipped test.
+	 */
+	private static void makeExecutable(Path script) {
+		script.toFile().setExecutable(true);
+		if (!Files.isExecutable(script)) {
+			throw new IllegalStateException("The wrapper fixture needs an executable copy of " + script);
+		}
 	}
 
 	private Path markerOf(Path shellRoot) {
