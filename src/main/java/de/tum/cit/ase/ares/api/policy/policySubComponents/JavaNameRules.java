@@ -89,6 +89,14 @@ public final class JavaNameRules implements LanguageNameRules {
 	}
 
 	@Override
+	public void requirePackageImport(String field, @Nullable String value) {
+		if (!matchesPackageImport(value)) {
+			throw new IllegalArgumentException(
+					Messages.localized("policy.value.java.package.import", field, String.valueOf(value)));
+		}
+	}
+
+	@Override
 	public void requireTypeName(String field, @Nullable String value) {
 		if (!matchesTypeName(value)) {
 			throw new IllegalArgumentException(

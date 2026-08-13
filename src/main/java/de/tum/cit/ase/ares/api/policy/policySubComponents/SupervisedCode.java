@@ -57,9 +57,11 @@ public record SupervisedCode(
 	 *                                  the list of test classes, one of its
 	 *                                  entries, or the permitted resource accesses
 	 *                                  is null.
-	 * @throws IllegalArgumentException if the package name, the main class name or
-	 *                                  one of the test class names does not have
-	 *                                  the shape Java requires of it.
+	 * @throws IllegalArgumentException if the package name, the main class name,
+	 *                                  one of the test class names or one of the
+	 *                                  permitted package imports does not have the
+	 *                                  shape the selected language requires of it.
+	 *                                  A package import may also be {@code *}.
 	 */
 	public SupervisedCode {
 		Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed,
@@ -81,6 +83,22 @@ public record SupervisedCode(
 			nameRules.requireClassPath("theFollowingClassesAreTestClasses entry", testClass);
 		}
 		Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "ResourceAccesses must not be null");
+		// Package imports are validated here rather than in PackagePermission, which is
+		// language-agnostic and so cannot know what a package looks like. This is the
+		// only place that holds both the language and the permissions, and until now
+		// nothing joined them: a policy read from a file was checked by the schema
+		// validator, and a policy built in code was not checked at all. An unchecked
+		// selector then reached two places that read it loosely. The ArchUnit matcher
+		// strips a trailing dot, so "com.foo." silently became the grant "com.foo"
+		// that the file gate refuses; and the generated test code interpolates the
+		// value into a Java string literal without escaping. Neither crosses a
+		// privilege boundary, because only an instructor writes a policy in code, but
+		// both mean the two ways of expressing one policy disagreed.
+		for (PackagePermission packagePermission : theFollowingResourceAccessesArePermitted.regardingPackageImports()) {
+			Objects.requireNonNull(packagePermission, "regardingPackageImports entries must not be null");
+			nameRules.requirePackageImport("regardingPackageImports entry",
+					packagePermission.importTheFollowingPackage());
+		}
 		theFollowingClassesAreTestClasses = List.copyOf(theFollowingClassesAreTestClasses);
 	}
 

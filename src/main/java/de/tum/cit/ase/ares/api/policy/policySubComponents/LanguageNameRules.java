@@ -78,6 +78,21 @@ public interface LanguageNameRules {
 	void requirePackage(String field, @Nullable String value);
 
 	/**
+	 * Requires a value to be a valid package import for this language, that is a
+	 * package name or the wildcard {@code *}.
+	 * <p>
+	 * The throwing counterpart of {@link #matchesPackageImport(String)}, and
+	 * distinct from {@link #requirePackage(String, String)} because the wildcard is
+	 * a legal package <em>import</em> and not a legal package <em>name</em>.
+	 *
+	 * @param field the policy-field name used in the failure message.
+	 * @param value the value to validate; may be {@code null}.
+	 * @throws IllegalArgumentException if the value is neither a valid package name
+	 *                                  nor the wildcard.
+	 */
+	void requirePackageImport(String field, @Nullable String value);
+
+	/**
 	 * Requires a value to be a valid single type (class) name for this language.
 	 *
 	 * @param field the policy-field name used in the failure message.

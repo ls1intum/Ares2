@@ -216,8 +216,48 @@ class PolicyValueContractTest {
 		assertThrows(IllegalArgumentException.class, () -> new CommandPermission("git", List.of("--ver\nsion")));
 	}
 
+	@Test
+	void aProgrammaticPackageImportIsHeldToTheSameRuleAsAWrittenOne() {
+		// PackagePermission cannot check this itself: it is language-agnostic, so it
+		// does not know what a package looks like. SupervisedCode is the only place
+		// that holds the language and the permissions together, which is why the check
+		// lives there. Without it a policy built in code accepted selectors the file
+		// gate refuses, and the two ways of writing one policy disagreed.
+		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport("com.foo."));
+		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport("com..foo"));
+		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport(".com.foo"));
+		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport("com.foo.*"));
+		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport(""));
+		// A trailing dot is the case that mattered: the ArchUnit matcher strips it, so
+		// "com.foo." reached enforcement as the grant "com.foo" rather than being
+		// refused as it is when the same value is written in a policy file.
+		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport("com.class"));
+	}
+
+	@Test
+	void aProgrammaticPackageImportStillAcceptsEveryValidSelector() {
+		// The wildcard is a valid package import and not a valid package name, which is
+		// why this goes through requirePackageImport rather than requirePackage.
+		assertEquals("*", supervisedCodeAllowingImport("*").theFollowingResourceAccessesArePermitted()
+				.regardingPackageImports().get(0).importTheFollowingPackage());
+		assertEquals("java.util", supervisedCodeAllowingImport("java.util").theFollowingResourceAccessesArePermitted()
+				.regardingPackageImports().get(0).importTheFollowingPackage());
+		assertEquals("bareidentifier",
+				supervisedCodeAllowingImport("bareidentifier").theFollowingResourceAccessesArePermitted()
+						.regardingPackageImports().get(0).importTheFollowingPackage());
+	}
+
 	private SupervisedCode supervisedCode(List<String> testClasses) {
 		return new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, "example",
 				"Main", testClasses, ResourceAccesses.createRestrictive());
+	}
+
+	private SupervisedCode supervisedCodeAllowingImport(String packageImport) {
+		ResourceAccesses accesses = ResourceAccesses.builder().regardingFileSystemInteractions(List.of())
+				.regardingNetworkConnections(List.of()).regardingCommandExecutions(List.of())
+				.regardingThreadCreations(List.of())
+				.regardingPackageImports(List.of(new PackagePermission(packageImport))).build();
+		return new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, "example",
+				"Main", List.of(), accesses);
 	}
 }
