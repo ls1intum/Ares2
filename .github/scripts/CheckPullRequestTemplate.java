@@ -61,6 +61,21 @@ public class CheckPullRequestTemplate {
      * opening run and the search for the close are written
      * so that neither can be given back. A body is untrusted input on a fork pull request, and a
      * run of backticks that never closes must cost one scan rather than an exponential one.
+     *
+     * <p>Two code contexts are deliberately not recognised: an indented code block, and a fence
+     * nested inside a list item or a block quote, where CommonMark measures the indent against the
+     * container rather than against the margin. Comment markers written in either of those are
+     * still read as a comment, so their text is not counted, and an unclosed one there can reach
+     * the next real {@code -->} and mask a heading in between.
+     *
+     * <p>The stopping point is deliberate. Recognising those two means tracking container
+     * indentation and the block that precedes each line, which is a Markdown parser, and an
+     * attempt at one that stops halfway costs more than it buys: the version of this check that
+     * matched four-space indentation without its container read a paragraph continued under a
+     * numbered list as code, which is ordinary Markdown that any contributor may write. This is a
+     * check on a body its own author writes, not a boundary that keeps anyone out, so a hole that
+     * has to be entered on purpose is a fair price for not failing bodies that are written in good
+     * faith. What this check reads is stated plainly rather than described as what a reader sees.
      */
     private static final Pattern NOT_PROSE = Pattern.compile(
             "<!--.*?(?:-->|\\z)"

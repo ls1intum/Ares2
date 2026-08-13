@@ -68,9 +68,12 @@ way an otherwise correct contribution arrives unreviewable.
 The `pr-template` job in `.github/workflows/pullrequest-template.yml` enforces the shape
 of the body and is a required status check. It verifies that every section exists exactly
 once and in the order of the template, that none is empty, that none runs past the limit
-its template section declares, and that no unfilled stub survived. It reads the body as a
-reader sees it: a heading inside a comment does not count as a section, and a heading or a
-comment marker shown inside a fenced block is text rather than markup. It deliberately does not require checklist boxes to be ticked. It
+its template section declares, and that no unfilled stub survived. A heading inside a
+comment does not count as a section, and a heading or a comment marker shown inside a
+fenced block or a code span is text rather than markup. Two code contexts are not read,
+namely an indented code block and a fence nested inside a list or a block quote, so a
+comment marker written there still counts as a comment; the Javadoc of the checker says
+why that line was drawn. It deliberately does not require checklist boxes to be ticked. It
 re-runs when the description is edited, so a failure is fixed by editing the body rather
 than by pushing a commit.
 
