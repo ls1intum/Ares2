@@ -31,7 +31,13 @@ limits
 timeout
 EOF
 }
+# The C locale is set for this function alone so that [[:space:]] means the
+# C locale's ASCII whitespace characters and nothing else. Under a UTF-8 locale
+# it also matches separators such as U+2003, which would silently rename a path
+# that legitimately begins with one. The assignment is local, so no caller and
+# no other function sees it.
 trim_ends() {
+  local LC_ALL=C
   local text="$1"
   text="${text#"${text%%[![:space:]]*}"}"
   printf '%s' "${text%"${text##*[![:space:]]}"}"

@@ -309,6 +309,39 @@ class PhobosShellContractTest {
 	}
 
 	@Test
+	void aGeneratedPathKeepsAUnicodeSeparatorUnderAUtf8Locale() throws Exception {
+		// U+2003 is an ordinary filename character, not something the serialiser
+		// escapes, so the parser has to leave it alone. Bash matches [[:space:]]
+		// against the locale, and under a UTF-8 locale that class covers U+2003, which
+		// would trim the path down to a different file. Trimming therefore runs in the
+		// C locale, and this proves it from the generator through to the parsed entry.
+		String path = "\u2003secret";
+		String generated = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(() -> List.of(new FilePermission(path, true, false, false, false, false)))
+				.build().writePhobosTestCase();
+
+		assertTrue(generated.contains("[readonly]\n" + path + "\n"), generated);
+		assertFalse(generated.contains("./" + path), "a valid separator must not be escaped: " + generated);
+
+		Path config = temporaryDirectory.resolve("generated-unicode-separator.cfg");
+		Files.writeString(config, generated);
+		// The locale check keeps the case honest: on a runner whose locale did not
+		// treat U+2003 as a separator the assertion below would pass for the wrong
+		// reason, so the run reports whether the class is locale-sensitive at all.
+		ProcessResult result = run("export LC_ALL=C.UTF-8; probe=\"\u2003x\"; "
+				+ "if [ -z \"${probe%%[![:space:]]*}\" ]; then echo LOCALE-NOT-UTF8; else echo LOCALE-UTF8; fi; "
+				+ sourceCommonAndParse(config) + "; cat \"${PARSED_RO_FILE}\"");
+
+		assertEquals(0, result.exitCode(), result.output());
+		assertFalse(result.output().contains("PHB-EPOLICY"), result.output());
+		assertTrue(result.output().startsWith("LOCALE-UTF8\n"),
+				"the locale must treat U+2003 as a separator for this case to mean anything: " + result.output());
+		assertEquals("LOCALE-UTF8\n" + path + "\n", result.output(),
+				"the separator must reach the sandbox unchanged rather than being trimmed away");
+	}
+
+	@Test
 	void aNegativeTimeoutIsRejected() throws Exception {
 		assertPolicyError("negative-integer.cfg", "[limits]\ntimeout=-1\n");
 		assertPolicyError("negative-decimal.cfg", "[limits]\ntimeout=-0.500\n");
