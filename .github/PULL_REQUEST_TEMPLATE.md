@@ -129,6 +129,17 @@
   Write these steps so that a reviewer who did not write the code can follow them from a
   cold start. Where possible, begin from the perspective "I have an Ares exercise".
 
+  Fewest steps, fewest tools. Count what you are asking for before you ask: every install,
+  every account, every command line is a reason the manual goes untried, and a change
+  nobody tested is a change nobody reviewed.
+
+  Prefer a manual a reviewer can finish in the browser alone. Where that is possible it is
+  the whole manual, and a terminal route belongs below it as an optional extra rather than
+  as a step. Where a terminal cannot be avoided, ask for one tool rather than three, name
+  every tool the steps assume, and give each command in full, including how to produce
+  whatever it needs: a reviewer who has to invent a file, a number or a flag you left out
+  is writing the manual for you.
+
   Start from a runnable exercise, do not make the reviewer build one. `examples/`
   contains `ares-exercise-gradle` and `ares-exercise-maven`; point at one of them and
   describe only the delta. A reviewer who has to guess how to wire up Ares is testing
@@ -142,7 +153,8 @@
   test repository and which security policy file to use, and any environment requirement
   (JDK, Maven or Gradle, the echo server on port 25565 for network tests, see AGENTS.md).
 
-  Steps: numbered, one action per line, with the exact commands.
+  Steps: numbered, one observable result per step, with the exact commands where there are
+  commands. A step a reviewer cannot check the outcome of is setup, not a step.
 
   Use only platform-independent paths. `/etc/hosts` does not exist on Windows, and
   neither do `/tmp` or `~/.bashrc` in the form you expect. Create a file such as

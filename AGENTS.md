@@ -118,8 +118,8 @@ Check a body before opening the pull request, from the repository root:
 PR_BODY="$(cat body.md)" java .github/scripts/CheckPullRequestTemplate.java
 ```
 
-The checker is a single-file Java program, run through the source-code launcher, so it
-needs no build step and adds no language to the repository.
+The checker is a single-file Java program, run through the source-code launcher of JDK 11 or
+newer, so it needs no build step and adds no language to the repository. CI runs it on 21.
 
 **Changing the template is two edits, not one.** The required headings, the character
 limits and the phrases that answer a section live in one ordered map, `SECTIONS`, at the
