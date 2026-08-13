@@ -272,6 +272,29 @@ class PhobosShellContractTest {
 	}
 
 	@Test
+	void aGeneratedWhitespaceLeadingPathReachesTheSandboxWithItsSpaceIntact() throws Exception {
+		// The parser trims a leading space off a line before it classifies it, so an
+		// unprefixed " [draft" would arrive as "[draft" and be read as a header. The
+		// generated './' form has to carry the space through to the sandbox unchanged.
+		String generated = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(() -> List.of(new FilePermission(" [draft", true, false, false, false, false),
+						new FilePermission(" out", true, true, false, false, false)))
+				.build().writePhobosTestCase();
+
+		assertTrue(generated.contains("[readonly]\n./ [draft\n"), generated);
+		assertTrue(generated.contains("[write]\n./ out\n"), generated);
+
+		Path config = temporaryDirectory.resolve("generated-whitespace-path.cfg");
+		Files.writeString(config, generated);
+		ProcessResult result = run(sourceCommonAndParse(config) + "; cat \"${PARSED_RO_FILE}\" \"${PARSED_RW_FILE}\"");
+
+		assertEquals(0, result.exitCode(), result.output());
+		assertFalse(result.output().contains("PHB-EPOLICY"), result.output());
+		assertEquals("./ [draft\n./ out\n", result.output(), "the leading space must survive to the sandbox");
+	}
+
+	@Test
 	void aNegativeTimeoutIsRejected() throws Exception {
 		assertPolicyError("negative-integer.cfg", "[limits]\ntimeout=-1\n");
 		assertPolicyError("negative-decimal.cfg", "[limits]\ntimeout=-0.500\n");

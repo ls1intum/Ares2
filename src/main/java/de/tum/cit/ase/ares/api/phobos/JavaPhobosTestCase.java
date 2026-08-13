@@ -146,24 +146,33 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	/**
 	 * Serialises a single filesystem path for the Phobos configuration.
 	 * <p>
-	 * A line beginning with {@code [} is reserved for a Phobos section header, so a
-	 * bracket-leading relative path is emitted with the equivalent {@code ./}
-	 * prefix. {@code [draft} and {@code ./[draft} name the same relative path once
-	 * the sandbox canonicalises them, so the prefix carries no meaning of its own
-	 * and only keeps the line unambiguous.
+	 * Two kinds of first character would not survive the journey to the sandbox. A
+	 * line beginning with {@code [} is reserved for a section header, and the
+	 * parser trims a leading space or tab off every line before it reads it, which
+	 * would quietly name a different file. Both are emitted with an equivalent
+	 * {@code ./} prefix: {@code [draft} and {@code ./[draft}, or {@code " [draft"}
+	 * and {@code "./ [draft"}, name the same relative path once the sandbox
+	 * canonicalises them, and after the prefix the space or tab is interior and so
+	 * survives trimming. The prefix carries no meaning of its own.
 	 * <p>
-	 * The test is deliberately the first character alone. In the POSIX
-	 * configuration syntax Phobos consumes, a path starting with {@code [} is
-	 * necessarily relative, so no host-dependent absolute-path check is involved:
-	 * generation may run on Windows while the configuration targets Linux. Every
-	 * other path, absolute or relative, is emitted verbatim, including one that
-	 * merely contains a bracket later on.
+	 * The test is deliberately the raw first character alone. In the POSIX
+	 * configuration syntax Phobos consumes, a path starting with {@code [}, a space
+	 * or a tab is necessarily relative, so no host-dependent absolute-path check is
+	 * involved: generation may run on Windows while the configuration targets
+	 * Linux. Space and tab are the characters the parser actually trims here; a
+	 * broader whitespace notion would rewrite paths the parser would have kept.
+	 * Every other path, absolute or relative, is emitted verbatim, including one
+	 * that merely contains a bracket or a space later on.
 	 *
 	 * @param path the path collected from the permission model
 	 * @return the path as written into a filesystem section
 	 */
 	private static String serialiseFilesystemPath(String path) {
-		return path.startsWith("[") ? "./" + path : path;
+		if (path.isEmpty()) {
+			return path;
+		}
+		char first = path.charAt(0);
+		return first == '[' || first == ' ' || first == '\t' ? "./" + path : path;
 	}
 
 	@Nonnull

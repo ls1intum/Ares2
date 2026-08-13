@@ -92,10 +92,25 @@ class JavaPhobosTestCaseTest {
 	}
 
 	@Test
-	void onlyTheLeadingBracketIsPrefixed() {
-		// The prefix is added for the one character that creates the ambiguity, so
-		// every other path keeps the exact spelling the policy author wrote.
+	void aWhitespaceLeadingRelativePathIsSerialisedWithADotSlashPrefix() {
+		// The parser trims a leading space or tab off a line before reading it, which
+		// would name a different file. After the prefix the space or tab is interior
+		// and survives, so the path still reaches the sandbox as it was written.
+		assertEquals("./ [draft", readOnlyLineFor(" [draft"));
+		assertEquals("./\t[draft", readOnlyLineFor("\t[draft"));
+		// The bracket is not what matters here; any leading space or tab is trimmed.
+		assertEquals("./ file", readOnlyLineFor(" file"));
+		assertEquals("./\tfile", readOnlyLineFor("\tfile"));
+	}
+
+	@Test
+	void onlyLeadingCharactersTheParserWouldChangeArePrefixed() {
+		// The prefix is added only for the characters that would otherwise be lost or
+		// misread, so every other path keeps the exact spelling the policy author
+		// wrote, including a space or bracket that appears later in the name.
 		assertEquals("./[draft", readOnlyLineFor("./[draft"));
+		assertEquals("./ [draft", readOnlyLineFor("./ [draft"));
+		assertEquals("a b", readOnlyLineFor("a b"));
 		assertEquals("relative/[draft", readOnlyLineFor("relative/[draft"));
 		assertEquals("a[b]c", readOnlyLineFor("a[b]c"));
 		assertEquals("/tmp/[draft", readOnlyLineFor("/tmp/[draft"));
@@ -109,6 +124,7 @@ class JavaPhobosTestCaseTest {
 		// Both filesystem sections are emitted through one helper, so neither can
 		// drift into writing an ambiguous line.
 		assertEquals("./[draft", writeLineFor("[draft"));
+		assertEquals("./ [draft", writeLineFor(" [draft"));
 		assertEquals("./[abc]", writeLineFor("[abc]"));
 		assertEquals("./[draft", writeLineFor("./[draft"));
 		assertEquals("a[b]c", writeLineFor("a[b]c"));
