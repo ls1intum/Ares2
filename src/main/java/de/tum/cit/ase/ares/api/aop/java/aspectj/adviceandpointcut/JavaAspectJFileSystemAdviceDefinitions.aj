@@ -135,6 +135,17 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	private static final List<String> NATIVE_LIBRARY_SUFFIXES = List.of(".dylib", ".jnilib", ".so", ".dll");
 
 	/**
+	 * The fixed set of JCE jurisdiction crypto-policy file names, plus the exact
+	 * directory-scan glob {@code javax.crypto.JceSecurity} uses to locate them
+	 * during TLS/cryptography initialisation. Matched exactly (not by prefix) so
+	 * the crypto-policy read exemption cannot be widened by a student-chosen file
+	 * name.
+	 */
+	@Nonnull
+	private static final Set<String> CRYPTO_POLICY_NAMES = Set.of("default_US_export.policy", "default_local.policy",
+			"exempt_local.policy", "{default,exempt}_*.policy");
+
+	/**
 	 * Trusted JVM home captured at class-initialisation time, before student code
 	 * runs, so a later {@code System.setProperty("java.home", ...)} cannot widen the
 	 * system-file access exemption into a fail-open read/execute bypass.
@@ -1195,6 +1206,34 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
+	 * Returns {@code true} when {@code path} refers to a JCE jurisdiction crypto
+	 * policy file (or the directory-scan glob used to locate them). When TLS/JCE
+	 * initialises (e.g. {@code SSLContext.init},
+	 * {@code SSLContextImpl$TLSContext}), {@code javax.crypto.JceSecurity} scans
+	 * for {@code default_*.policy} and {@code exempt_*.policy} via
+	 * {@code Files.newDirectoryStream}. That read is JVM cryptography
+	 * infrastructure, not student file access; blocking it makes cryptography fail
+	 * to initialise ({@code NoClassDefFoundError} / "Can not initialize
+	 * cryptographic mechanism"). The instrumentation backend applies this same
+	 * exemption, so this keeps the two backends consistent. The match is
+	 * restricted to the JCE policy naming scheme, which no student test file uses.
+	 *
+	 * @param path the already-resolved path string under inspection
+	 * @return true if the path is a JCE crypto policy file or scan glob
+	 */
+	private static boolean isCryptoPolicyPath(@Nullable String path) {
+		if (path == null) {
+			return false;
+		}
+		int slash = path.lastIndexOf('/');
+		String name = slash >= 0 ? path.substring(slash + 1) : path;
+		// Match only the fixed JCE jurisdiction-policy file names and the exact
+		// directory-scan glob JceSecurity uses, never an arbitrary "default_*"/"exempt_*"
+		// prefix, so a student-named file such as "default_tokens.policy" is NOT exempt.
+		return CRYPTO_POLICY_NAMES.contains(name);
+	}
+
+	/**
 	 * Validates a file system interaction against security policies.
 	 * <p>
 	 * Description: Verifies that the specified action (read, overwrite, create,
@@ -1351,7 +1390,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				// student file access, and must not be blocked.
 				boolean isExemptSystemFileAccess = isExemptSystemFileAccess(actionToCheck,
 						illegallyInteractedThroughParameter);
-				if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess) {
+				// JCE crypto-policy scans during TLS/cryptography initialisation are JVM
+				// infrastructure (see isCryptoPolicyPath).
+				boolean isCryptoPolicyRead = "read".equals(actionToCheck)
+						&& isCryptoPolicyPath(illegallyInteractedThroughParameter);
+				if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess
+						&& !isCryptoPolicyRead) {
 					throw new SecurityException(localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughParameter,
@@ -1384,6 +1428,13 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 				// JDK-internal reads and native-library loads under java.home are exempt.
 				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughReceiver)) {
+					isInternalAllowed = true;
+				}
+
+				// JCE crypto-policy scans during TLS/cryptography initialisation are JVM
+				// infrastructure (see isCryptoPolicyPath).
+				if (!isInternalAllowed && "read".equals(actionToCheck)
+						&& isCryptoPolicyPath(illegallyInteractedThroughReceiver)) {
 					isInternalAllowed = true;
 				}
 
@@ -1431,6 +1482,13 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 				// JDK-internal reads and native-library loads under java.home are exempt.
 				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughAttribute)) {
+					isInternalAllowed = true;
+				}
+
+				// JCE crypto-policy scans during TLS/cryptography initialisation are JVM
+				// infrastructure (see isCryptoPolicyPath).
+				if (!isInternalAllowed && "read".equals(actionToCheck)
+						&& isCryptoPolicyPath(illegallyInteractedThroughAttribute)) {
 					isInternalAllowed = true;
 				}
 
