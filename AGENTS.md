@@ -52,11 +52,12 @@ way an otherwise correct contribution arrives unreviewable.
   `gh pr edit --body-file <filled-in copy>`, or simply fill in a copy of the template
   and pass that as `--body-file`.
 - Fill in every section. The template states what to write when a section does not
-  apply; use those documented escape hatches (`No linked issues`, `No Improvement from
+  apply; use that section's documented phrase (`No linked issues`, `No Improvement from
   the user's perspective`, `No Improvement from the maintainer's perspective`,
   `No breaking changes or migration`, `No production Java code changed`,
   `Not reproducible from an exercise`, `No mode-specific behaviour changed`) rather than
-  deleting the section.
+  deleting the section. Each phrase belongs to the section that documents it, so the
+  wrong one does not answer a section, and neither does a shortened one.
 - Do not delete, rename or reorder the `##` headings. The `pr-template` check knows them
   by name, so a renamed heading fails the check.
 - Tick boxes as `[x]`. When a checklist item does not apply, wrap that line in an HTML
@@ -78,7 +79,8 @@ way an otherwise correct contribution arrives unreviewable.
 The `pr-template` job in `.github/workflows/pullrequest-template.yml` enforces the shape
 of the body and is a required status check. It verifies that every section exists exactly
 once and in the order the checker lists them, that none is empty, that none runs past its
-limit, and that no unfilled stub survived. A heading inside a
+limit, and that no unfilled stub survived in a section that was not answered with one of
+its own documented phrases. A heading inside a
 comment does not count as a section, and a heading or a comment marker shown inside a
 fenced block or a code span is text rather than markup. Two code contexts are not read,
 namely an indented code block and a fence nested inside a list or a block quote, so a
@@ -96,14 +98,19 @@ PR_BODY="$(cat body.md)" java .github/scripts/CheckPullRequestTemplate.java
 The checker is a single-file Java program, run through the source-code launcher, so it
 needs no build step and adds no language to the repository.
 
-**Changing the template is two edits, not one.** The required headings and the character
-limits live in one ordered map, `SECTIONS`, at the top of
-`.github/scripts/CheckPullRequestTemplate.java`: each entry is a heading and the most
-characters that section may hold, `NO_LIMIT` for an unbounded one, in the order the
-template puts them in. The template states the same rules in prose for whoever is filling
-it in. The checker does not read the template, so a section renamed, added, removed or
-given a different limit has to be changed in both files in the same commit. Nothing
-detects the drift: the template would keep promising 1000 characters while the check went
-on enforcing 500. The checker does verify itself, but only against itself, refusing to run
-if it requires no sections at all, spells a heading so that it could never match one, or
-names a limit that is neither unlimited nor within 1 to 100000.
+**Changing the template is two edits, not one.** The required headings, the character
+limits and the phrases that answer a section live in one ordered map, `SECTIONS`, at the
+top of `.github/scripts/CheckPullRequestTemplate.java`, in the order the template puts them
+in. Each entry is a heading and a list of strings: the limit first, empty for an unbounded
+section, then that section's phrases for when it does not apply. `No mode-specific
+behaviour changed` is not among them on purpose, because it answers the modes rather than
+the testing manual they sit inside, and a phrase excuses its whole section from the
+leftover-stub scan. The template states the same rules in prose for whoever is filling it
+in. The checker does not read the template, so a section renamed, added, removed, given a
+different limit or given a different phrase has to be changed in both files in the same
+commit. Nothing detects the drift: the template
+would keep promising 1000 characters while the check went on enforcing 500. The checker
+does verify itself, but only against itself, refusing to run if it requires no sections at
+all, spells a heading so that it could never match one, states no rules for a section,
+gives a limit that is not a number or is outside 1 to 100000, or offers a blank phrase,
+which every section would contain.
