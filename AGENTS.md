@@ -53,8 +53,9 @@ way an otherwise correct contribution arrives unreviewable.
   and pass that as `--body-file`.
 - Fill in every section. The template states what to write when a section does not
   apply; use those documented escape hatches (`No Improvement`, `None`,
-  `No production Java code changed`, `Not reproducible from an exercise`,
-  `No mode-specific behaviour changed`) rather than deleting the section.
+  `No breaking changes or migration`, `No production Java code changed`,
+  `Not reproducible from an exercise`, `No mode-specific behaviour changed`) rather than
+  deleting the section.
 - Do not delete, rename or reorder the `##` headings. The `pr-template` check reads the
   required headings out of the template itself, so a renamed heading fails the check.
 - Tick boxes as `[x]`. When a checklist item does not apply, wrap that line in an HTML
@@ -66,8 +67,9 @@ way an otherwise correct contribution arrives unreviewable.
   apply to your change, then `Limit`, then `Simple words`.
 - Respect the character limit a section declares. Summary carries `Limit: 500
   characters`; sections 1 to 3 and `Breaking changes and migration` carry `Limit: 1000
-  characters`. The count is in code points over the text left once every instruction
-  comment is removed, so a comment kept in the body does not count towards it.
+  characters`; section 4 carries `Limit: 5000 characters`, counted over the whole section
+  including the modes below it. The count is in code points over the text left once every
+  instruction comment is removed, so a comment kept in the body does not count towards it.
 - Write for an instructor who does not know the inside of Ares. Every section that
   carries the `Simple words` block asks for this, section 1 while still naming the part of
   Ares a defect sits in.

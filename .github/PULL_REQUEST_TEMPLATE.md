@@ -24,7 +24,9 @@
   as this one is removed, so keeping the comment costs nothing.
 
   Simple words: write this so that an instructor who does not know the inside of Ares can
-  follow it. Spell out any Ares term you cannot avoid.
+  follow it. Spell out any Ares term you cannot avoid. Say less, not more: a reviewer who
+  cannot follow a short answer will ask, and the detail belongs in the code or in the
+  linked issue.
 -->
 
 ## Linked issues
@@ -42,7 +44,7 @@
   What is wrong today?
   Useful to cover:
   - What did you see, and in which setup (Java version, Maven or Gradle, AspectJ or
-    instrumentation, ArchUnit or WALA, operating system)?
+    instrumentation, ArchUnit or WALA)?
   - What should have happened instead?
   - Which part of Ares is at fault? Name it. Examples, not a complete list: reading the
     security policy, writing the security test out of it, blocking a forbidden call while
@@ -60,9 +62,6 @@
   - Why does it matter? If something is broken, say which way round it went: Ares let
     forbidden student code through, or it failed a correct submission.
 
-  Say less, not more: a reviewer who cannot follow a short answer will ask, and the
-  detail belongs in the code or in the linked issue.
-
   This section is always required. If nothing is broken, describe the gap or the extra
   work that made you open this pull request instead.
 
@@ -70,15 +69,18 @@
   as this one is removed, so keeping the comment costs nothing.
 
   Simple words: write this so that an instructor who does not know the inside of Ares can
-  follow it. Spell out any Ares term you cannot avoid.
+  follow it. Spell out any Ares term you cannot avoid. Say less, not more: a reviewer who
+  cannot follow a short answer will ask, and the detail belongs in the code or in the
+  linked issue.
 -->
 
 ## 2. Improvement from the user's perspective
 
 <!--
   Users are everyone who uses Ares: students whose submissions run under a security
-  policy, and instructors who write those policies and ship Ares inside an exercise test
-  repository.
+  policy, tutors who have to understand the feedback Ares produces in order to help those
+  students, and editors and instructors who write those policies and ship Ares inside an
+  exercise test repository.
   Say what gets better for them, for example a clearer failure message, fewer correct
   submissions failed by mistake, a rule that could not be written before, a faster test
   run, or a newly supported language or build tool.
@@ -90,13 +92,17 @@
   as this one is removed, so keeping the comment costs nothing.
 
   Simple words: write this so that an instructor who does not know the inside of Ares can
-  follow it. Spell out any Ares term you cannot avoid.
+  follow it. Spell out any Ares term you cannot avoid. Say less, not more: a reviewer who
+  cannot follow a short answer will ask, and the detail belongs in the code or in the
+  linked issue.
 -->
 
 ## 3. Improvement from the maintainer's perspective
 
 <!--
-  Maintainers are the people who develop Ares itself.
+  Maintainers are everyone who works on Ares itself: contributors who change the code,
+  reviewers who read those changes and have to judge whether the security boundary still
+  holds, and whoever publishes the release an exercise then depends on.
   Say what gets better for them, for example less duplicated code, a clearer structure, a
   flaky test removed, better error output, less manual release work, or a simpler
   dependency or CI setup.
@@ -108,7 +114,9 @@
   as this one is removed, so keeping the comment costs nothing.
 
   Simple words: write this so that an instructor who does not know the inside of Ares can
-  follow it. Spell out any Ares term you cannot avoid.
+  follow it. Spell out any Ares term you cannot avoid. Say less, not more: a reviewer who
+  cannot follow a short answer will ask, and the detail belongs in the code or in the
+  linked issue.
 -->
 
 ## 4. Testing manual
@@ -149,13 +157,20 @@
 
   A step nobody can follow is a step nobody runs.
 
+  The limit below covers this whole section, the modes at the end of it included.
+
   This section is always required. If the change cannot be exercised from an exercise
   (for example a CI workflow, build or documentation change), write "Not reproducible
   from an exercise" under Steps and describe instead how a reviewer verifies the change,
   for example which workflow run to inspect.
 
+  Limit: 5000 characters, counted over the text left once every instruction comment such
+  as this one is removed, so keeping the comment costs nothing.
+
   Simple words: write this so that an instructor who does not know the inside of Ares can
-  follow it. Spell out any Ares term you cannot avoid.
+  follow it. Spell out any Ares term you cannot avoid. Say less, not more: a reviewer who
+  cannot follow a short answer will ask, and the detail belongs in the code or in the
+  linked issue.
 -->
 
 **Prerequisites**
@@ -241,20 +256,27 @@
   This is the section an instructor reads before upgrading.
 
   This section is always required. If the change is fully backwards compatible, write
-  "None".
+  "No breaking changes or migration".
 
   Limit: 1000 characters, counted over the text left once every instruction comment such
   as this one is removed, so keeping the comment costs nothing.
 
   Simple words: write this so that an instructor who does not know the inside of Ares can
-  follow it. Spell out any Ares term you cannot avoid.
+  follow it. Spell out any Ares term you cannot avoid. Say less, not more: a reviewer who
+  cannot follow a short answer will ask, and the detail belongs in the code or in the
+  linked issue.
 -->
 
-None.
+No breaking changes or migration.
 
 ## Checklist
 
 <!--
+  Tick what you have actually done, not what you intend to do. Each box is a claim a
+  reviewer may check, and an untrue tick costs more trust than an untidy pull request.
+  A task that applies but is not done stays unticked, with the reason said out loud in
+  the section it belongs to, rather than ticked to make the list look finished.
+
   This section is always required. If a task does not apply, wrap its line in an HTML
   comment and state the reason inside the comment, rather than deleting or unticking it.
 -->
