@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -332,6 +333,12 @@ class PhobosShellContractTest {
 		ProcessResult result = run("export LC_ALL=C.UTF-8; probe=\"\u2003x\"; "
 				+ "if [ -z \"${probe%%[![:space:]]*}\" ]; then echo LOCALE-NOT-UTF8; else echo LOCALE-UTF8; fi; "
 				+ sourceCommonAndParse(config) + "; cat \"${PARSED_RO_FILE}\"");
+
+		// Only the probe's own verdict decides whether the fixture exists. Every other
+		// outcome, including a parser failure, stays a hard failure below.
+		if (result.output().startsWith("LOCALE-NOT-UTF8\n")) {
+			Assumptions.abort("no UTF-8 locale treats U+2003 as a separator on this runner");
+		}
 
 		assertEquals(0, result.exitCode(), result.output());
 		assertFalse(result.output().contains("PHB-EPOLICY"), result.output());
