@@ -62,7 +62,7 @@ way an otherwise correct contribution arrives unreviewable.
   `No Improvement from the ...'s perspective` phrases, `No breaking changes or migration`
   and `No production Java code changed`. Written as the section's whole answer, apart from
   a trailing full stop, they finish it and nothing further is checked in it. The phrase
-  left standing above the empty table or the numbered stub does not, because that section
+  left standing above the empty table or the numbered stub does not because that section
   was not finished.
 - The other two answer a part of section 4 rather than the section: `Not reproducible from
   an exercise` belongs under Steps, where the template also asks how a reviewer verifies
@@ -128,7 +128,7 @@ in. Each entry is a heading and exactly two strings: the character limit, then t
 that answers that whole section when it does not apply, with an empty string in either
 place meaning the section has none of that. The two phrases that answer only a part of
 section 4 are not in it, so changing one of those changes the template alone. `No mode-specific
-behaviour changed` is not among them on purpose, because it answers the modes rather than
+behaviour changed` is not among them on purpose because it answers the modes rather than
 the testing manual they sit inside, and a phrase excuses its whole section from the
 leftover-stub scan. The template states the same rules in prose for whoever is filling it
 in. The checker does not read the template, so a section renamed, added, removed, given a
