@@ -59,12 +59,20 @@ way an otherwise correct contribution arrives unreviewable.
   required headings out of the template itself, so a renamed heading fails the check.
 - Tick boxes as `[x]`. When a checklist item does not apply, wrap that line in an HTML
   comment stating the reason, so the diff still records that it was considered.
+- Respect the character limit a section declares. Sections 1 to 3 carry
+  `Limit: 1000 characters`, counted in code points over the text left once every
+  instruction comment is removed, so a comment kept in the body does not count towards
+  it. Write those three in simple words an instructor can follow without knowing the
+  inside of Ares, while still naming the part of Ares a defect sits in.
 
 The `pr-template` job in `.github/workflows/pullrequest-template.yml` enforces the shape
-of the body and is a required status check. It verifies that every section exists, that
-none is empty and that no unfilled stub survived. It deliberately does not require
-checklist boxes to be ticked. It re-runs when the description is edited, so a failure is
-fixed by editing the body rather than by pushing a commit.
+of the body and is a required status check. It verifies that every section exists exactly
+once and in the order of the template, that none is empty, that none runs past the limit
+its template section declares, and that no unfilled stub survived. It reads the body as a
+reader sees it: a heading inside a comment does not count as a section, and a heading or a
+comment marker shown inside a fenced block is text rather than markup. It deliberately does not require checklist boxes to be ticked. It
+re-runs when the description is edited, so a failure is fixed by editing the body rather
+than by pushing a commit.
 
 Check a body before opening the pull request, from the repository root:
 

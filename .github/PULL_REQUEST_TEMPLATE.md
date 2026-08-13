@@ -23,44 +23,57 @@
 ## 1. Problem
 
 <!--
-  Describe in depth the problem that led to this pull request.
+  What is wrong today? Write it in simple words, so that an instructor who does not know
+  the inside of Ares can follow it. Spell out any Ares term you cannot avoid.
   Useful to cover:
-  - What behaviour was observed, and under which configuration
-    (Java version, build tool, AOP mode: AspectJ or instrumentation,
-    architecture mode: ArchUnit or WALA, operating system)?
-  - What was the expected behaviour instead?
-  - What is the root cause? Ares is itself the security boundary, so state whether the
-    cause sits in the policy layer, the generated security test, the enforcement
-    (AOP or architecture) layer, or the build integration.
-  - Why does it matter? A false negative lets forbidden student code through, a false
-    positive fails a correct submission. Say which of the two this is.
+  - What did you see, and in which setup (Java version, Maven or Gradle, AspectJ or
+    instrumentation, ArchUnit or WALA, operating system)?
+  - What should have happened instead?
+  - Which part of Ares is at fault? Name one: reading the security policy, writing the
+    security test out of it, blocking a forbidden call while the code runs (AspectJ or
+    instrumentation), looking for forbidden calls in the code without running it
+    (ArchUnit or WALA), or plugging Ares into the build. A reviewer of a security tool
+    needs to know which of these to look at, so name it even where the rest stays plain.
+  - Why does it matter? Either Ares let forbidden student code through, or it failed a
+    correct submission. Say which of the two this is.
 
-  This section is always required. If this pull request is not driven by a defect,
-  describe the gap, limitation or maintenance burden that motivated it instead.
+  This section is always required. If nothing is broken, describe the gap or the extra
+  work that made you open this pull request instead.
+
+  Limit: 1000 characters, counted over the text left once every instruction comment such
+  as this one is removed, so keeping the comment costs nothing. Say less, not more: a
+  reviewer who cannot follow a short answer will ask, and the detail belongs in the code
+  or in the linked issue.
 -->
 
 ## 2. Improvement from the user's perspective
 
 <!--
-  Users are everyone who consumes Ares: students whose submissions run under a security
-  policy, and instructors who author policies and ship Ares inside an exercise test
+  Users are everyone who uses Ares: students whose submissions run under a security
+  policy, and instructors who write those policies and ship Ares inside an exercise test
   repository.
-  Describe the concrete benefit, for example clearer failure messages, fewer false
-  positives, a policy option that was previously impossible to express, a faster test
-  run, or a newly supported language or build tool.
+  Say in simple words what gets better for them, for example a clearer failure message,
+  fewer correct submissions failed by mistake, a rule that could not be written before, a
+  faster test run, or a newly supported language or build tool.
 
-  If this side does not benefit from this pull request, write "No Improvement".
+  If this side gains nothing from this pull request, write "No Improvement".
+
+  Limit: 1000 characters, counted over the text left once every instruction comment such
+  as this one is removed, so keeping the comment costs nothing.
 -->
 
 ## 3. Improvement from the maintainer's perspective
 
 <!--
-  Maintainers are those who develop Ares itself.
-  Describe the benefit for them, for example reduced duplication, a clearer abstraction,
-  a flaky test removed, better diagnostics, less manual release work, or a dependency
-  or CI simplification.
+  Maintainers are the people who develop Ares itself.
+  Say in simple words what gets better for them, for example less duplicated code, a
+  clearer structure, a flaky test removed, better error output, less manual release work,
+  or a simpler dependency or CI setup.
 
-  If this side does not benefit from this pull request, write "No Improvement".
+  If this side gains nothing from this pull request, write "No Improvement".
+
+  Limit: 1000 characters, counted over the text left once every instruction comment such
+  as this one is removed, so keeping the comment costs nothing.
 -->
 
 ## 4. Testing manual
