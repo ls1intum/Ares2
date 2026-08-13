@@ -31,15 +31,66 @@ limits
 timeout
 EOF
 }
+trim_ends() {
+  local text="$1"
+  text="${text#"${text%%[![:space:]]*}"}"
+  printf '%s' "${text%"${text##*[![:space:]]}"}"
+}
+# A comment runs to the end of its line and the ends are then trimmed. Every
+# reader of a configuration goes through this, so no two of them can disagree
+# about what a line says before they decide what it means.
+preprocess_config_line() { trim_ends "${1%%#*}"; }
+# Only the padding around a section name is removed. Internal whitespace is part
+# of the name, so '[read only]' names 'read only' rather than 'readonly', and
+# section contents and path values are never touched.
+normalise_section_name() { trim_ends "$1"; }
+# The one grammar for section headers, shared by validation and parsing so a
+# header can never be read as one section by one of them and another section, or
+# nothing at all, by the other.
+#
+# A preprocessed line that begins with '[' is a header and is held to the whole
+# grammar; anything else is section content, which is what keeps a path that
+# merely contains brackets a path. A header must be exactly one bracket pair
+# around a name that is not empty once trimmed.
+#
+# Prints the normalised name and returns 0 for a header, 1 for ordinary content,
+# 2 for a header-looking line that is malformed, and 3 for one that names
+# nothing.
+classify_config_line() {
+  local line="$1" name
+  [[ "$line" == '['* ]] || return 1
+  [[ "$line" =~ ^\[([^][]*)\]$ ]] || return 2
+  name="$(normalise_section_name "${BASH_REMATCH[1]}")"
+  [[ -n "$name" ]] || return 3
+  printf '%s' "$name"
+}
+# Validation and parsing reject a bad header identically because they classify
+# it identically. A header the grammar refuses must never fall through and be
+# discarded as though it were section content.
+reject_bad_section_header() {
+  local status="$1" line="$2"
+  case "$status" in
+    2) report "Policy invalid: malformed section header: '${line}'. (PHB-EPOLICY)"; exit "${PHB_EPOLICY}" ;;
+    3) report "Policy invalid: section header without a name. (PHB-EPOLICY)"; exit "${PHB_EPOLICY}" ;;
+  esac
+}
 validate_config_file_keys() {
   local file="$1"
-  local keys ok unknown=""
-  keys=$(sed -E -n 's/^[[:space:]]*\[([^]]+)\][[:space:]]*$/\1/p' "$file" | sed 's/[[:space:]]//g' | sort -u)
+  local ok unknown="" raw line name status
   ok=$(allowed_keys | sort -u)
-  while IFS= read -r k; do
-    [[ -z "$k" ]] && continue
-    if ! grep -qx "$k" <<< "$ok"; then unknown+="$k "; fi
-  done <<< "$keys"
+  declare -A SEEN_SECTIONS=()
+  while IFS= read -r raw || [[ -n "$raw" ]]; do
+    line="$(preprocess_config_line "$raw")"
+    status=0; name="$(classify_config_line "$line")" || status=$?
+    reject_bad_section_header "$status" "$line"
+    (( status == 0 )) || continue
+    [[ -n "${SEEN_SECTIONS["$name"]:-}" ]] && continue
+    SEEN_SECTIONS["$name"]=1
+    # -F because the parser compares section names literally: without it a name
+    # such as 're.d' would match the allowed 'read' as a pattern and then be
+    # parsed as a section nobody handles. -- so a name may begin with a dash.
+    if ! grep -Fqx -- "$name" <<< "$ok"; then unknown+="$name "; fi
+  done <"$file"
   if [[ -n "$unknown" ]]; then
     report "Policy invalid: unknown key(s): ${unknown}. (PHB-EPOLICY)"
     exit "${PHB_EPOLICY}"
@@ -48,9 +99,27 @@ validate_config_file_keys() {
 # Records a parsed timeout value, treating a numeric zero (0, 0.0, 0.000) as
 # "no timeout". The zero test is textual on purpose: [[ -eq ]] is integer
 # arithmetic and aborts with a syntax error on a decimal value.
+# PARSED_TIMEOUT_SET reports whether the current file supplied a value at all,
+# because "no timeout" and "nothing said about the timeout" resolve to the same
+# empty PARSED_TIMEOUT but must layer differently.
 set_parsed_timeout() {
   local value="$1"
   if [[ "$value" =~ ^0+(\.0+)?$ ]]; then PARSED_TIMEOUT=""; else PARSED_TIMEOUT="$value"; fi
+  PARSED_TIMEOUT_SET=1
+}
+# A dedicated timeout section must provide exactly one value; validate it when
+# leaving the section and at EOF. The count is what decides, not PARSED_TIMEOUT:
+# a valid zero is one supplied value even though it resolves to the empty
+# "no timeout", and PARSED_TIMEOUT outlives a single file, so an empty section
+# would otherwise pass on a previously parsed policy's value.
+require_exactly_one_timeout() {
+  local section="$1"
+  local values="$2"
+  [[ "$section" == "timeout" ]] || return 0
+  if (( values != 1 )); then
+    report "Policy invalid: a [timeout] section must provide exactly one timeout value, but provided ${values}. (PHB-EPOLICY)"
+    exit "${PHB_EPOLICY}"
+  fi
 }
 parse_cfg_policy() {
   local cfg="$1"
@@ -60,10 +129,21 @@ parse_cfg_policy() {
   local ro="${tdir}/ro.paths" rw="${tdir}/rw.paths" hide="${tdir}/hide.paths" net="${tdir}/net.rules"
   : >"$ro"; : >"$rw"; : >"$hide"; : >"$net"
   local sec=""
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    line="${line%%#*}"; line="$(echo "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+  local raw line name status
+  # Section-local, so it never carries a count from another section or file.
+  local timeout_values=0
+  # Per-file, so the caller can tell "this policy set no timeout" from "this
+  # policy set a timeout of zero".
+  PARSED_TIMEOUT_SET=0
+  while IFS= read -r raw || [[ -n "$raw" ]]; do
+    line="$(preprocess_config_line "$raw")"
     [[ -z "$line" ]] && continue
-    if [[ "$line" =~ ^\[(.+)\]$ ]]; then sec="${BASH_REMATCH[1]}"; continue; fi
+    status=0; name="$(classify_config_line "$line")" || status=$?
+    reject_bad_section_header "$status" "$line"
+    if (( status == 0 )); then
+      require_exactly_one_timeout "$sec" "$timeout_values"
+      sec="$name"; timeout_values=0; continue
+    fi
     case "$sec" in
       readonly|read) printf '%s\n' "$line" >>"$ro" ;;
       write)         printf '%s\n' "$line" >>"$rw" ;;
@@ -81,9 +161,9 @@ parse_cfg_policy() {
         # empty and thereby disabled the timeout entirely, which is why an
         # unrecognised timeout assignment now fails closed instead.
         if [[ "$line" =~ ^timeout[[:space:]]*=[[:space:]]*([0-9]+(\.[0-9]+)?)$ ]]; then
-          set_parsed_timeout "${BASH_REMATCH[1]}"
+          set_parsed_timeout "${BASH_REMATCH[1]}"; timeout_values=$(( timeout_values + 1 ))
         elif [[ "$line" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
-          set_parsed_timeout "$line"
+          set_parsed_timeout "$line"; timeout_values=$(( timeout_values + 1 ))
         elif [[ "$line" =~ ^timeout([[:space:]:=]|$) || "$sec" == "timeout" ]]; then
           # Every line of a dedicated [timeout] section is the timeout value
           # itself, so anything unreadable there is an error too. A [limits]
@@ -97,6 +177,7 @@ parse_cfg_policy() {
       *) ;;
     esac
   done <"$cfg"
+  require_exactly_one_timeout "$sec" "$timeout_values"
   PARSED_RO_FILE="$ro"; PARSED_RW_FILE="$rw"; PARSED_HIDE_FILE="$hide"; PARSED_NET_FILE="$net"; : "${PARSED_TIMEOUT:=}"
 }
 merge_fs_per_path() {

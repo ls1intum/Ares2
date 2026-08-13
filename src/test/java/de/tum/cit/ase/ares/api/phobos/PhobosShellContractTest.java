@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.phobos;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -87,6 +88,170 @@ class PhobosShellContractTest {
 	}
 
 	@Test
+	void aDedicatedTimeoutSectionWithoutAValueIsRejected() throws Exception {
+		// A dedicated section announces a timeout, so declaring one and then supplying
+		// nothing is a policy error rather than "no timeout". Blank and comment lines
+		// are dropped before the value is classified, so the absence only shows up at
+		// the next section header or at the end of the file.
+		assertPolicyError("section-empty-at-eof.cfg", "[timeout]\n");
+		assertPolicyError("section-comment-only-at-eof.cfg", "[timeout]\n# no effective value\n");
+		assertPolicyError("section-empty-before-section.cfg", "[timeout]\n\n[read]\n/etc\n");
+		assertPolicyError("section-comment-only-before-section.cfg", "[timeout]\n# configured later\n\n[read]\n/etc\n");
+		// Every dedicated section is judged on its own, so a filled one does not excuse
+		// an empty one later in the same file.
+		assertPolicyError("section-repeated-second-empty.cfg", "[timeout]\n0.500\n[timeout]\n# nothing\n");
+	}
+
+	@Test
+	void aDedicatedTimeoutSectionWithSeveralValuesIsRejected() throws Exception {
+		// Two values in one section have no defined winner, so silently taking the last
+		// one would hide a policy the author did not write.
+		assertPolicyError("section-two-values.cfg", "[timeout]\n0.500\n1.000\n");
+		assertPolicyError("section-two-assignments.cfg", "[timeout]\ntimeout=0.500\ntimeout=1.000\n");
+	}
+
+	@Test
+	void aDedicatedTimeoutSectionWithExactlyOneValueIsAccepted() throws Exception {
+		assertEquals("0.500", parsedTimeoutOf("section-one-bare.cfg", "[timeout]\n0.500\n"));
+		assertEquals("0.500", parsedTimeoutOf("section-one-assignment.cfg", "[timeout]\ntimeout=0.500\n"));
+		// A numeric zero is a supplied value that means "no timeout", so it satisfies
+		// the section even though it resolves to the empty runtime value. The count,
+		// not the resolved value, is what decides.
+		assertEquals("", parsedTimeoutOf("section-one-zero.cfg", "[timeout]\n0.000\n"));
+		// Repeated sections stay valid as long as each supplies its own single value.
+		assertEquals("1.500", parsedTimeoutOf("section-repeated-filled.cfg", "[timeout]\n0.500\n[timeout]\n1.500\n"));
+		// A policy that never mentions a timeout remains valid, and [limits] keeps
+		// carrying unrelated entries.
+		assertEquals("", parsedTimeoutOf("section-absent.cfg", "[read]\n/etc\n"));
+		assertEquals("", parsedTimeoutOf("limits-without-timeout.cfg", "[limits]\nmemory=512\n"));
+	}
+
+	@Test
+	void anEmptyTimeoutSectionCannotInheritAPreviouslyParsedValue() throws Exception {
+		// The parsed timeout outlives a single file so that layered policies can leave
+		// it alone, which is exactly why an empty section must be judged on what the
+		// section itself supplied.
+		Path first = temporaryDirectory.resolve("layer-first.cfg");
+		Files.writeString(first, "[limits]\ntimeout=0.500\n");
+		Path second = temporaryDirectory.resolve("layer-second.cfg");
+		Files.writeString(second, "[timeout]\n# nothing here\n");
+
+		ProcessResult result = run(sourceCommonAndParse(first, second));
+
+		assertEquals(11, result.exitCode(), result.output());
+		assertTrue(result.output().contains("PHB-EPOLICY"), result.output());
+	}
+
+	@Test
+	void aSuppliedTimeoutStillWinsOverTheLayerBeforeIt() throws Exception {
+		// The counter guards how many values a section supplies, not which one the
+		// layering keeps, so a policy that does supply a value must still override the
+		// layer before it and a policy that stays silent must still leave it standing.
+		Path first = temporaryDirectory.resolve("wins-first.cfg");
+		Files.writeString(first, "[limits]\ntimeout=0.500\n");
+		Path second = temporaryDirectory.resolve("wins-second.cfg");
+		Files.writeString(second, "[timeout]\n1.500\n");
+		Path silent = temporaryDirectory.resolve("wins-silent.cfg");
+		Files.writeString(silent, "[read]\n/etc\n");
+
+		ProcessResult overridden = run(sourceCommonAndParse(first, second) + printParsedTimeout());
+		assertEquals(0, overridden.exitCode(), overridden.output());
+		assertEquals("1.500", overridden.output());
+
+		ProcessResult retained = run(sourceCommonAndParse(first, silent) + printParsedTimeout());
+		assertEquals(0, retained.exitCode(), retained.output());
+		assertEquals("0.500", retained.output());
+	}
+
+	@Test
+	void aPaddedSectionHeaderNamesTheSameSectionAsAnUnpaddedOne() throws Exception {
+		// Validation and parsing must agree on what a header names. When only one of
+		// them ignored the padding, "[ timeout ]" passed validation and was then parsed
+		// as a section nobody handles, so its value was dropped without a word.
+		assertEquals("0.500", parsedTimeoutOf("padded-timeout.cfg", "[ timeout ]\n0.500\n"));
+		assertEquals("/etc", parsedReadPathsOf("padded-read.cfg", "[ read ]\n/etc\n"));
+		// The canonical spelling is unaffected.
+		assertEquals("/etc", parsedReadPathsOf("plain-read.cfg", "[read]\n/etc\n"));
+		// A padded section is a real section, so it carries the cardinality rule too.
+		assertPolicyError("padded-timeout-empty.cfg", "[ timeout ]\n# nothing\n");
+		assertPolicyError("padded-timeout-two.cfg", "[ timeout ]\n0.500\n1.000\n");
+		// Unknown sections stay rejected in either spelling.
+		assertPolicyError("padded-unknown.cfg", "[ unknown ]\nvalue\n");
+		assertPolicyError("plain-unknown.cfg", "[unknown]\nvalue\n");
+		// Only the padding around the name is ignored, so a name that is genuinely two
+		// words is unknown rather than being read as a section it merely resembles.
+		assertPolicyError("inner-space.cfg", "[read only]\n/etc\n");
+		// Padding is whitespace of any kind, not spaces alone.
+		assertEquals("0.500", parsedTimeoutOf("tab-padded-timeout.cfg", "[\ttimeout\t]\n0.500\n"));
+		assertEquals("/etc", parsedReadPathsOf("tab-padded-read.cfg", "[\tread\t]\n/etc\n"));
+	}
+
+	@Test
+	void aSectionNameIsComparedLiterallyRatherThanAsAPattern() throws Exception {
+		// The parser compares section names literally, so the allowed-name check must
+		// too. A name that merely reads as a pattern for an allowed one would
+		// otherwise be accepted and then parsed as a section nobody handles, and the
+		// whole section would be dropped without a word.
+		assertPolicyError("pattern-any-character.cfg", "[re.d]\n/etc\n");
+		assertPolicyError("pattern-repetition.cfg", "[timeoutt*]\n0.500\n");
+		assertPolicyError("pattern-anchor.cfg", "[read$]\n/etc\n");
+		assertPolicyError("pattern-any-sequence.cfg", "[time.*]\n0.500\n");
+		// A leading dash is part of the name, never an option to the comparison.
+		assertPolicyError("leading-dash.cfg", "[-read]\n/etc\n");
+	}
+
+	@Test
+	void aSectionHeaderWithoutANameIsRejected() throws Exception {
+		// An empty name selects no section, so its lines would be read and silently
+		// discarded. Whitespace of any kind leaves the name empty once trimmed.
+		assertPolicyError("blank-name.cfg", "[   ]\nvalue\n");
+		assertPolicyError("tab-name.cfg", "[\t]\nvalue\n");
+		assertPolicyError("tabs-only-name.cfg", "[\t\t]\n/etc\n");
+		assertPolicyError("no-name.cfg", "[]\n/etc\n");
+	}
+
+	@Test
+	void aMalformedSectionHeaderIsRejectedRatherThanReadAsContent() throws Exception {
+		// A line that opens with a bracket is a header, so it is held to the whole
+		// grammar: exactly one bracket pair around a name. Anything else used to be
+		// read as a section nobody handles, or fall through as a path, and either way
+		// the lines that followed were discarded in silence.
+		assertPolicyError("nested-brackets.cfg", "[[rt]ead]\n/etc\n");
+		assertPolicyError("double-closing.cfg", "[read]]\n/etc\n");
+		assertPolicyError("double-opening.cfg", "[[read]\n/etc\n");
+		assertPolicyError("unclosed-inner.cfg", "[re[ad]\n/etc\n");
+		// Content after the closing bracket is not a comment, so it is not a header.
+		assertPolicyError("trailing-content.cfg", "[read] trailing-content\n/etc\n");
+	}
+
+	@Test
+	void aTrailingCommentAfterASectionHeaderFollowsTheCommentContract() throws Exception {
+		// Comments end a line before anything classifies it, for headers exactly as
+		// for values, so a documented header stays a header.
+		assertEquals("/etc", parsedReadPathsOf("commented-read.cfg", "[read] # what this covers\n/etc\n"));
+		assertEquals("0.500", parsedTimeoutOf("commented-timeout.cfg", "[timeout] # canonical seconds\n0.500\n"));
+		// The name behind the comment is validated like any other, which it was not
+		// while validation and parsing read the line differently.
+		assertPolicyError("commented-unknown.cfg", "[unknown] # documented\nvalue\n");
+	}
+
+	@Test
+	void bracketsInsideSectionContentStayContent() throws Exception {
+		// Only a line that opens with a bracket is a header, so a path keeps its own
+		// brackets, spaces and pattern characters instead of being reclassified.
+		assertEquals("/tmp/a[b]c", parsedReadPathsOf("bracketed-path.cfg", "[read]\n/tmp/a[b]c\n"));
+		assertEquals("/tmp/x]", parsedReadPathsOf("trailing-bracket-path.cfg", "[read]\n/tmp/x]\n"));
+		assertEquals("/tmp/a b c", parsedReadPathsOf("spaced-path.cfg", "[read]\n/tmp/a b c\n"));
+		assertEquals("/tmp/a.*b", parsedReadPathsOf("pattern-path.cfg", "[read]\n/tmp/a.*b\n"));
+	}
+
+	@Test
+	void aNegativeTimeoutIsRejected() throws Exception {
+		assertPolicyError("negative-integer.cfg", "[limits]\ntimeout=-1\n");
+		assertPolicyError("negative-decimal.cfg", "[limits]\ntimeout=-0.500\n");
+	}
+
+	@Test
 	void anUnreadableTimeoutFailsClosedInsteadOfDroppingTheLimit() throws Exception {
 		// Both notations must fail loudly. Silently ignoring an unreadable value is
 		// what let the unit mismatch run without any limit in the first place, so a
@@ -163,6 +328,110 @@ class PhobosShellContractTest {
 	}
 
 	@Test
+	void aTimeoutSectionWithoutAValueStopsTheProtectedCommand() throws Exception {
+		// A section that promises a timeout and supplies none must stop the run, not
+		// start it unprotected.
+		Path shellRoot = wrapperShellRoot();
+
+		for (String withoutValue : new String[] { "[timeout]\n", "[timeout]\n# configured later\n",
+				"[timeout]\n\n[read]\n/etc\n", "[timeout]\n0.500\n1.000\n" }) {
+			Files.deleteIfExists(markerOf(shellRoot));
+
+			ProcessResult rejected = runWrapper(shellRoot, "no-value.cfg", withoutValue);
+
+			assertEquals(11, rejected.exitCode(), rejected.output());
+			assertTrue(rejected.output().contains("PHB-EPOLICY"), rejected.output());
+			assertTrue(Files.notExists(markerOf(shellRoot)),
+					"the protected command must not run under " + withoutValue);
+		}
+	}
+
+	@Test
+	void aRejectedSectionHeaderStopsTheProtectedCommand() throws Exception {
+		// A header the policy layer refuses must stop the run rather than let it start
+		// with the section quietly missing from the sandbox.
+		Path shellRoot = wrapperShellRoot();
+
+		for (String rejected : new String[] { "[re.d]\n/etc\n", "[timeoutt*]\n0.500\n", "[   ]\nvalue\n",
+				"[\t]\nvalue\n", "[[rt]ead]\n/etc\n", "[read]]\n/etc\n", "[[read]\n/etc\n",
+				"[read] trailing-content\n/etc\n", "[]\n/etc\n", "[unknown] # documented\nvalue\n" }) {
+			Files.deleteIfExists(markerOf(shellRoot));
+
+			ProcessResult result = runWrapper(shellRoot, "rejected-header.cfg", rejected);
+
+			assertEquals(11, result.exitCode(), result.output());
+			assertTrue(result.output().contains("PHB-EPOLICY"), result.output());
+			assertTrue(Files.notExists(markerOf(shellRoot)), "the protected command must not run under " + rejected);
+		}
+	}
+
+	@Test
+	void anEmptyTimeoutSectionIsRejectedRatherThanInheritingTheBaseTimeout() throws Exception {
+		// The wrapper parses the base policy before the exercise policy, so the base
+		// timeout is still in hand when the exercise section turns out to be empty.
+		// Reusing it would run the exercise under a limit its own policy never stated.
+		Path shellRoot = wrapperShellRoot("[read]\n/etc\n[limits]\ntimeout=0.500\n");
+		Files.deleteIfExists(markerOf(shellRoot));
+
+		ProcessResult rejected = runWrapper(shellRoot, "inheriting.cfg", "[timeout]\n# nothing here\n");
+
+		assertEquals(11, rejected.exitCode(), rejected.output());
+		assertTrue(rejected.output().contains("PHB-EPOLICY"), rejected.output());
+		assertTrue(Files.notExists(markerOf(shellRoot)), "the protected command must not run under an empty section");
+	}
+
+	@Test
+	void anExplicitZeroInALaterPolicyClearsTheBaseTimeout() throws Exception {
+		// Zero means "no timeout", so a policy that states it must remove the limit the
+		// base established. Reading it as silence instead left the base seconds in
+		// force and killed a command the exercise policy had deliberately unbounded.
+		Path shellRoot = wrapperShellRoot("[read]\n/etc\n[limits]\ntimeout=0.500\n");
+		Files.deleteIfExists(markerOf(shellRoot));
+
+		ProcessResult result = runWrapper(shellRoot, "explicit-zero.cfg", "[timeout]\n0.000\n",
+				slowCommandTouchingMarker(shellRoot));
+
+		assertEquals(0, result.exitCode(), result.output());
+		assertTrue(Files.exists(markerOf(shellRoot)), "the command must outlive the cleared base timeout");
+		assertFalse(result.output().contains("PHB-ETIMEOUT"), result.output());
+	}
+
+	@Test
+	void aLaterPolicyWithoutATimeoutKeepsTheBaseTimeout() throws Exception {
+		// Silence is not zero. A policy that says nothing about the timeout must leave
+		// the base limit standing, which is what makes the explicit zero above a real
+		// statement rather than the default.
+		Path shellRoot = wrapperShellRoot("[read]\n/etc\n[limits]\ntimeout=0.500\n");
+		Files.deleteIfExists(markerOf(shellRoot));
+
+		ProcessResult result = runWrapper(shellRoot, "silent.cfg", "[read]\n/etc\n",
+				slowCommandTouchingMarker(shellRoot));
+
+		assertEquals(14, result.exitCode(), result.output());
+		assertTrue(result.output().contains("PHB-ETIMEOUT"), result.output());
+		assertTrue(Files.notExists(markerOf(shellRoot)), "the base timeout must still stop the command");
+	}
+
+	@Test
+	void aLaterNonZeroTimeoutReplacesTheBaseTimeout() throws Exception {
+		// Last-wins for supplied values is unchanged: a later policy can both loosen
+		// and tighten what the base established.
+		Path shellRoot = wrapperShellRoot("[read]\n/etc\n[limits]\ntimeout=0.500\n");
+		Files.deleteIfExists(markerOf(shellRoot));
+
+		ProcessResult longer = runWrapper(shellRoot, "longer.cfg", "[timeout]\n5.000\n",
+				slowCommandTouchingMarker(shellRoot));
+
+		assertEquals(0, longer.exitCode(), longer.output());
+		assertTrue(Files.exists(markerOf(shellRoot)), "the later, longer timeout must replace the base one");
+
+		ProcessResult shorter = runWrapper(shellRoot, "shorter.cfg", "[timeout]\n0.200\n", "sleep 5");
+
+		assertEquals(14, shorter.exitCode(), shorter.output());
+		assertTrue(shorter.output().contains("Timed out after 0.200s"), shorter.output());
+	}
+
+	@Test
 	void aConfiguredTimeoutIsEnforcedByTheWrapper() throws Exception {
 		// A parsed value is worth nothing unless it reaches GNU timeout and fires. The
 		// wrapper's own timeout exit code and message are what prove that the whole
@@ -182,18 +451,38 @@ class PhobosShellContractTest {
 	 * exercises the shipped entry point rather than a reimplementation of it.
 	 */
 	private Path wrapperShellRoot() throws IOException {
+		return wrapperShellRoot("[read]\n/etc\n");
+	}
+
+	/**
+	 * The same copy with a caller-chosen base policy, for the cases that observe
+	 * how an exercise policy interacts with what the base already established.
+	 */
+	private Path wrapperShellRoot(String baseConfiguration) throws IOException {
 		Path shellRoot = Files.createDirectory(temporaryDirectory.resolve("wrapper"));
 		for (String script : new String[] { "phobos.sh", "phobos-common.sh", "phobos-timeout.sh", "phobos-network.sh",
 				"phobos-filesystem.sh" }) {
 			Files.copy(TEMPLATES.resolve(script), shellRoot.resolve(script));
 		}
-		Files.writeString(shellRoot.resolve("Base.cfg"), "[read]\n/etc\n");
+		Files.writeString(shellRoot.resolve("Base.cfg"), baseConfiguration);
 		Files.createFile(shellRoot.resolve("TailPhobos.cfg"));
 		return shellRoot;
 	}
 
 	private Path markerOf(Path shellRoot) {
 		return shellRoot.resolve("protected-command-ran");
+	}
+
+	/**
+	 * A protected command that outlives a sub-second timeout and leaves the marker
+	 * behind, so completing and being killed are told apart by evidence the command
+	 * itself wrote. It is a script file rather than an inline command because the
+	 * wrapper invocation is already a quoted shell string.
+	 */
+	private String slowCommandTouchingMarker(Path shellRoot) throws IOException {
+		Path script = shellRoot.resolve("slow-command.sh");
+		Files.writeString(script, "#!/usr/bin/env bash\nsleep 2\ntouch '" + markerOf(shellRoot) + "'\n");
+		return "bash '" + script + "'";
 	}
 
 	/**
@@ -236,15 +525,41 @@ class PhobosShellContractTest {
 		Path config = temporaryDirectory.resolve(fileName);
 		Files.writeString(config, configurationContents);
 
-		ProcessResult result = run(sourceCommonAndParse(config) + "; printf '%s' \"${PARSED_TIMEOUT}\"");
+		ProcessResult result = run(sourceCommonAndParse(config) + printParsedTimeout());
 
 		assertEquals(0, result.exitCode(), result.output());
 		return result.output();
 	}
 
-	private String sourceCommonAndParse(Path config) {
-		return "source '" + TEMPLATES.resolve("phobos-common.sh") + "'; INI_TMP_DIRS=''; parse_cfg_policy '" + config
-				+ "'";
+	/**
+	 * Runs the shipped parser over a configuration and returns the read-only paths
+	 * it collected, so a silently ignored section shows up as an empty result.
+	 */
+	private String parsedReadPathsOf(String fileName, String configurationContents) throws Exception {
+		Path config = temporaryDirectory.resolve(fileName);
+		Files.writeString(config, configurationContents);
+
+		ProcessResult result = run(sourceCommonAndParse(config) + "; cat \"${PARSED_RO_FILE}\"");
+
+		assertEquals(0, result.exitCode(), result.output());
+		return result.output().strip();
+	}
+
+	/**
+	 * Sources the shipped parser and runs it over the configurations in order, so a
+	 * layered policy is exercised the way the wrapper stacks its files.
+	 */
+	private String sourceCommonAndParse(Path... configs) {
+		StringBuilder script = new StringBuilder(
+				"source '" + TEMPLATES.resolve("phobos-common.sh") + "'; INI_TMP_DIRS=''");
+		for (Path config : configs) {
+			script.append("; parse_cfg_policy '").append(config).append("'");
+		}
+		return script.toString();
+	}
+
+	private String printParsedTimeout() {
+		return "; printf '%s' \"${PARSED_TIMEOUT}\"";
 	}
 
 	private ProcessResult run(String script) throws IOException, InterruptedException {
