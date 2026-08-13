@@ -60,14 +60,14 @@ way an otherwise correct contribution arrives unreviewable.
 - Tick boxes as `[x]`. When a checklist item does not apply, wrap that line in an HTML
   comment stating the reason, so the diff still records that it was considered.
 - Read the section you are filling in, not this list. Each recurring instruction is
-  repeated, in the same words, in every section where it applies, so each section states
-  its own rules:
-  `Simple words` says who has to be able to follow it, `This section is always required`
-  or a sentence naming what to write instead says what to do when it does not apply, and
-  `Limit` says how long it may be.
-- Respect the character limit a section declares. Sections 1 to 3 carry
-  `Limit: 1000 characters`, counted in code points over the text left once every
-  instruction comment is removed, so a comment kept in the body does not count towards it.
+  repeated, in the same words, in every section where it applies. They close every section
+  comment, after whatever that section says for itself, always in this order: `This
+  section is always required`, which also says what to write when the section does not
+  apply to your change, then `Limit`, then `Simple words`.
+- Respect the character limit a section declares. Summary carries `Limit: 500
+  characters`; sections 1 to 3 and `Breaking changes and migration` carry `Limit: 1000
+  characters`. The count is in code points over the text left once every instruction
+  comment is removed, so a comment kept in the body does not count towards it.
 - Write for an instructor who does not know the inside of Ares. Every section that
   carries the `Simple words` block asks for this, section 1 while still naming the part of
   Ares a defect sits in.

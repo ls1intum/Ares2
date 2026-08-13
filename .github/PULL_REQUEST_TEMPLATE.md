@@ -2,27 +2,29 @@
   Thanks for contributing to Ares 2.
   Fill in every section. Each section states what to write when it does not apply.
   Tick boxes as [x], not [ x] and not [x ].
-  If a checklist task does not apply, wrap that line in an HTML comment and state the
-  reason inside the comment, so the diff still records that the task was considered.
 
   Each recurring instruction is repeated, in the same words, in every section where it
-  applies, so that reading the one section you are filling in is enough. Anything a
-  single section adds to one of them stands in a paragraph of its own:
-  - "Simple words" says who has to be able to follow the section.
-  - "This section is always required", or a sentence naming what to write instead, says
-    what to do when the section does not apply to your change.
-  - "Limit" says how long the section may be, where there is a limit.
+  applies, so that reading the one section you are filling in is enough. They close every
+  section comment, after whatever that section says for itself, and always in this order:
+  1. "This section is always required" says so, and then says what to write when it does
+     not apply to your change. Every section is required, so a section that does not
+     apply is answered rather than deleted.
+  2. "Limit" says how long the section may be, where there is a limit.
+  3. "Simple words" says who has to be able to follow the section.
 -->
 
 ## Summary
 
 <!--
-  At most three lines: what changes, and why it matters. No implementation detail.
+  What changes, and why it matters. No implementation detail.
+
+  This section is always required. There is no change it does not apply to.
+
+  Limit: 500 characters, counted over the text left once every instruction comment such
+  as this one is removed, so keeping the comment costs nothing.
 
   Simple words: write this so that an instructor who does not know the inside of Ares can
   follow it. Spell out any Ares term you cannot avoid.
-
-  This section is always required.
 -->
 
 ## Linked issues
@@ -30,7 +32,8 @@
 <!--
   For example "Closes #123" or "Relates to #456".
 
-  If this pull request relates to no issue, write "None".
+  This section is always required. If this pull request relates to no issue, write
+  "None".
 -->
 
 ## 1. Problem
@@ -57,19 +60,17 @@
   - Why does it matter? If something is broken, say which way round it went: Ares let
     forbidden student code through, or it failed a correct submission.
 
-  Simple words: write this so that an instructor who does not know the inside of Ares can
-  follow it. Spell out any Ares term you cannot avoid.
+  Say less, not more: a reviewer who cannot follow a short answer will ask, and the
+  detail belongs in the code or in the linked issue.
 
-  This section is always required.
-
-  If nothing is broken, describe the gap or the extra work that made you open this pull
-  request instead.
+  This section is always required. If nothing is broken, describe the gap or the extra
+  work that made you open this pull request instead.
 
   Limit: 1000 characters, counted over the text left once every instruction comment such
   as this one is removed, so keeping the comment costs nothing.
 
-  Say less, not more: a reviewer who cannot follow a short answer will ask, and the
-  detail belongs in the code or in the linked issue.
+  Simple words: write this so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid.
 -->
 
 ## 2. Improvement from the user's perspective
@@ -82,13 +83,14 @@
   submissions failed by mistake, a rule that could not be written before, a faster test
   run, or a newly supported language or build tool.
 
-  Simple words: write this so that an instructor who does not know the inside of Ares can
-  follow it. Spell out any Ares term you cannot avoid.
-
-  If this side gains nothing from this pull request, write "No Improvement".
+  This section is always required. If this side gains nothing from this pull request,
+  write "No Improvement".
 
   Limit: 1000 characters, counted over the text left once every instruction comment such
   as this one is removed, so keeping the comment costs nothing.
+
+  Simple words: write this so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid.
 -->
 
 ## 3. Improvement from the maintainer's perspective
@@ -99,13 +101,14 @@
   flaky test removed, better error output, less manual release work, or a simpler
   dependency or CI setup.
 
-  Simple words: write this so that an instructor who does not know the inside of Ares can
-  follow it. Spell out any Ares term you cannot avoid.
-
-  If this side gains nothing from this pull request, write "No Improvement".
+  This section is always required. If this side gains nothing from this pull request,
+  write "No Improvement".
 
   Limit: 1000 characters, counted over the text left once every instruction comment such
   as this one is removed, so keeping the comment costs nothing.
+
+  Simple words: write this so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid.
 -->
 
 ## 4. Testing manual
@@ -144,15 +147,15 @@
   Negative case: equally important for a security tool. State what must still be
   rejected, and how a reviewer confirms that Ares has not become more permissive.
 
-  Simple words: write this so that an instructor who does not know the inside of Ares can
-  follow it. Spell out any Ares term you cannot avoid.
-
   A step nobody can follow is a step nobody runs.
 
-  If the change cannot be exercised from an exercise (for example a CI workflow, build
-  or documentation change), write "Not reproducible from an exercise" under Steps and
-  describe instead how a reviewer verifies the change, for example which workflow run
-  to inspect.
+  This section is always required. If the change cannot be exercised from an exercise
+  (for example a CI workflow, build or documentation change), write "Not reproducible
+  from an exercise" under Steps and describe instead how a reviewer verifies the change,
+  for example which workflow run to inspect.
+
+  Simple words: write this so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid.
 -->
 
 **Prerequisites**
@@ -173,8 +176,8 @@
   Ares runs four combinations in CI. Tick the ones you verified, and say below why a
   subset is sufficient if you did not verify all four.
 
-  If the change cannot alter mode-specific behaviour, tick nothing and write
-  "No mode-specific behaviour changed".
+  This part is always required. If the change cannot alter mode-specific behaviour, tick
+  nothing and write "No mode-specific behaviour changed".
 -->
 
 - [ ] ArchUnit + AspectJ
@@ -215,8 +218,9 @@
   reported on, so test classes never appear in the report and do not belong in the
   table, even though the agent does instrument the ones under `de.tum.cit.ase.ares.api`.
 
-  If this pull request changes no production Java code (documentation, CI, build
-  configuration or tests only), replace the table with "No production Java code changed".
+  This section is always required. If this pull request changes no production Java code
+  (documentation, CI, build configuration or tests only), replace the table with "No
+  production Java code changed".
 -->
 
 | Class | Instruction coverage | Branch coverage | Line coverage | Complexity coverage | Method coverage | Confirmation (meaningful assertions) |
@@ -234,17 +238,26 @@
   - the minimum JDK, Maven or Gradle version
   If it does, describe what an instructor has to do to upgrade an existing exercise.
 
-  Simple words: write this so that an instructor who does not know the inside of Ares can
-  follow it. Spell out any Ares term you cannot avoid.
-
   This is the section an instructor reads before upgrading.
 
-  If the change is fully backwards compatible, write "None".
+  This section is always required. If the change is fully backwards compatible, write
+  "None".
+
+  Limit: 1000 characters, counted over the text left once every instruction comment such
+  as this one is removed, so keeping the comment costs nothing.
+
+  Simple words: write this so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid.
 -->
 
 None.
 
 ## Checklist
+
+<!--
+  This section is always required. If a task does not apply, wrap its line in an HTML
+  comment and state the reason inside the comment, rather than deleting or unticking it.
+-->
 
 - [ ] The title of this pull request describes the change, not the implementation.
 - [ ] I followed the [guidelines for inclusive, diversity-sensitive and appreciative language](https://docs.artemis.tum.de/developer/guidelines/language).
@@ -260,8 +273,9 @@ None.
   Reviewers tick what they have reviewed. Both boxes should be ticked before merge.
   When new commits are pushed, the affected box is unchecked again. Not every change
   requires a full re-review.
-  If a category does not apply, wrap its line in an HTML comment and state the reason
-  inside the comment.
+
+  This section is always required. If a category does not apply, wrap its line in an HTML
+  comment and state the reason inside the comment, rather than deleting it.
 -->
 
 - [ ] Code review
