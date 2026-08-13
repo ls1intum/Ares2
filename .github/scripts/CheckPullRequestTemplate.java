@@ -19,9 +19,9 @@ import java.util.regex.Pattern;
  * mode, Java 11 and later). The body arrives through the {@code PR_BODY} environment variable. It
  * is untrusted input on fork pull requests and must never be interpolated into a shell command.
  *
- * <p>The required section headings and the character limits are listed here, in
- * {@link #REQUIRED_HEADINGS} and {@link #LIMITS}, and the template states the same rules in prose
- * for the contributor who is filling it in. The two are kept in step by hand: <b>a section renamed,
+ * <p>The required section headings and the character limits are listed here, in {@link #SECTIONS},
+ * and the template states the same rules in prose for the contributor who is filling it in. The
+ * two files are kept in step by hand: <b>a section renamed,
  * added, removed or given a different limit in the template has to be changed here in the same
  * commit</b>, or the check will enforce yesterday's shape. Nothing detects that drift, which is the
  * price of having the rules readable in one file rather than parsed out of a Markdown comment.
@@ -35,35 +35,36 @@ public class CheckPullRequestTemplate {
     /** Named in the messages so a contributor knows which file to copy. It is never read. */
     private static final String TEMPLATE = ".github/PULL_REQUEST_TEMPLATE.md";
 
-    /**
-     * Every section a body must carry, spelled exactly as the template heads it, in the order the
-     * template puts them in. Both the presence check and the order check read this list.
-     */
-    private static final List<String> REQUIRED_HEADINGS = List.of(
-            "## Summary",
-            "## Linked issues",
-            "## 1. Problem",
-            "## 2. Improvement from the user's perspective",
-            "## 3. Improvement from the maintainer's perspective",
-            "## 4. Testing manual",
-            "## 5. Test case coverage regarding this PR",
-            "## Breaking changes and migration",
-            "## Checklist",
-            "## Review progress");
+    /** No section is limited to zero characters, so zero is free to mean "unlimited" here. */
+    private static final int NO_LIMIT = 0;
 
     /**
-     * The most characters a section may hold, for the sections that are bounded. A heading absent
-     * from this map has no limit. Section 4 covers the modes at the end of it, because a section
-     * runs from its own heading to the next one.
+     * Every section a body must carry, spelled exactly as the template heads it, in the order the
+     * template puts them in, each with the most characters it may hold. {@link #NO_LIMIT} means the
+     * section is unbounded. Section 4 covers the modes at the end of it, because a section runs
+     * from its own heading to the next one.
+     *
+     * <p>One ordered map rather than a list of headings beside a map of limits: a limit cannot then
+     * name a section that is not required, because there is nowhere to write it, and the order the
+     * presence and order checks rely on is the order it is read in here. A {@code LinkedHashMap} is
+     * what makes that true; {@code Map.of} deliberately varies its iteration order between runs.
      */
-    private static final Map<String, Integer> LIMITS = Map.of(
-            "## Summary", 500,
-            "## Linked issues", 1000,
-            "## 1. Problem", 1000,
-            "## 2. Improvement from the user's perspective", 1000,
-            "## 3. Improvement from the maintainer's perspective", 1000,
-            "## 4. Testing manual", 5000,
-            "## Breaking changes and migration", 1000);
+    private static final Map<String, Integer> SECTIONS;
+
+    static {
+        Map<String, Integer> sections = new LinkedHashMap<>();
+        sections.put("## Summary", 500);
+        sections.put("## Linked issues", 1000);
+        sections.put("## 1. Problem", 1000);
+        sections.put("## 2. Improvement from the user's perspective", 1000);
+        sections.put("## 3. Improvement from the maintainer's perspective", 1000);
+        sections.put("## 4. Testing manual", 5000);
+        sections.put("## 5. Test case coverage regarding this PR", NO_LIMIT);
+        sections.put("## Breaking changes and migration", 1000);
+        sections.put("## Checklist", NO_LIMIT);
+        sections.put("## Review progress", NO_LIMIT);
+        SECTIONS = Collections.unmodifiableMap(sections);
+    }
 
     private static final Pattern HEADING = Pattern.compile("^## .+$", Pattern.MULTILINE);
 
@@ -125,9 +126,6 @@ public class CheckPullRequestTemplate {
 
     private static final Pattern BARE_LIST_MARKER = Pattern.compile("\\s*\\d+\\.\\s*");
 
-    /** No section is limited to zero characters, so zero is free to mean "unlimited" here. */
-    private static final int NO_LIMIT = 0;
-
     /**
      * The largest limit that reads as a limit. Well past any section anyone would write, and low
      * enough that a typo such as an extra digit reads as the mistake it is rather than as no limit.
@@ -155,9 +153,10 @@ public class CheckPullRequestTemplate {
     }
 
     private static int run() throws IOException {
+        List<String> required = List.copyOf(SECTIONS.keySet());
         List<String> problems = new ArrayList<>(miswritten());
         if (!problems.isEmpty()) {
-            report(problems, REQUIRED_HEADINGS);
+            report(problems, required);
             return 1;
         }
 
@@ -165,7 +164,7 @@ public class CheckPullRequestTemplate {
 
         if (visible(body).isEmpty()) {
             problems.add("The pull request body is empty. Start from " + TEMPLATE + " and fill in every section.");
-            report(problems, REQUIRED_HEADINGS);
+            report(problems, required);
             return 1;
         }
 
@@ -177,7 +176,7 @@ public class CheckPullRequestTemplate {
         String maskedBody = masked(body);
         List<String> found = headings(maskedBody);
         List<String> present = new ArrayList<>();
-        for (String heading : REQUIRED_HEADINGS) {
+        for (String heading : required) {
             int occurrences = Collections.frequency(found, heading);
             if (occurrences == 1) {
                 present.add(heading);
@@ -188,65 +187,48 @@ public class CheckPullRequestTemplate {
                         + " times. Keep exactly one of each, in the order of " + TEMPLATE + ".");
             }
         }
-        problems.addAll(outOfOrder(REQUIRED_HEADINGS, found));
+        problems.addAll(outOfOrder(required, found));
 
         for (Map.Entry<String, String> section : sections(body, maskedBody, present).entrySet()) {
             String heading = section.getKey();
-            problems.addAll(inspect(heading, section.getValue(), LIMITS.getOrDefault(heading, NO_LIMIT)));
+            problems.addAll(inspect(heading, section.getValue(), SECTIONS.getOrDefault(heading, NO_LIMIT)));
         }
 
-        report(problems, REQUIRED_HEADINGS);
+        report(problems, required);
         return problems.isEmpty() ? 0 : 1;
     }
 
     /**
-     * The complaints about this file rather than about a pull request body: no required heading at
-     * all, which would pass everything; the same heading required twice; a heading spelled so that
-     * {@link #HEADING} could never match it, which would fail every body with a missing section
-     * nobody can act on; a limit for a heading that is not required; and a limit that is not a
-     * sensible number.
+     * The complaints about this file rather than about a pull request body: no required section at
+     * all, which would pass everything; a heading spelled so that {@link #HEADING} could never
+     * match it, which would fail every body with a missing section nobody can act on; and a limit
+     * that is neither {@link #NO_LIMIT} nor a sensible number.
      *
-     * <p>The two lists are written by hand and can only be checked against each other, so this
-     * catches the mistake that would otherwise be silent, a limit whose heading was renamed in one
-     * list and not the other. A required heading with no limit is not a mistake: an unbounded
-     * section is a legitimate state, and calling it one would need a third hand-written list of
-     * which sections ought to be bounded.
+     * <p>Two mistakes the older shape could make are gone rather than caught. A limit for a section
+     * that is not required has nowhere to be written, and a section required twice collapses into
+     * the one entry a map can hold. An unbounded section is a legitimate state, so a section
+     * carrying {@link #NO_LIMIT} is never a complaint.
      *
      * <p>It says nothing about the template, which this check no longer reads; keeping that in step
      * is a human job.
      */
     private static List<String> miswritten() {
         List<String> problems = new ArrayList<>();
-        if (REQUIRED_HEADINGS.isEmpty()) {
-            problems.add("This check is miswritten: it requires no headings at all, so it would pass any "
+        if (SECTIONS.isEmpty()) {
+            problems.add("This check is miswritten: it requires no sections at all, so it would pass any "
                     + "body. Fix CheckPullRequestTemplate.java, not the pull request body.");
         }
-        for (int index = 0; index < REQUIRED_HEADINGS.size(); index++) {
-            String heading = REQUIRED_HEADINGS.get(index);
-            // A heading this program could never find in a body would fail every body with a
-            // "missing section" nobody can act on, so it is reported as what it is instead.
+        for (Map.Entry<String, Integer> section : SECTIONS.entrySet()) {
+            String heading = section.getKey();
             if (!HEADING.matcher(heading).matches() || !heading.equals(heading.trim())) {
                 problems.add("This check is miswritten: the required heading '" + heading
                         + "' is not a heading it can ever match. Fix CheckPullRequestTemplate.java, "
                         + "not the pull request body.");
             }
-            // Reported at the first occurrence only, so a heading listed twice is one complaint.
-            if (Collections.frequency(REQUIRED_HEADINGS, heading) > 1
-                    && REQUIRED_HEADINGS.indexOf(heading) == index) {
-                problems.add("This check is miswritten: it requires the heading '" + heading
-                        + "' more than once. Fix CheckPullRequestTemplate.java, not the pull request "
-                        + "body.");
-            }
-        }
-        for (Map.Entry<String, Integer> limit : LIMITS.entrySet()) {
-            if (!REQUIRED_HEADINGS.contains(limit.getKey())) {
-                problems.add("This check is miswritten: it limits '" + limit.getKey()
-                        + "', which is not one of its required headings. Fix "
-                        + "CheckPullRequestTemplate.java, not the pull request body.");
-            }
-            if (limit.getValue() < 1 || limit.getValue() > MAX_LIMIT) {
-                problems.add("This check is miswritten: the limit " + limit.getValue() + " for '"
-                        + limit.getKey() + "' is outside 1 to " + MAX_LIMIT + ". Fix "
+            int limit = section.getValue();
+            if (limit != NO_LIMIT && (limit < 1 || limit > MAX_LIMIT)) {
+                problems.add("This check is miswritten: the limit " + limit + " for '" + heading
+                        + "' is neither unlimited nor within 1 to " + MAX_LIMIT + ". Fix "
                         + "CheckPullRequestTemplate.java, not the pull request body.");
             }
         }

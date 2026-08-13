@@ -97,13 +97,13 @@ The checker is a single-file Java program, run through the source-code launcher,
 needs no build step and adds no language to the repository.
 
 **Changing the template is two edits, not one.** The required headings and the character
-limits live in `REQUIRED_HEADINGS` and `LIMITS` at the top of
-`.github/scripts/CheckPullRequestTemplate.java`, and the template states the same rules in
-prose for whoever is filling it in. The checker does not read the template, so a section
-renamed, added, removed or given a different limit has to be changed in both files in the
-same commit. Nothing detects the drift: the template would keep promising 1000 characters
-while the check went on enforcing 500. The checker does verify itself, but only against
-itself, refusing to run if it requires no headings at all, requires the same heading
-twice, spells a required heading so that it could never match one, limits a heading it
-does not require, or names a limit outside 1 to 100000. A required heading with no limit
-is allowed, since an unbounded section is a legitimate state.
+limits live in one ordered map, `SECTIONS`, at the top of
+`.github/scripts/CheckPullRequestTemplate.java`: each entry is a heading and the most
+characters that section may hold, `NO_LIMIT` for an unbounded one, in the order the
+template puts them in. The template states the same rules in prose for whoever is filling
+it in. The checker does not read the template, so a section renamed, added, removed or
+given a different limit has to be changed in both files in the same commit. Nothing
+detects the drift: the template would keep promising 1000 characters while the check went
+on enforcing 500. The checker does verify itself, but only against itself, refusing to run
+if it requires no sections at all, spells a heading so that it could never match one, or
+names a limit that is neither unlimited nor within 1 to 100000.
