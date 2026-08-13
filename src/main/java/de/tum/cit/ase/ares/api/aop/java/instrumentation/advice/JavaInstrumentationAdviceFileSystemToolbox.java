@@ -1333,25 +1333,24 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * infrastructure, not student file access; blocking it makes cryptography fail
 	 * to initialise ({@code NoClassDefFoundError} / "Can not initialize
 	 * cryptographic mechanism"). The AspectJ backend applies this same exemption,
-	 * so this keeps the two backends consistent. The match requires the path to
-	 * resolve under the trusted JDK installation ({@code java.home}) in addition to
-	 * the JCE policy naming scheme, so a student-controlled file living outside
-	 * {@code java.home} cannot bypass the read policy merely by being given one of
-	 * the exempt names.
+	 * so this keeps the two backends consistent. The bare
+	 * {@code {default,exempt}_*.policy} directory-scan glob is not itself a real
+	 * file path — it resolves against the working directory, not {@code java.home},
+	 * when converted to a path — so a location check on the intercepted argument
+	 * cannot validate it. The match instead requires the access to originate from
+	 * {@code javax.crypto.JceSecurity}'s own scan (see
+	 * {@link #isJceCryptoPolicyScanInProgress()}), which a student cannot spoof and
+	 * which never takes a student-influenceable path/glob argument, so a
+	 * student-controlled file (or a directly-called {@code newDirectoryStream} with
+	 * the same glob) cannot bypass the read policy merely by matching one of the
+	 * exempt names.
 	 *
 	 * @param path the already-resolved path string under inspection
-	 * @return true if the path is a JCE crypto policy file or scan glob
+	 * @return true if the path is a JCE crypto policy file or scan glob read by a
+	 *         genuine JCE-triggered scan
 	 */
 	private static boolean isCryptoPolicyPath(@Nullable String path) {
 		if (path == null) {
-			return false;
-		}
-		// SECURITY: The name match alone is not sufficient — a student-controlled file
-		// living outside java.home could be given one of these exact names to bypass
-		// the
-		// read policy. Require the path to actually resolve under the trusted JDK
-		// installation first, the same trust root isExemptSystemFileAccess uses.
-		if (!isPathWithin(path, TRUSTED_JAVA_HOME)) {
 			return false;
 		}
 		int slash = path.lastIndexOf('/');
@@ -1361,7 +1360,14 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// "default_*"/"exempt_*"
 		// prefix, so a student-named file such as "default_tokens.policy" is NOT
 		// exempt.
-		return CRYPTO_POLICY_NAMES.contains(name);
+		if (!CRYPTO_POLICY_NAMES.contains(name)) {
+			return false;
+		}
+		// SECURITY: the name match alone is not sufficient — a student-controlled file
+		// (or a directly student-called newDirectoryStream) could bear one of these
+		// exact names/glob to bypass the read policy. Require the read to actually
+		// originate from JCE's own scanning code.
+		return isJceCryptoPolicyScanInProgress();
 	}
 
 	/**
