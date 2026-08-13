@@ -68,7 +68,7 @@ This mode activates dynamically when tests run, and gives immediate, fine-graine
 student code execution without requiring pre-generated test files.
 
 :::warning[The mode does not decide the interception mechanism]
-Which mechanism does the intercepting comes from the policy's
+The interception mechanism comes from the policy's
 `theFollowingProgrammingLanguageConfigurationIsUsed`, not from the mode. An `_ASPECTJ`
 configuration needs the aspects woven into the bytecode by the AspectJ compiler during the
 build; an `_INSTRUMENTATION` configuration needs the Byte Buddy agent attached to the test JVM.

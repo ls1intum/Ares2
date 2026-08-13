@@ -7,15 +7,19 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -43,7 +47,16 @@ import org.junit.jupiter.api.Test;
 @DisplayName("References into the documentation")
 class DocumentationReferenceTest {
 
-	private static final Path REPOSITORY = Path.of("");
+	/**
+	 * The repository root, resolved once.
+	 * <p>
+	 * Every path here is resolved against it rather than against the working
+	 * directory of the JVM. The two are the same under Surefire today, and a check
+	 * that quietly depends on that would report every reference as broken the day
+	 * they diverge, pointing at the documentation for what would be a configuration
+	 * change.
+	 */
+	private static final Path REPOSITORY = Path.of("").toAbsolutePath().normalize();
 
 	/** Where the documentation lives now. */
 	private static final String SITE = "documentation/docs/";
@@ -58,7 +71,7 @@ class DocumentationReferenceTest {
 	private static final Pattern REMOVED_TREE = Pattern
 			.compile("(?<!documentation/)(?<![\\w.-])docs/[A-Za-z0-9_./*-]+");
 
-	private static final Pattern REFERENCE = Pattern.compile("documentation/docs/[A-Za-z0-9_./*-]+");
+	private static final Pattern REFERENCE = Pattern.compile(Pattern.quote(SITE) + "[A-Za-z0-9_./*-]+");
 
 	/**
 	 * Directories holding no reference worth resolving: the site itself, whose
@@ -122,9 +135,17 @@ class DocumentationReferenceTest {
 
 		for (String file : List.of("examples/README.md", "examples/ares-exercise-maven/pom.xml",
 				"examples/ares-exercise-gradle/build.gradle", "tools/pointcut_comparison.R", ".coderabbit.yaml")) {
+			// Existence first, because the two causes call for opposite responses: a
+			// renamed file means this list is stale, while a file that is there and not
+			// scanned means the scan has a hole. One message for both would send a
+			// reader after the wrong one.
+			assertTrue(Files.exists(REPOSITORY.resolve(file)),
+					file + " no longer exists, so this list is out of date rather than the scan. Name the file "
+							+ "that replaced it, or drop the entry if nothing points into the documentation from "
+							+ "there any more.");
 			assertTrue(scanned.contains(file),
-					file + " is not scanned, so a reference in it would go unnoticed. It held one of the "
-							+ "references this test exists for.");
+					file + " exists but is not scanned, so a reference in it would go unnoticed. It held one of "
+							+ "the references this test exists for.");
 		}
 	}
 
@@ -136,11 +157,11 @@ class DocumentationReferenceTest {
 	private static boolean resolves(String reference) {
 		int glob = reference.indexOf('*');
 		if (glob < 0) {
-			return Files.exists(Path.of(reference));
+			return Files.exists(REPOSITORY.resolve(reference));
 		}
 		String prefix = reference.substring(0, glob);
 		int lastSeparator = prefix.lastIndexOf('/');
-		return lastSeparator > 0 && Files.isDirectory(Path.of(prefix.substring(0, lastSeparator)));
+		return lastSeparator > 0 && Files.isDirectory(REPOSITORY.resolve(prefix.substring(0, lastSeparator)));
 	}
 
 	/**
@@ -155,23 +176,58 @@ class DocumentationReferenceTest {
 		return trimmed;
 	}
 
-	private static List<Path> scannedFiles() {
-		try (Stream<Path> entries = Files.walk(REPOSITORY.toAbsolutePath().normalize())) {
-			Path root = REPOSITORY.toAbsolutePath().normalize();
-			return entries.filter(Files::isRegularFile).map(root::relativize)
-					.filter(DocumentationReferenceTest::isScanned).sorted().toList();
+	/**
+	 * The files to scan, collected once for the whole class.
+	 * <p>
+	 * Once rather than per test, and pruned rather than filtered afterwards. The
+	 * skipped directories are not merely uninteresting: the site's
+	 * {@code node_modules} holds tens of thousands of entries, and descending into
+	 * it three times to discard everything found there is most of what this test
+	 * would spend its time on.
+	 */
+	private static List<Path> scannedFiles;
+
+	@BeforeAll
+	static void collectTheFilesToScan() {
+		List<Path> found = new ArrayList<>();
+		try {
+			Files.walkFileTree(REPOSITORY, new SimpleFileVisitor<>() {
+				@Override
+				public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attributes) {
+					return SKIPPED_DIRECTORIES.contains(directory.getFileName().toString())
+							? FileVisitResult.SKIP_SUBTREE
+							: FileVisitResult.CONTINUE;
+				}
+
+				@Override
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) {
+					Path relative = REPOSITORY.relativize(file);
+					if (hasScannedSuffix(relative)) {
+						found.add(relative);
+					}
+					return FileVisitResult.CONTINUE;
+				}
+
+				@Override
+				public FileVisitResult visitFileFailed(Path file, IOException failure) {
+					// An entry that cannot be read carries no reference this test can check,
+					// and it is not what the test is about. Walking on beats failing here.
+					return FileVisitResult.CONTINUE;
+				}
+			});
 		} catch (IOException exception) {
-			throw new UncheckedIOException("Could not walk the repository", exception);
+			throw new UncheckedIOException("Could not walk " + REPOSITORY, exception);
 		}
+		found.sort(Path::compareTo);
+		scannedFiles = List.copyOf(found);
 	}
 
-	private static boolean isScanned(Path relative) {
-		for (Path segment : relative) {
-			if (SKIPPED_DIRECTORIES.contains(segment.toString())) {
-				return false;
-			}
-		}
-		String name = relative.getFileName().toString().toLowerCase(java.util.Locale.ROOT);
+	private static List<Path> scannedFiles() {
+		return scannedFiles;
+	}
+
+	private static boolean hasScannedSuffix(Path relative) {
+		String name = relative.getFileName().toString().toLowerCase(Locale.ROOT);
 		int dot = name.lastIndexOf('.');
 		return dot >= 0 && SCANNED_SUFFIXES.contains(name.substring(dot));
 	}
@@ -181,13 +237,13 @@ class DocumentationReferenceTest {
 	 * scan is by suffix, and a suffix is a guess: a .txt fixture may hold bytes
 	 * that are not UTF-8, and that is not a broken reference.
 	 */
-	private static String read(Path file) {
+	private static String read(Path relative) {
 		try {
-			return Files.readString(file, StandardCharsets.UTF_8);
+			return Files.readString(REPOSITORY.resolve(relative), StandardCharsets.UTF_8);
 		} catch (MalformedInputException notText) {
 			return "";
 		} catch (IOException exception) {
-			throw new UncheckedIOException("Could not read " + file, exception);
+			throw new UncheckedIOException("Could not read " + relative, exception);
 		}
 	}
 }
