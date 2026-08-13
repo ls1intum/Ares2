@@ -143,22 +143,27 @@ public class CheckPullRequestTemplate {
      * faith. What this check reads is stated plainly rather than described as what a reader sees.
      */
     private static final Pattern NOT_PROSE = Pattern.compile(
-            "<!--.*?(?:-->|\\z)"
+            "(?<comment><!--.*?(?:-->|\\z))"
                     + "|^ {0,3}(?<backticks>`{3,}+)[^`\\n]*\\n.*?(?:^ {0,3}\\k<backticks>`*[ \\t]*$|\\z)"
                     + "|^ {0,3}(?<tildes>~{3,}+)[^\\n]*\\n.*?(?:^ {0,3}\\k<tildes>~*[ \\t]*$|\\z)"
                     + "|(?<!`)(?<span>`++)(?:(?!\\n(?:[ \\t]*\\n| {0,3}#{1,6}(?:[ \\t]|$))).)+?(?<!`)\\k<span>(?!`)",
             Pattern.DOTALL | Pattern.MULTILINE);
 
-    /** The opening of the comment alternative of {@link #NOT_PROSE}, to tell the two apart. */
-    private static final String COMMENT_START = "<!--";
-
-    private static final Pattern BARE_LIST_MARKER = Pattern.compile("\\s*\\d+\\.\\s*");
+    /**
+     * The numbered blank the testing manual ships under Prerequisites and under Steps, left as it
+     * came: a line that is a number and a full stop and nothing else. It is looked for in every
+     * section, since a stub is a leftover wherever it survives, but section 4 is where the template
+     * puts one.
+     */
+    private static final Pattern TESTING_MANUAL_STUB = Pattern.compile("\\s*\\d+\\.\\s*");
 
     /**
-     * A table row whose every cell is blank. The template's separator row ({@code | --- | ---: |})
-     * never matches this, because its cells are not whitespace, so no separate exclusion is needed.
+     * The blank row the test case coverage table ships, left as it came: a row whose every cell is
+     * whitespace. The table's separator row ({@code | --- | ---: |}) never matches, because dashes
+     * are not whitespace, so no separate exclusion is needed. As with the numbered blank, it is
+     * looked for in every section, and section 5 is where the template puts one.
      */
-    private static final Pattern EMPTY_TABLE_ROW = Pattern.compile("\\s*\\|(\\s*\\|)+\\s*");
+    private static final Pattern TEST_CASE_COVERAGE_STUB = Pattern.compile("\\s*\\|(\\s*\\|)+\\s*");
 
     public static void main(String[] args) throws IOException {
         System.exit(run());
@@ -332,14 +337,14 @@ public class CheckPullRequestTemplate {
         // digit and no table pipe, so neither stub pattern can match it.
         String scannable = masked(content);
         for (String line : scannable.split("\n", -1)) {
-            if (BARE_LIST_MARKER.matcher(line).matches()) {
+            if (TESTING_MANUAL_STUB.matcher(line).matches()) {
                 problems.add("Section '" + heading + "' still contains an unfilled list stub ('"
                         + line.trim() + "' with nothing after it).");
                 break;
             }
         }
         for (String line : scannable.split("\n", -1)) {
-            if (EMPTY_TABLE_ROW.matcher(line).matches()) {
+            if (TEST_CASE_COVERAGE_STUB.matcher(line).matches()) {
                 problems.add("Section '" + heading + "' still contains the empty template table row. "
                         + "Fill it in, or use the documented escape hatch.");
                 break;
@@ -434,14 +439,15 @@ public class CheckPullRequestTemplate {
     /**
      * The text left once the comments are removed and the surrounding whitespace trimmed. A fenced
      * block is kept: a reader sees it, so it counts towards a length limit, and a {@code <!--}
-     * shown inside one is text rather than the start of a comment.
+     * shown inside one is text rather than the start of a comment. Which of the two a match is, is
+     * asked of the pattern itself, through the {@code comment} group of {@link #NOT_PROSE}.
      */
     private static String visible(String text) {
         StringBuilder result = new StringBuilder();
         Matcher matcher = NOT_PROSE.matcher(text);
         int cursor = 0;
         while (matcher.find()) {
-            if (!text.startsWith(COMMENT_START, matcher.start())) {
+            if (matcher.group("comment") == null) {
                 continue;
             }
             result.append(text, cursor, matcher.start());
