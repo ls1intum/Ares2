@@ -344,6 +344,29 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
+	 * Returns {@code true} when the current call stack is inside
+	 * {@code javax.crypto.JceSecurity}'s own JCE jurisdiction-policy scan (its
+	 * static initialiser calls {@code Files.newDirectoryStream} with the fixed
+	 * {@code {default,exempt}_*.policy} glob against the real {@code java.home}
+	 * policy directory). The signal is precise and cannot be spoofed: a student
+	 * calling the same JDK file-system APIs directly, even with an identical file
+	 * name or glob argument, has no {@code JceSecurity} frame between their own
+	 * code and the read, so such an access stays blocked. Because
+	 * {@code JceSecurity} never takes a student-influenceable path/glob argument,
+	 * this frame check alone precisely identifies the genuine JVM-triggered scan —
+	 * no additional location check on the intercepted argument is needed or
+	 * possible, since the bare glob argument resolves against the working
+	 * directory, not {@code java.home}, when converted to a path.
+	 *
+	 * @return {@code true} if a {@code javax.crypto.JceSecurity} frame is present
+	 *         on the current stack
+	 */
+	static boolean isJceCryptoPolicyScanInProgress() {
+		return STACK_WALKER.walk(frames -> frames.map(StackWalker.StackFrame::getClassName)
+				.anyMatch(className -> className.startsWith("javax.crypto.JceSecurity")));
+	}
+
+	/**
 	 * Returns {@code true} only while Ares itself is reading framework support
 	 * files for structural and architecture test setup through one of its trusted
 	 * utilities ({@code ProjectSourcesFinder}, {@code ClassNameScanner},
