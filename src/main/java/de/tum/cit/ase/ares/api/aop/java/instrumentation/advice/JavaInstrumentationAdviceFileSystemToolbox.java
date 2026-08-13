@@ -888,9 +888,21 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 		}
 		if (explicitDirectory == null) {
-			// No explicit directory: the JVM writes to java.io.tmpdir, a JVM/library
-			// default, not a location the student chose.
-			return true;
+			// No explicit directory: the JVM writes to java.io.tmpdir - but ONLY when that
+			// property still resolves to the value captured at class-initialisation time,
+			// before student code could run. Student code can call
+			// System.setProperty("java.io.tmpdir", ...) at any time (setting a property is
+			// not itself a file operation), and the JDK's own
+			// TempFileHelper/File$TempDirectory caches whichever value is current at THEIR
+			// own first use - which may happen later than ours and thus already be
+			// student-controlled. If the property no longer matches the trusted snapshot,
+			// we cannot prove where the JDK will actually write, so this fails closed
+			// rather than trusting the "default directory" label.
+			if (isCurrentDefaultTempDirStillTrusted()) {
+				return true;
+			}
+			throw new SecurityException(localize("security.advice.file.system.temp.directory.property.tampered",
+					fileSystemMethodToCheck, fullMethodSignature));
 		}
 		@Nullable
 		String[] allowedPaths = getValueFromSettings("pathsAllowedToBeCreated");
@@ -898,8 +910,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		@Nullable
 		String violation = checkIfVariableCriteriaIsViolated(new Object[] { explicitDirectory }, allowedPaths,
 				IgnoreValues.NONE, true);
-		if (violation == null || isPathWithin(violation, TRUSTED_DEFAULT_TEMP_DIR)
-				|| INTERNAL_PATH_SUFFIXES.stream().anyMatch(violation::endsWith)) {
+		// Deliberately no INTERNAL_PATH_SUFFIXES exemption here (unlike the generic
+		// read/write paths below): that exemption exists for Ares's own fixed,
+		// hardcoded classpath-resource suffixes, not for a student-supplied directory.
+		// A student can create and name their own directory tree, so a suffix-only
+		// match would let them craft a path ending in one of those exact strings and
+		// bypass pathsAllowedToBeCreated entirely.
+		if (violation == null || isPathWithin(violation, TRUSTED_DEFAULT_TEMP_DIR)) {
 			return true;
 		}
 		throw new SecurityException(
@@ -907,6 +924,32 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
+	}
+
+	/**
+	 * Returns {@code true} when {@code java.io.tmpdir} still resolves to the same
+	 * location as {@link #TRUSTED_DEFAULT_TEMP_DIR}, the value captured at
+	 * class-initialisation time before student code could run. Comparison is purely
+	 * lexical (no filesystem access, matching {@link #isPathWithin}) to avoid
+	 * re-entering the interceptors.
+	 *
+	 * @return {@code true} if the property has not been redirected since startup
+	 */
+	private static boolean isCurrentDefaultTempDirStillTrusted() {
+		if (TRUSTED_DEFAULT_TEMP_DIR == null) {
+			return false;
+		}
+		String currentTempDir = System.getProperty("java.io.tmpdir");
+		if (currentTempDir == null) {
+			return false;
+		}
+		try {
+			Path trusted = Path.of(TRUSTED_DEFAULT_TEMP_DIR).toAbsolutePath().normalize();
+			Path current = Path.of(currentTempDir).toAbsolutePath().normalize();
+			return trusted.equals(current);
+		} catch (InvalidPathException ignored) {
+			return false;
+		}
 	}
 
 	/**
