@@ -56,8 +56,19 @@ way an otherwise correct contribution arrives unreviewable.
   the user's perspective`, `No Improvement from the maintainer's perspective`,
   `No breaking changes or migration`, `No production Java code changed`,
   `Not reproducible from an exercise`, `No mode-specific behaviour changed`) rather than
-  deleting the section. Each phrase belongs to the section that documents it, so the
-  wrong one does not answer a section, and neither does a shortened one.
+  deleting the section. Each phrase belongs to the section that documents it, so the wrong
+  one does not answer a section, and neither does a shortened one.
+- Five of those phrases answer a whole section: `No linked issues`, the two
+  `No Improvement from the ...'s perspective` phrases, `No breaking changes or migration`
+  and `No production Java code changed`. Written as the section's whole answer, apart from
+  a trailing full stop, they finish it and nothing further is checked in it. The phrase
+  left standing above the empty table or the numbered stub does not, because that section
+  was not finished.
+- The other two answer a part of section 4 rather than the section: `Not reproducible from
+  an exercise` belongs under Steps, where the template also asks how a reviewer verifies
+  the change instead, and `No mode-specific behaviour changed` belongs to the modes. They
+  are what to write, but they do not finish section 4, and its limit and its stubs are
+  checked either way.
 - Do not delete, rename or reorder the `##` headings. The `pr-template` check knows them
   by name, so a renamed heading fails the check.
 - Tick boxes as `[x]`. When a checklist item does not apply, wrap that line in an HTML

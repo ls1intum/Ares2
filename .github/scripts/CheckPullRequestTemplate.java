@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -81,12 +80,13 @@ public class CheckPullRequestTemplate {
                 List.of("1000", "No Improvement from the user's perspective"));
         sections.put("## 3. Improvement from the maintainer's perspective",
                 List.of("1000", "No Improvement from the maintainer's perspective"));
-        // "No mode-specific behaviour changed" is deliberately not the phrase here. It answers the
-        // modes, which sit inside this section, and the phrase excuses the whole section from the
-        // stub scan, so using it would let an unfilled Steps stub through on the strength of an
-        // answer about something else. It exempts nothing it needs to: the mode boxes are never
-        // required to be ticked, so nothing about the modes is ever reported in the first place.
-        sections.put("## 4. Testing manual", List.of("5000", "Not reproducible from an exercise"));
+        // This section has no whole-section phrase, and neither of the two the template offers here
+        // belongs in that slot. "Not reproducible from an exercise" answers Steps and "No
+        // mode-specific behaviour changed" answers the modes, both of which sit inside this
+        // section, so neither may switch off the length and stub checks for the whole of it.
+        // Nothing here requires a section to have steps at all; the slot is empty because these
+        // phrases do not answer the section, not because a body saying only one of them is caught.
+        sections.put("## 4. Testing manual", List.of("5000", ""));
         sections.put("## 5. Test case coverage regarding this PR", List.of("", "No production Java code changed"));
         sections.put("## Breaking changes and migration", List.of("1000", "No breaking changes or migration"));
         sections.put("## Checklist", List.of("", ""));
@@ -192,27 +192,62 @@ public class CheckPullRequestTemplate {
         // unchecked.
         String maskedBody = masked(body);
         List<String> found = headings(maskedBody);
-        List<String> present = new ArrayList<>();
-        for (String heading : required) {
-            int occurrences = Collections.frequency(found, heading);
-            if (occurrences == 1) {
-                present.add(heading);
-            } else if (occurrences == 0) {
-                problems.add("Missing section heading: '" + heading + "'");
-            } else {
-                problems.add("Section heading '" + heading + "' appears " + occurrences
-                        + " times. Keep exactly one of each, in the order of " + TEMPLATE + ".");
-            }
-        }
+        problems.addAll(missing(required, found));
+        problems.addAll(duplicated(required, found));
         problems.addAll(outOfOrder(required, found));
 
-        for (Map.Entry<String, String> section : sections(body, maskedBody, present).entrySet()) {
+        for (Map.Entry<String, String> section : sections(body, maskedBody, once(required, found)).entrySet()) {
             String heading = section.getKey();
             problems.addAll(inspect(heading, section.getValue(), SECTIONS.get(heading)));
         }
 
         report(problems, required);
         return problems.isEmpty() ? 0 : 1;
+    }
+
+    /**
+     * The required headings the body does not have. Counted against the headings the body really
+     * has, so one merely quoted inside a sentence does not answer for the section it names.
+     */
+    private static List<String> missing(List<String> required, List<String> found) {
+        List<String> problems = new ArrayList<>();
+        for (String heading : required) {
+            if (!found.contains(heading)) {
+                problems.add("Missing section heading: '" + heading + "'");
+            }
+        }
+        return problems;
+    }
+
+    /**
+     * The required headings the body has more than once. Of two occurrences only the last would be
+     * inspected, which would leave everything above it, its length included, unchecked.
+     */
+    private static List<String> duplicated(List<String> required, List<String> found) {
+        List<String> problems = new ArrayList<>();
+        for (String heading : required) {
+            int occurrences = Collections.frequency(found, heading);
+            if (occurrences > 1) {
+                problems.add("Section heading '" + heading + "' appears " + occurrences
+                        + " times. Keep exactly one of each, in the order of " + TEMPLATE + ".");
+            }
+        }
+        return problems;
+    }
+
+    /**
+     * The required headings the body has exactly once, which are the only ones worth cutting a
+     * section out for. A missing one has nothing to cut, and a repeated one has already been
+     * complained about.
+     */
+    private static List<String> once(List<String> required, List<String> found) {
+        List<String> usable = new ArrayList<>();
+        for (String heading : required) {
+            if (Collections.frequency(found, heading) == 1) {
+                usable.add(heading);
+            }
+        }
+        return usable;
     }
 
     /**
@@ -297,44 +332,79 @@ public class CheckPullRequestTemplate {
      * Collects the problems in a single section, or an empty list when it is well formed. The rules
      * are the section's own entry of {@link #SECTIONS}: its limit first, then the phrase that
      * answers it when it does not apply, either of which may be empty.
+     *
+     * <p>Four questions in the order they stop mattering. An empty section is nothing but empty. A
+     * section that says only its phrase is finished, and neither its length nor its skeleton is
+     * anyone's business. Everything else is held to its limit, and to having filled in what the
+     * template handed it.
      */
     private static List<String> inspect(String heading, String content, List<String> rules) {
-        List<String> problems = new ArrayList<>();
         String prose = visible(content);
-
         if (prose.isEmpty()) {
-            problems.add("Section '" + heading
+            return List.of("Section '" + heading
                     + "' is empty. The template states what to write when it does not apply.");
-            return problems;
+        }
+        if (answered(prose, rules.get(1))) {
+            return List.of();
         }
 
-        // Measured on the prose left once the instruction comments are removed, so the guidance a
-        // contributor keeps in the body costs nothing, and on normalised line endings, so the same
-        // text does not measure longer because GitHub delivered it with CRLF. Counted in Unicode
-        // code points rather than in Java chars, so that a character outside the basic plane, an
-        // emoji for instance, counts once rather than twice.
-        String declared = rules.get(0);
-        if (!declared.isEmpty()) {
-            int limit = Integer.parseInt(declared);
-            int length = prose.codePointCount(0, prose.length());
-            if (length > limit) {
-                problems.add("Section '" + heading + "' is " + length + " characters long and the limit is "
-                        + limit + ". Shorten it to the part a reviewer needs; detail belongs in the code, "
-                        + "in the testing manual or in the linked issue.");
-            }
-        }
+        List<String> problems = new ArrayList<>(tooLong(heading, prose, rules.get(0)));
+        problems.addAll(leftoverStubs(heading, content));
+        return problems;
+    }
 
-        // Only this section's own phrase, so answering one section does not excuse another, and
-        // only when it has one: every string contains the empty string, so an empty phrase asked
-        // this way would excuse every section there is.
-        String phrase = rules.get(1);
-        if (!phrase.isEmpty() && prose.toLowerCase(Locale.ROOT).contains(phrase.toLowerCase(Locale.ROOT))) {
-            return problems;
-        }
+    /**
+     * Whether the section says its phrase and nothing else, which finishes it. The phrase has to be
+     * the whole answer rather than appear somewhere in one: a section that says "No linked issues,
+     * the report came by email" has more to check, and reading a phrase as an answer wherever it
+     * turned up is how the older document-wide list excused sections it had never heard of.
+     *
+     * <p>A trailing full stop does not spoil it. The template writes the phrases without one and
+     * people write sentences with one, and refusing to see that is pedantry a contributor cannot
+     * guess their way out of.
+     *
+     * <p>A section with no phrase is never answered this way; every string equals nothing after
+     * enough stripping, and an empty phrase asked as a question would finish every section there is.
+     */
+    private static boolean answered(String prose, String phrase) {
+        return !phrase.isEmpty() && stripped(prose).equalsIgnoreCase(stripped(phrase));
+    }
 
-        // Blanked rather than deleted, so that a '1.' left inside a fenced example, where it is
-        // sample text rather than an unfilled stub, no longer reads as one: a blanked line holds no
-        // digit and no table pipe, so neither stub pattern can match it.
+    /** Text without the trailing full stops and whitespace that carry no meaning here. */
+    private static String stripped(String text) {
+        return text.replaceAll("[.\\s]+$", "");
+    }
+
+    /**
+     * The complaint about a section that runs past its limit, or an empty list. Measured on the
+     * prose left once the instruction comments are removed, so the guidance a contributor keeps in
+     * the body costs nothing, and on normalised line endings, so the same text does not measure
+     * longer because GitHub delivered it with CRLF. Counted in Unicode code points rather than in
+     * Java chars, so that a character outside the basic plane, an emoji for instance, counts once
+     * rather than twice.
+     */
+    private static List<String> tooLong(String heading, String prose, String declared) {
+        if (declared.isEmpty()) {
+            return List.of();
+        }
+        int limit = Integer.parseInt(declared);
+        int length = prose.codePointCount(0, prose.length());
+        if (length <= limit) {
+            return List.of();
+        }
+        return List.of("Section '" + heading + "' is " + length + " characters long and the limit is "
+                + limit + ". Shorten it to the part a reviewer needs; detail belongs in the code, "
+                + "in the testing manual or in the linked issue.");
+    }
+
+    /**
+     * The complaints about skeleton the template shipped and nobody filled in. Read from a masked
+     * copy rather than the text itself, so that a '1.' inside a fenced example, where it is sample
+     * text rather than an unfilled stub, no longer reads as one: a blanked line holds no digit and
+     * no table pipe, so neither pattern can match it.
+     */
+    private static List<String> leftoverStubs(String heading, String content) {
+        List<String> problems = new ArrayList<>();
         String scannable = masked(content);
         for (String line : scannable.split("\n", -1)) {
             if (TESTING_MANUAL_STUB.matcher(line).matches()) {
