@@ -13,9 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileAttribute;
-import java.security.Provider;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.SecureRandomSpi;
 import java.time.LocalDate;
 import java.time.temporal.TemporalQuery;
 import java.util.List;
@@ -29,6 +28,7 @@ import org.mockito.MockedStatic;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
+import de.tum.cit.ase.ares.testutilities.FakeSecureRandomSeedingFixture;
 
 import example.student.InstrumentationSecurityProbe;
 
@@ -484,7 +484,7 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 			// dispatch frame is not itself trusted - only genuine
 			// sun.security.provider.* internal implementation frames are - so a
 			// simulated entropy-device read from within it must still be denied.
-			assertThrows(SecurityException.class, () -> triggerFakeSecureRandomSeeding(
+			assertThrows(SecurityException.class, () -> FakeSecureRandomSeedingFixture.triggerFakeSecureRandomSeeding(
 					() -> InstrumentationSecurityProbe.checkEntropyDeviceReadDirectly("/dev/urandom")));
 		} finally {
 			resetSettings();
@@ -493,20 +493,37 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 
 	@Test
 	void genuineSecureRandomEntropySeedingIsPermittedByAnActivePolicy() throws Exception {
-		Assumptions.assumeTrue(Files.exists(Path.of("/dev/urandom")) || Files.exists(Path.of("/dev/random")),
-				"requires an OS entropy device (Linux/BSD)");
+		// A plain new SecureRandom().generateSeed(...) is not reliable here: the
+		// JDK's own SeedGenerator/NativePRNG singletons open their entropy device at
+		// most once per JVM and cache the stream for the rest of the process's
+		// lifetime, so an unforced call could return a cached seed without ever
+		// re-entering the woven FileInputStream constructor - meaning
+		// assertDoesNotThrow could pass without exercising
+		// isSecureRandomSeedingInProgress() at all. "NativePRNGBlocking" is a
+		// distinct SecureRandomSpi (its own RandomIO instance, its own /dev/random
+		// device) that nothing else in this codebase requests by name, which makes
+		// it far less likely to already be warm from an earlier test in this fork -
+		// the closest a black-box unit test can get to a genuinely reachable
+		// JDK-internal seeding call.
+		SecureRandom nativeBlockingSecureRandom;
+		try {
+			nativeBlockingSecureRandom = SecureRandom.getInstance("NativePRNGBlocking");
+		} catch (NoSuchAlgorithmException e) {
+			Assumptions.abort("NativePRNGBlocking unavailable on this platform (" + e.getMessage() + ")");
+			return;
+		}
 		try {
 			resetSettings();
 			configureInstrumentationMode();
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
 
-			// An unforced, genuinely fresh SecureRandom.generateSeed(...) call on the
-			// JDK's own default provider must still be permitted even though the active
-			// policy allows no read paths at all - proving the narrowed
-			// sun.security.provider.*-only trust still recognises real JDK seeding, not
-			// just the (now-denied) forged case above. Runs against the real
-			// java-agent-instrumented FileInputStream constructor, not a simulated call.
-			assertDoesNotThrow(() -> new SecureRandom().generateSeed(8));
+			// Must still be permitted even though the active policy allows no read
+			// paths at all - proving the narrowed sun.security.provider.*-only trust
+			// still recognises real JDK seeding, not just the (now-denied) forged case
+			// above. Runs against the real java-agent-instrumented FileInputStream
+			// constructor, not a simulated call.
+			SecureRandom finalNativeBlockingSecureRandom = nativeBlockingSecureRandom;
+			assertDoesNotThrow(() -> finalNativeBlockingSecureRandom.generateSeed(8));
 		} finally {
 			resetSettings();
 		}
@@ -773,55 +790,6 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 					+ ") in this environment; cannot exercise a genuine non-default-temp-directory denial here");
 		}
 		return dir.toFile();
-	}
-
-	/**
-	 * Registers a synthetic, student-authored-style {@link SecureRandomSpi} whose
-	 * {@code engineGenerateSeed} runs the given probe, then calls
-	 * {@link SecureRandom#generateSeed(int)} on it. This makes
-	 * {@code java.security.SecureRandom.generateSeed(...)} a genuine caller frame
-	 * on the real stack while the probe runs — the exact spoof the narrowed
-	 * {@code sun.security.provider.*}-only trust set is designed to reject, since
-	 * no genuine JDK seeding is actually taking place.
-	 */
-	private static void triggerFakeSecureRandomSeeding(SeedingProbe probe) throws Exception {
-		ProbingSecureRandomSpi.PROBE = probe;
-		try {
-			Provider provider = new Provider("ares-hotfix-test-secure-random-provider", "1.0",
-					"Ares test fixture provider for exercising the SecureRandom-seeding stack detector") {
-				private static final long serialVersionUID = 1L;
-			};
-			provider.put("SecureRandom.AresProbe", ProbingSecureRandomSpi.class.getName());
-			SecureRandom.getInstance("AresProbe", provider).generateSeed(1);
-		} finally {
-			ProbingSecureRandomSpi.PROBE = null;
-		}
-	}
-
-	@FunctionalInterface
-	private interface SeedingProbe {
-		void run();
-	}
-
-	public static final class ProbingSecureRandomSpi extends SecureRandomSpi {
-
-		private static volatile SeedingProbe PROBE;
-
-		@Override
-		protected byte[] engineGenerateSeed(int numBytes) {
-			PROBE.run();
-			return new byte[numBytes];
-		}
-
-		@Override
-		protected void engineSetSeed(byte[] seed) {
-			// Not exercised by these tests.
-		}
-
-		@Override
-		protected void engineNextBytes(byte[] bytes) {
-			// Not exercised by these tests.
-		}
 	}
 
 	// </editor-fold>
