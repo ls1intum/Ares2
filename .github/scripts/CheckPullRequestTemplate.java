@@ -32,7 +32,11 @@ import java.util.regex.Pattern;
  */
 public class CheckPullRequestTemplate {
 
-    /** Named in the messages so a contributor knows which file to copy. It is never read. */
+    /**
+     * Where the template lives, quoted in the messages so a contributor knows which file to copy.
+     * A path and nothing more: this program never opens that file, which is why the rules it
+     * enforces are written out in {@link #SECTIONS} instead.
+     */
     private static final String TEMPLATE = ".github/PULL_REQUEST_TEMPLATE.md";
 
     /** No section is limited to zero characters, so zero is free to mean "unlimited" here. */
