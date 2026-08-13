@@ -2,14 +2,13 @@ package de.tum.cit.ase.ares.api.aop.java;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import java.security.Provider;
-import java.security.SecureRandom;
-import java.security.SecureRandomSpi;
 import java.time.LocalDate;
 import java.time.temporal.TemporalQuery;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Test;
+
+import de.tum.cit.ase.ares.testutilities.FakeSecureRandomSeedingFixture;
 
 import example.student.AspectJSecurityProbe;
 
@@ -40,7 +39,7 @@ class AspectJBaselineLowRiskExemptionUnitTest {
 		// sun.security.provider.* internal implementation frames are - so this must
 		// stay false.
 		AtomicBoolean seedingDetected = new AtomicBoolean();
-		triggerFakeSecureRandomSeeding(
+		FakeSecureRandomSeedingFixture.triggerFakeSecureRandomSeeding(
 				() -> seedingDetected.set(AspectJSecurityProbe.isSecureRandomSeedingInProgress()));
 
 		assertFalse(seedingDetected.get());
@@ -57,7 +56,7 @@ class AspectJBaselineLowRiskExemptionUnitTest {
 	@Test
 	void isEntropySourceReadIsNotForgedByACustomSecureRandomSpi() throws Exception {
 		AtomicBoolean entropyReadExempt = new AtomicBoolean();
-		triggerFakeSecureRandomSeeding(
+		FakeSecureRandomSeedingFixture.triggerFakeSecureRandomSeeding(
 				() -> entropyReadExempt.set(AspectJSecurityProbe.isEntropySourceRead("read", "/dev/urandom")));
 
 		assertFalse(entropyReadExempt.get(),
@@ -105,58 +104,5 @@ class AspectJBaselineLowRiskExemptionUnitTest {
 
 		assertFalse(timezoneReadExempt.get(),
 				"a java.time.temporal.Temporal callback must not be able to forge the system-timezone read exemption");
-	}
-
-	/**
-	 * Registers a synthetic, student-authored-style {@link SecureRandomSpi} whose
-	 * {@code engineGenerateSeed} runs the given probe, then calls
-	 * {@link SecureRandom#generateSeed(int)} on it. This makes
-	 * {@code java.security.SecureRandom.generateSeed(...)} a genuine caller frame
-	 * on the real stack while the probe runs — the exact spoof the narrowed
-	 * {@code sun.security.provider.*}-only trust set is designed to reject, since
-	 * no genuine JDK seeding is actually taking place.
-	 */
-	private static void triggerFakeSecureRandomSeeding(SeedingProbe probe) throws Exception {
-		ProbingSecureRandomSpi.PROBE = probe;
-		try {
-			Provider provider = new Provider("ares-hotfix-test-secure-random-provider", "1.0",
-					"Ares test fixture provider for exercising the SecureRandom-seeding stack detector") {
-				private static final long serialVersionUID = 1L;
-			};
-			provider.put("SecureRandom.AresProbe", ProbingSecureRandomSpi.class.getName());
-			SecureRandom.getInstance("AresProbe", provider).generateSeed(1);
-		} finally {
-			ProbingSecureRandomSpi.PROBE = null;
-		}
-	}
-
-	@FunctionalInterface
-	private interface SeedingProbe {
-		void run() throws Exception;
-	}
-
-	public static final class ProbingSecureRandomSpi extends SecureRandomSpi {
-
-		private static volatile SeedingProbe PROBE;
-
-		@Override
-		protected byte[] engineGenerateSeed(int numBytes) {
-			try {
-				PROBE.run();
-			} catch (Exception e) {
-				throw new IllegalStateException(e);
-			}
-			return new byte[numBytes];
-		}
-
-		@Override
-		protected void engineSetSeed(byte[] seed) {
-			// Not exercised by these tests.
-		}
-
-		@Override
-		protected void engineNextBytes(byte[] bytes) {
-			// Not exercised by these tests.
-		}
 	}
 }

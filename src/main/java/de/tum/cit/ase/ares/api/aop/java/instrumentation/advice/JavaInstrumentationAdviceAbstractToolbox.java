@@ -368,7 +368,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * {@link java.security.Provider}, whose {@code engineGenerateSeed} genuinely
 	 * runs beneath a real {@code java.security.SecureRandom.generateSeed(...)}
 	 * frame) — which is exactly why the trusted name sets below are restricted to
-	 * internal implementation packages stable code cannot reach, reference, or
+	 * internal implementation packages student code cannot reach, reference, or
 	 * subclass, rather than public dispatch/callback-accepting classes. The
 	 * class-loader check is defence in depth against a class-loader impersonating
 	 * one of those package names.
