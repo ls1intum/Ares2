@@ -256,9 +256,11 @@ This permits file system operations **only** on `something.txt`. All other paths
 
 ## Annotate the test with `@Policy`
 
-Ares 2 activates the sandbox for a test only when the test method is annotated with `@Policy`.
-The annotation links the test to the configuration file and defines the part of the student
-project that should be supervised.
+`@Policy` links the test to the configuration file and defines the part of the student project
+that should be supervised. It does not switch the sandbox on by itself: the Ares test annotation
+beneath it is what registers the extensions, and a method carrying a plain JUnit `@Test` with a
+`@Policy` runs unsupervised without saying so. See
+[Test Annotations](../test-annotations.md).
 
 ```java
 @Policy(

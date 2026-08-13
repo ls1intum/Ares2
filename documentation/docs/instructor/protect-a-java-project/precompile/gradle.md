@@ -431,6 +431,7 @@ java.lang.SecurityException: !security.advice.illegal.file.execution!
 
 :::note[No runnable Precompile example exists yet]
 Both exercises under [`examples/`](https://github.com/ls1intum/Ares2/tree/main/examples) are
-Postcompile: they depend on Ares and activate it with `@Policy`. There is nothing to copy for
+Postcompile: they depend on Ares, and each test carries an Ares test annotation with a
+`@Policy` beside it. There is nothing to copy for
 Precompile, so the steps above are the reference.
 :::

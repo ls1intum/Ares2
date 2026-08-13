@@ -57,7 +57,8 @@ See [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcomp
 ## Postcompile
 
 Postcompile mode enforces security policies at **runtime**, without writing any generated
-files into the repository. When a test is annotated with `@Policy`, Ares 2:
+files into the repository. When a test carries an Ares test annotation and a `@Policy`,
+Ares 2:
 
 - loads the security configuration file
 - arms the runtime interception the policy asks for
@@ -66,6 +67,13 @@ files into the repository. When a test is annotated with `@Policy`, Ares 2:
 
 This mode activates dynamically when tests run, and gives immediate, fine-grained control over
 student code execution without requiring pre-generated test files.
+
+:::danger[`@Policy` alone supervises nothing]
+The Ares test annotation is what registers the extensions; `@Policy` only names the policy they
+apply. A method carrying a plain JUnit `@Test` and a `@Policy` runs unsupervised and passes,
+with nothing to indicate that no domain was enforced. See
+[Test Annotations](../protect-a-java-project/test-annotations.md).
+:::
 
 :::warning[The mode does not decide the interception mechanism]
 The interception mechanism comes from the policy's

@@ -11,6 +11,20 @@ Public means students see the result immediately. Hidden means it waits, and a h
 to be told **when** to wake up, otherwise Ares refuses to guess.
 :::
 
+## What puts a test under supervision
+
+An Ares test annotation is what does it. `@Public`, `@Hidden`, `@PublicTest` and `@HiddenTest`
+carry the JUnit extensions that load the policy, arm the runtime interception and apply the
+deadline. A plain JUnit `@Test` carries none of them.
+
+:::danger[`@Policy` activates nothing on its own]
+`@Policy` selects **which** policy applies. It registers no extension, so a method annotated
+with a plain `@Test` and a `@Policy` runs completely unsupervised, and nothing reports it: the
+test passes and every resource domain stays open. Dropping an `@Public` while editing a test
+class therefore loses all enforcement without an error, which is the failure mode this page
+exists to prevent.
+:::
+
 ## Combined annotations
 
 Besides using `@Public` and `@Hidden` together with JUnit's `@Test`, Ares 2 also provides two
