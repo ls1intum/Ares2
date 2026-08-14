@@ -20,13 +20,32 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+    # Renovate and Dependabot write their own pull request body (a dependency table plus
+    # release notes) and cannot be taught the repository template, so they are exempt.
+    #
+    # The exemption is a step-level condition. An `on` filter is not an option for the same
+    # reason there is no `paths` filter above: a workflow that never runs leaves a required
+    # status check pending forever. A job-level `if` would satisfy a required check (a
+    # conditionally skipped job counts as passing), but the job would report as skipped; the
+    # step-level form runs the job and reports an unambiguous green check instead.
+    #
+    # The login is only compared inside an expression and never reaches the shell, so the
+    # untrusted-input rule below still holds.
+    env:
+      IS_DEPENDENCY_BOT_PR: ${{ github.event.pull_request.user.login == 'renovate[bot]' || github.event.pull_request.user.login == 'dependabot[bot]' }}
     steps:
+      - name: Report the exemption for automated dependency pull requests
+        if: env.IS_DEPENDENCY_BOT_PR == 'true'
+        run: echo "Automated dependency pull request, the template check does not apply."
+
       - name: Checkout repository
+        if: env.IS_DEPENDENCY_BOT_PR != 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up JDK 21
+        if: env.IS_DEPENDENCY_BOT_PR != 'true'
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           java-version: '21'
@@ -39,6 +58,7 @@ jobs:
       #
       # Run in single-file source-code mode, so there is no build step and no artefact.
       - name: Check the pull request body against the template
+        if: env.IS_DEPENDENCY_BOT_PR != 'true'
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: java .github/scripts/CheckPullRequestTemplate.java
