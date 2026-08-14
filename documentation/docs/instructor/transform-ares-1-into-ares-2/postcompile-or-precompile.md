@@ -15,8 +15,13 @@ For a migration the answer is almost always Postcompile.
 
 **Migrate onto Postcompile.** An Ares 1 exercise already carries Ares as a dependency and already
 activates enforcement from its test classes, so Postcompile is the shape it is closest to: you
-replace the dependency, rewrite the imports, translate the annotations into a policy and apply
-`@Policy`. The structure of the exercise does not change.
+replace the dependency, rewrite the imports, translate the annotations into a policy, apply
+`@Policy` and keep an Ares test annotation on every test that is to be supervised. The structure
+of the exercise does not change.
+
+`@Policy` is not itself a JUnit extension and registers nothing. What activates Ares is the
+test-type annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`), so a test carrying a
+plain JUnit `@Test` and a `@Policy` runs entirely unsupervised, and it does so silently.
 
 Precompile is a different deployment model rather than a different setting. The exercise stops
 depending on Ares and instead receives generated artefacts from an external run. That is a
@@ -30,7 +35,7 @@ The full comparison is on
 | | Postcompile | Precompile |
 | --- | --- | --- |
 | Ares in the exercise | a dependency | not needed after generation |
-| Activated by | the test cases, through `@Policy` | the exercise's own build |
+| Activated by | the test cases, through an Ares test annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`); `@Policy` only selects and configures the policy | the exercise's own build |
 | Policy granularity | per test method | one generated set per project |
 | Changing the policy | edit and rerun | regenerate and rebuild |
 | Closest to an Ares 1 exercise | **yes** | no |
