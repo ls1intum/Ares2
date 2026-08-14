@@ -382,33 +382,33 @@ public class CheckPullRequestTemplate {
      * in a fenced example, is not taken for a real one.
      */
     private static String masked(String text) {
-        return painted(text, true);
+        return painted(text, ' ');
     }
 
     /**
-     * The same, except that code between backticks is left alone. A line that is a number and a
-     * command, {@code 1. `mvn test`}, is a step somebody wrote, and painting its command out would
-     * leave a number and a full stop, which is what an unfilled blank looks like. The same goes for
-     * a table row whose cells hold code.
+     * The same, except that code between backticks is painted in letters rather than spaces. A
+     * line that is a number and a command, {@code 1. `mvn test`}, is a step somebody wrote, and
+     * blanking its command would leave a number and a full stop, which is what an unfilled blank
+     * looks like. A letter keeps such a line filled, whichever line of a span it falls on, and the
+     * same holds for a table row whose cells hold code.
      */
     private static String blocksOnly(String text) {
-        return painted(text, false);
+        return painted(text, 'x');
     }
 
     /**
-     * The text with the regions found by {@link #regions(String)} replaced by spaces of their own
-     * length, the line breaks kept, taking code between backticks only when asked. A span always
-     * covers what it holds, so a marker inside one is never markup, whether or not it is painted.
+     * The text with the regions found by {@link #regions(String)} replaced by as many characters
+     * as they held, the line breaks kept. Comments and fenced blocks become spaces; code between
+     * backticks becomes whatever the caller asks for, since one caller needs it gone and the other
+     * needs only its shape gone.
      */
-    private static String painted(String text, boolean spansToo) {
+    private static String painted(String text, char spanFiller) {
         StringBuilder result = new StringBuilder(text);
         for (int[] region : regions(text)) {
-            if (region[2] == SPAN && !spansToo) {
-                continue;
-            }
+            char filler = region[2] == SPAN ? spanFiller : ' ';
             for (int index = region[0]; index < region[1]; index++) {
                 if (result.charAt(index) != '\n') {
-                    result.setCharAt(index, ' ');
+                    result.setCharAt(index, filler);
                 }
             }
         }

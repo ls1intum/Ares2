@@ -107,11 +107,11 @@ template's own skeleton, a bare `1.` inside a comment, is read as a blank somebo
 That is wrong about a body written in good faith, and is the accepted cost of closing a
 hole where text hid from the length count.
 
-What is not prose is found in one left-to-right walk rather than by searching for each
-construct separately, which is how the two settle their overlaps: a fence opening a line
-beats a code span left open above it, because Markdown decides blocks first, and a span
-covers what it holds, so a comment marker inside one is text rather than the start of a
-comment. It deliberately does not require checklist boxes to be ticked. It
+What is not prose is found in one left-to-right walk rather than by searching for comments,
+fenced blocks and code spans separately. That walk is what settles the overlaps between the
+three: a fence opening a line beats a code span left open above it because Markdown decides
+blocks first, and a span covers what it holds, so a comment marker inside one is text rather
+than the start of a comment. It deliberately does not require checklist boxes to be ticked. It
 re-runs when the description is edited, so a failure is fixed by editing the body rather
 than by pushing a commit.
 
