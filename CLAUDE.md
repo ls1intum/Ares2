@@ -1,7 +1,22 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this
-repository.
+@AGENTS.md
+
+That import is this file's content. `AGENTS.md` holds the conventions this repository is
+held to, written for whoever is doing the work, and a rule restated here would be a second
+copy free to drift from the first. What this file adds below the reminders is orientation
+rather than convention: what the project is, how it is built, and where its parts live.
+
+What follows are deliberately abbreviated reminders of the two conventions an agent gets
+wrong most often. Both are stated in full above, and where the short form and the full one
+disagree, the full one is right.
+
+- `gh pr create --body` bypasses `.github/PULL_REQUEST_TEMPLATE.md` silently, so read that
+  file before writing a body, and check the body before opening the pull request with
+  `PR_BODY="$(cat body.md)" java .github/scripts/CheckPullRequestTemplate.java`.
+- A required heading, a character limit or a whole-section phrase changed in the template
+  has to change in `.github/scripts/CheckPullRequestTemplate.java` in the same commit.
+  Nothing detects the two files drifting apart.
 
 ## Project Overview
 
@@ -10,8 +25,10 @@ learning platforms such as Artemis. It is the second Java implementation of the 
 Remote Execution (SCORE) framework.
 
 Ares 2 is **itself the security boundary**. That single fact drives most of the conventions
-below. A false negative lets forbidden student code through; a false positive fails a correct
-submission. Both are serious, and neither is caught by a test that only checks the happy path.
+in `AGENTS.md`. A false negative lets forbidden student code through; a false positive fails
+a correct submission. Both are serious, and neither is caught by a test that only checks the
+happy path, so a change to enforcement needs a positive test (an allowed operation still
+works) and a negative one (a forbidden operation is still rejected).
 
 Its main features are policy-based sandboxing (static analysis plus runtime instrumentation),
 limits on time, threads and IO, support for hidden tests obeying a custom deadline, and
@@ -109,28 +126,6 @@ Tests are in `src/test/java/`, examples in `examples/`, documentation in `docume
 - PascalCase for classes, camelCase for fields and methods
 - Never declare more than one attribute or method per line
 - Prefer records and pattern matching where Java 17 allows
-- Javadoc on public API, since instructors read it directly from their IDE
 - LF line endings, UTF-8, final newline (see `.editorconfig`)
 
-## Security-Specific Rules
-
-- **A sandboxed test JVM must never start its own server** to test incoming or outgoing
-  connections. Ares is the boundary under test, so a fixture inside the same JVM is subject
-  to the active policy and its failure cannot be attributed. See [AGENTS.md](AGENTS.md) for
-  the full rule.
-- Outgoing-connection tests target an **external echo server** on loopback port `25565`, and
-  **skip** (`Assumptions.abort`) when it is unreachable. CI provides the server.
-- An Ares `SecurityException` on an explicitly allowed operation is always a real failure and
-  must propagate. Never swallow or skip it.
-- When adding enforcement, add both a positive test (allowed operation still works) and a
-  negative test (forbidden operation is still rejected). A security change verified only by
-  its positive case is unverified.
-
-## Commit & PR Guidelines
-
-- Concise, imperative commit messages describing the change rather than the implementation
-- Fill in every section of `.github/PULL_REQUEST_TEMPLATE.md`, including the negative case
-  and the mode combinations exercised
-- Target `main`; rebase rather than merge to keep history readable
-- Update documentation in the same pull request as the user-facing change it describes
-- See [CONTRIBUTING.md](CONTRIBUTING.md) for the full process
+Javadoc is not a matter of taste here; the rule is in `AGENTS.md` under Documenting Java.
