@@ -320,9 +320,9 @@ public class CheckPullRequestTemplate {
 
     /**
      * The complaints about blanks the template shipped and nobody filled in. Read from a copy with
-     * the comments and fenced blocks painted over, so their contents are not mistaken for a blank
-     * somebody forgot. Code between backticks stays: a step is often a number and a command, and
-     * painting the command out would leave what an unfilled blank looks like.
+     * the comments and fenced blocks blanked, so their contents are not mistaken for a blank
+     * somebody forgot, and with code between backticks filled in letters rather than blanked, since
+     * a step is often a number and a command and blanking the command would leave one.
      */
     private static List<String> leftoverStubs(String heading, String content) {
         String scannable = blocksOnly(content);
