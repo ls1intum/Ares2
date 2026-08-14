@@ -140,6 +140,12 @@
   whatever it needs: a reviewer who has to invent a file, a number or a flag you left out
   is writing the manual for you.
 
+  Describe the action, not the controls it happens to use today: "edit the description and
+  save it" outlives "press the three dots, choose Edit, then press Update comment", and so
+  does every other sentence that names what a reviewer is doing rather than what the
+  interface currently calls it. Before sending a reviewer to a result, check what they can
+  see with the sign-in state and the access they are likely to have, which is not yours.
+
   Start from a runnable exercise, do not make the reviewer build one. `examples/`
   contains `ares-exercise-gradle` and `ares-exercise-maven`; point at one of them and
   describe only the delta. A reviewer who has to guess how to wire up Ares is testing
