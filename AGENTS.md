@@ -52,19 +52,65 @@ way an otherwise correct contribution arrives unreviewable.
   `gh pr edit --body-file <filled-in copy>`, or simply fill in a copy of the template
   and pass that as `--body-file`.
 - Fill in every section. The template states what to write when a section does not
-  apply; use those documented escape hatches (`No Improvement`, `None`,
-  `No production Java code changed`, `Not reproducible from an exercise`,
-  `No mode-specific behaviour changed`) rather than deleting the section.
-- Do not delete, rename or reorder the `##` headings. The `pr-template` check reads the
-  required headings out of the template itself, so a renamed heading fails the check.
+  apply; use that section's documented phrase (`No linked issues`, `No Improvement from
+  the user's perspective`, `No Improvement from the maintainer's perspective`,
+  `No breaking changes or migration`, `No production Java code changed`,
+  `Not reproducible from an exercise`, `No mode-specific behaviour changed`) rather than
+  deleting the section. Each phrase belongs to the section that documents it, so the wrong
+  one does not answer a section, and neither does a shortened one.
+- Five of those phrases answer a whole section: `No linked issues`, the two
+  `No Improvement from the ...'s perspective` phrases, `No breaking changes or migration`
+  and `No production Java code changed`. Written as the section's whole answer, apart from
+  a trailing full stop, they finish it and nothing further is checked in it. The phrase
+  left standing above the empty table or the numbered stub does not because that section
+  was not finished.
+- The other two answer a part of section 4 rather than the section: `Not reproducible from
+  an exercise` belongs under Steps, where the template also asks how a reviewer verifies
+  the change instead, and `No mode-specific behaviour changed` belongs to the modes. They
+  are what to write, but they do not finish section 4, and its limit and its stubs are
+  checked either way.
+- Do not delete, rename or reorder the `##` headings. The `pr-template` check knows them
+  by name, so a renamed heading fails the check.
 - Tick boxes as `[x]`. When a checklist item does not apply, wrap that line in an HTML
   comment stating the reason, so the diff still records that it was considered.
+- Read the section you are filling in, not this list. Each recurring instruction is
+  repeated, in the same words, in every section where it applies. They close every section
+  comment, after whatever that section says for itself, always in this order: `This
+  section is always required`, which also says what to write when the section does not
+  apply to your change, then `Limit`, then `Simple words`.
+- Respect the character limit a section declares. Summary carries `Limit: 500
+  characters`; `Linked issues`, sections 1 to 3 and `Breaking changes and migration` carry
+  `Limit: 1000 characters`; section 4 carries `Limit: 5000 characters`, counted over the
+  whole section including the modes below it. The count is in code points over the text left once every
+  instruction comment the checker recognises is removed, so a comment kept in the body does
+  not count towards it.
+- Write for an instructor who does not know the inside of Ares. Every section that
+  carries the `Simple words` block asks for this, section 1 while still naming the part of
+  Ares a defect sits in.
 
 The `pr-template` job in `.github/workflows/pullrequest-template.yml` enforces the shape
-of the body and is a required status check. It verifies that every section exists, that
-none is empty and that no unfilled stub survived. It deliberately does not require
-checklist boxes to be ticked. It re-runs when the description is edited, so a failure is
-fixed by editing the body rather than by pushing a commit.
+of the body and is a required status check. It verifies that every section exists exactly
+once and in the order the checker lists them, that none is empty, that none runs past its
+limit, and that no unfilled stub survived in a section that was not answered with one of
+its own documented phrases. A heading inside a
+comment it recognises does not count as a section, and a heading or a comment marker shown inside a
+fenced block or a code span is text rather than markup, and so is a comment marker on a
+line indented four columns, counting a tab as up to four, which is read as code. What is not
+read is a fence indented against its container rather than the margin, inside a list or a
+block quote, so a comment marker written there still counts as a comment. The four-column
+rule is an approximation in the other direction too, since four columns under a paragraph
+continue that paragraph in Markdown; the Javadoc of the checker says why the line is drawn
+where it is.
+
+Two shapes pay for that four-column rule, and both were accepted knowingly. An indented
+example showing the template's own skeleton, a bare `1.` inside a comment, is read as a
+blank somebody forgot. And a literal comment marker inside code, above a genuine comment
+further down, can leave the genuine one unhidden, so a heading inside it is counted and the
+author is told they wrote a section twice. Both are wrong about a body written in good
+faith, and both are the accepted cost of the rule that closes a hole where text hid from
+the length count. It deliberately does not require checklist boxes to be ticked. It
+re-runs when the description is edited, so a failure is fixed by editing the body rather
+than by pushing a commit.
 
 Check a body before opening the pull request, from the repository root:
 
@@ -72,5 +118,59 @@ Check a body before opening the pull request, from the repository root:
 PR_BODY="$(cat body.md)" java .github/scripts/CheckPullRequestTemplate.java
 ```
 
-The checker is a single-file Java program, run through the source-code launcher, so it
-needs no build step and adds no language to the repository.
+The checker is a single-file Java program, run through the source-code launcher of JDK 11 or
+newer, so it needs no build step and adds no language to the repository. CI runs it on 21.
+
+**Changing the template is two edits, not one.** The required headings, the character
+limits and the phrases that answer a section live in one ordered map, `SECTIONS`, at the
+top of `.github/scripts/CheckPullRequestTemplate.java`, in the order the template puts them
+in. Each entry is a heading and exactly two strings: the character limit, then the phrase
+that answers that whole section when it does not apply, with an empty string in either
+place meaning the section has none of that. The two phrases that answer only a part of
+section 4 are not in it, so changing one of those changes the template alone. `No mode-specific
+behaviour changed` is not among them on purpose because it answers the modes rather than
+the testing manual they sit inside, and a phrase excuses its whole section from the
+leftover-stub scan. The template states the same rules in prose for whoever is filling it
+in. The checker does not read the template, so a section renamed, added, removed, given a
+different limit or given a different whole-section phrase has to be changed in both files
+in the same commit. Nothing detects the drift: the template
+would keep promising 1000 characters while the check went on enforcing 500. The checker
+does verify itself, but only against itself, refusing to run if it requires no sections at
+all, spells a heading so that it could never match one, states anything other than a limit
+and a phrase for a section, gives a limit that is not a whole number of at least one that
+fits in an `int`, or gives a phrase of whitespace, which is neither a phrase nor the empty
+string that says there is none.
+
+## Documenting Java
+
+Every method and every field carries Javadoc, and each one stays under 500 characters.
+The class comment stays under 500 characters too.
+
+**Why:** the two failure modes are a file that explains nothing and a file that explains
+its hardest idea three times. A cap forces the choice of what the reader has to know, and
+a comment on everything means the reader never wonders whether the silence was deliberate.
+Long comments also rot fastest, because nobody rereads a page of prose when changing a
+line of code.
+
+**Rule:**
+
+- Write it in simple words, so that an instructor who does not know the inside of Ares can
+  follow it. Spell out any Ares term you cannot avoid. Say less, not more: a reader who
+  cannot follow a short answer will ask.
+- Say what the thing is and what it is for. Where the reasoning behind how it does that
+  will not fit, keep the part a future editor could break unknowingly and drop the rest.
+- No comments inside a method or a static block. A method that needs one is a method that
+  should be two, each named after the question it answers, and a step explained in prose
+  is a step whose name was not chosen carefully enough. A comment beside a field's value,
+  at class level, is allowed, since a value cannot be split into smaller values.
+- Never put a line comment between a Javadoc comment and the declaration it documents. It
+  detaches the two, and the Javadoc then documents nothing.
+- Claim only what the code does. Shortening is where documentation turns into fiction:
+  "what a reader sees" claims a Markdown renderer, "every code block" claims the ones that
+  are deliberately not read, "collects every complaint" claims there is no early exit. If a
+  sentence would need a paragraph of exceptions, say the narrow true thing instead.
+- Existing Javadoc that predates this rule is not rewritten wholesale. Bring a comment up
+  to this shape when you change the code it documents.
+
+The same applies to any code an agent writes here, not only to Java: `.github/scripts` and
+the workflows are held to the same standard, in whatever comment syntax they have.
