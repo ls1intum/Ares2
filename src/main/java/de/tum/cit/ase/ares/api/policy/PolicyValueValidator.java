@@ -76,9 +76,9 @@ public final class PolicyValueValidator {
 	/**
 	 * Matches an executable command, or the command wildcard.
 	 * <p>
-	 * A command is a program name or a path to one, so the shape cannot be pinned
-	 * down further without rejecting legitimate policies: the fixtures alone hold
-	 * {@code echo} and {@code src/test/.../trustedExecute.sh}. Two things are
+	 * A command is an executable name or a path to one, so the shape cannot be
+	 * pinned down further without rejecting legitimate policies: the fixtures alone
+	 * hold {@code echo} and {@code src/test/.../trustedExecute.sh}. Two things are
 	 * excluded. Control characters and Unicode line separators (see
 	 * {@link #CONTROL_OR_LINE_SEPARATOR}), because they never occur in a real
 	 * command and a value carrying a line break travels into generated sources,

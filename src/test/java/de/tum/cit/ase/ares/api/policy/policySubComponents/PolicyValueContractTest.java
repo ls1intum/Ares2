@@ -194,8 +194,8 @@ class PolicyValueContractTest {
 		assertThrows(NullPointerException.class,
 				() -> new CommandPermission("git", java.util.Arrays.asList((String) null)));
 
-		// A command is a program name or a path to one, so both shapes stand, as does
-		// the wildcard. Control characters do not: a policy value carrying a line
+		// A command is an executable name or a path to one, so both shapes stand, as
+		// does the wildcard. Control characters do not: a policy value carrying a line
 		// break travels into generated sources, settings and failure reports.
 		assertEquals("echo", new CommandPermission("echo", List.of()).executeTheCommand());
 		assertEquals("src/test/resources/trustedExecute.sh",
