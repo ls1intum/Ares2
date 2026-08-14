@@ -274,7 +274,7 @@ abstract class SecurityPolicyDirector {
     # essentialClassesPath: Path
     + SecurityPolicyDirector(creator: Creator, writer: Writer, executer: Executer, essentialDataReader: EssentialDataReader, ...)
     + {abstract} createTestCases(securityPolicy: SecurityPolicy, projectRootPath: Path): TestCaseAbstractFactoryAndBuilder
-    + {abstract} createTestCases(securityPolicy: SecurityPolicy, projectRootPath: Path, withinPath: Path): TestCaseAbstractFactoryAndBuilder
+    + createTestCases(securityPolicy: SecurityPolicy, projectRootPath: Path, withinPath: Path): TestCaseAbstractFactoryAndBuilder
     + {static} selectSecurityPolicyDirector(securityPolicy: SecurityPolicy): SecurityPolicyDirector
     - {static} buildJavaDirector(): SecurityPolicyDirector
 }

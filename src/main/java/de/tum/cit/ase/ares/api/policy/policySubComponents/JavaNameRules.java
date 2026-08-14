@@ -111,4 +111,66 @@ public final class JavaNameRules implements LanguageNameRules {
 					Messages.localized("policy.value.java.class.path", field, String.valueOf(value)));
 		}
 	}
+
+	// <editor-fold desc="Compatibility accessors">
+
+	/*
+	 * The four accessors below exist for the deprecated
+	 * policySubComponents.PolicyValueValidator facade, which republished these
+	 * expressions as public constants up to 2.1.2 and must keep doing so for one
+	 * deprecation cycle. They are package-private rather than public on purpose:
+	 * the facade is the only permitted caller, and routing it through an accessor
+	 * keeps each expression declared exactly once, so what the facade advertises
+	 * can never drift from what this class enforces. They are deleted together with
+	 * the facade.
+	 */
+
+	/**
+	 * Returns the pattern matching a dot-separated Java package name.
+	 *
+	 * @since 2.1.3
+	 * @author Markus Paulsen
+	 * @return the package pattern backing the deprecated facade constant.
+	 */
+	@Nonnull
+	static Pattern packagePattern() {
+		return PACKAGE_PATTERN;
+	}
+
+	/**
+	 * Returns the pattern matching a single Java type name.
+	 *
+	 * @since 2.1.3
+	 * @author Markus Paulsen
+	 * @return the type-name pattern backing the deprecated facade constant.
+	 */
+	@Nonnull
+	static Pattern typeNamePattern() {
+		return TYPE_NAME_PATTERN;
+	}
+
+	/**
+	 * Returns the pattern matching a fully qualified Java class name.
+	 *
+	 * @since 2.1.3
+	 * @author Markus Paulsen
+	 * @return the class-path pattern backing the deprecated facade constant.
+	 */
+	@Nonnull
+	static Pattern classPathPattern() {
+		return CLASS_PATH_PATTERN;
+	}
+
+	/**
+	 * Returns the pattern matching a Java class path or a special thread token.
+	 *
+	 * @since 2.1.3
+	 * @author Markus Paulsen
+	 * @return the thread-construct pattern backing the deprecated facade constant.
+	 */
+	@Nonnull
+	static Pattern threadConstructPattern() {
+		return THREAD_CONSTRUCT_PATTERN;
+	}
+	// </editor-fold>
 }
