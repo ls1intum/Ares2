@@ -57,20 +57,26 @@ public class CheckPullRequestTemplate {
     private static final Pattern HEADING = Pattern.compile("^## .+$", Pattern.MULTILINE);
 
     /**
-     * Three things whose insides are not markup for this check: an HTML comment, which never shows on the
-     * page, a fenced code block, and code between backticks. Code still counts towards a section's length,
-     * but a comment marker, a heading or a numbered blank inside it is an example rather than markup, and
-     * obeying it would hide text or invent a section nobody wrote. One pattern finds all three, so the one
-     * starting first wins.
+     * The two block constructs whose insides are not markup for this check: an HTML comment, which never
+     * shows on the page, and a fenced code block. Shared by the two patterns below so that both know a
+     * block by the same rules.
      */
-    private static final Pattern NOT_PROSE = Pattern.compile(
+    private static final String BLOCK_ALTERNATIVES =
             "(?<comment><!--.*?(?:-->|\\z))"
                     // A fence closes only on a run of its own character at least as long as the one
                     // that opened it, which is how a longer fence shows a shorter one. The opening
                     // run cannot be given back, or an inner shorter run would close it early, and
                     // what follows the opening backticks may hold none, as CommonMark has it.
                     + "|^ {0,3}(?<backticks>`{3,}+)[^`\\n]*\\n.*?(?:^ {0,3}\\k<backticks>`*[ \\t]*$|\\z)"
-                    + "|^ {0,3}(?<tildes>~{3,}+)[^\\n]*\\n.*?(?:^ {0,3}\\k<tildes>~*[ \\t]*$|\\z)"
+                    + "|^ {0,3}(?<tildes>~{3,}+)[^\\n]*\\n.*?(?:^ {0,3}\\k<tildes>~*[ \\t]*$|\\z)";
+
+    /**
+     * Those two and code between backticks, which is the third thing whose insides are not markup here.
+     * Code still counts towards a section's length, but a comment marker, a heading or a numbered blank
+     * inside it is an example rather than markup, and obeying it would hide text or invent a section
+     * nobody wrote. One pattern finds all three, so the one starting first wins.
+     */
+    private static final Pattern NOT_PROSE = Pattern.compile(BLOCK_ALTERNATIVES
                     // Guarded on both sides, so two backticks cannot close on the last two of three,
                     // and stopped at a blank line or a heading, so a stray one cannot swallow them.
                     // The opening run cannot be given back either: a run that never closes must cost
@@ -78,6 +84,14 @@ public class CheckPullRequestTemplate {
                     + "|(?<!`)(?<span>`++)(?:(?!\\n(?:[ \\t]*\\n| {0,3}#{1,6}(?:[ \\t]|$))).)+?(?<!`)\\k<span>(?!`)",
             // A fence indented against its container rather than the margin, inside a list or a
             // quote, is not recognised: reading those means tracking each container, a Markdown parser.
+            Pattern.DOTALL | Pattern.MULTILINE);
+
+    /**
+     * The same without code between backticks, so that a span cannot swallow a fence or a comment
+     * that starts inside it. Skipping spans after matching them would not do: the scan resumes past
+     * the whole span, so whatever it covered is never looked at again.
+     */
+    private static final Pattern BLOCKS = Pattern.compile(BLOCK_ALTERNATIVES,
             Pattern.DOTALL | Pattern.MULTILINE);
 
     /**
@@ -331,12 +345,13 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The complaints about blanks the template shipped and nobody filled in. Read from a copy with every
-     * comment, fence and backtick run this program recognises painted over, so that their contents are
-     * not mistaken for a blank somebody forgot.
+     * The complaints about blanks the template shipped and nobody filled in. Read from a copy with
+     * the comments and fenced blocks painted over, so their contents are not mistaken for a blank
+     * somebody forgot. Code between backticks stays: a step is often a number and a command, and
+     * painting the command out would leave what an unfilled blank looks like.
      */
     private static List<String> leftoverStubs(String heading, String content) {
-        String scannable = masked(content);
+        String scannable = blocksOnly(content);
         List<String> problems = new ArrayList<>();
         String stub = firstLineMatching(scannable, TESTING_MANUAL_STUB);
         if (stub != null) {
@@ -393,8 +408,27 @@ public class CheckPullRequestTemplate {
      * in a fenced example, is not taken for a real one.
      */
     private static String masked(String text) {
+        return painted(text, NOT_PROSE);
+    }
+
+    /**
+     * The same, except that code between backticks is left alone. A line that is a number and a
+     * command, {@code 1. `mvn test`}, is a step somebody wrote, and painting its command out would
+     * leave a number and a full stop, which is what an unfilled blank looks like. The same goes for
+     * a table row whose cells hold code.
+     */
+    private static String blocksOnly(String text) {
+        return painted(text, BLOCKS);
+    }
+
+    /**
+     * The text with everything the given pattern matches replaced by spaces of its own length, the
+     * line breaks kept. A comment on a line indented four columns is left alone, since a reader
+     * sees it there.
+     */
+    private static String painted(String text, Pattern pattern) {
         StringBuilder result = new StringBuilder(text);
-        Matcher matcher = NOT_PROSE.matcher(text);
+        Matcher matcher = pattern.matcher(text);
         while (matcher.find()) {
             if (matcher.group("comment") != null && treatedAsIndentedCode(text, matcher.start())) {
                 continue;
