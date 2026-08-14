@@ -33,8 +33,29 @@ public final class JavaNameRules implements LanguageNameRules {
 	public static final JavaNameRules INSTANCE = new JavaNameRules();
 
 	private static final String JAVA_RESERVED_WORD = "abstract|assert|boolean|break|byte|case|catch|char|class|const|continue|default|do|double|else|enum|extends|false|final|finally|float|for|goto|if|implements|import|instanceof|int|interface|long|native|new|null|package|private|protected|public|return|short|static|strictfp|super|switch|synchronized|this|throw|throws|transient|true|try|void|volatile|while|_";
-	private static final String JAVA_IDENTIFIER = "(?!(?:" + JAVA_RESERVED_WORD
-			+ ")(?=\\.|$))\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*";
+	/**
+	 * One character inside an identifier, excluding the identifier-ignorable ones.
+	 * <p>
+	 * {@code \p{javaJavaIdentifierPart}} alone is too permissive here.
+	 * {@link Character#isJavaIdentifierPart} accepts every character for which
+	 * {@link Character#isIdentifierIgnorable} holds, which is the C0 and C1
+	 * controls including {@code U+0000}, {@code U+007F} and the format characters
+	 * {@code U+00AD}, {@code U+200B}, {@code U+200D} and {@code U+FEFF}. A package
+	 * name is not merely compared: it is written into generated sources, AspectJ
+	 * and ArchUnit configuration and failure messages, where a NUL or a line
+	 * separator corrupts an artefact that assumes one value per line, and an
+	 * invisible zero-width character produces two allowlist entries that a reader
+	 * cannot tell apart. The same reasoning already excludes these characters from
+	 * paths and commands in {@code PolicyValueValidator}; leaving names alone would
+	 * have applied the rule to two thirds of the policy.
+	 * <p>
+	 * Only the part is constrained. {@link Character#isJavaIdentifierStart} accepts
+	 * no ignorable character, so the first one needs no exclusion.
+	 */
+	private static final String JAVA_IDENTIFIER_PART = "[\\p{javaJavaIdentifierPart}&&[^\\p{javaIdentifierIgnorable}]]";
+
+	private static final String JAVA_IDENTIFIER = "(?!(?:" + JAVA_RESERVED_WORD + ")(?=\\.|$))"
+			+ "\\p{javaJavaIdentifierStart}" + JAVA_IDENTIFIER_PART + "*";
 	private static final String JAVA_TYPE_IDENTIFIER = "(?!(?:var|yield|record|sealed|permits)$)" + JAVA_IDENTIFIER;
 	private static final String JAVA_QUALIFIED_IDENTIFIER = JAVA_IDENTIFIER + "(?:\\." + JAVA_IDENTIFIER + ")*";
 	private static final String JAVA_CLASS_PATH = "(?:" + JAVA_IDENTIFIER + "\\.)*" + JAVA_TYPE_IDENTIFIER;

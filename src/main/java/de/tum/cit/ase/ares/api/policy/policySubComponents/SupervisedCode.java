@@ -303,7 +303,8 @@ public record SupervisedCode(
 		 *                                  the permitted resource accesses were never
 		 *                                  set.
 		 * @throws IllegalArgumentException if a name set on this builder does not have
-		 *                                  the shape Java requires of it.
+		 *                                  the shape the selected programming language
+		 *                                  requires of it.
 		 */
 		@Nonnull
 		public SupervisedCode build() {

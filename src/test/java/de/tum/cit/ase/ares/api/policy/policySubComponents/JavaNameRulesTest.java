@@ -52,6 +52,24 @@ class JavaNameRulesTest {
 		assertFalse(JavaNameRules.INSTANCE.matchesClassPath("com.example.Trusted" + (char) 10 + "Evil"));
 	}
 
+	/**
+	 * The C0 and C1 controls and the format characters, every one of which
+	 * {@link Character#isJavaIdentifierPart} accepts.
+	 */
+	@ParameterizedTest
+	@ValueSource(ints = { 0x0000, 0x0008, 0x000E, 0x001B, 0x007F, 0x009F, 0x00AD, 0x200B, 0x200D, 0xFEFF })
+	void rejectsIdentifierIgnorableCharactersInEveryKindOfName(int codePoint) {
+		// Without this the test would prove nothing: the point is that Java itself
+		// treats these as identifier parts, which is why the policy must not.
+		assertTrue(Character.isJavaIdentifierPart(codePoint), () -> String.format("U+%04X", codePoint));
+		String ignorable = new String(Character.toChars(codePoint));
+		assertFalse(JavaNameRules.INSTANCE.matchesPackage("com.exam" + ignorable + "ple"));
+		assertFalse(JavaNameRules.INSTANCE.matchesPackageImport("com.exam" + ignorable + "ple"));
+		assertFalse(JavaNameRules.INSTANCE.matchesTypeName("Ma" + ignorable + "in"));
+		assertFalse(JavaNameRules.INSTANCE.matchesClassPath("com.example.Ma" + ignorable + "in"));
+		assertFalse(JavaNameRules.INSTANCE.matchesThreadConstruct("com.example.Ma" + ignorable + "in"));
+	}
+
 	@ParameterizedTest
 	@ValueSource(strings = { "*", "com.example", "com.example.sub" })
 	void acceptsPackageImports(String value) {

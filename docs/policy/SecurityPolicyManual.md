@@ -349,6 +349,7 @@ Using a shallow package prefix:
 ```yaml
 theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.aet"
 ```
+
 This matches all classes under `de.tum.cit.aet` (including `de.tum.cit.aet.solution`, `de.tum.cit.aet.util`, etc.).
 
 Using a deep package path:
@@ -356,6 +357,7 @@ Using a deep package path:
 ```yaml
 theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.aet.solution"
 ```
+
 This matches only classes under `de.tum.cit.aet.solution` and its subpackages, excluding `de.tum.cit.aet.util`.
 
 **Subpackages:** Matching uses a **prefix match** (`startsWith`). A value like `"de.tum.cit.aet"` matches all classes in that package and all subpackages. Choose the package depth based on your exercise structure.
@@ -483,6 +485,7 @@ regardingNetworkConnections:
     sendData: true
     receiveData: true
 ```
+
 **Example 2: Allow localhost connections for testing**
 
 ```yaml
@@ -493,6 +496,7 @@ regardingNetworkConnections:
     sendData: true
     receiveData: true
 ```
+
 ### 8.3 Command Permissions
 
 Controls execution of system commands.
@@ -767,7 +771,7 @@ Ares 2 validates all policy fields when the YAML file is parsed. If validation f
 
 When a student's code violates a policy at runtime, Ares throws a `SecurityException` with a descriptive single-line message such as:
 
-```
+```text
 Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read File /etc/passwd via java.nio.file.Files.readString(java.nio.file.Path) | Reason: No allow rule configured for this resource type. but was blocked by Ares.
 ```
 
@@ -799,13 +803,13 @@ regardingFileSystemInteractions:
 
 If a student's code calls `new FileWriter("data/output.txt")`, the test fails because `overwriteAllFiles` is `false` (the message is a single line):
 
-```
+```text
 java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.writeOutput tried to illegally overwrite File data/output.txt via java.io.FileWriter.<init>(java.lang.String) | Reason: No allow rule configured for this resource type. but was blocked by Ares.
 ```
 
 If the student's code calls `Files.readString(Path.of("/etc/shadow"))`, the test fails because `/etc/shadow` is not under the allowed path `data` (the message is a single line):
 
-```
+```text
 java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read File /etc/shadow via java.nio.file.Files.readString(java.nio.file.Path) | Reason: No configured allow rule permits this access. but was blocked by Ares.
 ```
 

@@ -26,8 +26,9 @@ class PolicyValueContractTest {
 				policy.regardingTheSupervisedCode()));
 		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(AresConstants.MAXIMUM_POLICY_VERSION + 1,
 				policy.regardingTheSupervisedCode()));
-		// Both ends, because the builder now carries its own copy of the range check
-		// rather than delegating, so each end has to be exercised through it.
+		// Both rejected edges again through the builder. It delegates to the same
+		// requireSupportedPolicyVersion as the canonical constructor, so this covers
+		// the second entry point to the shared check rather than a separate copy.
 		assertThrows(IllegalArgumentException.class, () -> SecurityPolicy.builder()
 				.thisPolicyFileCompliesToThePolicyVersion(AresConstants.MAXIMUM_POLICY_VERSION + 1));
 		assertThrows(IllegalArgumentException.class, () -> SecurityPolicy.builder()

@@ -31,7 +31,9 @@ import org.junit.jupiter.params.provider.ValueSource;
  * rule instead of holding a second copy of the expression, which is the failure
  * mode a facade invites.
  */
-@SuppressWarnings("deprecation")
+// "deprecation" alone is not enough: the facade is @Deprecated(forRemoval =
+// true), and javac reports those uses under the separate "removal" lint.
+@SuppressWarnings({ "deprecation", "removal" })
 class PolicyValueValidatorCompatibilityTest {
 
 	/**

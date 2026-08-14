@@ -60,7 +60,15 @@ public final class PolicyValueValidator {
 			.compile(Arrays.stream(ProgrammingLanguageConfiguration.values()).map(Enum::name)
 					.collect(Collectors.joining("|", "^(?:", ")$")));
 
-	/** Matches a dot-separated Java package name. */
+	/**
+	 * Matches a dot-separated Java package name.
+	 * <p>
+	 * This and the three name patterns below no longer accept the
+	 * identifier-ignorable characters the released expressions did, for the reason
+	 * given on {@code JavaNameRules.JAVA_IDENTIFIER_PART}. As with
+	 * {@link #FILE_PATH_PATTERN}, republishing the laxer released expression would
+	 * let a caller pre-validate a name that Ares then refuses.
+	 */
 	@Nonnull
 	public static final Pattern JAVA_PACKAGE_PATTERN = JavaNameRules.packagePattern();
 
