@@ -67,6 +67,12 @@ class DocumentationReferenceTest {
 	private static final Pattern REFERENCE = Pattern.compile(Pattern.quote(SITE) + "[A-Za-z0-9_./*-]+");
 
 	/**
+	 * A URL, up to the first character that ends one in prose or in markup. What it
+	 * addresses is another host's tree, not this repository's.
+	 */
+	private static final Pattern URL = Pattern.compile("\\w+://[^\\s)\\]\"'>]+");
+
+	/**
 	 * Directories holding no reference worth resolving: the site itself, whose
 	 * links the Docusaurus build already checks, and everything generated.
 	 */
@@ -169,9 +175,10 @@ class DocumentationReferenceTest {
 	}
 
 	/**
-	 * Asserts that nothing names the top-level tree the migration removed. A line
-	 * carrying a URL is passed over: a URL holds paths of its own, and a
-	 * {@code docs/} in one of them says nothing about this repository.
+	 * Asserts that nothing names the top-level tree the migration removed. The URLs
+	 * in a line are removed rather than the line: a URL holds paths of its own and
+	 * a {@code docs/} in one says nothing about this repository, but a line often
+	 * carries a URL and a repository path side by side.
 	 */
 	@Test
 	@DisplayName("Nothing still names the documentation tree the migration removed")
@@ -179,10 +186,7 @@ class DocumentationReferenceTest {
 		List<String> stale = new ArrayList<>();
 		for (Path file : scannedFiles()) {
 			for (String line : read(file).lines().toList()) {
-				if (line.contains("://")) {
-					continue;
-				}
-				Matcher removed = REMOVED_TREE.matcher(line);
+				Matcher removed = REMOVED_TREE.matcher(withoutUrls(line));
 				while (removed.find()) {
 					stale.add(file + " -> " + removed.group());
 				}
@@ -214,6 +218,23 @@ class DocumentationReferenceTest {
 				"A nested docs/ is a different directory, and nothing about it moved.");
 		assertFalse(REMOVED_TREE.matcher("javadocs/index.html").find(),
 				"A longer word ending in docs is not a path segment of that name.");
+	}
+
+	/**
+	 * Asserts that a URL hides only itself. Skipping the whole line was the earlier
+	 * behaviour, and a line naming a repository path beside a link to anywhere is
+	 * common enough that it took the check out on exactly the lines documentation
+	 * is written in.
+	 */
+	@Test
+	@DisplayName("A URL hides its own paths, not the rest of the line")
+	void aUrlHidesItsOwnPathsAndNotTheRestOfTheLine() {
+		String line = "see https://example.com/a/b and " + removedPath("aop/BlockFileSystemAccessAOP.md");
+
+		assertTrue(REMOVED_TREE.matcher(withoutUrls(line)).find(),
+				"A path beside a URL is still a path into the removed tree, and skipping the line lost it.");
+		assertFalse(withoutUrls(line).contains("example.com"),
+				"The URL itself is gone, so a path inside somebody else's tree cannot be reported.");
 	}
 
 	/**
@@ -254,6 +275,15 @@ class DocumentationReferenceTest {
 					file + " exists but is not scanned, so a reference in it would go unnoticed. It held one of "
 							+ "the references this test exists for.");
 		}
+	}
+
+	/**
+	 * The line with its URLs blanked out, so that what is left is this repository's
+	 * own paths. A space rather than nothing, so that a path following a URL does
+	 * not end up glued to the word before it.
+	 */
+	private static String withoutUrls(String line) {
+		return URL.matcher(line).replaceAll(" ");
 	}
 
 	/**

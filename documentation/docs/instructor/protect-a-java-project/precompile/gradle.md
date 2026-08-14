@@ -412,8 +412,9 @@ Each break must be made in the mode that depends **only** on the removed compone
 Run the test task as usual, for example `./gradlew test`. During test execution, any policy
 violation is intercepted and results in a `SecurityException`.
 
-For the example above, attempting to write `secret.txt`, the test run fails with an exception
-similar to:
+For the negative control above, the forbidden read of `secret.txt` in the supervised class
+raises that exception, the test asserts it, and the run therefore stays **green**. The
+exception the assertion captures looks similar to this:
 
 ```text
 !security.advice.illegal.file.execution!
@@ -422,6 +423,10 @@ java.lang.SecurityException: !security.advice.illegal.file.execution!
     at org.example.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(JavaInstrumentationAdviceFileSystemToolbox.java:597)
     ...
 ```
+
+A red run here means the exception reached the test runner unasserted, which is a test that
+does not yet assert its negative control rather than a setup that does not enforce. A green
+run with no exception at all is the outcome to worry about: it says the read was permitted.
 
 :::note[No runnable Precompile example exists yet]
 Both exercises under [`examples/`](https://github.com/ls1intum/Ares2/tree/main/examples) are
