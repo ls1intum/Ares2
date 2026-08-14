@@ -261,18 +261,18 @@ parse_documentation <- function(filepath) {
     line <- lines[i]
     
     # Detect section headers for actions
-    if (grepl("^## 2\\.2 What Are The Monitored READ Operations", line)) {
+    if (grepl("^#+ 2\\.2 What Are The Monitored READ Operations", line)) {
       current_action <- "READ"
-    } else if (grepl("^## 2\\.3 What Are The Monitored WRITE Operations", line) ||
-               grepl("^## 2\\.3 What Are The Monitored OVERWRITE Operations", line)) {
+    } else if (grepl("^#+ 2\\.3 What Are The Monitored WRITE Operations", line) ||
+               grepl("^#+ 2\\.3 What Are The Monitored OVERWRITE Operations", line)) {
       current_action <- "OVERWRITE"
-    } else if (grepl("^## 2\\.4 What Are The Monitored CREATE Operations", line)) {
+    } else if (grepl("^#+ 2\\.4 What Are The Monitored CREATE Operations", line)) {
       current_action <- "CREATE"
-    } else if (grepl("^## 2\\.5 What Are The Monitored DELETE Operations", line)) {
+    } else if (grepl("^#+ 2\\.5 What Are The Monitored DELETE Operations", line)) {
       current_action <- "DELETE"
-    } else if (grepl("^## 2\\.6 What Are The Monitored EXECUTE Operations", line)) {
+    } else if (grepl("^#+ 2\\.6 What Are The Monitored EXECUTE Operations", line)) {
       current_action <- "EXECUTE"
-    } else if (grepl("^## 3\\.", line) || grepl("^# 3\\.", line)) {
+    } else if (grepl("^#+ 3\\.", line)) {
       # End of monitored operations sections
       current_action <- NA
     }
@@ -356,18 +356,18 @@ parse_architecture_documentation <- function(filepath) {
     line <- lines[i]
     
     # Detect section headers for actions
-    if (grepl("^## 2\\.2 What Are The Monitored READ Operations", line)) {
+    if (grepl("^#+ 2\\.2 What Are The Monitored READ Operations", line)) {
       current_action <- "READ"
-    } else if (grepl("^## 2\\.3 What Are The Monitored WRITE", line) ||
-               grepl("^## 2\\.3 What Are The Monitored OVERWRITE", line)) {
+    } else if (grepl("^#+ 2\\.3 What Are The Monitored WRITE", line) ||
+               grepl("^#+ 2\\.3 What Are The Monitored OVERWRITE", line)) {
       current_action <- "OVERWRITE"
-    } else if (grepl("^## 2\\.4 What Are The Monitored CREATE Operations", line)) {
+    } else if (grepl("^#+ 2\\.4 What Are The Monitored CREATE Operations", line)) {
       current_action <- "CREATE"
-    } else if (grepl("^## 2\\.5 What Are The Monitored DELETE Operations", line)) {
+    } else if (grepl("^#+ 2\\.5 What Are The Monitored DELETE Operations", line)) {
       current_action <- "DELETE"
-    } else if (grepl("^## 2\\.6 What Are The Monitored EXECUTE Operations", line)) {
+    } else if (grepl("^#+ 2\\.6 What Are The Monitored EXECUTE Operations", line)) {
       current_action <- "EXECUTE"
-    } else if (grepl("^## 3\\.", line) || grepl("^# 3\\.", line)) {
+    } else if (grepl("^#+ 3\\.", line)) {
       # End of monitored operations sections
       current_action <- NA
     }
@@ -443,12 +443,29 @@ cat("Parsing WALA Methods...\n")
 wala_df <- parse_method_file(WALA_FILE, "WALA")
 cat(sprintf("  Found %d entries\n", nrow(wala_df)))
 
+# Stop rather than report a clean comparison from nothing. Both parsers find
+# their rows by first recognising an action heading, so a heading renamed or
+# moved to another depth leaves them with zero rows and the generated CSV with
+# blank documentation columns - which reads as "the documentation lists no
+# method here", not as "the parser recognised nothing".
+stop_if_no_rows <- function(parsed, filepath) {
+  if (nrow(parsed) == 0) {
+    stop("Parsed no rows from ", filepath, ". The action headings this script ",
+         "looks for ('2.2 What Are The Monitored READ Operations' and its ",
+         "siblings, at any heading depth) were not recognised, so the ",
+         "comparison would report empty documentation columns rather than a ",
+         "disagreement. Update the parser to the headings the file now uses.")
+  }
+  parsed
+}
+
 cat("Parsing Documentation...\n")
-doc_df <- parse_documentation(DOCUMENTATION_FILE)
+doc_df <- stop_if_no_rows(parse_documentation(DOCUMENTATION_FILE), DOCUMENTATION_FILE)
 cat(sprintf("  Found %d entries\n", nrow(doc_df)))
 
 cat("Parsing Architecture Documentation...\n")
-arch_doc_df <- parse_architecture_documentation(ARCHITECTURE_DOCUMENTATION_FILE)
+arch_doc_df <- stop_if_no_rows(parse_architecture_documentation(ARCHITECTURE_DOCUMENTATION_FILE),
+                               ARCHITECTURE_DOCUMENTATION_FILE)
 cat(sprintf("  Found %d entries\n", nrow(arch_doc_df)))
 
 # ============================================================================

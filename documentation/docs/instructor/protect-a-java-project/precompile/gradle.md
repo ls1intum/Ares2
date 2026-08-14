@@ -18,7 +18,7 @@ like any other source.
 ## The path, in order
 
 1. **Define the policy**, below.
-2. **Run the generator**, below, from the Ares UI or from the main class.
+2. **Run the generator**, below, from the Ares UI or from the command line.
 3. **Check what was written into the project**, below.
 4. **Update `build.gradle`**, below.
 5. **Reject student classes in reserved packages**, below. Precompile does **not** generate this
@@ -110,37 +110,31 @@ selected and loaded. Alternatively, create a new policy with the built-in editor
 **Execute the precompile phase.** Clicking `Create Files` runs the precompile phase and
 generates the enforcement artefacts inside the selected project.
 
-## Run the generator from the main class
+## Run the generator from the command line
 
-Open the main class in the Ares 2 repository,
-[`src/main/java/de/tum/cit/ase/ares/api/Main.java`](https://github.com/ls1intum/Ares2/tree/main/src/main/java/de/tum/cit/ase/ares/api/Main.java),
-and fill in the three required paths: the path to your `SecurityConfiguration.yaml`, the path
-to the project to be precompiled, and the `src/test/java` directory inside that project.
+[`de.tum.cit.ase.ares.api.Main`](https://github.com/ls1intum/Ares2/tree/main/src/main/java/de/tum/cit/ase/ares/api/Main.java)
+is the command-line entry point. It takes exactly two arguments, the policy file and the root
+of the project to protect, and derives the `src/test/java` directory inside that project
+itself. Nothing in the Ares 2 source is edited, and a run with any other number of arguments
+stops with its usage message.
 
-```java
-public class Main {
-    public static void main(String[] args) {
-        SecurityPolicyReaderAndDirector securityPolicyReaderAndDirector =
-            new SecurityPolicyReaderAndDirector(
-                // Path to your SecurityConfiguration.yaml
-                Path.of("<path-to-your-SecurityConfiguration.yaml>"),
-
-                // Path to the project you want to test (the student's project)
-                // (e.g., the example_project/ directory shown above)
-                Path.of("<path-to-student-project>")
-            ).createTestCases();
-
-        // Path to the test/java directory inside the same project
-        securityPolicyReaderAndDirector.writeTestCases(
-            Path.of("<path-to-student-project>/src/test/java")
-        );
-    }
-}
+```bash
+git clone https://github.com/ls1intum/Ares2.git
+cd Ares2
+mvn -q compile
+mvn -q dependency:build-classpath -Dmdep.outputFile=classpath.txt -DincludeScope=runtime
+java -cp "target/classes:$(cat classpath.txt)" de.tum.cit.ase.ares.api.Main <path-to-your-security-policy.yaml> <path-to-the-project-root>
 ```
 
-Once the paths are set, run the main class. Ares 2 interprets the configuration, generates the
-corresponding enforcement rules and writes them into the target project, completing the
-precompile integration.
+On Windows the classpath separator is `;` rather than `:`.
+
+The project root has to carry the descriptor of the build tool the policy names, so a
+`build.gradle` for any `JAVA_USING_GRADLE_*` configuration. Without it the run stops with
+`Gradle was selected but no Gradle descriptor is present in <path>` and writes nothing.
+
+Ares 2 then interprets the configuration, generates the corresponding enforcement rules and
+writes them into `<path-to-the-project-root>/src/test/java`, completing the precompile
+integration.
 
 ## What ends up in the project
 
@@ -233,7 +227,7 @@ dependencies {
 }
 
 application {
-    mainClass = 'org/example.Main'
+    mainClass = 'org.example.Main'
 }
 
 test {
