@@ -102,13 +102,16 @@ rule is an approximation in the other direction too, since four columns under a 
 continue that paragraph in Markdown; the Javadoc of the checker says why the line is drawn
 where it is.
 
-Two shapes pay for that four-column rule, and both were accepted knowingly. An indented
-example showing the template's own skeleton, a bare `1.` inside a comment, is read as a
-blank somebody forgot. And a literal comment marker inside code, above a genuine comment
-further down, can leave the genuine one unhidden, so a heading inside it is counted and the
-author is told they wrote a section twice. Both are wrong about a body written in good
-faith, and both are the accepted cost of the rule that closes a hole where text hid from
-the length count. It deliberately does not require checklist boxes to be ticked. It
+One shape pays for that four-column rule, knowingly: an indented example showing the
+template's own skeleton, a bare `1.` inside a comment, is read as a blank somebody forgot.
+That is wrong about a body written in good faith, and is the accepted cost of closing a
+hole where text hid from the length count.
+
+What is not prose is found in one left-to-right walk rather than by searching for comments,
+fenced blocks and code spans separately. That walk is what settles the overlaps between the
+three: a fence opening a line beats a code span left open above it because Markdown decides
+blocks first, and a span covers what it holds, so a comment marker inside one is text rather
+than the start of a comment. It deliberately does not require checklist boxes to be ticked. It
 re-runs when the description is edited, so a failure is fixed by editing the body rather
 than by pushing a commit.
 
