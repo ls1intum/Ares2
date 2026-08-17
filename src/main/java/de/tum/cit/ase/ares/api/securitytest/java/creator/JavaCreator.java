@@ -27,6 +27,7 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
@@ -104,32 +105,47 @@ public class JavaCreator implements Creator {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param resourceAccesses  the resource accesses permitted by the security
-	 *                          policy; must not be null
-	 * @param essentialPackages the list of essential packages; must not be null
-	 * @param packageName       the name of the package containing the main class;
-	 *                          must not be null
-	 * @param testClasses       the list of test classes whose packages should be
-	 *                          allowed; must not be null
+	 * @param resourceAccesses   the resource accesses permitted by the security
+	 *                           policy; must not be null
+	 * @param essentialPackages  the list of essential packages; must not be null
+	 * @param packageName        the name of the package containing the main class;
+	 *                           must not be null
+	 * @param supervisedPackages the packages actually declared by the validated
+	 *                           production output; must not be null
+	 * @param testClasses        the list of test classes whose packages should be
+	 *                           allowed; must not be null
 	 * @return a set of allowed package permissions; never null
 	 */
 	@Nonnull
 	private Set<PackagePermission> prepareAllowedPackages(@Nonnull List<String> essentialPackages,
 			@Nonnull ResourceAccesses resourceAccesses, @Nonnull String packageName,
-			@Nonnull List<String> testClasses) {
+			@Nonnull Set<String> supervisedPackages, @Nonnull List<String> testClasses) {
 		return Stream.of(
 				// Essential packages are allowed to do anything
 				essentialPackages.stream().filter(p -> p != null && !p.isBlank()).map(PackagePermission::new),
 				// The permitted packages are allowed
 				resourceAccesses.regardingPackageImports().stream(),
 				/*
-				 * The package of the restricted student code is allowed (else the student would
-				 * not be able to use his/her own code). SECURITY: Do not derive top-level roots
-				 * (e.g., com/org/de), as that unintentionally allows unrelated package
-				 * namespaces.
+				 * The supervised code is allowed to use its own code, else a student could not
+				 * call one of their own classes from another. SECURITY: name the packages the
+				 * validated production output actually declares rather than the supervised
+				 * prefix. A permission is matched as a prefix, so seeding a scope of de.tum.cit
+				 * would have permitted every import from de.tum.cit.ase.ares.api along with it,
+				 * which is the top-level-root hazard this comment used to warn about while the
+				 * scanner was free to hand one over.
 				 */
-				(packageName != null && !packageName.isBlank()) ? Stream.of(new PackagePermission(packageName))
-						: Stream.<PackagePermission>empty(),
+				supervisedPackages.isEmpty() ? (packageName != null && !packageName.isBlank()
+						// Nothing is compiled, so nothing can be imported from the supervised
+						// code either and this permission grants no reachable class. It is left
+						// unguarded because packageName is the instructor's own declaration
+						// whenever a policy pinned it, and a pinned scope such as
+						// de.tum.cit.ase.ares legitimately sits above a reserved namespace. The
+						// case where it is instead a derived scope over an output that turns
+						// out to hold nothing importable is refused at execution, where the
+						// compiled inventory is the whole truth.
+						? Stream.of(new PackagePermission(packageName))
+						: Stream.<PackagePermission>empty())
+						: supervisedPackages.stream().map(JavaCreator::derivedAllowedPackage),
 				/*
 				 * The packages of the test classes are allowed (test infrastructure classes
 				 * like ProtectedResourceAccess need to be accessible from the supervised code)
@@ -137,9 +153,40 @@ public class JavaCreator implements Creator {
 				testClasses.stream().filter(java.util.Objects::nonNull).map(className -> {
 					int lastDot = className.lastIndexOf('.');
 					return lastDot > 0 ? className.substring(0, lastDot) : className;
-				}).filter(p -> !p.isBlank()).distinct().map(PackagePermission::new)
+				}).filter(p -> !p.isBlank()).distinct().map(JavaCreator::derivedAllowedPackage)
 
 		).flatMap(Function.identity()).collect(Collectors.toSet());
+	}
+
+	/**
+	 * Wraps a package permission that was read out of the project rather than
+	 * declared by a policy, refusing one that would carry a trusted namespace with
+	 * it.
+	 * <p>
+	 * A permission is matched on segment boundaries but still as a prefix, so
+	 * permitting a package permits everything below it. A package name is exactly
+	 * what whoever adds files to the project controls, so a derived permission that
+	 * happens to sit above {@code de.tum.cit.ase.ares.api} would hand the
+	 * supervised code the framework's own namespace. The reserved-package guard
+	 * does not catch it, because that one refuses a package <em>inside</em> a
+	 * trusted prefix rather than one <em>containing</em> it.
+	 * <p>
+	 * Only derived permissions are held to this. What a policy names in
+	 * {@code theFollowingResourceAccessesArePermitted}, and the essential packages
+	 * Ares needs itself, are declarations rather than readings and stay
+	 * authoritative.
+	 *
+	 * @param packageName the derived package name
+	 * @return the permission for it
+	 * @throws SecurityException when a reserved namespace lies below it
+	 */
+	@Nonnull
+	private static PackagePermission derivedAllowedPackage(@Nonnull String packageName) {
+		String reserved = ReservedPackageGuard.ancestorOfReservedPrefix(packageName);
+		if (reserved != null) {
+			throw new SecurityException(Messages.localized("security.policy.ancestor.package", packageName, reserved));
+		}
+		return new PackagePermission(packageName);
 	}
 
 	/**
@@ -446,8 +493,14 @@ public class JavaCreator implements Creator {
 		// Reading the true package from bytecode catches precompiled or generated
 		// classes that never appear in the scanned source and would otherwise be
 		// trusted by name.
-		ReservedPackageGuard.validateClassNames(
-				new ClassFileImporter().importPath(Path.of(classPath)).stream().map(JavaClass::getName).toList());
+		JavaClasses supervisedClasses = new ClassFileImporter().importPath(Path.of(classPath));
+		ReservedPackageGuard.validateClassNames(supervisedClasses.stream().map(JavaClass::getName).toList());
+		// The packages the supervised output actually declares, taken from the very
+		// import that just refused a reserved one, so nothing is read twice. Empty
+		// while nothing is compiled, which is ordinary during generation.
+		@Nonnull
+		Set<String> supervisedPackages = supervisedClasses.stream().map(JavaClass::getPackageName)
+				.filter(name -> !name.isBlank()).collect(Collectors.toSet());
 		@Nonnull
 		JavaClasses javaClasses = cacheResult(projectPath + "_" + packageName + "_javaClasses",
 				() -> architectureMode.getJavaClasses(classPath)).get();
@@ -466,7 +519,7 @@ public class JavaCreator implements Creator {
 		// <editor-fold desc="Preparation">
 		@Nonnull
 		Set<PackagePermission> allowedPackages = prepareAllowedPackages(essentialPackages, resourceAccesses,
-				packageName, testClasses);
+				packageName, supervisedPackages, testClasses);
 		@Nonnull
 		Set<ClassPermission> allowedClasses = prepareAllowedClasses(essentialClasses, testClasses);
 		// </editor-fold>

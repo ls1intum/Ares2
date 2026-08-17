@@ -67,6 +67,43 @@ public final class ReservedPackageGuard {
 	}
 
 	/**
+	 * Returns the reserved prefix that lies <em>below</em> the given package, or
+	 * {@code null} if none does.
+	 * <p>
+	 * This is the complement of {@link #reservedPrefixOf(String)} and answers the
+	 * opposite question. That one refuses a package <em>inside</em> a trusted
+	 * namespace, which is how supervised code would be trusted by name. This one
+	 * refuses a package that <em>contains</em> one, which matters because a package
+	 * permission is matched as a prefix: permitting {@code de.tum.cit} permits
+	 * every import from {@code de.tum.cit.ase.ares.api} with it.
+	 * <p>
+	 * Only permissions derived from the project are held to this. A package a
+	 * policy names outright is the instructor's decision and stays authoritative,
+	 * whereas a derived one is a reading of files the submitter can add to.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param packageName the dotted package name to test
+	 * @return the reserved prefix lying below it, or {@code null}
+	 */
+	@Nullable
+	public static String ancestorOfReservedPrefix(@Nullable String packageName) {
+		if (packageName == null || packageName.isBlank()) {
+			return null;
+		}
+		// Reserved prefixes are written with a trailing dot and package names are not,
+		// so both ends are normalised before comparing. Without it "java" would not be
+		// seen as the ancestor of "java." that it is.
+		String normalized = packageName.endsWith(".") ? packageName : packageName + ".";
+		for (String reserved : RESERVED_PREFIXES) {
+			if (reserved.startsWith(normalized) && !reserved.equals(normalized)) {
+				return reserved;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Throws a {@link SecurityException} if the given package is reserved.
 	 *
 	 * @since 2.0.0

@@ -64,4 +64,63 @@ class ReservedPackageGuardTest {
 				.validateClassNames(List.of("de.tum.cit.ase.ares.integration.testuser.subject.helloWorld.Penguin")))
 						.doesNotThrowAnyException();
 	}
+
+	/**
+	 * The complement of the guard above, and the one a package permission needs.
+	 * Permissions are matched as prefixes, so permitting a package permits
+	 * everything below it: a derived scope of de.tum.cit is refused by neither the
+	 * reserved check nor the coverage check, yet it carries Ares' own namespace
+	 * with it.
+	 */
+	@Test
+	void reportsTheReservedNamespaceLyingBelowAPackage() {
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("de.tum.cit")).isEqualTo("de.tum.cit.ase.ares.api.");
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("de.tum.cit.ase.ares"))
+				.isEqualTo("de.tum.cit.ase.ares.api.");
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("de")).isEqualTo("de.tum.cit.ase.ares.api.");
+	}
+
+	@Test
+	void leavesAPackageWithNothingReservedBelowItAlone() {
+		// The assignment package and its neighbours contain no trusted namespace, so
+		// permitting them grants only the project's own code.
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("de.tum.cit.aet")).isNull();
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("de.tum.cit.ase.ares.integration.testuser")).isNull();
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("assignment")).isNull();
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix(null)).isNull();
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("  ")).isNull();
+	}
+
+	@Test
+	void comparesOnSegmentBoundariesRatherThanOnText() {
+		// de.tum.cit.aetevil merely begins with the letters of de.tum.cit.aet, and
+		// de.tum.citadel with those of de.tum.cit; neither contains a reserved
+		// namespace, and a bare text comparison would say otherwise.
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("de.tum.citadel")).isNull();
+		// A package equal to a reserved prefix is inside it rather than above it, which
+		// is the other guard's business and must not be reported here as well.
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("de.tum.cit.ase.ares.api")).isNull();
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("de.tum.cit.ase.ares.api.")).isNull();
+	}
+
+	@Test
+	void normalisesTheTrailingDotAtBothEnds() {
+		// Reserved prefixes carry a trailing dot and package names do not, so both ends
+		// are normalised before comparing. "com" is not reserved itself, but com.sun.
+		// lies below it, so permitting it would permit that namespace too.
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("com")).isEqualTo("com.sun.");
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("com.")).isEqualTo("com.sun.");
+	}
+
+	@Test
+	void doesNotReportAPackageThatIsItselfReserved() {
+		// "java" normalises to the reserved prefix "java." exactly, so it is inside a
+		// trusted namespace rather than above one. That is reservedPrefixOf's business,
+		// and reporting it here as well would give one package two different reasons
+		// for refusal and a diagnostic that names the wrong problem.
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("java")).isNull();
+		assertThat(ReservedPackageGuard.reservedPrefixOf("java")).isEqualTo("java.");
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("metatest")).isNull();
+		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest")).isEqualTo("metatest.");
+	}
 }
