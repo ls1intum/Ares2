@@ -511,11 +511,19 @@ Resolving the supertype through the imports is why this is not a regex: `extends
 **Scanning pipeline:**
 
 ```
-ProjectSourcesFinder.findProjectSourcesPath()
-  → Files.find(sourcePath, MAX_VALUE, isJavaFile)
-    → Files.readString(file)
-      → extractor.apply(content)
+ProjectSourcesFinder.discover(projectRoot, mode)      → BuildToolConfiguration
+  → configuration.productionSourceRoots() / testSourceRoots()
+    → Files.walk(root), filtered to *.java and sorted
+      → JavaParser.parse(file) → CompilationUnit
+  and, where the sources answer nothing:
+  → ClassFileImporter().importPath(productionOutputRoot)
 ```
+
+The sort is not cosmetic: it is what makes two runs over one project agree.
+The legacy `findProjectSourcesPath()` route still exists for callers that
+predate `BuildToolConfiguration`, and differs in kind: it returns the
+descriptor's own string, relative and unvalidated, where `discover(...)`
+canonicalises every root and refuses one that escapes the project.
 
 **`scanForPackageName()` algorithm:** Resolution runs in three steps, each reached only when the previous one finds nothing at all.
 
@@ -523,13 +531,19 @@ ProjectSourcesFinder.findProjectSourcesPath()
 2. **Compiled production output.** Only top-level classes are counted, so a package is not weighted by how many nested or anonymous classes it happens to contain; nesting is read from the class file rather than from the `$` in the binary name, which is a legal identifier character. This step covers a project whose build descriptor the source-root discovery cannot parse, because the build tool writes its output to the conventional directory the scanner reads.
 3. **The configured default** (see [Section 10.3](#103-javaprogrammingexerciseprojectscanner)), with a warning naming the roots that were searched.
 
-> **Limitation: the derived package is a heuristic, not a boundary.** Three things it does not establish.
+Step 1 is skipped entirely when the discovered source roots are not known to be the whole of the main source set. A Gradle descriptor can declare a root this reader cannot resolve, such as a computed list, and `BuildToolConfiguration.productionRootsComplete()` reports that. Counting declarations across part of a project produces an answer indistinguishable from one taken across all of it, so a partial set is not counted at all and the compiled output is read instead.
+
+> **The derived package is a heuristic. What turns it into a boundary is the check that follows it.**
 >
-> The **vote is influenceable by whoever can add files to the project**, and in an Artemis exercise that includes the student. Only reserved prefixes are filtered out; every other namespace is fair game, so enough classes under a package of the submitter's choosing make that package the derived scope, and the five resource domains are then enforced over it instead of over the assignment. Counting compiled classes in step 2 changes the unit that is counted, not who controls it.
+> Before enforcement is armed, `requireDerivedScopeToCoverTheProject()` reads the compiled production output and refuses the run unless **every** executable top-level class declares a non-blank, non-reserved package that is the derived scope or lies below it, compared on segment boundaries so that `de.tum.cit.aet` does not swallow `de.tum.cit.aetevil`. A class the scope leaves out, a class in the default package, a class in a reserved package, an output root that cannot be read, and an output root holding nothing at all are each refused by name. This runs on the policy-free path only: a pinned policy may deliberately supervise part of the output, and narrowing it is then the instructor's decision.
 >
-> The **output directory is assumed, not read**. Step 2 looks in `target/classes` or `build/classes/java/main`, so a build that writes its output elsewhere is not followed there and the step finds nothing rather than finding the truth.
+> That closes the case where a decoy package is voted the scope while the assignment runs beside it. Three things it still does not establish.
 >
-> **Step 3 guarantees nothing.** If the project does not contain the default package, the analysis path resolves to a directory that does not exist: no class is imported, no resource domain is enforced at runtime, and nothing fails. The warning in the log is the only signal.
+> The **vote is influenceable by whoever can add files to the project**, and in an Artemis exercise that includes the student. The check above refuses a scope that leaves compiled classes out, but not one drawn *around* them: a scope that covers everything passes by construction. The package-import allow-list no longer follows the scope for that reason, and names the packages the validated output actually declares instead.
+>
+> The **output directory is assumed, not read**. Step 2 and the check both look in `target/classes` or `build/classes/java/main`, so a build that writes its output elsewhere is not followed there.
+>
+> **The last-resort default guarantees nothing by itself.** If the project does not contain it, the analysis path resolves to a directory that does not exist. On the execution path the check above now refuses that rather than letting it pass silently; during generation, where nothing is compiled yet, the warning in the log remains the only signal.
 >
 > An exercise that needs a scope it can rely on declares its package in the security policy. The scanner is then not consulted at all, which is the only version of this that cannot be steered from the submission.
 
@@ -537,7 +551,7 @@ ProjectSourcesFinder.findProjectSourcesPath()
 
 **`scanForMainClassInPackage()` algorithm:** Collects all classes with a `main` method → prefers a class named `Main` or `Application` → otherwise returns the first match → defaults to `"Main"`.
 
-**`scanForTestPath()` algorithm:** Checks for Gradle's custom `srcDir 'test'` → falls back to `src/test/java`.
+**`scanForTestPath()` algorithm:** Answers the first discovered test source root; without a build configuration it accepts the conventional `src/test/java`, or a bare `test/` directory for the Artemis Gradle layout, and otherwise falls back to the literal `src/test/java` **whether or not it exists**. That fall-back is a placeholder forced by the non-null return type rather than a claim, and no production code currently consults this method.
 
 ### 10.3 `JavaProgrammingExerciseProjectScanner`
 
