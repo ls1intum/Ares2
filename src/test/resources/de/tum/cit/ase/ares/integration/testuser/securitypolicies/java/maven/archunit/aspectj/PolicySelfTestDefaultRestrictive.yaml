@@ -19,6 +19,13 @@
 # The architecture and enforcement modes match what the no-policy branch selects in
 # SecurityPolicyJavaDirector, ArchUnit and AspectJ, so the backend under test does not
 # change.
+# The five users below were pinned to this policy as well. They had declared
+# @Policy(withinPath = ...) with no policy file, so their supervised package came
+# from the TUM default and named a package the repository does not contain, which
+# is the very defect this branch fixes: their runs enforced nothing and said so to
+# nobody. They are declared as test classes here for the same reason the two above
+# are, so that the subjects under testuser.subject.* stay supervised while the
+# users driving them do not.
 thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
@@ -27,6 +34,11 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.SecurityUser"
     - "de.tum.cit.ase.ares.integration.testuser.PackageAccessUser"
+    - "de.tum.cit.ase.ares.integration.testuser.HelloWorldUser"
+    - "de.tum.cit.ase.ares.integration.testuser.LocaleUser"
+    - "de.tum.cit.ase.ares.integration.testuser.DeadlineUser"
+    - "de.tum.cit.ase.ares.integration.testuser.DeadlineAdditionsUser"
+    - "de.tum.cit.ase.ares.integration.testuser.HiddenPublicUser"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: []
     regardingNetworkConnections: []

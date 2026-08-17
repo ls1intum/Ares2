@@ -16,14 +16,14 @@ import de.tum.cit.ase.ares.api.localization.*;
 // packages) instead of scanning all of Ares's own build, which the ReservedPackageGuard
 // correctly rejects. Default policy (value left blank) and runtime enforcement are
 // unchanged; only the analysed classpath is narrowed.
-@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
+@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicySelfTestDefaultRestrictive.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 public class LocaleUser {
 
 	private static final String ACTIVE_LOCALIZATION = "active_localization";
 
 	@Public
 	@UseLocale("en")
-	@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicySelfTestDefaultRestrictive.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 	public static class LocaleEn {
 		@Test
 		void testLocaleEn() {
@@ -34,7 +34,7 @@ public class LocaleUser {
 
 	@Public
 	@UseLocale("fr")
-	@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicySelfTestDefaultRestrictive.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 	public static class LocaleUnsupported {
 		@Test
 		void testLocaleUnsupported() {

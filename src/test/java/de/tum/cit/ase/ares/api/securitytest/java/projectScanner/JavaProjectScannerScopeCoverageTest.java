@@ -142,14 +142,17 @@ class JavaProjectScannerScopeCoverageTest {
 	}
 
 	/**
-	 * No scope may name the reserved namespace, and the runtime exempts those
-	 * frames whatever the scope is, so requiring the derived scope to cover such a
-	 * class would require the impossible. Ares' own production output consists of
-	 * nothing else, which is how this was found.
+	 * Leaving these out of the inventory was justified as sparing a project whose
+	 * production output is nothing but infrastructure, which is what Ares' own
+	 * build is. The justification does not hold: package names are chosen by
+	 * whoever writes the classes, so "every class is reserved" is a state a
+	 * submission can produce, and it then passed with enforcement aimed at nothing.
+	 * A project that really is infrastructure declares its scope in a policy, which
+	 * is what Ares' own self-tests now do.
 	 */
 	@Test
-	@DisplayName("Leaves reserved-package classes out of the inventory rather than refusing")
-	void ignoresClassesInReservedPackages() throws IOException {
+	@DisplayName("Refuses a reserved-package class rather than leaving it out of the inventory")
+	void refusesClassesInReservedPackages() throws IOException {
 		Path outputRoot = compile("""
 				package de.tum.cit.aet;
 
@@ -163,16 +166,22 @@ class JavaProjectScannerScopeCoverageTest {
 				}
 				""", "de/tum/cit/ase/ares/api/Infrastructure.java");
 
-		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertTrue(refusal.getMessage().contains("Infrastructure"),
+				"the diagnostic must name the class that took a trusted name: " + refusal.getMessage());
 	}
 
 	/**
-	 * Ignoring them must not turn into ignoring the rest: a class the scope really
-	 * does leave out is still refused when a reserved one sits beside it.
+	 * The reserved class is refused before coverage is even considered, so a
+	 * submission cannot use one to stop the check reaching a package the scope
+	 * leaves out. Either way the run refuses; what matters is that it never
+	 * silently proceeds.
 	 */
 	@Test
-	@DisplayName("A reserved-package class does not mask an uncovered one")
-	void stillRefusesAnUncoveredClassBesideAReservedOne() throws IOException {
+	@DisplayName("A reserved-package class is refused before an uncovered one is reached")
+	void refusesTheReservedClassBeforeTheUncoveredOne() throws IOException {
 		Path outputRoot = compile("""
 				package de.tum.cit.ase.ares.api;
 
@@ -189,20 +198,27 @@ class JavaProjectScannerScopeCoverageTest {
 		SecurityException refusal = assertThrows(SecurityException.class,
 				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("decoy"));
 
-		assertTrue(refusal.getMessage().contains("de.tum.cit.aet"), refusal.getMessage());
+		assertTrue(refusal.getMessage().contains("Infrastructure"),
+				"the reserved class is the first thing wrong with this output: " + refusal.getMessage());
 	}
 
 	/**
-	 * Where nothing supervisable is compiled, no scope can be wrong about it.
-	 * Refusing here would refuse a project for containing no supervisable code,
-	 * which is a different thing from a scope that misses some.
+	 * An output root holding no class at all cannot confirm anything about the
+	 * scope. Passing here used to look like tolerance for a project with no
+	 * supervisable code, but this check runs immediately before enforcement is
+	 * armed, by which point the compiled output is the whole truth about what will
+	 * run: nothing compiled means nothing verified.
 	 */
 	@Test
-	@DisplayName("Passes when nothing supervisable is compiled")
-	void passesWhenNothingSupervisableIsCompiled() throws IOException {
+	@DisplayName("Refuses when nothing at all is compiled")
+	void refusesWhenNothingAtAllIsCompiled() throws IOException {
 		Path outputRoot = Files.createDirectories(projectRoot.resolve("build/classes/java/main"));
 
-		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertTrue(refusal.getMessage().contains(outputRoot.toString()),
+				"the diagnostic must name where it looked: " + refusal.getMessage());
 	}
 
 	@Test
@@ -265,26 +281,14 @@ class JavaProjectScannerScopeCoverageTest {
 	}
 
 	private JavaProjectScanner scanner(Path outputRoot) throws IOException {
-		Path testRoot = Files.createDirectories(projectRoot.resolve("test"));
-		return new JavaProjectScanner(
-				new BuildToolConfiguration(BuildMode.GRADLE, projectRoot, List.of(), List.of(testRoot), outputRoot,
-						Files.createDirectories(projectRoot.resolve("build/classes/java/test"))));
+		return new JavaProjectScanner(ScannerFixtures.gradleConfigurationWithoutSourceRoots(projectRoot, outputRoot));
 	}
 
 	private Path compile(String source, String relativeSourcePath) throws IOException {
-		Path outputRoot = Files.createDirectories(projectRoot.resolve("build/classes/java/main"));
-		compileInto(outputRoot, source, relativeSourcePath);
-		return outputRoot;
+		return ScannerFixtures.compile(projectRoot, source, relativeSourcePath);
 	}
 
 	private void compileInto(Path outputRoot, String source, String relativeSourcePath) throws IOException {
-		Path sourceFile = projectRoot.resolve("sources").resolve(relativeSourcePath);
-		Files.createDirectories(sourceFile.getParent());
-		Files.writeString(sourceFile, source);
-		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-		int status = compiler.run(null, null, null, "-d", outputRoot.toString(), sourceFile.toString());
-		if (status != 0) {
-			throw new IllegalStateException("Could not compile the fixture " + relativeSourcePath);
-		}
+		ScannerFixtures.compileInto(projectRoot, outputRoot, source, relativeSourcePath);
 	}
 }

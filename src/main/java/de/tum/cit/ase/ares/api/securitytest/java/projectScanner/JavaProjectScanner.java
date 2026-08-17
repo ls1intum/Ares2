@@ -545,27 +545,103 @@ public class JavaProjectScanner implements ProjectScanner {
 			// nothing being there, and only the second of those is safe to wave through.
 			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()));
 		}
-		List<JavaClass> supervisable = Files.isDirectory(outputRoot) ? supervisableClassesIn(outputRoot) : List.of();
-		if (supervisable.isEmpty()) {
-			LOG.warn("No supervisable production class was found under {}, so the supervised scope \"{}\" was not "
-					+ "verified against the compiled output. Nothing found there can be supervised whatever the "
-					+ "scope is.", outputRoot, derivedPackage);
-			return;
+		long compiledFiles = countCompiledFiles(outputRoot);
+		if (compiledFiles == 0) {
+			// Nothing was compiled, so nothing can be verified. Enforcement over an
+			// unverified scope is enforcement nobody has checked, and this runs
+			// immediately before it is armed.
+			throw new SecurityException(Messages.localized("security.scope.nothing.compiled", outputRoot.toString()));
+		}
+		List<JavaClass> imported = importedClassesIn(outputRoot);
+		if (imported.isEmpty()) {
+			// Class files are present but none of them could be read. A non-empty tree
+			// that yields no class is a failure to verify rather than an empty project.
+			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()));
+		}
+		List<JavaClass> executable = new ArrayList<>();
+		for (JavaClass javaClass : imported) {
+			if (javaClass.isTopLevelClass() && !isCompilationMetadata(javaClass)) {
+				executable.add(javaClass);
+			}
+		}
+		if (executable.isEmpty()) {
+			// Only package or module descriptors, which cannot run. There is nothing to
+			// supervise and nothing that says what the scope should have been.
+			throw new SecurityException(Messages.localized("security.scope.nothing.compiled", outputRoot.toString()));
+		}
+		// The default package is checked before the reserved one so that the more
+		// specific diagnostic wins: a class with no package at all cannot lie within
+		// any scope, whereas a reserved one is a naming problem with its own remedy.
+		for (JavaClass javaClass : executable) {
+			if (javaClass.getPackageName().isBlank()) {
+				throw new SecurityException(Messages.localized("security.scope.default.package", javaClass.getName(),
+						outputRoot.toString()));
+			}
+		}
+		for (JavaClass javaClass : executable) {
+			String reserved = ReservedPackageGuard.reservedPrefixOf(javaClass.getPackageName());
+			if (reserved != null) {
+				// Refused rather than filtered out. Leaving these to one side used to be
+				// justified as sparing a project whose production output is infrastructure,
+				// but "every class is reserved" is a state a submission can produce, and one
+				// that then passed unenforced. Ares' own build reaches it too, which is why
+				// its self-tests declare their scope in a policy instead of deriving one.
+				throw new SecurityException(Messages.localized("security.scope.reserved.package", javaClass.getName(),
+						reserved));
+			}
 		}
 		if (derivedPackage.isBlank()) {
 			throw new SecurityException(Messages.localized("security.scope.blank", outputRoot.toString()));
 		}
-		for (JavaClass javaClass : supervisable) {
+		for (JavaClass javaClass : executable) {
 			String declared = javaClass.getPackageName();
-			if (declared.isBlank()) {
-				throw new SecurityException(Messages.localized("security.scope.default.package", javaClass.getName(),
-						outputRoot.toString()));
-			}
 			if (!isWithinScope(declared, derivedPackage)) {
 				throw new SecurityException(Messages.localized("security.scope.not.covered", derivedPackage, declared,
 						javaClass.getName(), outputRoot.toString()));
 			}
 		}
+	}
+
+	/**
+	 * How many compiled class files the output root holds.
+	 * <p>
+	 * Counted on disk rather than taken from the import, because the two answer
+	 * different questions. A non-empty import proves that something was read, not
+	 * that everything was: files the importer skipped would otherwise leave the
+	 * inventory looking complete. Where the tree cannot be walked at all the count
+	 * is reported as unreadable rather than as zero, since not knowing and knowing
+	 * there is nothing are the two states this check exists to tell apart.
+	 *
+	 * @param outputRoot the production output root
+	 * @return the number of class files found
+	 */
+	private long countCompiledFiles(Path outputRoot) {
+		if (!Files.isDirectory(outputRoot)) {
+			return 0L;
+		}
+		try (Stream<Path> tree = Files.walk(outputRoot)) {
+			return tree.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".class")).count();
+		} catch (IOException exception) {
+			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()),
+					exception);
+		}
+	}
+
+	/**
+	 * Every class the compiled production output yields, reserved and metadata
+	 * included.
+	 * <p>
+	 * Nothing is filtered here. The caller decides what each kind of class means,
+	 * because a class that cannot be supervised is not the same as one that is
+	 * absent, and quietly dropping the first produced the second.
+	 */
+	@Nonnull
+	private List<JavaClass> importedClassesIn(Path outputRoot) {
+		List<JavaClass> imported = new ArrayList<>();
+		for (JavaClass javaClass : new ClassFileImporter().importPath(outputRoot)) {
+			imported.add(javaClass);
+		}
+		return imported;
 	}
 
 	/**
@@ -580,18 +656,6 @@ public class JavaProjectScanner implements ProjectScanner {
 	 * of that namespace is the reserved-package build boundary's job, and this
 	 * check neither performs nor replaces it.
 	 */
-	@Nonnull
-	private List<JavaClass> supervisableClassesIn(Path outputRoot) {
-		List<JavaClass> supervisable = new ArrayList<>();
-		for (JavaClass javaClass : new ClassFileImporter().importPath(outputRoot)) {
-			if (javaClass.isTopLevelClass() && !isCompilationMetadata(javaClass)
-					&& ReservedPackageGuard.reservedPrefixOf(javaClass.getPackageName()) == null) {
-				supervisable.add(javaClass);
-			}
-		}
-		return supervisable;
-	}
-
 	/**
 	 * Whether the declared package is the scope or lies below it.
 	 * <p>
