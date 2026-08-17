@@ -259,7 +259,7 @@ class JavaProjectScannerPackageFallbackTest {
 	 * under test where the fixture is what could not be established.
 	 */
 	private static void assumeUnreadable(Path path) {
-		assumeTrue(!Files.isReadable(path), () -> "cannot make " + path + " unreadable in this environment");
+		ScannerFixtures.assumeUnreadable(path);
 	}
 
 	/**
@@ -268,25 +268,14 @@ class JavaProjectScannerPackageFallbackTest {
 	 * required non-empty root list.
 	 */
 	private BuildToolConfiguration configurationWithoutSourceRoots(Path outputRoot) throws IOException {
-		Path testRoot = Files.createDirectories(projectRoot.resolve("test"));
-		return new BuildToolConfiguration(BuildMode.GRADLE, projectRoot, List.of(), List.of(testRoot), outputRoot,
-				Files.createDirectories(projectRoot.resolve("build/classes/java/test")));
+		return ScannerFixtures.gradleConfigurationWithoutSourceRoots(projectRoot, outputRoot);
 	}
 
 	private Path compile(String source, String relativeSourcePath) throws IOException {
-		Path outputRoot = Files.createDirectories(projectRoot.resolve("build/classes/java/main"));
-		compileInto(outputRoot, source, relativeSourcePath);
-		return outputRoot;
+		return ScannerFixtures.compile(projectRoot, source, relativeSourcePath);
 	}
 
 	private void compileInto(Path outputRoot, String source, String relativeSourcePath) throws IOException {
-		Path sourceFile = projectRoot.resolve("sources").resolve(relativeSourcePath);
-		Files.createDirectories(sourceFile.getParent());
-		Files.writeString(sourceFile, source);
-		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-		int status = compiler.run(null, null, null, "-d", outputRoot.toString(), sourceFile.toString());
-		if (status != 0) {
-			throw new IllegalStateException("Could not compile the fixture " + relativeSourcePath);
-		}
+		ScannerFixtures.compileInto(projectRoot, outputRoot, source, relativeSourcePath);
 	}
 }

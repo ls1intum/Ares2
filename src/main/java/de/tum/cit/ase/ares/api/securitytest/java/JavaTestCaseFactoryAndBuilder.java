@@ -48,6 +48,17 @@ import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
  */
 public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBuilder {
 
+	// <editor-fold desc="Attributes">
+	/**
+	 * The scanner, kept at its own type so that the coverage check can be reached.
+	 * The inherited field is declared as the interface, which the check is
+	 * deliberately not part of: it belongs to deriving a scope from a Java project,
+	 * not to scanning one.
+	 */
+	@Nonnull
+	private final JavaProjectScanner javaProjectScanner;
+	// </editor-fold>
+
 	// <editor-fold desc="Constructor">
 
 	/**
@@ -86,14 +97,6 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 		this.javaProjectScanner = projectScanner;
 	}
 
-	/**
-	 * The scanner, kept at its own type so that the coverage check can be reached.
-	 * The inherited field is declared as the interface, which the check is
-	 * deliberately not part of: it belongs to deriving a scope from a Java project,
-	 * not to scanning one.
-	 */
-	@Nonnull
-	private final JavaProjectScanner javaProjectScanner;
 	// </editor-fold>
 
 	// <editor-fold desc="Write security test cases methods">
