@@ -14,19 +14,21 @@ import org.slf4j.LoggerFactory;
  * absolute, normalised and confined to the canonical project root.
  */
 public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List<Path> productionSourceRoots,
-		List<Path> testSourceRoots, Path productionOutputRoot, Path testOutputRoot) {
+		List<Path> testSourceRoots, Path productionOutputRoot, Path testOutputRoot, boolean productionRootsComplete) {
 
 	private static final Logger LOG = LoggerFactory.getLogger(BuildToolConfiguration.class);
 
 	/**
 	 * Validates and canonicalises a discovered build configuration.
 	 *
-	 * @param buildMode             the selected build tool
-	 * @param projectRoot           the project root
-	 * @param productionSourceRoots the production source roots
-	 * @param testSourceRoots       the test source roots
-	 * @param productionOutputRoot  the production bytecode root
-	 * @param testOutputRoot        the test bytecode root
+	 * @param buildMode               the selected build tool
+	 * @param projectRoot             the project root
+	 * @param productionSourceRoots   the production source roots
+	 * @param testSourceRoots         the test source roots
+	 * @param productionOutputRoot    the production bytecode root
+	 * @param testOutputRoot          the test bytecode root
+	 * @param productionRootsComplete whether the production source roots are known
+	 *                                to be the whole of the main source set
 	 */
 	public BuildToolConfiguration {
 		buildMode = Objects.requireNonNull(buildMode, "buildMode must not be null");
@@ -35,6 +37,27 @@ public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List
 		testSourceRoots = validateRoots(projectRoot, testSourceRoots, "testSourceRoots");
 		productionOutputRoot = validateContained(projectRoot, productionOutputRoot, "productionOutputRoot");
 		testOutputRoot = validateContained(projectRoot, testOutputRoot, "testOutputRoot");
+	}
+
+	/**
+	 * A configuration whose production source roots are the whole of the main
+	 * source set.
+	 * <p>
+	 * The overwhelming majority of layouts are read in full, so completeness is the
+	 * ordinary case and only the Gradle reader, which alone can fail to resolve a
+	 * declaration, ever states otherwise.
+	 *
+	 * @param buildMode             the selected build tool
+	 * @param projectRoot           the project root
+	 * @param productionSourceRoots the production source roots
+	 * @param testSourceRoots       the test source roots
+	 * @param productionOutputRoot  the production bytecode root
+	 * @param testOutputRoot        the test bytecode root
+	 */
+	public BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List<Path> productionSourceRoots,
+			List<Path> testSourceRoots, Path productionOutputRoot, Path testOutputRoot) {
+		this(buildMode, projectRoot, productionSourceRoots, testSourceRoots, productionOutputRoot, testOutputRoot,
+				true);
 	}
 
 	/**

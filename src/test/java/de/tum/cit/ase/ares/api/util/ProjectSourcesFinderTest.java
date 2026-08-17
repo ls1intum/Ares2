@@ -276,4 +276,218 @@ class ProjectSourcesFinderTest {
 		assertEquals(List.of(temporaryDirectory.resolve("effective").toRealPath()),
 				configuration.productionSourceRoots());
 	}
+
+	/**
+	 * Regression: the operand's bounds were found on the mask but its text was read
+	 * from the original, so a comment inside a live list came back as part of the
+	 * path. Since the assignment had already cleared the conventional root, the
+	 * source set was then left empty, which is the same silent failure this reader
+	 * exists to remove.
+	 */
+	@Test
+	void readsAPathBesideACommentInsideALiveList() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDirs = [ /* the old one */ 'assignment' /* and that is all */ ] } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath()),
+				configuration.productionSourceRoots());
+		assertTrue(configuration.productionRootsComplete(), "every token resolved, so the roots are the whole set");
+	}
+
+	/**
+	 * Regression: a newline terminated the operand, so a list written over several
+	 * lines, which is ordinary Gradle, cleared the conventional root and then
+	 * declared nothing.
+	 */
+	@Test
+	void readsAListWrittenOverSeveralLines() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment"));
+		Files.createDirectories(temporaryDirectory.resolve("generated"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main {
+				    java {
+				      srcDirs = [
+				        'assignment',
+				        // the generated one is added by the codegen task
+				        'generated'
+				      ]
+				    }
+				  }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath(),
+				temporaryDirectory.resolve("generated").toRealPath()), configuration.productionSourceRoots());
+		assertTrue(configuration.productionRootsComplete());
+	}
+
+	@Test
+	void keepsAnArgumentCommaOutOfTheSourceRootList() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDirs = [files('a', 'b'), 'assignment'] } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		// The comma inside files(...) separates arguments rather than source roots, so
+		// the operand is two entries. The first is not a static path and leaves the set
+		// incomplete; the second is, and is declared.
+		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath()),
+				configuration.productionSourceRoots());
+		assertTrue(!configuration.productionRootsComplete(),
+				"files('a', 'b') was not resolved, so what was found is not the whole source set");
+	}
+
+	@Test
+	void readsADeclarationWhoseOperatorIsHiddenBehindAComment() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDirs /* replaced on purpose */ = ['assignment'] } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath()),
+				configuration.productionSourceRoots());
+	}
+
+	@Test
+	void marksTheSourceSetIncompleteWhenAValueIsComputed() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("src/main/java"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDirs = someList } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		// The declaration is valid Gradle this reader cannot evaluate. Rejecting the
+		// project would break it for no security gain, and answering the conventional
+		// root would name one the descriptor replaced, so the uncertainty is recorded
+		// and travels to whoever would otherwise trust the roots.
+		assertTrue(!configuration.productionRootsComplete());
+	}
+
+	@Test
+	void marksTheSourceSetIncompleteWhenTheListIsExtended() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("known"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDirs = ['known'] + generatedRoots } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("known").toRealPath()), configuration.productionSourceRoots());
+		assertTrue(!configuration.productionRootsComplete(),
+				"'known' resolved, but the roots added after it did not, so this is part of the source set");
+	}
+
+	@Test
+	void marksTheSourceSetIncompleteWhenAnExpressionContinuesOnTheNextLine() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("known"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle.kts"), """
+				sourceSets {
+				  main { java { srcDirs = listOf("known")
+				      .plus(generatedSourceDir) } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		// A line break decides nothing: the expression continues on the next line, and
+		// treating the newline as the end of the statement would drop .plus(...) while
+		// reporting a complete source set.
+		assertTrue(!configuration.productionRootsComplete());
+	}
+
+	@Test
+	void marksTheSourceSetIncompleteWhenAPathIsInterpolated() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("generated"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDirs = ["${generatedRoot}"] } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		// Taking the text literally would name a directory called ${generatedRoot}.
+		// That normally does not exist and is rejected, but a project that happened to
+		// contain one would have been supervised over the wrong tree without a word.
+		assertTrue(!configuration.productionRootsComplete());
+	}
+
+	@Test
+	void treatsAnEmptyListAsAnEmptySourceSetRatherThanAnUnreadableOne() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("src/main/java"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDirs = [ /* deliberately none */ ] } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertTrue(configuration.productionSourceRoots().isEmpty());
+		assertTrue(configuration.productionRootsComplete(),
+				"an empty list is a source set that declares nothing, which is known rather than unreadable");
+	}
+
+	@Test
+	void letsALaterResolvedAssignmentRestoreCompleteness() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("effective"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main {
+				    java { srcDirs = someList }
+				    java { srcDirs = ['effective'] }
+				  }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		// The second assignment replaces whatever the first left behind, uncertainty
+		// included, so the roots are once again the whole of the source set.
+		assertEquals(List.of(temporaryDirectory.resolve("effective").toRealPath()),
+				configuration.productionSourceRoots());
+		assertTrue(configuration.productionRootsComplete());
+	}
+
+	@Test
+	void marksTheSourceSetIncompleteWhenAnAdditionCannotBeResolved() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("src/main/java"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main { java { srcDirs += generatedRoots } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		// The conventional root still resolves, so the roots are not empty and nothing
+		// looks wrong. That is exactly why an unresolved addition has to be recorded:
+		// a package vote taken over what was found would answer confidently and leave
+		// the added tree unsupervised.
+		assertEquals(List.of(temporaryDirectory.resolve("src/main/java").toRealPath()),
+				configuration.productionSourceRoots());
+		assertTrue(!configuration.productionRootsComplete());
+	}
 }

@@ -284,8 +284,8 @@ class ProjectSourcesFinderEdgeCaseTest {
 	}
 
 	@Test
-	@DisplayName("Treats a mismatched pair of quotation marks as unresolvable rather than as a literal")
-	void treatsMismatchedQuotationAsUnresolvable() throws IOException {
+	@DisplayName("Reads quotation marks inside a string as part of the path rather than as a separator")
+	void readsQuotationMarksInsideAStringAsPartOfThePath() throws IOException {
 		Files.createDirectories(temporaryDirectory.resolve("src/main/java"));
 		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
 				sourceSets {
@@ -293,12 +293,19 @@ class ProjectSourcesFinderEdgeCaseTest {
 				}
 				""");
 
-		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+		// Groovy reads this as ONE double-quoted literal whose body happens to contain
+		// single quotes, so it declares a single directory named mismatched', 'other.
+		// Splitting the operand on every comma used to tear it into two half-quoted
+		// halves that resolved to nothing, which looked like the right answer for the
+		// wrong reason. Reading the operand from the mask keeps the string whole, and a
+		// declared root that is not a directory is then rejected outright, as any other
+		// absent root is.
+		IllegalStateException rejection = assertThrows(IllegalStateException.class,
+				() -> ProjectSourcesFinder.discover(temporaryDirectory));
 
-		assertTrue(configuration.productionSourceRoots().isEmpty(),
-				"the assignment replaced the conventional root and neither half-quoted token resolves, so nothing "
-						+ "is declared. Answering src/main/java here would name a root the descriptor has ruled "
-						+ "out; the supervised package comes from the compiled output instead.");
+		assertTrue(rejection.getMessage().contains("is not a directory"),
+				"the single declared root does not exist, so discovery refuses it rather than silently answering "
+						+ "a root the descriptor replaced: " + rejection.getMessage());
 	}
 
 	@Test

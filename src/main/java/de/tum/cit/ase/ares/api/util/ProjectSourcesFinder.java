@@ -38,26 +38,55 @@ public final class ProjectSourcesFinder {
 	private static final String DEFAULT_TEST_SOURCE = "src/test/java";
 	private static final Pattern PROPERTY_ASSIGNMENT = Pattern
 			.compile("(?m)^\\s*(?:def|val|var)?\\s*([A-Za-z_][A-Za-z0-9_.-]*)\\s*=\\s*['\"]([^'\"]+)['\"]");
-	/** The filler that {@link #maskInactiveRegions} writes over inactive text. */
-	private static final char MASKED = '\u0001';
+	/**
+	 * The filler {@link #maskInactiveRegions} writes over a comment, its delimiters
+	 * included.
+	 * <p>
+	 * Kept distinct from {@link #STRING_MASK} because the two are treated
+	 * differently when an operand token is rebuilt: a comment is dropped, while a
+	 * string literal still supplies its value. Masking the delimiters too is what
+	 * lets "copy every position that is not commented out" produce the text Gradle
+	 * would have seen.
+	 */
+	private static final char COMMENT_MASK = '\u0001';
+	/**
+	 * The filler {@link #maskInactiveRegions} writes over the body of a string
+	 * literal, excluding its quotes.
+	 * <p>
+	 * The body is masked so its contents cannot be mistaken for code; the quotes
+	 * are kept so a rebuilt token still looks like the literal it is.
+	 */
+	private static final char STRING_MASK = '\u0002';
 	/**
 	 * Where a source-directory operand ends: the statement or the collection does.
 	 */
 	private static final String OPERAND_TERMINATORS = ")]\n}";
 	// Known gaps in the Gradle reading below, deliberately not covered: Kotlin's
-	// setSrcDirs(...) and receiver chains such as sourceSets.main.java { ... },
-	// lists spread over several lines, and any value that is computed rather than
-	// written down. These are non-matches rather than misreadings, and an
-	// undiscovered root costs the supervised scope nothing worse than a
-	// fall-through to JavaProjectScanner's compiled-output step. That step is not a
-	// guarantee either, because it reads the build tool's conventional output
-	// directory rather than one taken from the descriptor, so a build that also
-	// moves its output destination is not followed there.
+	// setSrcDirs(...) and receiver chains such as sourceSets.main.java { ... }, and
+	// any value that is computed rather than written down.
 	//
-	// One case is answered rather than skipped: an assignment whose value cannot be
-	// resolved leaves the source set empty, exactly as srcDirs = [] does. The two
-	// are indistinguishable here, and answering the conventional root instead would
-	// name a directory the descriptor has explicitly replaced.
+	// None of them is silent any more, which is the point. A declaration this
+	// reader cannot resolve marks the source set incomplete, and that travels to
+	// the consumer in BuildToolConfiguration.productionRootsComplete(): the roots
+	// are still offered, but they are no longer offered as the whole project, so
+	// JavaProjectScanner declines to derive a supervised package from them and
+	// reads the compiled output instead.
+	//
+	// That distinction is what the earlier note here got wrong. It claimed an
+	// undiscovered root "costs the supervised scope nothing worse than a
+	// fall-through", which does not hold after an assignment: srcDirs = clears the
+	// conventional root before the operand is read, so a value that cannot be
+	// resolved left the source set EMPTY and looked exactly like a project that
+	// declares no sources. An empty source set and an unreadable one are different
+	// facts and are now recorded as different facts.
+	//
+	// The compiled-output step is not a guarantee either, because it reads the
+	// build tool's conventional output directory rather than one taken from the
+	// descriptor, so a build that also moves its output destination is not followed
+	// there.
+	//
+	// srcDirs = [] stays what it says: a source set that declares nothing. That is
+	// known rather than unreadable, so it is complete and empty.
 	private static String pomXmlPath = "pom.xml";
 	private static String buildGradlePath = "build.gradle";
 
@@ -99,14 +128,16 @@ public final class ProjectSourcesFinder {
 			throw new IllegalStateException("Gradle was selected but no Gradle descriptor is present in " + root);
 		}
 		if (mode == BuildMode.MAVEN) {
+			// Maven declares its source roots outright, so what is read is all there is.
 			return new BuildToolConfiguration(mode, root, discoverMavenRoots(root, false),
 					discoverMavenRoots(root, true), root.resolve(mode.getBuildDirectory()),
-					root.resolve(mode.getTestBuildDirectory()));
+					root.resolve(mode.getTestBuildDirectory()), true);
 		}
 		GradleSourceRoots gradleRoots = discoverGradleRoots(root,
 				gradleKotlin ? root.resolve("build.gradle.kts") : root.resolve("build.gradle"));
 		return new BuildToolConfiguration(mode, root, gradleRoots.production(), gradleRoots.test(),
-				root.resolve(mode.getBuildDirectory()), root.resolve(mode.getTestBuildDirectory()));
+				root.resolve(mode.getBuildDirectory()), root.resolve(mode.getTestBuildDirectory()),
+				gradleRoots.productionComplete());
 	}
 
 	private static List<Path> discoverMavenRoots(Path root, boolean tests) {
@@ -145,7 +176,7 @@ public final class ProjectSourcesFinder {
 	 * @param production the roots of the main source set
 	 * @param test       the roots of the test source set
 	 */
-	private record GradleSourceRoots(List<Path> production, List<Path> test) {
+	private record GradleSourceRoots(List<Path> production, List<Path> test, boolean productionComplete) {
 	}
 
 	/**
@@ -188,6 +219,11 @@ public final class ProjectSourcesFinder {
 			properties.put(assignments.group(1), content.substring(assignments.start(2), assignments.end(2)));
 		}
 		Map<String, List<Path>> declared = new LinkedHashMap<>();
+		// Whether what was read adds up to the whole of a source set, rather than
+		// merely having parsed. A declaration this reader cannot resolve leaves the
+		// roots a partial picture, and a partial picture must not be mistaken for the
+		// project, so the uncertainty travels to the consumer instead of being lost.
+		Map<String, Boolean> complete = new LinkedHashMap<>();
 		Deque<String> blocks = new ArrayDeque<>();
 		String pending = "";
 		int index = 0;
@@ -213,7 +249,8 @@ public final class ProjectSourcesFinder {
 					pending = close < 0 ? "" : unquote(content.substring(skipWhitespace(code, end) + 1, close).trim());
 					index = close < 0 ? end : close + 1;
 				} else if ("srcDir".equals(identifier) || "srcDirs".equals(identifier)) {
-					index = readSourceDirectories(root, content, code, end, identifier, blocks, properties, declared);
+					index = readSourceDirectories(root, content, code, end, identifier, blocks, properties, declared,
+							complete);
 				} else {
 					pending = chain;
 					index = end;
@@ -222,7 +259,14 @@ public final class ProjectSourcesFinder {
 				index++;
 			}
 		}
-		return new GradleSourceRoots(rootsOf(root, declared, "main"), rootsOf(root, declared, "test"));
+		boolean productionComplete = complete.getOrDefault("main", Boolean.TRUE);
+		if (!productionComplete) {
+			LOG.warn("The main source set in {} declares a source root this reader cannot resolve, so the discovered "
+					+ "production roots are not known to be the whole of it. The supervised package will not be "
+					+ "derived from them.", descriptor);
+		}
+		return new GradleSourceRoots(rootsOf(root, declared, "main"), rootsOf(root, declared, "test"),
+				productionComplete);
 	}
 
 	/**
@@ -235,38 +279,186 @@ public final class ProjectSourcesFinder {
 	 * one.
 	 */
 	private static int readSourceDirectories(Path root, String content, String code, int end, String identifier,
-			Deque<String> blocks, Map<String, String> properties, Map<String, List<Path>> declared) {
-		int operator = skipWhitespace(code, end);
+			Deque<String> blocks, Map<String, String> properties, Map<String, List<Path>> declared,
+			Map<String, Boolean> complete) {
+		int operator = skipInactive(code, end);
 		char next = operator < code.length() ? code.charAt(operator) : '\0';
 		boolean replacing = next == '=';
 		int operandStart;
 		if (replacing) {
-			operandStart = operator + 1;
+			operandStart = skipInactive(code, operator + 1);
 		} else if (next == '+' && operator + 1 < code.length() && code.charAt(operator + 1) == '=') {
-			operandStart = operator + 2;
+			operandStart = skipInactive(code, operator + 2);
 		} else if (next == '(') {
-			operandStart = operator + 1;
+			// Point AT the parenthesis rather than past it, so the opening delimiter is
+			// still visible below. Advancing here is what stopped a srcDirs(...) call
+			// being recognised as a bracketed operand at all.
+			operandStart = operator;
 		} else if ("srcDir".equals(identifier) && (next == '\'' || next == '"' || isIdentifierStart(next))) {
 			operandStart = operator;
 		} else {
 			return end;
 		}
-		int operandEnd = operandStart;
-		while (operandEnd < code.length() && OPERAND_TERMINATORS.indexOf(code.charAt(operandEnd)) < 0) {
-			operandEnd++;
+		char opener = operandStart < code.length() ? code.charAt(operandStart) : '\0';
+		boolean bracketed = opener == '[' || opener == '(';
+		boolean resolvedEverything = true;
+		int tokensStart;
+		int tokensEnd;
+		int resumeAt;
+		if (bracketed) {
+			int close = matchingClose(code, operandStart);
+			if (close < 0) {
+				// An unbalanced collection is not something this reader can apportion.
+				tokensStart = operandStart + 1;
+				tokensEnd = code.length();
+				resumeAt = code.length();
+				resolvedEverything = false;
+			} else {
+				tokensStart = operandStart + 1;
+				tokensEnd = close;
+				resumeAt = close + 1;
+				resolvedEverything = endsStatement(code, close + 1);
+			}
+		} else {
+			tokensStart = operandStart;
+			tokensEnd = operandStart;
+			while (tokensEnd < code.length() && OPERAND_TERMINATORS.indexOf(code.charAt(tokensEnd)) < 0) {
+				tokensEnd++;
+			}
+			resumeAt = tokensEnd;
+		}
+		List<String> values = new ArrayList<>();
+		for (int[] span : splitTopLevel(code, tokensStart, tokensEnd)) {
+			String token = activeText(content, code, span[0], span[1]).trim();
+			if (token.isEmpty()) {
+				// Whitespace or a comment only: an empty list is empty, not unresolved.
+				continue;
+			}
+			Optional<String> value = resolveGradlePath(token, properties);
+			if (value.isPresent()) {
+				values.add(value.get());
+			} else {
+				resolvedEverything = false;
+			}
 		}
 		String sourceSet = sourceSetOf(blocks);
 		if (sourceSet != null) {
 			List<Path> roots = declared.computeIfAbsent(sourceSet, name -> conventionalRootOf(root, name));
+			complete.putIfAbsent(sourceSet, Boolean.TRUE);
 			if (replacing) {
 				roots.clear();
+				// A replacement supersedes whatever uncertainty preceded it, so it can
+				// restore completeness as well as remove it.
+				complete.put(sourceSet, resolvedEverything);
+			} else if (!resolvedEverything) {
+				// An addition can only ever make the picture less complete.
+				complete.put(sourceSet, Boolean.FALSE);
 			}
-			for (String token : content.substring(operandStart, operandEnd).split(",")) {
-				resolveGradlePath(token, properties)
-						.ifPresent(value -> roots.add(validateSourceRoot(root, root.resolve(value))));
+			for (String value : values) {
+				roots.add(validateSourceRoot(root, root.resolve(value)));
 			}
 		}
-		return operandEnd;
+		return resumeAt;
+	}
+
+	/**
+	 * The offset of the delimiter closing the collection or call opening at
+	 * {@code open}, or -1 when it is never closed.
+	 * <p>
+	 * Depth is counted on the mask, so a bracket inside a comment or a string does
+	 * not count, and the search deliberately crosses line breaks: a list written
+	 * over several lines is ordinary Gradle, and stopping at the first newline is
+	 * what used to leave a replaced source set empty.
+	 */
+	private static int matchingClose(String code, int open) {
+		char opener = code.charAt(open);
+		char closer = opener == '[' ? ']' : ')';
+		int depth = 0;
+		for (int index = open; index < code.length(); index++) {
+			char current = code.charAt(index);
+			if (current == opener) {
+				depth++;
+			} else if (current == closer) {
+				depth--;
+				if (depth == 0) {
+					return index;
+				}
+			}
+		}
+		return -1;
+	}
+
+	/**
+	 * The comma-separated spans of an operand, split only where a comma sits at the
+	 * operand's own nesting depth.
+	 * <p>
+	 * {@code [someFunction('a', 'b'), 'third']} is two entries rather than three:
+	 * the inner comma separates arguments, not source roots.
+	 */
+	private static List<int[]> splitTopLevel(String code, int start, int end) {
+		List<int[]> spans = new ArrayList<>();
+		int depth = 0;
+		int spanStart = start;
+		for (int index = start; index < end; index++) {
+			char current = code.charAt(index);
+			if (current == '[' || current == '(') {
+				depth++;
+			} else if (current == ']' || current == ')') {
+				depth--;
+			} else if (current == ',' && depth == 0) {
+				spans.add(new int[] { spanStart, index });
+				spanStart = index + 1;
+			}
+		}
+		spans.add(new int[] { spanStart, end });
+		return spans;
+	}
+
+	/**
+	 * The text Gradle would have seen in this span: the original characters, minus
+	 * everything commented out.
+	 * <p>
+	 * The mask decides what is inactive and the original supplies the values, which
+	 * works only because masking preserves every offset. Dropping comments here is
+	 * what lets one sit inside a live declaration without invalidating the path
+	 * beside it.
+	 */
+	private static String activeText(String content, String code, int start, int end) {
+		StringBuilder active = new StringBuilder(end - start);
+		for (int index = start; index < end; index++) {
+			if (code.charAt(index) != COMMENT_MASK) {
+				active.append(content.charAt(index));
+			}
+		}
+		return active.toString();
+	}
+
+	/**
+	 * Whether the declaration is over at this offset rather than continuing into
+	 * more of the same expression.
+	 * <p>
+	 * Only a definite boundary counts, because guessing the other way is what makes
+	 * a partly read declaration look complete. A statement separator, the close of
+	 * an enclosing block or call, a following statement and the end of the
+	 * descriptor all end it; anything else continues it, which covers
+	 * {@code + generatedRoots}, {@code .collect { file(it) }}, indexing and spread
+	 * without having to predict them.
+	 * <p>
+	 * A line break settles nothing on its own, since an expression may continue on
+	 * the next line in both Groovy and Kotlin, so the first active character beyond
+	 * it is what decides.
+	 */
+	private static boolean endsStatement(String code, int from) {
+		int index = from;
+		while (index < code.length()) {
+			char current = code.charAt(index);
+			if (current == COMMENT_MASK || Character.isWhitespace(current)) {
+				index++;
+				continue;
+			}
+			return current == ';' || current == '}' || current == ')' || current == ']' || isIdentifierStart(current);
+		}
+		return true;
 	}
 
 	/**
@@ -346,6 +538,22 @@ public final class ProjectSourcesFinder {
 	}
 
 	/**
+	 * Skips what Gradle would have skipped: whitespace, and anything commented out.
+	 * <p>
+	 * Used where an operator or an operand is expected, so that a comment written
+	 * between a declaration and its value, as in
+	 * {@code srcDirs / * why * / = [...]}, does not hide the operator behind it.
+	 */
+	private static int skipInactive(String code, int from) {
+		int index = from;
+		while (index < code.length()
+				&& (Character.isWhitespace(code.charAt(index)) || code.charAt(index) == COMMENT_MASK)) {
+			index++;
+		}
+		return index;
+	}
+
+	/**
 	 * Returns the descriptor with comments and the contents of string literals
 	 * replaced by a filler character.
 	 * <p>
@@ -371,8 +579,13 @@ public final class ProjectSourcesFinder {
 			char current = masked[index];
 			char next = index + 1 < masked.length ? masked[index + 1] : '\0';
 			if (current == '/' && next == '/') {
+				// The opener is masked too, or a rebuilt token would still carry "//".
+				maskCharacter(masked, index, COMMENT_MASK);
+				maskCharacter(masked, index + 1, COMMENT_MASK);
 				index = maskUntilLineEnd(masked, index + 2);
 			} else if (current == '/' && next == '*') {
+				maskCharacter(masked, index, COMMENT_MASK);
+				maskCharacter(masked, index + 1, COMMENT_MASK);
 				index = maskBlockComment(masked, index + 2, nestingBlockComments);
 			} else if (current == '$' && next == '/') {
 				index = maskUntil(masked, index + 2, "/$");
@@ -390,7 +603,7 @@ public final class ProjectSourcesFinder {
 	private static int maskUntilLineEnd(char[] masked, int from) {
 		int index = from;
 		while (index < masked.length && masked[index] != '\n') {
-			masked[index] = MASKED;
+			masked[index] = COMMENT_MASK;
 			index++;
 		}
 		return index;
@@ -402,19 +615,19 @@ public final class ProjectSourcesFinder {
 		while (index < masked.length && depth > 0) {
 			if (masked[index] == '*' && index + 1 < masked.length && masked[index + 1] == '/') {
 				depth--;
-				maskCharacter(masked, index);
-				maskCharacter(masked, index + 1);
+				maskCharacter(masked, index, COMMENT_MASK);
+				maskCharacter(masked, index + 1, COMMENT_MASK);
 				index += 2;
 				continue;
 			}
 			if (nesting && masked[index] == '/' && index + 1 < masked.length && masked[index + 1] == '*') {
 				depth++;
-				maskCharacter(masked, index);
-				maskCharacter(masked, index + 1);
+				maskCharacter(masked, index, COMMENT_MASK);
+				maskCharacter(masked, index + 1, COMMENT_MASK);
 				index += 2;
 				continue;
 			}
-			maskCharacter(masked, index);
+			maskCharacter(masked, index, COMMENT_MASK);
 			index++;
 		}
 		return index;
@@ -427,7 +640,7 @@ public final class ProjectSourcesFinder {
 					&& masked[index + 1] == terminator.charAt(1)) {
 				return index + 2;
 			}
-			maskCharacter(masked, index);
+			maskCharacter(masked, index, STRING_MASK);
 			index++;
 		}
 		return index;
@@ -444,8 +657,8 @@ public final class ProjectSourcesFinder {
 		int index = start + (triple ? 3 : 1);
 		while (index < masked.length) {
 			if (masked[index] == '\\') {
-				maskCharacter(masked, index);
-				maskCharacter(masked, Math.min(index + 1, masked.length - 1));
+				maskCharacter(masked, index, STRING_MASK);
+				maskCharacter(masked, Math.min(index + 1, masked.length - 1), STRING_MASK);
 				index += 2;
 				continue;
 			}
@@ -456,7 +669,7 @@ public final class ProjectSourcesFinder {
 			if (!triple && masked[index] == '\n') {
 				return index;
 			}
-			maskCharacter(masked, index);
+			maskCharacter(masked, index, STRING_MASK);
 			index++;
 		}
 		return index;
@@ -476,7 +689,7 @@ public final class ProjectSourcesFinder {
 			}
 			if (masked[index] == '/') {
 				for (int position = from; position < index; position++) {
-					maskCharacter(masked, position);
+					maskCharacter(masked, position, STRING_MASK);
 				}
 				return index + 1;
 			}
@@ -499,9 +712,9 @@ public final class ProjectSourcesFinder {
 		return true;
 	}
 
-	private static void maskCharacter(char[] masked, int index) {
+	private static void maskCharacter(char[] masked, int index, char filler) {
 		if (masked[index] != '\n' && masked[index] != '\r') {
-			masked[index] = MASKED;
+			masked[index] = filler;
 		}
 	}
 
@@ -524,15 +737,54 @@ public final class ProjectSourcesFinder {
 		}
 	}
 
+	/**
+	 * The directory a source-root token names, or empty when this reader cannot say
+	 * so statically.
+	 * <p>
+	 * Empty is not a neutral answer. The caller records it as an incomplete source
+	 * set, because a value that cannot be read is a root that may exist and has not
+	 * been found, which is a different thing from a source set that is genuinely
+	 * empty.
+	 */
 	private static Optional<String> resolveGradlePath(String token, Map<String, String> properties) {
 		String value = token.trim().replace("[", "").replace("]", "").replace("files(", "").trim();
 		while (value.endsWith(")")) {
 			value = value.substring(0, value.length() - 1).trim();
 		}
-		if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
-			return Optional.of(value.substring(1, value.length() - 1));
+		if (value.length() > 1 && value.charAt(0) == '"' && value.endsWith("\"")) {
+			String literal = value.substring(1, value.length() - 1);
+			if (literal.indexOf('"') >= 0) {
+				// The body carries its own delimiter, so this is not one literal but the
+				// wreckage of several. files('a', 'b') collapses to exactly this once the
+				// wrapper is stripped, and reading it as the single path a', 'b would
+				// declare a root nobody wrote.
+				return Optional.empty();
+			}
+			// A double-quoted string interpolates in both Groovy and Kotlin, so its value
+			// depends on state this reader does not have. Taking the text literally would
+			// name a directory called something like "$generatedRoot", which normally does
+			// not exist and is rejected, but would silently pass for a project that
+			// happens to contain one.
+			return isStaticLiteral(literal) ? Optional.of(literal) : Optional.empty();
 		}
-		return Optional.ofNullable(properties.get(value));
+		if (value.length() > 1 && value.charAt(0) == '\'' && value.endsWith("'")) {
+			// A single-quoted Groovy string does not interpolate, so only an escape this
+			// reader does not decode, or a body carrying its own delimiter, makes it
+			// unreadable.
+			String literal = value.substring(1, value.length() - 1);
+			return literal.indexOf('\'') < 0 && literal.indexOf('\\') < 0 ? Optional.of(literal) : Optional.empty();
+		}
+		String resolved = properties.get(value);
+		return resolved != null && isStaticLiteral(resolved) ? Optional.of(resolved) : Optional.empty();
+	}
+
+	/**
+	 * Whether a string literal's body is a fixed path rather than something this
+	 * reader would have to evaluate. Interpolation and undecoded escapes both mean
+	 * it is not.
+	 */
+	private static boolean isStaticLiteral(String literal) {
+		return literal.indexOf('$') < 0 && literal.indexOf('\\') < 0;
 	}
 
 	private static Path validateSourceRoot(Path root, Path candidate) {

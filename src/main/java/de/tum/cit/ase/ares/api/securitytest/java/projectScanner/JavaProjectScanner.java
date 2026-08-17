@@ -473,11 +473,18 @@ public class JavaProjectScanner implements ProjectScanner {
 	@Nonnull
 	public String scanForPackageName() {
 		Map<String, Long> counts = new HashMap<>();
-		for (Path file : javaFiles(productionRoots())) {
-			String name = packageName(parse(file));
-			if (!name.isBlank() && ReservedPackageGuard.reservedPrefixOf(name) == null) {
-				counts.merge(name, 1L, Long::sum);
+		if (productionRootsAreComplete()) {
+			for (Path file : javaFiles(productionRoots())) {
+				String name = packageName(parse(file));
+				if (!name.isBlank() && ReservedPackageGuard.reservedPrefixOf(name) == null) {
+					counts.merge(name, 1L, Long::sum);
+				}
 			}
+		} else {
+			LOG.warn("The build descriptor declares a production source root that could not be resolved, so the "
+					+ "discovered roots {} are not known to be the whole project. The sources are not counted "
+					+ "at all, because a vote taken over part of a project answers confidently and wrongly; "
+					+ "the compiled output is read instead.", productionRoots());
 		}
 		if (counts.isEmpty()) {
 			counts = compiledPackageCounts();
@@ -648,6 +655,24 @@ public class JavaProjectScanner implements ProjectScanner {
 	 *
 	 * @return the production output root; never null
 	 */
+	/**
+	 * Whether the discovered production source roots are the whole of the main
+	 * source set, rather than as much of it as the build descriptor could be read
+	 * for.
+	 * <p>
+	 * Only step one of {@link #scanForPackageName()} depends on this. Counting
+	 * declarations across part of a project produces an answer that looks exactly
+	 * like an answer taken across all of it, so a partial set is not counted at
+	 * all: the compiled output, which the build tool writes whatever the descriptor
+	 * says, is read instead. Without a build configuration nothing has reported a
+	 * gap, so there is none to report.
+	 *
+	 * @return whether the production roots are known to be complete
+	 */
+	private boolean productionRootsAreComplete() {
+		return buildConfiguration == null || buildConfiguration.productionRootsComplete();
+	}
+
 	@Nonnull
 	private Path productionOutputRoot() {
 		if (buildConfiguration != null) {
