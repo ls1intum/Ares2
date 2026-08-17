@@ -449,16 +449,12 @@ public final class ProjectSourcesFinder {
 	 * it is what decides.
 	 */
 	private static boolean endsStatement(String code, int from) {
-		int index = from;
-		while (index < code.length()) {
-			char current = code.charAt(index);
-			if (current == COMMENT_MASK || Character.isWhitespace(current)) {
-				index++;
-				continue;
-			}
-			return current == ';' || current == '}' || current == ')' || current == ']' || isIdentifierStart(current);
+		int index = skipInactive(code, from);
+		if (index >= code.length()) {
+			return true;
 		}
-		return true;
+		char current = code.charAt(index);
+		return current == ';' || current == '}' || current == ')' || current == ']' || isIdentifierStart(current);
 	}
 
 	/**
