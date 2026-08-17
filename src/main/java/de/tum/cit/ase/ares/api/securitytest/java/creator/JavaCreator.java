@@ -12,6 +12,9 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -54,6 +57,7 @@ import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
  * @version 2.0.0
  */
 public class JavaCreator implements Creator {
+	private static final Logger LOG = LoggerFactory.getLogger(JavaCreator.class);
 	private final BuildToolConfiguration buildConfiguration;
 
 	public JavaCreator() {
@@ -153,7 +157,7 @@ public class JavaCreator implements Creator {
 				testClasses.stream().filter(java.util.Objects::nonNull).map(className -> {
 					int lastDot = className.lastIndexOf('.');
 					return lastDot > 0 ? className.substring(0, lastDot) : className;
-				}).filter(p -> !p.isBlank()).distinct().map(JavaCreator::derivedAllowedPackage)
+				}).filter(p -> !p.isBlank()).distinct().map(JavaCreator::testClassAllowedPackage)
 
 		).flatMap(Function.identity()).collect(Collectors.toSet());
 	}
@@ -185,6 +189,38 @@ public class JavaCreator implements Creator {
 		String reserved = ReservedPackageGuard.ancestorOfReservedPrefix(packageName);
 		if (reserved != null) {
 			throw new SecurityException(Messages.localized("security.policy.ancestor.package", packageName, reserved));
+		}
+		return new PackagePermission(packageName);
+	}
+
+	/**
+	 * The permission taken from the package of a declared or scanned test class.
+	 * <p>
+	 * Held to the same question as {@link #derivedAllowedPackage(String)} but not
+	 * to the same answer. A test class sits in the test tree, which in an Artemis
+	 * exercise the instructor controls and the submitter does not, so a permission
+	 * read from it is not the submitter-steerable value the supervised scope is.
+	 * Refusing here would also refuse a convention this repository's own fixtures
+	 * rely on: nine of them name {@code de.tum.cit.ase.ares.testutilities}, a
+	 * package rather than a class, whose enclosing package is exactly such an
+	 * ancestor.
+	 * <p>
+	 * Those two facts make refusal the wrong instrument, not the finding wrong. The
+	 * grant really is wider than anything a test class needs, so it is reported
+	 * rather than made fatal, and a policy that trips it should name its test
+	 * classes instead of their package.
+	 *
+	 * @param packageName the package of a test class
+	 * @return the permission for it
+	 */
+	@Nonnull
+	private static PackagePermission testClassAllowedPackage(@Nonnull String packageName) {
+		String reserved = ReservedPackageGuard.ancestorOfReservedPrefix(packageName);
+		if (reserved != null) {
+			LOG.warn("A test class was declared in the package {}, which permits the supervised code to import "
+					+ "everything below it, including the trusted namespace {}. Name the test classes "
+					+ "themselves rather than their package, or declare what may be imported in "
+					+ "theFollowingResourceAccessesArePermitted.", packageName, reserved);
 		}
 		return new PackagePermission(packageName);
 	}
