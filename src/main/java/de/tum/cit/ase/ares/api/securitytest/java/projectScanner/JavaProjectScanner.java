@@ -586,8 +586,8 @@ public class JavaProjectScanner implements ProjectScanner {
 				// but "every class is reserved" is a state a submission can produce, and one
 				// that then passed unenforced. Ares' own build reaches it too, which is why
 				// its self-tests declare their scope in a policy instead of deriving one.
-				throw new SecurityException(Messages.localized("security.scope.reserved.package", javaClass.getName(),
-						reserved));
+				throw new SecurityException(
+						Messages.localized("security.scope.reserved.package", javaClass.getName(), reserved));
 			}
 		}
 		if (derivedPackage.isBlank()) {

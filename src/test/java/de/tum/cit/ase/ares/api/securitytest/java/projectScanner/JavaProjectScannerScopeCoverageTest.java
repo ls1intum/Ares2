@@ -10,17 +10,10 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.util.List;
-
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
-import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
-import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 
 /**
  * Covers the check that turns the derived supervised package into a boundary.
