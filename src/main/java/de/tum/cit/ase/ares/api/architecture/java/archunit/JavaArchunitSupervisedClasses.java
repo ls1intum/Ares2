@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -50,6 +51,24 @@ public final class JavaArchunitSupervisedClasses {
 	 * output once rather than once per rule.
 	 */
 	private static final Map<String, JavaClasses> CACHE = new ConcurrentHashMap<>();
+
+	/**
+	 * The namespaces supervised code may not declare and may not be granted.
+	 * <p>
+	 * Ares' own prefix is written in two pieces on purpose. Copying this class into
+	 * the supervised project rewrites the framework's package token wherever it
+	 * appears, string literals included, so spelling it out would silently turn
+	 * this entry into the copied API's prefix and stop naming Ares itself.
+	 */
+	private static final List<String> RESERVED_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
+			"de.tum." + "cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
+			"anonymous.toolclasses.", "metatest.");
+
+	/**
+	 * The prefix of the API copied beside this class, taken from where this class
+	 * itself ended up rather than from a literal, which the copy would rewrite.
+	 */
+	private static final String COPIED_API_PREFIX = copiedApiPrefix();
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -115,7 +134,11 @@ public final class JavaArchunitSupervisedClasses {
 		Set<PackagePermission> permissions = new LinkedHashSet<>(declaredByPolicy);
 		for (JavaClass javaClass : validated(supervisedPackage)) {
 			String declared = javaClass.getPackageName();
-			if (!declared.isBlank()) {
+			// A reserved package is refused during validation above, so reaching one here
+			// would mean the inventory and the check disagreed. Skipped rather than
+			// granted regardless: a permission is the one thing that must never name a
+			// trusted namespace, whatever else went wrong.
+			if (!declared.isBlank() && reservedPrefixOf(declared) == null) {
 				permissions.add(new PackagePermission(declared));
 			}
 		}
@@ -148,8 +171,21 @@ public final class JavaArchunitSupervisedClasses {
 		}
 		if (validateCoverage) {
 			requireScopeToCover(supervisable, supervisedPackage, outputRoot);
+			// Everything imported now lies within the scope, so the whole inventory is
+			// both what was checked and what the rules analyse.
+			return imported;
 		}
-		return imported;
+		// A pinned scope is the instructor saying which part of the output is
+		// supervised, so the rules analyse that part and no more. Narrowing happens
+		// here rather than at import, because importing whole is what keeps the check
+		// above from being decided by the package names it is meant to be checking.
+		return imported
+				.that(new DescribedPredicate<JavaClass>("declared within the supervised scope " + supervisedPackage) {
+					@Override
+					public boolean test(JavaClass javaClass) {
+						return isWithinScope(javaClass.getPackageName(), supervisedPackage);
+					}
+				});
 	}
 
 	/**
@@ -166,6 +202,15 @@ public final class JavaArchunitSupervisedClasses {
 						+ " declares no package; a class in the default package lies outside every supervised "
 						+ "scope. Declare a package for it, or pin theSupervisedCodeUsesTheFollowingPackage in "
 						+ "a security policy.");
+			}
+			String reserved = reservedPrefixOf(declared);
+			if (reserved != null) {
+				throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): "
+						+ "The compiled class " + javaClass.getName() + " under " + outputRoot
+						+ " declares the reserved package " + declared + ", which lies inside the trusted "
+						+ "namespace " + reserved + ". Supervised code may not be named into a trusted "
+						+ "namespace, because the analysers and the runtime both treat those frames as the "
+						+ "framework's own.");
 			}
 			if (!isWithinScope(declared, supervisedPackage)) {
 				throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): "
@@ -240,6 +285,33 @@ public final class JavaArchunitSupervisedClasses {
 	 */
 	private static boolean isWithinScope(String declared, String scope) {
 		return declared.equals(scope) || declared.startsWith(scope + ".");
+	}
+
+	/**
+	 * The trusted namespace the package lies inside, or null if it lies inside
+	 * none. The copied API counts as one: in a supervised project it is the
+	 * framework, whatever it is called there.
+	 */
+	private static String reservedPrefixOf(String packageName) {
+		if (packageName == null || packageName.isBlank()) {
+			return null;
+		}
+		String normalized = packageName.endsWith(".") ? packageName : packageName + ".";
+		if (!COPIED_API_PREFIX.isEmpty() && normalized.startsWith(COPIED_API_PREFIX)) {
+			return COPIED_API_PREFIX;
+		}
+		for (String reserved : RESERVED_PREFIXES) {
+			if (normalized.startsWith(reserved)) {
+				return reserved;
+			}
+		}
+		return null;
+	}
+
+	private static String copiedApiPrefix() {
+		String self = JavaArchunitSupervisedClasses.class.getPackageName();
+		int marker = self.indexOf(".ares.api.");
+		return marker < 0 ? "" : self.substring(0, marker) + ".ares.api.";
 	}
 
 	private static boolean isCompilationMetadata(JavaClass javaClass) {
