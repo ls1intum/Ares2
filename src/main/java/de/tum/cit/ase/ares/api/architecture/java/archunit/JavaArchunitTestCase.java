@@ -55,13 +55,23 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	 * Set.of(PackagePermission(...), ...).
 	 */
 	private String allowedPackagesAsCode() {
-		if (allowedPackages.isEmpty()) {
-			return "Set.of()";
-		}
 		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\")",
 				PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage()))
 				.collect(Collectors.joining(", "));
-		return "Set.of(" + inner + ")";
+		String declaredByPolicy = "Set.of(" + inner + ")";
+		if (!isSupervisedScopeWasDerived()) {
+			// A pinned scope is the instructor's own statement of what may be imported,
+			// so it is written out as it stands.
+			return declaredByPolicy;
+		}
+		// A derived scope is a prefix, and permitting a prefix permits everything below
+		// it. Writing it into the generated file left a derived scope holding a grant
+		// over a whole namespace even after the coverage check was satisfied, because
+		// the permission outlives the moment it was granted. The packages the compiled
+		// output actually declares cannot be broader than the output, so the generated
+		// rule asks for those at runtime and adds them to what the policy declared.
+		return "JavaArchunitSupervisedClasses.allowedPackages(\"" + getSupervisedPackage() + "\", " + declaredByPolicy
+				+ ")";
 	}
 
 	/**

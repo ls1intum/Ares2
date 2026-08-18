@@ -4,14 +4,17 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.core.importer.ImportOption;
+
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 //</editor-fold>
 
 /**
@@ -32,10 +35,9 @@ import com.tngtech.archunit.core.importer.ImportOption;
  * <b>Why this class is self-contained.</b> Ares copies its {@code api} subtree
  * into the supervised project as sources, and a generated test compiles against
  * those copies rather than against the Ares jar. Only what the copy manifests
- * list is available, which is why this reads the output root and the reserved
- * prefixes itself instead of calling {@code JavaProjectScanner} or
- * {@code ProjectSourcesFinder}, and why its diagnostics are written out here
- * rather than taken from the message bundle.
+ * list is available, which is why this resolves the output root itself instead
+ * of calling {@code ProjectSourcesFinder}, and why its diagnostics are written
+ * out here rather than taken from the message bundle.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -43,21 +45,6 @@ import com.tngtech.archunit.core.importer.ImportOption;
 public final class JavaArchunitSupervisedClasses {
 
 	// <editor-fold desc="Attributes">
-	/**
-	 * The build tools' conventional production output directories, in the order
-	 * they are tried. Read rather than taken from the descriptor, so a build that
-	 * writes elsewhere is not followed there.
-	 */
-	private static final List<String> PRODUCTION_OUTPUT_ROOTS = List.of("target/classes", "build/classes/java/main");
-
-	/**
-	 * Path fragments belonging to the framework rather than to the supervised
-	 * project: Ares itself, and the copy of its API that generation writes into the
-	 * project. Neither can be supervised, and demanding that a scope cover them
-	 * would demand the impossible.
-	 */
-	private static final List<String> FRAMEWORK_PATHS = List.of("/de/tum/cit/ase/ares/api/", "/ares/api/");
-
 	/**
 	 * The inventory, kept per scope and mode so that a suite of rules imports the
 	 * output once rather than once per rule.
@@ -84,8 +71,8 @@ public final class JavaArchunitSupervisedClasses {
 	 *
 	 * @param supervisedPackage the derived scope
 	 * @return the classes to analyse; never empty
-	 * @throws SecurityException if nothing is compiled, or a class lies outside the
-	 *                           scope
+	 * @throws SecurityException if the output cannot be identified, nothing is
+	 *                           compiled, or a class lies outside the scope
 	 */
 	public static JavaClasses validated(String supervisedPackage) {
 		return CACHE.computeIfAbsent("validated|" + supervisedPackage,
@@ -95,16 +82,44 @@ public final class JavaArchunitSupervisedClasses {
 	/**
 	 * The supervised classes for a scope an instructor pinned in a policy.
 	 * <p>
-	 * Only the scope's own subtree is imported and no whole-project check is made:
-	 * a pinned policy may deliberately supervise part of the output, and narrowing
-	 * it is then a decision rather than a mistake.
+	 * No whole-project check is made: a pinned policy may deliberately supervise
+	 * part of the output, and narrowing it is then a decision rather than a
+	 * mistake.
 	 *
 	 * @param supervisedPackage the pinned scope
 	 * @return the classes to analyse
-	 * @throws SecurityException if nothing is compiled
+	 * @throws SecurityException if the output cannot be identified or nothing is
+	 *                           compiled
 	 */
 	public static JavaClasses pinned(String supervisedPackage) {
 		return CACHE.computeIfAbsent("pinned|" + supervisedPackage, key -> importProduction(supervisedPackage, false));
+	}
+
+	/**
+	 * The packages the supervised code may import from itself, read from the
+	 * compiled output rather than from the scope.
+	 * <p>
+	 * The scope is a prefix, so permitting it permits everything below it. Writing
+	 * it into the generated file as a permission meant a derived scope kept a grant
+	 * over a whole namespace even once the coverage check above was satisfied. The
+	 * packages the output actually declares cannot be broader than the output, so
+	 * they are what the generated rules ask for.
+	 *
+	 * @param supervisedPackage the supervised scope
+	 * @param declaredByPolicy  the permissions the policy itself granted, which
+	 *                          stay authoritative
+	 * @return the permissions the generated rule should apply
+	 */
+	public static Set<PackagePermission> allowedPackages(String supervisedPackage,
+			Set<PackagePermission> declaredByPolicy) {
+		Set<PackagePermission> permissions = new LinkedHashSet<>(declaredByPolicy);
+		for (JavaClass javaClass : validated(supervisedPackage)) {
+			String declared = javaClass.getPackageName();
+			if (!declared.isBlank()) {
+				permissions.add(new PackagePermission(declared));
+			}
+		}
+		return permissions;
 	}
 	// </editor-fold>
 
@@ -116,11 +131,11 @@ public final class JavaArchunitSupervisedClasses {
 					+ "checked against. Declare theSupervisedCodeUsesTheFollowingPackage in a security policy.");
 		}
 		Path outputRoot = productionOutputRoot();
-		JavaClasses imported = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-				.withImportOption(location -> !isFrameworkOwned(location.toString()))
-				.withImportOption(
-						location -> validateCoverage || isWithinScopePath(location.toString(), supervisedPackage))
-				.importPath(outputRoot);
+		// Imported whole, with nothing filtered out. Filtering first would decide what
+		// is worth checking using package names, which are exactly what whoever adds
+		// files to the project controls: a class excluded by the filter would never
+		// reach the check below and would run unsupervised while the suite passed.
+		JavaClasses imported = new ClassFileImporter().importPath(outputRoot);
 		List<JavaClass> supervisable = supervisableClassesIn(imported);
 		if (supervisable.isEmpty()) {
 			// Empty at generation is ordinary; empty here is not. This runs when the
@@ -158,16 +173,16 @@ public final class JavaArchunitSupervisedClasses {
 						+ ", but the compiled class " + javaClass.getName() + " under " + outputRoot
 						+ " declares the package " + declared + ", which lies outside it. The derivation counts "
 						+ "declarations and can therefore be steered by whoever adds files, so Ares refuses to "
-						+ "enforce over part of the output. Declare "
-						+ "theSupervisedCodeUsesTheFollowingPackage in a security policy to state the scope "
-						+ "authoritatively.");
+						+ "enforce over part of the output. Declare theSupervisedCodeUsesTheFollowingPackage in "
+						+ "a security policy to state the scope authoritatively.");
 			}
 		}
 	}
 
 	/**
 	 * The classes any scope could cover: executable code, excluding the descriptors
-	 * that cannot run.
+	 * that cannot run. Nothing else is removed, because what is left is what the
+	 * scope is checked against.
 	 */
 	private static List<JavaClass> supervisableClassesIn(JavaClasses imported) {
 		List<JavaClass> supervisable = new ArrayList<>();
@@ -182,19 +197,40 @@ public final class JavaArchunitSupervisedClasses {
 
 	// <editor-fold desc="Helpers">
 	/**
-	 * The production output root, or a refusal naming both places that were tried.
+	 * The production output root, decided by which build descriptor the project has
+	 * rather than by which output directory happens to exist.
+	 * <p>
+	 * Trying {@code target/classes} and then {@code build/classes/java/main} in
+	 * turn looks equivalent and is not: a Gradle project that once built with Maven
+	 * still has a {@code target/classes}, and the rules would then be checked
+	 * against a stale tree that need not resemble what will run. The descriptor
+	 * says which build tool owns the project, so it decides. A project carrying
+	 * both descriptors is refused rather than guessed at.
+	 *
+	 * @return the production output root
 	 */
 	private static Path productionOutputRoot() {
-		for (String candidate : PRODUCTION_OUTPUT_ROOTS) {
-			Path root = Path.of(candidate);
-			if (Files.isDirectory(root)) {
-				return root.toAbsolutePath();
-			}
+		boolean maven = Files.isRegularFile(Path.of("pom.xml"));
+		boolean gradle = Files.isRegularFile(Path.of("build.gradle"))
+				|| Files.isRegularFile(Path.of("build.gradle.kts"));
+		if (maven && gradle) {
+			throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): "
+					+ "The project has both a Maven and a Gradle descriptor, so which compiled output the "
+					+ "architecture rules should be checked against is ambiguous. Ares refuses to guess.");
 		}
-		throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): "
-				+ "No compiled production output was found under " + String.join(" or ", PRODUCTION_OUTPUT_ROOTS)
-				+ ", so the architecture rules have nothing to be checked against. Ares refuses to report "
-				+ "success over an empty analysis.");
+		if (!maven && !gradle) {
+			throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): "
+					+ "The project has neither a Maven nor a Gradle descriptor, so the compiled output the "
+					+ "architecture rules should be checked against cannot be identified.");
+		}
+		Path outputRoot = Path.of(maven ? "target/classes" : "build/classes/java/main");
+		if (!Files.isDirectory(outputRoot)) {
+			throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): "
+					+ "The compiled production output " + outputRoot.toAbsolutePath() + " does not exist, so the "
+					+ "architecture rules have nothing to be checked against. Ares refuses to report success "
+					+ "over an empty analysis.");
+		}
+		return outputRoot.toAbsolutePath();
 	}
 
 	/**
@@ -204,15 +240,6 @@ public final class JavaArchunitSupervisedClasses {
 	 */
 	private static boolean isWithinScope(String declared, String scope) {
 		return declared.equals(scope) || declared.startsWith(scope + ".");
-	}
-
-	private static boolean isWithinScopePath(String location, String scope) {
-		return location.replace("\\", "/").contains("/" + scope.replace('.', '/') + "/");
-	}
-
-	private static boolean isFrameworkOwned(String location) {
-		String path = location.replace("\\", "/");
-		return FRAMEWORK_PATHS.stream().anyMatch(path::contains);
 	}
 
 	private static boolean isCompilationMetadata(JavaClass javaClass) {

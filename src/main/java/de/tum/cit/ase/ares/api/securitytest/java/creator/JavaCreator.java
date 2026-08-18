@@ -160,8 +160,15 @@ public class JavaCreator implements Creator {
 						// other reading of the project, while a pinned one stays the instructor's
 						// own declaration, which may legitimately sit above a reserved namespace
 						// as de.tum.cit.ase.ares does.
-						? Stream.of(supervisedScopeWasDerived ? derivedAllowedPackage(packageName)
-								: new PackagePermission(packageName))
+						// A derived scope is deliberately NOT granted here. Nothing is compiled, so
+						// this is generation, and the permission would be written into the generated
+						// file and outlive the moment it was granted: the scope is a prefix, so it
+						// would hold a grant over a whole namespace even once the coverage check was
+						// satisfied. The generated rule asks for the packages the output actually
+						// declares instead. A pinned scope is the instructor's own declaration and
+						// stands.
+						? (supervisedScopeWasDerived ? Stream.<PackagePermission>empty()
+								: Stream.of(new PackagePermission(packageName)))
 						: Stream.<PackagePermission>empty())
 						: supervisedPackages.stream().map(JavaCreator::derivedAllowedPackage),
 				/*
