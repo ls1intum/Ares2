@@ -4,11 +4,12 @@ sidebar_position: 1
 description: "Short, complete recipes for the policy situations that come up most often when writing an exercise."
 ---
 
-:::tip[ELI5]
-The [Policy Reference](/instructor/policy-reference/) tells you what every field means.
+:::tip[Simple Story]
+The [Policy Reference](/instructor/policy-reference/) tells you what every line of the
+checklist means.
 
-This section tells you what to write when you have an actual exercise in front of you and a
-concrete thing the student's code needs to be allowed to do.
+This section tells you what to write on it when you have a real examination in front of you
+and one concrete thing a pupil has to be allowed to do.
 :::
 
 ## How a recipe is built

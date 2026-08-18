@@ -4,12 +4,12 @@ sidebar_position: 3
 description: "Depth-first traversal of the call graph, used to find a route from student code to a forbidden operation."
 ---
 
-:::tip[ELI5]
-You are in a maze and want to know whether any route reaches the treasure.
+:::tip[Simple Story]
+You want to know whether any route leads from a pupil's desk to the locked cupboard.
 
-Depth-first search means: always take the next unexplored corridor, keep going until you
-hit a dead end, then back up to the last junction and try the next one. If a route exists,
-this finds it. And the trail you followed *is* the answer: it shows exactly how you got there.
+Depth-first search means: always take the next unexplored corridor, keep going until you hit a
+dead end, then back up to the last junction and try the next one. If a route exists, this finds
+it. And the trail you followed *is* the answer: it shows exactly how you got there.
 :::
 
 ## What it is

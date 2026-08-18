@@ -4,11 +4,11 @@ sidebar_position: 1
 description: "How static and runtime responsibilities are divided, project discovery, and the reserved package build boundary."
 ---
 
-:::tip[ELI5]
-Two layers do the guarding, and this page settles who is responsible for what.
+:::tip[Simple Story]
+Two layers do the checking, and this page settles who is responsible for what.
 
 It also states the one rule the build itself has to keep, and it is honest about what the
-boundary does **not** protect against, which is the part most worth reading.
+boundary does **not** cover, which is the part most worth reading.
 :::
 
 ## Static and runtime responsibility

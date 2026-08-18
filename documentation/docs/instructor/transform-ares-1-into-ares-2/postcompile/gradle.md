@@ -4,7 +4,7 @@ sidebar_position: 1
 description: "Migrating an Ares 1 Gradle exercise onto Ares 2 in Postcompile mode: dependency, wiring, guard and verification."
 ---
 
-:::tip[ELI5]
+:::tip[Simple Story]
 This is the build-side half of the migration for a Gradle exercise.
 
 The parts that do not depend on your build tool are on [the common page](../index.md); do those

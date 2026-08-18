@@ -4,9 +4,9 @@ sidebar_position: 2
 description: "Which mode to migrate an Ares 1 exercise onto, and what the choice costs you."
 ---
 
-:::tip[ELI5]
-Ares 1 worked one way only. Ares 2 gives you two, and you have to pick one before touching the
-build.
+:::tip[Simple Story]
+The old rules worked one way only. The new ones give you two, and you have to pick before
+touching the build.
 
 For a migration the answer is almost always Postcompile.
 :::
@@ -35,7 +35,7 @@ The full comparison is on
 | | Postcompile | Precompile |
 | --- | --- | --- |
 | Ares in the exercise | a dependency | not needed after generation |
-| Activated by | the test cases, through an Ares test annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`); `@Policy` only selects and configures the policy | the exercise's own build |
+| Activated by | the test methods, through an Ares test annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`); `@Policy` only selects and configures the policy | the exercise's own build |
 | Policy granularity | per test method | one generated set per project |
 | Changing the policy | edit and rerun | regenerate and rebuild |
 | Closest to an Ares 1 exercise | **yes** | no |

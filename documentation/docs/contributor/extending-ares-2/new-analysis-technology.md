@@ -4,10 +4,11 @@ sidebar_position: 5
 description: "Adding a static analyser alongside ArchUnit and WALA."
 ---
 
-:::tip[ELI5]
-The architecture layer reads compiled code without running it, looking for forbidden calls.
+:::tip[Simple Story]
+The reach check reads the pupil's compiled answer, without running any of it, looking for routes to
+forbidden things.
 
-Today two libraries do that. This is how a third would join them.
+Two libraries do that today. This is how a third would join them.
 :::
 
 :::note[This page is a stub]

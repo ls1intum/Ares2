@@ -4,11 +4,11 @@ sidebar_position: 6
 description: "Path access, testing before release, deadline extensions, threads, console interaction, networking and locale."
 ---
 
-:::tip[ELI5]
-The basics get an exercise working. This page is everything else you will eventually want.
+:::tip[Simple Story]
+The basics get an examination running. This page is everything else you will eventually want.
 
-How to test the exercise before students see it, how to give someone extra time, how to test a
-program that talks to the console, and a few smaller knobs.
+How to sit the paper yourself before any pupil does, how to grant someone extra time, how to
+examine a pupil who talks to the console, and a few smaller adjustments.
 :::
 
 The basics are covered by [Setup](setup.md) and [Test Annotations](test-annotations.md),

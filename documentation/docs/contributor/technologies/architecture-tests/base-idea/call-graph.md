@@ -4,12 +4,12 @@ sidebar_position: 2
 description: "The directed graph of which method may call which, and why it is the object of the analysis."
 ---
 
-:::tip[ELI5]
+:::tip[Simple Story]
 The call graph is the map of arrows: "this method can call that one".
 
-It matters because forbidden behaviour is usually not written in the open. A student does
-not call `delete` directly; they call a helper, which calls another helper, which calls
-`delete`. Following the arrows is how you find that out without running anything.
+It matters because a forbidden route is rarely written in the open. A pupil does not call
+`delete` themselves; they ask a neighbour, who asks another, who calls `delete`. Following the
+arrows is how you find that out without anything running.
 :::
 
 ## What it is

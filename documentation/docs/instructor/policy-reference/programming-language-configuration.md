@@ -4,13 +4,13 @@ sidebar_position: 2
 description: "The pipeline selector and the identity of the supervised code: build system, static analysis tool, instrumentation backend, root package and main class."
 ---
 
-:::tip[ELI5]
-Before Ares can guard anything, it has to know **what it is guarding and how**.
+:::tip[Simple Story]
+Before the checklist means anything, it has to say **which examination it belongs to and who
+is working it**.
 
-Think of it like hiring a security guard for a building. First you tell the guard which
-building it is (the package), where the front door is (the main class), and which set of
-tools they should bring (Maven or Gradle, ArchUnit or WALA, AspectJ or instrumentation).
-None of that says what is forbidden yet. It just sets up who is on duty and where.
+Which room (the package), where the pupils come in (the main class), and which equipment the
+teacher brings: Maven or Gradle, ArchUnit or WALA, AspectJ or instrumentation. None of that
+forbids anything yet. It settles who is on duty, and where.
 :::
 
 ## Position in the example policy file

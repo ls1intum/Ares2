@@ -4,11 +4,12 @@ sidebar_position: 1
 description: "The abstract factory and builder that turn a security policy into generated security tests."
 ---
 
-:::tip[ELI5]
-A policy file is a wish list. Something has to turn it into real, runnable tests.
+:::tip[Simple Story]
+A filled-in checklist is a wish list. Something has to turn it into checks the teacher can
+actually work through.
 
-This is that something: it reads the finished policy and builds the exact set of checks that
-will enforce it.
+This is that something: it reads the finished checklist and builds the exact set of security
+test cases it calls for.
 :::
 
 > **Audience:** IT-Education experts with no security background.

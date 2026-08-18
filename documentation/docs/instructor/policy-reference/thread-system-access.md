@@ -4,12 +4,12 @@ sidebar_position: 7
 description: "How many threads of which class the supervised code may create."
 ---
 
-:::tip[ELI5]
-A thread is the program doing two things at once.
+:::tip[Simple Story]
+A thread is a pupil doing two things at once.
 
-Left unbounded, a student's program can create thousands of them and bring the build
-machine to its knees, whether by accident or on purpose. So a policy says which kind of
-worker may be started, and how many of them at most.
+Left unbounded, one pupil can call in thousands of helpers and bring the whole room to a halt,
+by accident as easily as on purpose. So the checklist says which kind of helper may be called
+in, and how many at most.
 :::
 
 ## Position in the example policy file

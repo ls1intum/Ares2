@@ -4,11 +4,11 @@ sidebar_position: 3
 description: "How the AOP layer intercepts and evaluates thread creation and manipulation."
 ---
 
-:::tip[ELI5]
-A program can ask to do several things at once, and left alone it can ask for thousands.
+:::tip[Simple Story]
+A pupil can ask for help, and left alone can ask for thousands of helpers.
 
-This page follows one such request: the student's code tries to start a new worker, Ares
-intercepts it, checks what kind of worker it is and how many already exist, and decides.
+This page follows one such request: the pupil calls a helper in, the teacher intercepts, checks
+what kind of helper it is and how many are already in the room, and decides.
 :::
 
 ## 1. High-Level Overview
@@ -650,7 +650,7 @@ if (violatingMethod == null) {
 
 **1. Purpose**
 
-Identify which test method triggered the student code. This helps instructors know which test case revealed the security violation.
+Identify which test method triggered the student code. This helps instructors know which test method revealed the security violation.
 
 **2. How it works**
 

@@ -4,12 +4,13 @@ sidebar_position: 2
 description: "How the AOP layer intercepts and evaluates command execution."
 ---
 
-:::tip[ELI5]
-Running another program is the biggest hole of all, because it can be used to run anything.
+:::tip[Simple Story]
+Sending someone out on an errand is the biggest hole of all, because an errand can fetch
+anything.
 
-This page follows one attempt from beginning to end: the student's code asks to run a
-command, Ares steps in front of it, works out what was actually asked for, compares it with
-what the policy permits, and either steps aside or refuses.
+This page follows one attempt from beginning to end: the pupil asks for the errand, the teacher
+gets there first, works out what was actually asked for, checks it against the checklist, and
+either stands aside or refuses.
 :::
 
 ## 1. High-Level Overview
@@ -600,7 +601,7 @@ if (violatingMethod == null) {
 
 **1. Purpose**
 
-Identify which test method triggered the student code. This helps instructors know which test case revealed the security violation.
+Identify which test method triggered the student code. This helps instructors know which test method revealed the security violation.
 
 **2. How it works**
 

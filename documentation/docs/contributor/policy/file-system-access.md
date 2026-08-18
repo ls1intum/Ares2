@@ -4,10 +4,12 @@ sidebar_position: 3
 description: "How read, overwrite, execute and delete permissions are enforced by the architecture layer, the advice and Phobos."
 ---
 
-:::tip[ELI5]
-This is the domain with the most ways to reach it, so it has the most enforcement surface.
+:::tip[Simple Story]
+This is the part of the checklist with the most ways to reach it, so it carries the most
+enforcement.
 
-Three independent layers can each stop a file operation, and they do not all behave alike.
+Three independent layers can each stop a pupil picking up a paper, and they do not all behave
+alike.
 :::
 
 For the fields an exercise author writes, see

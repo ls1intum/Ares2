@@ -4,8 +4,8 @@ sidebar_position: 5
 description: "Full reference for the Ares 2 security policy file: structure, every supported option and how each is enforced."
 ---
 
-:::tip[ELI5]
-This is the full reference for the policy file, the one you keep open while writing one.
+:::tip[Simple Story]
+This is the full reference for the checklist, the one the board keeps open while filling one in.
 
 Every option, what it means, and what actually happens when you set it.
 :::

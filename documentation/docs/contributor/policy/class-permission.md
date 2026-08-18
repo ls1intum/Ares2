@@ -4,10 +4,10 @@ sidebar_position: 2
 description: "How the derived ClassPermission set is built and how it reaches both enforcement layers."
 ---
 
-:::tip[ELI5]
-Some classes are trusted rather than sandboxed, and this is where that set comes from.
+:::tip[Simple Story]
+Some people in the room are trusted rather than checked, and this is where that set comes from.
 
-It is the only permission in the model that nobody writes by hand.
+It is the only line of the checklist nobody writes by hand.
 :::
 
 For the fields an exercise author writes, see
@@ -26,7 +26,7 @@ the policy file**. It is derived. What an author writes is
 Each declared test class is validated against `JAVA_CLASS_PATH_PATTERN`, a fully qualified
 Java class name. Entries that are `null` or blank are filtered out **before** a
 `ClassPermission` is constructed, because the constructor throws on both and a single
-malformed entry from a scanned project would otherwise abort the creation of every test case.
+malformed entry from a scanned project would otherwise abort the creation of every security test case.
 
 ## What it generates
 

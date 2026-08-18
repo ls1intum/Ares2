@@ -4,12 +4,12 @@ sidebar_position: 2
 description: "Deriving call relationships from the syntax tree, and how that differs from a bytecode call graph."
 ---
 
-:::tip[ELI5]
-You can work out from the source which method calls which, and draw the same kind of map
-the bytecode analysis draws.
+:::tip[Simple Story]
+You can work out from the source which method calls which, and draw the same kind of map the
+bytecode analysis draws.
 
-The catch is that the source only shows you the code you have. Anything from a library is
-a name on the page with nothing behind it.
+The catch is that the source only shows what the pupil actually wrote. Anything borrowed from a
+library is a name on the page with nothing behind it.
 :::
 
 ## What it is

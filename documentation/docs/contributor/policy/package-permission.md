@@ -4,10 +4,10 @@ sidebar_position: 7
 description: "How import restrictions are enforced, and why this domain is architecture-only."
 ---
 
-:::tip[ELI5]
-This domain is about which packages student code may import at all.
+:::tip[Simple Story]
+This part of the checklist is about what equipment a pupil may bring into the room at all.
 
-It is decided by reading the bytecode, not by watching the program run.
+It is settled by reading the compiled answer, not by watching them work.
 :::
 
 For the fields an exercise author writes, see

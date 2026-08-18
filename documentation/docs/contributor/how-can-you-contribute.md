@@ -4,12 +4,14 @@ sidebar_position: 1
 description: "How to get involved with Ares 2: the workflow, the build, and what a good pull request looks like."
 ---
 
-:::tip[ELI5]
-Ares decides whether a student's program is allowed to do something.
+:::tip[Simple Story]
+Ares is the checklist. Change it carelessly and one of two things happens: a pupil gets away
+with something, or an honest pupil is failed for nothing.
 
-That means a mistake here is not a cosmetic bug. Let too much through and cheating goes
-unnoticed; block too much and an honest submission fails. So the rules for changing Ares are
-stricter than for an ordinary library, and this page is the short version of them.
+Neither is a cosmetic bug, which is why the rules for changing Ares are stricter than for an
+ordinary library. Every change to enforcement has to prove both halves: the permitted thing
+still permitted,
+the forbidden thing still refused. This page is the short version of those rules.
 :::
 
 Ares 2 is developed in the open at [ls1intum/Ares2](https://github.com/ls1intum/Ares2).

@@ -4,12 +4,12 @@ sidebar_position: 8
 description: "Which packages the supervised code may import, matched by prefix."
 ---
 
-:::tip[ELI5]
-Java code borrows tools from libraries by importing them.
+:::tip[Simple Story]
+Pupils bring equipment into the room by importing libraries.
 
-Some of those tools are harmless, and some are a way straight around the fence. This list
-names the libraries the student's program may borrow from. Naming a package also covers
-everything inside it, so allowing `java.util` allows `java.util.concurrent` too.
+Some of it is harmless and some of it is a way straight past the checklist. This list names
+what may be brought in. Naming a package covers everything inside it, so permitting
+`java.util` permits `java.util.concurrent` as well.
 :::
 
 ## Position in the example policy file

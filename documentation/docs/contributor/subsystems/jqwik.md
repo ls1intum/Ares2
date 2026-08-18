@@ -4,11 +4,11 @@ sidebar_position: 3
 description: "The jqwik integration subsystem."
 ---
 
-:::tip[ELI5]
-This is the piece that lets Ares supervise property tests as well as ordinary ones.
+:::tip[Simple Story]
+This is the piece that puts the checklist into the second teacher's hands as well as the first.
 
-Property tests are run by their own engine rather than by the usual one, so without this
-piece they would slip past every check Ares makes.
+That teacher examines by their own method rather than the usual one, so without this piece
+their whole room would go unsupervised.
 :::
 
 ## What it does

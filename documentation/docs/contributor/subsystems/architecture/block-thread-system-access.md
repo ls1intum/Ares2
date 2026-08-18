@@ -4,11 +4,11 @@ sidebar_position: 3
 description: "How the architecture layer detects thread manipulation statically, with ArchUnit and WALA."
 ---
 
-:::tip[ELI5]
-Same question as the aspect-oriented programming (AOP) page, answered by reading rather than by watching.
+:::tip[Simple Story]
+The same question as the AOP page, answered by reading rather than by watching.
 
-This layer looks through the compiled program for any route from the student's code to the
-part of Java that starts new workers, and reports the route it found.
+This layer looks through the compiled answer for any route to the part of Java that calls in
+helpers, and reports the route it found.
 :::
 
 ## 1. High-Level Overview

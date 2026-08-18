@@ -4,11 +4,12 @@ sidebar_position: 2
 description: "The JUnit Jupiter integration subsystem."
 ---
 
-:::tip[ELI5]
-This is the piece that plugs Ares into the thing that actually runs the tests.
+:::tip[Simple Story]
+This is the piece that puts the checklist into the hands of the teacher who actually runs the
+examination.
 
-It is what makes a test public or hidden, what refuses to run a hidden test before its
-deadline, and what switches the sandbox on for a test that asks for it.
+It is what makes a question public or hidden, what refuses to ask a hidden question before its
+deadline, and what puts a desk under supervision when the question asks for it.
 :::
 
 ## What it does

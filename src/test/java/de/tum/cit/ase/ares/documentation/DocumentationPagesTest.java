@@ -23,19 +23,19 @@ class DocumentationPagesTest {
 	@Test
 	void reportsALegacyAdmonitionInProse() {
 		List<String> offenders = DocumentationPages.legacyAdmonitionsIn("""
-				:::tip ELI5
+				:::tip Simple Story
 				Written the Docusaurus 2 way, so it renders as text.
 				:::
 				""");
 
-		assertEquals(List.of(":::tip ELI5"), offenders);
+		assertEquals(List.of(":::tip Simple Story"), offenders);
 	}
 
 	@Test
 	void ignoresALegacyAdmonitionInsideAFencedBlock() {
 		List<String> offenders = DocumentationPages.legacyAdmonitionsIn("""
 				```markdown
-				:::tip ELI5
+				:::tip Simple Story
 				```
 				""");
 
@@ -47,7 +47,7 @@ class DocumentationPagesTest {
 		List<String> offenders = DocumentationPages.legacyAdmonitionsIn("""
 				````markdown
 				```markdown
-				:::tip ELI5
+				:::tip Simple Story
 				```
 				````
 				""");
@@ -62,7 +62,7 @@ class DocumentationPagesTest {
 		List<String> offenders = DocumentationPages.legacyAdmonitionsIn("""
 				```markdown
 				~~~
-				:::tip ELI5
+				:::tip Simple Story
 				~~~
 				```
 				""");

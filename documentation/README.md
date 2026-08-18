@@ -45,8 +45,8 @@ pnpm run test           # Playwright integration tests against the built site
 
 These drive the built site in a browser, so they check what a reader actually gets. The
 Docusaurus build proves that every link resolves; it does not prove that a page renders. The
-suite covers navigation between the two guides, the red marking on the policy pages, the ELI5
-boxes, search, and the 404 page.
+suite covers navigation between the two guides, the red marking on the policy pages, the
+Simple Story boxes, search, and the 404 page.
 
 Structure is pinned on the Java side as well, under
 `src/test/java/de/tum/cit/ase/ares/documentation`: the policy pages must all share one shape

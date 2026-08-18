@@ -4,12 +4,13 @@ sidebar_position: 9
 description: "The out-of-process sandbox subsystem: bubblewrap, the LD_PRELOAD firewall and the timeout wrapper."
 ---
 
-:::tip[ELI5]
-Everything else in Ares guards the program from inside it.
+:::tip[Simple Story]
+Everything else in Ares works inside the room. Phobos **is** the room.
 
-Phobos guards it from outside, using the operating system itself. It hides files the program
-should not see, refuses connections it should not make, and stops it when it has run too long.
-Being outside matters: a program cannot switch off a guard it cannot reach.
+The desk with its dividers, the door, and the clock out in the corridor, all put in place by
+the operating system before the pupil walked in. It hides papers they should not see, refuses
+calls they should not make, and stops them when they have run too long. Being outside matters:
+a pupil can talk a teacher round, but cannot unbuild a divider.
 :::
 
 ## What it does

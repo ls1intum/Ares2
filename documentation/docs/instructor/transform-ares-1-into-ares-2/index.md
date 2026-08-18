@@ -4,11 +4,11 @@ sidebar_position: 1
 description: "The migration work that is the same whichever mode you choose: why, what changes, imports and the annotation-to-policy translation."
 ---
 
-:::tip[ELI5]
-You have an exercise built on the old Ares and you want it on the new one.
+:::tip[Simple Story]
+You have an examination built to the old rules and you want it on the new ones.
 
-This page is everything that has to happen either way. The build-side work depends on which mode
-you pick, and lives on the four pages behind it.
+This page is everything that has to happen either way. The build-side work depends on which
+mode you pick, and lives on the four pages behind it.
 :::
 
 > **Audience:** IT-Education experts maintaining an existing Ares 1 exercise.

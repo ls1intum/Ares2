@@ -4,11 +4,10 @@ sidebar_position: 1
 description: "Protecting a Gradle project with Ares 2 in Precompile mode, from policy file to enforced build."
 ---
 
-:::tip[ELI5]
-This is the whole path for a Gradle exercise that has its security tests generated into it
-beforehand.
+:::tip[Simple Story]
+This is the whole path for a Gradle exercise that has its checks printed in beforehand.
 
-Write the policy, run the generator, then wire the generated files into the build.
+Fill in the checklist, run the generator, then wire the generated files into the build.
 :::
 
 Precompile generates the enforcement artefacts before the exercise is built. The generator is run

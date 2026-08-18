@@ -4,10 +4,11 @@ sidebar_position: 6
 description: "The failures instructors actually hit when protecting or migrating an exercise, and what each one means."
 ---
 
-:::tip[ELI5]
-When something goes wrong, the error message usually names the mechanism rather than the cause.
+:::tip[Simple Story]
+When something goes wrong, the report names the mechanism rather than the cause. It tells you
+which part of the checklist objected, not what you did.
 
-This page translates the messages back into what you actually have to change.
+This page translates the reports back into what you actually have to change.
 :::
 
 The two tables below are the fastest route: find the message you actually saw. The sections

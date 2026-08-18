@@ -4,12 +4,12 @@ sidebar_position: 1
 description: "How the AOP layer intercepts and evaluates file system operations."
 ---
 
-:::tip[ELI5]
-This page follows one file operation the whole way through.
+:::tip[Simple Story]
+This page follows one paper being picked up, the whole way through.
 
-The student's program asks to open a file, Ares gets there first, looks at which file it is
-and what is about to be done to it, checks that against the list of permitted paths, and then
-either lets it happen or throws it out. Every step of that is written down here.
+The pupil reaches for it, the teacher gets there first, looks at which paper it is and what is
+about to be done with it, checks that against the permitted list, and then either allows it or
+takes it away. Every step of that is written down here.
 :::
 
 <a id="file-system-security-mechanism"></a>
@@ -1031,7 +1031,7 @@ if (violatingMethod == null) {
 
 **1. Purpose**
 
-Identify which test method triggered the student code. This helps instructors know which test case revealed the security violation.
+Identify which test method triggered the student code. This helps instructors know which test method revealed the security violation.
 
 **2. How it works**
 

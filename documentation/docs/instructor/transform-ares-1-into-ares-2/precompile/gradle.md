@@ -4,9 +4,9 @@ sidebar_position: 1
 description: "Migrating an Ares 1 Gradle exercise straight onto Ares 2 in Precompile mode. Not yet written."
 ---
 
-:::tip[ELI5]
-This would take an Ares 1 Gradle exercise directly to the generated-artefact model, skipping the
-dependency-based one.
+:::tip[Simple Story]
+This would take an old-rules Gradle exercise straight to the printed-in checks, skipping the
+dependency-based route.
 
 Nobody has written that path down yet, so this page says what it would have to cover.
 :::

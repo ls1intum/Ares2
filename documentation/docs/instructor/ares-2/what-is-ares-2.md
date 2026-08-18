@@ -4,13 +4,15 @@ sidebar_position: 1
 description: "What Ares 2 is, what it is for, and how this documentation is organised."
 ---
 
-:::tip[ELI5]
+:::tip[Simple Story]
 When students submit programming homework, something has to run their code to see whether it
-works.
+works. Running a stranger's code on your machine is exactly as risky as it sounds.
 
-Running a stranger's code on your machine is exactly as risky as it sounds. Ares is the fence
-you put around it: the code still runs and still gets marked, but it cannot reach anything it
-was not given permission to reach.
+So picture an examination. The methods the student wrote are the pupils. The test framework,
+JUnit or jqwik, is the teacher, putting the exercise's questions one at a time and marking each
+answer on the spot. Ares is the checklist the teacher works through at every desk: what a pupil
+may reach for, and what happens when they reach for anything else. The work still runs and
+still gets marked, and what it may reach is what the checklist allows.
 :::
 
 Ares 2 is a framework for the easy and secure remote execution of student submissions on an

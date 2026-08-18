@@ -4,12 +4,13 @@ sidebar_position: 1
 description: "The JUnit 5 engine Ares 2 builds on, and the extension points it hooks into."
 ---
 
-:::tip[ELI5]
-JUnit is the thing that runs the tests and tells you which ones passed.
+:::tip[Simple Story]
+JUnit is the teacher. It decides what a question is, puts it to the pupil, and says whether the
+answer was right.
 
-Ares does not replace it. Ares stands **next to** it: JUnit still decides what a test is
-and when to run it, and Ares steps in around each test to decide whether it is allowed to
-run at all, and what the code inside it may do while it runs.
+Ares does not replace it. Ares is the checklist the teacher works **alongside**: JUnit still
+owns the question and when it is asked, and Ares decides whether that desk may be visited at
+all, and what the pupil may do while answering.
 :::
 
 ## What it is

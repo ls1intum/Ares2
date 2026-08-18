@@ -4,13 +4,13 @@ sidebar_position: 1
 description: "A cross-cutting concern captured in one place instead of scattered through the code."
 ---
 
-:::tip[ELI5]
-Some requirements do not belong to any one class. "Check permission before touching a file"
-applies everywhere a file is touched.
+:::tip[Simple Story]
+Some rules do not belong to any one pupil. "Check the checklist before picking up a paper"
+applies wherever a paper is picked up.
 
-Writing that check into every such place would be hopeless: you would miss some, and student
-code is not yours to edit anyway. An aspect is that requirement written down **once**, in one
-place, and then applied everywhere it is needed.
+Writing that into every desk would be hopeless: you would miss some, and a pupil's work is not
+yours to edit anyway. An aspect is that rule written down **once**, in one place, and then
+applied everywhere it is needed.
 :::
 
 ## What it is

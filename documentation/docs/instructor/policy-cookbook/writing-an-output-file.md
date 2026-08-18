@@ -4,8 +4,8 @@ sidebar_position: 3
 description: "Permitting creation and overwrite of one output path without also granting read access."
 ---
 
-:::tip[ELI5]
-The student's code produces a file. It should be able to create and overwrite that one file, and nothing more.
+:::tip[Simple Story]
+The pupil has to produce one sheet of work. They should be able to create and replace that one sheet, and nothing else.
 :::
 
 :::note[This page is a stub]

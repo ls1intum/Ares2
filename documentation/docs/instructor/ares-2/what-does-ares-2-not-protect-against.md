@@ -4,13 +4,17 @@ sidebar_position: 3
 description: "Where the trust boundary ends, and the build-side work Ares 2 cannot do for you."
 ---
 
-:::tip[ELI5]
-Every fence has an end, and it is safer to know where yours is than to assume it goes all the
-way round.
+:::tip[Simple Story]
+Every checklist has a last line, and it is safer to know where yours ends than to assume it
+covers the whole room.
 
-This page is that boundary, written down plainly. The important part is that one job cannot be
-done by Ares at all and has to be done by your build, because Ares cannot guard the door it is
-standing behind.
+Two things are trusted rather than checked: the school's own fixtures, and the test classes the
+board named in `theFollowingClassesAreTestClasses`. Everything else is a pupil.
+
+And one job cannot be done from inside the examination at all. A pupil who can slip their own
+paperwork in among the school's stationery can impersonate the very thing doing the checking,
+and no desk-side check will catch it. Your build has to make that impossible, because Ares
+cannot guard the door it is standing behind.
 :::
 
 ## What Ares 2 trusts

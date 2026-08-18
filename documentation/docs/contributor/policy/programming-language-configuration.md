@@ -4,10 +4,10 @@ sidebar_position: 1
 description: "How the configuration value is dispatched into a director, an analyser and a weaving mechanism."
 ---
 
-:::tip[ELI5]
-This one field decides which of Ares 2's interchangeable engines actually run.
+:::tip[Simple Story]
+This one field decides which of Ares 2's interchangeable engines actually turn up for duty.
 
-Everything else in the policy says *what* is allowed. This says *who enforces it*.
+Everything else on the checklist says *what* is allowed. This says *who* enforces it.
 :::
 
 For the fields an exercise author writes, see

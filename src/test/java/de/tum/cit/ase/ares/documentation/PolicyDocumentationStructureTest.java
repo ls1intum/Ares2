@@ -27,9 +27,9 @@ import org.junit.jupiter.params.provider.MethodSource;
  * that the section as a whole walks the example from top to bottom.
  * <p>
  * That only works while every page keeps the identical shape. This test pins
- * that shape, so a page that grows an extra heading, loses its ELI5 box,
- * forgets a table column or marks the wrong part of the example fails the build
- * rather than quietly breaking the reading order.
+ * that shape, so a page that grows an extra heading, loses its Simple Story
+ * box, forgets a table column or marks the wrong part of the example fails the
+ * build rather than quietly breaking the reading order.
  *
  * @since 2.1.2
  * @author Markus Paulsen
@@ -105,9 +105,9 @@ class PolicyDocumentationStructureTest {
 			assertTrue(frontMatter.contains(field), page + " front matter must declare " + field);
 		}
 
-		assertTrue(DocumentationPages.opensWithEli5(content),
-				page + " must open with an ELI5 box written as ':::tip[ELI5]'. The Docusaurus 2 form\n"
-						+ "':::tip ELI5' is not a directive and renders as literal text.");
+		assertTrue(DocumentationPages.opensWithSimpleStory(content),
+				page + " must open with a Simple Story box written as ':::tip[Simple Story]'. The Docusaurus 2 form\n"
+						+ "':::tip Simple Story' is not a directive and renders as literal text.");
 		assertFalse(!DocumentationPages.legacyAdmonitionsIn(content).isEmpty(),
 				page + " uses an admonition form that renders as plain text.");
 

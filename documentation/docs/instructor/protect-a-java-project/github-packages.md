@@ -4,9 +4,9 @@ sidebar_position: 7
 description: "Consuming Ares 2 from GitHub Packages instead of Maven Central."
 ---
 
-:::tip[ELI5]
-There are two shops you can get Ares from. This page is about the one that asks for ID at the
-door.
+:::tip[Simple Story]
+There are two suppliers you can order the checklists from. This page is about the one that
+asks to see your staff card.
 
 Most people should use the other one, which does not. This page exists for the cases where you
 cannot.

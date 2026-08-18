@@ -4,12 +4,12 @@ sidebar_position: 4
 description: "A condition asserted over the analysed program, and what it means for one to be violated."
 ---
 
-:::tip[ELI5]
-A rule is a sentence about the program that must be true, such as "nothing the student
-wrote may reach the code that deletes files".
+:::tip[Simple Story]
+A rule is one line of the checklist turned into a sentence that must be true, such as "nothing
+in the pupil's compiled answer may reach the code that deletes files".
 
-The tool checks the sentence against the map. If the sentence is false, it tells you which
-part of the program made it false.
+The tool checks the sentence against the map. If the sentence is false, it tells you which part
+made it false.
 :::
 
 ## What it is

@@ -4,11 +4,11 @@ sidebar_position: 2
 description: "How a security policy file is read and turned into the test cases that enforce it."
 ---
 
-:::tip[ELI5]
-Somebody has to read the policy file and turn it into actual checks.
+:::tip[Simple Story]
+Somebody has to read the filled-in checklist and turn it into actual checks.
 
-That is these two parts. One reads the file and understands it. The other decides which tests
-need to be built from what it read. This page explains how they work and why they are
+That is these two parts. One reads the checklist and understands it. The other decides which
+checks have to be built from what it read. This page explains how they work and why they are
 separate.
 :::
 
@@ -193,7 +193,7 @@ This design makes it trivial to add, say, a `SecurityPolicyPythonDirector` in th
 
 ## 7. Orchestration — `SecurityPolicyReaderAndDirector`
 
-This is the **entry-point class** that ties together reading, directing, and test-case management. It is the main public API that instructors and automated grading systems interact with. The class implements two important roles:
+This is the **entry-point class** that ties together reading, directing, and security test-case management. It is the main public API that instructors and automated grading systems interact with. The class implements two important roles:
 - A **Facade**, exposing a small public interface (`createTestCases`, `writeTestCases`, `writeTestCasesAndContinue`, `executeTestCases`) that hides the complexity of reader selection, policy parsing, director selection, and factory configuration.
 - A **Client of the Abstract Factory Pattern**, consuming the `TestCaseAbstractFactoryAndBuilder` that the director creates, and delegating each workflow step to the factory.
 

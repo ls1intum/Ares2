@@ -165,10 +165,10 @@ test.describe('site behaviour', () => {
         await expect(page.getByText(/Page Not Found/i)).toBeVisible();
     });
 
-    test('the ELI5 boxes render as admonitions', async ({ page }) => {
+    test('the Simple Story boxes render as admonitions', async ({ page }) => {
         await page.goto('./instructor/policy-reference/file-system-access');
-        const eli5 = page.locator('.theme-admonition').filter({ hasText: 'ELI5' });
-        await expect(eli5).toHaveCount(1);
-        await expect(eli5).toBeVisible();
+        const simpleStory = page.locator('.theme-admonition').filter({ hasText: 'Simple Story' });
+        await expect(simpleStory).toHaveCount(1);
+        await expect(simpleStory).toBeVisible();
     });
 });

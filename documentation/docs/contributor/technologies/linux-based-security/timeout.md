@@ -4,11 +4,11 @@ sidebar_position: 4
 description: "Bounding wall-clock execution time from outside the supervised process."
 ---
 
-:::tip[ELI5]
-An endless loop never finishes and never fails. It just sits there.
+:::tip[Simple Story]
+A pupil who never stops never finishes and never fails. They simply sit there.
 
-So something outside the program holds a stopwatch, and when the time is up it stops the
-program. Outside matters: a program stuck in a loop cannot be trusted to time itself.
+So the clock hangs outside the room, and when the time is up it stops them. Outside matters: a
+pupil stuck in a loop cannot be trusted to time themselves.
 :::
 
 ## What it is

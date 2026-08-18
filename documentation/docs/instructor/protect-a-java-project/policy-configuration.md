@@ -4,11 +4,13 @@ sidebar_position: 5
 description: "The security-policy.yaml file and the eight supported programming language configurations."
 ---
 
-:::tip[ELI5]
-The policy file is where you write down what the student's program is allowed to do.
+:::tip[Simple Story]
+This is where the board fills the checklist in: what a pupil is allowed to do.
 
-It is a plain list of permissions. Anything you do not write down is refused, so an empty file
-is the strictest file.
+It is a plain list of permissions, and anything you do not write down is refused. So the
+strictest checklist is one properly filled in with every permission list left empty, not one
+left blank:
+a blank file is rejected on load rather than treated as strict.
 :::
 
 Ares 2 security enforcement is driven by a central configuration file. It defines how the

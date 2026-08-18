@@ -4,13 +4,13 @@ sidebar_position: 9
 description: "The execution budget a policy can express, the unit it is expressed in, and what actually bounds a test today."
 ---
 
-:::tip[ELI5]
-An endless loop never fails on its own. It just runs, and runs, and the build never
-finishes.
+:::tip[Simple Story]
+A pupil who never stops writing never finishes and never fails. They simply keep going, and
+the examination never ends.
 
-So a policy can write down an egg timer for the student's program. Mind this one,
-though: the timer is written into the generated configuration, but nothing winds it up
-yet. What stops a runaway test today is the `@StrictTimeout` annotation.
+So the checklist has a line for the clock. Mind this one, though: the time is written onto the
+checklist, but nothing yet winds the clock up. What stops a runaway pupil today is the
+`@StrictTimeout` annotation.
 :::
 
 ## Position in the example policy file

@@ -4,8 +4,8 @@ sidebar_position: 4
 description: "How connect, send and receive permissions are enforced in the JVM and by the LD_PRELOAD firewall."
 ---
 
-:::tip[ELI5]
-Two very different mechanisms guard the network: one inside the Java Virtual Machine (JVM), one below it.
+:::tip[Simple Story]
+Two very different mechanisms watch the telephone: one inside the room, one beneath it.
 
 They see different things, which is why both exist.
 :::

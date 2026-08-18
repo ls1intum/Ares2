@@ -4,8 +4,10 @@ sidebar_position: 3
 description: "One annotated test method, followed from JUnit discovery through policy installation to teardown."
 ---
 
-:::tip[ELI5]
-Follow one single test from the moment JUnit finds it to the moment it is cleaned up again.
+:::tip[Simple Story]
+Follow one desk visit from beginning to end. The teacher arrives, the checklist is prepared for
+that visit, the question is put, it is answered, and the desk is cleared before the teacher
+moves on.
 
 Most questions about Ares turn out to be questions about *when* something happens. This page is
 the timeline everything else hangs off.

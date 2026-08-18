@@ -23,8 +23,8 @@ import org.junit.jupiter.params.provider.MethodSource;
  * form {@code :::tip Title} is not a directive at all, so the fence, the title
  * and the body render as an ordinary paragraph beginning with three colons.
  * Nothing warns: the build succeeds, the page renders, and the box is simply
- * absent. 53 of them shipped that way, including every ELI5 box, and were only
- * found once the Playwright suite looked at a rendered page.
+ * absent. 53 of them shipped that way, including every Simple Story box, and
+ * were only found once the Playwright suite looked at a rendered page.
  * <p>
  * It also owns the inventory of the site: one expected set of page paths per
  * guide. Everything else here is a rule about a page's contents, but a rule
@@ -154,12 +154,12 @@ class SiteWideDocumentationStructureTest {
 				page + " must not carry an h1; the title comes from the front matter. Found: " + headings);
 	}
 
-	@ParameterizedTest(name = "{0} opens with an ELI5 box")
+	@ParameterizedTest(name = "{0} opens with a Simple Story box")
 	@MethodSource("allPages")
-	void everyPageOpensWithAnEli5Box(Path page) {
-		assertTrue(DocumentationPages.opensWithEli5(DocumentationPages.read(page)),
-				page + " must open with an ELI5 box written as ':::tip[ELI5]'. Carrying one further down "
-						+ "the page does not count: it is meant to be the first thing a new reader sees.");
+	void everyPageOpensWithASimpleStoryBox(Path page) {
+		assertTrue(DocumentationPages.opensWithSimpleStory(DocumentationPages.read(page)), page
+				+ " must open with a Simple Story box written as ':::tip[Simple Story]'. Carrying one further down "
+				+ "the page does not count: it is meant to be the first thing a new reader sees.");
 	}
 
 	@ParameterizedTest(name = "{0} is divided into sections")

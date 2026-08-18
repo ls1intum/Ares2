@@ -4,12 +4,12 @@ sidebar_position: 2
 description: "The declarative, fail-closed rule set each layer reads."
 ---
 
-:::tip[ELI5]
+:::tip[Simple Story]
 Each layer carries a short list of what is permitted, and nothing else gets through.
 
-The important half of that sentence is the second one. The list does not say what is
-forbidden, because there is no way to write down everything a program might try. It says
-what is allowed, and everything absent from it is refused by default.
+The important half of that sentence is the second one. The list does not say what is forbidden,
+because there is no way to write down everything a pupil might try. It says what is allowed,
+and everything absent from it is refused by default.
 :::
 
 ## What it is

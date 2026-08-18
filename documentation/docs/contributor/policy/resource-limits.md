@@ -4,8 +4,8 @@ sidebar_position: 8
 description: "How time and memory budgets are generated, which mechanism enforces them, and which one does not."
 ---
 
-:::tip[ELI5]
-This domain is the clearest example of a policy field that parses without being enforced.
+:::tip[Simple Story]
+This is the clearest case of a line on the checklist that is read and then not acted upon.
 
 Read the gaps section before relying on it.
 :::

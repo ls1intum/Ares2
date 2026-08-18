@@ -4,8 +4,8 @@ sidebar_position: 5
 description: "Permitting one host and port, and why a wildcard host is almost never what you want."
 ---
 
-:::tip[ELI5]
-The exercise talks to one service. Exactly that service should be reachable.
+:::tip[Simple Story]
+The examination requires one telephone call. Exactly that number should be reachable, and no other.
 :::
 
 :::note[This page is a stub]

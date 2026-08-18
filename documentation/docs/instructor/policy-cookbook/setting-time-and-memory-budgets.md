@@ -4,8 +4,8 @@ sidebar_position: 7
 description: "Resource limits, which mode enforces them today, and what to use in the meantime."
 ---
 
-:::tip[ELI5]
-A submission that never terminates must fail its own test rather than the whole run.
+:::tip[Simple Story]
+A pupil who never finishes must fail their own question rather than halt the whole examination.
 :::
 
 :::note[This page is a stub]

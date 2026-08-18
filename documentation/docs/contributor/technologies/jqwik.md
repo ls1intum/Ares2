@@ -4,13 +4,12 @@ sidebar_position: 2
 description: "Property-based testing on the JUnit platform, and how Ares 2 supervises it."
 ---
 
-:::tip[ELI5]
-An ordinary test checks one example: "if I pass 5, I should get 25".
+:::tip[Simple Story]
+One teacher asks the question they prepared: "if I give you 5, you tell me 25".
 
-A property test instead states a rule that should hold for *every* input, and then the
-framework invents hundreds of inputs trying to break it. When it finds one that fails, it
-shrinks it down to the smallest example that still fails, so you get "it breaks on 0"
-rather than "it breaks on -2147483648".
+The other states a rule that should hold for *every* answer, then invents hundreds of questions
+trying to catch the pupil out. When one fails, it shrinks it to the simplest question the pupil
+still gets wrong, so you are told "it breaks on 0" rather than "it breaks on -2147483648".
 :::
 
 ## What it is

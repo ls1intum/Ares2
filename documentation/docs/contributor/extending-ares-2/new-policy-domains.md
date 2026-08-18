@@ -4,9 +4,9 @@ sidebar_position: 4
 description: "Adding a permission domain beyond the current eight, from the YAML field to every enforcement layer."
 ---
 
-:::tip[ELI5]
-A policy domain is one category of thing student code might try to do, such as touching files or
-opening sockets.
+:::tip[Simple Story]
+A policy domain is one category of thing a pupil might try, such as picking up a paper or
+telephoning out.
 
 Adding one means changing every layer that has an opinion about it.
 :::

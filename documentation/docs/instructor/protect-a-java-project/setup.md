@@ -4,12 +4,12 @@ sidebar_position: 3
 description: "The problem Ares 2 solves, using a worked example with a public and a hidden test."
 ---
 
-:::tip[ELI5]
-Some tests should show students their result straight away. Others must stay sealed until the
+:::tip[Simple Story]
+Some marks are read out as soon as the pupil has answered. Others stay sealed until the
 deadline has passed.
 
-Simply hiding the sealed ones is not enough, because a test that runs can leave traces behind.
-This page shows the problem with a small worked example before fixing it.
+Simply keeping the sealed ones quiet is not enough, because a question that was asked can leave
+traces behind. This page shows the problem with a small worked example before fixing it.
 :::
 
 This page introduces the problem Ares 2 solves, using a small worked example. The
@@ -83,12 +83,12 @@ In this example:
 
 ## Why marking a test hidden is not enough
 
-Artemis has a feature to mark test cases as hidden, but that alone does not prevent the
-contents of the test case leaking through static variables, files and similar, whether
-accidentally or on purpose. **The hidden test case must not be executed
+Artemis has a feature to mark tests as hidden, but that alone does not prevent the
+contents of the test method leaking through static variables, files and similar, whether
+accidentally or on purpose. To prevent that, **the hidden test method must not be executed
 before the deadline at all**.
 
-The public test case does not need to be hidden, since its purpose is to give direct feedback.
+The public test method does not need to be hidden, since its purpose is to give direct feedback.
 There are still several possible problems, though, such as crashing the Maven build with
 `System.exit(0)`, or an endless loop. Both harm the interactive learning experience, because
 students are confronted with an incomprehensible log of a failed build. Such errors can be

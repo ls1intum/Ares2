@@ -4,11 +4,11 @@ sidebar_position: 2
 description: "Adding the Ares 2 dependency to a Maven or Gradle project."
 ---
 
-:::tip[ELI5]
-One dependency line, and Ares is available in your project.
+:::tip[Simple Story]
+One dependency line, and the checklist is available in your project.
 
-That is all this page is. It does not switch any protection on yet; it just puts the tool in
-the box.
+That is all this page is. Nothing is enforced yet; this only puts the pad of blank checklists
+on the shelf.
 :::
 
 :::note[Requirements]

@@ -4,12 +4,12 @@ sidebar_position: 5
 description: "Which hosts and ports the supervised code may connect to, and what it may do on the connection."
 ---
 
-:::tip[ELI5]
-This is the phone book of numbers the student's program is allowed to call.
+:::tip[Simple Story]
+This is the short list of numbers a pupil may telephone from the room.
 
-Each entry names who may be called and on which line, and then says whether the program may
-dial at all, whether it may speak, and whether it may listen. A program can be permitted to
-open a connection and still be forbidden from sending anything down it.
+Each entry names who may be rung and on which line, then says whether the pupil may dial at
+all, whether they may speak, and whether they may listen. Being allowed to place the call is
+not permission to say anything once it connects.
 :::
 
 ## Position in the example policy file

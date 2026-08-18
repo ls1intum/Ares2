@@ -4,13 +4,12 @@ sidebar_position: 4
 description: "Which paths the supervised code may read, overwrite, create, execute or delete."
 ---
 
-:::tip[ELI5]
-This is a list of doors the student's program is allowed to open, and what it may do once
-inside each one.
+:::tip[Simple Story]
+This is the list of papers a pupil may pick up, and what they may do with each one.
 
-Every door not on the list is locked. And being allowed through a door does not mean you
-may do anything in the room: reading a file, replacing it, creating it, running it and
-deleting it are five separate permissions, each switched on or off by itself.
+Anything not on the list stays out of reach. And being allowed to pick something up is not
+permission to do as you like with it: reading, replacing, creating, running and destroying are
+five separate permissions, each granted on its own.
 :::
 
 ## Position in the example policy file

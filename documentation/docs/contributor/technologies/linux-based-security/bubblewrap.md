@@ -4,11 +4,11 @@ sidebar_position: 2
 description: "Filesystem isolation through mount namespaces, without requiring root."
 ---
 
-:::tip[ELI5]
-Bubblewrap builds the program a private view of the file system before letting it start.
+:::tip[Simple Story]
+Bubblewrap sets the desk out before the pupil is let in.
 
-Folders you did not hand it simply are not there. Not forbidden, not protected: absent.
-A program cannot break a rule about a file it cannot see.
+Papers you did not put on it simply are not there. Not forbidden, not protected: absent. A
+pupil cannot break a rule about a paper they cannot see.
 :::
 
 ## What it is

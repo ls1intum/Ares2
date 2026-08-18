@@ -4,13 +4,13 @@ sidebar_position: 4
 description: "Conceptual weaknesses of the AspectJ engine compared to the instrumentation engine."
 ---
 
-:::tip[ELI5]
-Ares has two ways of catching forbidden actions, and they are not equally good.
+:::tip[Simple Story]
+The teacher has two ways of catching a pupil in the act, and they are not equally good.
 
-One edits the places where a call is written. The other edits the thing being called. The
-second catches more, because there is only one thing being called but there can be a hundred
-places that call it, and you can only edit the ones you can see. This page is the honest list
-of what the first one misses.
+One marks every place in the room where the forbidden thing could be asked for. The other marks
+the thing itself. The second catches more, because there is only one of it and there may be a
+hundred places that ask, and you can only mark the ones you can see. This page is the honest
+list of what the first one misses.
 :::
 
 Ares enforces a security policy on untrusted student code through two

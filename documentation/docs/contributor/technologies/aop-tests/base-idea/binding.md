@@ -4,11 +4,11 @@ sidebar_position: 5
 description: "How the arguments and context of the intercepted operation reach the advice."
 ---
 
-:::tip[ELI5]
-Knowing that a file is about to be opened is not enough. You need to know **which** file.
+:::tip[Simple Story]
+Knowing that a paper is about to be picked up is not enough. You need to know **which** paper.
 
-Binding is how that information is handed to your check. Without it you could only ever
-answer yes or no to "may this program open files at all", never "may it open *this* one".
+Binding is how that gets handed to the teacher. Without it you could only ever answer yes or no
+to "may this pupil pick up papers at all", never "may they pick up *this* one".
 :::
 
 ## What it is

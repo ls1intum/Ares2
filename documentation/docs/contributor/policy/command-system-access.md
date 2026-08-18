@@ -4,10 +4,10 @@ sidebar_position: 5
 description: "How permitted executables and arguments are enforced, and why this domain has no Phobos section."
 ---
 
-:::tip[ELI5]
-This domain governs starting other programs.
+:::tip[Simple Story]
+This part of the checklist governs sending a pupil out of the room on an errand.
 
-It is the smallest surface and the one with the widest blast radius if it is wrong.
+It is the smallest surface there is, and the one with the widest blast radius when it is wrong.
 :::
 
 For the fields an exercise author writes, see

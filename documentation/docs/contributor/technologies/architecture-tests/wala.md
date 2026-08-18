@@ -4,12 +4,12 @@ sidebar_position: 3
 description: "Inter-procedural call-graph analysis: reachability, sinks and false-positive filtering."
 ---
 
-:::tip[ELI5]
-WALA builds the full map of which method can call which, then asks whether any route leads
-from the student's code to something forbidden.
+:::tip[Simple Story]
+WALA builds the full map of which method can call which, then asks whether any route leads from
+the pupil's desk to something forbidden.
 
-Where the simpler engine asks "does this class mention that one?", WALA asks "can I get
-there from here, however many steps it takes?"
+Where the simpler engine asks "does this class mention that one?", WALA asks "can I get there
+from here, however many steps it takes?"
 :::
 
 ## What it is

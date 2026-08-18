@@ -4,13 +4,12 @@ sidebar_position: 2
 description: "Static dependency analysis over imported bytecode: what ArchUnit sees, and what it cannot."
 ---
 
-:::tip[ELI5]
-ArchUnit reads the compiled program and checks statements about how its parts refer to one
+:::tip[Simple Story]
+ArchUnit reads the pupil's compiled answer and checks statements about how its parts refer to one
 another, without running any of it.
 
-It is very good at "does this class mention that class at all?" and it cannot answer
-"which file does this call actually open?", because that value only exists once the program
-is running.
+It is very good at "does this class mention that class at all?" and it cannot answer "which
+file does this call actually open?", because that value only exists once the pupil is working.
 :::
 
 ## What it is

@@ -4,8 +4,8 @@ sidebar_position: 6
 description: "Keeping a reflective dependency working without disabling the reflection rules wholesale."
 ---
 
-:::tip[ELI5]
-A library you depend on uses reflection internally, and the policy rejects it.
+:::tip[Simple Story]
+A piece of equipment the examination depends on inspects its own internals, and the checklist refuses it.
 :::
 
 :::note[This page is a stub]

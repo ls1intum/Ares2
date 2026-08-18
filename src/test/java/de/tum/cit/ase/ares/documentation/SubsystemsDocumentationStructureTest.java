@@ -94,8 +94,8 @@ class SubsystemsDocumentationStructureTest {
 		assertTrue(DocumentationPages.sidebarPosition(content) > 0,
 				page + " must declare a positive sidebar_position.");
 
-		assertTrue(DocumentationPages.opensWithEli5(content),
-				page + " must open with an ELI5 box written as ':::tip[ELI5]'. Every page in the "
+		assertTrue(DocumentationPages.opensWithSimpleStory(content),
+				page + " must open with a Simple Story box written as ':::tip[Simple Story]'. Every page in the "
 						+ "documentation opens with one, including the long reference manuals.");
 		assertFalse(!DocumentationPages.legacyAdmonitionsIn(content).isEmpty(),
 				page + " uses an admonition form that renders as plain text.");

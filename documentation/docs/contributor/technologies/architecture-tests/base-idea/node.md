@@ -4,12 +4,13 @@ sidebar_position: 1
 description: "The unit the architecture layer reasons about: a class, a method or a field of the analysed program."
 ---
 
-:::tip[ELI5]
-Imagine the program drawn as a map of dots joined by arrows.
+:::tip[Simple Story]
+Imagine the pupil's compiled answer drawn as a map of dots joined by arrows. Compiled, not
+written: the map holds things the compiler produced that the pupil never typed.
 
-A node is one dot. Depending on how closely you look, a dot might be a whole class or a
-single method. Everything the architecture layer does is answering questions about which
-dots exist and which arrows lead where.
+A node is one dot. Depending on how closely you look, a dot might be a whole class or a single
+method. Everything the reach check does is answering questions about which dots exist and which
+arrows lead where.
 :::
 
 ## What it is

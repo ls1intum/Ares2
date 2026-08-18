@@ -4,12 +4,12 @@ sidebar_position: 2
 description: "Compile-time weaving with AspectJ, and the consequences of intercepting at the call site."
 ---
 
-:::tip[ELI5]
-AspectJ edits the program's compiled code so that your check sits at every place a
-forbidden operation is *written*.
+:::tip[Simple Story]
+AspectJ marks every place in the room where a forbidden request could be written down, so the
+teacher is already standing there when it is.
 
-That works well for code you compiled. It cannot help where the call is written somewhere
-you never compiled, such as deep inside Java itself.
+That works for the parts of the room you set out yourself. It cannot help where the request is
+written somewhere you never set out, such as deep inside Java itself.
 :::
 
 ## What it is

@@ -4,8 +4,8 @@ sidebar_position: 4
 description: "Permitting a bounded number of threads, and what the bound does and does not cover."
 ---
 
-:::tip[ELI5]
-The exercise is about concurrency, so threads have to be allowed, but not without limit.
+:::tip[Simple Story]
+The examination is about doing two things at once, so helpers have to be allowed, but not without limit.
 :::
 
 :::note[This page is a stub]

@@ -4,11 +4,13 @@ sidebar_position: 2
 description: "The rules a test in this repository must follow, and why a security boundary needs stricter ones than an ordinary library."
 ---
 
-:::tip[ELI5]
-Ares is the thing being tested and the thing doing the testing at the same time.
+:::tip[Simple Story]
+Here the checklist is the thing being examined. Ares supervises the room and is also what is
+under test, and that is exactly where these tests go wrong.
 
-That sounds circular, and it is exactly where tests go wrong here. These are the rules that keep
-a test measuring the student's behaviour rather than the test's own scaffolding.
+Anything you start inside the examination is itself a pupil, subject to the same checklist, so
+when it fails you cannot tell whether the pupil failed or your own scaffolding did. These are
+the rules that keep a test measuring the pupil rather than the furniture.
 :::
 
 ## Every change is verified against all four combinations
@@ -87,7 +89,7 @@ in the ordinary Maven build without Node:
 
 - every page of both guides is enumerated by an expected path set, so a page cannot be added,
   removed, renamed or filed under the wrong audience unnoticed;
-- every page declares its front matter, opens with an ELI5 box and carries no `h1`;
+- every page declares its front matter, opens with a Simple Story box and carries no `h1`;
 - every `_category_.json` is valid and collision-free against its siblings;
 - the policy pages share one shape and together walk the example policy top to bottom.
 

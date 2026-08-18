@@ -4,12 +4,14 @@ sidebar_position: 2
 description: "The resources Ares 2 guards, and the two compile modes through which it enforces a policy."
 ---
 
-:::tip[ELI5]
-This is the list of things a student's program is stopped from doing: touching files, going
-online, running other programs, and spawning endless workers.
+:::tip[Simple Story]
+The checklist names what a pupil may not do: open papers that are not theirs, telephone out,
+send someone off on an errand, or fill the room with helpers.
 
-It also explains the two moments at which Ares can step in, before the code is compiled and
-while it is running, and why it uses both rather than picking one.
+It also sets out the two moments at which the school can act. Either the checks are printed
+into the examination in advance, before anybody sits down, or the teacher carries the checklist
+in and works through it while the examination runs. Ares does both rather than choosing one,
+and this page is why.
 :::
 
 Beyond its standard features, Ares 2 supports advanced blocking mechanisms using **AspectJ**,
@@ -91,7 +93,7 @@ sets out the same distinction and lists which combination needs which build step
 - dynamic enforcement at runtime
 - no repository modifications needed
 - easy policy updates without regenerating tests
-- fine-grained control over individual test cases
+- fine-grained control over individual test methods
 - detailed security violation messages
 
 See [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md) for the integration steps.

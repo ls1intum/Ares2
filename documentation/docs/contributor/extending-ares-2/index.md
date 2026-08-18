@@ -4,11 +4,12 @@ sidebar_position: 1
 description: "The five extension points of Ares 2, what each one requires, and which pages are written."
 ---
 
-:::tip[ELI5]
-Ares 2 is built so that the next language, build tool or analysis technique can be added without
+:::tip[Simple Story]
+Ares 2 is built so that the next language, build tool or analysis technique can join without
 rewriting the parts that already work.
 
-This section says where those seams are.
+This section says where those seams are, so a new kind of examination can be run in the same
+school.
 :::
 
 ## The five extension points

@@ -4,10 +4,10 @@ sidebar_position: 6
 description: "How thread creation is enforced, and why Object monitor methods need call-site rewriting."
 ---
 
-:::tip[ELI5]
-Threads are the domain where enforcement has to touch code Ares does not own.
+:::tip[Simple Story]
+Helpers are the part where enforcement has to touch code Ares does not own.
 
-That is why one part of it is switched on after everything else.
+That is why one piece of it is switched on after everything else.
 :::
 
 For the fields an exercise author writes, see

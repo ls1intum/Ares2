@@ -4,10 +4,11 @@ sidebar_position: 6
 description: "Adding a weaving or sandboxing mechanism alongside AspectJ, instrumentation and Phobos."
 ---
 
-:::tip[ELI5]
-Once a forbidden call is defined, something has to actually stop it at runtime.
+:::tip[Simple Story]
+Once the checklist says a thing is forbidden, somebody has to actually stop it while the pupil
+is working.
 
-Ares has three such mechanisms. This is what a fourth would have to provide.
+Ares has three ways of doing that. This is what a fourth would have to provide.
 :::
 
 :::note[This page is a stub]

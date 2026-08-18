@@ -4,12 +4,12 @@ sidebar_position: 6
 description: "How advice is placed into the bytecode: at compile time, at load time or at runtime."
 ---
 
-:::tip[ELI5]
-At some point the checking code has to actually get *into* the program.
+:::tip[Simple Story]
+At some point the checking has to actually get into the room.
 
-That can happen when the program is compiled, or when each class is loaded into memory, or
-while it is already running. Later is more powerful, because by then you can reach code you
-never had the source for.
+That can happen when the work is compiled, or as each class is loaded into memory, or while the
+examination is already under way. Later is more powerful, because by then you can reach parts
+you never had the source for.
 :::
 
 ## What it is

@@ -4,12 +4,12 @@ sidebar_position: 6
 description: "Which external commands the supervised code may execute, and with which arguments."
 ---
 
-:::tip[ELI5]
-Sometimes a program needs to ask the operating system to run another program.
+:::tip[Simple Story]
+Sometimes a pupil legitimately has to send somebody out of the room on an errand.
 
-That is an enormous hole if left open, because it can be used to run anything at all. So
-Ares keeps a short list of exactly which commands may be run, and exactly which arguments
-they may be run with. Nothing else is allowed to start.
+Left open that is the largest hole there is, because an errand can fetch anything at all. So
+the checklist names exactly which errands may be run, and exactly which instructions they may
+be given. Nothing else leaves the room.
 :::
 
 ## Position in the example policy file

@@ -4,11 +4,11 @@ sidebar_position: 4
 description: "The @Public, @Hidden, @PublicTest, @HiddenTest and @Deadline annotations."
 ---
 
-:::tip[ELI5]
-These are the labels you stick on a test to say which kind it is.
+:::tip[Simple Story]
+These are the labels you put on a question to say which kind it is.
 
-Public means students see the result immediately. Hidden means it waits, and a hidden test has
-to be told **when** to wake up, otherwise Ares refuses to guess.
+Public means the mark is read out at once. Hidden means it waits, and a hidden question has to
+be told **when** to wake up, because Ares refuses to guess a deadline.
 :::
 
 ## What puts a test under supervision
@@ -78,10 +78,10 @@ public class PenguinTest {
 ```
 
 Like most Ares 2 annotations, `@Deadline` can also be placed on the test method (and on
-nested classes). When several are present, the one closest to the test case wins.
+nested classes). When several are present, the one closest to the test method wins.
 
 That is enough to make the example work. Try varying the deadline: if the given
-`LocalDateTime` lies in the past, the test case is executed and, together with the student
+`LocalDateTime` lies in the past, the test method is executed and, together with the student
 code shown in [Setup](setup.md), passes. If the deadline has not passed, the test does not
 pass either. It fails with
 
@@ -90,7 +90,7 @@ org.opentest4j.AssertionFailedError: hidden tests will be executed after the dea
 ```
 
 and the test was not executed, because the deadline is always checked before any hidden test
-case runs.
+method runs.
 
 :::warning[Always specify the time zone]
 The annotation parser permits leaving the time zone unspecified, but doing so risks running

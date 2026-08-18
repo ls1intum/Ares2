@@ -4,12 +4,12 @@ sidebar_position: 3
 description: "Why enforcement lives in a process that wraps the supervised command rather than inside it."
 ---
 
-:::tip[ELI5]
-The guard stands outside the room, not inside it.
+:::tip[Simple Story]
+Whoever is holding the door stands outside the room, not inside it.
 
-That sounds like a detail and it is the whole point. A program that has been taken over
-can switch off a guard that lives inside it. It cannot switch off one that started before
-it did and is holding the door from the other side.
+That sounds like a detail and it is the whole point. A pupil who has taken the room over can
+talk round anyone who is in there with them. They cannot talk round someone who arrived before
+they did and is holding the door from the other side.
 :::
 
 ## What it is

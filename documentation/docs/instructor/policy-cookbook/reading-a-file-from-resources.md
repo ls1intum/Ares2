@@ -4,8 +4,8 @@ sidebar_position: 2
 description: "Permitting one read-only classpath resource without opening the working directory."
 ---
 
-:::tip[ELI5]
-The exercise ships a data file and the student's code has to read it. Nothing else on disk should become readable.
+:::tip[Simple Story]
+The examination hands out one data sheet and the pupil has to read it. Nothing else in the room should become readable.
 :::
 
 :::note[This page is a stub]

@@ -4,12 +4,11 @@ sidebar_position: 2
 description: "How the architecture layer detects command execution statically, with ArchUnit and WALA."
 ---
 
-:::tip[ELI5]
-This is the same question as the aspect-oriented programming (AOP) page, asked before the program ever runs.
+:::tip[Simple Story]
+The same question as the AOP page, asked before the pupil is asked anything.
 
-Instead of waiting for the student's code to try to run a command, this layer reads the
-compiled code and asks whether there is any route at all from the student's work to the part
-of Java that runs commands.
+Rather than waiting for the errand to be requested, this layer reads the compiled answer and
+asks whether any route at all leads from their desk to the part of Java that runs commands.
 :::
 
 ## 1. High-Level Overview

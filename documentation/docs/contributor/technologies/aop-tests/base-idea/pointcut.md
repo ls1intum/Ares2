@@ -4,12 +4,11 @@ sidebar_position: 3
 description: "The predicate that selects which join points an aspect applies to."
 ---
 
-:::tip[ELI5]
-There are millions of moments where you *could* interrupt the program. You care about a
-handful.
+:::tip[Simple Story]
+There are millions of moments where the teacher *could* step in. You care about a handful.
 
-A pointcut is the filter that picks them out: "every call to a method that opens a file".
-It says **where**. It does not say what to do there.
+A pointcut is the filter that picks them out: "every call to a method that opens a file". It
+says **where**. It does not say what to do once you are there.
 :::
 
 ## What it is

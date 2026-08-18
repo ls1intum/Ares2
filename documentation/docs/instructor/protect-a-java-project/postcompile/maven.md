@@ -4,11 +4,11 @@ sidebar_position: 1
 description: "Protecting a Maven project with Ares 2 in Postcompile mode, from dependency to enforced policy."
 ---
 
-:::tip[ELI5]
+:::tip[Simple Story]
 This is the whole path for a Maven exercise, in the order you have to do it.
 
-Add Ares, mark your tests, write down what the student code may do, and wire the check into the
-build so nobody can quietly remove it.
+Add Ares, mark your tests, fill in the checklist, and wire the check into the build so nobody
+can quietly take it off the desk.
 :::
 
 ## The path, in order

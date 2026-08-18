@@ -4,10 +4,10 @@ sidebar_position: 2
 description: "Adding a language beyond Java: the reader, the director, the name rules and the test-case factory."
 ---
 
-:::tip[ELI5]
+:::tip[Simple Story]
 Ares 2 only speaks Java today, but nothing in its core is Java-specific.
 
-This page is the checklist for teaching it a second language.
+This page is what it would take to examine pupils who answer in a second language.
 :::
 
 :::note[This page is a stub]

@@ -4,11 +4,11 @@ sidebar_position: 1
 description: "Where each layer places itself between the supervised program and the resource it asks for."
 ---
 
-:::tip[ELI5]
-Every one of these three layers works by standing in the doorway.
+:::tip[Simple Story]
+Every one of these three layers works by standing in a doorway.
 
-The program asks for something, and instead of reaching the thing it asked for, it reaches
-the guard first. What differs between the three is *which* doorway they stand in.
+The pupil asks for something and, instead of reaching the thing they asked for, they reach
+whoever is standing there first. What differs between the three is *which* doorway.
 :::
 
 ## What it is

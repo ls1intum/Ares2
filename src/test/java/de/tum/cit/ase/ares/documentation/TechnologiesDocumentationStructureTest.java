@@ -18,7 +18,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  * <p>
  * Every page under {@code documentation/docs/contributor/technologies}
  * introduces one concept or one dependency, and every page has the same shape:
- * an ELI5 box, the explanation, and a closing list of further reading.
+ * a Simple Story box, the explanation, and a closing list of further reading.
  * <p>
  * The citation rules are asserted here as well, because they are a policy
  * rather than a matter of taste. Sources are restricted to an allow list of
@@ -79,8 +79,8 @@ class TechnologiesDocumentationStructureTest {
 		assertTrue(DocumentationPages.sidebarPosition(content) > 0,
 				page + " must declare a positive sidebar_position.");
 
-		assertTrue(DocumentationPages.opensWithEli5(content),
-				page + " must open with an ELI5 box written as ':::tip[ELI5]'.");
+		assertTrue(DocumentationPages.opensWithSimpleStory(content),
+				page + " must open with a Simple Story box written as ':::tip[Simple Story]'.");
 		assertFalse(!DocumentationPages.legacyAdmonitionsIn(content).isEmpty(),
 				page + " uses an admonition form that renders as plain text.");
 

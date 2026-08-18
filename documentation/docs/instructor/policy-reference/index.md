@@ -4,8 +4,9 @@ sidebar_position: 1
 description: "Field-by-field reference for every domain a security policy can express, one page per domain."
 ---
 
-:::tip[ELI5]
-This is the dictionary for `security-policy.yaml`.
+:::tip[Simple Story]
+This is the dictionary for the checklist itself, `security-policy.yaml`, the file the board
+fills in.
 
 Every field, what type it takes, what it accepts, and where it sits in the file.
 :::

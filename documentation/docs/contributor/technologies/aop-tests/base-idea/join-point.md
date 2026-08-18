@@ -4,12 +4,12 @@ sidebar_position: 2
 description: "A point in the execution of the program where behaviour can be attached."
 ---
 
-:::tip[ELI5]
-A join point is a moment during the run where you could interrupt: this method is about to be
-called, this constructor is about to run.
+:::tip[Simple Story]
+A join point is a moment during the examination where the teacher could step in: this method
+is about to be called, this constructor is about to run.
 
-It is a *candidate* moment, not a chosen one. Choosing which of them you actually care about
-is a separate step.
+It is a *candidate* moment, not a chosen one. Choosing which of them you actually care about is
+a separate step.
 :::
 
 ## What it is

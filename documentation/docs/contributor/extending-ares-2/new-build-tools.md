@@ -4,8 +4,8 @@ sidebar_position: 3
 description: "Adding a build tool beyond Maven and Gradle: BuildMode, descriptor detection and generated wiring."
 ---
 
-:::tip[ELI5]
-Ares has to put its enforcement into someone else's build.
+:::tip[Simple Story]
+Ares has to get its checklist into somebody else's build.
 
 Adding a build tool means teaching it one more build's vocabulary.
 :::
