@@ -29,12 +29,24 @@ test.describe('landing page', () => {
         await expect(page.getByRole('heading', { level: 1 })).toContainText('What is Ares 2');
     });
 
-    test('the get-started button reaches the installation page', async ({ page }) => {
+    test('the hero states what Ares 2 is for', async ({ page }) => {
         await page.goto('./');
-        await page.getByRole('link', { name: 'Get started' }).click();
-        await expect(page).toHaveURL(/\/Ares2\/instructor\/protect-a-java-project\/installation/);
-        await expect(page.getByRole('heading', { level: 1 })).toContainText('Installation');
+        await expect(page.getByText(/Ares 2 is here to help/)).toBeVisible();
     });
+
+    const legalPages = [
+        { label: 'Imprint', path: 'imprint', heading: 'Imprint' },
+        { label: 'Privacy Statement', path: 'privacy', heading: 'Privacy Statement' },
+    ];
+
+    for (const { label, path, heading } of legalPages) {
+        test(`the footer reaches ${path}`, async ({ page }) => {
+            await page.goto('./');
+            await page.getByRole('contentinfo').getByRole('link', { name: label, exact: true }).click();
+            await expect(page).toHaveURL(new RegExp(`/Ares2/${path}`));
+            await expect(page.getByRole('heading', { level: 1 })).toContainText(heading);
+        });
+    }
 });
 
 test.describe('the two guides', () => {
@@ -163,6 +175,26 @@ test.describe('site behaviour', () => {
         const response = await page.goto('./instructor/this-page-does-not-exist');
         expect(response?.status()).toBe(404);
         await expect(page.getByText(/Page Not Found/i)).toBeVisible();
+    });
+
+    // The privacy statement claims this site loads nothing from third parties and sets no
+    // cookies. Both are properties a dependency bump could silently break, so assert them
+    // rather than trusting that the prose stays true.
+    test('the site keeps the promises the privacy statement makes', async ({ page }) => {
+        const thirdParty: string[] = [];
+        page.on('request', (request) => {
+            const { hostname } = new URL(request.url());
+            if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+                thirdParty.push(request.url());
+            }
+        });
+
+        await page.goto('./');
+        await page.goto('./privacy');
+        await page.goto('./instructor/ares-2/what-is-ares-2');
+
+        expect(thirdParty).toEqual([]);
+        expect(await page.context().cookies()).toEqual([]);
     });
 
     test('the Simple Story boxes render as admonitions', async ({ page }) => {

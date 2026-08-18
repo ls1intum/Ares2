@@ -16,11 +16,12 @@
     margin-bottom: 2rem;
 }
 
-.buttons {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
+.heroPitch {
+    max-width: 46rem;
+    margin: 0 auto;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    opacity: 0.95;
 }
 
 .cards {

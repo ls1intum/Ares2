@@ -197,8 +197,21 @@ const config: Config = {
                         },
                     ],
                 },
+                {
+                    title: 'Legal',
+                    items: [
+                        {
+                            label: 'Imprint',
+                            to: '/imprint',
+                        },
+                        {
+                            label: 'Privacy Statement',
+                            to: '/privacy',
+                        },
+                    ],
+                },
             ],
-            copyright: `© ${new Date().getFullYear()} Technical University of Munich – Built with ❤️ by the Applied Education Technologies (AET) group`,
+            copyright: `© ${new Date().getFullYear()} Technical University of Munich – Built by the Ares Team of the Applied Education Technologies (AET) group`,
         },
         prism: {
             theme: prismThemes.github,

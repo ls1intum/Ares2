@@ -30,10 +30,11 @@ const destinations: Destination[] = [
 ];
 
 const features: string[] = [
-    'Policy-based sandboxing through static analysis and runtime instrumentation',
+    'Policy-based sandboxing through static and dynamic analysis',
+    'Supports JUnit Jupiter and jqwik',
     'More robust tests and builds through limits on time, threads and IO',
     'Public and hidden Artemis tests, where hidden tests obey a custom deadline',
-    'Utilities for clearer feedback, including multiline error messages and fault locations',
+    'Clearer feedback with multiline errors and fault locations',
     'Comfortable testing of exercises that use System.out and System.in',
 ];
 
@@ -47,14 +48,10 @@ function Hero(): ReactNode {
                     Ares 2
                 </Heading>
                 <p className={styles.heroSubtitle}>{siteConfig.tagline}</p>
-                <div className={styles.buttons}>
-                    <Link className="button button--secondary button--lg" to="/instructor/protect-a-java-project/installation">
-                        Get started
-                    </Link>
-                    <Link className="button button--outline button--secondary button--lg" to="/contributor/how-can-you-contribute">
-                        Contributor documentation
-                    </Link>
-                </div>
+                <p className={styles.heroPitch}>
+                    You do autograded programming exercises in an LMS but you do not know how to protect
+                    your autograder or LMS against malicious submissions? Ares 2 is here to help!
+                </p>
             </div>
         </header>
     );
