@@ -327,7 +327,9 @@ public enum ArchitectureMode {
 	public String[] formatValues(@Nonnull String packageName) {
 		return switch (this) {
 		case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 3);
-		case WALA -> FileTools.generatePackageNameArray(packageName, 3);
+		// One more than ArchUnit: the WALA header also imports the supervised-class
+		// holder, which lives in the archunit package beside it.
+		case WALA -> FileTools.generatePackageNameArray(packageName, 4);
 		};
 	}
 
@@ -499,14 +501,20 @@ public enum ArchitectureMode {
 		// forks whose results are entirely served from disk.
 		java.util.function.Supplier<com.ibm.wala.ipa.callgraph.CallGraph> supplier = testCase.getCallGraphSupplier();
 		if (supplier != null) {
-			return new JavaWalaTestCase((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported(),
+			JavaWalaTestCase walaTestCase = new JavaWalaTestCase(
+					(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported(),
 					testCase.getAllowedPackages(), testCase.getJavaClasses(), supplier);
+			// Both branches carry it, or the lazy one would generate a file that asks
+			// for nothing while the eager one asks correctly.
+			walaTestCase.setSupervisedScope(testCase.getSupervisedPackage(), testCase.isSupervisedScopeWasDerived());
+			return walaTestCase;
 		}
 		return JavaWalaTestCase.walaBuilder()
 				.javaArchitectureTestCaseSupported(
 						(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
 				.allowedPackages(testCase.getAllowedPackages()).callGraph(testCase.getCallGraph())
-				.javaClasses(testCase.getJavaClasses()).build();
+				.javaClasses(testCase.getJavaClasses()).supervisedPackage(testCase.getSupervisedPackage())
+				.supervisedScopeWasDerived(testCase.isSupervisedScopeWasDerived()).build();
 	}
 
 	private static List<JavaArchunitTestCase> convertToJavaArchunitTestCases(List<JavaArchitectureTestCase> testCases) {

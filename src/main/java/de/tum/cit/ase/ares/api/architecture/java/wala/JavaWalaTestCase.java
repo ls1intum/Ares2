@@ -9,7 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -501,14 +500,15 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 * ClassFileImporter.importPackages(...) String.
 	 */
 	private String javaClassesAsCode() {
-		Set<String> packages = javaClasses.stream().map(JavaClass::getPackageName)
-				.collect(Collectors.toCollection(HashSet::new));
-
-		if (packages.isEmpty()) {
-			return "new ClassFileImporter().importPackages()";
+		// Mirrors the ArchUnit emission, and for the same reason: the packages observed
+		// when the file was written are empty during precompile, so this used to emit
+		// importPackages() with no arguments and every rule then checked nothing.
+		String scope = getSupervisedPackage();
+		if (scope == null || scope.isBlank()) {
+			throw new SecurityException(Messages.localized("security.architecture.scope.missing"));
 		}
-		String packagesAsString = packages.stream().map(p -> "\"" + p + "\"").collect(Collectors.joining(", "));
-		return "new ClassFileImporter().importPackages(" + packagesAsString + ")";
+		String entryPoint = isSupervisedScopeWasDerived() ? "validated" : "pinned";
+		return "JavaArchunitSupervisedClasses." + entryPoint + "(\"" + scope + "\")";
 	}
 
 	/**
@@ -789,6 +789,34 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		private Set<PackagePermission> allowedPackages;
 		@Nonnull
 		private Set<ClassPermission> allowedClasses = Set.of();
+		@Nullable
+		private String supervisedPackage;
+		private boolean supervisedScopeWasDerived;
+
+		/**
+		 * Records the scope the generated test asks for at runtime.
+		 *
+		 * @param supervisedPackage the supervised scope
+		 * @return this builder
+		 */
+		@Nonnull
+		public JavaWalaTestCase.Builder supervisedPackage(@Nullable String supervisedPackage) {
+			this.supervisedPackage = supervisedPackage;
+			return this;
+		}
+
+		/**
+		 * Records whether that scope was derived rather than pinned, which decides
+		 * whether the generated test checks it against the whole compiled output.
+		 *
+		 * @param supervisedScopeWasDerived whether the scope was derived
+		 * @return this builder
+		 */
+		@Nonnull
+		public JavaWalaTestCase.Builder supervisedScopeWasDerived(boolean supervisedScopeWasDerived) {
+			this.supervisedScopeWasDerived = supervisedScopeWasDerived;
+			return this;
+		}
 
 		/**
 		 * Sets the architecture test case type supported by this instance.
@@ -876,12 +904,14 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaWalaTestCase build() {
-			return new JavaWalaTestCase(
+			JavaWalaTestCase testCase = new JavaWalaTestCase(
 					Objects.requireNonNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
 					Objects.requireNonNull(javaClasses, "javaClasses must not be null"),
 					Objects.requireNonNull(callGraph, "callGraph must not be null"), allowedClasses);
+			testCase.setSupervisedScope(supervisedPackage, supervisedScopeWasDerived);
+			return testCase;
 		}
 	}
 	// </editor-fold>

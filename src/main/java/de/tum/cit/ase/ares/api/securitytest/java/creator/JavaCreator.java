@@ -152,15 +152,16 @@ public class JavaCreator implements Creator {
 				 * scanner was free to hand one over.
 				 */
 				supervisedPackages.isEmpty() ? (packageName != null && !packageName.isBlank()
-						// Nothing is compiled, so nothing can be imported from the supervised
-						// code either and this permission grants no reachable class. It is left
-						// unguarded because packageName is the instructor's own declaration
-						// whenever a policy pinned it, and a pinned scope such as
-						// de.tum.cit.ase.ares legitimately sits above a reserved namespace. The
-						// case where it is instead a derived scope over an output that turns
-						// out to hold nothing importable is refused at execution, where the
-						// compiled inventory is the whole truth.
-						? Stream.of(new PackagePermission(packageName))
+						// Nothing is compiled, which during generation is the ordinary case. The
+						// permission is still written into the generated file, so it outlives the
+						// moment it was granted: a derived scope broad enough to contain a trusted
+						// namespace would keep that grant even once the runtime coverage check is
+						// satisfied. A derived fall-back is therefore held to the same rule as any
+						// other reading of the project, while a pinned one stays the instructor's
+						// own declaration, which may legitimately sit above a reserved namespace
+						// as de.tum.cit.ase.ares does.
+						? Stream.of(supervisedScopeWasDerived ? derivedAllowedPackage(packageName)
+								: new PackagePermission(packageName))
 						: Stream.<PackagePermission>empty())
 						: supervisedPackages.stream().map(JavaCreator::derivedAllowedPackage),
 				/*

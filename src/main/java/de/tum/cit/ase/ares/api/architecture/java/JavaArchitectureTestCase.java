@@ -106,7 +106,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 * @param supervisedPackage         the supervised scope
 	 * @param supervisedScopeWasDerived whether it was derived rather than pinned
 	 */
-	protected void setSupervisedScope(@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
+	public void setSupervisedScope(@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
 		this.supervisedPackage = supervisedPackage;
 		this.supervisedScopeWasDerived = supervisedScopeWasDerived;
 	}
