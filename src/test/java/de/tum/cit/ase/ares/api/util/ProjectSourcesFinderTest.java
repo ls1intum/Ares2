@@ -490,4 +490,109 @@ class ProjectSourcesFinderTest {
 				configuration.productionSourceRoots());
 		assertTrue(!configuration.productionRootsComplete());
 	}
+
+	/**
+	 * A Groovy slashy string is a string, so a declaration written inside one is
+	 * text rather than code. Masking it is what stops a printed example becoming a
+	 * source root, and since a declared root that is not a directory is rejected,
+	 * failing to mask it would abort discovery for a descriptor Gradle accepts.
+	 */
+	@Test
+	void ignoresSourceDirectoriesInsideASlashyString() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment"));
+		// The decoy exists and the string sits inside the java block, so a failure to
+		// mask it would not merely be tolerated: the assignment would be replaced by
+		// it, and the test would say so.
+		Files.createDirectories(temporaryDirectory.resolve("decoy"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main {
+				    java {
+				      srcDirs = ['assignment']
+				      println(/srcDirs = ['decoy']/)
+				    }
+				  }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath()),
+				configuration.productionSourceRoots());
+		assertTrue(configuration.productionRootsComplete());
+	}
+
+	/**
+	 * The dollar-slashy form is the one Gradle users reach for when a value
+	 * contains slashes, which paths do, so it is exactly where a decoy declaration
+	 * would sit most plausibly.
+	 */
+	@Test
+	void ignoresSourceDirectoriesInsideADollarSlashyString() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment"));
+		Files.createDirectories(temporaryDirectory.resolve("decoy"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				sourceSets {
+				  main {
+				    java {
+				      srcDirs = ['assignment']
+				      def documentation = $/srcDirs = ['decoy']/$
+				    }
+				  }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath()),
+				configuration.productionSourceRoots());
+		assertTrue(configuration.productionRootsComplete());
+	}
+
+	/**
+	 * The other half of reading a slash: division is not a string, and the reader
+	 * has to decide which it is from the character before it. This covers the
+	 * decision returning "not a string"; its assertion is weaker than the two
+	 * above, because an unterminated slashy string already stops at the line break,
+	 * so a wrong answer here would not by itself hide the declaration below.
+	 */
+	@Test
+	void readsDeclarationsAfterADivision() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				def half = 10 / 2
+
+				sourceSets {
+				  main { java { srcDirs = ['assignment'] } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath()),
+				configuration.productionSourceRoots());
+		assertTrue(configuration.productionRootsComplete());
+	}
+
+	/**
+	 * An unterminated single-line string must end at the line break rather than
+	 * swallowing the rest of the descriptor, or one stray quote would hide every
+	 * declaration below it.
+	 */
+	@Test
+	void readsDeclarationsAfterAnUnterminatedString() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("assignment"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
+				// a quote that never closes: it's here
+
+				sourceSets {
+				  main { java { srcDirs = ['assignment'] } }
+				}
+				""");
+
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+
+		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath()),
+				configuration.productionSourceRoots());
+	}
 }
