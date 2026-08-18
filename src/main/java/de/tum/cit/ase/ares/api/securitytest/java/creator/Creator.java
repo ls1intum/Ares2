@@ -51,5 +51,5 @@ public interface Creator {
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<ArchitectureTestCase> architectureTestCases, @Nonnull List<AOPTestCase> aopTestCases,
 			@Nonnull List<PhobosTestCase> phobosTestCases, @Nonnull ResourceAccesses resourceAccesses,
-			@Nonnull Path projectPath);
+			@Nonnull Path projectPath, boolean supervisedScopeWasDerived);
 }

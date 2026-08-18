@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 //<editor-fold desc="Imports">
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -11,7 +10,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
@@ -71,20 +69,17 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	 * ClassFileImporter.importPackages(...) String.
 	 */
 	private String javaClassesAsCode() {
-		Set<String> packages = javaClasses.stream().map(JavaClass::getPackageName)
-				.collect(Collectors.toCollection(HashSet::new));
-
-		if (packages.isEmpty()) {
-			return "new ClassFileImporter()\n" + ".withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)\n"
-					+ ".withImportOption(location -> {\n"
-					+ "String path = location.toString().replace(\"\\\\\", \"/\");\n"
-					+ "return !path.contains(\"/de/tum/cit/ase/ares/api/\");\n" + "})\n" + ".importPackages()";
+		// The generated test asks at runtime rather than carrying an answer. It used
+		// to emit the packages observed when it was written, which during precompile
+		// is nothing at all, so it emitted importPackages() with no arguments: every
+		// rule then checked an empty set of classes and passed. The suite was green
+		// and enforced nothing.
+		String scope = getSupervisedPackage();
+		if (scope == null || scope.isBlank()) {
+			throw new SecurityException(Messages.localized("security.architecture.scope.missing"));
 		}
-		String packagesAsString = packages.stream().map(p -> "\"" + p + "\"").collect(Collectors.joining(", "));
-		return "new ClassFileImporter()\n" + ".withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)\n"
-				+ ".withImportOption(location -> {\n" + "String path = location.toString().replace(\"\\\\\", \"/\");\n"
-				+ "return !path.contains(\"/de/tum/cit/ase/ares/api/\");\n" + "})\n" + ".importPackages("
-				+ packagesAsString + ")";
+		String entryPoint = isSupervisedScopeWasDerived() ? "validated" : "pinned";
+		return "JavaArchunitSupervisedClasses." + entryPoint + "(\"" + scope + "\")";
 	}
 
 	/**
@@ -257,6 +252,34 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		private Set<PackagePermission> allowedPackages;
 		@Nonnull
 		private Set<ClassPermission> allowedClasses = Set.of();
+		@Nullable
+		private String supervisedPackage;
+		private boolean supervisedScopeWasDerived;
+
+		/**
+		 * Records the scope the generated test asks for at runtime.
+		 *
+		 * @param supervisedPackage the supervised scope
+		 * @return this builder
+		 */
+		@Nonnull
+		public JavaArchunitTestCase.Builder supervisedPackage(@Nullable String supervisedPackage) {
+			this.supervisedPackage = supervisedPackage;
+			return this;
+		}
+
+		/**
+		 * Records whether that scope was derived rather than pinned, which decides
+		 * whether the generated test checks it against the whole compiled output.
+		 *
+		 * @param supervisedScopeWasDerived whether the scope was derived
+		 * @return this builder
+		 */
+		@Nonnull
+		public JavaArchunitTestCase.Builder supervisedScopeWasDerived(boolean supervisedScopeWasDerived) {
+			this.supervisedScopeWasDerived = supervisedScopeWasDerived;
+			return this;
+		}
 
 		/**
 		 * Sets the architecture test case type supported by this instance.
@@ -329,11 +352,13 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaArchunitTestCase build() {
-			return new JavaArchunitTestCase(
+			JavaArchunitTestCase testCase = new JavaArchunitTestCase(
 					Objects.requireNonNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
 					Objects.requireNonNull(javaClasses, "javaClasses must not be null"), allowedClasses);
+			testCase.setSupervisedScope(supervisedPackage, supervisedScopeWasDerived);
+			return testCase;
 		}
 	}
 	// </editor-fold>

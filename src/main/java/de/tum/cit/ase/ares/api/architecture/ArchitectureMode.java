@@ -486,7 +486,11 @@ public enum ArchitectureMode {
 		return JavaArchunitTestCase.archunitBuilder()
 				.javaArchitectureTestCaseSupported(
 						(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
-				.allowedPackages(testCase.getAllowedPackages()).javaClasses(testCase.getJavaClasses()).build();
+				.allowedPackages(testCase.getAllowedPackages()).javaClasses(testCase.getJavaClasses())
+				// The scope travels with the test case, because the generated file asks for
+				// it by name at runtime and cannot work it out for itself.
+				.supervisedPackage(testCase.getSupervisedPackage())
+				.supervisedScopeWasDerived(testCase.isSupervisedScopeWasDerived()).build();
 	}
 
 	private static JavaWalaTestCase convertToJavaWalaTestCases(JavaArchitectureTestCase testCase) {

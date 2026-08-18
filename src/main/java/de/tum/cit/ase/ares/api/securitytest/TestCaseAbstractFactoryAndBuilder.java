@@ -285,7 +285,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 		this.creator.createTestCases(this.buildMode, this.architectureMode, this.aopMode, this.essentialPackages,
 				this.essentialClasses, this.testClasses, this.packageName, this.mainClassInPackageName,
 				this.architectureTestCases, this.aopTestCases, this.phobosTestCases, this.resourceAccesses,
-				this.projectPath);
+				this.projectPath, this.supervisedScopeWasDerived);
 		// </editor-fold>
 	}
 	// </editor-fold>

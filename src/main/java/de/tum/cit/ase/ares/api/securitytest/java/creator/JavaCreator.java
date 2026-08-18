@@ -58,6 +58,19 @@ import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
  */
 public class JavaCreator implements Creator {
 	private static final Logger LOG = LoggerFactory.getLogger(JavaCreator.class);
+
+	/**
+	 * The supervised scope of the run in progress, and whether Ares derived it.
+	 * <p>
+	 * Held here rather than threaded through the three test-case builders, which
+	 * would gain two parameters apiece for a value none of them reasons about. A
+	 * creator is built per director and {@code createTestCases} is called once on
+	 * it, so this is state for one run rather than shared state.
+	 */
+	private String supervisedPackage;
+
+	/** Whether {@link #supervisedPackage} was derived rather than pinned. */
+	private boolean supervisedScopeWasDerived;
 	private final BuildToolConfiguration buildConfiguration;
 
 	public JavaCreator() {
@@ -270,6 +283,9 @@ public class JavaCreator implements Creator {
 			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull Set<ClassPermission> allowedClasses) {
 		return JavaArchitectureTestCase.builder()
+				// The scope the generated file asks for at runtime, and whether it has to be
+				// checked against the whole compiled output first
+				.supervisedPackage(supervisedPackage).supervisedScopeWasDerived(supervisedScopeWasDerived)
 				// The architecture test case checks for the following aspect
 				.javaArchitectureTestCaseSupported(supported)
 				// The architecture test cases are built over the following classes
@@ -341,6 +357,9 @@ public class JavaCreator implements Creator {
 		};
 		if (resourceAccessSupplier.get().isEmpty()) {
 			javaArchitectureTestCases.add(JavaArchitectureTestCase.builder()
+					// The scope the generated file asks for at runtime, and whether it has to be
+					// checked against the whole compiled output first
+					.supervisedPackage(supervisedPackage).supervisedScopeWasDerived(supervisedScopeWasDerived)
 					// The architecture test case checks for the following aspect. Map the AOP
 					// category to its architecture counterpart with an exhaustive switch rather
 					// than valueOf(name()): a future divergence of the two enums then becomes a
@@ -517,7 +536,7 @@ public class JavaCreator implements Creator {
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<ArchitectureTestCase> architectureTestCases, @Nonnull List<AOPTestCase> aopTestCases,
 			@Nonnull List<PhobosTestCase> phobosTestCases, @Nonnull ResourceAccesses resourceAccesses,
-			@Nonnull Path projectPath) {
+			@Nonnull Path projectPath, boolean supervisedScopeWasDerived) {
 		// <editor-fold desc="Extraction">
 		@Nonnull
 		String classPath = cacheResult(projectPath + "_" + packageName + "_classPath",
@@ -553,6 +572,11 @@ public class JavaCreator implements Creator {
 		// </editor-fold>
 
 		// <editor-fold desc="Preparation">
+		// Recorded before the test cases are built, because each of them carries the
+		// scope into the file it generates: a generated test asks for it by name at
+		// runtime and cannot work it out for itself.
+		this.supervisedPackage = packageName;
+		this.supervisedScopeWasDerived = supervisedScopeWasDerived;
 		@Nonnull
 		Set<PackagePermission> allowedPackages = prepareAllowedPackages(essentialPackages, resourceAccesses,
 				packageName, supervisedPackages, testClasses);

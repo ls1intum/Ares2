@@ -66,6 +66,51 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	@Nonnull
 	private final Set<ClassPermission> allowedClasses;
 
+	/**
+	 * The supervised scope the generated test must analyse, and whether Ares
+	 * derived it rather than reading it from a policy.
+	 * <p>
+	 * Written by the builder after construction rather than taken through the
+	 * constructors, which are used from several places that have no business
+	 * knowing about the scope. A generated test needs both: the scope to ask for at
+	 * runtime, and whether it has to be checked against the whole compiled output
+	 * first, which is only true when Ares worked it out for itself.
+	 */
+	private String supervisedPackage;
+
+	/** Whether {@link #supervisedPackage} was derived rather than pinned. */
+	private boolean supervisedScopeWasDerived;
+
+	/**
+	 * @return the supervised scope, or null when none was supplied
+	 */
+	@Nullable
+	public String getSupervisedPackage() {
+		return supervisedPackage;
+	}
+
+	/**
+	 * @return whether the supervised scope was derived rather than pinned
+	 */
+	public boolean isSupervisedScopeWasDerived() {
+		return supervisedScopeWasDerived;
+	}
+
+	/**
+	 * Records the supervised scope on an already-constructed test case.
+	 * <p>
+	 * Set here rather than through the constructors because those are called from
+	 * several places that have no business knowing about the scope, and because
+	 * both subclasses build through their own builders.
+	 *
+	 * @param supervisedPackage         the supervised scope
+	 * @param supervisedScopeWasDerived whether it was derived rather than pinned
+	 */
+	protected void setSupervisedScope(@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
+		this.supervisedPackage = supervisedPackage;
+		this.supervisedScopeWasDerived = supervisedScopeWasDerived;
+	}
+
 	/** Returns the set of classes exempt from the architecture rules. */
 	@Nonnull
 	public Set<ClassPermission> getAllowedClasses() {
@@ -492,6 +537,33 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nonnull
 		private Set<ClassPermission> allowedClasses = java.util.Set.of();
 
+		private String supervisedPackage;
+
+		private boolean supervisedScopeWasDerived;
+
+		/**
+		 * Records the scope a generated test asks for at runtime.
+		 *
+		 * @param supervisedPackage the supervised scope
+		 * @return this builder
+		 */
+		public Builder supervisedPackage(@Nullable String supervisedPackage) {
+			this.supervisedPackage = supervisedPackage;
+			return this;
+		}
+
+		/**
+		 * Records whether that scope was derived rather than pinned, which decides
+		 * whether the generated test must check it against the whole compiled output.
+		 *
+		 * @param supervisedScopeWasDerived whether the scope was derived
+		 * @return this builder
+		 */
+		public Builder supervisedScopeWasDerived(boolean supervisedScopeWasDerived) {
+			this.supervisedScopeWasDerived = supervisedScopeWasDerived;
+			return this;
+		}
+
 		/**
 		 * Sets the architecture test case type supported by this instance.
 		 *
@@ -590,12 +662,15 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaArchitectureTestCase build() {
-			return new JavaArchitectureTestCase(
+			JavaArchitectureTestCase testCase = new JavaArchitectureTestCase(
 					Objects.requireNonNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
 					Objects.requireNonNull(javaClasses, "javaClasses must not be null"), callGraph, callGraphSupplier,
 					allowedClasses);
+			testCase.supervisedPackage = supervisedPackage;
+			testCase.supervisedScopeWasDerived = supervisedScopeWasDerived;
+			return testCase;
 		}
 	}
 	// </editor-fold>
