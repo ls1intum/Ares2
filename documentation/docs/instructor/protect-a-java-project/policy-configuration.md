@@ -80,7 +80,7 @@ regardingTheSupervisedCode:
 | Field | Meaning |
 | --- | --- |
 | `thisPolicyFileCompliesToThePolicyVersion` | The policy format the file is written against. A root field rather than a member of `regardingTheSupervisedCode`. Must be exactly `1`; a file that omits it is rejected on load. |
-| `theFollowingProgrammingLanguageConfigurationIsUsed` | Selects the processing pipeline (build system, static analysis tool and instrumentation backend). See the table below. |
+| `theFollowingProgrammingLanguageConfigurationIsUsed` | Selects the processing pipeline (build system, static analysis tool and dynamic analysis backend). See the table below. |
 | `theSupervisedCodeUsesTheFollowingPackage` | The root package containing all student code to be supervised. |
 | `theMainClassInsideThisPackageIs` | The entrypoint class used to construct the call graph of the student program. |
 | `theFollowingClassesAreTestClasses` | Test classes that execute student code. These are trusted and not sandboxed. |
@@ -111,7 +111,7 @@ orthogonal dimensions:
    - **T. J. Watson Libraries for Analysis (WALA)**: performs static call-graph and data-flow analysis to detect disallowed code
      paths before execution.
 
-3. **Runtime instrumentation backend**
+3. **Dynamic analysis backend**
    - **AspectJ**: uses aspect-oriented programming to intercept method calls at runtime and
      block access to specified operations.
    - **Instrumentation application programming interface (API)**: uses a Java agent (Byte Buddy) to instrument bytecode at runtime

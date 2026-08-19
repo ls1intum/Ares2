@@ -1,7 +1,7 @@
 ---
 title: "Programming Language Configuration"
 sidebar_position: 2
-description: "The pipeline selector and the identity of the supervised code: build system, static analysis tool, instrumentation backend, root package and main class."
+description: "The pipeline selector and the identity of the supervised code: build system, static analysis tool, dynamic analysis backend, root package and main class."
 ---
 
 :::tip[Simple Story]
@@ -71,7 +71,7 @@ The root version field is implemented by `SecurityPolicy`, everything else by `S
 | Field | Datatype | Explanation | Example | Regex or Range |
 | --- | --- | --- | --- | --- |
 | `thisPolicyFileCompliesToThePolicyVersion` | `int` | The policy format the file is written against. This is a root field, a sibling of `regardingTheSupervisedCode` rather than one of its members, which is why it sits above it in the example. Required. | `1` | Exactly `1`. Any other value, and any file that omits the field, is rejected on load. |
-| `theFollowingProgrammingLanguageConfigurationIsUsed` | enum `ProgrammingLanguageConfiguration` | Selects the whole supervision pipeline: build system, static analysis tool and runtime instrumentation backend. Required. | `JAVA_USING_MAVEN_WALA_AND_ASPECTJ` | `^JAVA_USING_(?:MAVEN\|GRADLE)_(?:ARCHUNIT\|WALA)_AND_(?:ASPECTJ\|INSTRUMENTATION)$` |
+| `theFollowingProgrammingLanguageConfigurationIsUsed` | enum `ProgrammingLanguageConfiguration` | Selects the whole supervision pipeline: build system, static analysis tool and dynamic analysis backend. Required. | `JAVA_USING_MAVEN_WALA_AND_ASPECTJ` | `^JAVA_USING_(?:MAVEN\|GRADLE)_(?:ARCHUNIT\|WALA)_AND_(?:ASPECTJ\|INSTRUMENTATION)$` |
 | `theSupervisedCodeUsesTheFollowingPackage` | `String` | The root package holding the student code to supervise. **Required whenever a policy file is used.** The schema tolerates its absence, but the run then refuses to start rather than scanning for it. | `org.example` | `JAVA_PACKAGE_PATTERN`: a dot-separated Java package name, each segment a Java identifier that is not a reserved word (`\p{javaJavaIdentifierStart}\p{javaJavaIdentifierPart}*`) |
 | `theMainClassInsideThisPackageIs` | `String` (nullable) | The entrypoint class used to build the call graph of the student program. Omitting it is safe: the project is scanned for it. | `Main` | `JAVA_CLASS_NAME_PATTERN`: a single Java type name, excluding `var`, `yield`, `record`, `sealed` and `permits` |
 
