@@ -36,14 +36,18 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	// <editor-fold desc="Constructors">
 
 	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
-			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses) {
-		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null);
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
+		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null, supervisedPackage,
+				supervisedScopeWasDerived);
 	}
 
 	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
-			@Nonnull Set<ClassPermission> allowedClasses) {
-		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null, null, allowedClasses);
+			@Nonnull Set<ClassPermission> allowedClasses, @Nullable String supervisedPackage,
+			boolean supervisedScopeWasDerived) {
+		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null, null, allowedClasses,
+				supervisedPackage, supervisedScopeWasDerived);
 	}
 
 	// </editor-fold>
@@ -362,13 +366,12 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaArchunitTestCase build() {
-			JavaArchunitTestCase testCase = new JavaArchunitTestCase(
+			return new JavaArchunitTestCase(
 					Objects.requireNonNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
-					Objects.requireNonNull(javaClasses, "javaClasses must not be null"), allowedClasses);
-			testCase.setSupervisedScope(supervisedPackage, supervisedScopeWasDerived);
-			return testCase;
+					Objects.requireNonNull(javaClasses, "javaClasses must not be null"), allowedClasses,
+					supervisedPackage, supervisedScopeWasDerived);
 		}
 	}
 	// </editor-fold>

@@ -437,8 +437,9 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 
 	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
-			@Nonnull CallGraph callGraph) {
-		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph);
+			@Nonnull CallGraph callGraph, @Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
+		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, supervisedPackage,
+				supervisedScopeWasDerived);
 		this.callGraphSupplier = () -> callGraph;
 	}
 
@@ -447,9 +448,10 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 */
 	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
-			@Nonnull CallGraph callGraph, @Nonnull Set<ClassPermission> allowedClasses) {
+			@Nonnull CallGraph callGraph, @Nonnull Set<ClassPermission> allowedClasses,
+			@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
 		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, /* callGraphSupplier */ null,
-				allowedClasses);
+				allowedClasses, supervisedPackage, supervisedScopeWasDerived);
 		this.callGraphSupplier = () -> callGraph;
 	}
 
@@ -460,8 +462,10 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 */
 	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
-			@Nonnull Supplier<CallGraph> callGraphSupplier) {
-		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, /* callGraph */ null);
+			@Nonnull Supplier<CallGraph> callGraphSupplier, @Nullable String supervisedPackage,
+			boolean supervisedScopeWasDerived) {
+		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, /* callGraph */ null, supervisedPackage,
+				supervisedScopeWasDerived);
 		this.callGraphSupplier = callGraphSupplier;
 	}
 
@@ -471,9 +475,10 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 */
 	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
-			@Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<ClassPermission> allowedClasses) {
+			@Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<ClassPermission> allowedClasses,
+			@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
 		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, /* callGraph */ null,
-				/* callGraphSupplier */ null, allowedClasses);
+				/* callGraphSupplier */ null, allowedClasses, supervisedPackage, supervisedScopeWasDerived);
 		this.callGraphSupplier = callGraphSupplier;
 	}
 
@@ -682,7 +687,13 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 						.javaArchitectureTestCaseSupported(
 								(JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported)
 						.javaClasses(this.javaClasses).allowedPackages(this.allowedPackages)
-						.allowedClasses(exemptClasses).build().executeArchitectureTestCase(architectureMode, aopMode);
+						.allowedClasses(exemptClasses)
+						// Carried even though this delegate only executes and never writes a
+						// file, so that the delegate is the same test case rather than one that
+						// happens not to need the difference yet.
+						.supervisedPackage(getSupervisedPackage())
+						.supervisedScopeWasDerived(isSupervisedScopeWasDerived()).build()
+						.executeArchitectureTestCase(architectureMode, aopMode);
 			default -> throw new SecurityException(
 					Messages.localized("security.common.unsupported.operation", this.architectureTestCaseSupported));
 			}
@@ -914,14 +925,13 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaWalaTestCase build() {
-			JavaWalaTestCase testCase = new JavaWalaTestCase(
+			return new JavaWalaTestCase(
 					Objects.requireNonNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
 					Objects.requireNonNull(javaClasses, "javaClasses must not be null"),
-					Objects.requireNonNull(callGraph, "callGraph must not be null"), allowedClasses);
-			testCase.setSupervisedScope(supervisedPackage, supervisedScopeWasDerived);
-			return testCase;
+					Objects.requireNonNull(callGraph, "callGraph must not be null"), allowedClasses, supervisedPackage,
+					supervisedScopeWasDerived);
 		}
 	}
 	// </editor-fold>

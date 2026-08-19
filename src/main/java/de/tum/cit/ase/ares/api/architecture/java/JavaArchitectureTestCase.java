@@ -70,16 +70,22 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 * The supervised scope the generated test must analyse, and whether Ares
 	 * derived it rather than reading it from a policy.
 	 * <p>
-	 * Written by the builder after construction rather than taken through the
-	 * constructors, which are used from several places that have no business
-	 * knowing about the scope. A generated test needs both: the scope to ask for at
-	 * runtime, and whether it has to be checked against the whole compiled output
-	 * first, which is only true when Ares worked it out for itself.
+	 * Taken through every constructor rather than assigned afterwards. A generated
+	 * test that carries no scope refuses to be written at all, so a test case
+	 * without one is not a valid object, and a two-step construction let it exist
+	 * anyway: three call sites had to remember the second step and two of them did
+	 * not. Making it a parameter moves that from something a reader has to notice
+	 * to something the compiler asks for.
+	 * <p>
+	 * A generated test needs both values: the scope to ask for at runtime, and
+	 * whether it has to be checked against the whole compiled output first, which
+	 * is only true when Ares worked the scope out for itself.
 	 */
-	private String supervisedPackage;
+	@Nullable
+	private final String supervisedPackage;
 
 	/** Whether {@link #supervisedPackage} was derived rather than pinned. */
-	private boolean supervisedScopeWasDerived;
+	private final boolean supervisedScopeWasDerived;
 
 	/**
 	 * @return the supervised scope, or null when none was supplied
@@ -94,21 +100,6 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 */
 	public boolean isSupervisedScopeWasDerived() {
 		return supervisedScopeWasDerived;
-	}
-
-	/**
-	 * Records the supervised scope on an already-constructed test case.
-	 * <p>
-	 * Set here rather than through the constructors because those are called from
-	 * several places that have no business knowing about the scope, and because
-	 * both subclasses build through their own builders.
-	 *
-	 * @param supervisedPackage         the supervised scope
-	 * @param supervisedScopeWasDerived whether it was derived rather than pinned
-	 */
-	public void setSupervisedScope(@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
-		this.supervisedPackage = supervisedPackage;
-		this.supervisedScopeWasDerived = supervisedScopeWasDerived;
 	}
 
 	/** Returns the set of classes exempt from the architecture rules. */
@@ -157,13 +148,21 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 * @param callGraph                         Call graph representing
 	 *                                          caller-callee relationships in the
 	 *                                          code (may be null for ARCHUNIT mode)
+	 * @param supervisedPackage                 The supervised scope the generated
+	 *                                          test asks for at runtime, or
+	 *                                          {@code null} on a path that never
+	 *                                          writes a file
+	 * @param supervisedScopeWasDerived         Whether that scope was derived from
+	 *                                          the project rather than pinned by a
+	 *                                          policy
 	 * @author Sarp Sahinalp
 	 * @since 2.0.0
 	 */
 	public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
-			@Nullable CallGraph callGraph) {
-		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, null, java.util.Set.of());
+			@Nullable CallGraph callGraph, @Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, null, java.util.Set.of(),
+				supervisedPackage, supervisedScopeWasDerived);
 	}
 
 	/**
@@ -184,15 +183,27 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 * @param callGraphSupplier                 Lazy supplier of the call graph, or
 	 *                                          {@code null} when an eager
 	 *                                          {@code callGraph} is provided
+	 * @param allowedClasses                    Classes exempt from the architecture
+	 *                                          rules
+	 * @param supervisedPackage                 The supervised scope the generated
+	 *                                          test asks for at runtime, or
+	 *                                          {@code null} on a path that never
+	 *                                          writes a file
+	 * @param supervisedScopeWasDerived         Whether that scope was derived from
+	 *                                          the project rather than pinned by a
+	 *                                          policy
 	 * @since 2.0.0
 	 */
 	public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
 			@Nullable CallGraph callGraph, @Nullable Supplier<CallGraph> callGraphSupplier,
-			@Nonnull Set<ClassPermission> allowedClasses) {
+			@Nonnull Set<ClassPermission> allowedClasses, @Nullable String supervisedPackage,
+			boolean supervisedScopeWasDerived) {
 		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph);
 		this.callGraphSupplier = callGraphSupplier;
 		this.allowedClasses = allowedClasses;
+		this.supervisedPackage = supervisedPackage;
+		this.supervisedScopeWasDerived = supervisedScopeWasDerived;
 	}
 	// </editor-fold>
 
@@ -428,14 +439,26 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	@Nonnull
 	@Override
 	public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
+		// archunitBuilder() and walaBuilder(), not builder(). Java inherits static
+		// methods by name, so JavaArchunitTestCase.builder() resolved to the one
+		// declared here and built another base-class instance, whose own
+		// writeArchitectureTestCase delegated again: both supported modes recursed
+		// until the stack ran out. Nothing caught it, because the production path
+		// converts through ArchitectureMode and never reaches these two lines.
+		//
+		// The scope travels into the delegate for the same reason: the delegate is
+		// what writes the file, and one built without a scope refuses to write one.
 		return switch (architectureMode) {
-		case "ARCHUNIT" -> JavaArchunitTestCase.builder()
+		case "ARCHUNIT" -> JavaArchunitTestCase.archunitBuilder()
 				.javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported)
-				.allowedPackages(allowedPackages).javaClasses(javaClasses).build()
+				.allowedPackages(allowedPackages).javaClasses(javaClasses).allowedClasses(allowedClasses)
+				.supervisedPackage(supervisedPackage).supervisedScopeWasDerived(supervisedScopeWasDerived).build()
 				.writeArchitectureTestCase(architectureMode, aopMode);
-		case "WALA" -> JavaWalaTestCase.builder()
+		case "WALA" -> JavaWalaTestCase.walaBuilder()
 				.javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported)
-				.allowedPackages(allowedPackages).javaClasses(javaClasses).callGraph(callGraph).build()
+				.allowedPackages(allowedPackages).javaClasses(javaClasses).callGraph(callGraph)
+				.allowedClasses(allowedClasses).supervisedPackage(supervisedPackage)
+				.supervisedScopeWasDerived(supervisedScopeWasDerived).build()
 				.writeArchitectureTestCase(architectureMode, aopMode);
 		default -> throw new SecurityException(
 				Messages.localized("security.architecture.testcase.mode.not.supported", architectureMode));
@@ -483,7 +506,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 			JavaWalaTestCase tc;
 			if (callGraphSupplier != null) {
 				tc = new JavaWalaTestCase(protectedJavaArchitectureTestCaseSupported, protectedAllowedPackages,
-						protectedJavaClasses, callGraphSupplier, allowedClasses);
+						protectedJavaClasses, callGraphSupplier, allowedClasses, supervisedPackage,
+						supervisedScopeWasDerived);
 			} else {
 				tc = JavaWalaTestCase.walaBuilder()
 						.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
@@ -662,15 +686,12 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		 */
 		@Nonnull
 		public JavaArchitectureTestCase build() {
-			JavaArchitectureTestCase testCase = new JavaArchitectureTestCase(
+			return new JavaArchitectureTestCase(
 					Objects.requireNonNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
 					Objects.requireNonNull(javaClasses, "javaClasses must not be null"), callGraph, callGraphSupplier,
-					allowedClasses);
-			testCase.supervisedPackage = supervisedPackage;
-			testCase.supervisedScopeWasDerived = supervisedScopeWasDerived;
-			return testCase;
+					allowedClasses, supervisedPackage, supervisedScopeWasDerived);
 		}
 	}
 	// </editor-fold>

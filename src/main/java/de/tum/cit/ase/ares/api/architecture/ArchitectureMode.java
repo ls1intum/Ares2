@@ -501,13 +501,12 @@ public enum ArchitectureMode {
 		// forks whose results are entirely served from disk.
 		java.util.function.Supplier<com.ibm.wala.ipa.callgraph.CallGraph> supplier = testCase.getCallGraphSupplier();
 		if (supplier != null) {
-			JavaWalaTestCase walaTestCase = new JavaWalaTestCase(
-					(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported(),
-					testCase.getAllowedPackages(), testCase.getJavaClasses(), supplier);
 			// Both branches carry it, or the lazy one would generate a file that asks
-			// for nothing while the eager one asks correctly.
-			walaTestCase.setSupervisedScope(testCase.getSupervisedPackage(), testCase.isSupervisedScopeWasDerived());
-			return walaTestCase;
+			// for nothing while the eager one asks correctly. The constructor now asks
+			// for it, so the two cannot drift apart again.
+			return new JavaWalaTestCase((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported(),
+					testCase.getAllowedPackages(), testCase.getJavaClasses(), supplier, testCase.getSupervisedPackage(),
+					testCase.isSupervisedScopeWasDerived());
 		}
 		return JavaWalaTestCase.walaBuilder()
 				.javaArchitectureTestCaseSupported(
