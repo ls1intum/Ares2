@@ -118,8 +118,17 @@ public class JavaCreator implements Creator {
 			@Nonnull ResourceAccesses resourceAccesses, @Nonnull String packageName,
 			@Nonnull List<String> testClasses) {
 		return Stream.of(
-				// Essential packages are allowed to do anything
-				essentialPackages.stream().filter(p -> p != null && !p.isBlank()).map(PackagePermission::new),
+				/*
+				 * Essential packages are allowed to do anything. JDK-namespace entries are
+				 * pinned to an exact match: PACKAGE_IMPORT must stay able to forbid an
+				 * individual java.* package, and a subtree grant on the unavoidable java.lang
+				 * baseline would silently re-admit java.lang.reflect, java.lang.invoke,
+				 * java.lang.instrument, java.lang.management, java.lang.foreign and
+				 * java.lang.module. Non-JDK essentials (AspectJ, the instrumentation advice
+				 * package) legitimately span subpackages and keep subtree matching.
+				 */
+				essentialPackages.stream().filter(p -> p != null && !p.isBlank())
+						.map(p -> new PackagePermission(p, isJdkNamespace(p))),
 				// The permitted packages are allowed
 				resourceAccesses.regardingPackageImports().stream(),
 				/*
@@ -140,6 +149,34 @@ public class JavaCreator implements Creator {
 				}).filter(p -> !p.isBlank()).distinct().map(PackagePermission::new)
 
 		).flatMap(Function.identity()).collect(Collectors.toSet());
+	}
+
+	/**
+	 * Roots of the JDK-controlled namespace. An essential package under one of
+	 * these roots is granted as an exact match rather than as a subtree.
+	 */
+	@Nonnull
+	private static final List<String> JDK_NAMESPACE_ROOTS = List.of("java", "javax", "jdk", "sun", "com.sun");
+
+	/**
+	 * Returns {@code true} if {@code packageName} lies in the JDK-controlled
+	 * namespace.
+	 * <p>
+	 * SECURITY: this is what keeps the essential list from being able to re-open
+	 * the JDK. Even if {@code essentialJavaPackages} were widened back to the bare
+	 * root {@code java}, it would be granted as an exact match on the literal
+	 * package {@code java}, which declares no classes, so no {@code java.*} package
+	 * becomes importable through it. Widening a JDK package therefore requires an
+	 * explicit, reviewable grant in the security policy.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param packageName the package name to classify; must not be null
+	 * @return true if the package is part of the JDK-controlled namespace
+	 */
+	private static boolean isJdkNamespace(@Nonnull String packageName) {
+		return JDK_NAMESPACE_ROOTS.stream()
+				.anyMatch(root -> packageName.equals(root) || packageName.startsWith(root + "."));
 	}
 
 	/**

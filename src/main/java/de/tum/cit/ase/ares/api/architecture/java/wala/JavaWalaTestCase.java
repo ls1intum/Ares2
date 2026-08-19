@@ -302,8 +302,12 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		// verdict.
 		String dependencyFingerprint = supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT ? ""
 				: CustomCallgraphBuilder.dependencyFingerprint(javaClasses);
-		String allowedPackagesFingerprint = allowedPackages.stream().map(PackagePermission::importTheFollowingPackage)
-				.sorted().collect(Collectors.joining(","));
+		// The exactness flag changes which imports the rule accepts, so it must be part
+		// of the key; otherwise a cached PASS produced under a subtree grant could be
+		// served to a stricter exact-match configuration.
+		String allowedPackagesFingerprint = allowedPackages.stream()
+				.map(permission -> permission.importTheFollowingPackage() + "#" + permission.exactMatchOnly()).sorted()
+				.collect(Collectors.joining(","));
 		// The allow-listed classes change which violations are exempt, so they must be
 		// part of the key or a run with exemptions could be served a no-exemption
 		// outcome.
@@ -490,8 +494,10 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		if (allowedPackages.isEmpty()) {
 			return "Set.of()";
 		}
-		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\")",
-				PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage()))
+		// Emit the exactness flag as well, or the generated test would silently fall
+		// back to subtree matching and diverge from the rule that produced it.
+		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\", %s)",
+				PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage(), pp.exactMatchOnly()))
 				.collect(Collectors.joining(", "));
 		return "Set.of(" + inner + ")";
 	}
