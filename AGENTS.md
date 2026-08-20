@@ -128,6 +128,21 @@ PR_BODY="$(cat body.md)" java .github/scripts/CheckPullRequestTemplate.java
 The checker is a single-file Java program, run through the source-code launcher of JDK 11 or
 newer, so it needs no build step and adds no language to the repository. CI runs it on 21.
 
+**Only the template's own headings.** The check reports every line it reads as a heading that
+the template does not define, sub-headings included. A section of your own is never checked: the
+checker cuts out the required headings only, so whatever sits under an invented one is measured
+as part of the section above it, and what its title promises is never looked for. Put the text
+in the section it belongs to, or in a comment on the pull request, which is where anything
+outside the template's shape goes.
+
+What it reads as a heading is a line of up to three spaces, then one to six hashes, then a
+space, a tab or the end of the line, outside comments, fenced blocks and code between backticks.
+`#hashtag` and seven hashes are therefore not headings to it. It does not find a heading
+underlined with equals signs, nor one indented into a quotation or a list; those pass. It does
+not recognise raw HTML blocks either, so such a line inside `<pre>` or `<details>` is reported.
+Put a line you do not mean as a heading in a fenced code block, where the checker does not treat
+it as one.
+
 **Changing the template is two edits, not one.** The required headings, the character
 limits and the phrases that answer a section live in one ordered map, `SECTIONS`, at the
 top of `.github/scripts/CheckPullRequestTemplate.java`, in the order the template puts them
