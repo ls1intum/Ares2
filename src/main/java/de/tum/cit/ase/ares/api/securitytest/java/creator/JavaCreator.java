@@ -524,6 +524,42 @@ public class JavaCreator implements Creator {
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<ArchitectureTestCase> architectureTestCases, @Nonnull List<AOPTestCase> aopTestCases,
 			@Nonnull List<PhobosTestCase> phobosTestCases, @Nonnull ResourceAccesses resourceAccesses,
+			@Nonnull Path projectPath) {
+		// The released overload is the abstract one, so an implementation that
+		// predates the scope parameter is still complete. This one supplies it,
+		// reporting the scope as derived: of the two readings that is the strict one,
+		// since a derived scope is checked against the whole compiled output before
+		// enforcement, so a caller that could not say can only ever get more
+		// verification than it asked for.
+		createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses,
+				packageName, mainClassInPackageName, architectureTestCases, aopTestCases, phobosTestCases,
+				resourceAccesses, projectPath, true);
+	}
+
+	/**
+	 * Builds the test cases, told whether Ares derived the supervised scope.
+	 *
+	 * @param buildMode                 the build tool
+	 * @param architectureMode          the architecture analyser
+	 * @param aopMode                   the enforcement backend
+	 * @param essentialPackages         the packages Ares itself needs
+	 * @param essentialClasses          the classes Ares itself needs
+	 * @param testClasses               the test classes
+	 * @param packageName               the supervised scope
+	 * @param mainClassInPackageName    the main class
+	 * @param architectureTestCases     the architecture test cases to fill
+	 * @param aopTestCases              the AOP test cases to fill
+	 * @param phobosTestCases           the Phobos test cases to fill
+	 * @param resourceAccesses          the permitted resource accesses
+	 * @param projectPath               the project root
+	 * @param supervisedScopeWasDerived whether Ares derived the supervised scope
+	 */
+	@Override
+	public void createTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
+			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
+			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
+			@Nonnull List<ArchitectureTestCase> architectureTestCases, @Nonnull List<AOPTestCase> aopTestCases,
+			@Nonnull List<PhobosTestCase> phobosTestCases, @Nonnull ResourceAccesses resourceAccesses,
 			@Nonnull Path projectPath, boolean supervisedScopeWasDerived) {
 		// <editor-fold desc="Extraction">
 		@Nonnull

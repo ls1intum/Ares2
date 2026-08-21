@@ -44,28 +44,17 @@ public interface Creator {
 	 *                              policy; must not be null
 	 * @param projectPath           the path to the project; must not be null
 	 */
-	void createTestCases(
-			// TODO Markus: Remove Java from Abstract Class
-			@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode, @Nonnull AOPMode aopMode,
-			@Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
-			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
-			@Nonnull List<ArchitectureTestCase> architectureTestCases, @Nonnull List<AOPTestCase> aopTestCases,
-			@Nonnull List<PhobosTestCase> phobosTestCases, @Nonnull ResourceAccesses resourceAccesses,
-			@Nonnull Path projectPath, boolean supervisedScopeWasDerived);
-
 	/**
-	 * The signature released in 2.1.2, kept so that a client compiled against it
-	 * still links.
+	 * The signature released in 2.1.2, and still the one an implementation has to
+	 * provide.
 	 * <p>
-	 * It cannot say whether the supervised scope was derived from the project or
-	 * pinned by a policy, so it reports it as derived. That is the strict reading
-	 * of the two: a derived scope is checked against the whole compiled output
-	 * before enforcement, so this bridge can only ever verify more than the caller
-	 * asked for, never less.
-	 * <p>
-	 * Only callers are served by this. An implementation written against the old
-	 * signature still has to be updated, because no bridge can supply a parameter
-	 * its author never wrote.
+	 * Which of the two overloads is abstract decides who keeps working. Adding the
+	 * scope-aware one as the abstract method and demoting this to a bridge served
+	 * callers and nobody else: an implementation written against this signature was
+	 * then no longer a complete implementation, so it failed to compile, and an
+	 * already compiled one lacked the new descriptor and could be reached through
+	 * {@code AbstractMethodError}. Leaving this abstract keeps the released
+	 * contract exactly what it was.
 	 *
 	 * @param buildMode              the build tool
 	 * @param architectureMode       the architecture analyser
@@ -80,17 +69,58 @@ public interface Creator {
 	 * @param phobosTestCases        the Phobos test cases to fill
 	 * @param resourceAccesses       the permitted resource accesses
 	 * @param projectPath            the project root
-	 * @deprecated state whether the supervised scope was derived
+	 * @deprecated implement the overload that states whether the supervised scope
+	 *             was derived; this one cannot express it
 	 */
 	@Deprecated(forRemoval = true)
+	void createTestCases(
+			// TODO Markus: Remove Java from Abstract Class
+			@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode, @Nonnull AOPMode aopMode,
+			@Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
+			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
+			@Nonnull List<ArchitectureTestCase> architectureTestCases, @Nonnull List<AOPTestCase> aopTestCases,
+			@Nonnull List<PhobosTestCase> phobosTestCases, @Nonnull ResourceAccesses resourceAccesses,
+			@Nonnull Path projectPath);
+
+	/**
+	 * The same, told whether the supervised scope was derived from the project or
+	 * pinned by a policy.
+	 * <p>
+	 * A {@code default} rather than the abstract method, so that an implementation
+	 * predating the parameter stays a complete implementation. What it does then is
+	 * the only honest thing available: it drops the parameter and calls the
+	 * released overload, which is exactly the behaviour such an implementation had
+	 * before the parameter existed.
+	 * <p>
+	 * An implementation that means to act on the scope overrides this, as
+	 * {@code JavaCreator} does, and implements the released overload as a one-line
+	 * delegation to it. Ares itself always calls this one.
+	 *
+	 * @param buildMode                 the build tool
+	 * @param architectureMode          the architecture analyser
+	 * @param aopMode                   the enforcement backend
+	 * @param essentialPackages         the packages Ares itself needs
+	 * @param essentialClasses          the classes Ares itself needs
+	 * @param testClasses               the test classes
+	 * @param packageName               the supervised scope
+	 * @param mainClassInPackageName    the main class
+	 * @param architectureTestCases     the architecture test cases to fill
+	 * @param aopTestCases              the AOP test cases to fill
+	 * @param phobosTestCases           the Phobos test cases to fill
+	 * @param resourceAccesses          the permitted resource accesses
+	 * @param projectPath               the project root
+	 * @param supervisedScopeWasDerived whether Ares derived the supervised scope
+	 *                                  rather than reading it from a policy
+	 */
+	@SuppressWarnings("removal")
 	default void createTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
 			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<ArchitectureTestCase> architectureTestCases, @Nonnull List<AOPTestCase> aopTestCases,
 			@Nonnull List<PhobosTestCase> phobosTestCases, @Nonnull ResourceAccesses resourceAccesses,
-			@Nonnull Path projectPath) {
+			@Nonnull Path projectPath, boolean supervisedScopeWasDerived) {
 		createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses,
 				packageName, mainClassInPackageName, architectureTestCases, aopTestCases, phobosTestCases,
-				resourceAccesses, projectPath, true);
+				resourceAccesses, projectPath);
 	}
 }
