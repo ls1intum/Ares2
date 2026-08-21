@@ -242,7 +242,7 @@ Thread tasks can appear in **different places** depending on how the method is u
 
 > 💡 **Method Signature Explained:** `(java.lang.Runnable)`
 > - `(` = Parameter list begins
-> - `java.lang.Runnable` = Parameter of type Runnable (fully qualified source-form name, not a JVM descriptor)
+> - `java.lang.Runnable` = Parameter of type Runnable, a fully qualified source-form name rather than a Java Virtual Machine (JVM) descriptor
 > - `)` = Parameter list ends
 > - The return type is **not** part of the signature: Byte Buddy's `@Advice.Origin("#s")` yields only the parameter list
 >

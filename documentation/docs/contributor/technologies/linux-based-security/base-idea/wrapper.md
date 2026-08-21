@@ -18,7 +18,7 @@ All three layers are wrappers: a process that configures its restriction and the
 next layer, with the supervised build command innermost.
 
 This is the property that distinguishes Linux-based security from the
-[AOP](/contributor/technologies/aop-tests/base-idea/aspect) and
+[aspect-oriented programming (AOP)](/contributor/technologies/aop-tests/base-idea/aspect) and
 [architecture](/contributor/technologies/architecture-tests/base-idea/rule) layers. Those run
 *inside* the Java Virtual Machine (JVM) they protect. A wrapper runs outside it, so the supervised process cannot
 switch the restriction off, however much control it gains over its own JVM.

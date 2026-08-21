@@ -37,7 +37,7 @@ consulted.
 
 ## Runtime enforcement
 
-`JavaInstrumentationAdviceNetworkSystemToolbox` inside the JVM. Outside it, the Phobos
+`JavaInstrumentationAdviceNetworkSystemToolbox` inside the Java Virtual Machine (JVM). Outside it, the Phobos
 `LD_PRELOAD` firewall (`libnetblocker.so`) applies the same allow-list to the whole process,
 including anything the JVM shells out to.
 

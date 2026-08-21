@@ -1,22 +1,4 @@
 {
-  "why": "Enforced findings accepted for now. Every one is an abbreviation whose only uses on its page sit inside brackets, a table cell or a link label, where spelling it out reads worse than leaving it. This list may only shrink: see scripts/prose/cli.mjs. Revisit it if the abbreviation policy on the writing-rules page changes.",
-  "accepted": [
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/aop/aspectj-vs-instrumentation-weaknesses.md\u241fwala\u241fs a \u0000. the architecture engines list \u0000 (wala and archunit) and \u0000 (archunit) as forbi",
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/aop/block-file-system-access.md\u241fjdk\u241fture (the maven local repository or the jdk installation under \u0000)",
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/aop/block-file-system-access.md\u241fwala\u241farchitecture (archunit/wala)",
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/aop/block-thread-system-access.md\u241fjvm\u241ffully qualified source-form name, not a jvm descriptor)",
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/architecture/block-command-system-access.md\u241fci\u241ffor pre-submission checks (ci/cd pipelines)",
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/architecture/block-command-system-access.md\u241fjvm\u241fwala file (jvm descriptor parameters, no return type):",
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/architecture/block-file-system-access.md\u241fci\u241ffor pre-submission checks (ci/cd pipelines)",
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/architecture/block-thread-system-access.md\u241fci\u241ffor pre-submission checks (ci/cd pipelines)",
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/ast.md\u241faop\u241fstyle and structure. the sandbox is the aop and architecture layers.",
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/policy/reader-and-director.md\u241fjson\u241fle formats (currently yaml, potentially json or toml in the future) and different ta",
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/policy/security-policy-manual.md\u241fdns\u241fndi lookup access via \u0000 and \u0000 (ldap/rmi/dns injection paths)",
-    "abbreviation-first-use\u241fdocs/contributor/subsystems/policy/security-policy-manual.md\u241fjson\u241fle formats (currently yaml, potentially json or toml in the future) and different ta",
-    "abbreviation-first-use\u241fdocs/contributor/technologies/architecture-tests/base-idea/call-graph.md\u241fwala\u241fh for how those paths are searched, and wala for the engine that builds the graph.",
-    "abbreviation-first-use\u241fdocs/contributor/technologies/architecture-tests/base-idea/dfs-path.md\u241fwala\u241fachable sink that no execution reaches. wala filters some of these.",
-    "abbreviation-first-use\u241fdocs/contributor/technologies/ast-tests/base-idea/call-graph.md\u241fwala\u241fbytecode call graph (wala)",
-    "abbreviation-first-use\u241fdocs/contributor/technologies/linux-based-security/base-idea/wrapper.md\u241faop\u241finguishes linux-based security from the aop and architecture layers. those run insi",
-    "abbreviation-first-use\u241fdocs/instructor/policy-reference/programming-language-configuration.md\u241fwala\u241fuld bring (maven or gradle, archunit or wala, aspectj or instrumentation). none of t"
-  ]
+  "why": "Enforced findings accepted for now. This list may only shrink; see scripts/prose/cli.mjs.",
+  "accepted": []
 }

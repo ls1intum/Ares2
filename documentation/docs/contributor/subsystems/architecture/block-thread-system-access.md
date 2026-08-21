@@ -21,7 +21,7 @@ allowance, AspectJ or instrumentation is authoritative for matching the permitte
 class and quota and rejecting other creation; see `docs/policy/EnforcementModel.md`.
 
 **Key Difference from AOP Approach:**
-- **AOP (Runtime)**: Monitors thread creation during program execution and enforces thread quotas in real-time
+- **Aspect-oriented programming (AOP), at runtime**: Monitors thread creation during program execution and enforces thread quotas in real-time
 - **Architecture (Static)**: Analyses compiled bytecode before execution to detect potential thread creation violations in the code structure
 
 ---
@@ -975,7 +975,7 @@ try {
 
 **When do you need this?**
 - When you want to prevent students from creating threads entirely
-- For pre-submission checks (CI/CD pipelines)
+- For pre-submission checks in a continuous integration (CI) pipeline
 - When runtime monitoring (AOP) is not feasible or desired
 - For comprehensive code structure validation
 - When you want to avoid false positives from JDK internal thread usage

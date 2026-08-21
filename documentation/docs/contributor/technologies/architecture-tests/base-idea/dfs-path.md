@@ -33,7 +33,7 @@ their method to the forbidden call tells them where to look.
 
 This is also where false positives arise. A path through the graph is a path that *may*
 exist, and an over-approximated edge produces a reachable sink that no execution reaches.
-[WALA](../wala.md) filters some of these.
+The [T. J. Watson Libraries for Analysis (WALA)](../wala.md) filters some of these.
 
 ## Further reading
 

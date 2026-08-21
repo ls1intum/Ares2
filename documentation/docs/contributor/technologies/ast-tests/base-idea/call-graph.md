@@ -20,7 +20,7 @@ recursion is detected.
 
 ## How it differs from the bytecode call graph
 
-| | AST call graph | Bytecode call graph ([WALA](/contributor/technologies/architecture-tests/wala)) |
+| | AST call graph | Bytecode call graph, built by the [T. J. Watson Libraries for Analysis (WALA)](/contributor/technologies/architecture-tests/wala) |
 | --- | --- | --- |
 | Built from | source | compiled classes |
 | Sees library internals | no | yes |

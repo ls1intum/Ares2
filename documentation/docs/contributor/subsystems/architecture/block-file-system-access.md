@@ -40,7 +40,7 @@ representative non-matching paths; see `docs/policy/EnforcementModel.md`.
 
 **When do you need this?**
 - When you want to prevent students from using file system operations entirely
-- For pre-submission checks (CI/CD pipelines)
+- For pre-submission checks in a continuous integration (CI) pipeline
 - When runtime monitoring (AOP) is not feasible or desired
 - For comprehensive code structure validation
 
@@ -102,7 +102,7 @@ public void readFile(String path) {
 ```
 
 **Key Difference from AOP:**
-- **AOP (Runtime)**: Monitors method calls during program execution and blocks forbidden operations in real-time
+- **Aspect-oriented programming (AOP), at runtime**: Monitors method calls during program execution and blocks forbidden operations in real-time
 - **Architecture (Static)**: Analyses compiled bytecode before execution to detect potential security violations in the code structure
 
 ---

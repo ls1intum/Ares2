@@ -49,7 +49,7 @@ This document explains how Ares 2 decides whether student code may access the fi
 
 ### Comparison: AOP vs. Architecture
 
-| Aspect | AOP (Byte Buddy/AspectJ) | Architecture (ArchUnit/WALA) |
+| Aspect | AOP (Byte Buddy/AspectJ) | Architecture (ArchUnit, or the T. J. Watson Libraries for Analysis, WALA) |
 |--------|--------------------------|------------------------------|
 | **Analysis Time** | During execution (runtime) | Before execution (static) |
 | **Detection** | Intercepts method calls | Analyses code structure |
@@ -1366,7 +1366,7 @@ This exemption is applied at **all three** check sites: parameter-based, receive
 **Further infrastructure exemptions:** Besides Ares's own files, a flagged path is also allowed when the access is Java Virtual Machine (JVM)/library infrastructure rather than student file access:
 - `.class` reads performed by the class-loading machinery (a class-loader frame is on the stack, or the caller is `Class.forName`/`ClassLoader`)
 - `.jar` reads from system infrastructure (the Maven local repository or the JDK installation under `java.home`)
-- JDK-internal reads under `java.home` and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
+- Java Development Kit (JDK) internal reads under `java.home` and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
 - JCE crypto-policy files read during Transport Layer Security (TLS)/cryptography initialisation
 - Entry reads on an **already-open** `JarFile`/`ZipFile` (the constructor is NOT exempt and still validates its path)
 - The root path `"/"` when found in object attributes (a side effect of class resolution)

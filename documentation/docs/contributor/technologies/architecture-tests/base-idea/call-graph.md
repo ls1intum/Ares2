@@ -36,7 +36,8 @@ operations as *sinks*; the analysis then asks whether any path leads from studen
 sink. `theMainClassInsideThisPackageIs` supplies the entry point the graph is built from.
 
 See [depth-first search (DFS) Path](./dfs-path.md) for how those paths are searched, and
-[WALA](../wala.md) for the engine that builds the graph.
+the [T. J. Watson Libraries for Analysis (WALA)](../wala.md) for the engine that builds the
+graph.
 
 ## Further reading
 

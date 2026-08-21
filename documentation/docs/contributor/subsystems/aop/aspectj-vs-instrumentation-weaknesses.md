@@ -116,7 +116,8 @@ not guaranteed to be blocked, and constrain the policy accordingly.
 The general ordering above (Instrumentation strictly stronger) inverts for the
 thread-monitor methods `Object.notify()`, `Object.notifyAll()` and the
 `Object.wait(...)` overloads when the receiver is a `Thread`. The architecture
-engines list `java.lang.Thread.notify()` (WALA and ArchUnit) and
+engines, ArchUnit and the T. J. Watson Libraries for Analysis (WALA), list
+`java.lang.Thread.notify()` (WALA and ArchUnit) and
 `java.lang.Object.wait(long)` (ArchUnit) as forbidden thread-manipulation
 methods, so a policy that forbids thread manipulation expects these to be blocked.
 

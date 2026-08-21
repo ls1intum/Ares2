@@ -22,7 +22,7 @@ exact allowance and rejecting non-matching commands and arguments; see
 `docs/policy/EnforcementModel.md`.
 
 **Key Difference from AOP Approach:**
-- **AOP (Runtime)**: Monitors command execution during program execution and blocks forbidden commands in real-time
+- **Aspect-oriented programming (AOP), at runtime**: Monitors command execution during program execution and blocks forbidden commands in real-time
 - **Architecture (Static)**: Analyses compiled bytecode before execution to detect potential command execution violations in the code structure
 
 ---
@@ -174,7 +174,7 @@ java.lang.ProcessBuilder.<init>(java.lang.String[])
 java.lang.ProcessBuilder.start()
 ```
 
-*WALA file (JVM descriptor parameters, no return type):*
+*WALA file, with Java Virtual Machine (JVM) descriptor parameters and no return type:*
 ```
 java.lang.Runtime.exec(Ljava/lang/String;)
 java.lang.ProcessBuilder.<init>([Ljava/lang/String;)
@@ -747,7 +747,7 @@ public void commandSystemShouldNotBeAccessed() {
 
 **When do you need this?**
 - When you want to prevent students from executing system commands entirely
-- For pre-submission checks (CI/CD pipelines)
+- For pre-submission checks in a continuous integration (CI) pipeline
 - When runtime monitoring (AOP) is not feasible or desired
 - For comprehensive code structure validation
 

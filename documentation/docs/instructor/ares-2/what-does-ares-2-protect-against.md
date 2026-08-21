@@ -39,9 +39,8 @@ the supervised package itself and the packages of your test classes, whatever yo
 
 :::warning[Granting anything changes how the category is enforced]
 For the first four, the two layers do not both apply. While a category's list is **empty**,
-Ares adds an architecture check that rejects any route to it before the code runs. As soon as
-you grant one thing, that architecture check is dropped and the category becomes
-**runtime-only**, because static analysis cannot tell your permitted path from a forbidden one.
+Ares adds an architecture check that rejects any route to it before the code runs.
+Granting one thing drops that architecture check, and the category becomes **runtime-only**, because static analysis cannot tell your permitted path from a forbidden one.
 
 So a category you have opened is guarded by the runtime layer alone, and it is worth knowing
 which runtime mechanism you actually have. Package imports are settled from the compiled code
@@ -105,7 +104,7 @@ code is compiled or executed. From your security configuration file, Ares 2 auto
 creates:
 
 - architecture test cases using ArchUnit or T. J. Watson Libraries for Analysis (WALA)
-- AOP configuration files for AspectJ or instrumentation
+- aspect-oriented programming (AOP) configuration files for AspectJ or instrumentation
 - build system modifications (Maven and Gradle plugins and dependencies)
 - test infrastructure for enforcing security policies
 

@@ -35,7 +35,7 @@ suits the usual requirement ("solve this without a loop") better than asserting 
 :::warning[Not a security boundary]
 This layer analyses source, so it can only see code it has the source for, and it says nothing
 about what happens at runtime. It answers questions about style and structure. The sandbox is
-the [AOP](./aop/block-file-system-access.md) and
+the [aspect-oriented programming (AOP)](./aop/block-file-system-access.md) and
 [architecture](./architecture/block-file-system-access.md) layers.
 :::
 

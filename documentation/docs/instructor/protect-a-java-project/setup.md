@@ -85,7 +85,7 @@ In this example:
 
 Artemis has a feature to mark tests as hidden, but that alone does not prevent the
 contents of the test method leaking through static variables, files and similar, whether
-accidentally or on purpose. To prevent that, **the hidden test method must not be executed
+accidentally or on purpose. **The hidden test method must not be executed
 before the deadline at all**.
 
 The public test method does not need to be hidden, since its purpose is to give direct feedback.

@@ -45,7 +45,7 @@ your exercise itself pulls in, and code you list under `theFollowingClassesAreTe
 exempt from the policy by design. A compromised or careless dependency in the exercise
 scaffolding is your supply chain to manage, not something the sandbox inspects.
 
-**The machine around the JVM.** Everything outside the supervised process, the CI runner, the
+**The machine around the JVM.** Everything outside the supervised process, the continuous integration (CI) runner, the
 container and the network it sits on, is your infrastructure to secure.
 
 ## Where enforcement is thinner than it looks
@@ -69,7 +69,7 @@ configured, which is why the weakness below matters.
 
 **AspectJ mode is strictly weaker than instrumentation mode.** AspectJ weaves the call site, so
 it can only intercept a forbidden operation where the calling code was itself woven. A call
-that bottoms out inside the JDK, in the NIO network stack for instance, is invisible to it.
+that bottoms out inside the Java Development Kit (JDK), in the NIO network stack for instance, is invisible to it.
 Instrumentation rewrites the target class and catches it regardless of the caller. The
 [honest comparison](/contributor/subsystems/aop/aspectj-vs-instrumentation-weaknesses) lists
 what the weaker mode misses.
