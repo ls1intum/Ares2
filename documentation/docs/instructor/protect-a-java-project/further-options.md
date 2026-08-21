@@ -30,7 +30,7 @@ be to change the deadline temporarily, but then it is quite likely someone forge
 back, and the protection of the hidden tests fails.
 
 Use `@ActivateHiddenBefore` just like `@Deadline` to state the `LocalDateTime` before which
-hidden tests should be executed. This date should of course lie before the release of the
+hidden tests should be executed. This date should lie before the release of the
 exercise on Artemis.
 
 ## Extending a Deadline and Disability Compensation
@@ -143,7 +143,7 @@ With the extension registered and no policy present, Ares builds a restrictive c
 
 Two further points apply whether or not a policy is present:
 
-- Ares installs fixed restrictions that no policy can grant, covering reflection, native access, JVM termination, class loading, JNDI and related domains. A policy governs the five resource domains, not everything.
+- Ares installs fixed restrictions that no policy can grant, covering reflection, native access, Java Virtual Machine (JVM) termination, class loading, JNDI and related domains. A policy governs the five resource domains, not everything.
 - The reserved-package boundary of the reserved-package step is still required. It is a build-side check and does not depend on the Ares extension activating at all.
 
 The policy-free path also **fixes the analysis and enforcement modes**: it always uses ArchUnit for static analysis and AspectJ for the runtime layer, and it discovers the build tool from the project itself. Two consequences follow:
@@ -188,4 +188,4 @@ Neither is a defect in the fallback; it is what a fallback with no instructor in
 **Not reasonable:**
 
 - Graded exercises, in general. The criterion is not "graded" as such but ownership: if students can influence which package dominates the production sources, or can add files beneath a discovered test root, then the scope and the exempt set are partly theirs to choose.
-- Anything where you need to grant a specific allowance. As soon as one permission is required, write the policy; a policy with five empty lists is equally strict and additionally pins the scope, the exempt set and the mode, so it is the better default even when it grants nothing.
+- Anything where you need to grant a specific allowance. The moment one permission is required, write the policy; a policy with five empty lists is equally strict and pins the scope, the exempt set and the mode, so it is the better default even when it grants nothing.

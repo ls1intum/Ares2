@@ -28,11 +28,11 @@ It analyses **dependencies**: which types the student's classes refer to.
 ## What it cannot see
 
 Dependency analysis is coarse. It establishes that student code refers to a file-writing
-API; it does not establish which path is written, because the path is a runtime value.
+application programming interface (API); it does not establish which path is written, because the path is a runtime value.
 
 That is not a defect, it is the division of labour. The architecture layer rejects what can
-be decided statically, and the AOP layer decides the rest at the moment of the call, where
-the arguments exist. Neither layer is sufficient alone, which is why Ares runs both and CI
+be decided statically, and the aspect-oriented programming (AOP) layer decides the rest at the moment of the call, where
+the arguments exist. Neither layer is sufficient alone, which is why Ares runs both and continuous integration (CI)
 exercises all four combinations.
 
 ## Further reading

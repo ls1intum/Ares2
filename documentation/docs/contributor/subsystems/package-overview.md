@@ -50,7 +50,7 @@ The abstract `AOPTestCase` class aggregates four dedicated extractors (file syst
 This package performs **static code analysis** to verify that student code does not use forbidden APIs or packages. Two analysis back-ends are available (selected via the `ArchitectureMode` enum):
 
 - **ArchUnit** (`java/archunit/`): rule-based package and class checks, including a custom `TransitivelyAccessesMethodsCondition`
-- **WALA** (`java/wala/`): whole-programme call-graph construction (`CustomCallgraphBuilder`) with rule checking via `WalaRule` (forward BFS from entry points plus a per-sink reverse walk, with false-positive classification in `WalaPathClassification`); `ReachabilityChecker` and `CustomDFSPathFinder` remain as legacy helpers
+- **T. J. Watson Libraries for Analysis (WALA)** (`java/wala/`): whole-programme call-graph construction (`CustomCallgraphBuilder`) with rule checking via `WalaRule` (forward BFS from entry points plus a per-sink reverse walk, with false-positive classification in `WalaPathClassification`); `ReachabilityChecker` and `CustomDFSPathFinder` remain as legacy helpers
 
 The abstract `ArchitectureTestCase` holds `JavaClasses`, a `CallGraph`, and permitted `PackagePermission` sets.
 
@@ -72,10 +72,10 @@ This package uses **JavaParser** for abstract-syntax-tree analysis of student so
 | Sub-Package | Responsibility |
 |---|---|
 | `asserting/` | Fluent AssertJ-style assertions (`UnwantedNodesAssert`, `UnwantedRecursionAssert`) |
-| `model/` | AST node models (`JavaFile`, `RecursionCheck`, `MethodCallGraph`) |
+| `model/` | abstract syntax tree (AST) node models (`JavaFile`, `RecursionCheck`, `MethodCallGraph`) |
 | `type/` | Category enums for AST node types (`LoopType`, `ConditionalType`, `ExceptionHandlingType`, `ClassType`) |
 
-`UnwantedNodesAssert` and `UnwantedRecursionAssert` provide a fluent API for specifying which syntactic constructs should be absent from student submissions.
+`UnwantedNodesAssert` and `UnwantedRecursionAssert` provide a fluent application programming interface (API) for specifying which syntactic constructs should be absent from student submissions.
 
 **Key design patterns:** Strategy (node-type categories), Fluent API (AssertJ style).
 

@@ -17,10 +17,10 @@ Ares 2 enforces through two independent analysis layers and two independent weav
 
 | Axis | Options |
 | --- | --- |
-| Architecture analysis | ArchUnit, WALA |
-| AOP weaving | AspectJ, instrumentation |
+| Architecture analysis | ArchUnit, T. J. Watson Libraries for Analysis (WALA) |
+| aspect-oriented programming (AOP) weaving | AspectJ, instrumentation |
 
-CI exercises **all four combinations**. A change to either layer must be verified against every
+continuous integration (CI) exercises **all four combinations**. A change to either layer must be verified against every
 combination it can affect, and the
 [pull request template](https://github.com/ls1intum/Ares2/blob/main/.github/PULL_REQUEST_TEMPLATE.md)
 asks you to record which ones you exercised. "It passes locally" is not an answer unless you say
@@ -38,7 +38,7 @@ mvn test -Dtest=SomeTest#someMethod             # a single test
 
 ## A fixture must live outside the boundary it helps test
 
-A sandboxed test JVM must **never spin up its own server** to test incoming or outgoing
+A sandboxed test Java Virtual Machine (JVM) must **never spin up its own server** to test incoming or outgoing
 connections: no echo server, no socket listener, nothing.
 
 The reason is that Ares is the security boundary under test. Any server started inside the same
@@ -98,5 +98,5 @@ What they cannot see is whether a page renders. The Playwright suite under
 
 - Static analysis (`spotless`, `checkstyle`, `pmd`, `spotbugs`) is a build failure, not a
   warning. Run it before pushing; see [CONTRIBUTING.md](https://github.com/ls1intum/Ares2/blob/main/CONTRIBUTING.md).
-- Build with JDK 21 to match CI, even though Ares 2 targets Java 17 so that it stays consumable
+- Build with Java Development Kit (JDK) 21 to match CI, even though Ares 2 targets Java 17 so that it stays consumable
   by exercises on Java 17.

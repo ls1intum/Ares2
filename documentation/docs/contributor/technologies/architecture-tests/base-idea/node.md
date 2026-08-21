@@ -15,7 +15,7 @@ dots exist and which arrows lead where.
 ## What it is
 
 A node is one element of the analysed program. Which elements count as nodes depends on
-the engine: ArchUnit reasons mostly about classes and their members, while WALA reasons
+the engine: ArchUnit reasons mostly about classes and their members, while T. J. Watson Libraries for Analysis (WALA) reasons
 about individual methods, because a call graph joins methods rather than classes.
 
 Nodes come from **compiled bytecode**, not from source. That matters twice over: the

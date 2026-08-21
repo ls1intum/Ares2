@@ -27,7 +27,7 @@ student code to forbidden sinks.
 
 This finds indirect access that dependency analysis misses: a student method that calls a
 helper that calls a library method that opens a file has no direct dependency on the file
-API, but there is a path.
+application programming interface (API), but there is a path.
 
 `WalaPathClassification` decides which parts of a discovered path are student code and
 which are trusted infrastructure. Its `RESERVED_PACKAGE_PREFIX_VERSION` is the versioned

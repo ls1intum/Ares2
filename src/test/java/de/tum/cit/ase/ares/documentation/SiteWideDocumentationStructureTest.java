@@ -101,7 +101,7 @@ class SiteWideDocumentationStructureTest {
 			"technologies/linux-based-security/base-idea/interception.md",
 			"technologies/linux-based-security/base-idea/wrapper.md", "technologies/linux-based-security/bubblewrap.md",
 			"technologies/linux-based-security/ld-preload-firewall.md", "technologies/linux-based-security/timeout.md",
-			"testing-conventions.md");
+			"testing-conventions.md", "writing-rules.md");
 
 	@Test
 	void theInstructorGuideHoldsExactlyTheExpectedPages() {

@@ -36,7 +36,7 @@ copy and edit configuration for Precompile, the runtime settings channel for Pos
 
 ## Verification
 
-Which of the four CI combinations apply, and the positive and negative controls a new language
+Which of the four continuous integration (CI) combinations apply, and the positive and negative controls a new language
 must ship.
 
 ## Notes

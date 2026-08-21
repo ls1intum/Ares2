@@ -85,7 +85,7 @@ cd documentation
 corepack enable                  # one-time: activate the pinned pnpm version
 pnpm install --frozen-lockfile
 pnpm start                       # local dev server with hot reload
-pnpm run lint                    # ESLint over the site sources
+pnpm run lint                    # ESLint over the site sources, then the writing rules
 pnpm run typecheck               # TypeScript check
 pnpm run build                   # production build, as CI runs it
 pnpm run test                    # Playwright integration tests against the built site
@@ -93,6 +93,24 @@ pnpm run update                  # interactive dependency update (npm-check-upda
 ```
 
 `pnpm run test` needs a browser once: `pnpm run test:install`.
+
+### Writing rules
+
+The prose on the site is held to the
+[writing rules](https://ls1intum.github.io/Ares2/contributor/writing-rules), which that page
+states in full along with the decisions behind them.
+
+```bash
+pnpm run lint:prose              # fails on an enforced finding; this is what CI runs
+pnpm run report:prose            # every finding, enforced and advisory, as JSON
+pnpm run test:prose              # the scanner's own fixtures
+```
+
+Only the rules a machine can decide from the words alone fail the build. The ones that need a
+person to read the sentence, `may` against `must` among them, are reported and never fail:
+rewriting "the analysis may report false positives" into a guarantee would be worse than the
+style problem it fixes. Any count quoted about the documentation comes from
+`pnpm run report:prose`, so that it can be reproduced.
 
 The site is built with `onBrokenLinks` and `onBrokenAnchors` set to `throw`, so a dangling
 cross-reference fails the build. Run `pnpm run build` before pushing documentation changes.

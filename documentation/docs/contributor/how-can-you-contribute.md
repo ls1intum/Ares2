@@ -30,14 +30,14 @@ negative test (the forbidden operation is still rejected).
 
 ## Four mode combinations
 
-Enforcement has two independent analysis layers and two independent weaving mechanisms, and CI
-exercises all four combinations: ArchUnit + AspectJ, ArchUnit + instrumentation, WALA + AspectJ
+Enforcement has two independent analysis layers and two independent weaving mechanisms, and continuous integration (CI)
+exercises all four combinations: ArchUnit + AspectJ, ArchUnit + instrumentation, T. J. Watson Libraries for Analysis (WALA) + AspectJ
 and WALA + instrumentation. A change to either layer is not verified until it has been checked
 against every combination it can affect.
 
 ## Never start a server inside the sandbox
 
-A sandboxed test JVM must never spin up its own server to test a connection. Ares is the
+A sandboxed test Java Virtual Machine (JVM) must never spin up its own server to test a connection. Ares is the
 boundary under test, so a fixture inside the same JVM is subject to the active policy and its
 failure cannot be attributed. See
 [AGENTS.md](https://github.com/ls1intum/Ares2/blob/main/AGENTS.md) for the full rule.

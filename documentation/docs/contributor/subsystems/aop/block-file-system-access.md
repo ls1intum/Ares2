@@ -66,7 +66,7 @@ This document explains how Ares 2 decides whether student code may access the fi
 <a id="11-how-does-the-uml-activity-diagram-look-like"></a>
 ### 1.1 How Does The UML Activity Diagram look like?
 
-Below is a general overview of the process for deciding whether to allow or block file access as a UML activity diagram. Throughout this document, you will find the following symbols:
+Below is a general overview of the process for deciding whether to allow or block file access as a Unified Modeling Language (UML) activity diagram. Throughout this document, you will find the following symbols:
 - **🔴 Red** = File access blocked (security policy violation detected)
 - **🌕 Yellow** = Intermediate condition met → continue to the next verification step
 - **🟢 Green** = File access permitted (no security policy violation detected)
@@ -78,7 +78,7 @@ Below is a general overview of the process for deciding whether to allow or bloc
 <a id="12-what-is-aop"></a>
 ### 1.2 What Is AOP?
 
-AOP (Aspect-Oriented Programming) is a technique that automatically runs security checks before certain methods execute, without modifying the student code. Think of it like a security guard checking IDs before people enter a building - the building code doesn't change, but everyone gets checked automatically when interacting with the building.
+AOP (Aspect-Oriented Programming) is a technique that automatically runs security checks before certain methods execute, without modifying the student code. Think of it like a security guard checking IDs before people enter a building - the building code does not change, but everyone gets checked automatically when interacting with the building.
 
 **Concrete Example:**
 
@@ -183,7 +183,7 @@ Some APIs can appear under multiple actions because they imply more than one per
 
 Read APIs listed below access file contents or metadata without modifying them.
 
-> **Note on "Tested by RP" column:** A ✅ means that this API is the **primary target** of a dedicated test in the Reproducibility Package. For example, if a test uses `BufferedInputStream` to wrap a `FileInputStream`, only the wrapper (`BufferedInputStream.<new>`) is marked as ✅, not the underlying `FileInputStream.<new>` which is merely a helper call in that context.
+> **Note on "Tested by RP" column:** A ✅ means that this application programming interface (API) is the **primary target** of a dedicated test in the Reproducibility Package. For example, if a test uses `BufferedInputStream` to wrap a `FileInputStream`, only the wrapper (`BufferedInputStream.<new>`) is marked as ✅, not the underlying `FileInputStream.<new>` which is merely a helper call in that context.
 
 **Reads any formatted file fully**
 
@@ -571,7 +571,7 @@ Ares then checks whether the student is allowed to access `Path.of("/etc/passwd"
 <a id="4-ares-2-aop-file-system-access-control-collected-information-about-the-file-access"></a>
 ## 4. Ares 2 AOP File System Access Control: Collected Information About the File Access
 
-The security monitor collects information about what's happening: Which method is being called, what file path is being accessed, and where in the student code this is happening.
+The security monitor collects information about what is happening: Which method is being called, what file path is being accessed, and where in the student code this is happening.
 
 **Collection Mechanisms:**
 
@@ -668,8 +668,8 @@ public void checkFileSystemInteraction(
 
 | Information | Type | Description |
 |-------------|------|-------------|
-| **instance** | `Object` | **The object** on which the method is called (the `this` reference). `null` for constructors since the object doesn't exist yet. |
-| **attributes** | `Object[]` | **Array of the object's internal field values**. The actual values stored in each field. **Note:** Empty for constructors since object doesn't exist yet. |
+| **instance** | `Object` | **The object** on which the method is called (the `this` reference). `null` for constructors since the object does not exist yet. |
+| **attributes** | `Object[]` | **Array of the object's internal field values**. The actual values stored in each field. **Note:** Empty for constructors since object does not exist yet. |
 
 **2. How Do We Collect This Information:**
 
@@ -890,7 +890,7 @@ if (isProjectSourcesFinderInProgress()) {
 }
 ```
 
-The instrumentation backend additionally returns early when `restrictedPackage` is null or empty; the AspectJ backend instead null-guards `restrictedPackage` later, before the call-stack check. Both backends skip validation while Ares's own trusted setup utilities are reading framework support files (`isProjectSourcesFinderInProgress()`).
+The instrumentation backend returns early when `restrictedPackage` is null or empty; the AspectJ backend instead null-guards `restrictedPackage` later, before the call-stack check. Both backends skip validation while Ares's own trusted setup utilities are reading framework support files (`isProjectSourcesFinderInProgress()`).
 
 **3. Used variables**
 
@@ -913,7 +913,7 @@ This check determines whether the file operation was triggered by restricted stu
 
 **1. Purpose**
 
-Load the security configuration that defines which code is considered "student code" and which helper classes are trusted. This configuration is essential because not all code within a student project should be restricted - some utility classes provided by instructors should remain accessible. The configuration allows instructors to customize the security boundaries for each exercise.
+Load the security configuration that defines which code is considered "student code" and which helper classes are trusted. This configuration is essential because not all code within a student project should be restricted - some utility classes provided by instructors should remain accessible. The configuration allows instructors to customise the security boundaries for each exercise.
 
 **2. How it works**
 
@@ -925,7 +925,7 @@ String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 **3. Used variables**
 
 - **`restrictedPackage`** (String): The Java package prefix where student code is located (e.g., `"de.student."`). Any code within this package is considered restricted unless explicitly allowed.
-- **`allowedClasses`** (String[]): List of trusted helper class names that students can use even though they're in the restricted package (e.g., `["de.student.util.SafeHelper"]`). These classes are pre-approved by instructors.
+- **`allowedClasses`** (String[]): List of trusted helper class names that students can use even though they are in the restricted package (e.g., `["de.student.util.SafeHelper"]`). These classes are pre-approved by instructors.
 
 **4. Result**
 
@@ -993,7 +993,7 @@ if (violatingMethod == null) {
    boolean inRestricted = className.startsWith(restrictedPackage);
    ```
 
-4. **Check if it's an Allowed Helper Class (inline prefix loop):**
+4. **Check if it is an Allowed Helper Class (inline prefix loop):**
    ```java
    boolean allowed = false;
    if (allowedClasses != null) {
@@ -1024,7 +1024,7 @@ if (violatingMethod == null) {
 **4. Result**
 
 - Found student code calling the file operation → Returns method name like `"de.student.StudentCode.exploit"` → 🌕 **Continue to 5.2.3**
-- No student code found in call chain → Returns `null` → 🟢 **Allow operation** (called from test framework or trusted code - analysis terminated)
+- No student code found in call chain → Returns `null` → 🟢 **Allow operation** (called from test framework or test code - analysis terminated)
 
 <a id="523-find-which-test-called-the-student-code"></a>
 #### 5.2.3 Find Which Test Called the Student Code
@@ -1120,7 +1120,7 @@ This uses the default action "read" from `JavaInstrumentationReadPathMethodAdvic
 | `DELETE_ON_CLOSE` | `"delete"` | No | Temporary file deleted on close |
 
 **Why Can CREATE Paths Be Non-Existent?**
-When creating a new file, the file doesn't exist yet. The security check must validate the path before the file is created.
+When creating a new file, the file does not exist yet. The security check must validate the path before the file is created.
 
 **Multiple Permissions:** If multiple modes are specified, all corresponding permissions are checked **after** the semantic prioritisation rules above have been applied (e.g., `DELETE_ON_CLOSE` collapses everything to "delete", and create+overwrite is merged into a single "overwrite" check).
 
@@ -1363,11 +1363,11 @@ This exemption is applied at **all three** check sites: parameter-based, receive
 - `"ares/api/configuration/essentialFiles/java/EssentialPackages.yaml"`
 - `"ares/api/configuration/essentialFiles/java/EssentialClasses.yaml"`
 
-**Further infrastructure exemptions:** Besides Ares's own files, a flagged path is also allowed when the access is JVM/library infrastructure rather than student file access:
+**Further infrastructure exemptions:** Besides Ares's own files, a flagged path is also allowed when the access is Java Virtual Machine (JVM)/library infrastructure rather than student file access:
 - `.class` reads performed by the class-loading machinery (a class-loader frame is on the stack, or the caller is `Class.forName`/`ClassLoader`)
 - `.jar` reads from system infrastructure (the Maven local repository or the JDK installation under `java.home`)
 - JDK-internal reads under `java.home` and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
-- JCE crypto-policy files read during TLS/cryptography initialisation
+- JCE crypto-policy files read during Transport Layer Security (TLS)/cryptography initialisation
 - Entry reads on an **already-open** `JarFile`/`ZipFile` (the constructor is NOT exempt and still validates its path)
 - The root path `"/"` when found in object attributes (a side effect of class resolution)
 
@@ -1391,7 +1391,7 @@ This exemption is applied at **all three** check sites: parameter-based, receive
 
 **1. Purpose**
 
-Block the forbidden file operation and provide a comprehensive error message. When a security violation is detected, it's crucial to give instructors and students clear information about what went wrong, where it happened, and which test triggered it. A generic "access denied" message would be unhelpful for debugging. The detailed message helps instructors identify the exact violation and helps students understand which part of their code caused the security issue.
+Block the forbidden file operation and provide a comprehensive error message. When a security violation is detected, it is crucial to give instructors and students clear information about what went wrong, where it happened, and which test triggered it. A generic "access denied" message would be unhelpful for debugging. The detailed message helps instructors identify the exact violation and helps students understand which part of their code caused the security issue.
 
 **2. How it works**
 

@@ -33,7 +33,7 @@ Nothing directly. It selects the director, and the director builds the
 
 ## Static enforcement
 
-Chooses between ArchUnit and WALA for every architecture test case in the run. The two are
+Chooses between ArchUnit and T. J. Watson Libraries for Analysis (WALA) for every architecture test case in the run. The two are
 meant to reach the same verdicts; a disagreement between them is a finding, not a tuning
 parameter.
 

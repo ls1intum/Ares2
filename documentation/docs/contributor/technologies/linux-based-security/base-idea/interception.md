@@ -23,7 +23,7 @@ it requests, but each does so at a different level:
 | [Timeout](../timeout.md) | Signal delivery. The wrapper sends a signal once the budget is spent. |
 
 This is the same idea as a [pointcut](/contributor/technologies/aop-tests/base-idea/pointcut) in
-the AOP layer, moved outside the JVM.
+the aspect-oriented programming (AOP) layer, moved outside the Java Virtual Machine (JVM).
 
 ## Further reading
 

@@ -25,7 +25,7 @@ Parsing, the version gate, and rejecting values the enforcement layers cannot ho
 
 ## The creator
 
-Which test-case families the domain produces: architecture, AOP, Phobos, or a combination.
+Which test-case families the domain produces: architecture, aspect-oriented programming (AOP), Phobos, or a combination.
 
 ## The enforcement layers
 

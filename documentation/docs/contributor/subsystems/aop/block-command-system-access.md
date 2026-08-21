@@ -55,7 +55,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 1. **Security Enabled**: `aopMode == "INSTRUMENTATION"` or `aopMode == "ASPECTJ"`
 2. **Student Code Detected**: Call chain contains code in `restrictedPackage` and not in `allowedListedClasses`
-3. **Command Not Allowed**: Command doesn't match any entry in `commandsAllowedToBeExecuted` with matching arguments from `argumentsAllowedToBePassed`, **or** (when `pathsAllowedToBeExecuted` is configured) the command's executable file path is not covered by that allow-list (see 5.3.4)
+3. **Command Not Allowed**: Command does not match any entry in `commandsAllowedToBeExecuted` with matching arguments from `argumentsAllowedToBePassed`, **or** (when `pathsAllowedToBeExecuted` is configured) the command's executable file path is not covered by that allow-list (see 5.3.4)
 
 **If ANY condition fails → Access is ALLOWED** 🟢
 
@@ -68,12 +68,12 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ### 1.4 What Code Is Trusted vs. Restricted?
 
-**Trusted Code (No Restrictions):**
+**Test Code (No Restrictions):**
 - Code outside the `restrictedPackage`
 - Classes listed in `allowedListedClasses` within the student package
 - Ares internal code
 
-**Restricted Code (Subject to Security Checks):**
+**Student Code (Subject to Security Checks):**
 - All code within `restrictedPackage`
 
 **Security Assumptions:** 
@@ -85,7 +85,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ## 2. Ares Monitors Command System Methods
 
-**What is AOP?** AOP (Aspect-Oriented Programming) is a technique that automatically runs security checks before certain methods execute, without modifying the student code. Think of it like a security guard checking IDs before people enter a building - the building code doesn't change, but everyone gets checked automatically when interacting with the building.
+**What is AOP?** AOP (Aspect-Oriented Programming) is a technique that automatically runs security checks before certain methods execute, without modifying the student code. Think of it like a security guard checking IDs before people enter a building - the building code does not change, but everyone gets checked automatically when interacting with the building.
 
 **Concrete Example:**
 
@@ -156,7 +156,7 @@ Ares then checks whether the student is allowed to execute `"rm -rf /"` **before
 
 ## 4. Ares Collects Information About the Command Execution
 
-The security monitor collects information about what's happening: Which method is being called, what command is being executed, and where in the student code this is happening.
+The security monitor collects information about what is happening: Which method is being called, what command is being executed, and where in the student code this is happening.
 
 **Collection Mechanisms:**
 
@@ -246,14 +246,14 @@ public void checkCommandSystemInteraction(
 
 ---
 
-### 4.2 What's the Current State of the Object?
+### 4.2 What is the Current State of the Object?
 
 **1. What Information Do We Collect:**
 
 | Information | Type | Description |
 |-------------|------|-------------|
-| **instance** | `Object` | **The object** on which the method is called (the `this` reference). `null` for constructors since the object doesn't exist yet. |
-| **attributes** | `Object[]` | **Array of the object's internal field values**. The actual values stored in each field. **Note:** Empty for constructors since object doesn't exist yet. |
+| **instance** | `Object` | **The object** on which the method is called (the `this` reference). `null` for constructors since the object does not exist yet. |
+| **attributes** | `Object[]` | **Array of the object's internal field values**. The actual values stored in each field. **Note:** Empty for constructors since object does not exist yet. |
 
 **2. How Do We Collect This Information:**
 
@@ -419,7 +419,7 @@ The security validator performs a **series of checks** to decide whether the com
 4. **Are All Commands in Object State Allowed?** → If no: 🔴
 5. **Block and Throw Error** → If violation found
 
-> 💡 **Re-entrancy guard:** Before any check runs, both backends call `enterAdvice()`. The advice body itself performs file work and stack walks that can lazily load JDK classes, which would re-enter the advice on the same thread and cause `ClassCircularityError` or unbounded recursion. Nested invocations on the same thread (trusted Ares internals) are therefore skipped; only the outermost invocation is enforced, and `exitAdvice()` clears the per-thread flag in a `finally` block.
+> 💡 **Re-entrancy guard:** Before any check runs, both backends call `enterAdvice()`. The advice body itself performs file work and stack walks that can lazily load Java Development Kit (JDK) classes, which would re-enter the advice on the same thread and cause `ClassCircularityError` or unbounded recursion. Nested invocations on the same thread (trusted Ares internals) are therefore skipped; only the outermost invocation is enforced, and `exitAdvice()` clears the per-thread flag in a `finally` block.
 
 ---
 
@@ -455,7 +455,7 @@ if (aopMode == null || !aopMode.equals("ASPECTJ")) {
 }
 ```
 
-- Byte Buddy accepts only `"INSTRUMENTATION"` (and additionally requires a non-empty `aopMode` and returns early - allowing the operation - when `restrictedPackage` is null or empty)
+- Byte Buddy accepts only `"INSTRUMENTATION"` (and requires a non-empty `aopMode` and returns early - allowing the operation - when `restrictedPackage` is null or empty)
 - AspectJ accepts only `"ASPECTJ"` (a null `restrictedPackage` leads to the same allow result in the subsequent call-stack check)
 
 **3. Used variables**
@@ -477,7 +477,7 @@ This check determines whether the command operation was triggered by restricted 
 
 **1. Purpose**
 
-Load the security configuration that defines which code is considered "student code" and which helper classes are trusted. This configuration is essential because not all code within a student project should be restricted - some utility classes provided by instructors should remain accessible. The configuration allows instructors to customize the security boundaries for each exercise.
+Load the security configuration that defines which code is considered "student code" and which helper classes are trusted. This configuration is essential because not all code within a student project should be restricted - some utility classes provided by instructors should remain accessible. The configuration allows instructors to customise the security boundaries for each exercise.
 
 **2. How it works**
 
@@ -489,7 +489,7 @@ String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 **3. Used variables**
 
 - **`restrictedPackage`** (String): The Java package prefix where student code is located (e.g., `"de.student."`). Any code within this package is considered restricted unless explicitly allowed.
-- **`allowedClasses`** (String[]): List of trusted helper class names that students can use even though they're in the restricted package (e.g., `["de.student.util.SafeHelper"]`). These classes are pre-approved by instructors.
+- **`allowedClasses`** (String[]): List of trusted helper class names that students can use even though they are in the restricted package (e.g., `["de.student.util.SafeHelper"]`). These classes are pre-approved by instructors.
 
 **4. Result**
 
@@ -558,7 +558,7 @@ if (violatingMethod == null) {
    boolean inRestricted = className.startsWith(restrictedPackage);
    ```
 
-4. **Check if it's an Allowed Helper Class:** There is no separate helper method; the check is an inline **prefix** loop, so an entry in `allowedClasses` allows the class itself and everything whose fully qualified name starts with that entry:
+4. **Check if it is an Allowed Helper Class:** There is no separate helper method; the check is an inline **prefix** loop, so an entry in `allowedClasses` allows the class itself and everything whose fully qualified name starts with that entry:
    ```java
    boolean allowed = false;
    if (allowedClasses != null) {
@@ -594,7 +594,7 @@ if (violatingMethod == null) {
 **4. Result**
 
 - Found student code calling the command operation → Returns method name like `"de.student.StudentCode.exploit"` → 🌕 **Continue to 5.2.3**
-- No student code found in call chain → Returns `null` → 🟢 **Allow operation** (called from test framework or trusted code - analysis terminated)
+- No student code found in call chain → Returns `null` → 🟢 **Allow operation** (called from test framework or test code - analysis terminated)
 
 #### 5.2.3 Find Which Test Called the Student Code
 
@@ -816,7 +816,7 @@ if (pathViolation != null) {
 ```
 
 - **Opt-in narrowing:** If `pathsAllowedToBeExecuted` is null or empty, this layer allows everything - the command-name allow-list alone governs. It never turns into a deny-all.
-- **Executable resolution (`resolveExecutable`):** A command token containing a path separator is resolved literally. A **bare command name** (e.g. `git`) is looked up on the `PATH` environment variable, mirroring the operating system's search (on Windows additionally trying the `PATHEXT` extensions) and skipping non-executable matches.
+- **Executable resolution (`resolveExecutable`):** A command token containing a path separator is resolved literally. A **bare command name** (e.g. `git`) is looked up on the `PATH` environment variable, mirroring the operating system's search (on Windows trying the `PATHEXT` extensions) and skipping non-executable matches.
 - **Fail-closed for unresolvable commands:** If an execute-path list IS configured but the command resolves to no existing executable file (including a bare name not found on `PATH`), it cannot be proven to be on the list and is **denied** rather than silently passed.
 - **Path matching:** The resolved executable path is allowed if it equals an allowed path or lies below an allowed directory (paths are normalised and symlinks resolved for existing files).
 - **Precise error message:** Reaching this check means the command-name check already passed, so the violation is reported with the dedicated key `security.advice.illegal.file.execution` and the denial reason "The command is allow-listed, but its executable file path is not in the execute allow-list."
@@ -871,7 +871,7 @@ After the command check, the executable-path layer from 5.3.4 also runs on the s
 
 **1. Purpose**
 
-Block the forbidden command operation and provide a comprehensive error message. When a security violation is detected, it's crucial to give instructors and students clear information about what went wrong, where it happened, and which test triggered it. A generic "access denied" message would be unhelpful for debugging. The detailed message helps instructors identify the exact violation and helps students understand which part of their code caused the security issue.
+Block the forbidden command operation and provide a comprehensive error message. When a security violation is detected, it is crucial to give instructors and students clear information about what went wrong, where it happened, and which test triggered it. A generic "access denied" message would be unhelpful for debugging. The detailed message helps instructors identify the exact violation and helps students understand which part of their code caused the security issue.
 
 **2. How it works**
 
@@ -924,7 +924,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 **When do you need this?**
 - When students should NOT be able to execute system commands
 - When you want to allow only specific commands for exercises (e.g., `ls --help`)
-- To prevent students from escaping the sandbox or accessing the underlying system
+- Preventing students from escaping the sandbox or accessing the underlying system
 
 **How does it work (simplified)?**
 1. Student calls `Runtime.getRuntime().exec("rm -rf /")`
@@ -939,7 +939,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 
 The command system security mechanism provides **comprehensive protection** through:
 
-1. **API Coverage**: 3 intercepted methods covering all standard command execution paths
+1. **application programming interface (API) Coverage**: 3 intercepted methods covering all standard command execution paths
 2. **Call Stack Analysis**: Distinguishes trusted framework code from untrusted student code
 3. **Command-Based Validation**: Strict enforcement of allowed commands with argument matching
 4. **Executable-Path Validation**: Optional additional allow-list of executable file paths (`pathsAllowedToBeExecuted`, see 5.3.4) with PATH resolution and fail-closed handling of unresolvable commands
@@ -948,7 +948,7 @@ The command system security mechanism provides **comprehensive protection** thro
 
 The system operates **transparently** using AOP techniques, requiring no modifications to student code, and enforces policies **before** dangerous operations execute.
 
-> 💡 **Byte Buddy vs. AspectJ:** Validation flow is aligned, and the ignored callstack prefixes are identical in both modes (see Check 2 for the exact list). Both backends also share the re-entrancy guard (`enterAdvice()`/`exitAdvice()`), the fail-closed `requireTrustedRuntimeType()` blocking of non-JDK `List` subtypes, and the executable-path validation layer (5.3.4); AspectJ additionally fails closed with an `<unknown>` denial when the `ProcessBuilder` command field is unreadable.
+> 💡 **Byte Buddy vs. AspectJ:** Validation flow is aligned, and the ignored callstack prefixes are identical in both modes (see Check 2 for the exact list). Both backends also share the re-entrancy guard (`enterAdvice()`/`exitAdvice()`), the fail-closed `requireTrustedRuntimeType()` blocking of non-JDK `List` subtypes, and the executable-path validation layer (5.3.4); AspectJ fails closed with an `<unknown>` denial when the `ProcessBuilder` command field is unreadable.
 
 **Implementation Differences:**
 

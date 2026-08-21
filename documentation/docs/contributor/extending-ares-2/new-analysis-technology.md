@@ -16,14 +16,14 @@ The outline below is the intended structure and is not yet written.
 
 ## The shared vocabulary
 
-Node, call graph, DFS path and rule, as described under
+Node, call graph, depth-first search (DFS) path and rule, as described under
 [Architecture Tests](../technologies/architecture-tests/base-idea/node.md). A new analyser must express all four
 or explain what it substitutes.
 
 ## Where it plugs in
 
 `ArchitectureMode`, the test-case collection, and the execution entry point that receives the
-architecture and AOP mode strings.
+architecture and aspect-oriented programming (AOP) mode strings.
 
 ## The data it needs
 

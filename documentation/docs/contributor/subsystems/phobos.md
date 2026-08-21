@@ -14,7 +14,7 @@ Being outside matters: a program cannot switch off a guard it cannot reach.
 
 ## What it does
 
-Phobos enforces from **outside** the JVM, using the operating system, rather than from inside
+Phobos enforces from **outside** the Java Virtual Machine (JVM), using the operating system, rather than from inside
 it. It is the one subsystem whose guarantees do not depend on the supervised process behaving.
 
 It works by generating configuration and shell scripts that an external sandbox runtime

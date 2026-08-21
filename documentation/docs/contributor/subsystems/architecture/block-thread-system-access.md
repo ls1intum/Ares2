@@ -5,7 +5,7 @@ description: "How the architecture layer detects thread manipulation statically,
 ---
 
 :::tip[ELI5]
-Same question as the AOP page, answered by reading rather than by watching.
+Same question as the aspect-oriented programming (AOP) page, answered by reading rather than by watching.
 
 This layer looks through the compiled program for any route from the student's code to the
 part of Java that starts new workers, and reports the route it found.
@@ -108,12 +108,12 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ### 1.4 What Code Is Trusted vs. Restricted?
 
-**Trusted Code (No Restrictions):**
+**Test Code (No Restrictions):**
 - Ares internal code (`de.tum.cit.ase.ares.api.*` is excluded from the ArchUnit import and classified as infrastructure by WALA)
-- In WALA mode: all packages on the `WalaPathClassification.INFRA_PREFIXES` list (`java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, `net.bytebuddy.`, `org.aspectj.`, `com.ibm.wala.`, `com.tngtech.archunit.`, plus the reproducibility test-helper packages `anonymous.toolclasses.` and `metatest.`) and all classes loaded by the JDK boot/extension class loaders
+- In WALA mode: all packages on the `WalaPathClassification.INFRA_PREFIXES` list (`java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, `net.bytebuddy.`, `org.aspectj.`, `com.ibm.wala.`, `com.tngtech.archunit.`, plus the reproducibility test-helper packages `anonymous.toolclasses.` and `metatest.`) and all classes loaded by the Java Development Kit (JDK) boot/extension class loaders
 - Classes on the `allowedClasses` allow-list
 
-**Restricted Code (Subject to Security Checks):**
+**Student Code (Subject to Security Checks):**
 - ArchUnit mode: **every** class imported from the analysed class path (there is no package-based trust boundary; only Ares' own `/de/tum/cit/ase/ares/api/` classes are excluded from the import)
 - WALA mode: every class whose methods become entry points; the entry-point set is narrowed to the package directory derived from the analysed classpath (see [5.2](#52-finding-entry-points)), not by a policy `restrictedPackage` setting
 
@@ -278,7 +278,7 @@ static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of(
 ```
 
 - **`nearestStudentFrame(path)`** scans the path from the forbidden sink back towards the entry point and returns the first frame that is *not* infrastructure (not in `INFRA_PREFIXES` and not loaded by the JDK boot/extension class loader). If the entire path is infrastructure, the path is dropped.
-- **`isFalsePositiveTransitivePath(path, studentIdx)`** suppresses the path when every frame strictly between the nearest student frame and the sink is a transitive-false-positive frame (JDK or framework internals). This is the case when student code calls a permitted JDK API (e.g. `BufferedReader`) whose internal implementation transitively reaches a forbidden method such as `Thread.start()`.
+- **`isFalsePositiveTransitivePath(path, studentIdx)`** suppresses the path when every frame strictly between the nearest student frame and the sink is a transitive-false-positive frame (JDK or framework internals). This is the case when student code calls a permitted JDK application programming interface (API) (e.g. `BufferedReader`) whose internal implementation transitively reaches a forbidden method such as `Thread.start()`.
 - **Direct violations are never suppressed**: if the student frame is immediately adjacent to the forbidden sink, the path is always reported.
 - The two project test-helper packages (`anonymous.toolclasses.`, `metatest.`) count as infrastructure for frame attribution but deliberately **not** for false-positive suppression, so a student call routed through such a helper into a forbidden JDK API is still reported.
 
@@ -287,7 +287,7 @@ static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of(
 Without it, WALA would report false positives for innocent operations:
 - ❌ `Files.list()` → internal JDK machinery may reach thread-related methods
 - ❌ `Class.forName()` → class loader internals
-- ❌ `InetAddress.getByName()` → DNS lookup internals
+- ❌ `InetAddress.getByName()` → Domain Name System (DNS) lookup internals
 
 With classification:
 - ✅ All-infrastructure paths and transitive-JDK side effects are ignored
@@ -303,7 +303,7 @@ Each mode loads its forbidden methods from its own template file:
 - **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt` (378 entries)
 - **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/thread-manipulation-methods.txt` (90 entries)
 
-The lists are **not identical**: the WALA list is a focused set of thread creation and manipulation entry points, while the ArchUnit list additionally covers a large number of thread-adjacent JDK APIs (see the grouped overview in [3.2](#32-thread-system---create-operations-without-parameters)). The entries below are annotated where they are present in only one of the two files.
+The lists are **not identical**: the WALA list is a focused set of thread creation and manipulation entry points, while the ArchUnit list covers a large number of thread-adjacent JDK APIs (see the grouped overview in [3.2](#32-thread-system---create-operations-without-parameters)). The entries below are annotated where they are present in only one of the two files.
 
 ---
 
@@ -348,13 +348,13 @@ The lists are **not identical**: the WALA list is a focused set of thread creati
 - `ThreadPoolExecutor.submit(Runnable)`
 - `ThreadPoolExecutor.submit(Runnable, Object)`
 - `ThreadPoolExecutor.submit(Callable)`
-- WALA additionally lists `ThreadPoolExecutor.shutdown()`, `ThreadPoolExecutor.shutdownNow()` and a class-level `java.util.concurrent.ThreadPoolExecutor` entry
+- WALA lists `ThreadPoolExecutor.shutdown()`, `ThreadPoolExecutor.shutdownNow()` and a class-level `java.util.concurrent.ThreadPoolExecutor` entry
 
 **java.util.concurrent.Executors (factory methods):**
 - `Executors.newCachedThreadPool()` / `newCachedThreadPool(ThreadFactory)`
 - `Executors.newFixedThreadPool(int)` / `newFixedThreadPool(int, ThreadFactory)`
 - `Executors.newSingleThreadExecutor()` / `newSingleThreadExecutor(ThreadFactory)`
-- ArchUnit additionally lists `Executors.newVirtualThreadPerTaskExecutor()`
+- ArchUnit lists `Executors.newVirtualThreadPerTaskExecutor()`
 
 **java.util.concurrent.ScheduledExecutorService:**
 - `ScheduledExecutorService.schedule(Runnable, long, TimeUnit)`
@@ -484,7 +484,7 @@ JavaClasses javaClasses = new ClassFileImporter()
 3. Excludes Ares' own framework classes (`/de/tum/cit/ase/ares/api/`), so the rules never flag Ares' trusted advice code
 4. Creates a `JavaClasses` object containing all analysed classes
 
-Note: the **generated-template** variant (see [6.1](#61-writing-architecture-test-cases)) differs slightly. It additionally uses `ImportOption.Predefined.DO_NOT_INCLUDE_TESTS` and imports by package (`importPackages(...)`) instead of by path.
+Note: the **generated-template** variant (see [6.1](#61-writing-architecture-test-cases)) differs slightly. It uses `ImportOption.Predefined.DO_NOT_INCLUDE_TESTS` and imports by package (`importPackages(...)`) instead of by path.
 
 ---
 
@@ -559,7 +559,7 @@ For the thread rule, the action placeholder is `manipulate threads` (mapped from
 Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.processAsync() tried to illegally manipulate threads via java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable) (called by de.student.StudentCode) but was blocked by Ares.
 ```
 
-The outcome (pass or the parsed `SecurityException`) is cached in-memory per (rule category, allow-list, `JavaClasses` instance), so repeated executions in the same JVM replay the cached verdict instead of re-scanning.
+The outcome (pass or the parsed `SecurityException`) is cached in-memory per (rule category, allow-list, `JavaClasses` instance), so repeated executions in the same Java Virtual Machine (JVM) replay the cached verdict instead of re-scanning.
 
 ---
 
@@ -816,7 +816,7 @@ Result: VIOLATION — project test helpers are deliberately excluded from
         not launder a forbidden call
 ```
 
-**Legacy false-positives file:** the older DFS-based path finder (`CustomDFSPathFinder`) additionally skipped the method signatures listed in `templates/architecture/java/wala/false-positives/false-positives-file.txt` (`FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS`). That mechanism is superseded by the prefix-based classification above for rule checking; the file's content still feeds into the WALA disk-cache fingerprint so edits invalidate cached verdicts.
+**Legacy false-positives file:** the older DFS-based path finder (`CustomDFSPathFinder`) skipped the method signatures listed in `templates/architecture/java/wala/false-positives/false-positives-file.txt` (`FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS`). That mechanism is superseded by the prefix-based classification above for rule checking; the file's content still feeds into the WALA disk-cache fingerprint so edits invalidate cached verdicts.
 
 **Why This Classification Is Essential:**
 

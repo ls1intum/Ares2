@@ -21,13 +21,13 @@ the enforcement pipeline.
 | [New programming languages](./new-programming-languages.md) | Planned | Add a language beyond Java: reader, director, name rules, test-case factory |
 | [New build tools](./new-build-tools.md) | Planned | Add a build tool beyond Maven and Gradle: `BuildMode`, descriptor detection, generated wiring |
 | [New policy domains](./new-policy-domains.md) | Planned | Add a permission domain beyond the current eight, end to end |
-| [New analysis technology](./new-analysis-technology.md) | Planned | Add a static analyser alongside ArchUnit and WALA |
+| [New analysis technology](./new-analysis-technology.md) | Planned | Add a static analyser alongside ArchUnit and T. J. Watson Libraries for Analysis (WALA) |
 | [New enforcement mechanism](./new-enforcement-mechanism.md) | Planned | Add a weaving or sandboxing mechanism alongside AspectJ, instrumentation and Phobos |
 
 ## How to read this section
 
 Every page follows the same shape: which enum or interface you extend, which files the change
-touches, which of the four CI combinations must be re-run, and what a complete change looks like
+touches, which of the four continuous integration (CI) combinations must be re-run, and what a complete change looks like
 when it is finished. None of them is a substitute for reading the
 [subsystem pages](../subsystems/package-overview.md) first.
 

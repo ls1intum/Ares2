@@ -17,7 +17,7 @@ Ares enforces a security policy on untrusted student code through two
 interchangeable engines:
 
 - **Instrumentation** (`api.aop.java.instrumentation`): a ByteBuddy Java agent
-  that rewrites the bytecode of the JDK target classes themselves and injects
+  that rewrites the bytecode of the Java Development Kit (JDK) target classes themselves and injects
   advice into the intercepted method/constructor.
 - **AspectJ** (`api.aop.java.aspectj`): aspects woven into the compiled
   student and project classes, with `before()` advice attached to `call(...)`
@@ -67,7 +67,7 @@ covering the high-level, directly-called socket APIs only.
 
 ## 3. Indirect, reflective and library-mediated calls escape
 
-Because only woven call sites are intercepted, an operation reached through a
+Only woven call sites are intercepted, so an operation reached through a
 layer AspectJ did not weave escapes enforcement:
 
 - A third-party library on the classpath that performs the forbidden operation
@@ -126,7 +126,7 @@ methods, so a policy that forbids thread manipulation expects these to be blocke
   `named/hasSuperType(java.lang.Thread) and isDeclaredBy(that hierarchy)`, which
   never includes `Object`. There is therefore no `Thread.notify()` method to
   rewrite; the only reachable target is `Object.notify()` itself, which would
-  instrument every object in the JVM and is unacceptable.
+  instrument every object in the Java Virtual Machine (JVM) and is unacceptable.
 - **AspectJ can enforce them, caller-side.** `call(* java.lang.Object+.notify())
   && target(java.lang.Thread+)` weaves the call site and the `target(Thread+)`
   runtime guard confines advice execution to `Thread` receivers. (The narrower

@@ -5,7 +5,7 @@ description: "How connect, send and receive permissions are enforced in the JVM 
 ---
 
 :::tip[ELI5]
-Two very different mechanisms guard the network: one inside the JVM, one below it.
+Two very different mechanisms guard the network: one inside the Java Virtual Machine (JVM), one below it.
 
 They see different things, which is why both exist.
 :::
@@ -26,12 +26,12 @@ almost never what an exercise means.
 
 ## What it generates
 
-Architecture, AOP and Phobos test cases. The Phobos path produces the `network` section of
+Architecture, aspect-oriented programming (AOP) and Phobos test cases. The Phobos path produces the `network` section of
 `SpecificExercise.cfg`.
 
 ## Static enforcement
 
-Matched against `network-access-methods.txt`. As in every domain, a policy with no network
+Matched against `network-access-methods.txt`. In every domain, a policy with no network
 allowance produces a static deny-all rule that fires before any runtime mechanism is
 consulted.
 

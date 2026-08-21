@@ -19,7 +19,7 @@ jqwik is a property-based testing engine that runs on the JUnit platform. Instea
 `@Test` with fixed inputs, a `@Property` method declares a rule and jqwik generates inputs
 to try to falsify it, then *shrinks* any failing input to a minimal counterexample.
 
-Because it is a JUnit platform engine rather than a JUnit Jupiter extension, it discovers
+It is a JUnit platform engine rather than a JUnit Jupiter extension, so it discovers
 and runs its tests itself. An integration that only hooked into Jupiter would therefore
 miss every property test.
 

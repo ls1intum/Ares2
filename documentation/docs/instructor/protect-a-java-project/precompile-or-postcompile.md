@@ -15,7 +15,7 @@ Everything else on this page follows from that one choice, so make it first.
 
 **Postcompile.** Ares is a dependency of the project under test and is activated by the test
 cases themselves, through `JupiterSecurityExtension` or `JqwikSecurityExtension`. Nothing is
-generated: when a test runs, Ares installs the policy into the already-running JVM and checks
+generated: when a test runs, Ares installs the policy into the already-running Java Virtual Machine (JVM) and checks
 each action as it is attempted, so it can report exactly which file or which address was asked
 for. Every test may carry its own `@Policy`. This assumes tests run sequentially, because the
 enforcement settings are static fields in the bootstrap class loader.
@@ -74,7 +74,7 @@ trusts and be trusted along with it.
 |---|---|---|---|
 | `JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ` | Maven | ArchUnit (rule-based) | AspectJ (compile-time weaving) |
 | `JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION` | Maven | ArchUnit (rule-based) | ByteBuddy agent (runtime) |
-| `JAVA_USING_MAVEN_WALA_AND_ASPECTJ` | Maven | WALA (call-graph) | AspectJ (compile-time weaving) |
+| `JAVA_USING_MAVEN_WALA_AND_ASPECTJ` | Maven | T. J. Watson Libraries for Analysis (WALA) (call-graph) | AspectJ (compile-time weaving) |
 | `JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION` | Maven | WALA (call-graph) | ByteBuddy agent (runtime) |
 | `JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ` | Gradle | ArchUnit (rule-based) | AspectJ (compile-time weaving) |
 | `JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION` | Gradle | ArchUnit (rule-based) | ByteBuddy agent (runtime) |
@@ -92,11 +92,11 @@ trusts and be trusted along with it.
 |------|----------|
 | **Java Agent** | A JVM mechanism (`-javaagent`) that allows code to transform class bytecode at load time. Ares uses a ByteBuddy-based agent to intercept forbidden operations at runtime. |
 | **ByteBuddy** | A library for creating and modifying Java classes at runtime, used by Ares to implement the instrumentation agent. |
-| **Instrumentation** | The runtime AOP approach where class bytecode is modified at load time via the `java.lang.instrument` API. One of the two runtime enforcement mechanisms in Ares, alongside AspectJ. |
+| **Instrumentation** | The runtime aspect-oriented programming (AOP) approach where class bytecode is modified at load time via the `java.lang.instrument` application programming interface (API). One of the two runtime enforcement mechanisms in Ares, alongside AspectJ. |
 | **AspectJ** | A compile-time AOP framework used for runtime enforcement. Requires the AspectJ compiler plugin to weave aspects during the build, and the AspectJ runtime JAR on the bootstrap classpath. The compiler weaves the aspects from the Ares JAR only if that JAR is on the aspect path (Gradle: the `aspect` configuration; Maven: an `<aspectLibraries>` entry). |
 | **Aspect path** | The set of JARs `ajc` reads binary aspects from. Distinct from the compile classpath: a JAR on the classpath alone contributes no aspects. |
 | **`CommandLineArgumentProvider`** | The Gradle interface used here to compute test JVM arguments when the task runs rather than when the build is configured, which keeps dependency resolution out of the configuration phase and the build configuration-cache compatible. |
-| **`--add-opens` / `--add-exports`** | JVM flags that grant access to internal Java modules. Required by Ares to introspect intercepted JDK objects. |
+| **`--add-opens` / `--add-exports`** | JVM flags that grant access to internal Java modules. Required by Ares to introspect intercepted Java Development Kit (JDK) objects. |
 | **`withinPath`** | The path to compiled student bytecode, relative to the build output directory. Differs between Gradle (`classes/java/main/...`) and Maven (`classes/...`). |
 | **`ProgrammingLanguageConfiguration`** | An enum encoding the combination of build tool, static analysis framework and runtime enforcement mechanism. |
 | **Classifier (`:agent`)** | A Maven/Gradle coordinate qualifier selecting a variant of an artefact. The `:agent` classifier selects the agent JAR, which carries the `Premain-Class` manifest entry and needs no repackaging. |

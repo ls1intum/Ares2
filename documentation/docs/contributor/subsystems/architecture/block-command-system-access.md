@@ -5,7 +5,7 @@ description: "How the architecture layer detects command execution statically, w
 ---
 
 :::tip[ELI5]
-This is the same question as the AOP page, asked before the program ever runs.
+This is the same question as the aspect-oriented programming (AOP) page, asked before the program ever runs.
 
 Instead of waiting for the student's code to try to run a command, this layer reads the
 compiled code and asks whether there is any route at all from the student's work to the part
@@ -110,12 +110,12 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ### 1.4 What Code Is Trusted vs. Restricted?
 
-**Trusted Code (No Restrictions):**
+**Test Code (No Restrictions):**
 - Classes on the `allowedClasses` allow-list
 - Ares internal code (`de.tum.cit.ase.ares.api.*` is excluded from the ArchUnit import and classified as infrastructure by WALA)
 - In WALA mode, infrastructure frames identified by `WalaPathClassification` (`java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, Ares, Byte Buddy, AspectJ, WALA, ArchUnit, and the configured test-helper prefixes)
 
-**Restricted Code (Subject to Security Checks):**
+**Student Code (Subject to Security Checks):**
 - ArchUnit mode: every imported class from the analysed classpath except excluded Ares internals, unless the class is allow-listed
 - WALA mode: entry-reachable code from the package prefix derived from the analysed classpath, with violations attributed to the nearest non-infrastructure student frame
 
@@ -273,7 +273,7 @@ JavaClasses javaClasses = new ClassFileImporter()
 **What happens:**
 1. ClassFileImporter scans the classpath (runtime path) or the given packages (generated-code path) for `.class` files
 2. Loads class metadata (methods, fields, dependencies)
-3. Excludes Ares internal classes (`/de/tum/cit/ase/ares/api/`); the generated-code variant additionally excludes test classes
+3. Excludes Ares internal classes (`/de/tum/cit/ase/ares/api/`); the generated-code variant excludes test classes
 4. Creates `JavaClasses` object containing all analysed classes
 
 **Analysis Process:**
@@ -365,7 +365,7 @@ class StudentCode {
 
 **Special WALA Feature - Infrastructure Frame Classification:**
 
-WALA mode classifies each call-graph frame as either student-authored or infrastructure (JDK / Ares / test framework) via `WalaPathClassification.INFRA_PREFIXES` (e.g. `java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, `de.tum.cit.ase.ares.api.`, `net.bytebuddy.`, `org.aspectj.`, `com.ibm.wala.`, `com.tngtech.archunit.`). Violations are attributed to the nearest student frame, never to an intermediate JDK method (see [5.5](#55-false-positive-filtering-wala) for the false-positive rules).
+WALA mode classifies each call-graph frame as either student-authored or infrastructure (JDK / Ares / test framework) via `WalaPathClassification.INFRA_PREFIXES` (e.g. `java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, `de.tum.cit.ase.ares.api.`, `net.bytebuddy.`, `org.aspectj.`, `com.ibm.wala.`, `com.tngtech.archunit.`). Violations are attributed to the nearest student frame, never to an intermediate Java Development Kit (JDK) method (see [5.5](#55-false-positive-filtering-wala) for the false-positive rules).
 
 ---
 
@@ -603,7 +603,7 @@ Path: [StudentCode.exploit, ProcessBuilder.<init>, ProcessBuilder.start]
 
 ### 5.5 False Positive Filtering (WALA)
 
-**Challenge:** Student code may use a permitted JDK API (e.g. `BufferedReader`, `AsynchronousSocketChannel`) whose internal implementation transitively reaches a forbidden method. The student did not intentionally call the forbidden API; it was an internal JDK side-effect.
+**Challenge:** Student code may use a permitted JDK application programming interface (API) (e.g. `BufferedReader`, `AsynchronousSocketChannel`) whose internal implementation transitively reaches a forbidden method. The student did not intentionally call the forbidden API; it was an internal JDK side-effect.
 
 **Solution:** Per-path classification in `WalaPathClassification`:
 
@@ -897,4 +897,4 @@ void testNoCommandExecution() {
 
 ---
 
-**The architecture testing approach provides comprehensive security validation at compile/test time, complementing the runtime AOP approach for defense-in-depth security against command execution attacks.**
+**The architecture testing approach provides comprehensive security validation at compile/test time, complementing the runtime AOP approach for defence-in-depth security against command execution attacks.**

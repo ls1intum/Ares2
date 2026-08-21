@@ -77,7 +77,7 @@ The root version field is implemented by `SecurityPolicy`, everything else by `S
 
 ## Notes
 
-The eight accepted values are the full cross product of the three dimensions: `MAVEN`/`GRADLE` × `ARCHUNIT`/`WALA` × `ASPECTJ`/`INSTRUMENTATION`. CI exercises all four analysis and weaving combinations on every change.
+The eight accepted values are the full cross product of the three dimensions: `MAVEN`/`GRADLE` × `ARCHUNIT`/`WALA` × `ASPECTJ`/`INSTRUMENTATION`. continuous integration (CI) exercises all four analysis and weaving combinations on every change.
 
 **Omitting the package does not fall back to scanning.** The schema accepts a `null`, so the file loads, and `TestCaseAbstractFactoryAndBuilder` then refuses to set up the run at all, with `security.policy.supervised.package.required`. That is deliberate: a policy is the authoritative statement of what is supervised, and deriving the scope from the project instead would let the supervised code influence the boundary drawn around it. Project discovery is what the [policy-free configuration](../protect-a-java-project/further-options.md) does, and it is the only place it happens.
 

@@ -26,7 +26,7 @@ submission exhaust the runner rather than failing its own test.
 
 ## What it generates
 
-Architecture and AOP test cases.
+Architecture and aspect-oriented programming (AOP) test cases.
 
 ## Static enforcement
 
