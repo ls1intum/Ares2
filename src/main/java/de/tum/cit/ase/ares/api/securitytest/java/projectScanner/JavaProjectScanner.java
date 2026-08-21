@@ -448,24 +448,16 @@ public class JavaProjectScanner implements ProjectScanner {
 	 * and a default the project does not contain mis-scopes enforcement silently,
 	 * so the warning is the only signal a reader gets.</li>
 	 * </ol>
-	 * <b>What the result is not.</b> It is a heuristic, and the steps above narrow
-	 * the ways it goes wrong rather than closing them:
-	 * <ul>
-	 * <li>The vote is influenceable by whoever can add files to the project.
-	 * Reserved prefixes are filtered out, so a trusted namespace cannot win, but no
-	 * other namespace is protected: enough classes under a package of the
-	 * submitter's choosing make that package the derived scope, and enforcement
-	 * then covers it instead of the assignment. Step 2 changes the unit that is
-	 * counted, not who controls it.</li>
-	 * <li>Step 2 reads the build tool's conventional output directory rather than
-	 * one taken from the descriptor, so a build that writes elsewhere is not
-	 * followed there and the step finds nothing.</li>
-	 * <li>Nothing here asserts that the derived package covers every production
-	 * class, so a scope that omits part of the project passes unremarked.</li>
-	 * </ul>
-	 * An exercise that needs a scope it can rely on pins
-	 * {@code theSupervisedCodeUsesTheFollowingPackage} in a policy; this method is
-	 * then not consulted at all.
+	 * <b>What the result is not.</b> A heuristic; the steps narrow how it goes
+	 * wrong rather than closing it. The vote is influenceable by whoever can add
+	 * files: reserved prefixes are filtered out, so a trusted namespace cannot win,
+	 * but no other is protected, and step 2 changes what is counted, not who
+	 * controls it. Step 2 also reads the conventional output directory rather than
+	 * one taken from the descriptor, so a build writing elsewhere is not followed.
+	 * And nothing here asserts that the result covers every production class, so a
+	 * scope omitting part of the project passes unremarked. An exercise needing a
+	 * scope it can rely on pins {@code theSupervisedCodeUsesTheFollowingPackage},
+	 * and this method is then not consulted at all.
 	 *
 	 * @return the supervised package name, possibly empty; never null
 	 */
@@ -506,34 +498,33 @@ public class JavaProjectScanner implements ProjectScanner {
 	/**
 	 * Refuses a derived supervised scope that the compiled project contradicts.
 	 * <p>
-	 * {@link #scanForPackageName()} answers a heuristic. This is the check that
-	 * turns it into a boundary, and it is deliberately separate: derivation runs
-	 * while test cases are still being written, when nothing is compiled yet, while
-	 * this runs immediately before enforcement is armed, when the compiled output
-	 * is the whole truth about what will execute.
+	 * {@link #scanForPackageName()} answers a heuristic; this is what turns it into
+	 * a boundary. It is deliberately separate: derivation runs while test cases are
+	 * still being written and nothing is compiled, this runs immediately before
+	 * enforcement is armed, when the compiled output is the whole truth about what
+	 * will execute.
 	 * <p>
 	 * The invariant: every executable top-level class in the production output
 	 * declares a non-blank, non-reserved package that is the derived scope or lies
-	 * below it, compared on segment boundaries. Anything else is refused, because
-	 * each alternative is a way for supervised code to sit outside the boundary
-	 * drawn around it:
-	 * <ul>
-	 * <li>a class in a package the scope does not cover is simply unsupervised, and
-	 * that is what a decoy package buys whoever adds it;</li>
-	 * <li>a class in the default package cannot be covered by any scope at
-	 * all.</li>
-	 * </ul>
-	 * A class no scope could cover is left out of the inventory rather than
-	 * refused, and where that leaves nothing at all the check passes with a
-	 * warning: there is then no supervisable code, so enforcement is vacuous rather
-	 * than mis-scoped. Refusing is the point. A mis-scoped run reports nothing,
-	 * passes, and enforces nothing; a refusal names the offending package and tells
-	 * the instructor to pin {@code theSupervisedCodeUsesTheFollowingPackage}, which
-	 * is the one form of the scope that cannot be steered from the submission.
+	 * below it, compared on segment boundaries. Anything else is refused, each
+	 * being a way for supervised code to sit outside the boundary drawn around it:
+	 * a class the scope does not cover is simply unsupervised, which is what a
+	 * decoy package buys whoever adds it, and a class in the default package cannot
+	 * be covered by any scope at all. Refusing is the point, because a mis-scoped
+	 * run reports nothing, passes and enforces nothing, whereas a refusal names the
+	 * offending package and asks for a pinned
+	 * {@code theSupervisedCodeUsesTheFollowingPackage}, the one form of the scope
+	 * that cannot be steered from the submission.
+	 * <p>
+	 * Where the output holds nothing executable the check passes with a warning:
+	 * there is no supervisable code, so enforcement is vacuous rather than
+	 * mis-scoped, and an exercise handing the student an empty package to fill is
+	 * in exactly that state. An unreadable output is still refused, since not
+	 * knowing is not the same as knowing there is nothing.
 	 * <p>
 	 * Only the policy-free path calls this. A pinned policy may deliberately
-	 * supervise part of the output, and narrowing it is then the instructor's
-	 * decision rather than a heuristic's mistake.
+	 * supervise part of the output, which is the instructor's decision rather than
+	 * a heuristic's mistake.
 	 *
 	 * @param derivedPackage the scope {@link #scanForPackageName()} answered
 	 * @throws SecurityException when the compiled project contradicts it
@@ -541,21 +532,17 @@ public class JavaProjectScanner implements ProjectScanner {
 	public void requireDerivedScopeToCoverTheProject(@Nonnull String derivedPackage) {
 		Path outputRoot = productionOutputRoot();
 		if (Files.exists(outputRoot) && !Files.isReadable(outputRoot)) {
-			// Present but unreadable is a failure to verify, which is not the same as
-			// nothing being there, and only the second of those is safe to wave through.
 			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()));
 		}
 		long compiledFiles = countCompiledFiles(outputRoot);
 		if (compiledFiles == 0) {
-			// Nothing was compiled, so nothing can be verified. Enforcement over an
-			// unverified scope is enforcement nobody has checked, and this runs
-			// immediately before it is armed.
-			throw new SecurityException(Messages.localized("security.scope.nothing.compiled", outputRoot.toString()));
+			LOG.warn("No compiled production class was found under {}, so the derived supervised scope \"{}\" has "
+					+ "nothing to cover and enforcement is vacuous rather than mis-scoped. This is expected "
+					+ "while the supervised package is still empty.", outputRoot, derivedPackage);
+			return;
 		}
 		List<JavaClass> imported = importedClassesIn(outputRoot);
 		if (imported.isEmpty()) {
-			// Class files are present but none of them could be read. A non-empty tree
-			// that yields no class is a failure to verify rather than an empty project.
 			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()));
 		}
 		List<JavaClass> executable = new ArrayList<>();
@@ -565,13 +552,12 @@ public class JavaProjectScanner implements ProjectScanner {
 			}
 		}
 		if (executable.isEmpty()) {
-			// Only package or module descriptors, which cannot run. There is nothing to
-			// supervise and nothing that says what the scope should have been.
-			throw new SecurityException(Messages.localized("security.scope.nothing.compiled", outputRoot.toString()));
+			LOG.warn(
+					"Only package or module descriptors were found under {}, so the derived supervised scope \"{}\" "
+							+ "has no executable class to cover and enforcement is vacuous rather than mis-scoped.",
+					outputRoot, derivedPackage);
+			return;
 		}
-		// The default package is checked before the reserved one so that the more
-		// specific diagnostic wins: a class with no package at all cannot lie within
-		// any scope, whereas a reserved one is a naming problem with its own remedy.
 		for (JavaClass javaClass : executable) {
 			if (javaClass.getPackageName().isBlank()) {
 				throw new SecurityException(Messages.localized("security.scope.default.package", javaClass.getName(),
@@ -581,11 +567,6 @@ public class JavaProjectScanner implements ProjectScanner {
 		for (JavaClass javaClass : executable) {
 			String reserved = ReservedPackageGuard.reservedPrefixOf(javaClass.getPackageName());
 			if (reserved != null) {
-				// Refused rather than filtered out. Leaving these to one side used to be
-				// justified as sparing a project whose production output is infrastructure,
-				// but "every class is reserved" is a state a submission can produce, and one
-				// that then passed unenforced. Ares' own build reaches it too, which is why
-				// its self-tests declare their scope in a policy instead of deriving one.
 				throw new SecurityException(
 						Messages.localized("security.scope.reserved.package", javaClass.getName(), reserved));
 			}
@@ -645,18 +626,6 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
-	 * The compiled production classes that any scope could cover.
-	 * <p>
-	 * Package and module descriptors are excluded because they cannot run, and
-	 * reserved-package classes because no scope may name them: the guard refuses a
-	 * reserved scope, and the runtime exempts those frames by name whatever the
-	 * scope is. Demanding that the derived scope cover them would demand the
-	 * impossible, and would refuse every project whose production output is
-	 * infrastructure, which is what Ares' own build is. Keeping supervised code out
-	 * of that namespace is the reserved-package build boundary's job, and this
-	 * check neither performs nor replaces it.
-	 */
-	/**
 	 * Whether the declared package is the scope or lies below it.
 	 * <p>
 	 * Compared on a segment boundary, so that a scope of {@code de.tum.cit.aet}
@@ -710,15 +679,6 @@ public class JavaProjectScanner implements ProjectScanner {
 		return counts;
 	}
 
-	/**
-	 * Resolves the compiled production output root for the discovered build tool.
-	 * <p>
-	 * Without a build configuration this mirrors
-	 * {@link BuildMode#getClasspath(Path, String)}, which resolves the build-tool
-	 * directory against the working directory of the test run.
-	 *
-	 * @return the production output root; never null
-	 */
 	/**
 	 * Whether the discovered production source roots are the whole of the main
 	 * source set, rather than as much of it as the build descriptor could be read

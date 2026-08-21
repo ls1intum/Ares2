@@ -23,22 +23,19 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
  * rather than when it was written.
  * <p>
  * A generated test used to carry the answer instead of the question: the
- * package list was taken from whatever was compiled at generation time and
- * written into the file as a literal. In the precompile flow nothing is
- * compiled at that point, so the list was empty, the emitted import had no
- * arguments, and every rule then checked an empty set of classes and passed.
- * The suite was green and enforced nothing.
- * <p>
- * Asking at runtime fixes that, and it is also the only point at which the
- * answer is true: the compiled output is what will actually execute, and it
- * cannot have changed afterwards the way a generation-time snapshot can.
+ * package list came from whatever was compiled at generation time. In the
+ * precompile flow that is nothing, so the emitted import had no arguments,
+ * every rule checked an empty set and passed, and the suite was green while
+ * enforcing nothing. Runtime is also the only point at which the answer is
+ * true, since the compiled output is what will execute and cannot change
+ * afterwards the way a snapshot can.
  * <p>
  * <b>Why this class is self-contained.</b> Ares copies its {@code api} subtree
  * into the supervised project as sources, and a generated test compiles against
- * those copies rather than against the Ares jar. Only what the copy manifests
- * list is available, which is why this resolves the output root itself instead
- * of calling {@code ProjectSourcesFinder}, and why its diagnostics are written
- * out here rather than taken from the message bundle.
+ * those copies, not the Ares jar. Only what the copy manifests list is
+ * available, hence the output root resolved here rather than through
+ * {@code ProjectSourcesFinder}, and diagnostics spelled out rather than taken
+ * from the message bundle.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -84,14 +81,15 @@ public final class JavaArchunitSupervisedClasses {
 	 * against the whole compiled output before they are returned.
 	 * <p>
 	 * A derived scope is a reading of files the submitter can add to, so it is only
-	 * a boundary once something confirms it. Every executable class in the output
-	 * must lie within it; a class outside it would otherwise run unsupervised while
-	 * the suite reported success.
+	 * a boundary once something confirms it: every executable class in the output
+	 * must lie within it, or it would run unsupervised while the suite reported
+	 * success. An output holding nothing executable is accepted with a warning,
+	 * since there is then no class that could escape.
 	 *
 	 * @param supervisedPackage the derived scope
-	 * @return the classes to analyse; never empty
-	 * @throws SecurityException if the output cannot be identified, nothing is
-	 *                           compiled, or a class lies outside the scope
+	 * @return the classes to analyse, empty only when nothing is compiled
+	 * @throws SecurityException if the output cannot be identified or a class lies
+	 *                           outside the scope
 	 */
 	public static JavaClasses validated(String supervisedPackage) {
 		return CACHE.computeIfAbsent("validated|" + supervisedPackage,
@@ -102,13 +100,14 @@ public final class JavaArchunitSupervisedClasses {
 	 * The supervised classes for a scope an instructor pinned in a policy.
 	 * <p>
 	 * No whole-project check is made: a pinned policy may deliberately supervise
-	 * part of the output, and narrowing it is then a decision rather than a
-	 * mistake.
+	 * part of the output, which is a decision rather than a mistake. Narrowing to
+	 * <em>nothing</em> is not, so a scope matching no compiled class while classes
+	 * exist is refused.
 	 *
 	 * @param supervisedPackage the pinned scope
 	 * @return the classes to analyse
-	 * @throws SecurityException if the output cannot be identified or nothing is
-	 *                           compiled
+	 * @throws SecurityException if the output cannot be identified or the scope
+	 *                           matches none of the compiled classes
 	 */
 	public static JavaClasses pinned(String supervisedPackage) {
 		return CACHE.computeIfAbsent("pinned|" + supervisedPackage, key -> importProduction(supervisedPackage, false));
@@ -118,11 +117,13 @@ public final class JavaArchunitSupervisedClasses {
 	 * The packages the supervised code may import from itself, read from the
 	 * compiled output rather than from the scope.
 	 * <p>
-	 * The scope is a prefix, so permitting it permits everything below it. Writing
-	 * it into the generated file as a permission meant a derived scope kept a grant
-	 * over a whole namespace even once the coverage check above was satisfied. The
-	 * packages the output actually declares cannot be broader than the output, so
-	 * they are what the generated rules ask for.
+	 * The scope is a prefix, so permitting it permits everything below it, and a
+	 * permission written into the generated file outlives the coverage check beside
+	 * it. The packages the output declares cannot be broader than that output, so
+	 * they are what the generated rules ask for. A reserved one is skipped: it is
+	 * refused during validation, so reaching one here would mean the inventory and
+	 * the check disagreed, and a permission must never name a trusted namespace
+	 * whatever else went wrong.
 	 *
 	 * @param supervisedPackage the supervised scope
 	 * @param declaredByPolicy  the permissions the policy itself granted, which
@@ -134,10 +135,6 @@ public final class JavaArchunitSupervisedClasses {
 		Set<PackagePermission> permissions = new LinkedHashSet<>(declaredByPolicy);
 		for (JavaClass javaClass : validated(supervisedPackage)) {
 			String declared = javaClass.getPackageName();
-			// A reserved package is refused during validation above, so reaching one here
-			// would mean the inventory and the check disagreed. Skipped rather than
-			// granted regardless: a permission is the one thing that must never name a
-			// trusted namespace, whatever else went wrong.
 			if (!declared.isBlank() && reservedPrefixOf(declared) == null) {
 				permissions.add(new PackagePermission(declared));
 			}
@@ -147,6 +144,20 @@ public final class JavaArchunitSupervisedClasses {
 	// </editor-fold>
 
 	// <editor-fold desc="Import and validation">
+	/**
+	 * Imports the compiled production output whole, with nothing filtered out:
+	 * filtering first would decide what is worth checking by package name, which is
+	 * exactly what whoever adds files controls, and an excluded class would never
+	 * reach the check below.
+	 * <p>
+	 * No compiled class at all is nothing to supervise rather than a wrong scope,
+	 * which is the state of an exercise whose supervised package is still empty, so
+	 * it warns instead of refusing. A validated scope then returns the whole
+	 * inventory, since the check has just established that all of it lies within
+	 * the scope; a pinned one is narrowed here rather than at import, because
+	 * importing whole is what keeps that check from being decided by the very
+	 * package names it inspects.
+	 */
 	private static JavaClasses importProduction(String supervisedPackage, boolean validateCoverage) {
 		if (supervisedPackage == null || supervisedPackage.isBlank()) {
 			throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): "
@@ -154,38 +165,52 @@ public final class JavaArchunitSupervisedClasses {
 					+ "checked against. Declare theSupervisedCodeUsesTheFollowingPackage in a security policy.");
 		}
 		Path outputRoot = productionOutputRoot();
-		// Imported whole, with nothing filtered out. Filtering first would decide what
-		// is worth checking using package names, which are exactly what whoever adds
-		// files to the project controls: a class excluded by the filter would never
-		// reach the check below and would run unsupervised while the suite passed.
+		if (!Files.isDirectory(outputRoot)) {
+			warnNothingToSupervise(outputRoot, supervisedPackage);
+			return new ClassFileImporter().importPackages();
+		}
 		JavaClasses imported = new ClassFileImporter().importPath(outputRoot);
 		List<JavaClass> supervisable = supervisableClassesIn(imported);
 		if (supervisable.isEmpty()) {
-			// Empty at generation is ordinary; empty here is not. This runs when the
-			// output is final, so nothing to analyse means the rules would pass against
-			// nothing, which is what this class exists to stop.
-			throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): "
-					+ "No supervisable production class was found under " + outputRoot + " for the supervised "
-					+ "scope \"" + supervisedPackage + "\", so the architecture rules would be checked against "
-					+ "nothing. Ares refuses to report success over an empty analysis.");
+			warnNothingToSupervise(outputRoot, supervisedPackage);
+			return imported;
 		}
 		if (validateCoverage) {
 			requireScopeToCover(supervisable, supervisedPackage, outputRoot);
-			// Everything imported now lies within the scope, so the whole inventory is
-			// both what was checked and what the rules analyse.
 			return imported;
 		}
-		// A pinned scope is the instructor saying which part of the output is
-		// supervised, so the rules analyse that part and no more. Narrowing happens
-		// here rather than at import, because importing whole is what keeps the check
-		// above from being decided by the package names it is meant to be checking.
-		return imported
+		JavaClasses narrowed = imported
 				.that(new DescribedPredicate<JavaClass>("declared within the supervised scope " + supervisedPackage) {
 					@Override
 					public boolean test(JavaClass javaClass) {
 						return isWithinScope(javaClass.getPackageName(), supervisedPackage);
 					}
 				});
+		if (!narrowed.iterator().hasNext()) {
+			throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): "
+					+ "The pinned supervised scope \"" + supervisedPackage + "\" matches no compiled production "
+					+ "class under " + outputRoot + ", although " + supervisable.size() + " were found there, so "
+					+ "the architecture rules would be checked against nothing. Correct "
+					+ "theSupervisedCodeUsesTheFollowingPackage in the security policy.");
+		}
+		return narrowed;
+	}
+
+	/**
+	 * Reports that there is no compiled production class to analyse, which leaves
+	 * the architecture rules vacuous rather than mis-scoped.
+	 * <p>
+	 * Written to {@link System.Logger} rather than to Ares' message bundle, for the
+	 * same reason the diagnostics above are spelled out here: only what the copy
+	 * manifest lists is available in a supervised project.
+	 */
+	private static void warnNothingToSupervise(Path outputRoot, String supervisedPackage) {
+		System.getLogger(JavaArchunitSupervisedClasses.class.getName()).log(System.Logger.Level.WARNING,
+				"No compiled production class was found under {0}, so the architecture rules for the supervised "
+						+ "scope \"{1}\" have nothing to analyse and cannot fail. This is expected while the "
+						+ "supervised package is still empty; if it is not empty, the production output was "
+						+ "written somewhere this check does not read.",
+				outputRoot, supervisedPackage);
 	}
 
 	/**
@@ -268,14 +293,7 @@ public final class JavaArchunitSupervisedClasses {
 					+ "The project has neither a Maven nor a Gradle descriptor, so the compiled output the "
 					+ "architecture rules should be checked against cannot be identified.");
 		}
-		Path outputRoot = Path.of(maven ? "target/classes" : "build/classes/java/main");
-		if (!Files.isDirectory(outputRoot)) {
-			throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Execution): "
-					+ "The compiled production output " + outputRoot.toAbsolutePath() + " does not exist, so the "
-					+ "architecture rules have nothing to be checked against. Ares refuses to report success "
-					+ "over an empty analysis.");
-		}
-		return outputRoot.toAbsolutePath();
+		return Path.of(maven ? "target/classes" : "build/classes/java/main").toAbsolutePath();
 	}
 
 	/**

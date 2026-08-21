@@ -196,22 +196,23 @@ class JavaProjectScannerScopeCoverageTest {
 	}
 
 	/**
-	 * An output root holding no class at all cannot confirm anything about the
-	 * scope. Passing here used to look like tolerance for a project with no
-	 * supervisable code, but this check runs immediately before enforcement is
-	 * armed, by which point the compiled output is the whole truth about what will
-	 * run: nothing compiled means nothing verified.
+	 * An output root holding no class at all is an exercise whose supervised
+	 * package is still empty, which is the ordinary state of one that hands the
+	 * student a package to fill.
+	 * <p>
+	 * This check exists to refuse a scope that supervises the wrong code, and there
+	 * is no wrong code here: no class exists that could sit outside the boundary.
+	 * Refusing turned "you have written nothing yet" into an Ares security error
+	 * and stopped the student's own tests from ever reporting. Unreadable is a
+	 * different matter and is still refused, because not knowing what is there is
+	 * not the same as knowing nothing is.
 	 */
 	@Test
-	@DisplayName("Refuses when nothing at all is compiled")
-	void refusesWhenNothingAtAllIsCompiled() throws IOException {
+	@DisplayName("Accepts an empty supervised package the student has yet to fill")
+	void acceptsWhenNothingAtAllIsCompiled() throws IOException {
 		Path outputRoot = Files.createDirectories(projectRoot.resolve("build/classes/java/main"));
 
-		SecurityException refusal = assertThrows(SecurityException.class,
-				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
-
-		assertTrue(refusal.getMessage().contains(outputRoot.toString()),
-				"the diagnostic must name where it looked: " + refusal.getMessage());
+		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
 	}
 
 	@Test
