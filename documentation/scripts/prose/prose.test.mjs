@@ -10,12 +10,13 @@
  */
 
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test, { after, before, describe } from 'node:test';
 
-import { scanCategory, scanPage } from './scan.mjs';
+import { RULE_IDS, levelsById } from './rules.mjs';
+import { DOCS, scanCategory, scanPage } from './scan.mjs';
 
 let workspace;
 
@@ -41,6 +42,87 @@ async function findingsFor(body) {
     await writeFile(file, body, 'utf8');
     return (await scanPage(file, 'positioned.md')).findings;
 }
+
+/**
+ * The writing-rules page and the rules it describes, held to each other.
+ *
+ * The page is the standard and `rules.mjs` is the implementation of the decidable part of it.
+ * Nothing else connects them: the scanner never reads the page, so a rule promoted in the code
+ * and left in the advisory table would leave the two disagreeing with nobody the wiser. These
+ * fixtures are that connection.
+ */
+describe('the page and the rules agree', () => {
+    const PAGE = path.join(DOCS, 'contributor', 'writing-rules.md');
+
+    /** The `## ` sections of the page, by heading. */
+    async function sections() {
+        const source = await readFile(PAGE, 'utf8');
+        const found = new Map();
+        let heading = null;
+        let lines = [];
+        for (const line of source.split(/\r?\n/)) {
+            const match = /^## (.+)$/.exec(line);
+            if (match === null) {
+                lines.push(line);
+                continue;
+            }
+            if (heading !== null) {
+                found.set(heading, lines);
+            }
+            heading = match[1].trim();
+            lines = [];
+        }
+        found.set(heading, lines);
+        return found;
+    }
+
+    /** The first cell of every body row of the first table in a section. */
+    function firstCells(lines) {
+        return lines
+            .filter((line) => line.startsWith('|') && !/^\|[\s-]+\|/.test(line))
+            .slice(1)
+            .map((line) => line.split('|')[1].trim());
+    }
+
+    /** The rule identifiers a section's table names, which are the cells written as code. */
+    function idsIn(lines) {
+        return firstCells(lines)
+            .filter((cell) => /^`[a-z0-9-]+`$/.test(cell))
+            .map((cell) => cell.slice(1, -1));
+    }
+
+    test('every rule the enforced table names is enforced in the code', async () => {
+        const levels = levelsById();
+        for (const id of idsIn((await sections()).get('Enforced rules'))) {
+            assert.equal(levels.get(id), 'enforced', `${id} is in the enforced table`);
+        }
+    });
+
+    test('every rule the advisory table names is advisory in the code', async () => {
+        const levels = levelsById();
+        for (const id of idsIn((await sections()).get('Advisory rules'))) {
+            assert.equal(levels.get(id), 'advisory', `${id} is in the advisory table`);
+        }
+    });
+
+    test('the two tables together name every rule, and no rule twice', async () => {
+        const found = await sections();
+        const listed = [
+            ...idsIn(found.get('Enforced rules')),
+            ...idsIn(found.get('Advisory rules')),
+        ];
+        assert.equal(new Set(listed).size, listed.length, 'a rule is listed twice');
+        assert.deepEqual([...listed].sort(), [...RULE_IDS].sort());
+    });
+
+    test('the unchecked table names no rule the code defines', async () => {
+        const lines = (await sections()).get('Rules with no check, and why');
+        assert.ok(lines !== undefined, 'the page records the rules nothing checks');
+        for (const id of idsIn(lines)) {
+            assert.ok(!RULE_IDS.has(id), `${id} is listed as unchecked but the code defines it`);
+        }
+    });
+});
 
 describe('code is never prose', () => {
     test('a fenced block is not scanned', async () => {
@@ -180,9 +262,44 @@ describe('surfaces a reader sees', () => {
     });
 });
 
+describe('sentences a person should look at', () => {
+    test('a passive construction is reported, and only as advisory', async () => {
+        const rules = await rulesFor('The call is blocked at the boundary.\n');
+        assert.deepEqual(rules, ['active-voice']);
+    });
+
+    test('a participle used as an adjective is left alone', async () => {
+        const rules = await rulesFor('The path is forbidden and the port is allowed.\n');
+        assert.deepEqual(rules, []);
+    });
+
+    test('a participle after a modal is not matched', async () => {
+        const rules = await rulesFor('The call may be blocked at the boundary.\n');
+        assert.deepEqual(rules, ['prefer-must']);
+    });
+
+    test('a sentence past the limit is reported once', async () => {
+        const words = Array.from({ length: 40 }, (_, index) => `word${index}`).join(' ');
+        const rules = await rulesFor(`${words}.\n`);
+        assert.deepEqual(rules, ['long-sentence']);
+    });
+
+    test('a sentence at the limit is not reported', async () => {
+        const words = Array.from({ length: 35 }, (_, index) => `word${index}`).join(' ');
+        const rules = await rulesFor(`${words}.\n`);
+        assert.deepEqual(rules, []);
+    });
+
+    test('a long fenced block is not a long sentence', async () => {
+        const words = Array.from({ length: 60 }, (_, index) => `word${index}`).join(' ');
+        const rules = await rulesFor(`Text.\n\n\`\`\`\n${words}\n\`\`\`\n`);
+        assert.deepEqual(rules, []);
+    });
+});
+
 describe('sentence openers', () => {
     test('a sentence opening with Because is reported', async () => {
-        const rules = await rulesFor('Because it is woven, the call is caught.\n');
+        const rules = await rulesFor('Because the aspect wove it, Ares catches the call.\n');
         assert.deepEqual(rules, ['no-back-loaded-opener']);
     });
 

@@ -133,9 +133,20 @@ export const WORD_RULES = [
     },
     {
         id: 'no-always-filler',
+        // The Outline rules give one list of filler words and call it absolute. Every word on
+        // that list is here: `additional`, `furthermore`, `moreover`, `also`, `actually`,
+        // `clearly` and `obviously`. The first three were enforced from the start; `also` and
+        // `actually` sat under `context-filler` until the corpus was clear of them, because
+        // enforcing a word 139 places still used it would have meant a baseline instead of a
+        // rule.
+        //
+        // Where the word carries meaning, the sentence gets a word that carries it plainly:
+        // `and` for a list entry, `further` for one more of something, `as well` or `too` for
+        // an addition. None of those is filler, and none needs a suppression.
         level: 'enforced',
-        pattern: /\b(?:additionally|of course|furthermore|moreover|obviously|clearly)\b/gi,
-        message: (hit) => `"${hit}" adds nothing. Delete it.`,
+        pattern: /\b(?:additionally|additional|of course|furthermore|moreover|also|actually|obviously|clearly)\b/gi,
+        message: (hit) => `"${hit}" adds nothing. Delete it, or say what it means: "and" for `
+            + 'another entry, "further" for one more, "as well" for an addition.',
         allow: [],
     },
     {
@@ -169,7 +180,9 @@ export const WORD_RULES = [
     {
         id: 'context-filler',
         level: 'advisory',
-        pattern: /\b(?:also|actually|just|additional|simply|basically|essentially|in fact)\b/gi,
+        // `also`, `actually` and `additional` moved to the enforced list above once the corpus
+        // was clear of them. What is left is the words that genuinely turn on the sentence.
+        pattern: /\b(?:just|simply|basically|essentially|in fact)\b/gi,
         message: (hit) => `"${hit}" is usually filler. Delete it unless it carries meaning, `
             + 'as "just" does when it means "a moment ago".',
         allow: [
@@ -184,7 +197,10 @@ export const WORD_RULES = [
         pattern: /\b(?:we|our|ours|us)\b/gi,
         message: (hit) => `"${hit}" addresses the reader as a group. Write "you", meaning `
             + 'whoever this guide is for. Where it means the Ares project itself, leave it.',
-        allow: [],
+        allow: [
+            // The country in the name of a data-protection framework, not the first person.
+            /EU-US/i,
+        ],
     },
     {
         id: 'no-intensifiers',
@@ -207,12 +223,58 @@ export const OPENER_RULE = {
 };
 
 /**
+ * The passive constructions that hide who acts, reported and never failed.
+ *
+ * A form of "to be" followed by a past participle is passive far more often than not, but not
+ * always: "is interested" and "is related" are adjectives wearing the same clothes, and this
+ * pattern cannot tell them apart. It is therefore advisory, like every other rule that needs
+ * the sentence read.
+ *
+ * Deliberately narrow. Only the finite forms are matched, so "has been dropped" and "may be
+ * blocked" are left alone; a rule that caught every participle in the corpus would report so
+ * much that nobody would read it.
+ */
+export const PASSIVE_RULE = {
+    id: 'active-voice',
+    level: 'advisory',
+    pattern: /\b(?:is|are|was|were)\s+(?:\w+ly\s+)?\w{3,}(?:ed|en)\b/gi,
+    message: (hit) => `"${hit}" is passive and does not say who acts. Name the actor, or leave `
+        + 'it where the actor is genuinely unknown.',
+    allow: [
+        // Participles this corpus uses as adjectives, naming a state rather than an act.
+        // "A path is forbidden" says what the path is, not that somebody forbade it just now,
+        // and rewriting it to name an actor states a event that never happened.
+        new RegExp('\\b(?:is|are|was|were)\\s+(?:'
+            + 'allowed|permitted|forbidden|denied|required|needed|trusted|untrusted|'
+            + 'based|related|interested|involved|limited|located|intended|expected|'
+            + 'supported|unsupported|deprecated|sealed|hidden|nested|closed|fixed'
+            + ')\\b', 'i'),
+    ],
+};
+
+/**
+ * The point past which a sentence is long enough to be worth re-reading, reported and never
+ * failed.
+ *
+ * The Outline rules ask for short sentences with the verb early. Neither half is decidable,
+ * but length is measurable, and a sentence over the limit is where the clause-heavy German
+ * construction the rules warn about turns up. Thirty-five words is roughly two lines of this
+ * documentation; the limit is a prompt to look, never a verdict.
+ */
+export const SENTENCE_LENGTH_RULE = {
+    id: 'long-sentence',
+    level: 'advisory',
+    limit: 35,
+    message: (words) => `A sentence runs to ${words} words, past the ${35} the rules ask for. `
+        + 'Split it, or move the verb forward.',
+};
+
+/**
  * The abbreviations a page spells out the first time it uses one, and what counts as having
  * spelled it out.
  *
- * `ELI5` is exempt on purpose: it is the label of the admonition every page opens with,
- * `:::tip[ELI5]`, so it is an interface element rather than prose, and expanding it on all
- * 96 pages would read as nonsense.
+ * Only abbreviations appear here. The label of the admonition every page opens with,
+ * `:::tip[Simple Story]`, is two ordinary words and needs nothing.
  *
  * `expansion` is matched case-insensitively anywhere on the page. `write` is the wording the
  * message suggests, so one abbreviation is not expanded twenty-seven different ways.
@@ -245,16 +307,29 @@ export const ABBREVIATION_RULE = {
 export const RULE_IDS = new Set([
     ...WORD_RULES.map((rule) => rule.id),
     OPENER_RULE.id,
+    PASSIVE_RULE.id,
+    SENTENCE_LENGTH_RULE.id,
     ABBREVIATION_RULE.id,
 ]);
 
 /** Whether a rule fails the build, as opposed to being reported and left to a person. */
 export function isEnforced(id) {
-    if (id === OPENER_RULE.id) {
-        return OPENER_RULE.level === 'enforced';
-    }
-    if (id === ABBREVIATION_RULE.id) {
-        return ABBREVIATION_RULE.level === 'enforced';
+    const standalone = [OPENER_RULE, PASSIVE_RULE, SENTENCE_LENGTH_RULE, ABBREVIATION_RULE]
+        .find((rule) => rule.id === id);
+    if (standalone !== undefined) {
+        return standalone.level === 'enforced';
     }
     return WORD_RULES.some((rule) => rule.id === id && rule.level === 'enforced');
+}
+
+/** Every rule, whatever shape it has, paired with the level it is held at. */
+export function levelsById() {
+    const levels = new Map();
+    for (const rule of WORD_RULES) {
+        levels.set(rule.id, rule.level);
+    }
+    for (const rule of [OPENER_RULE, PASSIVE_RULE, SENTENCE_LENGTH_RULE, ABBREVIATION_RULE]) {
+        levels.set(rule.id, rule.level);
+    }
+    return levels;
 }

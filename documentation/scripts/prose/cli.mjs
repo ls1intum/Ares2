@@ -10,8 +10,9 @@
  *   --report    prints every finding, enforced and advisory, as JSON. This is what
  *               regenerates the figures in the plan, and what the advisory clean-up is
  *               worked down from. It never fails.
- *   --accept    rewrites the baseline from what is on disk now. Run it deliberately, in the
- *               same commit as the change that earns it, never to make CI green.
+ *   --accept    rewrites the baseline and the advisory ceilings from what is on disk now. Run
+ *               it deliberately, in the same commit as the change that earns it, never to make
+ *               CI green.
  *
  * The baseline is a ratchet keyed on the identity of a finding, not on a count per file. A
  * count lets one violation replace another and stay green; an identity does not. The
@@ -27,38 +28,69 @@
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { isEnforced } from './rules.mjs';
+import { isEnforced, levelsById } from './rules.mjs';
 import {
-    DOCS, identityOf, scanCategory, scanPage, suppressionProblems,
+    DOCS, SITE, identityOf, scanCategory, scanPage, scanSource, suppressionProblems,
 } from './scan.mjs';
 
 /** Where the accepted findings are recorded. */
 const BASELINE = path.resolve(import.meta.dirname, 'baseline.json');
 
-/** Every page and category file under the documentation, as absolute and relative pairs. */
+/** Where the advisory ceilings are recorded. */
+const CEILING = path.resolve(import.meta.dirname, 'advisory-ceiling.json');
+
+/**
+ * The site's own TypeScript that carries text a reader sees: the navbar and footer labels, the
+ * tagline and the copyright line, all of which appear on every page.
+ */
+const SOURCE_FILES = [
+    'docusaurus.config.ts', 'sidebar-instructor.ts', 'sidebar-contributor.ts',
+];
+
+/**
+ * Every file holding text a reader reads, as absolute and relative pairs.
+ *
+ * Three kinds, because a reader does not know which is which: the Markdown under `docs/`, the
+ * standalone pages under `src/pages/` (`imprint` and `privacy` are Markdown, the landing page
+ * is TSX), and the configuration above.
+ */
 async function documentationFiles() {
     const files = [];
+    const add = (absolute) => files.push({
+        absolute,
+        relative: path.relative(SITE, absolute).replaceAll('\\', '/'),
+    });
     const walk = async (directory) => {
         for (const entry of await readdir(directory, { withFileTypes: true })) {
             const absolute = path.join(directory, entry.name);
             if (entry.isDirectory()) {
                 await walk(absolute);
-            } else if (/\.mdx?$/.test(entry.name) || entry.name === '_category_.json') {
-                files.push({ absolute, relative: path.relative(path.dirname(DOCS), absolute).replaceAll('\\', '/') });
+            } else if (/\.(?:mdx?|tsx?)$/.test(entry.name) || entry.name === '_category_.json') {
+                add(absolute);
             }
         }
     };
     await walk(DOCS);
+    await walk(path.join(SITE, 'src', 'pages'));
+    for (const name of SOURCE_FILES) {
+        add(path.join(SITE, name));
+    }
     return files.sort((left, right) => left.relative.localeCompare(right.relative));
+}
+
+/** The scanner that reads one file, chosen by what the file is. */
+function scannerFor(name) {
+    if (name.endsWith('_category_.json')) {
+        return scanCategory;
+    }
+    return /\.tsx?$/.test(name) ? scanSource : scanPage;
 }
 
 /** Scans everything, returning the findings and the per-file suppression bookkeeping. */
 async function scanEverything() {
     const states = [];
     for (const file of await documentationFiles()) {
-        states.push(file.absolute.endsWith('.json')
-            ? await scanCategory(file.absolute, file.relative)
-            : await scanPage(file.absolute, file.relative));
+        states.push(await scannerFor(file.absolute)(file.absolute, file.relative));
     }
     return {
         findings: states.flatMap((state) => state.findings),
@@ -73,6 +105,42 @@ async function readBaseline() {
     } catch {
         return new Set();
     }
+}
+
+/**
+ * The advisory ceilings, or an empty map the first time this runs.
+ *
+ * An advisory rule cannot fail on a finding, because deciding one needs the sentence read. It
+ * can still fail on a count. The ceiling is what stops the 1058 findings this documentation
+ * carries from quietly becoming 1200: a rule may sit under its number for as long as it likes
+ * and may be lowered whenever the prose improves, but it may not go up without somebody
+ * writing the higher number down.
+ *
+ * A rule with no entry has a ceiling of zero, so adding a rule and leaving it unrecorded fails
+ * rather than passing unnoticed.
+ */
+async function readCeiling() {
+    try {
+        return new Map(Object.entries(JSON.parse(await readFile(CEILING, 'utf8')).ceiling));
+    } catch {
+        return new Map();
+    }
+}
+
+/** The advisory findings each rule produced, including the rules that produced none. */
+function advisoryCounts(findings) {
+    const counts = new Map();
+    for (const [id, level] of levelsById()) {
+        if (level !== 'enforced') {
+            counts.set(id, 0);
+        }
+    }
+    for (const item of findings) {
+        if (counts.has(item.rule)) {
+            counts.set(item.rule, counts.get(item.rule) + 1);
+        }
+    }
+    return counts;
 }
 
 /** Counts findings by rule, which is the only summary worth printing every run. */
@@ -124,14 +192,36 @@ async function lint() {
             + 'Run `pnpm run prose:accept` and commit the smaller baseline.\n');
     }
 
+    const counts = advisoryCounts(findings);
+    const ceiling = await readCeiling();
+    const over = [];
+    const under = [];
+    for (const [rule, count] of counts) {
+        const limit = ceiling.get(rule) ?? 0;
+        if (count > limit) {
+            over.push(`${rule} has ${count} advisory finding(s) and its ceiling is ${limit}. `
+                + 'Fix the new ones, or raise the ceiling deliberately in advisory-ceiling.json.');
+        } else if (count < limit) {
+            under.push(`${rule} is down to ${count} from ${limit}`);
+        }
+    }
+    for (const problem of over) {
+        process.stdout.write(`${problem}\n`);
+    }
+    if (under.length > 0) {
+        process.stdout.write(`\n${under.join(', ')}. `
+            + 'Run `pnpm run prose:accept` and commit the lower ceiling.\n');
+    }
+
     const advisory = findings.length - enforced.length;
     process.stdout.write(`\n${enforced.length} enforced (${accepted.size} accepted, ${fresh.length} new), `
-        + `${advisory} advisory. Advisory findings never fail; run \`pnpm run report:prose\` to read them.\n`);
+        + `${advisory} advisory. An advisory finding never fails on its own; its rule fails when `
+        + 'the count goes up. Run `pnpm run report:prose` to read them.\n');
 
-    return fresh.length + problems.length > 0 ? 1 : 0;
+    return fresh.length + problems.length + over.length > 0 ? 1 : 0;
 }
 
-/** Rewrites the baseline from what is on disk now. */
+/** Rewrites the baseline and the ceilings from what is on disk now. */
 async function accept() {
     const { findings } = await scanEverything();
     const enforced = findings.filter((item) => isEnforced(item.rule));
@@ -140,7 +230,17 @@ async function accept() {
         why: 'Enforced findings accepted for now. This list may only shrink; see scripts/prose/cli.mjs.',
         accepted: identities,
     }, null, 2)}\n`, 'utf8');
-    process.stdout.write(`Accepted ${identities.length} enforced finding(s) into the baseline.\n`);
+
+    const counts = [...advisoryCounts(findings)].sort((left, right) => left[0].localeCompare(right[0]));
+    await writeFile(CEILING, `${JSON.stringify({
+        why: 'The advisory findings each rule is allowed. These numbers may only fall; see '
+            + 'scripts/prose/cli.mjs. Lower one by improving the prose, never by editing it here.',
+        ceiling: Object.fromEntries(counts),
+    }, null, 2)}\n`, 'utf8');
+
+    process.stdout.write(`Accepted ${identities.length} enforced finding(s) into the baseline, `
+        + `and ${counts.reduce((total, [, count]) => total + count, 0)} advisory finding(s) into `
+        + 'the ceiling.\n');
     return 0;
 }
 
