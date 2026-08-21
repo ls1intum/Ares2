@@ -44,11 +44,11 @@ The migration splits into work that is the same in both modes and work that is n
 
 Ares 1 enforces its restrictions with a `SecurityManager`. `ArtemisSecurityManager` installs itself by calling `System.setSecurityManager(...)` at runtime, and every permission decision is made by inspecting the call stack for non-whitelisted frames.
 
-That mechanism has been withdrawn from the platform. JEP 411 deprecated the Security Manager for removal in Java 17. From Java 18, installing one at runtime is disallowed by default, so `System.setSecurityManager` throws unless the JVM was started with `-Djava.security.manager=allow`. JEP 486, in Java 24, disabled it permanently: the call now always throws, and no flag re-enables it. An Ares 1 exercise therefore cannot be run on a current JDK, and the workarounds available on Java 18 to 23 expire.
+That mechanism has been withdrawn from the platform. JEP 411 deprecated the Security Manager for removal in Java 17. From Java 18, installing one at runtime is disallowed by default, so `System.setSecurityManager` throws unless the Java Virtual Machine (JVM) was started with `-Djava.security.manager=allow`. JEP 486, in Java 24, disabled it permanently: the call now always throws, and no flag re-enables it. An Ares 1 exercise therefore cannot be run on a current Java Development Kit (JDK), and the workarounds available on Java 18 to 23 expire.
 
 Ares 2 does not use a `SecurityManager` at all. It combines two layers:
 
-- **Static analysis** of the compiled student bytecode, using either ArchUnit (rule-based) or WALA (call-graph based), which rejects forbidden operations before anything runs.
+- **Static analysis** of the compiled student bytecode, using either ArchUnit (rule-based) or T. J. Watson Libraries for Analysis (WALA) (call-graph based), which rejects forbidden operations before anything runs.
 - **A runtime layer**, using either AspectJ aspects woven into the bytecode at compile time, or a ByteBuddy `-javaagent` that transforms classes at load time, which intercepts operations as they happen.
 
 Neither depends on a platform feature that is going away. The cost is that the build has more moving parts, which is what the step named in section 4 of this guide is about.
@@ -227,11 +227,11 @@ Notes on the rows that need them:
 
 **`@AllowThreads`.** Ares 1 capped the number of *concurrently active* threads. Ares 2 counts threads per thread class through `createTheFollowingNumberOfThreads` and `ofThisClass`. The accounting differs, so a translated limit is an approximation, not a rename. Re-derive the number the exercise needs rather than copying `maxActiveCount`.
 
-**`@BlacklistPackage`.** No negative package rule exists. Note additionally that the `java` prefix is always permitted as an essential package, so an Ares 1 blacklist that forbade a specific `java.*` package cannot be reproduced at all.
+**`@BlacklistPackage`.** No negative package rule exists. Note that the `java` prefix is always permitted as an essential package, so an Ares 1 blacklist that forbade a specific `java.*` package cannot be reproduced at all.
 
 **`@WhitelistClass`.** Map it to `theFollowingClassesAreTestClasses` **only** when the class is instructor-owned test infrastructure that students cannot modify. An entry in that list is exempt from both the static and the runtime checks, so it is considerably stronger than an Ares 1 whitelist entry. The Ares 1 warning applies with more force here: never list a class that students can edit.
 
-> **Do not map `@AddTrustedPackage`.** It is tempting to put its package name into `theFollowingClassesAreTestClasses`, and that is wrong in both directions at once. As the step named in section 6.4 of this guide explains, the field matches exact class names, so a package name grants **no** class exemption. But it is not inert either: Ares derives a package permission from every entry by stripping the last dotted component, so an entry `"com.thirdparty.tool"` silently permits imports from `com.thirdparty`, and a two-part entry such as `"org.example"` permits the whole `org` prefix. You therefore get no exemption, plus a package allowance you did not intend. If a third-party library genuinely needs to perform a restricted operation on behalf of student code, express that as the specific resource permission it needs.
+> **Do not map `@AddTrustedPackage`.** It is tempting to put its package name into `theFollowingClassesAreTestClasses`, and that is wrong in both directions at once. The step named in section 6.4 of this guide explains that the field matches exact class names, so a package name grants **no** class exemption. But it is not inert either: Ares derives a package permission from every entry by stripping the last dotted component, so an entry `"com.thirdparty.tool"` silently permits imports from `com.thirdparty`, and a two-part entry such as `"org.example"` permits the whole `org` prefix. You therefore get no exemption, plus a package allowance you did not intend. If a third-party library genuinely needs to perform a restricted operation on behalf of student code, express that as the specific resource permission it needs.
 
 ### Consolidating additive annotations
 
@@ -295,7 +295,7 @@ assertTrue(violation.getMessage().contains("secret.txt"),
 | **Ares 2** | `de.tum.cit.ase:ares`. Enforces via static analysis plus a bytecode-level runtime layer, configured by a policy file. |
 | **Security policy** | The `SecurityPolicy.yaml` file naming the configuration, the supervised scope, the trusted test classes and the permitted resource accesses. |
 | **Supervised code** | The student code subject to the policy, identified by `theSupervisedCodeUsesTheFollowingPackage`. |
-| **AspectJ** | The compile-time AOP framework used for one of the two runtime enforcement mechanisms. Requires the compiler plugin during the build and `aspectjrt` on the bootstrap classpath. |
+| **AspectJ** | The compile-time aspect-oriented programming (AOP) framework used for one of the two runtime enforcement mechanisms. Requires the compiler plugin during the build and `aspectjrt` on the bootstrap classpath. |
 | **Aspect path** | The set of JARs `ajc` reads binary aspects from. Distinct from the compile classpath: a JAR on the classpath alone contributes no aspects. |
 | **Instrumentation** | The other runtime mechanism: class bytecode modified at load time by a ByteBuddy `-javaagent`. |
 | **Reserved package** | A package prefix student code may not declare, because Ares trusts that identity by name. Enforced by the build, see the step named in section 8 of this guide. |

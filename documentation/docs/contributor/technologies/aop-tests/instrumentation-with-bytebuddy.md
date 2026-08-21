@@ -13,7 +13,7 @@ you never compiled, including Java's own.
 
 ## What it is
 
-The `java.lang.instrument` API lets an agent, attached with `-javaagent`, transform class
+The `java.lang.instrument` application programming interface (API) lets an agent, attached with `-javaagent`, transform class
 bytes as classes are loaded. Byte Buddy is the library Ares uses to express those
 transformations without writing bytecode by hand.
 
@@ -29,7 +29,7 @@ has to be reachable from a class loaded by the bootstrap loader, which the ordin
 application classpath is not.
 
 Several `--add-opens` and `--add-exports` flags are required for the same reason: the agent
-reaches into JDK internals that the module system closes by default.
+reaches into Java Development Kit (JDK) internals that the module system closes by default.
 
 ## Why it reaches further than call-site weaving
 

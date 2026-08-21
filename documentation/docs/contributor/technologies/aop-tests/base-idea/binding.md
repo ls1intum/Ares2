@@ -18,7 +18,7 @@ object, the signature of the intercepted member.
 
 Binding is exactly what the architecture layer lacks. Static analysis is
 argument-insensitive: it sees that a file-opening method is reachable, not which path is
-passed. The AOP layer has the actual argument at the moment of the call, which is why a
+passed. The aspect-oriented programming (AOP) layer has the actual argument at the moment of the call, which is why a
 policy can permit `something.txt` and deny `secret.txt` and have that distinction mean
 something at runtime.
 
@@ -29,4 +29,4 @@ it.
 
 - [AspectJ Documentation and Resources](https://eclipse.dev/aspectj/doc/latest/index.html) — Eclipse Foundation
 - [Intro to AspectJ](https://www.baeldung.com/aspectj) — Baeldung
-- [`java.lang.instrument`](https://docs.oracle.com/en/java/javase/21/docs/api/java.instrument/java/lang/instrument/package-summary.html) — Oracle, Java SE 21 API
+- [`java.lang.instrument`](https://docs.oracle.com/en/java/javase/21/docs/api/java.instrument/java/lang/instrument/package-summary.html) — Oracle, Java SE 21 application programming interface (API)

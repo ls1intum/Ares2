@@ -25,7 +25,7 @@ does not imply permitted arguments.
 
 ## What it generates
 
-Architecture and AOP test cases. Unlike the file-system and network domains, this one has
+Architecture and aspect-oriented programming (AOP) test cases. Unlike the file-system and network domains, this one has
 **no** Phobos section: `JavaPhobosTestCaseSupported` covers only filesystem, network and
 timeout.
 
@@ -45,6 +45,6 @@ Matched against `command-execution-methods.txt`.
 
 ## Known gaps
 
-Because there is no Phobos section for this domain, a subprocess started outside the JVM is not
+No Phobos section exists for this domain, so a subprocess started outside the Java Virtual Machine (JVM) is not
 constrained by the policy even when the Phobos wrapper is active. The filesystem and network
 sandboxes still apply to it.

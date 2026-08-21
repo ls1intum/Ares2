@@ -28,7 +28,7 @@ domain in the policy becomes a rule about which operations may be reached from s
 code, and every domain that is *not* permitted becomes a deny rule.
 
 One consequence is worth knowing: a deny-all static rule is added only while a domain has
-**no** allowance at all. As soon as a domain permits one entry, the static layer can no
+**no** allowance at all. The moment a domain permits one entry, the static layer can no
 longer decide the question by itself, because it is argument-insensitive and cannot tell
 which file or which host a call refers to. The runtime layer becomes authoritative for
 that domain instead. This is why the example exercises permit exactly one file: it is what

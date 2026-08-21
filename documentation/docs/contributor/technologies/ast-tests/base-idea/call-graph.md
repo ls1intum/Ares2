@@ -14,7 +14,7 @@ a name on the page with nothing behind it.
 
 ## What it is
 
-A call graph derived from an AST is built by walking the tree and recording each call
+A call graph derived from an abstract syntax tree (AST) is built by walking the tree and recording each call
 expression. It answers questions such as *does this method call itself*, which is how
 recursion is detected.
 

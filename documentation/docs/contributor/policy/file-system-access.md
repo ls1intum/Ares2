@@ -26,12 +26,12 @@ overwrite: the advice reserves "create" for APIs that specifically create a new 
 
 ## What it generates
 
-Architecture test cases, AOP test cases and Phobos test cases. The Phobos path turns the
+Architecture test cases, aspect-oriented programming (AOP) test cases and Phobos test cases. The Phobos path turns the
 permissions into the `readonly` and `write` sections of `SpecificExercise.cfg`.
 
 ## Static enforcement
 
-`JavaArchunitTestCaseCollection` for ArchUnit, or the WALA call-graph equivalent, matched
+`JavaArchunitTestCaseCollection` for ArchUnit, or the T. J. Watson Libraries for Analysis (WALA) call-graph equivalent, matched
 against `templates/architecture/java/archunit/methods/file-system-access-methods.txt`. A
 domain with **no** allowance at all gets a static deny-all rule, which is why a negative
 control needs at least one permitted file to exercise the runtime layer.

@@ -151,7 +151,7 @@ The alternative some guides use, pointing `-javaagent` at `${settings.localRepos
 **Explanation:**
 
 - **Pin the version.** Without `<version>`, the plugin floats with whatever the super-POM binds, and a Maven upgrade silently changes how your tests are launched.
-- **`@{argLine}` is not optional if anything else contributes JVM arguments.** JaCoCo's `prepare-agent` goal works by *setting* the `argLine` property. A plain `<argLine>` overwrites it, and coverage then silently reports nothing. `@{argLine}` expands the property late, so both survive. That is also why [Declare the versions once](#declare-the-versions-once) declares an empty `<argLine></argLine>` property: without it, a run in which JaCoCo does not participate fails with an unresolved `@{argLine}`.
+- **`@{argLine}` is not optional if anything else contributes Java Virtual Machine (JVM) arguments.** JaCoCo's `prepare-agent` goal works by *setting* the `argLine` property. A plain `<argLine>` overwrites it, and coverage then silently reports nothing. `@{argLine}` expands the property late, so both survive. That is also why [Declare the versions once](#declare-the-versions-once) declares an empty `<argLine></argLine>` property: without it, a run in which JaCoCo does not participate fails with an unresolved `@{argLine}`.
 - **Quote the two paths.** `${project.build.directory}` contains a space whenever the project sits under a directory such as `My Projects`. Surefire splits `argLine` on whitespace but honours double quotes, so the quotes are what keep such a path in one piece.
 - **Merging with existing arguments.** If your exercise already sets `argLine`, append these entries to it rather than replacing them, keeping `@{argLine}` first. If another Java agent is present, order matters: put the Ares agent **after** a coverage agent such as JaCoCo, so coverage instrumentation is applied to the classes Ares then transforms rather than the reverse.
 - The module access flags are identical to the Gradle ones; see the agent step above for the per-flag explanation.
@@ -289,7 +289,7 @@ and live in the repository at
 - `MavenReservedPackages.xml`
 - `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
-Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its CI must pin both.
+Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
 
 ### Maven
 
@@ -350,7 +350,7 @@ A setup check is only worth running if it can fail for the right reason. The exa
 Two details make this a genuine test rather than a reassuring one:
 
 1. **The forbidden read must happen in supervised code, not in the test.** A test class named in `theFollowingClassesAreTestClasses` is exempt from enforcement, so a read performed by the test itself is *supposed* to succeed. Put the read in the student-facing class and let the test assert the exception.
-2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](/contributor/subsystems/policy/enforcement-model)). Under a fully restrictive file policy, ArchUnit or WALA rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control actually exercise the agent or the woven aspects.
+2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](/contributor/subsystems/policy/enforcement-model)). Under a fully restrictive file policy, ArchUnit or T. J. Watson Libraries for Analysis (WALA) rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control actually exercise the agent or the woven aspects.
 
 A correct run is therefore **green**, and contains an asserted rejection. It is not a failed build.
 
@@ -358,7 +358,7 @@ A correct run is therefore **green**, and contains an asserted rejection. It is 
 
 A minimal test with no `@Policy` annotation confirms only that the Ares classes are on the test classpath and that the JVM started with the configured arguments. It does **not** prove that the agent instrumented anything, and it is not necessarily enforcement-free either: see [Further Options](../further-options.md) for what does and does not happen without a policy.
 
-To prove enforcement, use the paired controls from the two controls above, then break the setup deliberately and confirm each break is detected:
+Prove enforcement with the paired controls from the two controls above, then break the setup deliberately and confirm each break is detected:
 
 - Remove `-javaagent` from an exercise whose configuration ends in `_INSTRUMENTATION`. The negative control must now fail to reject.
 - Remove the `aspect` dependency (Gradle) or `<aspectLibraries>` (Maven) from an exercise whose configuration ends in `_ASPECTJ`. Same expectation.

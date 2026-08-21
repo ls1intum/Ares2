@@ -24,7 +24,7 @@ The distinction that matters most in Ares is **call** versus **execution**:
 - an *execution* join point is at the callee, inside the method being run.
 
 This is not a detail. AspectJ weaves at call sites, which means it can only intercept calls it
-can see and rewrite. A call made from inside the JDK, or reached reflectively, has no woven
+can see and rewrite. A call made from inside the Java Development Kit (JDK), or reached reflectively, has no woven
 call site. See
 [AspectJ versus Instrumentation](/contributor/subsystems/aop/aspectj-vs-instrumentation-weaknesses)
 for what follows from that.

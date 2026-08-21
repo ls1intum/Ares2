@@ -13,10 +13,10 @@ boundary does **not** protect against, which is the part most worth reading.
 
 ## Static and runtime responsibility
 
-ArchUnit and WALA can reject a complete operation domain, but they cannot decide
+ArchUnit and T. J. Watson Libraries for Analysis (WALA) can reject a complete operation domain, but they cannot decide
 whether a runtime argument is one particular path, host, command or thread class.
 Consequently, Ares adds a static deny-all rule only while a domain has no
-allowance. As soon as a policy grants one file, network, command or thread
+allowance. The moment a policy grants one file, network, command or thread
 permission, the runtime AspectJ or instrumentation layer is authoritative for
 distinguishing that narrow allowance from every non-allowed operation. A narrow
 allowance must never be interpreted as narrow static analysis.
@@ -58,7 +58,7 @@ deployment prerequisite, not an optional Ares runtime feature.
 Two versions are pinned, because the data and the contract that enforces it
 change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the
 prefix list. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side
-contract. Templates and CI must pin both.
+contract. Templates and continuous integration (CI) must pin both.
 
 Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
 `process-classes` that scans `${project.build.outputDirectory}` and fails for

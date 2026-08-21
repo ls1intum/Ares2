@@ -17,7 +17,7 @@ Bubblewrap (`bwrap`) is an unprivileged sandboxing tool. It uses Linux namespace
 process a different view of the system, most importantly a **mount namespace**, in which
 the visible file system is assembled from scratch.
 
-It needs no root, which is what makes it usable on an ordinary CI runner.
+It needs no root, which is what makes it usable on an ordinary continuous integration (CI) runner.
 
 ## How Phobos uses it
 

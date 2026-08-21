@@ -35,7 +35,7 @@ The call graph is what makes indirect access detectable. The policy names forbid
 operations as *sinks*; the analysis then asks whether any path leads from student code to a
 sink. `theMainClassInsideThisPackageIs` supplies the entry point the graph is built from.
 
-See [DFS Path](./dfs-path.md) for how those paths are searched, and
+See [depth-first search (DFS) Path](./dfs-path.md) for how those paths are searched, and
 [WALA](../wala.md) for the engine that builds the graph.
 
 ## Further reading

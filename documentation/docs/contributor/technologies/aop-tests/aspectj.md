@@ -28,7 +28,7 @@ The Ares JAR goes on the aspect path so its aspects are woven into the exercise.
 AspectJ intercepts at the **call**, not at the target. It rewrites the place where the call
 is written, which means coverage is an enumerated list of call sites the weaver could see:
 
-- a call made from inside the JDK has no woven call site;
+- a call made from inside the Java Development Kit (JDK) has no woven call site;
 - a reflective or library-mediated call reaches the target without passing a woven site;
 - coverage grows only by naming more call sites.
 

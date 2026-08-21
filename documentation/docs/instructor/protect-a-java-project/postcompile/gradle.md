@@ -101,7 +101,7 @@ Each property matters:
 - `canBeResolved = true` and `canBeConsumed = false`: these buckets are resolved by this build and are not published to other projects.
 - `transitive = false`: this is what makes the file selection safe. Each bucket then contains **exactly one** JAR, the one declared for it, so the build can take that file directly. Resolving transitively would pull in the whole dependency graph, and the build would have to guess which file it meant by matching on file names.
 
-The agent JAR contains only Ares's own classes plus the `Premain-Class` manifest entry; it does not bundle Byte Buddy or any other dependency. Byte Buddy still reaches the instrumented JVM, because `-javaagent` attaches to the *same* JVM that runs your tests, and that JVM's classpath already carries Byte Buddy transitively via the `testImplementation` dependency in [Add Ares dependencies](#add-ares-dependencies).
+The agent JAR contains only Ares's own classes plus the `Premain-Class` manifest entry; it does not bundle Byte Buddy or any other dependency. Byte Buddy still reaches the instrumented Java Virtual Machine (JVM), because `-javaagent` attaches to the *same* JVM that runs your tests, and that JVM's classpath already carries Byte Buddy transitively via the `testImplementation` dependency in [Add Ares dependencies](#add-ares-dependencies).
 
 > **Note:** If your `build.gradle` already contains a `configurations` block, add these to that existing block instead of creating a new one.
 
@@ -186,13 +186,13 @@ tasks.withType(Test).configureEach {
 **Explanation:**
 
 - **Why an argument provider rather than `jvmArgs`.** Writing `jvmArgs += ["-javaagent:${configurations.aresAgent.singleFile}"]` looks simpler, but the string is evaluated while Gradle is *configuring* the build. That resolves the dependency even when you run an unrelated task, it fails the whole build if resolution fails, and it is incompatible with the configuration cache. A `CommandLineArgumentProvider` declares the JARs as task inputs and computes the arguments when the test task actually runs. The `@InputFiles` annotations are what let Gradle track them for the configuration and build caches.
-- **Why `singleFile` is safe here.** Because both configurations are `transitive = false` with exactly one dependency each, each resolves to exactly one file. No file-name matching is involved, so there is no way to pick up the wrong JAR.
+- **Why `singleFile` is safe here.** Both configurations are `transitive = false` with exactly one dependency each, so each resolves to exactly one file. No file-name matching is involved, so there is no way to pick up the wrong JAR.
 - `useJUnitPlatform()`: enables JUnit 5 (Jupiter) test discovery.
 - `-javaagent:...`: loads the Ares agent before any user code runs, which is what the instrumentation enforcement path relies on.
 - `-Xbootclasspath/a:...`: appends the AspectJ **runtime** JAR to the bootstrap classpath, so woven bytecode can resolve AspectJ runtime types at the bootstrap class-loader level.
 - `tasks.withType(Test).configureEach`: applies to every test task, including custom ones, rather than only the default `test` task.
-- **JVM module access flags.** All listed packages must be opened for Ares to introspect intercepted JDK objects and instrument bytecode. The list mirrors the `jvm.module.access.args` property in the Ares `pom.xml`:
-  - `--add-exports java.base/java.lang`: makes the public `java.lang` API accessible to the unnamed module (test classpath)
+- **JVM module access flags.** All listed packages must be opened for Ares to introspect intercepted Java Development Kit (JDK) objects and instrument bytecode. The list mirrors the `jvm.module.access.args` property in the Ares `pom.xml`:
+  - `--add-exports java.base/java.lang`: makes the public `java.lang` application programming interface (API) accessible to the unnamed module (test classpath)
   - `--add-exports java.base/jdk.internal.misc`: makes `jdk.internal.misc.Unsafe` accessible to the unnamed module for direct API calls
   - `--add-opens java.base/java.lang`: allows reflective access to private fields and methods in `java.lang` (for example `Class.declaredFields`)
   - `--add-opens java.base/java.lang.reflect`: allows reflective access to private members of the reflection API itself (for example `Field.setAccessible`)
@@ -296,7 +296,7 @@ and live in the repository at
 - `MavenReservedPackages.xml`
 - `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
-Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its CI must pin both.
+Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
 
 ### Gradle
 
@@ -366,7 +366,7 @@ A setup check is only worth running if it can fail for the right reason. The exa
 Two details make this a genuine test rather than a reassuring one:
 
 1. **The forbidden read must happen in supervised code, not in the test.** A test class named in `theFollowingClassesAreTestClasses` is exempt from enforcement, so a read performed by the test itself is *supposed* to succeed. Put the read in the student-facing class and let the test assert the exception.
-2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](/contributor/subsystems/policy/enforcement-model)). Under a fully restrictive file policy, ArchUnit or WALA rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control actually exercise the agent or the woven aspects.
+2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](/contributor/subsystems/policy/enforcement-model)). Under a fully restrictive file policy, ArchUnit or T. J. Watson Libraries for Analysis (WALA) rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control actually exercise the agent or the woven aspects.
 
 A correct run is therefore **green**, and contains an asserted rejection. It is not a failed build.
 
@@ -374,7 +374,7 @@ A correct run is therefore **green**, and contains an asserted rejection. It is 
 
 A minimal test with no `@Policy` annotation confirms only that the Ares classes are on the test classpath and that the JVM started with the configured arguments. It does **not** prove that the agent instrumented anything, and it is not necessarily enforcement-free either: see [Further Options](../further-options.md) for what does and does not happen without a policy.
 
-To prove enforcement, use the paired controls from the two controls above, then break the setup deliberately and confirm each break is detected:
+Prove enforcement with the paired controls from the two controls above, then break the setup deliberately and confirm each break is detected:
 
 - Remove `-javaagent` from an exercise whose configuration ends in `_INSTRUMENTATION`. The negative control must now fail to reject.
 - Remove the `aspect` dependency (Gradle) or `<aspectLibraries>` (Maven) from an exercise whose configuration ends in `_ASPECTJ`. Same expectation.

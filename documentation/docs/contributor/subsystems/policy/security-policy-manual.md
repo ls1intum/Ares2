@@ -37,7 +37,7 @@ Ares 2 automates this by letting you write a simple **security policy** (a YAML 
 
 This manual covers how to write these policies.
 
-> **Static/runtime boundary:** Static ArchUnit or WALA rules deny an entire
+> **Static/runtime boundary:** Static ArchUnit or T. J. Watson Libraries for Analysis (WALA) rules deny an entire
 > operation domain only when that domain has no allowance. Once a policy grants
 > any file, network, command or thread permission, argument-sensitive enforcement
 > belongs to AspectJ or instrumentation. A narrow allowance therefore removes the
@@ -172,7 +172,7 @@ The interaction between test annotations (`@Public`, `@Hidden`, `@Test`, `@Publi
 
 When you run the tests, Ares 2 will automatically enforce the security policy. If student code tries to do something not explicitly permitted, the test fails with a clear error message.
 
-> **What's next:** The Quick Start above covers the minimum to get up and running. The sections below explain the security model in detail and describe every permission type you can configure.
+> **What is next:** The Quick Start above covers the minimum to get up and running. The sections below explain the security model in detail and describe every permission type you can configure.
 
 ---
 
@@ -209,8 +209,8 @@ The security policy does not cover the following resource types. They are enforc
 | Environment | Reading/writing environment variables (`System.getenv`), system properties (`System.getProperty`/`setProperty`), and `ProcessHandle` metadata | Block `System.getenv("SECRET")` |
 | Exhaustion | Denial-of-service attacks through resource exhaustion: memory, CPU, file handles, threads, disk space, infinite loops, stack overflow, fork bombs, log flooding | Block `new byte[Integer.MAX_VALUE]` |
 | JNDI | JNDI lookup access via `InitialContext` and `InitialDirContext` (LDAP/RMI/DNS injection paths) | Block `new InitialContext().lookup("ldap://...")` |
-| JVM Termination | Terminating the JVM via `System.exit()`, `Runtime.exit()`, `Runtime.halt()`, and JDK tool `main()` methods | Block `System.exit(0)` |
-| Module System | JPMS module boundary crossings: internal API access, `setAccessible` bypass, `Module.implAddOpens`/`implAddExports`, `MethodHandles.privateLookupIn` | Block `field.setAccessible(true)` on module-internal fields |
+| Java Virtual Machine (JVM) Termination | Terminating the JVM via `System.exit()`, `Runtime.exit()`, `Runtime.halt()`, and Java Development Kit (JDK) tool `main()` methods | Block `System.exit(0)` |
+| Module System | JPMS module boundary crossings: internal application programming interface (API) access, `setAccessible` bypass, `Module.implAddOpens`/`implAddExports`, `MethodHandles.privateLookupIn` | Block `field.setAccessible(true)` on module-internal fields |
 | Native Code | Loading native libraries (`System.loadLibrary`, `System.load`, `Runtime.loadLibrary`, `Runtime.load`) and `sun.misc.Unsafe` operations (memory allocation, CAS, direct byte buffers) | Block `System.loadLibrary("native")` |
 | Reflection | Roughly 190 methods in `java.lang.reflect.*`, `java.lang.invoke.*`, `Class.forName()`, `Method.invoke()`, `Field.set()`, `Proxy.newProxyInstance()`, `sun.misc.Unsafe`, `java.lang.foreign.*` (FFI/Panama) | Block `Method.invoke(obj, args)` |
 | Serialisation | Java object serialisation via `ObjectInputStream` and `ObjectOutputStream` | Block `new ObjectInputStream(stream).readObject()` |
@@ -327,7 +327,7 @@ This matches only classes under `de.tum.cit.aet.solution` and its subpackages, e
 
 ### 7.5 Main Class
 
-The `theMainClassInsideThisPackageIs` field identifies the main entry point class of the supervised student code. Ares 2 uses this value to configure AOP advices (via `JavaAOPTestCaseSettings.mainClass`), to substitute placeholders in generated ArchUnit rule files and AOP configuration files, and to set runtime configuration parameters for test execution.
+The `theMainClassInsideThisPackageIs` field identifies the main entry point class of the supervised student code. Ares 2 uses this value to configure aspect-oriented programming (AOP) advices (via `JavaAOPTestCaseSettings.mainClass`), to substitute placeholders in generated ArchUnit rule files and AOP configuration files, and to set runtime configuration parameters for test execution.
 
 **Field Properties:**
 - **Type:** String
@@ -343,7 +343,7 @@ theMainClassInsideThisPackageIs: "Main"
 
 ### 7.6 Test Classes
 
-The `theFollowingClassesAreTestClasses` field lists the fully qualified names of test classes that belong to the instructor and should be treated as trusted code. These classes are exempt from security restrictions so they can freely access resources, invoke student code, and verify results. Without this exemption, test setup and assertions would themselves be blocked by the security policy.
+The `theFollowingClassesAreTestClasses` field lists the fully qualified names of test classes that belong to the instructor and should be treated as test code. These classes are exempt from security restrictions so they can freely access resources, invoke student code, and verify results. Without this exemption, test setup and assertions would themselves be blocked by the security policy.
 
 **Field Properties:**
 - **Type:** Array of strings
@@ -362,7 +362,7 @@ theFollowingClassesAreTestClasses:
 
 **Matching:** an entry matches a class name **exactly**, or matches a nested class of it on the `$` boundary. So `"com.instructor.ExerciseTest"` also covers `com.instructor.ExerciseTest$Inner`, while never matching the unrelated `com.instructor.ExerciseTestOther`. The same comparison is used by the static architecture rules and by the runtime advice, so the behaviour is identical in both layers.
 
-> **Package names and package prefixes do not work here, and are not harmless.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package; it matches a class literally named `com.instructor`, which does not exist, so it exempts nothing. The likely symptom is that your own test classes are treated as supervised code and your assertions start tripping the policy, if they fall within the supervised scope. Worse, the entry is not inert: Ares derives a permitted package from every entry by stripping the last dotted component, so `"com.instructor"` additionally permits imports from the whole `com` prefix. List each test class by its exact fully qualified name.
+> **Package names and package prefixes do not work here, and are not harmless.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package; it matches a class literally named `com.instructor`, which does not exist, so it exempts nothing. The likely symptom is that your own test classes are treated as supervised code and your assertions start tripping the policy, if they fall within the supervised scope. Worse, the entry is not inert: Ares derives a permitted package from every entry by stripping the last dotted component, so `"com.instructor"` permits imports from the whole `com` prefix. List each test class by its exact fully qualified name.
 
 ---
 

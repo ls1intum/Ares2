@@ -38,7 +38,7 @@ testImplementation 'de.tum.in.ase:artemis-java-test-sandbox:1.15.0'
 > **On the libraries Ares 1 bundled.** Ares 1 shipped JUnit 5, AssertJ and Hamcrest transitively, so exercises often relied on them without declaring them. Ares 2 still exposes JUnit and AssertJ; Hamcrest is the one that disappears. Regardless of what remains transitive, declare the test libraries your tests actually import. Relying on another library's transitive graph is what makes an upgrade break compilation for reasons unrelated to the upgrade.
 
 Ares 2 needs four things where Ares 1 needed one: the dependency, AspectJ weaving of the student
-bytecode, the agent attached to the test JVM, and a set of JVM module-access flags.
+bytecode, the agent attached to the test Java Virtual Machine (JVM), and a set of JVM module-access flags.
 
 There is no repository step: Maven's super-POM already defines Central.
 
@@ -236,7 +236,7 @@ The three parameters:
 
 Your Ares 1 exercise almost certainly contains a build-side guard preventing student classes from landing in trusted packages, as the Ares 1 documentation required. It must be replaced, not kept: the prefix list it uses names Ares 1's packages and third-party libraries that are no longer the relevant ones.
 
-Ares 2 trusts a different set of identities by name, including its own `de.tum.cit.ase.ares.api` package, Byte Buddy, AspectJ, WALA and ArchUnit. Ares ships the executable snippets, so copy them rather than editing your old list:
+Ares 2 trusts a different set of identities by name, including its own `de.tum.cit.ase.ares.api` package, Byte Buddy, AspectJ, T. J. Watson Libraries for Analysis (WALA) and ArchUnit. Ares ships the executable snippets, so copy them rather than editing your old list:
 
 - `GradleReservedPackages.gradle`
 - `MavenReservedPackages.xml`
@@ -244,7 +244,7 @@ Ares 2 trusts a different set of identities by name, including its own `de.tum.c
 
 They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reservedPackages/`, and live in the Ares repository at `src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`. Both are reproduced in full below, so you can complete the migration without extracting them.
 
-Two versions are pinned, and your exercise and its CI must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
 
 ### Maven
 
@@ -314,7 +314,7 @@ The second reason for caution is that without a policy, Ares derives from the pr
 - **The supervised package** is chosen as the most frequent non-reserved package among the production sources, so a submission with an unexpected file distribution can shift the enforcement scope.
 - **The exempt test classes** are found by scanning the discovered test source roots for annotated test classes. If students can add files beneath a test source root, they can obtain that exemption. Note that a nested test class is covered only when its enclosing class is also recognised: the scanner reports nested types in source notation (`Outer.Inner`), whereas the exemption check matches binary notation (`Outer$Inner`), so an independently detected nested class is not exempt on its own.
 
-For a graded exercise, prefer a policy with six empty lists over no policy at all. It is equally strict and additionally pins the scope, the exempt set and the mode.
+For a graded exercise, prefer a policy with six empty lists over no policy at all. It is equally strict and pins the scope, the exempt set and the mode.
 
 ## Verify the migration
 

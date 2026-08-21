@@ -43,7 +43,7 @@ Given a parsed `SecurityPolicy`, this package must:
 4. **Write** the generated test-case source files to disk.
 5. **Execute** the test cases — first the static architecture checks, then the dynamic AOP enforcement.
 
-Without this package, Ares would know *what* to enforce but could not turn that knowledge into runnable tests. The next section describes how the package is organised to fulfill this responsibility.
+Without this package, Ares would know *what* to enforce but could not turn that knowledge into runnable tests. The next section describes how the package is organised to fulfil this responsibility.
 
 ---
 
@@ -60,7 +60,7 @@ The package is structured around five sub-packages, each handling one step of th
 | **Template Method** | Constructor of `TestCaseAbstractFactoryAndBuilder` | The test-case creation lifecycle always follows the same steps: inject tools → resolve modes → load essential data → extract policy configuration → guard the supervised package → create test cases. The abstract base class fixes this sequence while letting the Java-specific subclass provide concrete implementations of `writeTestCases()` and `executeTestCases()`. |
 | **Strategy** | `Creator`, `Writer`, `Executer`, `ProjectScanner`, `EssentialDataReader` (all interfaces) | Each step of the pipeline (creating, writing, executing, scanning, reading) must be independently swappable for different programming languages or frameworks. Defining each step as an interface with a Java-specific implementation allows future language support (e.g., Python) without modifying the abstract factory. |
 | **Builder** | `JavaTestCaseFactoryAndBuilder.Builder`, `EssentialClasses.Builder`, `EssentialPackages.Builder` | The factory requires 12 parameters (5 collaborators, 2 essential-data paths, 3 modes, 1 policy, 1 project path). A builder with named setter methods prevents parameter-ordering mistakes, enforces mandatory fields via `Objects.requireNonNull` in `build()`, and makes the construction code self-documenting. |
-| **Caching (Memoisation)** | `JavaCreator.cacheResult(classPath, supplier)` | Building call graphs (WALA) and importing Java classes (ArchUnit) from compiled bytecode is computationally expensive. A `ConcurrentHashMap`-based cache — deliberately an **instance** field, since a `JavaCreator` lives for exactly one factory build — ensures that these operations are performed at most once per factory build, even when that build processes multiple test cases, without leaking one run's analysis to a later run in a long-lived JVM. |
+| **Caching (Memoisation)** | `JavaCreator.cacheResult(classPath, supplier)` | Building call graphs (WALA) and importing Java classes (ArchUnit) from compiled bytecode is computationally expensive. A `ConcurrentHashMap`-based cache — deliberately an **instance** field, since a `JavaCreator` lives for exactly one factory build — ensures that these operations are performed at most once per factory build, even when that build processes multiple test cases, without leaking one run's analysis to a later run in a long-lived Java Virtual Machine (JVM). |
 | **Immutable Value Objects (Java Records)** | `EssentialClasses`, `EssentialPackages` | The lists of essential packages and classes must not be accidentally modified after parsing — a mutated list could silently weaken security enforcement. Java Records guarantee immutability and provide automatic `equals()`, `hashCode()`, and `toString()`. |
 | **Annotation-Driven Configuration** | `@StudentCompiledClassesPath` + `PathLocationProvider` | The location of compiled student classes varies between Learning Management Systems. Rather than hard-coding paths, an annotation lets instructors declare the path on their test class, and ArchUnit's `LocationProvider` SPI reads it at runtime — fully decoupling the test framework from the deployment environment. |
 
@@ -288,7 +288,7 @@ Each invocation proceeds through two phases — extraction (reading class data f
    - Computes the `classPath` via `BuildMode.getClasspath(projectPath, packageName)`. This is more than picking `target/classes` (Maven) vs `build/classes/java/main` (Gradle): the method also appends the package path to the build directory and interprets `withinPath`-style prefixes such as `classes/java/main/...` or `classes/...` by rewriting them onto the actual build directory.
    - Validates the imported bytecode via `ReservedPackageGuard.validateClassNames(...)` — any compiled class declared under a trusted infrastructure prefix aborts test-case creation with a `SecurityException`.
    - Imports `JavaClasses` via the `ArchitectureMode` (ArchUnit's `ClassFileImporter`).
-   - Obtains the `CallGraph` as a **lazy `Supplier`** via the `ArchitectureMode` — it is never eagerly built here (null for ArchUnit, WALA's `CustomCallgraphBuilder` for WALA mode). Only the `classPath` and the `JavaClasses` are computed eagerly; the call graph is constructed on first use, and the disk-backed WALA outcome cache can short-circuit rule checks before the supplier is ever invoked.
+   - Obtains the `CallGraph` as a **lazy `Supplier`** via the `ArchitectureMode` — it is never eagerly built here (null for ArchUnit, WALA's `CustomCallgraphBuilder` for WALA mode). Only the `classPath` and the `JavaClasses` are computed eagerly; the call graph is constructed on first use, and the disk-backed T. J. Watson Libraries for Analysis (WALA) outcome cache can short-circuit rule checks before the supplier is ever invoked.
    - The results are memoised in an **instance-level** `ConcurrentHashMap` keyed by `projectPath_packageName_artifact`, so they are computed at most once per factory build (a `JavaCreator` lives for exactly one build — the cache is deliberately not static, so it cannot leak across runs in a long-lived JVM).
 
 2. **Preparation — computing allowed packages:**
@@ -310,7 +310,7 @@ Each invocation proceeds through two phases — extraction (reading class data f
 5. **Variable test cases** (policy-dependent):
    - For each `JavaAOPTestCaseSupported` value (`FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, `COMMAND_EXECUTION`, `THREAD_CREATION`), creates a `JavaAOPTestCase`.
    - The matching `ResourceAccesses` method is selected by an exhaustive `switch` on the enum constant (e.g., `FILESYSTEM_INTERACTION` → `regardingFileSystemInteractions()`). Indexing by `ordinal()` was deliberately replaced: it would silently pair the wrong supplier with the aspect if the enum were ever reordered, whereas the switch turns a divergence into a compile error.
-   - **Automatic escalation:** If the policy declares **no** permissions for a category (e.g., no file-system permissions at all), the creator adds a `JavaArchitectureTestCase` for the same category **in addition** to the AOP test case. This provides double protection: static analysis catches forbidden API imports at the bytecode level, and the AOP agent intercepts any calls that slip through. When permissions **do** exist, only the AOP test is created (static analysis would be too coarse to distinguish allowed from forbidden calls).
+   - **Automatic escalation:** If the policy declares **no** permissions for a category (e.g., no file-system permissions at all), the creator adds a `JavaArchitectureTestCase` for the same category **in addition** to the AOP test case. This provides double protection: static analysis catches forbidden application programming interface (API) imports at the bytecode level, and the AOP agent intercepts any calls that slip through. When permissions **do** exist, only the AOP test is created (static analysis would be too coarse to distinguish allowed from forbidden calls).
    - Phobos test cases are created similarly for `FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, and `TIMEOUT`.
 
 6. **Fixed test cases** (always-on, generated last):
@@ -476,7 +476,7 @@ Defines five scanning methods that auto-detect project metadata:
 | `CLASS_PATTERN` | `public [final\|abstract\|strictfp] class ClassName` | `extractClassName()` |
 | `PACKAGE_PATTERN` | `package com.example.foo;` | `extractPackageName()` |
 | `MAIN_METHOD_PATTERN` | `public static void main(String[] args)` (including varargs) | `extractMainClass()` |
-| `TEST_ANNOTATION_PATTERN` | `@Test` or `@Property` | `extractTestClass()` (which additionally treats classes containing `extends TestCase` as test classes) |
+| `TEST_ANNOTATION_PATTERN` | `@Test` or `@Property` | `extractTestClass()` (which treats classes containing `extends TestCase` as test classes) |
 
 **Scanning pipeline:**
 

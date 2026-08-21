@@ -5,7 +5,7 @@ description: "How the architecture layer detects file system access statically, 
 ---
 
 :::tip[ELI5]
-Same question as the AOP page, asked without running anything.
+Same question as the aspect-oriented programming (AOP) page, asked without running anything.
 
 This layer reads the compiled program like a map and looks for a path leading from the
 student's code to the file-opening machinery. It can tell you that a route exists. It cannot
@@ -71,7 +71,7 @@ representative non-matching paths; see `docs/policy/EnforcementModel.md`.
 <a id="11-what-does-the-uml-activity-diagram-look-like"></a>
 ### 1.1 What Does the UML Activity Diagram Look Like?
 
-Below is a general overview of the process for deciding whether to allow or block file access as a UML activity diagram. Throughout this document, you will find the following symbols:
+Below is a general overview of the process for deciding whether to allow or block file access as a Unified Modeling Language (UML) activity diagram. Throughout this document, you will find the following symbols:
 - **🔴 Red** = File access blocked (security policy violation detected)
 - **🌕 Yellow** = Intermediate condition met → continue to the next verification step
 - **🟢 Green** = File access permitted (no security policy violation detected)
@@ -83,7 +83,7 @@ Diagram note: the rendered PNG is not committed in this repository snapshot. The
 <a id="12-what-is-architecture-testing"></a>
 ### 1.2 What Is Architecture Testing?
 
-Architecture Testing is a technique that validates code follows specific structural rules by analysing compiled bytecode **before** execution. Think of it like a building inspector reviewing building plans before construction to ensure doors don't open into forbidden areas - the code doesn't run, but the structure gets checked automatically.
+Architecture Testing is a technique that validates code follows specific structural rules by analysing compiled bytecode **before** execution. Think of it like a building inspector reviewing building plans before construction to ensure doors do not open into forbidden areas - the code does not run, but the structure gets checked automatically.
 
 **Concrete Example:**
 
@@ -216,7 +216,7 @@ ArchUnit and WALA modes monitor largely overlapping, but not identical, sets of 
 
 Read APIs listed below access file contents or metadata without modifying them.
 
-> **Note on "Tested by RP" column:** A ✅ means that this API is the **primary target** of a dedicated test in the Reproducibility Package. For example, if a test uses `BufferedInputStream` to wrap a `FileInputStream`, only the wrapper (`BufferedInputStream.<new>`) is marked as ✅, not the underlying `FileInputStream.<new>` which is merely a helper call in that context.
+> **Note on "Tested by RP" column:** A ✅ means that this application programming interface (API) is the **primary target** of a dedicated test in the Reproducibility Package. For example, if a test uses `BufferedInputStream` to wrap a `FileInputStream`, only the wrapper (`BufferedInputStream.<new>`) is marked as ✅, not the underlying `FileInputStream.<new>` which is merely a helper call in that context.
 
 **Reads any formatted file fully**
 
@@ -775,7 +775,7 @@ CallGraph:
 **Strengths:**
 - ✅ Very precise call path detection
 - ✅ Understands complex call patterns (lambdas, method references, reflection)
-- ✅ Can filter out JDK internal calls (false positive reduction)
+- ✅ Can filter out Java Development Kit (JDK) internal calls (false positive reduction)
 - ✅ Provides exact call paths with line numbers
 - ✅ Models runtime behaviour more accurately
 
@@ -1177,4 +1177,4 @@ The system operates **at compile/test time**, requiring no runtime overhead, and
 
 ---
 
-**The architecture testing approach provides comprehensive security validation at compile/test time, complementing the runtime AOP approach for defense-in-depth security.**
+**The architecture testing approach provides comprehensive security validation at compile/test time, complementing the runtime AOP approach for defence-in-depth security.**

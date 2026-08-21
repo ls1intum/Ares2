@@ -42,7 +42,7 @@ Which domains the mechanism must cover before it may be offered in a
 
 ## Verification
 
-All four existing CI combinations remain green, and the new mechanism ships its own positive and
+All four existing continuous integration (CI) combinations remain green, and the new mechanism ships its own positive and
 negative controls.
 
 ## Notes

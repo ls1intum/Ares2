@@ -22,7 +22,7 @@ exceeded. It is part of GNU coreutils and needs no special privileges.
 `regardingTimeouts` in the policy. It can be disabled with `--no-timeout`, as each layer
 can be disabled independently.
 
-The JVM-side `@StrictTimeout` bounds an individual test from inside the JVM. This layer
+The JVM-side `@StrictTimeout` bounds an individual test from inside the Java Virtual Machine (JVM). This layer
 bounds the whole supervised command from outside it, and therefore still applies when the
 JVM itself is wedged.
 
@@ -32,5 +32,5 @@ in a process that outlives the thing it supervises.
 ## Further reading
 
 - [`timeout(1)`](https://man7.org/linux/man-pages/man1/timeout.1.html) — Linux manual page
-- [`java.lang.Thread`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html) — Oracle, Java SE 21 API
+- [`java.lang.Thread`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Thread.html) — Oracle, Java SE 21 application programming interface (API)
 - [Java Threads](https://www.w3schools.com/java/java_threads.asp) — W3Schools

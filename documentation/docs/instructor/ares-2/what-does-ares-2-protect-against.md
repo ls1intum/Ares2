@@ -16,7 +16,7 @@ Beyond its standard features, Ares 2 supports advanced blocking mechanisms using
 **AOP (aspect-oriented programming)**, **instrumentation** and **architecture tests**. These
 give fine-grained control over student submissions, allowing specific actions such as file
 system access, networking and thread management to be blocked through customisable policies
-defined in YAML. Architecture-based tests additionally enforce structural constraints on
+defined in YAML. Architecture-based tests enforce structural constraints on
 student code.
 
 The goal is to prevent unauthorised access to key system resources:
@@ -27,7 +27,7 @@ The goal is to prevent unauthorised access to key system resources:
 - command execution
 - use of unsupported or dangerous methods
 
-To make this possible, Ares 2 provides two complementary compile modes that determine *when*
+Ares 2 provides two complementary compile modes that determine *when*
 these transformations are applied: precompile and postcompile.
 
 ## Precompile
@@ -36,7 +36,7 @@ Precompile mode generates security test cases and infrastructure files **before*
 code is compiled or executed. From your security configuration file, Ares 2 automatically
 creates:
 
-- architecture test cases using ArchUnit or WALA
+- architecture test cases using ArchUnit or T. J. Watson Libraries for Analysis (WALA)
 - AOP configuration files for AspectJ or instrumentation
 - build system modifications (Maven and Gradle plugins and dependencies)
 - test infrastructure for enforcing security policies
@@ -79,7 +79,7 @@ with nothing to indicate that no domain was enforced. See
 The interception mechanism comes from the policy's
 `theFollowingProgrammingLanguageConfigurationIsUsed`, not from the mode. An `_ASPECTJ`
 configuration needs the aspects woven into the bytecode by the AspectJ compiler during the
-build; an `_INSTRUMENTATION` configuration needs the Byte Buddy agent attached to the test JVM.
+build; an `_INSTRUMENTATION` configuration needs the Byte Buddy agent attached to the test Java Virtual Machine (JVM).
 Both work in Postcompile, and the two shipped examples run Postcompile with AspectJ. Setting up
 only the agent leaves an `_ASPECTJ` policy with nothing to intercept with, and the run stays
 green while enforcing nothing. [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md)

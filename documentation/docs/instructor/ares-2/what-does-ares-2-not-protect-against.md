@@ -29,7 +29,7 @@ Everything else is untrusted and subject to the policy.
 If student code can place a class into a reserved package, it can shadow the classes Ares 2
 and the test harness rely on, and the sandbox can be bypassed. This is why the build-side
 check described in [the Gradle walkthrough](../protect-a-java-project/postcompile/gradle.md)
-is mandatory rather than optional: Ares 2 cannot enforce it from inside the JVM it is
+is mandatory rather than optional: Ares 2 cannot enforce it from inside the Java Virtual Machine (JVM) it is
 protecting.
 :::
 

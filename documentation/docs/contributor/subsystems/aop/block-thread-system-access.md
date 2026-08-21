@@ -57,7 +57,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 1. **Security Enabled**: `aopMode == "INSTRUMENTATION"` or `aopMode == "ASPECTJ"`
 2. **Student Code Detected**: Call chain contains code in `restrictedPackage` and not in `allowedListedClasses`
-3. **Thread Class Not Allowed**: Thread class doesn't match any entry in `threadClassAllowedToBeCreated`
+3. **Thread Class Not Allowed**: Thread class does not match any entry in `threadClassAllowedToBeCreated`
 4. **OR Thread Quota Exhausted**: The allowed count for that thread class has reached zero
 
 **If ANY condition fails → Access is ALLOWED** 🟢
@@ -71,12 +71,12 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ### 1.4 What Code Is Trusted vs. Restricted?
 
-**Trusted Code (No Restrictions):**
+**Test Code (No Restrictions):**
 - Code outside the `restrictedPackage`
 - Classes listed in `allowedListedClasses` within the student package
 - Ares internal code
 
-**Restricted Code (Subject to Security Checks):**
+**Student Code (Subject to Security Checks):**
 - All code within `restrictedPackage`
 
 **Security Assumptions:** 
@@ -88,7 +88,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ## 2. Ares Monitors Thread System Methods
 
-**What is AOP?** AOP (Aspect-Oriented Programming) is a technique that automatically runs security checks before certain methods execute, without modifying the student code. Think of it like a security guard checking IDs before people enter a building - the building code doesn't change, but everyone gets checked automatically when interacting with the building.
+**What is AOP?** AOP (Aspect-Oriented Programming) is a technique that automatically runs security checks before certain methods execute, without modifying the student code. Think of it like a security guard checking IDs before people enter a building - the building code does not change, but everyone gets checked automatically when interacting with the building.
 
 **Concrete Example:**
 
@@ -112,7 +112,7 @@ Ares automatically monitors thread system operations by intercepting specific Ja
 - **Byte Buddy (Instrumentation Mode)**: Automatically adds security checks when Java loads classes (called bytecode manipulation).
 - **AspectJ (AspectJ Mode)**: Automatically adds security checks in a second compilation step (called weaving).
 
-Both implementations set up "checkpoints" that activate **before** the thread operation actually happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is aligned, but the thread pointcuts are **not** identical between the two engines: AspectJ weaves a superset of the instrumentation pointcuts. It additionally intercepts `AbstractExecutorService.execute()`, `ThreadPoolExecutor.invokeAll()/invokeAny()`, `ScheduledExecutorService.submit()/invokeAll()/invokeAny()/execute()`, `ScheduledThreadPoolExecutor.submit()/execute()/invokeAll()/invokeAny()`, `ForkJoinPool.invokeAll()/invokeAny()`, and `SubmissionPublisher.submit()/offer()`, none of which appear in the instrumentation pointcut map (see Section 2 for the exact lists).
+Both implementations set up "checkpoints" that activate **before** the thread operation actually happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is aligned, but the thread pointcuts are **not** identical between the two engines: AspectJ weaves a superset of the instrumentation pointcuts. It intercepts `AbstractExecutorService.execute()`, `ThreadPoolExecutor.invokeAll()/invokeAny()`, `ScheduledExecutorService.submit()/invokeAll()/invokeAny()/execute()`, `ScheduledThreadPoolExecutor.submit()/execute()/invokeAll()/invokeAny()`, `ForkJoinPool.invokeAll()/invokeAny()`, and `SubmissionPublisher.submit()/offer()`, none of which appear in the instrumentation pointcut map (see Section 2 for the exact lists).
 
 ---
 
@@ -138,7 +138,7 @@ Both implementations set up "checkpoints" that activate **before** the thread op
 - **java.util.concurrent.Executors$DefaultThreadFactory**: `newThread()`
 - **java.util.concurrent.ExecutorCompletionService**: `submit()`
 
-**Additionally Woven by AspectJ Only (15 signatures, bringing AspectJ to 48 with-parameter signatures):**
+**Woven by AspectJ Only (15 signatures, bringing AspectJ to 48 with-parameter signatures):**
 - **java.util.concurrent.AbstractExecutorService**: `execute()`
 - **java.util.concurrent.ThreadPoolExecutor**: `invokeAll()`, `invokeAny()`
 - **java.util.concurrent.ScheduledExecutorService**: `submit()`, `invokeAll()`, `invokeAny()`, `execute()`
@@ -164,7 +164,7 @@ These extra signatures exist only in the AspectJ pointcuts (`JavaAspectJThreadSy
 
 **Total Monitored Methods: instrumentation 37 class-method pairs (33 with parameters + 4 without); AspectJ 52 woven signatures (48 with parameters + 4 without)**
 
-**Note:** These counts refer to class-method pairs in the pointcut definitions; each pair may cover multiple overloaded variants at runtime. The two implementations do **not** monitor the same set of methods: AspectJ weaves a superset that additionally includes the executor overloads and `SubmissionPublisher` methods listed above.
+**Note:** These counts refer to class-method pairs in the pointcut definitions; each pair may cover multiple overloaded variants at runtime. The two implementations do **not** monitor the same set of methods: AspectJ weaves a superset that includes the executor overloads and `SubmissionPublisher` methods listed above.
 
 ---
 
@@ -199,7 +199,7 @@ Ares then checks whether the student is allowed to create a thread with a `Lambd
 
 ## 4. Ares Collects Information About the Thread Creation
 
-The security monitor collects information about what's happening: Which method is being called, what task/runnable is being submitted, and where in the student code this is happening.
+The security monitor collects information about what is happening: Which method is being called, what task/runnable is being submitted, and where in the student code this is happening.
 
 **Collection Mechanisms:**
 
@@ -288,13 +288,13 @@ public void checkThreadSystemInteraction(
 
 ---
 
-### 4.2 What's the Current State of the Object?
+### 4.2 What is the Current State of the Object?
 
 **1. What Information Do We Collect:**
 
 | Information | Type | Description |
 |-------------|------|-------------|
-| **instance** | `Object` | **The object** on which the method is called (the `this` reference). `null` for constructors since the object doesn't exist yet. |
+| **instance** | `Object` | **The object** on which the method is called (the `this` reference). `null` for constructors since the object does not exist yet. |
 | **attributes** | `Object[]` | **Array of the object's internal field values**. The actual values stored in each field. Together with the parameters and the receiver instance, these are later resolved into one de-duplicated set of thread-class candidates (see Section 5.3/5.4). |
 
 **2. How Do We Collect This Information:**
@@ -480,7 +480,7 @@ The security validator performs a **series of checks** to decide whether the thr
 
 **Additional safeguards inside step 6:**
 - **Fail-closed sentinel**: If a thread-task carrier exists but its task class cannot be read, the sentinel `<unresolved-thread-class>` is used; it matches no allow-list entry, so the creation is denied instead of silently allowed
-- **Trusted-type check (instrumentation only)**: Before iterating a `List` parameter, `requireTrustedRuntimeType()` verifies it is a JDK type, so the advice never invokes overridable methods on attacker-supplied subclasses while the re-entrancy guard is active
+- **Trusted-type check (instrumentation only)**: Before iterating a `List` parameter, `requireTrustedRuntimeType()` verifies it is a Java Development Kit (JDK) type, so the advice never invokes overridable methods on attacker-supplied subclasses while the re-entrancy guard is active
 - **Implicit-operation sentinel (AspectJ only)**: `parallelStream()`, `parallel()`, and `SubmissionPublisher.submit()/offer()` carry no thread-task class; when invoked directly by student code they are represented by a per-operation sentinel token (e.g. `<implicit-thread-op:parallelStream>`) which the `"*"` wildcard **deliberately never matches**; only an exact sentinel entry in the allow-list can permit them
 
 The subsections below describe the main checks in detail: 5.1 covers step 2, 5.2 covers step 5, 5.3 and 5.4 cover step 6, and 5.5 covers step 7.
@@ -537,7 +537,7 @@ This check determines whether the thread operation was triggered by restricted s
 
 **1. Purpose**
 
-Load the security configuration that defines which code is considered "student code" and which helper classes are trusted. This configuration is essential because not all code within a student project should be restricted - some utility classes provided by instructors should remain accessible. The configuration allows instructors to customize the security boundaries for each exercise.
+Load the security configuration that defines which code is considered "student code" and which helper classes are trusted. This configuration is essential because not all code within a student project should be restricted - some utility classes provided by instructors should remain accessible. The configuration allows instructors to customise the security boundaries for each exercise.
 
 **2. How it works**
 
@@ -549,7 +549,7 @@ String[] allowedClasses = getValueFromSettings("allowedListedClasses");
 **3. Used variables**
 
 - **`restrictedPackage`** (String): The Java package prefix where student code is located (e.g., `"de.student."`). Any code within this package is considered restricted unless explicitly allowed.
-- **`allowedClasses`** (String[]): List of trusted helper class names that students can use even though they're in the restricted package (e.g., `["de.student.util.SafeHelper"]`). These classes are pre-approved by instructors.
+- **`allowedClasses`** (String[]): List of trusted helper class names that students can use even though they are in the restricted package (e.g., `["de.student.util.SafeHelper"]`). These classes are pre-approved by instructors.
 
 **4. Result**
 
@@ -613,7 +613,7 @@ if (violatingMethod == null) {
    boolean inRestricted = className.startsWith(restrictedPackage);
    ```
 
-4. **Check if it's an Allowed Helper Class** (an inline prefix match, not a separate helper method):
+4. **Check if it is an Allowed Helper Class** (an inline prefix match, not a separate helper method):
    ```java
    boolean allowed = false;
    if (allowedClasses != null) {
@@ -644,7 +644,7 @@ if (violatingMethod == null) {
 **4. Result**
 
 - Found student code calling the thread operation → Returns method name like `"de.student.StudentCode.exploit"` → 🌕 **Continue to 5.2.3**
-- No student code found in call chain → Returns `null` → 🟢 **Allow operation** (called from test framework or trusted code - analysis terminated)
+- No student code found in call chain → Returns `null` → 🟢 **Allow operation** (called from test framework or test code - analysis terminated)
 
 #### 5.2.3 Find Which Test Called the Student Code
 
@@ -1001,7 +1001,7 @@ For `Thread.start()`, the receiver `Thread` branch in `variableToClassname(...)`
 
 **1. Purpose**
 
-Block the forbidden thread operation and provide a comprehensive error message. When a security violation is detected, it's crucial to give instructors and students clear information about what went wrong, where it happened, and which test triggered it. A generic "access denied" message would be unhelpful for debugging. The detailed message helps instructors identify the exact violation and helps students understand which part of their code caused the security issue.
+Block the forbidden thread operation and provide a comprehensive error message. When a security violation is detected, it is crucial to give instructors and students clear information about what went wrong, where it happened, and which test triggered it. A generic "access denied" message would be unhelpful for debugging. The detailed message helps instructors identify the exact violation and helps students understand which part of their code caused the security issue.
 
 **2. How it works**
 
@@ -1065,7 +1065,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 **When do you need this?**
 - When students should NOT be able to create unlimited threads (prevent resource exhaustion)
 - When you want to allow only specific thread patterns for exercises
-- To prevent students from escaping the sandbox through parallel execution
+- Preventing students from escaping the sandbox through parallel execution
 - When teaching concurrency but wanting to limit complexity
 
 **How does it work (simplified)?**
@@ -1077,7 +1077,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 3. Ares either allows (decrementing quota) or blocks with a meaningful exception
 
 **Special Features:**
-- **Lambda Detection**: Recognizes `() -> ...` patterns as `"Lambda-Expression"`
+- **Lambda Detection**: Recognises `() -> ...` patterns as `"Lambda-Expression"`
 - **Class Hierarchy**: `MyThread extends Thread` matches `java.lang.Thread` allowance
 - **Wildcard**: Use `"*"` to allow any class with a quota limit
 - **Quota System**: Each allowed class has a counter that decrements on use
@@ -1088,7 +1088,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 
 The thread system security mechanism provides **comprehensive protection** through:
 
-1. **Extensive API Coverage**: 37 intercepted class-method pairs (instrumentation) and 52 woven signatures (AspectJ) covering all standard thread creation paths
+1. **Extensive application programming interface (API) Coverage**: 37 intercepted class-method pairs (instrumentation) and 52 woven signatures (AspectJ) covering all standard thread creation paths
 2. **Call Stack Analysis**: Distinguishes trusted framework code from untrusted student code
 3. **Class-Based Validation**: Strict enforcement of allowed thread classes with inheritance support
 4. **Quota Management**: Runtime tracking and enforcement of thread creation limits

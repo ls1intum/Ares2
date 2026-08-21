@@ -36,7 +36,7 @@ and why `BeforeTestExecutionCallback` is used rather than `interceptTestMethod`.
 ## 3. Directing test-case creation
 
 `SecurityPolicyDirector`, the `ProgrammingLanguageConfiguration`, and the three lists the
-creator produces: architecture, AOP and Phobos test cases.
+creator produces: architecture, aspect-oriented programming (AOP) and Phobos test cases.
 
 ## 4. Installing the policy
 

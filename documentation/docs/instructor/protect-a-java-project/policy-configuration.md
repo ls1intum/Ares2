@@ -106,13 +106,13 @@ orthogonal dimensions:
 2. **Static analysis and structural validation**
    - **ArchUnit**: validates the architectural structure of the supervised codebase and
      ensures that forbidden packages, imports and dependencies cannot be referenced.
-   - **WALA**: performs static call-graph and data-flow analysis to detect disallowed code
+   - **T. J. Watson Libraries for Analysis (WALA)**: performs static call-graph and data-flow analysis to detect disallowed code
      paths before execution.
 
 3. **Runtime instrumentation backend**
    - **AspectJ**: uses aspect-oriented programming to intercept method calls at runtime and
      block access to specified operations.
-   - **Instrumentation API**: uses a Java agent (Byte Buddy) to instrument bytecode at runtime
+   - **Instrumentation application programming interface (API)**: uses a Java agent (Byte Buddy) to instrument bytecode at runtime
      and block access to specified operations.
 
 The resulting matrix contains eight modes:

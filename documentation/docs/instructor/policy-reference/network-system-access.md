@@ -69,7 +69,7 @@ Implemented by `NetworkPermission` in
 
 | Field | Datatype | Explanation | Example | Regex or Range |
 | --- | --- | --- | --- | --- |
-| `onTheHost` | `String` | The host this entry governs. | `www.example.com` | `HOST_PATTERN`: `*`, `localhost`, an IPv4 address, an IPv6 address (including IPv4-mapped forms), or a DNS name of at most 253 characters whose labels are at most 63 characters. A bare four-part numeric string is rejected as a DNS name so that it must parse as an IP address. |
+| `onTheHost` | `String` | The host this entry governs. | `www.example.com` | `HOST_PATTERN`: `*`, `localhost`, an IPv4 address, an IPv6 address (including IPv4-mapped forms), or a Domain Name System (DNS) name of at most 253 characters whose labels are at most 63 characters. A bare four-part numeric string is rejected as a DNS name so that it must parse as an IP address. |
 | `onThePort` | `int` | The port this entry governs. `0` is the any-port wildcard. | `80` | Range `0`–`65535` inclusive. Outside that range the constructor throws. |
 | `openConnections` | `boolean` | Permits opening a connection to the host and port. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
 | `sendData` | `boolean` | Permits sending data on the connection. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
@@ -81,4 +81,4 @@ Implemented by `NetworkPermission` in
 
 Port `0` is the **only** any-port wildcard. There is no range syntax.
 
-A narrow allowance stays narrow at runtime even though the architecture layer cannot represent it: static analysis is argument-insensitive, so it sees only that a connection may be opened, while the AOP layer checks the actual host and port of the call.
+A narrow allowance stays narrow at runtime even though the architecture layer cannot represent it: static analysis is argument-insensitive, so it sees only that a connection may be opened, while the aspect-oriented programming (AOP) layer checks the actual host and port of the call.
