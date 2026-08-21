@@ -53,8 +53,16 @@ public class CheckPullRequestTemplate {
         SECTIONS = Collections.unmodifiableMap(sections);
     }
 
+    /**
+     * How {@link #HEADING}, {@link #HEADING_LINE} and {@link #ANY_HEADING} read lines: a newline ends
+     * one and nothing else does, which is all {@link #normalise} leaves behind. Without it Java would
+     * also break a line at a Unicode separator, where Markdown keeps one line, and the three would
+     * disagree about where a line stops.
+     */
+    private static final int LINES = Pattern.MULTILINE | Pattern.UNIX_LINES;
+
     /** A section heading: a line that starts with {@code ## } and has something after it. */
-    private static final Pattern HEADING = Pattern.compile("^## .+$", Pattern.MULTILINE);
+    private static final Pattern HEADING = Pattern.compile("^## .+$", LINES);
 
     /** A comment, whose insides never show on the page. */
     private static final int COMMENT = 0;
@@ -66,7 +74,16 @@ public class CheckPullRequestTemplate {
     private static final int SPAN = 2;
 
     /** A heading as a whole line, which is how the span scan knows one interrupts its paragraph. */
-    private static final Pattern HEADING_LINE = Pattern.compile(" {0,3}#{1,6}(?:[ \\t].*)?");
+    private static final Pattern HEADING_LINE = Pattern.compile(" {0,3}#{1,6}(?:[ \\t].*)?", LINES);
+
+    /**
+     * The same line, anchored so that a whole text can be searched for one. Built out of
+     * {@link #HEADING_LINE} rather than written again, so the two can never come to disagree about what
+     * a heading is, and grouped so that stays true if that one ever grows an alternative. Every level,
+     * since the levels this program requires are not the only ones a description can hold.
+     */
+    private static final Pattern ANY_HEADING = Pattern.compile("^(?:" + HEADING_LINE.pattern() + ")$",
+            LINES);
 
     /**
      * The numbered blank the testing manual ships under Prerequisites and under Steps, left as it came: a
@@ -116,6 +133,7 @@ public class CheckPullRequestTemplate {
         List<String> found = headings(maskedBody);
         problems.addAll(missing(required, found));
         problems.addAll(duplicated(required, found));
+        problems.addAll(undefined(required, body));
         problems.addAll(outOfOrder(required, found));
 
         for (Map.Entry<String, String> section : sections(body, maskedBody, once(required, found)).entrySet()) {
@@ -153,6 +171,35 @@ public class CheckPullRequestTemplate {
                 problems.add("Section heading '" + heading + "' appears " + occurrences
                         + " times. Keep exactly one of each, in the order of " + TEMPLATE + ".");
             }
+        }
+        return problems;
+    }
+
+    /**
+     * The lines this program reads as a heading that the template does not define, at any level, each
+     * named once however often it appears.
+     * <p>
+     * Found in the copy that keeps the shape of code between backticks, since blanking one leaves a
+     * space and a space after a hash is what makes a hash a heading. That copy is as long as the
+     * original, so the line itself is read out of the original at the same place.
+     */
+    private static List<String> undefined(List<String> required, String text) {
+        String scannable = blocksOnly(text);
+        List<String> problems = new ArrayList<>();
+        List<String> reported = new ArrayList<>();
+        Matcher matcher = ANY_HEADING.matcher(scannable);
+        while (matcher.find()) {
+            String heading = text.substring(matcher.start(), matcher.end()).trim();
+            if (required.contains(heading) || reported.contains(heading)) {
+                continue;
+            }
+            reported.add(heading);
+            problems.add("'" + heading + "' reads as a heading and " + TEMPLATE + " does not define "
+                    + "one. Its sections are the ones a reviewer reads, and this one is measured and "
+                    + "checked as part of the section above it. Move what it holds into the section it "
+                    + "belongs to, or into a comment on the pull request. A line you do not mean as a "
+                    + "heading belongs in a fenced code block, where this check does not read it as "
+                    + "one.");
         }
         return problems;
     }
@@ -482,7 +529,7 @@ public class CheckPullRequestTemplate {
             }
             int end = endOfLine(text, marks);
             if (runLength(text, marks, marker) >= length
-                    && text.substring(marks + runLength(text, marks, marker), end).isBlank()) {
+                    && onlySpacesAndTabs(text.substring(marks + runLength(text, marks, marker), end))) {
                 return end;
             }
             line = end;
@@ -538,6 +585,20 @@ public class CheckPullRequestTemplate {
         }
         int close = text.indexOf("-->", start + 4);
         return close < 0 ? text.length() : close + 3;
+    }
+
+    /**
+     * Whether this is nothing but the spaces and tabs Markdown allows after a fence that closes one.
+     * Anything else, a Unicode space included, leaves the block open here, which keeps the lines below
+     * it painted over rather than read as markup.
+     */
+    private static boolean onlySpacesAndTabs(String text) {
+        for (int index = 0; index < text.length(); index++) {
+            if (text.charAt(index) != ' ' && text.charAt(index) != '\t') {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** How many of the given character run together from here. */
