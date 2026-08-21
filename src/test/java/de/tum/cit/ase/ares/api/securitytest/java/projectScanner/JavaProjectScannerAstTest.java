@@ -8,9 +8,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
@@ -95,6 +99,91 @@ class JavaProjectScannerAstTest {
 		assertEquals("Unreadable Java source root: " + production.toRealPath(), failure.getMessage());
 	}
 
+	static Stream<Arguments> mainMethodShapes() {
+		return Stream.of(Arguments.of("public static void main(String[] arguments) {}", true),
+				Arguments.of("public static void main(java.lang.String[] arguments) {}", true),
+				Arguments.of("public static void main(String... arguments) {}", true),
+				Arguments.of("public static void main(java.lang.String... arguments) {}", true),
+				Arguments.of("public static void main(int... arguments) {}", false),
+				Arguments.of("public static void main(String argument) {}", false),
+				Arguments.of("public static void main(int[] arguments) {}", false),
+				Arguments.of("public static void main() {}", false),
+				Arguments.of("public static void main(String[] arguments, int extra) {}", false),
+				Arguments.of("static void main(String[] arguments) {}", false),
+				Arguments.of("public void main(String[] arguments) {}", false),
+				Arguments.of("public static int main(String[] arguments) { return 0; }", false),
+				Arguments.of("public static void notMain(String[] arguments) {}", false));
+	}
+
+	@ParameterizedTest
+	@MethodSource("mainMethodShapes")
+	void classifiesEachMainMethodShape(String methodSource, boolean isRecognisedMain) throws IOException {
+		Path production = Files.createDirectories(root.resolve("shape/main"));
+		Path tests = Files.createDirectories(root.resolve("shape/test"));
+		Files.writeString(production.resolve("Candidate.java"),
+				"package shape; class Candidate { " + methodSource + " }\n");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		// A recognised main method resolves to its declaring class; any other shape
+		// leaves
+		// the scanner to fall back to the default main-class name.
+		assertEquals(isRecognisedMain ? "Candidate" : "Main", scanner.scanForMainClassInPackage());
+	}
+
+	@Test
+	void handlesDefaultPackageAndReservedPrefixesWhenScanning() throws IOException {
+		Path production = Files.createDirectories(root.resolve("edge/main"));
+		Path tests = Files.createDirectories(root.resolve("edge/test"));
+		Files.writeString(production.resolve("Root.java"), "class Root {}\n");
+		Files.writeString(production.resolve("Reserved.java"), "package java.fake; class Reserved {}\n");
+		Files.writeString(production.resolve("Real.java"), "package real.app; class Real {}\n");
+		Files.writeString(tests.resolve("DefaultPackageCases.java"),
+				"import org.junit.jupiter.api.Test; class DefaultPackageCases { @Test void probe() {} }\n");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		// The blank default package and the reserved java.* prefix are both skipped, so
+		// the only counted production package wins.
+		assertEquals("real.app", scanner.scanForPackageName());
+		// A test type in the default package has no package prefix in its qualified
+		// name.
+		assertArrayEquals(new String[] { "DefaultPackageCases" }, scanner.scanForTestClasses());
+	}
+
+	@Test
+	void prefersMainThenApplicationAndRecognisesJUnitThreeTestCases() throws IOException {
+		Path production = Files.createDirectories(root.resolve("pref/main"));
+		Path tests = Files.createDirectories(root.resolve("pref/test"));
+		Files.writeString(production.resolve("Mains.java"), """
+				package pref;
+				class Zebra { public static void main(String[] arguments) {} }
+				class Application { public static void main(String[] arguments) {} }
+				class Main { public static void main(String[] arguments) {} }
+				""");
+		// The class-level case is written the only way it compiles: Jupiter's @Test
+		// targets ANNOTATION_TYPE and METHOD, never TYPE, so a class can carry it only
+		// through a composed annotation that declares @Target(TYPE) for itself. The
+		// type-level branch of the scan is therefore reachable from real project code,
+		// which is why it exists, and this fixture is code a compiler would accept.
+		Files.writeString(tests.resolve("LegacyTests.java"), """
+				package pref;
+				import java.lang.annotation.ElementType;
+				import java.lang.annotation.Retention;
+				import java.lang.annotation.RetentionPolicy;
+				import java.lang.annotation.Target;
+				import junit.framework.TestCase;
+				import org.junit.jupiter.api.Test;
+				class LegacyCase extends TestCase { public void testSomething() {} }
+				@Test @Target(ElementType.TYPE) @Retention(RetentionPolicy.RUNTIME) @interface ClassLevelTest {}
+				@ClassLevelTest class ClassLevelAnnotated {}
+				class PlainHelper extends Object { void doWork() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		// Main is preferred over Application, which is preferred over any other name.
+		assertEquals("Main", scanner.scanForMainClassInPackage());
+		// A JUnit 3 class extending TestCase and a class carrying a composed test
+		// annotation are both recognised, while a plain class that does neither is not.
+		// The annotation declaration itself is not a test class.
+		assertArrayEquals(new String[] { "pref.ClassLevelAnnotated", "pref.LegacyCase" }, scanner.scanForTestClasses());
+	}
+
 	@Test
 	void ranksValidMainClassesByPreference() throws IOException {
 		Path production = Files.createDirectories(root.resolve("src/main/java"));
@@ -164,6 +253,15 @@ class JavaProjectScannerAstTest {
 		// package name.
 		Files.writeString(production.resolve("Reserved.java"), "package metatest; class Reserved {}\n");
 		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		// Deliberately unresolvable, and deliberately not compilable: TestCase is
+		// neither imported nor declared in this package. The scan has no classpath, so
+		// it meets names it cannot resolve in files that do compile against
+		// dependencies it cannot see, and extendsTestCase answers that with
+		// candidates.isEmpty() || candidates.equals(Set.of(JUNIT_THREE_TEST_CASE)),
+		// accepting the unresolvable name. This fixture is what pins that first
+		// disjunct; the resolved spelling is covered by the imported fixture in
+		// prefersMainThenApplicationAndRecognisesJUnitThreeTestCases. Adding the import
+		// here would collapse both onto the second disjunct.
 		Files.writeString(tests.resolve("LegacyCase.java"), """
 				package checks;
 				class LegacyCase extends TestCase { public void testLegacy() {} }
@@ -173,13 +271,24 @@ class JavaProjectScannerAstTest {
 				package checks;
 				class PlainHelper {}
 				""");
+		// A composed annotation, the only compilable way to mark a class rather than a
+		// method, declared once and used from its own package and from the default
+		// package, so both the package lookup and the single-type import resolve to it.
+		Files.writeString(tests.resolve("TypeLevelTest.java"), """
+				package checks;
+				@org.junit.jupiter.api.Test
+				@java.lang.annotation.Target(java.lang.annotation.ElementType.TYPE)
+				@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+				public @interface TypeLevelTest {}
+				""");
 		Files.writeString(tests.resolve("TypeAnnotated.java"), """
 				package checks;
-				@org.junit.jupiter.api.Test class TypeAnnotated {}
+				@TypeLevelTest class TypeAnnotated {}
 				""");
 		// A default-package test class exercises the empty-package qualified-name join.
 		Files.writeString(tests.resolve("DefaultPackageCase.java"), """
-				@org.junit.jupiter.api.Test class DefaultPackageCase {}
+				import checks.TypeLevelTest;
+				@TypeLevelTest class DefaultPackageCase {}
 				""");
 		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
 		assertEquals("sol", scanner.scanForPackageName());

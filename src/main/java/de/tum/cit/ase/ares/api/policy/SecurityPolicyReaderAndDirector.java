@@ -153,8 +153,10 @@ public class SecurityPolicyReaderAndDirector {
 	@Nonnull
 	public SecurityPolicyReaderAndDirector writeTestCasesAndContinue(Path testFolderPath) {
 		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
+		// Fail closed, symmetrically with writeTestCases and executeTestCases: an
+		// out-of-order call must not silently write zero security tests.
 		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
-				"securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
+				"createTestCases() must be called before writeTestCasesAndContinue()").writeTestCases(testFolderPath);
 		return this;
 	}
 	// </editor-fold>
@@ -168,8 +170,10 @@ public class SecurityPolicyReaderAndDirector {
 	 * @author Markus Paulsen
 	 */
 	public SecurityPolicyReaderAndDirector executeTestCases() {
+		// Fail closed: executing before createTestCases must not silently run zero
+		// security tests, which in a security boundary is the dangerous direction.
 		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
-				"securityTestCaseFactoryAndBuilder must not be null").executeTestCases();
+				"createTestCases() must be called before executeTestCases()").executeTestCases();
 		return this;
 	}
 
