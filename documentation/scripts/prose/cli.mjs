@@ -212,14 +212,16 @@ async function lint() {
                 + 'not a count. Every entry in advisory-ceiling.json is a whole number.');
         }
     }
-    for (const problem of over) {
-        process.stdout.write(`${problem}\n`);
-    }
     for (const rule of ceiling.keys()) {
         if (!counts.has(rule)) {
             over.push(`advisory-ceiling.json has an entry for "${rule}", which is not an `
                 + 'advisory rule. Run `pnpm run prose:accept` and commit the smaller file.');
         }
+    }
+    // Printed after every problem is collected, so a stale entry names itself rather than
+    // failing the run silently.
+    for (const problem of over) {
+        process.stdout.write(`${problem}\n`);
     }
     if (under.length > 0) {
         process.stdout.write(`\n${under.join(', ')}. `

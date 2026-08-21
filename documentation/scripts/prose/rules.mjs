@@ -231,7 +231,7 @@ export const OPENER_RULE = {
  */
 const NOT_PARTICIPLES = [
     'green', 'often', 'open', 'even', 'seven', 'keen', 'golden', 'wooden', 'sudden', 'hidden',
-    'token', 'when', 'then', 'children', 'women', 'garden', 'red',
+    'token', 'when', 'then', 'children', 'women', 'garden', 'red', 'indeed', 'unseen',
 ];
 
 /**

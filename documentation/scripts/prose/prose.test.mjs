@@ -136,12 +136,15 @@ describe('the page and the rules agree', () => {
         assert.deepEqual([...listed].sort(), [...RULE_IDS].sort());
     });
 
-    test('the unchecked table names no rule the code defines', async () => {
+    test('the unchecked table exists and names no rule identifier', async () => {
         const lines = (await sections()).get('Rules with no check, and why');
         assert.ok(lines !== undefined, 'the page records the rules nothing checks');
-        // Read every code span in the table, not the first cell alone. The rows there are
-        // written in words rather than as identifiers, so a first-cell check would look at
-        // nothing and pass whatever the page said.
+        // Read every code span in the table, not the first cell alone: those rows are written
+        // in words rather than as identifiers, so a first-cell check would look at nothing and
+        // pass whatever the page said. This catches a rule identifier written into the
+        // unchecked table. It cannot catch a rule described in words here and implemented
+        // under some other identifier, which is why the section above says outright that a
+        // change of level is a change to this page.
         const spans = codeSpansIn(lines);
         assert.ok(spans.length > 0, 'the unchecked table has rows');
         for (const span of spans) {
@@ -322,6 +325,38 @@ describe('the site source', () => {
 
     test('a code sample inside a template is not prose', async () => {
         assert.deepEqual(await sourceRules('const a = <Code>{`<p>also</p>`}</Code>;\n'), []);
+    });
+
+    test('the children of a code component are not prose', async () => {
+        assert.deepEqual(await sourceRules('const a = <CodeBlock>also</CodeBlock>;\n'), []);
+    });
+
+    test('a quoted property name is still a name', async () => {
+        assert.deepEqual(await sourceRules("const a = { 'label': 'The color' };\n"),
+            ['no-american-spellings']);
+    });
+
+    test('a literal inside JSX braces is prose', async () => {
+        assert.deepEqual(await sourceRules("const a = <p>{'The color'}</p>;\n"),
+            ['no-american-spellings']);
+    });
+
+    test('an array of visible strings in a page is prose', async () => {
+        assert.deepEqual(await sourceRules("const items = ['The color of it'];\n"),
+            ['no-american-spellings']);
+    });
+
+    test('an array in a configuration file is left to its named keys', async () => {
+        assert.deepEqual(await sourceRules("const items = ['The color of it'];\n", '.ts'), []);
+    });
+
+    test('a finding is reported at the text, not at its key', async () => {
+        const file = path.join(workspace, 'placed.ts');
+        await writeFile(file, 'const a = {\n    label: `Prefix ${name} also`,\n};\n', 'utf8');
+        const findings = (await scanSource(file, 'placed.ts')).findings;
+        assert.equal(findings.length, 1);
+        assert.equal(findings[0].line, 2);
+        assert.equal(findings[0].column, 12);
     });
 
     test('text on either side of an interpolation is prose', async () => {
