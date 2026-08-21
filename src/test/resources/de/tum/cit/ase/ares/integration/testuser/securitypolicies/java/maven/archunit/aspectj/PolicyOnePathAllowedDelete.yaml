@@ -28,6 +28,13 @@ regardingTheSupervisedCode:
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]
-    regardingPackageImports: [ ]
+    regardingPackageImports:
+      # The third-party subject calls a helper in this package. That import used to
+      # be permitted only because the supervised package de.tum.cit.ase.ares was
+      # seeded into the allow-list as a prefix, which granted every package beneath
+      # it, Ares' own api included. The allow-list now names the packages the
+      # validated production output declares, so a helper outside the analysed
+      # subtree has to be declared here, which is what this list is for.
+      - importTheFollowingPackage: "de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage"
     regardingTimeouts:
       - timeout: 3000

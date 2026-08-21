@@ -25,7 +25,12 @@ import de.tum.cit.ase.ares.integration.testuser.subject.SecurityPenguin;
 // ReservedPackageGuard does not (correctly) reject Ares's own build. Runtime enforcement
 // of SecurityPenguin is unaffected: the AOP advice classifies student code by package
 // prefix (testuser.subject.* is non-infrastructure), not by withinPath.
-@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
+//
+// The policy is pinned rather than omitted. Without it the supervised package came from
+// JavaProgrammingExerciseProjectScanner's TUM default, which merely happened to be a
+// prefix of Ares' own packages, so these subjects counted as student code by coincidence.
+// Changing that production default switched their enforcement off silently.
+@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicySelfTestDefaultRestrictive.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 public class SecurityUser {
 
 	@Test

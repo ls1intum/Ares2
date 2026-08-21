@@ -144,7 +144,7 @@ public class JavaCreatorTest {
 			// Act
 			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode,
 					essentialPackages, essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
-					aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+					aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 
 			// Assert
 			verify(buildMode).getClasspath(tempDir, packageName);
@@ -177,7 +177,7 @@ public class JavaCreatorTest {
 			// Act & Assert
 			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode,
 					essentialPackages, essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
-					aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+					aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
 
 		@Test
@@ -202,7 +202,7 @@ public class JavaCreatorTest {
 			// Act & Assert
 			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode,
 					essentialPackages, essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
-					aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+					aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
 
 		@Test
@@ -227,11 +227,11 @@ public class JavaCreatorTest {
 			// Act - Call twice to test caching
 			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 					testClasses, packageName, mainClassName, architectureTestCases, aopTestCases, phobosTestCases,
-					resourceAccesses, tempDir);
+					resourceAccesses, tempDir, true);
 
 			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 					testClasses, packageName, mainClassName, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-					resourceAccesses, tempDir);
+					resourceAccesses, tempDir, true);
 
 			// Assert - Each method should only be called once due to static cache reuse
 			verify(buildMode, times(1)).getClasspath(tempDir, packageName);
@@ -263,7 +263,7 @@ public class JavaCreatorTest {
 			// Act
 			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 					testClasses, packageName, mainClassName, architectureTestCases, aopTestCases, phobosTestCases,
-					resourceAccesses, tempDir);
+					resourceAccesses, tempDir, true);
 
 			// Assert - The lists should be modified (exact contents depend on
 			// implementation details)
@@ -315,7 +315,7 @@ public class JavaCreatorTest {
 			assertThrows(IllegalArgumentException.class,
 					() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
-							aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+							aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
 
 		@Test
@@ -337,7 +337,7 @@ public class JavaCreatorTest {
 			assertThrows(RuntimeException.class,
 					() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
-							aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+							aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
 	}
 }

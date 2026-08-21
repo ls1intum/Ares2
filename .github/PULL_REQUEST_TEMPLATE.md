@@ -174,6 +174,19 @@
   should read. If a claim cannot be observed anywhere, either add the diagnostic that
   makes it observable, or do not ask for it.
 
+  Have the reviewer look at the result, not at an exit code. A command that exits zero
+  says the command ran. It does not say that what it produced is right, and a manual made
+  of green commands asks a reviewer to review your exit codes rather than your change.
+  Every claim in section 2 needs a step where the thing itself is in front of them: the
+  page as a reader gets it, the message a student is shown, the generated file, the row in
+  the report. Name what they must see there, and name what would be wrong.
+
+  This matters most where a build cannot see the defect. A site builds cleanly while a box
+  renders as plain text, a policy is read without complaint while the rule it was meant to
+  express is not enforced, and a test passes while asserting nothing. Where a suite in this
+  repository already looks at such a result for you, run it as a step and say what it
+  covers, rather than leaving a reviewer to assume the build covered it.
+
   Negative case: equally important for a security tool. State what must still be
   rejected, and how a reviewer confirms that Ares has not become more permissive.
 

@@ -105,13 +105,16 @@ rule is an approximation in the other direction too, since four columns under a 
 continue that paragraph in Markdown; the Javadoc of the checker says why the line is drawn
 where it is.
 
-Two shapes pay for that four-column rule, and both were accepted knowingly. An indented
-example showing the template's own skeleton, a bare `1.` inside a comment, is read as a
-blank somebody forgot. And a literal comment marker inside code, above a genuine comment
-further down, can leave the genuine one unhidden, so a heading inside it is counted and the
-author is told they wrote a section twice. Both are wrong about a body written in good
-faith, and both are the accepted cost of the rule that closes a hole where text hid from
-the length count. It deliberately does not require checklist boxes to be ticked. It
+One shape pays for that four-column rule, knowingly: an indented example showing the
+template's own skeleton, a bare `1.` inside a comment, is read as a blank somebody forgot.
+That is wrong about a body written in good faith, and is the accepted cost of closing a
+hole where text hid from the length count.
+
+What is not prose is found in one left-to-right walk rather than by searching for comments,
+fenced blocks and code spans separately. That walk is what settles the overlaps between the
+three: a fence opening a line beats a code span left open above it because Markdown decides
+blocks first, and a span covers what it holds, so a comment marker inside one is text rather
+than the start of a comment. It deliberately does not require checklist boxes to be ticked. It
 re-runs when the description is edited, so a failure is fixed by editing the body rather
 than by pushing a commit.
 
@@ -127,6 +130,21 @@ PR_BODY="$(cat body.md)" java .github/scripts/CheckPullRequestTemplate.java
 
 The checker is a single-file Java program, run through the source-code launcher of JDK 11 or
 newer, so it needs no build step and adds no language to the repository. CI runs it on 21.
+
+**Only the template's own headings.** The check reports every line it reads as a heading that
+the template does not define, sub-headings included. A section of your own is never checked: the
+checker cuts out the required headings only, so whatever sits under an invented one is measured
+as part of the section above it, and what its title promises is never looked for. Put the text
+in the section it belongs to, or in a comment on the pull request, which is where anything
+outside the template's shape goes.
+
+What it reads as a heading is a line of up to three spaces, then one to six hashes, then a
+space, a tab or the end of the line, outside comments, fenced blocks and code between backticks.
+`#hashtag` and seven hashes are therefore not headings to it. It does not find a heading
+underlined with equals signs, nor one indented into a quotation or a list; those pass. It does
+not recognise raw HTML blocks either, so such a line inside `<pre>` or `<details>` is reported.
+Put a line you do not mean as a heading in a fenced code block, where the checker does not treat
+it as one.
 
 **Changing the template is two edits, not one.** The required headings, the character
 limits and the phrases that answer a section live in one ordered map, `SECTIONS`, at the

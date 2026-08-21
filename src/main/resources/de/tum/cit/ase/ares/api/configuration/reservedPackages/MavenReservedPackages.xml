@@ -21,8 +21,7 @@
               <include name="jdk/**"/><include name="com/sun/**"/>
               <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
               <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-              <include name="com/tngtech/archunit/**"/><include name="anonymous/toolclasses/**"/>
-              <include name="metatest/**"/>
+              <include name="com/tngtech/archunit/**"/>
             </fileset>
           </resourcecount>
           <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">

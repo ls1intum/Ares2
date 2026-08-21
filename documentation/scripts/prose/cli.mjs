@@ -249,8 +249,9 @@ async function accept() {
 
     const counts = [...advisoryCounts(findings)].sort((left, right) => left[0].localeCompare(right[0]));
     await writeFile(CEILING, `${JSON.stringify({
-        why: 'The advisory findings each rule is allowed. These numbers may only fall; see '
-            + 'scripts/prose/cli.mjs. Lower one by improving the prose, never by editing it here.',
+        why: 'The advisory findings each rule is allowed. Lower one by improving the prose, never '
+            + 'by editing it here. A number rises only where a merge brings in text written before '
+            + 'these rules existed, and only in the commit that brings it; see scripts/prose/cli.mjs.',
         ceiling: Object.fromEntries(counts),
     }, null, 2)}\n`, 'utf8');
 

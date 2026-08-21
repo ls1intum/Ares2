@@ -53,32 +53,37 @@ public class CheckPullRequestTemplate {
         SECTIONS = Collections.unmodifiableMap(sections);
     }
 
+    /**
+     * How {@link #HEADING}, {@link #HEADING_LINE} and {@link #ANY_HEADING} read lines: a newline ends
+     * one and nothing else does, which is all {@link #normalise} leaves behind. Without it Java would
+     * also break a line at a Unicode separator, where Markdown keeps one line, and the three would
+     * disagree about where a line stops.
+     */
+    private static final int LINES = Pattern.MULTILINE | Pattern.UNIX_LINES;
+
     /** A section heading: a line that starts with {@code ## } and has something after it. */
-    private static final Pattern HEADING = Pattern.compile("^## .+$", Pattern.MULTILINE);
+    private static final Pattern HEADING = Pattern.compile("^## .+$", LINES);
+
+    /** A comment, whose insides never show on the page. */
+    private static final int COMMENT = 0;
+
+    /** A fenced code block, whose insides a reader sees but must not have read as markup. */
+    private static final int FENCE = 1;
+
+    /** Code between backticks, the same but within a paragraph rather than across blocks. */
+    private static final int SPAN = 2;
+
+    /** A heading as a whole line, which is how the span scan knows one interrupts its paragraph. */
+    private static final Pattern HEADING_LINE = Pattern.compile(" {0,3}#{1,6}(?:[ \\t].*)?", LINES);
 
     /**
-     * Three things whose insides are not markup for this check: an HTML comment, which never shows on the
-     * page, a fenced code block, and code between backticks. Code still counts towards a section's length,
-     * but a comment marker, a heading or a numbered blank inside it is an example rather than markup, and
-     * obeying it would hide text or invent a section nobody wrote. One pattern finds all three, so the one
-     * starting first wins.
+     * The same line, anchored so that a whole text can be searched for one. Built out of
+     * {@link #HEADING_LINE} rather than written again, so the two can never come to disagree about what
+     * a heading is, and grouped so that stays true if that one ever grows an alternative. Every level,
+     * since the levels this program requires are not the only ones a description can hold.
      */
-    private static final Pattern NOT_PROSE = Pattern.compile(
-            "(?<comment><!--.*?(?:-->|\\z))"
-                    // A fence closes only on a run of its own character at least as long as the one
-                    // that opened it, which is how a longer fence shows a shorter one. The opening
-                    // run cannot be given back, or an inner shorter run would close it early, and
-                    // what follows the opening backticks may hold none, as CommonMark has it.
-                    + "|^ {0,3}(?<backticks>`{3,}+)[^`\\n]*\\n.*?(?:^ {0,3}\\k<backticks>`*[ \\t]*$|\\z)"
-                    + "|^ {0,3}(?<tildes>~{3,}+)[^\\n]*\\n.*?(?:^ {0,3}\\k<tildes>~*[ \\t]*$|\\z)"
-                    // Guarded on both sides, so two backticks cannot close on the last two of three,
-                    // and stopped at a blank line or a heading, so a stray one cannot swallow them.
-                    // The opening run cannot be given back either: a run that never closes must cost
-                    // one scan, since an outsider writes this text on a fork pull request.
-                    + "|(?<!`)(?<span>`++)(?:(?!\\n(?:[ \\t]*\\n| {0,3}#{1,6}(?:[ \\t]|$))).)+?(?<!`)\\k<span>(?!`)",
-            // A fence indented against its container rather than the margin, inside a list or a
-            // quote, is not recognised: reading those means tracking each container, a Markdown parser.
-            Pattern.DOTALL | Pattern.MULTILINE);
+    private static final Pattern ANY_HEADING = Pattern.compile("^(?:" + HEADING_LINE.pattern() + ")$",
+            LINES);
 
     /**
      * The numbered blank the testing manual ships under Prerequisites and under Steps, left as it came: a
@@ -128,6 +133,7 @@ public class CheckPullRequestTemplate {
         List<String> found = headings(maskedBody);
         problems.addAll(missing(required, found));
         problems.addAll(duplicated(required, found));
+        problems.addAll(undefined(required, body));
         problems.addAll(outOfOrder(required, found));
 
         for (Map.Entry<String, String> section : sections(body, maskedBody, once(required, found)).entrySet()) {
@@ -165,6 +171,35 @@ public class CheckPullRequestTemplate {
                 problems.add("Section heading '" + heading + "' appears " + occurrences
                         + " times. Keep exactly one of each, in the order of " + TEMPLATE + ".");
             }
+        }
+        return problems;
+    }
+
+    /**
+     * The lines this program reads as a heading that the template does not define, at any level, each
+     * named once however often it appears.
+     * <p>
+     * Found in the copy that keeps the shape of code between backticks, since blanking one leaves a
+     * space and a space after a hash is what makes a hash a heading. That copy is as long as the
+     * original, so the line itself is read out of the original at the same place.
+     */
+    private static List<String> undefined(List<String> required, String text) {
+        String scannable = blocksOnly(text);
+        List<String> problems = new ArrayList<>();
+        List<String> reported = new ArrayList<>();
+        Matcher matcher = ANY_HEADING.matcher(scannable);
+        while (matcher.find()) {
+            String heading = text.substring(matcher.start(), matcher.end()).trim();
+            if (required.contains(heading) || reported.contains(heading)) {
+                continue;
+            }
+            reported.add(heading);
+            problems.add("'" + heading + "' reads as a heading and " + TEMPLATE + " does not define "
+                    + "one. Its sections are the ones a reviewer reads, and this one is measured and "
+                    + "checked as part of the section above it. Move what it holds into the section it "
+                    + "belongs to, or into a comment on the pull request. A line you do not mean as a "
+                    + "heading belongs in a fenced code block, where this check does not read it as "
+                    + "one.");
         }
         return problems;
     }
@@ -331,12 +366,13 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * The complaints about blanks the template shipped and nobody filled in. Read from a copy with every
-     * comment, fence and backtick run this program recognises painted over, so that their contents are
-     * not mistaken for a blank somebody forgot.
+     * The complaints about blanks the template shipped and nobody filled in. Read from a copy with
+     * the comments and fenced blocks blanked, so their contents are not mistaken for a blank
+     * somebody forgot, and with code between backticks filled in letters rather than blanked, since
+     * a step is often a number and a command and blanking the command would leave one.
      */
     private static List<String> leftoverStubs(String heading, String content) {
-        String scannable = masked(content);
+        String scannable = blocksOnly(content);
         List<String> problems = new ArrayList<>();
         String stub = firstLineMatching(scannable, TESTING_MANUAL_STUB);
         if (stub != null) {
@@ -393,19 +429,191 @@ public class CheckPullRequestTemplate {
      * in a fenced example, is not taken for a real one.
      */
     private static String masked(String text) {
+        return painted(text, ' ');
+    }
+
+    /**
+     * The same, except that code between backticks is painted in letters rather than spaces. A
+     * line that is a number and a command, {@code 1. `mvn test`}, is a step somebody wrote, and
+     * blanking its command would leave a number and a full stop, which is what an unfilled blank
+     * looks like. A letter keeps such a line filled, whichever line of a span it falls on, and the
+     * same holds for a table row whose cells hold code.
+     */
+    private static String blocksOnly(String text) {
+        return painted(text, 'x');
+    }
+
+    /**
+     * The text with the regions found by {@link #regions(String)} replaced by as many characters
+     * as they held, the line breaks kept. Comments and fenced blocks become spaces; code between
+     * backticks becomes whatever the caller asks for, since one caller needs it gone and the other
+     * needs only its shape gone.
+     */
+    private static String painted(String text, char spanFiller) {
         StringBuilder result = new StringBuilder(text);
-        Matcher matcher = NOT_PROSE.matcher(text);
-        while (matcher.find()) {
-            if (matcher.group("comment") != null && treatedAsIndentedCode(text, matcher.start())) {
-                continue;
-            }
-            for (int index = matcher.start(); index < matcher.end(); index++) {
+        for (int[] region : regions(text)) {
+            char filler = region[2] == SPAN ? spanFiller : ' ';
+            for (int index = region[0]; index < region[1]; index++) {
                 if (result.charAt(index) != '\n') {
-                    result.setCharAt(index, ' ');
+                    result.setCharAt(index, filler);
                 }
             }
         }
         return result.toString();
+    }
+
+    /**
+     * Every region of the text that is not ordinary prose, in order, as start, end and kind. One
+     * walk asking what starts here, rather than patterns that each search the whole text and then
+     * disagree about the overlaps. Markdown settles those by deciding blocks first, so a fence
+     * opening a line beats a span left open above it, and a span covers what it holds, which makes
+     * a marker inside one text rather than the start of a comment.
+     */
+    private static List<int[]> regions(String text) {
+        List<int[]> found = new ArrayList<>();
+        int index = 0;
+        while (index < text.length()) {
+            int end = index == 0 || text.charAt(index - 1) == '\n' ? fenceEnd(text, index) : -1;
+            int kind = FENCE;
+            if (end < 0 && text.startsWith("<!--", index) && !treatedAsIndentedCode(text, index)) {
+                end = commentEnd(text, index);
+                kind = COMMENT;
+            }
+            if (end < 0) {
+                end = spanEnd(text, index);
+                kind = SPAN;
+            }
+            if (end > index) {
+                found.add(new int[] { index, end, kind });
+                index = end;
+            } else {
+                index++;
+            }
+        }
+        return found;
+    }
+
+    /**
+     * Where the fenced block opening at this line start ends, or -1 when none opens here. Up to
+     * three spaces of indent, then at least three backticks or tildes, and for backticks nothing
+     * further on the line may be a backtick. It closes on a line holding a run of the same
+     * character at least as long, and runs to the end of the text when nothing closes it, which is
+     * what Markdown renders.
+     */
+    private static int fenceEnd(String text, int start) {
+        int open = start;
+        while (open < text.length() && open - start < 3 && text.charAt(open) == ' ') {
+            open++;
+        }
+        if (open >= text.length() || text.charAt(open) != '`' && text.charAt(open) != '~') {
+            return -1;
+        }
+        char marker = text.charAt(open);
+        int length = runLength(text, open, marker);
+        int lineEnd = endOfLine(text, open);
+        if (length < 3 || marker == '`' && text.indexOf('`', open + length) >= 0
+                && text.indexOf('`', open + length) < lineEnd) {
+            return -1;
+        }
+        return closingFence(text, lineEnd, marker, length);
+    }
+
+    /** Where the line that closes such a fence ends, or the end of the text when none does. */
+    private static int closingFence(String text, int from, char marker, int length) {
+        int line = from;
+        while (line < text.length()) {
+            line++;
+            int marks = line;
+            while (marks < text.length() && marks - line < 3 && text.charAt(marks) == ' ') {
+                marks++;
+            }
+            int end = endOfLine(text, marks);
+            if (runLength(text, marks, marker) >= length
+                    && onlySpacesAndTabs(text.substring(marks + runLength(text, marks, marker), end))) {
+                return end;
+            }
+            line = end;
+        }
+        return text.length();
+    }
+
+    /**
+     * Where the code span opening here ends, or -1 when none opens here. A run of backticks closes
+     * on a run of the same length, and the search stops where the block it sits in does: at a blank
+     * line, a heading, a line opening a fence and a line opening a comment, since a block is
+     * settled before a span.
+     */
+    private static int spanEnd(String text, int start) {
+        if (text.charAt(start) != '`' || start > 0 && text.charAt(start - 1) == '`') {
+            return -1;
+        }
+        int length = runLength(text, start, '`');
+        int index = start + length;
+        while (index < text.length()) {
+            if (text.charAt(index) == '\n' && blockEndsHere(text, index + 1)) {
+                return -1;
+            }
+            int run = text.charAt(index) == '`' ? runLength(text, index, '`') : 0;
+            if (run == length) {
+                return index + run;
+            }
+            index += run > 0 ? run : 1;
+        }
+        return -1;
+    }
+
+    /**
+     * Whether the line starting here ends the block a span was opened in: a blank line, an ATX
+     * heading, a line opening a fence, or a line opening a comment. Markdown lets each of those
+     * interrupt a paragraph, so a stray backtick above one cannot reach past it. A comment that
+     * starts within a line rather than at one is left to the span, which is where it belongs.
+     */
+    private static boolean blockEndsHere(String text, int line) {
+        if (line >= text.length()) {
+            return true;
+        }
+        String next = text.substring(line, endOfLine(text, line));
+        int marker = line + next.length() - next.stripLeading().length();
+        return next.isBlank() || HEADING_LINE.matcher(next).matches() || fenceEnd(text, line) >= 0
+                || text.startsWith("<!--", marker) && !treatedAsIndentedCode(text, marker);
+    }
+
+    /** Where the comment starting here ends, or -1 when none does. An unclosed one runs to the end. */
+    private static int commentEnd(String text, int start) {
+        if (!text.startsWith("<!--", start)) {
+            return -1;
+        }
+        int close = text.indexOf("-->", start + 4);
+        return close < 0 ? text.length() : close + 3;
+    }
+
+    /**
+     * Whether this is nothing but the spaces and tabs Markdown allows after a fence that closes one.
+     * Anything else, a Unicode space included, leaves the block open here, which keeps the lines below
+     * it painted over rather than read as markup.
+     */
+    private static boolean onlySpacesAndTabs(String text) {
+        for (int index = 0; index < text.length(); index++) {
+            if (text.charAt(index) != ' ' && text.charAt(index) != '\t') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** How many of the given character run together from here. */
+    private static int runLength(String text, int start, char marker) {
+        int index = start;
+        while (index < text.length() && text.charAt(index) == marker) {
+            index++;
+        }
+        return index - start;
+    }
+
+    /** Where the line holding this place ends, at its newline or at the end of the text. */
+    private static int endOfLine(String text, int index) {
+        int line = text.indexOf('\n', index);
+        return line < 0 ? text.length() : line;
     }
 
     /** The {@code ## } headings of a text, in order, with the spaces around them trimmed. */
@@ -450,14 +658,13 @@ public class CheckPullRequestTemplate {
      */
     private static String visible(String text) {
         StringBuilder result = new StringBuilder();
-        Matcher matcher = NOT_PROSE.matcher(text);
         int cursor = 0;
-        while (matcher.find()) {
-            if (matcher.group("comment") == null || treatedAsIndentedCode(text, matcher.start())) {
+        for (int[] region : regions(text)) {
+            if (region[2] != COMMENT) {
                 continue;
             }
-            result.append(text, cursor, matcher.start());
-            cursor = matcher.end();
+            result.append(text, cursor, region[0]);
+            cursor = region[1];
         }
         result.append(text, cursor, text.length());
         return result.toString().trim();

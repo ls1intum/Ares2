@@ -45,7 +45,7 @@
 			${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj-version}${file.separator}aspectjrt-${aspectj-version}.jar
 		</aspectj-path>
 		<!-- 3. AOP: 3.2 Byte Buddy -->
-		<byte-buddy-version>1.18.11</byte-buddy-version>
+		<byte-buddy-version>1.18.12</byte-buddy-version>
 		<byte-buddy-path>
 			${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
 		</byte-buddy-path>
@@ -62,18 +62,18 @@
 		<!-- 4. AST: 4.1 JavaParser -->
 		<java-parser-version>3.28.2</java-parser-version>
 		<!-- 5. Formats: YAML and XML (JSON handled via Jackson) -->
-		<yaml-version>2.22.1</yaml-version>
+		<yaml-version>2.22.2</yaml-version>
 		<!-- 6. Large Tooling Libraries -->
 		<commons-io-version>2.22.0</commons-io-version>
 		<jaxb-api-version>2.3.1</jaxb-api-version>
 		<!-- 7. Small Tooling Libraries -->
 		<jgrapht-core-version>1.5.3</jgrapht-core-version>
 		<!-- 8. Logging  -->
-		<logback-version>1.6.1</logback-version>
+		<logback-version>1.6.3</logback-version>
 		<!-- 8. API  -->
 		<apiguardian-api-version>1.1.2</apiguardian-api-version>
 		<!-- Others -->
-		<spotless.version>3.9.0</spotless.version>
+		<spotless.version>3.10.0</spotless.version>
 		<!-- if JaCoCo is not executed -->
 		<argLine></argLine>
 		<!-- Isolate test classes so WALA state and test-created threads cannot accumulate
@@ -874,7 +874,7 @@
 			<plugin>
 				<groupId>com.github.spotbugs</groupId>
 				<artifactId>spotbugs-maven-plugin</artifactId>
-				<version>4.10.3.0</version>
+				<version>4.10.4.0</version>
 				<configuration>
 					<excludeFilterFile>${basedir}${file.separator}.settings${file.separator}spotbugs-exclude.xml</excludeFilterFile>
 					<failOnError>true</failOnError>

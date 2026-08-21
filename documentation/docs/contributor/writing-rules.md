@@ -112,6 +112,11 @@ it cannot rise without somebody writing the higher number down in a commit. A ru
 entry has a ceiling of zero, so adding a rule and leaving it unrecorded fails rather than
 passing unnoticed.
 
+One case raises a number honestly: a merge that brings in a page written before these rules
+existed. The text arrives already over the line, and holding the merge hostage to an editorial
+pass on somebody else's page helps nobody. Record the higher number in the merge commit, say
+which merge raised it, and let the next pass over that page bring it down again.
+
 That is what stops 1,192 advisory findings quietly becoming 1,500. The counts are not a target to
 drive to zero. `active-voice` in particular never reaches it, because a security reference
 describes what happens to code and some of that is genuinely agentless. They are a direction.
