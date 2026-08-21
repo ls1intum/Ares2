@@ -71,7 +71,19 @@ jobs:
 
       - name: Code style
         working-directory: documentation
-        run: pnpm run lint
+        run: pnpm run lint:code
+
+      # The writing rules, over the Markdown syntax tree rather than the lines. Only the
+      # rules whose forbidden form is decidable from the text alone fail here; the ones that
+      # need a person to read the sentence are reported by `pnpm run report:prose` and never
+      # fail a build. scripts/prose/rules.mjs says which is which and why.
+      - name: Prose scanner tests
+        working-directory: documentation
+        run: pnpm run test:prose
+
+      - name: Writing rules
+        working-directory: documentation
+        run: pnpm run lint:prose
 
       - name: Type check
         working-directory: documentation
