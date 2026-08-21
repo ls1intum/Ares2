@@ -48,7 +48,7 @@ Three kinds of file are read, because a reader does not know which is which:
 
 | Where | What is read |
 | --- | --- |
-| `docs/**` | Every `.md` and `.mdx` page, and the `label` of every `_category_.json` |
+| `docs/**` | Every `.md` and `.mdx` page, JSX children included, and the `label` of every `_category_.json` |
 | `src/pages/**` | The standalone pages: `imprint` and `privacy` as Markdown, the landing page as TSX |
 | `docusaurus.config.ts`, `sidebar-*.ts` | The navbar and footer labels, the tagline and the copyright line, which appear on every page |
 
@@ -165,9 +165,13 @@ The configuration field is called `restrictedPackage` and keeps that name. Prose
 field deliberately differ, under the exemption for names in code.
 
 **Abbreviations.** Every abbreviation is spelled out once per page, at its first use in body
-text. Headings neither trigger the rule nor satisfy it: requiring the expansion in a heading
-would push authors to reword it, which changes its anchor and breaks every link pointing at
-it.
+text. Both orders count, because both are correct English: "Java Virtual Machine (JVM)" puts
+the expansion first, and "JVM (Java Virtual Machine)" brackets it straight after. An expansion
+that arrives later on the page does not count, because the reader met the abbreviation before
+it and had nothing to read it with.
+
+Headings neither trigger the rule nor satisfy it: requiring the expansion in a heading would
+push authors to reword it, which changes its anchor and breaks every link pointing at it.
 
 Agree an expansion once and reuse it, rather than inventing a new wording per page. The list
 lives in `documentation/scripts/prose/rules.mjs`. `WALA` had no expansion anywhere on this
@@ -178,7 +182,10 @@ The label of the admonition every page opens with, `Simple Story`, is two ordina
 needs no expansion.
 
 **Surfaces.** Front matter, sidebar labels and image alt text are all read, and `.mdx` is
-parsed rather than forbidden.
+parsed rather than forbidden. The children of a JSX element are prose, inline and block-level
+alike, because `<Callout>The text</Callout>` renders that text; its attributes are not. An
+element with no children becomes the code sentinel, so it cannot join the words on either side
+into one nobody wrote.
 
 ## Suppressing a finding
 

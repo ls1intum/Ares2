@@ -41,7 +41,7 @@ When students submit programming exercises, instructors need to make sure the su
 
 A **security test case** is either:
 - An **Architecture test** that statically analyses student bytecode to check whether it calls forbidden APIs (e.g., `java.io.File`, `Runtime.exec()`). These tests use ArchUnit (rule-based) or T. J. Watson Libraries for Analysis (WALA) (call-graph-based) to detect violations without running the student code.
-- An **AOP test** that dynamically intercepts forbidden operations at runtime. These tests configure the Ares agent (ByteBuddy Instrumentation or AspectJ) to block actual I/O calls when the student code executes.
+- An **aspect-oriented programming (AOP) test** that dynamically intercepts forbidden operations at runtime. These tests configure the Ares agent (ByteBuddy Instrumentation or AspectJ) to block actual I/O calls when the student code executes.
 
 Security test cases are systematically generated from the policy to cover all declared permissions and restrictions.
 

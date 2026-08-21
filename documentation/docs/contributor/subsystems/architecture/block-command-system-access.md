@@ -5,7 +5,8 @@ description: "How the architecture layer detects command execution statically, w
 ---
 
 :::tip[Simple Story]
-The same question as the AOP page, asked before the pupil is asked anything.
+The same question as the aspect-oriented programming (AOP) page, asked before the pupil is
+asked anything.
 
 Rather than waiting for the errand to be requested, this layer reads the compiled answer and
 asks whether any route at all leads from their desk to the part of Java that runs commands.
@@ -46,7 +47,7 @@ Architecture testing validates that code follows specific structural rules by an
 - **Use Case**: Detecting direct and transitive method access patterns to command execution APIs
 
 #### **WALA (Call Graph Analysis)**
-- **Type**: Static analysis with call-graph modelling using IBM WALA framework
+- **Type**: Static analysis with call-graph modelling using IBM's T. J. Watson Libraries for Analysis (WALA)
 - **Strength**: Precise call path detection, understands complex call chains
 - **Method**: Builds a complete call graph representing all possible method invocations
 - **Use Case**: Finding reachable command execution methods through complex call chains
@@ -570,7 +571,7 @@ Result: Path found = [StudentCode.exploit → Helper.runCommand → Runtime.exec
 
 **Step 4: Evaluate Each Forbidden Sink**
 
-Instead of a single forward DFS, `WalaRule` examines every forbidden sink individually (`evaluateSink`):
+Instead of a single forward depth-first search (DFS), `WalaRule` examines every forbidden sink individually (`evaluateSink`):
 
 1. **Reverse walk from the sink** through infrastructure frames only (`WalaPathClassification.isInfraFrame`), using a `Deque`-based worklist over `cg.getPredNodes(...)`.
 2. Every time the walk reaches a **non-infrastructure predecessor** (a "nearest-student approach" `[nearestStudentFrame, ...infra..., sink]`), that approach is evaluated immediately (`evaluateApproach`).

@@ -5,7 +5,8 @@ description: "How the architecture layer detects file system access statically, 
 ---
 
 :::tip[Simple Story]
-The same question as the AOP page, asked without the pupil doing anything.
+The same question as the aspect-oriented programming (AOP) page, asked without the pupil
+doing anything.
 
 This layer reads the compiled answer like a map and looks for a route from their desk to the
 file-opening machinery. It can tell you that a route exists. It cannot tell you which paper,
@@ -113,7 +114,7 @@ public void readFile(String path) {
 Ares automatically detects file system operations by analysing compiled bytecode using one of two Architecture implementations:
 
 - **ArchUnit (Static Analysis)**: Pure static analysis using the ArchUnit framework. Fast analysis without call graph construction.
-- **WALA (Call Graph Analysis)**: Static analysis with dynamic modelling using IBM WALA framework. Precise call path detection with false positive filtering.
+- **T. J. Watson Libraries for Analysis (WALA), call-graph analysis**: Static analysis with dynamic modelling using the IBM WALA framework. Precise call path detection with false positive filtering.
 
 Both implementations analyse the **code structure** to find forbidden method calls, but differ in precision and performance:
 
@@ -1035,7 +1036,7 @@ evaluateSink(cg, sink, allowedClasses, entryReachable);
 //    throw for a genuine violation (source line via getSourcePosition).
 ```
 
-**Legacy DFS Path Finding (`ReachabilityChecker` / `CustomDFSPathFinder`):**
+**Legacy depth-first search (DFS) path finding (`ReachabilityChecker` / `CustomDFSPathFinder`):**
 
 The older API `ReachabilityChecker.findReachableMethods(callGraph, startNodes, targetNodeFilter)` delegates to `CustomDFSPathFinder`, which is an ITERATIVE depth-first search, not a recursive one: it keeps the current path on a `Deque<CGNode>` stack, tracks each node's unvisited successors in a `pendingChildren` map, iterates successors in signature-sorted order (`sortedSuccessors`, for run-to-run determinism), and skips children whose signature starts with an entry of the false-positives methods file (`FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS`, loaded lazily). `find()` returns the first root-to-target path or `null`.
 

@@ -41,7 +41,7 @@ Security policies are configured through settings that instructors can adjust:
 
 | Setting | Type | Description | Example |
 |---------|------|-------------|---------|
-| **aopMode** | `String` | AOP implementation | `"INSTRUMENTATION"` (Byte Buddy) or `"ASPECTJ"` |
+| **aopMode** | `String` | Aspect-oriented programming (AOP) implementation | `"INSTRUMENTATION"` (Byte Buddy) or `"ASPECTJ"` |
 | **restrictedPackage** | `String` | The package where student code is located | `"de.student."` |
 | **allowedListedClasses** | `String[]` | Trusted helper classes students can use | `["de.student.util.Helper"]` |
 | **commandsAllowedToBeExecuted** | `String[]` | Commands students are allowed to execute | `["ls", "echo"]` |

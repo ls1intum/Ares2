@@ -378,6 +378,16 @@ describe('the site source', () => {
         assert.deepEqual(await sourceRules('const a = { label: `col${x}or here` };\n'), []);
     });
 
+    test('an abbreviation is spelled out on the page it appears on', async () => {
+        assert.deepEqual(await sourceRules("const a = { description: 'The JVM runs it.' };\n",
+            '.ts'), ['abbreviation-first-use']);
+    });
+
+    test('an expansion in the same file satisfies it', async () => {
+        assert.deepEqual(await sourceRules(
+            "const a = { description: 'The Java Virtual Machine (JVM) runs it.' };\n", '.ts'), []);
+    });
+
     test('a long string is a long sentence', async () => {
         const words = Array.from({ length: 40 }, (_, index) => `word${index}`).join(' ');
         assert.deepEqual(await sourceRules(`const a = { description: '${words}.' };\n`),
@@ -462,6 +472,21 @@ describe('abbreviations', () => {
         const rules = await rulesFor('Set `JVM_OPTS` in the file.\n');
         assert.deepEqual(rules, []);
     });
+
+    test('an expansion that arrives after the first use is reported', async () => {
+        const rules = await rulesFor('The JVM starts.\n\nJava Virtual Machine (JVM) again.\n');
+        assert.deepEqual(rules, ['abbreviation-first-use']);
+    });
+
+    test('an expansion bracketed straight after the first use is accepted', async () => {
+        const rules = await rulesFor('The JVM (Java Virtual Machine) starts. The JVM loads it.\n');
+        assert.deepEqual(rules, []);
+    });
+
+    test('an expansion in a later block of the same paragraph run is still too late', async () => {
+        const rules = await rulesFor('One JVM here.\n\nAnd a Java Virtual Machine there.\n');
+        assert.deepEqual(rules, ['abbreviation-first-use']);
+    });
 });
 
 describe('suppressions', () => {
@@ -511,5 +536,30 @@ describe('MDX', () => {
     test('text around an MDX expression is prose', async () => {
         const rules = await rulesFor('The color is {value} today.\n', '.mdx');
         assert.deepEqual(rules, ['no-american-spellings']);
+    });
+
+    test('the children of a block-level JSX element are prose', async () => {
+        const rules = await rulesFor('Text.\n\n<Callout>The color matters.</Callout>\n', '.mdx');
+        assert.deepEqual(rules, ['no-american-spellings']);
+    });
+
+    test('the children of an inline JSX element are prose', async () => {
+        const rules = await rulesFor('A <Badge>color</Badge> inline.\n', '.mdx');
+        assert.deepEqual(rules, ['no-american-spellings']);
+    });
+
+    test('an inline JSX element does not join the words on either side', async () => {
+        const rules = await rulesFor('The col<Badge>x</Badge>or of it.\n', '.mdx');
+        assert.deepEqual(rules, []);
+    });
+
+    test('an empty JSX element does not join the words on either side', async () => {
+        const rules = await rulesFor('The col<Badge></Badge>or of it.\n', '.mdx');
+        assert.deepEqual(rules, []);
+    });
+
+    test('a JSX attribute is not prose', async () => {
+        const rules = await rulesFor('Text.\n\n<Callout kind="color">Fine.</Callout>\n', '.mdx');
+        assert.deepEqual(rules, []);
     });
 });

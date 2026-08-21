@@ -40,7 +40,7 @@ Given a parsed `SecurityPolicy`, this package must:
 
 1. **Discover** which packages, classes, and build tools the student project uses — either from the policy or by scanning the project directory.
 2. **Load essential data** — the list of packages and classes that Ares itself needs at runtime and that must never be blocked by the security policy.
-3. **Create** both architecture test cases (static bytecode checks via ArchUnit or WALA) and AOP test cases (dynamic runtime interception via AspectJ or ByteBuddy Instrumentation).
+3. **Create** both architecture test cases (static bytecode checks via ArchUnit or WALA) and aspect-oriented programming (AOP) test cases, which intercept at runtime through AspectJ or ByteBuddy Instrumentation.
 4. **Write** the generated test-case source files to disk.
 5. **Execute** the test cases — first the static architecture checks, then the dynamic AOP enforcement.
 

@@ -14,7 +14,7 @@ written somewhere you never set out, such as deep inside Java itself.
 
 ## What it is
 
-AspectJ is the aspect-oriented extension of Java: a language for aspects, plus a compiler
+AspectJ is the aspect-oriented programming (AOP) extension of Java: a language for aspects, plus a compiler
 and a weaver that place advice into bytecode.
 
 ## How Ares 2 uses it

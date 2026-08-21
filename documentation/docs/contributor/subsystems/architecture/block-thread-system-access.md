@@ -5,7 +5,8 @@ description: "How the architecture layer detects thread manipulation statically,
 ---
 
 :::tip[Simple Story]
-The same question as the AOP page, answered by reading rather than by watching.
+The same question as the aspect-oriented programming (AOP) page, answered by reading rather
+than by watching.
 
 This layer looks through the compiled answer for any route to the part of Java that calls in
 helpers, and reports the route it found.
@@ -45,7 +46,7 @@ Architecture testing validates that code follows specific structural rules by an
 - **Use Case**: Detecting direct and transitive method access patterns to thread creation APIs
 
 #### **WALA (Call Graph Analysis)**
-- **Type**: Static analysis with call graph modelling using IBM WALA framework
+- **Type**: Static analysis with call graph modelling using IBM's T. J. Watson Libraries for Analysis (WALA)
 - **Strength**: Precise call path detection, understands complex call chains
 - **Method**: Builds a call graph representing all possible method invocations
 - **Use Case**: Finding reachable thread creation methods through complex call chains, including lambda expressions

@@ -45,7 +45,7 @@ your exercise itself pulls in, and code you list under `theFollowingClassesAreTe
 exempt from the policy by design. A compromised or careless dependency in the exercise
 scaffolding is your supply chain to manage, not something the sandbox inspects.
 
-**The machine around the JVM.** Everything outside the supervised process, the continuous integration (CI) runner, the
+**The machine around the Java Virtual Machine (JVM).** Everything outside the supervised process, the continuous integration (CI) runner, the
 container and the network it sits on, is your infrastructure to secure.
 
 ## Where enforcement is thinner than it looks

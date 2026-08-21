@@ -60,7 +60,7 @@ These have no policy field. There is no syntax for permitting them, narrowly or 
 | Reflection | `java.lang.reflect.*`, `java.lang.invoke.*`, `Method.invoke`, `Field.set`, `Proxy`, `setAccessible` |
 | Native code | `System.loadLibrary`, `System.load`, `sun.misc.Unsafe`, and the foreign function entry points `Linker.nativeLinker`, `Linker.downcallHandle` and `SymbolLookup.libraryLookup` |
 | Class loading | `Class.forName` and dynamic loading through `ClassLoader` and its subclasses |
-| JVM termination | `System.exit`, `Runtime.exit`, `Runtime.halt` |
+| Java Virtual Machine (JVM) termination | `System.exit`, `Runtime.exit`, `Runtime.halt` |
 | Agent attach | `Instrumentation` access, class redefinition, `VirtualMachine.attach` |
 | Module system | `implAddOpens`, `implAddExports`, `privateLookupIn` |
 | Serialisation | `ObjectInputStream` and `ObjectOutputStream` |

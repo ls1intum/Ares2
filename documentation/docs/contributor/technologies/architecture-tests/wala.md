@@ -5,8 +5,8 @@ description: "Inter-procedural call-graph analysis: reachability, sinks and fals
 ---
 
 :::tip[Simple Story]
-WALA builds the full map of which method can call which, then asks whether any route leads from
-the pupil's desk to something forbidden.
+The T. J. Watson Libraries for Analysis (WALA) build the full map of which method can call
+which, then ask whether any route leads from the pupil's desk to something forbidden.
 
 Where the simpler engine asks "does this class mention that one?", WALA asks "can I get there
 from here, however many steps it takes?"
