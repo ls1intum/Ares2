@@ -33,7 +33,7 @@ class and quota and rejecting other creation; see `docs/policy/EnforcementModel.
 Architecture testing validates that code follows specific structural rules by analysing compiled bytecode. Instead of running the code and intercepting thread creation calls (AOP), it examines the program structure to find violations.
 
 **Think of it like:**
-- **AOP = Security Guard**: Checks thread quotas when threads are actually spawned
+- **AOP = Security Guard**: Checks thread quotas when threads are spawned
 - **Architecture = Building Inspector**: Reviews code structure before execution to ensure no thread creation capabilities exist
 
 **Two Analysis Frameworks:**
@@ -134,7 +134,7 @@ Each analysis mode loads its forbidden thread methods from its own template file
 
 **What is Architecture Testing?**
 
-Instead of intercepting method calls at runtime (AOP approach), architecture testing analyses the compiled bytecode to detect which thread creation methods the student code accesses. This happens during the test phase, before the code actually runs.
+Instead of intercepting method calls at runtime (AOP approach), architecture testing analyses the compiled bytecode to detect which thread creation methods the student code accesses. This happens during the test phase, before the code runs.
 
 **Two Analysis Approaches:**
 - **ArchUnit**: Fast static analysis of class dependencies
@@ -179,7 +179,7 @@ rule.check(javaClasses);  // Throws AssertionError if violated
 **Limitations:**
 - ⚠️ Less precise than WALA for complex call patterns
 - ⚠️ May have false positives for conditional code paths
-- ⚠️ Cannot determine if code path is actually reachable at runtime
+- ⚠️ Cannot determine whether a code path is reachable at runtime
 - ⚠️ May not handle lambda expressions as precisely
 
 **Example Violation Detection:**
@@ -333,15 +333,15 @@ The lists are **not identical**: the WALA list is a focused set of thread creati
 - `ExecutorService.submit(Runnable)`
 - `ExecutorService.submit(Runnable, Object)`
 - `ExecutorService.submit(Callable)`
-- `ExecutorService.invokeAll(Collection)` (also the timed overload)
-- `ExecutorService.invokeAny(Collection)` (also the timed overload)
+- `ExecutorService.invokeAll(Collection)` (and the timed overload)
+- `ExecutorService.invokeAny(Collection)` (and the timed overload)
 
 **java.util.concurrent.AbstractExecutorService:**
 - `AbstractExecutorService.submit(Runnable)`
 - `AbstractExecutorService.submit(Runnable, Object)`
 - `AbstractExecutorService.submit(Callable)`
-- `AbstractExecutorService.invokeAll(Collection)` (also the timed overload)
-- `AbstractExecutorService.invokeAny(Collection)` (also the timed overload)
+- `AbstractExecutorService.invokeAll(Collection)` (and the timed overload)
+- `AbstractExecutorService.invokeAny(Collection)` (and the timed overload)
 
 **java.util.concurrent.ThreadPoolExecutor:**
 - `ThreadPoolExecutor.execute(Runnable)`
@@ -380,7 +380,7 @@ The lists are **not identical**: the WALA list is a focused set of thread creati
 - `CompletableFuture.supplyAsync(Supplier, Executor)`
 - `CompletableFuture.thenApplyAsync(Function)`
 - `CompletableFuture.thenApplyAsync(Function, Executor)`
-- `CompletableFuture.thenCombineAsync(CompletionStage, BiFunction)` (also the Executor overload)
+- `CompletableFuture.thenCombineAsync(CompletionStage, BiFunction)` (and the Executor overload)
 - `CompletableFuture.thenCombine(CompletionStage, BiFunction)`
 
 **java.util.concurrent.ThreadFactory:**
@@ -409,9 +409,9 @@ The lists are **not identical**: the WALA list is a focused set of thread creati
 **java.util.stream.BaseStream:**
 - `BaseStream.parallel()`
 
-**Additional ArchUnit-only coverage (grouped overview of the 378-entry list):**
+**Further ArchUnit-only coverage (grouped overview of the 378-entry list):**
 
-The ArchUnit list goes far beyond thread *creation* and also flags thread *manipulation* and thread-adjacent APIs:
+The ArchUnit list goes far beyond thread *creation* and flags thread *manipulation* and thread-adjacent APIs:
 - **Thread lifecycle and interrogation**: `Thread.sleep(...)`, `Thread.join(...)`, `Thread.yield()`, `Thread.interrupt()` / `interrupted()` / `isInterrupted()`, `Thread.isAlive()`, `Thread.run()`, priority/daemon/name setters and getters, `Thread.getAllStackTraces()`, `Object.wait(long)`
 - **ThreadGroup manipulation**: constructors, `interrupt()`, `enumerate(...)`, `setMaxPriority(...)`, `list()`, ...
 - **ThreadLocal**: `ThreadLocal.get()` / `set(Object)` / `remove()`, `ThreadLocalRandom.current()`
@@ -520,7 +520,7 @@ ArchRule rule = ArchRuleDefinition.noClasses()
 **Rule Components:**
 - **DescribedPredicate**: Tests if a method access is forbidden (prefix match on the target's full name)
 - **TransitivelyAccessesMethodsCondition**: Finds transitive access paths
-- **`.that(isNotAllowedClass(...))`**: Exempts classes on the `allowedClasses` allow-list (delegating to `JavaArchitectureTestCase.isAllowedClass`, which also matches nested classes on the `$` boundary)
+- **`.that(isNotAllowedClass(...))`**: Exempts classes on the `allowedClasses` allow-list (delegating to `JavaArchitectureTestCase.isAllowedClass`, which matches nested classes on the `$` boundary too)
 - **ArchRule**: Complete rule that can be checked against `JavaClasses`
 
 The pre-built constant `JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS` is the unfiltered variant (empty allow-list), used by the generated-template path. The runtime execution path instead obtains the rule via `allowAwareRuleFor(THREAD_CREATION, allowedClasses, allowedPackages)`.
@@ -610,7 +610,7 @@ All steps below are implemented in `CustomCallgraphBuilder`.
 
 **Step 1: Filter the Classpath and Create the Analysis Scope**
 
-Before WALA sees the classpath, `filterClassPath` drops entries matching `CLASSPATH_EXCLUDE_SUBSTRINGS`: compiled test outputs, JUnit/test-platform libraries, Mockito, AssertJ/Hamcrest/jqwik, JaCoCo, Gradle test-runner infrastructure, static-analysis tooling, Ares' own jar, the WALA runtime, and the AspectJ runtime. It also widens the scope with the verified helper subdirectory (`anonymous/toolclasses`) so student superclasses can be resolved without pulling in every other category's classes.
+Before WALA sees the classpath, `filterClassPath` drops entries matching `CLASSPATH_EXCLUDE_SUBSTRINGS`: compiled test outputs, JUnit/test-platform libraries, Mockito, AssertJ/Hamcrest/jqwik, JaCoCo, Gradle test-runner infrastructure, static-analysis tooling, Ares' own jar, the WALA runtime, and the AspectJ runtime. It widens the scope with the verified helper subdirectory (`anonymous/toolclasses`) so student superclasses can be resolved without pulling in every other category's classes.
 
 ```java
 AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
@@ -710,7 +710,7 @@ The rule check is implemented in `WalaRule.check(CallGraph, Set<ClassPermission>
 3. **Per-sink evaluation** (`evaluateSink`): for each entry-reachable sink, reverse-walk from the sink through *infrastructure frames only* and evaluate each distinct nearest-student approach `[nearestStudentFrame, ...infra..., sink]` the moment it is found. Each approach gets an entry-to-student prefix via reverse BFS (`reversePathToEntry`; if the nearest student frame is allow-listed, a prefix through a non-allowed student ancestor is preferred), and the full witness path is classified by `evaluatePath`.
 4. **Throw on the first genuine violation**: a path that survives classification produces an `AssertionError`. A backstop of 64 approaches per sink (`MAX_APPROACHES_PER_SINK`) bounds pathological graphs; hitting the bound is logged, never silently passed.
 
-**Why not a single forward DFS?** The previous implementation (`ReachabilityChecker.findReachableMethods` delegating to `CustomDFSPathFinder`) marked nodes globally visited and therefore reported each sink on exactly one path; an allow-listed or false-positive caller discovered first could permanently mask a genuine violation by a different caller of the same sink. Both classes still exist in the codebase but are **legacy** for rule checking: `ReachabilityChecker` remains in use only for entry-point collection, and `CustomDFSPathFinder` (which also consumed the `false-positives-file.txt` exclusion list) has been superseded by the per-sink reverse walk in `WalaRule`.
+**Why not a single forward DFS?** The previous implementation (`ReachabilityChecker.findReachableMethods` delegating to `CustomDFSPathFinder`) marked nodes globally visited and therefore reported each sink on exactly one path; an allow-listed or false-positive caller discovered first could permanently mask a genuine violation by a different caller of the same sink. Both classes still exist in the codebase but are **legacy** for rule checking: `ReachabilityChecker` remains in use only for entry-point collection, and `CustomDFSPathFinder` (which consumed the `false-positives-file.txt` exclusion list) has been superseded by the per-sink reverse walk in `WalaRule`.
 
 **Violation Message:**
 

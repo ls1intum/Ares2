@@ -138,7 +138,7 @@ integration.
 ## What ends up in the project
 
 After the precompile phase has run, whether via Ares2UI or the command-line runner, the
-project contains additional generated files needed for enforcement during postcompile
+project contains further generated files needed for enforcement during postcompile
 execution:
 
 ```text
@@ -350,7 +350,7 @@ In a multi-project build, apply the snippet to **every** project that compiles s
 ### About the forbidden package list
 
 The list above is the versioned reserved-package boundary, and it is deliberately a superset of
-the canonical Ares list. Besides the packages Ares trusts by name, it also stops student code
+the canonical Ares list. Besides the packages Ares trusts by name, it stops student code
 shadowing the test harness itself (JUnit, jqwik, AssertJ, Logback, Gradle).
 
 Keep it aligned with `WalaPathClassification.RESERVED_PACKAGE_PREFIX_VERSION` (the prefix data)
@@ -388,7 +388,7 @@ A setup check is only worth running if it can fail for the right reason. The exa
 Two details make this a genuine test rather than a reassuring one:
 
 1. **The forbidden read must happen in supervised code, not in the test.** A test class named in `theFollowingClassesAreTestClasses` is exempt from enforcement, so a read performed by the test itself is *supposed* to succeed. Put the read in the student-facing class and let the test assert the exception.
-2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](/contributor/subsystems/policy/enforcement-model)). Under a fully restrictive file policy, ArchUnit or T. J. Watson Libraries for Analysis (WALA) rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control actually exercise the agent or the woven aspects.
+2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](/contributor/subsystems/policy/enforcement-model)). Under a fully restrictive file policy, ArchUnit or T. J. Watson Libraries for Analysis (WALA) rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control exercise the agent or the woven aspects.
 
 A correct run is therefore **green**, and contains an asserted rejection. It is not a failed build.
 

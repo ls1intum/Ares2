@@ -74,6 +74,6 @@ Implemented by `CommandPermission` in
 
 ## Notes
 
-`CommandPermission` also accepts a plain string through a delegating `@JsonCreator`, so a policy may write a bare command instead of the mapping form. It is not a shorthand for a command line: `fromString` delegates to `allowWithoutArguments`, which takes the scalar as the executable in full and leaves the argument list empty. A bare `"ls -l"` therefore permits an executable literally named `ls -l`, and denies `ls` invoked with `-l`. Use the mapping form whenever arguments are involved.
+`CommandPermission` accepts a plain string as well through a delegating `@JsonCreator`, so a policy may write a bare command instead of the mapping form. It is not a shorthand for a command line: `fromString` delegates to `allowWithoutArguments`, which takes the scalar as the executable in full and leaves the argument list empty. A bare `"ls -l"` therefore permits an executable literally named `ls -l`, and denies `ls` invoked with `-l`. Use the mapping form whenever arguments are involved.
 
 The argument list is copied defensively and wrapped unmodifiable, so the record is genuinely immutable and a caller cannot widen a permission after construction.

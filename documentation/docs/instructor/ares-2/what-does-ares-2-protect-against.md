@@ -9,7 +9,7 @@ The checklist carries two kinds of line. Some name a thing a pupil may do in one
 this paper, that telephone number, an errand with exactly these instructions. The rest name
 things nobody in the room may do at all, because no honest answer to the question needs them.
 
-It also sets out the two moments at which the school can act: the checks printed into the
+It sets out the two moments at which the school can act: the checks printed into the
 examination beforehand, or the teacher carrying the checklist in while it runs. Ares does both.
 :::
 
@@ -43,7 +43,7 @@ Ares adds an architecture check that rejects any route to it before the code run
 Granting one thing drops that architecture check, and the category becomes **runtime-only**, because static analysis cannot tell your permitted path from a forbidden one.
 
 So a category you have opened is guarded by the runtime layer alone, and it is worth knowing
-which runtime mechanism you actually have. Package imports are settled from the compiled code
+which runtime mechanism you have. Package imports are settled from the compiled code
 alone in either case.
 :::
 

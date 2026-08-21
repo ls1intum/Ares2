@@ -54,7 +54,7 @@ allow-list.
 ## 6. Teardown
 
 `afterTestExecution`, the reset in both the standard and the bootstrap class loader, and why the
-reset must also happen on the failure path.
+reset must happen on the failure path too.
 
 ## 7. Where Precompile differs
 

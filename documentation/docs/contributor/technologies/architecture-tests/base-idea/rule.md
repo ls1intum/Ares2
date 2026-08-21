@@ -32,7 +32,7 @@ One consequence is worth knowing: a deny-all static rule is added only while a d
 longer decide the question by itself, because it is argument-insensitive and cannot tell
 which file or which host a call refers to. The runtime layer becomes authoritative for
 that domain instead. This is why the example exercises permit exactly one file: it is what
-makes the negative control actually exercise the runtime layer.
+makes the negative control exercise the runtime layer.
 
 ## Further reading
 

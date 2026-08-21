@@ -5,7 +5,7 @@ description: "Adding a weaving or sandboxing mechanism alongside AspectJ, instru
 ---
 
 :::tip[Simple Story]
-Once the checklist says a thing is forbidden, somebody has to actually stop it while the pupil
+Once the checklist says a thing is forbidden, somebody has to stop it while the pupil
 is working.
 
 Ares has three ways of doing that. This is what a fourth would have to provide.

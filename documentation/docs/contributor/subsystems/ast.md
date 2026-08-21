@@ -7,7 +7,7 @@ description: "The abstract syntax tree analysis subsystem."
 :::tip[Simple Story]
 Everything else in Ares asks what a pupil is allowed to **do**.
 
-This part asks how they **answered**. Did they actually use a loop? Is there recursion? That is
+This part asks how they **answered**. Did they use a loop? Is there recursion? That is
 a mark-scheme question rather than a checklist one, and it is settled by reading the source as
 a tree of sentences rather than by watching the pupil work.
 :::
@@ -18,7 +18,7 @@ Every other part of Ares asks what a program is permitted to **do** at runtime. 
 asks how it was **written**, by parsing the source with JavaParser and inspecting the resulting
 syntax tree.
 
-That answers a different kind of exercise requirement: *did the student actually use
+That answers a different kind of exercise requirement: *did the student use
 recursion*, rather than *may this code open that file*.
 
 ## What is in it

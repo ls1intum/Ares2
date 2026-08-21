@@ -25,7 +25,7 @@ written, and it cannot see anything for which no source is available.
 
 The [`api/ast`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/ast) package uses this to make structural assertions about how
 student code is written, rather than about what it may do at runtime. That answers a
-different kind of exercise requirement: *did they actually use recursion*, rather than
+different kind of exercise requirement: *did they use recursion*, rather than
 *may they open this file*.
 
 ## Further reading

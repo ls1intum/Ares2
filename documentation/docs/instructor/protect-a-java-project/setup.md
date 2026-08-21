@@ -95,7 +95,7 @@ students are confronted with an incomprehensible log of a failed build. Such err
 explained, but that takes a lot of time, especially when it happens often, and it will once
 the number of students is large enough.
 
-It is also a security concern: students could try to read the `.java` files containing the
+It is a security concern too: students could try to read the `.java` files containing the
 test classes.
 
 ## Integrating Ares 2

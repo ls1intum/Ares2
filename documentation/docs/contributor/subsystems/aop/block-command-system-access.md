@@ -9,7 +9,7 @@ Sending someone out on an errand is the biggest hole of all, because an errand c
 anything.
 
 This page follows one attempt from beginning to end: the pupil asks for the errand, the teacher
-gets there first, works out what was actually asked for, checks it against the checklist, and
+gets there first, works out what was asked for, checks it against the checklist, and
 either stands aside or refuses.
 :::
 
@@ -110,7 +110,7 @@ Ares automatically monitors command system operations by intercepting specific J
 - **Byte Buddy (Instrumentation Mode)**: Automatically adds security checks when Java loads classes (called bytecode manipulation).
 - **AspectJ (AspectJ Mode)**: Automatically adds security checks in a second compilation step (called weaving).
 
-Both implementations set up "checkpoints" that activate **before** the command operation actually happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is aligned. The command pointcuts are kept in sync between AspectJ and instrumentation.
+Both implementations set up "checkpoints" that activate **before** the command operation happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is aligned. The command pointcuts are kept in sync between AspectJ and instrumentation.
 
 ---
 
@@ -151,7 +151,7 @@ When the `Runtime.getRuntime().exec("rm -rf /")` method is called, Ares intercep
 - **Byte Buddy**: Automatically runs a security check before the method executes (technical implementation: `JavaInstrumentationExecuteCommandMethodAdvice.onEnter()`)
 - **AspectJ**: Automatically runs a security check before the method executes (technical implementation: `before()` advice in `JavaAspectJCommandSystemAdviceDefinitions.aj`)
 
-Ares then checks whether the student is allowed to execute `"rm -rf /"` **before** the command is actually executed.
+Ares then checks whether the student is allowed to execute `"rm -rf /"` **before** the command is executed.
 
 ---
 
@@ -575,7 +575,7 @@ if (violatingMethod == null) {
    }
    ```
 
-5. **Cache the Result Per Thread:** The same walk also records the first non-ignored caller **above** the first restricted frame. Both results are stored in a per-thread cache (`CALLSTACK_INSPECTION_CACHE`) so the immediately following `findFirstMethodOutsideOfRestrictedPackage` call (5.2.3) can consume it without walking the stack a second time.
+5. **Cache the Result Per Thread:** The same walk records the first non-ignored caller **above** the first restricted frame. Both results are stored in a per-thread cache (`CALLSTACK_INSPECTION_CACHE`) so the immediately following `findFirstMethodOutsideOfRestrictedPackage` call (5.2.3) can consume it without walking the stack a second time.
 
 6. **If No Student Code Found:**
    ```java
@@ -661,7 +661,7 @@ if (commandsSize != argumentsSize) {
 
 - **`commandsAllowedToBeExecuted`** (String[]): Array of commands that students are allowed to execute (e.g., `["ls", "echo"]`)
 - **`argumentsAllowedToBePassed`** (String[][]): 2D array where each entry contains the allowed arguments for the corresponding command (e.g., `[["--help"], ["-n", "Hello"]]`)
-- **`pathsAllowedToBeExecuted`** (String[]): Optional allow-list of executable **file paths**; used by the additional executable-path validation layer (see 5.3.4)
+- **`pathsAllowedToBeExecuted`** (String[]): Optional allow-list of executable **file paths**; used by the further executable-path validation layer (see 5.3.4)
 
 **4. Result**
 
@@ -783,7 +783,7 @@ private static boolean checkIfCommandIsForbidden(
 }
 ```
 
-Argument matching (`argumentsMatch`) requires the same number of arguments and, per argument, either an **exact** match or a **relative-vs-absolute path tolerance**: a non-empty allowed token also matches an actual argument that ends with it on a path-separator boundary (e.g. allowed `src/main/file.sh` matches actual `/home/user/project/src/main/file.sh`). Substring ("contains") matching is deliberately not used, since it would let a student append arbitrary content to an allowed argument.
+Argument matching (`argumentsMatch`) requires the same number of arguments and, per argument, either an **exact** match or a **relative-vs-absolute path tolerance**: a non-empty allowed token matches an actual argument that ends with it on a path-separator boundary (e.g. allowed `src/main/file.sh` matches actual `/home/user/project/src/main/file.sh`). Substring ("contains") matching is deliberately not used, since it would let a student append arbitrary content to an allowed argument.
 
 **3. Used variables**
 
@@ -804,7 +804,7 @@ Argument matching (`argumentsMatch`) requires the same number of arguments and, 
 
 **1. Purpose**
 
-Optionally restrict not only **which command names** may be executed, but also **which executable files on disk** they may resolve to. This closes the gap where an allowed command name (e.g. `git`) could be shadowed by a malicious executable of the same name. Both backends run this layer (`checkIfExecutablePathCriteriaIsViolated`) directly after each command check - once on the parameters and once on the object attributes.
+Optionally restrict not only **which command names** may be executed, but **which executable files on disk** they may resolve to. This closes the gap where an allowed command name (e.g. `git`) could be shadowed by a malicious executable of the same name. Both backends run this layer (`checkIfExecutablePathCriteriaIsViolated`) directly after each command check - once on the parameters and once on the object attributes.
 
 **2. How it works**
 
@@ -850,7 +850,7 @@ Extract and validate all commands from the object's internal state. This is crit
 |--------|---------------|-----|
 | `ProcessBuilder.start()` | Only the `command` field | Its index is resolved dynamically via `findFieldIndex(ProcessBuilder.class, "command")` because field indices shift across JDK versions (e.g. JDK 21 added a `LOGGER` field to `ProcessBuilder`) |
 
-After the command check, the executable-path layer from 5.3.4 also runs on the same attributes. In AspectJ mode there is one additional fail-closed rule: if the `command` field of `ProcessBuilder` could not be read during attribute extraction (see 4.2), the `start()` call is denied with the command reported as `<unknown>`, because an unreadable command cannot be validated against the allow-list.
+After the command check, the executable-path layer from 5.3.4 runs on the same attributes as well. In AspectJ mode there is one further fail-closed rule: if the `command` field of `ProcessBuilder` could not be read during attribute extraction (see 4.2), the `start()` call is denied with the command reported as `<unknown>`, because an unreadable command cannot be validated against the allow-list.
 
 **3. Used variables**
 
@@ -943,13 +943,13 @@ The command system security mechanism provides **comprehensive protection** thro
 1. **application programming interface (API) Coverage**: 3 intercepted methods covering all standard command execution paths
 2. **Call Stack Analysis**: Distinguishes trusted framework code from untrusted student code
 3. **Command-Based Validation**: Strict enforcement of allowed commands with argument matching
-4. **Executable-Path Validation**: Optional additional allow-list of executable file paths (`pathsAllowedToBeExecuted`, see 5.3.4) with PATH resolution and fail-closed handling of unresolvable commands
+4. **Executable-Path Validation**: Optional further allow-list of executable file paths (`pathsAllowedToBeExecuted`, see 5.3.4) with PATH resolution and fail-closed handling of unresolvable commands
 5. **Detailed Error Messages**: Precise violation reporting with full call context
 6. **Flexible Configuration**: YAML-based security policies with command and argument allow-lists
 
 The system operates **transparently** using AOP techniques, requiring no modifications to student code, and enforces policies **before** dangerous operations execute.
 
-> 💡 **Byte Buddy vs. AspectJ:** Validation flow is aligned, and the ignored callstack prefixes are identical in both modes (see Check 2 for the exact list). Both backends also share the re-entrancy guard (`enterAdvice()`/`exitAdvice()`), the fail-closed `requireTrustedRuntimeType()` blocking of non-JDK `List` subtypes, and the executable-path validation layer (5.3.4); AspectJ fails closed with an `<unknown>` denial when the `ProcessBuilder` command field is unreadable.
+> 💡 **Byte Buddy vs. AspectJ:** Validation flow is aligned, and the ignored callstack prefixes are identical in both modes (see Check 2 for the exact list). Both backends share the re-entrancy guard (`enterAdvice()`/`exitAdvice()`), the fail-closed `requireTrustedRuntimeType()` blocking of non-JDK `List` subtypes, and the executable-path validation layer (5.3.4); AspectJ fails closed with an `<unknown>` denial when the `ProcessBuilder` command field is unreadable.
 
 **Implementation Differences:**
 

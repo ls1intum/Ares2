@@ -15,7 +15,7 @@ The outline below is the intended structure and is not yet written. Until it is,
 
 ## The situation
 
-The exercise needs a wall-clock and a memory ceiling, and it matters which of the two modes actually enforces them.
+The exercise needs a wall-clock and a memory ceiling, and it matters which of the two modes enforces them.
 
 ## The policy fragment
 

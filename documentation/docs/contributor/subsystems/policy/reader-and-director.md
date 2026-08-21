@@ -247,10 +247,10 @@ The class uses a plain null-and-empty check (`if (securityPolicyFilePath != null
 - `SecurityPolicyDirector.selectSecurityPolicyDirector(null)` is still called and returns the default `SecurityPolicyJavaDirector`.
 - The director's `createTestCases(null, …)` first calls `ProjectSourcesFinder.discover(root, null)`, so the build mode is **discovered from the project** rather than defaulted, and it then builds a factory with `ArchitectureMode.ARCHUNIT` and `AOPMode.ASPECTJ`.
 - **Discovery can fail, and it runs before any enforcement is configured.** With no policy there is no explicitly selected build mode, so a project root containing both a `pom.xml` and a Gradle descriptor is rejected as ambiguous, and one containing neither is rejected as unsupported. Both throw an `IllegalStateException` out of `discover`, which pre-empts everything below: no factory is built and the restrictive fallback is never reached. The remaining bullets therefore describe what happens **after** discovery succeeds.
-- The factory then falls back to `ResourceAccesses.createRestrictive()`: file system, network, command execution and thread creation are denied outright, and package imports are restricted to an implicit allowlist (the essential packages, which include the `java` prefix, plus the supervised package and the test-class packages). A 10-second limit is also constructed, but it becomes a Phobos test case, and `executeTestCases()` does not dispatch the Phobos family yet, so **no execution timeout applies today**; use `@StrictTimeout` where a deadline is required.
+- The factory then falls back to `ResourceAccesses.createRestrictive()`: file system, network, command execution and thread creation are denied outright, and package imports are restricted to an implicit allowlist (the essential packages, which include the `java` prefix, plus the supervised package and the test-class packages). A 10-second limit is constructed as well, but it becomes a Phobos test case, and `executeTestCases()` does not dispatch the Phobos family yet, so **no execution timeout applies today**; use `@StrictTimeout` where a deadline is required.
 - The supervised package, main class, and test classes are derived by scanning the project instead of the policy.
 
-In other words, a missing policy path does **not** disable enforcement. Provided the project is discoverable, it results in the most restrictive default enforcement, so that a forgotten or misconfigured policy path fails closed rather than open. An undiscoverable project fails earlier and louder, which is also closed.
+In other words, a missing policy path does **not** disable enforcement. Provided the project is discoverable, it results in the most restrictive default enforcement, so that a forgotten or misconfigured policy path fails closed rather than open. An undiscoverable project fails earlier and louder, which is closed too.
 
 ---
 
@@ -366,7 +366,7 @@ In practice, instructors do not call `SecurityPolicyReaderAndDirector` directly.
 | Tests fail with denied resource accesses although no policy was set | `securityPolicyFilePath` is `null`, so the default most-restricted enforcement applies (Section 7.3): file, network, command and thread accesses are denied, and package imports are restricted to the implicit allowlist | Set the policy path to a policy that permits the required accesses, or use `@Policy(activated = false)` to deactivate Ares for the test |
 | `IllegalStateException`, `Ambiguous project: both Maven and Gradle descriptors are active` | No policy was set, so no build mode is explicitly selected, and the project root carries both a `pom.xml` and a Gradle descriptor. Discovery fails before the restrictive fallback of Section 7.3 is reached | Remove the descriptor you do not use, or supply a policy whose configuration names the build tool |
 | `IllegalStateException`, `Unsupported project: no pom.xml, build.gradle or build.gradle.kts` | The project root carries no supported build descriptor, so discovery cannot determine a build mode | Run against the project root that holds the build descriptor, or pass the correct `projectFolderPath` |
-| `IllegalStateException`, `Maven was selected but pom.xml is absent` (or the Gradle equivalent) | A policy names a `JAVA_USING_MAVEN_…` configuration while the project root has no `pom.xml`, or the reverse | Align `theFollowingProgrammingLanguageConfigurationIsUsed` with the build tool the project actually uses |
+| `IllegalStateException`, `Maven was selected but pom.xml is absent` (or the Gradle equivalent) | A policy names a `JAVA_USING_MAVEN_…` configuration while the project root has no `pom.xml`, or the reverse | Align `theFollowingProgrammingLanguageConfigurationIsUsed` with the build tool the project uses |
 | Architecture tests pass but runtime enforcement is missing | Agent JAR not loaded via `-javaagent` | See the [Maven](/instructor/protect-a-java-project/postcompile/maven) or [Gradle](/instructor/protect-a-java-project/postcompile/gradle) walkthrough |
 
 ---
@@ -384,7 +384,7 @@ In practice, instructors do not call `SecurityPolicyReaderAndDirector` directly.
 | **Facade** | A design pattern that provides a simplified interface to a complex subsystem. |
 | **Strategy Pattern** | A design pattern that defines a family of interchangeable algorithms (here: different readers and directors). |
 
-## See also
+## Further reading
 
 This page describes the internals. For the policy file as an instructor writes it, including
 every supported option, see the [Security Policy Manual](security-policy-manual.md) in the

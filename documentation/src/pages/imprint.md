@@ -13,7 +13,7 @@ Telephone: +49-(0)89-289-01
 Fax: +49-(0)89-289-22000  
 Email: poststelle(at)tum.de
 
-## Authorized to represent
+## Authorised to represent
 
 The Technical University of Munich is legally represented by the President
 Prof. Dr. Thomas F. Hofmann.
@@ -40,8 +40,8 @@ been published in the official interest for general knowledge, with the restrict
 provisions on prohibition of modification and indication of source in Section 62 (1) to (3) and
 Section 63 (1) and (2) UrhG apply accordingly.
 
-Furthermore, texts, images, graphics and other files may be subject in whole or in part to the
-copyright of third parties. The persons responsible for the content will also provide more
+Texts, images, graphics and other files may be subject in whole or in part to the
+copyright of third parties. The persons responsible for the content provide more
 detailed information on the existence of possible third-party rights.
 
 ## Liability disclaimer
@@ -57,7 +57,7 @@ case of breach of official duty are applicable (§ 839 of the BGB). We accept no
 any loss or damage caused by malware when accessing or downloading data or the installation or
 use of software from this website.
 
-Ares 2 is a security component. This documentation deliberately also describes what Ares 2 does
+Ares 2 is a security component. This documentation deliberately describes what Ares 2 does
 **not** protect against; see
 [What does Ares 2 not protect against](/instructor/ares-2/what-does-ares-2-not-protect-against).
 Operating and securing your own infrastructure remains the responsibility of the deploying

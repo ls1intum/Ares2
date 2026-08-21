@@ -52,5 +52,5 @@ yourself.
 
 ## Alternative: GitHub Packages
 
-Maven Central is recommended, as it needs no authentication. Ares 2 is also published to
-GitHub Packages, which does require a token; see [GitHub Packages](github-packages.md).
+Maven Central is recommended, as it needs no authentication. Ares 2 is published to
+GitHub Packages as well, which does require a token; see [GitHub Packages](github-packages.md).

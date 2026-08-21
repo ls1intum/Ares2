@@ -5,7 +5,7 @@ description: "How the configuration value is dispatched into a director, an anal
 ---
 
 :::tip[Simple Story]
-This one field decides which of Ares 2's interchangeable engines actually turn up for duty.
+This one field decides which of Ares 2's interchangeable engines turn up for duty.
 
 Everything else on the checklist says *what* is allowed. This says *who* enforces it.
 :::

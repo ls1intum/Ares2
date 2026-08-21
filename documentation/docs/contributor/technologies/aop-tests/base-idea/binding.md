@@ -22,7 +22,7 @@ passed. The aspect-oriented programming (AOP) layer has the actual argument at t
 policy can permit `something.txt` and deny `secret.txt` and have that distinction mean
 something at runtime.
 
-It is also why a narrow allowance stays narrow even though the static layer cannot represent
+It is why a narrow allowance stays narrow even though the static layer cannot represent
 it.
 
 ## Further reading

@@ -27,7 +27,7 @@ exists to prevent.
 
 ## Combined annotations
 
-Besides using `@Public` and `@Hidden` together with JUnit's `@Test`, Ares 2 also provides two
+Besides using `@Public` and `@Hidden` together with JUnit's `@Test`, Ares 2 provides two
 combined annotations, `@PublicTest` and `@HiddenTest`. These include the JUnit `@Test`
 annotation internally and therefore offer a shorter, method-level notation. `@PublicTest`
 corresponds to using `@Public` and `@Test` together, and the same applies to `@HiddenTest`.
@@ -77,7 +77,7 @@ public class PenguinTest {
 }
 ```
 
-Like most Ares 2 annotations, `@Deadline` can also be placed on the test method (and on
+Like most Ares 2 annotations, `@Deadline` can be placed on the test method too (and on
 nested classes). When several are present, the one closest to the test method wins.
 
 That is enough to make the example work. Try varying the deadline: if the given

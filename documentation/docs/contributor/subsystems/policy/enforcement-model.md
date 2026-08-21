@@ -7,7 +7,7 @@ description: "How static and runtime responsibilities are divided, project disco
 :::tip[Simple Story]
 Two layers do the checking, and this page settles who is responsible for what.
 
-It also states the one rule the build itself has to keep, and it is honest about what the
+It states the one rule the build itself has to keep, and it is honest about what the
 boundary does **not** cover, which is the part most worth reading.
 :::
 
@@ -138,7 +138,7 @@ complete policy per scope.
 A step-by-step migration, including the complete build configuration, is in
 [the Ares 1 migration guide](/instructor/transform-ares-1-into-ares-2/).
 
-## See also
+## Further reading
 
 - [Security Policy Manual](security-policy-manual.md) — the policy file from the
   instructor's point of view

@@ -1,7 +1,7 @@
 ---
 title: "Resource Limits"
 sidebar_position: 9
-description: "The execution budget a policy can express, the unit it is expressed in, and what actually bounds a test today."
+description: "The execution budget a policy can express, the unit it is expressed in, and what bounds a test today."
 ---
 
 :::tip[Simple Story]

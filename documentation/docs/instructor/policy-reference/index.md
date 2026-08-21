@@ -19,7 +19,7 @@ range or regular expression, then notes on the traps specific to that domain.
 
 Read in sidebar order, the eight pages walk the example file from top to bottom, so the section
 doubles as an annotated tour of a complete policy. That property is asserted by
-`PolicyDocumentationStructureTest`, which also pins the shared page shape.
+`PolicyDocumentationStructureTest`, which pins the shared page shape.
 
 ## What is not here
 

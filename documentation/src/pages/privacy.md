@@ -114,7 +114,7 @@ subject:
 - where applicable, the right to data portability (Art. 20 GDPR)
 - the right to revoke consent at any time with effect for the future
 
-You also have the right to object to the processing of your data at any time on grounds relating
+You have the right to object to the processing of your data at any time on grounds relating
 to your particular situation, if the processing is carried out on the basis of Art. 6(1)(e) GDPR
 (Art. 21(1)(1) GDPR).
 

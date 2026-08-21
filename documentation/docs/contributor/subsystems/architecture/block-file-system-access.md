@@ -525,7 +525,7 @@ Delete APIs listed below can remove files and empty directories.
 | java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
 | java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
 
-**Also monitored in delete analysis (can delete source file)**
+**Monitored in delete analysis too (can delete source file)**
 
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
 | --- | --- | --- | --- | --- |
@@ -607,7 +607,7 @@ public class StudentSolution {
 4. Reports violation with source line number
 
 **Key Difference from AOP:**
-- This happens during **test time**, not when the code actually runs
+- This happens during **test time**, not when the code runs
 - Detects **all potential file accesses** in the code structure, even unreachable code
 - No runtime overhead, but cannot check specific file paths
 
@@ -660,7 +660,7 @@ A separate variant exists for the generated-template path (`JavaArchunitTestCase
 **Limitations:**
 - ⚠️ Less precise than WALA for complex call patterns
 - ⚠️ May have false positives for conditional code paths
-- ⚠️ Cannot determine if code path is actually reachable at runtime
+- ⚠️ Cannot determine whether a code path is reachable at runtime
 
 ---
 
@@ -699,7 +699,7 @@ com/tngtech.*
 com/ibm/wala.*
 ```
 
-The full file (166 lines) also excludes many further `java/util/*` classes, `java/time/*`, `java/text/*`, `java/math/*` and additional test-library patterns.
+The full file (166 lines) excludes many further `java/util/*` classes, `java/time/*`, `java/text/*`, `java/math/*` and further test-library patterns.
 
 **Step 2: Define Entry Points**
 

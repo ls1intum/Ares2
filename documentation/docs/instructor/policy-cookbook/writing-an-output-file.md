@@ -1,7 +1,7 @@
 ---
 title: "Writing an output file"
 sidebar_position: 3
-description: "Permitting creation and overwrite of one output path without also granting read access."
+description: "Permitting creation and overwrite of one output path without granting read access."
 ---
 
 :::tip[Simple Story]
@@ -28,7 +28,7 @@ The operations the recipe deliberately does not enable, so the boundary stays vi
 
 ## The tempting wrong version
 
-Permitting overwrite on a directory rather than a path, which also allows replacing files the exercise depends on.
+Permitting overwrite on a directory rather than a path, which allows replacing files the exercise depends on.
 
 ## Notes
 

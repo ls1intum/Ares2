@@ -6,7 +6,7 @@ description: "The abstract factory and builder that turn a security policy into 
 
 :::tip[Simple Story]
 A filled-in checklist is a wish list. Something has to turn it into checks the teacher can
-actually work through.
+work through.
 
 This is that something: it reads the finished checklist and builds the exact set of security
 test cases it calls for.
@@ -286,7 +286,7 @@ The first five parameters (`creator`, `writer`, `executer`, `essentialDataReader
 Each invocation proceeds through two phases — extraction (reading class data from disk) and preparation (computing permissions) — before generating the final test-case objects:
 
 1. **Extraction (cached):**
-   - Computes the `classPath` via `BuildMode.getClasspath(projectPath, packageName)`. This is more than picking `target/classes` (Maven) vs `build/classes/java/main` (Gradle): the method also appends the package path to the build directory and interprets `withinPath`-style prefixes such as `classes/java/main/...` or `classes/...` by rewriting them onto the actual build directory.
+   - Computes the `classPath` via `BuildMode.getClasspath(projectPath, packageName)`. This is more than picking `target/classes` (Maven) vs `build/classes/java/main` (Gradle): the method appends the package path to the build directory and interprets `withinPath`-style prefixes such as `classes/java/main/...` or `classes/...` by rewriting them onto the actual build directory.
    - Validates the imported bytecode via `ReservedPackageGuard.validateClassNames(...)` — any compiled class declared under a trusted infrastructure prefix aborts test-case creation with a `SecurityException`.
    - Imports `JavaClasses` via the `ArchitectureMode` (ArchUnit's `ClassFileImporter`).
    - Obtains the `CallGraph` as a **lazy `Supplier`** via the `ArchitectureMode` — it is never eagerly built here (null for ArchUnit, WALA's `CustomCallgraphBuilder` for WALA mode). Only the `classPath` and the `JavaClasses` are computed eagerly; the call graph is constructed on first use, and the disk-backed T. J. Watson Libraries for Analysis (WALA) outcome cache can short-circuit rule checks before the supplier is ever invoked.
@@ -677,7 +677,7 @@ class SecurityTest {
 | **AspectJ** | A compile-time AOP framework that weaves interception code directly into bytecode. |
 | **Instrumentation (Java Agent)** | A runtime AOP approach using the `java.lang.instrument` API and ByteBuddy. A Java agent modifies class bytecode at load time. |
 | **ByteBuddy** | A library for creating and modifying Java classes at runtime, used by Ares to implement the instrumentation agent. |
-| **Phobos** | An additional test framework within Ares that generates test cases for file-system interactions, network connections, and timeout enforcement. |
+| **Phobos** | A further test framework within Ares that generates test cases for file-system interactions, network connections, and timeout enforcement. |
 | **Essential Packages / Classes** | Packages and classes that Ares itself needs at runtime (e.g., JUnit, ArchUnit, ByteBuddy, Ares internals). These are always permitted, regardless of the security policy, to prevent the test framework from blocking itself. |
 | **Automatic Escalation** | When the security policy declares no permissions for a resource category (e.g., no file-system permissions), the `JavaCreator` generates both an architecture test (static) and an AOP test (dynamic) for that category, providing double protection. |
 | **Three-Parted File** | A generated file consisting of a Header template, a dynamically built Body, and a Footer template. Used by the `Writer` to produce all test-case source files. |

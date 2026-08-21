@@ -30,7 +30,7 @@ hidden distinction, the deadline check before a hidden property runs, and the ac
 security policy.
 
 This is why the annotations are duplicated per engine. A test class must import the
-`jupiter` annotations or the `jqwik` ones to match the engine that will actually run it;
+`jupiter` annotations or the `jqwik` ones to match the engine that runs it;
 mixing them silently produces a test that is not supervised.
 
 :::warning[Import the annotations that match your engine]

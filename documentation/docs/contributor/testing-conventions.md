@@ -5,7 +5,7 @@ description: "The rules a test in this repository must follow, and why a securit
 ---
 
 :::tip[Simple Story]
-Here the checklist is the thing being examined. Ares supervises the room and is also what is
+Here the checklist is the thing being examined. Ares supervises the room and is itself what is
 under test, and that is exactly where these tests go wrong.
 
 Anything you start inside the examination is itself a pupil, subject to the same checklist, so

@@ -83,14 +83,14 @@ If students read more lines than were provided, they get the following feedback:
 java.lang.IllegalStateException: no further console input request after the last(number 1: "5") expected.
 ```
 
-See also `IOTester` and, for more examples, the
+See `IOTester` and, for more examples, the
 [`InputOutputUser`](https://github.com/ls1intum/Ares2/blob/main/src/test/java/de/tum/cit/ase/ares/integration/testuser/InputOutputUser.java)
 test.
 
 :::tip[Custom IO managers]
 If the default `IOTester` does not meet your requirements, provide a custom implementation by
 applying `@WithIOManager(MyCustomOne.class)` to, for example, the test class or individual
-methods. This also lets you register a custom parameter to control IO testing conveniently
+methods. This lets you register a custom parameter to control IO testing conveniently
 inside the test method. Have a look at the test class linked above, or read the documentation
 of
 [`IOManager`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/io/IOManager.java).
@@ -106,13 +106,13 @@ narrow at runtime, even though argument-insensitive static analysis cannot repre
 
 You can set a locale for Ares 2, and for the rest of Java, by adding the `@UseLocale` JUnit
 extension to classes or methods. It sets the Java default locale via
-`Locale.setDefault(Locale)`, which Ares 2 also uses. The locale is changed only for the scope
+`Locale.setDefault(Locale)`, which Ares 2 uses as well. The locale is changed only for the scope
 where the annotation is applied.
 
 Ares 2 is currently localised in German (`de_DE`) and English (`en_US`), where `en_US` is the
 fallback for any other locale.
 
-See also the
+See the
 [`LocaleUser`](https://github.com/ls1intum/Ares2/blob/main/src/test/java/de/tum/cit/ase/ares/integration/testuser/LocaleUser.java)
 test for more examples.
 
@@ -133,7 +133,7 @@ The first row is the trap. `@Policy` is not itself a JUnit extension: it carries
 
 > **Rule of thumb:** the Ares test annotation is what turns Ares on. The policy only decides how strict it then is.
 
-### What the policy-free configuration actually restricts
+### What the policy-free configuration restricts
 
 With the extension registered and no policy present, Ares builds a restrictive configuration in which all five permission lists are empty:
 
@@ -146,7 +146,7 @@ Two further points apply whether or not a policy is present:
 - Ares installs fixed restrictions that no policy can grant, covering reflection, native access, Java Virtual Machine (JVM) termination, class loading, JNDI and related domains. A policy governs the five resource domains, not everything.
 - The reserved-package boundary of the reserved-package step is still required. It is a build-side check and does not depend on the Ares extension activating at all.
 
-The policy-free path also **fixes the analysis and enforcement modes**: it always uses ArchUnit for static analysis and AspectJ for the runtime layer, and it discovers the build tool from the project itself. Two consequences follow:
+The policy-free path **fixes the analysis and enforcement modes**: it always uses ArchUnit for static analysis and AspectJ for the runtime layer, and it discovers the build tool from the project itself. Two consequences follow:
 
 1. The ByteBuddy agent is not the enforcing mechanism here. The AspectJ weaving configured in [the Gradle walkthrough](./postcompile/gradle.md) or [the Maven walkthrough](./postcompile/maven.md) is what enforces at runtime. A project that is not woven gets the static ArchUnit checks only.
 2. Discovery has to succeed first, and it can fail. With no policy there is no explicitly selected build tool, so a project containing both a `pom.xml` and a `build.gradle` is rejected as ambiguous, and one containing neither is rejected as unsupported. Either failure happens **before** any enforcement is configured, so the restrictive configuration described above never takes effect in those cases; the build fails instead. See the [troubleshooting table](../troubleshooting.md).
@@ -174,7 +174,7 @@ Note the absence of `@Test`: `@PublicTest` is itself a test annotation. If you p
 With a policy, the enforcement scope and the trusted test classes are **pinned by the instructor**. Without one, Ares derives both by scanning the project, and the project includes the student's submission:
 
 - **The supervised package** is chosen as the most frequent non-reserved package among the production sources. A submission whose file distribution differs from what you expect can therefore shift the scope away from the code you meant to supervise.
-- **The exempt test classes** are collected by scanning the discovered test source roots for annotated test classes. If students can add files beneath a test source root, they can obtain that exemption. A nested test class is covered only when its enclosing class is also recognised, because the scanner reports nested types in source notation (`Outer.Inner`) while the exemption check matches binary notation (`Outer$Inner`).
+- **The exempt test classes** are collected by scanning the discovered test source roots for annotated test classes. If students can add files beneath a test source root, they can obtain that exemption. A nested test class is covered only when its enclosing class is recognised too, because the scanner reports nested types in source notation (`Outer.Inner`) while the exemption check matches binary notation (`Outer$Inner`).
 
 Neither is a defect in the fallback; it is what a fallback with no instructor input can do. But both mean the policy-free path is only as trustworthy as your control over the source roots. With a policy present, `theFollowingClassesAreTestClasses` pins the exempt set and Ares never scans for it.
 

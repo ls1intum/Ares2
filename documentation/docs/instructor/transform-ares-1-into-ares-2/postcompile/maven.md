@@ -35,7 +35,7 @@ Remove the Ares 1 dependency:
 testImplementation 'de.tum.in.ase:artemis-java-test-sandbox:1.15.0'
 ```
 
-> **On the libraries Ares 1 bundled.** Ares 1 shipped JUnit 5, AssertJ and Hamcrest transitively, so exercises often relied on them without declaring them. Ares 2 still exposes JUnit and AssertJ; Hamcrest is the one that disappears. Regardless of what remains transitive, declare the test libraries your tests actually import. Relying on another library's transitive graph is what makes an upgrade break compilation for reasons unrelated to the upgrade.
+> **On the libraries Ares 1 bundled.** Ares 1 shipped JUnit 5, AssertJ and Hamcrest transitively, so exercises often relied on them without declaring them. Ares 2 still exposes JUnit and AssertJ; Hamcrest is the one that disappears. Regardless of what remains transitive, declare the test libraries your tests import. Relying on another library's transitive graph is what makes an upgrade break compilation for reasons unrelated to the upgrade.
 
 Ares 2 needs four things where Ares 1 needed one: the dependency, AspectJ weaving of the student
 bytecode, the agent attached to the test Java Virtual Machine (JVM), and a set of JVM module-access flags.
@@ -192,7 +192,7 @@ Attach the agent:
 Three details that bite:
 
 - **Pin the version.** Without `<version>`, Surefire floats with whatever the super-POM binds, and a Maven upgrade silently changes how tests are launched.
-- **`@{argLine}` first.** JaCoCo's `prepare-agent` works by *setting* the `argLine` property. A plain `<argLine>` overwrites it and coverage silently reports nothing. This is also why the properties block declares an empty `<argLine></argLine>`: without it, a run without JaCoCo fails on an unresolved `@{argLine}`.
+- **`@{argLine}` first.** JaCoCo's `prepare-agent` works by *setting* the `argLine` property. A plain `<argLine>` overwrites it and coverage silently reports nothing. This is why the properties block declares an empty `<argLine></argLine>`: without it, a run without JaCoCo fails on an unresolved `@{argLine}`.
 - **Quote the two paths.** `${project.build.directory}` contains a space whenever the project sits under a directory such as `My Projects`. Surefire splits on whitespace but honours double quotes.
 
 If another agent is present, put the Ares agent **after** a coverage agent, so coverage instrumentation is applied to the classes Ares then transforms rather than the reverse.
@@ -303,7 +303,7 @@ What it restricts:
 - **Package imports: restricted, not eliminated.** Ares always permits an implicit allowlist made of the essential packages it ships, the supervised package itself, and the packages of the recognised test classes. The essential list includes the `java` prefix, so all of `java.*` stays importable.
 - **No default execution timeout yet.** A 10,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.1.1 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
 
-It also fixes the modes: always ArchUnit for static analysis and AspectJ for the runtime layer, with the build tool discovered from the project. So the AspectJ weaving of the step named in section 4 of this guide is what enforces at runtime here, and a project that is not woven falls back to the static checks alone.
+It fixes the modes: always ArchUnit for static analysis and AspectJ for the runtime layer, with the build tool discovered from the project. So the AspectJ weaving of the step named in section 4 of this guide is what enforces at runtime here, and a project that is not woven falls back to the static checks alone.
 
 That discovery step has to succeed before any of this applies. Without a policy there is no explicitly selected build tool, so a project containing both a `pom.xml` and a `build.gradle` is rejected as ambiguous, and one containing neither is rejected as unsupported. Both fail the build outright rather than falling back to the restrictive configuration.
 
@@ -312,7 +312,7 @@ That discovery step has to succeed before any of this applies. Without a policy 
 The second reason for caution is that without a policy, Ares derives from the project what a policy would have pinned:
 
 - **The supervised package** is chosen as the most frequent non-reserved package among the production sources, so a submission with an unexpected file distribution can shift the enforcement scope.
-- **The exempt test classes** are found by scanning the discovered test source roots for annotated test classes. If students can add files beneath a test source root, they can obtain that exemption. Note that a nested test class is covered only when its enclosing class is also recognised: the scanner reports nested types in source notation (`Outer.Inner`), whereas the exemption check matches binary notation (`Outer$Inner`), so an independently detected nested class is not exempt on its own.
+- **The exempt test classes** are found by scanning the discovered test source roots for annotated test classes. If students can add files beneath a test source root, they can obtain that exemption. Note that a nested test class is covered only when its enclosing class is recognised too: the scanner reports nested types in source notation (`Outer.Inner`), whereas the exemption check matches binary notation (`Outer$Inner`), so an independently detected nested class is not exempt on its own.
 
 For a graded exercise, prefer a policy with six empty lists over no policy at all. It is equally strict and pins the scope, the exempt set and the mode.
 

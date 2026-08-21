@@ -28,7 +28,7 @@ test method.
 The [`api/jupiter`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/jupiter) package is the integration layer.
 
 - `@Public` and `@Hidden` mark whether a test gives immediate feedback or waits for the
-  deadline. `@PublicTest` and `@HiddenTest` are the combined forms that also carry `@Test`.
+  deadline. `@PublicTest` and `@HiddenTest` are the combined forms that carry `@Test` as well.
 - The deadline check runs **before** a hidden test executes, so a hidden test that is not
   yet due never runs, rather than running and having its result suppressed. That is the
   whole point: a test that runs can leak through a file or a static field.
@@ -36,7 +36,7 @@ The [`api/jupiter`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de
 - Parameter resolution supplies `IOTester` to a test that declares it, which is how console
   interaction is tested without the test touching `System.in` directly.
 
-Ares also ships a jqwik integration for property-based tests; see [Jqwik](./jqwik.md).
+Ares ships a jqwik integration for property-based tests too; see [Jqwik](./jqwik.md).
 
 ## Further reading
 

@@ -107,7 +107,7 @@ Ares automatically monitors file system operations by intercepting specific Java
 - **Byte Buddy (Instrumentation Mode)**: Automatically adds security checks when Java loads classes (called bytecode manipulation).
 - **AspectJ (AspectJ Mode)**: Automatically adds security checks in a second compilation step (called weaving).
 
-Both implementations set up "checkpoints" that activate **before** the file operation actually happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is identical in both modes, but interception coverage differs slightly (AspectJ uses explicit pointcuts; instrumentation uses type-hierarchy maps).
+Both implementations set up "checkpoints" that activate **before** the file operation happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is identical in both modes, but interception coverage differs slightly (AspectJ uses explicit pointcuts; instrumentation uses type-hierarchy maps).
 
 ---
 
@@ -311,7 +311,7 @@ Write APIs listed below modify existing content or attributes.
 > - `FileChannel.open` / `AsynchronousFileChannel.open`: Classified based on `OpenOption` parameters via `deriveActionChecks()`
 > - `FileChannel.map`: Classified based on `MapMode` parameter (e.g., `READ_WRITE` vs `READ_ONLY`)
 
-> **Note on generic write/close/flush methods:** Generic `write()`, `close()`, and `flush()` methods on stream classes (e.g., `OutputStream.write()`, `Writer.flush()`) are intentionally **NOT monitored**. Reason: `System.out` and `System.err` internally call these methods, which would cause false positives. File access is already blocked at the constructor level, making these additional checks redundant.
+> **Note on generic write/close/flush methods:** Generic `write()`, `close()`, and `flush()` methods on stream classes (e.g., `OutputStream.write()`, `Writer.flush()`) are intentionally **NOT monitored**. Reason: `System.out` and `System.err` internally call these methods, which would cause false positives. File access is already blocked at the constructor level, making these further checks redundant.
 
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
 | --- | --- | --- | --- | --- |
@@ -493,7 +493,7 @@ Delete APIs listed below can remove files and empty directories.
 | java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
 | java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
 
-**Also monitored in delete pointcuts (can delete source file)**
+**Monitored in delete pointcuts too (can delete source file)**
 
 > **Note:** `Files.move` is monitored under both WRITE and DELETE because it writes the destination **and** deletes the source. `Files.copy` is intentionally **not** in the delete pointcuts of either backend, because copying does not delete the source; it is monitored under WRITE only.
 
@@ -564,7 +564,7 @@ When the `Files.readString(Path.of("/etc/passwd"))` method is called, Ares inter
 - **Byte Buddy**: Automatically runs a security check before the method executes (technical implementation: `JavaInstrumentationReadPathMethodAdvice.onEnter()`)
 - **AspectJ**: Automatically runs a security check before the method executes (technical implementation: `before()` advice in `JavaAspectJFileSystemAdviceDefinitions.aj`)
 
-Ares then checks whether the student is allowed to access `Path.of("/etc/passwd")` **before** the file is actually read.
+Ares then checks whether the student is allowed to access `Path.of("/etc/passwd")` **before** the file is read.
 
 ---
 
@@ -1363,7 +1363,7 @@ This exemption is applied at **all three** check sites: parameter-based, receive
 - `"ares/api/configuration/essentialFiles/java/EssentialPackages.yaml"`
 - `"ares/api/configuration/essentialFiles/java/EssentialClasses.yaml"`
 
-**Further infrastructure exemptions:** Besides Ares's own files, a flagged path is also allowed when the access is Java Virtual Machine (JVM)/library infrastructure rather than student file access:
+**Further infrastructure exemptions:** Besides Ares's own files, a flagged path is allowed when the access is Java Virtual Machine (JVM)/library infrastructure rather than student file access:
 - `.class` reads performed by the class-loading machinery (a class-loader frame is on the stack, or the caller is `Class.forName`/`ClassLoader`)
 - `.jar` reads from system infrastructure (the Maven local repository or the JDK installation under `java.home`)
 - Java Development Kit (JDK) internal reads under `java.home` and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)

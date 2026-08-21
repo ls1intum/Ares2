@@ -8,7 +8,7 @@ description: "Deriving call relationships from the syntax tree, and how that dif
 You can work out from the source which method calls which, and draw the same kind of map the
 bytecode analysis draws.
 
-The catch is that the source only shows what the pupil actually wrote. Anything borrowed from a
+The catch is that the source only shows what the pupil wrote. Anything borrowed from a
 library is a name on the page with nothing behind it.
 :::
 

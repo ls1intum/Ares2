@@ -9,7 +9,7 @@ ArchUnit reads the pupil's compiled answer and checks statements about how its p
 another, without running any of it.
 
 It is very good at "does this class mention that class at all?" and it cannot answer "which
-file does this call actually open?", because that value only exists once the pupil is working.
+file does this call open?", because that value only exists once the pupil is working.
 :::
 
 ## What it is

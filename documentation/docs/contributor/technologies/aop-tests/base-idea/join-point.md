@@ -8,7 +8,7 @@ description: "A point in the execution of the program where behaviour can be att
 A join point is a moment during the examination where the teacher could step in: this method
 is about to be called, this constructor is about to run.
 
-It is a *candidate* moment, not a chosen one. Choosing which of them you actually care about is
+It is a *candidate* moment, not a chosen one. Choosing which of them you care about is
 a separate step.
 :::
 

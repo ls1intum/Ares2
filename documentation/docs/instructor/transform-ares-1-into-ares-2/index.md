@@ -98,7 +98,7 @@ The test-type and lifecycle annotations survive the migration. Rewrite the packa
 | `de.tum.in.test.api.localization.UseLocale` | `de.tum.cit.ase.ares.api.localization.UseLocale` |
 | `de.tum.in.test.api.io.IOTester` | `de.tum.cit.ase.ares.api.io.IOTester` |
 
-A blanket search and replace of `de.tum.in.test.api` with `de.tum.cit.ase.ares.api` handles all of these. It will also produce unresolved imports for every **security** annotation, which is the correct outcome: those have no Ares 2 counterpart and are the subject of the step named in section 6 of this guide. Delete them as you translate them, rather than before, so you do not lose the configuration they encoded.
+A blanket search and replace of `de.tum.in.test.api` with `de.tum.cit.ase.ares.api` handles all of these. It produces unresolved imports for every **security** annotation, which is the correct outcome: those have no Ares 2 counterpart and are the subject of the step named in section 6 of this guide. Delete them as you translate them, rather than before, so you do not lose the configuration they encoded.
 
 > **Keep `@StrictTimeout`.** It is the effective timeout mechanism in Ares 2, exactly as in Ares 1. Do **not** rewrite it as a policy entry; see the step named in section 6.2 of this guide.
 
@@ -223,7 +223,7 @@ Notes on the rows that need them:
 
 **`@BlacklistPath`.** Ares 2 is allowlist-only. A blacklist that carved an exception out of a broader whitelist has no direct form. Sometimes you can reproduce the intent by granting several narrower paths instead of the parent, but "allow this directory except one file inside it" is not representable. The common Ares 1 idiom `@WhitelistPath("target")` with `@BlacklistPath("target/test-classes")` becomes: grant only the specific subdirectories the exercise legitimately needs.
 
-**`@AllowLocalPort`.** A fixed port becomes one `regardingNetworkConnections` entry on `localhost`. Ares 1's range-with-exclusions form has no counterpart; enumerate the ports you actually need. One special case is worth knowing: in Ares 2, `onThePort: 0` is a **wildcard** matching every port, not port zero. That makes an unrestricted Ares 1 `allowPortsAbove = 0` representable, and it makes writing `0` for anything else dangerously broad.
+**`@AllowLocalPort`.** A fixed port becomes one `regardingNetworkConnections` entry on `localhost`. Ares 1's range-with-exclusions form has no counterpart; enumerate the ports you need. One special case is worth knowing: in Ares 2, `onThePort: 0` is a **wildcard** matching every port, not port zero. That makes an unrestricted Ares 1 `allowPortsAbove = 0` representable, and it makes writing `0` for anything else dangerously broad.
 
 **`@AllowThreads`.** Ares 1 capped the number of *concurrently active* threads. Ares 2 counts threads per thread class through `createTheFollowingNumberOfThreads` and `ofThisClass`. The accounting differs, so a translated limit is an approximation, not a rename. Re-derive the number the exercise needs rather than copying `maxActiveCount`.
 
@@ -255,7 +255,7 @@ does not become three policy fragments. Work out the *effective* permission set 
 
 ### Naming your test classes correctly
 
-`theFollowingClassesAreTestClasses` takes **exact fully qualified class names**. Nested classes are recognised, but only on the `$` boundary, so listing `org.example.ExerciseTest` also covers `org.example.ExerciseTest$Inner`.
+`theFollowingClassesAreTestClasses` takes **exact fully qualified class names**. Nested classes are recognised, but only on the `$` boundary, so listing `org.example.ExerciseTest` covers `org.example.ExerciseTest$Inner`.
 
 Package names and package prefixes do not exempt anything. `"org.example"` does not trust the classes in `org.example`; it matches a class literally named `org.example`, which does not exist. List every test class explicitly:
 
@@ -301,5 +301,5 @@ assertTrue(violation.getMessage().contains("secret.txt"),
 | **Reserved package** | A package prefix student code may not declare, because Ares trusts that identity by name. Enforced by the build, see the step named in section 8 of this guide. |
 | **`withinPath`** | The path to compiled student bytecode, relative to the build output directory. Differs between Gradle and Maven. |
 | **Phobos** | A test-case family covering the file-system, network and timeout domains. Ares 2.1.1 generates Phobos cases but does not yet dispatch them from the in-process execution path, so a policy timeout does not bound a test today. Use `@StrictTimeout` for a deadline. |
-| **`@StrictTimeout`** | The annotation that actually bounds test execution. Applied to a test class or method, and unchanged from Ares 1 apart from its package. |
+| **`@StrictTimeout`** | The annotation that bounds test execution. Applied to a test class or method, and unchanged from Ares 1 apart from its package. |
 | **Positive / negative control** | The paired checks of the step named in section 10 of this guide: one permitted operation that must succeed, one forbidden operation that must be rejected. Neither alone demonstrates that enforcement works. |

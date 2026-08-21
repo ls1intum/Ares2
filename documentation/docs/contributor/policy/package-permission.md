@@ -39,7 +39,7 @@ None. A package restriction that a static analyser misses is not caught later.
 
 ## Where the code lives
 
-- `policy/policySubComponents/PackagePermission.java`, which is also one of the classes copied
+- `policy/policySubComponents/PackagePermission.java`, which is one of the classes copied
   into a Precompile-generated exercise (`ArchunitJavaCopyFiles.csv`)
 - `architecture/java/archunit/JavaArchunitTestCaseCollection.java`
 

@@ -34,7 +34,7 @@ exact allowance and rejecting non-matching commands and arguments; see
 Architecture testing validates that code follows specific structural rules by analysing compiled bytecode. Instead of running the code and intercepting command execution calls (AOP), it examines the program structure to find violations.
 
 **Think of it like:**
-- **AOP = Security Guard**: Checks command parameters when processes are actually spawned
+- **AOP = Security Guard**: Checks command parameters when processes are spawned
 - **Architecture = Building Inspector**: Reviews code structure before execution to ensure no command execution capabilities exist
 
 **Two Analysis Frameworks:**
@@ -135,7 +135,7 @@ Both ArchUnit and WALA modes monitor the same set of command execution methods, 
 
 **What is Architecture Testing?**
 
-Instead of intercepting method calls at runtime (AOP approach), architecture testing analyses the compiled bytecode to detect which command execution methods the student code accesses. This happens during the test phase, before the code actually runs.
+Instead of intercepting method calls at runtime (AOP approach), architecture testing analyses the compiled bytecode to detect which command execution methods the student code accesses. This happens during the test phase, before the code runs.
 
 **Two Analysis Approaches:**
 - **ArchUnit**: Fast static analysis of class dependencies
@@ -230,7 +230,7 @@ public class StudentSolution {
 4. Reports violation with source line number
 
 **Key Difference from AOP:**
-- This happens during **test time**, not when the code actually runs
+- This happens during **test time**, not when the code runs
 - Detects **all potential command execution attempts** in the code structure, even unreachable code
 - No runtime overhead, but cannot check specific command parameters
 
@@ -290,7 +290,7 @@ JavaClasses javaClasses = new ClassFileImporter()
 **Limitations:**
 - ⚠️ Less precise than WALA for complex call patterns
 - ⚠️ May have false positives for conditional code paths
-- ⚠️ Cannot determine if code path is actually reachable at runtime
+- ⚠️ Cannot determine whether a code path is reachable at runtime
 
 **Example Violation Detection:**
 ```java

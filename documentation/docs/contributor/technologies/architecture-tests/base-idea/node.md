@@ -20,7 +20,7 @@ the engine: ArchUnit reasons mostly about classes and their members, while T. J.
 about individual methods, because a call graph joins methods rather than classes.
 
 Nodes come from **compiled bytecode**, not from source. That matters twice over: the
-analysis sees what the compiler actually produced, including synthetic and bridge methods
+analysis sees what the compiler produced, including synthetic and bridge methods
 the author never wrote, and it can analyse a dependency for which no source is available.
 
 ## In Ares 2

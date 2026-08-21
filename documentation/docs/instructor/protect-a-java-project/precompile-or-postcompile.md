@@ -67,7 +67,7 @@ trusts and be trusted along with it.
 
 ## Choosing a configuration
 
-1. **Create a security policy and annotate tests:** follow the [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual), which explains how to write `SecurityPolicy.yaml` files and apply `@Policy` to your tests. `@Policy` selects the policy but activates nothing on its own, so each supervised test also needs an [Ares test annotation](./test-annotations.md) (`@Public`, `@Hidden`, `@PublicTest` or `@HiddenTest`). If your exercise needs no resource access at all, [Further Options](./further-options.md) describes the alternative.
+1. **Create a security policy and annotate tests:** follow the [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual), which explains how to write `SecurityPolicy.yaml` files and apply `@Policy` to your tests. `@Policy` selects the policy but activates nothing on its own, so each supervised test needs an [Ares test annotation] as well(./test-annotations.md) (`@Public`, `@Hidden`, `@PublicTest` or `@HiddenTest`). If your exercise needs no resource access at all, [Further Options](./further-options.md) describes the alternative.
 2. **Choose the right configuration:** select one of the eight `ProgrammingLanguageConfiguration` values matching your build tool, architecture analysis and runtime enforcement:
 
 | Value | Build Tool | Static Analysis | Runtime Enforcement |
@@ -102,7 +102,7 @@ trusts and be trusted along with it.
 | **Classifier (`:agent`)** | A Maven/Gradle coordinate qualifier selecting a variant of an artefact. The `:agent` classifier selects the agent JAR, which carries the `Premain-Class` manifest entry and needs no repackaging. |
 | **Reserved package** | A package prefix that student code may not declare, because Ares trusts that identity by name. Enforced by the build, see the reserved-package step. |
 | **Phobos** | A test-case family covering the file-system, network and timeout domains. Ares 2.1.2 generates Phobos cases but does not yet dispatch them from the in-process execution path, so a policy timeout does not bound a test today. Use `@StrictTimeout` for a deadline. |
-| **`@StrictTimeout`** | The annotation that actually bounds test execution. Applied to a test class or method, and unchanged from Ares 1 apart from its package. |
+| **`@StrictTimeout`** | The annotation that bounds test execution. Applied to a test class or method, and unchanged from Ares 1 apart from its package. |
 | **Positive / negative control** | The paired checks of the two controls above: one permitted operation that must succeed, one forbidden operation that must be rejected. Neither alone demonstrates that enforcement works. |
 
 ## Related documentation

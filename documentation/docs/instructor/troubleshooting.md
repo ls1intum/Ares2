@@ -1,17 +1,17 @@
 ---
 title: "Troubleshooting"
 sidebar_position: 6
-description: "The failures instructors actually hit when protecting or migrating an exercise, and what each one means."
+description: "The failures instructors hit when protecting or migrating an exercise, and what each one means."
 ---
 
 :::tip[Simple Story]
 When something goes wrong, the report names the mechanism rather than the cause. It tells you
 which part of the checklist objected, not what you did.
 
-This page translates the reports back into what you actually have to change.
+This page translates the reports back into what you have to change.
 :::
 
-The two tables below are the fastest route: find the message you actually saw. The sections
+The two tables below are the fastest route: find the message you saw. The sections
 after them cover the failures that show up as wrong behaviour rather than as a message.
 
 ## Symptom table: setting Ares 2 up
@@ -31,7 +31,7 @@ after them cover the failures that show up as wrong behaviour rather than as a m
 | `IllegalStateException: Ambiguous project: both Maven and Gradle descriptors are active` | The project has both a `pom.xml` and a `build.gradle`, and the no-policy path has no explicitly selected build tool, so it cannot tell which is authoritative. Discovery fails before any enforcement is configured | Remove the descriptor you do not use, or supply a policy that names the configuration explicitly |
 | `IllegalStateException: Unsupported project: no pom.xml, build.gradle or build.gradle.kts` | The directory the tests run from carries no supported build descriptor | Run from the project root that holds the build descriptor |
 | `logback.xml occurs multiple times on the classpath` | The agent JAR and the ordinary Ares JAR each carry one | A warning only; enforcement is unaffected |
-| The reserved-package check never runs under `gradlew test` | A boundary version 1 snippet hooked `check` alone | Migrate to boundary version 2, which also gates every `Test` task (the Gradle step above) |
+| The reserved-package check never runs under `gradlew test` | A boundary version 1 snippet hooked `check` alone | Migrate to boundary version 2, which gates every `Test` task too (the Gradle step above) |
 | Policy seems to have no effect | Wrong `withinPath` | Gradle: `classes/java/main/<package/path>`, Maven: `classes/<package/path>` |
 
 ## Symptom table: migrating from Ares 1
@@ -51,7 +51,7 @@ after them cover the failures that show up as wrong behaviour rather than as a m
 | A `@StrictTimeout` was replaced by `regardingTimeouts` and no longer bounds anything | Timeouts are Phobos cases, and the Phobos stage is generated but not yet dispatched in-process in Ares 2.1.2 | Restore `@StrictTimeout` (the step named in section 6.2 of this guide) |
 | `InaccessibleObjectException` at runtime | An incomplete list of module-access flags | Use the complete list from the step named in section 4.1 of this guide or the step named in section 4.2 of this guide |
 | Coverage reports nothing after the migration | A plain `<argLine>` overwrote the property JaCoCo sets | Prefix Surefire's `<argLine>` with `@{argLine}` and declare an empty `<argLine>` property |
-| The reserved-package check never runs under `gradlew test` | The snippet hooks `check` alone | Use boundary version 2, which also gates every `Test` task (the step named in section 8.1 of this guide) |
+| The reserved-package check never runs under `gradlew test` | The snippet hooks `check` alone | Use boundary version 2, which gates every `Test` task too (the step named in section 8.1 of this guide) |
 | `Ambiguous project: both Maven and Gradle descriptors are active` | The project has both a `pom.xml` and a `build.gradle`, and no policy names the build tool | Remove the descriptor you do not use, or supply a policy that names the configuration explicitly |
 
 ## The build succeeds but nothing is enforced
@@ -66,7 +66,7 @@ that reaches the forbidden operation through a library rather than directly.
 
 ## A forbidden operation is not rejected
 
-The most serious case. Which of the four analysis and weaving combinations was actually active,
+The most serious case. Which of the four analysis and weaving combinations was active,
 and whether the supervised package was shadowed.
 
 ## The agent does not attach

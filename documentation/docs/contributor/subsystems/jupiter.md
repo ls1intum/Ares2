@@ -5,7 +5,7 @@ description: "The JUnit Jupiter integration subsystem."
 ---
 
 :::tip[Simple Story]
-This is the piece that puts the checklist into the hands of the teacher who actually runs the
+This is the piece that puts the checklist into the hands of the teacher who runs the
 examination.
 
 It is what makes a question public or hidden, what refuses to ask a hidden question before its
@@ -15,7 +15,7 @@ deadline, and what puts a desk under supervision when the question asks for it.
 ## What it does
 
 This is the primary test-framework binding. It is the package that defines the annotations an
-exercise author actually writes, and it hooks into the JUnit Jupiter lifecycle so that Ares
+exercise author writes, and it hooks into the JUnit Jupiter lifecycle so that Ares
 gets a say before, around and after every test.
 
 ## What is in it

@@ -5,7 +5,7 @@ description: "The code that runs at a matched join point, and when it runs relat
 ---
 
 :::tip[Simple Story]
-Advice is what the teacher actually does at the moment they step in.
+Advice is what the teacher does at the moment they step in.
 
 You can act just before, just after, or wrap yourself around the moment so that you decide
 whether the thing happens at all. For a checklist, that last one is the power that matters:

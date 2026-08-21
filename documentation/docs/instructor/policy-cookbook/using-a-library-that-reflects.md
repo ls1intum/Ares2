@@ -28,7 +28,7 @@ The operations the recipe deliberately does not enable, so the boundary stays vi
 
 ## The tempting wrong version
 
-Adding the reflecting package to the allow-list at a level that also exempts the student's own code.
+Adding the reflecting package to the allow-list at a level that exempts the student's own code as well.
 
 ## Notes
 

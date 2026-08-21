@@ -31,7 +31,7 @@ The architecture layer reports the path it found, not merely the verdict. A deni
 says only "forbidden file access" leaves a student guessing; one that names the chain from
 their method to the forbidden call tells them where to look.
 
-This is also where false positives arise. A path through the graph is a path that *may*
+This is where false positives arise too. A path through the graph is a path that *may*
 exist, and an over-approximated edge produces a reachable sink that no execution reaches.
 The [T. J. Watson Libraries for Analysis (WALA)](../wala.md) filters some of these.
 

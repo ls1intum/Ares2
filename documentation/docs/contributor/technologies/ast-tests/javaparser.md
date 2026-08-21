@@ -5,8 +5,8 @@ description: "Parsing Java source into an AST, and resolving what its names refe
 ---
 
 :::tip[Simple Story]
-JavaParser turns a pupil's `.java` file into a tree you can ask questions about, and can also
-work out what each name in that file actually refers to.
+JavaParser turns a pupil's `.java` file into a tree you can ask questions about, and can
+work out what each name in that file refers to.
 :::
 
 ## What it is

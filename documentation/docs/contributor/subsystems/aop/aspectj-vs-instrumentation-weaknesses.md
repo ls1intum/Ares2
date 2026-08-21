@@ -38,7 +38,7 @@ ASPECTJ-mode policies are written with these limits in mind.
 All Ares AspectJ pointcuts are `call(...)` pointcuts. A `call()` join point is
 woven into the **call site**, i.e. into the code that makes the call, not into
 the method being called. AspectJ can therefore only intercept a forbidden
-operation if the call to it is made from code that AspectJ actually wove
+operation if the call to it is made from code that AspectJ wove
 (student code and project code).
 
 Instrumentation rewrites the **target** JDK class, so it intercepts the
@@ -134,7 +134,7 @@ methods, so a policy that forbids thread manipulation expects these to be blocke
   `call(* java.lang.Thread+.notify())` does not weave: AspectJ resolves the
   declaring type to `java.lang.Object`.) The advice treats a manipulation as a
   *membership-only* check against the thread-creation allow-list: a thread whose
-  class may be created may also be notified, without consuming the creation quota.
+  class may be created may be notified as well, without consuming the creation quota.
 
 Consequence and current scope: AspectJ enforces `notify`/`notifyAll`/`wait` on
 `Thread` receivers at runtime. It records the effective task class of each admitted

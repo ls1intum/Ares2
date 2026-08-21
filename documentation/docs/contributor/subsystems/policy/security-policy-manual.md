@@ -7,7 +7,7 @@ description: "Full reference for the Ares 2 security policy file: structure, eve
 :::tip[Simple Story]
 This is the full reference for the checklist, the one the board keeps open while filling one in.
 
-Every option, what it means, and what actually happens when you set it.
+Every option, what it means, and what happens when you set it.
 :::
 
 > **Audience:** IT-Education experts with no security background.
@@ -135,7 +135,7 @@ The `@Policy` annotation has three parameters:
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `value` | `String` | `""` | The path to the security policy YAML file, **relative to the project root**. For example, `"SecurityPolicy.yaml"` refers to a file at the top level of your project. You can also place policies in subdirectories, e.g., `"policies/FileIOPolicy.yaml"`. Ares 2 reads this file at test startup and configures all security restrictions accordingly. |
+| `value` | `String` | `""` | The path to the security policy YAML file, **relative to the project root**. For example, `"SecurityPolicy.yaml"` refers to a file at the top level of your project. You can place policies in subdirectories, e.g., `"policies/FileIOPolicy.yaml"`. Ares 2 reads this file at test startup and configures all security restrictions accordingly. |
 | `withinPath` | `String` | `""` | The path to the **compiled** student bytecode, **relative to the build output directory**. This tells Ares 2 which `.class` files to monitor and restrict. The path must match the package structure of the supervised student code. See the mapping table below. |
 | `activated` | `boolean` | `true` | Whether the policy is active. Set to `false` to run in **unprotected mode** (AOP settings are reset and policy enforcement is skipped). |
 
@@ -183,7 +183,7 @@ When you run the tests, Ares 2 will automatically enforce the security policy. I
 Ares 2's behaviour depends on whether test supervision is active and whether a `@Policy` annotation is present. Supervision is activated by an **Ares** test annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`), which carries the `@JupiterAresTest` meta-annotation that registers the extension. A plain JUnit `@Test` does **not** activate Ares, and neither does `@Policy`, which carries no `@ExtendWith` and registers nothing:
 
 - **Without supervision** (no Ares test annotation present): Student code runs freely with no restrictions, whether or not a `@Policy` is present.
-- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **default most-restricted configuration**. It detects Maven or Gradle from the project root, uses ArchUnit and AspectJ as the analysis and enforcement modes, derives the supervised scope by scanning the project, and applies `ResourceAccesses.createRestrictive()`, which denies file, network, command and thread access outright. Package imports are **restricted rather than eliminated**: Ares always permits an implicit allowlist made of the essential packages it ships (which include the `java` prefix), the supervised package itself, and the packages of the recognised test classes. `createRestrictive()` also constructs a 10,000 ms limit, but that becomes a Phobos test case, and the Phobos stage is not yet dispatched in-process, so no execution timeout applies today; use `@StrictTimeout` where a deadline is needed. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so code that is not AspectJ-woven is covered by the static checks only. The only opt-out is an explicit `@Policy(activated = false)`.
+- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **default most-restricted configuration**. It detects Maven or Gradle from the project root, uses ArchUnit and AspectJ as the analysis and enforcement modes, derives the supervised scope by scanning the project, and applies `ResourceAccesses.createRestrictive()`, which denies file, network, command and thread access outright. Package imports are **restricted rather than eliminated**: Ares always permits an implicit allowlist made of the essential packages it ships (which include the `java` prefix), the supervised package itself, and the packages of the recognised test classes. `createRestrictive()` constructs a 10,000 ms limit, but that becomes a Phobos test case, and the Phobos stage is not yet dispatched in-process, so no execution timeout applies today; use `@StrictTimeout` where a deadline is needed. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so code that is not AspectJ-woven is covered by the static checks only. The only opt-out is an explicit `@Policy(activated = false)`.
 - **With supervision and a policy** (test annotation present, policy annotation present): Ares 2 enforces only the permissions explicitly listed in the policy file. Everything else is forbidden.
 
 When you define a security policy file, you start with maximum security (everything forbidden) and selectively allow only what the exercise absolutely requires. Specifying an explicit `@Policy` annotation with a restrictive policy object (for example, `theFollowingResourceAccessesArePermitted` containing six empty lists) enforces default-deny for policy-controlled resources. This is equivalent in strictness to supervision without a policy; the difference is that an explicit `@Policy` lets you choose the configuration (build tool, analysis framework, enforcement mechanism) and selectively grant permissions.
@@ -360,7 +360,7 @@ theFollowingClassesAreTestClasses:
   - "com.instructor.utils.HelperTest"
 ```
 
-**Matching:** an entry matches a class name **exactly**, or matches a nested class of it on the `$` boundary. So `"com.instructor.ExerciseTest"` also covers `com.instructor.ExerciseTest$Inner`, while never matching the unrelated `com.instructor.ExerciseTestOther`. The same comparison is used by the static architecture rules and by the runtime advice, so the behaviour is identical in both layers.
+**Matching:** an entry matches a class name **exactly**, or matches a nested class of it on the `$` boundary. So `"com.instructor.ExerciseTest"` covers `com.instructor.ExerciseTest$Inner`, while never matching the unrelated `com.instructor.ExerciseTestOther`. The same comparison is used by the static architecture rules and by the runtime advice, so the behaviour is identical in both layers.
 
 > **Package names and package prefixes do not work here, and are not harmless.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package; it matches a class literally named `com.instructor`, which does not exist, so it exempts nothing. The likely symptom is that your own test classes are treated as supervised code and your assertions start tripping the policy, if they fall within the supervised scope. Worse, the entry is not inert: Ares derives a permitted package from every entry by stripping the last dotted component, so `"com.instructor"` permits imports from the whole `com` prefix. List each test class by its exact fully qualified name.
 
@@ -468,7 +468,7 @@ regardingCommandExecutions:
 | `executeTheCommand` | text | The command name (must not be blank) |
 | `withTheseArguments` | list | Allowed arguments (must match exactly; can be empty list) |
 
-> **Note:** In YAML, a command can also be specified as a single string (e.g., `"echo hello"`) instead of the structured format. Ares uses Jackson's `@JsonCreator` to parse both formats.
+> **Note:** In YAML, a command can be specified as a single string (e.g., `"echo hello"`) instead of the structured format. Ares uses Jackson's `@JsonCreator` to parse both formats.
 
 **Example 1: Allow running a specific Python script**
 ```yaml
@@ -652,7 +652,7 @@ Before releasing an exercise:
 
 ## 10. Programmatic API (Java Builder)
 
-Besides YAML, policies can also be constructed programmatically in Java using the Builder pattern. This is useful for dynamic test generation or when policies need to be computed at runtime.
+Besides YAML, policies can be constructed programmatically in Java using the Builder pattern. This is useful for dynamic test generation or when policies need to be computed at runtime.
 
 ```java
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
@@ -789,7 +789,7 @@ java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: E
 | **Instrumentation (ByteBuddy)** | A runtime AOP approach using the `java.lang.instrument` API and ByteBuddy to modify class bytecode at load time. |
 | **Prefix Match** | The matching strategy used by `PackagePermission`. A permitted package `"java.util"` matches any package whose name starts with that string (e.g., `java.util.concurrent`, `java.util.stream`). |
 
-## See also
+## Further reading
 
 This page describes the policy file as an instructor writes it. For how Ares 2 reads that
 file and turns it into the tests that enforce it, see the developer guide:

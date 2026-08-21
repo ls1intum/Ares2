@@ -5,7 +5,7 @@ description: "The traversal pattern used to walk the syntax tree and collect fin
 ---
 
 :::tip[Simple Story]
-You want to do something at every node of a big tree, but only actually care about a few kinds
+You want to do something at every node of a big tree, but only care about a few kinds
 of node.
 
 Rather than writing the walking logic yourself and getting it wrong, you hand over an object

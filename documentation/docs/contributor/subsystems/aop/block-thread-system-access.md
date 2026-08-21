@@ -112,7 +112,7 @@ Ares automatically monitors thread system operations by intercepting specific Ja
 - **Byte Buddy (Instrumentation Mode)**: Automatically adds security checks when Java loads classes (called bytecode manipulation).
 - **AspectJ (AspectJ Mode)**: Automatically adds security checks in a second compilation step (called weaving).
 
-Both implementations set up "checkpoints" that activate **before** the thread operation actually happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is aligned, but the thread pointcuts are **not** identical between the two engines: AspectJ weaves a superset of the instrumentation pointcuts. It intercepts `AbstractExecutorService.execute()`, `ThreadPoolExecutor.invokeAll()/invokeAny()`, `ScheduledExecutorService.submit()/invokeAll()/invokeAny()/execute()`, `ScheduledThreadPoolExecutor.submit()/execute()/invokeAll()/invokeAny()`, `ForkJoinPool.invokeAll()/invokeAny()`, and `SubmissionPublisher.submit()/offer()`, none of which appear in the instrumentation pointcut map (see Section 2 for the exact lists).
+Both implementations set up "checkpoints" that activate **before** the thread operation happens, giving Ares a chance to verify whether the operation should be allowed or blocked. The validation logic is aligned, but the thread pointcuts are **not** identical between the two engines: AspectJ weaves a superset of the instrumentation pointcuts. It intercepts `AbstractExecutorService.execute()`, `ThreadPoolExecutor.invokeAll()/invokeAny()`, `ScheduledExecutorService.submit()/invokeAll()/invokeAny()/execute()`, `ScheduledThreadPoolExecutor.submit()/execute()/invokeAll()/invokeAny()`, `ForkJoinPool.invokeAll()/invokeAny()`, and `SubmissionPublisher.submit()/offer()`, none of which appear in the instrumentation pointcut map (see Section 2 for the exact lists).
 
 ---
 
@@ -193,7 +193,7 @@ When the `executor.submit(() -> ...)` method is called, Ares intercepts the call
 - **Byte Buddy**: Automatically runs a security check before the method executes (technical implementation: `JavaInstrumentationCreateThreadMethodAdvice.onEnter()`)
 - **AspectJ**: Automatically runs a security check before the method executes (technical implementation: `before()` advice in `JavaAspectJThreadSystemAdviceDefinitions.aj`)
 
-Ares then checks whether the student is allowed to create a thread with a `Lambda-Expression` **before** the thread is actually created.
+Ares then checks whether the student is allowed to create a thread with a `Lambda-Expression` **before** the thread is created.
 
 ---
 
@@ -471,14 +471,14 @@ The security validator performs a **series of checks** to decide whether the thr
 **The Actual Validation Flow** (stops at first "Allow" or "Block"):
 
 1. **Re-entrancy Guard**: `enterAdvice()`/`exitAdvice()`: nested advice invocations on the same thread (triggered by the advice's own class loading and stack walking) return immediately, so only the outermost interception is enforced
-2. **Is Security Enabled?** → If no: 🟢 (in instrumentation mode, a missing/empty `restrictedPackage` also allows immediately)
+2. **Is Security Enabled?** → If no: 🟢 (in instrumentation mode, a missing/empty `restrictedPackage` allows immediately)
 3. **Configuration Consistency**: If `threadClassAllowedToBeCreated` and `threadNumberAllowedToBeCreated` have different lengths → 🔴 SecurityException (this runs **before** the callstack check)
 4. **Internal Bypasses**: Thread creations owned by `ProcessBuilder`/`Runtime.exec` process I/O (`isThreadCreationFromCommandExecution()`) or by Ares's own `@StrictTimeout` machinery (`isThreadCreationFromAresTimeout()`) → 🟢
 5. **Does the Call Come from Student Code?** → If no: 🟢
 6. **Are All Thread Classes Allowed?** → Parameters, receiver instance, and object state are resolved into **one de-duplicated set** and checked in a single pass, so the quota is consumed at most once per distinct class per interception → If a class is forbidden or its quota is exhausted: 🔴
 7. **Block and Throw Error** → If violation found
 
-**Additional safeguards inside step 6:**
+**Further safeguards inside step 6:**
 - **Fail-closed sentinel**: If a thread-task carrier exists but its task class cannot be read, the sentinel `<unresolved-thread-class>` is used; it matches no allow-list entry, so the creation is denied instead of silently allowed
 - **Trusted-type check (instrumentation only)**: Before iterating a `List` parameter, `requireTrustedRuntimeType()` verifies it is a Java Development Kit (JDK) type, so the advice never invokes overridable methods on attacker-supplied subclasses while the re-entrancy guard is active
 - **Implicit-operation sentinel (AspectJ only)**: `parallelStream()`, `parallel()`, and `SubmissionPublisher.submit()/offer()` carry no thread-task class; when invoked directly by student code they are represented by a per-operation sentinel token (e.g. `<implicit-thread-op:parallelStream>`) which the `"*"` wildcard **deliberately never matches**; only an exact sentinel entry in the allow-list can permit them

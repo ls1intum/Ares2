@@ -50,4 +50,4 @@ Out of process only. The Phobos timeout layer wraps the build command with coreu
 **A policy timeout does not bound a Postcompile test today.** `JavaTestCaseFactoryAndBuilder.writeTestCases` passes the Phobos cases to the writer, but
 `executeTestCases` passes only the architecture and aspect-oriented programming (AOP) cases to the executer, so the limits
 are parsed, validated and written and then never dispatched. This is a pending migration
-rather than a defect. `@StrictTimeout` is the mechanism that actually bounds a test.
+rather than a defect. `@StrictTimeout` is the mechanism that bounds a test.
