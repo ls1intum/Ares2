@@ -486,7 +486,7 @@ Defines five scanning methods that auto-detect project metadata:
 |---|---|---|
 | `scanForBuildMode()` | `BuildMode` | Whether the project uses Maven (`pom.xml`) or Gradle (`build.gradle`) |
 | `scanForTestClasses()` | `String[]` | Fully qualified names of all classes in the **test source directory** containing `@Test` or `@Property` annotations, or extending JUnit 3's `TestCase` |
-| `scanForPackageName()` | `String` | The most frequently used non-reserved package declaration across all `.java` files |
+| `scanForPackageName()` | `String` | The most frequently used non-reserved package: taken from the production sources, otherwise from the compiled production output, otherwise the configured default |
 | `scanForMainClassInPackage()` | `String` | The class containing `public static void main(String[])` |
 | `scanForTestPath()` | `Path` | The file system path to the test source directory |
 
@@ -495,33 +495,65 @@ Defines five scanning methods that auto-detect project metadata:
 | Aspect | Detail |
 |---|---|
 | **Implements** | `ProjectScanner` |
-| **Technique** | Regex-based source code analysis. Walks all `.java` files under the project root and applies four compiled regex patterns. |
+| **Technique** | JavaParser-backed source analysis. Walks the `.java` files under the discovered source roots and reads the parsed syntax tree; the compiled output is read with ArchUnit's `ClassFileImporter` where the sources yield nothing. |
 
-**Regex patterns:**
+**What is read from the syntax tree:**
 
-| Pattern | Matches | Used by |
+| Fact | Read from | Used by |
 |---|---|---|
-| `CLASS_PATTERN` | `public [final\|abstract\|strictfp] class ClassName` | `extractClassName()` |
-| `PACKAGE_PATTERN` | `package com.example.foo;` | `extractPackageName()` |
-| `MAIN_METHOD_PATTERN` | `public static void main(String[] args)` (including varargs) | `extractMainClass()` |
-| `TEST_ANNOTATION_PATTERN` | `@Test` or `@Property` | `extractTestClass()` (which additionally treats classes containing `extends TestCase` as test classes) |
+| Package declaration | the compilation unit's `PackageDeclaration` | `scanForPackageName()` |
+| Type declarations | the top-level `TypeDeclaration`s, nested types included | `scanForMainClassInPackage()`, `scanForTestClasses()` |
+| `main` method | a `public static void main(String[])` declaration, varargs included | `scanForMainClassInPackage()` |
+| Test classes | a `@Test` or `@Property` annotation, or a JUnit 3 `TestCase` supertype resolved through the imports of the file | `scanForTestClasses()` |
+
+Resolving the supertype through the imports is why this is not a regex: `extends TestCase` names a type, and which type it names depends on what the file imported.
 
 **Scanning pipeline:**
 
 ```
-ProjectSourcesFinder.findProjectSourcesPath()
-  → Files.find(sourcePath, MAX_VALUE, isJavaFile)
-    → Files.readString(file)
-      → extractor.apply(content)
+ProjectSourcesFinder.discover(projectRoot, mode)      → BuildToolConfiguration
+  → configuration.productionSourceRoots() / testSourceRoots()
+    → Files.walk(root), filtered to *.java and sorted
+      → JavaParser.parse(file) → CompilationUnit
+  and, where the sources answer nothing:
+  → ClassFileImporter().importPath(productionOutputRoot)
 ```
 
-**`scanForPackageName()` algorithm:** First filters out reserved infrastructure prefixes (via `ReservedPackageGuard.reservedPrefixOf(...)`) so a student cannot flood the project with files in a trusted namespace to make it the derived enforcement scope → counts the frequency of every remaining `package` declaration across all files → returns the most common one. This heuristic works because in a typical student project, the main source package appears in the majority of files.
+The sort is not cosmetic: it is what makes two runs over one project agree.
+The legacy `findProjectSourcesPath()` route still exists for callers that
+predate `BuildToolConfiguration`, and differs in kind: it returns the
+descriptor's own string, relative and unvalidated, where `discover(...)`
+canonicalises every root and refuses one that escapes the project.
+
+**`scanForPackageName()` algorithm:** Resolution runs in three steps, each reached only when the previous one finds nothing at all.
+
+1. **Production sources.** Reserved infrastructure prefixes are filtered out first (via `ReservedPackageGuard.reservedPrefixOf(...)`), so a package inside a trusted namespace cannot become the derived enforcement scope. The frequency of every remaining `package` declaration is counted and the most common one wins. This heuristic works because in a typical student project the main source package appears in the majority of files.
+2. **Compiled production output.** Only top-level classes are counted, so a package is not weighted by how many nested or anonymous classes it happens to contain; nesting is read from the class file rather than from the `$` in the binary name, which is a legal identifier character. This step covers a project whose build descriptor the source-root discovery cannot parse, because the build tool writes its output to the conventional directory the scanner reads.
+3. **The configured default** (see [Section 10.3](#103-javaprogrammingexerciseprojectscanner)), with a warning naming the roots that were searched.
+
+Step 1 is skipped entirely when the discovered source roots are not known to be the whole of the main source set. A Gradle descriptor can declare a root this reader cannot resolve, such as a computed list, and `BuildToolConfiguration.productionRootsComplete()` reports that. Counting declarations across part of a project produces an answer indistinguishable from one taken across all of it, so a partial set is not counted at all and the compiled output is read instead.
+
+> **The derived package is a heuristic. What turns it into a boundary is the check that follows it.**
+>
+> Before enforcement is armed, `requireDerivedScopeToCoverTheProject()` reads the compiled production output and refuses the run unless **every** executable top-level class declares a non-blank, non-reserved package that is the derived scope or lies below it, compared on segment boundaries so that `de.tum.cit.aet` does not swallow `de.tum.cit.aetevil`. A class the scope leaves out, a class in the default package, a class in a reserved package, and an output root that exists but cannot be read are each refused by name. This runs on the policy-free path only: a pinned policy may deliberately supervise part of the output, and narrowing it is then the instructor's decision.
+>
+> **An output root holding nothing passes, with a warning, and so does one holding only `package-info` or `module-info`.** There is then no supervisable class, so enforcement is vacuous rather than mis-scoped, and an exercise whose supervised package is still empty must not fail for being empty. The generated test does the same: `JavaArchunitSupervisedClasses` warns and analyses an empty set rather than refusing. In both places that log line is the only signal, and a suite that analyses nothing reports success.
+>
+> That closes the case where a decoy package is voted the scope while the assignment runs beside it. Three things it still does not establish.
+>
+> The **vote is influenceable by whoever can add files to the project**, and in an Artemis exercise that includes the student. The check above refuses a scope that leaves compiled classes out, but not one drawn *around* them: a scope that covers everything passes by construction. The package-import allow-list no longer follows the scope for that reason, and names the packages the validated output actually declares instead.
+>
+> The **output directory is assumed, not read**. Step 2 and the check both look in `target/classes` or `build/classes/java/main`, so a build that writes its output elsewhere is not followed there. Together with the vacuous pass above, that is the sharp edge of this section: a project whose output goes somewhere else looks exactly like a project that compiled nothing, and both pass with the same warning. An exercise configured with a custom output destination is therefore not enforced by the derived path at all, and nothing fails to say so. Such an exercise must declare its scope in a policy.
+>
+> **The last-resort default guarantees nothing by itself.** If the project does not contain it, the analysis path resolves to a directory that does not exist. Where anything at all is compiled, the check above catches it: those classes lie outside the default, so the run is refused by name. Where nothing is compiled it does not, and the warning is again all a reader gets. During generation, before anything is compiled, the same is true.
+>
+> An exercise that needs a scope it can rely on declares its package in the security policy. The scanner is then not consulted at all, which is the only version of this that cannot be steered from the submission.
 
 **`scanForTestClasses()` algorithm:** Scans only the **test source directory** (see `scanForTestPath()`) and returns every class whose file contains a `@Test` / `@Property` annotation or `extends TestCase`.
 
 **`scanForMainClassInPackage()` algorithm:** Collects all classes with a `main` method → prefers a class named `Main` or `Application` → otherwise returns the first match → defaults to `"Main"`.
 
-**`scanForTestPath()` algorithm:** Checks for Gradle's custom `srcDir 'test'` → falls back to `src/test/java`.
+**`scanForTestPath()` algorithm:** Answers the first discovered test source root; without a build configuration it accepts the conventional `src/test/java`, or a bare `test/` directory for the Artemis Gradle layout, and otherwise falls back to the literal `src/test/java` **whether or not it exists**. That fall-back is a placeholder forced by the non-null return type rather than a claim, and no production code currently consults this method.
 
 ### 10.3 `JavaProgrammingExerciseProjectScanner`
 
@@ -532,7 +564,7 @@ ProjectSourcesFinder.findProjectSourcesPath()
 
 | Override | Default in `JavaProjectScanner` | Override in `JavaProgrammingExerciseProjectScanner` |
 |---|---|---|
-| Default package | `""` (empty string) | `"de.tum.cit.ase"` |
+| Default package | `""` (empty string) | `"de.tum.cit.aet"` |
 | Default main class | `"Main"` | `"Main"` (unchanged) |
 
 When the base scanner finds no package or main class, these TUM-specific defaults ensure reasonable behaviour for Artemis-hosted exercises.

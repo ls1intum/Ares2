@@ -16,11 +16,16 @@ import de.tum.cit.ase.ares.integration.testuser.subject.PackageAccessPenguin;
 @StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 @TestMethodOrder(MethodName.class)
 @SuppressWarnings("static-method")
-// Scope the default-policy STATIC analysis to a benign student-like subtree so the
-// ReservedPackageGuard does not (correctly) reject Ares's own build. Runtime enforcement
-// of PackageAccessPenguin is unaffected: the AOP advice classifies student code by package
-// prefix (testuser.subject.* is non-infrastructure), not by withinPath.
-@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
+// Scope the STATIC analysis to a benign student-like subtree so the ReservedPackageGuard
+// does not (correctly) reject Ares's own build. Runtime enforcement of
+// PackageAccessPenguin is unaffected by that: the AOP advice classifies student code by
+// package prefix (testuser.subject.* is non-infrastructure), not by withinPath.
+//
+// The policy is pinned rather than omitted, for the same reason as in SecurityUser:
+// without it the supervised package came from the TUM default, which merely happened to
+// be a prefix of Ares' own packages, so these subjects counted as student code by
+// coincidence and a change to that production default disabled their enforcement.
+@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicySelfTestDefaultRestrictive.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 public class PackageAccessUser {
 
 	@PublicTest
