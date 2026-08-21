@@ -50,6 +50,48 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 				supervisedPackage, supervisedScopeWasDerived);
 	}
 
+	/**
+	 * The signature released in 2.1.2, kept so that a client compiled against it
+	 * still links.
+	 * <p>
+	 * A test case built this way carries no supervised scope. It can be executed,
+	 * but it refuses to write a generated file, because a file with no scope
+	 * analyses nothing and every rule in it passes. Supply the scope through the
+	 * builder or through the scope-aware constructor beside this one.
+	 *
+	 * @param javaArchitectureTestCaseSupported the supported architecture test case
+	 * @param allowedPackages                   the permitted package imports
+	 * @param javaClasses                       the classes to analyse
+	 * @deprecated supply the supervised scope, which this overload cannot express
+	 */
+	@Deprecated(forRemoval = true)
+	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses) {
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, (String) null, false);
+	}
+
+	/**
+	 * The signature released in 2.1.2, kept so that a client compiled against it
+	 * still links.
+	 * <p>
+	 * A test case built this way carries no supervised scope. It can be executed,
+	 * but it refuses to write a generated file, because a file with no scope
+	 * analyses nothing and every rule in it passes. Supply the scope through the
+	 * builder or through the scope-aware constructor beside this one.
+	 *
+	 * @param javaArchitectureTestCaseSupported the supported architecture test case
+	 * @param allowedPackages                   the permitted package imports
+	 * @param javaClasses                       the classes to analyse
+	 * @param allowedClasses                    the classes exempt from the rules
+	 * @deprecated supply the supervised scope, which this overload cannot express
+	 */
+	@Deprecated(forRemoval = true)
+	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nonnull Set<ClassPermission> allowedClasses) {
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, allowedClasses, (String) null, false);
+	}
+
 	// </editor-fold>
 
 	// <editor-fold desc="Write security test case methods">

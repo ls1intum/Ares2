@@ -482,6 +482,98 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		this.callGraphSupplier = callGraphSupplier;
 	}
 
+	/**
+	 * The signature released in 2.1.2, kept so that a client compiled against it
+	 * still links.
+	 * <p>
+	 * A test case built this way carries no supervised scope. It can be executed,
+	 * but it refuses to write a generated file, because a file with no scope
+	 * analyses nothing and every rule in it passes. Supply the scope through the
+	 * builder or through the scope-aware constructor beside this one.
+	 *
+	 * @param javaArchitectureTestCaseSupported the supported architecture test case
+	 * @param allowedPackages                   the permitted package imports
+	 * @param javaClasses                       the classes to analyse
+	 * @param callGraph                         the eagerly resolved call graph
+	 * @deprecated supply the supervised scope, which this overload cannot express
+	 */
+	@Deprecated(forRemoval = true)
+	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nonnull CallGraph callGraph) {
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, (String) null, false);
+	}
+
+	/**
+	 * The signature released in 2.1.2, kept so that a client compiled against it
+	 * still links.
+	 * <p>
+	 * A test case built this way carries no supervised scope. It can be executed,
+	 * but it refuses to write a generated file, because a file with no scope
+	 * analyses nothing and every rule in it passes. Supply the scope through the
+	 * builder or through the scope-aware constructor beside this one.
+	 *
+	 * @param javaArchitectureTestCaseSupported the supported architecture test case
+	 * @param allowedPackages                   the permitted package imports
+	 * @param javaClasses                       the classes to analyse
+	 * @param callGraph                         the eagerly resolved call graph
+	 * @param allowedClasses                    the classes exempt from the rules
+	 * @deprecated supply the supervised scope, which this overload cannot express
+	 */
+	@Deprecated(forRemoval = true)
+	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nonnull CallGraph callGraph, @Nonnull Set<ClassPermission> allowedClasses) {
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, allowedClasses, (String) null,
+				false);
+	}
+
+	/**
+	 * The signature released in 2.1.2, kept so that a client compiled against it
+	 * still links.
+	 * <p>
+	 * A test case built this way carries no supervised scope. It can be executed,
+	 * but it refuses to write a generated file, because a file with no scope
+	 * analyses nothing and every rule in it passes. Supply the scope through the
+	 * builder or through the scope-aware constructor beside this one.
+	 *
+	 * @param javaArchitectureTestCaseSupported the supported architecture test case
+	 * @param allowedPackages                   the permitted package imports
+	 * @param javaClasses                       the classes to analyse
+	 * @param callGraphSupplier                 the lazy call graph
+	 * @deprecated supply the supervised scope, which this overload cannot express
+	 */
+	@Deprecated(forRemoval = true)
+	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nonnull Supplier<CallGraph> callGraphSupplier) {
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraphSupplier, (String) null, false);
+	}
+
+	/**
+	 * The signature released in 2.1.2, kept so that a client compiled against it
+	 * still links.
+	 * <p>
+	 * A test case built this way carries no supervised scope. It can be executed,
+	 * but it refuses to write a generated file, because a file with no scope
+	 * analyses nothing and every rule in it passes. Supply the scope through the
+	 * builder or through the scope-aware constructor beside this one.
+	 *
+	 * @param javaArchitectureTestCaseSupported the supported architecture test case
+	 * @param allowedPackages                   the permitted package imports
+	 * @param javaClasses                       the classes to analyse
+	 * @param callGraphSupplier                 the lazy call graph
+	 * @param allowedClasses                    the classes exempt from the rules
+	 * @deprecated supply the supervised scope, which this overload cannot express
+	 */
+	@Deprecated(forRemoval = true)
+	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<ClassPermission> allowedClasses) {
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraphSupplier, allowedClasses,
+				(String) null, false);
+	}
+
 	// </editor-fold>
 
 	// <editor-fold desc="Write security test case methods">

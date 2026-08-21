@@ -124,6 +124,13 @@ public final class JavaArchunitSupervisedClasses {
 	 * refused during validation, so reaching one here would mean the inventory and
 	 * the check disagreed, and a permission must never name a trusted namespace
 	 * whatever else went wrong.
+	 * <p>
+	 * A package that <em>contains</em> a trusted namespace is refused outright.
+	 * Validation cannot catch that one, because it asks whether a package lies
+	 * inside a reserved prefix and {@code de.tum.cit} lies inside none, while a
+	 * scope broad enough to hold it covers every compiled class by construction.
+	 * Permitting it would grant the supervised code every import from the
+	 * framework's own namespace below it, which is the framework supervising it.
 	 *
 	 * @param supervisedPackage the supervised scope
 	 * @param declaredByPolicy  the permissions the policy itself granted, which
@@ -135,9 +142,20 @@ public final class JavaArchunitSupervisedClasses {
 		Set<PackagePermission> permissions = new LinkedHashSet<>(declaredByPolicy);
 		for (JavaClass javaClass : validated(supervisedPackage)) {
 			String declared = javaClass.getPackageName();
-			if (!declared.isBlank() && reservedPrefixOf(declared) == null) {
-				permissions.add(new PackagePermission(declared));
+			if (declared.isBlank() || reservedPrefixOf(declared) != null) {
+				continue;
 			}
+			String reserved = ancestorOfReservedPrefix(declared);
+			if (reserved != null) {
+				throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): "
+						+ "The compiled class " + javaClass.getName() + " declares the package " + declared
+						+ ", which lies above the trusted namespace " + reserved
+						+ ". A permission is matched as a prefix, so permitting that package would grant the "
+						+ "supervised code every import from that namespace. Declare "
+						+ "theSupervisedCodeUsesTheFollowingPackage in a security policy, and what may be "
+						+ "imported in theFollowingResourceAccessesArePermitted.");
+			}
+			permissions.add(new PackagePermission(declared));
 		}
 		return permissions;
 	}
@@ -320,6 +338,37 @@ public final class JavaArchunitSupervisedClasses {
 		}
 		for (String reserved : RESERVED_PREFIXES) {
 			if (normalized.startsWith(reserved)) {
+				return reserved;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * The trusted namespace lying <em>below</em> the package, or null if none does.
+	 * <p>
+	 * The complement of {@link #reservedPrefixOf(String)}, and the question a
+	 * permission has to ask. That one refuses a package inside a trusted namespace,
+	 * which is how supervised code would be trusted by name. This one refuses a
+	 * package that contains one, because permitting a package permits everything
+	 * below it. A package equal to a reserved prefix lies inside it rather than
+	 * above it, and is left to the other method so that one package cannot be
+	 * refused twice for two different reasons.
+	 */
+	private static String ancestorOfReservedPrefix(String packageName) {
+		if (packageName == null || packageName.isBlank()) {
+			return null;
+		}
+		// Reserved prefixes carry a trailing dot and package names do not, so both
+		// ends are normalised before comparing. Without it "com" would not be seen as
+		// the ancestor of "com.sun." that it is.
+		String normalized = packageName.endsWith(".") ? packageName : packageName + ".";
+		if (!COPIED_API_PREFIX.isEmpty() && COPIED_API_PREFIX.startsWith(normalized)
+				&& !COPIED_API_PREFIX.equals(normalized)) {
+			return COPIED_API_PREFIX;
+		}
+		for (String reserved : RESERVED_PREFIXES) {
+			if (reserved.startsWith(normalized) && !reserved.equals(normalized)) {
 				return reserved;
 			}
 		}
