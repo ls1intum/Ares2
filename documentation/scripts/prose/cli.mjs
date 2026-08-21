@@ -191,6 +191,9 @@ async function lint() {
         process.stdout.write(`\n${gone.length} accepted finding(s) are fixed. `
             + 'Run `pnpm run prose:accept` and commit the smaller baseline.\n');
     }
+    // Both ratchets fail when they are looser than the truth, not only when they are tighter.
+    // A ceiling that falls to 90 and stays recorded as 100 leaves 10 findings' worth of room
+    // for the next change to spend, which is the drift the ceiling exists to prevent.
 
     const counts = advisoryCounts(findings);
     const ceiling = await readCeiling();
@@ -204,9 +207,19 @@ async function lint() {
         } else if (count < limit) {
             under.push(`${rule} is down to ${count} from ${limit}`);
         }
+        if (!Number.isInteger(limit) || limit < 0) {
+            over.push(`${rule} has a ceiling of ${JSON.stringify(ceiling.get(rule))}, which is `
+                + 'not a count. Every entry in advisory-ceiling.json is a whole number.');
+        }
     }
     for (const problem of over) {
         process.stdout.write(`${problem}\n`);
+    }
+    for (const rule of ceiling.keys()) {
+        if (!counts.has(rule)) {
+            over.push(`advisory-ceiling.json has an entry for "${rule}", which is not an `
+                + 'advisory rule. Run `pnpm run prose:accept` and commit the smaller file.');
+        }
     }
     if (under.length > 0) {
         process.stdout.write(`\n${under.join(', ')}. `
@@ -216,9 +229,10 @@ async function lint() {
     const advisory = findings.length - enforced.length;
     process.stdout.write(`\n${enforced.length} enforced (${accepted.size} accepted, ${fresh.length} new), `
         + `${advisory} advisory. An advisory finding never fails on its own; its rule fails when `
-        + 'the count goes up. Run `pnpm run report:prose` to read them.\n');
+        + 'the count stops matching the ceiling. Run `pnpm run report:prose` to read them.\n');
 
-    return fresh.length + problems.length + over.length > 0 ? 1 : 0;
+    return fresh.length + problems.length + over.length + under.length + gone.length > 0
+        ? 1 : 0;
 }
 
 /** Rewrites the baseline and the ceilings from what is on disk now. */
@@ -248,6 +262,11 @@ const mode = process.argv[2] ?? '--lint';
 const run = { '--lint': lint, '--report': report, '--accept': accept }[mode];
 if (run === undefined) {
     process.stdout.write('Usage: node scripts/prose/cli.mjs [--lint|--report|--accept]\n');
-    process.exit(2);
+    process.exitCode = 2;
+} else {
+    // The exit code is set rather than `process.exit` called, because `process.exit` does not
+    // wait for stdout to drain. Writing to a pipe is asynchronous, and the report is a hundred
+    // kilobytes of JSON, so exiting immediately truncated it at the pipe buffer and left the
+    // documented `--report > file` producing a file that does not parse.
+    process.exitCode = await run();
 }
-process.exit(await run());

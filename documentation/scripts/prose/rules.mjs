@@ -144,7 +144,7 @@ export const WORD_RULES = [
         // `and` for a list entry, `further` for one more of something, `as well` or `too` for
         // an addition. None of those is filler, and none needs a suppression.
         level: 'enforced',
-        pattern: /\b(?:additionally|additional|of course|furthermore|moreover|also|actually|obviously|clearly)\b/gi,
+        pattern: /\b(?:additionally|additional|of\s+course|furthermore|moreover|also|actually|obviously|clearly)\b/gi,
         message: (hit) => `"${hit}" adds nothing. Delete it, or say what it means: "and" for `
             + 'another entry, "further" for one more, "as well" for an addition.',
         allow: [],
@@ -223,6 +223,18 @@ export const OPENER_RULE = {
 };
 
 /**
+ * Words that end in `ed` or `en` and are not participles.
+ *
+ * The pattern below cannot conjugate; it recognises a suffix. Without this list "the grass is
+ * green" and "it is often wrong" are reported as passive, which is a rule reporting something
+ * nobody wrote.
+ */
+const NOT_PARTICIPLES = [
+    'green', 'often', 'open', 'even', 'seven', 'keen', 'golden', 'wooden', 'sudden', 'hidden',
+    'token', 'when', 'then', 'children', 'women', 'garden', 'red',
+];
+
+/**
  * The passive constructions that hide who acts, reported and never failed.
  *
  * A form of "to be" followed by a past participle is passive far more often than not, but not
@@ -232,19 +244,22 @@ export const OPENER_RULE = {
  *
  * Deliberately narrow. Only the finite forms are matched, so "has been dropped" and "may be
  * blocked" are left alone; a rule that caught every participle in the corpus would report so
- * much that nobody would read it.
+ * much that nobody would read it. The irregular participles that end in neither `ed` nor `en`,
+ * "is read" and "is built" among them, are missed on purpose: recognising them means a verb
+ * list, and a verb list is a dictionary this repository would then have to maintain.
  */
 export const PASSIVE_RULE = {
     id: 'active-voice',
     level: 'advisory',
-    pattern: /\b(?:is|are|was|were)\s+(?:\w+ly\s+)?\w{3,}(?:ed|en)\b/gi,
+    pattern: new RegExp('\\b(?:is|are|was|were)\\s+(?:\\w+ly\\s+)?'
+        + `(?!(?:${NOT_PARTICIPLES.join('|')})\\b)\\w{2,}(?:ed|en)\\b`, 'gi'),
     message: (hit) => `"${hit}" is passive and does not say who acts. Name the actor, or leave `
         + 'it where the actor is genuinely unknown.',
     allow: [
         // Participles this corpus uses as adjectives, naming a state rather than an act.
         // "A path is forbidden" says what the path is, not that somebody forbade it just now,
         // and rewriting it to name an actor states a event that never happened.
-        new RegExp('\\b(?:is|are|was|were)\\s+(?:'
+        new RegExp('\\b(?:is|are|was|were)\\s+(?:\\w+ly\\s+)?(?:'
             + 'allowed|permitted|forbidden|denied|required|needed|trusted|untrusted|'
             + 'based|related|interested|involved|limited|located|intended|expected|'
             + 'supported|unsupported|deprecated|sealed|hidden|nested|closed|fixed'

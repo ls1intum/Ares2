@@ -52,9 +52,11 @@ Three kinds of file are read, because a reader does not know which is which:
 | `src/pages/**` | The standalone pages: `imprint` and `privacy` as Markdown, the landing page as TSX |
 | `docusaurus.config.ts`, `sidebar-*.ts` | The navbar and footer labels, the tagline and the copyright line, which appear on every page |
 
-The TypeScript is read lexically rather than parsed: the value of a named key, and the text
-between two JSX tags. Neither needs the grammar, and a parser here pulls a TypeScript
-toolchain into a check that runs before the build.
+The scanner parses the TypeScript rather than matching it. A regex over the raw source cannot
+tell a comment from a paragraph, or the `>` in `left > right` from the end of a tag. Nor can it
+tell a JSX snippet quoted inside a code sample from the page's own words. Each of those
+mistakes reports a violation against something no reader sees. Three kinds of node hold prose: the value of a
+named property, the value of a named JSX attribute, and the text between two JSX tags.
 
 ## Enforced rules
 
@@ -82,7 +84,8 @@ one more of something, `as well` or `too` for an addition.
 
 ## Advisory rules
 
-These are reported and never fail. Each one needs a person to read the sentence.
+No single one of these fails the build. Each needs a person to read the sentence, so what is
+held is the count rather than the finding; see [the advisory ceiling](#the-advisory-ceiling).
 
 | Rule | Why a machine must not decide it |
 | --- | --- |
@@ -91,7 +94,7 @@ These are reported and never fail. Each one needs a person to read the sentence.
 | `context-filler` | `just`, `simply`, `in fact`. "The namespace it has just built" is temporal, not filler |
 | `address-the-reader` | `we` sometimes means the Ares project rather than the reader |
 | `no-intensifiers` | The corpus holds `best-effort`, which is a term of art rather than a superlative |
-| `active-voice` | A form of "to be" plus a participle is passive far more often than not, but "is interested" is an adjective wearing the same clothes |
+| `active-voice` | A form of "to be" plus a participle is passive far more often than not, but "is interested" is an adjective wearing the same clothes. The rule misses irregular participles such as "is read", because catching them needs a verb list |
 | `long-sentence` | Length is measurable; whether a long sentence earns its length is not |
 
 "The static analysis `may` report false positives" is correct English. A rule that rewrote it
@@ -109,12 +112,17 @@ it cannot rise without somebody writing the higher number down in a commit. A ru
 entry has a ceiling of zero, so adding a rule and leaving it unrecorded fails rather than
 passing unnoticed.
 
-That is what stops 1,170 advisory findings quietly becoming 1,500. The counts are not a target to
+That is what stops 1,192 advisory findings quietly becoming 1,500. The counts are not a target to
 drive to zero. `active-voice` in particular never reaches it, because a security reference
 describes what happens to code and some of that is genuinely agentless. They are a direction.
 
-Run `pnpm run prose:accept` to rewrite the ceilings from what is on disk, in the same commit as
-the change that earns it. Never run it to make a red build green.
+A count that has fallen fails too. A ceiling recorded as 100 when the truth is 90 leaves ten
+findings of room for the next change to spend. That is the drift the ceiling exists to
+prevent. The build therefore asks for the lower number rather than mentioning it, and the
+enforced baseline works the same way.
+
+Run `pnpm run prose:accept` to rewrite both from what is on disk, in the same commit as the
+change that earns it. Never run it to make a red build green.
 
 ## Rules with no check, and why
 

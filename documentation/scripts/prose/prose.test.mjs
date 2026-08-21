@@ -16,7 +16,7 @@ import path from 'node:path';
 import test, { after, before, describe } from 'node:test';
 
 import { RULE_IDS, levelsById } from './rules.mjs';
-import { DOCS, scanCategory, scanPage } from './scan.mjs';
+import { DOCS, scanCategory, scanPage, scanSource } from './scan.mjs';
 
 let workspace;
 
@@ -76,12 +76,27 @@ describe('the page and the rules agree', () => {
         return found;
     }
 
+    /**
+     * The body rows of the first table in a section.
+     *
+     * The first contiguous run of pipe-prefixed lines, not every such line in the section: a
+     * section with two tables would otherwise read as one, and this page has sections that do.
+     */
+    function firstTable(lines) {
+        const start = lines.findIndex((line) => line.startsWith('|'));
+        if (start === -1) {
+            return [];
+        }
+        const rows = [];
+        for (let index = start; index < lines.length && lines[index].startsWith('|'); index += 1) {
+            rows.push(lines[index]);
+        }
+        return rows.filter((row) => !/^\|[\s-]+\|/.test(row)).slice(1);
+    }
+
     /** The first cell of every body row of the first table in a section. */
     function firstCells(lines) {
-        return lines
-            .filter((line) => line.startsWith('|') && !/^\|[\s-]+\|/.test(line))
-            .slice(1)
-            .map((line) => line.split('|')[1].trim());
+        return firstTable(lines).map((row) => row.split('|')[1].trim());
     }
 
     /** The rule identifiers a section's table names, which are the cells written as code. */
@@ -89,6 +104,12 @@ describe('the page and the rules agree', () => {
         return firstCells(lines)
             .filter((cell) => /^`[a-z0-9-]+`$/.test(cell))
             .map((cell) => cell.slice(1, -1));
+    }
+
+    /** Every backticked token anywhere in a section's first table. */
+    function codeSpansIn(lines) {
+        return firstTable(lines).flatMap((row) => [...row.matchAll(/`([^`]+)`/g)]
+            .map((match) => match[1]));
     }
 
     test('every rule the enforced table names is enforced in the code', async () => {
@@ -118,8 +139,13 @@ describe('the page and the rules agree', () => {
     test('the unchecked table names no rule the code defines', async () => {
         const lines = (await sections()).get('Rules with no check, and why');
         assert.ok(lines !== undefined, 'the page records the rules nothing checks');
-        for (const id of idsIn(lines)) {
-            assert.ok(!RULE_IDS.has(id), `${id} is listed as unchecked but the code defines it`);
+        // Read every code span in the table, not the first cell alone. The rows there are
+        // written in words rather than as identifiers, so a first-cell check would look at
+        // nothing and pass whatever the page said.
+        const spans = codeSpansIn(lines);
+        assert.ok(spans.length > 0, 'the unchecked table has rows');
+        for (const span of spans) {
+            assert.ok(!RULE_IDS.has(span), `${span} is listed as unchecked but the code has it`);
         }
     });
 });
@@ -259,6 +285,68 @@ describe('surfaces a reader sees', () => {
         await writeFile(file, '{\n  "label": "Colors",\n  "position": 1\n}\n', 'utf8');
         const state = await scanCategory(file, '_category_.json');
         assert.deepEqual(state.findings.map((item) => item.rule), ['no-american-spellings']);
+    });
+});
+
+/**
+ * The site's own TypeScript, which is read by parsing rather than by matching.
+ *
+ * Every fixture here is a case a regex over the raw source got wrong: a comment that looks
+ * like a property, a comparison that looks like a tag, and a code sample that looks like a
+ * paragraph. They are the reason the scanner asks TypeScript instead.
+ */
+describe('the site source', () => {
+    /** Scans a source file written on the fly, returning the rule identifiers it reported. */
+    async function sourceRules(body, extension = '.tsx') {
+        const file = path.join(workspace, `source${extension}`);
+        await writeFile(file, body, 'utf8');
+        return (await scanSource(file, `source${extension}`)).findings.map((item) => item.rule);
+    }
+
+    test('a named property holding a string is prose', async () => {
+        assert.deepEqual(await sourceRules("const a = { label: 'The color of it' };\n"),
+            ['no-american-spellings']);
+    });
+
+    test('a property holding an identifier is not read', async () => {
+        assert.deepEqual(await sourceRules('const a = { title: PAGE_TITLE };\n'), []);
+    });
+
+    test('a comment is not prose', async () => {
+        assert.deepEqual(await sourceRules("// label: 'also'\nconst x = 1;\n"), []);
+    });
+
+    test('a comparison is not a tag', async () => {
+        assert.deepEqual(await sourceRules('const x = left > also < right;\n', '.ts'), []);
+    });
+
+    test('a code sample inside a template is not prose', async () => {
+        assert.deepEqual(await sourceRules('const a = <Code>{`<p>also</p>`}</Code>;\n'), []);
+    });
+
+    test('text on either side of an interpolation is prose', async () => {
+        assert.deepEqual(await sourceRules('const a = <p>The color {value} is also here.</p>;\n'),
+            ['no-american-spellings', 'no-always-filler']);
+    });
+
+    test('a JSX attribute the reader sees is prose', async () => {
+        assert.deepEqual(await sourceRules('const a = <img alt="The color of it" />;\n'),
+            ['no-american-spellings']);
+    });
+
+    test('an escape is read as the character a reader sees', async () => {
+        assert.deepEqual(await sourceRules("const a = { label: 'It doesn\\'t work' };\n"),
+            ['no-contractions']);
+    });
+
+    test('an interpolation does not join the words on either side', async () => {
+        assert.deepEqual(await sourceRules('const a = { label: `col${x}or here` };\n'), []);
+    });
+
+    test('a long string is a long sentence', async () => {
+        const words = Array.from({ length: 40 }, (_, index) => `word${index}`).join(' ');
+        assert.deepEqual(await sourceRules(`const a = { description: '${words}.' };\n`),
+            ['long-sentence']);
     });
 });
 
