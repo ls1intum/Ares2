@@ -148,12 +148,13 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * Ares' own frames are never student code even when {@code restrictedPackage}
 	 * is broad enough to cover them, as {@code de.tum.cit.ase} is for Ares' own
 	 * self-tests;</li>
-	 * <li>a class in {@code restrictedPackage}: the student created it, refused;</li>
+	 * <li>a class in {@code restrictedPackage}: the student created it,
+	 * refused;</li>
 	 * <li>none of the above by the bottom of the stack: refused.</li>
 	 * </ol>
 	 * The order of the first two is load-bearing, because {@code TimeoutUtils} lies
-	 * inside the Ares prefix: testing the prefix first would skip the very frame the
-	 * exemption depends on, so it could never be granted.
+	 * inside the Ares prefix: testing the prefix first would skip the very frame
+	 * the exemption depends on, so it could never be granted.
 	 * <p>
 	 * {@code true} lets the creation through unchecked; {@code false} leaves it to
 	 * the ordinary policy check.
@@ -171,7 +172,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * @return {@code true} if the thread creation belongs to Ares' timeout
 	 *         machinery, {@code false} otherwise
 	 */
-	private static boolean isThreadCreationFromAresTimeout(String restrictedPackage) {
+	private static boolean isThreadCreationFromAresTimeout(@Nullable String restrictedPackage) {
 		return java.lang.StackWalker.getInstance().walk(frames -> {
 			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
@@ -181,10 +182,10 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
 				}
 				// Ares's own infrastructure frames (this advice, internals) are never student
-				// code, even when restrictedPackage is a broad prefix that nominally covers them
-				// (e.g. the "de.tum.cit.ase" scope Ares' own self-tests run under). Skipping
-				// them lets the walk reach the TimeoutUtils frame that legitimately owns this
-				// @StrictTimeout worker.
+				// code, even when restrictedPackage is a broad prefix that nominally covers
+				// them (e.g. the "de.tum.cit.ase" scope Ares' own self-tests run under).
+				// Skipping them lets the walk reach the TimeoutUtils frame that legitimately
+				// owns this @StrictTimeout worker.
 				if (className.startsWith("de.tum.cit.ase.ares.api.")) {
 					continue;
 				}

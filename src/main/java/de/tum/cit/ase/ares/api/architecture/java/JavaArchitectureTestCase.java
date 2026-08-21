@@ -557,9 +557,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		private Set<PackagePermission> allowedPackages;
 		@Nonnull
 		private Set<ClassPermission> allowedClasses = java.util.Set.of();
-
+		@Nullable
 		private String supervisedPackage;
-
 		private boolean supervisedScopeWasDerived;
 
 		/**
@@ -568,6 +567,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		 * @param supervisedPackage the supervised scope
 		 * @return this builder
 		 */
+		@Nonnull
 		public Builder supervisedPackage(@Nullable String supervisedPackage) {
 			this.supervisedPackage = supervisedPackage;
 			return this;
@@ -580,6 +580,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		 * @param supervisedScopeWasDerived whether the scope was derived
 		 * @return this builder
 		 */
+		@Nonnull
 		public Builder supervisedScopeWasDerived(boolean supervisedScopeWasDerived) {
 			this.supervisedScopeWasDerived = supervisedScopeWasDerived;
 			return this;
