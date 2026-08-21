@@ -120,48 +120,41 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * <p>
 	 * {@code @StrictTimeout} runs each timed test on a worker thread of its own.
 	 * Under a policy forbidding thread creation that worker must not be attributed
-	 * to the student, so the timeout machinery needs an exemption. It must be
-	 * granted to Ares and to nothing else.
+	 * to the student, so the timeout machinery needs an exemption, granted to Ares
+	 * and to nothing else.
 	 * <p>
-	 * The stack is walked from the top, that is from the most recent call
-	 * downwards, and each frame is classified in turn:
+	 * The stack is walked from the most recent call downwards, and the first frame
+	 * that matches decides:
 	 * <ol>
-	 * <li>the class is exactly {@code TimeoutUtils}: the verdict is settled here,
-	 * and the method name settles it. {@code executeWithTimeout} is the frame that
-	 * submits the timed invocation to the executor, so the timeout machinery owns
-	 * the thread and the exemption is granted. Every other method of that class
-	 * refuses it. {@code rethrowThrowableSafe} is the one that makes refusing
-	 * necessary, because that is where the student's test body runs on the timeout
-	 * worker; the remaining methods are Ares-internal and have no worker to
-	 * claim;</li>
-	 * <li>the class is any other Ares class ({@code de.tum.cit.ase.ares.api.}):
-	 * skipped, and the walk continues. Ares' own frames are never student code,
-	 * even when {@code restrictedPackage} is a prefix broad enough to cover them,
-	 * as {@code de.tum.cit.ase} is for Ares' own self-tests;</li>
-	 * <li>the class lies in {@code restrictedPackage}: the student created the
-	 * thread, so it is refused;</li>
-	 * <li>none of the above until the bottom of the stack: refused.</li>
+	 * <li>exactly {@code TimeoutUtils}: the method name settles it.
+	 * {@code executeWithTimeout} submits the timed invocation to the executor, so
+	 * the machinery owns the thread and the exemption is granted; every other
+	 * method of that class refuses it. {@code rethrowThrowableSafe} is the one that
+	 * makes refusing necessary, being where the student's test body runs on the
+	 * worker, while the rest are Ares-internal and have no worker to claim;</li>
+	 * <li>any other Ares class ({@code de.tum.cit.ase.ares.api.}): skipped, because
+	 * Ares' own frames are never student code even when {@code restrictedPackage}
+	 * is broad enough to cover them, as {@code de.tum.cit.ase} is for Ares' own
+	 * self-tests;</li>
+	 * <li>a class in {@code restrictedPackage}: the student created it,
+	 * refused;</li>
+	 * <li>none of the above by the bottom of the stack: refused.</li>
 	 * </ol>
-	 * Whichever is found first decides. The order of the first two is load-bearing,
-	 * because {@code TimeoutUtils} lies inside the Ares prefix itself: testing the
-	 * prefix first would skip the very frame the exemption depends on, so it could
-	 * never be granted at all.
+	 * The order of the first two is load-bearing, because {@code TimeoutUtils} lies
+	 * inside the Ares prefix: testing the prefix first would skip the very frame
+	 * the exemption depends on, so it could never be granted.
 	 * <p>
-	 * {@code true} lets the thread creation through unchecked. {@code false} leaves
-	 * it to the ordinary policy check, which blocks it where the policy forbids
-	 * thread creation.
+	 * {@code true} lets the creation through unchecked; {@code false} leaves it to
+	 * the ordinary policy check.
 	 * <p>
 	 * <b>Why the method name rather than the class.</b> Accepting any
-	 * {@code TimeoutUtils} frame looked right for as long as the student frame was
-	 * always found first. It is not: the student's test body runs inside
-	 * {@code TimeoutUtils.rethrowThrowableSafe} on the timeout worker, so that
-	 * class appears below the student's own frames rather than being absent from
-	 * the stack. The moment {@code restrictedPackage} stopped matching, which is
-	 * exactly what a mis-scoped supervised package produces, the walk fell past the
-	 * student frames, reached {@code rethrowThrowableSafe} and exempted every
-	 * thread operation under a {@code @StrictTimeout}, silently and without any
-	 * failure. Keying the exemption to the creating method removes that dependency
-	 * on a correctly scoped package.
+	 * {@code TimeoutUtils} frame held only while the student frame was always found
+	 * first. It is not: the student's body runs inside
+	 * {@code TimeoutUtils.rethrowThrowableSafe}, so that class sits below the
+	 * student's own frames rather than being absent. Once {@code restrictedPackage}
+	 * stopped matching, which is what a mis-scoped supervised package produces, the
+	 * walk fell past the student frames, reached {@code rethrowThrowableSafe} and
+	 * exempted every thread operation under a {@code @StrictTimeout}, silently.
 	 *
 	 * @param restrictedPackage the configured restricted (student) package prefix
 	 * @return {@code true} if the thread creation belongs to Ares' timeout
@@ -174,10 +167,6 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 				java.lang.StackWalker.StackFrame frame = iterator.next();
 				String className = frame.getClassName();
 				if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
-					// Only the frame that actually creates the worker grants the exemption.
-					// TimeoutUtils sits on the student's stack too, as rethrowThrowableSafe,
-					// which is what runs the student's test body, so accepting any TimeoutUtils
-					// frame exempts student code the moment restrictedPackage stops matching.
 					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
 				}
 				// Ares's own infrastructure frames (this advice, internals) are never student

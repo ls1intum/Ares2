@@ -489,6 +489,14 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	/**
 	 * Formats the Set<PackagePermission> structure as a Java-literal
 	 * Set.of(PackagePermission(...), ...).
+	 * <p>
+	 * A pinned scope is written out as it stands: it is the instructor's own
+	 * statement of what may be imported. A derived one is not, because it is a
+	 * prefix, and a permission outlives the moment it was granted, so writing it
+	 * into the generated file left it holding a grant over a whole namespace even
+	 * after the coverage check was satisfied. The packages the compiled output
+	 * declares cannot be broader than that output, so the generated rule asks for
+	 * those at runtime and adds them to what the policy declared.
 	 */
 	private String allowedPackagesAsCode() {
 		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\")",
@@ -496,16 +504,8 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 				.collect(Collectors.joining(", "));
 		String declaredByPolicy = "Set.of(" + inner + ")";
 		if (!isSupervisedScopeWasDerived()) {
-			// A pinned scope is the instructor's own statement of what may be imported,
-			// so it is written out as it stands.
 			return declaredByPolicy;
 		}
-		// A derived scope is a prefix, and permitting a prefix permits everything below
-		// it. Writing it into the generated file left a derived scope holding a grant
-		// over a whole namespace even after the coverage check was satisfied, because
-		// the permission outlives the moment it was granted. The packages the compiled
-		// output actually declares cannot be broader than the output, so the generated
-		// rule asks for those at runtime and adds them to what the policy declared.
 		return "JavaArchunitSupervisedClasses.allowedPackages(\"" + getSupervisedPackage() + "\", " + declaredByPolicy
 				+ ")";
 	}
@@ -513,11 +513,13 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	/**
 	 * Formats the JavaClasses structure as a Java-literal
 	 * ClassFileImporter.importPackages(...) String.
+	 * <p>
+	 * Mirrors the ArchUnit emission and for the same reason: the packages observed
+	 * when the file was written are empty during precompile, so this used to emit
+	 * {@code importPackages()} with no arguments and every rule then checked
+	 * nothing.
 	 */
 	private String javaClassesAsCode() {
-		// Mirrors the ArchUnit emission, and for the same reason: the packages observed
-		// when the file was written are empty during precompile, so this used to emit
-		// importPackages() with no arguments and every rule then checked nothing.
 		String scope = getSupervisedPackage();
 		if (scope == null || scope.isBlank()) {
 			throw new SecurityException(Messages.localized("security.architecture.scope.missing"));
@@ -687,11 +689,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 						.javaArchitectureTestCaseSupported(
 								(JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported)
 						.javaClasses(this.javaClasses).allowedPackages(this.allowedPackages)
-						.allowedClasses(exemptClasses)
-						// Carried even though this delegate only executes and never writes a
-						// file, so that the delegate is the same test case rather than one that
-						// happens not to need the difference yet.
-						.supervisedPackage(getSupervisedPackage())
+						.allowedClasses(exemptClasses).supervisedPackage(getSupervisedPackage())
 						.supervisedScopeWasDerived(isSupervisedScopeWasDerived()).build()
 						.executeArchitectureTestCase(architectureMode, aopMode);
 			default -> throw new SecurityException(

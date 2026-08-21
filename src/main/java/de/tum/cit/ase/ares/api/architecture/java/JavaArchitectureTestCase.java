@@ -68,18 +68,15 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
 	/**
 	 * The supervised scope the generated test must analyse, and whether Ares
-	 * derived it rather than reading it from a policy.
+	 * derived it rather than reading it from a policy. A generated test needs both:
+	 * the scope to ask for at runtime, and whether it must first be checked against
+	 * the whole compiled output, which is only so when Ares worked the scope out
+	 * for itself.
 	 * <p>
-	 * Taken through every constructor rather than assigned afterwards. A generated
-	 * test that carries no scope refuses to be written at all, so a test case
-	 * without one is not a valid object, and a two-step construction let it exist
-	 * anyway: three call sites had to remember the second step and two of them did
-	 * not. Making it a parameter moves that from something a reader has to notice
-	 * to something the compiler asks for.
-	 * <p>
-	 * A generated test needs both values: the scope to ask for at runtime, and
-	 * whether it has to be checked against the whole compiled output first, which
-	 * is only true when Ares worked the scope out for itself.
+	 * Taken through every constructor rather than assigned afterwards. A test case
+	 * without a scope refuses to write its file, so it is not a valid object, yet
+	 * two-step construction let it exist: three call sites had to remember the
+	 * second step and two did not.
 	 */
 	@Nullable
 	private final String supervisedPackage;
@@ -427,6 +424,15 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 * Generates the architecture test case code as a string based on the specified
 	 * architecture mode. Delegates to the appropriate implementation based on the
 	 * architecture mode parameter.
+	 * <p>
+	 * It delegates through {@code archunitBuilder()} and {@code walaBuilder()}, not
+	 * {@code builder()}: Java inherits statics by name, so {@code builder()} on
+	 * either subclass resolved to the one declared here and built another
+	 * base-class instance, which delegated again until the stack ran out. Nothing
+	 * caught it, because the production path converts through
+	 * {@code ArchitectureMode} and never reaches these branches. The delegate is
+	 * also given the scope, since it is what writes the file and one built without
+	 * a scope refuses to.
 	 *
 	 * @since 2.0.0
 	 * @author Sarp Sahinalp
@@ -439,15 +445,6 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	@Nonnull
 	@Override
 	public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
-		// archunitBuilder() and walaBuilder(), not builder(). Java inherits static
-		// methods by name, so JavaArchunitTestCase.builder() resolved to the one
-		// declared here and built another base-class instance, whose own
-		// writeArchitectureTestCase delegated again: both supported modes recursed
-		// until the stack ran out. Nothing caught it, because the production path
-		// converts through ArchitectureMode and never reaches these two lines.
-		//
-		// The scope travels into the delegate for the same reason: the delegate is
-		// what writes the file, and one built without a scope refuses to write one.
 		return switch (architectureMode) {
 		case "ARCHUNIT" -> JavaArchunitTestCase.archunitBuilder()
 				.javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported)

@@ -70,16 +70,19 @@ public final class ReservedPackageGuard {
 	 * Returns the reserved prefix that lies <em>below</em> the given package, or
 	 * {@code null} if none does.
 	 * <p>
-	 * This is the complement of {@link #reservedPrefixOf(String)} and answers the
-	 * opposite question. That one refuses a package <em>inside</em> a trusted
-	 * namespace, which is how supervised code would be trusted by name. This one
-	 * refuses a package that <em>contains</em> one, which matters because a package
-	 * permission is matched as a prefix: permitting {@code de.tum.cit} permits
-	 * every import from {@code de.tum.cit.ase.ares.api} with it.
+	 * The complement of {@link #reservedPrefixOf(String)}: that one refuses a
+	 * package <em>inside</em> a trusted namespace, which is how supervised code
+	 * would be trusted by name, this one a package that <em>contains</em> one,
+	 * which matters because a permission matches as a prefix: permitting
+	 * {@code de.tum.cit} permits every import from {@code de.tum.cit.ase.ares.api}
+	 * with it.
 	 * <p>
-	 * Only permissions derived from the project are held to this. A package a
-	 * policy names outright is the instructor's decision and stays authoritative,
-	 * whereas a derived one is a reading of files the submitter can add to.
+	 * Only derived permissions are held to this. A package a policy names outright
+	 * is the instructor's decision and stays authoritative; a derived one is a
+	 * reading of files the submitter can add to.
+	 * <p>
+	 * Both ends are normalised to a trailing dot before comparing, or {@code java}
+	 * would not be seen as the ancestor of {@code java.} that it is.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -91,9 +94,6 @@ public final class ReservedPackageGuard {
 		if (packageName == null || packageName.isBlank()) {
 			return null;
 		}
-		// Reserved prefixes are written with a trailing dot and package names are not,
-		// so both ends are normalised before comparing. Without it "java" would not be
-		// seen as the ancestor of "java." that it is.
 		String normalized = packageName.endsWith(".") ? packageName : packageName + ".";
 		for (String reserved : RESERVED_PREFIXES) {
 			if (reserved.startsWith(normalized) && !reserved.equals(normalized)) {

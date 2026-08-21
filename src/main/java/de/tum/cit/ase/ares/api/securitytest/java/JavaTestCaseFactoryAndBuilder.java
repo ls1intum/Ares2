@@ -50,10 +50,9 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 
 	// <editor-fold desc="Attributes">
 	/**
-	 * The scanner, kept at its own type so that the coverage check can be reached.
-	 * The inherited field is declared as the interface, which the check is
-	 * deliberately not part of: it belongs to deriving a scope from a Java project,
-	 * not to scanning one.
+	 * The scanner at its own type, so the coverage check can be reached. The
+	 * inherited field is the interface, which that check is deliberately not part
+	 * of: it belongs to deriving a scope from a Java project, not to scanning one.
 	 */
 	@Nonnull
 	private final JavaProjectScanner javaProjectScanner;
@@ -136,14 +135,15 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	 * This method sets up the necessary test configurations and then sequentially
 	 * executes the architecture and AOP test cases.
 	 * </p>
+	 * <p>
+	 * A derived scope is verified here rather than where it was derived, because
+	 * derivation also runs while test cases are being written, before anything is
+	 * compiled. This is the last point at which nothing is armed yet and the
+	 * compiled output already says what will run.
 	 */
 	@Override
 	public void executeTestCases() {
 		if (supervisedScopeWasDerived) {
-			// Here rather than where the scope was derived: derivation also runs while
-			// test cases are being written, before anything is compiled. This is the last
-			// point at which nothing is armed yet and the compiled output already says
-			// what will run.
 			javaProjectScanner.requireDerivedScopeToCoverTheProject(packageName);
 		}
 		executer.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,

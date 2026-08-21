@@ -132,6 +132,20 @@ public class JavaCreator implements Creator {
 	 * @param testClasses        the list of test classes whose packages should be
 	 *                           allowed; must not be null
 	 * @return a set of allowed package permissions; never null
+	 * @implNote The supervised code may use its own code, else a student could not
+	 *           call one of their own classes from another. SECURITY: this names
+	 *           the packages the validated output declares rather than the
+	 *           supervised prefix, because a permission matches as a prefix, so a
+	 *           scope of {@code de.tum.cit} would permit every import from
+	 *           {@code de.tum.cit.ase.ares.api} along with it.
+	 *           <p>
+	 *           Where nothing is compiled, which during generation is ordinary, a
+	 *           <em>derived</em> scope is deliberately not granted: the permission
+	 *           would be written into the generated file and outlive the moment it
+	 *           was granted, keeping a grant over a whole namespace even once the
+	 *           runtime coverage check is satisfied. The generated rule asks for
+	 *           the declared packages instead. A pinned scope is the instructor's
+	 *           own declaration and stands.
 	 */
 	@Nonnull
 	private Set<PackagePermission> prepareAllowedPackages(@Nonnull List<String> essentialPackages,
@@ -142,34 +156,11 @@ public class JavaCreator implements Creator {
 				essentialPackages.stream().filter(p -> p != null && !p.isBlank()).map(PackagePermission::new),
 				// The permitted packages are allowed
 				resourceAccesses.regardingPackageImports().stream(),
-				/*
-				 * The supervised code is allowed to use its own code, else a student could not
-				 * call one of their own classes from another. SECURITY: name the packages the
-				 * validated production output actually declares rather than the supervised
-				 * prefix. A permission is matched as a prefix, so seeding a scope of de.tum.cit
-				 * would have permitted every import from de.tum.cit.ase.ares.api along with it,
-				 * which is the top-level-root hazard this comment used to warn about while the
-				 * scanner was free to hand one over.
-				 */
-				supervisedPackages.isEmpty() ? (packageName != null && !packageName.isBlank()
-						// Nothing is compiled, which during generation is the ordinary case. The
-						// permission is still written into the generated file, so it outlives the
-						// moment it was granted: a derived scope broad enough to contain a trusted
-						// namespace would keep that grant even once the runtime coverage check is
-						// satisfied. A derived fall-back is therefore held to the same rule as any
-						// other reading of the project, while a pinned one stays the instructor's
-						// own declaration, which may legitimately sit above a reserved namespace
-						// as de.tum.cit.ase.ares does.
-						// A derived scope is deliberately NOT granted here. Nothing is compiled, so
-						// this is generation, and the permission would be written into the generated
-						// file and outlive the moment it was granted: the scope is a prefix, so it
-						// would hold a grant over a whole namespace even once the coverage check was
-						// satisfied. The generated rule asks for the packages the output actually
-						// declares instead. A pinned scope is the instructor's own declaration and
-						// stands.
-						? (supervisedScopeWasDerived ? Stream.<PackagePermission>empty()
-								: Stream.of(new PackagePermission(packageName)))
-						: Stream.<PackagePermission>empty())
+				supervisedPackages.isEmpty()
+						? (packageName != null && !packageName.isBlank()
+								? (supervisedScopeWasDerived ? Stream.<PackagePermission>empty()
+										: Stream.of(new PackagePermission(packageName)))
+								: Stream.<PackagePermission>empty())
 						: supervisedPackages.stream().map(JavaCreator::derivedAllowedPackage),
 				/*
 				 * The packages of the test classes are allowed (test infrastructure classes
@@ -188,18 +179,16 @@ public class JavaCreator implements Creator {
 	 * declared by a policy, refusing one that would carry a trusted namespace with
 	 * it.
 	 * <p>
-	 * A permission is matched on segment boundaries but still as a prefix, so
-	 * permitting a package permits everything below it. A package name is exactly
-	 * what whoever adds files to the project controls, so a derived permission that
-	 * happens to sit above {@code de.tum.cit.ase.ares.api} would hand the
+	 * A permission matches on segment boundaries but still as a prefix, and a
+	 * package name is exactly what whoever adds files controls, so a derived
+	 * permission sitting above {@code de.tum.cit.ase.ares.api} would hand the
 	 * supervised code the framework's own namespace. The reserved-package guard
-	 * does not catch it, because that one refuses a package <em>inside</em> a
-	 * trusted prefix rather than one <em>containing</em> it.
+	 * misses it: that one refuses a package <em>inside</em> a trusted prefix, not
+	 * one <em>containing</em> it.
 	 * <p>
 	 * Only derived permissions are held to this. What a policy names in
-	 * {@code theFollowingResourceAccessesArePermitted}, and the essential packages
-	 * Ares needs itself, are declarations rather than readings and stay
-	 * authoritative.
+	 * {@code theFollowingResourceAccessesArePermitted}, and Ares' own essential
+	 * packages, are declarations rather than readings and stay authoritative.
 	 *
 	 * @param packageName the derived package name
 	 * @return the permission for it
@@ -217,19 +206,14 @@ public class JavaCreator implements Creator {
 	/**
 	 * The permission taken from the package of a declared or scanned test class.
 	 * <p>
-	 * Held to the same question as {@link #derivedAllowedPackage(String)} but not
-	 * to the same answer. A test class sits in the test tree, which in an Artemis
-	 * exercise the instructor controls and the submitter does not, so a permission
-	 * read from it is not the submitter-steerable value the supervised scope is.
-	 * Refusing here would also refuse a convention this repository's own fixtures
-	 * rely on: nine of them name {@code de.tum.cit.ase.ares.testutilities}, a
-	 * package rather than a class, whose enclosing package is exactly such an
-	 * ancestor.
-	 * <p>
-	 * Those two facts make refusal the wrong instrument, not the finding wrong. The
-	 * grant really is wider than anything a test class needs, so it is reported
-	 * rather than made fatal, and a policy that trips it should name its test
-	 * classes instead of their package.
+	 * Same question as {@link #derivedAllowedPackage(String)}, different answer. A
+	 * test class sits in the test tree, which the instructor controls and the
+	 * submitter does not, so it is not the submitter-steerable value a supervised
+	 * scope is; and refusing would break a convention this repository's own
+	 * fixtures rely on, nine of them naming
+	 * {@code de.tum.cit.ase.ares.testutilities} rather than a class. That makes
+	 * refusal the wrong instrument, not the finding wrong: the grant really is
+	 * wider than a test class needs, so it is reported rather than made fatal.
 	 *
 	 * @param packageName the package of a test class
 	 * @return the permission for it
@@ -290,10 +274,8 @@ public class JavaCreator implements Creator {
 	private JavaArchitectureTestCase createArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported supported,
 			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull Set<ClassPermission> allowedClasses) {
-		return JavaArchitectureTestCase.builder()
-				// The scope the generated file asks for at runtime, and whether it has to be
-				// checked against the whole compiled output first
-				.supervisedPackage(supervisedPackage).supervisedScopeWasDerived(supervisedScopeWasDerived)
+		return JavaArchitectureTestCase.builder().supervisedPackage(supervisedPackage)
+				.supervisedScopeWasDerived(supervisedScopeWasDerived)
 				// The architecture test case checks for the following aspect
 				.javaArchitectureTestCaseSupported(supported)
 				// The architecture test cases are built over the following classes
@@ -364,10 +346,8 @@ public class JavaCreator implements Creator {
 		case THREAD_CREATION -> resourceAccesses::regardingThreadCreations;
 		};
 		if (resourceAccessSupplier.get().isEmpty()) {
-			javaArchitectureTestCases.add(JavaArchitectureTestCase.builder()
-					// The scope the generated file asks for at runtime, and whether it has to be
-					// checked against the whole compiled output first
-					.supervisedPackage(supervisedPackage).supervisedScopeWasDerived(supervisedScopeWasDerived)
+			javaArchitectureTestCases.add(JavaArchitectureTestCase.builder().supervisedPackage(supervisedPackage)
+					.supervisedScopeWasDerived(supervisedScopeWasDerived)
 					// The architecture test case checks for the following aspect. Map the AOP
 					// category to its architecture counterpart with an exhaustive switch rather
 					// than valueOf(name()): a future divergence of the two enums then becomes a
@@ -558,9 +538,6 @@ public class JavaCreator implements Creator {
 		// trusted by name.
 		JavaClasses supervisedClasses = new ClassFileImporter().importPath(Path.of(classPath));
 		ReservedPackageGuard.validateClassNames(supervisedClasses.stream().map(JavaClass::getName).toList());
-		// The packages the supervised output actually declares, taken from the very
-		// import that just refused a reserved one, so nothing is read twice. Empty
-		// while nothing is compiled, which is ordinary during generation.
 		@Nonnull
 		Set<String> supervisedPackages = supervisedClasses.stream().map(JavaClass::getPackageName)
 				.filter(name -> !name.isBlank()).collect(Collectors.toSet());
@@ -580,9 +557,6 @@ public class JavaCreator implements Creator {
 		// </editor-fold>
 
 		// <editor-fold desc="Preparation">
-		// Recorded before the test cases are built, because each of them carries the
-		// scope into the file it generates: a generated test asks for it by name at
-		// runtime and cannot work it out for itself.
 		this.supervisedPackage = packageName;
 		this.supervisedScopeWasDerived = supervisedScopeWasDerived;
 		@Nonnull

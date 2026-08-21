@@ -151,11 +151,9 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 
 	/**
 	 * Whether the supervised scope was derived from the project rather than pinned
-	 * by a policy.
-	 * <p>
-	 * Only a derived scope is checked against the compiled output before
-	 * enforcement. A pinned one is the instructor's statement of what is supervised
-	 * and may deliberately cover part of the project.
+	 * by a policy. Only a derived scope is checked against the compiled output
+	 * before enforcement; a pinned one is the instructor's statement of what is
+	 * supervised and may deliberately cover part of the project.
 	 */
 	protected final boolean supervisedScopeWasDerived;
 	// </editor-fold>

@@ -61,32 +61,6 @@ public final class ProjectSourcesFinder {
 	 * Where a source-directory operand ends: the statement or the collection does.
 	 */
 	private static final String OPERAND_TERMINATORS = ")]\n}";
-	// Known gaps in the Gradle reading below, deliberately not covered: Kotlin's
-	// setSrcDirs(...) and receiver chains such as sourceSets.main.java { ... }, and
-	// any value that is computed rather than written down.
-	//
-	// None of them is silent any more, which is the point. A declaration this
-	// reader cannot resolve marks the source set incomplete, and that travels to
-	// the consumer in BuildToolConfiguration.productionRootsComplete(): the roots
-	// are still offered, but they are no longer offered as the whole project, so
-	// JavaProjectScanner declines to derive a supervised package from them and
-	// reads the compiled output instead.
-	//
-	// That distinction is what the earlier note here got wrong. It claimed an
-	// undiscovered root "costs the supervised scope nothing worse than a
-	// fall-through", which does not hold after an assignment: srcDirs = clears the
-	// conventional root before the operand is read, so a value that cannot be
-	// resolved left the source set EMPTY and looked exactly like a project that
-	// declares no sources. An empty source set and an unreadable one are different
-	// facts and are now recorded as different facts.
-	//
-	// The compiled-output step is not a guarantee either, because it reads the
-	// build tool's conventional output directory rather than one taken from the
-	// descriptor, so a build that also moves its output destination is not followed
-	// there.
-	//
-	// srcDirs = [] stays what it says: a source set that declares nothing. That is
-	// known rather than unreadable, so it is complete and empty.
 	private static String pomXmlPath = "pom.xml";
 	private static String buildGradlePath = "build.gradle";
 
@@ -128,7 +102,6 @@ public final class ProjectSourcesFinder {
 			throw new IllegalStateException("Gradle was selected but no Gradle descriptor is present in " + root);
 		}
 		if (mode == BuildMode.MAVEN) {
-			// Maven declares its source roots outright, so what is read is all there is.
 			return new BuildToolConfiguration(mode, root, discoverMavenRoots(root, false),
 					discoverMavenRoots(root, true), root.resolve(mode.getBuildDirectory()),
 					root.resolve(mode.getTestBuildDirectory()), true);
@@ -196,7 +169,19 @@ public final class ProjectSourcesFinder {
 	 * {@code srcDirs +=} add to it, and {@code srcDirs =} replaces whatever came
 	 * before. Applying them in order is what makes {@code srcDirs += ['generated']}
 	 * mean the conventional root <em>and</em> the generated one, rather than the
-	 * generated one alone.
+	 * generated one alone. <b>Known gaps, deliberately not covered:</b> Kotlin's
+	 * {@code setSrcDirs(…)}, receiver chains such as {@code sourceSets.main.java {
+	 * … }}, and any computed value. None is silent: a declaration this reader
+	 * cannot resolve marks the source set incomplete, and that travels to the
+	 * consumer through {@link BuildToolConfiguration#productionRootsComplete()}, so
+	 * the roots are still offered but no longer as the whole project. That matters
+	 * because {@code srcDirs =} clears the conventional root before its operand is
+	 * read, so an unresolvable value left the source set empty and
+	 * indistinguishable from a project declaring no sources. {@code srcDirs = []}
+	 * stays what it says: known, complete and empty. Properties are read from the
+	 * mask so an assignment inside a comment or a string cannot define one, and
+	 * taken from the original at the same offsets, which works because masking
+	 * preserves every length.
 	 *
 	 * @param root       the project root
 	 * @param descriptor the build.gradle or build.gradle.kts to read
@@ -211,18 +196,11 @@ public final class ProjectSourcesFinder {
 		}
 		String code = maskInactiveRegions(content, Objects.toString(descriptor.getFileName(), "").endsWith(".kts"));
 		Map<String, String> properties = loadGradleProperties(root);
-		// Read from the mask so that an assignment inside a comment or a string
-		// cannot define a property, and taken from the original at the very same
-		// offsets, because masking preserves every length.
 		Matcher assignments = PROPERTY_ASSIGNMENT.matcher(code);
 		while (assignments.find()) {
 			properties.put(assignments.group(1), content.substring(assignments.start(2), assignments.end(2)));
 		}
 		Map<String, List<Path>> declared = new LinkedHashMap<>();
-		// Whether what was read adds up to the whole of a source set, rather than
-		// merely having parsed. A declaration this reader cannot resolve leaves the
-		// roots a partial picture, and a partial picture must not be mistaken for the
-		// project, so the uncertainty travels to the consumer instead of being lost.
 		Map<String, Boolean> complete = new LinkedHashMap<>();
 		Deque<String> blocks = new ArrayDeque<>();
 		String pending = "";
@@ -277,6 +255,14 @@ public final class ProjectSourcesFinder {
 	 * parenthesised call and Groovy's bare {@code srcDir 'path'} all add. An
 	 * occurrence outside a Java source set is skipped rather than attributed to
 	 * one.
+	 * <p>
+	 * A parenthesised call is pointed AT rather than past, so the opening delimiter
+	 * stays visible and {@code srcDirs(…)} is recognised as a bracketed operand at
+	 * all. An unbalanced collection cannot be apportioned and is unresolved; a
+	 * token that is only whitespace or a comment is skipped, an empty list being
+	 * empty rather than unreadable. A replacement supersedes whatever uncertainty
+	 * preceded it, so it can restore completeness as well as remove it, whereas an
+	 * addition can only ever make the picture less complete.
 	 */
 	private static int readSourceDirectories(Path root, String content, String code, int end, String identifier,
 			Deque<String> blocks, Map<String, String> properties, Map<String, List<Path>> declared,
@@ -290,9 +276,6 @@ public final class ProjectSourcesFinder {
 		} else if (next == '+' && operator + 1 < code.length() && code.charAt(operator + 1) == '=') {
 			operandStart = skipInactive(code, operator + 2);
 		} else if (next == '(') {
-			// Point AT the parenthesis rather than past it, so the opening delimiter is
-			// still visible below. Advancing here is what stopped a srcDirs(...) call
-			// being recognised as a bracketed operand at all.
 			operandStart = operator;
 		} else if ("srcDir".equals(identifier) && (next == '\'' || next == '"' || isIdentifierStart(next))) {
 			operandStart = operator;
@@ -308,7 +291,6 @@ public final class ProjectSourcesFinder {
 		if (bracketed) {
 			int close = matchingClose(code, operandStart);
 			if (close < 0) {
-				// An unbalanced collection is not something this reader can apportion.
 				tokensStart = operandStart + 1;
 				tokensEnd = code.length();
 				resumeAt = code.length();
@@ -331,7 +313,6 @@ public final class ProjectSourcesFinder {
 		for (int[] span : splitTopLevel(code, tokensStart, tokensEnd)) {
 			String token = activeText(content, code, span[0], span[1]).trim();
 			if (token.isEmpty()) {
-				// Whitespace or a comment only: an empty list is empty, not unresolved.
 				continue;
 			}
 			Optional<String> value = resolveGradlePath(token, properties);
@@ -347,11 +328,8 @@ public final class ProjectSourcesFinder {
 			complete.putIfAbsent(sourceSet, Boolean.TRUE);
 			if (replacing) {
 				roots.clear();
-				// A replacement supersedes whatever uncertainty preceded it, so it can
-				// restore completeness as well as remove it.
 				complete.put(sourceSet, resolvedEverything);
 			} else if (!resolvedEverything) {
-				// An addition can only ever make the picture less complete.
 				complete.put(sourceSet, Boolean.FALSE);
 			}
 			for (String value : values) {
@@ -563,6 +541,9 @@ public final class ProjectSourcesFinder {
 	 * a declared root that is not a directory is rejected, a descriptor Gradle
 	 * accepts aborted discovery instead.
 	 *
+	 * @param content              the descriptor as written A comment's opening
+	 *                             delimiter is masked along with its body, or a
+	 *                             rebuilt token would still carry the {@code //}.
 	 * @param content              the descriptor as written
 	 * @param nestingBlockComments whether block comments nest, which they do in
 	 *                             Kotlin and do not in Groovy
@@ -575,7 +556,6 @@ public final class ProjectSourcesFinder {
 			char current = masked[index];
 			char next = index + 1 < masked.length ? masked[index + 1] : '\0';
 			if (current == '/' && next == '/') {
-				// The opener is masked too, or a rebuilt token would still carry "//".
 				maskCharacter(masked, index, COMMENT_MASK);
 				maskCharacter(masked, index + 1, COMMENT_MASK);
 				index = maskUntilLineEnd(masked, index + 2);
@@ -740,7 +720,13 @@ public final class ProjectSourcesFinder {
 	 * Empty is not a neutral answer. The caller records it as an incomplete source
 	 * set, because a value that cannot be read is a root that may exist and has not
 	 * been found, which is a different thing from a source set that is genuinely
-	 * empty.
+	 * empty. Three bodies are unreadable: one carrying its own delimiter, which is
+	 * the wreckage of several literals rather than one, as {@code files('a', 'b')}
+	 * collapses to once its wrapper is stripped; a double-quoted string, which
+	 * interpolates in both Groovy and Kotlin, so taking it literally would name a
+	 * directory such as {@code $generatedRoot} that normally does not exist and is
+	 * rejected, yet would silently pass for a project that happens to contain one;
+	 * and an escape this reader does not decode.
 	 */
 	private static Optional<String> resolveGradlePath(String token, Map<String, String> properties) {
 		String value = token.trim().replace("[", "").replace("]", "").replace("files(", "").trim();
@@ -750,23 +736,11 @@ public final class ProjectSourcesFinder {
 		if (value.length() > 1 && value.charAt(0) == '"' && value.endsWith("\"")) {
 			String literal = value.substring(1, value.length() - 1);
 			if (literal.indexOf('"') >= 0) {
-				// The body carries its own delimiter, so this is not one literal but the
-				// wreckage of several. files('a', 'b') collapses to exactly this once the
-				// wrapper is stripped, and reading it as the single path a', 'b would
-				// declare a root nobody wrote.
 				return Optional.empty();
 			}
-			// A double-quoted string interpolates in both Groovy and Kotlin, so its value
-			// depends on state this reader does not have. Taking the text literally would
-			// name a directory called something like "$generatedRoot", which normally does
-			// not exist and is rejected, but would silently pass for a project that
-			// happens to contain one.
 			return isStaticLiteral(literal) ? Optional.of(literal) : Optional.empty();
 		}
 		if (value.length() > 1 && value.charAt(0) == '\'' && value.endsWith("'")) {
-			// A single-quoted Groovy string does not interpolate, so only an escape this
-			// reader does not decode, or a body carrying its own delimiter, makes it
-			// unreadable.
 			String literal = value.substring(1, value.length() - 1);
 			return literal.indexOf('\'') < 0 && literal.indexOf('\\') < 0 ? Optional.of(literal) : Optional.empty();
 		}

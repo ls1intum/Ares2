@@ -41,10 +41,8 @@ public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List
 
 	/**
 	 * A configuration whose production source roots are the whole of the main
-	 * source set.
-	 * <p>
-	 * The overwhelming majority of layouts are read in full, so completeness is the
-	 * ordinary case and only the Gradle reader, which alone can fail to resolve a
+	 * source set. Almost every layout is read in full, so completeness is the
+	 * ordinary case and only the Gradle reader, the one that can fail to resolve a
 	 * declaration, ever states otherwise.
 	 *
 	 * @param buildMode             the selected build tool
