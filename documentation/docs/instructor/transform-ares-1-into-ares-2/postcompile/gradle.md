@@ -53,7 +53,7 @@ Declare the versions once, so an upgrade is a single edit:
 
 ```gradle
 ext {
-    aresVersion = '2.1.1'
+    aresVersion = '2.1.3'
     aspectjVersion = '1.9.25.1'
 }
 
@@ -305,7 +305,7 @@ What it restricts:
 
 - **File system, network, command execution and thread creation: denied.** No allowance exists.
 - **Package imports: restricted, not eliminated.** Ares always permits an implicit allowlist made of the essential packages it ships, the supervised package itself, and the packages of the recognised test classes. The essential list includes the `java` prefix, so all of `java.*` stays importable.
-- **No default execution timeout yet.** A 10,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.1.1 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
+- **No default execution timeout yet.** A 10,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.1.3 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
 
 It fixes the modes: always ArchUnit for static analysis and AspectJ for the runtime layer, with the build tool discovered from the project. So the AspectJ weaving of the step named in section 4 of this guide is what enforces at runtime here, and a project that is not woven falls back to the static checks alone.
 
@@ -357,7 +357,7 @@ plugins {
 }
 
 ext {
-    aresVersion = '2.1.1'
+    aresVersion = '2.1.3'
     aspectjVersion = '1.9.25.1'
 }
 

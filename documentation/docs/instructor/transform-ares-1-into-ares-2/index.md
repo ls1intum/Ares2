@@ -14,9 +14,9 @@ mode you pick, and lives on the four pages behind it.
 > **Audience:** IT-Education experts maintaining an existing Ares 1 exercise.
 > **Scope:** The whole exercise: build files, test sources, security configuration.
 > **From:** Ares 1 (`de.tum.in.ase:artemis-java-test-sandbox:1.15.0`)
-> **To:** Ares 2 (`de.tum.cit.ase:ares:2.1.1`)
+> **To:** Ares 2 (`de.tum.cit.ase:ares:2.1.3`)
 
-> **Version snapshot:** the configuration on these pages is correct for Ares 2.1.1. Later
+> **Version snapshot:** the configuration on these pages is correct for Ares 2.1.3. Later
 > releases may change it; check [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md)
 > before copying it into a new exercise.
 
@@ -207,7 +207,7 @@ Ares 1 and Ares 2 do not express the same things, so this is not a substitution 
 
 Notes on the rows that need them:
 
-**`@StrictTimeout` and `regardingTimeouts`.** Keep the annotation. `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the **Phobos** test-case family, which Ares 2.1.1 generates without yet dispatching it from the in-process execution path. That stage of the pipeline has not been migrated across, so a timeout expressed in the policy does not bound a test today. The list must still be present in the file, because the schema requires all six; `regardingTimeouts: [ ]` is the clearest form unless you want to record an intended value for a later release. Use `@StrictTimeout` wherever a test needs a deadline.
+**`@StrictTimeout` and `regardingTimeouts`.** Keep the annotation. `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the **Phobos** test-case family, which Ares 2.1.3 generates without yet dispatching it from the in-process execution path. That stage of the pipeline has not been migrated across, so a timeout expressed in the policy does not bound a test today. The list must still be present in the file, because the schema requires all six; `regardingTimeouts: [ ]` is the clearest form unless you want to record an intended value for a later release. Use `@StrictTimeout` wherever a test needs a deadline.
 
 **`@WhitelistPath` and path types.** Only the `STARTS_WITH` path type maps naturally onto `onThisPathAndAllPathsBelow`, which is prefix-shaped by construction. `PathType.GLOB` and regular-expression variants have no counterpart. A glob such as `@WhitelistPath(value = "../course1920xyz**", type = PathType.GLOB)` must be re-expressed as one or more concrete path prefixes, and the result is usually narrower than the original, which is the safe direction.
 
@@ -300,6 +300,6 @@ assertTrue(violation.getMessage().contains("secret.txt"),
 | **Instrumentation** | The other runtime mechanism: class bytecode modified at load time by a ByteBuddy `-javaagent`. |
 | **Reserved package** | A package prefix student code may not declare, because Ares trusts that identity by name. Enforced by the build, see the step named in section 8 of this guide. |
 | **`withinPath`** | The path to compiled student bytecode, relative to the build output directory. Differs between Gradle and Maven. |
-| **Phobos** | A test-case family covering the file-system, network and timeout domains. Ares 2.1.1 generates Phobos cases but does not yet dispatch them from the in-process execution path, so a policy timeout does not bound a test today. Use `@StrictTimeout` for a deadline. |
+| **Phobos** | A test-case family covering the file-system, network and timeout domains. Ares 2.1.3 generates Phobos cases but does not yet dispatch them from the in-process execution path, so a policy timeout does not bound a test today. Use `@StrictTimeout` for a deadline. |
 | **`@StrictTimeout`** | The annotation that bounds test execution. Applied to a test class or method, and unchanged from Ares 1 apart from its package. |
 | **Positive / negative control** | The paired checks of the step named in section 10 of this guide: one permitted operation that must succeed, one forbidden operation that must be rejected. Neither alone demonstrates that enforcement works. |
