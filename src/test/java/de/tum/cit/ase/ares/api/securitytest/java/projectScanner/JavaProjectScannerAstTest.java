@@ -162,7 +162,7 @@ class JavaProjectScannerAstTest {
 		Files.writeString(production.resolve("Rooted.java"), "class Rooted {}\n");
 		// A reserved-prefix production class must also be skipped when picking the
 		// package name.
-		Files.writeString(production.resolve("Reserved.java"), "package metatest; class Reserved {}\n");
+		Files.writeString(production.resolve("Reserved.java"), "package javax.imposter; class Reserved {}\n");
 		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
 		Files.writeString(tests.resolve("LegacyCase.java"), """
 				package checks;

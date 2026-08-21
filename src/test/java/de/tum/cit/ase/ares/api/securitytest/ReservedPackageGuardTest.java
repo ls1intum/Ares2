@@ -26,9 +26,6 @@ class ReservedPackageGuardTest {
 		assertThat(ReservedPackageGuard.reservedPrefixOf("com.ibm.wala.ipa")).isEqualTo("com.ibm.wala.");
 		assertThat(ReservedPackageGuard.reservedPrefixOf("com.tngtech.archunit.core"))
 				.isEqualTo("com.tngtech.archunit.");
-		assertThat(ReservedPackageGuard.reservedPrefixOf("anonymous.toolclasses.Helper"))
-				.isEqualTo("anonymous.toolclasses.");
-		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest.Foo")).isEqualTo("metatest.");
 		assertThat(ReservedPackageGuard.reservedPrefixOf("jdk.internal.misc")).isEqualTo("jdk.");
 		assertThat(ReservedPackageGuard.reservedPrefixOf("javax.activation")).isEqualTo("javax.");
 		assertThat(ReservedPackageGuard.reservedPrefixOf("com.sun.example")).isEqualTo("com.sun.");
@@ -120,7 +117,20 @@ class ReservedPackageGuardTest {
 		// for refusal and a diagnostic that names the wrong problem.
 		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("java")).isNull();
 		assertThat(ReservedPackageGuard.reservedPrefixOf("java")).isEqualTo("java.");
-		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("metatest")).isNull();
-		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest")).isEqualTo("metatest.");
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("jdk")).isNull();
+		assertThat(ReservedPackageGuard.reservedPrefixOf("jdk")).isEqualTo("jdk.");
+	}
+
+	@Test
+	void noLongerReservesTheReproducibilityPackagesOwnTestHelpers() {
+		// anonymous.toolclasses. and metatest. were reserved for one downstream
+		// consumer, so every Ares user refused two ordinary package names on its
+		// behalf, with a diagnostic about trusted namespaces that meant nothing in
+		// their project. They stay in WalaPathClassification.INFRA_PREFIXES, which
+		// answers a different question: which frames are the harness rather than the
+		// subject.
+		assertThat(ReservedPackageGuard.reservedPrefixOf("anonymous.toolclasses.Helper")).isNull();
+		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest.Foo")).isNull();
+		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest")).isNull();
 	}
 }
