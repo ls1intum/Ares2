@@ -394,24 +394,22 @@ public class WalaRule {
 		Deque<List<CGNode>> stack = new ArrayDeque<>();
 		stack.push(List.of(sink));
 		int evaluated = 0;
-		// The first reachable frame the walk stepped over that supervised code could
-		// have declared for itself. See the refusal below for what that means.
-		CGNode namedIntoUnreservedInfrastructure = null;
 		while (!stack.isEmpty()) {
 			List<CGNode> chain = stack.pop();
 			CGNode frontier = chain.get(0);
+			// Whether this branch continues anywhere. A branch that continues is
+			// somebody else's problem: each extension is checked when it ends, and an
+			// approach evaluated here has found its student frame already.
+			boolean branchContinues = false;
 			for (CGNode predecessor : Iterator2Iterable.make(cg.getPredNodes(frontier))) {
 				if (predecessor == null || chain.contains(predecessor)) {
 					continue;
 				}
+				branchContinues = true;
 				List<CGNode> extended = new ArrayList<>();
 				extended.add(predecessor);
 				extended.addAll(chain);
 				if (WalaPathClassification.isInfraFrame(predecessor)) {
-					if (namedIntoUnreservedInfrastructure == null && entryReachable.contains(predecessor)
-							&& WalaPathClassification.isUnreservedInfrastructureFrame(predecessor)) {
-						namedIntoUnreservedInfrastructure = predecessor;
-					}
 					stack.push(extended);
 				} else {
 					// A nearest-student approach: evaluate it now; a real violation throws.
@@ -423,19 +421,44 @@ public class WalaRule {
 					}
 				}
 			}
+			if (!branchContinues) {
+				refuseIfNothingCouldBeBlamed(chain, sink, entryReachable);
+			}
 		}
-		// The walk reached this sink and found no frame to attribute it to. Two ways
-		// lead here and only one of them is ordinary. Frames skipped because of where
-		// they came from, the JDK and WALA's synthetic nodes, or because they are in a
-		// namespace supervised code may not declare, say nothing about the submission,
-		// and such a sink is dropped as it always was. A frame skipped although
-		// supervised code was free to declare it is different: it means the analysis
-		// stepped over something that may well be the submission, and dropping the
-		// sink would then report success over a forbidden call that was found.
-		if (evaluated == 0 && namedIntoUnreservedInfrastructure != null) {
-			throw new SecurityException(Messages.localized("security.architecture.scope.inside.infrastructure",
-					formatJvmSignature(namedIntoUnreservedInfrastructure.getMethod().getSignature()),
-					formatJvmSignature(sink.getMethod().getSignature())));
+	}
+
+	/**
+	 * Refuses a branch that ran out of callers without ever reaching a frame the
+	 * forbidden call could be attributed to, where supervised code was free to name
+	 * itself into one of the frames the walk stepped over.
+	 * <p>
+	 * Decided per branch rather than per sink. A sink is commonly reached along
+	 * several branches, and one of them ending in an ordinary caller says nothing
+	 * about another: an approach that is exempt, or a false-positive transitive
+	 * path, evaluates without reporting anything, and a sink-wide "did anything
+	 * evaluate" test would let it mask a parallel branch composed entirely of
+	 * nameable infrastructure. Each branch answers for itself.
+	 * <p>
+	 * Two ways lead to a branch ending with nothing to blame, and only one of them
+	 * is ordinary. Frames skipped because of where they came from, the JDK and
+	 * WALA's synthetic nodes, or because they lie in a namespace supervised code
+	 * may not declare, say nothing about the submission, and such a branch is
+	 * dropped as it always was. A frame skipped although supervised code was free
+	 * to declare it is different: the walk stepped over something that may well be
+	 * the submission, and dropping the branch would report success over a forbidden
+	 * call that was found.
+	 *
+	 * @param chain          the branch, from its outermost caller to the sink
+	 * @param sink           the forbidden node the branch reaches
+	 * @param entryReachable the nodes reachable from the entry points
+	 */
+	private void refuseIfNothingCouldBeBlamed(List<CGNode> chain, CGNode sink, Set<CGNode> entryReachable) {
+		for (CGNode frame : chain) {
+			if (entryReachable.contains(frame) && WalaPathClassification.isUnreservedInfrastructureFrame(frame)) {
+				throw new SecurityException(Messages.localized("security.architecture.scope.inside.infrastructure",
+						formatJvmSignature(frame.getMethod().getSignature()),
+						formatJvmSignature(sink.getMethod().getSignature())));
+			}
 		}
 	}
 
