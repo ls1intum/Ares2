@@ -145,6 +145,67 @@ class WalaRuleTest {
 		return cg;
 	}
 
+	// ----------------------------------------------------------------
+	// A path with no student frame at all.
+	//
+	// anonymous.toolclasses. and metatest. are skipped when looking for the student
+	// frame, but supervised code may be named into them: they were removed from the
+	// reserved list because they are one downstream consumer's helpers rather than
+	// something Ares could be confused with. That left a blind spot. A supervised
+	// class declaring package metatest made every frame on its path infrastructure,
+	// no approach was ever evaluated, and the sink was dropped: the forbidden call
+	// was found and then reported to nobody.
+	//
+	// The two cases are told apart by whether supervised code was free to declare
+	// the namespace that was skipped. Ares' own api is skipped and reserved, so a
+	// path through it stays a silent drop, as the infra-only test below pins.
+	// ----------------------------------------------------------------
+
+	@Test
+	void allInfrastructurePathEnteredByNameIsRefusedRatherThanDropped() {
+		CGNode helper = applicationInfraByNameNode("metatest.Helper.run()V", "Lmetatest/Helper;");
+		CGNode forbidden = jdkForbiddenNode("java.lang.Thread.<init>(Ljava/lang/Runnable;)V", "Thread");
+		WalaRule rule = new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)"));
+
+		SecurityException refused = org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class,
+				() -> rule.check(buildMockCg(List.of(helper, forbidden))),
+				"a supervised scope inside a skipped namespace must not silently drop its violations");
+
+		assertThat(refused.getMessage()).as("the refusal must name the frame that was stepped over")
+				.contains("metatest.Helper.run()");
+	}
+
+	@Test
+	void allInfrastructurePathEnteredByLoaderIsStillDropped() {
+		// Nothing here is application-loaded, so supervised code could not have put
+		// itself on this path and there is nothing to refuse. This must stay a silent
+		// drop, or every synthetic WALA root would become a failure.
+		CGNode entry = jdkForbiddenNode("java.lang.Thread.run()V", "Thread");
+		CGNode forbidden = jdkForbiddenNode("java.lang.Thread.<init>(Ljava/lang/Runnable;)V", "Thread");
+		WalaRule rule = new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)"));
+
+		org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> rule.check(buildMockCg(List.of(entry, forbidden))));
+	}
+
+	/**
+	 * An application-loaded frame that is infrastructure only because of its
+	 * package name, which is the shape supervised code can produce for itself.
+	 */
+	private static CGNode applicationInfraByNameNode(String signature, String walaType) {
+		CGNode node = mock(CGNode.class);
+		IMethod method = mock(IMethod.class);
+		IClass cls = mock(IClass.class);
+		IClassLoader loader = mock(IClassLoader.class);
+		when(node.getMethod()).thenReturn(method);
+		when(method.getSignature()).thenReturn(signature);
+		when(method.getDeclaringClass()).thenReturn(cls);
+		when(cls.getClassLoader()).thenReturn(loader);
+		when(loader.getReference()).thenReturn(ClassLoaderReference.Application);
+		when(cls.getReference()).thenReturn(
+				TypeReference.findOrCreate(ClassLoaderReference.Application, TypeName.findOrCreate(walaType)));
+		return node;
+	}
+
 	private static AssertionError runAndExpectError(List<CGNode> path, WalaRule rule) {
 		AssertionError thrown = null;
 		try {

@@ -247,6 +247,56 @@ public final class WalaPathClassification {
 	 * Array types are unwrapped to their element type recursively.
 	 * </p>
 	 */
+	/**
+	 * Whether this frame is skipped as infrastructure although supervised code is
+	 * permitted to declare that package: application-loaded, inside
+	 * {@link #INFRA_PREFIXES} and outside {@link #RESERVED_PACKAGE_PREFIXES}.
+	 * <p>
+	 * The two lists answer different questions, but the safety of the first rests
+	 * on the second. Skipping a namespace while looking for the student frame is
+	 * only sound while supervised code cannot be named into it, and that no longer
+	 * holds for every entry: {@code anonymous.toolclasses.} and {@code metatest.}
+	 * are skipped here and nameable there, because they are one downstream
+	 * consumer's helpers rather than something Ares could be mistaken for. A
+	 * supervised class declaring one of them makes every frame on its path
+	 * infrastructure and its violations attributable to nobody.
+	 * <p>
+	 * Rather than couple the lists again, which would take back a decision made for
+	 * a good reason, the gap between them is named. The one decision that depended
+	 * on the coupling consults this, so it holds for whatever the two lists say
+	 * next: an entry added to {@link #INFRA_PREFIXES} without being reserved is
+	 * refused rather than turned into a blind spot, and reserving it again makes
+	 * the refusal disappear on its own.
+	 *
+	 * @param node the call-graph node to classify
+	 * @return whether the frame is skipped as infrastructure but nameable by
+	 *         supervised code
+	 */
+	static boolean isUnreservedInfrastructureFrame(CGNode node) {
+		try {
+			if (node == null || node.getMethod() == null) {
+				return false;
+			}
+			IClass cls = node.getMethod().getDeclaringClass();
+			if (cls == null || cls.getClassLoader() == null || cls.getClassLoader().getReference() == null) {
+				return false;
+			}
+			ClassLoaderReference loader = cls.getClassLoader().getReference();
+			if (loader.equals(ClassLoaderReference.Primordial) || loader.equals(ClassLoaderReference.Extension)) {
+				// Skipped because of where it came from rather than what it is called,
+				// and a loader is not something supervised code gets to choose.
+				return false;
+			}
+			String pkg = packageNameOf(cls);
+			return INFRA_PREFIXES.stream().anyMatch(pkg::startsWith)
+					&& RESERVED_PACKAGE_PREFIXES.stream().noneMatch(pkg::startsWith);
+		} catch (RuntimeException unclassifiable) {
+			// Only ever asked about a sink that was about to be dropped, so answering
+			// "no" leaves it exactly as it was before this question existed.
+			return false;
+		}
+	}
+
 	static String packageNameOf(IClass cls) {
 		return packageNameOf(cls.getReference());
 	}

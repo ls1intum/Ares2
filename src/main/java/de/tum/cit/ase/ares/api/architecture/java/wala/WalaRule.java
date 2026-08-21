@@ -394,6 +394,9 @@ public class WalaRule {
 		Deque<List<CGNode>> stack = new ArrayDeque<>();
 		stack.push(List.of(sink));
 		int evaluated = 0;
+		// The first reachable frame the walk stepped over that supervised code could
+		// have declared for itself. See the refusal below for what that means.
+		CGNode namedIntoUnreservedInfrastructure = null;
 		while (!stack.isEmpty()) {
 			List<CGNode> chain = stack.pop();
 			CGNode frontier = chain.get(0);
@@ -405,6 +408,10 @@ public class WalaRule {
 				extended.add(predecessor);
 				extended.addAll(chain);
 				if (WalaPathClassification.isInfraFrame(predecessor)) {
+					if (namedIntoUnreservedInfrastructure == null && entryReachable.contains(predecessor)
+							&& WalaPathClassification.isUnreservedInfrastructureFrame(predecessor)) {
+						namedIntoUnreservedInfrastructure = predecessor;
+					}
 					stack.push(extended);
 				} else {
 					// A nearest-student approach: evaluate it now; a real violation throws.
@@ -416,6 +423,19 @@ public class WalaRule {
 					}
 				}
 			}
+		}
+		// The walk reached this sink and found no frame to attribute it to. Two ways
+		// lead here and only one of them is ordinary. Frames skipped because of where
+		// they came from, the JDK and WALA's synthetic nodes, or because they are in a
+		// namespace supervised code may not declare, say nothing about the submission,
+		// and such a sink is dropped as it always was. A frame skipped although
+		// supervised code was free to declare it is different: it means the analysis
+		// stepped over something that may well be the submission, and dropping the
+		// sink would then report success over a forbidden call that was found.
+		if (evaluated == 0 && namedIntoUnreservedInfrastructure != null) {
+			throw new SecurityException(Messages.localized("security.architecture.scope.inside.infrastructure",
+					formatJvmSignature(namedIntoUnreservedInfrastructure.getMethod().getSignature()),
+					formatJvmSignature(sink.getMethod().getSignature())));
 		}
 	}
 
