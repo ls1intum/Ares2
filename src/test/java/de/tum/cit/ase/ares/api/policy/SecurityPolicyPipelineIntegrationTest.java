@@ -1,9 +1,10 @@
 package de.tum.cit.ase.ares.api.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -21,7 +22,7 @@ class SecurityPolicyPipelineIntegrationTest {
 	Path temporaryDirectory;
 
 	@Test
-	void carriesFullyPopulatedYamlThroughRealMavenAndGradlePipelines() throws IOException {
+	void carriesFullyPopulatedYamlThroughRealMavenAndGradlePipelines() throws Exception {
 		for (BuildMode mode : BuildMode.values()) {
 			Path root = Files.createDirectory(temporaryDirectory.resolve(mode.name().toLowerCase()));
 			if (mode == BuildMode.MAVEN) {
@@ -33,7 +34,7 @@ class SecurityPolicyPipelineIntegrationTest {
 			Files.writeString(policy, yaml(mode));
 			SecurityPolicyReaderAndDirector pipeline = SecurityPolicyReaderAndDirector.builder()
 					.securityPolicyFilePath(policy).projectFolderPath(root).build().createTestCases();
-			TestCaseAbstractFactoryAndBuilder factory = pipeline.factoryAndBuilder();
+			TestCaseAbstractFactoryAndBuilder factory = factoryOf(pipeline);
 			assertEquals(mode, factory.buildMode());
 			assertEquals(ArchitectureMode.ARCHUNIT, factory.architectureMode());
 			assertEquals(AOPMode.ASPECTJ, factory.aopMode());
@@ -50,7 +51,7 @@ class SecurityPolicyPipelineIntegrationTest {
 	}
 
 	@Test
-	void invalidPolicyFailsBeforeAFactoryExists() throws IOException {
+	void invalidPolicyFailsBeforeAFactoryExists() throws Exception {
 		Path root = Files.createDirectory(temporaryDirectory.resolve("invalid"));
 		Files.writeString(root.resolve("pom.xml"), "<project/>");
 		Path policy = root.resolve("policy.yaml");
@@ -58,7 +59,14 @@ class SecurityPolicyPipelineIntegrationTest {
 		SecurityPolicyReaderAndDirector pipeline = SecurityPolicyReaderAndDirector.builder()
 				.securityPolicyFilePath(policy).projectFolderPath(root).build();
 		assertThrows(SecurityException.class, pipeline::createTestCases);
-		assertThrows(NullPointerException.class, pipeline::factoryAndBuilder);
+		assertNull(factoryOf(pipeline), "no factory should exist after a failed createTestCases()");
+	}
+
+	private static TestCaseAbstractFactoryAndBuilder factoryOf(SecurityPolicyReaderAndDirector pipeline)
+			throws ReflectiveOperationException {
+		Field field = SecurityPolicyReaderAndDirector.class.getDeclaredField("securityTestCaseFactoryAndBuilder");
+		field.setAccessible(true);
+		return (TestCaseAbstractFactoryAndBuilder) field.get(pipeline);
 	}
 
 	private String yaml(BuildMode mode) {
