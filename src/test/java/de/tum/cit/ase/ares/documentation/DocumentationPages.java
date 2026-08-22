@@ -51,6 +51,25 @@ public final class DocumentationPages {
 	/** The admonition that must open every page. */
 	public static final String SIMPLE_STORY = ":::tip[Simple Story]";
 
+	/**
+	 * A link label separated from its target by words that were written between
+	 * them.
+	 * <p>
+	 * {@code [label] as well(./page.md)} is not link syntax. Markdown renders it as
+	 * the label in square brackets, the stray words, and the path in round
+	 * brackets, all as plain text. Docusaurus sees no link at all, so
+	 * {@code onBrokenLinks} cannot report it however strictly it is set, and the
+	 * page ships with a reference the reader cannot follow. One shipped this way
+	 * when a filler word was moved to the end of a sentence and landed inside the
+	 * link.
+	 * <p>
+	 * The target has to look like one, a relative path, an absolute one or a URL,
+	 * so that prose such as {@code the frame] in (StudentCode.java:12)} inside a
+	 * quoted stack trace is not mistaken for a severed link.
+	 */
+	public static final Pattern SEVERED_LINK = Pattern
+			.compile("\\[[^\\]\\n]+\\][^\\n\\[\\]()]{1,40}\\((?:\\.{1,2}/|/|https?://)[^)\\s]*\\)");
+
 	private DocumentationPages() {
 		throw new IllegalStateException("Utility class");
 	}
@@ -186,6 +205,14 @@ public final class DocumentationPages {
 	 */
 	public static List<String> legacyAdmonitionsIn(String content) {
 		return outsideFencedCode(content, line -> LEGACY_ADMONITION.matcher(line).matches());
+	}
+
+	/**
+	 * Returns every line on the page that severs a link label from its target,
+	 * ignoring fenced code blocks for the same reason the admonition scan does.
+	 */
+	public static List<String> severedLinksIn(String content) {
+		return outsideFencedCode(content, line -> SEVERED_LINK.matcher(line).find());
 	}
 
 	/**

@@ -170,6 +170,24 @@ class SiteWideDocumentationStructureTest {
 	}
 
 	@Test
+	void noPageSeversALinkLabelFromItsTarget() {
+		// Reported together, like the admonitions above, because this slip arrives in
+		// batches: one sweep over the prose puts a word inside every link it touches.
+		StringBuilder offenders = new StringBuilder();
+		for (Path page : allPages()) {
+			for (String offender : DocumentationPages.severedLinksIn(DocumentationPages.read(page))) {
+				offenders.append(System.lineSeparator()).append("  ").append(page).append(": ").append(offender.strip());
+			}
+		}
+
+		assertTrue(offenders.isEmpty(),
+				"These lines put words between a link label and its target, so Markdown renders the label, the "
+						+ "words and the path as plain text and no link at all. Docusaurus cannot report it, because "
+						+ "onBrokenLinks only sees links that parsed. Write [label](target) and put the words after "
+						+ "the closing bracket." + offenders);
+	}
+
+	@Test
 	void noPageUsesTheAdmonitionSyntaxThatRendersAsPlainText() {
 		// Reported in one message rather than per page, so a systematic slip shows its
 		// full

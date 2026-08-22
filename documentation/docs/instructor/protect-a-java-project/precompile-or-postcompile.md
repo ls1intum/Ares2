@@ -67,7 +67,7 @@ trusts and be trusted along with it.
 
 ## Choosing a configuration
 
-1. **Create a security policy and annotate tests:** follow the [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual), which explains how to write `SecurityPolicy.yaml` files and apply `@Policy` to your tests. `@Policy` selects the policy but activates nothing on its own, so each supervised test needs an [Ares test annotation] as well(./test-annotations.md) (`@Public`, `@Hidden`, `@PublicTest` or `@HiddenTest`). If your exercise needs no resource access at all, [Further Options](./further-options.md) describes the alternative.
+1. **Create a security policy and annotate tests:** follow the [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual), which explains how to write `SecurityPolicy.yaml` files and apply `@Policy` to your tests. `@Policy` selects the policy but activates nothing on its own, so each supervised test needs an [Ares test annotation](./test-annotations.md) as well (`@Public`, `@Hidden`, `@PublicTest` or `@HiddenTest`). If your exercise needs no resource access at all, [Further Options](./further-options.md) describes the alternative.
 2. **Choose the right configuration:** select one of the eight `ProgrammingLanguageConfiguration` values matching your build tool, architecture analysis and runtime enforcement:
 
 | Value | Build Tool | Static Analysis | Runtime Enforcement |
