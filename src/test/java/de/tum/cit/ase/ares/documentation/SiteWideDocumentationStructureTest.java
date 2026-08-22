@@ -176,7 +176,8 @@ class SiteWideDocumentationStructureTest {
 		StringBuilder offenders = new StringBuilder();
 		for (Path page : allPages()) {
 			for (String offender : DocumentationPages.severedLinksIn(DocumentationPages.read(page))) {
-				offenders.append(System.lineSeparator()).append("  ").append(page).append(": ").append(offender.strip());
+				offenders.append(System.lineSeparator()).append("  ").append(page).append(": ")
+						.append(offender.strip());
 			}
 		}
 
