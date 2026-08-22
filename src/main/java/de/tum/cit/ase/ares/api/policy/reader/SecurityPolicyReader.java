@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.reader;
 
 import java.nio.file.Path;
-import java.util.Locale;
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
@@ -9,7 +8,6 @@ import javax.annotation.Nonnull;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 
@@ -81,31 +79,13 @@ public abstract class SecurityPolicyReader {
 		Path effectiveRoot = projectRootPath == null
 				? Objects.requireNonNullElse(absolutePolicy.getParent(), absolutePolicy)
 				: projectRootPath;
-		String fileExtension = getFileExtension(securityPolicyFilePath);
-		return switch (fileExtension) {
-		case "yaml", "yml" -> SecurityPolicyYAMLReader.yamlBuilder().yamlMapper(new YAMLMapper())
-				.projectRootPath(effectiveRoot).build();
-		default -> throw new IllegalArgumentException(
-				Messages.localized("policy.reader.unsupported.format", fileExtension));
+		// SecurityPolicyFileFormat.fromPath rejects an unsupported extension, so the
+		// switch over the resolved format is exhaustive and needs no default branch: a
+		// new format is a new enum constant that the compiler forces us to handle here.
+		return switch (SecurityPolicyFileFormat.fromPath(securityPolicyFilePath)) {
+		case YAML -> SecurityPolicyYAMLReader.yamlBuilder().yamlMapper(new YAMLMapper()).projectRootPath(effectiveRoot)
+				.build();
 		};
-	}
-
-	/**
-	 * Returns the lowercase-free file extension (the part after the last
-	 * {@code '.'} in the file name), or the empty string if there is none. Replaces
-	 * Guava's {@code MoreFiles.getFileExtension}.
-	 *
-	 * @param path the path whose file extension is returned.
-	 * @return the file extension without the leading dot, or {@code ""}.
-	 */
-	private static String getFileExtension(Path path) {
-		Path fileName = path.getFileName();
-		if (fileName == null) {
-			return "";
-		}
-		String name = fileName.toString();
-		int lastDotIndex = name.lastIndexOf('.');
-		return (lastDotIndex == -1) ? "" : name.substring(lastDotIndex + 1).toLowerCase(Locale.ROOT);
 	}
 	// </editor-fold>
 }
