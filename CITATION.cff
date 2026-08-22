@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use Ares 2 in your work, please cite it using the metadata from this file."
+title: "Ares 2"
+abstract: "Ares 2 is a framework for the secure remote execution of student submissions on interactive learning platforms. It is the second Java-based implementation of the Secure COder Remote Execution (SCORE) framework and enforces policy-based sandboxing through static analysis and runtime instrumentation."
+type: software
+license: MIT
+repository-code: "https://github.com/ls1intum/Ares2"
+url: "https://ls1intum.github.io/Ares2/"
+keywords:
+  - java
+  - sandbox
+  - security
+  - education
+  - automated-assessment
+  - junit
+  - aspectj
+  - archunit
+authors:
+  -
+    family-names: Paulsen
+    given-names: Markus
+    email: markus.paulsen@tum.de
+    affiliation: "Technical University of Munich"
+  -
+    family-names: Sahinalp
+    given-names: Sarp
+    email: sarp.sahinalp@tum.de
+    affiliation: "Technical University of Munich"
+  -
+    family-names: Zaveri
+    given-names: Anirudh
+    email: anirudh.zaveri@tum.de
+    affiliation: "Technical University of Munich"

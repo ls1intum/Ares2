@@ -1030,6 +1030,12 @@
 									api/** and integration/**, so no profile ran them before this
 									include was added. -->
 								<include>**/testutilities/**/*Test.java</include>
+								<!-- The same omission a second time: documentation/** holds the tests
+									that read documentation/docs directly, they need no woven setup
+									either, and no profile selected them, so the whole suite passed
+									locally and never ran here. TestProfileCoverageTest now fails the
+									build when a test class is left out of every profile CI runs. -->
+								<include>**/documentation/**/*Test.java</include>
 							</includes>
 							<excludes>
 								<exclude>**/api/architecture/**/*Test.java</exclude>

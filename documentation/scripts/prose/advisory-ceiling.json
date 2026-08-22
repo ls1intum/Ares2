@@ -1,0 +1,12 @@
+{
+  "why": "The advisory findings each rule is allowed. Lower one by improving the prose, never by editing it here. A number rises only where a merge brings in text written before these rules existed, and only in the commit that brings it; see scripts/prose/cli.mjs.",
+  "ceiling": {
+    "active-voice": 772,
+    "address-the-reader": 45,
+    "context-filler": 19,
+    "long-sentence": 115,
+    "no-intensifiers": 24,
+    "prefer-must": 151,
+    "present-tense": 83
+  }
+}

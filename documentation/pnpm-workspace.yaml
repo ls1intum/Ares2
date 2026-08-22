@@ -1,0 +1,22 @@
+# pnpm 11+ install and resolution settings for the documentation/ subproject.
+
+preferFrozenLockfile: true
+autoInstallPeers: true
+
+# Dependency overrides. pnpm 11 reads overrides from this file in preference to
+# `pnpm.overrides` in package.json. These lift transitive dependencies of the Docusaurus
+# build toolchain past published advisories; the same versions are in use in the Artemis
+# documentation site on the identical Docusaurus 3.10.2 stack.
+overrides:
+  # GHSA-5c6j-r48x-rmvq (RCE via RegExp.flags) and GHSA-qj8w-gfj5-8c6v (CPU exhaustion).
+  serialize-javascript: '7.0.7'
+  # GHSA-w5hq-g745-h8pq
+  uuid: '14.0.1'
+
+# Build scripts are blocked by default in pnpm 11 as a supply-chain safeguard. These three
+# are native/codegen steps that Docusaurus genuinely needs: @swc/core and esbuild back the
+# `@docusaurus/faster` bundler, and core-js compiles its polyfill entry points.
+allowBuilds:
+  '@swc/core': true
+  core-js: true
+  esbuild: true

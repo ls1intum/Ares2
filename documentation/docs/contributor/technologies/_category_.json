@@ -1,0 +1,8 @@
+{
+    "label": "Technologies on which Ares 2 is built",
+    "position": 4,
+    "link": {
+        "type": "generated-index",
+        "description": "The test frameworks and analysis techniques Ares 2 is assembled from."
+    }
+}

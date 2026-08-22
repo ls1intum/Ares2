@@ -1,0 +1,8 @@
+{
+    "label": "Policy",
+    "position": 5,
+    "link": {
+        "type": "generated-index",
+        "description": "How each policy domain is enforced, layer by layer."
+    }
+}

@@ -1,0 +1,76 @@
+{
+    "name": "ares2-documentation",
+    "version": "0.0.0",
+    "private": true,
+    "packageManager": "pnpm@11.18.0",
+    "scripts": {
+        "build": "docusaurus build",
+        "clear": "docusaurus clear",
+        "diagrams": "node scripts/render-plantuml.mjs",
+        "diagrams:check": "node scripts/render-plantuml.mjs --check",
+        "docusaurus": "docusaurus",
+        "lint": "pnpm run lint:code && pnpm run lint:prose",
+        "lint:code": "eslint .",
+        "lint:fix": "eslint --fix .",
+        "lint:prose": "node scripts/prose/cli.mjs --lint",
+        "prose:accept": "node scripts/prose/cli.mjs --accept",
+        "report:prose": "node scripts/prose/cli.mjs --report",
+        "serve": "docusaurus serve",
+        "start": "docusaurus start",
+        "swizzle": "docusaurus swizzle",
+        "test": "playwright test --config tests/playwright.config.ts",
+        "test:install": "playwright install --with-deps --only-shell chromium",
+        "test:prose": "node --test scripts/prose/prose.test.mjs",
+        "typecheck": "tsc",
+        "update": "ncu -i --format group",
+        "write-heading-ids": "docusaurus write-heading-ids"
+    },
+    "dependencies": {
+        "@docusaurus/core": "3.10.2",
+        "@docusaurus/faster": "3.10.2",
+        "@docusaurus/preset-classic": "3.10.2",
+        "@easyops-cn/docusaurus-search-local": "0.55.3",
+        "@mdx-js/react": "3.1.1",
+        "clsx": "2.1.1",
+        "prism-react-renderer": "2.4.1",
+        "react": "19.2.8",
+        "react-dom": "19.2.8"
+    },
+    "devDependencies": {
+        "@docusaurus/module-type-aliases": "3.10.2",
+        "@docusaurus/tsconfig": "3.10.2",
+        "@docusaurus/types": "3.10.2",
+        "@eslint/js": "10.0.1",
+        "@playwright/test": "1.62.1",
+        "@types/react": "19.2.17",
+        "@typescript-eslint/eslint-plugin": "8.65.0",
+        "@typescript-eslint/parser": "8.65.0",
+        "eslint": "10.8.0",
+        "mdast-util-to-string": "^4.0.0",
+        "npm-check-updates": "23.0.1",
+        "remark-directive": "^4.0.0",
+        "remark-frontmatter": "^5.0.0",
+        "remark-gfm": "^4.0.1",
+        "remark-mdx": "^3.1.1",
+        "remark-parse": "^11.0.0",
+        "typescript": "6.0.3",
+        "unified": "^11.0.5",
+        "unist-util-visit": "^5.1.0",
+        "vfile": "^6.0.3"
+    },
+    "browserslist": {
+        "production": [
+            ">0.5%",
+            "not dead",
+            "not op_mini all"
+        ],
+        "development": [
+            "last 3 chrome version",
+            "last 3 firefox version",
+            "last 5 safari version, not dead"
+        ]
+    },
+    "engines": {
+        "node": ">=24.18.0"
+    }
+}

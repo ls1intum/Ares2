@@ -1,0 +1,124 @@
+# Reusable build of the Docusaurus site in documentation/.
+#
+# This workflow has no triggers of its own. Two callers use it:
+#   - documentation-ci.yml validates every pull request that touches the docs.
+#   - deploy-documentation.yml builds and then publishes to GitHub Pages.
+#
+# Keeping the build in one place means the artefact that gets deployed is produced by exactly
+# the same steps that validated it on the pull request.
+name: Build Documentation
+
+on:
+  workflow_call:
+    inputs:
+      upload_pages_artifact:
+        description: >-
+          Also upload the built site as a GitHub Pages artefact. Set true by the deploy path;
+          pull request validation leaves it false so no artefact is produced.
+        required: false
+        default: false
+        type: boolean
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build Docusaurus site
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+
+      # pnpm is activated through Corepack rather than pnpm/action-setup. This repository
+      # restricts Actions to GitHub-owned ones (plus one explicit pattern), so a third-party
+      # action makes the workflow fail to start at all. Corepack ships with Node and reads the
+      # exact version from the packageManager field in documentation/package.json, so CI and a
+      # local `corepack enable` resolve to the same pnpm, with one less supply-chain dependency.
+      - name: Set up pnpm through Corepack
+        working-directory: documentation
+        run: |
+          corepack enable
+          corepack install
+          pnpm --version
+
+      # Cached by hand because actions/setup-node's built-in pnpm cache resolves the store path
+      # before Corepack has run. actions/cache is GitHub-owned and therefore permitted.
+      - name: Resolve the pnpm store path
+        id: pnpm-store
+        working-directory: documentation
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('documentation/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: documentation
+        run: pnpm install --frozen-lockfile
+
+      - name: Code style
+        working-directory: documentation
+        run: pnpm run lint:code
+
+      # The writing rules, over the Markdown syntax tree rather than the lines. Only the
+      # rules whose forbidden form is decidable from the text alone fail here; the ones that
+      # need a person to read the sentence are reported by `pnpm run report:prose` and never
+      # fail a build. scripts/prose/rules.mjs says which is which and why.
+      - name: Prose scanner tests
+        working-directory: documentation
+        run: pnpm run test:prose
+
+      - name: Writing rules
+        working-directory: documentation
+        run: pnpm run lint:prose
+
+      - name: Type check
+        working-directory: documentation
+        run: pnpm run typecheck
+
+      # PlantUML sources are rendered to SVG and the SVGs are committed, the same way the
+      # .drawio sources sit next to committed .drawio.png renders. This fails the build when a
+      # .puml was edited without regenerating its diagram, so the site can never show a
+      # diagram that disagrees with its source.
+      - name: Verify committed PlantUML renders
+        working-directory: documentation
+        run: pnpm run diagrams:check
+
+      # onBrokenLinks and onBrokenAnchors are set to 'throw', so a dangling cross-reference
+      # fails here rather than shipping to the published site.
+      - name: Build Docusaurus site
+        working-directory: documentation
+        run: pnpm run build
+
+      # Drives the built site in a real browser. This is the only check that sees what a
+      # reader actually gets: the build verifies that every link resolves, but not that a page
+      # renders. It is what caught 53 admonitions that were silently rendering as plain text
+      # because they used the Docusaurus 2 title syntax.
+      - name: Install the test browser
+        working-directory: documentation
+        run: pnpm exec playwright install --with-deps --only-shell chromium
+
+      - name: Documentation integration tests
+        working-directory: documentation
+        run: pnpm run test
+
+      # Only on the deploy path; the deploy job consumes this. Uploading needs no extra
+      # permissions of its own, `pages: write` lives on the deploy job.
+      - name: Upload Pages artefact
+        if: ${{ inputs.upload_pages_artifact }}
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: documentation/build

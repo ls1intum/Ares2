@@ -1,0 +1,21 @@
+Ares 2
+Copyright (c) 2026 Markus Paulsen
+Copyright (c) 2019 Christian Femers
+
+This product includes software developed for Ares 1, the Artemis Java Test
+Sandbox.
+
+Ares 2 is the successor to Ares 1, which was created by Christian Femers at the
+Technical University of Munich in 2019 and released under the MIT Licence.
+Ares 2 is a substantial rewrite, but it continues to include and build upon
+parts of that original work. The public test API, the test context, the console
+IO testing utilities and the reporting internals under
+de.tum.cit.ase.ares.api all carry his authorship, as recorded in the @author
+tags of those source files.
+
+His copyright notice is therefore retained in LICENSE alongside that of the
+current maintainer, as the MIT Licence requires and as the contribution
+deserves. He is also credited in pom.xml as the creator of Ares 1.
+
+Both Ares 1 and Ares 2 are licensed under the MIT Licence; see LICENSE for the
+full terms.
