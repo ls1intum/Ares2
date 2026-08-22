@@ -22,7 +22,8 @@ skinparam shadowing false
 class SecurityPolicy <<record>> {
     + thisPolicyFileCompliesToThePolicyVersion: int
     + regardingTheSupervisedCode: SupervisedCode
-    + {static} createRestrictive(configuration: ProgrammingLanguageConfiguration): SecurityPolicy
+    - {static} requireSupportedPolicyVersion(version: int): int
+    + {static} createRestrictive(programmingLanguageConfiguration: ProgrammingLanguageConfiguration): SecurityPolicy
     + {static} builder(): SecurityPolicy.Builder
 }
 
@@ -139,7 +140,7 @@ end note
 enum SecurityPolicyFileFormat <<enum>> {
     YAML
     - extensions: Set<String>
-    + {static} fromPath(path: Path): SecurityPolicyFileFormat
+    ~ {static} fromPath(path: Path): SecurityPolicyFileFormat
     - {static} fileExtensionOf(path: Path): String
 }
 
@@ -159,14 +160,6 @@ enum ProgrammingLanguageConfiguration <<enum>> {
     JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION
     + nameRules(): LanguageNameRules
 }
-
-note bottom of ProgrammingLanguageConfiguration
-      allowed: exactly one of the eight
-      - JAVA_USING_<build tool>_<architecture analyser>_AND_<enforcement mechanism>
-      - build tool: MAVEN | GRADLE
-      - architecture analyser: ARCHUNIT | WALA
-      - enforcement mechanism: ASPECTJ | INSTRUMENTATION
-end note
 
 ' ===== Right column: validators and directors =====
 class PolicyValueValidator <<utility>> {
@@ -231,12 +224,12 @@ class SecurityPolicySchemaValidator <<utility>> {
         + {static} validate(root: JsonNode): void
         - {static} languageRulesFor(configurationName: String): LanguageNameRules
         - {static} validateCommandArray(commands: JsonNode): void
-        - {static} validateObjectArray(node: JsonNode, path: String, allowedFields: Set<String>, ...): void
-        - {static} requireObject(node: JsonNode, path: String, allowedFields: Set<String>, ...): void
+        - {static} validateObjectArray(node: JsonNode, path: String, allowedFields: Set<String>, requiredFields: Set<String>): void
+        - {static} requireObject(node: JsonNode, path: String, allowedFields: Set<String>, requiredFields: Set<String>): void
         - {static} requireOptionalText(parent: JsonNode, field: String, path: String): void
         - {static} requireText(parent: JsonNode, field: String, path: String): void
         - {static} requireIntegral(parent: JsonNode, field: String, path: String): void
-        - {static} requireBooleans(parent: JsonNode, fields: Set<String>, excluded: Set<String>, ...): void
+        - {static} requireBooleans(parent: JsonNode, fields: Set<String>, excluded: Set<String>, path: String): void
         - {static} requireTextArray(node: JsonNode, path: String): void
         - {static} requireTextArrayAllowingBlankEntries(node: JsonNode, path: String): void
         - {static} requirePattern(parent: JsonNode, field: String, path: String, pattern: Pattern): void

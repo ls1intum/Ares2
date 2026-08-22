@@ -12,7 +12,8 @@ skinparam classAttributeIconSize 0
 skinparam classFontSize 11
 skinparam classMethodFontSize 8
 skinparam linetype ortho
-skinparam nodesep 170
+' Reduced only enough for the browser renderer's 4096-pixel limit.
+skinparam nodesep 168
 skinparam noteFontSize 8
 skinparam packageStyle rectangle
 skinparam ranksep 220
@@ -20,6 +21,7 @@ skinparam shadowing false
 
 class SecurityPolicy <<record>> {
     + thisPolicyFileCompliesToThePolicyVersion: int
+    - {static} requireSupportedPolicyVersion(version: int): int
     + {static} createRestrictive(programmingLanguageConfiguration: ProgrammingLanguageConfiguration): SecurityPolicy
     + {static} builder(): SecurityPolicy.Builder
 }
@@ -45,12 +47,13 @@ class SupervisedCode <<record>> {
 note left of SupervisedCode
   theFollowingProgrammingLanguageConfigurationIsUsed: nonnull
   - allowed: one of eight enum values
+  - selects the language name rules for the fields below
   theSupervisedCodeUsesTheFollowingPackage: nullable
-  - regex: Java package name
+  - allowed: a package name in the selected language
   theMainClassInsideThisPackageIs: nullable
-  - regex: Java type name
+  - allowed: a type name in the selected language
   theFollowingClassesAreTestClasses: nonnull
-  - regex: Java class path per entry
+  - allowed: a class path in the selected language per entry
   - immutable list
   theFollowingResourceAccessesArePermitted: nonnull
   - allowed: exactly one
@@ -65,6 +68,8 @@ enum ProgrammingLanguageConfiguration <<enum>> {
     JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION
     JAVA_USING_GRADLE_WALA_AND_ASPECTJ
     JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION
+    --
+    + nameRules(): LanguageNameRules
 }
 
 class ResourceAccesses <<record>> {
@@ -178,7 +183,8 @@ note bottom of ThreadPermission
   createTheFollowingNumberOfThreads: nonnull
   - limits: >= 0 (default: 0)
   ofThisClass: nonnull
-  - regex: Java class | "Lambda-Expression" | recognised implicit operation | "*"
+  - allowed: a thread construct in the selected language | "*"
+  - validated per language, not by the record
 end note
 
 class PackagePermission <<record>> {
@@ -190,7 +196,8 @@ class PackagePermission <<record>> {
 
 note right of PackagePermission
   importTheFollowingPackage: nonnull
-  - regex: Java package name | "*"
+  - allowed: a package name in the selected language | "*"
+  - validated where the language is known, not by the record
 end note
 
 class ResourceLimitsPermission <<record>> {
@@ -216,8 +223,8 @@ class ClassPermission <<record>> {
 
 note right of ClassPermission
   className: nonnull
-  - regex: Java class path
-  - runtime-derived only
+  - regex: non-blank class name in the selected language
+  - runtime-derived and validated by the deriving component
 end note
 
 SupervisedCode "1" -right-> "1" ProgrammingLanguageConfiguration : + theFollowingProgrammingLanguageConfigurationIsUsed: ProgrammingLanguageConfiguration

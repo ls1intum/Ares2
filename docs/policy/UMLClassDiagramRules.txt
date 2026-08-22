@@ -94,11 +94,11 @@ Requested class order
     non-ranking and let an invisible two-dimensional ranking grid determine the
     class positions. Repeat vertical hidden rail links when additional layout
     weight is required.
-34. Centre vertical associations and inheritance relationships on the class
-    centres whenever the source and target occupy the same column. Treat the
-    visible relationship as a ranking lane inside an odd-sized bundle with
-    hidden parallel rails, and vary its declaration position until the renderer
-    assigns it to the centre lane. Verify the actual SVG endpoints.
+34. Centre vertical associations, inheritance relationships and dependencies on
+    the class centres whenever the source and target occupy the same column.
+    Treat the visible relationship as a ranking lane inside an odd-sized bundle
+    with hidden parallel rails, and vary its declaration position until the
+    renderer assigns it to the centre lane. Verify the actual SVG endpoints.
 35. If a constructor or method parameter list exceeds 100 characters, retain
     the longest prefix of complete parameters that fits within 100 characters
     including the final ", ...", and replace all remaining parameters with

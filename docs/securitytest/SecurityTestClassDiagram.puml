@@ -1,0 +1,347 @@
+@startuml SecurityTestClassDiagram
+
+title Ares 2 Security-Test API
+
+scale max 3799 width
+top to bottom direction
+hide circle
+hide empty members
+skinparam ArrowFontSize 9
+skinparam classAttributeFontSize 8
+skinparam classAttributeIconSize 0
+skinparam classFontSize 10
+skinparam classMethodFontSize 7
+skinparam linetype ortho
+' Reduced from the 170/220 starting values because the browser renderer
+' rejects the natural 5999-pixel-wide layout.
+skinparam nodesep 25
+skinparam noteFontSize 7
+skinparam packageStyle rectangle
+skinparam ranksep 220
+skinparam shadowing false
+
+package "securitytest" {
+  class ReservedPackageGuard <<utility>> {
+    - {static} RESERVED_PREFIXES: List<String>
+    - ReservedPackageGuard()
+    + {static} reservedPrefixOf(packageName: String): String
+    + {static} validatePackage(packageName: String): void
+    + {static} validateClassNames(fullyQualifiedClassNames: Iterable<String>): void
+  }
+
+  abstract class TestCaseAbstractFactoryAndBuilder {
+    # buildMode: BuildMode
+    # architectureMode: ArchitectureMode
+    # aopMode: AOPMode
+    # projectPath: Path
+    # essentialPackagesPath: Path
+    # essentialClassesPath: Path
+    # essentialPackages: List<String>
+    # essentialClasses: List<String>
+    # testClasses: List<String>
+    # resourceAccesses: ResourceAccesses
+    # packageName: String
+    # mainClassInPackageName: String
+    # architectureTestCases: List<ArchitectureTestCase>
+    # aopTestCases: List<AOPTestCase>
+    # phobosTestCases: List<PhobosTestCase>
+    + TestCaseAbstractFactoryAndBuilder(creator: Creator, writer: Writer, executer: Executer, ...)
+    + buildMode(): BuildMode
+    + architectureMode(): ArchitectureMode
+    + aopMode(): AOPMode
+    + resourceAccesses(): ResourceAccesses
+    + testClasses(): List<String>
+    + {abstract} writeTestCases(testFolderPath: Path): List<Path>
+    + {abstract} executeTestCases(): void
+  }
+
+  note left of TestCaseAbstractFactoryAndBuilder
+    buildMode: nonnull
+    - allowed: configured or policy-derived build mode
+    architectureMode: nonnull
+    - allowed: configured or policy-derived architecture mode
+    aopMode: nonnull
+    - allowed: configured or policy-derived AOP mode
+    projectPath: nullable
+    - allowed: project root
+    essentialPackagesPath: nonnull
+    - allowed: essential-packages data path
+    essentialClassesPath: nonnull
+    - allowed: essential-classes data path
+    essentialPackages: nonnull
+    - allowed: mutable collected list
+    essentialClasses: nonnull
+    - allowed: mutable collected list
+    testClasses: nonnull
+    - allowed: mutable collected list
+    resourceAccesses: nonnull
+    - allowed: exactly one policy aggregate
+    packageName: nonnull
+    - allowed: supervised-code package
+    mainClassInPackageName: nonnull
+    - allowed: supervised-code main class
+    architectureTestCases: nonnull
+    - allowed: mutable list (default: empty)
+    aopTestCases: nonnull
+    - allowed: mutable list (default: empty)
+    phobosTestCases: nonnull
+    - allowed: mutable list (default: empty)
+  end note
+}
+
+package "java" {
+  class JavaTestCaseFactoryAndBuilder {
+    + JavaTestCaseFactoryAndBuilder(creator: JavaCreator, writer: JavaWriter, executer: JavaExecuter, ...)
+    + writeTestCases(testFolderPath: Path): List<Path>
+    + executeTestCases(): void
+    + {static} builder(): Builder
+  }
+
+  annotation StudentCompiledClassesPath {
+    + value(): String
+  }
+}
+
+package "java.creator" {
+  interface Creator {
+    + createTestCases(buildMode: BuildMode, architectureMode: ArchitectureMode, aopMode: AOPMode, ...): void
+  }
+
+  class JavaCreator {
+    - buildConfiguration: BuildToolConfiguration
+    - cache: Map<String, Object>
+    + JavaCreator()
+    + JavaCreator(buildConfiguration: BuildToolConfiguration)
+    + withBuildConfiguration(buildConfiguration: BuildToolConfiguration): JavaCreator
+    + cacheResult(classPath: String, supplier: Supplier<T>): Supplier<T>
+    - prepareAllowedPackages(essentialPackages: List<String>, resourceAccesses: ResourceAccesses, packageName: String, ...): Set<PackagePermission>
+    - {static} validatedAllowedPackage(packageName: String): PackagePermission
+    - prepareAllowedClasses(essentialClasses: List<String>, testClasses: List<String>): Set<ClassPermission>
+    - {static} validatedAllowedClass(className: String): ClassPermission
+    - createArchitectureTestCase(supported: JavaArchitectureTestCaseSupported, classes: JavaClasses, ...): JavaArchitectureTestCase
+    - {static} architectureCounterpartOf(supported: JavaAOPTestCaseSupported): JavaArchitectureTestCaseSupported
+    - createAOPTestCase(resourceAccesses: ResourceAccesses, javaArchitectureTestCases: List<ArchitectureTestCase>, ...): JavaAOPTestCase
+    - createPhobosTestCase(resourceAccesses: ResourceAccesses, supported: JavaPhobosTestCaseSupported): PhobosTestCase
+    - addPriorityTestCases(javaArchitectureTestCases: List<ArchitectureTestCase>, classes: JavaClasses, ...): void
+    - addFixedTestCases(javaArchitectureTestCases: List<ArchitectureTestCase>, classes: JavaClasses, ...): void
+    - addVariableTestCases(javaArchitectureTestCases: List<ArchitectureTestCase>, javaAOPTestCases: List<AOPTestCase>, ...): void
+    + createTestCases(buildMode: BuildMode, architectureMode: ArchitectureMode, aopMode: AOPMode, ...): void
+  }
+
+  note left of JavaCreator
+    buildConfiguration: nullable
+    - allowed: injected build-tool configuration
+    cache: nonnull
+    - allowed: concurrent result cache (default: empty)
+  end note
+}
+
+package "java.essentialModel" {
+  record EssentialClasses <<record>> {
+    + essentialJavaClasses: List<String>
+    + essentialArchunitClasses: List<String>
+    + essentialWalaClasses: List<String>
+    + essentialAspectJClasses: List<String>
+    + essentialInstrumentationClasses: List<String>
+    + essentialAresClasses: List<String>
+    + essentialJUnitClasses: List<String>
+    + getEssentialClasses(): List<String>
+    + {static} builder(): Builder
+  }
+
+  note left of EssentialClasses
+    essentialJavaClasses: nonnull
+    - allowed: immutable class-name list
+    essentialArchunitClasses: nonnull
+    - allowed: immutable class-name list
+    essentialWalaClasses: nonnull
+    - allowed: immutable class-name list
+    essentialAspectJClasses: nonnull
+    - allowed: immutable class-name list
+    essentialInstrumentationClasses: nonnull
+    - allowed: immutable class-name list
+    essentialAresClasses: nonnull
+    - allowed: immutable class-name list
+    essentialJUnitClasses: nonnull
+    - allowed: immutable class-name list
+  end note
+
+  interface EssentialDataReader {
+    + readEssentialClassesFrom(essentialClassesPath: Path): EssentialClasses
+    + readEssentialPackagesFrom(essentialPackagesPath: Path): EssentialPackages
+    + readerError(errorMessageIdentifier: String, errorMessageParameter: String, e: Exception): SecurityException
+  }
+
+  record EssentialPackages <<record>> {
+    + essentialJavaPackages: List<String>
+    + essentialArchunitPackages: List<String>
+    + essentialWalaPackages: List<String>
+    + essentialAspectJPackages: List<String>
+    + essentialInstrumentationPackages: List<String>
+    + essentialAresPackages: List<String>
+    + essentialJUnitPackages: List<String>
+    + getEssentialPackages(): List<String>
+    + {static} builder(): Builder
+  }
+
+  note right of EssentialPackages
+    essentialJavaPackages: nonnull
+    - allowed: immutable package-name list
+    essentialArchunitPackages: nonnull
+    - allowed: immutable package-name list
+    essentialWalaPackages: nonnull
+    - allowed: immutable package-name list
+    essentialAspectJPackages: nonnull
+    - allowed: immutable package-name list
+    essentialInstrumentationPackages: nonnull
+    - allowed: immutable package-name list
+    essentialAresPackages: nonnull
+    - allowed: immutable package-name list
+    essentialJUnitPackages: nonnull
+    - allowed: immutable package-name list
+  end note
+}
+
+package "java.essentialModel.yaml" {
+  class EssentialDataYAMLReader {
+    + readEssentialClassesFrom(essentialClassesPath: Path): EssentialClasses
+    + readEssentialPackagesFrom(essentialPackagesPath: Path): EssentialPackages
+  }
+}
+
+package "java.executer" {
+  interface Executer {
+    + executeTestCases(buildMode: BuildMode, architectureMode: ArchitectureMode, aopMode: AOPMode, ...): void
+  }
+
+  class JavaExecuter {
+    - setJavaAdviceSettingValue(key: String, value: Object, architectureMode: ArchitectureMode, aopMode: AOPMode): void
+    + executeTestCases(buildMode: BuildMode, architectureMode: ArchitectureMode, aopMode: AOPMode, ...): void
+  }
+}
+
+package "java.projectScanner" {
+  interface ProjectScanner {
+    + scanForBuildMode(): BuildMode
+    + scanForTestClasses(): String[]
+    + scanForPackageName(): String
+    + scanForMainClassInPackage(): String
+    + scanForTestPath(): Path
+  }
+
+  class JavaProjectScanner {
+    - {static} TEST_ANNOTATIONS: Set<String>
+    - buildConfiguration: BuildToolConfiguration
+    - parser: JavaParser
+    - {static} DEFAULT_TEST_PATH: String
+    + JavaProjectScanner()
+    + JavaProjectScanner(buildConfiguration: BuildToolConfiguration)
+    + withBuildConfiguration(buildConfiguration: BuildToolConfiguration): JavaProjectScanner
+    # getDefaultPackage(): String
+    # getDefaultMainClass(): String
+    - productionRoots(): List<Path>
+    - testRoots(): List<Path>
+    - javaFiles(roots: List<Path>): List<Path>
+    - parse(file: Path): CompilationUnit
+    - packageName(unit: CompilationUnit): String
+    + scanForBuildMode(): BuildMode
+    + scanForTestClasses(): String[]
+    - hasRecognisedAnnotation(annotations: List<AnnotationExpr>, recognised: Set<String>): boolean
+    - simpleName(name: String): String
+    - qualifiedTypeName(packageName: String, type: TypeDeclaration<?>): String
+    + scanForPackageName(): String
+    + scanForMainClassInPackage(): String
+    - isMainMethod(method: MethodDeclaration): boolean
+    + scanForTestPath(): Path
+  }
+
+  class JavaProgrammingExerciseProjectScanner {
+    + JavaProgrammingExerciseProjectScanner()
+    + JavaProgrammingExerciseProjectScanner(buildConfiguration: BuildToolConfiguration)
+    + withBuildConfiguration(buildConfiguration: BuildToolConfiguration): JavaProgrammingExerciseProjectScanner
+    # getDefaultPackage(): String
+    # getDefaultMainClass(): String
+  }
+}
+
+package "java.specific" {
+  class PathLocationProvider {
+    + get(testClass: Class<?>): Set<Location>
+  }
+}
+
+package "java.writer" {
+  interface Writer {
+    + writeTestCases(buildMode: BuildMode, architectureMode: ArchitectureMode, aopMode: AOPMode, ...): List<Path>
+  }
+
+  class JavaWriter {
+    - projectRoot: Path
+    - buildConfiguration: BuildToolConfiguration
+    + JavaWriter()
+    + JavaWriter(projectRoot: Path)
+    + JavaWriter(buildConfiguration: BuildToolConfiguration)
+    + withBuildConfiguration(buildConfiguration: BuildToolConfiguration): JavaWriter
+    - createJavaArchitectureFiles(architectureMode: ArchitectureMode, packageName: String, mainClassInPackageName: String, ...): List<Path>
+    - createJavaAOPFiles(aopMode: AOPMode, essentialPackages: List<String>, essentialClasses: List<String>, ...): List<Path>
+    - createLocalisationFiles(testFolderPath: Path): List<Path>
+    - createPhobosFiles(packageName: String, javaPhobosTestCases: List<JavaPhobosTestCase>, testFolderPath: Path): List<Path>
+    - confineTargets(targets: List<Path>): List<Path>
+    ~ confineToProject(targetPath: Path): Path
+    + writeTestCases(buildMode: BuildMode, architectureMode: ArchitectureMode, aopMode: AOPMode, ...): List<Path>
+  }
+
+  note right of JavaWriter
+    projectRoot: nonnull
+    - allowed: current project root
+    buildConfiguration: nullable
+    - allowed: injected build-tool configuration
+  end note
+}
+
+' Inheritance and realisation.
+TestCaseAbstractFactoryAndBuilder <|-down- JavaTestCaseFactoryAndBuilder
+Creator <|.down. JavaCreator
+EssentialDataReader <|.down. EssentialDataYAMLReader
+Executer <|.down. JavaExecuter
+ProjectScanner <|.down. JavaProjectScanner
+JavaProjectScanner <|-down- JavaProgrammingExerciseProjectScanner
+Writer <|.down. JavaWriter
+
+' Associations for in-scope reference attributes.
+TestCaseAbstractFactoryAndBuilder "1" o-left- "1" Creator : # creator: Creator
+TestCaseAbstractFactoryAndBuilder "1" o-right- "1" Writer : # writer: Writer
+TestCaseAbstractFactoryAndBuilder "1" o-left- "1" Executer : # executer: Executer
+TestCaseAbstractFactoryAndBuilder "1" o-right- "1" EssentialDataReader : # essentialDataReader: EssentialDataReader
+TestCaseAbstractFactoryAndBuilder "1" o-down- "1" ProjectScanner : # projectScanner: ProjectScanner
+
+' Dependencies.
+JavaTestCaseFactoryAndBuilder ..left..> JavaCreator : constructor
+JavaTestCaseFactoryAndBuilder ..right..> JavaWriter : constructor
+JavaTestCaseFactoryAndBuilder ..left..> JavaExecuter : constructor
+JavaTestCaseFactoryAndBuilder ..right..> EssentialDataReader : constructor
+JavaTestCaseFactoryAndBuilder ..down..> JavaProjectScanner : constructor
+EssentialDataReader ..left..> EssentialClasses : returns
+EssentialDataReader ..right..> EssentialPackages : returns
+
+' Hidden ranking rails.
+ReservedPackageGuard -[hidden]right- TestCaseAbstractFactoryAndBuilder
+JavaTestCaseFactoryAndBuilder -[hidden]right- StudentCompiledClassesPath
+Creator -[hidden]right- JavaCreator
+EssentialClasses -[hidden]right- EssentialDataReader
+EssentialDataReader -[hidden]right- EssentialPackages
+Executer -[hidden]right- JavaExecuter
+ProjectScanner -[hidden]right- JavaProjectScanner
+JavaProjectScanner -[hidden]right- JavaProgrammingExerciseProjectScanner
+Writer -[hidden]right- JavaWriter
+
+TestCaseAbstractFactoryAndBuilder -[hidden]down- JavaTestCaseFactoryAndBuilder
+JavaTestCaseFactoryAndBuilder -[hidden]down- Creator
+Creator -[hidden]down- EssentialClasses
+EssentialClasses -[hidden]down- EssentialDataYAMLReader
+EssentialDataYAMLReader -[hidden]down- Executer
+Executer -[hidden]down- ProjectScanner
+ProjectScanner -[hidden]down- PathLocationProvider
+PathLocationProvider -[hidden]down- Writer
+
+@enduml

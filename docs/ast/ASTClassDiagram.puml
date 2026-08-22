@@ -1,0 +1,242 @@
+@startuml ASTClassDiagram
+
+title Ares 2 Abstract Syntax Tree API
+
+scale max 3799 width
+top to bottom direction
+hide circle
+hide empty members
+skinparam ArrowFontSize 9
+skinparam classAttributeFontSize 9
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+skinparam classMethodFontSize 8
+skinparam linetype ortho
+' Reduced from 170 because the browser renderer rejects the natural
+' 4326-pixel-wide layout after applying the complete 100-character prefixes.
+skinparam nodesep 120
+skinparam noteFontSize 8
+skinparam packageStyle rectangle
+skinparam ranksep 220
+skinparam shadowing false
+
+package "asserting" {
+  class UnwantedNodesAssert {
+    - level: LanguageLevel
+    - excludeMainMethod: boolean
+    - UnwantedNodesAssert(path: Path, level: LanguageLevel, excludeMainMethod: boolean)
+    + {static} assertThatProjectSources(): UnwantedNodesAssert
+    + {static} assertThatSourcesIn(directory: Path): UnwantedNodesAssert
+    + withinPackage(packageName: String): UnwantedNodesAssert
+    + excludeMainMethod(): UnwantedNodesAssert
+    + withLanguageLevel(level: LanguageLevel): UnwantedNodesAssert
+    + hasNo(type: Type): UnwantedNodesAssert
+  }
+
+  note left of UnwantedNodesAssert
+    level: nullable
+    - allowed: JavaParser language level
+    excludeMainMethod: nonnull
+    - allowed: true | false (default)
+  end note
+
+  class UnwantedRecursionAssert {
+    - {static} ID_PATTERN: String
+    - {static} JAVA_IDENTIFIER_REGEX: String
+    - {static} STARTING_NODE_REGEX: String
+    - level: LanguageLevel
+    - startingMethod: String
+    - excludedMethods: Set<String>
+    - UnwantedRecursionAssert(path: Path, level: LanguageLevel, startingMethod: String, excludedMethods: Set<String>)
+    + {static} assertThatProjectSources(): UnwantedRecursionAssert
+    + {static} assertThatSourcesIn(directory: Path): UnwantedRecursionAssert
+    + withinPackage(packageName: String): UnwantedRecursionAssert
+    + withLanguageLevel(level: LanguageLevel): UnwantedRecursionAssert
+    + startingWithMethod(node: String): UnwantedRecursionAssert
+    + excludeMethods(methods: String...): UnwantedRecursionAssert
+    - checkRecursion(shouldHaveRecursion: boolean): void
+    + hasRecursion(): void
+    + hasNoRecursion(): void
+  }
+
+  note right of UnwantedRecursionAssert
+    ID_PATTERN: nonnull
+    - regex: Java identifier
+    JAVA_IDENTIFIER_REGEX: nonnull
+    - regex: qualified Java identifier
+    STARTING_NODE_REGEX: nonnull
+    - regex: fully qualified method signature
+    level: nullable
+    - allowed: JavaParser language level
+    startingMethod: nullable
+    - regex: fully qualified method signature
+    excludedMethods: nonnull
+    - regex: fully qualified method signature per entry
+  end note
+}
+
+package "model" {
+  class JavaFile {
+    - {static} JAVAFILEMATCHER: PathMatcher
+    - {static} LOG: Logger
+    - javaFilePath: Path
+    - javaFileAST: CompilationUnit
+    + JavaFile(javaFilePath: Path, javaFileAST: CompilationUnit, excludeMainMethod: boolean)
+    - {static} excludeMainMethod(javaFileAST: CompilationUnit): void
+    + getJavaFilePath(): Path
+    + getJavaFileAST(): CompilationUnit
+    + {static} convertFromFile(pathOfFile: Path, excludeMainMethod: boolean): JavaFile
+    + {static} readFromDirectory(pathOfDirectory: Path, excludeMainMethod: boolean): List<JavaFile>
+  }
+
+  class MethodCallGraph {
+    - graph: Graph<String, DefaultEdge>
+    - excludedMethodIdentifiers: Set<String>
+    + MethodCallGraph(excludedMethods: Set<String>)
+    + createGraph(cu: CompilationUnit): void
+    + extractSubgraph(startVertex: String): Graph<String, DefaultEdge>
+    + getGraph(): Graph<String, DefaultEdge>
+    + getPositionMap(): Map<String, NodePosition>
+  }
+
+  class NodePosition {
+    - {static} COMPARATOR: Comparator<NodePosition>
+    - hasBegin: boolean
+    - begin: Pair<Integer, Integer>
+    - hasEnd: boolean
+    - end: Pair<Integer, Integer>
+    + NodePosition(node: Node)
+    + getBeginLine(): int
+    + getBeginColumn(): int
+    + toString(): String
+    + {static} getPositionOf(node: Node): NodePosition
+    + compareTo(o: NodePosition): int
+  }
+
+  class RecursionCheck <<utility>> {
+    - {static} JAVA_FILE_EXTENSION: String
+    - {static} CLASS_PATTERN: String
+    - {static} LOG: Logger
+    - RecursionCheck()
+    + {static} hasNoCycle(pathToSrcRoot: Path, level: LanguageLevel, startingNode: String, ...): Optional<String>
+    - {static} checkCycle(graph: MethodCallGraph, startingNode: String): Set<String>
+    + {static} createMethodCallGraph(pathToSrcRoot: Path, level: ParserConfiguration.LanguageLevel, ...): MethodCallGraph
+    + {static} formatVertexInfoWithinCycle(vertexName: String, graph: MethodCallGraph, pathOfSourceRoot: Path): String
+    + {static} parseFromSourceRoot(pathToSourceRoot: Path, level: LanguageLevel): List<Optional<CompilationUnit>>
+    + {static} extractClassName(fullyQualifiedMethod: String): String
+  }
+
+  class UnwantedNode {
+    - unwantedNodeName: String
+    + UnwantedNode(javaFile: JavaFile, unwantedNodeName: String, nodeDefinedAsUnwanted: Class<? extends Node>)
+    + getUnwantedNodeName(): String
+    + getUnwantedNodePositions(): List<NodePosition>
+    + {static} getUnwantedNodesInJavaFile(javaFile: JavaFile, nodesDefinedAsUnwanted: Map<String, Class<? extends Node>>): List<UnwantedNode>
+    + {static} getUnwantedNodesForFileAt(pathOfJavaFile: Path, nodesDefinedAsUnwanted: Map<String, Class<? extends Node>>, ...): Map<Path, List<UnwantedNode>>
+    + {static} getFormattedPositionString(positionString: String): String
+    + {static} getFormattedUnwantedNodeString(unwantedNode: UnwantedNode): String
+    + {static} getFormattedFileString(filePath: Path, unwantedNodes: Map<Path, List<UnwantedNode>>): String
+    + {static} getMessageForUnwantedNodesForFileAt(pathOfJavaFile: Path, nodeNameUnwantedNodeMap: Map<String, Class<? extends Node>>, ...): Optional<String>
+    + {static} getMessageForUnwantedNodesForAllFilesBelow(pathOfDirectory: Path, nodeNameUnwantedNodeMap: Map<String, Class<? extends Node>>, ...): Optional<String>
+  }
+
+  class VisitorAdapter {
+    - graph: Graph<String, DefaultEdge>
+    - excludedMethodIdentifiers: Set<String>
+    + VisitorAdapter(graph: Graph<String, DefaultEdge>, excludedMethodIdentifiers: Set<String>, ...)
+    + visit(md: MethodDeclaration, arg: Void): void
+  }
+}
+
+package "type" {
+  interface Type {
+    + getNodeNameNodeMap(): Map<String, Class<? extends Node>>
+  }
+
+  enum ClassType <<enum>> {
+    ANY
+    CLASS
+    RECORD
+    --
+    - nodeNameNodeMap: Map<String, Class<? extends Node>>
+    ~ ClassType(nodeNameNodeMap: Map<String, Class<? extends Node>>)
+    + getNodeNameNodeMap(): Map<String, Class<? extends Node>>
+  }
+
+  enum ConditionalType <<enum>> {
+    ANY
+    ANY_IF
+    IFSTMT
+    CONDITIONALEXPR
+    ANY_SWITCH
+    SWITCHSTMT
+    SWITCHEXPR
+    --
+    - nodeNameNodeMap: Map<String, Class<? extends Node>>
+    ~ ConditionalType(nodeNameNodeMap: Map<String, Class<? extends Node>>)
+    + getNodeNameNodeMap(): Map<String, Class<? extends Node>>
+  }
+
+  enum ExceptionHandlingType <<enum>> {
+    ANY
+    ASSERT
+    THROW
+    CATCH
+    --
+    - nodeNameNodeMap: Map<String, Class<? extends Node>>
+    ~ ExceptionHandlingType(nodeNameNodeMap: Map<String, Class<? extends Node>>)
+    + getNodeNameNodeMap(): Map<String, Class<? extends Node>>
+  }
+
+  enum LoopType <<enum>> {
+    ANY
+    ANY_FOR
+    FORSTMT
+    FOR_EACHSTMT
+    ANY_WHILE
+    WHILESTMT
+    DO_WHILESTMT
+    --
+    - nodeNameNodeMap: Map<String, Class<? extends Node>>
+    ~ LoopType(nodeNameNodeMap: Map<String, Class<? extends Node>>)
+    + getNodeNameNodeMap(): Map<String, Class<? extends Node>>
+  }
+}
+
+' Inheritance and realisation.
+Type <|.down. ClassType
+Type <|.down. ConditionalType
+Type <|.down. ExceptionHandlingType
+Type <|.down. LoopType
+
+' Associations and dependencies.
+MethodCallGraph "1" *-right- "*" NodePosition : - positionMap: Map<String, NodePosition>
+VisitorAdapter "1" *-right- "*" NodePosition : - methodInfoMap: Map<String, NodePosition>
+UnwantedNode "1" *-right- "*" NodePosition : - unwantedNodePositions: List<NodePosition>
+UnwantedNode ..left..> JavaFile : constructor source
+UnwantedNodesAssert ..right..> Type : + hasNo(type: Type): UnwantedNodesAssert
+UnwantedNodesAssert ..down..> UnwantedNode : evaluates
+UnwantedRecursionAssert ..down..> RecursionCheck : evaluates
+RecursionCheck ..left..> MethodCallGraph : creates and checks
+MethodCallGraph ..down..> VisitorAdapter : populates graph
+
+' Hidden ranking rails.
+UnwantedNodesAssert -[hidden]right- UnwantedRecursionAssert
+JavaFile -[hidden]right- MethodCallGraph
+MethodCallGraph -[hidden]right- NodePosition
+RecursionCheck -[hidden]right- UnwantedNode
+UnwantedNode -[hidden]right- VisitorAdapter
+ClassType -[hidden]right- ConditionalType
+ConditionalType -[hidden]right- ExceptionHandlingType
+ExceptionHandlingType -[hidden]right- LoopType
+
+UnwantedNodesAssert -[hidden]down- JavaFile
+JavaFile -[hidden]down- RecursionCheck
+RecursionCheck -[hidden]down- Type
+UnwantedRecursionAssert -[hidden]down- MethodCallGraph
+MethodCallGraph -[hidden]down- UnwantedNode
+UnwantedNode -[hidden]down- ClassType
+NodePosition -[hidden]down- VisitorAdapter
+VisitorAdapter -[hidden]down- LoopType
+
+@enduml
