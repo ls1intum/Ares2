@@ -932,13 +932,56 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		// A student can create and name their own directory tree, so a suffix-only
 		// match would let them craft a path ending in one of those exact strings and
 		// bypass pathsAllowedToBeCreated entirely.
-		if (violation == null || isPathWithin(violation, TRUSTED_DEFAULT_TEMP_DIR)) {
+		if (violation == null || isExplicitDirectoryTheTrustedDefaultTempDir(explicitDirectory)) {
 			return true;
 		}
 		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck, "create",
 				violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
 						+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
 						+ buildDenialReason(noAllowRuleConfigured)));
+	}
+
+	/**
+	 * Returns {@code true} only when {@code explicitDirectory} resolves — after
+	 * following symlinks — to exactly the same real location as
+	 * {@link #TRUSTED_DEFAULT_TEMP_DIR} (itself resolved the same way). Only the
+	 * default temp directory itself is baseline-exempt from
+	 * {@code pathsAllowedToBeCreated}; a descendant, sibling, or symlink that
+	 * merely resolves lexically under it (e.g. a directory named
+	 * {@code link-to-forbidden} that is actually a symlink out of the temp root)
+	 * is not the default directory and must still be explicitly allow-listed —
+	 * {@link #isPathWithin}'s prefix match is deliberately not used here, since it
+	 * would treat every such descendant/symlink as exempt. Both sides are
+	 * resolved via {@link Path#toRealPath(LinkOption...)}, which performs real
+	 * filesystem access; that is safe here because the only caller,
+	 * {@link #checkTempFileCreationSpecialCase}, is reached exclusively from
+	 * inside {@link #checkFileSystemInteraction}'s re-entrancy guard, so any
+	 * advice re-entered by that filesystem access is a no-op, not unbounded
+	 * recursion. Any resolution failure (directory does not exist, permission
+	 * denied, a filesystem loop) is treated as "not proven equal" and fails
+	 * closed.
+	 *
+	 * @param explicitDirectory the directory argument as passed to
+	 *                          {@code createTempFile} (a {@code Path} or
+	 *                          {@code File})
+	 * @return {@code true} only if the explicit directory is exactly the trusted
+	 *         default temp directory
+	 */
+	private static boolean isExplicitDirectoryTheTrustedDefaultTempDir(@Nonnull Object explicitDirectory) {
+		if (TRUSTED_DEFAULT_TEMP_DIR == null) {
+			return false;
+		}
+		try {
+			Path candidate = variableToPath(explicitDirectory, true);
+			if (candidate == null) {
+				return false;
+			}
+			Path candidateReal = candidate.toRealPath();
+			Path trustedReal = Path.of(TRUSTED_DEFAULT_TEMP_DIR).toRealPath();
+			return candidateReal.equals(trustedReal);
+		} catch (IOException | InvalidPathException ignored) {
+			return false;
+		}
 	}
 
 	/**
