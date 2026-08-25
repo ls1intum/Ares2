@@ -93,8 +93,10 @@ jobs:
       - name: Empty this coordinate in the local repository
         run: rm -rf "${HOME}/.m2/repository/de/tum/cit/ase/ares/${ARES_VERSION}"
 
+      # Installing is what this step is for. The quality gate bound to package is the
+      # static analysis job's business, so it is turned off here.
       - name: Install Ares from this commit
-        run: mvn -B -ntp install -DskipTests
+        run: mvn -B -ntp install -DskipTests -Pwithout-quality-gates
 
       # Asserted rather than assumed: everything downstream reads the local
       # repository, and an absent classifier there fails as a resolution error in an

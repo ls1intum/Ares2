@@ -44,8 +44,10 @@ jobs:
           languages: java
           build-mode: manual
 
+      # This job builds only so that CodeQL can watch it. The quality gate bound to
+      # package belongs to the static analysis job in maven.yml, so it is turned off here.
       - name: Build
-        run: mvn -B -DskipTests package
+        run: mvn -B -DskipTests package -Pwithout-quality-gates
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8

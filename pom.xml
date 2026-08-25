@@ -817,16 +817,13 @@
 					</java>
 				</configuration>
 			</plugin>
-			<!-- Static analysis: the failing goals are bound to package so every local or CI
-				artefact build crosses the same Checkstyle, PMD, CPD and SpotBugs gate. The
-				goals may also be run directly for faster feedback; report-only goals remain
-				available for inspection.
+			<!-- Static analysis: these goals are bound to package, so a local build crosses the
+				same gate. CI runs it once, in the job named after it, and turns it off elsewhere
+				with the without-quality-gates profile below.
 
-				The rule sets live in .settings next to the Eclipse formatter rules. They are
-				deliberately trimmed so that no rule contradicts the formatter (which owns
-				indentation, tabs, line length and import order) and no rule objects to a
-				deliberate security idiom; see the comment in each file. The findings that
-				remain are build failures rather than report-only warnings. -->
+				The rule sets in .settings are trimmed so that no rule contradicts the formatter,
+				which owns indentation and import order, and none objects to a deliberate security
+				idiom. What is left fails the build rather than warning. -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-checkstyle-plugin</artifactId>
@@ -1252,6 +1249,26 @@
 					</plugin>
 				</plugins>
 			</build>
+		</profile>
+		<!-- Turns the whole quality gate off for a single Maven invocation. Checkstyle, PMD,
+			CPD and SpotBugs are bound to package above, so every command that reaches that
+			phase runs them, whether or not checking the code was the point of the command.
+			CI activates this profile wherever it was not, so the gate is enforced once
+			rather than in every job that happens to package the project. The profile is not
+			active by default, so a local build still crosses the gate. -->
+		<profile>
+			<id>without-quality-gates</id>
+			<properties>
+				<!-- Spotless has no execution of its own and is invoked as a goal by the job that
+					owns the gate, so this property changes nothing today. It is here so that
+					binding spotless:check to a phase later cannot put it back into the builds
+					that opted out, silently and without a second edit. -->
+				<spotless.skip>true</spotless.skip>
+				<checkstyle.skip>true</checkstyle.skip>
+				<pmd.skip>true</pmd.skip>
+				<cpd.skip>true</cpd.skip>
+				<spotbugs.skip>true</spotbugs.skip>
+			</properties>
 		</profile>
 		<!-- This is only for GitHub -->
 		<profile>
