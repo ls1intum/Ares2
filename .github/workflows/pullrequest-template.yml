@@ -2,8 +2,9 @@ name: Pull Request Template
 
 on:
   pull_request:
-    # No `paths` filter on purpose. This job is a required status check, and a required
-    # check that never runs leaves a pull request blocked rather than passing.
+    # No `paths` filter on purpose. The job is written to work as a required status check,
+    # and such a check leaves a pull request blocked rather than passing when it never runs.
+    # `main` requires no status check today, so this costs nothing and holds if that changes.
     branches: [ "main" ]
     types: [ opened, edited, reopened, ready_for_review, synchronize ]
 
