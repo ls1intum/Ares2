@@ -148,6 +148,21 @@ jobs:
           path: target/jacoco.exec
           if-no-files-found: warn
 
+      # Surefire's XML is only half the evidence. A fork that crashed or hit
+      # `forkedProcessTimeoutInSeconds` leaves a `.dump`, `.dumpstream` or `.txt` behind and
+      # often no XML at all, which is precisely the run whose evidence is worth keeping. The
+      # whole directory is therefore uploaded rather than a glob over `*.xml`.
+      #
+      # `!cancelled()` rather than `success()`, for the same reason the coverage upload above
+      # uses it: a failed test step is the case this artefact exists for.
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: test-results-unit-tests
+          path: target/surefire-reports/
+          if-no-files-found: warn
+
   tests:
     name: Integration Tests (${{ matrix.name }})
     needs: build
@@ -213,6 +228,21 @@ jobs:
           path: target/jacoco.exec
           if-no-files-found: warn
 
+      # Surefire's XML is only half the evidence. A fork that crashed or hit
+      # `forkedProcessTimeoutInSeconds` leaves a `.dump`, `.dumpstream` or `.txt` behind and
+      # often no XML at all, which is precisely the run whose evidence is worth keeping. The
+      # whole directory is therefore uploaded rather than a glob over `*.xml`.
+      #
+      # `!cancelled()` rather than `success()`, for the same reason the coverage upload above
+      # uses it: a failed test step is the case this artefact exists for.
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: test-results-${{ matrix.slug }}
+          path: target/surefire-reports/
+          if-no-files-found: warn
+
   core-integration-tests:
     name: Core Integration Tests
     needs: build
@@ -245,6 +275,21 @@ jobs:
         with:
           name: jacoco-exec-core-integration-tests
           path: target/jacoco.exec
+          if-no-files-found: warn
+
+      # Surefire's XML is only half the evidence. A fork that crashed or hit
+      # `forkedProcessTimeoutInSeconds` leaves a `.dump`, `.dumpstream` or `.txt` behind and
+      # often no XML at all, which is precisely the run whose evidence is worth keeping. The
+      # whole directory is therefore uploaded rather than a glob over `*.xml`.
+      #
+      # `!cancelled()` rather than `success()`, for the same reason the coverage upload above
+      # uses it: a failed test step is the case this artefact exists for.
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: test-results-core-integration-tests
+          path: target/surefire-reports/
           if-no-files-found: warn
 
   # Each test job covers a disjoint slice of the suite, so no single one of them can be
