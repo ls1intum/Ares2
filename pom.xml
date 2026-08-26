@@ -854,6 +854,11 @@
 						<ruleset>${basedir}${file.separator}.settings${file.separator}pmd-rules.xml</ruleset>
 					</rulesets>
 					<excludeFromFailureFile>${basedir}${file.separator}.settings${file.separator}cpd-allowed-duplications.txt</excludeFromFailureFile>
+					<!-- Test sources carry the harness that decides whether a security violation was
+						detected, so leaving them unanalysed left exactly the code whose defects fail silently.
+						The fixtures are excluded in the ruleset rather than here, because the boundary is
+						"is this an assertion or is this the thing being asserted about", not "main or test". -->
+					<includeTests>true</includeTests>
 					<failOnViolation>true</failOnViolation>
 					<printFailingErrors>true</printFailingErrors>
 				</configuration>

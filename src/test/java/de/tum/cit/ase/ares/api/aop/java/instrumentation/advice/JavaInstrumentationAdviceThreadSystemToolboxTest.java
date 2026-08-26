@@ -197,6 +197,9 @@ class JavaInstrumentationAdviceThreadSystemToolboxTest {
 		return context;
 	}
 
+	// See the note in JavaAspectJThreadSystemAdviceDefinitionsTest: reflective use
+	// only.
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@StrictTimeout(value = 30, unit = TimeUnit.SECONDS)
 	private static void strictTimeoutTarget() {
 		// Supplies the annotation the mocked test context reports, so that

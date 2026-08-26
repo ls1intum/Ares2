@@ -1,12 +1,8 @@
 package de.tum.cit.ase.ares.integration;
 
-import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.*;
-import java.util.stream.*;
 
 import org.junit.jupiter.api.function.Executable;
 import org.junit.platform.testkit.engine.Events;
@@ -34,13 +30,17 @@ class ThreadTest {
 
 	/**
 	 * Asserts that the exception message contains general error details for
-	 * thread-related issues.
+	 * thread-related issues. This deliberately does not take the text the subject
+	 * would have printed had the thread run. It used to, as an `operationText`
+	 * parameter that the body never read and that the Javadoc claimed was checked.
+	 * Wiring it up was tried and is wrong: the callers pass console output such as
+	 * "Task 2 executed", while the message names the intercepted call, for instance
+	 * "tried to illegally create Thread ... via ExecutorService.submit(...)". The
+	 * two were never the same thing, so the parameter is gone rather than honoured.
 	 *
 	 * @param actualMessage The actual exception message to be verified.
-	 * @param operationText The specific operation text to check in the exception
-	 *                      message.
 	 */
-	private void assertThreadErrorMessage(String actualMessage, String operationText) {
+	private void assertThreadErrorMessage(String actualMessage) {
 		assertTrue(actualMessage.contains("Ares Security Error"),
 				"Exception message should contain 'Ares Security Error'" + System.lineSeparator() + actualMessage);
 		assertTrue(actualMessage.contains("Student-Code"),
@@ -64,9 +64,9 @@ class ThreadTest {
 	 *
 	 * @param executable The executable that should throw a SecurityException.
 	 */
-	private void assertThreadSecurityException(Executable executable, String operationText) {
+	private void assertThreadSecurityException(Executable executable) {
 		SecurityException se = assertThrows(SecurityException.class, executable, errorMessage);
-		assertThreadErrorMessage(se.getMessage(), operationText);
+		assertThreadErrorMessage(se.getMessage());
 	}
 
 	@TestTest
@@ -108,98 +108,98 @@ class ThreadTest {
 		// not inline in the
 		// test harness, so the thread creation is attributed to the student and
 		// governed by the policy.
-		assertThreadSecurityException(ThreadPenguin::threadAccess, "create Thread");
+		assertThreadSecurityException(ThreadPenguin::threadAccess);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_executorServiceSlide8() {
-		assertThreadSecurityException(ThreadPenguin::executorServiceSlide8, "Task 2 executed");
+		assertThreadSecurityException(ThreadPenguin::executorServiceSlide8);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_executorServiceSlide9() {
-		assertThreadSecurityException(ThreadPenguin::executorServiceSlide9, "Task 3 executed");
+		assertThreadSecurityException(ThreadPenguin::executorServiceSlide9);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_executorServiceSlide10() {
-		assertThreadSecurityException(ThreadPenguin::executorServiceSlide10, "Task 2 executed");
+		assertThreadSecurityException(ThreadPenguin::executorServiceSlide10);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_executorServiceSlide11() {
-		assertThreadSecurityException(ThreadPenguin::executorServiceSlide11, "Task 2 executed");
+		assertThreadSecurityException(ThreadPenguin::executorServiceSlide11);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_executorServiceFuture1() {
-		assertThreadSecurityException(ThreadPenguin::executorServiceFuture1, "Task submitted...");
+		assertThreadSecurityException(ThreadPenguin::executorServiceFuture1);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_completableFutureSlide1() {
-		assertThreadSecurityException(ThreadPenguin::completableFutureSlide1, "Task 2 executed");
+		assertThreadSecurityException(ThreadPenguin::completableFutureSlide1);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_completableFutureSlide2() {
-		assertThreadSecurityException(ThreadPenguin::completableFutureSlide2, "Task 2 executed");
+		assertThreadSecurityException(ThreadPenguin::completableFutureSlide2);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_completableFutureSlide3Combine() {
-		assertThreadSecurityException(ThreadPenguin::completableFutureSlide3Combine, "Task 2 executed");
+		assertThreadSecurityException(ThreadPenguin::completableFutureSlide3Combine);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_parallelStreams1() {
-		assertThreadSecurityException(ThreadPenguin::parallelStreams1, "Task 2 executed");
+		assertThreadSecurityException(ThreadPenguin::parallelStreams1);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_publisherSubscriber() {
-		assertThreadSecurityException(ThreadPenguin::publisherSubscriber, "Task 2 executed");
+		assertThreadSecurityException(ThreadPenguin::publisherSubscriber);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_tryStartTwoThreads() {
-		assertThreadSecurityException(ThreadPenguin::tryStartTwoThreads, "Thread started");
+		assertThreadSecurityException(ThreadPenguin::tryStartTwoThreads);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_tryBreakThreadGroup() {
-		assertThreadSecurityException(ThreadPenguin::tryBreakThreadGroup, "Thread started");
+		assertThreadSecurityException(ThreadPenguin::tryBreakThreadGroup);
 	}
 
 	@TestTest
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_spawnEndlessThreads() {
-		assertThreadSecurityException(ThreadPenguin::spawnEndlessThreads, "Thread started");
+		assertThreadSecurityException(ThreadPenguin::spawnEndlessThreads);
 	}
 
 	@TestTest
@@ -217,6 +217,6 @@ class ThreadTest {
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
 	void test_runItself() {
-		assertThreadSecurityException(ThreadPenguin::runItself, "Thread started");
+		assertThreadSecurityException(ThreadPenguin::runItself);
 	}
 }

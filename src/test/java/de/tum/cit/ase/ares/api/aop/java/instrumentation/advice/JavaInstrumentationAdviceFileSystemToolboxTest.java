@@ -23,6 +23,10 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumenta
 
 import example.student.InstrumentationSecurityProbe;
 
+/**
+ * Carries a loopback literal for the network-adjacent cases in this class.
+ */
+@SuppressWarnings("PMD.AvoidUsingHardCodedIP")
 class JavaInstrumentationAdviceFileSystemToolboxTest {
 
 	@Test
@@ -67,6 +71,12 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 		JavaAOPTestCase.setJavaAdviceSettingValue("allowedListedClasses", new String[0], "ARCH", "INSTRUMENTATION");
 	}
 
+	// The MockedStatic resource is never read, and that is the point: the static
+	// mock is
+	// active for the scope of the try-with-resources, not through the variable. PMD
+	// counts
+	// it as an unused local, but a resource cannot be declared without a name.
+	@SuppressWarnings("PMD.UnusedLocalVariable")
 	@Test
 	void testCheckFileSystemInteraction_AllowedInteraction() {
 		try (MockedStatic<JavaInstrumentationAdviceFileSystemToolbox> mockedToolbox = mockStatic(

@@ -21,6 +21,11 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
  * @author Markus Paulsen
  * @version 2.0.0
  */
+/**
+ * Extracting host and port from a socket is what this class tests, so the
+ * addresses are the subject matter rather than a configuration smell.
+ */
+@SuppressWarnings("PMD.AvoidUsingHardCodedIP")
 public class JavaNetworkSystemExtractorTest {
 
 	/**
