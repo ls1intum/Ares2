@@ -102,9 +102,11 @@ public final class ProjectSourcesFinder {
 			throw new IllegalStateException("Gradle was selected but no Gradle descriptor is present in " + root);
 		}
 		if (mode == BuildMode.MAVEN) {
-			return new BuildToolConfiguration(mode, root, discoverMavenRoots(root, false),
-					discoverMavenRoots(root, true), root.resolve(mode.getBuildDirectory()),
-					root.resolve(mode.getTestBuildDirectory()), true);
+			MavenSourceRoots production = discoverMavenRoots(root, false);
+			warnIfProductionRootsArePartial(production.complete(), root.resolve("pom.xml"));
+			return new BuildToolConfiguration(mode, root, production.roots(), discoverMavenRoots(root, true).roots(),
+					root.resolve(mode.getBuildDirectory()), root.resolve(mode.getTestBuildDirectory()),
+					production.complete());
 		}
 		GradleSourceRoots gradleRoots = discoverGradleRoots(root,
 				gradleKotlin ? root.resolve("build.gradle.kts") : root.resolve("build.gradle"));
@@ -113,30 +115,103 @@ public final class ProjectSourcesFinder {
 				gradleRoots.productionComplete());
 	}
 
-	private static List<Path> discoverMavenRoots(Path root, boolean tests) {
-		String elementName = tests ? "testSourceDirectory" : "sourceDirectory";
-		String defaultRoot = tests ? DEFAULT_TEST_SOURCE : DEFAULT_PRODUCTION_SOURCE;
-		List<Path> roots = new ArrayList<>();
+	/**
+	 * The source roots a Maven descriptor answers with for one source set, and
+	 * whether they are the whole of it.
+	 *
+	 * @param roots    the roots, declared or conventional
+	 * @param complete whether they are known to be all of them
+	 */
+	private record MavenSourceRoots(List<Path> roots, boolean complete) {
+	}
+
+	/**
+	 * Reads the source roots a Maven descriptor declares for one source set.
+	 * <p>
+	 * A declaration replaces the convention, so the conventional root answers only
+	 * where nothing was declared. That is what stops a root passed over for being
+	 * absent from reactivating the directory the descriptor replaced.
+	 *
+	 * @param root  the project root
+	 * @param tests whether to read the test source set
+	 * @return the roots and whether they are the whole source set
+	 */
+	private static MavenSourceRoots discoverMavenRoots(Path root, boolean tests) {
+		Path descriptor = root.resolve("pom.xml");
+		NodeList nodes = readMavenElements(descriptor, tests ? "testSourceDirectory" : "sourceDirectory");
+		return declaredMavenRoots(root, descriptor, nodes).orElseGet(() -> conventionalMavenRoots(root, tests));
+	}
+
+	/**
+	 * The elements of one name in a Maven descriptor.
+	 * <p>
+	 * Reading the file is kept apart from turning its elements into source roots,
+	 * so the broad catch a document builder needs covers the reading alone. A
+	 * refusal raised while resolving a root then reaches the caller as itself
+	 * rather than as a descriptor that could not be parsed.
+	 *
+	 * @param descriptor  the pom.xml to read
+	 * @param elementName the element to collect
+	 * @return the matching elements
+	 */
+	private static NodeList readMavenElements(Path descriptor, String elementName) {
 		try {
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
 			factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-			NodeList nodes = factory.newDocumentBuilder().parse(root.resolve("pom.xml").toFile())
-					.getElementsByTagName(elementName);
-			for (int index = 0; index < nodes.getLength(); index++) {
-				String value = nodes.item(index).getTextContent();
-				if (value != null && !value.isBlank()) {
-					roots.add(validateSourceRoot(root, substituteMavenRoot(value.trim(), root)));
-				}
-			}
+			return factory.newDocumentBuilder().parse(descriptor.toFile()).getElementsByTagName(elementName);
 		} catch (Exception exception) {
-			throw new IllegalStateException("Cannot parse Maven source roots from " + root.resolve("pom.xml"),
-					exception);
+			throw new IllegalStateException("Cannot parse Maven source roots from " + descriptor, exception);
 		}
-		if (roots.isEmpty() && Files.isDirectory(root.resolve(defaultRoot))) {
-			roots.add(validateSourceRoot(root, root.resolve(defaultRoot)));
+	}
+
+	/**
+	 * The roots the given elements declare, or empty where they declare none.
+	 * <p>
+	 * Empty says nothing was declared, which the caller must tell apart from a
+	 * declaration whose every root was passed over. Both leave no roots and mean
+	 * opposite things for the convention.
+	 *
+	 * @param root       the project root
+	 * @param descriptor the descriptor read
+	 * @param nodes      the source-directory elements
+	 * @return the declared roots, or empty where none was declared
+	 */
+	private static Optional<MavenSourceRoots> declaredMavenRoots(Path root, Path descriptor, NodeList nodes) {
+		List<Path> roots = new ArrayList<>();
+		boolean declaredAnything = false;
+		boolean allPresent = true;
+		for (int index = 0; index < nodes.getLength(); index++) {
+			String value = nodes.item(index).getTextContent();
+			if (value == null || value.isBlank()) {
+				continue;
+			}
+			declaredAnything = true;
+			Optional<Path> resolved = resolveDeclaredRoot(root, substituteMavenRoot(value.trim(), root), descriptor);
+			if (resolved.isPresent()) {
+				roots.add(resolved.get());
+			} else {
+				allPresent = false;
+			}
 		}
-		return List.copyOf(roots);
+		return declaredAnything ? Optional.of(new MavenSourceRoots(List.copyOf(roots), allPresent)) : Optional.empty();
+	}
+
+	/**
+	 * The root Maven uses for a source set nothing was declared for.
+	 * <p>
+	 * A project need not contain it, and one that does not simply has no roots
+	 * here. Nothing is uncertain either way, so these roots are complete.
+	 *
+	 * @param root  the project root
+	 * @param tests whether to answer for the test source set
+	 * @return the conventional root where the project has it, empty otherwise
+	 */
+	private static MavenSourceRoots conventionalMavenRoots(Path root, boolean tests) {
+		Path conventional = root.resolve(tests ? DEFAULT_TEST_SOURCE : DEFAULT_PRODUCTION_SOURCE);
+		return Files.isDirectory(conventional)
+				? new MavenSourceRoots(List.of(canonicaliseSourceRoot(root, conventional)), true)
+				: new MavenSourceRoots(List.of(), true);
 	}
 
 	private static Path substituteMavenRoot(String value, Path root) {
@@ -172,14 +247,15 @@ public final class ProjectSourcesFinder {
 	 * generated one alone. <b>Known gaps, deliberately not covered:</b> Kotlin's
 	 * {@code setSrcDirs(…)}, receiver chains such as {@code sourceSets.main.java {
 	 * … }}, and any computed value. None is silent: a declaration this reader
-	 * cannot resolve marks the source set incomplete, and that travels to the
+	 * cannot resolve, and one it resolves to a directory the project does not
+	 * contain, both mark the source set incomplete, and that travels to the
 	 * consumer through {@link BuildToolConfiguration#productionRootsComplete()}, so
 	 * the roots are still offered but no longer as the whole project. That matters
 	 * because {@code srcDirs =} clears the conventional root before its operand is
-	 * read, so an unresolvable value left the source set empty and
-	 * indistinguishable from a project declaring no sources. {@code srcDirs = []}
-	 * stays what it says: known, complete and empty. Properties are read from the
-	 * mask so an assignment inside a comment or a string cannot define one, and
+	 * read, so a value that is unresolvable or absent leaves the source set empty
+	 * and indistinguishable from a project declaring no sources. {@code srcDirs =
+	 * []} stays what it says: known, complete and empty. Properties are read from
+	 * the mask so an assignment inside a comment or a string cannot define one, and
 	 * taken from the original at the same offsets, which works because masking
 	 * preserves every length.
 	 *
@@ -227,8 +303,8 @@ public final class ProjectSourcesFinder {
 					pending = close < 0 ? "" : unquote(content.substring(skipWhitespace(code, end) + 1, close).trim());
 					index = close < 0 ? end : close + 1;
 				} else if ("srcDir".equals(identifier) || "srcDirs".equals(identifier)) {
-					index = readSourceDirectories(root, content, code, end, identifier, blocks, properties, declared,
-							complete);
+					index = readSourceDirectories(root, descriptor, content, code, end, identifier, blocks, properties,
+							declared, complete);
 				} else {
 					pending = chain;
 					index = end;
@@ -238,11 +314,7 @@ public final class ProjectSourcesFinder {
 			}
 		}
 		boolean productionComplete = complete.getOrDefault("main", Boolean.TRUE);
-		if (!productionComplete) {
-			LOG.warn("The main source set in {} declares a source root this reader cannot resolve, so the discovered "
-					+ "production roots are not known to be the whole of it. The supervised package will not be "
-					+ "derived from them.", descriptor);
-		}
+		warnIfProductionRootsArePartial(productionComplete, descriptor);
 		return new GradleSourceRoots(rootsOf(root, declared, "main"), rootsOf(root, declared, "test"),
 				productionComplete);
 	}
@@ -260,12 +332,14 @@ public final class ProjectSourcesFinder {
 	 * stays visible and {@code srcDirs(…)} is recognised as a bracketed operand at
 	 * all. An unbalanced collection cannot be apportioned and is unresolved; a
 	 * token that is only whitespace or a comment is skipped, an empty list being
-	 * empty rather than unreadable. A replacement supersedes whatever uncertainty
-	 * preceded it, so it can restore completeness as well as remove it, whereas an
-	 * addition can only ever make the picture less complete.
+	 * empty rather than unreadable. Whether the roots were there is folded in
+	 * before completeness is written, so a path that reads cleanly but is not there
+	 * cannot leave a replacement looking complete. A replacement supersedes
+	 * whatever uncertainty preceded it, so it can restore completeness as well as
+	 * remove it, whereas an addition can only ever make the picture less complete.
 	 */
-	private static int readSourceDirectories(Path root, String content, String code, int end, String identifier,
-			Deque<String> blocks, Map<String, String> properties, Map<String, List<Path>> declared,
+	private static int readSourceDirectories(Path root, Path descriptor, String content, String code, int end,
+			String identifier, Deque<String> blocks, Map<String, String> properties, Map<String, List<Path>> declared,
 			Map<String, Boolean> complete) {
 		int operator = skipInactive(code, end);
 		char next = operator < code.length() ? code.charAt(operator) : '\0';
@@ -325,15 +399,15 @@ public final class ProjectSourcesFinder {
 		String sourceSet = sourceSetOf(blocks);
 		if (sourceSet != null) {
 			List<Path> roots = declared.computeIfAbsent(sourceSet, name -> conventionalRootOf(root, name));
-			complete.putIfAbsent(sourceSet, Boolean.TRUE);
 			if (replacing) {
 				roots.clear();
-				complete.put(sourceSet, resolvedEverything);
-			} else if (!resolvedEverything) {
-				complete.put(sourceSet, Boolean.FALSE);
 			}
-			for (String value : values) {
-				roots.add(validateSourceRoot(root, root.resolve(value)));
+			boolean allPresent = addDeclaredRoots(root, descriptor, values, roots);
+			boolean declarationComplete = resolvedEverything && allPresent;
+			if (replacing) {
+				complete.put(sourceSet, declarationComplete);
+			} else {
+				complete.merge(sourceSet, declarationComplete, Boolean::logicalAnd);
 			}
 		}
 		return resumeAt;
@@ -475,7 +549,7 @@ public final class ProjectSourcesFinder {
 		List<Path> roots = new ArrayList<>();
 		Path conventional = root.resolve("test".equals(sourceSet) ? DEFAULT_TEST_SOURCE : DEFAULT_PRODUCTION_SOURCE);
 		if (Files.isDirectory(conventional)) {
-			roots.add(validateSourceRoot(root, conventional));
+			roots.add(canonicaliseSourceRoot(root, conventional));
 		}
 		return roots;
 	}
@@ -757,16 +831,96 @@ public final class ProjectSourcesFinder {
 		return literal.indexOf('$') < 0 && literal.indexOf('\\') < 0;
 	}
 
-	private static Path validateSourceRoot(Path root, Path candidate) {
+	/**
+	 * Says once, where a reader will see it, that the production roots are not
+	 * known to be all of them.
+	 * <p>
+	 * Two things lead here: a declaration this reader cannot resolve, and one it
+	 * resolved to a directory that is not there. The roots are still offered, but
+	 * no longer as the whole project.
+	 *
+	 * @param productionComplete whether they are the whole source set
+	 * @param descriptor         the descriptor they were read from
+	 */
+	private static void warnIfProductionRootsArePartial(boolean productionComplete, Path descriptor) {
+		if (productionComplete) {
+			return;
+		}
+		LOG.warn("The main source set in {} declares a source root this reader cannot resolve or cannot find, so the "
+				+ "discovered production roots are not known to be the whole of it. The supervised package will not "
+				+ "be derived from them.", descriptor);
+	}
+
+	/**
+	 * The canonical form of a source root inside the project.
+	 * <p>
+	 * Containment is decided here and nowhere else, so every path that becomes a
+	 * root has passed through it. A root outside the project is refused rather than
+	 * reported as one more directory that is not there, because the two mean
+	 * different things.
+	 *
+	 * @param root      the project root
+	 * @param candidate the path the descriptor named
+	 * @return the candidate in canonical form
+	 */
+	private static Path canonicaliseSourceRoot(Path root, Path candidate) {
 		Path canonical = BuildToolConfiguration
 				.canonicalise(candidate.isAbsolute() ? candidate : root.resolve(candidate));
 		if (!canonical.startsWith(root)) {
 			throw new SecurityException("Configured source root escapes project root: " + candidate);
 		}
-		if (!Files.isDirectory(canonical)) {
+		return canonical;
+	}
+
+	/**
+	 * A declared source root in canonical form, or empty where it is absent.
+	 * <p>
+	 * A build tool collects nothing from a directory that is not there, so naming
+	 * one is legal and passing it over keeps discovery going. An existing
+	 * non-directory, and a path the filesystem will not answer for, stay errors.
+	 *
+	 * @param root       the project root
+	 * @param candidate  the declared path
+	 * @param descriptor the descriptor naming it
+	 * @return the root, or empty where absent
+	 */
+	private static Optional<Path> resolveDeclaredRoot(Path root, Path candidate, Path descriptor) {
+		Path canonical = canonicaliseSourceRoot(root, candidate);
+		if (Files.isDirectory(canonical)) {
+			return Optional.of(canonical);
+		}
+		if (!Files.notExists(canonical)) {
 			throw new IllegalStateException("Configured source root is not a directory: " + candidate);
 		}
-		return canonical;
+		LOG.warn("The source root {} declared in {} is not there, so it is passed over. Its source set is no longer "
+				+ "known to be the whole of the project.", candidate, descriptor);
+		return Optional.empty();
+	}
+
+	/**
+	 * Adds the roots a declaration resolved to, saying whether all were there.
+	 * <p>
+	 * An absent root is passed over, so the roots that are there keep scoping
+	 * enforcement. The false return tells the caller they are no longer the whole
+	 * source set.
+	 *
+	 * @param root       the project root
+	 * @param descriptor the descriptor read
+	 * @param values     the declared paths
+	 * @param roots      the list to add to
+	 * @return whether every declared root was there
+	 */
+	private static boolean addDeclaredRoots(Path root, Path descriptor, List<String> values, List<Path> roots) {
+		boolean allPresent = true;
+		for (String value : values) {
+			Optional<Path> resolved = resolveDeclaredRoot(root, root.resolve(value), descriptor);
+			if (resolved.isPresent()) {
+				roots.add(resolved.get());
+			} else {
+				allPresent = false;
+			}
+		}
+		return allPresent;
 	}
 
 	public static Optional<Path> findProjectSourcesPath() {
