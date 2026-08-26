@@ -6,9 +6,18 @@ Currently, the only supported Ares version is whatever the current release is (a
 
 ## Deliberately dangerous code
 
-Ares is an enforcement framework, so parts of it are written to do exactly what it exists to prevent. The integration test tree under `src/test/java/de/tum/cit/ase/ares/integration/testuser/` exists to be blocked: its `subject/` package holds classes that attempt file input and output, network connections, command execution, thread creation, reflective access, privileged operations and access to reserved packages, and the test classes beside them drive those attempts against a policy and assert the outcome.
+Ares is an enforcement framework, so parts of it are written to do exactly what it exists to prevent. Most of that code is test fixture. It is meant to be found, and none of it is a vulnerability. It lives in these places:
 
-The shipped product is security-sensitive machinery of a different kind. The reserved-package prefixes, the AspectJ instrumentation and the Java agent all fall into it. The instrumentation rewrites bytecode, and the agent runs inside the supervised JVM, because that is how the enforcement works.
+- `src/test/java/de/tum/cit/ase/ares/integration/aop/` holds the largest set by far. Under `forbidden/subject/`, classes attempt file reads, writes, creations, deletions and executions, socket and HTTP connections, command execution through `Runtime` and `ProcessBuilder`, and thread creation through many different APIs, each so that a policy can block it. Under `allowed/subject/`, classes attempt the same operations under a policy that permits them, so that an operation wrongly blocked is caught as well as one wrongly permitted. The tests that drive them live in `integration/aop/` and `integration/architecture/`.
+- `src/test/java/de/tum/cit/ase/ares/integration/testuser/` drives an older set. Its `subject/` package attempts file input and output, network connections, command execution, thread creation, reflective access into Ares's own packages, privileged operations and JVM termination. One of its tests opens a connection to a real external host rather than to a reserved test address.
+- `src/test/java/org/apache/xyz/` and `src/test/java/p/` impersonate. The first squats a namespace that reads like a third-party library, to check that Ares does not trust a package because of its name, and holds a class called `Circumvention` for that purpose. The second holds a class whose fully qualified name merely shares a prefix with an allow-listed one.
+- `src/test/java/example/student/` reaches into Ares itself, invoking package-private advice methods reflectively so that a fixture outside Ares's own packages can exercise them directly.
+
+`examples/` is not a fixture tree, but it behaves like one: both example exercises ship a supervised class that performs a forbidden file read, so that running the exercise shows the enforcement working.
+
+Some of this trips automated scanners. The fixed AES key in `CipherInputStreamReadMain`, under the file-system read fixtures, is one such case. It makes a test deterministic and protects nothing.
+
+The shipped product is security-sensitive machinery of a different kind. The reserved-package prefixes, which are the namespaces supervised code may not itself declare, the AspectJ instrumentation and the Java agent all fall into it. The instrumentation rewrites bytecode, and the agent runs inside the supervised JVM, because that is how the enforcement works.
 
 Neither is a vulnerability. In the test tree it is the thing under test, and in the product it is the mechanism.
 
@@ -24,7 +33,7 @@ A report is in scope when Ares fails at what it claims to do, or when it causes 
 
 A report is out of scope when:
 
-- the attack fixtures under `testuser/` behave as documented,
+- the deliberately dangerous code described above behaves as documented,
 - the operation is one Ares does not claim to cover. The enforcement boundary is documented, and a gap on the far side of it is a known limitation rather than a defect,
 - it presumes an adversary who controls the build. `docs/HowToConvertAnAres1ProjectIntoAnAres2Project.md` states this for the reserved-package boundary: the build descriptor and the command that invokes it are trusted instructor configuration, so whoever can edit `pom.xml` or `build.gradle` can remove that boundary. The threat addressed is student code, not a hostile build,
 - it is a vulnerability in the JVM, in Maven, in Gradle, or in a third-party library that Ares exercises rather than introduces. Those belong upstream.
