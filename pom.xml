@@ -830,6 +830,12 @@
 				<version>3.6.0</version>
 				<configuration>
 					<configLocation>${basedir}${file.separator}.settings${file.separator}checkstyle-rules.xml</configLocation>
+					<suppressionsLocation>${basedir}${file.separator}.settings${file.separator}checkstyle-suppressions.xml</suppressionsLocation>
+					<!-- Test sources carry the harness that decides whether a security violation was
+						detected. Leaving them out meant the code most able to fail silently was the code
+						nobody checked. Fixtures and the underscore naming convention are handled in the
+						suppressions file; see the reasoning there. -->
+					<includeTestSourceDirectory>true</includeTestSourceDirectory>
 					<failOnViolation>true</failOnViolation>
 					<failsOnError>true</failsOnError>
 					<violationSeverity>error</violationSeverity>

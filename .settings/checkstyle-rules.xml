@@ -73,4 +73,12 @@
 			<property name="format" value="^[a-z]+(\.[a-zA-Z_][a-zA-Z0-9_]*)*$"/>
 		</module>
 	</module>
+	<!-- Reads .settings/checkstyle-suppressions.xml, supplied by the plugin as
+		checkstyle.suppressions.file. `optional` keeps a bare `checkstyle:check` from failing
+		when the property is unset, for instance from an IDE that configures its own location. -->
+	<module name="SuppressionFilter">
+		<property name="file" value="${checkstyle.suppressions.file}" default=""/>
+		<property name="optional" value="true"/>
+	</module>
+
 </module>
