@@ -19,8 +19,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The mandatory gate. Everything else waits on it, so a broken build costs one job
-  # rather than four.
+  # The mandatory gate, and it answers one question only: does the project build. Whether
+  # the code is written the way this repository writes code is the static analysis job's
+  # question. Everything else waits on this one, so a broken build costs one job rather
+  # than four.
   build:
     name: Build
     runs-on: ubuntu-24.04
@@ -40,11 +42,11 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Spotless Check
-        run: mvn spotless:check
-
+      # Checkstyle, PMD, CPD and SpotBugs are bound to package in the POM, so they would
+      # run here as well and repeat what the static analysis job is for. The profile turns
+      # that gate off for this one command; it stays on for a local build.
       - name: Build
-        run: mvn clean package -DskipTests
+        run: mvn clean package -DskipTests -Pwithout-quality-gates
 
   static-analysis:
     name: Static Code Analysis
@@ -66,7 +68,8 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # SpotBugs reads class files, so the sources have to be compiled first.
+      # SpotBugs reads class files, and PMD needs them on its auxiliary classpath to tell a
+      # used wildcard import from an unused one, so the sources have to be compiled first.
       - name: Compile
         run: mvn -DskipTests compile
 
@@ -84,6 +87,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: mvn pmd:check
 
+      # cpd-check is a goal of its own; pmd:check does not include it. It reached CI only
+      # as a side effect of the package-bound execution, which this workflow no longer
+      # runs, so without this step nothing would look for duplicated code.
+      - name: CPD
+        if: ${{ !cancelled() }}
+        run: mvn pmd:cpd-check
+
       - name: SpotBugs
         if: ${{ !cancelled() }}
         run: mvn spotbugs:check
@@ -96,6 +106,7 @@ jobs:
           path: |
             target/checkstyle-result.xml
             target/pmd.xml
+            target/cpd.xml
             target/spotbugsXml.xml
           if-no-files-found: warn
 
@@ -284,7 +295,7 @@ jobs:
       - name: Merge execution data and evaluate thresholds
         shell: bash
         run: |
-          mvn verify -Pcoverage-aggregate -DskipTests -Djacoco.haltOnFailure=false -f pom.xml \
+          mvn verify -Pcoverage-aggregate,without-quality-gates -DskipTests -Djacoco.haltOnFailure=false -f pom.xml \
             2>&1 | tee "${RUNNER_TEMP}/coverage-aggregate.log"
 
       - name: Write coverage summary
