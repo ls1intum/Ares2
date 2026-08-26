@@ -321,6 +321,7 @@ No breaking changes or migration.
 - [ ] I followed the [guidelines for inclusive, diversity-sensitive and appreciative language](https://docs.artemis.tum.de/developer/guidelines/language).
 - [ ] I have self-reviewed the diff of this pull request.
 - [ ] Tests were added or updated for the behaviour changed here.
+- [ ] Javadoc follows the [AGENTS.md](AGENTS.md#documenting-java) conventions.
 - [ ] Documentation (`docs/`, `README.adoc`, Javadoc) was updated where the change is user-facing.
 - [ ] CI is green, or every remaining failure is explained above.
 - [ ] No secrets, tokens or absolute local paths are contained in the diff.
