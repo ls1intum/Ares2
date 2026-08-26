@@ -96,7 +96,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		private final List<Path> testCasePaths;
 		private boolean executed = false;
 
-		public TestableFactoryAndBuilder(Creator creator, Writer writer, Executer executer,
+		TestableFactoryAndBuilder(Creator creator, Writer writer, Executer executer,
 				EssentialDataReader essentialDataReader, ProjectScanner projectScanner, Path essentialPackagesPath,
 				Path essentialClassesPath, BuildMode buildMode, ArchitectureMode architectureMode, AOPMode aopMode,
 				SecurityPolicy securityPolicy, Path projectPath) {

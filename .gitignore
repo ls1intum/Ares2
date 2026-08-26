@@ -27,6 +27,7 @@ gradle-app.setting
 !/.settings/org.eclipse.*
 !/.settings/eclipse*rules*
 !/.settings/checkstyle-rules.xml
+!/.settings/checkstyle-suppressions.xml
 !/.settings/pmd-rules.xml
 !/.settings/spotbugs-exclude.xml
 /artemis-java-test-sandbox.iml

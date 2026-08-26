@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+		"-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+		"https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<!--
+	Suppressions for the test tree, added when Checkstyle was extended to cover test sources.
+
+	Two kinds of entry live here, and they are not the same kind of decision.
+
+	1. Fixtures. `subject/` is the student code Ares supervises, `astTestFiles` are the
+	   deliberately malformed sources the structural analysis parses, `example/student` and
+	   `org/apache/xyz` hold impostor and malicious classes, `testuser` holds the supervised
+	   users the integration tests run. These are test input that happens to be Java. Holding
+	   them to a coding standard would mean editing the thing being measured.
+
+	2. MethodName across the whole test tree. This is not cosmetic tolerance: the naming
+	   convention IS the test-selection mechanism. maven.yml picks matrix cells with
+	   -Dtest='...#*MavenWalaAspectJ+*_wala_aspectj', so the underscore suffixes are load
+	   bearing. Enforcing the default '^[a-z][a-zA-Z0-9]*$' would have reported 2045
+	   violations, every one of them the CI's own convention. Suppressed here rather than by
+	   loosening the MethodName rule itself, which would have relaxed main sources too.
+-->
+<suppressions>
+	<suppress files="[\\/]src[\\/]test[\\/]java[\\/].*[\\/]subject[\\/]" checks=".*"/>
+	<suppress files="[\\/]src[\\/]test[\\/]java[\\/].*[\\/]astTestFiles[\\/]" checks=".*"/>
+	<suppress files="[\\/]src[\\/]test[\\/]java[\\/]example[\\/]student[\\/]" checks=".*"/>
+	<suppress files="[\\/]src[\\/]test[\\/]java[\\/]org[\\/]apache[\\/]xyz[\\/]" checks=".*"/>
+	<suppress files="[\\/]src[\\/]test[\\/]java[\\/]de[\\/]tum[\\/]cit[\\/]ase[\\/]ares[\\/]integration[\\/]testuser[\\/]" checks=".*"/>
+	<suppress files="Probe\.java$" checks=".*"/>
+	<suppress files="[\\/]src[\\/]test[\\/]java[\\/]" checks="MethodName"/>
+
+	<!--
+		AstAssertionTest names each local after the supervised test method it asserts about, for
+		instance `String testHasBelowNoForLoop_Success = "testHasBelowNoForLoop_Success"`. The
+		identifier mirrors a method name that carries underscores by the same convention as above,
+		so LocalVariableName is fighting the same mechanism MethodName was.
+
+		HideUtilityClassConstructor fires on the same class because JUnit sees only static members
+		on the outer class, the actual tests living in @Nested inner classes. Adding a private
+		constructor would stop JUnit from instantiating it.
+	-->
+	<suppress files="AstAssertionTest\.java$" checks="LocalVariableName|HideUtilityClassConstructor"/>
+</suppressions>

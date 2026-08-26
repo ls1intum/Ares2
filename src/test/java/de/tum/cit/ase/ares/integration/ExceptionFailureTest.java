@@ -102,8 +102,9 @@ class ExceptionFailureTest {
 	@TestTest
 	void test_multipleAssertions() {
 		Condition<Throwable> hasOneCorrectlySanitizedAssertionError = new Condition<>(t -> {
-			if (((MultipleAssertionsError) t).getErrors().size() != 1)
+			if (((MultipleAssertionsError) t).getErrors().size() != 1) {
 				return false;
+			}
 			var error = ((MultipleAssertionsError) t).getErrors().get(0);
 			return "X".equals(error.getMessage()) //
 					&& error.getCause() instanceof UnexpectedExceptionError //
