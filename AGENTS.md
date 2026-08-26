@@ -89,7 +89,9 @@ way an otherwise correct contribution arrives unreviewable.
   Ares a defect sits in.
 
 The `pr-template` job in `.github/workflows/pullrequest-template.yml` enforces the shape
-of the body and is a required status check. It verifies that every section exists exactly
+of the body. It is written to work as a required status check, but `main` requires no
+status check today, so a red one blocks nothing by itself and it is a reviewer who has to
+notice. It verifies that every section exists exactly
 once and in the order the checker lists them, that none is empty, that none runs past its
 limit, and that no unfilled stub survived in a section that was not answered with one of
 its own documented phrases. A heading inside a
