@@ -264,6 +264,39 @@ class JavaProjectScannerPackageFallbackTest {
 	 * unparsed build descriptor leaves behind. The test source root doubles as the
 	 * required non-empty root list.
 	 */
+	/**
+	 * A source root that is present but only part of the project must not decide
+	 * the supervised package. Counting declarations across part of a project
+	 * produces an answer indistinguishable from one taken across all of it, so an
+	 * incomplete set is skipped in favour of the compiled output, which the build
+	 * tool writes whatever the descriptor says.
+	 */
+	@Test
+	@DisplayName("Ignores a present source root the finder reported as only part of the project")
+	void ignoresAPresentSourceRootReportedAsIncomplete() throws IOException {
+		Path outputRoot = compile("""
+				package de.tum.cit.aet;
+
+				public class Compiled {
+				}
+				""", "de/tum/cit/aet/Compiled.java");
+		Path sourceRoot = Files.createDirectories(projectRoot.resolve("partial"));
+		Files.writeString(sourceRoot.resolve("Elsewhere.java"), """
+				package somewhere.other.entirely;
+
+				public class Elsewhere {
+				}
+				""");
+		BuildToolConfiguration incomplete = new BuildToolConfiguration(BuildMode.GRADLE, projectRoot,
+				List.of(sourceRoot), List.of(Files.createDirectories(projectRoot.resolve("test"))), outputRoot,
+				Files.createDirectories(projectRoot.resolve("build/classes/java/test")), false);
+
+		String packageName = new JavaProjectScanner(incomplete).scanForPackageName();
+
+		assertEquals("de.tum.cit.aet", packageName);
+		assertNotEquals("somewhere.other.entirely", packageName);
+	}
+
 	private BuildToolConfiguration configurationWithoutSourceRoots(Path outputRoot) throws IOException {
 		return ScannerFixtures.gradleConfigurationWithoutSourceRoots(projectRoot, outputRoot);
 	}
