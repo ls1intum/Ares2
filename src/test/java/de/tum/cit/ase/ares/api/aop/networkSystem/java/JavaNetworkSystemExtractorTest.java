@@ -39,17 +39,7 @@ public class JavaNetworkSystemExtractorTest {
 	 */
 	@Test
 	public void testExtractHostsAndPortsAllPermissionTypesAndValid() {
-		List<NetworkPermission> configs = List.of(
-				NetworkPermission.builder().onTheHost("0.0.0.0").onThePort(0).openConnections(true).sendData(true)
-						.receiveData(true).build(),
-				NetworkPermission.builder().onTheHost("10.10.10.10").onThePort(10).openConnections(true).sendData(false)
-						.receiveData(false).build(),
-				NetworkPermission.builder().onTheHost("100.100.100.100").onThePort(100).openConnections(false)
-						.sendData(true).receiveData(false).build(),
-				NetworkPermission.builder().onTheHost("200.200.200.200").onThePort(1000).openConnections(false)
-						.sendData(false).receiveData(true).build(),
-				NetworkPermission.builder().onTheHost("255.255.255.255").onThePort(10000).openConnections(false)
-						.sendData(false).receiveData(false).build());
+		List<NetworkPermission> configs = sampleNetworkPermissions();
 		// connect
 		List<String> connectHosts = List.of("0.0.0.0", "10.10.10.10");
 		List<String> connectPorts = List.of("0", "10");
@@ -87,17 +77,7 @@ public class JavaNetworkSystemExtractorTest {
 	 */
 	@Test
 	public void testExtractHostsAndPortsAllPermissionTypesAndInvalid() {
-		Supplier<List<?>> supplier = () -> List.of(
-				NetworkPermission.builder().onTheHost("0.0.0.0").onThePort(0).openConnections(true).sendData(true)
-						.receiveData(true).build(),
-				NetworkPermission.builder().onTheHost("10.10.10.10").onThePort(10).openConnections(true).sendData(false)
-						.receiveData(false).build(),
-				NetworkPermission.builder().onTheHost("100.100.100.100").onThePort(100).openConnections(false)
-						.sendData(true).receiveData(false).build(),
-				NetworkPermission.builder().onTheHost("200.200.200.200").onThePort(1000).openConnections(false)
-						.sendData(false).receiveData(true).build(),
-				NetworkPermission.builder().onTheHost("255.255.255.255").onThePort(10000).openConnections(false)
-						.sendData(false).receiveData(false).build());
+		Supplier<List<?>> supplier = () -> sampleNetworkPermissions();
 		JavaNetworkSystemExtractor extractor = new JavaNetworkSystemExtractor(supplier);
 
 		// connect hosts
@@ -126,5 +106,19 @@ public class JavaNetworkSystemExtractorTest {
 
 		// invalid
 		Assertions.assertThrows(SecurityException.class, () -> extractor.getPermittedNetworkHosts("kill"));
+	}
+
+	private static List<NetworkPermission> sampleNetworkPermissions() {
+		return List.of(
+				NetworkPermission.builder().onTheHost("0.0.0.0").onThePort(0).openConnections(true).sendData(true)
+						.receiveData(true).build(),
+				NetworkPermission.builder().onTheHost("10.10.10.10").onThePort(10).openConnections(true).sendData(false)
+						.receiveData(false).build(),
+				NetworkPermission.builder().onTheHost("100.100.100.100").onThePort(100).openConnections(false)
+						.sendData(true).receiveData(false).build(),
+				NetworkPermission.builder().onTheHost("200.200.200.200").onThePort(1000).openConnections(false)
+						.sendData(false).receiveData(true).build(),
+				NetworkPermission.builder().onTheHost("255.255.255.255").onThePort(10000).openConnections(false)
+						.sendData(false).receiveData(false).build());
 	}
 }

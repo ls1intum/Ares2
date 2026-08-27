@@ -61,7 +61,7 @@ class WalaRuleTest {
 	 * Creates a student-code CGNode classified as Application-loaded in the
 	 * anonymous.Student class. isInfraFrame returns false for this node.
 	 */
-	private static CGNode studentNode(String signature) {
+	private static CGNode applicationNode(String signature, String walaType) {
 		CGNode node = mock(CGNode.class);
 		IMethod method = mock(IMethod.class);
 		IClass cls = mock(IClass.class);
@@ -72,8 +72,12 @@ class WalaRuleTest {
 		when(cls.getClassLoader()).thenReturn(loader);
 		when(loader.getReference()).thenReturn(ClassLoaderReference.Application);
 		when(cls.getReference()).thenReturn(TypeReference.findOrCreate(ClassLoaderReference.Application,
-				TypeName.findOrCreate("Lanonymous/Student;")));
+				TypeName.findOrCreate(walaType)));
 		return node;
+	}
+
+	private static CGNode studentNode(String signature) {
+		return applicationNode(signature, "Lanonymous/Student;");
 	}
 
 	/**
@@ -108,18 +112,7 @@ class WalaRuleTest {
 	 * package). isInfraFrame returns true via INFRA_PREFIXES check.
 	 */
 	private static CGNode aresInfraNode(String signature) {
-		CGNode node = mock(CGNode.class);
-		IMethod method = mock(IMethod.class);
-		IClass cls = mock(IClass.class);
-		IClassLoader loader = mock(IClassLoader.class);
-		when(node.getMethod()).thenReturn(method);
-		when(method.getSignature()).thenReturn(signature);
-		when(method.getDeclaringClass()).thenReturn(cls);
-		when(cls.getClassLoader()).thenReturn(loader);
-		when(loader.getReference()).thenReturn(ClassLoaderReference.Application);
-		when(cls.getReference()).thenReturn(TypeReference.findOrCreate(ClassLoaderReference.Application,
-				TypeName.findOrCreate("Lde/tum/cit/ase/ares/api/Helper;")));
-		return node;
+		return applicationNode(signature, "Lde/tum/cit/ase/ares/api/Helper;");
 	}
 
 	private static CallGraph buildMockCg(List<CGNode> path) {
@@ -243,18 +236,7 @@ class WalaRuleTest {
 	 * package name, which is the shape supervised code can produce for itself.
 	 */
 	private static CGNode applicationInfraByNameNode(String signature, String walaType) {
-		CGNode node = mock(CGNode.class);
-		IMethod method = mock(IMethod.class);
-		IClass cls = mock(IClass.class);
-		IClassLoader loader = mock(IClassLoader.class);
-		when(node.getMethod()).thenReturn(method);
-		when(method.getSignature()).thenReturn(signature);
-		when(method.getDeclaringClass()).thenReturn(cls);
-		when(cls.getClassLoader()).thenReturn(loader);
-		when(loader.getReference()).thenReturn(ClassLoaderReference.Application);
-		when(cls.getReference()).thenReturn(
-				TypeReference.findOrCreate(ClassLoaderReference.Application, TypeName.findOrCreate(walaType)));
-		return node;
+		return applicationNode(signature, walaType);
 	}
 
 	private static AssertionError runAndExpectError(List<CGNode> path, WalaRule rule) {
@@ -566,17 +548,8 @@ class WalaRuleTest {
 	 * {@code IClass.getName().toString()} returns.
 	 */
 	private static CGNode studentNodeInClass(String signature, String walaType) {
-		CGNode node = mock(CGNode.class);
-		IMethod method = mock(IMethod.class);
-		IClass cls = mock(IClass.class);
-		IClassLoader loader = mock(IClassLoader.class);
-		when(node.getMethod()).thenReturn(method);
-		when(method.getSignature()).thenReturn(signature);
-		when(method.getDeclaringClass()).thenReturn(cls);
-		when(cls.getClassLoader()).thenReturn(loader);
-		when(loader.getReference()).thenReturn(ClassLoaderReference.Application);
-		when(cls.getReference()).thenReturn(
-				TypeReference.findOrCreate(ClassLoaderReference.Application, TypeName.findOrCreate(walaType)));
+		CGNode node = applicationNode(signature, walaType);
+		IClass cls = node.getMethod().getDeclaringClass();
 		when(cls.getName()).thenReturn(TypeName.findOrCreate(walaType));
 		return node;
 	}

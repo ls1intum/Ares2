@@ -142,17 +142,9 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	@Test
 	void testCheckFileSystemInteraction_BlocksFileUrlOpenStream(@TempDir Path tempDir) throws Exception {
 		try {
-			resetSettings();
-			configureInstrumentationMode();
-			Path allowedDir = Files.createDirectory(tempDir.resolve("allowed"));
-			Path forbiddenFile = tempDir.resolve("forbidden.txt");
-			Files.writeString(forbiddenFile, "secret");
-			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { allowedDir.toString() },
-					"ARCH", "INSTRUMENTATION");
-
-			SecurityException exception = assertThrows(SecurityException.class,
-					() -> InstrumentationSecurityProbe.checkFileUrlOpenStream(forbiddenFile.toUri().toURL()));
-			assertTrue(exception.getMessage().contains(forbiddenFile.toAbsolutePath().toString()));
+			SecurityException exception = triggerBlockedFileUrlOpenStream(tempDir);
+			assertTrue(exception.getMessage()
+					.contains(tempDir.resolve("forbidden.txt").toAbsolutePath().toString()));
 		} finally {
 			resetSettings();
 		}
@@ -208,16 +200,7 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	void checkFileSystemInteraction_appendsNotPermittedReasonWhenConfiguredButNotAllowed(@TempDir Path tempDir)
 			throws Exception {
 		try {
-			resetSettings();
-			configureInstrumentationMode();
-			Path allowedDir = Files.createDirectory(tempDir.resolve("allowed"));
-			Path forbiddenFile = tempDir.resolve("forbidden.txt");
-			Files.writeString(forbiddenFile, "secret");
-			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { allowedDir.toString() },
-					"ARCH", "INSTRUMENTATION");
-
-			SecurityException exception = assertThrows(SecurityException.class,
-					() -> InstrumentationSecurityProbe.checkFileUrlOpenStream(forbiddenFile.toUri().toURL()));
+			SecurityException exception = triggerBlockedFileUrlOpenStream(tempDir);
 			assertTrue(exception.getMessage().contains(" | Reason:") || exception.getMessage().contains(" | Grund:"),
 					() -> "File exception should carry a denial reason suffix, but was:\n" + exception.getMessage());
 			assertTrue(
@@ -451,4 +434,16 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	}
 
 	// </editor-fold>
+
+	private SecurityException triggerBlockedFileUrlOpenStream(Path tempDir) throws Exception {
+		resetSettings();
+		configureInstrumentationMode();
+		Path allowedDir = Files.createDirectory(tempDir.resolve("allowed"));
+		Path forbiddenFile = tempDir.resolve("forbidden.txt");
+		Files.writeString(forbiddenFile, "secret");
+		JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { allowedDir.toString() },
+				"ARCH", "INSTRUMENTATION");
+		return assertThrows(SecurityException.class,
+				() -> InstrumentationSecurityProbe.checkFileUrlOpenStream(forbiddenFile.toUri().toURL()));
+	}
 }
