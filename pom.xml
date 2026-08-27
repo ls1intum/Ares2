@@ -79,6 +79,11 @@
 		<!-- Isolate test classes so WALA state and test-created threads cannot accumulate
 			in one long-lived JVM. The signed outcome cache preserves cross-fork reuse. -->
 		<surefire-reuse-forks>false</surefire-reuse-forks>
+		<!-- The fork heap, as a property for the same reason `surefire-reuse-forks` is one: a
+			profile that changes how tests are isolated usually has to change how much heap that
+			isolation needs, and overriding the whole `argLine` to do so would duplicate the
+			agent and bootclasspath arguments into every profile that tried. -->
+		<surefire-max-heap>6g</surefire-max-heap>
 		<jacoco-version>0.8.15</jacoco-version>
 		<!-- BUNDLE-level minima, shared by the `coverage` profile (one local full-suite
 			run) and the `coverage-aggregate` profile (the merged CI runs) so that the two
@@ -501,7 +506,7 @@
 						the runner dies. 2400s sits above a legitimate full-suite run yet below
 						the 45-minute CI job timeout, so a real hang is caught with a report. -->
 					<forkedProcessTimeoutInSeconds>2400</forkedProcessTimeoutInSeconds>
-					<argLine>@{argLine} -Xmx6g -javaagent:${byte-buddy-path} -Xbootclasspath/a:${aspectj-path} ${jvm.module.access.args}</argLine>
+					<argLine>@{argLine} -Xmx${surefire-max-heap} -javaagent:${byte-buddy-path} -Xbootclasspath/a:${aspectj-path} ${jvm.module.access.args}</argLine>
 				</configuration>
 			</plugin>
 			<!-- 5. Package -->
@@ -1049,12 +1054,35 @@
 		</profile>
 		<profile>
 			<id>unit-architecture-tests</id>
+			<properties>
+				<!-- One long-lived fork instead of nineteen short ones needs a stated ceiling
+					rather than the default, because the reason that default exists is the
+					opposite case. Measured peak resident size of the reused fork at 6g was
+					3.12 GB and 3.95 GB across two runs, a spread wide enough that the only real
+					bound was `-Xmx` itself. 3g bounds it deliberately, and three runs at that
+					ceiling peaked at 1.76, 2.20 and 1.83 GB. -->
+				<surefire-max-heap>3g</surefire-max-heap>
+			</properties>
 			<build>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
 						<configuration>
+							<!-- These 19 classes share one fork, as `unit-core-tests` and
+								`integration-core-tests` already do. Without this the profile inherits
+								`surefire-reuse-forks`, which the `coverage` profile sets to false, and
+								every class pays a full JVM start: measured at roughly 15.5 s per fork
+								in CI, against 105 s of actual test time for the whole set.
+
+								Whether WALA state survives a shared fork is not settled by argument,
+								so it was measured: five runs of this profile, all 19 classes and all
+								188 tests green, peak resident size 1.76 to 2.20 GB at the 3g ceiling.
+								The integration matrix in maven.yml has run the WALA modes with
+								`-Dsurefire-reuse-forks=true` all along, which is a related but not
+								identical case: it selects methods rather than whole classes. If this
+								profile ever turns flaky, this line is the first thing to revert. -->
+							<reuseForks>true</reuseForks>
 							<includes>
 								<include>**/api/architecture/**/*Test.java</include>
 							</includes>
