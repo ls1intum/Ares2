@@ -143,8 +143,7 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	void testCheckFileSystemInteraction_BlocksFileUrlOpenStream(@TempDir Path tempDir) throws Exception {
 		try {
 			SecurityException exception = triggerBlockedFileUrlOpenStream(tempDir);
-			assertTrue(exception.getMessage()
-					.contains(tempDir.resolve("forbidden.txt").toAbsolutePath().toString()));
+			assertTrue(exception.getMessage().contains(tempDir.resolve("forbidden.txt").toAbsolutePath().toString()));
 		} finally {
 			resetSettings();
 		}

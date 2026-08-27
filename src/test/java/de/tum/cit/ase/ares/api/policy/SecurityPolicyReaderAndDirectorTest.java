@@ -317,10 +317,10 @@ public class SecurityPolicyReaderAndDirectorTest {
 
 	private void stubReaderAndDirectorChain(MockedStatic<SecurityPolicyReader> readerMock,
 			MockedStatic<SecurityPolicyDirector> directorMock) {
-		readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath,
-				projectFolderPath)).thenReturn(mockSecurityPolicyReader);
-		when(mockSecurityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath))
-				.thenReturn(mockSecurityPolicy);
+		readerMock
+				.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath, projectFolderPath))
+				.thenReturn(mockSecurityPolicyReader);
+		when(mockSecurityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath)).thenReturn(mockSecurityPolicy);
 		directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(mockSecurityPolicy))
 				.thenReturn(mockSecurityPolicyDirector);
 		when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, projectFolderPath, Path.of("")))

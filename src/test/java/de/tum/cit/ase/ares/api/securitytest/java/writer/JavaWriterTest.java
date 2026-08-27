@@ -259,8 +259,7 @@ public class JavaWriterTest {
 		when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
 		when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
 		when(aopMode.placeholderValues()).thenReturn(List.of());
-		when(aopMode.fsFormatValues(any(), any()))
-				.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
+		when(aopMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
 		when(aopMode.nonFSFormatValues(any(), any()))
 				.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
 		when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
@@ -273,10 +272,8 @@ public class JavaWriterTest {
 
 	private void stubFileToolsDefaults(MockedStatic<FileTools> mockedFileTools) {
 		mockedFileTools.when(() -> FileTools.copyAndFormatFSFiles(any(), any(), any())).thenReturn(List.of());
-		mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any()))
-				.thenReturn(List.of());
-		mockedFileTools
-				.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
+		mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any())).thenReturn(List.of());
+		mockedFileTools.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
 				.thenReturn(tempDir.resolve("test.java"));
 		mockedFileTools.when(() -> FileTools.copyFiles(any(), any())).thenReturn(List.of());
 	}
@@ -284,13 +281,10 @@ public class JavaWriterTest {
 	private void stubPhobosDefaults(MockedStatic<Phobos> mockedPhobos) {
 		mockedPhobos.when(() -> Phobos.filesToCopy()).thenReturn(List.of());
 		mockedPhobos.when(() -> Phobos.targetsToCopyTo(any())).thenReturn(List.of());
-		mockedPhobos.when(() -> Phobos.threePartedFileHeader())
-				.thenReturn(tempDir.resolve("phobos-header.java"));
+		mockedPhobos.when(() -> Phobos.threePartedFileHeader()).thenReturn(tempDir.resolve("phobos-header.java"));
 		mockedPhobos.when(() -> Phobos.threePartedFileBody(any())).thenReturn("phobos-body");
-		mockedPhobos.when(() -> Phobos.threePartedFileFooter())
-				.thenReturn(tempDir.resolve("phobos-footer.java"));
+		mockedPhobos.when(() -> Phobos.threePartedFileFooter()).thenReturn(tempDir.resolve("phobos-footer.java"));
 		mockedPhobos.when(() -> Phobos.targetToCopyTo(any())).thenReturn(tempDir.resolve("phobos-target.java"));
 		mockedPhobos.when(() -> Phobos.fileValue(any())).thenReturn(new String[] { "value" });
 	}
-
 }

@@ -71,8 +71,8 @@ class WalaRuleTest {
 		when(method.getDeclaringClass()).thenReturn(cls);
 		when(cls.getClassLoader()).thenReturn(loader);
 		when(loader.getReference()).thenReturn(ClassLoaderReference.Application);
-		when(cls.getReference()).thenReturn(TypeReference.findOrCreate(ClassLoaderReference.Application,
-				TypeName.findOrCreate(walaType)));
+		when(cls.getReference()).thenReturn(
+				TypeReference.findOrCreate(ClassLoaderReference.Application, TypeName.findOrCreate(walaType)));
 		return node;
 	}
 
