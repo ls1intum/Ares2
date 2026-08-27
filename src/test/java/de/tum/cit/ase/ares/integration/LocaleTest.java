@@ -13,8 +13,11 @@ import java.util.Set;
 import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.integration.testuser.LocaleUser;
-import de.tum.cit.ase.ares.integration.testuser.LocaleUser.*;
-import de.tum.cit.ase.ares.testutilities.*;
+import de.tum.cit.ase.ares.integration.testuser.LocaleUser.LocaleEn;
+import de.tum.cit.ase.ares.integration.testuser.LocaleUser.LocaleUnsupported;
+import de.tum.cit.ase.ares.testutilities.TestTest;
+import de.tum.cit.ase.ares.testutilities.UserBased;
+import de.tum.cit.ase.ares.testutilities.UserTestResults;
 
 @UserBased({ LocaleUser.class, LocaleEn.class, LocaleUnsupported.class })
 class LocaleTest {

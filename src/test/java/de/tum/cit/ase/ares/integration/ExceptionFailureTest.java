@@ -9,7 +9,10 @@ import org.opentest4j.*;
 
 import de.tum.cit.ase.ares.api.util.UnexpectedExceptionError;
 import de.tum.cit.ase.ares.integration.testuser.ExceptionFailureUser;
-import de.tum.cit.ase.ares.testutilities.*;
+import de.tum.cit.ase.ares.testutilities.CustomConditions;
+import de.tum.cit.ase.ares.testutilities.TestTest;
+import de.tum.cit.ase.ares.testutilities.UserBased;
+import de.tum.cit.ase.ares.testutilities.UserTestResults;
 import de.tum.cit.ase.ares.testutilities.CustomConditions.Option;
 
 @UserBased(ExceptionFailureUser.class)

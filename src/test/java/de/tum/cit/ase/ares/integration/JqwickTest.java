@@ -13,7 +13,9 @@ import net.jqwik.engine.JqwikTestEngine;
 
 import de.tum.cit.ase.ares.integration.testuser.JqwickClassDeadlineUser;
 import de.tum.cit.ase.ares.integration.testuser.JqwickUser;
-import de.tum.cit.ase.ares.testutilities.*;
+import de.tum.cit.ase.ares.testutilities.TestTest;
+import de.tum.cit.ase.ares.testutilities.UserBased;
+import de.tum.cit.ase.ares.testutilities.UserTestResults;
 
 @UserBased(value = { JqwickUser.class, JqwickClassDeadlineUser.class }, testEngineId = JqwikTestEngine.ENGINE_ID)
 class JqwickTest {

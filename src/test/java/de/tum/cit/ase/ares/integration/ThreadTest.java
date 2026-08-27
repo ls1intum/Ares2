@@ -12,7 +12,8 @@ import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.threads.ThreadPenguin;
-import de.tum.cit.ase.ares.testutilities.*;
+import de.tum.cit.ase.ares.testutilities.TestTest;
+import de.tum.cit.ase.ares.testutilities.UserTestResults;
 
 //@UserBased(ThreadUser.class)
 @UseLocale("en")
