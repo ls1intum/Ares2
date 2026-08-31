@@ -75,6 +75,26 @@ The essential shape of the migration: **the test-type and lifecycle annotations 
 - **Gradle** in a version compatible with the chosen freefair AspectJ plugin (the freefair 9.x line used here requires Gradle 9; older Gradle versions need an older freefair line), or **Maven 3.8+**
 - **JUnit 5** (Jupiter)
 
+## Know your project layout
+
+Ares 2 exercises come in two layouts, and every later step that names a source path or the policy
+file gives it in both forms. Find yours here first, then read the matching row wherever a path
+appears.
+
+- **Standard Maven or Gradle layout.** Student code under `src/main/java`, test code under
+  `src/test/java`, test resources under `src/test/resources`. The build tool finds all three on its
+  own. The [`examples/`](https://github.com/ls1intum/Ares2/tree/main/examples) projects use this
+  layout.
+- **Standard Artemis layout.** The tests repository keeps its test code and the structure oracle
+  `test.json` under `test/`, and Artemis merges the student or solution repository in under
+  `assignment/` when it grades, so student code compiles from `assignment/src`. The build tool does
+  not look in either place by default, so the build file has to redirect it. The build-side page for
+  your tool shows the exact block.
+
+Ares reads the source roots from your build file, not from a fixed convention, so the redirect is
+what a real Artemis exercise needs and it is easy to get subtly wrong. The one form Ares recognises
+is on the build-side page; use it verbatim.
+
 ## Rewrite the imports
 
 The test-type and lifecycle annotations survive the migration. Rewrite the package and nothing else:
@@ -108,7 +128,14 @@ This is the substantive part of the migration. Ares 1 encoded its security confi
 
 ### The policy file structure
 
-Create `src/test/resources/SecurityPolicy.yaml`:
+Create the policy file where your layout puts test resources:
+
+- **Standard Maven or Gradle layout:** `src/test/resources/SecurityPolicy.yaml`
+- **Standard Artemis layout:** `test/SecurityPolicy.yaml`, or mirror the supervised package as
+  `test/de/tum/cit/aet/SecurityPolicy.yaml`
+
+The `@Policy(value = ...)` on your tests must name the same path; the build-side page shows the
+`value` for each layout. The content is identical either way:
 
 ```yaml
 thisPolicyFileCompliesToThePolicyVersion: 1

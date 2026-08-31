@@ -197,6 +197,34 @@ Three details that bite:
 
 If another agent is present, put the Ares agent **after** a coverage agent, so coverage instrumentation is applied to the classes Ares then transforms rather than the reverse.
 
+## Point the build at your sources
+
+Which directories Maven compiles depends on your layout (see
+[Know your project layout](../index.md#know-your-project-layout)).
+
+- **Standard Maven layout.** `src/main/java`, `src/test/java` and `src/test/resources` are the
+  defaults. Add nothing.
+- **Standard Artemis layout.** Student code compiles from `assignment/src`, and the test code and
+  the structure oracle `test.json` live under `test/`. Redirect the source and test directories, and
+  declare `test/` as a test resource as well, so `test.json` reaches the test classpath:
+
+  ```xml
+  <build>
+      <sourceDirectory>${project.basedir}/assignment/src</sourceDirectory>
+      <testSourceDirectory>${project.basedir}/test</testSourceDirectory>
+      <testResources>
+          <testResource>
+              <directory>${project.basedir}/test</directory>
+          </testResource>
+      </testResources>
+      <!-- <plugins> ... </plugins> as below -->
+  </build>
+  ```
+
+The `<testResources>` block is what puts `test.json` on the test classpath; without it every
+structural test fails reporting a missing structure oracle. Ares reads these source roots by parsing
+`pom.xml`, so declaring them here is also what lets its structural tests find the student classes.
+
 ## Apply `@Policy` to the tests
 
 Ares 1 needed no annotation to activate security; the test-type annotation was enough, and the security annotations configured it. Ares 2 keeps the test-type annotation and adds `@Policy`:
@@ -229,6 +257,15 @@ The three parameters:
 
 - **Gradle:** `classes/java/main/<package/path>`, for example `classes/java/main/org/example`
 - **Maven:** `classes/<package/path>`, for example `classes/org/example`
+
+`withinPath` does not change with your project layout. It points at the *compiled* bytecode under
+the build output directory, not at your sources: Maven writes the main classes to `target/classes`
+whether they came from `src/main/java` or `assignment/src`, so the Maven value stays
+`classes/<package/path>` either way.
+
+The `value` path, in contrast, does follow your layout, matching where you created the policy file:
+`src/test/resources/SecurityPolicy.yaml` for the standard layout, `test/SecurityPolicy.yaml` (or the
+package-mirrored `test/de/tum/cit/aet/SecurityPolicy.yaml`) for the Artemis layout.
 
 > **The activation rule that has no Ares 1 counterpart.** `@Policy` is not itself a JUnit extension and registers nothing. What activates Ares is the test-type annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`). A test annotated with a plain JUnit `@Test` and a `@Policy` runs completely unsupervised, silently. If you migrate a test class and drop its `@Public` in the process, you lose all enforcement without any error.
 

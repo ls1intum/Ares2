@@ -151,6 +151,46 @@ The seventeen module-access flags are not optional and not a subset you can trim
 
 > **Note:** the freefair plugin manages an `aspectjrt` version of its own. On an AspectJ version conflict, either drop the explicit `implementation "org.aspectj:aspectjrt:..."` line and let the plugin supply it, or align the plugin through `aspectj { version = aspectjVersion }`.
 
+## Point the build at your sources
+
+Which directories Gradle compiles depends on your layout (see
+[Know your project layout](../index.md#know-your-project-layout)).
+
+- **Standard Gradle layout.** `src/main/java`, `src/test/java` and `src/test/resources` are the
+  defaults. Add nothing.
+- **Standard Artemis layout.** Student code compiles from `assignment/src`, and the test code and
+  the structure oracle `test.json` live under `test/`. Redirect both source sets, and declare
+  `test/` as test **resources** as well:
+
+  ```gradle
+  def assignmentSrcDir = 'assignment/src'
+
+  sourceSets {
+      main {
+          java {
+              srcDirs = [assignmentSrcDir]
+          }
+      }
+      test {
+          java {
+              srcDir 'test'
+          }
+          resources {
+              srcDir 'test'
+          }
+      }
+  }
+  ```
+
+Two lines here are load-bearing. The `resources { srcDir 'test' }` block is separate from the
+`java` one on purpose: Gradle copies compiled classes and copied resources through different
+declarations, so without it `test.json` never reaches the test classpath and every structural test
+fails reporting a missing structure oracle. The `def assignmentSrcDir = 'assignment/src'` line
+matters beyond Gradle: Ares reads the student source root by parsing this build file, and it
+resolves exactly this variable form, so an Artemis-layout exercise that points `srcDirs` somewhere
+Ares cannot parse has its structural tests report every expected class as not implemented. Use the
+block above as written.
+
 ## Apply `@Policy` to the tests
 
 Ares 1 needed no annotation to activate security; the test-type annotation was enough, and the security annotations configured it. Ares 2 keeps the test-type annotation and adds `@Policy`:
@@ -183,6 +223,15 @@ The three parameters:
 
 - **Gradle:** `classes/java/main/<package/path>`, for example `classes/java/main/org/example`
 - **Maven:** `classes/<package/path>`, for example `classes/org/example`
+
+`withinPath` does not change with your project layout. It points at the *compiled* bytecode under
+the build output directory, not at your sources: Gradle writes the main classes to
+`build/classes/java/main` whether they came from `src/main/java` or `assignment/src`, so the Gradle
+value stays `classes/java/main/<package/path>` either way.
+
+The `value` path, in contrast, does follow your layout, matching where you created the policy file:
+`src/test/resources/SecurityPolicy.yaml` for the standard layout, `test/SecurityPolicy.yaml` (or the
+package-mirrored `test/de/tum/cit/aet/SecurityPolicy.yaml`) for the Artemis layout.
 
 > **The activation rule that has no Ares 1 counterpart.** `@Policy` is not itself a JUnit extension and registers nothing. What activates Ares is the test-type annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`). A test annotated with a plain JUnit `@Test` and a `@Policy` runs completely unsupervised, silently. If you migrate a test class and drop its `@Public` in the process, you lose all enforcement without any error.
 
