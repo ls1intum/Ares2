@@ -117,6 +117,16 @@ The test-type and lifecycle annotations survive the migration. Rewrite the packa
 | `de.tum.in.test.api.AresConfiguration` | `de.tum.cit.ase.ares.api.AresConfiguration` |
 | `de.tum.in.test.api.localization.UseLocale` | `de.tum.cit.ase.ares.api.localization.UseLocale` |
 | `de.tum.in.test.api.io.IOTester` | `de.tum.cit.ase.ares.api.io.IOTester` |
+| `de.tum.in.test.api.structural.AttributeTestProvider` | `de.tum.cit.ase.ares.api.structural.AttributeTestProvider` |
+| `de.tum.in.test.api.structural.ConstructorTestProvider` | `de.tum.cit.ase.ares.api.structural.ConstructorTestProvider` |
+| `de.tum.in.test.api.structural.MethodTestProvider` | `de.tum.cit.ase.ares.api.structural.MethodTestProvider` |
+| `de.tum.in.test.api.structural.ClassTestProvider` | `de.tum.cit.ase.ares.api.structural.ClassTestProvider` |
+| `de.tum.in.test.api.util.ReflectionTestUtils` | `de.tum.cit.ase.ares.api.util.ReflectionTestUtils` |
+
+The last five rows are the structure-oracle providers and the reflection helper that Artemis
+structural tests are built on. They are a package rename like the rest, but they are named here so
+you can confirm the rename against the Ares 2 JAR rather than trusting that the blanket replace
+found the right target.
 
 A blanket search and replace of `de.tum.in.test.api` with `de.tum.cit.ase.ares.api` handles all of these. It produces unresolved imports for every **security** annotation, which is the correct outcome: those have no Ares 2 counterpart and are the subject of the step named in section 6 of this guide. Delete them as you translate them, rather than before, so you do not lose the configuration they encoded.
 
