@@ -33,6 +33,7 @@ after them cover the failures that show up as wrong behaviour rather than as a m
 | `logback.xml occurs multiple times on the classpath` | The agent JAR and the ordinary Ares JAR each carry one | A warning only; enforcement is unaffected |
 | `[Xlint:adviceDidNotMatch]` warnings during compilation | An `_ASPECTJ` build reports each Ares advice whose operation the exercise never performs | Expected and non-fatal; it confirms the weaver ran. A build that wove nothing looks the same, so do not suppress the category |
 | The reserved-package check never runs under `gradlew test` | A boundary version 1 snippet hooked `check` alone | Migrate to boundary version 2, which gates every `Test` task too (the Gradle step above) |
+| A Gradle file-system watcher (FSEvents) warning at build start | Gradle's native file watching cannot start in a sandboxed or container environment | A warning only; compilation and tests are unaffected. Pass `--no-watch-fs` to silence it |
 | Policy seems to have no effect | Wrong `withinPath` | Gradle: `classes/java/main/<package/path>`, Maven: `classes/<package/path>` |
 
 ## Symptom table: migrating from Ares 1
