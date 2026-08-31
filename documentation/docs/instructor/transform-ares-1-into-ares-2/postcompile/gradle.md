@@ -387,6 +387,14 @@ A correct run is therefore **green** and contains an asserted rejection. Then br
 - Remove `-javaagent` from an `_INSTRUMENTATION` exercise. Same expectation. Removing it from an `_ASPECTJ` exercise correctly changes nothing, because the aspects were woven at compile time.
 - Add a class declaring `package de.tum.cit.ase.ares.api;` to the student sources. The build must fail with the reserved-package diagnostic.
 
+:::note[`adviceDidNotMatch` warnings are expected]
+An `_ASPECTJ` build prints one `[Xlint:adviceDidNotMatch]` warning for each Ares advice whose
+operation your exercise never performs, so an exercise that touches no file, network, command or
+thread reports several. It means the weaver ran and found no join point to weave, which is the
+correct result here, and the build and tests still pass. Do not suppress the category through the
+AspectJ `Xlint` options: the same warning is how a build that wove nothing at all would show.
+:::
+
 Two complete, runnable exercises are available in [`examples/`](https://github.com/ls1intum/Ares2/tree/main/examples), one per build tool. If an example passes and your migrated project does not, the difference between the two is your defect.
 
 ## Appendix: complete `build.gradle`
