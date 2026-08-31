@@ -13,10 +13,23 @@ It is split into two guides:
 
 ## Installation
 
+Use Node 24, matching CI and the `engines` floor in `package.json`. With nvm, `.nvmrc` selects it:
+
+```bash
+nvm use                          # nvm install first if you do not have Node 24 yet
+```
+
+Then activate the pinned pnpm and install:
+
 ```bash
 corepack enable                  # one-time: activate the pnpm version pinned in package.json
 pnpm install --frozen-lockfile
 ```
+
+`.npmrc` sets `engine-strict`, so `pnpm install` refuses to run on a Node below the `engines` floor
+rather than failing confusingly later in the build. If `corepack` is not on your PATH (some Node
+builds ship without it, and Node is unbundling it), install the pinned pnpm directly instead:
+`npm install -g pnpm@11.18.0`.
 
 ## Local development
 
