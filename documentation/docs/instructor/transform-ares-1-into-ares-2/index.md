@@ -31,7 +31,8 @@ mode you pick, and lives on the four pages behind it.
 
 ## How to read this section
 
-The migration splits into work that is the same in both modes and work that is not:
+The migration splits into work that is the same in both modes, Postcompile and Precompile, and
+work that is not:
 
 1. Read this page: why to migrate, what changes, the prerequisites, the import rewrite and the
    translation from Ares 1 annotations into an Ares 2 policy file.
@@ -166,7 +167,10 @@ regardingTheSupervisedCode:
 
 Three structural rules that cause immediate rejection when broken:
 
-1. `thisPolicyFileCompliesToThePolicyVersion` is **required** and must be exactly `1`.
+1. `thisPolicyFileCompliesToThePolicyVersion` is **required** and must be exactly `1`. It is a
+   schema-version guard, not an arbitrary constant: it pins the file to the policy format this Ares
+   release understands, so a later release that changes the format can reject or migrate an old file
+   instead of misreading it. Today `1` is the only accepted value.
 2. **All six** lists under `theFollowingResourceAccessesArePermitted` must be present, even when empty. `regardingTimeouts: [ ]` is required too, for the reason in the step named in section 6.2 of this guide.
 3. `theFollowingClassesAreTestClasses` must be present, though it may be empty.
 
