@@ -1,5 +1,10 @@
 # pnpm 11+ install and resolution settings for the documentation/ subproject.
 
+# Refuse to install on a Node below the engines floor in package.json, so a too-old Node
+# fails here with a clear message rather than later in the build. pnpm 11 enforces this only
+# from pnpm-workspace.yaml; the same key in .npmrc merely warns and lets the install proceed.
+engineStrict: true
+
 preferFrozenLockfile: true
 autoInstallPeers: true
 

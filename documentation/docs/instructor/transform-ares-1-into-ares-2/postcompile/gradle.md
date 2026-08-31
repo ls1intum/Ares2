@@ -183,12 +183,12 @@ Which directories Gradle compiles depends on your layout (see
   ```
 
 Two lines here are load-bearing. The `resources { srcDir 'test' }` block is separate from the
-`java` one on purpose: Gradle copies compiled classes and copied resources through different
-declarations, so without it `test.json` never reaches the test classpath and every structural test
+`java` one on purpose, because Gradle copies compiled classes and copied resources through different
+declarations. Without it, `test.json` never reaches the test classpath, and every structural test
 fails reporting a missing structure oracle. The `def assignmentSrcDir = 'assignment/src'` line
-matters beyond Gradle: Ares reads the student source root by parsing this build file, and it
-resolves exactly this variable form, so an Artemis-layout exercise that points `srcDirs` somewhere
-Ares cannot parse has its structural tests report every expected class as not implemented. Use the
+matters beyond Gradle. Ares reads the student source root by parsing this build file, and it
+resolves exactly this variable form. An Artemis-layout exercise that points `srcDirs` somewhere Ares
+cannot parse makes its structural tests report every expected class as not implemented, so use the
 block above as written.
 
 ## Apply `@Policy` to the tests
@@ -201,7 +201,7 @@ package org.example;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 
-@Policy(value = "src/test/resources/SecurityPolicy.yaml", withinPath = "classes/org/example")
+@Policy(value = "src/test/resources/SecurityPolicy.yaml", withinPath = "classes/java/main/org/example")
 public class PenguinTest {
 
     @PublicTest
@@ -225,13 +225,13 @@ The three parameters:
 - **Maven:** `classes/<package/path>`, for example `classes/org/example`
 
 `withinPath` does not change with your project layout. It points at the *compiled* bytecode under
-the build output directory, not at your sources: Gradle writes the main classes to
+the build output directory, not at your sources. Gradle writes the main classes to
 `build/classes/java/main` whether they came from `src/main/java` or `assignment/src`, so the Gradle
 value stays `classes/java/main/<package/path>` either way.
 
 The `value` path, in contrast, does follow your layout, matching where you created the policy file:
 `src/test/resources/SecurityPolicy.yaml` for the standard layout, `test/SecurityPolicy.yaml` (or the
-package-mirrored `test/de/tum/cit/aet/SecurityPolicy.yaml`) for the Artemis layout.
+package-mirrored `test/org/example/SecurityPolicy.yaml`) for the Artemis layout.
 
 > **The activation rule that has no Ares 1 counterpart.** `@Policy` is not itself a JUnit extension and registers nothing. What activates Ares is the test-type annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`). A test annotated with a plain JUnit `@Test` and a `@Policy` runs completely unsupervised, silently. If you migrate a test class and drop its `@Public` in the process, you lose all enforcement without any error.
 
@@ -388,11 +388,12 @@ A correct run is therefore **green** and contains an asserted rejection. Then br
 - Add a class declaring `package de.tum.cit.ase.ares.api;` to the student sources. The build must fail with the reserved-package diagnostic.
 
 :::note[`adviceDidNotMatch` warnings are expected]
-An `_ASPECTJ` build prints one `[Xlint:adviceDidNotMatch]` warning for each Ares advice whose
-operation your exercise never performs, so an exercise that touches no file, network, command or
-thread reports several. It means the weaver ran and found no join point to weave, which is the
-correct result here, and the build and tests still pass. Do not suppress the category through the
-AspectJ `Xlint` options: the same warning is how a build that wove nothing at all would show.
+An `_ASPECTJ` build prints one `[Xlint:adviceDidNotMatch]` warning for each Ares advice that found no
+matching join point in the woven code. An exercise whose supervised code performs no file, network,
+command or thread operation gives those advices nothing to match, so several such warnings are
+expected and the build and tests still pass. Their presence shows the weaver processed the Ares
+aspects; on its own it does not prove that the advice meant to match your code did, so keep the
+positive and negative controls above.
 :::
 
 Two complete, runnable exercises are available in [`examples/`](https://github.com/ls1intum/Ares2/tree/main/examples), one per build tool. If an example passes and your migrated project does not, the difference between the two is your defect.

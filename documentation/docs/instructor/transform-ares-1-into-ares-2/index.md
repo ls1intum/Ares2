@@ -78,9 +78,9 @@ The essential shape of the migration: **the test-type and lifecycle annotations 
 
 ## Know your project layout
 
-Ares 2 exercises come in two layouts, and every later step that names a source path or the policy
-file gives it in both forms. Find yours here first, then read the matching row wherever a path
-appears.
+Ares 2 exercises usually follow one of two layouts, and every later step that names a source path or
+the policy file gives it in both forms. Find yours here first, then read the matching row wherever a
+path appears.
 
 - **Standard Maven or Gradle layout.** Student code under `src/main/java`, test code under
   `src/test/java`, test resources under `src/test/resources`. The build tool finds all three on its
@@ -92,9 +92,9 @@ appears.
   not look in either place by default, so the build file has to redirect it. The build-side page for
   your tool shows the exact block.
 
-Ares reads the source roots from your build file, not from a fixed convention, so the redirect is
-what a real Artemis exercise needs and it is easy to get subtly wrong. The one form Ares recognises
-is on the build-side page; use it verbatim.
+Ares reads the source roots from your build file, not from a fixed convention. Other layouts are
+therefore possible, but these two are the ones exercises use, and the build-side page gives a block
+known to work for each. The Artemis block is the easy one to get subtly wrong, so copy it verbatim.
 
 ## Rewrite the imports
 
@@ -125,9 +125,9 @@ The test-type and lifecycle annotations survive the migration. Rewrite the packa
 | `de.tum.in.test.api.util.ReflectionTestUtils` | `de.tum.cit.ase.ares.api.util.ReflectionTestUtils` |
 
 The last five rows are the structure-oracle providers and the reflection helper that Artemis
-structural tests are built on. They are a package rename like the rest, but they are named here so
-you can confirm the rename against the Ares 2 JAR rather than trusting that the blanket replace
-found the right target.
+structural tests use. They are a package rename like the rest, but the table names them so you can
+confirm the rename against the Ares 2 JAR rather than trusting that the blanket replace found the
+right target.
 
 A blanket search and replace of `de.tum.in.test.api` with `de.tum.cit.ase.ares.api` handles all of these. It produces unresolved imports for every **security** annotation, which is the correct outcome: those have no Ares 2 counterpart and are the subject of the step named in section 6 of this guide. Delete them as you translate them, rather than before, so you do not lose the configuration they encoded.
 
@@ -143,7 +143,7 @@ Create the policy file where your layout puts test resources:
 
 - **Standard Maven or Gradle layout:** `src/test/resources/SecurityPolicy.yaml`
 - **Standard Artemis layout:** `test/SecurityPolicy.yaml`, or mirror the supervised package as
-  `test/de/tum/cit/aet/SecurityPolicy.yaml`
+  `test/<package/path>/SecurityPolicy.yaml`, for example `test/org/example/SecurityPolicy.yaml`
 
 The `@Policy(value = ...)` on your tests must name the same path; the build-side page shows the
 `value` for each layout. The content is identical either way:
@@ -168,9 +168,9 @@ regardingTheSupervisedCode:
 Three structural rules that cause immediate rejection when broken:
 
 1. `thisPolicyFileCompliesToThePolicyVersion` is **required** and must be exactly `1`. It is a
-   schema-version guard, not an arbitrary constant: it pins the file to the policy format this Ares
-   release understands, so a later release that changes the format can reject or migrate an old file
-   instead of misreading it. Today `1` is the only accepted value.
+   schema-version guard, not an arbitrary constant. It pins the file to the policy format this Ares
+   release understands. A later release that changes the format can then reject an old file instead
+   of misreading it, and today `1` is the only accepted value.
 2. **All six** lists under `theFollowingResourceAccessesArePermitted` must be present, even when empty. `regardingTimeouts: [ ]` is required too, for the reason in the step named in section 6.2 of this guide.
 3. `theFollowingClassesAreTestClasses` must be present, though it may be empty.
 
