@@ -796,6 +796,9 @@
 					<encoding>UTF-8</encoding>
 					<formats>
 						<format>
+							<!-- This format mixes pom.xml (LF) with files using the CRLF default.
+								Resolve each file separately because FAST_ALLSAME uses the first file's ending for all. -->
+							<lineEndings>GIT_ATTRIBUTES</lineEndings>
 							<includes>
 								<include>*.xml</include>
 								<include>*.java</include>
