@@ -73,7 +73,7 @@
 		<!-- 8. API  -->
 		<apiguardian-api-version>1.1.2</apiguardian-api-version>
 		<!-- Others -->
-		<spotless.version>3.10.0</spotless.version>
+		<spotless.version>3.10.1</spotless.version>
 		<!-- if JaCoCo is not executed -->
 		<argLine></argLine>
 		<!-- Isolate test classes so WALA state and test-created threads cannot accumulate
@@ -796,6 +796,9 @@
 					<encoding>UTF-8</encoding>
 					<formats>
 						<format>
+							<!-- This format mixes pom.xml (LF) with files using the CRLF default.
+								Resolve each file separately because FAST_ALLSAME uses the first file's ending for all. -->
+							<lineEndings>GIT_ATTRIBUTES</lineEndings>
 							<includes>
 								<include>*.xml</include>
 								<include>*.java</include>
