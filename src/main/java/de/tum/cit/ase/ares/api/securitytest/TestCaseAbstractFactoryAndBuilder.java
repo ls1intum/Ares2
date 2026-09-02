@@ -148,6 +148,14 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 	 */
 	@Nonnull
 	protected final String mainClassInPackageName;
+
+	/**
+	 * Whether the supervised scope was derived from the project rather than pinned
+	 * by a policy. Only a derived scope is checked against the compiled output
+	 * before enforcement; a pinned one is the instructor's statement of what is
+	 * supervised and may deliberately cover part of the project.
+	 */
+	protected final boolean supervisedScopeWasDerived;
 	// </editor-fold>
 
 	// <editor-fold desc="Test lists">
@@ -257,12 +265,13 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 			// check.
 			this.testClasses = new ArrayList<>(supervisedCode.theFollowingClassesAreTestClasses());
 		} else {
-			// Legacy no-policy path: derive scope and exemptions from the project scan.
+			// No-policy path: derive scope and exemptions from the project scan.
 			this.packageName = projectScanner.scanForPackageName();
 			this.mainClassInPackageName = projectScanner.scanForMainClassInPackage();
 			this.resourceAccesses = ResourceAccesses.createRestrictive();
 			this.testClasses = new ArrayList<>(Arrays.asList(projectScanner.scanForTestClasses()));
 		}
+		this.supervisedScopeWasDerived = securityPolicy == null;
 		// Reserved-package guard (#2): the supervised package - pinned by the policy or
 		// scanned from the project - must not fall under a trusted infrastructure
 		// prefix, or the supervised code would be trusted by name and bypass every
@@ -274,7 +283,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 		this.creator.createTestCases(this.buildMode, this.architectureMode, this.aopMode, this.essentialPackages,
 				this.essentialClasses, this.testClasses, this.packageName, this.mainClassInPackageName,
 				this.architectureTestCases, this.aopTestCases, this.phobosTestCases, this.resourceAccesses,
-				this.projectPath);
+				this.projectPath, this.supervisedScopeWasDerived);
 		// </editor-fold>
 	}
 	// </editor-fold>

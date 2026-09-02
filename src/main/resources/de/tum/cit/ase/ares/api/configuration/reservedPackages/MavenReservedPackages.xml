@@ -1,11 +1,16 @@
-<!-- Ares reserved-package build boundary, version 1. Insert this plugin under build/plugins. -->
+<!-- Ares reserved-package build boundary, version 2. Insert this plugin under build/plugins.
+     The Maven binding was already correct at boundary version 1: process-classes runs
+     under `mvn test`, so the validation was never skipped the way the Gradle version 1
+     snippet was. The version moves to 2 only so both build tools name the same boundary
+     contract. The build descriptor and the command used to invoke it are trusted
+     instructor configuration; this validates student code, not the build itself. -->
 <plugin>
   <groupId>org.apache.maven.plugins</groupId>
   <artifactId>maven-antrun-plugin</artifactId>
   <version>3.2.0</version>
   <executions>
     <execution>
-      <id>verify-ares-reserved-packages-v1</id>
+      <id>verify-ares-reserved-packages-v2</id>
       <phase>process-classes</phase>
       <goals><goal>run</goal></goals>
       <configuration>
@@ -16,11 +21,10 @@
               <include name="jdk/**"/><include name="com/sun/**"/>
               <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
               <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-              <include name="com/tngtech/archunit/**"/><include name="anonymous/toolclasses/**"/>
-              <include name="metatest/**"/>
+              <include name="com/tngtech/archunit/**"/>
             </fileset>
           </resourcecount>
-          <fail message="Ares reserved-package validation v1 rejected student output. No bypass flag is supported.">
+          <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">
             <condition><not><equals arg1="${ares.reserved.package.count}" arg2="0"/></not></condition>
           </fail>
         </target>

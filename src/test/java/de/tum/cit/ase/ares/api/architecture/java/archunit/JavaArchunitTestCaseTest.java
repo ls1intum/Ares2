@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashSet;
@@ -87,27 +88,60 @@ public class JavaArchunitTestCaseTest {
 		assertTrue(result.contains("PackagePermission"));
 	}
 
+	/**
+	 * The emitted code used to carry the packages seen when the file was written.
+	 * That is exactly what made a precompiled suite vacuous: during generation
+	 * nothing is compiled, so the set was empty and the emission was
+	 * importPackages() with no arguments, which every rule then checked and passed.
+	 * What is emitted now is a question asked at the generated test's own runtime.
+	 */
 	@Test
-	void javaClassesAsCode_emptyClasses_returnsImportEmpty() throws Exception {
-		// Create empty JavaClasses by importing a package with no classes
+	void javaClassesAsCode_derivedScope_asksForTheValidatedInventoryAtRuntime() throws Exception {
 		JavaClasses emptyClasses = new ClassFileImporter().importPackages("non.existent.package");
 		Set<PackagePermission> allowed = new HashSet<>();
 		allowed.add(new PackagePermission("com.example"));
 		JavaArchunitTestCase testCase = builder
 				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION)
-				.allowedPackages(allowed).javaClasses(emptyClasses).build();
+				.allowedPackages(allowed).javaClasses(emptyClasses).supervisedPackage("de.tum.cit.aet")
+				.supervisedScopeWasDerived(true).build();
 
-		Method method = JavaArchunitTestCase.class.getDeclaredMethod("javaClassesAsCode");
-		method.setAccessible(true);
-		String result = (String) method.invoke(testCase);
-		assertTrue(result.startsWith("new ClassFileImporter()"), "Should start with ClassFileImporter creation");
-		assertTrue(result.contains(".importPackages()"), "Should contain importPackages() call");
+		String result = javaClassesAsCode(testCase);
+
+		assertEquals("JavaArchunitSupervisedClasses.validated(\"de.tum.cit.aet\")", result,
+				"a derived scope has to be checked against the whole compiled output before it is used");
+		assertFalse(result.contains("importPackages"),
+				"nothing may be baked in at generation time, since that is what an empty precompile emitted");
 	}
 
+	/**
+	 * A pinned scope is the instructor's statement rather than a reading of the
+	 * project, so it imports its own subtree and is not held to whole-project
+	 * coverage: a policy may deliberately supervise part of an output.
+	 */
 	@Test
-	void javaClassesAsCode_nonEmptyClasses_returnsImportWithPackages() throws Exception {
+	void javaClassesAsCode_pinnedScope_asksOnlyForItsOwnSubtree() throws Exception {
 		JavaClasses javaClasses = new ClassFileImporter()
 				.importPackages("de.tum.cit.ase.ares.api.architecture.java.archunit");
+		Set<PackagePermission> allowed = new HashSet<>();
+		allowed.add(new PackagePermission("com.example"));
+		JavaArchunitTestCase testCase = builder
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.REFLECTION)
+				.allowedPackages(allowed).javaClasses(javaClasses).supervisedPackage("de.tum.cit.aet")
+				.supervisedScopeWasDerived(false).build();
+
+		String result = javaClassesAsCode(testCase);
+
+		assertEquals("JavaArchunitSupervisedClasses.pinned(\"de.tum.cit.aet\")", result);
+	}
+
+	/**
+	 * Generating a file with no scope would generate one that analyses nothing, so
+	 * it is refused where it is noticed rather than written out and discovered
+	 * green.
+	 */
+	@Test
+	void javaClassesAsCode_withoutAScope_refusesToGenerate() throws Exception {
+		JavaClasses javaClasses = new ClassFileImporter().importPackages("non.existent.package");
 		Set<PackagePermission> allowed = new HashSet<>();
 		allowed.add(new PackagePermission("com.example"));
 		JavaArchunitTestCase testCase = builder
@@ -116,10 +150,16 @@ public class JavaArchunitTestCaseTest {
 
 		Method method = JavaArchunitTestCase.class.getDeclaredMethod("javaClassesAsCode");
 		method.setAccessible(true);
-		String result = (String) method.invoke(testCase);
-		assertTrue(result.startsWith("new ClassFileImporter()"));
-		assertTrue(result.contains("\"de.tum.cit.ase.ares.api.architecture.java.archunit\""));
-		assertTrue(result.contains(".importPackages("));
+		InvocationTargetException failure = assertThrows(InvocationTargetException.class,
+				() -> method.invoke(testCase));
+
+		assertInstanceOf(SecurityException.class, failure.getCause());
+	}
+
+	private static String javaClassesAsCode(JavaArchunitTestCase testCase) throws Exception {
+		Method method = JavaArchunitTestCase.class.getDeclaredMethod("javaClassesAsCode");
+		method.setAccessible(true);
+		return (String) method.invoke(testCase);
 	}
 
 	@Test

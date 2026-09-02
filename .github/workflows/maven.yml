@@ -19,8 +19,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The mandatory gate. Everything else waits on it, so a broken build costs one job
-  # rather than four.
+  # The mandatory gate, and it answers one question only: does the project build. Whether
+  # the code is written the way this repository writes code is the static analysis job's
+  # question. Everything else waits on this one, so a broken build costs one job rather
+  # than four.
   build:
     name: Build
     runs-on: ubuntu-24.04
@@ -34,17 +36,17 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Spotless Check
-        run: mvn spotless:check
-
+      # Checkstyle, PMD, CPD and SpotBugs are bound to package in the POM, so they would
+      # run here as well and repeat what the static analysis job is for. The profile turns
+      # that gate off for this one command; it stays on for a local build.
       - name: Build
-        run: mvn clean package -DskipTests
+        run: mvn clean package -DskipTests -Pwithout-quality-gates
 
   static-analysis:
     name: Static Code Analysis
@@ -60,13 +62,14 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
 
-      # SpotBugs reads class files, so the sources have to be compiled first.
+      # SpotBugs reads class files, and PMD needs them on its auxiliary classpath to tell a
+      # used wildcard import from an unused one, so the sources have to be compiled first.
       - name: Compile
         run: mvn -DskipTests compile
 
@@ -84,6 +87,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: mvn pmd:check
 
+      # cpd-check is a goal of its own; pmd:check does not include it. It reached CI only
+      # as a side effect of the package-bound execution, which this workflow no longer
+      # runs, so without this step nothing would look for duplicated code.
+      - name: CPD
+        if: ${{ !cancelled() }}
+        run: mvn pmd:cpd-check
+
       - name: SpotBugs
         if: ${{ !cancelled() }}
         run: mvn spotbugs:check
@@ -96,6 +106,7 @@ jobs:
           path: |
             target/checkstyle-result.xml
             target/pmd.xml
+            target/cpd.xml
             target/spotbugsXml.xml
           if-no-files-found: warn
 
@@ -113,7 +124,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -131,10 +142,25 @@ jobs:
       # step failed, so the aggregate still reflects everything that did run.
       - name: Upload coverage execution data
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: jacoco-exec-unit-tests
           path: target/jacoco.exec
+          if-no-files-found: warn
+
+      # Surefire's XML is only half the evidence. A fork that crashed or hit
+      # `forkedProcessTimeoutInSeconds` leaves a `.dump`, `.dumpstream` or `.txt` behind and
+      # often no XML at all, which is precisely the run whose evidence is worth keeping. The
+      # whole directory is therefore uploaded rather than a glob over `*.xml`.
+      #
+      # `!cancelled()` rather than `success()`, for the same reason the coverage upload above
+      # uses it: a failed test step is the case this artefact exists for.
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: test-results-unit-tests
+          path: target/surefire-reports/
           if-no-files-found: warn
 
   tests:
@@ -177,7 +203,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -196,10 +222,25 @@ jobs:
 
       - name: Upload coverage execution data
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: jacoco-exec-${{ matrix.slug }}
           path: target/jacoco.exec
+          if-no-files-found: warn
+
+      # Surefire's XML is only half the evidence. A fork that crashed or hit
+      # `forkedProcessTimeoutInSeconds` leaves a `.dump`, `.dumpstream` or `.txt` behind and
+      # often no XML at all, which is precisely the run whose evidence is worth keeping. The
+      # whole directory is therefore uploaded rather than a glob over `*.xml`.
+      #
+      # `!cancelled()` rather than `success()`, for the same reason the coverage upload above
+      # uses it: a failed test step is the case this artefact exists for.
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: test-results-${{ matrix.slug }}
+          path: target/surefire-reports/
           if-no-files-found: warn
 
   core-integration-tests:
@@ -216,7 +257,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -230,10 +271,25 @@ jobs:
 
       - name: Upload coverage execution data
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: jacoco-exec-core-integration-tests
           path: target/jacoco.exec
+          if-no-files-found: warn
+
+      # Surefire's XML is only half the evidence. A fork that crashed or hit
+      # `forkedProcessTimeoutInSeconds` leaves a `.dump`, `.dumpstream` or `.txt` behind and
+      # often no XML at all, which is precisely the run whose evidence is worth keeping. The
+      # whole directory is therefore uploaded rather than a glob over `*.xml`.
+      #
+      # `!cancelled()` rather than `success()`, for the same reason the coverage upload above
+      # uses it: a failed test step is the case this artefact exists for.
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: test-results-core-integration-tests
+          path: target/surefire-reports/
           if-no-files-found: warn
 
   # Each test job covers a disjoint slice of the suite, so no single one of them can be
@@ -258,12 +314,12 @@ jobs:
       contents: read
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -274,7 +330,7 @@ jobs:
       # strict: if the test jobs ran but produced no execution data at all, that is a
       # defect in the coverage wiring and should be visible rather than swallowed.
       - name: Download coverage execution data
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: jacoco-exec-*
           path: target/jacoco-exec
@@ -284,7 +340,7 @@ jobs:
       - name: Merge execution data and evaluate thresholds
         shell: bash
         run: |
-          mvn verify -Pcoverage-aggregate -DskipTests -Djacoco.haltOnFailure=false -f pom.xml \
+          mvn verify -Pcoverage-aggregate,without-quality-gates -DskipTests -Djacoco.haltOnFailure=false -f pom.xml \
             2>&1 | tee "${RUNNER_TEMP}/coverage-aggregate.log"
 
       - name: Write coverage summary
@@ -341,7 +397,7 @@ jobs:
 
       - name: Upload coverage report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report
           path: |

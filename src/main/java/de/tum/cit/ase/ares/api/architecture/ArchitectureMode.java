@@ -317,6 +317,9 @@ public enum ArchitectureMode {
 
 	/**
 	 * Generates the file value array based on the provided package name.
+	 * <p>
+	 * WALA needs one more than ArchUnit: its header also imports the
+	 * supervised-class holder, which lives in the archunit package beside it.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -327,7 +330,7 @@ public enum ArchitectureMode {
 	public String[] formatValues(@Nonnull String packageName) {
 		return switch (this) {
 		case ARCHUNIT -> FileTools.generatePackageNameArray(packageName, 3);
-		case WALA -> FileTools.generatePackageNameArray(packageName, 3);
+		case WALA -> FileTools.generatePackageNameArray(packageName, 4);
 		};
 	}
 
@@ -482,13 +485,24 @@ public enum ArchitectureMode {
 	// </editor-fold>
 
 	// <editor-fold desc="Static methods">
+	/**
+	 * The scope travels with the test case: the generated file asks for it by name
+	 * at runtime and cannot work it out for itself.
+	 */
 	private static JavaArchunitTestCase convertToJavaArchunitTestCase(JavaArchitectureTestCase testCase) {
 		return JavaArchunitTestCase.archunitBuilder()
 				.javaArchitectureTestCaseSupported(
 						(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
-				.allowedPackages(testCase.getAllowedPackages()).javaClasses(testCase.getJavaClasses()).build();
+				.allowedPackages(testCase.getAllowedPackages()).javaClasses(testCase.getJavaClasses())
+				.supervisedPackage(testCase.getSupervisedPackage())
+				.supervisedScopeWasDerived(testCase.isSupervisedScopeWasDerived()).build();
 	}
 
+	/**
+	 * Both branches carry the scope, or the lazy one would generate a file that
+	 * asks for nothing while the eager one asks correctly. The constructor demands
+	 * it, so the two cannot drift apart again.
+	 */
 	private static JavaWalaTestCase convertToJavaWalaTestCases(JavaArchitectureTestCase testCase) {
 		// Prefer the lazy supplier path when available so the WALA outcome cache can
 		// short-circuit rule checks without ever building the call graph in JVM
@@ -496,13 +510,15 @@ public enum ArchitectureMode {
 		java.util.function.Supplier<com.ibm.wala.ipa.callgraph.CallGraph> supplier = testCase.getCallGraphSupplier();
 		if (supplier != null) {
 			return new JavaWalaTestCase((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported(),
-					testCase.getAllowedPackages(), testCase.getJavaClasses(), supplier);
+					testCase.getAllowedPackages(), testCase.getJavaClasses(), supplier, testCase.getSupervisedPackage(),
+					testCase.isSupervisedScopeWasDerived());
 		}
 		return JavaWalaTestCase.walaBuilder()
 				.javaArchitectureTestCaseSupported(
 						(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
 				.allowedPackages(testCase.getAllowedPackages()).callGraph(testCase.getCallGraph())
-				.javaClasses(testCase.getJavaClasses()).build();
+				.javaClasses(testCase.getJavaClasses()).supervisedPackage(testCase.getSupervisedPackage())
+				.supervisedScopeWasDerived(testCase.isSupervisedScopeWasDerived()).build();
 	}
 
 	private static List<JavaArchunitTestCase> convertToJavaArchunitTestCases(List<JavaArchitectureTestCase> testCases) {

@@ -2,7 +2,7 @@
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `SecurityPolicy.java`, and the `policySubComponents` package.
-> **Ares Version:** 2.1.0
+> **Ares Version:** 2.1.1
 
 **Related documentation:**
 - [How to Make a Project an Ares Project](../HowToMakeAProjectAnAresProject.md), project setup (build.gradle / pom.xml)
@@ -121,6 +121,7 @@ The architecture follows multiple well-known software design patterns. The table
 Create a file named `SecurityPolicy.yaml` in your project root:
 
 ```yaml
+thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.aet"
@@ -132,11 +133,14 @@ regardingTheSupervisedCode:
     regardingCommandExecutions: []
     regardingThreadCreations: []
     regardingPackageImports: []
-    regardingTimeouts:
-      - timeout: 5000
+    regardingTimeouts: []
 ```
 
-This policy forbids all file, network, and command operations, and limits execution to 5 seconds.
+This policy forbids all file, network, command and thread operations.
+
+> **`thisPolicyFileCompliesToThePolicyVersion` is required** and must be exactly `1`. A policy file that omits it, or that declares any other value, is rejected on load.
+
+> **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.1.1. Use [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
 
 ### 5.2 Step 2: Apply the Policy to Your Test
 
@@ -186,11 +190,13 @@ The interaction between test annotations (`@Public`, `@Hidden`, `@Test`, `@Publi
 
 | Scenario | Annotations | Resource Access |
 |----------|-------------|-----------------|
-| **No Supervision** | No `@Test`/`@PublicTest`/`@HiddenTest` & no `@Policy` | No Ares security code is activated at all, student code runs with no restrictions |
-| **Supervision Without Policy** | `@Public`/`@Hidden` + `@Test`/`@PublicTest`/`@HiddenTest` but **no** `@Policy` | Ares enforces a **default most-restricted policy**: every file, network, command, thread, and package access is denied, and a restrictive timeout of 10,000 ms applies |
-| **Supervision With Policy** | `@Public`/`@Hidden` + `@Test`/`@PublicTest`/`@HiddenTest` **and** `@Policy` | Student code can access **only allowed** supervised resources (explicit allowlist via policy) |
+| **No Supervision** | No Ares test annotation (a plain JUnit `@Test` alone counts as none), with or without `@Policy` | No Ares security code is activated at all, student code runs with no restrictions |
+| **Supervision Without Policy** | `@PublicTest`/`@HiddenTest`, or `@Public`/`@Hidden` alongside a JUnit `@Test`, but **no** `@Policy` | Ares enforces a **default most-restricted policy**: file, network, command and thread access is denied, and package imports are restricted to an implicit allowlist (the essential packages, the supervised package, and the test-class packages). No execution timeout applies yet, see [Section 8.6](#86-timeout-permissions) |
+| **Supervision With Policy** | `@PublicTest`/`@HiddenTest`, or `@Public`/`@Hidden` alongside a JUnit `@Test`, **and** `@Policy` | Student code can access **only allowed** supervised resources (explicit allowlist via policy) |
 
-> **Opting out:** The only way to disable enforcement for a supervised test is an explicit `@Policy(activated = false)`.
+> **Opting out:** Once an Ares test annotation has registered the extension, the only way to disable enforcement is an explicit `@Policy(activated = false)`.
+
+> **Note:** `@PublicTest` and `@HiddenTest` are themselves executable test annotations and need no separate `@Test`. `@Public` and `@Hidden` only mark the test type, so they must accompany a JUnit test annotation.
 
 ### 5.3 Step 3: Run the Tests
 
@@ -204,10 +210,10 @@ When you run the tests, Ares 2 will automatically enforce the security policy. I
 
 ### 6.1 The Default-Deny Approach
 
-Ares 2's behaviour depends on whether test supervision is active (via `@Test`, `@PublicTest`, or `@HiddenTest`) and whether a `@Policy` annotation is present:
+Ares 2's behaviour depends on whether test supervision is active and whether a `@Policy` annotation is present. Supervision is activated by an **Ares** test annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`), which carries the `@JupiterAresTest` meta-annotation that registers the extension. A plain JUnit `@Test` does **not** activate Ares, and neither does `@Policy`, which carries no `@ExtendWith` and registers nothing:
 
-- **Without supervision** (no test annotation present, no policy annotation present): Student code runs freely with no restrictions.
-- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **default most-restricted configuration**. It detects Maven or Gradle from the project root, uses ArchUnit and AspectJ as the analysis and enforcement modes, derives the supervised scope by scanning the project, and denies every resource access (via `ResourceAccesses.createRestrictive()`) with a single restrictive timeout of 10,000 ms. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so code that is not AspectJ-woven is covered by the static checks only. The only opt-out is an explicit `@Policy(activated = false)`.
+- **Without supervision** (no Ares test annotation present): Student code runs freely with no restrictions, whether or not a `@Policy` is present.
+- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **default most-restricted configuration**. It detects Maven or Gradle from the project root, uses ArchUnit and AspectJ as the analysis and enforcement modes, derives the supervised scope by scanning the project, and applies `ResourceAccesses.createRestrictive()`, which denies file, network, command and thread access outright. Package imports are **restricted rather than eliminated**: Ares always permits an implicit allowlist made of the essential packages it ships (which include the `java` prefix), the supervised package itself, and the packages of the recognised test classes. `createRestrictive()` also constructs a 10,000 ms limit, but that becomes a Phobos test case, and the Phobos stage is not yet dispatched in-process, so no execution timeout applies today; use `@StrictTimeout` where a deadline is needed. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so code that is not AspectJ-woven is covered by the static checks only. The only opt-out is an explicit `@Policy(activated = false)`.
 - **With supervision and a policy** (test annotation present, policy annotation present): Ares 2 enforces only the permissions explicitly listed in the policy file. Everything else is forbidden.
 
 When you define a security policy file, you start with maximum security (everything forbidden) and selectively allow only what the exercise absolutely requires. Specifying an explicit `@Policy` annotation with a restrictive policy object (for example, `theFollowingResourceAccessesArePermitted` containing six empty lists) enforces default-deny for policy-controlled resources. This is equivalent in strictness to supervision without a policy; the difference is that an explicit `@Policy` lets you choose the configuration (build tool, analysis framework, enforcement mechanism) and selectively grant permissions.
@@ -221,7 +227,7 @@ When you define a security policy file, you start with maximum security (everyth
 | Commands | Executing system commands with specific arguments | Allow running `python --version` |
 | Threads | Which thread classes can be created and how many of each | Allow up to 10 `java.lang.Thread` instances |
 | Packages | Importing Java packages | Allow `java.util` (including subpackages via prefix match) |
-| Timeouts | Maximum execution time | Limit to 10 seconds |
+| Timeouts | Declared maximum execution time. **Not enforced by the JUnit extension path in Ares 2.1.1**; use `@StrictTimeout` for an actual deadline | Record an intended limit of 10 seconds |
 
 ### 6.3 What Cannot Be Controlled?
 
@@ -252,11 +258,16 @@ Security policies are written in YAML format. YAML uses indentation (spaces, not
 ### 7.2 Complete Structure
 
 ```yaml
+# REQUIRED: The policy format version. Must be exactly 1; any other value,
+# or omitting the key, causes the policy to be rejected on load.
+thisPolicyFileCompliesToThePolicyVersion: 1
+
 regardingTheSupervisedCode:
   # REQUIRED: Which configuration to use
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION
 
-  # OPTIONAL (but strongly recommended): The package containing student code
+  # REQUIRED in practice: the package containing student code. The schema tolerates
+  # its absence, but a policy that is present must name it, or the run fails closed.
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.aet"
 
   # OPTIONAL: The main class (if applicable)
@@ -325,7 +336,7 @@ The `theSupervisedCodeUsesTheFollowingPackage` field specifies the root package 
 
 **Field Properties:**
 - **Type:** String
-- **Required:** No (technically optional in the Java data model, but strongly recommended, without it, Ares cannot scope enforcement to the student package)
+- **Required:** In practice yes. The YAML schema and the Java record both tolerate its absence, but once a policy is present the factory rejects a missing or blank package with a `SecurityException` rather than guessing the scope, because an undetermined scope would silently disable enforcement for the dynamic domains. Omit it only on the no-policy path, where the package is derived by scanning instead.
 - **Description:** The fully qualified base package name of the student submission
 
 **Examples:**
@@ -371,22 +382,17 @@ The `theFollowingClassesAreTestClasses` field lists the fully qualified names of
 
 **Examples:**
 
-Using a package prefix to cover all test classes:
-```yaml
-theFollowingClassesAreTestClasses:
-  - "com.instructor"
-```
-This matches all classes under `com.instructor` (including `com.instructor.ExerciseTest`, `com.instructor.utils.HelperTest`, etc.).
-
-Using specific test classes:
+List every test class by its fully qualified name:
 ```yaml
 theFollowingClassesAreTestClasses:
   - "com.instructor.ExerciseTest"
   - "com.instructor.AdvancedTest"
-  - "com.instructor.IntegrationTest"
+  - "com.instructor.utils.HelperTest"
 ```
 
-**Subpackages:** Matching uses a **prefix match** (`startsWith`). A value like `"com.instructor"` matches all classes under that package. A value like `"com.instructor.ExerciseTest"` also matches inner classes such as `com.instructor.ExerciseTest$Inner`.
+**Matching:** an entry matches a class name **exactly**, or matches a nested class of it on the `$` boundary. So `"com.instructor.ExerciseTest"` also covers `com.instructor.ExerciseTest$Inner`, while never matching the unrelated `com.instructor.ExerciseTestOther`. The same comparison is used by the static architecture rules and by the runtime advice, so the behaviour is identical in both layers.
+
+> **Package names and package prefixes do not work here, and are not harmless.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package; it matches a class literally named `com.instructor`, which does not exist, so it exempts nothing. The likely symptom is that your own test classes are treated as supervised code and your assertions start tripping the policy, if they fall within the supervised scope. Worse, the entry is not inert: Ares derives a permitted package from every entry by stripping the last dotted component, so `"com.instructor"` additionally permits imports from the whole `com` prefix. List each test class by its exact fully qualified name.
 
 ---
 
@@ -587,7 +593,7 @@ regardingPackageImports:
 
 ### 8.6 Timeout Permissions
 
-Sets maximum execution time in milliseconds.
+Declares an intended maximum execution time in milliseconds. **In Ares 2.1.1 this declaration does not yet take effect**; see the note below.
 
 ```yaml
 regardingTimeouts:
@@ -596,7 +602,7 @@ regardingTimeouts:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `timeout` | number | Maximum execution time in milliseconds |
+| `timeout` | number | Intended maximum execution time in milliseconds. Must be **strictly positive**; `0` is rejected. Does not yet take effect at run time, see the note below |
 
 **Example 1: Short timeout for simple computations**
 ```yaml
@@ -610,7 +616,7 @@ regardingTimeouts:
   - timeout: 60000
 ```
 
-> **Default behaviour:** If the `regardingTimeouts` list is empty (`[]`), Ares 2 applies a **default timeout of 10,000 ms (10 seconds)**. If multiple timeout entries are listed, Ares uses the **minimum** (tightest) value.
+> **Not in effect yet.** `regardingTimeouts` is parsed and validated into the policy model, but the resulting limit becomes a **Phobos** test case. Phobos is the test-case family covering the file-system, network and timeout domains, and in Ares 2.1.1 it is a generation-only stage: Ares writes those cases out, but the in-process execution path used by the JUnit extension does not dispatch them yet. That migration is still in progress. A timeout expressed here therefore does not bound test execution today, whether the list is populated or empty. Use `@StrictTimeout` on the test class or method wherever a deadline is required. The list must still be present in the file, because all six resource-access lists are structurally required; `regardingTimeouts: []` is the clearest form unless you want to record an intended value for a later release.
 
 ### 8.7 Internal Record: `ClassPermission`
 
@@ -737,7 +743,7 @@ Ares 2 validates all policy fields when the YAML file is parsed. If validation f
 | `createTheFollowingNumberOfThreads` | Must be ≥ 0 | `IllegalArgumentException` with a localised message |
 | `ofThisClass` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
 | `importTheFollowingPackage` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
-| `timeout` | Must be ≥ 0 (default: 10000 ms) | `IllegalArgumentException` with a localised message |
+| `timeout` | Must be **> 0** (the restrictive default is 10000 ms). Validated on load; does not yet take effect at run time, see [Section 8.6](#86-timeout-permissions) | `IllegalArgumentException` with a localised message |
 
 When a student's code violates a policy at runtime, Ares throws a `SecurityException` with a descriptive single-line message such as:
 

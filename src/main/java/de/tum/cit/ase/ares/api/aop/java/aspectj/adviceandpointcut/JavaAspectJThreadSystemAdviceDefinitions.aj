@@ -128,28 +128,64 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	}
 
 	/**
-	 * Returns true when the intercepted thread creation is owned by Ares's own
-	 * {@code @StrictTimeout} machinery ({@code TimeoutUtils.executeWithTimeout}
-	 * submits each timed test invocation to an executor) rather than by student
-	 * code. Walking from the top of the stack, a {@code TimeoutUtils} frame reached
-	 * before any restricted-package (student) frame means the timeout machinery
-	 * created the thread (exempt); a student frame seen first means the student
-	 * created it (still blocked). The student's test body runs on a separate worker
-	 * thread whose stack does not contain {@code TimeoutUtils}, so a student thread
-	 * is never exempted.
+	 * Answers one question: who created this thread, Ares itself or student code?
+	 * <p>
+	 * {@code @StrictTimeout} runs each timed test on a worker thread of its own.
+	 * Under a policy forbidding thread creation that worker must not be attributed
+	 * to the student, so the timeout machinery needs an exemption, granted to Ares
+	 * and to nothing else.
+	 * <p>
+	 * The stack is walked from the most recent call downwards, and the first frame
+	 * that matches decides:
+	 * <ol>
+	 * <li>exactly {@code TimeoutUtils}: the method name settles it.
+	 * {@code executeWithTimeout} submits the timed invocation to the executor, so
+	 * the machinery owns the thread and the exemption is granted; every other
+	 * method of that class refuses it. {@code rethrowThrowableSafe} is the one that
+	 * makes refusing necessary, being where the student's test body runs on the
+	 * worker, while the rest are Ares-internal and have no worker to claim;</li>
+	 * <li>any other Ares class ({@code de.tum.cit.ase.ares.api.}): skipped, because
+	 * Ares' own frames are never student code even when {@code restrictedPackage}
+	 * is broad enough to cover them, as {@code de.tum.cit.ase} is for Ares' own
+	 * self-tests;</li>
+	 * <li>a class in {@code restrictedPackage}: the student created it,
+	 * refused;</li>
+	 * <li>none of the above by the bottom of the stack: refused.</li>
+	 * </ol>
+	 * The order of the first two is load-bearing, because {@code TimeoutUtils} lies
+	 * inside the Ares prefix: testing the prefix first would skip the very frame
+	 * the exemption depends on, so it could never be granted.
+	 * <p>
+	 * {@code true} lets the creation through unchecked; {@code false} leaves it to
+	 * the ordinary policy check.
+	 * <p>
+	 * <b>Why the method name rather than the class.</b> Accepting any
+	 * {@code TimeoutUtils} frame held only while the student frame was always found
+	 * first. It is not: the student's body runs inside
+	 * {@code TimeoutUtils.rethrowThrowableSafe}, so that class sits below the
+	 * student's own frames rather than being absent. Once {@code restrictedPackage}
+	 * stopped matching, which is what a mis-scoped supervised package produces, the
+	 * walk fell past the student frames, reached {@code rethrowThrowableSafe} and
+	 * exempted every thread operation under a {@code @StrictTimeout}, silently.
+	 *
+	 * @param restrictedPackage the configured restricted (student) package prefix
+	 * @return {@code true} if the thread creation belongs to Ares' timeout
+	 *         machinery, {@code false} otherwise
 	 */
-	private static boolean isThreadCreationFromAresTimeout(String restrictedPackage) {
+	private static boolean isThreadCreationFromAresTimeout(@Nullable String restrictedPackage) {
 		return java.lang.StackWalker.getInstance().walk(frames -> {
 			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
-				String className = iterator.next().getClassName();
+				java.lang.StackWalker.StackFrame frame = iterator.next();
+				String className = frame.getClassName();
 				if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
-					return Boolean.TRUE;
+					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
 				}
 				// Ares's own infrastructure frames (this advice, internals) are never student
-				// code, even when restrictedPackage is a broad prefix that nominally covers them
-				// (e.g. the self-test fallback "de.tum.cit.ase"). Skipping them lets the walk
-				// reach the TimeoutUtils frame that legitimately owns this @StrictTimeout worker.
+				// code, even when restrictedPackage is a broad prefix that nominally covers
+				// them (e.g. the "de.tum.cit.ase" scope Ares' own self-tests run under).
+				// Skipping them lets the walk reach the TimeoutUtils frame that legitimately
+				// owns this @StrictTimeout worker.
 				if (className.startsWith("de.tum.cit.ase.ares.api.")) {
 					continue;
 				}
@@ -833,7 +869,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers, decrementQuota)) {
 				throw new SecurityException(localize(
 						"security.advice.illegal.thread.execution", systemMethodToCheck, action, threadClassName,
-						fullMethodSignature + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+						describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
 			}
 		}

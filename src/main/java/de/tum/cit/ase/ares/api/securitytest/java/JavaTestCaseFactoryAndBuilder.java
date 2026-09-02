@@ -48,6 +48,16 @@ import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
  */
 public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBuilder {
 
+	// <editor-fold desc="Attributes">
+	/**
+	 * The scanner at its own type, so the coverage check can be reached. The
+	 * inherited field is the interface, which that check is deliberately not part
+	 * of: it belongs to deriving a scope from a Java project, not to scanning one.
+	 */
+	@Nonnull
+	private final JavaProjectScanner javaProjectScanner;
+	// </editor-fold>
+
 	// <editor-fold desc="Constructor">
 
 	/**
@@ -83,7 +93,9 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 			@Nullable SecurityPolicy securityPolicy, @Nullable Path projectPath) {
 		super(creator, writer, executer, essentialDataReader, projectScanner, essentialPackagesPath,
 				essentialClassesPath, buildMode, architectureMode, aopMode, securityPolicy, projectPath);
+		this.javaProjectScanner = projectScanner;
 	}
+
 	// </editor-fold>
 
 	// <editor-fold desc="Write security test cases methods">
@@ -123,9 +135,17 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	 * This method sets up the necessary test configurations and then sequentially
 	 * executes the architecture and AOP test cases.
 	 * </p>
+	 * <p>
+	 * A derived scope is verified here rather than where it was derived, because
+	 * derivation also runs while test cases are being written, before anything is
+	 * compiled. This is the last point at which nothing is armed yet and the
+	 * compiled output already says what will run.
 	 */
 	@Override
 	public void executeTestCases() {
+		if (supervisedScopeWasDerived) {
+			javaProjectScanner.requireDerivedScopeToCoverTheProject(packageName);
+		}
 		executer.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 				testClasses, packageName, mainClassInPackageName,
 				this.architectureTestCases.stream()

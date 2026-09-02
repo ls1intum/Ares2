@@ -1111,7 +1111,7 @@ java.util.Collection.parallelStream()
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.1.0</version>
+        <version>2.1.1</version>
     </dependency>
 </dependencies>
 ```

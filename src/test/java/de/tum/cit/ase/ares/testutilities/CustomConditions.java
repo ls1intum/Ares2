@@ -72,18 +72,21 @@ public final class CustomConditions {
 	private static Condition<Throwable> createMessageCondition(String message, EnumSet<Option> optionSet) {
 		var messageContains = optionSet.contains(Option.MESSAGE_CONTAINS);
 		var messageRegex = optionSet.contains(Option.MESSAGE_REGEX);
-		if (messageContains && messageRegex)
+		if (messageContains && messageRegex) {
 			throw new UnsupportedOperationException("regex matching any substring in the message is not implemented"); //$NON-NLS-1$
-		if (messageContains)
+		}
+		if (messageContains) {
 			return createMessageCondition(message, optionSet,
 					messageForComparison -> assertThat(messageForComparison).contains(message),
 					messageForComparison -> messageForComparison != null && messageForComparison.contains(message),
 					"message contains '%s'"); //$NON-NLS-1$
-		if (messageRegex)
+		}
+		if (messageRegex) {
 			return createMessageCondition(message, optionSet,
 					messageForComparison -> assertThat(messageForComparison).matches(message),
 					messageForComparison -> messageForComparison != null && messageForComparison.matches(message),
 					"message matches the regex '%s'"); //$NON-NLS-1$
+		}
 		return createMessageCondition(message, optionSet,
 				messageForComparison -> assertThat(messageForComparison).isEqualTo(message),
 				messageForComparison -> Objects.equals(messageForComparison, message), "message is '%s'"); //$NON-NLS-1$
@@ -94,15 +97,17 @@ public final class CustomConditions {
 			String descriptionWithPlaceholder) {
 		return new Condition<>(where(Throwable::getMessage, actualMessage -> {
 			var messageForComparison = normalizeMessageNewLines(optionSet, actualMessage);
-			if (shouldDirectlyFail())
+			if (shouldDirectlyFail()) {
 				directlyFailingAssertion.accept(messageForComparison);
+			}
 			return assertionAsBoolean.test(messageForComparison);
 		}), descriptionWithPlaceholder, message); // $NON-NLS-1$
 	}
 
 	private static String normalizeMessageNewLines(EnumSet<Option> optionSet, String actualMessage) {
-		if (actualMessage == null)
+		if (actualMessage == null) {
 			return null;
+		}
 		return optionSet.contains(Option.MESSAGE_NORMALIZE_NEWLINE) ? actualMessage.replaceAll("\\R", "\n") //$NON-NLS-1$ //$NON-NLS-2$
 				: actualMessage;
 	}
@@ -132,8 +137,9 @@ public final class CustomConditions {
 					throw generateFailure(testName, testExecutionResult, requirements, t);
 				}
 			}, () -> {
-				if (shouldDirectlyFail())
+				if (shouldDirectlyFail()) {
 					fail("Expected test '" + testName + "' to fail, but is was successful."); //$NON-NLS-1$ //$NON-NLS-2$
+				}
 			});
 			return testExecutionResult.getStatus() != TestExecutionResult.Status.SUCCESSFUL;
 		};
@@ -147,8 +153,9 @@ public final class CustomConditions {
 	private static Predicate<TestExecutionResult> testSuccessRespectingDirectFailure(String testName) {
 		return testExecutionResult -> {
 			testExecutionResult.getThrowable().ifPresent(t -> {
-				if (shouldDirectlyFail())
+				if (shouldDirectlyFail()) {
 					throw generateFailure("Expected test '" + testName + "' to be successful. Failure:\n\n" + t, t); //$NON-NLS-1$ //$NON-NLS-2$
+				}
 				t.printStackTrace();
 			});
 			return testExecutionResult.getStatus() == TestExecutionResult.Status.SUCCESSFUL;
