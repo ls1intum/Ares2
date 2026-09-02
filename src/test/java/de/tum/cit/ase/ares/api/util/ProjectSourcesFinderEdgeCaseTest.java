@@ -13,6 +13,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -283,29 +284,31 @@ class ProjectSourcesFinderEdgeCaseTest {
 		assertTrue(configuration.testSourceRoots().isEmpty());
 	}
 
+	/**
+	 * Groovy reads the operand as one double-quoted literal whose body happens to
+	 * hold single quotes, so it declares a single directory named
+	 * {@code mismatched', 'other}. Splitting the operand on every comma used to
+	 * tear it into two half-quoted halves that resolved to nothing, which looked
+	 * like the right answer for the wrong reason. The directory exists here, so
+	 * only reading the operand whole can discover it.
+	 */
 	@Test
 	@DisplayName("Reads quotation marks inside a string as part of the path rather than as a separator")
 	void readsQuotationMarksInsideAStringAsPartOfThePath() throws IOException {
 		Files.createDirectories(temporaryDirectory.resolve("src/main/java"));
+		Path declared = Files.createDirectories(temporaryDirectory.resolve("mismatched', 'other"));
 		Files.writeString(temporaryDirectory.resolve("build.gradle"), """
 				sourceSets {
 				  main { java { srcDirs = ["mismatched', 'other"] } }
 				}
 				""");
 
-		// Groovy reads this as ONE double-quoted literal whose body happens to contain
-		// single quotes, so it declares a single directory named mismatched', 'other.
-		// Splitting the operand on every comma used to tear it into two half-quoted
-		// halves that resolved to nothing, which looked like the right answer for the
-		// wrong reason. Reading the operand from the mask keeps the string whole, and a
-		// declared root that is not a directory is then rejected outright, as any other
-		// absent root is.
-		IllegalStateException rejection = assertThrows(IllegalStateException.class,
-				() -> ProjectSourcesFinder.discover(temporaryDirectory));
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
 
-		assertTrue(rejection.getMessage().contains("is not a directory"),
-				"the single declared root does not exist, so discovery refuses it rather than silently answering "
-						+ "a root the descriptor replaced: " + rejection.getMessage());
+		assertEquals(List.of(declared.toRealPath()), configuration.productionSourceRoots(),
+				"the operand names one path, so the directory named by the whole of it is the only root");
+		assertTrue(configuration.productionRootsComplete(),
+				"the declaration resolved and the directory is there, so the roots are the whole source set");
 	}
 
 	@Test

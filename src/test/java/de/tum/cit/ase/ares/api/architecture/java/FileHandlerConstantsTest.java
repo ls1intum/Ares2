@@ -23,8 +23,9 @@ public class FileHandlerConstantsTest {
 					ctor.newInstance();
 				} catch (java.lang.reflect.InvocationTargetException e) {
 					Throwable cause = e.getCause();
-					if (cause instanceof SecurityException se)
+					if (cause instanceof SecurityException se) {
 						throw se;
+					}
 					throw new RuntimeException(cause);
 				}
 			});

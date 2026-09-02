@@ -17,6 +17,26 @@
 
 	<description>Ares rules: the maven-pmd-plugin defaults without the style rules the formatter owns.</description>
 
+	<!--
+		Fixtures are excluded because they are test input that happens to be written in Java, not
+		code with a quality standard to meet. `subject/` holds the student code Ares is asked to
+		supervise, `astTestFiles` holds the deliberately malformed sources the structural analysis
+		parses, `example/student` and `org/apache/xyz` hold impostor and malicious classes, and
+		`testuser` holds the supervised users the integration tests execute.
+
+		The distinction matters in both directions. An empty catch block in the harness is a
+		swallowed failure; in a fixture it is the behaviour under test. `UselessPureMethodCall` in
+		MaliciousExceptionB is the attack: the class reads a forbidden file and discards the
+		result. Cleaning any of that up would change what the suite measures while leaving it
+		green, which is the worst possible outcome.
+	-->
+	<exclude-pattern>.*/src/test/java/.*/subject/.*</exclude-pattern>
+	<exclude-pattern>.*/src/test/java/.*/astTestFiles/.*</exclude-pattern>
+	<exclude-pattern>.*/src/test/java/example/student/.*</exclude-pattern>
+	<exclude-pattern>.*/src/test/java/org/apache/xyz/.*</exclude-pattern>
+	<exclude-pattern>.*/src/test/java/de/tum/cit/ase/ares/integration/testuser/.*</exclude-pattern>
+	<exclude-pattern>.*Probe\.java</exclude-pattern>
+
 	<rule ref="rulesets/java/maven-pmd-plugin-default.xml">
 		<!-- Formatting and style: owned by spotless and the Eclipse formatter. -->
 		<exclude name="UnnecessaryFullyQualifiedName"/>

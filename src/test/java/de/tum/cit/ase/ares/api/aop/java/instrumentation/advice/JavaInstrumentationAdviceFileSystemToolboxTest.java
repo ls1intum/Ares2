@@ -23,6 +23,10 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumenta
 
 import example.student.InstrumentationSecurityProbe;
 
+/**
+ * Carries a loopback literal for the network-adjacent cases in this class.
+ */
+@SuppressWarnings("PMD.AvoidUsingHardCodedIP")
 class JavaInstrumentationAdviceFileSystemToolboxTest {
 
 	@Test
@@ -67,6 +71,12 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 		JavaAOPTestCase.setJavaAdviceSettingValue("allowedListedClasses", new String[0], "ARCH", "INSTRUMENTATION");
 	}
 
+	// The MockedStatic resource is never read, and that is the point: the static
+	// mock is
+	// active for the scope of the try-with-resources, not through the variable. PMD
+	// counts
+	// it as an unused local, but a resource cannot be declared without a name.
+	@SuppressWarnings("PMD.UnusedLocalVariable")
 	@Test
 	void testCheckFileSystemInteraction_AllowedInteraction() {
 		try (MockedStatic<JavaInstrumentationAdviceFileSystemToolbox> mockedToolbox = mockStatic(
@@ -132,17 +142,8 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	@Test
 	void testCheckFileSystemInteraction_BlocksFileUrlOpenStream(@TempDir Path tempDir) throws Exception {
 		try {
-			resetSettings();
-			configureInstrumentationMode();
-			Path allowedDir = Files.createDirectory(tempDir.resolve("allowed"));
-			Path forbiddenFile = tempDir.resolve("forbidden.txt");
-			Files.writeString(forbiddenFile, "secret");
-			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { allowedDir.toString() },
-					"ARCH", "INSTRUMENTATION");
-
-			SecurityException exception = assertThrows(SecurityException.class,
-					() -> InstrumentationSecurityProbe.checkFileUrlOpenStream(forbiddenFile.toUri().toURL()));
-			assertTrue(exception.getMessage().contains(forbiddenFile.toAbsolutePath().toString()));
+			SecurityException exception = triggerBlockedFileUrlOpenStream(tempDir);
+			assertTrue(exception.getMessage().contains(tempDir.resolve("forbidden.txt").toAbsolutePath().toString()));
 		} finally {
 			resetSettings();
 		}
@@ -198,16 +199,7 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	void checkFileSystemInteraction_appendsNotPermittedReasonWhenConfiguredButNotAllowed(@TempDir Path tempDir)
 			throws Exception {
 		try {
-			resetSettings();
-			configureInstrumentationMode();
-			Path allowedDir = Files.createDirectory(tempDir.resolve("allowed"));
-			Path forbiddenFile = tempDir.resolve("forbidden.txt");
-			Files.writeString(forbiddenFile, "secret");
-			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { allowedDir.toString() },
-					"ARCH", "INSTRUMENTATION");
-
-			SecurityException exception = assertThrows(SecurityException.class,
-					() -> InstrumentationSecurityProbe.checkFileUrlOpenStream(forbiddenFile.toUri().toURL()));
+			SecurityException exception = triggerBlockedFileUrlOpenStream(tempDir);
 			assertTrue(exception.getMessage().contains(" | Reason:") || exception.getMessage().contains(" | Grund:"),
 					() -> "File exception should carry a denial reason suffix, but was:\n" + exception.getMessage());
 			assertTrue(
@@ -441,4 +433,16 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	}
 
 	// </editor-fold>
+
+	private SecurityException triggerBlockedFileUrlOpenStream(Path tempDir) throws Exception {
+		resetSettings();
+		configureInstrumentationMode();
+		Path allowedDir = Files.createDirectory(tempDir.resolve("allowed"));
+		Path forbiddenFile = tempDir.resolve("forbidden.txt");
+		Files.writeString(forbiddenFile, "secret");
+		JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { allowedDir.toString() },
+				"ARCH", "INSTRUMENTATION");
+		return assertThrows(SecurityException.class,
+				() -> InstrumentationSecurityProbe.checkFileUrlOpenStream(forbiddenFile.toUri().toURL()));
+	}
 }

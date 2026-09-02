@@ -46,12 +46,15 @@ class ThrowableUtilsTest {
 	void testConstructorInstantiation() {
 		var duplicationFailures = ThrowableSets.SAFE_TYPES.stream().filter(type -> {
 			String typeName = type.getName();
-			if (FALSE_POSITIVES.contains(typeName))
+			if (FALSE_POSITIVES.contains(typeName)) {
 				return false;
-			if (SafeTypeThrowableSanitizer.NON_DUPLICATABLE_SAFE_TYPES.contains(typeName))
+			}
+			if (SafeTypeThrowableSanitizer.NON_DUPLICATABLE_SAFE_TYPES.contains(typeName)) {
 				return false;
-			if (SafeTypeThrowableSanitizer.SPECIFIC_CREATORS.containsKey(typeName))
+			}
+			if (SafeTypeThrowableSanitizer.SPECIFIC_CREATORS.containsKey(typeName)) {
 				return false;
+			}
 
 			var preferredConstructor = findPreferredConstructor(type);
 			return !validate(type, preferredConstructor);
@@ -67,11 +70,13 @@ class ThrowableUtilsTest {
 	void testSpecificCreatorInstantiation() {
 		var duplicationFailures = ThrowableSets.SAFE_TYPES.stream().filter(type -> {
 			String typeName = type.getName();
-			if (FALSE_POSITIVES.contains(typeName))
+			if (FALSE_POSITIVES.contains(typeName)) {
 				return false;
+			}
 			var specificCreator = SafeTypeThrowableSanitizer.SPECIFIC_CREATORS.get(typeName);
-			if (specificCreator == null)
+			if (specificCreator == null) {
 				return false;
+			}
 
 			return !validate(type, specificCreator);
 		}).sorted(Comparator.comparing(Object::toString)).collect(Collectors.toList());
@@ -91,33 +96,38 @@ class ThrowableUtilsTest {
 				.map(ThrowableUtils::getPropertiesWithMethods).flatMap(Set::stream).map(Map.Entry::getValue)
 				.map(Method::getReturnType).distinct().filter(type -> {
 					Class<?> containedType;
-					if (type.isArray())
+					if (type.isArray()) {
 						containedType = Stream.<Class<?>>iterate(type, Class::getComponentType)
 								.takeWhile(Objects::nonNull).reduce(null, (a, b) -> b);
-					else
+					} else {
 						containedType = type;
-					if (containedType.isPrimitive())
+					}
+					if (containedType.isPrimitive()) {
 						return false;
-					if (Modifier.isFinal(containedType.getModifiers()))
+					}
+					if (Modifier.isFinal(containedType.getModifiers())) {
 						return false;
+					}
 					return SAFE_PROPERTY_TYPES.stream().noneMatch(safeType -> safeType.isAssignableFrom(containedType));
 				}).collect(Collectors.toSet());
 		assertThat(potentiallyUnsafeProperties).as("property types are all safe or sanitizable").isEmpty();
 	}
 
 	static boolean validate(Class<? extends Throwable> type, Constructor<? extends Throwable> constructor) {
-		if (constructor == null)
+		if (constructor == null) {
 			return false;
+		}
 		return validate(type, getThrowableCreatorFor(type, constructor));
 	}
 
 	static boolean validate(Class<? extends Throwable> type, ThrowableCreator creator) {
-		if (creator == null)
+		if (creator == null) {
 			return false;
+		}
 		@SuppressWarnings("unchecked")
 		var allConstructors = (Constructor<? extends Throwable>[]) type.getConstructors();
 		var propertiesWithMethods = getRelevantPropertiesWithMethods(type, IGNORE_PROPERTIES);
-		for (var constructorToCheck : allConstructors)
+		for (var constructorToCheck : allConstructors) {
 			try {
 				var arguments = provideArguments(constructorToCheck, TEST_VALUES);
 				var originalInstance = constructorToCheck.newInstance(arguments);
@@ -130,17 +140,20 @@ class ThrowableUtilsTest {
 				var propertiesEqual = deepEquals(propertiesOfCopy, originalProperties);
 				var toStringEqual = copyInstance.toString().equals(originalInstance.toString());
 				var everythingOk = propertiesEqual && toStringEqual;
-				if (!everythingOk)
+				if (!everythingOk) {
 					return false;
+				}
 			} catch (@SuppressWarnings("unused") Exception e) {
 				return false;
 			}
+		}
 		return true;
 	}
 
 	private static void copyThrowableAttributesIfNecessary(Throwable from, Throwable to) {
-		if (to.getCause() != from.getCause())
+		if (to.getCause() != from.getCause()) {
 			to.initCause(from.getCause());
+		}
 		to.setStackTrace(from.getStackTrace());
 	}
 
@@ -150,20 +163,25 @@ class ThrowableUtilsTest {
 	}
 
 	static boolean deepEquals(Map<String, Object> m1, Map<String, Object> m2) {
-		if (!m1.keySet().equals(m2.keySet()))
+		if (!m1.keySet().equals(m2.keySet())) {
 			return false;
+		}
 		for (var entry : m1.entrySet()) {
 			var key = entry.getKey();
 			var v1 = entry.getValue();
 			var v2 = m2.get(key);
-			if (v1 == v2)
+			if (v1 == v2) {
 				continue;
-			if (v1 == null || v2 == null)
+			}
+			if (v1 == null || v2 == null) {
 				return false;
-			if (v1.getClass().isArray() && v2.getClass().isArray() && Arrays.equals((Object[]) v1, (Object[]) v2))
+			}
+			if (v1.getClass().isArray() && v2.getClass().isArray() && Arrays.equals((Object[]) v1, (Object[]) v2)) {
 				continue;
-			if (!v1.equals(v2))
+			}
+			if (!v1.equals(v2)) {
 				return false;
+			}
 		}
 		return true;
 	}
