@@ -16,7 +16,6 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 
 	private static final Path NOT_TRUSTED_DIR = Path.of(
 			"src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/nottrusteddir");
-	private static final Path NOT_TRUSTED_GZ = Path.of(NOT_TRUSTED_DIR + "/nottrusted.txt.gz");
 	private static final Path NOT_TRUSTED_FILE_PATH = Path.of(NOT_TRUSTED_DIR + "/nottrusted.txt");
 
 	/**

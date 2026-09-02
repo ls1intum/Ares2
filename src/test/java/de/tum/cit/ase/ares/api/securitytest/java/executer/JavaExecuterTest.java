@@ -93,6 +93,9 @@ public class JavaExecuterTest {
 		}
 	}
 
+	// See the note above: a MockedStatic resource scopes the mock, it is not meant
+	// to be read.
+	@SuppressWarnings("PMD.UnusedLocalVariable")
 	@Test
 	void aspectJDoesNotRegisterInstrumentationMonitorTransformer() {
 		try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class);

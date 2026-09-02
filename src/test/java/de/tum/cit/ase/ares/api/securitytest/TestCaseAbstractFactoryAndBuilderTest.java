@@ -96,7 +96,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		private final List<Path> testCasePaths;
 		private boolean executed = false;
 
-		public TestableFactoryAndBuilder(Creator creator, Writer writer, Executer executer,
+		TestableFactoryAndBuilder(Creator creator, Writer writer, Executer executer,
 				EssentialDataReader essentialDataReader, ProjectScanner projectScanner, Path essentialPackagesPath,
 				Path essentialClassesPath, BuildMode buildMode, ArchitectureMode architectureMode, AOPMode aopMode,
 				SecurityPolicy securityPolicy, Path projectPath) {
@@ -145,7 +145,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 			verify(mockEssentialDataReader).readEssentialClassesFrom(essentialClassesPath);
 			verify(mockCreator).createTestCases(eq(BuildMode.MAVEN), eq(ArchitectureMode.ARCHUNIT), eq(AOPMode.ASPECTJ),
 					anyList(), anyList(), anyList(), anyString(), anyString(), anyList(), anyList(), anyList(),
-					any(ResourceAccesses.class), eq(projectPath));
+					any(ResourceAccesses.class), eq(projectPath), anyBoolean());
 		}
 
 		@Test
@@ -163,7 +163,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 					eq(ArchitectureMode.WALA), // default
 					eq(AOPMode.INSTRUMENTATION), // default
 					anyList(), anyList(), anyList(), anyString(), anyString(), anyList(), anyList(), anyList(),
-					any(ResourceAccesses.class), eq(projectPath));
+					any(ResourceAccesses.class), eq(projectPath), anyBoolean());
 		}
 
 		@Test
@@ -360,7 +360,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 			assertNotNull(factory);
 			verify(mockCreator).createTestCases(eq(BuildMode.GRADLE), eq(ArchitectureMode.WALA), // default
 					eq(AOPMode.ASPECTJ), anyList(), anyList(), anyList(), anyString(), anyString(), anyList(),
-					anyList(), anyList(), any(ResourceAccesses.class), eq(projectPath));
+					anyList(), anyList(), any(ResourceAccesses.class), eq(projectPath), anyBoolean());
 		}
 	}
 
@@ -400,7 +400,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 			verify(mockProjectScanner, never()).scanForTestClasses();
 			verify(mockCreator).createTestCases(any(), any(), any(), anyList(), anyList(),
 					argThat(testClasses -> testClasses.contains("PolicyDeclaredTest")), anyString(), anyString(),
-					anyList(), anyList(), anyList(), any(ResourceAccesses.class), any());
+					anyList(), anyList(), anyList(), any(ResourceAccesses.class), any(), anyBoolean());
 		}
 	}
 }

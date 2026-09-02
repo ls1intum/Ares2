@@ -8,7 +8,9 @@ import org.junit.platform.testkit.engine.Events;
 import org.opentest4j.AssertionFailedError;
 
 import de.tum.cit.ase.ares.integration.testuser.DeadlineUser;
-import de.tum.cit.ase.ares.testutilities.*;
+import de.tum.cit.ase.ares.testutilities.TestTest;
+import de.tum.cit.ase.ares.testutilities.UserBased;
+import de.tum.cit.ase.ares.testutilities.UserTestResults;
 
 @UserBased(DeadlineUser.class)
 class DeadlineTest {

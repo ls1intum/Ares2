@@ -15,7 +15,7 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 // packages) instead of scanning all of Ares's own build, which the ReservedPackageGuard
 // correctly rejects. Default policy (value left blank) and runtime enforcement are
 // unchanged; only the analysed classpath is narrowed.
-@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
+@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicySelfTestDefaultRestrictive.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 public class HiddenPublicUser {
 
 	@Hidden
