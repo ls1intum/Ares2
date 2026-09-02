@@ -52,6 +52,12 @@ class JavaAspectJThreadSystemAdviceDefinitionsTest {
 		return context;
 	}
 
+	// Read reflectively through the mocked test context, never called from Java,
+	// which is
+	// why PMD cannot see the use. Deleting it would make performTimeoutExecution
+	// run the
+	// supplier inline and the test would stop exercising the worker.
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@StrictTimeout(value = 30, unit = TimeUnit.SECONDS)
 	private static void strictTimeoutTarget() {
 		// Supplies the annotation the mocked test context reports, so that

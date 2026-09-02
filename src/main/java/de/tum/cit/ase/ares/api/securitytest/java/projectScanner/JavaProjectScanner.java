@@ -682,7 +682,7 @@ public class JavaProjectScanner implements ProjectScanner {
 	/**
 	 * Whether the discovered production source roots are the whole of the main
 	 * source set, rather than as much of it as the build descriptor could be read
-	 * for.
+	 * for and found on disk.
 	 * <p>
 	 * Only step one of {@link #scanForPackageName()} depends on this. Counting
 	 * declarations across part of a project produces an answer that looks exactly
