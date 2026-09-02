@@ -1,0 +1,65 @@
+name: Pull Request Template
+
+on:
+  pull_request:
+    # No `paths` filter on purpose. The job is written to work as a required status check,
+    # and such a check leaves a pull request blocked rather than passing when it never runs.
+    # `main` requires no status check today, so this costs nothing and holds if that changes.
+    branches: [ "main" ]
+    types: [ opened, edited, reopened, ready_for_review, synchronize ]
+
+permissions: {}
+
+concurrency:
+  group: pullrequest-template-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-template:
+    name: pr-template
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    # Renovate and Dependabot write their own pull request body (a dependency table plus
+    # release notes) and cannot be taught the repository template, so they are exempt.
+    #
+    # The exemption is a step-level condition. An `on` filter is not an option for the same
+    # reason there is no `paths` filter above: a workflow that never runs leaves a required
+    # status check pending forever. A job-level `if` would satisfy a required check (a
+    # conditionally skipped job counts as passing), but the job would report as skipped; the
+    # step-level form runs the job and reports an unambiguous green check instead.
+    #
+    # The login is only compared inside an expression and never reaches the shell, so the
+    # untrusted-input rule below still holds.
+    env:
+      IS_DEPENDENCY_BOT_PR: ${{ github.event.pull_request.user.login == 'renovate[bot]' || github.event.pull_request.user.login == 'dependabot[bot]' }}
+    steps:
+      - name: Report the exemption for automated dependency pull requests
+        if: env.IS_DEPENDENCY_BOT_PR == 'true'
+        run: echo "Automated dependency pull request, the template check does not apply."
+
+      - name: Checkout repository
+        if: env.IS_DEPENDENCY_BOT_PR != 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        if: env.IS_DEPENDENCY_BOT_PR != 'true'
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      # The pull request body is untrusted input: on a fork pull request an outside
+      # contributor controls it verbatim. It is therefore passed through the environment
+      # and read with System.getenv, never interpolated into the shell with ${{ }}, which
+      # would be a script injection sink.
+      #
+      # Run in single-file source-code mode, so there is no build step and no artefact.
+      - name: Check the pull request body against the template
+        if: env.IS_DEPENDENCY_BOT_PR != 'true'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: java .github/scripts/CheckPullRequestTemplate.java

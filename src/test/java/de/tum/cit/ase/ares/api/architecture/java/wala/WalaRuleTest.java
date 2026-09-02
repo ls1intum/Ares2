@@ -61,7 +61,7 @@ class WalaRuleTest {
 	 * Creates a student-code CGNode classified as Application-loaded in the
 	 * anonymous.Student class. isInfraFrame returns false for this node.
 	 */
-	private static CGNode studentNode(String signature) {
+	private static CGNode applicationNode(String signature, String walaType) {
 		CGNode node = mock(CGNode.class);
 		IMethod method = mock(IMethod.class);
 		IClass cls = mock(IClass.class);
@@ -71,9 +71,13 @@ class WalaRuleTest {
 		when(method.getDeclaringClass()).thenReturn(cls);
 		when(cls.getClassLoader()).thenReturn(loader);
 		when(loader.getReference()).thenReturn(ClassLoaderReference.Application);
-		when(cls.getReference()).thenReturn(TypeReference.findOrCreate(ClassLoaderReference.Application,
-				TypeName.findOrCreate("Lanonymous/Student;")));
+		when(cls.getReference()).thenReturn(
+				TypeReference.findOrCreate(ClassLoaderReference.Application, TypeName.findOrCreate(walaType)));
 		return node;
+	}
+
+	private static CGNode studentNode(String signature) {
+		return applicationNode(signature, "Lanonymous/Student;");
 	}
 
 	/**
@@ -108,18 +112,7 @@ class WalaRuleTest {
 	 * package). isInfraFrame returns true via INFRA_PREFIXES check.
 	 */
 	private static CGNode aresInfraNode(String signature) {
-		CGNode node = mock(CGNode.class);
-		IMethod method = mock(IMethod.class);
-		IClass cls = mock(IClass.class);
-		IClassLoader loader = mock(IClassLoader.class);
-		when(node.getMethod()).thenReturn(method);
-		when(method.getSignature()).thenReturn(signature);
-		when(method.getDeclaringClass()).thenReturn(cls);
-		when(cls.getClassLoader()).thenReturn(loader);
-		when(loader.getReference()).thenReturn(ClassLoaderReference.Application);
-		when(cls.getReference()).thenReturn(TypeReference.findOrCreate(ClassLoaderReference.Application,
-				TypeName.findOrCreate("Lde/tum/cit/ase/ares/api/Helper;")));
-		return node;
+		return applicationNode(signature, "Lde/tum/cit/ase/ares/api/Helper;");
 	}
 
 	private static CallGraph buildMockCg(List<CGNode> path) {
@@ -143,6 +136,107 @@ class WalaRuleTest {
 			when(cg.getPredNodes(child)).thenAnswer(inv -> java.util.Collections.singletonList(parent).iterator());
 		}
 		return cg;
+	}
+
+	// ----------------------------------------------------------------
+	// A path with no student frame at all.
+	//
+	// anonymous.toolclasses. and metatest. are skipped when looking for the student
+	// frame, but supervised code may be named into them: they were removed from the
+	// reserved list because they are one downstream consumer's helpers rather than
+	// something Ares could be confused with. That left a blind spot. A supervised
+	// class declaring package metatest made every frame on its path infrastructure,
+	// no approach was ever evaluated, and the sink was dropped: the forbidden call
+	// was found and then reported to nobody.
+	//
+	// The two cases are told apart by whether supervised code was free to declare
+	// the namespace that was skipped. Ares' own api is skipped and reserved, so a
+	// path through it stays a silent drop, as the infra-only test below pins.
+	// ----------------------------------------------------------------
+
+	@Test
+	void allInfrastructurePathEnteredByNameIsRefusedRatherThanDropped() {
+		CGNode helper = applicationInfraByNameNode("metatest.Helper.run()V", "Lmetatest/Helper;");
+		CGNode forbidden = jdkForbiddenNode("java.lang.Thread.<init>(Ljava/lang/Runnable;)V", "Thread");
+		WalaRule rule = new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)"));
+
+		SecurityException refused = org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class,
+				() -> rule.check(buildMockCg(List.of(helper, forbidden))),
+				"a supervised scope inside a skipped namespace must not silently drop its violations");
+
+		assertThat(refused.getMessage()).as("the refusal must name the frame that was stepped over")
+				.contains("metatest.Helper.run()");
+	}
+
+	@Test
+	void allInfrastructurePathEnteredByLoaderIsStillDropped() {
+		// Nothing here is application-loaded, so supervised code could not have put
+		// itself on this path and there is nothing to refuse. This must stay a silent
+		// drop, or every synthetic WALA root would become a failure.
+		CGNode entry = jdkForbiddenNode("java.lang.Thread.run()V", "Thread");
+		CGNode forbidden = jdkForbiddenNode("java.lang.Thread.<init>(Ljava/lang/Runnable;)V", "Thread");
+		WalaRule rule = new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)"));
+
+		org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> rule.check(buildMockCg(List.of(entry, forbidden))));
+	}
+
+	@Test
+	void aBranchThroughNameableInfrastructureIsRefusedEvenWhenAnotherBranchEvaluates() {
+		// Two ways into one sink. One ends in an ordinary student caller and is a
+		// false-positive transitive path, so it evaluates and reports nothing. The
+		// other consists only of a frame supervised code may declare for itself.
+		// Deciding per sink let the first silently excuse the second: any approach
+		// that evaluates without throwing was enough to suppress the refusal.
+		CGNode student = studentNode("anonymous.Student.run()V");
+		CGNode aresInfra = aresInfraNode("de.tum.cit.ase.ares.api.Helper.help()V");
+		CGNode helper = applicationInfraByNameNode("metatest.Helper.run()V", "Lmetatest/Helper;");
+		CGNode forbidden = jdkForbiddenNode("java.lang.Thread.<init>(Ljava/lang/Runnable;)V", "Thread");
+
+		java.util.Map<CGNode, List<CGNode>> successors = new java.util.HashMap<>();
+		successors.put(student, List.of(aresInfra));
+		successors.put(aresInfra, List.of(forbidden));
+		successors.put(helper, List.of(forbidden));
+		java.util.Map<CGNode, List<CGNode>> predecessors = new java.util.HashMap<>();
+		predecessors.put(aresInfra, List.of(student));
+		// The order is load-bearing for what this test is about. The walk is a stack,
+		// so listing the helper first makes the ordinary branch pop first and evaluate
+		// before the nameable-infrastructure branch is examined at all. Reversed, the
+		// refusal would happen before anything evaluated and the test would pass
+		// without exercising the case it exists for.
+		predecessors.put(forbidden, List.of(helper, aresInfra));
+
+		CallGraph cg = buildBranchingCg(List.of(student, aresInfra, helper, forbidden), List.of(student, helper),
+				successors, predecessors);
+		WalaRule rule = new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)"));
+
+		SecurityException refused = org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class,
+				() -> rule.check(cg), "an evaluated branch must not excuse a parallel nameable-infrastructure branch");
+
+		assertThat(refused.getMessage()).contains("metatest.Helper.run()");
+	}
+
+	/**
+	 * A call graph with more than one way into a node, which the linear
+	 * {@link #buildMockCg(List)} cannot express.
+	 */
+	private static CallGraph buildBranchingCg(List<CGNode> allNodes, List<CGNode> entrypoints,
+			java.util.Map<CGNode, List<CGNode>> successors, java.util.Map<CGNode, List<CGNode>> predecessors) {
+		CallGraph cg = mock(CallGraph.class);
+		when(cg.iterator()).thenAnswer(inv -> new java.util.ArrayList<>(allNodes).iterator());
+		when(cg.getEntrypointNodes()).thenReturn(entrypoints);
+		when(cg.getSuccNodes(any())).thenAnswer(
+				inv -> new java.util.ArrayList<>(successors.getOrDefault(inv.getArgument(0), List.of())).iterator());
+		when(cg.getPredNodes(any())).thenAnswer(
+				inv -> new java.util.ArrayList<>(predecessors.getOrDefault(inv.getArgument(0), List.of())).iterator());
+		return cg;
+	}
+
+	/**
+	 * An application-loaded frame that is infrastructure only because of its
+	 * package name, which is the shape supervised code can produce for itself.
+	 */
+	private static CGNode applicationInfraByNameNode(String signature, String walaType) {
+		return applicationNode(signature, walaType);
 	}
 
 	private static AssertionError runAndExpectError(List<CGNode> path, WalaRule rule) {
@@ -454,17 +548,8 @@ class WalaRuleTest {
 	 * {@code IClass.getName().toString()} returns.
 	 */
 	private static CGNode studentNodeInClass(String signature, String walaType) {
-		CGNode node = mock(CGNode.class);
-		IMethod method = mock(IMethod.class);
-		IClass cls = mock(IClass.class);
-		IClassLoader loader = mock(IClassLoader.class);
-		when(node.getMethod()).thenReturn(method);
-		when(method.getSignature()).thenReturn(signature);
-		when(method.getDeclaringClass()).thenReturn(cls);
-		when(cls.getClassLoader()).thenReturn(loader);
-		when(loader.getReference()).thenReturn(ClassLoaderReference.Application);
-		when(cls.getReference()).thenReturn(
-				TypeReference.findOrCreate(ClassLoaderReference.Application, TypeName.findOrCreate(walaType)));
+		CGNode node = applicationNode(signature, walaType);
+		IClass cls = node.getMethod().getDeclaringClass();
 		when(cls.getName()).thenReturn(TypeName.findOrCreate(walaType));
 		return node;
 	}

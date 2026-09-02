@@ -137,36 +137,6 @@ class FileSystemAccessTest {
 	}
 
 	/**
-	 * Helper method to assert that execution is allowed and creates the expected
-	 * output file with correct content.
-	 *
-	 * @param executeExecutable an executable that calls the static execute method
-	 */
-	private void assertExecuteAllowedWithFileCreation(Executable executeExecutable) {
-		// Define the output file path (in the same directory as the scripts)
-		String outputFilePath = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_output.txt";
-
-		try {
-			// Clean up any existing output file before test
-			cleanupOutputFile(outputFilePath);
-
-			// Execute the method (this should not throw SecurityException and should create
-			// the file)
-			executeExecutable.execute();
-
-			// Verify the file was created and has correct content
-			verifyOutputFileCreatedWithCorrectContent(outputFilePath);
-		} catch (SecurityException e) {
-			Assertions.fail(ERROR_SECURITY_EXCEPTION, e);
-		} catch (Throwable e) {
-			Assertions.fail("Unexpected exception during execution: " + e.getMessage(), e);
-		} finally {
-			// Clean up the output file after test
-			cleanupOutputFile(outputFilePath);
-		}
-	}
-
-	/**
 	 * General helper to assert that file overwriting is allowed and the content
 	 * matches after writing.
 	 *
