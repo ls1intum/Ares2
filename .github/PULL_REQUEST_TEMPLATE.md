@@ -3,6 +3,7 @@
   Thanks for contributing to Ares 2.
   Fill in every section. Each section states what to write when it does not apply.
   Tick boxes as [x], not [ x] and not [x ].
+  Write in British English.
 
   Each recurring instruction is repeated, in the same words, in every section where it
   applies, so that reading the one section you are filling in is enough. They close every
@@ -320,6 +321,7 @@ No breaking changes or migration.
 - [ ] I followed the [guidelines for inclusive, diversity-sensitive and appreciative language](https://docs.artemis.tum.de/developer/guidelines/language).
 - [ ] I have self-reviewed the diff of this pull request.
 - [ ] Tests were added or updated for the behaviour changed here.
+- [ ] Javadoc follows the [AGENTS.md](AGENTS.md#documenting-java) conventions.
 - [ ] Documentation (`documentation/`, `README.md`, Javadoc) was updated where the change is user-facing.
 - [ ] CI is green, or every remaining failure is explained above.
 - [ ] No secrets, tokens or absolute local paths are contained in the diff.
@@ -328,8 +330,6 @@ No breaking changes or migration.
 
 <!--
   Reviewers tick what they have reviewed. Both boxes should be ticked before merge.
-  When new commits are pushed, the affected box is unchecked again. Not every change
-  requires a full re-review.
 
   This section is always required. If a category does not apply, wrap its line in an HTML
   comment and state the reason inside the comment, rather than deleting it.

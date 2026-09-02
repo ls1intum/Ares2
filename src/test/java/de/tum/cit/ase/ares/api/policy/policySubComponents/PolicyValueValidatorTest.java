@@ -12,6 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+/**
+ * The validator is fed literal addresses on purpose, valid and invalid ones
+ * alike.
+ */
+@SuppressWarnings("PMD.AvoidUsingHardCodedIP")
 class PolicyValueValidatorTest {
 
 	@Test

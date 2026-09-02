@@ -121,6 +121,29 @@ public class JavaCreatorTest {
 	@DisplayName("CreateTestCases Tests")
 	class CreateTestCasesTests {
 
+		private String packageName;
+		private String mainClassName;
+		private String classpath;
+		private List<ArchitectureTestCase> architectureTestCases;
+		private List<AOPTestCase> aopTestCases;
+		private List<PhobosTestCase> phobosTestCases;
+
+		@BeforeEach
+		void arrangeCommonScenario() {
+			packageName = "com.example";
+			mainClassName = "Main";
+			classpath = "/test/classpath";
+			architectureTestCases = new ArrayList<>();
+			aopTestCases = new ArrayList<>();
+			phobosTestCases = new ArrayList<>();
+		}
+
+		private void stubClasspathAndArchitecture() {
+			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
+			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
+			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+		}
+
 		@Test
 		@DisplayName("Should create test cases with valid parameters")
 		void shouldCreateTestCasesWithValidParameters() {
@@ -128,16 +151,7 @@ public class JavaCreatorTest {
 			List<String> essentialPackages = List.of("java.lang", "java.util");
 			List<String> essentialClasses = List.of("String", "Object");
 			List<String> testClasses = List.of("TestClass1", "TestClass2");
-			String packageName = "com.example";
-			String mainClassName = "Main";
-			List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
-			List<AOPTestCase> aopTestCases = new ArrayList<>();
-			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
-
-			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
-			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
-			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports())
 					.thenReturn(List.of(new PackagePermission("allowed.example")));
 
@@ -162,16 +176,7 @@ public class JavaCreatorTest {
 			List<String> essentialPackages = List.of();
 			List<String> essentialClasses = List.of("TestClass");
 			List<String> testClasses = List.of("TestClass");
-			String packageName = "com.example";
-			String mainClassName = "Main";
-			List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
-			List<AOPTestCase> aopTestCases = new ArrayList<>();
-			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
-
-			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
-			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
-			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act & Assert
@@ -187,16 +192,7 @@ public class JavaCreatorTest {
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of();
 			List<String> testClasses = List.of();
-			String packageName = "com.example";
-			String mainClassName = "Main";
-			List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
-			List<AOPTestCase> aopTestCases = new ArrayList<>();
-			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
-
-			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
-			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
-			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act & Assert
@@ -212,16 +208,7 @@ public class JavaCreatorTest {
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of("String");
 			List<String> testClasses = List.of("TestClass");
-			String packageName = "com.example";
-			String mainClassName = "Main";
-			List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
-			List<AOPTestCase> aopTestCases = new ArrayList<>();
-			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
-
-			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
-			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
-			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act - Call twice to test caching
@@ -248,16 +235,7 @@ public class JavaCreatorTest {
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of("String");
 			List<String> testClasses = List.of("TestClass");
-			String packageName = "com.example";
-			String mainClassName = "Main";
-			List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
-			List<AOPTestCase> aopTestCases = new ArrayList<>();
-			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
-
-			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
-			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
-			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act
