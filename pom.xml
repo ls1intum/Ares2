@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.tum.cit.ase</groupId>
 	<artifactId>ares</artifactId>
-	<version>2.1.2</version>
+	<version>2.1.4</version>
 	<properties>
 		<!-- 0. General Project Settings -->
 		<maven.compiler.source>17</maven.compiler.source>
@@ -45,7 +45,7 @@
 			${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj-version}${file.separator}aspectjrt-${aspectj-version}.jar
 		</aspectj-path>
 		<!-- 3. AOP: 3.2 Byte Buddy -->
-		<byte-buddy-version>1.18.11</byte-buddy-version>
+		<byte-buddy-version>1.18.13</byte-buddy-version>
 		<byte-buddy-path>
 			${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
 		</byte-buddy-path>
@@ -62,23 +62,28 @@
 		<!-- 4. AST: 4.1 JavaParser -->
 		<java-parser-version>3.28.2</java-parser-version>
 		<!-- 5. Formats: YAML and XML (JSON handled via Jackson) -->
-		<yaml-version>2.22.1</yaml-version>
+		<yaml-version>2.22.2</yaml-version>
 		<!-- 6. Large Tooling Libraries -->
 		<commons-io-version>2.22.0</commons-io-version>
 		<jaxb-api-version>2.3.1</jaxb-api-version>
 		<!-- 7. Small Tooling Libraries -->
 		<jgrapht-core-version>1.5.3</jgrapht-core-version>
 		<!-- 8. Logging  -->
-		<logback-version>1.6.1</logback-version>
+		<logback-version>1.6.3</logback-version>
 		<!-- 8. API  -->
 		<apiguardian-api-version>1.1.2</apiguardian-api-version>
 		<!-- Others -->
-		<spotless.version>3.9.0</spotless.version>
+		<spotless.version>3.10.1</spotless.version>
 		<!-- if JaCoCo is not executed -->
 		<argLine></argLine>
 		<!-- Isolate test classes so WALA state and test-created threads cannot accumulate
 			in one long-lived JVM. The signed outcome cache preserves cross-fork reuse. -->
 		<surefire-reuse-forks>false</surefire-reuse-forks>
+		<!-- The fork heap, as a property for the same reason `surefire-reuse-forks` is one: a
+			profile that changes how tests are isolated usually has to change how much heap that
+			isolation needs, and overriding the whole `argLine` to do so would duplicate the
+			agent and bootclasspath arguments into every profile that tried. -->
+		<surefire-max-heap>6g</surefire-max-heap>
 		<jacoco-version>0.8.15</jacoco-version>
 		<!-- BUNDLE-level minima, shared by the `coverage` profile (one local full-suite
 			run) and the `coverage-aggregate` profile (the merged CI runs) so that the two
@@ -501,7 +506,7 @@
 						the runner dies. 2400s sits above a legitimate full-suite run yet below
 						the 45-minute CI job timeout, so a real hang is caught with a report. -->
 					<forkedProcessTimeoutInSeconds>2400</forkedProcessTimeoutInSeconds>
-					<argLine>@{argLine} -Xmx6g -javaagent:${byte-buddy-path} -Xbootclasspath/a:${aspectj-path} ${jvm.module.access.args}</argLine>
+					<argLine>@{argLine} -Xmx${surefire-max-heap} -javaagent:${byte-buddy-path} -Xbootclasspath/a:${aspectj-path} ${jvm.module.access.args}</argLine>
 				</configuration>
 			</plugin>
 			<!-- 5. Package -->
@@ -791,6 +796,9 @@
 					<encoding>UTF-8</encoding>
 					<formats>
 						<format>
+							<!-- This format mixes pom.xml (LF) with files using the CRLF default.
+								Resolve each file separately because FAST_ALLSAME uses the first file's ending for all. -->
+							<lineEndings>GIT_ATTRIBUTES</lineEndings>
 							<includes>
 								<include>*.xml</include>
 								<include>*.java</include>
@@ -817,22 +825,25 @@
 					</java>
 				</configuration>
 			</plugin>
-			<!-- Static analysis: the failing goals are bound to package so every local or CI
-				artefact build crosses the same Checkstyle, PMD, CPD and SpotBugs gate. The
-				goals may also be run directly for faster feedback; report-only goals remain
-				available for inspection.
+			<!-- Static analysis: these goals are bound to package, so a local build crosses the
+				same gate. CI runs it once, in the job named after it, and turns it off elsewhere
+				with the without-quality-gates profile below.
 
-				The rule sets live in .settings next to the Eclipse formatter rules. They are
-				deliberately trimmed so that no rule contradicts the formatter (which owns
-				indentation, tabs, line length and import order) and no rule objects to a
-				deliberate security idiom; see the comment in each file. The findings that
-				remain are build failures rather than report-only warnings. -->
+				The rule sets in .settings are trimmed so that no rule contradicts the formatter,
+				which owns indentation and import order, and none objects to a deliberate security
+				idiom. What is left fails the build rather than warning. -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-checkstyle-plugin</artifactId>
 				<version>3.6.0</version>
 				<configuration>
 					<configLocation>${basedir}${file.separator}.settings${file.separator}checkstyle-rules.xml</configLocation>
+					<suppressionsLocation>${basedir}${file.separator}.settings${file.separator}checkstyle-suppressions.xml</suppressionsLocation>
+					<!-- Test sources carry the harness that decides whether a security violation was
+						detected. Leaving them out meant the code most able to fail silently was the code
+						nobody checked. Fixtures and the underscore naming convention are handled in the
+						suppressions file; see the reasoning there. -->
+					<includeTestSourceDirectory>true</includeTestSourceDirectory>
 					<failOnViolation>true</failOnViolation>
 					<failsOnError>true</failsOnError>
 					<violationSeverity>error</violationSeverity>
@@ -857,6 +868,11 @@
 						<ruleset>${basedir}${file.separator}.settings${file.separator}pmd-rules.xml</ruleset>
 					</rulesets>
 					<excludeFromFailureFile>${basedir}${file.separator}.settings${file.separator}cpd-allowed-duplications.txt</excludeFromFailureFile>
+					<!-- Test sources carry the harness that decides whether a security violation was
+						detected, so leaving them unanalysed left exactly the code whose defects fail silently.
+						The fixtures are excluded in the ruleset rather than here, because the boundary is
+						"is this an assertion or is this the thing being asserted about", not "main or test". -->
+					<includeTests>true</includeTests>
 					<failOnViolation>true</failOnViolation>
 					<printFailingErrors>true</printFailingErrors>
 				</configuration>
@@ -874,7 +890,7 @@
 			<plugin>
 				<groupId>com.github.spotbugs</groupId>
 				<artifactId>spotbugs-maven-plugin</artifactId>
-				<version>4.10.3.0</version>
+				<version>4.10.4.0</version>
 				<configuration>
 					<excludeFilterFile>${basedir}${file.separator}.settings${file.separator}spotbugs-exclude.xml</excludeFilterFile>
 					<failOnError>true</failOnError>
@@ -1041,12 +1057,35 @@
 		</profile>
 		<profile>
 			<id>unit-architecture-tests</id>
+			<properties>
+				<!-- One long-lived fork instead of nineteen short ones needs a stated ceiling
+					rather than the default, because the reason that default exists is the
+					opposite case. Measured peak resident size of the reused fork at 6g was
+					3.12 GB and 3.95 GB across two runs, a spread wide enough that the only real
+					bound was `-Xmx` itself. 3g bounds it deliberately, and three runs at that
+					ceiling peaked at 1.76, 2.20 and 1.83 GB. -->
+				<surefire-max-heap>3g</surefire-max-heap>
+			</properties>
 			<build>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
 						<configuration>
+							<!-- These 19 classes share one fork, as `unit-core-tests` and
+								`integration-core-tests` already do. Without this the profile inherits
+								`surefire-reuse-forks`, which the `coverage` profile sets to false, and
+								every class pays a full JVM start: measured at roughly 15.5 s per fork
+								in CI, against 105 s of actual test time for the whole set.
+
+								Whether WALA state survives a shared fork is not settled by argument,
+								so it was measured: five runs of this profile, all 19 classes and all
+								188 tests green, peak resident size 1.76 to 2.20 GB at the 3g ceiling.
+								The integration matrix in maven.yml has run the WALA modes with
+								`-Dsurefire-reuse-forks=true` all along, which is a related but not
+								identical case: it selects methods rather than whole classes. If this
+								profile ever turns flaky, this line is the first thing to revert. -->
+							<reuseForks>true</reuseForks>
 							<includes>
 								<include>**/api/architecture/**/*Test.java</include>
 							</includes>
@@ -1252,6 +1291,26 @@
 					</plugin>
 				</plugins>
 			</build>
+		</profile>
+		<!-- Turns the whole quality gate off for a single Maven invocation. Checkstyle, PMD,
+			CPD and SpotBugs are bound to package above, so every command that reaches that
+			phase runs them, whether or not checking the code was the point of the command.
+			CI activates this profile wherever it was not, so the gate is enforced once
+			rather than in every job that happens to package the project. The profile is not
+			active by default, so a local build still crosses the gate. -->
+		<profile>
+			<id>without-quality-gates</id>
+			<properties>
+				<!-- Spotless has no execution of its own and is invoked as a goal by the job that
+					owns the gate, so this property changes nothing today. It is here so that
+					binding spotless:check to a phase later cannot put it back into the builds
+					that opted out, silently and without a second edit. -->
+				<spotless.skip>true</spotless.skip>
+				<checkstyle.skip>true</checkstyle.skip>
+				<pmd.skip>true</pmd.skip>
+				<cpd.skip>true</cpd.skip>
+				<spotbugs.skip>true</spotbugs.skip>
+			</properties>
 		</profile>
 		<!-- This is only for GitHub -->
 		<profile>

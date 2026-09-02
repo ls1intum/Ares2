@@ -35,6 +35,10 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 
 import example.student.InstrumentationSecurityProbe;
 
+/**
+ * Loopback addresses are the input this toolbox is asked to classify.
+ */
+@SuppressWarnings("PMD.AvoidUsingHardCodedIP")
 class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 	/**
@@ -188,6 +192,12 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		}
 	}
 
+	// `acceptedSocket` is never read either. Accepting the connection is what makes
+	// the
+	// client socket connected, which is the precondition under test; closing it is
+	// what the
+	// try-with-resources is for. Removing the resource would change the fixture.
+	@SuppressWarnings("PMD.UnusedLocalVariable")
 	@Test
 	void toTarget_extractsHostAndPortFromConnectedSocket() throws Exception {
 		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",

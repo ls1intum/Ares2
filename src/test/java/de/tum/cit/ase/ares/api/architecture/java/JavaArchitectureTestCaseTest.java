@@ -160,4 +160,45 @@ public class JavaArchitectureTestCaseTest {
 				"access the network", "java.net.Socket.connect()", "com.example.Sender");
 		assertEquals(expected, thrown.getMessage(), "The declaring type should be reported unchanged");
 	}
+
+	/**
+	 * The base class writes a file by building a subclass and asking it. Both
+	 * branches used to build that subclass without the supervised scope, and a
+	 * generated file carrying no scope refuses to be written at all, so both
+	 * supported modes threw here. Nothing noticed, because the production path
+	 * converts through {@code ArchitectureMode} and never reaches these branches.
+	 * These two pin that the scope reaches the delegate.
+	 */
+	@Test
+	void testWriteArchitectureTestCase_archunit_carriesTheSupervisedScopeIntoTheDelegate() {
+		JavaClasses mockJavaClasses = Mockito.mock(JavaClasses.class);
+		Mockito.when(mockJavaClasses.iterator()).thenReturn(Collections.emptyIterator());
+		JavaArchitectureTestCase instance = JavaArchitectureTestCase.builder()
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
+				.allowedPackages(Collections.emptySet()).javaClasses(mockJavaClasses)
+				.supervisedPackage("de.tum.cit.aet").supervisedScopeWasDerived(true).build();
+
+		String written = instance.writeArchitectureTestCase("ARCHUNIT", "");
+
+		assertTrue(written.contains("JavaArchunitSupervisedClasses.validated(\"de.tum.cit.aet\")"),
+				"the delegate must be given the scope, or the generated file analyses nothing: " + written);
+	}
+
+	@Test
+	void testWriteArchitectureTestCase_wala_carriesTheSupervisedScopeIntoTheDelegate() {
+		JavaClasses mockJavaClasses = Mockito.mock(JavaClasses.class);
+		Mockito.when(mockJavaClasses.iterator()).thenReturn(Collections.emptyIterator());
+		// The emitted call graph is a literal expression built at the generated test's
+		// own runtime, so nothing here reads this object.
+		JavaArchitectureTestCase instance = JavaArchitectureTestCase.builder()
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
+				.allowedPackages(Collections.emptySet()).javaClasses(mockJavaClasses)
+				.callGraph(Mockito.mock(com.ibm.wala.ipa.callgraph.CallGraph.class)).supervisedPackage("de.tum.cit.aet")
+				.supervisedScopeWasDerived(false).build();
+
+		String written = instance.writeArchitectureTestCase("WALA", "");
+
+		assertTrue(written.contains("JavaArchunitSupervisedClasses.pinned(\"de.tum.cit.aet\")"),
+				"the delegate must be given the scope, or the generated file analyses nothing: " + written);
+	}
 }

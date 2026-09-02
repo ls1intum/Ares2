@@ -9,7 +9,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import de.tum.cit.ase.ares.integration.testuser.subject.structural.*;
+import de.tum.cit.ase.ares.integration.testuser.subject.structural.AbstractClassExtension;
+import de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeAbstractClass;
+import de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeClass;
+import de.tum.cit.ase.ares.integration.testuser.subject.structural.SomeInterface;
 import de.tum.cit.ase.ares.integration.testuser.subject.structural.subpackage.SubpackageClass;
 
 class ClassMemberAccessorTest {

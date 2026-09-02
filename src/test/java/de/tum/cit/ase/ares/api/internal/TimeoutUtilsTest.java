@@ -244,6 +244,8 @@ class TimeoutUtilsTest {
 		return context;
 	}
 
+	// Reflective use only, through the mocked test context.
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void strictTimeoutTarget() {
 		// Provides the annotation consumed through the mocked test context.
