@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.securitytest.java.creator;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -125,6 +127,29 @@ public class JavaCreatorTest {
 	@DisplayName("CreateTestCases Tests")
 	class CreateTestCasesTests {
 
+		private String packageName;
+		private String mainClassName;
+		private String classpath;
+		private List<ArchitectureTestCase> architectureTestCases;
+		private List<AOPTestCase> aopTestCases;
+		private List<PhobosTestCase> phobosTestCases;
+
+		@BeforeEach
+		void arrangeCommonScenario() {
+			packageName = "com.example";
+			mainClassName = "Main";
+			classpath = "/test/classpath";
+			architectureTestCases = new ArrayList<>();
+			aopTestCases = new ArrayList<>();
+			phobosTestCases = new ArrayList<>();
+		}
+
+		private void stubClasspathAndArchitecture() {
+			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
+			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
+			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+		}
+
 		@Test
 		@DisplayName("Should create test cases with valid parameters")
 		void shouldCreateTestCasesWithValidParameters() {
@@ -132,23 +157,14 @@ public class JavaCreatorTest {
 			List<String> essentialPackages = List.of("java.lang", "java.util");
 			List<String> essentialClasses = List.of("String", "Object");
 			List<String> testClasses = List.of("TestClass1", "TestClass2");
-			String packageName = "com.example";
-			String mainClassName = "Main";
-			List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
-			List<AOPTestCase> aopTestCases = new ArrayList<>();
-			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
-
-			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
-			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
-			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports())
 					.thenReturn(List.of(new PackagePermission("allowed.example")));
 
 			// Act
 			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode,
 					essentialPackages, essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
-					aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+					aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 
 			// Assert
 			verify(buildMode).getClasspath(tempDir, packageName);
@@ -166,22 +182,13 @@ public class JavaCreatorTest {
 			List<String> essentialPackages = List.of();
 			List<String> essentialClasses = List.of("TestClass");
 			List<String> testClasses = List.of("TestClass");
-			String packageName = "com.example";
-			String mainClassName = "Main";
-			List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
-			List<AOPTestCase> aopTestCases = new ArrayList<>();
-			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
-
-			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
-			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
-			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act & Assert
 			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode,
 					essentialPackages, essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
-					aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+					aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
 
 		@Test
@@ -191,22 +198,13 @@ public class JavaCreatorTest {
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of();
 			List<String> testClasses = List.of();
-			String packageName = "com.example";
-			String mainClassName = "Main";
-			List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
-			List<AOPTestCase> aopTestCases = new ArrayList<>();
-			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
-
-			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
-			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
-			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act & Assert
 			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode,
 					essentialPackages, essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
-					aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+					aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
 
 		@Test
@@ -216,26 +214,17 @@ public class JavaCreatorTest {
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of("String");
 			List<String> testClasses = List.of("TestClass");
-			String packageName = "com.example";
-			String mainClassName = "Main";
-			List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
-			List<AOPTestCase> aopTestCases = new ArrayList<>();
-			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
-
-			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
-			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
-			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act - Call twice to test caching
 			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 					testClasses, packageName, mainClassName, architectureTestCases, aopTestCases, phobosTestCases,
-					resourceAccesses, tempDir);
+					resourceAccesses, tempDir, true);
 
 			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 					testClasses, packageName, mainClassName, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-					resourceAccesses, tempDir);
+					resourceAccesses, tempDir, true);
 
 			// Assert - Each method should only be called once due to static cache reuse
 			verify(buildMode, times(1)).getClasspath(tempDir, packageName);
@@ -252,22 +241,13 @@ public class JavaCreatorTest {
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of("String");
 			List<String> testClasses = List.of("TestClass");
-			String packageName = "com.example";
-			String mainClassName = "Main";
-			List<ArchitectureTestCase> architectureTestCases = new ArrayList<>();
-			List<AOPTestCase> aopTestCases = new ArrayList<>();
-			List<PhobosTestCase> phobosTestCases = new ArrayList<>();
-
-			String classpath = "/test/classpath";
-			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(classpath);
-			when(architectureMode.getJavaClasses(classpath)).thenReturn(javaClasses);
-			when(architectureMode.getCallGraph(classpath)).thenReturn(callGraph);
+			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
 			// Act
 			javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 					testClasses, packageName, mainClassName, architectureTestCases, aopTestCases, phobosTestCases,
-					resourceAccesses, tempDir);
+					resourceAccesses, tempDir, true);
 
 			// Assert - The lists should be modified (exact contents depend on
 			// implementation details)
@@ -319,7 +299,7 @@ public class JavaCreatorTest {
 			assertThrows(IllegalArgumentException.class,
 					() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
-							aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+							aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
 
 		@Test
@@ -341,56 +321,74 @@ public class JavaCreatorTest {
 			assertThrows(RuntimeException.class,
 					() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
-							aopTestCases, phobosTestCases, resourceAccesses, tempDir));
+							aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
 	}
 
 	@Test
-	void prepareAllowedPackagesFiltersDerivesAndValidatesEntries() throws Exception {
-		JavaCreator creator = new JavaCreator();
+	void prepareAllowedPackagesRejectsMalformedNamesOnEveryDerivedPath() throws Exception {
 		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
-				ResourceAccesses.class, String.class, List.class);
+				ResourceAccesses.class, String.class, Set.class, List.class);
 		prepare.setAccessible(true);
 		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
-
-		// A null and a blank essential entry are filtered, the valid one is kept; a
-		// present student package takes the ternary's true branch; a qualified test
-		// class derives its package, a bare one is kept, and a blank one is filtered.
-		@SuppressWarnings("unchecked")
-		Set<PackagePermission> withPackage = (Set<PackagePermission>) prepare.invoke(creator,
-				Arrays.asList("com.essential", "   ", null), restrictive, "com.student",
-				Arrays.asList("com.example.FooTest", "bareclass", "", null));
-		Set<PackagePermission> expected = Set.of(new PackagePermission("com.essential"),
-				new PackagePermission("com.student"), new PackagePermission("com.example"),
-				new PackagePermission("bareclass"));
-		assertEquals(expected, withPackage);
-
-		// A blank student package takes the ternary's is-blank branch and derives
-		// nothing;
-		// with no essential, policy or test entries the result is empty.
-		@SuppressWarnings("unchecked")
-		Set<PackagePermission> blankPackage = (Set<PackagePermission>) prepare.invoke(creator, List.of(), restrictive,
-				"", List.of());
-		assertTrue(blankPackage.isEmpty());
-
-		// A null student package takes the ternary's null branch (the @Nonnull guard).
-		@SuppressWarnings("unchecked")
-		Set<PackagePermission> nullPackage = (Set<PackagePermission>) prepare.invoke(creator, List.of(), restrictive,
-				null, List.of());
-		assertTrue(nullPackage.isEmpty());
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "com..pinned", Set.of(), List.of()));
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of("com..student"), List.of()));
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of(), List.of("com..tests.BadTest")));
 	}
 
 	@Test
-	void prepareAllowedClassesFiltersNullAndBlankBeforeValidating() throws Exception {
-		JavaCreator creator = new JavaCreator();
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesKeepsTheReservedNamespaceGuards() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class, String.class, Set.class, List.class);
+		prepare.setAccessible(true);
+		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
+		assertInvocationCause(SecurityException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of("de.tum.cit"), List.of()));
+		Set<PackagePermission> fromTestClass = (Set<PackagePermission>) prepare.invoke(javaCreator, List.of(),
+				restrictive, "", Set.of(), List.of("de.tum.cit.Test"));
+		assertEquals(Set.of(new PackagePermission("de.tum.cit")), fromTestClass);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesPassesAPolicyDeclaredWildcardThrough() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class, String.class, Set.class, List.class);
+		prepare.setAccessible(true);
+		when(resourceAccesses.regardingPackageImports()).thenReturn(List.of(new PackagePermission("*")));
+		Set<PackagePermission> result = (Set<PackagePermission>) prepare.invoke(javaCreator, List.of(),
+				resourceAccesses, "", Set.of(), List.of());
+		assertEquals(Set.of(new PackagePermission("*")), result);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedClassesFiltersBlanksThenValidates() throws Exception {
 		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedClasses", List.class, List.class);
 		prepare.setAccessible(true);
-		// Each source list carries a valid entry plus a blank and a null one, which are
-		// filtered before the Java class-path syntax check.
-		@SuppressWarnings("unchecked")
-		Set<ClassPermission> result = (Set<ClassPermission>) prepare.invoke(creator,
+		Set<ClassPermission> result = (Set<ClassPermission>) prepare.invoke(javaCreator,
 				Arrays.asList("com.example.Foo", "   ", null), Arrays.asList("com.example.BarTest", "", null));
 		assertEquals(Set.of(new ClassPermission("com.example.Foo"), new ClassPermission("com.example.BarTest")),
 				result);
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(javaCreator, List.of("com..example.Foo"), List.of()));
+	}
+
+	/**
+	 * Asserts a reflective call fails with the given cause, unwrapping the
+	 * {@link InvocationTargetException} that reflection wraps a thrown exception
+	 * in.
+	 *
+	 * @param expected   the exception type the underlying call should raise
+	 * @param invocation the reflective call under test
+	 * @return the unwrapped cause, for any further assertion
+	 */
+	private static <T extends Throwable> T assertInvocationCause(Class<T> expected, Executable invocation) {
+		InvocationTargetException wrapper = assertThrows(InvocationTargetException.class, invocation);
+		return assertInstanceOf(expected, wrapper.getCause());
 	}
 }

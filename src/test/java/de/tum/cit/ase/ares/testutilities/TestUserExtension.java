@@ -18,8 +18,9 @@ class TestUserExtension implements BeforeAllCallback, TestInstancePostProcessor,
 
 	@Override
 	public void postProcessTestInstance(Object testInstance, ExtensionContext context) throws Exception {
-		if (isNotApplicableTo(context))
+		if (isNotApplicableTo(context)) {
 			return;
+		}
 		var testClass = testInstance.getClass();
 		var testResults = getTestResults(context);
 		var varHandles = findSupportedVarHandles(testClass, context, false);
@@ -30,11 +31,13 @@ class TestUserExtension implements BeforeAllCallback, TestInstancePostProcessor,
 
 	@Override
 	public void beforeAll(ExtensionContext context) throws Exception {
-		if (isNotApplicableTo(context))
+		if (isNotApplicableTo(context)) {
 			return;
+		}
 		var optionalAnnotation = AnnotationSupport.findAnnotation(context.getElement(), UserBased.class);
-		if (optionalAnnotation.isEmpty())
+		if (optionalAnnotation.isEmpty()) {
 			fail("No annotated element found for @UserBased");
+		}
 		var testEngineId = optionalAnnotation.get().testEngineId();
 		var users = List.of(optionalAnnotation.get().value());
 		var userSelectors = users.stream().map(DiscoverySelectors::selectClass).toArray(ClassSelector[]::new);
@@ -89,13 +92,16 @@ class TestUserExtension implements BeforeAllCallback, TestInstancePostProcessor,
 
 	@SuppressWarnings("null")
 	private boolean supports(AnnotatedElement element, Class<?> type, ExtensionContext context) {
-		if (!element.isAnnotationPresent(UserTestResults.class))
+		if (!element.isAnnotationPresent(UserTestResults.class)) {
 			return false;
+		}
 		var testResults = getTestResults(context);
-		if (testResults == null)
+		if (testResults == null) {
 			fail("No user test results found for " + element);
-		if (!type.isAssignableFrom(testResults.getClass()))
+		}
+		if (!type.isAssignableFrom(testResults.getClass())) {
 			fail("Cannot assign " + testResults.getClass() + " to " + element);
+		}
 		return true;
 	}
 

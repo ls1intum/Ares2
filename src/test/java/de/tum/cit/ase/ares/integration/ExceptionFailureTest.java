@@ -9,8 +9,11 @@ import org.opentest4j.*;
 
 import de.tum.cit.ase.ares.api.util.UnexpectedExceptionError;
 import de.tum.cit.ase.ares.integration.testuser.ExceptionFailureUser;
-import de.tum.cit.ase.ares.testutilities.*;
+import de.tum.cit.ase.ares.testutilities.CustomConditions;
 import de.tum.cit.ase.ares.testutilities.CustomConditions.Option;
+import de.tum.cit.ase.ares.testutilities.TestTest;
+import de.tum.cit.ase.ares.testutilities.UserBased;
+import de.tum.cit.ase.ares.testutilities.UserTestResults;
 
 @UserBased(ExceptionFailureUser.class)
 class ExceptionFailureTest {
@@ -102,8 +105,9 @@ class ExceptionFailureTest {
 	@TestTest
 	void test_multipleAssertions() {
 		Condition<Throwable> hasOneCorrectlySanitizedAssertionError = new Condition<>(t -> {
-			if (((MultipleAssertionsError) t).getErrors().size() != 1)
+			if (((MultipleAssertionsError) t).getErrors().size() != 1) {
 				return false;
+			}
 			var error = ((MultipleAssertionsError) t).getErrors().get(0);
 			return "X".equals(error.getMessage()) //
 					&& error.getCause() instanceof UnexpectedExceptionError //

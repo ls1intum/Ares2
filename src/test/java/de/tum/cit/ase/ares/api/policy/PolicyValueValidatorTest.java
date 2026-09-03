@@ -19,6 +19,11 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageCon
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 
+/**
+ * The validator is fed literal addresses on purpose, valid and invalid ones
+ * alike.
+ */
+@SuppressWarnings("PMD.AvoidUsingHardCodedIP")
 class PolicyValueValidatorTest {
 
 	@ParameterizedTest

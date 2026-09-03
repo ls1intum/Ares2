@@ -61,7 +61,7 @@ public class HelloWorldUser {
 	// student-like
 	// subtree so the ReservedPackageGuard does not (correctly) reject Ares's own
 	// build.
-	@Policy(withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicySelfTestDefaultRestrictive.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 	void helloWorld_noPolicy() {
 		assertEquals("Hello, World!", "Hello, World!");
 	}

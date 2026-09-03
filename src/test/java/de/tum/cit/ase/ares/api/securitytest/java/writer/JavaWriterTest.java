@@ -117,59 +117,10 @@ public class JavaWriterTest {
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
 					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
 				// Arrange
-				// Mock ArchitectureMode
-				when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
-				when(architectureMode.nonFSFilesToCopy()).thenReturn(List.of());
-				when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
-				when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
-				when(architectureMode.placeholderValues()).thenReturn(List.of());
-				// provide format values actually used by JavaWriter
-				when(architectureMode.fsFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(architectureMode.nonFSFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
-				when(architectureMode.threePartedFileBody(any())).thenReturn("body");
-				when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-				when(architectureMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("arch.java"));
-				when(architectureMode.formatValues(any())).thenReturn(new String[] { "pkg", "pkg" });
-
-				// Mock AOPMode
-				when(aopMode.fsFilesToCopy()).thenReturn(List.of());
-				when(aopMode.nonFSFilesToCopy()).thenReturn(List.of());
-				when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
-				when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
-				when(aopMode.placeholderValues()).thenReturn(List.of());
-				when(aopMode.fsFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(aopMode.nonFSFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
-				when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
-				when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-				when(aopMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("aop.java"));
-				when(aopMode.formatValues(any())).thenReturn(new String[] { "pkg" });
-				when(aopMode.toString()).thenReturn("INSTRUMENTATION");
-
-				// Mock FileTools
-				mockedFileTools.when(() -> FileTools.copyAndFormatFSFiles(any(), any(), any())).thenReturn(List.of());
-				mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any()))
-						.thenReturn(List.of());
-				mockedFileTools
-						.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
-						.thenReturn(tempDir.resolve("test.java"));
-				mockedFileTools.when(() -> FileTools.copyFiles(any(), any())).thenReturn(List.of());
-
-				// Mock Phobos
-				mockedPhobos.when(() -> Phobos.filesToCopy()).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.targetsToCopyTo(any())).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.threePartedFileHeader())
-						.thenReturn(tempDir.resolve("phobos-header.java"));
-				mockedPhobos.when(() -> Phobos.threePartedFileBody(any())).thenReturn("phobos-body");
-				mockedPhobos.when(() -> Phobos.threePartedFileFooter())
-						.thenReturn(tempDir.resolve("phobos-footer.java"));
-				mockedPhobos.when(() -> Phobos.targetToCopyTo(any())).thenReturn(tempDir.resolve("phobos-target.java"));
-				mockedPhobos.when(() -> Phobos.fileValue(any())).thenReturn(new String[] { "value" });
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
 
 				// Act
 				List<Path> result = javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
@@ -223,55 +174,10 @@ public class JavaWriterTest {
 				List<JavaArchitectureTestCase> emptyArchTestCases = List.of();
 				List<JavaAOPTestCase> emptyAOPTestCases = List.of();
 
-				when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
-				when(architectureMode.nonFSFilesToCopy()).thenReturn(List.of());
-				when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
-				when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
-				when(architectureMode.placeholderValues()).thenReturn(List.of());
-				when(architectureMode.fsFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(architectureMode.nonFSFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
-				when(architectureMode.threePartedFileBody(emptyArchTestCases)).thenReturn("body");
-				when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-				when(architectureMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("arch.java"));
-				when(architectureMode.formatValues(any())).thenReturn(new String[] { "pkg", "pkg" });
-
-				when(aopMode.fsFilesToCopy()).thenReturn(List.of());
-				when(aopMode.nonFSFilesToCopy()).thenReturn(List.of());
-				when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
-				when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
-				when(aopMode.placeholderValues()).thenReturn(List.of());
-				when(aopMode.fsFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(aopMode.nonFSFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
-				when(aopMode.threePartedFileBody(any(), any(), any(), eq(emptyAOPTestCases))).thenReturn("body");
-				when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-				when(aopMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("aop.java"));
-				when(aopMode.formatValues(any())).thenReturn(new String[] { "pkg" });
-				when(aopMode.toString()).thenReturn("INSTRUMENTATION");
-
-				mockedFileTools.when(() -> FileTools.copyAndFormatFSFiles(any(), any(), any())).thenReturn(List.of());
-				mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any()))
-						.thenReturn(List.of());
-				mockedFileTools
-						.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
-						.thenReturn(tempDir.resolve("test.java"));
-				mockedFileTools.when(() -> FileTools.copyFiles(any(), any())).thenReturn(List.of());
-
-				// Mock Phobos
-				mockedPhobos.when(() -> Phobos.filesToCopy()).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.targetsToCopyTo(any())).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.threePartedFileHeader())
-						.thenReturn(tempDir.resolve("phobos-header.java"));
-				mockedPhobos.when(() -> Phobos.threePartedFileBody(any())).thenReturn("phobos-body");
-				mockedPhobos.when(() -> Phobos.threePartedFileFooter())
-						.thenReturn(tempDir.resolve("phobos-footer.java"));
-				mockedPhobos.when(() -> Phobos.targetToCopyTo(any())).thenReturn(tempDir.resolve("phobos-target.java"));
-				mockedPhobos.when(() -> Phobos.fileValue(any())).thenReturn(new String[] { "value" });
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
 
 				// Act
 				List<Path> result = javaWriter.writeTestCases(buildMode, architectureMode, aopMode, emptyPackages,
@@ -291,56 +197,10 @@ public class JavaWriterTest {
 		void shouldMergeEssentialClassesAndTestClassesCorrectly() {
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
 					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
-				// Arrange
-				when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
-				when(architectureMode.nonFSFilesToCopy()).thenReturn(List.of());
-				when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
-				when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
-				when(architectureMode.placeholderValues()).thenReturn(List.of());
-				when(architectureMode.fsFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(architectureMode.nonFSFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
-				when(architectureMode.threePartedFileBody(any())).thenReturn("body");
-				when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-				when(architectureMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("arch.java"));
-				when(architectureMode.formatValues(any())).thenReturn(new String[] { "pkg", "pkg" });
-
-				when(aopMode.fsFilesToCopy()).thenReturn(List.of());
-				when(aopMode.nonFSFilesToCopy()).thenReturn(List.of());
-				when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
-				when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
-				when(aopMode.placeholderValues()).thenReturn(List.of());
-				when(aopMode.fsFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(aopMode.nonFSFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
-				when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
-				when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-				when(aopMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("aop.java"));
-				when(aopMode.formatValues(any())).thenReturn(new String[] { "pkg" });
-				when(aopMode.toString()).thenReturn("INSTRUMENTATION");
-
-				mockedFileTools.when(() -> FileTools.copyAndFormatFSFiles(any(), any(), any())).thenReturn(List.of());
-				mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any()))
-						.thenReturn(List.of());
-				mockedFileTools
-						.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
-						.thenReturn(tempDir.resolve("test.java"));
-				mockedFileTools.when(() -> FileTools.copyFiles(any(), any())).thenReturn(List.of());
-
-				// Mock Phobos
-				mockedPhobos.when(() -> Phobos.filesToCopy()).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.targetsToCopyTo(any())).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.threePartedFileHeader())
-						.thenReturn(tempDir.resolve("phobos-header.java"));
-				mockedPhobos.when(() -> Phobos.threePartedFileBody(any())).thenReturn("phobos-body");
-				mockedPhobos.when(() -> Phobos.threePartedFileFooter())
-						.thenReturn(tempDir.resolve("phobos-footer.java"));
-				mockedPhobos.when(() -> Phobos.targetToCopyTo(any())).thenReturn(tempDir.resolve("phobos-target.java"));
-				mockedPhobos.when(() -> Phobos.fileValue(any())).thenReturn(new String[] { "value" });
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
 
 				// Act
 				javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
@@ -362,56 +222,10 @@ public class JavaWriterTest {
 		void shouldHandleDifferentBuildModes() {
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
 					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
-				// Arrange
-				when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
-				when(architectureMode.nonFSFilesToCopy()).thenReturn(List.of());
-				when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
-				when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
-				when(architectureMode.placeholderValues()).thenReturn(List.of());
-				when(architectureMode.fsFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(architectureMode.nonFSFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
-				when(architectureMode.threePartedFileBody(any())).thenReturn("body");
-				when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-				when(architectureMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("arch.java"));
-				when(architectureMode.formatValues(any())).thenReturn(new String[] { "pkg", "pkg" });
-
-				when(aopMode.fsFilesToCopy()).thenReturn(List.of());
-				when(aopMode.nonFSFilesToCopy()).thenReturn(List.of());
-				when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
-				when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
-				when(aopMode.placeholderValues()).thenReturn(List.of());
-				when(aopMode.fsFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(aopMode.nonFSFormatValues(any(), any()))
-						.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
-				when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
-				when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
-				when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
-				when(aopMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("aop.java"));
-				when(aopMode.formatValues(any())).thenReturn(new String[] { "pkg" });
-				when(aopMode.toString()).thenReturn("INSTRUMENTATION");
-
-				mockedFileTools.when(() -> FileTools.copyAndFormatFSFiles(any(), any(), any())).thenReturn(List.of());
-				mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any()))
-						.thenReturn(List.of());
-				mockedFileTools
-						.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
-						.thenReturn(tempDir.resolve("test.java"));
-				mockedFileTools.when(() -> FileTools.copyFiles(any(), any())).thenReturn(List.of());
-
-				// Mock Phobos
-				mockedPhobos.when(() -> Phobos.filesToCopy()).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.targetsToCopyTo(any())).thenReturn(List.of());
-				mockedPhobos.when(() -> Phobos.threePartedFileHeader())
-						.thenReturn(tempDir.resolve("phobos-header.java"));
-				mockedPhobos.when(() -> Phobos.threePartedFileBody(any())).thenReturn("phobos-body");
-				mockedPhobos.when(() -> Phobos.threePartedFileFooter())
-						.thenReturn(tempDir.resolve("phobos-footer.java"));
-				mockedPhobos.when(() -> Phobos.targetToCopyTo(any())).thenReturn(tempDir.resolve("phobos-target.java"));
-				mockedPhobos.when(() -> Phobos.fileValue(any())).thenReturn(new String[] { "value" });
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
 
 				// Act & Assert - should work with different build modes
 				assertDoesNotThrow(() -> {
@@ -462,5 +276,57 @@ public class JavaWriterTest {
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 						javaAOPTestCases, javaPhobosTestCases, emptyRoot));
 		assertTrue(failure.getMessage().contains("has no build descriptor"));
+	}
+
+	private void stubArchitectureModeDefaults() {
+		when(architectureMode.fsFilesToCopy()).thenReturn(List.of());
+		when(architectureMode.nonFSFilesToCopy()).thenReturn(List.of());
+		when(architectureMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
+		when(architectureMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
+		when(architectureMode.placeholderValues()).thenReturn(List.of());
+		when(architectureMode.fsFormatValues(any(), any()))
+				.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
+		when(architectureMode.nonFSFormatValues(any(), any()))
+				.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
+		when(architectureMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
+		when(architectureMode.threePartedFileBody(any())).thenReturn("body");
+		when(architectureMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
+		when(architectureMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("arch.java"));
+		when(architectureMode.formatValues(any())).thenReturn(new String[] { "pkg", "pkg" });
+	}
+
+	private void stubAopModeDefaults() {
+		when(aopMode.fsFilesToCopy()).thenReturn(List.of());
+		when(aopMode.nonFSFilesToCopy()).thenReturn(List.of());
+		when(aopMode.fsTargetsToCopyTo(any())).thenReturn(List.of());
+		when(aopMode.nonFSTargetsToCopyTo(any())).thenReturn(List.of());
+		when(aopMode.placeholderValues()).thenReturn(List.of());
+		when(aopMode.fsFormatValues(any(), any())).thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
+		when(aopMode.nonFSFormatValues(any(), any()))
+				.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
+		when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
+		when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
+		when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
+		when(aopMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("aop.java"));
+		when(aopMode.formatValues(any())).thenReturn(new String[] { "pkg" });
+		when(aopMode.toString()).thenReturn("INSTRUMENTATION");
+	}
+
+	private void stubFileToolsDefaults(MockedStatic<FileTools> mockedFileTools) {
+		mockedFileTools.when(() -> FileTools.copyAndFormatFSFiles(any(), any(), any())).thenReturn(List.of());
+		mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any())).thenReturn(List.of());
+		mockedFileTools.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
+				.thenReturn(tempDir.resolve("test.java"));
+		mockedFileTools.when(() -> FileTools.copyFiles(any(), any())).thenReturn(List.of());
+	}
+
+	private void stubPhobosDefaults(MockedStatic<Phobos> mockedPhobos) {
+		mockedPhobos.when(() -> Phobos.filesToCopy()).thenReturn(List.of());
+		mockedPhobos.when(() -> Phobos.targetsToCopyTo(any())).thenReturn(List.of());
+		mockedPhobos.when(() -> Phobos.threePartedFileHeader()).thenReturn(tempDir.resolve("phobos-header.java"));
+		mockedPhobos.when(() -> Phobos.threePartedFileBody(any())).thenReturn("phobos-body");
+		mockedPhobos.when(() -> Phobos.threePartedFileFooter()).thenReturn(tempDir.resolve("phobos-footer.java"));
+		mockedPhobos.when(() -> Phobos.targetToCopyTo(any())).thenReturn(tempDir.resolve("phobos-target.java"));
+		mockedPhobos.when(() -> Phobos.fileValue(any())).thenReturn(new String[] { "value" });
 	}
 }
