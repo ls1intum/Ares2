@@ -19,7 +19,7 @@ def aresReservedPackageBoundaryVersion = '2'
 def aresReservedPackagePatterns = [
         'java/**', 'javax/**', 'sun/**', 'jdk/**', 'com/sun/**',
         'de/tum/cit/ase/ares/api/**', 'net/bytebuddy/**', 'org/aspectj/**',
-        'com/ibm/wala/**', 'com/tngtech/archunit/**', 'anonymous/toolclasses/**', 'metatest/**'
+        'com/ibm/wala/**', 'com/tngtech/archunit/**'
 ]
 
 tasks.register('verifyAresReservedPackagesV2') {

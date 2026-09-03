@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 //<editor-fold desc="Imports">
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -11,7 +10,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
@@ -38,14 +36,60 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	// <editor-fold desc="Constructors">
 
 	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
-			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses) {
-		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null);
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
+		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null, supervisedPackage,
+				supervisedScopeWasDerived);
 	}
 
 	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nonnull Set<ClassPermission> allowedClasses, @Nullable String supervisedPackage,
+			boolean supervisedScopeWasDerived) {
+		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null, null, allowedClasses,
+				supervisedPackage, supervisedScopeWasDerived);
+	}
+
+	/**
+	 * The signature released in 2.1.2, kept so that a client compiled against it
+	 * still links.
+	 * <p>
+	 * A test case built this way carries no supervised scope. It can be executed,
+	 * but it refuses to write a generated file, because a file with no scope
+	 * analyses nothing and every rule in it passes. Supply the scope through the
+	 * builder or through the scope-aware constructor beside this one.
+	 *
+	 * @param javaArchitectureTestCaseSupported the supported architecture test case
+	 * @param allowedPackages                   the permitted package imports
+	 * @param javaClasses                       the classes to analyse
+	 * @deprecated supply the supervised scope, which this overload cannot express
+	 */
+	@Deprecated(forRemoval = true)
+	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses) {
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, (String) null, false);
+	}
+
+	/**
+	 * The signature released in 2.1.2, kept so that a client compiled against it
+	 * still links.
+	 * <p>
+	 * A test case built this way carries no supervised scope. It can be executed,
+	 * but it refuses to write a generated file, because a file with no scope
+	 * analyses nothing and every rule in it passes. Supply the scope through the
+	 * builder or through the scope-aware constructor beside this one.
+	 *
+	 * @param javaArchitectureTestCaseSupported the supported architecture test case
+	 * @param allowedPackages                   the permitted package imports
+	 * @param javaClasses                       the classes to analyse
+	 * @param allowedClasses                    the classes exempt from the rules
+	 * @deprecated supply the supervised scope, which this overload cannot express
+	 */
+	@Deprecated(forRemoval = true)
+	public JavaArchunitTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
 			@Nonnull Set<ClassPermission> allowedClasses) {
-		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null, null, allowedClasses);
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, allowedClasses, (String) null, false);
 	}
 
 	// </editor-fold>
@@ -55,38 +99,44 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	/**
 	 * Formats the Set<PackagePermission> structure as a Java-literal
 	 * Set.of(PackagePermission(...), ...).
+	 * <p>
+	 * A pinned scope is written out as it stands: it is the instructor's own
+	 * statement of what may be imported. A derived one is not, because it is a
+	 * prefix, and a permission outlives the moment it was granted, so writing it
+	 * into the generated file left it holding a grant over a whole namespace even
+	 * after the coverage check was satisfied. The packages the compiled output
+	 * declares cannot be broader than that output, so the generated rule asks for
+	 * those at runtime and adds them to what the policy declared.
 	 */
 	private String allowedPackagesAsCode() {
-		if (allowedPackages.isEmpty()) {
-			return "Set.of()";
-		}
-		// Emit the exactness flag as well, or the generated test would silently fall
-		// back to subtree matching and diverge from the rule that produced it.
 		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\", %s)",
 				PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage(), pp.exactMatchOnly()))
 				.collect(Collectors.joining(", "));
-		return "Set.of(" + inner + ")";
+		String declaredByPolicy = "Set.of(" + inner + ")";
+		if (!isSupervisedScopeWasDerived()) {
+			return declaredByPolicy;
+		}
+		return "JavaArchunitSupervisedClasses.allowedPackages(\"" + getSupervisedPackage() + "\", " + declaredByPolicy
+				+ ")";
 	}
 
 	/**
 	 * Formats the JavaClasses structure as a Java-literal
 	 * ClassFileImporter.importPackages(...) String.
+	 * <p>
+	 * The generated test asks at runtime rather than carrying an answer. It used to
+	 * emit the packages observed when it was written, which during precompile is
+	 * nothing at all, so it emitted {@code importPackages()} with no arguments:
+	 * every rule then checked an empty set of classes and passed, leaving the suite
+	 * green and enforcing nothing.
 	 */
 	private String javaClassesAsCode() {
-		Set<String> packages = javaClasses.stream().map(JavaClass::getPackageName)
-				.collect(Collectors.toCollection(HashSet::new));
-
-		if (packages.isEmpty()) {
-			return "new ClassFileImporter()\n" + ".withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)\n"
-					+ ".withImportOption(location -> {\n"
-					+ "String path = location.toString().replace(\"\\\\\", \"/\");\n"
-					+ "return !path.contains(\"/de/tum/cit/ase/ares/api/\");\n" + "})\n" + ".importPackages()";
+		String scope = getSupervisedPackage();
+		if (scope == null || scope.isBlank()) {
+			throw new SecurityException(Messages.localized("security.architecture.scope.missing"));
 		}
-		String packagesAsString = packages.stream().map(p -> "\"" + p + "\"").collect(Collectors.joining(", "));
-		return "new ClassFileImporter()\n" + ".withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)\n"
-				+ ".withImportOption(location -> {\n" + "String path = location.toString().replace(\"\\\\\", \"/\");\n"
-				+ "return !path.contains(\"/de/tum/cit/ase/ares/api/\");\n" + "})\n" + ".importPackages("
-				+ packagesAsString + ")";
+		String entryPoint = isSupervisedScopeWasDerived() ? "validated" : "pinned";
+		return "JavaArchunitSupervisedClasses." + entryPoint + "(\"" + scope + "\")";
 	}
 
 	/**
@@ -263,6 +313,34 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		private Set<PackagePermission> allowedPackages;
 		@Nonnull
 		private Set<ClassPermission> allowedClasses = Set.of();
+		@Nullable
+		private String supervisedPackage;
+		private boolean supervisedScopeWasDerived;
+
+		/**
+		 * Records the scope the generated test asks for at runtime.
+		 *
+		 * @param supervisedPackage the supervised scope
+		 * @return this builder
+		 */
+		@Nonnull
+		public JavaArchunitTestCase.Builder supervisedPackage(@Nullable String supervisedPackage) {
+			this.supervisedPackage = supervisedPackage;
+			return this;
+		}
+
+		/**
+		 * Records whether that scope was derived rather than pinned, which decides
+		 * whether the generated test checks it against the whole compiled output.
+		 *
+		 * @param supervisedScopeWasDerived whether the scope was derived
+		 * @return this builder
+		 */
+		@Nonnull
+		public JavaArchunitTestCase.Builder supervisedScopeWasDerived(boolean supervisedScopeWasDerived) {
+			this.supervisedScopeWasDerived = supervisedScopeWasDerived;
+			return this;
+		}
 
 		/**
 		 * Sets the architecture test case type supported by this instance.
@@ -339,7 +417,8 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 					Objects.requireNonNull(javaArchitectureTestCaseSupported,
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
-					Objects.requireNonNull(javaClasses, "javaClasses must not be null"), allowedClasses);
+					Objects.requireNonNull(javaClasses, "javaClasses must not be null"), allowedClasses,
+					supervisedPackage, supervisedScopeWasDerived);
 		}
 	}
 	// </editor-fold>

@@ -12,6 +12,9 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -27,6 +30,7 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
@@ -53,6 +57,20 @@ import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
  * @version 2.0.0
  */
 public class JavaCreator implements Creator {
+	private static final Logger LOG = LoggerFactory.getLogger(JavaCreator.class);
+
+	/**
+	 * The supervised scope of the run in progress, and whether Ares derived it.
+	 * <p>
+	 * Held here rather than threaded through the three test-case builders, which
+	 * would gain two parameters apiece for a value none of them reasons about. A
+	 * creator is built per director and {@code createTestCases} is called once on
+	 * it, so this is state for one run rather than shared state.
+	 */
+	private String supervisedPackage;
+
+	/** Whether {@link #supervisedPackage} was derived rather than pinned. */
+	private boolean supervisedScopeWasDerived;
 	private final BuildToolConfiguration buildConfiguration;
 
 	public JavaCreator() {
@@ -104,19 +122,35 @@ public class JavaCreator implements Creator {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param resourceAccesses  the resource accesses permitted by the security
-	 *                          policy; must not be null
-	 * @param essentialPackages the list of essential packages; must not be null
-	 * @param packageName       the name of the package containing the main class;
-	 *                          must not be null
-	 * @param testClasses       the list of test classes whose packages should be
-	 *                          allowed; must not be null
+	 * @param resourceAccesses   the resource accesses permitted by the security
+	 *                           policy; must not be null
+	 * @param essentialPackages  the list of essential packages; must not be null
+	 * @param packageName        the name of the package containing the main class;
+	 *                           must not be null
+	 * @param supervisedPackages the packages actually declared by the validated
+	 *                           production output; must not be null
+	 * @param testClasses        the list of test classes whose packages should be
+	 *                           allowed; must not be null
 	 * @return a set of allowed package permissions; never null
+	 * @implNote The supervised code may use its own code, else a student could not
+	 *           call one of their own classes from another. SECURITY: this names
+	 *           the packages the validated output declares rather than the
+	 *           supervised prefix, because a permission matches as a prefix, so a
+	 *           scope of {@code de.tum.cit} would permit every import from
+	 *           {@code de.tum.cit.ase.ares.api} along with it.
+	 *           <p>
+	 *           Where nothing is compiled, which during generation is ordinary, a
+	 *           <em>derived</em> scope is deliberately not granted: the permission
+	 *           would be written into the generated file and outlive the moment it
+	 *           was granted, keeping a grant over a whole namespace even once the
+	 *           runtime coverage check is satisfied. The generated rule asks for
+	 *           the declared packages instead. A pinned scope is the instructor's
+	 *           own declaration and stands.
 	 */
 	@Nonnull
 	private Set<PackagePermission> prepareAllowedPackages(@Nonnull List<String> essentialPackages,
 			@Nonnull ResourceAccesses resourceAccesses, @Nonnull String packageName,
-			@Nonnull List<String> testClasses) {
+			@Nonnull Set<String> supervisedPackages, @Nonnull List<String> testClasses) {
 		return Stream.of(
 				/*
 				 * Essential packages are allowed to do anything. JDK-namespace entries are
@@ -131,14 +165,12 @@ public class JavaCreator implements Creator {
 						.map(p -> new PackagePermission(p, isJdkNamespace(p))),
 				// The permitted packages are allowed
 				resourceAccesses.regardingPackageImports().stream(),
-				/*
-				 * The package of the restricted student code is allowed (else the student would
-				 * not be able to use his/her own code). SECURITY: Do not derive top-level roots
-				 * (e.g., com/org/de), as that unintentionally allows unrelated package
-				 * namespaces.
-				 */
-				(packageName != null && !packageName.isBlank()) ? Stream.of(new PackagePermission(packageName))
-						: Stream.<PackagePermission>empty(),
+				supervisedPackages.isEmpty()
+						? (packageName != null && !packageName.isBlank()
+								? (supervisedScopeWasDerived ? Stream.<PackagePermission>empty()
+										: Stream.of(new PackagePermission(packageName)))
+								: Stream.<PackagePermission>empty())
+						: supervisedPackages.stream().map(JavaCreator::derivedAllowedPackage),
 				/*
 				 * The packages of the test classes are allowed (test infrastructure classes
 				 * like ProtectedResourceAccess need to be accessible from the supervised code)
@@ -146,7 +178,7 @@ public class JavaCreator implements Creator {
 				testClasses.stream().filter(java.util.Objects::nonNull).map(className -> {
 					int lastDot = className.lastIndexOf('.');
 					return lastDot > 0 ? className.substring(0, lastDot) : className;
-				}).filter(p -> !p.isBlank()).distinct().map(PackagePermission::new)
+				}).filter(p -> !p.isBlank()).distinct().map(JavaCreator::testClassAllowedPackage)
 
 		).flatMap(Function.identity()).collect(Collectors.toSet());
 	}
@@ -177,6 +209,62 @@ public class JavaCreator implements Creator {
 	private static boolean isJdkNamespace(@Nonnull String packageName) {
 		return JDK_NAMESPACE_ROOTS.stream()
 				.anyMatch(root -> packageName.equals(root) || packageName.startsWith(root + "."));
+	}
+
+	/**
+	 * Wraps a package permission that was read out of the project rather than
+	 * declared by a policy, refusing one that would carry a trusted namespace with
+	 * it.
+	 * <p>
+	 * A permission matches on segment boundaries but still as a prefix, and a
+	 * package name is exactly what whoever adds files controls, so a derived
+	 * permission sitting above {@code de.tum.cit.ase.ares.api} would hand the
+	 * supervised code the framework's own namespace. The reserved-package guard
+	 * misses it: that one refuses a package <em>inside</em> a trusted prefix, not
+	 * one <em>containing</em> it.
+	 * <p>
+	 * Only derived permissions are held to this. What a policy names in
+	 * {@code theFollowingResourceAccessesArePermitted}, and Ares' own essential
+	 * packages, are declarations rather than readings and stay authoritative.
+	 *
+	 * @param packageName the derived package name
+	 * @return the permission for it
+	 * @throws SecurityException when a reserved namespace lies below it
+	 */
+	@Nonnull
+	private static PackagePermission derivedAllowedPackage(@Nonnull String packageName) {
+		String reserved = ReservedPackageGuard.ancestorOfReservedPrefix(packageName);
+		if (reserved != null) {
+			throw new SecurityException(Messages.localized("security.policy.ancestor.package", packageName, reserved));
+		}
+		return new PackagePermission(packageName);
+	}
+
+	/**
+	 * The permission taken from the package of a declared or scanned test class.
+	 * <p>
+	 * Same question as {@link #derivedAllowedPackage(String)}, different answer. A
+	 * test class sits in the test tree, which the instructor controls and the
+	 * submitter does not, so it is not the submitter-steerable value a supervised
+	 * scope is; and refusing would break a convention this repository's own
+	 * fixtures rely on, nine of them naming
+	 * {@code de.tum.cit.ase.ares.testutilities} rather than a class. That makes
+	 * refusal the wrong instrument, not the finding wrong: the grant really is
+	 * wider than a test class needs, so it is reported rather than made fatal.
+	 *
+	 * @param packageName the package of a test class
+	 * @return the permission for it
+	 */
+	@Nonnull
+	private static PackagePermission testClassAllowedPackage(@Nonnull String packageName) {
+		String reserved = ReservedPackageGuard.ancestorOfReservedPrefix(packageName);
+		if (reserved != null) {
+			LOG.warn("A test class was declared in the package {}, which permits the supervised code to import "
+					+ "everything below it, including the trusted namespace {}. Name the test classes "
+					+ "themselves rather than their package, or declare what may be imported in "
+					+ "theFollowingResourceAccessesArePermitted.", packageName, reserved);
+		}
+		return new PackagePermission(packageName);
 	}
 
 	/**
@@ -223,7 +311,8 @@ public class JavaCreator implements Creator {
 	private JavaArchitectureTestCase createArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported supported,
 			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull Set<ClassPermission> allowedClasses) {
-		return JavaArchitectureTestCase.builder()
+		return JavaArchitectureTestCase.builder().supervisedPackage(supervisedPackage)
+				.supervisedScopeWasDerived(supervisedScopeWasDerived)
 				// The architecture test case checks for the following aspect
 				.javaArchitectureTestCaseSupported(supported)
 				// The architecture test cases are built over the following classes
@@ -294,7 +383,8 @@ public class JavaCreator implements Creator {
 		case THREAD_CREATION -> resourceAccesses::regardingThreadCreations;
 		};
 		if (resourceAccessSupplier.get().isEmpty()) {
-			javaArchitectureTestCases.add(JavaArchitectureTestCase.builder()
+			javaArchitectureTestCases.add(JavaArchitectureTestCase.builder().supervisedPackage(supervisedPackage)
+					.supervisedScopeWasDerived(supervisedScopeWasDerived)
 					// The architecture test case checks for the following aspect. Map the AOP
 					// category to its architecture counterpart with an exhaustive switch rather
 					// than valueOf(name()): a future divergence of the two enums then becomes a
@@ -472,6 +562,42 @@ public class JavaCreator implements Creator {
 			@Nonnull List<ArchitectureTestCase> architectureTestCases, @Nonnull List<AOPTestCase> aopTestCases,
 			@Nonnull List<PhobosTestCase> phobosTestCases, @Nonnull ResourceAccesses resourceAccesses,
 			@Nonnull Path projectPath) {
+		// The released overload is the abstract one, so an implementation that
+		// predates the scope parameter is still complete. This one supplies it,
+		// reporting the scope as derived: of the two readings that is the strict one,
+		// since a derived scope is checked against the whole compiled output before
+		// enforcement, so a caller that could not say can only ever get more
+		// verification than it asked for.
+		createTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses,
+				packageName, mainClassInPackageName, architectureTestCases, aopTestCases, phobosTestCases,
+				resourceAccesses, projectPath, true);
+	}
+
+	/**
+	 * Builds the test cases, told whether Ares derived the supervised scope.
+	 *
+	 * @param buildMode                 the build tool
+	 * @param architectureMode          the architecture analyser
+	 * @param aopMode                   the enforcement backend
+	 * @param essentialPackages         the packages Ares itself needs
+	 * @param essentialClasses          the classes Ares itself needs
+	 * @param testClasses               the test classes
+	 * @param packageName               the supervised scope
+	 * @param mainClassInPackageName    the main class
+	 * @param architectureTestCases     the architecture test cases to fill
+	 * @param aopTestCases              the AOP test cases to fill
+	 * @param phobosTestCases           the Phobos test cases to fill
+	 * @param resourceAccesses          the permitted resource accesses
+	 * @param projectPath               the project root
+	 * @param supervisedScopeWasDerived whether Ares derived the supervised scope
+	 */
+	@Override
+	public void createTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
+			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
+			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
+			@Nonnull List<ArchitectureTestCase> architectureTestCases, @Nonnull List<AOPTestCase> aopTestCases,
+			@Nonnull List<PhobosTestCase> phobosTestCases, @Nonnull ResourceAccesses resourceAccesses,
+			@Nonnull Path projectPath, boolean supervisedScopeWasDerived) {
 		// <editor-fold desc="Extraction">
 		@Nonnull
 		String classPath = cacheResult(projectPath + "_" + packageName + "_classPath",
@@ -483,8 +609,11 @@ public class JavaCreator implements Creator {
 		// Reading the true package from bytecode catches precompiled or generated
 		// classes that never appear in the scanned source and would otherwise be
 		// trusted by name.
-		ReservedPackageGuard.validateClassNames(
-				new ClassFileImporter().importPath(Path.of(classPath)).stream().map(JavaClass::getName).toList());
+		JavaClasses supervisedClasses = new ClassFileImporter().importPath(Path.of(classPath));
+		ReservedPackageGuard.validateClassNames(supervisedClasses.stream().map(JavaClass::getName).toList());
+		@Nonnull
+		Set<String> supervisedPackages = supervisedClasses.stream().map(JavaClass::getPackageName)
+				.filter(name -> !name.isBlank()).collect(Collectors.toSet());
 		@Nonnull
 		JavaClasses javaClasses = cacheResult(projectPath + "_" + packageName + "_javaClasses",
 				() -> architectureMode.getJavaClasses(classPath)).get();
@@ -501,9 +630,11 @@ public class JavaCreator implements Creator {
 		// </editor-fold>
 
 		// <editor-fold desc="Preparation">
+		this.supervisedPackage = packageName;
+		this.supervisedScopeWasDerived = supervisedScopeWasDerived;
 		@Nonnull
 		Set<PackagePermission> allowedPackages = prepareAllowedPackages(essentialPackages, resourceAccesses,
-				packageName, testClasses);
+				packageName, supervisedPackages, testClasses);
 		@Nonnull
 		Set<ClassPermission> allowedClasses = prepareAllowedClasses(essentialClasses, testClasses);
 		// </editor-fold>

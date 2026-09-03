@@ -1,5 +1,5 @@
 # Ares reserved-package build boundary
-# version=1
+# version=2
 # boundary-version=2
 java/**
 javax/**
@@ -11,5 +11,3 @@ net/bytebuddy/**
 org/aspectj/**
 com/ibm/wala/**
 com/tngtech/archunit/**
-anonymous/toolclasses/**
-metatest/**

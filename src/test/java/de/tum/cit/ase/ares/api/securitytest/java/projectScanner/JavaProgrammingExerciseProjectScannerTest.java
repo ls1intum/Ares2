@@ -74,7 +74,7 @@ public class JavaProgrammingExerciseProjectScannerTest {
 
 				// Then
 				assertNotNull(result);
-				assertEquals("de.tum.cit.ase", result); // TUM-specific default package
+				assertEquals("de.tum.cit.aet", result); // TUM-specific default package
 			}
 		}
 
@@ -266,7 +266,7 @@ public class JavaProgrammingExerciseProjectScannerTest {
 				String result = scanner.scanForPackageName();
 
 				// Then
-				assertEquals("de.tum.cit.ase", result);
+				assertEquals("de.tum.cit.aet", result);
 			}
 		}
 	}
