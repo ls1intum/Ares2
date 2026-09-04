@@ -1,5 +1,11 @@
+# SECURITY: keep this to the JDK packages that compiled code cannot avoid. Every
+# class extends java.lang.Object, so java.lang is unavoidable; everything else
+# (java.util, java.io, java.net, java.time, ...) is a deliberate choice and must be
+# granted explicitly via regardingPackageImports in the security policy. Entries in
+# the JDK namespace are granted as an exact match, so java.lang does NOT imply
+# java.lang.reflect, java.lang.invoke, java.lang.instrument or java.lang.management.
 essentialJavaPackages:
-  - java
+  - java.lang
 essentialArchunitPackages: []
 essentialWalaPackages: []
 essentialAspectJPackages:
