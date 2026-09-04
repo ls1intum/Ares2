@@ -16,7 +16,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <ares.version>2.1.3</ares.version>
+        <ares.version>2.1.4</ares.version>
         <aspectj.version>1.9.25.1</aspectj.version>
         <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
         <argLine></argLine>

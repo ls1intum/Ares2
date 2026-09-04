@@ -91,11 +91,11 @@ export default function Home(): ReactNode {
                             {`<dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.1.3</version>
+    <version>2.1.4</version>
 </dependency>`}
                         </CodeBlock>
                         <CodeBlock language="groovy" title="build.gradle">
-                            {`implementation("de.tum.cit.ase:ares:2.1.3")`}
+                            {`implementation("de.tum.cit.ase:ares:2.1.4")`}
                         </CodeBlock>
                     </div>
                 </div>
