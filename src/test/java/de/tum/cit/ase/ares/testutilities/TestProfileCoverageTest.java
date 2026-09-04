@@ -81,14 +81,20 @@ class TestProfileCoverageTest {
 					+ "|(?:de\\.tum\\.cit\\.ase\\.ares\\.api\\.jupiter\\.)?(?:PublicTest|HiddenTest)" + ")\\b");
 
 	/**
-	 * Files that end in {@code Test.java} without being tests.
+	 * Files whose name matches a Surefire test pattern without being tests.
 	 * <p>
 	 * Named individually and with the reason, because the alternative is a pattern
 	 * that quietly grows until it covers a real test again.
 	 */
 	private static final Map<String, String> NOT_A_TEST_CLASS = Map.of("p/TrustedTest.java",
 			"A fixture for the allow-list prefix-collision case, whose fully qualified name has to be exactly "
-					+ "p.TrustedTest for the scenario to mean anything. It declares no test method.");
+					+ "p.TrustedTest for the scenario to mean anything. It declares no test method.",
+			"de/tum/cit/ase/ares/testutilities/TestUserExtension.java",
+			"A JUnit extension for the test harness, not a test. Its name begins with Test because it configures the "
+					+ "test user; it declares no test method.",
+			"de/tum/cit/ase/ares/integration/aop/forbidden/subject/networkSystem/send/httpclient/TestHttpClient.java",
+			"A fixture HTTP client used by the network-system forbidden-access subjects, not a test. Its name begins "
+					+ "with Test but it declares no test method.");
 
 	@Test
 	@DisplayName("Every test class is selected by a profile or a -Dtest the workflows use")
@@ -328,13 +334,12 @@ class TestProfileCoverageTest {
 	}
 
 	/**
-	 * Every file whose name marks it as a test class by Surefire's suffix
-	 * conventions: {@code *Test.java}, {@code *Tests.java} and
-	 * {@code *TestCase.java}. Matching only {@code *Test.java} would let a class in
-	 * one of the other two forms stay outside every profile's selection without
-	 * this guard reporting it. The {@code Test*.java} prefix is left out, because
-	 * helper files such as {@code TestUserExtension.java} carry it without being
-	 * tests.
+	 * Every file whose name marks it as a test class by Surefire's default
+	 * conventions: {@code Test*.java}, {@code *Test.java}, {@code *Tests.java} and
+	 * {@code *TestCase.java}. A narrower match would let a test in an unmatched
+	 * form stay outside every profile's selection without this guard reporting it.
+	 * A file that carries such a name without being a test is recorded in
+	 * {@code NOT_A_TEST_CLASS}.
 	 */
 	private static List<String> testClasses() {
 		try (Stream<Path> entries = Files.walk(TEST_SOURCES)) {
@@ -348,11 +353,13 @@ class TestProfileCoverageTest {
 	}
 
 	/**
-	 * Whether a file name is one Surefire selects as a test class by its suffix.
+	 * Whether a file name is one Surefire selects as a test class by its default
+	 * prefix or suffix.
 	 */
 	private static boolean isTestClassName(Path path) {
 		String name = path.getFileName().toString();
-		return name.endsWith("Test.java") || name.endsWith("Tests.java") || name.endsWith("TestCase.java");
+		return name.endsWith(".java") && (name.startsWith("Test") || name.endsWith("Test.java")
+				|| name.endsWith("Tests.java") || name.endsWith("TestCase.java"));
 	}
 
 	private static String read(Path file) {
