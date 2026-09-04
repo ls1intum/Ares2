@@ -32,7 +32,10 @@ The [`api/jupiter`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de
 - The deadline check runs **before** a hidden test executes, so a hidden test that is not
   yet due never runs, rather than running and having its result suppressed. That is the
   whole point: a test that runs can leak through a file or a static field.
-- `@Policy` attaches a security policy to a test, and the sandbox is active for that test.
+- `@Policy` selects and configures the security policy, but does not activate anything on its
+  own. The sandbox runs only when an Ares test annotation (`@Public`, `@Hidden`, `@PublicTest`,
+  `@HiddenTest`) has registered the extensions, so a plain JUnit `@Test` carrying only `@Policy`
+  runs unsupervised.
 - Parameter resolution supplies `IOTester` to a test that declares it, which is how console
   interaction is tested without the test touching `System.in` directly.
 
