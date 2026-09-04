@@ -1,0 +1,14 @@
+# Configuration for actionlint, run by .github/workflows/actionlint.yml.
+# Reference: https://github.com/rhysd/actionlint/blob/main/docs/config.md
+#
+# Ares 2 runs entirely on GitHub-hosted runners, so no self-hosted labels are declared.
+# Add a label here if a job ever moves to a self-hosted runner, otherwise actionlint will
+# reject the unknown `runs-on` value.
+self-hosted-runner:
+  labels: []
+
+# Ares 2 uses no repository or organisation configuration variables in workflows yet.
+# Declaring the list empty is what makes `actionlint` reject every `vars.` expression it finds.
+# Omitting the key entirely would allow all of them, so the empty list is the strict setting and
+# the one we want. Add the name here when a configuration variable is genuinely introduced.
+config-variables: []

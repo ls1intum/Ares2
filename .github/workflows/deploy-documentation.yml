@@ -1,0 +1,50 @@
+# Publishes documentation/ to GitHub Pages at https://ls1intum.github.io/Ares2/.
+#
+# One-time repository setup, which a workflow cannot do for you:
+#   Settings -> Pages -> Build and deployment -> Source = "GitHub Actions"
+# Without it the deploy job fails with a "Pages is not enabled" error.
+#
+# workflow_dispatch is kept so the site can be republished without a documentation change,
+# for example after a failed deploy or a change to the Pages settings.
+name: Deploy Documentation to GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'documentation/**'
+      - '.github/workflows/documentation.yml'
+      - '.github/workflows/deploy-documentation.yml'
+  workflow_dispatch:
+
+permissions: {}
+
+# Serialised against every other Pages deploy. cancel-in-progress stays false so an in-flight
+# deploy is allowed to finish rather than leaving the site half-published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  documentation:
+    uses: ./.github/workflows/documentation.yml
+    permissions:
+      contents: read
+    with:
+      upload_pages_artifact: true
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: documentation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

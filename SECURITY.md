@@ -35,7 +35,7 @@ A report is out of scope when:
 
 - the deliberately dangerous code described above behaves as documented,
 - the operation is one Ares does not claim to cover. The enforcement boundary is documented, and a gap on the far side of it is a known limitation rather than a defect,
-- it presumes an adversary who controls the build. `docs/HowToConvertAnAres1ProjectIntoAnAres2Project.md` states this for the reserved-package boundary: the build descriptor and the command that invokes it are trusted instructor configuration, so whoever can edit `pom.xml` or `build.gradle` can remove that boundary. The threat addressed is student code, not a hostile build,
+- it presumes an adversary who controls the build. `documentation/docs/instructor/transform-ares-1-into-ares-2/postcompile/gradle.md` states this for the reserved-package boundary: the build descriptor and the command that invokes it are trusted instructor configuration, so whoever can edit `pom.xml` or `build.gradle` can remove that boundary. The threat addressed is student code, not a hostile build,
 - it is a vulnerability in the JVM, in Maven, in Gradle, or in a third-party library that Ares exercises rather than introduces. Those belong upstream.
 
 If you are unsure which side of the line a finding falls on, report it and say so.

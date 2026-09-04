@@ -1,0 +1,8 @@
+{
+    "label": "Policy",
+    "position": 4,
+    "link": {
+        "type": "generated-index",
+        "description": "Reading a security policy and directing test-case creation."
+    }
+}

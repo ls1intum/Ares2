@@ -1,0 +1,10 @@
+{
+    "extends": "@docusaurus/tsconfig",
+    "compilerOptions": {
+        // @docusaurus/tsconfig still sets `baseUrl`, which TypeScript 6 reports as deprecated
+        // and TypeScript 7 will drop. Silence it here rather than in the shared config, and
+        // remove this line once Docusaurus stops setting it.
+        "ignoreDeprecations": "6.0"
+    },
+    "exclude": [".docusaurus", "build"]
+}

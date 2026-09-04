@@ -41,7 +41,7 @@ reviews:
     - ".whitesource"
     - ".github/**"
     - ".settings/**"
-    - "docs/**"
+    - "documentation/**"
     - "src/**"
     - "pom.xml"
     - "README.md"
@@ -105,7 +105,7 @@ reviews:
         Review GitHub Actions for least-privilege permissions, safe event choice,
         pinned third-party actions, safe pull_request_target usage, no secret exposure
         to untrusted code, and branch-protection compatibility.
-    - path: docs/**/*.md
+    - path: documentation/docs/**/*.md
       instructions: >-
         Use current British English. Check that security guarantees, known limitations,
         and required external fixtures are explicit and do not overstate enforcement.

@@ -1,0 +1,79 @@
+# EditorConfig helps developers define and maintain consistent
+# coding styles between different editors and IDEs
+# editorconfig.org
+#
+# The `end_of_line` values below deliberately mirror .gitattributes. Git normalises every
+# text file to LF in the object database but checks most of them out as CRLF
+# (`* text=auto eol=crlf`), with LF reserved for the files that break otherwise: shell
+# scripts, YAML and pom.xml. An editor configured to write LF everywhere would fight that
+# checkout policy and produce a renormalisation diff on every save, so keep the two files in
+# step whenever either changes.
+
+root = true
+
+[*]
+end_of_line = crlf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = tab
+indent_size = 4
+
+# Markdown treats two trailing spaces as a hard line break, so they must survive.
+[*.md]
+trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2
+
+[*.mdx]
+trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2
+
+# Ares formats Java with tabs; see the Spotless configuration in pom.xml.
+[*.java]
+indent_style = tab
+
+[*.xml]
+indent_style = tab
+
+# .gitattributes pins pom.xml to LF.
+[pom.xml]
+end_of_line = lf
+indent_style = tab
+
+# .gitattributes pins YAML to LF.
+[{*.yml,*.yaml}]
+end_of_line = lf
+indent_style = space
+indent_size = 2
+
+# .gitattributes pins shell scripts to LF; CRLF makes them fail with "bad interpreter".
+[{*.sh,*.bash,*.fish,gradlew}]
+end_of_line = lf
+indent_style = space
+indent_size = 2
+
+# .gitattributes pins these to CRLF explicitly; they are Windows scripts.
+[{*.bat,*.cmd,*.ps1}]
+end_of_line = crlf
+
+[{*.ats,*.cts,*.mts,*.ts,*.tsx}]
+indent_style = space
+indent_size = 4
+ij_typescript_use_double_quotes = false
+ij_typescript_spaces_within_imports = true
+
+[{*.cjs,*.mjs,*.js,*.jsx}]
+indent_style = space
+indent_size = 4
+ij_javascript_use_double_quotes = false
+ij_javascript_spaces_within_imports = true
+
+[*.json]
+indent_style = space
+indent_size = 2
+
+[*.css]
+indent_style = space
+indent_size = 4
