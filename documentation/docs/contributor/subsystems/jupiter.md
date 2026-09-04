@@ -25,13 +25,18 @@ gets a say before, around and after every test.
 | `@Public` / `@Hidden` | Marks whether a test's result is shown immediately or held until the deadline |
 | `@PublicTest` / `@HiddenTest` | The same, combined with JUnit's own `@Test` |
 | `JupiterAresTest` | Internal meta-annotation that registers all four extensions at once |
-| `JupiterSecurityExtension` | Reads `@Policy`, activates the sandbox, and resets it before and after each test |
+| `JupiterSecurityExtension` | Reads the `@Policy` configuration and applies the sandbox around each test, resetting it before and after |
 | `JupiterTestGuard` | Applies the pre- and post-test guards, including the deadline check |
 | `JupiterIOExtension` | Redirects `System.in`, `System.out` and `System.err` |
 | `JupiterStrictTimeoutExtension` | Enforces `@StrictTimeout` |
 | `JupiterLocaleExtension` | Applies `@UseLocale` around a class |
 | `JupiterContext` | Adapts JUnit's `ExtensionContext` to the Ares `TestContext` |
 | `UnifiedInvocationInterceptor` | Collapses JUnit's many `InvocationInterceptor` callbacks into one generic method |
+
+An Ares test annotation is what registers these extensions: `@PublicTest` and `@HiddenTest`, or
+`@Public` and `@Hidden` combined with JUnit's `@Test`, all carry `JupiterAresTest`. `@Policy` only
+selects and configures the policy, so a plain JUnit `@Test` that carries a `@Policy` but no Ares test
+annotation runs unsupervised.
 
 ## Why it is shaped this way
 

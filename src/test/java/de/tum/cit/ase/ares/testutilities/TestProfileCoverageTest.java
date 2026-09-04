@@ -327,15 +327,32 @@ class TestProfileCoverageTest {
 		return null;
 	}
 
+	/**
+	 * Every file whose name marks it as a test class by Surefire's suffix
+	 * conventions: {@code *Test.java}, {@code *Tests.java} and
+	 * {@code *TestCase.java}. Matching only {@code *Test.java} would let a class in
+	 * one of the other two forms stay outside every profile's selection without
+	 * this guard reporting it. The {@code Test*.java} prefix is left out, because
+	 * helper files such as {@code TestUserExtension.java} carry it without being
+	 * tests.
+	 */
 	private static List<String> testClasses() {
 		try (Stream<Path> entries = Files.walk(TEST_SOURCES)) {
 			Set<String> classes = new HashSet<>();
-			entries.filter(Files::isRegularFile).filter(path -> path.getFileName().toString().endsWith("Test.java"))
+			entries.filter(Files::isRegularFile).filter(TestProfileCoverageTest::isTestClassName)
 					.forEach(path -> classes.add(TEST_SOURCES.relativize(path).toString().replace('\\', '/')));
 			return classes.stream().sorted().toList();
 		} catch (IOException exception) {
 			throw new UncheckedIOException("Could not walk " + TEST_SOURCES, exception);
 		}
+	}
+
+	/**
+	 * Whether a file name is one Surefire selects as a test class by its suffix.
+	 */
+	private static boolean isTestClassName(Path path) {
+		String name = path.getFileName().toString();
+		return name.endsWith("Test.java") || name.endsWith("Tests.java") || name.endsWith("TestCase.java");
 	}
 
 	private static String read(Path file) {
