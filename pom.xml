@@ -495,7 +495,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<version>3.5.6</version>
+				<version>3.6.0</version>
 				<configuration>
 					<forkCount>1</forkCount>
 					<!-- Use a fresh fork for every test class. WALA's mutable scope and graph,
@@ -1336,7 +1336,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-surefire-plugin</artifactId>
-						<version>3.5.6</version>
+						<version>3.6.0</version>
 						<configuration>
 							<forkCount>1</forkCount>
 							<forkedProcessTimeoutInSeconds>2400</forkedProcessTimeoutInSeconds>
