@@ -1,0 +1,105 @@
+UML CLASS DIAGRAM RULES
+=======================
+
+Scope
+-----
+1. Use PlantUML for UML class diagrams.
+2. Validate the exact saved PlantUML source with the browser renderer at
+   https://plantuml.com/de/ before delivering it.
+3. Declare no more than one attribute or method per PlantUML source line.
+
+Type representation
+-------------------
+4. Mark Java records with the <<record>> stereotype.
+5. Mark Java enums explicitly with the <<enum>> stereotype.
+6. Hide PlantUML's type-indicating circles with "hide circle".
+7. Keep scalar, collection, standard-library and other value-like attributes in
+   the owning class or record as "accessModifier name: Type".
+8. Do not place an in-scope domain reference type in an attribute compartment.
+   Represent each such reference with a full association instead. A reference
+   type outside the explicitly requested class set may remain an attribute and
+   does not require either a class declaration or an association.
+9. Annotate every association-backed attribute with its access modifier, name
+   and type, for example "+ resourceAccesses: ResourceAccesses".
+10. Use "1" for a mandatory singleton, "0..1" for an optional singleton and
+    "*" rather than "0..*" for a collection.
+
+Constraint notes
+----------------
+11. Put attribute constraints in yellow PlantUML note boxes.
+12. Keep an attribute's type in the class compartment or association label; do
+    not repeat its type in the yellow note.
+13. Structure every constrained note entry as follows:
+
+        attributeName: nullable|nonnull
+        - allowed: ...
+        - limits: ...
+        - regex: ...
+        - additional short restriction
+
+14. Use only the applicable detail lines. Do not add an "empty denies" line.
+15. Do not use both "allowed" and "regex" for the same attribute. Prefer
+    "regex" when a value can be expressed as a pattern or alternation.
+16. Distinguish literal string values from descriptive pattern placeholders:
+    quote literals such as "*", "localhost" and "Lambda-Expression"; leave
+    placeholders such as Java package name, IPv4 and recognised placeholder
+    unquoted.
+17. In every "|" alternation containing the wildcard "*", put "*" last.
+18. Keep the note text short and use one constraint or explanation per line.
+
+Note placement
+--------------
+19. Place a yellow note on the side of its class opposite the corresponding
+    association whenever the layout permits it.
+20. If a class has associations on every side, use the least conflicting side,
+    normally above the class.
+
+Association direction and layout
+--------------------------------
+21. State association directions explicitly with left, right or down links.
+22. Reinforce important directions with redundant hidden ranking links; do not
+    rely on Graphviz's default placement alone.
+23. For a central aggregate with six owned attribute classes, place two on its
+    left, two below it and two on its right when this arrangement is requested.
+24. Use orthogonal association lines.
+25. Prolong the distance between classes substantially. Start with:
+
+        skinparam nodesep 170
+        skinparam ranksep 220
+
+26. If PlantUML's browser renderer would exceed its 4096-pixel natural-size
+    limit, reduce horizontal separation only as far as necessary and retain the
+    strongest renderable spacing.
+
+Presentation defaults established for these diagrams
+-----------------------------------------------------
+27. Use rectangular package boundaries when they do not conflict with an exact
+    requested class order. Omit package boundaries when a global row layout is
+    required. Use no shadows and top-to-bottom flow.
+28. Use a smaller note font where needed to keep large constraint boxes readable
+    and renderable.
+29. Scale wide output to at most 3800 pixels while preserving the natural layout
+    constraints.
+
+Requested class order
+---------------------
+30. When an exact top-to-bottom row order is supplied, reproduce those rows and
+    their stated left-to-right order exactly.
+31. Reinforce each requested row with a horizontal hidden ranking link and each
+    requested column with vertical hidden ranking links.
+32. Do not add a package or section for referenced types outside the explicitly
+    requested source set.
+33. Use strict centre-aligned columns as the standard for every diagram with a
+    row-and-column layout. Make cross-column and secondary relationships
+    non-ranking and let an invisible two-dimensional ranking grid determine the
+    class positions. Repeat vertical hidden rail links when additional layout
+    weight is required.
+34. Centre vertical associations, inheritance relationships and dependencies on
+    the class centres whenever the source and target occupy the same column.
+    Treat the visible relationship as a ranking lane inside an odd-sized bundle
+    with hidden parallel rails, and vary its declaration position until the
+    renderer assigns it to the centre lane. Verify the actual SVG endpoints.
+35. If a constructor or method parameter list exceeds 100 characters, retain
+    the longest prefix of complete parameters that fits within 100 characters
+    including the final ", ...", and replace all remaining parameters with
+    "...". Never cut a parameter name or type midway.

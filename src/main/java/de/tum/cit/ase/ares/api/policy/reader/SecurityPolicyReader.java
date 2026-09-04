@@ -1,7 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.reader;
 
 import java.nio.file.Path;
-import java.util.Locale;
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
@@ -9,20 +8,19 @@ import javax.annotation.Nonnull;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
-import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 
 /**
- * Abstractr class for reading a SecurityPolicy from a file.
+ * Abstract class for reading a SecurityPolicy from a file.
  * <p>
- * Description: This interface defines the contract for classes that parse and
- * produce a SecurityPolicy from a given file system path. Implementations
+ * Description: This abstract class defines the contract for classes that parse
+ * and produce a SecurityPolicy from a given file system path. Implementations
  * should perform any necessary validation and error handling, and must return a
  * valid SecurityPolicy instance.
  * <p>
- * Design Rationale: Declaring this as a functional interface promotes concise
- * implementations using lambda expressions or method references. It cleanly
+ * Design Rationale: Declaring this as an abstract class lets each format share
+ * the common object-mapper handling while supplying its own parsing. It cleanly
  * separates the concern of reading and parsing security policies from the rest
  * of the system.
  *
@@ -81,30 +79,13 @@ public abstract class SecurityPolicyReader {
 		Path effectiveRoot = projectRootPath == null
 				? Objects.requireNonNullElse(absolutePolicy.getParent(), absolutePolicy)
 				: projectRootPath;
-		return switch (getFileExtension(securityPolicyFilePath)) {
-		case "yaml", "yml" -> SecurityPolicyYAMLReader.yamlBuilder().yamlMapper(new YAMLMapper())
-				.projectRootPath(effectiveRoot).build();
-		default -> throw new IllegalArgumentException(
-				Messages.localized("policy.reader.unsupported.format", getFileExtension(securityPolicyFilePath)));
+		// SecurityPolicyFileFormat.fromPath rejects an unsupported extension, so the
+		// switch over the resolved format is exhaustive and needs no default branch: a
+		// new format is a new enum constant that the compiler forces us to handle here.
+		return switch (SecurityPolicyFileFormat.fromPath(securityPolicyFilePath)) {
+		case YAML -> SecurityPolicyYAMLReader.yamlBuilder().yamlMapper(new YAMLMapper()).projectRootPath(effectiveRoot)
+				.build();
 		};
-	}
-
-	/**
-	 * Returns the lowercase-free file extension (the part after the last
-	 * {@code '.'} in the file name), or the empty string if there is none. Replaces
-	 * Guava's {@code MoreFiles.getFileExtension}.
-	 *
-	 * @param path the path whose file extension is returned.
-	 * @return the file extension without the leading dot, or {@code ""}.
-	 */
-	private static String getFileExtension(Path path) {
-		Path fileName = path.getFileName();
-		if (fileName == null) {
-			return "";
-		}
-		String name = fileName.toString();
-		int lastDotIndex = name.lastIndexOf('.');
-		return (lastDotIndex == -1) ? "" : name.substring(lastDotIndex + 1).toLowerCase(Locale.ROOT);
 	}
 	// </editor-fold>
 }

@@ -74,6 +74,20 @@ public class SecurityPolicyReaderAndDirector {
 	// <editor-fold desc="Constructors">
 
 	/**
+	 * Constructs a SecurityPolicyReaderAndDirector with only a policy file.
+	 * <p>
+	 * The project folder defaults to null, which the director resolves to the
+	 * current working directory, and the within-path defaults to the empty path.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param securityPolicyFilePath the path to the security policy file.
+	 */
+	public SecurityPolicyReaderAndDirector(@Nullable Path securityPolicyFilePath) {
+		this(securityPolicyFilePath, null, Path.of(""));
+	}
+
+	/**
 	 * Constructs a SecurityPolicyReaderAndDirector instance.
 	 *
 	 * @since 2.0.0
@@ -153,8 +167,10 @@ public class SecurityPolicyReaderAndDirector {
 	@Nonnull
 	public SecurityPolicyReaderAndDirector writeTestCasesAndContinue(Path testFolderPath) {
 		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
+		// Fail closed, symmetrically with writeTestCases and executeTestCases: an
+		// out-of-order call must not silently write zero security tests.
 		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
-				"securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
+				"createTestCases() must be called before writeTestCasesAndContinue()").writeTestCases(testFolderPath);
 		return this;
 	}
 	// </editor-fold>
@@ -168,16 +184,11 @@ public class SecurityPolicyReaderAndDirector {
 	 * @author Markus Paulsen
 	 */
 	public SecurityPolicyReaderAndDirector executeTestCases() {
+		// Fail closed: executing before createTestCases must not silently run zero
+		// security tests, which in a security boundary is the dangerous direction.
 		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
-				"securityTestCaseFactoryAndBuilder must not be null").executeTestCases();
+				"createTestCases() must be called before executeTestCases()").executeTestCases();
 		return this;
-	}
-
-	/** Returns the created factory for diagnostics and integration verification. */
-	@Nonnull
-	public TestCaseAbstractFactoryAndBuilder factoryAndBuilder() {
-		return Objects.requireNonNull(securityTestCaseFactoryAndBuilder,
-				"createTestCases() must be called before factoryAndBuilder()");
 	}
 	// </editor-fold>
 

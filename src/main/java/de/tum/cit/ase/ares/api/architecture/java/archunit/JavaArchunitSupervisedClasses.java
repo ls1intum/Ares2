@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -66,6 +67,30 @@ public final class JavaArchunitSupervisedClasses {
 	 * itself ended up rather than from a literal, which the copy would rewrite.
 	 */
 	private static final String COPIED_API_PREFIX = copiedApiPrefix();
+
+	/**
+	 * The Java reserved words a package segment may not be, spelled out rather than
+	 * imported. The shared name rules are not on the classpath once this class is
+	 * copied into the supervised project, so the package rule is duplicated here.
+	 */
+	private static final String JAVA_RESERVED_WORD = "abstract|assert|boolean|break|byte|case|catch|char|class|const|continue|default|do|double|else|enum|extends|false|final|finally|float|for|goto|if|implements|import|instanceof|int|interface|long|native|new|null|package|private|protected|public|return|short|static|strictfp|super|switch|synchronized|this|throw|throws|transient|true|try|void|volatile|while|_";
+
+	/**
+	 * One identifier character, excluding the identifier-ignorable ones. Controls
+	 * and zero-width characters pass {@link Character#isJavaIdentifierPart} but
+	 * would corrupt a generated source or hide one allowlist entry behind another.
+	 */
+	private static final String JAVA_IDENTIFIER_PART = "[\\p{javaJavaIdentifierPart}&&[^\\p{javaIdentifierIgnorable}]]";
+
+	/** One package segment: an identifier that is not a reserved word. */
+	private static final String JAVA_IDENTIFIER = "(?!(?:" + JAVA_RESERVED_WORD + ")(?=\\.|$))"
+			+ "\\p{javaJavaIdentifierStart}" + JAVA_IDENTIFIER_PART + "*";
+
+	/**
+	 * A dot-separated Java package name, the same shape the shared rules require.
+	 */
+	private static final Pattern PACKAGE_PATTERN = Pattern
+			.compile("^" + JAVA_IDENTIFIER + "(?:\\." + JAVA_IDENTIFIER + ")*$");
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -155,9 +180,33 @@ public final class JavaArchunitSupervisedClasses {
 						+ "theSupervisedCodeUsesTheFollowingPackage in a security policy, and what may be "
 						+ "imported in theFollowingResourceAccessesArePermitted.");
 			}
+			requireDeclarablePackage(javaClass, declared);
 			permissions.add(new PackagePermission(declared));
 		}
 		return permissions;
+	}
+
+	/**
+	 * Refuses a compiled package name that is not a valid Java package before it is
+	 * turned into a permission.
+	 * <p>
+	 * The permission record no longer checks the shape, and this value comes from
+	 * student-controlled bytecode and is written into generated sources and
+	 * allowlists, where a control or zero-width character corrupts the artefact.
+	 * The check duplicates the shared package rule because the rules class is not
+	 * copied beside this one.
+	 *
+	 * @param javaClass the compiled class the package was read from
+	 * @param declared  the package name to check
+	 * @throws SecurityException when the name is not a valid Java package
+	 */
+	private static void requireDeclarablePackage(JavaClass javaClass, String declared) {
+		if (!PACKAGE_PATTERN.matcher(declared).matches()) {
+			throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): "
+					+ "The compiled class " + javaClass.getName() + " declares the package " + declared
+					+ ", which is not a valid Java package name. Such a name would corrupt the generated test "
+					+ "sources and allowlists it would be written into.");
+		}
 	}
 	// </editor-fold>
 

@@ -35,6 +35,7 @@ import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.JavaNameRules;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
@@ -80,6 +81,30 @@ public class JavaCreator implements Creator {
 	public JavaCreator(@Nonnull BuildToolConfiguration buildConfiguration) {
 		this.buildConfiguration = java.util.Objects.requireNonNull(buildConfiguration,
 				"buildConfiguration must not be null");
+	}
+
+	/**
+	 * Returns the creator to use once the build configuration has been discovered.
+	 * <p>
+	 * A framework-default {@code JavaCreator} is created without a build
+	 * configuration and is rebound here to the one discovered for the run. A
+	 * caller-supplied subclass is returned unchanged, so a custom creator injected
+	 * through the director builder is never silently replaced; such a subclass can
+	 * override this method if it does want to be rebound. This lets the director
+	 * ask each collaborator to configure itself, rather than inspecting its
+	 * concrete type.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param buildConfiguration the discovered build configuration; must not be
+	 *                           null.
+	 * @return the creator bound to the configuration, or this instance when it is a
+	 *         custom subclass.
+	 */
+	@Nonnull
+	public JavaCreator withBuildConfiguration(@Nonnull BuildToolConfiguration buildConfiguration) {
+		java.util.Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
+		return getClass() == JavaCreator.class ? new JavaCreator(buildConfiguration) : this;
 	}
 
 	// Within-run memoisation of the resolved classpath, imported JavaClasses and
@@ -153,13 +178,14 @@ public class JavaCreator implements Creator {
 			@Nonnull Set<String> supervisedPackages, @Nonnull List<String> testClasses) {
 		return Stream.of(
 				// Essential packages are allowed to do anything
-				essentialPackages.stream().filter(p -> p != null && !p.isBlank()).map(PackagePermission::new),
+				essentialPackages.stream().filter(p -> p != null && !p.isBlank())
+						.map(JavaCreator::validatedAllowedPackage),
 				// The permitted packages are allowed
 				resourceAccesses.regardingPackageImports().stream(),
 				supervisedPackages.isEmpty()
 						? (packageName != null && !packageName.isBlank()
 								? (supervisedScopeWasDerived ? Stream.<PackagePermission>empty()
-										: Stream.of(new PackagePermission(packageName)))
+										: Stream.of(validatedAllowedPackage(packageName)))
 								: Stream.<PackagePermission>empty())
 						: supervisedPackages.stream().map(JavaCreator::derivedAllowedPackage),
 				/*
@@ -172,6 +198,25 @@ public class JavaCreator implements Creator {
 				}).filter(p -> !p.isBlank()).distinct().map(JavaCreator::testClassAllowedPackage)
 
 		).flatMap(Function.identity()).collect(Collectors.toSet());
+	}
+
+	/**
+	 * Validates a derived package name for Java and wraps it in a
+	 * {@link PackagePermission}.
+	 * <p>
+	 * The permission record itself only checks that the name is non-null; the
+	 * language-specific syntax check lives here, at the Java-specific site that
+	 * derives the permission, so an invalid scanned or essential package aborts
+	 * test-case creation exactly as the record constructor used to.
+	 *
+	 * @param packageName the package name to validate; must be a valid Java
+	 *                    package.
+	 * @return a package permission for the validated name.
+	 */
+	@Nonnull
+	private static PackagePermission validatedAllowedPackage(@Nonnull String packageName) {
+		JavaNameRules.INSTANCE.requirePackage("allowed package", packageName);
+		return new PackagePermission(packageName);
 	}
 
 	/**
@@ -191,8 +236,9 @@ public class JavaCreator implements Creator {
 	 * packages, are declarations rather than readings and stay authoritative.
 	 *
 	 * @param packageName the derived package name
-	 * @return the permission for it
-	 * @throws SecurityException when a reserved namespace lies below it
+	 * @return the validated permission for it
+	 * @throws SecurityException        when a reserved namespace lies below it
+	 * @throws IllegalArgumentException when the name is not a valid Java package
 	 */
 	@Nonnull
 	private static PackagePermission derivedAllowedPackage(@Nonnull String packageName) {
@@ -200,7 +246,7 @@ public class JavaCreator implements Creator {
 		if (reserved != null) {
 			throw new SecurityException(Messages.localized("security.policy.ancestor.package", packageName, reserved));
 		}
-		return new PackagePermission(packageName);
+		return validatedAllowedPackage(packageName);
 	}
 
 	/**
@@ -216,7 +262,8 @@ public class JavaCreator implements Creator {
 	 * wider than a test class needs, so it is reported rather than made fatal.
 	 *
 	 * @param packageName the package of a test class
-	 * @return the permission for it
+	 * @return the validated permission for it
+	 * @throws IllegalArgumentException when the name is not a valid Java package
 	 */
 	@Nonnull
 	private static PackagePermission testClassAllowedPackage(@Nonnull String packageName) {
@@ -227,7 +274,7 @@ public class JavaCreator implements Creator {
 					+ "themselves rather than their package, or declare what may be imported in "
 					+ "theFollowingResourceAccessesArePermitted.", packageName, reserved);
 		}
-		return new PackagePermission(packageName);
+		return validatedAllowedPackage(packageName);
 	}
 
 	/**
@@ -248,12 +295,29 @@ public class JavaCreator implements Creator {
 				essentialClasses.stream(),
 				// Test classes are allowed to do anything
 				testClasses.stream()).flatMap(Function.identity())
-				// Filter null/blank before constructing ClassPermission: its constructor throws
-				// on null/blank, so an unfiltered bad entry (e.g. from a scanned project or a
-				// malformed policy) would otherwise abort all test-case creation. Mirrors
+				// Filter null/blank before validating: an unfiltered bad entry (e.g. from a
+				// scanned project or a malformed policy) would otherwise abort all test-case
+				// creation. The Java class-path syntax is then checked at this Java-specific
+				// site rather than in the language-agnostic ClassPermission record. Mirrors
 				// prepareAllowedPackages.
-				.filter(java.util.Objects::nonNull).filter(className -> !className.isBlank()).map(ClassPermission::new)
-				.collect(Collectors.toSet());
+				.filter(java.util.Objects::nonNull).filter(className -> !className.isBlank())
+				.map(JavaCreator::validatedAllowedClass).collect(Collectors.toSet());
+	}
+
+	/**
+	 * Validates a class name for Java and wraps it in a {@link ClassPermission}.
+	 * <p>
+	 * The permission record itself only checks that the name is non-null and
+	 * non-blank; the language-specific class-path syntax check lives here, at the
+	 * Java-specific site that derives the permission.
+	 *
+	 * @param className the class name to validate; must be a valid Java class path.
+	 * @return a class permission for the validated name.
+	 */
+	@Nonnull
+	private static ClassPermission validatedAllowedClass(@Nonnull String className) {
+		JavaNameRules.INSTANCE.requireClassPath("className", className);
+		return new ClassPermission(className);
 	}
 
 	/**
