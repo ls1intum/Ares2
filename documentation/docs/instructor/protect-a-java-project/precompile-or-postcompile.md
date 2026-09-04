@@ -101,7 +101,7 @@ trusts and be trusted along with it.
 | **`ProgrammingLanguageConfiguration`** | An enum encoding the combination of build tool, static analysis framework and runtime enforcement mechanism. |
 | **Classifier (`:agent`)** | A Maven/Gradle coordinate qualifier selecting a variant of an artefact. The `:agent` classifier selects the agent JAR, which carries the `Premain-Class` manifest entry and needs no repackaging. |
 | **Reserved package** | A package prefix that student code may not declare, because Ares trusts that identity by name. Enforced by the build, see the reserved-package step. |
-| **Phobos** | A test-case family covering the file-system, network and timeout domains. Ares 2.1.3 generates Phobos cases but does not yet dispatch them from the in-process execution path, so a policy timeout does not bound a test today. Use `@StrictTimeout` for a deadline. |
+| **Phobos** | A test-case family covering the file-system, network and timeout domains. Ares 2.1.4 generates Phobos cases but does not yet dispatch them from the in-process execution path, so a policy timeout does not bound a test today. Use `@StrictTimeout` for a deadline. |
 | **`@StrictTimeout`** | The annotation that bounds test execution. Applied to a test class or method, and unchanged from Ares 1 apart from its package. |
 | **Positive / negative control** | The paired checks of the two controls above: one permitted operation that must succeed, one forbidden operation that must be rejected. Neither alone demonstrates that enforcement works. |
 

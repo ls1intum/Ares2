@@ -31,7 +31,7 @@ Add the following to the `dependencies` section of your `pom.xml`:
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.1.3</version>
+    <version>2.1.4</version>
 </dependency>
 ```
 
@@ -40,7 +40,7 @@ Add the following to the `dependencies` section of your `pom.xml`:
 Add the following to the `dependencies` section of your `build.gradle`:
 
 ```groovy
-implementation("de.tum.cit.ase:ares:2.1.3")
+implementation("de.tum.cit.ase:ares:2.1.4")
 ```
 
 ## Related dependencies
