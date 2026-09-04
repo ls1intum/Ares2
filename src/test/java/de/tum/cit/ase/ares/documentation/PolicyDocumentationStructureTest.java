@@ -128,8 +128,8 @@ class PolicyDocumentationStructureTest {
 	@MethodSource("policyPages")
 	void everyPageMarksExactlyOneContiguousSection(Path page) throws IOException {
 		String block = yamlBlockOf(page);
-		long starts = block.lines().filter(line -> line.equals("# policy-focus-start")).count();
-		long ends = block.lines().filter(line -> line.equals("# policy-focus-end")).count();
+		long starts = block.lines().filter(line -> "# policy-focus-start".equals(line)).count();
+		long ends = block.lines().filter(line -> "# policy-focus-end".equals(line)).count();
 
 		assertEquals(1, starts, page + " must mark exactly one section of the example.");
 		assertEquals(1, ends, page + " must close its marked section exactly once.");
@@ -229,11 +229,11 @@ class PolicyDocumentationStructureTest {
 		int last = -1;
 		boolean inside = false;
 		for (String line : yamlBlockOf(page).lines().toList()) {
-			if (line.equals("# policy-focus-start")) {
+			if ("# policy-focus-start".equals(line)) {
 				inside = true;
 				continue;
 			}
-			if (line.equals("# policy-focus-end")) {
+			if ("# policy-focus-end".equals(line)) {
 				inside = false;
 				continue;
 			}
@@ -268,9 +268,9 @@ class PolicyDocumentationStructureTest {
 		List<String> marked = new ArrayList<>();
 		boolean inside = false;
 		for (String line : block.lines().toList()) {
-			if (line.equals("# policy-focus-start")) {
+			if ("# policy-focus-start".equals(line)) {
 				inside = true;
-			} else if (line.equals("# policy-focus-end")) {
+			} else if ("# policy-focus-end".equals(line)) {
 				inside = false;
 			} else if (inside) {
 				marked.add(line);
