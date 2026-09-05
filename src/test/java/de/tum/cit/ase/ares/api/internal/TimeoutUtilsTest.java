@@ -19,10 +19,16 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.opentest4j.AssertionFailedError;
 
+import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly;
 import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.context.TestContext;
 
 class TimeoutUtilsTest {
+
+	private static final String POLICY_ENABLED = "src/test/resources/de/tum/cit/ase/ares/api/internal/configurationUtils/PolicyPrivilegedExceptionsEnabled.yaml";
+	private static final String POLICY_DISABLED = "src/test/resources/de/tum/cit/ase/ares/api/internal/configurationUtils/PolicyPrivilegedExceptionsDisabled.yaml";
+
 	@Test
 	void timedOutExecutionUsesOneCancellationInterrupt() {
 		Future<?> future = mock(Future.class);
@@ -55,6 +61,58 @@ class TimeoutUtilsTest {
 		}, context));
 
 		assertThat(workerFinished).isTrue();
+	}
+
+	@Test
+	void annotationBasedTimeoutStaysPrivileged() throws Exception {
+		TestContext context = contextFor("annotationTimeoutTarget"); //$NON-NLS-1$
+
+		PrivilegedException failure = assertThrows(PrivilegedException.class,
+				() -> TimeoutUtils.performTimeoutExecution(() -> {
+					Thread.sleep(1000);
+					return null;
+				}, context));
+
+		assertThat(failure.getPriviledgedThrowable().getMessage()).contains("execution timed out after");
+	}
+
+	@Test
+	void policyEnabledTimeoutStaysPrivileged() throws Exception {
+		TestContext context = contextFor("policyEnabledTimeoutTarget"); //$NON-NLS-1$
+
+		PrivilegedException failure = assertThrows(PrivilegedException.class,
+				() -> TimeoutUtils.performTimeoutExecution(() -> {
+					Thread.sleep(1000);
+					return null;
+				}, context));
+
+		assertThat(failure.getPriviledgedThrowable().getMessage()).contains("execution timed out after");
+	}
+
+	@Test
+	void policyDisabledTimeoutStaysNormal() throws Exception {
+		TestContext context = contextFor("policyDisabledTimeoutTarget"); //$NON-NLS-1$
+
+		AssertionFailedError failure = assertThrows(AssertionFailedError.class,
+				() -> TimeoutUtils.performTimeoutExecution(() -> {
+					Thread.sleep(1000);
+					return null;
+				}, context));
+
+		assertThat(failure.getMessage()).contains("execution timed out after");
+	}
+
+	@Test
+	void policyDisabledButAnnotationPresentTimeoutStaysPrivileged() throws Exception {
+		TestContext context = contextFor("policyDisabledButAnnotatedTimeoutTarget"); //$NON-NLS-1$
+
+		PrivilegedException failure = assertThrows(PrivilegedException.class,
+				() -> TimeoutUtils.performTimeoutExecution(() -> {
+					Thread.sleep(1000);
+					return null;
+				}, context));
+
+		assertThat(failure.getPriviledgedThrowable().getMessage()).contains("execution timed out after");
 	}
 
 	@Test
@@ -112,5 +170,34 @@ class TimeoutUtilsTest {
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void strictTimeoutTarget() {
 		// Provides the annotation consumed through the mocked test context.
+	}
+
+	// Reflective use only, through the mocked test context.
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@PrivilegedExceptionsOnly("Annotation message")
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
+	private static void annotationTimeoutTarget() {
+	}
+
+	// Reflective use only, through the mocked test context.
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy(value = POLICY_ENABLED)
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
+	private static void policyEnabledTimeoutTarget() {
+	}
+
+	// Reflective use only, through the mocked test context.
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy(value = POLICY_DISABLED)
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
+	private static void policyDisabledTimeoutTarget() {
+	}
+
+	// Reflective use only, through the mocked test context.
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@PrivilegedExceptionsOnly("Annotation message")
+	@Policy(value = POLICY_DISABLED)
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
+	private static void policyDisabledButAnnotatedTimeoutTarget() {
 	}
 }

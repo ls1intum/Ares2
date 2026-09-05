@@ -123,7 +123,7 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 						.map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
 				this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList(),
 				this.phobosTestCases.stream().map(phobosTestCase -> (JavaPhobosTestCase) phobosTestCase).toList(),
-				testFolderPath);
+				testBehaviorConfiguration(), testFolderPath);
 	}
 	// </editor-fold>
 
