@@ -132,8 +132,9 @@ public final class TimeoutUtils {
 	}
 
 	/**
-	 * Builds the timeout failure, wrapped as privileged when the annotation or the
-	 * active policy says non-privileged detail should stay hidden.
+	 * Builds the timeout failure, wrapped as privileged when the annotation, the
+	 * active policy, or the generated precompile resource says non-privileged
+	 * detail should stay hidden.
 	 *
 	 * @param timeout the exceeded timeout.
 	 * @param context the current test context.
