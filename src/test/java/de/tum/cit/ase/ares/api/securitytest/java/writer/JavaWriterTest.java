@@ -22,6 +22,8 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PrivilegedExceptionsConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 @DisplayName("JavaWriter Tests")
@@ -39,6 +41,7 @@ public class JavaWriterTest {
 	private List<JavaArchitectureTestCase> javaArchitectureTestCases;
 	private List<JavaAOPTestCase> javaAOPTestCases;
 	private List<JavaPhobosTestCase> javaPhobosTestCases;
+	private TestBehaviorConfiguration emptyTestBehaviorConfiguration;
 
 	@TempDir
 	Path tempDir;
@@ -59,6 +62,7 @@ public class JavaWriterTest {
 		javaArchitectureTestCases = List.of(mock(JavaArchitectureTestCase.class), mock(JavaArchitectureTestCase.class));
 		javaAOPTestCases = List.of(mock(JavaAOPTestCase.class), mock(JavaAOPTestCase.class));
 		javaPhobosTestCases = List.of(mock(JavaPhobosTestCase.class), mock(JavaPhobosTestCase.class));
+		emptyTestBehaviorConfiguration = TestBehaviorConfiguration.builder().build();
 	}
 
 	@Nested
@@ -89,7 +93,8 @@ public class JavaWriterTest {
 			assertThrows(IllegalStateException.class,
 					() -> javaWriter.writeTestCases(BuildMode.MAVEN, architectureMode, aopMode, essentialPackages,
 							essentialClasses, testClasses, packageName, mainClassInPackageName,
-							javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases, tempDir));
+							javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases,
+							emptyTestBehaviorConfiguration, tempDir));
 		}
 
 		@Test
@@ -105,7 +110,8 @@ public class JavaWriterTest {
 			NullPointerException failure = assertThrows(NullPointerException.class,
 					() -> javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 							essentialClasses, testClasses, packageName, mainClassInPackageName,
-							javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases, null));
+							javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases,
+							emptyTestBehaviorConfiguration, null));
 			assertEquals("testFolderPath must not be null", failure.getMessage());
 			verifyNoInteractions(architectureMode, aopMode);
 		}
@@ -124,7 +130,7 @@ public class JavaWriterTest {
 				// Act
 				List<Path> result = javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
-						javaAOPTestCases, javaPhobosTestCases, tempDir);
+						javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration, tempDir);
 
 				// Assert
 				assertNotNull(result);
@@ -181,7 +187,7 @@ public class JavaWriterTest {
 				// Act
 				List<Path> result = javaWriter.writeTestCases(buildMode, architectureMode, aopMode, emptyPackages,
 						emptyClasses, emptyTestClasses, packageName, mainClassInPackageName, emptyArchTestCases,
-						emptyAOPTestCases, javaPhobosTestCases, tempDir);
+						emptyAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration, tempDir);
 
 				// Assert
 				assertNotNull(result);
@@ -204,7 +210,7 @@ public class JavaWriterTest {
 				// Act
 				javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 						testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases,
-						javaPhobosTestCases, tempDir);
+						javaPhobosTestCases, emptyTestBehaviorConfiguration, tempDir);
 
 				// Assert - verify that merged list contains both essential and test classes
 				verify(aopMode).threePartedFileBody(eq("INSTRUMENTATION"), eq(packageName), argThat(list -> {
@@ -230,8 +236,57 @@ public class JavaWriterTest {
 				assertDoesNotThrow(() -> {
 					javaWriter.writeTestCases(BuildMode.GRADLE, architectureMode, aopMode, essentialPackages,
 							essentialClasses, testClasses, packageName, mainClassInPackageName,
-							javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases, tempDir);
+							javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases,
+							emptyTestBehaviorConfiguration, tempDir);
 				});
+			}
+		}
+
+		@Test
+		@DisplayName("Should write nothing extra when no behavioural category is configured")
+		void shouldWriteNothingExtraWhenTestBehaviorEmpty() {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				List<Path> result = javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+						javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration, tempDir);
+
+				assertEquals(3, result.size());
+				assertFalse(Files.exists(
+						tempDir.resolve("resources").resolve(TestBehaviorConfiguration.GENERATED_RESOURCE_PATH)));
+			}
+		}
+
+		@Test
+		@DisplayName("Should write the generated behavioural-defaults resource when configured")
+		void shouldWriteGeneratedResourceWhenPrivilegedExceptionsConfigured() throws IOException {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+				TestBehaviorConfiguration configured = TestBehaviorConfiguration.builder()
+						.regardingPrivilegedExceptions(
+								PrivilegedExceptionsConfiguration.builder().onlyPrivilegedExceptionsAreReported(true)
+										.theFailureMessageIs("Custom message").build())
+						.build();
+
+				List<Path> result = javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+						javaAOPTestCases, javaPhobosTestCases, configured, tempDir);
+
+				assertEquals(4, result.size());
+				Path written = tempDir.resolve("resources").resolve(TestBehaviorConfiguration.GENERATED_RESOURCE_PATH);
+				assertTrue(Files.exists(written));
+				String content = Files.readString(written);
+				assertTrue(content.contains("regardingPrivilegedExceptions.onlyPrivilegedExceptionsAreReported=true"));
+				assertTrue(content.contains("regardingPrivilegedExceptions.theFailureMessageIs=Custom message"));
 			}
 		}
 	}

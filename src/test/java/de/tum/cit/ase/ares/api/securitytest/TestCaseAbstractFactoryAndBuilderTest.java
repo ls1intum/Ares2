@@ -23,8 +23,10 @@ import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PrivilegedExceptionsConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.Creator;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialClasses;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataReader;
@@ -89,6 +91,8 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		when(mockSupervisedCode.theMainClassInsideThisPackageIs()).thenReturn("Main");
 		when(mockSupervisedCode.theFollowingClassesAreTestClasses()).thenReturn(List.of("TestClass1", "TestClass2"));
 		when(mockSupervisedCode.theFollowingResourceAccessesArePermitted()).thenReturn(mockResourceAccesses);
+		when(mockSupervisedCode.theFollowingTestBehaviorIsConfiguredOrEmpty())
+				.thenReturn(TestBehaviorConfiguration.builder().build());
 	}
 
 	// Concrete implementation for testing the abstract class
@@ -296,7 +300,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 			NullPointerException failure = assertThrows(NullPointerException.class, () -> factory.writeTestCases(null));
 			assertEquals("testFolderPath must not be null", failure.getMessage());
 			verify(mockWriter, never()).writeTestCases(any(), any(), any(), any(), any(), any(), any(), any(), any(),
-					any(), any(), any());
+					any(), any(), any(), any());
 		}
 
 		@Test
@@ -361,6 +365,54 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 			verify(mockCreator).createTestCases(eq(BuildMode.GRADLE), eq(ArchitectureMode.WALA), // default
 					eq(AOPMode.ASPECTJ), anyList(), anyList(), anyList(), anyString(), anyString(), anyList(),
 					anyList(), anyList(), any(ResourceAccesses.class), eq(projectPath), anyBoolean());
+		}
+	}
+
+	@Nested
+	@DisplayName("Behavioural configuration extraction Tests")
+	class BehaviorConfigurationExtractionTests {
+
+		@Test
+		@DisplayName("Extracts the configured behavioural configuration when present")
+		void extractsConfiguredTestBehavior() {
+			PrivilegedExceptionsConfiguration privilegedExceptions = PrivilegedExceptionsConfiguration.builder()
+					.onlyPrivilegedExceptionsAreReported(true).theFailureMessageIs("From the policy").build();
+			TestBehaviorConfiguration configured = TestBehaviorConfiguration.builder()
+					.regardingPrivilegedExceptions(privilegedExceptions).build();
+			when(mockSupervisedCode.theFollowingTestBehaviorIsConfiguredOrEmpty()).thenReturn(configured);
+
+			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter,
+					mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath,
+					BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
+
+			assertSame(configured, factory.testBehaviorConfiguration());
+			// resourceAccesses's own extraction is unaffected by the new field.
+			assertSame(mockResourceAccesses, factory.resourceAccesses());
+		}
+
+		@Test
+		@DisplayName("Falls back to an empty behavioural configuration when the policy has none")
+		void fallsBackToEmptyTestBehaviorWhenPolicyHasNone() {
+			when(mockSupervisedCode.theFollowingTestBehaviorIsConfiguredOrEmpty())
+					.thenReturn(TestBehaviorConfiguration.builder().build());
+
+			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter,
+					mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath,
+					BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
+
+			assertNotNull(factory.testBehaviorConfiguration());
+			assertNull(factory.testBehaviorConfiguration().regardingPrivilegedExceptions());
+		}
+
+		@Test
+		@DisplayName("Falls back to an empty behavioural configuration on the no-policy path")
+		void fallsBackToEmptyTestBehaviorWhenNoPolicy() {
+			TestableFactoryAndBuilder factory = new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter,
+					mockEssentialDataReader, mockProjectScanner, essentialPackagesPath, essentialClassesPath, null,
+					null, null, null, projectPath);
+
+			assertNotNull(factory.testBehaviorConfiguration());
+			assertNull(factory.testBehaviorConfiguration().regardingPrivilegedExceptions());
 		}
 	}
 

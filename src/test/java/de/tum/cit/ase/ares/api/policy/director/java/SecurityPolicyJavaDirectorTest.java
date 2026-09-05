@@ -92,7 +92,7 @@ public class SecurityPolicyJavaDirectorTest {
 
 		supervisedCodeWithValidConfig = new SupervisedCode(
 				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, "de.example.test", "MainClass",
-				List.of("TestClass1", "TestClass2"), validResourceAccesses);
+				List.of("TestClass1", "TestClass2"), validResourceAccesses, null);
 
 		// Note: We cannot create a SupervisedCode with null config directly
 		// because the Record constructor validates parameters.
@@ -105,7 +105,7 @@ public class SecurityPolicyJavaDirectorTest {
 				.regardingThreadCreations(List.of()).regardingPackageImports(List.of()).build();
 
 		return new SupervisedCode(config, "de.example.test", "MainClass", List.of("TestClass1", "TestClass2"),
-				resourceAccesses);
+				resourceAccesses, null);
 	}
 
 	private void setupEssentialDataMocks() {

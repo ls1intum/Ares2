@@ -22,7 +22,7 @@ final class SecurityPolicySchemaValidator {
 	private static final Set<String> SUPERVISED_CODE_FIELDS = Set.of(
 			"theFollowingProgrammingLanguageConfigurationIsUsed", "theSupervisedCodeUsesTheFollowingPackage",
 			"theMainClassInsideThisPackageIs", "theFollowingClassesAreTestClasses",
-			"theFollowingResourceAccessesArePermitted");
+			"theFollowingResourceAccessesArePermitted", "theFollowingTestBehaviorIsConfigured");
 	private static final Set<String> RESOURCE_ACCESS_FIELDS = Set.of("regardingFileSystemInteractions",
 			"regardingNetworkConnections", "regardingCommandExecutions", "regardingThreadCreations",
 			"regardingPackageImports", "regardingTimeouts");
@@ -34,6 +34,9 @@ final class SecurityPolicySchemaValidator {
 	private static final Set<String> THREAD_FIELDS = Set.of("createTheFollowingNumberOfThreads", "ofThisClass");
 	private static final Set<String> PACKAGE_FIELDS = Set.of("importTheFollowingPackage");
 	private static final Set<String> TIMEOUT_FIELDS = Set.of("timeout");
+	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of("regardingPrivilegedExceptions");
+	private static final Set<String> PRIVILEGED_EXCEPTIONS_FIELDS = Set.of("onlyPrivilegedExceptionsAreReported",
+			"theFailureMessageIs");
 
 	private SecurityPolicySchemaValidator() {
 		throw new UnsupportedOperationException("SecurityPolicySchemaValidator is a utility class");
@@ -103,6 +106,21 @@ final class SecurityPolicySchemaValidator {
 		validateObjectArray(resources.get("regardingTimeouts"), "regardingTimeouts", TIMEOUT_FIELDS, TIMEOUT_FIELDS);
 		for (JsonNode permission : resources.get("regardingTimeouts")) {
 			requireIntegral(permission, "timeout", "timeout permission");
+		}
+
+		JsonNode testBehavior = supervisedCode.get("theFollowingTestBehaviorIsConfigured");
+		if (testBehavior != null && !testBehavior.isNull()) {
+			requireObject(testBehavior, "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured",
+					TEST_BEHAVIOR_FIELDS, Set.of());
+			JsonNode privilegedExceptions = testBehavior.get("regardingPrivilegedExceptions");
+			if (privilegedExceptions != null && !privilegedExceptions.isNull()) {
+				String privilegedExceptionsPath = "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured.regardingPrivilegedExceptions";
+				requireObject(privilegedExceptions, privilegedExceptionsPath, PRIVILEGED_EXCEPTIONS_FIELDS,
+						Set.of("onlyPrivilegedExceptionsAreReported"));
+				requireBooleans(privilegedExceptions, PRIVILEGED_EXCEPTIONS_FIELDS, Set.of("theFailureMessageIs"),
+						privilegedExceptionsPath);
+				requireOptionalText(privilegedExceptions, "theFailureMessageIs", privilegedExceptionsPath);
+			}
 		}
 	}
 
