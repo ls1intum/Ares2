@@ -3,8 +3,17 @@
   "extends": [
     "config:recommended"
   ],
+  "description": "internalChecksFilter is strict, which is also the current default, and the Renovate documentation recommends setting it wherever minimumReleaseAge is used. Strict normally stops Renovate creating a branch at all while no candidate version passes the release age check set below, rather than opening a pull request that sits on a pending status check. It governs new branches, so a branch that already exists, or one asked for from the dependency dashboard, is not withdrawn by it.",
   "pinDigests": true,
+  "internalChecksFilter": "strict",
   "packageRules": [
+    {
+      "matchDatasources": [
+        "npm"
+      ],
+      "minimumReleaseAge": "3 days",
+      "description": "Apply a three day release age check to ordinary npm version updates. pnpm 11 refuses to install an npm registry package published less than 24 hours ago and stops 'pnpm install --frozen-lockfile' with ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION; that is the pnpm default and is configured nowhere in this repository. Renovate opened npm updates within hours of the upstream release, so the Documentation CI failed on the install step before it could test whether the update suited the site. Three days clears the 24 hour window with room to spare and leaves time for a compromised release to be reported. It does not remove every such failure, because pnpm also checks the transitive packages recorded in the lockfile and Renovate does not offer those as updates. The check covers the npm datasource only, on purpose: Renovate counts a release whose timestamp it cannot read as not old enough (minimumReleaseAgeBehaviour defaults to timestamp-required), so a repository wide check could hold a Maven or GitHub Actions update back for as long as its timestamp stayed unreadable. Security updates bypass the check and are still offered at once."
+    },
     {
       "matchPackageNames": [
         "net.jqwik:*"
@@ -18,6 +27,16 @@
       ],
       "allowedVersions": "!/-jdk5$/",
       "description": "Negated regex that rejects every version ending in -jdk5, covering both net.bytebuddy:byte-buddy and net.bytebuddy:byte-buddy-agent via the net.bytebuddy:* matcher. Byte Buddy ships a parallel Java-5-bytecode line as distinct Maven versions (e.g. 1.18.10-jdk5, and even 1.18.6-jdk6-jdk5), not as a classifier of the standard version. Because the -jdk5 suffix sorts above the plain release, Renovate would otherwise treat 1.18.10-jdk5 as an upgrade from 1.18.10 and silently swap the standard build for the legacy Java 5 one. Ares compiles to Java 17 and runs on Java 17/21, so it must stay on the standard (unsuffixed) build. This rule blocks only the -jdk5 line; ordinary bumps such as 1.18.x to 1.19.x still flow through."
+    },
+    {
+      "matchDatasources": [
+        "npm"
+      ],
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "allowedVersions": "<7",
+      "description": "Keep typescript below 7. TypeScript 7 is the rewritten compiler, and 7.0 ships no programmatic compiler API for other tools to build on; one is expected in 7.1. The installed @typescript-eslint/parser 8.69.0 does not support it and refuses to load, throwing 'typescript-eslint does not support TS 7.0' while the module is imported, so 'pnpm run lint:code' in the Documentation CI fails before ESLint reads a single file. typescript-eslint tracks its own support in issue 10940. The documentation site lints and type checks against one typescript installation, so ESLint and tsc move together here; Microsoft documents installing 7 beside a TypeScript 6 compatibility package instead, which this site does not do. Reconsider the pin once typescript-eslint supports the TypeScript version you want, then run 'pnpm run lint:code' and 'pnpm run typecheck' in documentation/ before merging."
     }
   ]
 }
