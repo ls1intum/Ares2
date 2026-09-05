@@ -11,7 +11,7 @@ overrides:
   # GHSA-5c6j-r48x-rmvq (RCE via RegExp.flags) and GHSA-qj8w-gfj5-8c6v (CPU exhaustion).
   serialize-javascript: '7.1.1'
   # GHSA-w5hq-g745-h8pq
-  uuid: '14.0.1'
+  uuid: '14.0.2'
 
 # Build scripts are blocked by default in pnpm 11 as a supply-chain safeguard. These three
 # are native/codegen steps that Docusaurus genuinely needs: @swc/core and esbuild back the
