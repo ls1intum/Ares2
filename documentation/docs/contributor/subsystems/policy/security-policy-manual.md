@@ -374,7 +374,7 @@ theFollowingClassesAreTestClasses:
 
 ### 7.7 Test Behaviour Configuration
 
-The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for how a test's own failure is reported to a student, as opposed to which resources code may access. It currently has one category, `regardingPrivilegedExceptions`, mirroring what the `@PrivilegedExceptionsOnly` annotation already controls per test: whether a hidden test that fails for an unrelated reason shows the student its real assertion or exception message, or a generic one instead.
+The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for how Ares reports a test's own failure to a student, as opposed to which resources code can access. It currently has one category, `regardingPrivilegedExceptions`, mirroring what the `@PrivilegedExceptionsOnly` annotation already controls per test. A hidden test that fails for an unrelated reason shows the student its real assertion or exception message, or a generic one instead.
 
 **Field Properties:**
 - **Type:** Object (optional wrapper), containing the optional `regardingPrivilegedExceptions` object
@@ -383,7 +383,7 @@ The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for h
 
 **`regardingPrivilegedExceptions` sub-fields:**
 - `onlyPrivilegedExceptionsAreReported` (boolean, **required** once `regardingPrivilegedExceptions` is present): the policy-wide default. `true` hides a non-privileged failure's real detail from the student; `false` (or omitting the whole category) reports it in full.
-- `theFailureMessageIs` (string, optional): the message shown instead of the real failure detail when the default is enabled. Defaults to `"Test failed."` if omitted or blank, the same default `@PrivilegedExceptionsOnly` itself uses.
+- `theFailureMessageIs` (string, optional): the message shown instead of the real failure detail when the policy enables the default. Defaults to `"Test failed."` if omitted or blank, the same default `@PrivilegedExceptionsOnly` itself uses.
 
 **Example:**
 ```yaml
@@ -393,7 +393,7 @@ theFollowingTestBehaviorIsConfigured:
     theFailureMessageIs: "Something went wrong."
 ```
 
-**Precedence:** a `@PrivilegedExceptionsOnly` annotation directly on a test method or class always wins over this policy default, whether the policy default is enabled or disabled, matching the nearest-annotation-wins precedent used elsewhere in this codebase. This field only takes effect for a test that carries no such annotation of its own.
+**Precedence:** a `@PrivilegedExceptionsOnly` annotation directly on a test method or class always wins over this policy default, whether the policy enables or disables the default, matching the nearest-annotation-wins precedent used elsewhere in this codebase. This field only takes effect for a test that carries no such annotation of its own.
 
 ---
 

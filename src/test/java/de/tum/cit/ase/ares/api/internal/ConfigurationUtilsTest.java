@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Method;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -13,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly;
 import de.tum.cit.ase.ares.api.context.TestContext;
-import de.tum.cit.ase.ares.api.context.TestType;
 
 class ConfigurationUtilsTest {
 
@@ -187,37 +184,6 @@ class ConfigurationUtilsTest {
 	}
 
 	private static TestContext context(Class<?> type, String methodName) throws Exception {
-		Method method = type.getDeclaredMethod(methodName);
-		return new TestContext() {
-			@Override
-			public Optional<Method> testMethod() {
-				return Optional.of(method);
-			}
-
-			@Override
-			public Optional<Class<?>> testClass() {
-				return Optional.of(type);
-			}
-
-			@Override
-			public Optional<Object> testInstance() {
-				return Optional.empty();
-			}
-
-			@Override
-			public Optional<String> displayName() {
-				return Optional.of(methodName);
-			}
-
-			@Override
-			public Optional<AnnotatedElement> annotatedElement() {
-				return Optional.of(method);
-			}
-
-			@Override
-			public Optional<TestType> findTestType() {
-				return Optional.empty();
-			}
-		};
+		return TestContextFixtures.of(type, methodName);
 	}
 }
