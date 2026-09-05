@@ -3,10 +3,12 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 //<editor-fold desc="imports">
 import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnixDomainSocketAddress;
@@ -17,6 +19,7 @@ import java.net.URLConnection;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.NetworkChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Collections;
 import java.util.List;
@@ -874,8 +877,11 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
 		@Nullable
-		String networkIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null
-				: checkIfVariableCriteriaIsViolated(attributes, allowedHosts, allowedPorts,
+		final Object[] peerAttributes = withoutOwnLocalEndpoint(instance, attributes);
+		@Nullable
+		String networkIllegallyInteractedThroughAttribute = (peerAttributes == null || peerAttributes.length == 0)
+				? null
+				: checkIfVariableCriteriaIsViolated(peerAttributes, allowedHosts, allowedPorts,
 						NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughAttribute != null) {
@@ -890,6 +896,108 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			));
 		}
 		// </editor-fold>
+	}
+
+	/**
+	 * Removes the receiver's own local endpoint from the fields about to be checked.
+	 * <p>
+	 * Description: The advice hands every declared field of the receiver to this
+	 * check, and one of them holds the address the socket is bound to locally, for
+	 * example {@code sun.nio.ch.DatagramChannelImpl.localAddress}. The allowlists
+	 * name peers, never local binds, and the local port is drawn afresh on every
+	 * run, so checking it denies the call under any policy. Only values that name
+	 * the receiver's own binding are dropped, and only from this scan: the
+	 * parameters and the remote address are checked before it and are untouched.
+	 *
+	 * @param instance   the receiver of the intercepted call, may be null
+	 * @param attributes its declared field values, may be null
+	 * @return the field values to check, without the local endpoint
+	 * @since 2.1.4
+	 */
+	@Nullable
+	private static Object[] withoutOwnLocalEndpoint(@Nullable Object instance, @Nullable Object[] attributes) {
+		if (instance == null || attributes == null || attributes.length == 0) {
+			return attributes;
+		}
+		SocketAddress localEndpoint = ownLocalEndpoint(instance);
+		if (!(localEndpoint instanceof InetSocketAddress localInetEndpoint)) {
+			return attributes;
+		}
+		Object[] remaining = attributes.clone();
+		for (int i = 0; i < remaining.length; i++) {
+			if (isOwnLocalBinding(localInetEndpoint, remaining[i])) {
+				remaining[i] = null;
+			}
+		}
+		return remaining;
+	}
+
+	/**
+	 * Decides whether a field value records the receiver's own local binding.
+	 * <p>
+	 * Description: A socket keeps more than one note of where it is bound. A
+	 * datagram channel keeps the address it is bound to now and the one it was
+	 * bound to before it connected, the unspecified address on the same port. A
+	 * value counts as the receiver's own binding when it sits on the receiver's
+	 * local port and is either that same endpoint or an unspecified address, which
+	 * names no peer at all. A concrete address on that port that is not the
+	 * receiver's own survives and is still checked, and so does an unspecified
+	 * address on any other port.
+	 *
+	 * @param localEndpoint where the receiver is bound
+	 * @param attribute     one field value of the receiver
+	 * @return {@code true} when the value is the receiver's own binding
+	 * @since 2.1.4
+	 */
+	private static boolean isOwnLocalBinding(@Nonnull InetSocketAddress localEndpoint, @Nullable Object attribute) {
+		if (!(attribute instanceof InetSocketAddress candidate)) {
+			return false;
+		}
+		if (candidate.getPort() != localEndpoint.getPort()) {
+			return false;
+		}
+		if (candidate.equals(localEndpoint)) {
+			return true;
+		}
+		InetAddress address = candidate.getAddress();
+		return address != null && address.isAnyLocalAddress();
+	}
+
+	/**
+	 * Reads the address a socket or channel is bound to locally.
+	 * <p>
+	 * Description: Asks the receiver where it is bound. A receiver of a type that
+	 * has no local address reports none without being touched. One that has such an
+	 * address has its runtime type verified before the accessor is called, because
+	 * these accessors can be overridden and the receiver may be a subclass; an
+	 * untrusted one is rejected rather than asked. A receiver that is not bound
+	 * reports none.
+	 *
+	 * @param instance the receiver of the intercepted call
+	 * @return its local address, or {@code null} when it has none
+	 * @since 2.1.4
+	 */
+	@Nullable
+	private static SocketAddress ownLocalEndpoint(@Nonnull Object instance) {
+		if (!(instance instanceof NetworkChannel || instance instanceof DatagramSocket
+				|| instance instanceof Socket || instance instanceof ServerSocket)) {
+			return null;
+		}
+		requireTrustedRuntimeType(instance);
+		try {
+			if (instance instanceof NetworkChannel networkChannel) {
+				return networkChannel.getLocalAddress();
+			}
+			if (instance instanceof DatagramSocket datagramSocket) {
+				return datagramSocket.getLocalSocketAddress();
+			}
+			if (instance instanceof Socket socket) {
+				return socket.getLocalSocketAddress();
+			}
+			return ((ServerSocket) instance).getLocalSocketAddress();
+		} catch (IOException | RuntimeException ignored) {
+			return null;
+		}
 	}
 
 	/**
