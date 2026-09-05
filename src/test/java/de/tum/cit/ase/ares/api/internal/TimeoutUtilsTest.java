@@ -29,7 +29,7 @@ class TimeoutUtilsTest {
 		ExecutorService executorService = mock(ExecutorService.class);
 		when(executorService.isTerminated()).thenReturn(true);
 
-		TimeoutUtils.terminateTimedOutExecution(future, executorService, Duration.ofSeconds(1),
+		TimeoutUtils.terminateTimedOutExecution(future, executorService, Duration.ofSeconds(1).toNanos(),
 				exitCode -> fail("Interruption-aware execution must not request fatal termination")); //$NON-NLS-1$
 
 		InOrder cancellationOrder = inOrder(executorService, future);
@@ -55,6 +55,143 @@ class TimeoutUtilsTest {
 		}, context));
 
 		assertThat(workerFinished).isTrue();
+	}
+
+	@Test
+	void interruptionAwareExecutionHasTimeForBoundedFrameworkCleanup() throws Exception {
+		AtomicBoolean workerFinished = new AtomicBoolean();
+		AtomicInteger requestedExitCode = new AtomicInteger(-1);
+		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
+
+		assertThrows(AssertionFailedError.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+			try {
+				while (!Thread.currentThread().isInterrupted()) {
+					Thread.onSpinWait();
+				}
+			} finally {
+				long cleanupDeadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(200);
+				while (System.nanoTime() < cleanupDeadline) {
+					Thread.onSpinWait();
+				}
+				workerFinished.set(true);
+			}
+			return null;
+		}, context, Duration.ofSeconds(1), requestedExitCode::set));
+
+		assertThat(workerFinished).isTrue();
+		assertThat(requestedExitCode).hasValue(-1);
+	}
+
+	@Test
+	void resolvesInstructorConfiguredTerminationGracePeriod() throws Exception {
+		TestContext context = contextFor("strictTimeoutWithCustomTerminationGrace"); //$NON-NLS-1$
+
+		Optional<Duration> terminationGracePeriod = TimeoutUtils.findTerminationGracePeriod(context);
+
+		assertThat(terminationGracePeriod).contains(Duration.ofSeconds(10));
+	}
+
+	@Test
+	void unconfiguredTerminationGraceResolvesToNothingSoTheCallerKeepsItsOwn() throws Exception {
+		// The attribute defaults to a negative value rather than to 50 ms on purpose:
+		// the Jupiter path allows 50 ms and the jqwik path a second, so an attribute
+		// default would have silently imposed one of them on the other. Absent has to
+		// stay distinguishable from configured for both to keep their own.
+		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
+
+		assertThat(TimeoutUtils.findTerminationGracePeriod(context)).isEmpty();
+	}
+
+	@Test
+	void zeroTerminationGraceIsConfiguredRatherThanAbsent() throws Exception {
+		// Zero means "terminate at once", which is a decision, not an omission.
+		TestContext context = contextFor("strictTimeoutWithZeroTerminationGrace"); //$NON-NLS-1$
+
+		assertThat(TimeoutUtils.findTerminationGracePeriod(context)).contains(Duration.ZERO);
+	}
+
+	@Test
+	void configuredTerminationGraceOverridesTheCallersDefault() throws Exception {
+		// The third argument is the caller's default, not the period to use: an
+		// instructor who configured one must win over it. Thirty seconds stands in for
+		// a caller default long enough that taking it would be unmistakable, and the
+		// annotation configures ten milliseconds. The timeout itself is 500 ms rather
+		// than the 20 ms the other fixtures use, so the worker has certainly entered
+		// its loop before it is cancelled; a worker cancelled before it starts never
+		// ignores the interruption and would produce no fatal termination at all.
+		AtomicBoolean workerStarted = new AtomicBoolean();
+		AtomicBoolean releaseWorker = new AtomicBoolean();
+		AtomicInteger requestedExitCode = new AtomicInteger(-1);
+		TestContext context = contextFor("strictTimeoutWithShortTerminationGrace"); //$NON-NLS-1$
+		long startedAt = System.nanoTime();
+		try {
+			assertThrows(FatalTermination.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+				workerStarted.set(true);
+				while (!releaseWorker.get()) {
+					Thread.onSpinWait();
+				}
+				return null;
+			}, context, Duration.ofSeconds(30), exitCode -> {
+				requestedExitCode.set(exitCode);
+				throw new FatalTermination();
+			}));
+		} finally {
+			releaseWorker.set(true);
+		}
+
+		assertThat(workerStarted).isTrue();
+		assertThat(requestedExitCode).hasValue(124);
+		// Well inside the caller default, so this fails rather than merely slows down
+		// if the configured period were ignored.
+		assertThat(Duration.ofNanos(System.nanoTime() - startedAt)).isLessThan(Duration.ofSeconds(10));
+	}
+
+	@Test
+	void subMillisecondTerminationGraceKeepsItsPrecision() throws Exception {
+		// Resolved and awaited in nanoseconds. Rounded down to milliseconds, as the
+		// wait once was, this would become the zero that means "terminate at once".
+		TestContext context = contextFor("strictTimeoutWithSubMillisecondTerminationGrace"); //$NON-NLS-1$
+
+		assertThat(TimeoutUtils.findTerminationGracePeriod(context)).contains(Duration.ofNanos(500_000));
+	}
+
+	@Test
+	void terminationGraceTooLargeToWaitOnIsRefusedWhenTheAnnotationIsRead() throws Exception {
+		// Refused here, before the worker starts, rather than overflowing inside the
+		// wait: an ArithmeticException thrown there would escape before the fatal
+		// terminator runs and leave a contaminated fork alive.
+		assertThrows(IllegalArgumentException.class,
+				() -> TimeoutUtils.findTerminationGracePeriod(contextFor("strictTimeoutWithOverflowingGrace"))); //$NON-NLS-1$
+		assertThrows(IllegalArgumentException.class,
+				() -> TimeoutUtils.findTerminationGracePeriod(contextFor("strictTimeoutWithTwoDayGrace"))); //$NON-NLS-1$
+	}
+
+	@Test
+	void anUnusableCallerDefaultIsRefusedBeforeTheWorkerStarts() throws Exception {
+		// The default is a public parameter, so "every caller in this repository passes
+		// a constant" is not an invariant. An unusable one must be refused on the way
+		// in, where it costs a clear exception, rather than after cancellation, where
+		// it would escape before the fatal terminator and leave the fork alive.
+		AtomicBoolean executionStarted = new AtomicBoolean();
+		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
+
+		assertThrows(IllegalArgumentException.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+			executionStarted.set(true);
+			return null;
+		}, context, Duration.ofSeconds(Long.MAX_VALUE), exitCode -> fail("must not terminate the fork"))); //$NON-NLS-1$
+
+		assertThat(executionStarted).isFalse();
+	}
+
+	@Test
+	void jupiterKeepsItsFiftyMillisecondDefault() throws Exception {
+		// The counterpart of the one second JqwikStrictTimeoutExtensionTest pins. The
+		// two defaults exist separately, which is the whole reason the attribute has an
+		// unset state rather than a numeric default.
+		java.lang.reflect.Field field = TimeoutUtils.class.getDeclaredField("DEFAULT_TERMINATION_GRACE_PERIOD"); //$NON-NLS-1$
+		field.setAccessible(true);
+
+		assertThat((Duration) field.get(null)).isEqualTo(Duration.ofMillis(50));
 	}
 
 	@Test
@@ -112,5 +249,36 @@ class TimeoutUtilsTest {
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void strictTimeoutTarget() {
 		// Provides the annotation consumed through the mocked test context.
+	}
+
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS, terminationGrace = 10, terminationGraceUnit = TimeUnit.SECONDS)
+	private static void strictTimeoutWithCustomTerminationGrace() {
+		// Provides the custom termination grace consumed through the mocked context.
+	}
+
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS, terminationGrace = 0)
+	private static void strictTimeoutWithZeroTerminationGrace() {
+		// Provides the configured zero grace consumed through the mocked context.
+	}
+
+	@StrictTimeout(value = 500, unit = TimeUnit.MILLISECONDS, terminationGrace = 10, terminationGraceUnit = TimeUnit.MILLISECONDS)
+	private static void strictTimeoutWithShortTerminationGrace() {
+		// Provides a grace far below the caller default, so which of the two was used
+		// is observable, with a timeout long enough for the worker to have started.
+	}
+
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS, terminationGrace = 500, terminationGraceUnit = TimeUnit.MICROSECONDS)
+	private static void strictTimeoutWithSubMillisecondTerminationGrace() {
+		// Provides a grace below a millisecond, which must survive resolution.
+	}
+
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS, terminationGrace = Long.MAX_VALUE, terminationGraceUnit = TimeUnit.DAYS)
+	private static void strictTimeoutWithOverflowingGrace() {
+		// Provides a grace no Duration can hold.
+	}
+
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS, terminationGrace = 2, terminationGraceUnit = TimeUnit.DAYS)
+	private static void strictTimeoutWithTwoDayGrace() {
+		// Provides a grace a Duration holds but the bound refuses.
 	}
 }
