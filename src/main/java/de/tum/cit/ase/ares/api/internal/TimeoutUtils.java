@@ -131,6 +131,14 @@ public final class TimeoutUtils {
 		}
 	}
 
+	/**
+	 * Builds the timeout failure, wrapped as privileged when the annotation or the
+	 * active policy says non-privileged detail should stay hidden.
+	 *
+	 * @param timeout the exceeded timeout.
+	 * @param context the current test context.
+	 * @return the failure to throw.
+	 */
 	private static AssertionFailedError generateTimeoutFailure(Duration timeout, TestContext context) {
 		var failure = localizedFailure("timeout.failure_message", formatDuration(timeout)); //$NON-NLS-1$
 		if (ConfigurationUtils.getNonprivilegedFailureMessage(context).isPresent()) {

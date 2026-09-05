@@ -462,6 +462,24 @@ public class SecurityPolicyYAMLReaderTest {
 		}
 
 		@Test
+		@DisplayName("Should default a whitespace-only failure message, not reject it")
+		void blankFailureMessageDefaultsInsteadOfBeingRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-blank-message.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing() + """
+
+					  theFollowingTestBehaviorIsConfigured:
+					    regardingPrivilegedExceptions:
+					      onlyPrivilegedExceptionsAreReported: true
+					      theFailureMessageIs: "   "
+					""");
+
+			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
+
+			assertEquals("Test failed.", policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured()
+					.regardingPrivilegedExceptions().theFailureMessageIs());
+		}
+
+		@Test
 		@DisplayName("Should reject a missing onlyPrivilegedExceptionsAreReported field")
 		void missingRequiredFieldIsRejected(@TempDir Path tempDir) throws IOException {
 			Path policyFile = tempDir.resolve("privileged-missing-required.yaml");

@@ -177,7 +177,6 @@ class TimeoutUtilsTest {
 	@PrivilegedExceptionsOnly("Annotation message")
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void annotationTimeoutTarget() {
-		// Provides the annotation consumed through the mocked test context.
 	}
 
 	// Reflective use only, through the mocked test context.
@@ -185,7 +184,6 @@ class TimeoutUtilsTest {
 	@Policy(value = POLICY_ENABLED)
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void policyEnabledTimeoutTarget() {
-		// Provides the annotation consumed through the mocked test context.
 	}
 
 	// Reflective use only, through the mocked test context.
@@ -193,7 +191,6 @@ class TimeoutUtilsTest {
 	@Policy(value = POLICY_DISABLED)
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void policyDisabledTimeoutTarget() {
-		// Provides the annotation consumed through the mocked test context.
 	}
 
 	// Reflective use only, through the mocked test context.
@@ -202,6 +199,5 @@ class TimeoutUtilsTest {
 	@Policy(value = POLICY_DISABLED)
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void policyDisabledButAnnotatedTimeoutTarget() {
-		// Provides the annotation consumed through the mocked test context.
 	}
 }

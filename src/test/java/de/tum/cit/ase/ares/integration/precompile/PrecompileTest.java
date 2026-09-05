@@ -90,6 +90,11 @@ public class PrecompileTest {
 				.filter(path -> path.getFileName().toString().equals("TestBehaviorConfiguration.properties"))
 				.findFirst()
 				.orElseThrow(() -> new AssertionError("No generated test-behaviour resource among: " + written));
+		assertEquals(
+				projectFolderPath.resolve("src/test/resources")
+						.resolve(TestBehaviorConfiguration.GENERATED_RESOURCE_PATH),
+				generatedResource,
+				"the resource must land under src/test/resources, the directory Maven actually copies onto the test classpath");
 		assertTrue(Files.exists(generatedResource));
 		String content = Files.readString(generatedResource);
 		assertTrue(content.contains("regardingPrivilegedExceptions.onlyPrivilegedExceptionsAreReported=true"));

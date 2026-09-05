@@ -4,24 +4,15 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Wrapper for the behavioural test-lifecycle features a policy configures.
- * <p>
- * Description: Parallel to {@link ResourceAccesses} on {@link SupervisedCode},
- * but for features that are test-lifecycle/reporting concerns rather than
- * resource-access permissions. Holds one optional category per behavioural
- * feature; this record currently exposes only
- * {@link #regardingPrivilegedExceptions()}, with room for sibling categories
- * later.
- * <p>
- * Design Rationale: A policy omitting this wrapper entirely, or omitting one of
- * its categories, parses and behaves exactly as if that feature were never
- * mentioned - every field here is optional on purpose.
+ * Wraps the behavioural test-lifecycle settings a policy configures, parallel
+ * to {@link ResourceAccesses} on {@link SupervisedCode}. Exposes one category
+ * today; every field is optional, and omitting one means that feature was never
+ * configured.
  *
  * @since 2.1.5
  * @author Luka Petrovic
- * @param regardingPrivilegedExceptions the policy-level default for
- *                                      privileged-exceptions-only reporting;
- *                                      null when not configured.
+ * @param regardingPrivilegedExceptions the policy-level default; null when not
+ *                                      configured.
  */
 public record TestBehaviorConfiguration(@Nullable PrivilegedExceptionsConfiguration regardingPrivilegedExceptions) {
 
@@ -52,6 +43,7 @@ public record TestBehaviorConfiguration(@Nullable PrivilegedExceptionsConfigurat
 	 * @author Luka Petrovic
 	 */
 	public static class Builder {
+		/** The category to build with, or null to build with none configured. */
 		@Nullable
 		private PrivilegedExceptionsConfiguration regardingPrivilegedExceptions;
 

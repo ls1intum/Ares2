@@ -152,20 +152,35 @@ public class JavaWriter implements Writer {
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 
+	/**
+	 * Resolves the resources directory sibling to a source root such as
+	 * {@code src/test/java}, replacing its final segment with {@code resources} -
+	 * the Maven/Gradle convention. A too-shallow path (e.g. a bare project root)
+	 * gets resources placed directly beneath it instead.
+	 *
+	 * @param testFolderPath the source root, or project root when too shallow; must
+	 *                       not be null.
+	 * @return the resolved resources directory.
+	 */
 	@Nonnull
 	private Path resolveResourcesFolderPath(@Nonnull Path testFolderPath) {
 		int nameCount = testFolderPath.getNameCount();
 		if (testFolderPath.toString().isEmpty() || nameCount < 3) {
-			// Too shallow to strip the trailing two segments (e.g. the project root in
-			// precompile mode): place the resources folder directly beneath it.
 			return testFolderPath.resolve("resources");
 		}
-		Path parentPath = testFolderPath.subpath(0, nameCount - 2);
+		Path parentPath = testFolderPath.subpath(0, nameCount - 1);
 		Path root = testFolderPath.getRoot();
 		return (root == null) ? Paths.get(parentPath.toString(), "resources")
 				: Paths.get(root.toString(), parentPath.toString(), "resources");
 	}
 
+	/**
+	 * Copies the localisation files into the resources directory sibling to
+	 * {@code testFolderPath}.
+	 *
+	 * @param testFolderPath the source root; must not be null.
+	 * @return the copied files' paths.
+	 */
 	@Nonnull
 	private List<Path> createLocalisationFiles(@Nonnull Path testFolderPath) {
 		Path resourcesFolderPath = resolveResourcesFolderPath(testFolderPath);
@@ -174,20 +189,15 @@ public class JavaWriter implements Writer {
 	}
 
 	/**
-	 * Creates the generated, project-level behavioural-defaults resource
-	 * {@code ConfigurationUtils}/{@code TimeoutUtils} read back in a precompile
-	 * deployment, where nothing dynamically re-reads the original policy file after
-	 * this generator process ends. Writes nothing at all when no behavioural
-	 * category was configured.
+	 * Writes the generated behavioural-defaults resource {@code ConfigurationUtils}
+	 * reads at precompile runtime; writes nothing when no category is set.
 	 *
 	 * @since 2.1.5
 	 * @author Luka Petrovic
-	 * @param testBehaviorConfiguration the behavioural configuration to serialise;
-	 *                                  must not be null.
-	 * @param testFolderPath            the directory of the project; must not be
+	 * @param testBehaviorConfiguration the configuration to serialise; must not be
 	 *                                  null.
-	 * @return a list containing the written file's path, or an empty list when
-	 *         nothing was configured.
+	 * @param testFolderPath            the project directory; must not be null.
+	 * @return the written file's path, or an empty list if nothing was configured.
 	 */
 	@Nonnull
 	private List<Path> createTestBehaviorFiles(@Nonnull TestBehaviorConfiguration testBehaviorConfiguration,

@@ -119,7 +119,7 @@ final class SecurityPolicySchemaValidator {
 						Set.of("onlyPrivilegedExceptionsAreReported"));
 				requireBooleans(privilegedExceptions, PRIVILEGED_EXCEPTIONS_FIELDS, Set.of("theFailureMessageIs"),
 						privilegedExceptionsPath);
-				requireOptionalText(privilegedExceptions, "theFailureMessageIs", privilegedExceptionsPath);
+				requireOptionalTextAllowingBlank(privilegedExceptions, "theFailureMessageIs", privilegedExceptionsPath);
 			}
 		}
 	}
@@ -181,6 +181,20 @@ final class SecurityPolicySchemaValidator {
 		JsonNode node = parent.get(field);
 		if (node != null && !node.isNull() && (!node.isTextual() || node.textValue().isBlank())) {
 			fail(path + "." + field + " must be a non-blank string or null");
+		}
+	}
+
+	/**
+	 * Like {@link #requireOptionalText}, but tolerates a blank string: for a field
+	 * whose record-level default (a compact constructor) already treats blank the
+	 * same as absent, rejecting blank here would be stricter than the value it
+	 * gates.
+	 */
+	private static void requireOptionalTextAllowingBlank(JsonNode parent, String field, String path)
+			throws MismatchedInputException {
+		JsonNode node = parent.get(field);
+		if (node != null && !node.isNull() && !node.isTextual()) {
+			fail(path + "." + field + " must be a string or null");
 		}
 	}
 

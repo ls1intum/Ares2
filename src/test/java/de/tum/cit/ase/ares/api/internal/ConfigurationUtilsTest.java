@@ -4,13 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly;
 import de.tum.cit.ase.ares.api.context.TestContext;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 
 class ConfigurationUtilsTest {
 
@@ -177,6 +182,34 @@ class ConfigurationUtilsTest {
 
 		assertTrue(message.isPresent());
 		assertEquals("Enclosing message", message.get());
+	}
+
+	@Test
+	void explicitlyDisabledPolicyWinsOverAnEnabledGeneratedResource() throws Exception {
+		writeGeneratedResource("regardingPrivilegedExceptions.onlyPrivilegedExceptionsAreReported=true\n"
+				+ "regardingPrivilegedExceptions.theFailureMessageIs=Generated resource message\n");
+
+		Optional<String> message = ConfigurationUtils
+				.getNonprivilegedFailureMessage(context(PolicyDisabledFixture.class));
+
+		assertFalse(message.isPresent());
+	}
+
+	private Path generatedResourcePath;
+
+	private void writeGeneratedResource(String content) throws IOException {
+		generatedResourcePath = Path.of("target/test-classes")
+				.resolve(TestBehaviorConfiguration.GENERATED_RESOURCE_PATH);
+		Files.createDirectories(generatedResourcePath.getParent());
+		Files.writeString(generatedResourcePath, content);
+	}
+
+	@AfterEach
+	void deleteGeneratedResource() throws IOException {
+		if (generatedResourcePath != null) {
+			Files.deleteIfExists(generatedResourcePath);
+			generatedResourcePath = null;
+		}
 	}
 
 	private static TestContext context(Class<?> type) throws Exception {

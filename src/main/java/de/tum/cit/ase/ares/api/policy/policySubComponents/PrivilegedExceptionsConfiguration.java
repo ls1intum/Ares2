@@ -65,7 +65,9 @@ public record PrivilegedExceptionsConfiguration(boolean onlyPrivilegedExceptions
 	 * @author Luka Petrovic
 	 */
 	public static class Builder {
+		/** The on/off switch to build with. */
 		private boolean onlyPrivilegedExceptionsAreReported;
+		/** The failure message to build with, or null to accept the default. */
 		@Nullable
 		private String theFailureMessageIs;
 

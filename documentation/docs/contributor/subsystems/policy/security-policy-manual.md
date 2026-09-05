@@ -386,6 +386,7 @@ The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for h
 - `theFailureMessageIs` (string, optional): the message shown instead of the real failure detail when the policy enables the default. Defaults to `"Test failed."` if omitted or blank, the same default `@PrivilegedExceptionsOnly` itself uses.
 
 **Example:**
+
 ```yaml
 theFollowingTestBehaviorIsConfigured:
   regardingPrivilegedExceptions:

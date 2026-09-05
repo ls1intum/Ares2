@@ -32,7 +32,11 @@ import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
 @API(status = Status.INTERNAL)
 public final class ConfigurationUtils {
 
+	/** Properties key naming whether the generated resource enables the feature. */
 	private static final String PRIVILEGED_EXCEPTIONS_ENABLED_KEY = "regardingPrivilegedExceptions.onlyPrivilegedExceptionsAreReported";
+	/**
+	 * Properties key naming the generated resource's configured failure message.
+	 */
 	private static final String PRIVILEGED_EXCEPTIONS_MESSAGE_KEY = "regardingPrivilegedExceptions.theFailureMessageIs";
 
 	private ConfigurationUtils() {
@@ -67,7 +71,10 @@ public final class ConfigurationUtils {
 	 * dynamic re-read of the policy YAML named by {@code @Policy}, for a
 	 * postcompile deployment where that file is still resolvable; a generated,
 	 * project-level resource, for a precompile deployment where nothing dynamically
-	 * resolves a policy any more.
+	 * resolves a policy any more. Once a dynamic policy applies, its verdict is
+	 * final and never falls through to the generated resource, even when the
+	 * verdict is "disabled" - falling through there would let a stale resource
+	 * silently override an explicit disable.
 	 *
 	 * @param context the current test context
 	 * @return the configured message, if privileged-exceptions-only reporting is
@@ -79,38 +86,39 @@ public final class ConfigurationUtils {
 		if (fromAnnotation.isPresent()) {
 			return fromAnnotation;
 		}
-		Optional<String> fromDynamicPolicy = resolveFromDynamicPolicy(context);
-		if (fromDynamicPolicy.isPresent()) {
-			return fromDynamicPolicy;
+		Optional<Path> dynamicPolicyPath = activeDynamicPolicyPath(context);
+		if (dynamicPolicyPath.isPresent()) {
+			SecurityPolicy securityPolicy = SecurityPolicyReader.selectSecurityPolicyReader(dynamicPolicyPath.get())
+					.readSecurityPolicyFrom(dynamicPolicyPath.get());
+			return privilegedExceptionsMessageFrom(securityPolicy);
 		}
 		return resolveFromGeneratedResource();
 	}
 
 	/**
-	 * Resolves the policy-level default by re-reading the policy YAML named by
-	 * {@code @Policy}, exactly as
-	 * {@code JupiterSecurityExtension}/{@code JqwikSecurityExtension} already do at
-	 * real test-run time - skipping {@code SecurityPolicyDirector}, since nothing
-	 * here needs test-case creation.
+	 * Resolves the file path of the policy YAML dynamically active for this test,
+	 * exactly as {@code JupiterSecurityExtension}/{@code JqwikSecurityExtension}
+	 * already do at real test-run time - skipping {@code SecurityPolicyDirector},
+	 * since nothing here needs test-case creation.
 	 *
 	 * @param context the current test context
-	 * @return the configured message, if the policy effectively enables the feature
+	 * @return the active policy's path, or empty when no policy dynamically applies
 	 */
-	private static Optional<String> resolveFromDynamicPolicy(TestContext context) {
+	private static Optional<Path> activeDynamicPolicyPath(TestContext context) {
 		Optional<Policy> policyAnnotation = TestContextUtils.findAnnotationIn(context, Policy.class);
-		if (policyAnnotation.isEmpty() || !policyAnnotation.get().activated()) {
+		if (policyAnnotation.isEmpty() || !policyAnnotation.get().activated()
+				|| policyAnnotation.get().value().isBlank()) {
 			return Optional.empty();
 		}
-		Policy policy = policyAnnotation.get();
-		if (policy.value().isBlank()) {
-			return Optional.empty();
-		}
-		Path policyPath = JupiterSecurityExtension.testAndGetPolicyValue(policy);
-		SecurityPolicy securityPolicy = SecurityPolicyReader.selectSecurityPolicyReader(policyPath)
-				.readSecurityPolicyFrom(policyPath);
-		return privilegedExceptionsMessageFrom(securityPolicy);
+		return Optional.of(JupiterSecurityExtension.testAndGetPolicyValue(policyAnnotation.get()));
 	}
 
+	/**
+	 * Extracts the effective privileged-exceptions message from a resolved policy.
+	 *
+	 * @param securityPolicy the policy to read; must not be null.
+	 * @return the configured message, if the policy enables the feature.
+	 */
 	@Nonnull
 	private static Optional<String> privilegedExceptionsMessageFrom(SecurityPolicy securityPolicy) {
 		SupervisedCode supervisedCode = securityPolicy.regardingTheSupervisedCode();

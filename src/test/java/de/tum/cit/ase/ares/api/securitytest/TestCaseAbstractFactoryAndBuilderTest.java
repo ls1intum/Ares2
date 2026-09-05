@@ -386,7 +386,6 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 					BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
 
 			assertSame(configured, factory.testBehaviorConfiguration());
-			// resourceAccesses's own extraction is unaffected by the new field.
 			assertSame(mockResourceAccesses, factory.resourceAccesses());
 		}
 
