@@ -546,6 +546,8 @@
 								<include>**/*.cfg</include>
 								<include>**/*.so</include>
 								<include>**/*.sh</include>
+								<include>**/*.provenance</include>
+								<include>**/*.c</include>
 								<include>**/META-INF/**</include>
 							</includes>
 						</configuration>

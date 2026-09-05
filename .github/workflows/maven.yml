@@ -48,6 +48,43 @@ jobs:
       - name: Build
         run: mvn clean package -DskipTests -Pwithout-quality-gates
 
+  # `libnetblocker.so` is checked in already compiled and no Maven build recompiles it, so
+  # only this job notices it falling behind the `netblocker.c` beside it. Packaging is
+  # repeated here because verifying the checkout says nothing about what Maven puts in the
+  # jar a consuming project actually loads.
+  netblocker:
+    name: Netblocker Digests And Behaviour
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Verify the shipped library against its recorded digests and behaviour
+        run: bash tools/netblocker/build-netblocker.sh --check
+
+      # `clean` so the jar checked below cannot be one a cache restored.
+      - name: Package the jar to be checked
+        run: mvn clean package -DskipTests -Pwithout-quality-gates
+
+      # The checker takes one explicit path, so the version comes from the POM rather than a
+      # glob that could match two jars and hide which one was checked.
+      - name: Verify the packaged jar carries this checkout's library, source and provenance
+        run: |
+          version="$(mvn -q -DforceStdout help:evaluate -Dexpression=project.version)"
+          bash tools/netblocker/build-netblocker.sh --check-jar "target/ares-${version}.jar"
+
   static-analysis:
     name: Static Code Analysis
     needs: build
