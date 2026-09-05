@@ -283,6 +283,12 @@ regardingTheSupervisedCode:
     # REQUIRED list: Timeouts (can be empty array)
     regardingTimeouts:
       - timeout: 10000                               # REQUIRED (milliseconds)
+
+  # OPTIONAL: Behavioural test-lifecycle defaults, see 7.7
+  theFollowingTestBehaviorIsConfigured:
+    regardingPrivilegedExceptions:
+      onlyPrivilegedExceptionsAreReported: true      # REQUIRED within this block
+      theFailureMessageIs: "Test failed."            # OPTIONAL, defaults as shown
 ```
 
 ### 7.3 Configuration Options
@@ -363,6 +369,31 @@ theFollowingClassesAreTestClasses:
 **Matching:** an entry matches a class name **exactly**, or matches a nested class of it on the `$` boundary. So `"com.instructor.ExerciseTest"` covers `com.instructor.ExerciseTest$Inner`, while never matching the unrelated `com.instructor.ExerciseTestOther`. The same comparison is used by the static architecture rules and by the runtime advice, so the behaviour is identical in both layers.
 
 > **Package names and package prefixes do not work here, and are not harmless.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package; it matches a class literally named `com.instructor`, which does not exist, so it exempts nothing. The likely symptom is that your own test classes are treated as supervised code and your assertions start tripping the policy, if they fall within the supervised scope. Worse, the entry is not inert: Ares derives a permitted package from every entry by stripping the last dotted component, so `"com.instructor"` permits imports from the whole `com` prefix. List each test class by its exact fully qualified name.
+
+---
+
+### 7.7 Test Behaviour Configuration
+
+The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for how a test's own failure is reported to a student, as opposed to which resources code may access. It currently has one category, `regardingPrivilegedExceptions`, mirroring what the `@PrivilegedExceptionsOnly` annotation already controls per test: whether a hidden test that fails for an unrelated reason shows the student its real assertion or exception message, or a generic one instead.
+
+**Field Properties:**
+- **Type:** Object (optional wrapper), containing the optional `regardingPrivilegedExceptions` object
+- **Required:** No. A policy omitting this field entirely, or omitting `regardingPrivilegedExceptions` inside it, behaves exactly as if the feature were never mentioned; no student-visible behaviour changes for a policy written before this field existed.
+- **Description:** Policy-wide defaults for test-lifecycle reporting behaviour, currently limited to privileged-exceptions-only reporting
+
+**`regardingPrivilegedExceptions` sub-fields:**
+- `onlyPrivilegedExceptionsAreReported` (boolean, **required** once `regardingPrivilegedExceptions` is present): the policy-wide default. `true` hides a non-privileged failure's real detail from the student; `false` (or omitting the whole category) reports it in full.
+- `theFailureMessageIs` (string, optional): the message shown instead of the real failure detail when the default is enabled. Defaults to `"Test failed."` if omitted or blank, the same default `@PrivilegedExceptionsOnly` itself uses.
+
+**Example:**
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingPrivilegedExceptions:
+    onlyPrivilegedExceptionsAreReported: true
+    theFailureMessageIs: "Something went wrong."
+```
+
+**Precedence:** a `@PrivilegedExceptionsOnly` annotation directly on a test method or class always wins over this policy default, whether the policy default is enabled or disabled, matching the nearest-annotation-wins precedent used elsewhere in this codebase. This field only takes effect for a test that carries no such annotation of its own.
 
 ---
 

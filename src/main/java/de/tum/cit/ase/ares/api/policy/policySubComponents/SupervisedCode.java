@@ -172,7 +172,8 @@ public record SupervisedCode(
 		private ResourceAccesses theFollowingResourceAccessesArePermitted;
 
 		/**
-		 * Constructs a new Builder instance.
+		 * The behavioural test-lifecycle configuration to build with, or null to build
+		 * with none configured.
 		 *
 		 * @since 2.1.5
 		 */
