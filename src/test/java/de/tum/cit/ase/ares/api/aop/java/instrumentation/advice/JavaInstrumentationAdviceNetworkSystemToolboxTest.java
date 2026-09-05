@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.FileDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -21,6 +22,7 @@ import java.net.URLConnection;
 import java.net.UnixDomainSocketAddress;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.nio.channels.DatagramChannel;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -109,6 +111,91 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		} finally {
 			resetSettings();
 		}
+	}
+
+	@Test
+	void withoutOwnLocalEndpoint_dropsEveryNoteOfTheReceiversOwnBinding() throws Exception {
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			channel.connect(new InetSocketAddress("127.0.0.1", 12345));
+			InetSocketAddress boundTo = (InetSocketAddress) channel.getLocalAddress();
+			InetSocketAddress boundBeforeConnecting = new InetSocketAddress("0.0.0.0", boundTo.getPort());
+			InetSocketAddress peer = new InetSocketAddress("127.0.0.1", 12345);
+
+			Object[] remaining = withoutOwnLocalEndpoint(channel,
+					new Object[] { boundTo, boundBeforeConnecting, peer });
+
+			assertNull(remaining[0], "The address the receiver is bound to is not a peer");
+			assertNull(remaining[1], "The address it was bound to before connecting is not a peer either");
+			assertEquals(peer, remaining[2], "The peer must survive and stay checkable");
+		}
+	}
+
+	@Test
+	void withoutOwnLocalEndpoint_keepsAPeerOnADifferentPort() throws Exception {
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			channel.bind(new InetSocketAddress(0));
+			InetSocketAddress boundTo = (InetSocketAddress) channel.getLocalAddress();
+			InetSocketAddress peer = new InetSocketAddress(boundTo.getAddress(), boundTo.getPort() + 1);
+
+			Object[] remaining = withoutOwnLocalEndpoint(channel, new Object[] { peer });
+
+			assertEquals(peer, remaining[0], "A peer on a port of its own must never be dropped");
+		}
+	}
+
+	@Test
+	void withoutOwnLocalEndpoint_keepsAConcreteForeignAddressOnTheSameLocalPort() throws Exception {
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			channel.bind(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0));
+			InetSocketAddress boundTo = (InetSocketAddress) channel.getLocalAddress();
+			InetSocketAddress foreign = new InetSocketAddress(InetAddress.getByName("127.0.0.2"), boundTo.getPort());
+
+			Object[] remaining = withoutOwnLocalEndpoint(channel, new Object[] { foreign });
+
+			assertEquals(foreign, remaining[0],
+					"A concrete address that is not the receiver's own must survive, even on the same port");
+		}
+	}
+
+	@Test
+	void withoutOwnLocalEndpoint_keepsAnUnspecifiedAddressOnAnotherPort() throws Exception {
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			channel.bind(new InetSocketAddress(0));
+			InetSocketAddress boundTo = (InetSocketAddress) channel.getLocalAddress();
+			InetSocketAddress elsewhere = new InetSocketAddress("0.0.0.0", boundTo.getPort() + 1);
+
+			Object[] remaining = withoutOwnLocalEndpoint(channel, new Object[] { elsewhere });
+
+			assertEquals(elsewhere, remaining[0],
+					"An unspecified address on another port is not this receiver's binding");
+		}
+	}
+
+	@Test
+	void ownLocalEndpoint_refusesToAskAnUntrustedReceiver() throws Exception {
+		DatagramSocket studentDefined = new DatagramSocket((SocketAddress) null) {
+			@Override
+			public SocketAddress getLocalSocketAddress() {
+				throw new IllegalStateException("student code must never be asked");
+			}
+		};
+
+		Method ownLocalEndpoint = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("ownLocalEndpoint", Object.class);
+		ownLocalEndpoint.setAccessible(true);
+
+		InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
+				() -> ownLocalEndpoint.invoke(null, studentDefined));
+		assertTrue(thrown.getCause() instanceof SecurityException,
+				() -> "A receiver Ares cannot trust must be rejected rather than asked, but was: " + thrown.getCause());
+		studentDefined.close();
+	}
+
+	private static Object[] withoutOwnLocalEndpoint(Object instance, Object[] attributes) throws Exception {
+		Method method = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("withoutOwnLocalEndpoint",
+				Object.class, Object[].class);
+		method.setAccessible(true);
+		return (Object[]) method.invoke(null, instance, attributes);
 	}
 
 	@Test
