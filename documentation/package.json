@@ -45,7 +45,7 @@
         "@types/react": "19.2.18",
         "@typescript-eslint/eslint-plugin": "8.69.0",
         "@typescript-eslint/parser": "8.69.0",
-        "eslint": "10.8.0",
+        "eslint": "10.9.1",
         "mdast-util-to-string": "^4.0.0",
         "npm-check-updates": "23.1.0",
         "remark-directive": "^4.0.0",
