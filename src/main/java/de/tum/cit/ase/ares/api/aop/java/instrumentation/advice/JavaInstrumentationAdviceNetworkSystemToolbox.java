@@ -250,23 +250,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		if (value instanceof SocketAddress socketAddress) {
 			requireTrustedRuntimeType(value);
-			String socketAddressAsString = socketAddress.toString();
-			int delimiter = socketAddressAsString.lastIndexOf(':');
-			if (delimiter > 0 && delimiter + 1 < socketAddressAsString.length()) {
-				String host = socketAddressAsString.substring(0, delimiter).replace("/", "");
-				try {
-					int port = Integer.parseInt(socketAddressAsString.substring(delimiter + 1));
-					return new NetworkTarget(host, port);
-				} catch (NumberFormatException ignored) {
-					// Fall through to the unparsed-string backstop below.
-				}
-			}
-			// Fail closed (I-110): an unrecognised SocketAddress subtype (e.g. any future
-			// address family), or one whose toString() doesn't parse as host:port, must
-			// still produce a target so the allow-list can reject it - matching the
-			// established out-of-range-port pattern in portSuffixToTarget. Returning null
-			// here would fail open by skipping the check entirely for this operation.
-			return new NetworkTarget(socketAddressAsString, -1);
+			return socketAddressToTarget(socketAddress);
 		}
 		// HttpRequest is in the java.net.http module which may not be visible from
 		// the bootstrap class-loader. Use reflection to avoid a hard dependency.
@@ -293,7 +277,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		if (value instanceof URLConnection urlConnection) {
 			requireTrustedRuntimeType(value);
-			return variableToTarget(urlConnection.getURL());
+			return variableToTarget(urlOfConnection(urlConnection));
 		}
 		if (value instanceof DatagramPacket datagramPacket) {
 			requireTrustedRuntimeType(value);
@@ -343,6 +327,103 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			return stringToHostPortTarget(str);
 		}
 		return null;
+	}
+
+	/**
+	 * Resolves a socket address that is neither an internet nor a Unix domain
+	 * address.
+	 * <p>
+	 * Description: Reads a host and a port out of the address's own text. An
+	 * address that renders no endpoint still becomes a target, so the allow-list
+	 * rejects it, unless it renders nothing at all, in which case it is a marker
+	 * object rather than an address and yields none.
+	 *
+	 * @param socketAddress the address to resolve
+	 * @return the endpoint it names, or {@code null} when it names none
+	 * @since 2.1.4
+	 */
+	@Nullable
+	private static NetworkTarget socketAddressToTarget(@Nonnull SocketAddress socketAddress) {
+		String socketAddressAsString = socketAddress.toString();
+		int delimiter = socketAddressAsString.lastIndexOf(':');
+		if (delimiter > 0 && delimiter + 1 < socketAddressAsString.length()) {
+			String host = socketAddressAsString.substring(0, delimiter).replace("/", "");
+			try {
+				int port = Integer.parseInt(socketAddressAsString.substring(delimiter + 1));
+				return new NetworkTarget(host, port);
+			} catch (NumberFormatException ignored) {
+				return unparsedSocketAddressToTarget(socketAddress, socketAddressAsString);
+			}
+		}
+		return unparsedSocketAddressToTarget(socketAddress, socketAddressAsString);
+	}
+
+	/**
+	 * Decides what an address whose text is no {@code host:port} resolves to.
+	 * <p>
+	 * Description: A future address family still becomes a target, so the
+	 * allow-list rejects it (I-110); returning none would skip the check. A marker
+	 * object is different: it carries no endpoint, and {@link #carriesNoEndpoint}
+	 * recognises it, so it yields none rather than a target no policy could name.
+	 *
+	 * @param socketAddress         the address to resolve
+	 * @param socketAddressAsString its already computed text
+	 * @return a rejectable target, or {@code null} for a marker object
+	 * @since 2.1.4
+	 */
+	@Nullable
+	private static NetworkTarget unparsedSocketAddressToTarget(@Nonnull SocketAddress socketAddress,
+			@Nonnull String socketAddressAsString) {
+		if (carriesNoEndpoint(socketAddress, socketAddressAsString)) {
+			return null;
+		}
+		return new NetworkTarget(socketAddressAsString, -1);
+	}
+
+	/**
+	 * Decides whether an address is a marker object rather than an endpoint.
+	 * <p>
+	 * Description: An address renders its endpoint; a marker object renders the
+	 * default {@code Object} text, its class name and an identity hash.
+	 * {@code java.net.DatagramSocket.NO_DELEGATE}, which every
+	 * {@code MulticastSocket} constructor hands to this advice, is such a marker.
+	 * Making it a target denies the type outright instead of checking it, because
+	 * the hash differs per run and no policy can name it.
+	 *
+	 * @param socketAddress         the address to judge
+	 * @param socketAddressAsString its already computed text
+	 * @return {@code true} when the value names no endpoint
+	 * @since 2.1.4
+	 */
+	private static boolean carriesNoEndpoint(@Nonnull SocketAddress socketAddress,
+			@Nonnull String socketAddressAsString) {
+		String defaultText = socketAddress.getClass().getName() + "@"
+				+ Integer.toHexString(System.identityHashCode(socketAddress));
+		return defaultText.equals(socketAddressAsString);
+	}
+
+	/**
+	 * Reads the URL of a connection without letting its own failure escape.
+	 * <p>
+	 * Description: An HTTPS connection reads its URL through an inner connection
+	 * that exists only once the connection is set up, and raises a
+	 * {@link NullPointerException} before then. That exception would leave this
+	 * advice and surface in the code under test as a fault of that code. No
+	 * endpoint is skipped by returning none here: nothing has been sent or received
+	 * yet, and the operations that do perform input or output are intercepted
+	 * separately and resolve the URL then.
+	 *
+	 * @param urlConnection the connection to read
+	 * @return its URL, or {@code null} when it cannot be read yet
+	 * @since 2.1.4
+	 */
+	@Nullable
+	private static URL urlOfConnection(@Nonnull URLConnection urlConnection) {
+		try {
+			return urlConnection.getURL();
+		} catch (RuntimeException ignored) {
+			return null;
+		}
 	}
 
 	@Nullable

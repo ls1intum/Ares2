@@ -112,6 +112,79 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 	}
 
 	@Test
+	void socketAddressToTarget_yieldsNoTargetForAMarkerAddress() throws Exception {
+		SocketAddress marker = new SocketAddress() {
+			private static final long serialVersionUID = 1L;
+		};
+
+		Method socketAddressToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("socketAddressToTarget", SocketAddress.class);
+		socketAddressToTarget.setAccessible(true);
+
+		assertNull(socketAddressToTarget.invoke(null, marker),
+				"An address that renders only its class name and identity hash names no endpoint,"
+						+ " so it must not become a target no policy could ever name");
+	}
+
+	@Test
+	void socketAddressToTarget_stillRejectsAnUnknownAddressFamily() throws Exception {
+		SocketAddress unknownFamily = new SocketAddress() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public String toString() {
+				return "some-future-address-family";
+			}
+		};
+
+		Method socketAddressToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("socketAddressToTarget", SocketAddress.class);
+		socketAddressToTarget.setAccessible(true);
+		Object target = socketAddressToTarget.invoke(null, unknownFamily);
+		assertNotNull(target,
+				"An address that renders an endpoint must still produce a target so the" + " allow-list rejects it");
+
+		Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
+		toDisplayString.setAccessible(true);
+		assertEquals("some-future-address-family:-1", toDisplayString.invoke(target));
+	}
+
+	@Test
+	void urlOfConnection_yieldsNoUrlWhenTheConnectionCannotReportOneYet() throws Exception {
+		URLConnection notReadyYet = new URLConnection(URI.create("https://example.org/path").toURL()) {
+			@Override
+			public void connect() {
+				// A connection that is never opened by this test.
+			}
+
+			@Override
+			public URL getURL() {
+				throw new NullPointerException("delegate is null");
+			}
+		};
+
+		Method urlOfConnection = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("urlOfConnection", URLConnection.class);
+		urlOfConnection.setAccessible(true);
+
+		assertNull(urlOfConnection.invoke(null, notReadyYet),
+				"A connection that cannot report its URL yet must not let its own failure escape into"
+						+ " the code under test");
+	}
+
+	@Test
+	void urlOfConnection_stillReportsTheUrlOfAReadyConnection() throws Exception {
+		URLConnection ready = URI.create("https://example.org/path").toURL().openConnection();
+
+		Method urlOfConnection = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("urlOfConnection", URLConnection.class);
+		urlOfConnection.setAccessible(true);
+		Object url = urlOfConnection.invoke(null, ready);
+		assertNotNull(url, "A connection that can report its URL must still be resolved and checked");
+		assertEquals("example.org", ((URL) url).getHost());
+	}
+
+	@Test
 	void toTarget_extractsHostAndPortFromInetSocketAddress() throws Exception {
 		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
 				Object.class);
