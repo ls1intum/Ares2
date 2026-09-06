@@ -35,7 +35,7 @@ First, add the AspectJ compiler plugin:
 ```gradle
 plugins {
     id 'java'
-    id 'io.freefair.aspectj.post-compile-weaving' version '9.2.0'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.5.0'
 }
 ```
 
@@ -397,7 +397,7 @@ import org.gradle.process.CommandLineArgumentProvider
 
 plugins {
     id 'java'
-    id 'io.freefair.aspectj.post-compile-weaving' version '9.2.0'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.5.0'
 }
 
 ext {

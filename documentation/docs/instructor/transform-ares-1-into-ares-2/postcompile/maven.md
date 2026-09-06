@@ -119,7 +119,7 @@ Put the agent and the AspectJ runtime at a path the build knows:
 <plugin>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-dependency-plugin</artifactId>
-    <version>3.9.0</version>
+    <version>3.11.0</version>
     <executions>
         <execution>
             <id>copy-ares-runtime-jars</id>
@@ -161,7 +161,7 @@ Attach the agent:
 <plugin>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-surefire-plugin</artifactId>
-    <version>3.5.4</version>
+    <version>3.6.0</version>
     <configuration>
         <argLine>
             @{argLine}
@@ -491,7 +491,7 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.9.0</version>
+                <version>3.11.0</version>
                 <executions>
                     <execution>
                         <id>copy-ares-runtime-jars</id>
@@ -528,7 +528,7 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.4</version>
+                <version>3.6.0</version>
                 <configuration>
                     <argLine>
                         @{argLine}
