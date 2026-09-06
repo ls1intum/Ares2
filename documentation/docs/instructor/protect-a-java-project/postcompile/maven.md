@@ -76,7 +76,7 @@ There is no repository step for Maven: the super-POM already defines Central at 
 <plugin>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-dependency-plugin</artifactId>
-    <version>3.9.0</version>
+    <version>3.11.0</version>
     <executions>
         <execution>
             <id>copy-ares-runtime-jars</id>
@@ -120,7 +120,7 @@ The alternative some guides use, pointing `-javaagent` at `${settings.localRepos
 <plugin>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-surefire-plugin</artifactId>
-    <version>3.5.4</version>
+    <version>3.6.0</version>
     <configuration>
         <argLine>
             @{argLine}
@@ -448,7 +448,7 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.9.0</version>
+                <version>3.11.0</version>
                 <executions>
                     <execution>
                         <id>copy-ares-runtime-jars</id>
@@ -485,7 +485,7 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.4</version>
+                <version>3.6.0</version>
                 <configuration>
                     <argLine>
                         @{argLine}
