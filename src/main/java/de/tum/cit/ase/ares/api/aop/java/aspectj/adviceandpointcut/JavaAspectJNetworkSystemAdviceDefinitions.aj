@@ -292,7 +292,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 *
 	 * @param socketAddress the address to resolve
 	 * @return the endpoint it names, or {@code null} when it names none
-	 * @since 2.1.4
+	 * @since 2.1.5
 	 */
 	@Nullable
 	private static NetworkTarget socketAddressToTarget(@Nonnull SocketAddress socketAddress) {
@@ -321,7 +321,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * @param socketAddress         the address to resolve
 	 * @param socketAddressAsString its already computed text
 	 * @return a rejectable target, or {@code null} for a marker object
-	 * @since 2.1.4
+	 * @since 2.1.5
 	 */
 	@Nullable
 	private static NetworkTarget unparsedSocketAddressToTarget(@Nonnull SocketAddress socketAddress,
@@ -345,7 +345,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * @param socketAddress         the address to judge
 	 * @param socketAddressAsString its already computed text
 	 * @return {@code true} when the value names no endpoint
-	 * @since 2.1.4
+	 * @since 2.1.5
 	 */
 	private static boolean carriesNoEndpoint(@Nonnull SocketAddress socketAddress,
 			@Nonnull String socketAddressAsString) {
@@ -367,7 +367,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 *
 	 * @param urlConnection the connection to read
 	 * @return its URL, or {@code null} when it cannot be read yet
-	 * @since 2.1.4
+	 * @since 2.1.5
 	 */
 	@Nullable
 	private static URL urlOfConnection(@Nonnull URLConnection urlConnection) {
@@ -912,7 +912,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * @param instance   the receiver of the intercepted call, may be null
 	 * @param attributes its declared field values, may be null
 	 * @return the field values to check, without the local endpoint
-	 * @since 2.1.4
+	 * @since 2.1.5
 	 */
 	@Nullable
 	private static Object[] withoutOwnLocalEndpoint(@Nullable Object instance, @Nullable Object[] attributes) {
@@ -947,7 +947,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * @param localEndpoint where the receiver is bound
 	 * @param attribute     one field value of the receiver
 	 * @return {@code true} when the value is the receiver's own binding
-	 * @since 2.1.4
+	 * @since 2.1.5
 	 */
 	private static boolean isOwnLocalBinding(@Nonnull InetSocketAddress localEndpoint, @Nullable Object attribute) {
 		if (!(attribute instanceof InetSocketAddress candidate)) {
@@ -975,7 +975,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 *
 	 * @param instance the receiver of the intercepted call
 	 * @return its local address, or {@code null} when it has none
-	 * @since 2.1.4
+	 * @since 2.1.5
 	 */
 	@Nullable
 	private static SocketAddress ownLocalEndpoint(@Nonnull Object instance) {
