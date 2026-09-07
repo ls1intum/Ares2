@@ -108,15 +108,26 @@ public class DynamicField<T> implements Checkable {
 	}
 
 	private List<Field> fieldsOf(Class<?> c) {
-		ArrayList<Field> al = new ArrayList<>();
-		Class<?> current = c;
-		while (current != Object.class) {
+		List<Field> al = new ArrayList<>();
+		Deque<Class<?>> toVisit = new ArrayDeque<>(List.of(c));
+		Set<Class<?>> visited = new HashSet<>();
+		while (!toVisit.isEmpty()) {
+			Class<?> current = toVisit.poll();
+			if (current == null || current == Object.class || !visited.add(current)) {
+				continue;
+			}
 			for (Field ff : current.getDeclaredFields()) {
 				if (type.toClass().isAssignableFrom(ff.getType())) {
 					al.add(ff);
 				}
 			}
-			current = current.getSuperclass();
+			var superclass = current.getSuperclass();
+			if (superclass != null) {
+				// ArrayDeque rejects null elements (interfaces, and Object.class itself,
+				// have no superclass) — only enqueue when there is one.
+				toVisit.add(superclass);
+			}
+			toVisit.addAll(List.of(current.getInterfaces()));
 		}
 		return al;
 	}

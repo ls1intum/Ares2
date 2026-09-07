@@ -33,7 +33,7 @@ public class StructuralUser {
 	private static final String TESTUSER_BUILD_GRADLE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/build.gradle";
 
 	@Nested
-	class Maven extends StrucuralTestSet {
+	class Maven extends StructuralTestSet {
 
 		@BeforeEach
 		void setupTest() {
@@ -43,7 +43,7 @@ public class StructuralUser {
 	}
 
 	@Nested
-	class Gradle extends StrucuralTestSet {
+	class Gradle extends StructuralTestSet {
 
 		@BeforeEach
 		void setupTest() {
@@ -113,7 +113,14 @@ public class StructuralUser {
 		}
 	}
 
-	class StrucuralTestSet {
+	// Abstract because it exists only to be extended by the @Nested Maven/Gradle
+	// containers below
+	// (never instantiated on its own) — Surefire's stray-test-class heuristic flags
+	// a class that
+	// declares @Nested/@TestFactory members but is itself neither static, @Nested,
+	// nor abstract,
+	// so marking it abstract also silences that false-positive warning at the root.
+	abstract class StructuralTestSet {
 
 		@AfterEach
 		void resetBuildToolConfiguration() {
