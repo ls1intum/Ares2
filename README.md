@@ -4,7 +4,9 @@
 
 [![Java CI with Maven](https://github.com/ls1intum/Ares2/actions/workflows/maven.yml/badge.svg?event=push)](https://github.com/ls1intum/Ares2/actions/workflows/maven.yml)
 [![CodeQL](https://github.com/ls1intum/Ares2/actions/workflows/codeql.yml/badge.svg?event=push)](https://github.com/ls1intum/Ares2/actions/workflows/codeql.yml)
+[![Documentation](https://github.com/ls1intum/Ares2/actions/workflows/deploy-documentation.yml/badge.svg?event=push)](https://ls1intum.github.io/Ares2/)
 [![Maven Central](https://img.shields.io/maven-central/v/de.tum.cit.ase/ares)](https://central.sonatype.com/artifact/de.tum.cit.ase/ares)
+[![Latest version](https://img.shields.io/github/v/tag/ls1intum/Ares2?label=Latest%20version&sort=semver)](https://github.com/ls1intum/Ares2/releases/latest)
 [![License: MIT](https://img.shields.io/github/license/ls1intum/Ares2)](LICENSE)
 ![Java 17+](https://img.shields.io/badge/Java-17%2B-blue)
 

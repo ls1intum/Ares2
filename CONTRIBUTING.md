@@ -75,6 +75,15 @@ architecture side, AspectJ or instrumentation for the AOP side. A change to eith
 must be verified against every combination it can affect. The pull request template asks
 you to record which ones you exercised.
 
+### Adding tests
+
+New functionality arrives with tests for it, in the automated suite that CI runs. A change
+to enforcement needs two of them: a positive test, showing that an operation the policy
+allows still works, and a negative one, showing that an operation the policy forbids is
+still rejected. Either on its own passes for the wrong reason, because a boundary that
+blocks everything and a boundary that blocks nothing each satisfy half the suite. The
+checklist in the pull request template asks you to confirm that you did.
+
 ## Documentation
 
 User-facing and architectural documentation lives in `documentation/` and is published with
