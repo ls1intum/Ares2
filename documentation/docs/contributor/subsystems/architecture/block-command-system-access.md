@@ -5,8 +5,8 @@ description: "How the architecture layer detects command execution statically, w
 ---
 
 :::tip[Simple Story]
-The same question as the aspect-oriented programming (AOP) page, asked before the pupil is
-asked anything.
+The same forbidden thing the aspect-oriented programming (AOP) layer watches for while a pupil
+works, looked for before the pupil is asked anything.
 
 Rather than waiting for the errand to be requested, this layer reads the compiled answer and
 asks whether any route at all leads from their desk to the part of Java that runs commands.

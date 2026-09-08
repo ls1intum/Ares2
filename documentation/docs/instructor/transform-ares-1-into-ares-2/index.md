@@ -5,7 +5,7 @@ description: "The migration work that is the same whichever mode you choose: why
 ---
 
 :::tip[Simple Story]
-You have an examination built to the old rules and you want it on the new ones.
+You have an exercise built to the old rules and you want it on the new ones.
 
 This page is everything that has to happen either way. The build-side work depends on which
 mode you pick, and lives on the four pages behind it.

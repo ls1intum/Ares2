@@ -5,7 +5,8 @@ description: "Depth-first traversal of the call graph, used to find a route from
 ---
 
 :::tip[Simple Story]
-You want to know whether any route leads from a pupil's desk to the locked cupboard.
+You want to know whether any route leads from a pupil's desk to something the checklist
+forbids.
 
 Depth-first search means: always take the next unexplored corridor, keep going until you hit a
 dead end, then back up to the last junction and try the next one. If a route exists, this finds

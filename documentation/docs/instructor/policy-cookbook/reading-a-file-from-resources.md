@@ -5,7 +5,7 @@ description: "Permitting one read-only classpath resource without opening the wo
 ---
 
 :::tip[Simple Story]
-The examination hands out one data sheet and the pupil has to read it. Nothing else in the room should become readable.
+The exercise hands out one data sheet and the pupil has to read it. Nothing else in the room should become readable.
 :::
 
 :::note[This page is a stub]

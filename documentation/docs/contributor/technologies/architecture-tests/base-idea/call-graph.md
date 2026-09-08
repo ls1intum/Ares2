@@ -8,8 +8,8 @@ description: "The directed graph of which method may call which, and why it is t
 The call graph is the map of arrows: "this method can call that one".
 
 It matters because a forbidden route is rarely written in the open. A pupil does not call
-`delete` themselves; they ask a neighbour, who asks another, who calls `delete`. Following the
-arrows is how you find that out without anything running.
+`delete` themselves; they call something, which calls something else, which calls `delete`.
+Following the arrows is how you find that out without anything running.
 :::
 
 ## What it is
