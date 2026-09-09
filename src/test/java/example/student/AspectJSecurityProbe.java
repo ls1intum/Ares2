@@ -32,4 +32,39 @@ public final class AspectJSecurityProbe {
 		return (String) check.invoke(null, restrictedPackage, allowedClasses, AspectJSecurityProbe.class.getName(),
 				"checkCallstackCriteria");
 	}
+
+	/**
+	 * Reflectively invokes the AspectJ backend's private
+	 * {@code isEntropySourceRead}, so the entropy-device read exemption's path/
+	 * action matching (I-baseline-low-risk-jdk-read-exemptions) can be verified
+	 * without needing a woven {@code JoinPoint}.
+	 */
+	public static boolean isEntropySourceRead(String action, String path) throws Exception {
+		Method check = de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions.class
+				.getDeclaredMethod("isEntropySourceRead", String.class, String.class);
+		check.setAccessible(true);
+		return (boolean) check.invoke(null, action, path);
+	}
+
+	/**
+	 * Reflectively invokes the AspectJ backend's private
+	 * {@code isSystemTimezoneRead}, mirroring {@link #isEntropySourceRead}.
+	 */
+	public static boolean isSystemTimezoneRead(String action, String path) throws Exception {
+		Method check = de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions.class
+				.getDeclaredMethod("isSystemTimezoneRead", String.class, String.class);
+		check.setAccessible(true);
+		return (boolean) check.invoke(null, action, path);
+	}
+
+	/**
+	 * Reflectively invokes the AspectJ backend's package-private
+	 * {@code isSecureRandomSeedingInProgress}, so the real-stack-walk seeding
+	 * detector can be exercised end to end from an arbitrary caller package.
+	 */
+	public static boolean isSecureRandomSeedingInProgress() throws Exception {
+		Method check = JavaAspectJAbstractAdviceDefinitions.class.getDeclaredMethod("isSecureRandomSeedingInProgress");
+		check.setAccessible(true);
+		return (boolean) check.invoke(null);
+	}
 }
