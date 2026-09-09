@@ -36,7 +36,7 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: documentation
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       pages: write
