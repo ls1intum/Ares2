@@ -25,7 +25,7 @@ jobs:
   # than four.
   build:
     name: Build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -51,7 +51,7 @@ jobs:
   static-analysis:
     name: Static Code Analysis
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -113,7 +113,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -166,7 +166,7 @@ jobs:
   tests:
     name: Integration Tests (${{ matrix.name }})
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -246,7 +246,7 @@ jobs:
   core-integration-tests:
     name: Core Integration Tests
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -308,7 +308,7 @@ jobs:
     # `success()` on `needs`, and the job still runs after a failed slice. `always()` would
     # be redundant here and GitHub discourages it.
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
       contents: read

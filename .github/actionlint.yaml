@@ -4,8 +4,17 @@
 # Ares 2 runs entirely on GitHub-hosted runners, so no self-hosted labels are declared.
 # Add a label here if a job ever moves to a self-hosted runner, otherwise actionlint will
 # reject the unknown `runs-on` value.
+#
+# `ubuntu-26.04` is not a self-hosted label. It is here because actionlint 1.7.12, the
+# newest release (2026-03-30), predates the Ubuntu 26.04 runner image and rejects the label
+# as unknown. The `self-hosted-runner` list is the only mechanism actionlint offers to
+# accept a label it does not know, and actionlint itself points at it in the error text.
+#
+# Remove this entry as soon as an actionlint release recognises the label, otherwise it
+# outlives its reason and starts quietly accepting a typo of exactly this string.
 self-hosted-runner:
-  labels: []
+  labels:
+    - ubuntu-26.04
 
 # Ares 2 uses no repository or organisation configuration variables in workflows yet.
 # Declaring the list empty is what makes `actionlint` reject every `vars.` expression it finds.
