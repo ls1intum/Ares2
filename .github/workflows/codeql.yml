@@ -66,7 +66,7 @@ jobs:
         run: javac -d "${RUNNER_TEMP}/pr-template-checker" .github/scripts/CheckPullRequestTemplate.java
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
 
   # A separate job rather than a matrix entry beside Java, so that the Java analysis keeps
   # the category it has always had. CodeQL closes an alert when the analysis that raised it
@@ -94,7 +94,7 @@ jobs:
           persist-credentials: false
 
       - name: Initialise CodeQL
-        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
         with:
           languages: actions
           build-mode: none
