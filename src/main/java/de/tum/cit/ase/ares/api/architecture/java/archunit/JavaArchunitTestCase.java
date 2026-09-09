@@ -109,8 +109,8 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	 * those at runtime and adds them to what the policy declared.
 	 */
 	private String allowedPackagesAsCode() {
-		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\")",
-				PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage()))
+		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\", %s)",
+				PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage(), pp.exactMatchOnly()))
 				.collect(Collectors.joining(", "));
 		String declaredByPolicy = "Set.of(" + inner + ")";
 		if (!isSupervisedScopeWasDerived()) {
@@ -224,7 +224,11 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 				.collect(java.util.stream.Collectors.joining(","));
 		java.util.concurrent.FutureTask<java.util.Optional<SecurityException>> task;
 		if (supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT) {
-			String allowedSignature = allowedPackages.stream().map(p -> p.importTheFollowingPackage()).sorted()
+			// The exactness flag changes which imports the rule accepts, so it belongs in
+			// the key too; two configurations differing only in exactness must not share
+			// a cached outcome.
+			String allowedSignature = allowedPackages.stream()
+					.map(p -> p.importTheFollowingPackage() + "#" + p.exactMatchOnly()).sorted()
 					.collect(java.util.stream.Collectors.joining(","));
 			String pkgKey = allowedSignature + "#" + allowedClassesSignature + "@" + javaClassesToken(javaClasses);
 			task = PACKAGE_OUTCOME_CACHE.computeIfAbsent(pkgKey,
