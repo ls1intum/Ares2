@@ -4,6 +4,12 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # Renovate owns routine version updates in this repository. Without this line
+    # Dependabot opens its own version-update pull requests for the same manifests,
+    # which is why actions/setup-java was bumped twice by two bots. A limit of 0
+    # suppresses version updates only; security updates, and the groups below, are
+    # unaffected by it.
+    open-pull-requests-limit: 0
     groups:
       maven-security:
         applies-to: security-updates
@@ -22,6 +28,12 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # Renovate owns routine version updates in this repository. Without this line
+    # Dependabot opens its own version-update pull requests for the same manifests,
+    # which is why actions/setup-java was bumped twice by two bots. A limit of 0
+    # suppresses version updates only; security updates, and the groups below, are
+    # unaffected by it.
+    open-pull-requests-limit: 0
     groups:
       github-actions-security:
         applies-to: security-updates

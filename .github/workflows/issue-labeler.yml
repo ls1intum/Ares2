@@ -6,9 +6,13 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: issue-labeler-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   label:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       issues: write
