@@ -21,6 +21,8 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Everything is denied by the empty top-level permissions above, so this states what
+    # the analysis needs: writing the results it uploads, and reading what it analyses.
     permissions:
       security-events: write
       contents: read
@@ -38,16 +40,65 @@ jobs:
           distribution: "temurin"
           cache: "maven"
 
+      # security-extended on top of the default suite, because Ares is itself the security
+      # boundary and the default suite is tuned to keep a general project quiet rather than
+      # to hold this one to its own claim. The wider suite trades precision for reach, so a
+      # finding here is a question to answer rather than a defect by itself.
       - name: Initialise CodeQL
         uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           languages: java
           build-mode: manual
+          queries: security-extended
 
       # This job builds only so that CodeQL can watch it. The quality gate bound to
       # package belongs to the static analysis job in maven.yml, so it is turned off here.
       - name: Build
         run: mvn -B -DskipTests package -Pwithout-quality-gates
+
+      # In manual build mode CodeQL sees only what the traced build compiles, and it says
+      # nothing about what it never saw. Maven compiles src/main and src/test of the root
+      # pom and nothing else, which left the one file that reads attacker-controlled input
+      # unanalysed: the pull request body reaches this checker verbatim from a fork. javac
+      # runs inside the traced window, so compiling it here is all that is needed. The
+      # class files are scratch and no later step reads them.
+      - name: Compile the pull request template checker so CodeQL sees it
+        run: javac -d "${RUNNER_TEMP}/pr-template-checker" .github/scripts/CheckPullRequestTemplate.java
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+
+  # A separate job rather than a matrix entry beside Java, so that the Java analysis keeps
+  # the category it has always had. CodeQL closes an alert when the analysis that raised it
+  # reports it gone, and it matches analyses by category, so renaming one strands its open
+  # alerts. The workflows need no build, hence build-mode none and no JDK here.
+  #
+  # It also runs for a pull request from a fork, where the job above does not. build-mode
+  # none reads the workflow files and runs nothing out of them, and a fork changing a
+  # workflow is the case this analysis is most worth having. Code scanning accepts the
+  # upload even though the token of a fork pull request is read-only.
+  analyse-actions:
+    name: Analyse Actions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # As in the job above: the analysis writes the results it uploads and reads what it
+    # analyses, and the empty top-level permissions deny everything else.
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          languages: actions
+          build-mode: none
+          queries: security-extended
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
