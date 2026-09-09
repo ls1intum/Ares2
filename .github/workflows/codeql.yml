@@ -21,6 +21,8 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Everything is denied by the empty top-level permissions above, so this states what
+    # the analysis needs: writing the results it uploads, and reading what it analyses.
     permissions:
       security-events: write
       contents: read
@@ -79,6 +81,8 @@ jobs:
     name: Analyse Actions
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # As in the job above: the analysis writes the results it uploads and reads what it
+    # analyses, and the empty top-level permissions deny everything else.
     permissions:
       security-events: write
       contents: read
