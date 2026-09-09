@@ -5,7 +5,7 @@ description: "Compile-time weaving with AspectJ, and the consequences of interce
 ---
 
 :::tip[Simple Story]
-AspectJ marks every place in the room where a forbidden request could be written down, so the
+AspectJ covers every place in the room where a forbidden request could be written down, so the
 teacher is already standing there when it is.
 
 That works for the parts of the room you set out yourself. It cannot help where the request is

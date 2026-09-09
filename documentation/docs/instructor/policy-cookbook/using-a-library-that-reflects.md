@@ -5,7 +5,7 @@ description: "Keeping a reflective dependency working without disabling the refl
 ---
 
 :::tip[Simple Story]
-A piece of equipment the examination depends on inspects its own internals, and the checklist refuses it.
+A piece of equipment the exercise depends on inspects its own internals, and the checklist refuses it.
 :::
 
 :::note[This page is a stub]

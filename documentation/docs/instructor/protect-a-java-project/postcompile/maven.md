@@ -7,7 +7,7 @@ description: "Protecting a Maven project with Ares 2 in Postcompile mode, from d
 :::tip[Simple Story]
 This is the whole path for a Maven exercise, in the order you have to do it.
 
-Add Ares, mark your tests, fill in the checklist, and wire the check into the build so nobody
+Add Ares, label your tests, fill in the checklist, and wire the check into the build so nobody
 can quietly take it off the desk.
 :::
 

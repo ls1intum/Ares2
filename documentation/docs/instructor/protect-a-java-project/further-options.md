@@ -7,7 +7,7 @@ description: "Path access, testing before release, deadline extensions, threads,
 :::tip[Simple Story]
 The basics get an examination running. This page is everything else you will eventually want.
 
-How to sit the paper yourself before any pupil does, how to grant someone extra time, how to
+How to sit the examination yourself before any pupil does, how to grant someone extra time, how to
 examine a pupil who talks to the console, and a few smaller adjustments.
 :::
 

@@ -5,7 +5,7 @@ description: "The language rules this documentation is held to, which of them a 
 ---
 
 :::tip[Simple Story]
-One examination, one hand. Everything on this site has to read as though one person wrote it.
+One hand throughout. Everything on this site has to read as though one person wrote it.
 
 These are the language rules that achieve that. A check enforces the ones a machine can decide
 from the words alone, and counts the ones it cannot, so the prose can drift in only one

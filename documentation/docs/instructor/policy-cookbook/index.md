@@ -8,7 +8,7 @@ description: "Short, complete recipes for the policy situations that come up mos
 The [Policy Reference](/instructor/policy-reference/) tells you what every line of the
 checklist means.
 
-This section tells you what to write on it when you have a real examination in front of you
+This section tells you what to write on it when you have a real exercise in front of you
 and one concrete thing a pupil has to be allowed to do.
 :::
 

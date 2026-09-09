@@ -5,7 +5,7 @@ description: "Permitting one host and port, and why a wildcard host is almost ne
 ---
 
 :::tip[Simple Story]
-The examination requires one telephone call. Exactly that number should be reachable, and no other.
+The exercise requires one telephone call. Exactly that number should be reachable, and no other.
 :::
 
 :::note[This page is a stub]

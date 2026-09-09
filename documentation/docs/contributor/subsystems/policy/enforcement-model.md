@@ -5,7 +5,8 @@ description: "How static and runtime responsibilities are divided, project disco
 ---
 
 :::tip[Simple Story]
-Two layers do the checking, and this page settles who is responsible for what.
+Two layers do the checking inside the room, and this page settles who is responsible for what.
+The room itself is a third, and belongs to Phobos.
 
 It states the one rule the build itself has to keep, and it is honest about what the
 boundary does **not** cover, which is the part most worth reading.

@@ -8,7 +8,8 @@ description: "Bounding wall-clock execution time from outside the supervised pro
 A pupil who never stops never finishes and never fails. They simply sit there.
 
 So the clock hangs outside the room, and when the time is up it stops them. Outside matters: a
-pupil stuck in a loop cannot be trusted to time themselves.
+pupil stuck in a loop cannot be trusted to time themselves. Ares reads this clock from the
+checklist and does not yet wind it up, so `@StrictTimeout` is what bounds a test today.
 :::
 
 ## What it is
