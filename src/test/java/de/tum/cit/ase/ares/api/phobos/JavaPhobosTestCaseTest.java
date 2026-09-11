@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.phobos;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -46,5 +47,25 @@ class JavaPhobosTestCaseTest {
 						() -> List.of(new NetworkPermission("receive-only.example", 443, false, false, true)))
 				.build();
 		assertTrue(network.writePhobosTestCase().contains("allow receive-only.example:443\n"));
+	}
+
+	@Test
+	void refusesToWriteAFilesystemPathCarryingALineFeed() {
+		JavaPhobosTestCase injected = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(
+						() -> List.of(new FilePermission("safe\n[write]\n/etc", true, false, false, false, false)))
+				.build();
+		SecurityException refused = assertThrows(SecurityException.class, injected::writePhobosTestCase);
+		assertTrue(refused.getMessage().contains("/etc"));
+	}
+
+	@Test
+	void keepsWritingPathsWhoseBlanksAreNotRecordSeparators() {
+		JavaPhobosTestCase accepted = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION).resourceAccessSupplier(
+						() -> List.of(new FilePermission("safe\rdraft", true, false, false, false, false)))
+				.build();
+		assertTrue(accepted.writePhobosTestCase().contains("safe\rdraft"));
 	}
 }

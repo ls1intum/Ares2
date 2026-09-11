@@ -139,8 +139,35 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 		out.append('[').append(header).append("]\n");
 
 		List<String> sortedPaths = paths.stream().sorted().toList();
-		sortedPaths.forEach(p -> out.append(p).append('\n'));
+		sortedPaths.forEach(p -> out.append(requireSingleConfigurationRecord(header, p)).append('\n'));
 		out.append('\n');
+	}
+
+	/**
+	 * Returns a path unchanged, or refuses it when it carries a line feed.
+	 * <p>
+	 * The Phobos configuration is a line-based format: one path per line, and a
+	 * line in square brackets starts a new section. A path holding a line feed
+	 * would therefore be written as several lines and read back as more than the
+	 * one entry the policy granted, so a read-only path of
+	 * {@code safe\n[write]\n/etc} would grant write access to {@code /etc}. There
+	 * is no spelling that escapes a line feed in this format, so the only safe
+	 * answer is to refuse to generate.
+	 * <p>
+	 * The check sits here rather than in the policy model because the limit belongs
+	 * to this file format. A path reaches this point either from the policy or from
+	 * an expanded {@code ${PROJECT_ROOT}}, and both are refused alike.
+	 *
+	 * @param header the section being written, named in the failure message
+	 * @param path   the path about to be written
+	 * @return the path, when it is a single record
+	 * @throws SecurityException if the path carries a line feed
+	 */
+	private static String requireSingleConfigurationRecord(String header, String path) {
+		if (path.indexOf('\n') < 0) {
+			return path;
+		}
+		throw new SecurityException(Messages.localized("security.phobos.path.line.feed", header, path));
 	}
 
 	@Nonnull
