@@ -29,6 +29,12 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermissi
 public class JavaPhobosTestCase extends PhobosTestCase {
 
 	/**
+	 * The blank characters the Phobos reader trims off a configuration line, which
+	 * are the six its C locale counts as blank.
+	 */
+	private static final String PARSER_TRIMMED_BLANKS = " \t\n\013\f\r";
+
+	/**
 	 * The supplier for the resource accesses permitted as defined in the security
 	 * policy.
 	 */
@@ -139,35 +145,70 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 		out.append('[').append(header).append("]\n");
 
 		List<String> sortedPaths = paths.stream().sorted().toList();
-		sortedPaths.forEach(p -> out.append(requireSingleConfigurationRecord(header, p)).append('\n'));
+		sortedPaths.forEach(p -> out.append(requirePathSurvivesTheParser(header, p)).append('\n'));
 		out.append('\n');
 	}
 
 	/**
-	 * Returns a path unchanged, or refuses it when it carries a line feed.
+	 * Returns a path unchanged, or refuses it when the Phobos parser would not read
+	 * it back as written.
 	 * <p>
-	 * The Phobos configuration is a line-based format: one path per line, and a
-	 * line in square brackets starts a new section. A path holding a line feed
-	 * would therefore be written as several lines and read back as more than the
-	 * one entry the policy granted, so a read-only path of
-	 * {@code safe\n[write]\n/etc} would grant write access to {@code /etc}. There
-	 * is no spelling that escapes a line feed in this format, so the only safe
-	 * answer is to refuse to generate.
+	 * The configuration is a line-based format, and its reader rewrites a line
+	 * three ways: it ends a record at a line feed, drops everything from the first
+	 * {@code #}, and trims blank characters off both ends. A path touched by any of
+	 * them is granted as a different path. {@code safe\n[write]\n/etc} opens a
+	 * write section, and {@code /tmp#private} is read as {@code /tmp}, which a base
+	 * policy already permits, so a narrow permission quietly becomes a broad one.
 	 * <p>
-	 * The check sits here rather than in the policy model because the limit belongs
-	 * to this file format. A path reaches this point either from the policy or from
-	 * an expanded {@code ${PROJECT_ROOT}}, and both are refused alike.
+	 * None of the three can be escaped in this format, so refusing is the only safe
+	 * answer. The check sits here rather than in the policy model because the limit
+	 * belongs to this file format. A path reaches this point either from the policy
+	 * or from an expanded {@code ${PROJECT_ROOT}}, and both are refused alike.
 	 *
 	 * @param header the section being written, named in the failure message
 	 * @param path   the path about to be written
-	 * @return the path, when it is a single record
-	 * @throws SecurityException if the path carries a line feed
+	 * @return the path, when the parser would read it back unchanged
+	 * @throws SecurityException if the parser would read a different path
 	 */
-	private static String requireSingleConfigurationRecord(String header, String path) {
-		if (path.indexOf('\n') < 0) {
+	private static String requirePathSurvivesTheParser(String header, String path) {
+		if (path.equals(asTheParserWouldReadIt(path))) {
 			return path;
 		}
-		throw new SecurityException(Messages.localized("security.phobos.path.line.feed", header, path));
+		throw new SecurityException(Messages.localized("security.phobos.path.rewritten", header, path));
+	}
+
+	/**
+	 * Applies the rewrites the Phobos reader performs on one configuration line, so
+	 * that the caller can compare the result against what it was about to write.
+	 *
+	 * @param path the path as the security policy holds it
+	 * @return the path as the Phobos reader would read it back
+	 */
+	private static String asTheParserWouldReadIt(String path) {
+		String firstRecord = path.split("\n", -1)[0];
+		int comment = firstRecord.indexOf('#');
+		return trimParserBlanks(comment < 0 ? firstRecord : firstRecord.substring(0, comment));
+	}
+
+	/**
+	 * Removes the blank characters the Phobos reader trims off both ends of a line.
+	 * The set is written out rather than taken from a general whitespace test,
+	 * because it has to be the six the reader's C locale counts as blank and no
+	 * more: a broader notion would refuse paths the reader keeps verbatim.
+	 *
+	 * @param value the line to trim
+	 * @return the line without its leading and trailing blank characters
+	 */
+	private static String trimParserBlanks(String value) {
+		int start = 0;
+		int end = value.length();
+		while (start < end && PARSER_TRIMMED_BLANKS.indexOf(value.charAt(start)) >= 0) {
+			start++;
+		}
+		while (end > start && PARSER_TRIMMED_BLANKS.indexOf(value.charAt(end - 1)) >= 0) {
+			end--;
+		}
+		return value.substring(start, end);
 	}
 
 	@Nonnull

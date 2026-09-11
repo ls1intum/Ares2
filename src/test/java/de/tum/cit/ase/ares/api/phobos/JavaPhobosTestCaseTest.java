@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
@@ -49,23 +51,24 @@ class JavaPhobosTestCaseTest {
 		assertTrue(network.writePhobosTestCase().contains("allow receive-only.example:443\n"));
 	}
 
-	@Test
-	void refusesToWriteAFilesystemPathCarryingALineFeed() {
-		JavaPhobosTestCase injected = JavaPhobosTestCase.builder()
+	@ParameterizedTest
+	@ValueSource(strings = { "safe\n[write]\n/etc", "/tmp#private", "/data/notes#1.txt", "#/tmp", "/trailing   ",
+			"   /leading", "/trailing\t", "/trailing\r" })
+	void refusesAFilesystemPathTheReaderWouldRewrite(String path) {
+		JavaPhobosTestCase rewritten = JavaPhobosTestCase.builder()
 				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
-				.resourceAccessSupplier(
-						() -> List.of(new FilePermission("safe\n[write]\n/etc", true, false, false, false, false)))
+				.resourceAccessSupplier(() -> List.of(new FilePermission(path, true, false, false, false, false)))
 				.build();
-		SecurityException refused = assertThrows(SecurityException.class, injected::writePhobosTestCase);
-		assertTrue(refused.getMessage().contains("/etc"));
+		assertThrows(SecurityException.class, rewritten::writePhobosTestCase);
 	}
 
-	@Test
-	void keepsWritingPathsWhoseBlanksAreNotRecordSeparators() {
+	@ParameterizedTest
+	@ValueSource(strings = { "safe\rdraft", "safe\tdraft", "/var/lib/ares", "relative/path", "/a b/c" })
+	void keepsWritingAPathTheReaderReadsBackUnchanged(String path) {
 		JavaPhobosTestCase accepted = JavaPhobosTestCase.builder()
-				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION).resourceAccessSupplier(
-						() -> List.of(new FilePermission("safe\rdraft", true, false, false, false, false)))
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(() -> List.of(new FilePermission(path, true, false, false, false, false)))
 				.build();
-		assertTrue(accepted.writePhobosTestCase().contains("safe\rdraft"));
+		assertTrue(accepted.writePhobosTestCase().contains(path));
 	}
 }
