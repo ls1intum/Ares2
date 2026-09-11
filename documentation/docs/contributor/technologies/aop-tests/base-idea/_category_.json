@@ -1,0 +1,8 @@
+{
+    "label": "Base Idea",
+    "position": 1,
+    "link": {
+        "type": "generated-index",
+        "description": "The vocabulary shared by AspectJ and instrumentation."
+    }
+}

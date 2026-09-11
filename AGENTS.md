@@ -1,6 +1,9 @@
 # AGENTS.md
 
-Repository conventions for automated agents and contributors working on Ares.
+Repository conventions for automated agents and contributors working on Ares 2. Every
+convention lives here, stated once. [CLAUDE.md](./CLAUDE.md) imports this file and adds the
+orientation an agent needs beside it: what the project is, how it is built, and where its
+parts live.
 
 ## Testing network access (incoming and outgoing)
 

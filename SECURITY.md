@@ -15,7 +15,7 @@ Ares is an enforcement framework, so parts of it are written to do exactly what 
 
 `examples/` is not a fixture tree, but it behaves like one: both example exercises ship a supervised class that performs a forbidden file read, so that running the exercise shows the enforcement working.
 
-Some of this trips automated scanners. The fixed AES key in `CipherInputStreamReadMain`, under the file-system read fixtures, is one such case. It makes a test deterministic and protects nothing.
+Some of this code trips automated scanners. A scanner reads a fixture without knowing that it is one, so a finding in these trees is a question about the fixture rather than a report about Ares.
 
 The shipped product is security-sensitive machinery of a different kind. The reserved-package prefixes, which are the namespaces supervised code may not itself declare, the AspectJ instrumentation and the Java agent all fall into it. The instrumentation rewrites bytecode, and the agent runs inside the supervised JVM, because that is how the enforcement works.
 
@@ -35,7 +35,7 @@ A report is out of scope when:
 
 - the deliberately dangerous code described above behaves as documented,
 - the operation is one Ares does not claim to cover. The enforcement boundary is documented, and a gap on the far side of it is a known limitation rather than a defect,
-- it presumes an adversary who controls the build. `docs/HowToConvertAnAres1ProjectIntoAnAres2Project.md` states this for the reserved-package boundary: the build descriptor and the command that invokes it are trusted instructor configuration, so whoever can edit `pom.xml` or `build.gradle` can remove that boundary. The threat addressed is student code, not a hostile build,
+- it presumes an adversary who controls the build. `documentation/docs/instructor/transform-ares-1-into-ares-2/postcompile/gradle.md` states this for the reserved-package boundary: the build descriptor and the command that invokes it are trusted instructor configuration, so whoever can edit `pom.xml` or `build.gradle` can remove that boundary. The threat addressed is student code, not a hostile build,
 - it is a vulnerability in the JVM, in Maven, in Gradle, or in a third-party library that Ares exercises rather than introduces. Those belong upstream.
 
 If you are unsure which side of the line a finding falls on, report it and say so.

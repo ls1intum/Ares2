@@ -1,0 +1,8 @@
+{
+    "label": "Postcompile",
+    "position": 8,
+    "link": {
+        "type": "generated-index",
+        "description": "Wiring Ares 2 into an exercise as a dependency that the tests activate themselves."
+    }
+}
