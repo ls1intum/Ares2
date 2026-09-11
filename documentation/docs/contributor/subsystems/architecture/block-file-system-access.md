@@ -5,8 +5,8 @@ description: "How the architecture layer detects file system access statically, 
 ---
 
 :::tip[Simple Story]
-The same question as the aspect-oriented programming (AOP) page, asked without the pupil
-doing anything.
+The same forbidden thing the aspect-oriented programming (AOP) layer watches for while a pupil
+works, looked for without the pupil doing anything.
 
 This layer reads the compiled answer like a map and looks for a route from their desk to the
 file-opening machinery. It can tell you that a route exists. It cannot tell you which paper,

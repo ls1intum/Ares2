@@ -8,8 +8,8 @@ description: "How read, overwrite, execute and delete permissions are enforced b
 This is the part of the checklist with the most ways to reach it, so it carries the most
 enforcement.
 
-Three independent layers can each stop a pupil picking up a paper, and they do not all behave
-alike.
+Three independent layers can each stop a pupil picking up a paper, they do not all behave
+alike, and in Postcompile the third never runs.
 :::
 
 For the fields an exercise author writes, see

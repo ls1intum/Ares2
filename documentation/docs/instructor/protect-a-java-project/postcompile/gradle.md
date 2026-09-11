@@ -7,7 +7,7 @@ description: "Protecting a Gradle project with Ares 2 in Postcompile mode, from 
 :::tip[Simple Story]
 This is the whole path for a Gradle exercise, in the order you have to do it.
 
-Add Ares, mark your tests, fill in the checklist, and wire the check into the build so nobody
+Add Ares, label your tests, fill in the checklist, and wire the check into the build so nobody
 can quietly take it off the desk.
 :::
 
@@ -35,7 +35,7 @@ First, add the AspectJ compiler plugin:
 ```gradle
 plugins {
     id 'java'
-    id 'io.freefair.aspectj.post-compile-weaving' version '9.2.0'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.5.0'
 }
 ```
 
@@ -57,7 +57,7 @@ repositories {
 
 ```gradle
 ext {
-    aresVersion = '2.1.4'
+    aresVersion = '2.1.5'
     aspectjVersion = '1.9.25.1'
 }
 ```
@@ -68,7 +68,7 @@ ext {
 >
 > ```toml
 > [versions]
-> ares = "2.1.4"
+> ares = "2.1.5"
 > aspectjrt = "1.9.25.1"
 > [libraries]
 > ares = { module = "de.tum.cit.ase:ares", version.ref = "ares" }
@@ -397,11 +397,11 @@ import org.gradle.process.CommandLineArgumentProvider
 
 plugins {
     id 'java'
-    id 'io.freefair.aspectj.post-compile-weaving' version '9.2.0'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.5.0'
 }
 
 ext {
-    aresVersion = '2.1.4'
+    aresVersion = '2.1.5'
     aspectjVersion = '1.9.25.1'
 }
 

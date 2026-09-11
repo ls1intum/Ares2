@@ -10,7 +10,8 @@ Everything else in Ares works inside the room. Phobos **is** the room.
 The desk with its dividers, the door, and the clock out in the corridor, all put in place by
 the operating system before the pupil walked in. It hides papers they should not see, refuses
 calls they should not make, and stops them when they have run too long. Being outside matters:
-a pupil can talk a teacher round, but cannot unbuild a divider.
+a pupil can talk a teacher round, but cannot unbuild a divider. In Postcompile Ares describes
+the room and never builds it, so nothing here runs today.
 :::
 
 ## What it does
@@ -41,6 +42,15 @@ all it fails closed with `PHB-EBASE` rather than running unprotected.
 | `PhobosTestCase` | Abstract base with the extractors for file, network and resource-limit permissions |
 | `JavaPhobosTestCase` | Java implementation, producing the sandbox configuration from the policy |
 | `JavaPhobosTestCaseSupported` | The supported domains: `FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, `TIMEOUT` |
+
+## Known gaps
+
+**Nothing here bounds a Postcompile test today.** Ares creates the Phobos cases, but
+`JavaTestCaseFactoryAndBuilder.executeTestCases` passes only the architecture and
+aspect-oriented programming (AOP) cases to the executer, and Postcompile reaches Ares through
+the test extensions, which call `executeTestCases` alone. This holds for all three layers, not
+only the timeout, and is a pending migration rather than a defect. See
+[Resource limits](/contributor/policy/resource-limits) for the same gap from the policy side.
 
 ## Further reading
 

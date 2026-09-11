@@ -5,8 +5,8 @@ description: "How the architecture layer detects thread manipulation statically,
 ---
 
 :::tip[Simple Story]
-The same question as the aspect-oriented programming (AOP) page, answered by reading rather
-than by watching.
+The same forbidden thing the aspect-oriented programming (AOP) layer watches for while a pupil
+works, found by reading rather than by watching.
 
 This layer looks through the compiled answer for any route to the part of Java that calls in
 helpers, and reports the route it found.
@@ -1093,7 +1093,7 @@ java.util.Collection.parallelStream()
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.1.4</version>
+        <version>2.1.5</version>
     </dependency>
 </dependencies>
 ```

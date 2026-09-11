@@ -61,4 +61,4 @@ Removing `-javaagent` changes nothing in these two examples, and that is correct
 
 ## Gradle wrapper provenance
 
-Generated with `gradle wrapper --gradle-version 9.6.1 --distribution-type bin` using Gradle 9.6.1. `gradle/wrapper/gradle-wrapper.properties` pins `distributionSha256Sum`, so the wrapper refuses a distribution that does not match.
+`gradlew`, `gradlew.bat` and `gradle/wrapper/gradle-wrapper.jar` were generated with `gradle wrapper --gradle-version 9.6.1 --distribution-type bin` using Gradle 9.6.1, and the Examples workflow checks that JAR against a pinned SHA-256. Which Gradle the wrapper then downloads is a separate question, answered by `distributionUrl` in `gradle/wrapper/gradle-wrapper.properties` and kept current there. Expect the two to differ: the wrapper is only a bootstrapper, so the distribution moves ahead of it. That file pins `distributionSha256Sum` too, so the wrapper refuses a distribution that does not match.

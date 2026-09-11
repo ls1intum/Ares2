@@ -7,9 +7,9 @@ description: "Conceptual weaknesses of the AspectJ engine compared to the instru
 :::tip[Simple Story]
 The teacher has two ways of catching a pupil in the act, and they are not equally good.
 
-One marks every place in the room where the forbidden thing could be asked for. The other marks
-the thing itself. The second catches more, because there is only one of it and there may be a
-hundred places that ask, and you can only mark the ones you can see. This page is the honest
+One covers every place in the room where the forbidden thing could be asked for. The other
+covers the thing itself. The second catches more, because there is only one of it and there may
+be a hundred places that ask, and you can only cover the ones you can see. This page is the honest
 list of what the first one misses.
 :::
 

@@ -5,9 +5,11 @@ description: "How connect, send and receive permissions are enforced in the JVM 
 ---
 
 :::tip[Simple Story]
-Two very different mechanisms watch the telephone: one inside the room, one beneath it.
+Three layers watch the telephone: one reads the compiled answer before any call, one stands
+inside the room, and one sits beneath it.
 
-They see different things, which is why both exist.
+They see different things, which is why all three exist. In Postcompile the one beneath the
+room never runs.
 :::
 
 For the fields an exercise author writes, see
@@ -48,6 +50,9 @@ including anything the JVM shells out to.
 - `templates/phobos/phobos-network.sh` and the `NETBLOCKER_CONF` contract
 
 ## Known gaps
+
+Ares writes the Phobos section but only enforces it when the Phobos wrapper runs the build. In
+Postcompile Ares generates the Phobos cases and never dispatches them.
 
 A test fixture that opens a socket inside the sandboxed JVM is itself subject to the policy, so
 network tests must use an external echo server. See

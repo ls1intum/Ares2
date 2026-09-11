@@ -7,7 +7,7 @@ description: "Protecting a Maven project with Ares 2 in Postcompile mode, from d
 :::tip[Simple Story]
 This is the whole path for a Maven exercise, in the order you have to do it.
 
-Add Ares, mark your tests, fill in the checklist, and wire the check into the build so nobody
+Add Ares, label your tests, fill in the checklist, and wire the check into the build so nobody
 can quietly take it off the desk.
 :::
 
@@ -38,7 +38,7 @@ There is no repository step for Maven: the super-POM already defines Central at 
 <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <ares.version>2.1.4</ares.version>
+    <ares.version>2.1.5</ares.version>
     <aspectj.version>1.9.25.1</aspectj.version>
     <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
     <argLine></argLine>
@@ -76,7 +76,7 @@ There is no repository step for Maven: the super-POM already defines Central at 
 <plugin>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-dependency-plugin</artifactId>
-    <version>3.9.0</version>
+    <version>3.11.0</version>
     <executions>
         <execution>
             <id>copy-ares-runtime-jars</id>
@@ -120,7 +120,7 @@ The alternative some guides use, pointing `-javaagent` at `${settings.localRepos
 <plugin>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-surefire-plugin</artifactId>
-    <version>3.5.4</version>
+    <version>3.6.0</version>
     <configuration>
         <argLine>
             @{argLine}
@@ -383,7 +383,7 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <ares.version>2.1.4</ares.version>
+        <ares.version>2.1.5</ares.version>
         <aspectj.version>1.9.25.1</aspectj.version>
         <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
         <argLine></argLine>
@@ -448,7 +448,7 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.9.0</version>
+                <version>3.11.0</version>
                 <executions>
                     <execution>
                         <id>copy-ares-runtime-jars</id>
@@ -485,7 +485,7 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.4</version>
+                <version>3.6.0</version>
                 <configuration>
                     <argLine>
                         @{argLine}

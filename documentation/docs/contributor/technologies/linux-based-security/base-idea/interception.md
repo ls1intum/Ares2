@@ -5,10 +5,11 @@ description: "Where each layer places itself between the supervised program and 
 ---
 
 :::tip[Simple Story]
-Every one of these three layers works by standing in a doorway.
+The three Linux layers each stand between the pupil and what they asked for.
 
 The pupil asks for something and, instead of reaching the thing they asked for, they reach
-whoever is standing there first. What differs between the three is *which* doorway.
+whoever is standing there first. Two of them hold a doorway, the kernel and the linker. The
+third holds none at all: it watches the clock.
 :::
 
 ## What it is

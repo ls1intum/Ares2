@@ -5,7 +5,7 @@ description: "Permitting a bounded number of threads, and what the bound does an
 ---
 
 :::tip[Simple Story]
-The examination is about doing two things at once, so helpers have to be allowed, but not without limit.
+The exercise is about doing two things at once, so helpers have to be allowed, but not without limit.
 :::
 
 :::note[This page is a stub]

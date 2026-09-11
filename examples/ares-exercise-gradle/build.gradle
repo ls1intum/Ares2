@@ -8,11 +8,11 @@ import org.gradle.process.CommandLineArgumentProvider
 
 plugins {
     id 'java'
-    id 'io.freefair.aspectj.post-compile-weaving' version '9.2.0'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.5.0'
 }
 
 ext {
-    aresVersion = '2.1.4'
+    aresVersion = '2.1.5'
     aspectjVersion = '1.9.25.1'
 }
 

@@ -4,6 +4,7 @@ title: "Ares 2"
 abstract: "Ares 2 is a framework for the secure remote execution of student submissions on interactive learning platforms. It is the second Java-based implementation of the Secure COder Remote Execution (SCORE) framework and enforces policy-based sandboxing through static analysis and runtime instrumentation."
 type: software
 license: MIT
+version: "2.1.5"
 repository-code: "https://github.com/ls1intum/Ares2"
 url: "https://ls1intum.github.io/Ares2/"
 keywords:
@@ -28,6 +29,10 @@ authors:
     affiliation: "Technical University of Munich"
   -
     family-names: Zaveri
-    given-names: Anirudh
+    given-names: Aniruddh
     email: anirudh.zaveri@tum.de
+    affiliation: "Technical University of Munich"
+  -
+    family-names: Singh
+    given-names: Ajayvir
     affiliation: "Technical University of Munich"
