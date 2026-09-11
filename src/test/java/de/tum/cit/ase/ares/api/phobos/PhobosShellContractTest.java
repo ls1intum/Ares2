@@ -1,12 +1,14 @@
 package de.tum.cit.ase.ares.api.phobos;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -45,6 +47,78 @@ class PhobosShellContractTest {
 				+ TEMPLATES.resolve("phobos-filesystem.sh") + "' '" + specification + "' -- true");
 		assertEquals(15, missingRuntime.exitCode());
 		assertTrue(missingRuntime.output().contains("PHB-ERUNTIME"));
+	}
+
+	/**
+	 * Establishes what {@code JavaPhobosTestCase} refuses a bracketed path for: a
+	 * line in square brackets opens a section, so a read permission written as
+	 * {@code [write]} makes the {@code /tmp/injected} below it writable.
+	 */
+	@Test
+	void readsALineInSquareBracketsAsASectionHeaderRatherThanAsAPath() throws Exception {
+		Path config = temporaryDirectory.resolve("header.cfg");
+		Files.writeString(config, "[readonly]\n[write]\n/tmp/injected\n");
+		ProcessResult result = run(parses(config));
+		assertTrue(result.output().contains("--rw\n/tmp/injected"));
+	}
+
+	/**
+	 * Holds the reader to the blank characters {@code JavaPhobosTestCase} models,
+	 * which are the six of the C locale. Some other locales count the em space as
+	 * blank too, and under one of those the unpinned trim would cut it off and the
+	 * line would open the write section. The prefix proves the host has such a
+	 * locale, so the test aborts on a host that cannot show it.
+	 */
+	@Test
+	void trimsTheBlanksOfTheCLocaleWhateverLocaleTheHostAsks() throws Exception {
+		Path config = temporaryDirectory.resolve("blank.cfg");
+		Files.writeString(config, "[readonly]\n[write]\u2003\n/tmp/injected\n");
+		ProcessResult result = run(picksALocaleThatTrimsAnEmSpace() + parses(config));
+		Assumptions.assumeTrue(result.output().contains("--probe\nx\n"), "no locale here trims an em space");
+		assertFalse(result.output().contains("--rw\n/tmp/injected"));
+		assertTrue(result.output().contains("/tmp/injected"));
+	}
+
+	/**
+	 * Builds a snippet that puts the shell into a locale whose blank class holds
+	 * the em space, then prints what that locale's trim makes of one. Locales
+	 * disagree about which characters are blank, so the caller has to watch the
+	 * trim happen rather than take a locale's name for it.
+	 *
+	 * @return the snippet, printing {@code x} under the heading {@code --probe}
+	 *         when it found such a locale
+	 */
+	private String picksALocaleThatTrimsAnEmSpace() {
+		return "for candidate in $(locale -a | grep -i 'utf-*8'); do "
+				+ "if [ \"$(printf 'x\\342\\200\\203' | LC_ALL=\"$candidate\" sed -E 's/[[:space:]]+$//')\" = x ]; "
+				+ "then export LC_ALL=\"$candidate\"; break; fi; done; "
+				+ "printf '%s\\n' --probe; printf 'x\\342\\200\\203\\n' | sed -E 's/[[:space:]]+$//'; ";
+	}
+
+	/**
+	 * Requires a path shaped like an option to survive the reader. The trim used to
+	 * pass every line through {@code echo}, which took {@code -n} for a flag of its
+	 * own and printed nothing, so the permission vanished from the policy the
+	 * sandbox went on to enforce.
+	 */
+	@Test
+	void keepsAPathThatLooksLikeAnOptionOfTheShell() throws Exception {
+		Path config = temporaryDirectory.resolve("option.cfg");
+		Files.writeString(config, "[readonly]\n-n\n");
+		ProcessResult result = run(parses(config));
+		assertTrue(result.output().contains("--ro\n-n\n"));
+	}
+
+	/**
+	 * Builds a snippet that parses one configuration and prints the read-only and
+	 * the write paths it produced, each under a heading the assertions look for.
+	 *
+	 * @param config the configuration file to parse
+	 * @return the snippet to run
+	 */
+	private String parses(Path config) {
+		return "source '" + TEMPLATES.resolve("phobos-common.sh") + "'; INI_TMP_DIRS=''; parse_cfg_policy '" + config
+				+ "'; printf '%s\\n' --ro; cat \"$PARSED_RO_FILE\"; printf '%s\\n' --rw; cat \"$PARSED_RW_FILE\"";
 	}
 
 	/**

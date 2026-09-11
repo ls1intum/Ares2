@@ -34,7 +34,7 @@ EOF
 validate_config_file_keys() {
   local file="$1"
   local keys ok unknown=""
-  keys=$(sed -E -n 's/^[[:space:]]*\[([^]]+)\][[:space:]]*$/\1/p' "$file" | sed 's/[[:space:]]//g' | sort -u)
+  keys=$(LC_ALL=C sed -E -n 's/^[[:space:]]*\[([^]]+)\][[:space:]]*$/\1/p' "$file" | LC_ALL=C sed 's/[[:space:]]//g' | LC_ALL=C sort -u)
   ok=$(allowed_keys | sort -u)
   while IFS= read -r k; do
     [[ -z "$k" ]] && continue
@@ -54,7 +54,7 @@ parse_cfg_policy() {
   : >"$ro"; : >"$rw"; : >"$hide"; : >"$net"
   local sec=""
   while IFS= read -r line || [[ -n "$line" ]]; do
-    line="${line%%#*}"; line="$(echo "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+    line="${line%%#*}"; line="$(printf '%s\n' "$line" | LC_ALL=C sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
     [[ -z "$line" ]] && continue
     if [[ "$line" =~ ^\[(.+)\]$ ]]; then sec="${BASH_REMATCH[1]}"; continue; fi
     case "$sec" in
