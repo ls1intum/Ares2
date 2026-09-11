@@ -43,6 +43,21 @@ all it fails closed with `PHB-EBASE` rather than running unprotected.
 | `JavaPhobosTestCase` | Java implementation, producing the sandbox configuration from the policy |
 | `JavaPhobosTestCaseSupported` | The supported domains: `FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, `TIMEOUT` |
 
+## Native configuration grammar
+
+The parser reads any line whose first meaningful character is `[` as a section header, and it
+trims leading blank characters before reading a line. A relative filesystem entry that starts
+with `[` or a blank therefore needs an explicit `./` prefix in a handwritten `Base*.cfg`, or in
+a file passed through `--config`. Write `./[draft`, not `[draft`. Write `./ [draft`, not
+` [draft`. The wrapper canonicalises both spellings to the same relative location, so the
+prefix records the meaning rather than changing it.
+
+Six first characters need the prefix: `[`, space, tab, carriage return, vertical tab and form
+feed. They need it in the `readonly`, `read`, `write`, `hide` and `tmpfs` sections. Absolute
+paths need no change, and neither do entries whose bracket or blank falls later, such as
+`relative/[draft` or `/tmp/a[b]c`. Ares applies this serialisation to every policy it
+generates, so it concerns handwritten configuration only.
+
 ## Known gaps
 
 **Nothing here bounds a Postcompile test today.** Ares creates the Phobos cases, but

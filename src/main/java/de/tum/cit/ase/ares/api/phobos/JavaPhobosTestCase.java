@@ -139,8 +139,46 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 		out.append('[').append(header).append("]\n");
 
 		List<String> sortedPaths = paths.stream().sorted().toList();
-		sortedPaths.forEach(p -> out.append(p).append('\n'));
+		sortedPaths.forEach(p -> out.append(serialiseFilesystemPath(p)).append('\n'));
 		out.append('\n');
+	}
+
+	/**
+	 * Serialises a single filesystem path for the Phobos configuration.
+	 * <p>
+	 * Some first characters would not survive the journey to the sandbox. A line
+	 * beginning with {@code [} is reserved for a section header, and the parser
+	 * trims leading blank characters off every line before it reads it, which would
+	 * quietly name a different file. Such a path is emitted with an equivalent
+	 * {@code ./} prefix: {@code [draft} and {@code ./[draft}, or {@code " [draft"}
+	 * and {@code "./ [draft"}, name the same relative path once the sandbox
+	 * canonicalises them, and after the prefix the character is interior and so
+	 * survives trimming. The prefix carries no meaning of its own.
+	 * <p>
+	 * The protected set is written out explicitly and is exactly {@code [}, space,
+	 * tab, carriage return, vertical tab and form feed: the bracket the grammar
+	 * reserves, plus the blank characters the parser trims on a single line. It is
+	 * deliberately a list rather than a general whitespace test, because a broader
+	 * notion would rewrite paths the parser would have kept verbatim.
+	 * <p>
+	 * The test is deliberately the raw first character alone. In the POSIX
+	 * configuration syntax Phobos consumes, a path starting with any of those
+	 * characters is necessarily relative, so no host-dependent absolute-path check
+	 * is involved: generation may run on Windows while the configuration targets
+	 * Linux. Every other path, absolute or relative, is emitted verbatim, including
+	 * one that merely contains a bracket or a blank character later on.
+	 *
+	 * @param path the path collected from the permission model
+	 * @return the path as written into a filesystem section
+	 */
+	private static String serialiseFilesystemPath(String path) {
+		if (path.isEmpty()) {
+			return path;
+		}
+		char first = path.charAt(0);
+		boolean reserved = first == '[' || first == ' ' || first == '\t' || first == '\r' || first == '\u000B'
+				|| first == '\f';
+		return reserved ? "./" + path : path;
 	}
 
 	@Nonnull
@@ -240,8 +278,36 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 			return;
 		}
 		out.append('[').append(header).append("]\n");
-		limits.forEach((k, v) -> out.append(k).append('=').append(v).append('\n'));
+		limits.forEach((k, v) -> out.append(k).append('=').append(serialiseLimitValue(k, v)).append('\n'));
 		out.append('\n');
+	}
+
+	/**
+	 * Serialises a single {@code [limits]} value for the Phobos configuration.
+	 * <p>
+	 * The {@code timeout} limit is defined in <em>milliseconds</em> by
+	 * {@link ResourceLimitsPermission}, whereas the Phobos configuration field is
+	 * expressed in <em>seconds</em>. This method is the single authoritative
+	 * conversion point: milliseconds are rendered as canonical decimal seconds
+	 * {@code S.mmm} (exactly three fractional digits, formatted with
+	 * {@link java.util.Locale#ROOT} so it never depends on the platform locale, and
+	 * containing only digits and one dot). The Phobos runtime reads that form in
+	 * {@code phobos-common.sh#parse_cfg_policy} and passes the bare number on to
+	 * GNU {@code timeout}, which reads a suffixless value as seconds. No second
+	 * conversion happens anywhere else and no sub-second precision is lost. All
+	 * other keys are emitted verbatim.
+	 *
+	 * @param key   the limit key, e.g. {@code "timeout"}
+	 * @param value the limit value; for {@code timeout} this is milliseconds
+	 * @return the serialised value written after {@code key=}
+	 */
+	private static String serialiseLimitValue(String key, long value) {
+		if (!"timeout".equals(key)) {
+			return Long.toString(value);
+		}
+		long seconds = value / 1000L;
+		long milliseconds = value % 1000L;
+		return String.format(java.util.Locale.ROOT, "%d.%03d", seconds, milliseconds);
 	}
 
 	/**

@@ -245,6 +245,9 @@ Phobos provides an alternative security mechanism based on **external container 
 
 `JavaPhobosTestCase` transforms the abstract permission model into concrete shell-script and configuration-file content that an external sandbox runtime can enforce.
 
+Handwritten Phobos configuration has a grammar of its own; see
+[Phobos](./phobos.md) for the `./` prefix a bracket- or blank-leading path needs.
+
 **Key design patterns:** Builder (`JavaPhobosTestCase.Builder`), Strategy (extractors), Template Method.
 
 ---
