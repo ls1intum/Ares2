@@ -4,7 +4,8 @@ aop:
           - src/main/java/de/tum/cit/ase/ares/api/aop/**/*
           - src/test/java/de/tum/cit/ase/ares/api/aop/**/*
           - src/test/java/de/tum/cit/ase/ares/integration/aop/**/*
-          - docs/aop/**/*
+          - documentation/docs/contributor/subsystems/aop/**/*
+          - documentation/docs/contributor/technologies/aop-tests/**/*
 
 architecture:
   - changed-files:
@@ -12,7 +13,8 @@ architecture:
           - src/main/java/de/tum/cit/ase/ares/api/architecture/**/*
           - src/test/java/de/tum/cit/ase/ares/api/architecture/**/*
           - src/test/java/de/tum/cit/ase/ares/integration/architecture/**/*
-          - docs/architecture/**/*
+          - documentation/docs/contributor/subsystems/architecture/**/*
+          - documentation/docs/contributor/technologies/architecture-tests/**/*
 
 ast:
   - changed-files:
@@ -27,14 +29,14 @@ policy:
           - src/main/java/de/tum/cit/ase/ares/api/policy/**/*
           - src/test/java/de/tum/cit/ase/ares/api/policy/**/*
           - src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/**/*
-          - docs/policy/**/*
+          - documentation/docs/contributor/subsystems/policy/**/*
+          - documentation/docs/contributor/policy/**/*
 
 docs:
   - changed-files:
       - any-glob-to-any-file:
-          - docs/**/*
+          - documentation/**/*
           - "*.md"
-          - "*.adoc"
           - SECURITY.md
 
 tests:
@@ -47,7 +49,7 @@ securitytest:
       - any-glob-to-any-file:
           - src/main/java/de/tum/cit/ase/ares/api/securitytest/**/*
           - src/test/java/de/tum/cit/ase/ares/api/securitytest/**/*
-          - docs/securitytest/**/*
+          - documentation/docs/contributor/subsystems/securitytest/**/*
 
 other:
   - changed-files:

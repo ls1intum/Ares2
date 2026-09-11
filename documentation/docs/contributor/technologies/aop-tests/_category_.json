@@ -1,0 +1,8 @@
+{
+    "label": "Aspect-Oriented Programming Tests",
+    "position": 4,
+    "link": {
+        "type": "generated-index",
+        "description": "Runtime interception of forbidden operations."
+    }
+}

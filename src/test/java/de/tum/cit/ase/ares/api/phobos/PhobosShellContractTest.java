@@ -39,7 +39,7 @@ class PhobosShellContractTest {
 		Path shellRoot = Files.createDirectory(temporaryDirectory.resolve("shell"));
 		Files.copy(TEMPLATES.resolve("phobos.sh"), shellRoot.resolve("phobos.sh"));
 		Files.copy(TEMPLATES.resolve("phobos-common.sh"), shellRoot.resolve("phobos-common.sh"));
-		ProcessResult missingBase = run("bash '" + shellRoot.resolve("phobos.sh") + "' -- true");
+		ProcessResult missingBase = run("/bin/bash '" + shellRoot.resolve("phobos.sh") + "' -- true");
 		assertEquals(13, missingBase.exitCode());
 		assertTrue(missingBase.output().contains("PHB-EBASE"));
 
@@ -47,7 +47,7 @@ class PhobosShellContractTest {
 		for (String file : new String[] { "ro.paths", "rw.paths", "hide.paths", "tail.flags" }) {
 			Files.createFile(specification.resolve(file));
 		}
-		ProcessResult missingRuntime = run("BWRAP_BIN='ares-definitely-missing-bwrap' bash '"
+		ProcessResult missingRuntime = run("BWRAP_BIN='ares-definitely-missing-bwrap' /bin/bash '"
 				+ TEMPLATES.resolve("phobos-filesystem.sh") + "' '" + specification + "' -- true");
 		assertEquals(15, missingRuntime.exitCode());
 		assertTrue(missingRuntime.output().contains("PHB-ERUNTIME"));
@@ -601,7 +601,7 @@ class PhobosShellContractTest {
 	private String slowCommandTouchingMarker(Path shellRoot) throws IOException {
 		Path script = shellRoot.resolve("slow-command.sh");
 		Files.writeString(script, "#!/usr/bin/env bash\nsleep 2\ntouch '" + markerOf(shellRoot) + "'\n");
-		return "bash '" + script + "'";
+		return "/bin/bash '" + script + "'";
 	}
 
 	/**
@@ -622,7 +622,7 @@ class PhobosShellContractTest {
 		Path config = temporaryDirectory.resolve(fileName);
 		Files.writeString(config, configurationContents);
 
-		return run("bash '" + shellRoot.resolve("phobos.sh") + "' --no-network --no-filesystem --config '" + config
+		return run("/bin/bash '" + shellRoot.resolve("phobos.sh") + "' --no-network --no-filesystem --config '" + config
 				+ "' -- " + protectedCommand);
 	}
 
@@ -681,8 +681,15 @@ class PhobosShellContractTest {
 		return "; printf '%s' \"${PARSED_TIMEOUT}\"";
 	}
 
+	/**
+	 * Runs a shell snippet and collects what it printed. Every bash this test
+	 * names, here and in the snippets it is given, is named by absolute path, so
+	 * the environment cannot choose the interpreter. That ties the test to a host
+	 * with bash at /bin/bash, which the scripts themselves do not ask of their own
+	 * hosts. The utilities they call still come from PATH.
+	 */
 	private ProcessResult run(String script) throws IOException, InterruptedException {
-		Process process = new ProcessBuilder("bash", "-c", script).redirectErrorStream(true).start();
+		Process process = new ProcessBuilder("/bin/bash", "-c", script).redirectErrorStream(true).start();
 		String output = new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
 		return new ProcessResult(process.waitFor(), output);
 	}

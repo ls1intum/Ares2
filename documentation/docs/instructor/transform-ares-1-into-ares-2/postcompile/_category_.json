@@ -1,0 +1,8 @@
+{
+    "label": "Postcompile",
+    "position": 3,
+    "link": {
+        "type": "generated-index",
+        "description": "Migrating an Ares 1 exercise onto the dependency-based mode."
+    }
+}
