@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -58,6 +59,12 @@ class NetblockerProvenanceTest {
 	 * return.
 	 */
 	private static final String ABANDONED_PATH = "/var/tmp/opt/core/allowedList.cfg";
+
+	/**
+	 * The resolver a probe runs, named by absolute path so the environment cannot
+	 * choose which one holds the library.
+	 */
+	private static final String RESOLVER = "/usr/bin/getent";
 
 	/** A loopback address, so the probe below needs no network of any kind. */
 	private static final String PROBED_HOST = "127.0.0.1";
@@ -137,11 +144,13 @@ class NetblockerProvenanceTest {
 	@Test
 	@EnabledOnOs(OS.LINUX)
 	void copiedLibraryLoadsRatherThanBeingSkipped() throws Exception {
-		Process process = probe(writeRule(PROBED_HOST, "loading.rules"));
-		String diagnostics = new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
-		process.waitFor();
-		assertFalse(diagnostics.contains("cannot be preloaded") || diagnostics.contains("cannot open shared object"),
-				"the dynamic linker could not load the copied library: " + diagnostics);
+		Path rules = writeRule(PROBED_HOST, "loading.rules");
+		Path diagnostics = diagnosticsFor(rules);
+		awaitExitOf(probe(rules, diagnostics));
+		String reported = Files.readString(diagnostics, StandardCharsets.UTF_8);
+		assertTrue(reported.isBlank(),
+				"the resolver reported a diagnostic while holding the copied library, so the library may not have been loaded: "
+						+ reported);
 	}
 
 	/**
@@ -164,8 +173,19 @@ class NetblockerProvenanceTest {
 	 * @return zero when the interposed lookup allowed the probed host
 	 */
 	private int resolveUnder(Path rules) throws IOException, InterruptedException {
-		Process process = probe(rules);
-		process.getErrorStream().readAllBytes();
+		return awaitExitOf(probe(rules, diagnosticsFor(rules)));
+	}
+
+	/**
+	 * Waits for a probe, within the timeout, and reports its exit status. A probe
+	 * that outlives the timeout is killed and the run fails rather than hanging.
+	 * Nothing is read from a pipe first: a stalled child that holds its output open
+	 * would block such a read for ever, and the timeout would never be reached.
+	 *
+	 * @param process the probe to wait for
+	 * @return the exit status of the probe
+	 */
+	private int awaitExitOf(Process process) throws InterruptedException {
 		if (!process.waitFor(PROBE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 			process.destroyForcibly();
 			throw new IllegalStateException("the probe holding the copied library never finished");
@@ -174,15 +194,31 @@ class NetblockerProvenanceTest {
 	}
 
 	/**
+	 * Names the file a probe writes its diagnostics to, beside the rules it reads.
+	 *
+	 * @param rules the rule file this probe runs under
+	 * @return the file collecting whatever the probe wrote to standard error
+	 */
+	private Path diagnosticsFor(Path rules) {
+		return rules.resolveSibling(rules.getFileName() + ".stderr");
+	}
+
+	/**
 	 * Asks {@code getent} to resolve the probed host in a child process holding the
 	 * copied library. Its exit status alone says whether the interposed lookup
-	 * allowed the host, so nothing has to be read from a message.
+	 * allowed the host, so nothing has to be read from a message. Standard error
+	 * goes to a file rather than a pipe, so no read can outlast the timed wait.
+	 * <p>
+	 * The resolver is named by absolute path, so the environment cannot choose it.
+	 * That ties these cases to a host with {@code getent} at {@code /usr/bin},
+	 * which is where the distributions this library is built for put it.
 	 */
-	private Process probe(Path rules) throws IOException {
-		ProcessBuilder builder = new ProcessBuilder("getent", "ahosts", PROBED_HOST);
+	private Process probe(Path rules, Path diagnostics) throws IOException {
+		ProcessBuilder builder = new ProcessBuilder(RESOLVER, "ahosts", PROBED_HOST);
 		builder.environment().put("LD_PRELOAD", LIBRARY.toString());
 		builder.environment().put("NETBLOCKER_CONF", rules.toString());
 		builder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+		builder.redirectError(diagnostics.toFile());
 		return builder.start();
 	}
 

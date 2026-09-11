@@ -34,6 +34,11 @@ COMPILE_FLAGS=(-fPIC -shared -Wl,--build-id=none)
 # library was built from an older source than the one beside it.
 ABANDONED_PATH="/var/tmp/opt/core/allowedList.cfg"
 
+# The loopback address the signalling probe asks about, so no network of any kind is needed,
+# and a documentation-range address the rules grant instead, so the first ask is refused.
+PROBED_HOST="127.0.0.1"
+REFUSED_HOST="203.0.113.1"
+
 # Rule sets with a known verdict, each written as `rules|port`. Only the file NETBLOCKER_CONF
 # names differs between them, so a library reading any other file answers them all alike and
 # cannot produce this sequence.
@@ -311,6 +316,82 @@ PROBE_EOF
   ( cd -- "$1" && gcc -o probe probe.c )
 }
 
+# A probe that asks twice in one process, rewriting the rules and signalling itself between
+# the two. The library is loaded once, at start, so a second process would prove nothing: it
+# would read the rewritten file at its own start whether or not a reload exists.
+build_signal_probe() {
+  cat > "$1/signal_probe.c" <<'SIGNAL_PROBE_EOF'
+#define _GNU_SOURCE
+#include <arpa/inet.h>
+#include <errno.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+/* Reports whether an interposed connect() refused the address or let it through. */
+static const char *verdict(const char *host, unsigned short port)
+{
+	struct sockaddr_in address;
+	memset(&address, 0, sizeof address);
+	address.sin_family = AF_INET;
+	address.sin_port = htons(port);
+	inet_pton(AF_INET, host, &address.sin_addr);
+	int descriptor = socket(AF_INET, SOCK_STREAM, 0);
+	errno = 0;
+	int outcome = connect(descriptor, (struct sockaddr *) &address, sizeof address);
+	int failure = errno;
+	close(descriptor);
+	return outcome != 0 && failure == EACCES ? "DENIED" : "ALLOWED";
+}
+
+/* Asks, grants itself the host it was refused, raises SIGHUP, then asks again. */
+int main(int argc, char **argv)
+{
+	if (argc < 4) return 2;
+	const char *host = argv[1];
+	unsigned short port = (unsigned short) atoi(argv[2]);
+	const char *first = verdict(host, port);
+	FILE *rules = fopen(argv[3], "w");
+	if (!rules) return 3;
+	fprintf(rules, "%s *\n", host);
+	fclose(rules);
+	raise(SIGHUP);
+	printf("%s %s", first, verdict(host, port));
+	return 0;
+}
+SIGNAL_PROBE_EOF
+  ( cd -- "$1" && gcc -o signal_probe signal_probe.c )
+}
+
+# Asks one library whether a rewrite plus SIGHUP moves its verdict.
+signalled_verdicts_of() {
+  local workspace="$1" library="$2"
+  printf '%s\n' "${REFUSED_HOST} *" > "${workspace}/signalled.rules"
+  ( cd -- "${workspace}" && LD_PRELOAD="${workspace}/${library}.so" \
+      NETBLOCKER_CONF="${workspace}/signalled.rules" \
+      bash -c "trap '' HUP; exec ./signal_probe ${PROBED_HOST} 9 '${workspace}/signalled.rules'" )
+}
+
+# The rule file lives where the sandbox binds writable, so supervised code can rewrite it. A
+# library that reloads on SIGHUP would therefore let that code grant itself a refused host and
+# signal its own process. The launcher ignores SIGHUP before handing over and an ignored
+# disposition survives exec, so a library installing a handler replaces it and reloads, while
+# one installing none leaves the refusal standing. Both libraries are asked: a correct rebuild
+# must not hide a shipped artefact that still reloads.
+check_signal_cannot_widen() {
+  build_signal_probe "$1"
+  local library verdicts
+  for library in shipped rebuilt; do
+    verdicts="$(signalled_verdicts_of "$1" "${library}")"
+    [[ "${verdicts}" == "DENIED DENIED" ]] ||
+      fail "the ${library} library changed its verdict after the rules were rewritten and SIGHUP raised (${verdicts})" 10
+  done
+  echo "signals: rewriting the rule file and raising SIGHUP leaves both refusals standing"
+}
+
 WORKSPACE="$(mktemp -d)"
 trap 'rm -rf -- "${WORKSPACE}"' EXIT
 
@@ -326,6 +407,7 @@ elif [[ $# -eq 1 && "$1" == "--check" ]]; then
   report_byte_equality "${WORKSPACE}"
   check_behavioural_equivalence "${WORKSPACE}"
   check_abandoned_path_absent
+  check_signal_cannot_widen "${WORKSPACE}"
   echo "build-netblocker.sh: the shipped ${ARTEFACT_NAME} matches its recorded source and"
   echo "  artifact digests and the verified behavioural contract"
 elif [[ $# -eq 0 ]]; then
