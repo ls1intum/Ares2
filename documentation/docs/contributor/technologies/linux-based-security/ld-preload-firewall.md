@@ -32,13 +32,13 @@ library that is not visible inside the mount namespace cannot be loaded.
 
 `phobos-common.sh` writes the allow-list an exercise's policy produced to `net.rules` in
 that run's specification directory. `phobos-network.sh` then exports that file's path as
-`NETBLOCKER_CONF`, creating it empty if the merge produced nothing, and the library reads
-the file that variable names when it is loaded. Nothing else selects the rules: a library
-that read a fixed path instead would apply one list to every exercise.
+`NETBLOCKER_CONF`, creating it empty if the merge produced nothing. The library reads the
+file that variable names as the loader brings it in. Nothing else selects the rules: a
+library that reads a fixed path instead applies one list to every exercise.
 
 ## Two copies of Phobos
 
-Phobos is maintained in its own repository, [`ls1intum/phobos`](https://github.com/ls1intum/phobos).
+Phobos lives in its own repository, [`ls1intum/phobos`](https://github.com/ls1intum/phobos).
 That is the runtime an Artemis deployment installs, and it carries its own `netblocker.c` and
 its own compiled library. Ares separately vendors a **snapshot** of the Phobos files under
 `src/main/resources/.../templates/phobos` and packages it into the Ares jar.
@@ -48,37 +48,39 @@ nothing compares the two repositories, and nothing here changes the upstream one
 
 ## Regenerating the vendored library
 
-`libnetblocker.so` is checked in already compiled, next to the `netblocker.c` it is built
-from, because no Maven build compiles C. The two can therefore fall out of step, and a
-library that reads a configuration file other than the one `NETBLOCKER_CONF` names applies a
-single rule list to every exercise.
+The repository carries `libnetblocker.so` already compiled, next to the `netblocker.c` that
+produced it, because no Maven build compiles C source. The two can therefore drift apart. A
+library that reads some other configuration file, rather than the one `NETBLOCKER_CONF`
+names, applies a single rule list to every exercise.
 
 `tools/netblocker/build-netblocker.sh` is the only supported way to produce the vendored
 artefact. Run it with no arguments after changing the vendored `netblocker.c`: it rebuilds the
 library and rewrites `netblocker.provenance` beside it, recording the source, the compiler,
 the flags and the resulting digests.
 
-`--check` verifies a checkout without changing it. It requires the recorded digests to match,
-builds the source twice and requires those builds to agree, then puts the same rule sets to
-the vendored library and to a fresh build and requires the same verdicts. `--check-jar` takes
-the path of a built jar and checks the packaged side: that the library, the source and the
-provenance each appear exactly once, that their bytes are the checkout's, and that the digests
-the packaged provenance records recompute from the packaged entries. The
-`Netblocker Digests And Behaviour` job runs both on every pull request.
+`--check` verifies a checkout without changing it. It requires the recorded digests to
+match, then builds the source twice and requires those two builds to agree. Finally it puts
+the same rule sets to the vendored library and to a fresh build, and requires the same
+verdicts.
+
+`--check-jar` takes the path of a built jar and checks the packaged side. The library, the
+source and the provenance must each appear exactly once, and their bytes must be the
+checkout's. The digests the packaged provenance records must recompute from the packaged
+entries. The `Netblocker Digests And Behaviour` job runs both on every pull request.
 
 **What this does and does not establish.** It establishes that the source and library match
 their recorded digests, that the build is deterministic on one toolchain, that both libraries
 agree on every rule set tested, and that the library reads `NETBLOCKER_CONF`. Byte equality is
 deliberately not required, because a different compiler release or flag set arranges the same
-code differently; a difference is reported without inferring its cause. Agreement on a finite
+code differently; the script reports a difference without inferring its cause. Agreement on a finite
 set of rule sets is not proof that two libraries are the same program.
 
-**One architecture, one GLIBC compatibility ceiling.** The library is built and tested for
-64-bit x86 alone, and the build script refuses any other host rather than producing an
-unverified artefact, so a deployment on another architecture has no network layer and must not
-be told otherwise. It also refuses a library whose newest required GLIBC symbol version is
-past 2.34, since a build on a newer distribution behaves identically where it loads at all and
-silently stops loading everywhere else.
+**One architecture, one GLIBC compatibility ceiling.** The build script builds and tests the
+library for 64-bit x86 alone, and refuses any other host rather than producing an unverified
+artefact. A deployment on another architecture therefore has no network layer, and the
+documentation must not claim otherwise. The script further refuses a library whose newest required
+GLIBC symbol version is past 2.34. A build on a newer distribution behaves identically where
+it loads at all, and silently stops loading everywhere else.
 
 ## The limit worth knowing
 
