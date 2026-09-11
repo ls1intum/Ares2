@@ -49,7 +49,7 @@ nothing compares the two repositories, and nothing here changes the upstream one
 ## Regenerating the vendored library
 
 The repository carries `libnetblocker.so` already compiled, next to the `netblocker.c` that
-produced it, because no Maven build compiles C source. The two can therefore drift apart. A
+produced it because no Maven build compiles C source. The two can therefore drift apart. A
 library that reads some other configuration file, rather than the one `NETBLOCKER_CONF`
 names, applies a single rule list to every exercise.
 
@@ -71,7 +71,7 @@ entries. The `Netblocker Digests And Behaviour` job runs both on every pull requ
 **What this does and does not establish.** It establishes that the source and library match
 their recorded digests, that the build is deterministic on one toolchain, that both libraries
 agree on every rule set tested, and that the library reads `NETBLOCKER_CONF`. Byte equality is
-deliberately not required, because a different compiler release or flag set arranges the same
+deliberately not required because a different compiler release or flag set arranges the same
 code differently; the script reports a difference without inferring its cause. Agreement on a finite
 set of rule sets is not proof that two libraries are the same program.
 
