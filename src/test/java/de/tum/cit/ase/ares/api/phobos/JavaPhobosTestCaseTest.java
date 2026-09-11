@@ -63,12 +63,29 @@ class JavaPhobosTestCaseTest {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = { "safe\rdraft", "safe\tdraft", "/var/lib/ares", "relative/path", "/a b/c" })
+	@ValueSource(strings = { "safe\rdraft", "safe\tdraft", "/var/lib/ares", "relative/path", "/a b/c",
+			"/tmp/[cache]/file", "[write]/etc", "/etc[write]", "[]" })
 	void keepsWritingAPathTheReaderReadsBackUnchanged(String path) {
 		JavaPhobosTestCase accepted = JavaPhobosTestCase.builder()
 				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
 				.resourceAccessSupplier(() -> List.of(new FilePermission(path, true, false, false, false, false)))
 				.build();
 		assertTrue(accepted.writePhobosTestCase().contains(path));
+	}
+
+	/**
+	 * Requires a path the reader would take for a section header to be refused. The
+	 * reader opens a section on such a line instead of granting the path, so
+	 * writing one changes what the lines around it mean.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "[write]", "[network]", "[hide]", "[anything]", "[read\ronly]" })
+	void refusesAFilesystemPathTheReaderWouldTakeForASectionHeader(String path) {
+		JavaPhobosTestCase header = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(() -> List.of(new FilePermission(path, true, false, false, false, false)))
+				.build();
+		SecurityException refused = assertThrows(SecurityException.class, header::writePhobosTestCase);
+		assertTrue(refused.getMessage().contains(path));
 	}
 }

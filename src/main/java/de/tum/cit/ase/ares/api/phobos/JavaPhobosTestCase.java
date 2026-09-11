@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.phobos;
 
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 
@@ -29,10 +30,18 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermissi
 public class JavaPhobosTestCase extends PhobosTestCase {
 
 	/**
-	 * The blank characters the Phobos reader trims off a configuration line, which
-	 * are the six its C locale counts as blank.
+	 * The blank characters the Phobos reader trims off a configuration line. The
+	 * reader pins {@code LC_ALL=C} for that trim, so these six are exact: under a
+	 * UTF-8 locale it would trim more, and this model would miss what it trimmed.
 	 */
 	private static final String PARSER_TRIMMED_BLANKS = " \t\n\013\f\r";
+
+	/**
+	 * The shape of a line the Phobos reader takes as a section header. Written with
+	 * {@link Pattern#DOTALL} so that it matches what the reader's own test matches,
+	 * which is any character between the brackets.
+	 */
+	private static final Pattern PARSER_SECTION_HEADER = Pattern.compile("\\[.+\\]", Pattern.DOTALL);
 
 	/**
 	 * The supplier for the resource accesses permitted as defined in the security
@@ -150,31 +159,23 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	}
 
 	/**
-	 * Returns a path unchanged, or refuses it when the Phobos parser would not read
-	 * it back as written.
-	 * <p>
-	 * The configuration is a line-based format, and its reader rewrites a line
-	 * three ways: it ends a record at a line feed, drops everything from the first
-	 * {@code #}, and trims blank characters off both ends. A path touched by any of
-	 * them is granted as a different path. {@code safe\n[write]\n/etc} opens a
-	 * write section, and {@code /tmp#private} is read as {@code /tmp}, which a base
-	 * policy already permits, so a narrow permission quietly becomes a broad one.
-	 * <p>
-	 * None of the three can be escaped in this format, so refusing is the only safe
-	 * answer. The check sits here rather than in the policy model because the limit
-	 * belongs to this file format. A path reaches this point either from the policy
-	 * or from an expanded {@code ${PROJECT_ROOT}}, and both are refused alike.
+	 * Returns a path, or refuses one the Phobos reader would read as another path
+	 * or as a section header, since either changes what the policy means. Refusing
+	 * where the file is written catches an expanded {@code ${PROJECT_ROOT}} too.
 	 *
-	 * @param header the section being written, named in the failure message
+	 * @param header the section written, named in the failure
 	 * @param path   the path about to be written
-	 * @return the path, when the parser would read it back unchanged
-	 * @throws SecurityException if the parser would read a different path
+	 * @return the path, when the reader reads it back unchanged
+	 * @throws SecurityException if the reader would read something else
 	 */
 	private static String requirePathSurvivesTheParser(String header, String path) {
-		if (path.equals(asTheParserWouldReadIt(path))) {
-			return path;
+		if (!path.equals(asTheParserWouldReadIt(path))) {
+			throw new SecurityException(Messages.localized("security.phobos.path.rewritten", header, path));
 		}
-		throw new SecurityException(Messages.localized("security.phobos.path.rewritten", header, path));
+		if (PARSER_SECTION_HEADER.matcher(path).matches()) {
+			throw new SecurityException(Messages.localized("security.phobos.path.section.header", header, path));
+		}
+		return path;
 	}
 
 	/**
