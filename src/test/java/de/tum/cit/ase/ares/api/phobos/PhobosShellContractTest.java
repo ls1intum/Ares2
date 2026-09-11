@@ -96,6 +96,20 @@ class PhobosShellContractTest {
 	}
 
 	/**
+	 * Requires a path shaped like an option to survive the reader. The trim used to
+	 * pass every line through {@code echo}, which took {@code -n} for a flag of its
+	 * own and printed nothing, so the permission vanished from the policy the
+	 * sandbox went on to enforce.
+	 */
+	@Test
+	void keepsAPathThatLooksLikeAnOptionOfTheShell() throws Exception {
+		Path config = temporaryDirectory.resolve("option.cfg");
+		Files.writeString(config, "[readonly]\n-n\n");
+		ProcessResult result = run(parses(config));
+		assertTrue(result.output().contains("--ro\n-n\n"));
+	}
+
+	/**
 	 * Builds a snippet that parses one configuration and prints the read-only and
 	 * the write paths it produced, each under a heading the assertions look for.
 	 *
