@@ -42,7 +42,8 @@ public record SupervisedCode(
 		@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
 		@Nullable String theSupervisedCodeUsesTheFollowingPackage, @Nullable String theMainClassInsideThisPackageIs,
 		@Nonnull List<String> theFollowingClassesAreTestClasses,
-		@Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted) {
+		@Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted,
+		@Nullable TestBehaviorConfiguration theFollowingTestBehaviorIsConfigured) {
 
 	/**
 	 * Constructs a SupervisedCode instance with the provided details.
@@ -69,6 +70,21 @@ public record SupervisedCode(
 		}
 		Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "ResourceAccesses must not be null");
 		theFollowingClassesAreTestClasses = List.copyOf(theFollowingClassesAreTestClasses);
+	}
+
+	/**
+	 * Returns the configured behavioural test-lifecycle features, or an empty
+	 * configuration when none were configured, so callers never need their own null
+	 * check.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 * @return a non-null, possibly-empty TestBehaviorConfiguration.
+	 */
+	@Nonnull
+	public TestBehaviorConfiguration theFollowingTestBehaviorIsConfiguredOrEmpty() {
+		return theFollowingTestBehaviorIsConfigured == null ? TestBehaviorConfiguration.builder().build()
+				: theFollowingTestBehaviorIsConfigured;
 	}
 
 	/**
@@ -156,6 +172,15 @@ public record SupervisedCode(
 		private ResourceAccesses theFollowingResourceAccessesArePermitted;
 
 		/**
+		 * The behavioural test-lifecycle configuration to build with, or null to build
+		 * with none configured.
+		 *
+		 * @since 2.1.5
+		 */
+		@Nullable
+		private TestBehaviorConfiguration theFollowingTestBehaviorIsConfigured;
+
+		/**
 		 * Sets the programming language configuration.
 		 *
 		 * @since 2.0.0
@@ -235,6 +260,22 @@ public record SupervisedCode(
 		}
 
 		/**
+		 * Sets the behavioural test-lifecycle configuration.
+		 *
+		 * @since 2.1.5
+		 * @author Luka Petrovic
+		 * @param theFollowingTestBehaviorIsConfigured the behavioural configuration;
+		 *                                             may be null.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder theFollowingTestBehaviorIsConfigured(
+				@Nullable TestBehaviorConfiguration theFollowingTestBehaviorIsConfigured) {
+			this.theFollowingTestBehaviorIsConfigured = theFollowingTestBehaviorIsConfigured;
+			return this;
+		}
+
+		/**
 		 * Builds a new SupervisedCode instance.
 		 *
 		 * @since 2.0.0
@@ -250,7 +291,8 @@ public record SupervisedCode(
 					Objects.requireNonNull(theFollowingClassesAreTestClasses,
 							"theFollowingClassesAreTestClasses must not be null"),
 					Objects.requireNonNull(theFollowingResourceAccessesArePermitted,
-							"theFollowingResourceAccessesArePermitted must not be null"));
+							"theFollowingResourceAccessesArePermitted must not be null"),
+					theFollowingTestBehaviorIsConfigured);
 		}
 	}
 }

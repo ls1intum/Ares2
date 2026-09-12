@@ -11,6 +11,7 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 
 /**
  * Interface for writing security test cases across different programming
@@ -39,6 +40,9 @@ public interface Writer {
 	 * @param javaArchitectureTestCases the list of architecture test cases; must
 	 *                                  not be null
 	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
+	 * @param testBehaviorConfiguration the behavioural test-lifecycle configuration
+	 *                                  to carry forward for a precompile
+	 *                                  deployment; must not be null.
 	 * @param testFolderPath            the directory of the project; must not be
 	 *                                  null
 	 * @return a list of paths to the created files
@@ -49,5 +53,5 @@ public interface Writer {
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> phobosTestCases,
-			@Nonnull Path testFolderPath);
+			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath);
 }

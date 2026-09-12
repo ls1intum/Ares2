@@ -377,6 +377,58 @@ public class SecurityPolicyYAMLReaderTest {
 		}
 	}
 
+	@Nested
+	@DisplayName("theFollowingTestBehaviorIsConfigured Tests")
+	class TestBehaviorConfigurationTests {
+
+		@Test
+		@DisplayName("Should parse a policy without the behavioural wrapper exactly as before")
+		void wrapperAbsentParsesAsBefore(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("no-behavior.yaml");
+			Files.writeString(policyFile, minimalPolicy());
+
+			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
+
+			assertNull(policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured());
+		}
+
+		@Test
+		@DisplayName("Should parse the wrapper present but empty")
+		void wrapperPresentButEmptyParses(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("empty-behavior.yaml");
+			Files.writeString(policyFile,
+					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: {}\n");
+
+			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
+
+			assertNotNull(policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured());
+		}
+
+		@Test
+		@DisplayName("Should reject an unknown behavioural category name")
+		void unknownBehaviouralCategoryIsRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-unknown-category.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing() + """
+
+					  theFollowingTestBehaviorIsConfigured:
+					    regardingSomeUnknownFeature:
+					      enabled: true
+					""");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+
+		@Test
+		@DisplayName("Should reject a malformed (non-object) behavioural wrapper")
+		void malformedWrapperTypeIsRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-malformed-wrapper.yaml");
+			Files.writeString(policyFile,
+					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: \"not-an-object\"\n");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+	}
+
 	private static String minimalPolicy() {
 		return """
 				thisPolicyFileCompliesToThePolicyVersion: 1

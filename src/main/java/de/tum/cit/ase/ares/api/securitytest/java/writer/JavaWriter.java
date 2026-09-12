@@ -18,6 +18,7 @@ import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.localization.Localisation;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
@@ -148,21 +149,38 @@ public class JavaWriter implements Writer {
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 
+	/**
+	 * Resolves the resources directory sibling to a source root such as
+	 * {@code src/test/java}, replacing its final segment with {@code resources} -
+	 * the Maven/Gradle convention. A too-shallow path (e.g. a bare project root)
+	 * gets resources placed directly beneath it instead.
+	 *
+	 * @param testFolderPath the source root, or project root when too shallow; must
+	 *                       not be null.
+	 * @return the resolved resources directory.
+	 */
+	@Nonnull
+	private Path resolveResourcesFolderPath(@Nonnull Path testFolderPath) {
+		int nameCount = testFolderPath.getNameCount();
+		if (testFolderPath.toString().isEmpty() || nameCount < 3) {
+			return testFolderPath.resolve("resources");
+		}
+		Path parentPath = testFolderPath.subpath(0, nameCount - 1);
+		Path root = testFolderPath.getRoot();
+		return (root == null) ? Paths.get(parentPath.toString(), "resources")
+				: Paths.get(root.toString(), parentPath.toString(), "resources");
+	}
+
+	/**
+	 * Copies the localisation files into the resources directory sibling to
+	 * {@code testFolderPath}.
+	 *
+	 * @param testFolderPath the source root; must not be null.
+	 * @return the copied files' paths.
+	 */
 	@Nonnull
 	private List<Path> createLocalisationFiles(@Nonnull Path testFolderPath) {
-		int nameCount = testFolderPath.getNameCount();
-		Path resourcesFolderPath;
-		if (testFolderPath.toString().isEmpty() || nameCount < 3) {
-			// Too shallow to strip the trailing two segments (e.g. the project root in
-			// precompile mode): place the resources folder directly beneath it.
-			resourcesFolderPath = testFolderPath.resolve("resources");
-		} else {
-			Path parentPath = testFolderPath.subpath(0, nameCount - 2);
-			Path root = testFolderPath.getRoot();
-			resourcesFolderPath = (root == null) ? Paths.get(parentPath.toString(), "resources")
-					: Paths.get(root.toString(), parentPath.toString(), "resources");
-		}
-
+		Path resourcesFolderPath = resolveResourcesFolderPath(testFolderPath);
 		return FileTools.copyFiles(Localisation.filesToCopy(),
 				confineTargets(Localisation.targetsToCopyTo(resourcesFolderPath)));
 	}
@@ -222,6 +240,9 @@ public class JavaWriter implements Writer {
 	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
 	 * @param javaPhobosTestCases       the list of Phobos test cases; must not be
 	 *                                  null
+	 * @param testBehaviorConfiguration the behavioural test-lifecycle configuration
+	 *                                  a future feature category writes forward for
+	 *                                  a precompile deployment; must not be null.
 	 * @param testFolderPath            the directory of the project; must not be
 	 *                                  null
 	 * @return a list of paths to the created files
@@ -232,7 +253,7 @@ public class JavaWriter implements Writer {
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
-			@Nonnull Path testFolderPath) {
+			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath) {
 		Objects.requireNonNull(buildMode, "buildMode must not be null");
 		if (buildConfiguration != null && buildMode != buildConfiguration.buildMode()) {
 			throw new IllegalStateException("Writer build mode does not match the discovered build configuration");
