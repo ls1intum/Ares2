@@ -5,7 +5,7 @@ import javax.annotation.Nonnull;
 /**
  * Wraps the behavioural test-lifecycle settings a policy configures, parallel
  * to {@link ResourceAccesses} on {@link SupervisedCode}. Carries no category
- * yet; a behavioral-feature policy field is added here as its own record
+ * yet; a behavioural-feature policy field is added here as its own record
  * component, one per feature.
  *
  * @since 2.1.5

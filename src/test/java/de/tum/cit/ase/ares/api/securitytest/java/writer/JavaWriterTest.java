@@ -262,8 +262,8 @@ public class JavaWriterTest {
 		}
 
 		@Test
-		@DisplayName("Should behave like an empty configuration when called through the pre-release signature")
-		void oldSignatureDelegatesToTheConfigurationAwareOne() {
+		@DisplayName("Should still write the released outputs when called through the pre-release signature directly")
+		void preReleaseSignatureStillWritesTheReleasedOutputs() {
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
 					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
 				stubArchitectureModeDefaults();
@@ -279,6 +279,40 @@ public class JavaWriterTest {
 				assertFalse(Files.exists(
 						tempDir.resolve("resources").resolve(TestBehaviorConfiguration.GENERATED_RESOURCE_PATH)));
 			}
+		}
+
+		@Test
+		@DisplayName("Should invoke a subclass override of the released overload before adding behaviour outputs")
+		void configurationAwareOverloadInvokesASubclassOverrideOfTheReleasedOneFirst() {
+			class LegacySubclassWriter extends JavaWriter {
+
+				private boolean releasedOverloadInvoked;
+
+				LegacySubclassWriter(Path projectRoot) {
+					super(projectRoot);
+				}
+
+				@Override
+				public List<Path> writeTestCases(BuildMode buildMode, ArchitectureMode architectureMode,
+						AOPMode aopMode, List<String> essentialPackages, List<String> essentialClasses,
+						List<String> testClasses, String packageName, String mainClassInPackageName,
+						List<JavaArchitectureTestCase> javaArchitectureTestCases,
+						List<JavaAOPTestCase> javaAOPTestCases, List<JavaPhobosTestCase> phobosTestCases,
+						Path testFolderPath) {
+					releasedOverloadInvoked = true;
+					return List.of();
+				}
+			}
+
+			LegacySubclassWriter legacySubclassWriter = new LegacySubclassWriter(tempDir);
+
+			List<Path> result = legacySubclassWriter.writeTestCases(buildMode, architectureMode, aopMode,
+					essentialPackages, essentialClasses, testClasses, packageName, mainClassInPackageName,
+					javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration,
+					tempDir);
+
+			assertTrue(legacySubclassWriter.releasedOverloadInvoked);
+			assertEquals(List.of(), result);
 		}
 	}
 

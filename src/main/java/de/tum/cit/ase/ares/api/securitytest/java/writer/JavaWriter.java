@@ -219,30 +219,12 @@ public class JavaWriter implements Writer {
 	// <editor-fold desc="Write security test cases methods">
 
 	/**
-	 * Writes security test cases to files, ignoring behavioural test-lifecycle
-	 * configuration, for source and binary compatibility with code built against
-	 * the signature released before that parameter existed.
-	 *
-	 * @since 2.1.5
-	 * @author Luka Petrovic
-	 * @param testFolderPath the directory of the project; must not be null
-	 * @return a list of paths to the created files
-	 */
-	@Override
-	@Nonnull
-	public List<Path> writeTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
-			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
-			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
-			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
-			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
-			@Nonnull Path testFolderPath) {
-		return writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses,
-				packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases,
-				TestBehaviorConfiguration.builder().build(), testFolderPath);
-	}
-
-	/**
-	 * Writes security test cases to files.
+	 * Writes security test cases to files. This is the released generation hook: a
+	 * subclass built against the signature released before
+	 * {@code testBehaviorConfiguration} existed overrides this method to customise
+	 * generation, and the configuration-aware overload below calls it virtually, so
+	 * that override still fires even though the factory that owns this writer
+	 * always calls the configuration-aware overload.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -263,9 +245,6 @@ public class JavaWriter implements Writer {
 	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
 	 * @param javaPhobosTestCases       the list of Phobos test cases; must not be
 	 *                                  null
-	 * @param testBehaviorConfiguration the behavioural test-lifecycle configuration
-	 *                                  a future feature category writes forward for
-	 *                                  a precompile deployment; must not be null.
 	 * @param testFolderPath            the directory of the project; must not be
 	 *                                  null
 	 * @return a list of paths to the created files
@@ -277,7 +256,7 @@ public class JavaWriter implements Writer {
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
-			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath) {
+			@Nonnull Path testFolderPath) {
 		Objects.requireNonNull(buildMode, "buildMode must not be null");
 		if (buildConfiguration != null && buildMode != buildConfiguration.buildMode()) {
 			throw new IllegalStateException("Writer build mode does not match the discovered build configuration");
@@ -298,6 +277,42 @@ public class JavaWriter implements Writer {
 						createLocalisationFiles(validatedTestFolderPath).stream(),
 						createPhobosFiles(packageName, javaPhobosTestCases, validatedTestFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+	}
+
+	/**
+	 * Writes security test cases to files, carrying a behavioural test-lifecycle
+	 * configuration forward for a precompile deployment. Calls the released
+	 * overload virtually, so a subclass overriding only that one still has its
+	 * customisation applied even though this is the overload
+	 * {@code JavaTestCaseFactoryAndBuilder} actually calls; currently ignores the
+	 * configuration itself, since no category writes anything forward yet.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 * @param essentialClasses          the list of essential classes; must not be
+	 *                                  null
+	 * @param testClasses               the list of test classes; must not be null
+	 * @param javaArchitectureTestCases the list of architecture test cases; must
+	 *                                  not be null
+	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
+	 * @param testBehaviorConfiguration the behavioural test-lifecycle configuration
+	 *                                  a future feature category writes forward for
+	 *                                  a precompile deployment; must not be null.
+	 * @param testFolderPath            the directory of the project; must not be
+	 *                                  null
+	 * @return a list of paths to the created files
+	 */
+	@Override
+	@Nonnull
+	public List<Path> writeTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
+			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
+			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
+			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
+			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
+			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath) {
+		return writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses,
+				packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases,
+				testFolderPath);
 	}
 	// </editor-fold>
 }
