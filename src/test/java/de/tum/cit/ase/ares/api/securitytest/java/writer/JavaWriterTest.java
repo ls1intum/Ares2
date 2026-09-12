@@ -260,6 +260,26 @@ public class JavaWriterTest {
 						tempDir.resolve("resources").resolve(TestBehaviorConfiguration.GENERATED_RESOURCE_PATH)));
 			}
 		}
+
+		@Test
+		@DisplayName("Should behave like an empty configuration when called through the pre-release signature")
+		void oldSignatureDelegatesToTheConfigurationAwareOne() {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				List<Path> result = javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+						javaAOPTestCases, javaPhobosTestCases, tempDir);
+
+				assertEquals(3, result.size());
+				assertFalse(Files.exists(
+						tempDir.resolve("resources").resolve(TestBehaviorConfiguration.GENERATED_RESOURCE_PATH)));
+			}
+		}
 	}
 
 	private void stubArchitectureModeDefaults() {

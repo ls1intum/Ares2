@@ -219,6 +219,29 @@ public class JavaWriter implements Writer {
 	// <editor-fold desc="Write security test cases methods">
 
 	/**
+	 * Writes security test cases to files, ignoring behavioural test-lifecycle
+	 * configuration, for source and binary compatibility with code built against
+	 * the signature released before that parameter existed.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 * @param testFolderPath the directory of the project; must not be null
+	 * @return a list of paths to the created files
+	 */
+	@Override
+	@Nonnull
+	public List<Path> writeTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
+			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
+			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
+			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
+			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
+			@Nonnull Path testFolderPath) {
+		return writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses,
+				packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases,
+				TestBehaviorConfiguration.builder().build(), testFolderPath);
+	}
+
+	/**
 	 * Writes security test cases to files.
 	 *
 	 * @since 2.0.0
@@ -247,6 +270,7 @@ public class JavaWriter implements Writer {
 	 *                                  null
 	 * @return a list of paths to the created files
 	 */
+	@Override
 	@Nonnull
 	public List<Path> writeTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
 			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,

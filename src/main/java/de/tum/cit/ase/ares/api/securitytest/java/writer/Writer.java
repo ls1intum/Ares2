@@ -40,9 +40,6 @@ public interface Writer {
 	 * @param javaArchitectureTestCases the list of architecture test cases; must
 	 *                                  not be null
 	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
-	 * @param testBehaviorConfiguration the behavioural test-lifecycle configuration
-	 *                                  to carry forward for a precompile
-	 *                                  deployment; must not be null.
 	 * @param testFolderPath            the directory of the project; must not be
 	 *                                  null
 	 * @return a list of paths to the created files
@@ -53,5 +50,37 @@ public interface Writer {
 			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> phobosTestCases,
-			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath);
+			@Nonnull Path testFolderPath);
+
+	/**
+	 * Writes security test cases to files, carrying a behavioural test-lifecycle
+	 * configuration forward for a precompile deployment. Default implementation
+	 * ignores the configuration and delegates to the original method, for source
+	 * and binary compatibility with implementations built before this overload
+	 * existed; {@link JavaWriter} overrides it to do the real work.
+	 *
+	 * @param essentialClasses          the list of essential classes; must not be
+	 *                                  null
+	 * @param testClasses               the list of test classes; must not be null
+	 * @param javaArchitectureTestCases the list of architecture test cases; must
+	 *                                  not be null
+	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
+	 * @param testBehaviorConfiguration the behavioural test-lifecycle configuration
+	 *                                  to carry forward for a precompile
+	 *                                  deployment; must not be null.
+	 * @param testFolderPath            the directory of the project; must not be
+	 *                                  null
+	 * @return a list of paths to the created files
+	 */
+	@Nonnull
+	default List<Path> writeTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
+			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
+			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
+			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
+			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> phobosTestCases,
+			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath) {
+		return writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses,
+				packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases, phobosTestCases,
+				testFolderPath);
+	}
 }

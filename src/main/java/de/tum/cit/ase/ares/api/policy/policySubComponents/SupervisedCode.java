@@ -73,6 +73,23 @@ public record SupervisedCode(
 	}
 
 	/**
+	 * Constructs a SupervisedCode instance with no behavioural test-lifecycle
+	 * configuration, for source and binary compatibility with code built against
+	 * the five-argument constructor released before that field existed.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 */
+	public SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
+			@Nullable String theSupervisedCodeUsesTheFollowingPackage, @Nullable String theMainClassInsideThisPackageIs,
+			@Nonnull List<String> theFollowingClassesAreTestClasses,
+			@Nonnull ResourceAccesses theFollowingResourceAccessesArePermitted) {
+		this(theFollowingProgrammingLanguageConfigurationIsUsed, theSupervisedCodeUsesTheFollowingPackage,
+				theMainClassInsideThisPackageIs, theFollowingClassesAreTestClasses,
+				theFollowingResourceAccessesArePermitted, null);
+	}
+
+	/**
 	 * Returns the configured behavioural test-lifecycle features, or an empty
 	 * configuration when none were configured, so callers never need their own null
 	 * check.

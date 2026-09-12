@@ -38,6 +38,16 @@ class SupervisedCodeTest {
 	}
 
 	@Test
+	void fiveArgumentConstructorLeavesTestBehaviorUnconfigured() {
+		SupervisedCode supervisedCode = new SupervisedCode(
+				ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION, "com.example", "Main",
+				List.of(), ResourceAccesses.createRestrictive());
+
+		assertNull(supervisedCode.theFollowingTestBehaviorIsConfigured());
+		assertEquals("com.example", supervisedCode.theSupervisedCodeUsesTheFollowingPackage());
+	}
+
+	@Test
 	void theFollowingTestBehaviorIsConfiguredDefaultsToNull() {
 		SupervisedCode supervisedCode = SupervisedCode
 				.createRestrictive(ProgrammingLanguageConfiguration.JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION);
