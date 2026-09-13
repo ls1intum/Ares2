@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import java.util.List;
+
 import javax.annotation.Nonnull;
 
 /**
@@ -14,12 +16,30 @@ import javax.annotation.Nonnull;
 public record TestBehaviorConfiguration() {
 
 	/**
-	 * Classpath-relative location of the generated, project-level resource that
-	 * carries this configuration forward for a precompile deployment, where nothing
-	 * dynamically re-reads the original policy file after the generator process
-	 * ends.
+	 * Fully-qualified name of the generated, compiled class that carries this
+	 * configuration forward for a precompile deployment, as literal
+	 * {@code public static final} fields - the same way file/network/command/thread
+	 * permissions already reach enforcement code, so nothing re-reads or re-parses
+	 * a policy artifact at test-run time. A class under this exact name only exists
+	 * on the classpath once a category actually contributes a field to it.
 	 */
-	public static final String GENERATED_RESOURCE_PATH = "ares/api/policy/policySubComponents/TestBehaviorConfiguration.properties";
+	public static final String GENERATED_CLASS_NAME = "de.tum.cit.ase.ares.api.policy.policySubComponents.GeneratedTestBehaviorSettings";
+
+	/**
+	 * Literal field assignments every configured category contributes, one entry
+	 * per field, each already formatted by {@code JavaAOPTestCaseToolbox}'s
+	 * public-static-final assignment helpers. Empty here, since no category is
+	 * configured yet; a category adds its own contribution once it exists.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 * @return the literal field assignments to write into the generated settings
+	 *         class; empty when nothing is configured.
+	 */
+	@Nonnull
+	public List<String> literalFieldAssignments() {
+		return List.of();
+	}
 
 	/**
 	 * Returns a builder for creating a TestBehaviorConfiguration instance.

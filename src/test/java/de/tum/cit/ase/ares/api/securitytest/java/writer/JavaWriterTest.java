@@ -256,8 +256,7 @@ public class JavaWriterTest {
 						javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration, tempDir);
 
 				assertEquals(3, result.size());
-				assertFalse(Files.exists(
-						tempDir.resolve("resources").resolve(TestBehaviorConfiguration.GENERATED_RESOURCE_PATH)));
+				assertFalse(Files.exists(generatedSettingsClassPath()));
 			}
 		}
 
@@ -276,9 +275,16 @@ public class JavaWriterTest {
 						javaAOPTestCases, javaPhobosTestCases, tempDir);
 
 				assertEquals(3, result.size());
-				assertFalse(Files.exists(
-						tempDir.resolve("resources").resolve(TestBehaviorConfiguration.GENERATED_RESOURCE_PATH)));
+				assertFalse(Files.exists(generatedSettingsClassPath()));
 			}
+		}
+
+		private Path generatedSettingsClassPath() {
+			String fullyQualifiedName = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
+			int lastDot = fullyQualifiedName.lastIndexOf('.');
+			String settingsPackagePath = fullyQualifiedName.substring(0, lastDot).replace('.', '/');
+			String simpleClassName = fullyQualifiedName.substring(lastDot + 1);
+			return tempDir.resolve(settingsPackagePath).resolve(simpleClassName + ".java");
 		}
 
 		@Test

@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.securitytest.java.writer;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -185,6 +187,51 @@ public class JavaWriter implements Writer {
 				confineTargets(Localisation.targetsToCopyTo(resourcesFolderPath)));
 	}
 
+	/**
+	 * Writes the generated, compiled settings class the released
+	 * {@code TestBehaviorConfiguration.GENERATED_CLASS_NAME} names, with one
+	 * literal field per contributed category; writes nothing when no category has
+	 * contributed a field yet, so the class is only ever present on the classpath
+	 * once something is actually configured.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 * @param testBehaviorConfiguration the configuration whose literal field
+	 *                                  assignments to write; must not be null.
+	 * @param testFolderPath            the project's source root; must not be null.
+	 * @return the written file's path, or an empty list if nothing was configured.
+	 */
+	@Nonnull
+	private List<Path> createTestBehaviorSettingsFiles(@Nonnull TestBehaviorConfiguration testBehaviorConfiguration,
+			@Nonnull Path testFolderPath) {
+		List<String> fieldAssignments = testBehaviorConfiguration.literalFieldAssignments();
+		if (fieldAssignments.isEmpty()) {
+			return List.of();
+		}
+		String fullyQualifiedName = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
+		int lastDot = fullyQualifiedName.lastIndexOf('.');
+		String settingsPackageName = fullyQualifiedName.substring(0, lastDot);
+		String simpleClassName = fullyQualifiedName.substring(lastDot + 1);
+		Path target = confineToProject(
+				testFolderPath.resolve(settingsPackageName.replace('.', '/')).resolve(simpleClassName + ".java"));
+		String content = "package " + settingsPackageName + ";" + System.lineSeparator() + System.lineSeparator()
+				+ "public final class " + simpleClassName + " {" + System.lineSeparator() + System.lineSeparator()
+				+ "\tprivate " + simpleClassName + "() {" + System.lineSeparator()
+				+ "\t\tthrow new SecurityException(\"" + simpleClassName
+				+ " is a generated settings holder and must not be instantiated\");" + System.lineSeparator() + "\t}"
+				+ System.lineSeparator() + System.lineSeparator()
+				+ String.join("", fieldAssignments.stream().map(assignment -> "\t" + assignment).toList()) + "}"
+				+ System.lineSeparator();
+		try {
+			Files.createDirectories(Objects.requireNonNull(target.getParent(),
+					"generated settings class target has no parent: " + target));
+			Files.writeString(target, content);
+		} catch (IOException failure) {
+			throw new SecurityException("Unable to write generated test-behaviour settings class: " + target, failure);
+		}
+		return List.of(target);
+	}
+
 	@Nonnull
 	private List<Path> createPhobosFiles(@Nonnull String packageName,
 			@Nonnull List<JavaPhobosTestCase> javaPhobosTestCases, @Nonnull Path testFolderPath) {
@@ -280,12 +327,11 @@ public class JavaWriter implements Writer {
 	}
 
 	/**
-	 * Writes security test cases to files, carrying a behavioural test-lifecycle
-	 * configuration forward for a precompile deployment. Calls the released
-	 * overload virtually, so a subclass overriding only that one still has its
-	 * customisation applied even though this is the overload
-	 * {@code JavaTestCaseFactoryAndBuilder} actually calls; currently ignores the
-	 * configuration itself, since no category writes anything forward yet.
+	 * Writes security test cases to files, then adds the generated test-behaviour
+	 * settings class. Calls the released overload virtually first, so a subclass
+	 * overriding only that one still has its customisation applied even though this
+	 * is the overload {@code JavaTestCaseFactoryAndBuilder} actually calls, before
+	 * adding behaviour-specific outputs on top.
 	 *
 	 * @since 2.1.5
 	 * @author Luka Petrovic
@@ -296,8 +342,8 @@ public class JavaWriter implements Writer {
 	 *                                  not be null
 	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
 	 * @param testBehaviorConfiguration the behavioural test-lifecycle configuration
-	 *                                  a future feature category writes forward for
-	 *                                  a precompile deployment; must not be null.
+	 *                                  to carry forward for a precompile
+	 *                                  deployment; must not be null.
 	 * @param testFolderPath            the directory of the project; must not be
 	 *                                  null
 	 * @return a list of paths to the created files
@@ -310,9 +356,11 @@ public class JavaWriter implements Writer {
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
 			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath) {
-		return writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses,
-				packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases,
-				testFolderPath);
+		List<Path> written = new ArrayList<>(writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+				essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+				javaAOPTestCases, javaPhobosTestCases, testFolderPath));
+		written.addAll(createTestBehaviorSettingsFiles(testBehaviorConfiguration, confineToProject(testFolderPath)));
+		return written;
 	}
 	// </editor-fold>
 }
