@@ -4,11 +4,9 @@ regardingTheSupervisedCode:
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
-    - "de.tum.cit.ase.ares.integration.testuser.PrivilegedExceptionUser"
-    - "de.tum.cit.ase.ares.integration.PrivilegedExceptionTest"
+    - "de.tum.cit.ase.ares.integration.testuser.PrivilegedExceptionDefaultUser"
+    - "de.tum.cit.ase.ares.integration.PrivilegedExceptionDefaultTest"
     - "de.tum.cit.ase.ares.testutilities"
-  # Captures the former @WhitelistPath(value = "target/**") of PrivilegedExceptionUser.
-  # The former @BlacklistPath has no allow-list equivalent (Ares 2 forbids by default).
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: true
@@ -23,11 +21,9 @@ regardingTheSupervisedCode:
     regardingPackageImports: []
     regardingTimeouts:
       - timeout: 3000
-  # Deliberately set to false with a different message, so that every existing test
-  # method below - all annotated with @PrivilegedExceptionsOnly("ABC") at the class
-  # level - continues to observe "ABC" untouched, proving the annotation still wins
-  # even when the policy explicitly disables the feature.
+  # No @PrivilegedExceptionsOnly annotation exists anywhere on this fixture's test
+  # class - every case below is governed solely by this policy-level default.
   theFollowingTestBehaviorIsConfigured:
     regardingPrivilegedExceptions:
-      onlyPrivilegedExceptionsAreReported: false
-      theFailureMessageIs: "Policy message should never be observed here"
+      onlyPrivilegedExceptionsAreReported: true
+      theFailureMessageIs: "Policy default message"
