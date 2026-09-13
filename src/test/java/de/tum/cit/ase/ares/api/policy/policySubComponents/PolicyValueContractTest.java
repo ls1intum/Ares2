@@ -152,6 +152,6 @@ class PolicyValueContractTest {
 
 	private SupervisedCode supervisedCode(List<String> testClasses) {
 		return new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, "example",
-				"Main", testClasses, ResourceAccesses.createRestrictive());
+				"Main", testClasses, ResourceAccesses.createRestrictive(), null);
 	}
 }
