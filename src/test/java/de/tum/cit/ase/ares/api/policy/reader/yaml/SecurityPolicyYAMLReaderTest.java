@@ -427,6 +427,16 @@ public class SecurityPolicyYAMLReaderTest {
 
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
 		}
+
+		@Test
+		@DisplayName("Should reject an explicit null wrapper, distinct from the wrapper being absent")
+		void explicitNullWrapperIsRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-null-wrapper.yaml");
+			Files.writeString(policyFile,
+					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: null\n");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
 	}
 
 	private static String minimalPolicy() {

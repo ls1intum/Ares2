@@ -107,7 +107,7 @@ final class SecurityPolicySchemaValidator {
 		}
 
 		JsonNode testBehavior = supervisedCode.get("theFollowingTestBehaviorIsConfigured");
-		if (testBehavior != null && !testBehavior.isNull()) {
+		if (testBehavior != null) {
 			requireObject(testBehavior, "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured",
 					TEST_BEHAVIOR_FIELDS, Set.of());
 		}
