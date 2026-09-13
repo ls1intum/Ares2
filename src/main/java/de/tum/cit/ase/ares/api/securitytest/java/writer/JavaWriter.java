@@ -188,9 +188,9 @@ public class JavaWriter implements Writer {
 	}
 
 	/**
-	 * Writes the generated, compiled settings class the released
-	 * {@code TestBehaviorConfiguration.GENERATED_CLASS_NAME} names, with one
-	 * literal field per contributed category; writes nothing when no category has
+	 * Writes the generated, compiled settings class named by the released
+	 * {@code TestBehaviorConfiguration.GENERATED_CLASS_NAME}, with one literal
+	 * field per contributed category; writes nothing when no category has
 	 * contributed a field yet, so the class is only ever present on the classpath
 	 * once something is actually configured.
 	 *

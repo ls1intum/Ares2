@@ -20,7 +20,7 @@ public record TestBehaviorConfiguration() {
 	 * configuration forward for a precompile deployment, as literal
 	 * {@code public static final} fields - the same way file/network/command/thread
 	 * permissions already reach enforcement code, so nothing re-reads or re-parses
-	 * a policy artifact at test-run time. A class under this exact name only exists
+	 * a policy artefact at test-run time. A class under this exact name only exists
 	 * on the classpath once a category actually contributes a field to it.
 	 */
 	public static final String GENERATED_CLASS_NAME = "de.tum.cit.ase.ares.api.policy.policySubComponents.GeneratedTestBehaviorSettings";
