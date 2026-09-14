@@ -42,6 +42,19 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	private static final StackWalker STACK_WALKER = StackWalker.getInstance();
 
 	/**
+	 * Second StackWalker, retaining {@code Class} references, used only by
+	 * {@link #isJceCryptoPolicyScanInProgress()}. That check is on a cold path (it
+	 * fires only for the rare {@code javax.crypto.JceSecurity} jurisdiction-policy
+	 * scan), so the extra per-frame cost of
+	 * {@link StackWalker.Option#RETAIN_CLASS_REFERENCE} is acceptable there and is
+	 * not paid by the hot-path inspectors above, which keep using
+	 * {@link #STACK_WALKER}.
+	 */
+	@Nonnull
+	private static final StackWalker CLASS_RETAINING_STACK_WALKER = StackWalker
+			.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
+
+	/**
 	 * Lazily resolved Class&lt;?&gt; reference for the AOP settings holder, cached
 	 * so the reflective lookup runs once per JVM rather than on every advice call.
 	 */
@@ -341,6 +354,63 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			}
 			return Boolean.FALSE;
 		});
+	}
+
+	/**
+	 * Returns {@code true} when the current call stack is inside
+	 * {@code javax.crypto.JceSecurity}'s own JCE jurisdiction-policy scan (its
+	 * private {@code setupJurisdictionPolicies()} method, invoked from its static
+	 * initialiser, calls {@code Files.newDirectoryStream} with the fixed
+	 * {@code {default,exempt}_*.policy} glob against the real {@code java.home}
+	 * policy directory). Matching is deliberately narrow so the signal cannot be
+	 * spoofed:
+	 * <ul>
+	 * <li>the frame's class name must equal {@code javax.crypto.JceSecurity}
+	 * exactly (not merely start with it), so an unrelated {@code JceSecurity*} type
+	 * cannot pass;</li>
+	 * <li>the frame's method name must equal {@code setupJurisdictionPolicies}
+	 * exactly, so a call routed through e.g. {@code JceSecurity.getInstance} —
+	 * which student-controlled provider SPI code can execute beneath, per
+	 * {@code Provider.getService()} — does not satisfy this check merely because
+	 * some {@code JceSecurity} frame happens to be on the stack;</li>
+	 * <li>the frame's declaring class must be loaded by the bootstrap or platform
+	 * class loader (mirroring {@link #requireTrustedRuntimeType(Object)}'s trust
+	 * check), so student code cannot spoof the signal by defining its own class
+	 * literally named {@code javax.crypto.JceSecurity} via a custom class loader
+	 * and calling a same-named method on it.</li>
+	 * </ul>
+	 * A student calling the same JDK file-system APIs directly, even with an
+	 * identical file name or glob argument, satisfies none of the above, so such an
+	 * access stays blocked. Because {@code JceSecurity} never takes a
+	 * student-influenceable path/glob argument, this call-stack-context check alone
+	 * precisely identifies the genuine JVM-triggered scan — no additional location
+	 * check on the intercepted argument is needed or possible, since the bare glob
+	 * argument resolves against the working directory, not {@code java.home}, when
+	 * converted to a path.
+	 * <p>
+	 * Resolving {@link StackWalker.StackFrame#getDeclaringClass()} requires
+	 * {@link StackWalker.Option#RETAIN_CLASS_REFERENCE}; any {@link LinkageError}
+	 * that resolution triggers (e.g. a {@link ClassCircularityError} during class
+	 * loading) is caught and treated as a failure to establish identity, so the
+	 * check fails closed (returns {@code false}, denying the exemption) rather than
+	 * propagating. The outer advice's {@link #enterAdvice()} re-entrancy guard is
+	 * already held while this runs, so any advice re-entered by that resolution is
+	 * a no-op, not unbounded recursion.
+	 *
+	 * @return {@code true} if a genuine {@code javax.crypto.JceSecurity}
+	 *         jurisdiction-policy-scan frame is present on the current stack
+	 */
+	static boolean isJceCryptoPolicyScanInProgress() {
+		try {
+			return CLASS_RETAINING_STACK_WALKER
+					.walk(frames -> frames.filter(frame -> "setupJurisdictionPolicies".equals(frame.getMethodName())
+							&& "javax.crypto.JceSecurity".equals(frame.getClassName())).anyMatch(frame -> {
+								ClassLoader loader = frame.getDeclaringClass().getClassLoader();
+								return loader == null || loader == ClassLoader.getPlatformClassLoader();
+							}));
+		} catch (LinkageError error) {
+			return false;
+		}
 	}
 
 	/**
