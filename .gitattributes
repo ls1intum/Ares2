@@ -73,3 +73,4 @@ gradlew    text eol=lf
 *.jar           binary
 *.war           binary
 *.jks           binary
+src/main/resources/de/tum/cit/ase/ares/api/templates/phobos/netblocker.c text eol=lf
