@@ -49,6 +49,28 @@
       ],
       "allowedVersions": "<7",
       "description": "Keep typescript below 7. TypeScript 7 is the rewritten compiler, and 7.0 ships no programmatic compiler API for other tools to build on; one is expected in 7.1. The installed @typescript-eslint/parser 8.69.0 does not support it and refuses to load, throwing 'typescript-eslint does not support TS 7.0' while the module is imported, so 'pnpm run lint:code' in the Documentation CI fails before ESLint reads a single file. typescript-eslint tracks its own support in issue 10940. The documentation site lints and type checks against one typescript installation, so ESLint and tsc move together here; Microsoft documents installing 7 beside a TypeScript 6 compatibility package instead, which this site does not do. Reconsider the pin once typescript-eslint supports the TypeScript version you want, then run 'pnpm run lint:code' and 'pnpm run typecheck' in documentation/ before merging."
+    },
+    {
+      "matchDatasources": [
+        "java-version"
+      ],
+      "matchPackageNames": [
+        "java-jdk"
+      ],
+      "matchCurrentValue": "/^17(\\.|$)/",
+      "allowedVersions": "/^17\\./",
+      "description": "Hold every step already on Java 17 to the 17 line. Renovate reads the java-version input of each actions/setup-java step as one dependency called java-jdk, and config:recommended pulls in workarounds:javaLTSVersions, which admits any long term support release: 8, 11, 17, 21 and 25. All nine steps therefore move together, and pull request #272 offered exactly that, lifting both the 17 and the 21 sites to 25.0.4. Two steps must not move. codeql.yml and examples.yml build on 17 because 17 is the oldest Java that Ares supports and the setup manual tells instructors to copy the two projects under examples/; the comment above the step in examples.yml says so. The Gradle one of those two projects declares no compliance level of its own, so there the workflow's Java Development Kit is the compliance level, and on 25 the job would still pass while the example quietly stopped being valid for an instructor on 17. Nothing would report the loss. The entry is keyed on the version each step already asks for rather than on a list of workflow files, so a workflow added or renamed later is covered too, and nothing has to be kept in step by hand. matchCurrentValue is matched against the value as written, so both a bare major and a pinned patch are recognised, and allowedVersions is a regular expression rather than a range because Renovate tries a regular expression predicate before it reads a range, which keeps the entry independent of whichever versioning the preset has put in force. A step that spells its version some other way matches neither entry and falls back to the preset. Moving to a newer Java stays a hand edit of the workflow, after which that step is held to its new major instead. Patch updates within the major flow as before."
+    },
+    {
+      "matchDatasources": [
+        "java-version"
+      ],
+      "matchPackageNames": [
+        "java-jdk"
+      ],
+      "matchCurrentValue": "/^21(\\.|$)/",
+      "allowedVersions": "/^21\\./",
+      "description": "Hold every step already on Java 21 to the 21 line. Seven steps build on 21, six in maven.yml and one in pullrequest-template.yml, and 21 is the Java Development Kit the contributor documentation names for building this project while the artefact itself targets 17. Left to the long term support preset described in the entry above, they would move to a new major as a routine dependency bump. That is worth deciding rather than inheriting, because Ares is itself the security boundary: the layer that blocks a forbidden call while student code runs reads fields inside the Java class library by name, pom.xml opens java.base packages so that it can, and documentation/docs/contributor/subsystems/aop/block-command-system-access.md records that such field indices shift between releases, Java 21 having added a LOGGER field to ProcessBuilder. A new major can therefore break interception without turning a build red, which is Ares letting forbidden code through rather than a visible failure. The entry is keyed on the version each step already asks for rather than on a list of workflow files, so a workflow added or renamed later is covered too, and nothing has to be kept in step by hand. matchCurrentValue is matched against the value as written, so both a bare major and a pinned patch are recognised, and allowedVersions is a regular expression rather than a range because Renovate tries a regular expression predicate before it reads a range, which keeps the entry independent of whichever versioning the preset has put in force. A step that spells its version some other way matches neither entry and falls back to the preset. Moving to a newer Java stays a hand edit of the workflow, after which that step is held to its new major instead. Patch updates within the major flow as before."
     }
   ]
 }
