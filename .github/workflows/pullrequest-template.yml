@@ -49,7 +49,7 @@ jobs:
         if: env.IS_DEPENDENCY_BOT_PR != 'true'
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21.0.12+101.0.LTS'
+          java-version: '25.0.4+101.0.LTS'
           distribution: 'temurin'
 
       # The pull request body is untrusted input: on a fork pull request an outside
