@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.annotation.AnnotationFormatError;
-import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.Optional;
@@ -136,38 +135,7 @@ class TestGuardUtilsDeadlineResolutionTest {
 	}
 
 	private TestContext context(Class<?> type, String methodName, TestType testType) throws Exception {
-		Method method = type.getDeclaredMethod(methodName);
-		return new TestContext() {
-			@Override
-			public Optional<Method> testMethod() {
-				return Optional.of(method);
-			}
-
-			@Override
-			public Optional<Class<?>> testClass() {
-				return Optional.of(type);
-			}
-
-			@Override
-			public Optional<Object> testInstance() {
-				return Optional.empty();
-			}
-
-			@Override
-			public Optional<String> displayName() {
-				return Optional.of(methodName);
-			}
-
-			@Override
-			public Optional<AnnotatedElement> annotatedElement() {
-				return Optional.of(method);
-			}
-
-			@Override
-			public Optional<TestType> findTestType() {
-				return Optional.of(testType);
-			}
-		};
+		return TestContextFixtures.of(type, methodName, testType);
 	}
 
 	private TestGuardUtils.ResolvedDeadlineAnnotations resolve(Class<?> type, String methodName) throws Exception {

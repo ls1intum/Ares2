@@ -20,6 +20,7 @@ import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.Creator;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataReader;
 import de.tum.cit.ase.ares.api.securitytest.java.executer.Executer;
@@ -134,6 +135,17 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 	 */
 	@Nonnull
 	protected final ResourceAccesses resourceAccesses;
+
+	/**
+	 * The behavioural test-lifecycle configuration declared by the security policy,
+	 * or an empty one when no policy - or a policy without this wrapper - was
+	 * provided. Never itself read by {@code executeTestCases()}, which resolves
+	 * this dynamically at real test-run time instead; only {@code writeTestCases()}
+	 * needs it, to carry a project-level default forward for a precompile
+	 * deployment.
+	 */
+	@Nonnull
+	protected final TestBehaviorConfiguration testBehaviorConfiguration;
 
 	/**
 	 * This package is part of the restricted student code and are therefore subject
@@ -259,6 +271,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 					? projectScanner.scanForMainClassInPackage()
 					: pinnedMainClass;
 			this.resourceAccesses = supervisedCode.theFollowingResourceAccessesArePermitted();
+			this.testBehaviorConfiguration = supervisedCode.theFollowingTestBehaviorIsConfiguredOrEmpty();
 			// Fail-closed (C2): exempt ONLY policy-declared test classes; never derive the
 			// exempt set from the student-controlled project, where a student could add an
 			// @Test class to obtain a blanket exemption from every architecture/runtime
@@ -269,6 +282,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 			this.packageName = projectScanner.scanForPackageName();
 			this.mainClassInPackageName = projectScanner.scanForMainClassInPackage();
 			this.resourceAccesses = ResourceAccesses.createRestrictive();
+			this.testBehaviorConfiguration = TestBehaviorConfiguration.builder().build();
 			this.testClasses = new ArrayList<>(Arrays.asList(projectScanner.scanForTestClasses()));
 		}
 		this.supervisedScopeWasDerived = securityPolicy == null;
@@ -310,6 +324,15 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 	@Nonnull
 	public final ResourceAccesses resourceAccesses() {
 		return resourceAccesses;
+	}
+
+	/**
+	 * Returns the behavioural test-lifecycle configuration propagated into
+	 * generated cases.
+	 */
+	@Nonnull
+	public final TestBehaviorConfiguration testBehaviorConfiguration() {
+		return testBehaviorConfiguration;
 	}
 
 	/** Returns the immutable test-class exemption list. */
