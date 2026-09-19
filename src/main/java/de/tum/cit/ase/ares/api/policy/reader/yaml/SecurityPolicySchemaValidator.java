@@ -1,9 +1,11 @@
 package de.tum.cit.ase.ares.api.policy.reader.yaml;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
@@ -13,12 +15,17 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.SecurityPolicyPreset;
 
 /** Validates the security-policy YAML tree before Jackson record binding. */
 final class SecurityPolicySchemaValidator {
 
-	private static final Set<String> ROOT_FIELDS = Set.of("thisPolicyFileCompliesToThePolicyVersion",
+	private static final Set<String> ROOT_REQUIRED_FIELDS = Set.of("thisPolicyFileCompliesToThePolicyVersion",
 			"regardingTheSupervisedCode");
+	private static final Set<String> ROOT_FIELDS_WITH_PRESET = Set.of("thisPolicyFileCompliesToThePolicyVersion",
+			"regardingTheSupervisedCode", "basedOnTheFollowingPreset");
+	private static final Set<String> PRESET_NAMES = Arrays.stream(SecurityPolicyPreset.values()).map(Enum::name)
+			.collect(Collectors.toUnmodifiableSet());
 	private static final Set<String> SUPERVISED_CODE_FIELDS = Set.of(
 			"theFollowingProgrammingLanguageConfigurationIsUsed", "theSupervisedCodeUsesTheFollowingPackage",
 			"theMainClassInsideThisPackageIs", "theFollowingClassesAreTestClasses",
@@ -40,11 +47,33 @@ final class SecurityPolicySchemaValidator {
 	}
 
 	static void validate(@Nonnull JsonNode root) throws MismatchedInputException {
-		requireObject(root, "$", ROOT_FIELDS, ROOT_FIELDS);
+		validate(root, true);
+	}
+
+	/**
+	 * Validates the security-policy YAML tree before Jackson record binding.
+	 *
+	 * @param root               the root YAML node to validate; must not be null.
+	 * @param presetFieldAllowed whether {@code basedOnTheFollowingPreset} may
+	 *                           appear at all — {@code true} when validating an
+	 *                           instructor's own policy, {@code false} when
+	 *                           validating a preset's own bundled resource, which
+	 *                           must not itself reference another preset.
+	 */
+	static void validate(@Nonnull JsonNode root, boolean presetFieldAllowed) throws MismatchedInputException {
+		requireObject(root, "$", presetFieldAllowed ? ROOT_FIELDS_WITH_PRESET : ROOT_REQUIRED_FIELDS,
+				ROOT_REQUIRED_FIELDS);
 		requireIntegral(root, "thisPolicyFileCompliesToThePolicyVersion", "$");
 		if (!root.get("thisPolicyFileCompliesToThePolicyVersion").canConvertToInt() || root
 				.get("thisPolicyFileCompliesToThePolicyVersion").intValue() != SecurityPolicy.CURRENT_POLICY_VERSION) {
 			fail("$.thisPolicyFileCompliesToThePolicyVersion must be exactly " + SecurityPolicy.CURRENT_POLICY_VERSION);
+		}
+		if (presetFieldAllowed) {
+			requireOptionalText(root, "basedOnTheFollowingPreset", "$");
+			JsonNode presetNode = root.get("basedOnTheFollowingPreset");
+			if (presetNode != null && !presetNode.isNull() && !PRESET_NAMES.contains(presetNode.textValue())) {
+				fail("$.basedOnTheFollowingPreset must be one of " + PRESET_NAMES);
+			}
 		}
 		JsonNode supervisedCode = root.get("regardingTheSupervisedCode");
 		requireObject(supervisedCode, "$.regardingTheSupervisedCode", SUPERVISED_CODE_FIELDS,

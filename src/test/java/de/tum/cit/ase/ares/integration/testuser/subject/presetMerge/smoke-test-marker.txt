@@ -1,0 +1,1 @@
+Read by PresetMergeUser to prove the SMOKE_TEST preset's own permission was actually merged in and enforced, not just correctly modelled at the object level.
