@@ -251,32 +251,38 @@ class TimeoutUtilsTest {
 		// Provides the annotation consumed through the mocked test context.
 	}
 
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS, terminationGrace = 10, terminationGraceUnit = TimeUnit.SECONDS)
 	private static void strictTimeoutWithCustomTerminationGrace() {
 		// Provides the custom termination grace consumed through the mocked context.
 	}
 
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS, terminationGrace = 0)
 	private static void strictTimeoutWithZeroTerminationGrace() {
 		// Provides the configured zero grace consumed through the mocked context.
 	}
 
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@StrictTimeout(value = 500, unit = TimeUnit.MILLISECONDS, terminationGrace = 10, terminationGraceUnit = TimeUnit.MILLISECONDS)
 	private static void strictTimeoutWithShortTerminationGrace() {
 		// Provides a grace far below the caller default, so which of the two was used
 		// is observable, with a timeout long enough for the worker to have started.
 	}
 
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS, terminationGrace = 500, terminationGraceUnit = TimeUnit.MICROSECONDS)
 	private static void strictTimeoutWithSubMillisecondTerminationGrace() {
 		// Provides a grace below a millisecond, which must survive resolution.
 	}
 
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS, terminationGrace = Long.MAX_VALUE, terminationGraceUnit = TimeUnit.DAYS)
 	private static void strictTimeoutWithOverflowingGrace() {
 		// Provides a grace no Duration can hold.
 	}
 
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS, terminationGrace = 2, terminationGraceUnit = TimeUnit.DAYS)
 	private static void strictTimeoutWithTwoDayGrace() {
 		// Provides a grace a Duration holds but the bound refuses.
