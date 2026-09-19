@@ -102,6 +102,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 7
           name: static-analysis-reports
           path: |
             target/checkstyle-result.xml
@@ -144,6 +145,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: jacoco-exec-unit-tests
           path: target/jacoco.exec
           if-no-files-found: warn
@@ -159,6 +161,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: test-results-unit-tests
           path: target/surefire-reports/
           if-no-files-found: warn
@@ -224,6 +227,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: jacoco-exec-${{ matrix.slug }}
           path: target/jacoco.exec
           if-no-files-found: warn
@@ -239,6 +243,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: test-results-${{ matrix.slug }}
           path: target/surefire-reports/
           if-no-files-found: warn
@@ -273,6 +278,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: jacoco-exec-core-integration-tests
           path: target/jacoco.exec
           if-no-files-found: warn
@@ -288,6 +294,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: test-results-core-integration-tests
           path: target/surefire-reports/
           if-no-files-found: warn
@@ -399,6 +406,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: coverage-report
           path: |
             target/site/jacoco/
