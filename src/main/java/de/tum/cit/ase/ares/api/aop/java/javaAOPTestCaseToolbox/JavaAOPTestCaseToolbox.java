@@ -59,6 +59,46 @@ public final class JavaAOPTestCaseToolbox {
 		}
 		return String.format("private static int %s = %d;%n", adviceSetting, value);
 	}
+
+	/**
+	 * Formats a {@code public static final String} field assignment, for a
+	 * generated class read directly (no reflection-crossing classloader trick), as
+	 * opposed to the {@code private static} advice-settings fields the other
+	 * assignment methods in this class produce.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 * @param fieldName the name of the field to assign; must not be null.
+	 * @param value     the value to assign; must be a {@link String}.
+	 * @return the formatted field assignment, terminated with a newline.
+	 */
+	public static String getPublicStaticFinalStringAssignment(@Nonnull String fieldName, @Nullable Object value) {
+		if (!(value instanceof String)) {
+			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.string",
+					value != null ? value.getClass() : null));
+		}
+		return String.format("public static final String %s = \"%s\";%n", fieldName, escapeJavaString((String) value));
+	}
+
+	/**
+	 * Formats a {@code public static final boolean} field assignment, for a
+	 * generated class read directly (no reflection-crossing classloader trick), as
+	 * opposed to the {@code private static} advice-settings fields the other
+	 * assignment methods in this class produce.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 * @param fieldName the name of the field to assign; must not be null.
+	 * @param value     the value to assign; must be a {@link Boolean}.
+	 * @return the formatted field assignment, terminated with a newline.
+	 */
+	public static String getPublicStaticFinalBooleanAssignment(@Nonnull String fieldName, @Nullable Object value) {
+		if (!(value instanceof Boolean)) {
+			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.boolean",
+					value != null ? value.getClass() : null));
+		}
+		return String.format("public static final boolean %s = %b;%n", fieldName, value);
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="1-Dimensional Array Types">

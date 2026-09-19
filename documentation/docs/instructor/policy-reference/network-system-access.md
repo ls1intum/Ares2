@@ -1,0 +1,84 @@
+---
+title: "Network System Access"
+sidebar_position: 5
+description: "Which hosts and ports the supervised code may connect to, and what it may do on the connection."
+---
+
+:::tip[Simple Story]
+This is the short list of numbers a pupil may telephone from the room.
+
+Each entry names who may be rung and on which line, then says whether the pupil may dial at
+all, whether they may speak, and whether they may listen. Being allowed to place the call is
+not permission to say anything once it connects.
+:::
+
+## Position in the example policy file
+
+The section documented on this page is marked in red. Every page in this section shows the
+same example file, so reading them in order walks it from top to bottom.
+
+```yaml title="security-policy.yaml"
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "org.example"
+  theMainClassInsideThisPackageIs: "Main"
+
+  theFollowingClassesAreTestClasses:
+    - "org.example.PenguinTest"
+
+  theFollowingResourceAccessesArePermitted:
+
+    regardingFileSystemInteractions:
+      - onThisPathAndAllPathsBelow: "something.txt"
+        readAllFiles: true
+        overwriteAllFiles: true
+        createAllFiles: true
+        executeAllFiles: false
+        deleteAllFiles: false
+
+# policy-focus-start
+    regardingNetworkConnections:
+      - onTheHost: "www.example.com"
+        onThePort: 80
+        openConnections: true
+        sendData: true
+        receiveData: true
+# policy-focus-end
+
+    regardingCommandExecutions:
+      - executeTheCommand: "ls"
+        withTheseArguments:
+          - "-l"
+
+    regardingThreadCreations:
+      - createTheFollowingNumberOfThreads: 10
+        ofThisClass: "org.example.Worker"
+
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.util"
+
+    regardingTimeouts:
+      - timeout: 120000
+```
+
+## Fields
+
+Implemented by `NetworkPermission` in
+[`policy/policySubComponents/NetworkPermission.java`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de/tum/cit/ase/ares/api/policy/policySubComponents/NetworkPermission.java).
+
+| Field | Datatype | Explanation | Example | Regex or Range |
+| --- | --- | --- | --- | --- |
+| `onTheHost` | `String` | The host this entry governs. | `www.example.com` | `HOST_PATTERN`: `*`, `localhost`, an IPv4 address, an IPv6 address (including IPv4-mapped forms), or a Domain Name System (DNS) name of at most 253 characters whose labels are at most 63 characters. A bare four-part numeric string is rejected as a DNS name so that it must parse as an IP address. |
+| `onThePort` | `int` | The port this entry governs. `0` is the any-port wildcard. | `80` | Range `0`–`65535` inclusive. Outside that range the constructor throws. |
+| `openConnections` | `boolean` | Permits opening a connection to the host and port. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
+| `sendData` | `boolean` | Permits sending data on the connection. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
+| `receiveData` | `boolean` | Permits receiving data on the connection. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
+
+## Notes
+
+**All five fields are required.** `SecurityPolicySchemaValidator` passes the network field set as both the accepted and the required set, so an entry that leaves a boolean out is rejected when the policy is loaded rather than read as a denial. Write `false` explicitly for every operation the entry does not permit.
+
+Port `0` is the **only** any-port wildcard. There is no range syntax.
+
+A narrow allowance stays narrow at runtime even though the architecture layer cannot represent it: static analysis is argument-insensitive, so it sees only that a connection may be opened, while the aspect-oriented programming (AOP) layer checks the actual host and port of the call.

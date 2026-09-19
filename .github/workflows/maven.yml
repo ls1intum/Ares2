@@ -25,7 +25,7 @@ jobs:
   # than four.
   build:
     name: Build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -36,9 +36,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -51,7 +51,7 @@ jobs:
   static-analysis:
     name: Static Code Analysis
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -62,9 +62,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -102,6 +102,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 7
           name: static-analysis-reports
           path: |
             target/checkstyle-result.xml
@@ -113,7 +114,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -124,9 +125,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -144,6 +145,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: jacoco-exec-unit-tests
           path: target/jacoco.exec
           if-no-files-found: warn
@@ -159,6 +161,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: test-results-unit-tests
           path: target/surefire-reports/
           if-no-files-found: warn
@@ -166,7 +169,7 @@ jobs:
   tests:
     name: Integration Tests (${{ matrix.name }})
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -203,9 +206,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -224,6 +227,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: jacoco-exec-${{ matrix.slug }}
           path: target/jacoco.exec
           if-no-files-found: warn
@@ -239,6 +243,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: test-results-${{ matrix.slug }}
           path: target/surefire-reports/
           if-no-files-found: warn
@@ -246,7 +251,7 @@ jobs:
   core-integration-tests:
     name: Core Integration Tests
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -257,9 +262,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -273,6 +278,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: jacoco-exec-core-integration-tests
           path: target/jacoco.exec
           if-no-files-found: warn
@@ -288,6 +294,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: test-results-core-integration-tests
           path: target/surefire-reports/
           if-no-files-found: warn
@@ -308,7 +315,7 @@ jobs:
     # `success()` on `needs`, and the job still runs after a failed slice. `always()` would
     # be redundant here and GitHub discourages it.
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -319,9 +326,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -399,6 +406,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: coverage-report
           path: |
             target/site/jacoco/
