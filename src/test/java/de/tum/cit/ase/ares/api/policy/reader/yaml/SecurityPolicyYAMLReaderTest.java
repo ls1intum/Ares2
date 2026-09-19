@@ -16,6 +16,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
@@ -374,6 +376,95 @@ public class SecurityPolicyYAMLReaderTest {
 
 			// Act & Assert
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(commentsOnlyFile));
+		}
+	}
+
+	@Nested
+	@DisplayName("Preset Tests")
+	class PresetTests {
+
+		@Test
+		@DisplayName("Should reject an unrecognised preset literal")
+		void shouldRejectAnUnrecognisedPresetLiteral(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("unknown-preset.yaml");
+			String yamlContent = """
+					thisPolicyFileCompliesToThePolicyVersion: 1
+					basedOnTheFollowingPreset: DOES_NOT_EXIST
+					regardingTheSupervisedCode:
+					  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+					  theFollowingClassesAreTestClasses: []
+					  theFollowingResourceAccessesArePermitted:
+					    regardingFileSystemInteractions: []
+					    regardingNetworkConnections: []
+					    regardingCommandExecutions: []
+					    regardingThreadCreations: []
+					    regardingPackageImports: []
+					    regardingTimeouts: []
+					""";
+			Files.writeString(policyFile, yamlContent);
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+
+		@Test
+		@DisplayName("Should reject a preset resource that itself references another preset")
+		void shouldRejectAPresetResourceReferencingAnotherPreset() throws IOException {
+			JsonNode presetRoot = yamlMapper.readTree("""
+					thisPolicyFileCompliesToThePolicyVersion: 1
+					basedOnTheFollowingPreset: SMOKE_TEST
+					regardingTheSupervisedCode:
+					  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+					  theFollowingClassesAreTestClasses: []
+					  theFollowingResourceAccessesArePermitted:
+					    regardingFileSystemInteractions: []
+					    regardingNetworkConnections: []
+					    regardingCommandExecutions: []
+					    regardingThreadCreations: []
+					    regardingPackageImports: []
+					    regardingTimeouts: []
+					""");
+
+			assertThrows(MismatchedInputException.class,
+					() -> SecurityPolicySchemaValidator.validate(presetRoot, false));
+		}
+
+		@Test
+		@DisplayName("Should merge a referenced preset into the read policy")
+		void shouldMergeAReferencedPresetIntoTheReadPolicy(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("preset-policy.yaml");
+			String yamlContent = """
+					thisPolicyFileCompliesToThePolicyVersion: 1
+					basedOnTheFollowingPreset: SMOKE_TEST
+					regardingTheSupervisedCode:
+					  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+					  theFollowingClassesAreTestClasses: []
+					  theFollowingResourceAccessesArePermitted:
+					    regardingFileSystemInteractions: []
+					    regardingNetworkConnections: []
+					    regardingCommandExecutions: []
+					    regardingThreadCreations: []
+					    regardingPackageImports: []
+					    regardingTimeouts: []
+					""";
+			Files.writeString(policyFile, yamlContent);
+
+			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
+
+			assertEquals("smoke.test.preset",
+					policy.regardingTheSupervisedCode().theSupervisedCodeUsesTheFollowingPackage());
+			assertEquals(1, policy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
+					.regardingFileSystemInteractions().size());
+		}
+
+		@Test
+		@DisplayName("Should not require a preset field at all")
+		void shouldNotRequireAPresetField(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("no-preset.yaml");
+			Files.writeString(policyFile, minimalPolicy());
+
+			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
+
+			assertNull(policy.basedOnTheFollowingPreset());
 		}
 	}
 

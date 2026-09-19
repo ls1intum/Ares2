@@ -1,0 +1,21 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "smoke.test.preset"
+  theMainClassInsideThisPackageIs: "SmokeTestMain"
+  theFollowingClassesAreTestClasses:
+    - "smoke.test.preset.SmokeTestPresetTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions:
+      - onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/presetMerge/smoke-test-marker.txt"
+        readAllFiles: true
+        overwriteAllFiles: false
+        createAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: false
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 5000
