@@ -13,8 +13,10 @@
  *   - The site builds offline and reproducibly, with no Java needed for a plain `pnpm build`.
  *
  * The cost is that a `.puml` edit must be followed by a re-render. `--check` enforces exactly
- * that in CI: it re-renders into a temporary directory and fails if the result differs from
- * what is committed.
+ * that in CI: it re-renders into `.plantuml-check/` and fails if the result differs from what
+ * is committed. Those renders are kept on a mismatch, because PlantUML measures text with the
+ * fonts of the machine it runs on, so a contributor on another operating system cannot
+ * reproduce the runner's bytes locally; CI uploads them as an artefact to commit instead.
  *
  * Usage:
  *   node scripts/render-plantuml.mjs           # render and write the SVGs
@@ -26,9 +28,8 @@
 
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -36,6 +37,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const DOCS_DIR = path.join(ROOT, 'docs');
 const CACHE_DIR = path.join(ROOT, '.plantuml-cache');
+const CHECK_DIR = path.join(ROOT, '.plantuml-check');
 
 // The Apache-licensed distribution is used deliberately: the default plantuml.jar is GPL,
 // and while running it as a build tool would not affect the licence of Ares 2, the ASL build
@@ -172,7 +174,15 @@ async function main() {
     // different directories may share a basename and would otherwise overwrite each other,
     // and a diagram using a relative `!include` of a sibling only resolves when that sibling
     // sits at the same relative position.
-    const scratch = await mkdtemp(path.join(tmpdir(), 'ares-plantuml-'));
+    //
+    // The tree sits at a known path rather than in a temporary directory, and survives a
+    // mismatch, so that CI can hand these renders to whoever has to commit them. PlantUML
+    // measures text with the fonts of the machine it runs on, so a render made on another
+    // operating system differs from this one even when the source is identical, and a
+    // contributor cannot produce these bytes by re-running the renderer locally.
+    const scratch = CHECK_DIR;
+    let keepRenders = false;
+    await rm(scratch, { recursive: true, force: true });
     try {
         const staged = [];
         for (const source of sources) {
@@ -199,15 +209,23 @@ async function main() {
             }
         }
         if (stale.length > 0) {
+            keepRenders = true;
             console.error('The committed PlantUML renders do not match their sources:\n');
             stale.forEach((entry) => console.error(`  - ${entry}`));
             console.error('\nRun `pnpm run diagrams` in documentation/ and commit the result.');
+            console.error(
+                `The renders this check produced are in ${path.relative(ROOT, scratch)}. ` +
+                    'On a machine whose fonts differ from the runner\'s, commit those instead; ' +
+                    'CI uploads them as the "plantuml-renders" artefact.',
+            );
             process.exitCode = 1;
             return;
         }
         console.log(`All ${sources.length} committed diagram(s) are up to date.`);
     } finally {
-        await rm(scratch, { recursive: true, force: true });
+        if (!keepRenders) {
+            await rm(scratch, { recursive: true, force: true });
+        }
     }
 }
 

@@ -94,8 +94,21 @@ jobs:
       # .puml was edited without regenerating its diagram, so the site can never show a
       # diagram that disagrees with its source.
       - name: Verify committed PlantUML renders
+        id: diagrams
         working-directory: documentation
         run: pnpm run diagrams:check
+
+      # PlantUML measures text with the fonts of the machine it runs on, so the SVGs a
+      # contributor renders on macOS differ from these even when the source is identical. That
+      # leaves re-running the renderer locally unable to produce what this check wants, so the
+      # check keeps its own renders and they are offered here to be committed as they are.
+      - name: Upload the renders this check produced
+        if: ${{ !cancelled() && steps.diagrams.outcome == 'failure' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: plantuml-renders
+          path: documentation/.plantuml-check
+          retention-days: 7
 
       # onBrokenLinks and onBrokenAnchors are set to 'throw', so a dangling cross-reference
       # fails here rather than shipping to the published site.
