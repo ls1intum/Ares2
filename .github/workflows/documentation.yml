@@ -108,6 +108,9 @@ jobs:
         with:
           name: plantuml-renders
           path: documentation/.plantuml-check
+          # The directory is hidden, as the renderer's cache beside it is, and the action skips
+          # hidden files unless told otherwise; without this it uploads nothing at all.
+          include-hidden-files: true
           retention-days: 7
 
       # onBrokenLinks and onBrokenAnchors are set to 'throw', so a dangling cross-reference
