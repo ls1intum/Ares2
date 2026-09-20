@@ -408,10 +408,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	/**
 	 * Reads the URL of a connection without letting its own failure escape.
 	 * <p>
-	 * Description: An HTTPS connection has no URL until it is set up, so reading it
-	 * earlier fails; that failure yields none. Nothing is skipped: the operations
-	 * that send or receive resolve the URL again. An Ares denial is rethrown, since
-	 * a missing URL would skip the receiver check.
+	 * Description: An HTTPS connection reads its URL through an inner connection
+	 * that exists only once the connection is set up, and fails before then. Any
+	 * failure other than an Ares denial yields no URL, and nothing is skipped: the
+	 * operations that send or receive resolve the URL again. A denial is rethrown,
+	 * since a missing URL would skip the receiver check.
 	 *
 	 * @param urlConnection the connection to read
 	 * @return its URL, or {@code null} when it cannot be read yet

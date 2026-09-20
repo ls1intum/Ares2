@@ -237,12 +237,15 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		assertEquals("some-future-address-family:-1", toDisplayString.invoke(target));
 	}
 
+	/**
+	 * A connection that cannot report its URL yet must yield no URL, rather than
+	 * letting its own failure surface as a fault of the code under test.
+	 */
 	@Test
 	void urlOfConnection_yieldsNoUrlWhenTheConnectionCannotReportOneYet() throws Exception {
 		URLConnection notReadyYet = new URLConnection(URI.create("https://example.org/path").toURL()) {
 			@Override
 			public void connect() {
-				// A connection that is never opened by this test.
 			}
 
 			@Override
@@ -260,12 +263,15 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 						+ " the code under test");
 	}
 
+	/**
+	 * A denial raised while the advice resolves the connection must reach the code
+	 * under test, instead of leaving no target and skipping the receiver check.
+	 */
 	@Test
 	void urlOfConnection_letsADenialThrough() throws Exception {
 		URLConnection denying = new URLConnection(URI.create("https://example.org/path").toURL()) {
 			@Override
 			public void connect() {
-				// A connection that is never opened by this test.
 			}
 
 			@Override
