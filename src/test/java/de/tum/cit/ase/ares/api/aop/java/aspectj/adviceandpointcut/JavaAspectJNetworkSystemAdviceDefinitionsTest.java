@@ -3,11 +3,15 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.SocketAddress;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.UnixDomainSocketAddress;
 
 import org.junit.jupiter.api.Test;
@@ -51,5 +55,53 @@ class JavaAspectJNetworkSystemAdviceDefinitionsTest {
 		InvocationTargetException exception = assertThrows(InvocationTargetException.class,
 				() -> variableToTarget.invoke(null, unparseable));
 		assertInstanceOf(SecurityException.class, exception.getCause());
+	}
+
+	@Test
+	void urlOfConnection_letsADenialThrough() throws Exception {
+		URLConnection denying = new URLConnection(URI.create("https://example.org/path").toURL()) {
+			@Override
+			public void connect() {
+				// A connection that is never opened by this test.
+			}
+
+			@Override
+			public URL getURL() {
+				throw new SecurityException("Ares denied this connection");
+			}
+		};
+
+		Method urlOfConnection = JavaAspectJNetworkSystemAdviceDefinitions.class.getDeclaredMethod("urlOfConnection",
+				URLConnection.class);
+		urlOfConnection.setAccessible(true);
+
+		InvocationTargetException exception = assertThrows(InvocationTargetException.class,
+				() -> urlOfConnection.invoke(null, denying));
+		assertInstanceOf(SecurityException.class, exception.getCause(),
+				"A denial raised while resolving the connection must propagate, because swallowing it"
+						+ " would leave no target and skip the receiver check");
+	}
+
+	@Test
+	void urlOfConnection_yieldsNoUrlWhenTheConnectionCannotReportOneYet() throws Exception {
+		URLConnection notReadyYet = new URLConnection(URI.create("https://example.org/path").toURL()) {
+			@Override
+			public void connect() {
+				// A connection that is never opened by this test.
+			}
+
+			@Override
+			public URL getURL() {
+				throw new NullPointerException("delegate is null");
+			}
+		};
+
+		Method urlOfConnection = JavaAspectJNetworkSystemAdviceDefinitions.class.getDeclaredMethod("urlOfConnection",
+				URLConnection.class);
+		urlOfConnection.setAccessible(true);
+
+		assertNull(urlOfConnection.invoke(null, notReadyYet),
+				"A connection that cannot report its URL yet must not let its own failure escape into"
+						+ " the code under test");
 	}
 }

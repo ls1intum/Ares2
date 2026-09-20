@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -257,6 +258,31 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		assertNull(urlOfConnection.invoke(null, notReadyYet),
 				"A connection that cannot report its URL yet must not let its own failure escape into"
 						+ " the code under test");
+	}
+
+	@Test
+	void urlOfConnection_letsADenialThrough() throws Exception {
+		URLConnection denying = new URLConnection(URI.create("https://example.org/path").toURL()) {
+			@Override
+			public void connect() {
+				// A connection that is never opened by this test.
+			}
+
+			@Override
+			public URL getURL() {
+				throw new SecurityException("Ares denied this connection");
+			}
+		};
+
+		Method urlOfConnection = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("urlOfConnection", URLConnection.class);
+		urlOfConnection.setAccessible(true);
+
+		InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
+				() -> urlOfConnection.invoke(null, denying));
+		assertInstanceOf(SecurityException.class, thrown.getCause(),
+				"A denial raised while resolving the connection must propagate, because swallowing it"
+						+ " would leave no target and skip the receiver check");
 	}
 
 	@Test
