@@ -192,6 +192,30 @@ public class SecurityPolicyReaderAndDirector {
 	}
 	// </editor-fold>
 
+	// <editor-fold desc="Accessor">
+
+	/**
+	 * Returns the factory that createTestCases built, for a caller that inspects
+	 * the pipeline rather than running it.
+	 * <p>
+	 * Description: Published in 2.1.0 and kept for one release cycle, since
+	 * removing it would stop an exercise repository that calls it from compiling.
+	 * Nothing inside Ares needs it.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @deprecated inspect the pipeline through its own methods instead; this
+	 *             accessor is removed after 2.1.x.
+	 * @return the factory, never {@code null}
+	 */
+	@Deprecated(since = "2.1.5", forRemoval = true)
+	@Nonnull
+	public TestCaseAbstractFactoryAndBuilder factoryAndBuilder() {
+		return Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
+				"createTestCases() must be called before factoryAndBuilder()");
+	}
+	// </editor-fold>
+
 	// <editor-fold desc="Builder">
 	public static Builder builder() {
 		return new Builder();

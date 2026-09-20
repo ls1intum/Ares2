@@ -1,10 +1,8 @@
 package de.tum.cit.ase.ares.api.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -34,7 +32,7 @@ class SecurityPolicyPipelineIntegrationTest {
 			Files.writeString(policy, yaml(mode));
 			SecurityPolicyReaderAndDirector pipeline = SecurityPolicyReaderAndDirector.builder()
 					.securityPolicyFilePath(policy).projectFolderPath(root).build().createTestCases();
-			TestCaseAbstractFactoryAndBuilder factory = factoryOf(pipeline);
+			TestCaseAbstractFactoryAndBuilder factory = pipeline.factoryAndBuilder();
 			assertEquals(mode, factory.buildMode());
 			assertEquals(ArchitectureMode.ARCHUNIT, factory.architectureMode());
 			assertEquals(AOPMode.ASPECTJ, factory.aopMode());
@@ -59,14 +57,8 @@ class SecurityPolicyPipelineIntegrationTest {
 		SecurityPolicyReaderAndDirector pipeline = SecurityPolicyReaderAndDirector.builder()
 				.securityPolicyFilePath(policy).projectFolderPath(root).build();
 		assertThrows(SecurityException.class, pipeline::createTestCases);
-		assertNull(factoryOf(pipeline), "no factory should exist after a failed createTestCases()");
-	}
-
-	private static TestCaseAbstractFactoryAndBuilder factoryOf(SecurityPolicyReaderAndDirector pipeline)
-			throws ReflectiveOperationException {
-		Field field = SecurityPolicyReaderAndDirector.class.getDeclaredField("securityTestCaseFactoryAndBuilder");
-		field.setAccessible(true);
-		return (TestCaseAbstractFactoryAndBuilder) field.get(pipeline);
+		assertThrows(NullPointerException.class, pipeline::factoryAndBuilder,
+				"no factory should exist after a failed createTestCases()");
 	}
 
 	private String yaml(BuildMode mode) {
