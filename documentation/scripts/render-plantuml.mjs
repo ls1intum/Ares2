@@ -37,6 +37,11 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const DOCS_DIR = path.join(ROOT, 'docs');
 const CACHE_DIR = path.join(ROOT, '.plantuml-cache');
+// Where `--check` renders, rather than a temporary directory: the tree survives a mismatch so
+// that CI can upload it and whoever fixes the diagram commits those exact bytes. PlantUML
+// measures text with the fonts of the machine it runs on, so a render made on another operating
+// system differs even when the source is identical. Every run clears it before rendering, so
+// what is left behind always belongs to the last check.
 const CHECK_DIR = path.join(ROOT, '.plantuml-check');
 
 // The Apache-licensed distribution is used deliberately: the default plantuml.jar is GPL,
@@ -156,6 +161,7 @@ async function render(sources) {
 }
 
 async function main() {
+    await rm(CHECK_DIR, { recursive: true, force: true });
     const sources = await collect(DOCS_DIR, '.puml');
     if (sources.length === 0) {
         console.log(`No .puml sources found under ${DOCS_DIR}, nothing to render.`);
@@ -174,15 +180,8 @@ async function main() {
     // different directories may share a basename and would otherwise overwrite each other,
     // and a diagram using a relative `!include` of a sibling only resolves when that sibling
     // sits at the same relative position.
-    //
-    // The tree sits at a known path rather than in a temporary directory, and survives a
-    // mismatch, so that CI can hand these renders to whoever has to commit them. PlantUML
-    // measures text with the fonts of the machine it runs on, so a render made on another
-    // operating system differs from this one even when the source is identical, and a
-    // contributor cannot produce these bytes by re-running the renderer locally.
     const scratch = CHECK_DIR;
     let keepRenders = false;
-    await rm(scratch, { recursive: true, force: true });
     try {
         const staged = [];
         for (const source of sources) {
