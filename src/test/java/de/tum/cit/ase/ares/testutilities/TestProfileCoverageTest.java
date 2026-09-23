@@ -94,7 +94,10 @@ class TestProfileCoverageTest {
 					+ "test user; it declares no test method.",
 			"de/tum/cit/ase/ares/integration/aop/forbidden/subject/networkSystem/send/httpclient/TestHttpClient.java",
 			"A fixture HTTP client used by the network-system forbidden-access subjects, not a test. Its name begins "
-					+ "with Test but it declares no test method.");
+					+ "with Test but it declares no test method.",
+			"de/tum/cit/ase/ares/api/internal/TestContextFixtures.java",
+			"A shared TestContext fixture builder used by internal package tests, not a test. Its name begins with "
+					+ "Test but it declares no test method.");
 
 	@Test
 	@DisplayName("Every test class is selected by a profile or a -Dtest the workflows use")

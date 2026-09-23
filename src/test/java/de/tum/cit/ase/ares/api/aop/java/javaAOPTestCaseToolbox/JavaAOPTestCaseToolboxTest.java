@@ -94,6 +94,32 @@ public class JavaAOPTestCaseToolboxTest {
 	}
 
 	@Test
+	public void testGetPublicStaticFinalStringAssignmentWithValidValue() {
+		String result = JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment("myString", "hello");
+		Assertions.assertEquals("public static final String myString = \"hello\";\n", result);
+	}
+
+	@Test
+	public void testGetPublicStaticFinalStringAssignmentWithInvalidValue() {
+		Object invalidValue = 123;
+		Assertions.assertThrows(SecurityException.class,
+				() -> JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment("myString", invalidValue));
+	}
+
+	@Test
+	public void testGetPublicStaticFinalBooleanAssignmentWithValidValue() {
+		String result = JavaAOPTestCaseToolbox.getPublicStaticFinalBooleanAssignment("myBoolean", true);
+		Assertions.assertEquals("public static final boolean myBoolean = true;\n", result);
+	}
+
+	@Test
+	public void testGetPublicStaticFinalBooleanAssignmentWithInvalidValue() {
+		Object invalidValue = "notABoolean";
+		Assertions.assertThrows(SecurityException.class,
+				() -> JavaAOPTestCaseToolbox.getPublicStaticFinalBooleanAssignment("myBoolean", invalidValue));
+	}
+
+	@Test
 	public void testGetStringAssignmentEscapesBackslashAndQuote() {
 		// A Windows path and an embedded quote must not break out of the generated
 		// string literal.

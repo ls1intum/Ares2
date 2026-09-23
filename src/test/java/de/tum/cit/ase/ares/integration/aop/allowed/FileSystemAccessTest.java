@@ -33,6 +33,7 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.fileI
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.fileRead.ReadFileReadMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.fileReader.ReadFileReaderMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.fileSystemProvider.ReadFileSystemProviderMain;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.filesNewDirectoryStream.ReadFilesNewDirectoryStreamMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.filesRead.ReadFilesReadMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.inputStreamReader.ReadInputStreamReaderMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.read.lineNumberReader.ReadLineNumberReaderMain;
@@ -622,6 +623,33 @@ class FileSystemAccessTest {
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/thirdPartyPackage")
 		void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
 			assertFileReadAllowedAndContentMatches(ReadThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage);
+		}
+		// </editor-fold>
+
+		// <editor-fold desc="accessFileSystemViaFilesNewDirectoryStream
+		// (Files.newDirectoryStream with glob)">
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOneDirectoryAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/filesNewDirectoryStream")
+		void test_accessFileSystemViaFilesNewDirectoryStreamMavenArchunitAspectJ() {
+			assertNoAresSecurityException(ReadFilesNewDirectoryStreamMain::accessFileSystemViaFilesNewDirectoryStream);
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOneDirectoryAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/filesNewDirectoryStream")
+		void test_accessFileSystemViaFilesNewDirectoryStreamMavenArchunitInstrumentation() {
+			assertNoAresSecurityException(ReadFilesNewDirectoryStreamMain::accessFileSystemViaFilesNewDirectoryStream);
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOneDirectoryAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/filesNewDirectoryStream")
+		void test_accessFileSystemViaFilesNewDirectoryStreamMavenWalaAspectJ() {
+			assertNoAresSecurityException(ReadFilesNewDirectoryStreamMain::accessFileSystemViaFilesNewDirectoryStream);
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOneDirectoryAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/filesNewDirectoryStream")
+		void test_accessFileSystemViaFilesNewDirectoryStreamMavenWalaInstrumentation() {
+			assertNoAresSecurityException(ReadFilesNewDirectoryStreamMain::accessFileSystemViaFilesNewDirectoryStream);
 		}
 		// </editor-fold>
 	}
