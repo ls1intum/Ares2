@@ -189,7 +189,11 @@ fails reporting a missing structure oracle. The `def assignmentSrcDir = 'assignm
 matters beyond Gradle. Ares reads the student source root by parsing this build file, and it
 resolves exactly this variable form. An Artemis-layout exercise that points `srcDirs` somewhere Ares
 cannot parse makes its structural tests report every expected class as not implemented, so use the
-block above as written.
+block above as written. That failure is easy to misread: every structural test reports the same
+way, `The exercise expects a class with the name Penguin in the package org.example. You did not
+implement the class in the exercise.`, while the rest of the suite keeps passing. Everything else
+reads compiled bytecode through `withinPath`, so a suite that fails only its structural tests is
+pointing at this line rather than at the policy.
 
 ## Apply `@Policy` to the tests
 
