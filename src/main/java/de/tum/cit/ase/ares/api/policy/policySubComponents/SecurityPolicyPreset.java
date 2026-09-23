@@ -27,10 +27,22 @@ public enum SecurityPolicyPreset {
 	 */
 	SMOKE_TEST("smoke-test.yaml");
 
+	/**
+	 * The file name of this preset's bundled resource under
+	 * {@code policy/presets/}.
+	 */
 	@Nonnull
 	private final String resourceFileName;
 
-	SecurityPolicyPreset(@Nonnull String resourceFileName) {
+	/**
+	 * Creates a preset naming its bundled resource. The parameter carries no
+	 * annotation on purpose: javac records it against a constructor that also has
+	 * the hidden enum name and ordinal parameters, and JDK 21.0.12 then rejects the
+	 * compiled class as a bad class file.
+	 *
+	 * @param resourceFileName the resource file name; must not be null.
+	 */
+	SecurityPolicyPreset(String resourceFileName) {
 		this.resourceFileName = resourceFileName;
 	}
 

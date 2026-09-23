@@ -450,8 +450,7 @@ public class SecurityPolicyYAMLReaderTest {
 
 			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
 
-			assertEquals("smoke.test.preset",
-					policy.regardingTheSupervisedCode().theSupervisedCodeUsesTheFollowingPackage());
+			assertNull(policy.regardingTheSupervisedCode().theSupervisedCodeUsesTheFollowingPackage());
 			assertEquals(1, policy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
 					.regardingFileSystemInteractions().size());
 		}

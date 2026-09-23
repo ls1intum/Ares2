@@ -1,8 +1,6 @@
 thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
-  theSupervisedCodeUsesTheFollowingPackage: "smoke.test.preset"
-  theMainClassInsideThisPackageIs: "SmokeTestMain"
   theFollowingClassesAreTestClasses:
     - "smoke.test.preset.SmokeTestPresetTest"
   theFollowingResourceAccessesArePermitted:
