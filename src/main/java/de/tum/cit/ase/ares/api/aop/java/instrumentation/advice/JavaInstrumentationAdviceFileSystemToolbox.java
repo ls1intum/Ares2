@@ -97,6 +97,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			Map.entry("java.nio.file.Files.write", IgnoreValues.allExcept(0)),
 			// Files.readString(Path path, Charset cs) - only check path (index 0)
 			Map.entry("java.nio.file.Files.readString", IgnoreValues.allExcept(0)),
+			// Files.newDirectoryStream(Path dir, String glob) / (Path,
+			// DirectoryStream.Filter) - only check dir (index 0); the glob/filter is not
+			// a path and must not be treated as one.
+			Map.entry("java.nio.file.Files.newDirectoryStream", IgnoreValues.allExcept(0)),
 			// File.createTempFile(String prefix, String suffix) - no path parameter at all
 			Map.entry("java.io.File.createTempFile", IgnoreValues.ALL),
 			// Runtime.exec(String[]) - only check command (index 0), not flags like "-c"

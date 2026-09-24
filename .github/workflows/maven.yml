@@ -38,7 +38,7 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -64,7 +64,7 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -102,6 +102,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 7
           name: static-analysis-reports
           path: |
             target/checkstyle-result.xml
@@ -126,7 +127,7 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -144,6 +145,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: jacoco-exec-unit-tests
           path: target/jacoco.exec
           if-no-files-found: warn
@@ -159,6 +161,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: test-results-unit-tests
           path: target/surefire-reports/
           if-no-files-found: warn
@@ -205,7 +208,7 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -224,6 +227,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: jacoco-exec-${{ matrix.slug }}
           path: target/jacoco.exec
           if-no-files-found: warn
@@ -239,6 +243,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: test-results-${{ matrix.slug }}
           path: target/surefire-reports/
           if-no-files-found: warn
@@ -259,7 +264,7 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -273,6 +278,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: jacoco-exec-core-integration-tests
           path: target/jacoco.exec
           if-no-files-found: warn
@@ -288,6 +294,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: test-results-core-integration-tests
           path: target/surefire-reports/
           if-no-files-found: warn
@@ -321,7 +328,7 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
-          java-version: '21'
+          java-version: '21.0.12+101.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -399,6 +406,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
+          retention-days: 7
           name: coverage-report
           path: |
             target/site/jacoco/
