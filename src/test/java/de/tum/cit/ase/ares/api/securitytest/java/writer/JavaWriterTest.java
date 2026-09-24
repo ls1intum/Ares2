@@ -20,8 +20,10 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PrivilegedExceptionsConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -40,6 +42,7 @@ public class JavaWriterTest {
 	private List<JavaArchitectureTestCase> javaArchitectureTestCases;
 	private List<JavaAOPTestCase> javaAOPTestCases;
 	private List<JavaPhobosTestCase> javaPhobosTestCases;
+	/** A behaviour configuration with nothing configured. */
 	private TestBehaviorConfiguration emptyTestBehaviorConfiguration;
 
 	@TempDir
@@ -241,6 +244,7 @@ public class JavaWriterTest {
 			}
 		}
 
+		/** With nothing configured, no settings class is written. */
 		@Test
 		@DisplayName("Should write nothing extra when no behavioural category is configured")
 		void shouldWriteNothingExtraWhenTestBehaviorEmpty() {
@@ -260,6 +264,7 @@ public class JavaWriterTest {
 			}
 		}
 
+		/** The released signature still writes its outputs and no settings class. */
 		@Test
 		@DisplayName("Should still write the released outputs when called through the pre-release signature directly")
 		void preReleaseSignatureStillWritesTheReleasedOutputs() {
@@ -279,6 +284,11 @@ public class JavaWriterTest {
 			}
 		}
 
+		/**
+		 * Where the generated settings class lands in {@code tempDir}.
+		 *
+		 * @return the path of the generated settings class.
+		 */
 		private Path generatedSettingsClassPath() {
 			String fullyQualifiedName = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
 			int lastDot = fullyQualifiedName.lastIndexOf('.');
@@ -287,6 +297,10 @@ public class JavaWriterTest {
 			return tempDir.resolve(settingsPackagePath).resolve(simpleClassName + ".java");
 		}
 
+		/**
+		 * A subclass overriding only the released overload is still called through the
+		 * configuration-aware one.
+		 */
 		@Test
 		@DisplayName("Should invoke a subclass override of the released overload before adding behaviour outputs")
 		void configurationAwareOverloadInvokesASubclassOverrideOfTheReleasedOneFirst() {
@@ -319,6 +333,117 @@ public class JavaWriterTest {
 
 			assertTrue(legacySubclassWriter.releasedOverloadInvoked);
 			assertEquals(List.of(), result);
+		}
+
+		/**
+		 * A configured category is written as literal constants into the generated
+		 * settings class.
+		 */
+		@Test
+		@DisplayName("Should write the generated test-behaviour settings class when configured")
+		void shouldWriteGeneratedSettingsClassWhenPrivilegedExceptionsConfigured() throws IOException {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				List<Path> result = writeWith(privilegedExceptionsConfigured());
+
+				assertEquals(4, result.size());
+				Path written = generatedSettingsClassPath();
+				assertTrue(Files.exists(written));
+				String content = Files.readString(written);
+				assertTrue(content.contains("public static final boolean "
+						+ TestBehaviorConfiguration.PRIVILEGED_EXCEPTIONS_ENABLED_FIELD_NAME + " = true;"));
+				assertTrue(content.contains("public static final String "
+						+ TestBehaviorConfiguration.PRIVILEGED_EXCEPTIONS_MESSAGE_FIELD_NAME
+						+ " = \"Custom message\";"));
+			}
+		}
+
+		/**
+		 * Regenerating after the setting was removed deletes the class the earlier run
+		 * wrote, so the removed setting does not stay in force.
+		 */
+		@Test
+		@DisplayName("Should delete an earlier generated settings class when regenerated without configuration")
+		void regeneratingWithoutConfigurationDeletesTheEarlierSettingsClass() {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+				writeWith(privilegedExceptionsConfigured());
+				assertTrue(Files.exists(generatedSettingsClassPath()));
+
+				List<Path> result = writeWith(emptyTestBehaviorConfiguration);
+
+				assertEquals(3, result.size());
+				assertFalse(Files.exists(generatedSettingsClassPath()));
+			}
+		}
+
+		/**
+		 * With a known build layout, regenerating without configuration also deletes
+		 * the compiled settings class an earlier build left in the test output.
+		 */
+		@Test
+		@DisplayName("Should delete a stale compiled settings class from the test output when regenerated without configuration")
+		void regeneratingWithoutConfigurationDeletesTheStaleCompiledSettingsClass() throws IOException {
+			for (String directory : List.of("src/main/java", "src/test/java", "target/classes",
+					"target/test-classes")) {
+				Files.createDirectories(tempDir.resolve(directory));
+			}
+			BuildToolConfiguration mavenLayout = new BuildToolConfiguration(BuildMode.MAVEN, tempDir,
+					List.of(tempDir.resolve("src/main/java")), List.of(tempDir.resolve("src/test/java")),
+					tempDir.resolve("target/classes"), tempDir.resolve("target/test-classes"));
+			Path staleClass = tempDir.resolve("target/test-classes")
+					.resolve(TestBehaviorConfiguration.GENERATED_CLASS_NAME.replace('.', '/') + ".class");
+			Files.createDirectories(staleClass.getParent());
+			Files.write(staleClass, new byte[] { (byte) 0xCA, (byte) 0xFE });
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				new JavaWriter(mavenLayout).writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+						javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration,
+						tempDir.resolve("src/test/java"));
+
+				assertFalse(Files.exists(staleClass));
+			}
+		}
+
+		/**
+		 * Runs the configuration-aware {@code writeTestCases} into {@code tempDir} with
+		 * this class's fixed inputs.
+		 *
+		 * @param testBehaviorConfiguration the behaviour configuration to write.
+		 * @return the written files.
+		 */
+		private List<Path> writeWith(TestBehaviorConfiguration testBehaviorConfiguration) {
+			return javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+					testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases,
+					javaPhobosTestCases, testBehaviorConfiguration, tempDir);
+		}
+
+		/**
+		 * A configuration enabling privileged-exceptions-only reporting with the
+		 * message {@code Custom message}.
+		 *
+		 * @return the configuration.
+		 */
+		private TestBehaviorConfiguration privilegedExceptionsConfigured() {
+			return TestBehaviorConfiguration.builder()
+					.regardingPrivilegedExceptions(PrivilegedExceptionsConfiguration.builder()
+							.onlyPrivilegedExceptionsAreReported(true).theFailureMessageIs("Custom message").build())
+					.build();
 		}
 	}
 

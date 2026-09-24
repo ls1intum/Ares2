@@ -34,7 +34,13 @@ final class SecurityPolicySchemaValidator {
 	private static final Set<String> THREAD_FIELDS = Set.of("createTheFollowingNumberOfThreads", "ofThisClass");
 	private static final Set<String> PACKAGE_FIELDS = Set.of("importTheFollowingPackage");
 	private static final Set<String> TIMEOUT_FIELDS = Set.of("timeout");
-	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of();
+	/**
+	 * The categories allowed inside {@code theFollowingTestBehaviorIsConfigured}.
+	 */
+	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of("regardingPrivilegedExceptions");
+	/** The fields allowed inside {@code regardingPrivilegedExceptions}. */
+	private static final Set<String> PRIVILEGED_EXCEPTIONS_FIELDS = Set.of("onlyPrivilegedExceptionsAreReported",
+			"theFailureMessageIs");
 
 	private SecurityPolicySchemaValidator() {
 		throw new UnsupportedOperationException("SecurityPolicySchemaValidator is a utility class");
@@ -110,6 +116,15 @@ final class SecurityPolicySchemaValidator {
 		if (testBehavior != null) {
 			requireObject(testBehavior, "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured",
 					TEST_BEHAVIOR_FIELDS, Set.of());
+			JsonNode privilegedExceptions = testBehavior.get("regardingPrivilegedExceptions");
+			if (privilegedExceptions != null) {
+				String privilegedExceptionsPath = "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured.regardingPrivilegedExceptions";
+				requireObject(privilegedExceptions, privilegedExceptionsPath, PRIVILEGED_EXCEPTIONS_FIELDS,
+						Set.of("onlyPrivilegedExceptionsAreReported"));
+				requireBooleans(privilegedExceptions, PRIVILEGED_EXCEPTIONS_FIELDS, Set.of("theFailureMessageIs"),
+						privilegedExceptionsPath);
+				requireOptionalTextAllowingBlank(privilegedExceptions, "theFailureMessageIs", privilegedExceptionsPath);
+			}
 		}
 	}
 
@@ -170,6 +185,20 @@ final class SecurityPolicySchemaValidator {
 		JsonNode node = parent.get(field);
 		if (node != null && !node.isNull() && (!node.isTextual() || node.textValue().isBlank())) {
 			fail(path + "." + field + " must be a non-blank string or null");
+		}
+	}
+
+	/**
+	 * Like {@link #requireOptionalText}, but tolerates a blank string: for a field
+	 * whose record-level default (a compact constructor) already treats blank the
+	 * same as absent, rejecting blank here would be stricter than the value it
+	 * gates.
+	 */
+	private static void requireOptionalTextAllowingBlank(JsonNode parent, String field, String path)
+			throws MismatchedInputException {
+		JsonNode node = parent.get(field);
+		if (node != null && !node.isNull() && !node.isTextual()) {
+			fail(path + "." + field + " must be a string or null");
 		}
 	}
 
