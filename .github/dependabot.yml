@@ -39,3 +39,17 @@ updates:
         applies-to: security-updates
         patterns:
           - "*"
+  - package-ecosystem: "npm"
+    directory: "/documentation"
+    schedule:
+      interval: "weekly"
+    # Renovate owns routine version updates in this repository. Without this line
+    # Dependabot opens its own version-update pull requests for the same manifests.
+    # A limit of 0 suppresses version updates only; security updates, and the groups
+    # below, are unaffected by it.
+    open-pull-requests-limit: 0
+    groups:
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
