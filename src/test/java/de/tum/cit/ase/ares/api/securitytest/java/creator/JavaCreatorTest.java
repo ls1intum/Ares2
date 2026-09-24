@@ -3,15 +3,20 @@ package de.tum.cit.ase.ares.api.securitytest.java.creator;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -25,6 +30,7 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 
@@ -317,5 +323,72 @@ public class JavaCreatorTest {
 							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
 							aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
+	}
+
+	@Test
+	void prepareAllowedPackagesRejectsMalformedNamesOnEveryDerivedPath() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class, String.class, Set.class, List.class);
+		prepare.setAccessible(true);
+		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "com..pinned", Set.of(), List.of()));
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of("com..student"), List.of()));
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of(), List.of("com..tests.BadTest")));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesKeepsTheReservedNamespaceGuards() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class, String.class, Set.class, List.class);
+		prepare.setAccessible(true);
+		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
+		assertInvocationCause(SecurityException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of("de.tum.cit"), List.of()));
+		Set<PackagePermission> fromTestClass = (Set<PackagePermission>) prepare.invoke(javaCreator, List.of(),
+				restrictive, "", Set.of(), List.of("de.tum.cit.Test"));
+		assertEquals(Set.of(new PackagePermission("de.tum.cit")), fromTestClass);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesPassesAPolicyDeclaredWildcardThrough() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class, String.class, Set.class, List.class);
+		prepare.setAccessible(true);
+		when(resourceAccesses.regardingPackageImports()).thenReturn(List.of(new PackagePermission("*")));
+		Set<PackagePermission> result = (Set<PackagePermission>) prepare.invoke(javaCreator, List.of(),
+				resourceAccesses, "", Set.of(), List.of());
+		assertEquals(Set.of(new PackagePermission("*")), result);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedClassesFiltersBlanksThenValidates() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedClasses", List.class, List.class);
+		prepare.setAccessible(true);
+		Set<ClassPermission> result = (Set<ClassPermission>) prepare.invoke(javaCreator,
+				Arrays.asList("com.example.Foo", "   ", null), Arrays.asList("com.example.BarTest", "", null));
+		assertEquals(Set.of(new ClassPermission("com.example.Foo"), new ClassPermission("com.example.BarTest")),
+				result);
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(javaCreator, List.of("com..example.Foo"), List.of()));
+	}
+
+	/**
+	 * Asserts a reflective call fails with the given cause, unwrapping the
+	 * {@link InvocationTargetException} that reflection wraps a thrown exception
+	 * in.
+	 *
+	 * @param expected   the exception type the underlying call should raise
+	 * @param invocation the reflective call under test
+	 * @return the unwrapped cause, for any further assertion
+	 */
+	private static <T extends Throwable> T assertInvocationCause(Class<T> expected, Executable invocation) {
+		InvocationTargetException wrapper = assertThrows(InvocationTargetException.class, invocation);
+		return assertInstanceOf(expected, wrapper.getCause());
 	}
 }

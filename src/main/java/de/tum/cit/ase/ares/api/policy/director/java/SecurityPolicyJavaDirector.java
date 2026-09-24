@@ -18,7 +18,6 @@ import de.tum.cit.ase.ares.api.securitytest.java.JavaTestCaseFactoryAndBuilder;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader;
 import de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter;
-import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProgrammingExerciseProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
 import de.tum.cit.ase.ares.api.util.FileTools;
@@ -111,18 +110,18 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param securityPolicy    the security policy to base test case creation on;
-	 *                          may be null.
-	 * @param projectFolderPath the project directory path where test cases will be
-	 *                          applied; may be null.
+	 * @param securityPolicy  the security policy to base test case creation on; may
+	 *                        be null.
+	 * @param projectRootPath the project root directory path where test cases will
+	 *                        be applied; may be null.
 	 * @return a non-null instance of TestCaseAbstractFactoryAndBuilder configured
 	 *         for Java security tests.
 	 */
 	@Nonnull
 	@Override
 	public TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
-			@Nullable Path projectFolderPath) {
-		return createTestCases(securityPolicy, projectFolderPath, Path.of(""));
+			@Nullable Path projectRootPath) {
+		return createTestCases(securityPolicy, projectRootPath, Path.of(""));
 	}
 
 	@Override
@@ -132,12 +131,20 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 		Path root = projectRootPath == null ? Path.of("").toAbsolutePath() : projectRootPath;
 		BuildMode selectedMode = securityPolicy == null ? null : buildModeOf(securityPolicy);
 		BuildToolConfiguration configuration = ProjectSourcesFinder.discover(root, selectedMode);
-		JavaProjectScanner configuredScanner = projectScanner instanceof JavaProgrammingExerciseProjectScanner
-				? new JavaProgrammingExerciseProjectScanner(configuration)
-				: new JavaProjectScanner(configuration);
-		JavaCreator configuredCreator = creator.getClass() == JavaCreator.class ? new JavaCreator(configuration)
-				: (JavaCreator) creator;
-		JavaWriter configuredWriter = new JavaWriter(configuration);
+		// Ask each collaborator to bind itself to the discovered build configuration,
+		// rather than inspecting its concrete type here. A framework-default instance
+		// rebuilds itself for this run; a custom subclass injected through the builder
+		// decides for itself and is not silently replaced (see each type's
+		// withBuildConfiguration).
+		JavaProjectScanner configuredScanner = Objects.requireNonNull(
+				((JavaProjectScanner) projectScanner).withBuildConfiguration(configuration),
+				"projectScanner.withBuildConfiguration must not return null");
+		JavaCreator configuredCreator = Objects.requireNonNull(
+				((JavaCreator) creator).withBuildConfiguration(configuration),
+				"creator.withBuildConfiguration must not return null");
+		JavaWriter configuredWriter = Objects.requireNonNull(
+				((JavaWriter) writer).withBuildConfiguration(configuration),
+				"writer.withBuildConfiguration must not return null");
 		if (securityPolicy == null) {
 			return generateFactoryAndBuilder(configuration.buildMode(), ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ,
 					null, withinPath, configuredCreator, configuredScanner, configuredWriter);

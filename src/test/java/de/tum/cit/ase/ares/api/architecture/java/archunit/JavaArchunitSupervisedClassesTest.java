@@ -1,11 +1,16 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Method;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 /**
  * The question a package permission has to ask, and the one it must not be
@@ -67,6 +72,17 @@ class JavaArchunitSupervisedClassesTest {
 		assertThat(reservedPrefixOf("java")).isEqualTo("java.");
 		assertThat(ancestorOfReservedPrefix("de.tum.cit.ase.ares.api")).isNull();
 		assertThat(reservedPrefixOf("de.tum.cit.ase.ares.api")).isEqualTo("de.tum.cit.ase.ares.api.");
+	}
+
+	@Test
+	@DisplayName("Refuses a compiled package name that is not a valid Java package")
+	void refusesAMalformedCompiledPackageName() throws Exception {
+		JavaClass anyClass = new ClassFileImporter().importClass(JavaArchunitSupervisedClassesTest.class);
+		Method method = JavaArchunitSupervisedClasses.class.getDeclaredMethod("requireDeclarablePackage",
+				JavaClass.class, String.class);
+		method.setAccessible(true);
+		assertThatThrownBy(() -> method.invoke(null, anyClass, "com..bad")).hasCauseInstanceOf(SecurityException.class);
+		assertThatCode(() -> method.invoke(null, anyClass, "com.good")).doesNotThrowAnyException();
 	}
 
 	private static String ancestorOfReservedPrefix(String packageName) throws Exception {

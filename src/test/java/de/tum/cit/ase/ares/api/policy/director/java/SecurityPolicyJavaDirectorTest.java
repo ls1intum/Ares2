@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.policy.director.java;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -21,6 +22,7 @@ import org.mockito.MockitoAnnotations;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
@@ -32,6 +34,7 @@ import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialClasses
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialPackages;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader;
 import de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter;
+import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProgrammingExerciseProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
 
@@ -139,6 +142,13 @@ public class SecurityPolicyJavaDirectorTest {
 		when(mockProjectScanner.scanForTestClasses()).thenReturn(new String[] { "TestClass1", "TestClass2" });
 		when(mockProjectScanner.scanForPackageName()).thenReturn("com.example.package");
 		when(mockProjectScanner.scanForMainClassInPackage()).thenReturn("MainClass");
+		// The director now asks each collaborator to bind itself to the discovered
+		// build configuration through withBuildConfiguration. A real injected instance
+		// returns itself (or a rebound copy); a bare mock would return null, so make
+		// these mocks behave like an injected instance that keeps itself.
+		when(mockCreator.withBuildConfiguration(any())).thenReturn(mockCreator);
+		when(mockWriter.withBuildConfiguration(any())).thenReturn(mockWriter);
+		when(mockProjectScanner.withBuildConfiguration(any())).thenReturn(mockProjectScanner);
 	}
 
 	@Nested
@@ -315,6 +325,51 @@ public class SecurityPolicyJavaDirectorTest {
 			assertEquals(name.contains("ARCHUNIT") ? ArchitectureMode.ARCHUNIT : ArchitectureMode.WALA,
 					result.architectureMode());
 			assertEquals(name.contains("ASPECTJ") ? AOPMode.ASPECTJ : AOPMode.INSTRUMENTATION, result.aopMode());
+		}
+
+		@Test
+		@DisplayName("Should forward withinPath to the factory as its projectPath")
+		void createTestCasesForwardsWithinPathAsProjectPath() throws Exception {
+			// Guards the fix that made the base three-argument overload abstract: the
+			// concrete director must thread withinPath through to the factory rather than
+			// drop it, so the analysis is scoped to the requested subpath.
+			SecurityPolicy securityPolicy = SecurityPolicy.builder()
+					.regardingTheSupervisedCode(supervisedCodeWithValidConfig).build();
+			Path withinPath = Path.of("classes", "student");
+			TestCaseAbstractFactoryAndBuilder result = director.createTestCases(securityPolicy, projectPath,
+					withinPath);
+			Field projectPathField = TestCaseAbstractFactoryAndBuilder.class.getDeclaredField("projectPath");
+			projectPathField.setAccessible(true);
+			assertEquals(withinPath, projectPathField.get(result));
+		}
+
+		@Test
+		@DisplayName("Should preserve injected creator and writer subclasses instead of rebuilding them")
+		void createTestCasesPreservesInjectedCreatorAndWriterSubclasses() throws Exception {
+			// A named subclass (mocked so its createTestCases is a no-op) is not exactly
+			// JavaCreator.class/JavaWriter.class, so it exercises the subclass-preserving
+			// branch that a plain injected instance would rebuild.
+			JavaCreator customCreator = mock(CustomJavaCreator.class);
+			JavaWriter customWriter = mock(CustomJavaWriter.class);
+			// A real custom subclass keeps itself (returns this) from
+			// withBuildConfiguration;
+			// mock that same contract so the director preserves the injected instances.
+			when(customCreator.withBuildConfiguration(any())).thenReturn(customCreator);
+			when(customWriter.withBuildConfiguration(any())).thenReturn(customWriter);
+			SecurityPolicyJavaDirector customDirector = new SecurityPolicyJavaDirector(customCreator, customWriter,
+					mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
+					essentialClassesPath);
+			SecurityPolicy securityPolicy = SecurityPolicy.builder()
+					.regardingTheSupervisedCode(supervisedCodeWithValidConfig).build();
+
+			TestCaseAbstractFactoryAndBuilder result = customDirector.createTestCases(securityPolicy, projectPath);
+
+			Field creatorField = TestCaseAbstractFactoryAndBuilder.class.getDeclaredField("creator");
+			creatorField.setAccessible(true);
+			Field writerField = TestCaseAbstractFactoryAndBuilder.class.getDeclaredField("writer");
+			writerField.setAccessible(true);
+			assertSame(customCreator, creatorField.get(result));
+			assertSame(customWriter, writerField.get(result));
 		}
 
 		@Test
@@ -536,6 +591,94 @@ public class SecurityPolicyJavaDirectorTest {
 			assertFalse(new EssentialDataYAMLReader()
 					.readEssentialClassesFrom(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH)
 					.getEssentialClasses().isEmpty());
+		}
+	}
+
+	/**
+	 * Named JavaCreator subclass so a mock of it is not exactly JavaCreator.class.
+	 */
+	static class CustomJavaCreator extends JavaCreator {
+	}
+
+	/**
+	 * Named JavaWriter subclass so a mock of it is not exactly JavaWriter.class.
+	 */
+	static class CustomJavaWriter extends JavaWriter {
+	}
+
+	/**
+	 * Named JavaProjectScanner subclass so it is not exactly
+	 * JavaProjectScanner.class.
+	 */
+	static class CustomJavaProjectScanner extends JavaProjectScanner {
+	}
+
+	/**
+	 * Named JavaProgrammingExerciseProjectScanner subclass so it is not exactly
+	 * that class, exercising the further-subclass branch of the override.
+	 */
+	static class CustomExerciseScanner extends JavaProgrammingExerciseProjectScanner {
+	}
+
+	@Nested
+	@DisplayName("withBuildConfiguration Tests")
+	class WithBuildConfigurationTests {
+
+		private BuildToolConfiguration configuration;
+
+		@BeforeEach
+		void setUp() {
+			// Only projectRoot() is exercised, by the JavaWriter rebind path; the other
+			// collaborators just store the configuration.
+			configuration = mock(BuildToolConfiguration.class);
+			when(configuration.projectRoot()).thenReturn(tempDir);
+		}
+
+		@Test
+		@DisplayName("Should rebind an exact framework-default type to a fresh instance of the same type")
+		void rebindsExactFrameworkTypes() {
+			JavaCreator creator = new JavaCreator();
+			JavaWriter writer = new JavaWriter();
+			JavaProjectScanner scanner = new JavaProjectScanner();
+			JavaProgrammingExerciseProjectScanner exerciseScanner = new JavaProgrammingExerciseProjectScanner();
+
+			JavaCreator reboundCreator = creator.withBuildConfiguration(configuration);
+			JavaWriter reboundWriter = writer.withBuildConfiguration(configuration);
+			JavaProjectScanner reboundScanner = scanner.withBuildConfiguration(configuration);
+			JavaProjectScanner reboundExerciseScanner = exerciseScanner.withBuildConfiguration(configuration);
+
+			assertNotSame(creator, reboundCreator);
+			assertSame(JavaCreator.class, reboundCreator.getClass());
+			assertNotSame(writer, reboundWriter);
+			assertSame(JavaWriter.class, reboundWriter.getClass());
+			assertNotSame(scanner, reboundScanner);
+			assertSame(JavaProjectScanner.class, reboundScanner.getClass());
+			assertNotSame(exerciseScanner, reboundExerciseScanner);
+			assertSame(JavaProgrammingExerciseProjectScanner.class, reboundExerciseScanner.getClass());
+		}
+
+		@Test
+		@DisplayName("Should return a custom subclass unchanged rather than rebuilding it")
+		void preservesCustomSubclasses() {
+			JavaCreator customCreator = new CustomJavaCreator();
+			JavaWriter customWriter = new CustomJavaWriter();
+			JavaProjectScanner customScanner = new CustomJavaProjectScanner();
+			JavaProgrammingExerciseProjectScanner customExerciseScanner = new CustomExerciseScanner();
+
+			assertSame(customCreator, customCreator.withBuildConfiguration(configuration));
+			assertSame(customWriter, customWriter.withBuildConfiguration(configuration));
+			assertSame(customScanner, customScanner.withBuildConfiguration(configuration));
+			assertSame(customExerciseScanner, customExerciseScanner.withBuildConfiguration(configuration));
+		}
+
+		@Test
+		@DisplayName("Should reject a null configuration in every implementation")
+		void rejectsNullConfiguration() {
+			assertThrows(NullPointerException.class, () -> new JavaCreator().withBuildConfiguration(null));
+			assertThrows(NullPointerException.class, () -> new JavaWriter().withBuildConfiguration(null));
+			assertThrows(NullPointerException.class, () -> new JavaProjectScanner().withBuildConfiguration(null));
+			assertThrows(NullPointerException.class,
+					() -> new JavaProgrammingExerciseProjectScanner().withBuildConfiguration(null));
 		}
 	}
 }

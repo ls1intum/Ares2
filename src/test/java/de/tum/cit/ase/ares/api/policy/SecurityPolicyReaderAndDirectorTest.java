@@ -186,6 +186,31 @@ public class SecurityPolicyReaderAndDirectorTest {
 				verify(mockSecurityPolicyDirector).createTestCases(mockSecurityPolicy, null, Path.of(""));
 			}
 		}
+
+		@Test
+		@DisplayName("Should skip reading for a non-null empty policy path and forward the builder's withinPath")
+		void emptyPolicyPathSkipsReadingAndBuilderForwardsWithinPath() {
+			try (MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
+				// Arrange
+				directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(null))
+						.thenReturn(mockSecurityPolicyDirector);
+				Path withinPath = Path.of("classes", "student");
+				when(mockSecurityPolicyDirector.createTestCases(null, projectFolderPath, withinPath))
+						.thenReturn(mockFactoryAndBuilder);
+
+				// A non-null but empty policy path skips reading (security policy stays null),
+				// and the builder's withinPath must reach the director unchanged.
+				SecurityPolicyReaderAndDirector instance = SecurityPolicyReaderAndDirector.builder()
+						.securityPolicyFilePath(Path.of("")).projectFolderPath(projectFolderPath).withinPath(withinPath)
+						.build();
+
+				// Act
+				instance.createTestCases();
+
+				// Assert
+				verify(mockSecurityPolicyDirector).createTestCases(null, projectFolderPath, withinPath);
+			}
+		}
 	}
 
 	@Nested

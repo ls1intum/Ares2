@@ -82,6 +82,37 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
+	 * Returns the scanner to use once the build configuration has been discovered.
+	 * <p>
+	 * A framework-default scanner is created without a build configuration and is
+	 * rebound here to the one discovered for the run. A caller-supplied subclass is
+	 * returned unchanged, so a custom scanner is never silently replaced; a
+	 * subclass that does want to be rebound overrides this method (as
+	 * {@link JavaProgrammingExerciseProjectScanner} does). This lets the director
+	 * ask each collaborator to configure itself, rather than inspecting its
+	 * concrete type.
+	 * <p>
+	 * Compatibility note: a custom scanner subclass that does not override this
+	 * method is now kept as injected rather than being replaced by a plain scanner
+	 * bound to the discovered configuration. It therefore keeps whatever
+	 * configuration it was built with (or the legacy source-discovery fallback of a
+	 * no-argument subclass); such a subclass should override this method if it
+	 * needs the discovered configuration.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param buildConfiguration the discovered build configuration; must not be
+	 *                           null.
+	 * @return the scanner bound to the configuration, or this instance when it is a
+	 *         custom subclass.
+	 */
+	@Nonnull
+	public JavaProjectScanner withBuildConfiguration(@Nonnull BuildToolConfiguration buildConfiguration) {
+		Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
+		return getClass() == JavaProjectScanner.class ? new JavaProjectScanner(buildConfiguration) : this;
+	}
+
+	/**
 	 * The last-resort supervised package, used only when neither the production
 	 * sources nor the compiled production output declares one.
 	 * <p>
