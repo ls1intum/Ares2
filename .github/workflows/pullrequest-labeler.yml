@@ -21,6 +21,14 @@ jobs:
       contents: read
       pull-requests: write
     steps:
+      # Audit only, and deliberately so. This records what each job actually reaches, so that
+      # the allow-list for a later `block` policy is measured rather than guessed. Audit alone
+      # stops nothing; see AGENTS.md for what that does and does not buy.
+      - name: Harden the runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
       - name: Label pull request
         uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0
         with:

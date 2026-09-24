@@ -35,6 +35,14 @@ jobs:
     env:
       IS_DEPENDENCY_BOT_PR: ${{ github.event.pull_request.user.login == 'renovate[bot]' || github.event.pull_request.user.login == 'dependabot[bot]' }}
     steps:
+      # Audit only, and deliberately so. This records what each job actually reaches, so that
+      # the allow-list for a later `block` policy is measured rather than guessed. Audit alone
+      # stops nothing; see AGENTS.md for what that does and does not buy.
+      - name: Harden the runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
       - name: Report the exemption for automated dependency pull requests
         if: env.IS_DEPENDENCY_BOT_PR == 'true'
         run: echo "Automated dependency pull request, the template check does not apply."

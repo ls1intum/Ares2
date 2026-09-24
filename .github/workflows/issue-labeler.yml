@@ -18,6 +18,14 @@ jobs:
       issues: write
       contents: read
     steps:
+      # Audit only, and deliberately so. This records what each job actually reaches, so that
+      # the allow-list for a later `block` policy is measured rather than guessed. Audit alone
+      # stops nothing; see AGENTS.md for what that does and does not buy.
+      - name: Harden the runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
       - name: Label issue
         uses: MaximilianAnzinger/issue-labeler@00977a029cf7d460956aa4d48af58a91a28c139a # 1.0.2
         with:
