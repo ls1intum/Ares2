@@ -8,6 +8,11 @@ body:
       value: |
         Thanks for taking the time to fill out this bug report!
 
+        Ares is itself the security boundary. If you have found a way for student code to get
+        past it, read
+        [SECURITY.md](https://github.com/ls1intum/Ares2/blob/main/SECURITY.md)
+        and report it privately rather than here.
+
   - type: input
     id: bug_title
     attributes:
@@ -20,59 +25,116 @@ body:
     id: description
     attributes:
       label: Describe the bug
-      description: What happened? Also tell us, what did you expect to happen?
+      description: >-
+        What happened? Also tell us, what did you expect to happen? If Ares made the wrong
+        call, say which way round: it let forbidden student code through, or it failed a
+        correct submission.
       placeholder: A clear and concise description of the issue.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part of Ares does this affect?
+      multiple: true
+      options:
+        - Reading the security policy
+        - Generating the security tests from the policy
+        - Blocking a forbidden call while the code runs (AspectJ or instrumentation)
+        - Finding a forbidden call without running the code (ArchUnit or WALA)
+        - Checking the shape of the source (AST)
+        - Keeping student code out of the packages Ares reserves for itself
+        - Generating the files for an external Phobos sandbox
+        - Checking classes, methods, fields and annotations (structural check)
+        - Console input and output testing
+        - Dynamic access API
+        - Messages shown to a student (localisation)
+        - JUnit or jqwik integration
+        - Maven or Gradle integration
+        - Not sure
     validations:
       required: true
 
   - type: textarea
     id: steps
     attributes:
-      label: To Reproduce
-      description: Steps to reproduce the behavior.
+      label: To reproduce
+      description: >-
+        The exact commands, preferably starting from one of the example exercises under
+        `examples/`, and describing only what you changed.
       placeholder: |
-        1. Go to '...'
-        2. Click on '...'
-        3. Scroll down to '...'
-        4. See error
+        1. Copy `examples/ares-exercise-maven`
+        2. Change `src/test/resources/SecurityPolicy.yaml` to the policy below
+        3. `mvn test`
+        4. See the failure in `PenguinTest`
     validations:
       required: true
 
   - type: textarea
     id: expected
     attributes:
-      label: Expected behavior
+      label: Expected behaviour
       description: What did you expect to happen instead?
     validations:
       required: true
 
-  - type: textarea
-    id: screenshots
+  - type: dropdown
+    id: mode
     attributes:
-      label: Screenshots
-      description: If applicable, add screenshots to help explain your problem.
+      label: Which mode combination does this affect?
+      multiple: true
+      options:
+        - ArchUnit + AspectJ
+        - ArchUnit + instrumentation
+        - WALA + AspectJ
+        - WALA + instrumentation
+        - Not mode-specific
+        - Not sure
+    validations:
+      required: true
 
   - type: input
     id: version
     attributes:
-      label: Which version of Artemis are you seeing the problem on?
-      placeholder: e.g., 2025.06.01
+      label: Which version of Ares are you seeing the problem on?
+      placeholder: e.g. 2.1.5
+    validations:
+      required: true
+
+  - type: input
+    id: jdk
+    attributes:
+      label: Which JDK are you running?
+      description: Output of `java -version`.
+      placeholder: e.g. temurin 21.0.12
     validations:
       required: true
 
   - type: dropdown
-    id: browser
+    id: build_tool
     attributes:
-      label: What browsers are you seeing the problem on?
-      multiple: true
+      label: Which build tool?
       options:
-        - Chrome
-        - Firefox
-        - Safari
-        - Edge
-        - Other
+        - Maven
+        - Gradle
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Which operating system or container image?
+      placeholder: e.g. Ubuntu 24.04, macOS 15.2
     validations:
       required: false
+
+  - type: textarea
+    id: policy
+    attributes:
+      label: The security policy in use
+      description: The security policy file the tests ran under, or the relevant part of it.
+      render: yaml
 
   - type: textarea
     id: context
@@ -84,4 +146,5 @@ body:
     id: logs
     attributes:
       label: Relevant log output
-      description: Copy and paste any relevant log output (e.g. from your browser's Web Console).
+      description: Copy and paste any relevant log output, test report excerpt or stack trace.
+      render: shell
