@@ -188,32 +188,30 @@ public class JavaWriter implements Writer {
 	}
 
 	/**
-	 * Writes the generated, compiled settings class named by the released
-	 * {@code TestBehaviorConfiguration.GENERATED_CLASS_NAME}, with one literal
-	 * field per contributed category; writes nothing when no category has
-	 * contributed a field yet, so the class is only ever present on the classpath
-	 * once something is actually configured.
+	 * Writes the generated settings class, one literal field per configured
+	 * setting. With nothing configured it writes nothing and deletes a class left
+	 * by an earlier run, so a removed setting cannot stay in force.
 	 *
 	 * @since 2.1.5
 	 * @author Luka Petrovic
-	 * @param testBehaviorConfiguration the configuration whose literal field
-	 *                                  assignments to write; must not be null.
+	 * @param testBehaviorConfiguration the configuration to write; must not be
+	 *                                  null.
 	 * @param testFolderPath            the project's source root; must not be null.
 	 * @return the written file's path, or an empty list if nothing was configured.
 	 */
 	@Nonnull
 	private List<Path> createTestBehaviorSettingsFiles(@Nonnull TestBehaviorConfiguration testBehaviorConfiguration,
 			@Nonnull Path testFolderPath) {
+		Path target = resolveTestBehaviorSettingsTarget(testFolderPath);
 		List<String> fieldAssignments = testBehaviorConfiguration.literalFieldAssignments();
 		if (fieldAssignments.isEmpty()) {
+			deleteStaleTestBehaviorSettings(target);
 			return List.of();
 		}
 		String fullyQualifiedName = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
 		int lastDot = fullyQualifiedName.lastIndexOf('.');
 		String settingsPackageName = fullyQualifiedName.substring(0, lastDot);
 		String simpleClassName = fullyQualifiedName.substring(lastDot + 1);
-		Path target = confineToProject(
-				testFolderPath.resolve(settingsPackageName.replace('.', '/')).resolve(simpleClassName + ".java"));
 		String content = "package " + settingsPackageName + ";" + System.lineSeparator() + System.lineSeparator()
 				+ "public final class " + simpleClassName + " {" + System.lineSeparator() + System.lineSeparator()
 				+ "\tprivate " + simpleClassName + "() {" + System.lineSeparator()
@@ -230,6 +228,36 @@ public class JavaWriter implements Writer {
 			throw new SecurityException("Unable to write generated test-behaviour settings class: " + target, failure);
 		}
 		return List.of(target);
+	}
+
+	/**
+	 * The fixed path of the generated settings class inside the project's source
+	 * root, confined to the project.
+	 *
+	 * @param testFolderPath the project's source root; must not be null.
+	 * @return the path of {@code GeneratedTestBehaviorSettings.java}
+	 */
+	@Nonnull
+	private Path resolveTestBehaviorSettingsTarget(@Nonnull Path testFolderPath) {
+		String fullyQualifiedName = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
+		return confineToProject(testFolderPath.resolve(fullyQualifiedName.replace('.', '/') + ".java"));
+	}
+
+	/**
+	 * Deletes a settings class an earlier run generated, if there is one. Failing
+	 * to delete it stops generation, since the old settings would otherwise still
+	 * apply.
+	 *
+	 * @param target the path of the generated settings class; must not be null.
+	 * @throws SecurityException if an existing file cannot be deleted
+	 */
+	private static void deleteStaleTestBehaviorSettings(@Nonnull Path target) {
+		try {
+			Files.deleteIfExists(target);
+		} catch (IOException failure) {
+			throw new SecurityException("Unable to delete stale generated test-behaviour settings class: " + target,
+					failure);
+		}
 	}
 
 	@Nonnull

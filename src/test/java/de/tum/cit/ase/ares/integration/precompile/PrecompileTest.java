@@ -107,18 +107,17 @@ public class PrecompileTest {
 	}
 
 	/**
-	 * Proves the precompile carry-forward claim on the read side, in isolation from
-	 * {@code writeTestCases()}: with the generated settings class placed directly
-	 * on the classpath and no {@code @Policy} annotation anywhere - the genuine
-	 * precompile condition, where nothing dynamically resolves a policy -
-	 * {@code ConfigurationUtils} still resolves the effective message from it.
+	 * With the generated settings class compiled beside the test class and no
+	 * {@code @Policy} anywhere, as in a real precompile exercise, its message is
+	 * the one used.
 	 */
 	@Test
 	void generatedSettingsClassGovernsBehaviourWithNoPolicyAnnotationPresent(@TempDir Path tempDir) throws Exception {
-		ClassLoader isolated = generatedSettingsClassLoader(tempDir, true, "Generated settings message");
-		GeneratedSettingsClassTestSupport.runWithClassLoader(isolated, () -> {
-			Optional<String> message = ConfigurationUtils
-					.getNonprivilegedFailureMessage(context(NoAnnotationFixture.class));
+		generatedSettingsClassLoader(tempDir, true, "Generated settings message");
+		Class<?> testClass = GeneratedSettingsClassTestSupport.compileTestClassBeside(tempDir,
+				"com.example.exercise.PrecompiledExerciseTest");
+		GeneratedSettingsClassTestSupport.runWithClassLoader(testClass.getClassLoader(), () -> {
+			Optional<String> message = ConfigurationUtils.getNonprivilegedFailureMessage(context(testClass));
 
 			assertTrue(message.isPresent());
 			assertEquals("Generated settings message", message.get());
@@ -142,6 +141,15 @@ public class PrecompileTest {
 		});
 	}
 
+	/**
+	 * Compiles a settings class with the given values into {@code tempDir}.
+	 *
+	 * @param tempDir the directory to compile into.
+	 * @param enabled the value of the switch.
+	 * @param message the message.
+	 * @return a class loader rooted at {@code tempDir}.
+	 * @throws IOException if writing or compiling fails.
+	 */
 	private ClassLoader generatedSettingsClassLoader(Path tempDir, boolean enabled, String message) throws IOException {
 		return GeneratedSettingsClassTestSupport.compileSource(tempDir, TestBehaviorConfiguration.GENERATED_CLASS_NAME,
 				GeneratedSettingsClassTestSupport.settingsClassSource(TestBehaviorConfiguration.GENERATED_CLASS_NAME,
@@ -153,17 +161,21 @@ public class PrecompileTest {
 								+ "\";"));
 	}
 
-	static class NoAnnotationFixture {
-		void test() {
-		}
-	}
-
+	/** A test class with its own {@code @PrivilegedExceptionsOnly}. */
 	@PrivilegedExceptionsOnly("Annotation message")
 	static class AnnotatedFixture {
+		/** The fixture's test method, looked up by name. */
 		void test() {
 		}
 	}
 
+	/**
+	 * A context for the {@code test} method of {@code type}.
+	 *
+	 * @param type the fixture class.
+	 * @return the context.
+	 * @throws Exception if the method cannot be found.
+	 */
 	private static TestContext context(Class<?> type) throws Exception {
 		Method method = type.getDeclaredMethod("test");
 		return new TestContext() {

@@ -26,7 +26,9 @@ import de.tum.cit.ase.ares.api.context.TestContext;
 
 class TimeoutUtilsTest {
 
+	/** A policy enabling privileged-exceptions-only reporting. */
 	private static final String POLICY_ENABLED = "src/test/resources/de/tum/cit/ase/ares/api/internal/configurationUtils/PolicyPrivilegedExceptionsEnabled.yaml";
+	/** A policy explicitly disabling privileged-exceptions-only reporting. */
 	private static final String POLICY_DISABLED = "src/test/resources/de/tum/cit/ase/ares/api/internal/configurationUtils/PolicyPrivilegedExceptionsDisabled.yaml";
 
 	@Test
@@ -63,6 +65,7 @@ class TimeoutUtilsTest {
 		assertThat(workerFinished).isTrue();
 	}
 
+	/** With the annotation, a timeout is still reported as a timeout. */
 	@Test
 	void annotationBasedTimeoutStaysPrivileged() throws Exception {
 		TestContext context = contextFor("annotationTimeoutTarget"); //$NON-NLS-1$
@@ -76,6 +79,7 @@ class TimeoutUtilsTest {
 		assertThat(failure.getPriviledgedThrowable().getMessage()).contains("execution timed out after");
 	}
 
+	/** With an enabling policy, a timeout is still reported as a timeout. */
 	@Test
 	void policyEnabledTimeoutStaysPrivileged() throws Exception {
 		TestContext context = contextFor("policyEnabledTimeoutTarget"); //$NON-NLS-1$
@@ -89,6 +93,7 @@ class TimeoutUtilsTest {
 		assertThat(failure.getPriviledgedThrowable().getMessage()).contains("execution timed out after");
 	}
 
+	/** With a disabling policy, a timeout is reported as an ordinary failure. */
 	@Test
 	void policyDisabledTimeoutStaysNormal() throws Exception {
 		TestContext context = contextFor("policyDisabledTimeoutTarget"); //$NON-NLS-1$
@@ -102,6 +107,10 @@ class TimeoutUtilsTest {
 		assertThat(failure.getMessage()).contains("execution timed out after");
 	}
 
+	/**
+	 * The annotation keeps a timeout privileged even when the policy disables the
+	 * default.
+	 */
 	@Test
 	void policyDisabledButAnnotationPresentTimeoutStaysPrivileged() throws Exception {
 		TestContext context = contextFor("policyDisabledButAnnotatedTimeoutTarget"); //$NON-NLS-1$
@@ -172,28 +181,40 @@ class TimeoutUtilsTest {
 		// Provides the annotation consumed through the mocked test context.
 	}
 
-	// Reflective use only, through the mocked test context.
+	/**
+	 * Carries the annotation and a timeout; used only through the mocked test
+	 * context.
+	 */
 	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@PrivilegedExceptionsOnly("Annotation message")
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void annotationTimeoutTarget() {
 	}
 
-	// Reflective use only, through the mocked test context.
+	/**
+	 * Carries an enabling policy and a timeout; used only through the mocked test
+	 * context.
+	 */
 	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@Policy(value = POLICY_ENABLED)
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void policyEnabledTimeoutTarget() {
 	}
 
-	// Reflective use only, through the mocked test context.
+	/**
+	 * Carries a disabling policy and a timeout; used only through the mocked test
+	 * context.
+	 */
 	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@Policy(value = POLICY_DISABLED)
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void policyDisabledTimeoutTarget() {
 	}
 
-	// Reflective use only, through the mocked test context.
+	/**
+	 * Carries the annotation, a disabling policy and a timeout; used only through
+	 * the mocked test context.
+	 */
 	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@PrivilegedExceptionsOnly("Annotation message")
 	@Policy(value = POLICY_DISABLED)

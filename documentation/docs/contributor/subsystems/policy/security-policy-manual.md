@@ -374,7 +374,7 @@ theFollowingClassesAreTestClasses:
 
 ### 7.7 Test Behaviour Configuration
 
-The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for how Ares reports a test's own failure to a student, as opposed to which resources code can access. It currently has one category, `regardingPrivilegedExceptions`, mirroring what the `@PrivilegedExceptionsOnly` annotation already controls per test. A hidden test that fails for an unrelated reason shows the student its real assertion or exception message, or a generic one instead.
+The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for how Ares reports a test's own failure to a student, as opposed to which resources code can access. It currently has one category, `regardingPrivilegedExceptions`, mirroring what the `@PrivilegedExceptionsOnly` annotation already controls per test. It decides whether a failing test that is not hidden shows the student its real assertion or exception message, or a fixed message instead. A hidden test is not affected: it always shows the fixed hidden-test message, whatever this field says.
 
 **Field Properties:**
 - **Type:** Object (optional wrapper), containing the optional `regardingPrivilegedExceptions` object
@@ -395,6 +395,8 @@ theFollowingTestBehaviorIsConfigured:
 ```
 
 **Precedence:** a `@PrivilegedExceptionsOnly` annotation directly on a test method or class always wins over this policy default, whether the policy enables or disables the default, matching the nearest-annotation-wins precedent used elsewhere in this codebase. This field only takes effect for a test that carries no such annotation of its own.
+
+**Precompile:** the generator writes this setting as a class, `GeneratedTestBehaviorSettings`, among the test sources. Ares only reads that class when it is compiled into the same output as the test classes, and rejects a class of that name found anywhere else, such as in student code. Regenerating after removing this field deletes the old class.
 
 ---
 

@@ -133,7 +133,7 @@ public final class TimeoutUtils {
 
 	/**
 	 * Builds the timeout failure, wrapped as privileged when the annotation, the
-	 * active policy, or the generated precompile resource says non-privileged
+	 * active policy, or the generated precompile settings class says non-privileged
 	 * detail should stay hidden.
 	 *
 	 * @param timeout the exceeded timeout.

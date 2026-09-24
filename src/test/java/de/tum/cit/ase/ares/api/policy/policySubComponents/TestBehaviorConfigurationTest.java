@@ -7,8 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+/**
+ * Checks the behaviour configuration and the constants it contributes to the
+ * generated settings class.
+ */
 class TestBehaviorConfigurationTest {
 
+	/** A configuration built empty has no privileged-exceptions category. */
 	@Test
 	void builderDefaultsToNullCategory() {
 		TestBehaviorConfiguration configuration = TestBehaviorConfiguration.builder().build();
@@ -16,6 +21,7 @@ class TestBehaviorConfigurationTest {
 		assertNull(configuration.regardingPrivilegedExceptions());
 	}
 
+	/** The builder keeps the privileged-exceptions category it was given. */
 	@Test
 	void builderRoundTripsPrivilegedExceptionsCategory() {
 		PrivilegedExceptionsConfiguration privilegedExceptions = PrivilegedExceptionsConfiguration.builder()

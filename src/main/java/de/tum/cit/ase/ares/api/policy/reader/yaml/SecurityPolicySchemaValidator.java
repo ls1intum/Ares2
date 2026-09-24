@@ -34,7 +34,11 @@ final class SecurityPolicySchemaValidator {
 	private static final Set<String> THREAD_FIELDS = Set.of("createTheFollowingNumberOfThreads", "ofThisClass");
 	private static final Set<String> PACKAGE_FIELDS = Set.of("importTheFollowingPackage");
 	private static final Set<String> TIMEOUT_FIELDS = Set.of("timeout");
+	/**
+	 * The categories allowed inside {@code theFollowingTestBehaviorIsConfigured}.
+	 */
 	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of("regardingPrivilegedExceptions");
+	/** The fields allowed inside {@code regardingPrivilegedExceptions}. */
 	private static final Set<String> PRIVILEGED_EXCEPTIONS_FIELDS = Set.of("onlyPrivilegedExceptionsAreReported",
 			"theFailureMessageIs");
 

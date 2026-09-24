@@ -11,14 +11,9 @@ import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
 
 /**
- * Compiles a generated test-behaviour settings class and loads it through a
- * fresh {@link URLClassLoader}, isolated from the JVM's default classloader.
- * <p>
- * Description: A class loaded once under a given fully-qualified name stays
- * resident for the rest of that classloader's life, so re-testing
- * {@code ConfigurationUtils}'s reflective lookup with different field values
- * across several test methods - some in the same reused Surefire fork - needs a
- * fresh classloader per scenario rather than the JVM's shared one.
+ * Compiles a generated settings class and loads it through a fresh
+ * {@link URLClassLoader}. A class stays loaded for its loader's whole life, so
+ * testing different settings in one JVM needs a new loader each time.
  *
  * @since 2.1.5
  * @author Luka Petrovic
@@ -100,6 +95,26 @@ public final class GeneratedSettingsClassTestSupport {
 		}
 		source.append("}\n");
 		return source.toString();
+	}
+
+	/**
+	 * Compiles a test class with an empty {@code test()} method beside a settings
+	 * class in {@code tempDir}, as precompile puts both in one test output.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 * @param tempDir            the settings class's directory.
+	 * @param fullyQualifiedName the test class name, package included.
+	 * @return the loaded test class.
+	 * @throws IOException            if compiling fails.
+	 * @throws ClassNotFoundException if loading fails.
+	 */
+	public static Class<?> compileTestClassBeside(Path tempDir, String fullyQualifiedName)
+			throws IOException, ClassNotFoundException {
+		int lastDot = fullyQualifiedName.lastIndexOf('.');
+		String source = "package " + fullyQualifiedName.substring(0, lastDot) + ";\npublic class "
+				+ simpleClassNameOf(fullyQualifiedName) + " {\n    void test() {\n    }\n}\n";
+		return compileSource(tempDir, fullyQualifiedName, source).loadClass(fullyQualifiedName);
 	}
 
 	/**

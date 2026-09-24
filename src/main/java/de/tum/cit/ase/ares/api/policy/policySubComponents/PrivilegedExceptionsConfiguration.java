@@ -4,26 +4,15 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Policy-level default for hiding non-privileged test-failure details.
- * <p>
- * Description: Mirrors what the {@code @PrivilegedExceptionsOnly} annotation
- * already controls per test, as a policy-wide default a supervised test falls
- * back to when it carries no such annotation itself.
- * <p>
- * Design Rationale: A plain, self-validating record like every other policy
- * value in this package. Nothing here is read by woven runtime advice, only by
- * ordinary reporting code, so it carries none of
- * {@code JavaAOPTestCaseSettings}'s classloader-crossing machinery.
+ * The policy-wide default of {@code @PrivilegedExceptionsOnly}: whether a
+ * failed test without that annotation shows a fixed message instead of its real
+ * error.
  *
  * @since 2.1.5
  * @author Luka Petrovic
- * @param onlyPrivilegedExceptionsAreReported whether only privileged exceptions
- *                                            are reported by default for
- *                                            supervised tests without their own
- *                                            annotation.
- * @param theFailureMessageIs                 the message shown for a
- *                                            non-privileged failure; defaults
- *                                            to
+ * @param onlyPrivilegedExceptionsAreReported whether the fixed message is
+ *                                            shown.
+ * @param theFailureMessageIs                 the fixed message; defaults to
  *                                            {@value #DEFAULT_FAILURE_MESSAGE}
  *                                            when null or blank.
  */

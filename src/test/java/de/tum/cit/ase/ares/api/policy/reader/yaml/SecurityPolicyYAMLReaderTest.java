@@ -377,6 +377,7 @@ public class SecurityPolicyYAMLReaderTest {
 		}
 	}
 
+	/** Reading and validating {@code theFollowingTestBehaviorIsConfigured}. */
 	@Nested
 	@DisplayName("theFollowingTestBehaviorIsConfigured Tests")
 	class TestBehaviorConfigurationTests {
@@ -392,6 +393,10 @@ public class SecurityPolicyYAMLReaderTest {
 			assertNull(policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured());
 		}
 
+		/**
+		 * An empty {@code theFollowingTestBehaviorIsConfigured} parses, with no
+		 * category.
+		 */
 		@Test
 		@DisplayName("Should parse the wrapper present but with no category configured")
 		void wrapperPresentWithoutPrivilegedExceptionsCategory(@TempDir Path tempDir) throws IOException {
@@ -406,6 +411,7 @@ public class SecurityPolicyYAMLReaderTest {
 					.regardingPrivilegedExceptions());
 		}
 
+		/** An enabled category parses with both fields. */
 		@Test
 		@DisplayName("Should parse a fully configured privileged-exceptions category set to true")
 		void validConfigurationTrue(@TempDir Path tempDir) throws IOException {
@@ -426,6 +432,7 @@ public class SecurityPolicyYAMLReaderTest {
 			assertEquals("Custom message", privilegedExceptions.theFailureMessageIs());
 		}
 
+		/** A disabled category parses. */
 		@Test
 		@DisplayName("Should parse a fully configured privileged-exceptions category set to false")
 		void validConfigurationFalse(@TempDir Path tempDir) throws IOException {
@@ -444,6 +451,7 @@ public class SecurityPolicyYAMLReaderTest {
 					.regardingPrivilegedExceptions().onlyPrivilegedExceptionsAreReported());
 		}
 
+		/** A category without a message gets the default message. */
 		@Test
 		@DisplayName("Should default the omitted failure message")
 		void omittedFailureMessageDefaults(@TempDir Path tempDir) throws IOException {
@@ -461,6 +469,7 @@ public class SecurityPolicyYAMLReaderTest {
 					.regardingPrivilegedExceptions().theFailureMessageIs());
 		}
 
+		/** A blank message gets the default instead of being rejected. */
 		@Test
 		@DisplayName("Should default a whitespace-only failure message, not reject it")
 		void blankFailureMessageDefaultsInsteadOfBeingRejected(@TempDir Path tempDir) throws IOException {
@@ -479,6 +488,7 @@ public class SecurityPolicyYAMLReaderTest {
 					.regardingPrivilegedExceptions().theFailureMessageIs());
 		}
 
+		/** A category without its required switch is rejected. */
 		@Test
 		@DisplayName("Should reject a missing onlyPrivilegedExceptionsAreReported field")
 		void missingRequiredFieldIsRejected(@TempDir Path tempDir) throws IOException {
@@ -493,6 +503,7 @@ public class SecurityPolicyYAMLReaderTest {
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
 		}
 
+		/** A switch that is not a boolean is rejected. */
 		@Test
 		@DisplayName("Should reject a non-boolean onlyPrivilegedExceptionsAreReported")
 		void nonBooleanOnlyPrivilegedExceptionsAreReportedIsRejected(@TempDir Path tempDir) throws IOException {
@@ -507,6 +518,7 @@ public class SecurityPolicyYAMLReaderTest {
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
 		}
 
+		/** An unknown field inside the category is rejected. */
 		@Test
 		@DisplayName("Should reject an unknown field inside regardingPrivilegedExceptions")
 		void unknownFieldInsideCategoryIsRejected(@TempDir Path tempDir) throws IOException {
@@ -556,6 +568,7 @@ public class SecurityPolicyYAMLReaderTest {
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
 		}
 
+		/** A category that is not an object is rejected. */
 		@Test
 		@DisplayName("Should reject a malformed (non-object) privileged-exceptions category")
 		void malformedCategoryTypeIsRejected(@TempDir Path tempDir) throws IOException {

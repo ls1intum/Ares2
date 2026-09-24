@@ -367,10 +367,12 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 		}
 	}
 
+	/** Taking the behaviour configuration out of the policy. */
 	@Nested
 	@DisplayName("Behavioural configuration extraction Tests")
 	class BehaviorConfigurationExtractionTests {
 
+		/** A configured behaviour configuration is taken over from the policy. */
 		@Test
 		@DisplayName("Extracts the configured behavioural configuration when present")
 		void extractsConfiguredTestBehavior() {
@@ -385,6 +387,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 			assertSame(mockResourceAccesses, factory.resourceAccesses());
 		}
 
+		/** A policy without one yields an empty behaviour configuration. */
 		@Test
 		@DisplayName("Falls back to an empty behavioural configuration when the policy has none")
 		void fallsBackToEmptyTestBehaviorWhenPolicyHasNone() {
@@ -398,6 +401,7 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 			assertNotNull(factory.testBehaviorConfiguration());
 		}
 
+		/** No policy at all yields an empty behaviour configuration. */
 		@Test
 		@DisplayName("Falls back to an empty behavioural configuration on the no-policy path")
 		void fallsBackToEmptyTestBehaviorWhenNoPolicy() {

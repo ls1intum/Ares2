@@ -1,7 +1,9 @@
 package de.tum.cit.ase.ares.api.internal;
 
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.nio.file.Path;
+import java.security.CodeSource;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
@@ -56,16 +58,11 @@ public final class ConfigurationUtils {
 	}
 
 	/**
-	 * Resolves the effective non-privileged failure message for a test.
-	 * <p>
-	 * Checks, in order: the nearest {@code @PrivilegedExceptionsOnly} annotation; a
-	 * dynamic re-read of the policy YAML named by {@code @Policy}, for a
-	 * postcompile deployment where that file is still resolvable; the generated,
-	 * compiled settings class {@code JavaWriter} writes at precompile time, for a
-	 * deployment where nothing dynamically resolves a policy any more. Once a
-	 * dynamic policy applies, its verdict is final and never falls through to the
-	 * generated settings class, even when the verdict is "disabled" - falling
-	 * through there would let a stale class silently override an explicit disable.
+	 * Resolves the message a failed test shows instead of its real error, if any.
+	 * Checks, in order: the nearest {@code @PrivilegedExceptionsOnly}; the policy
+	 * file named by an active {@code @Policy} (postcompile); the settings class a
+	 * precompile run generated. An active policy's answer is final, even
+	 * "disabled", so a leftover generated class can never override it.
 	 *
 	 * @param context the current test context
 	 * @return the configured message, if privileged-exceptions-only reporting is
@@ -83,7 +80,7 @@ public final class ConfigurationUtils {
 					.readSecurityPolicyFrom(dynamicPolicyPath.get());
 			return privilegedExceptionsMessageFrom(securityPolicy);
 		}
-		return resolveFromGeneratedSettingsClass();
+		return resolveFromGeneratedSettingsClass(context);
 	}
 
 	/**
@@ -122,32 +119,93 @@ public final class ConfigurationUtils {
 	}
 
 	/**
-	 * Resolves the policy-level default from the generated, compiled settings class
-	 * a precompile deployment writes; this is a fast, harmless miss in postcompile,
-	 * where nothing ever writes it. Absence of the class means "nothing configured"
-	 * and resolves to empty; a present class missing the expected field - version
-	 * skew between the Ares jar active now and the one that generated the class -
-	 * fails closed with a {@link SecurityException} rather than being silently
-	 * treated as absent, since "absent" is the direction that leaks a hidden test's
-	 * real failure detail, not the safe one. Any other reflective failure (the
-	 * field existing with an unexpected type, or being inaccessible) is not this
-	 * specific, understood failure mode and is left to propagate rather than folded
-	 * into the same fail-closed path.
+	 * Resolves the policy default from the settings class a precompile run
+	 * generates. No such class means nothing is configured. A class that does not
+	 * sit beside the test classes, or lacks an expected field, fails closed with a
+	 * {@link SecurityException}, because "not configured" is the direction that
+	 * shows a student the real failure.
 	 *
-	 * @return the configured message, if the generated settings class effectively
-	 *         enables the feature
+	 * @param context the current test context
+	 * @return the configured message, if the generated settings class enables the
+	 *         feature
 	 */
-	private static Optional<String> resolveFromGeneratedSettingsClass() {
-		Class<?> settingsClass;
+	private static Optional<String> resolveFromGeneratedSettingsClass(TestContext context) {
+		Optional<Class<?>> settingsClass = findGeneratedSettingsClass();
+		if (settingsClass.isEmpty()) {
+			return Optional.empty();
+		}
+		requireGeneratedBesideTheTestClass(settingsClass.get(), context);
+		return privilegedExceptionsMessageFrom(settingsClass.get());
+	}
+
+	/**
+	 * Looks up the generated settings class by its fixed name without initialising
+	 * it, so that no static initialiser runs before the class is known to be the
+	 * generated one.
+	 *
+	 * @return the class, or empty when no precompile run generated one
+	 */
+	private static Optional<Class<?>> findGeneratedSettingsClass() {
 		try {
-			// The thread context classloader, not the implicit caller classloader: Ares
-			// itself may be loaded by a different classloader than the one that loaded a
-			// consumer exercise's own generated classes.
-			settingsClass = Class.forName(TestBehaviorConfiguration.GENERATED_CLASS_NAME, true,
-					Thread.currentThread().getContextClassLoader());
+			return Optional.of(Class.forName(TestBehaviorConfiguration.GENERATED_CLASS_NAME, false,
+					generatedSettingsClassLoader()));
 		} catch (ClassNotFoundException notConfigured) {
 			return Optional.empty();
 		}
+	}
+
+	/**
+	 * The loader that can see the exercise's own generated classes: the thread
+	 * context loader, since Ares itself may be loaded by a different loader than
+	 * the exercise's compiled tests.
+	 *
+	 * @return the current thread's context class loader
+	 */
+	private static ClassLoader generatedSettingsClassLoader() {
+		return Thread.currentThread().getContextClassLoader();
+	}
+
+	/**
+	 * Rejects a settings class that was not compiled into the same output as the
+	 * running test class. The generator writes it among the test sources, so a
+	 * class of that name anywhere else, such as in student code, is not the
+	 * generated one.
+	 *
+	 * @param settingsClass the class found under the generated name; must not be
+	 *                      null.
+	 * @param context       the current test context
+	 * @throws SecurityException if the two locations differ or cannot be told
+	 */
+	private static void requireGeneratedBesideTheTestClass(Class<?> settingsClass, TestContext context) {
+		Optional<String> settingsLocation = codeSourceLocationOf(settingsClass);
+		Optional<String> testLocation = context.testClass().flatMap(ConfigurationUtils::codeSourceLocationOf);
+		if (settingsLocation.isEmpty() || !settingsLocation.equals(testLocation)) {
+			throw new SecurityException(Messages.localized("security.policy.behavior.settings.class.untrusted",
+					TestBehaviorConfiguration.GENERATED_CLASS_NAME, settingsLocation.orElse(null)));
+		}
+	}
+
+	/**
+	 * The location a class was loaded from, such as a class output directory.
+	 *
+	 * @param type the class to locate; must not be null.
+	 * @return the location as a URL string, or empty when the class has none
+	 */
+	private static Optional<String> codeSourceLocationOf(Class<?> type) {
+		return Optional.ofNullable(type.getProtectionDomain().getCodeSource()).map(CodeSource::getLocation)
+				.map(URL::toExternalForm);
+	}
+
+	/**
+	 * Reads the effective message from a trusted generated settings class. A
+	 * missing field means the class came from a different Ares version and fails
+	 * closed, since treating it as absent would show the real failure.
+	 *
+	 * @param settingsClass the generated settings class; must not be null.
+	 * @return the configured message, if the class enables the feature
+	 * @throws SecurityException if an expected field is missing
+	 */
+	private static Optional<String> privilegedExceptionsMessageFrom(Class<?> settingsClass) {
 		boolean enabled;
 		String message;
 		try {
