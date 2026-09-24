@@ -568,6 +568,20 @@ public class SecurityPolicyYAMLReaderTest {
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
 		}
 
+		/**
+		 * An explicit {@code null} category is rejected, like an explicit {@code null}
+		 * wrapper.
+		 */
+		@Test
+		@DisplayName("Should reject an explicit null privileged-exceptions category")
+		void explicitNullCategoryIsRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-null-category.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing()
+					+ "\n  theFollowingTestBehaviorIsConfigured:\n    regardingPrivilegedExceptions: null\n");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+
 		/** A category that is not an object is rejected. */
 		@Test
 		@DisplayName("Should reject a malformed (non-object) privileged-exceptions category")

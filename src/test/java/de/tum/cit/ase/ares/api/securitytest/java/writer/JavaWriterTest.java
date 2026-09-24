@@ -20,6 +20,7 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PrivilegedExceptionsConfiguration;
@@ -382,6 +383,40 @@ public class JavaWriterTest {
 
 				assertEquals(3, result.size());
 				assertFalse(Files.exists(generatedSettingsClassPath()));
+			}
+		}
+
+		/**
+		 * With a known build layout, regenerating without configuration also deletes
+		 * the compiled settings class an earlier build left in the test output.
+		 */
+		@Test
+		@DisplayName("Should delete a stale compiled settings class from the test output when regenerated without configuration")
+		void regeneratingWithoutConfigurationDeletesTheStaleCompiledSettingsClass() throws IOException {
+			for (String directory : List.of("src/main/java", "src/test/java", "target/classes",
+					"target/test-classes")) {
+				Files.createDirectories(tempDir.resolve(directory));
+			}
+			BuildToolConfiguration mavenLayout = new BuildToolConfiguration(BuildMode.MAVEN, tempDir,
+					List.of(tempDir.resolve("src/main/java")), List.of(tempDir.resolve("src/test/java")),
+					tempDir.resolve("target/classes"), tempDir.resolve("target/test-classes"));
+			Path staleClass = tempDir.resolve("target/test-classes")
+					.resolve(TestBehaviorConfiguration.GENERATED_CLASS_NAME.replace('.', '/') + ".class");
+			Files.createDirectories(staleClass.getParent());
+			Files.write(staleClass, new byte[] { (byte) 0xCA, (byte) 0xFE });
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				new JavaWriter(mavenLayout).writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+						javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration,
+						tempDir.resolve("src/test/java"));
+
+				assertFalse(Files.exists(staleClass));
 			}
 		}
 

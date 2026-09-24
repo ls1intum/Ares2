@@ -21,14 +21,12 @@ import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseTo
 public record TestBehaviorConfiguration(@Nullable PrivilegedExceptionsConfiguration regardingPrivilegedExceptions) {
 
 	/**
-	 * Fully-qualified name of the generated, compiled class that carries this
-	 * configuration forward for a precompile deployment, as literal
-	 * {@code public static final} fields - the same way file/network/command/thread
-	 * permissions already reach enforcement code, so nothing re-reads or re-parses
-	 * a policy artefact at test-run time. A class under this exact name only exists
-	 * on the classpath once a category actually contributes a field to it.
+	 * Fully-qualified name of the class a precompile run generates to carry this
+	 * configuration as literal constants. Its package is deliberately not one of
+	 * the packages inside the Ares JAR: those are sealed, so a class compiled into
+	 * the exercise could not be loaded there next to the JAR.
 	 */
-	public static final String GENERATED_CLASS_NAME = "de.tum.cit.ase.ares.api.policy.policySubComponents.GeneratedTestBehaviorSettings";
+	public static final String GENERATED_CLASS_NAME = "de.tum.cit.ase.ares.generated.GeneratedTestBehaviorSettings";
 
 	/**
 	 * Fully-qualified name of the boolean field {@link #literalFieldAssignments()}

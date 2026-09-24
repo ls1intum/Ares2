@@ -206,6 +206,7 @@ public class JavaWriter implements Writer {
 		List<String> fieldAssignments = testBehaviorConfiguration.literalFieldAssignments();
 		if (fieldAssignments.isEmpty()) {
 			deleteStaleTestBehaviorSettings(target);
+			deleteStaleCompiledTestBehaviorSettings();
 			return List.of();
 		}
 		String fullyQualifiedName = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
@@ -244,11 +245,24 @@ public class JavaWriter implements Writer {
 	}
 
 	/**
-	 * Deletes a settings class an earlier run generated, if there is one. Failing
-	 * to delete it stops generation, since the old settings would otherwise still
-	 * apply.
+	 * Deletes the compiled settings class an earlier build left in the test output,
+	 * when the build layout is known. A build tool can keep it after its source is
+	 * gone, and Ares would then still read it.
+	 */
+	private void deleteStaleCompiledTestBehaviorSettings() {
+		if (buildConfiguration == null) {
+			return;
+		}
+		deleteStaleTestBehaviorSettings(confineToProject(buildConfiguration.testOutputRoot()
+				.resolve(TestBehaviorConfiguration.GENERATED_CLASS_NAME.replace('.', '/') + ".class")));
+	}
+
+	/**
+	 * Deletes a settings file an earlier run left behind, source or compiled, if
+	 * there is one. Failing to delete it stops generation, since the old settings
+	 * would otherwise still apply.
 	 *
-	 * @param target the path of the generated settings class; must not be null.
+	 * @param target the path of the stale file; must not be null.
 	 * @throws SecurityException if an existing file cannot be deleted
 	 */
 	private static void deleteStaleTestBehaviorSettings(@Nonnull Path target) {

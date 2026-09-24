@@ -117,7 +117,7 @@ final class SecurityPolicySchemaValidator {
 			requireObject(testBehavior, "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured",
 					TEST_BEHAVIOR_FIELDS, Set.of());
 			JsonNode privilegedExceptions = testBehavior.get("regardingPrivilegedExceptions");
-			if (privilegedExceptions != null && !privilegedExceptions.isNull()) {
+			if (privilegedExceptions != null) {
 				String privilegedExceptionsPath = "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured.regardingPrivilegedExceptions";
 				requireObject(privilegedExceptions, privilegedExceptionsPath, PRIVILEGED_EXCEPTIONS_FIELDS,
 						Set.of("onlyPrivilegedExceptionsAreReported"));
