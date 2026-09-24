@@ -270,8 +270,8 @@
   table, even though the agent does instrument the ones under `de.tum.cit.ase.ares.api`.
 
   This section is always required. If this pull request changes no production Java code
-  (documentation, CI, build configuration or tests only), replace the table with "No
-  production Java code changed".
+  (documentation, CI, build configuration or tests only), replace the table with
+  "No production code changed".
 -->
 
 | Class | Instruction coverage | Branch coverage | Line coverage | Complexity coverage | Method coverage | Confirmation (meaningful assertions) |
