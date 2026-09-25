@@ -409,12 +409,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * Reads the URL of a connection without letting its own failure escape.
 	 * <p>
 	 * Description: An HTTPS connection reads its URL through an inner connection
-	 * that exists only once the connection is set up, and raises a
-	 * {@link NullPointerException} before then. That exception would leave this
-	 * advice and surface in the code under test as a fault of that code. No
-	 * endpoint is skipped by returning none here: nothing has been sent or received
-	 * yet, and the operations that do perform input or output are intercepted
-	 * separately and resolve the URL then.
+	 * that exists only once the connection is set up, and fails before then. Any
+	 * failure other than an Ares denial yields no URL, and nothing is skipped: the
+	 * operations that send or receive resolve the URL again. A denial is rethrown,
+	 * since a missing URL would skip the receiver check.
 	 *
 	 * @param urlConnection the connection to read
 	 * @return its URL, or {@code null} when it cannot be read yet
@@ -424,6 +422,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	private static URL urlOfConnection(@Nonnull URLConnection urlConnection) {
 		try {
 			return urlConnection.getURL();
+		} catch (SecurityException denied) {
+			throw denied;
 		} catch (RuntimeException ignored) {
 			return null;
 		}
@@ -927,12 +927,14 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		// </editor-fold>
 		// <editor-fold desc="Check receiver instance">
 		@Nullable
-		String networkIllegallyInteractedThroughReceiver = instance == null ? null
-				: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedHosts, allowedPorts,
-						IgnoreValues.NONE);
-		if (networkIllegallyInteractedThroughReceiver != null) {
+		NetworkTarget targetFromReceiver = variableToTarget(instance);
+		// No separate criteria scan is needed for a receiver that does not resolve into
+		// a structured target: the scan would route this same instance back through
+		// variableToTarget, which just returned null, so it could never throw. Only the
+		// resolved-target check below can flag a forbidden receiver.
+		if (targetFromReceiver != null && checkIfNetworkIsForbidden(targetFromReceiver, allowedHosts, allowedPorts)) {
 			throw new SecurityException(localize("security.advice.illegal.network.execution",
-					networkSystemMethodToCheck, action, networkIllegallyInteractedThroughReceiver,
+					networkSystemMethodToCheck, action, targetFromReceiver.toDisplayString(),
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));

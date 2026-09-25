@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -236,12 +237,15 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		assertEquals("some-future-address-family:-1", toDisplayString.invoke(target));
 	}
 
+	/**
+	 * A connection that cannot report its URL yet must yield no URL, rather than
+	 * letting its own failure surface as a fault of the code under test.
+	 */
 	@Test
 	void urlOfConnection_yieldsNoUrlWhenTheConnectionCannotReportOneYet() throws Exception {
 		URLConnection notReadyYet = new URLConnection(URI.create("https://example.org/path").toURL()) {
 			@Override
 			public void connect() {
-				// A connection that is never opened by this test.
 			}
 
 			@Override
@@ -257,6 +261,34 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		assertNull(urlOfConnection.invoke(null, notReadyYet),
 				"A connection that cannot report its URL yet must not let its own failure escape into"
 						+ " the code under test");
+	}
+
+	/**
+	 * A denial raised while the advice resolves the connection must reach the code
+	 * under test, instead of leaving no target and skipping the receiver check.
+	 */
+	@Test
+	void urlOfConnection_letsADenialThrough() throws Exception {
+		URLConnection denying = new URLConnection(URI.create("https://example.org/path").toURL()) {
+			@Override
+			public void connect() {
+			}
+
+			@Override
+			public URL getURL() {
+				throw new SecurityException("Ares denied this connection");
+			}
+		};
+
+		Method urlOfConnection = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("urlOfConnection", URLConnection.class);
+		urlOfConnection.setAccessible(true);
+
+		InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
+				() -> urlOfConnection.invoke(null, denying));
+		assertInstanceOf(SecurityException.class, thrown.getCause(),
+				"A denial raised while resolving the connection must propagate, because swallowing it"
+						+ " would leave no target and skip the receiver check");
 	}
 
 	@Test
@@ -372,6 +404,58 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 			toDisplayString.setAccessible(true);
 			assertEquals("127.0.0.1:" + serverSocket.getLocalPort(), toDisplayString.invoke(target));
 		}
+	}
+
+	@Test
+	void toTarget_extractsRemoteHostAndPortFromConnectedDatagramSocket() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		try (DatagramSocket socket = new DatagramSocket()) {
+			socket.connect(new InetSocketAddress("127.0.0.1", 12345));
+			Object target = toTarget.invoke(null, socket);
+			assertNotNull(target);
+
+			Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
+			toDisplayString.setAccessible(true);
+			assertEquals("127.0.0.1:12345", toDisplayString.invoke(target));
+		}
+	}
+
+	@Test
+	void toTarget_extractsRemoteHostAndPortFromConnectedDatagramChannel() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			channel.connect(new InetSocketAddress("127.0.0.1", 12345));
+			Object target = toTarget.invoke(null, channel);
+			assertNotNull(target);
+
+			Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
+			toDisplayString.setAccessible(true);
+			assertEquals("127.0.0.1:12345", toDisplayString.invoke(target));
+		}
+	}
+
+	@Test
+	void toTarget_returnsNullWhenUrlConnectionCannotExposeUrlDuringConstruction() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+		Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+		var unsafeField = unsafeClass.getDeclaredField("theUnsafe");
+		unsafeField.setAccessible(true);
+		Object unsafe = unsafeField.get(null);
+		Method allocateInstance = unsafeClass.getMethod("allocateInstance", Class.class);
+		Object connection = allocateInstance.invoke(unsafe,
+				Class.forName("sun.net.www.protocol.https.HttpsURLConnectionImpl"));
+
+		Object target = toTarget.invoke(null, connection);
+
+		assertNull(target);
 	}
 
 	@Test

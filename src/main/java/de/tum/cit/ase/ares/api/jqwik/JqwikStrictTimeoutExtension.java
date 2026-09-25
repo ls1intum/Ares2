@@ -31,7 +31,20 @@ import de.tum.cit.ase.ares.api.internal.TimeoutUtils;
  */
 @API(status = Status.MAINTAINED)
 public class JqwikStrictTimeoutExtension implements AroundTryHook {
-	private static final Duration TERMINATION_GRACE_PERIOD = Duration.ofSeconds(1);
+	/**
+	 * The period a try gets to terminate after its interruption when
+	 * {@link StrictTimeout#terminationGrace()} does not configure one.
+	 * <p>
+	 * A second rather than the 50 ms the Jupiter path allows, because a jqwik try
+	 * unwinds through the property lifecycle as well as the test body. This is the
+	 * default, not a ceiling: an instructor who needs longer sets the attribute,
+	 * and that value now reaches this path too. It did not when the attribute was
+	 * first added, because this extension passed its period as the period to use
+	 * rather than as the one to fall back on, so a property whose
+	 * interruption-aware cleanup needed more than a second failed however the
+	 * annotation was written.
+	 */
+	private static final Duration DEFAULT_TERMINATION_GRACE_PERIOD = Duration.ofSeconds(1);
 
 	@Override
 	public int aroundTryProximity() {
@@ -52,6 +65,6 @@ public class JqwikStrictTimeoutExtension implements AroundTryHook {
 		return TimeoutUtils.performTimeoutExecution(
 				() -> CurrentDomainContext.runWithContext(domainContext,
 						() -> CurrentTestDescriptor.runWithDescriptor(desc, () -> aTry.execute(parameters))),
-				JqwikContext.of(context), TERMINATION_GRACE_PERIOD);
+				JqwikContext.of(context), DEFAULT_TERMINATION_GRACE_PERIOD);
 	}
 }
