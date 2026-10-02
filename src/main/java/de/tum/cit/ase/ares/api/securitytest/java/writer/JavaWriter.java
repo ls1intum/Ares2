@@ -175,45 +175,46 @@ public class JavaWriter implements Writer {
 
 	/**
 	 * Copies the localisation files into the resources directory sibling to
-	 * {@code testFolderPath}.
+	 * {@code testFolderPath}, below the exercise package, which is where the copied
+	 * {@code Messages} looks for them.
 	 *
 	 * @param testFolderPath the source root; must not be null.
+	 * @param packageName    the exercise package the copied classes live in.
 	 * @return the copied files' paths.
 	 */
 	@Nonnull
-	private List<Path> createLocalisationFiles(@Nonnull Path testFolderPath) {
-		Path resourcesFolderPath = resolveResourcesFolderPath(testFolderPath);
+	private List<Path> createLocalisationFiles(@Nonnull Path testFolderPath, @Nonnull String packageName) {
+		Path packageResources = resolveResourcesFolderPath(testFolderPath).resolve(packageName.replace('.', '/'));
 		return FileTools.copyFiles(Localisation.filesToCopy(),
-				confineTargets(Localisation.targetsToCopyTo(resourcesFolderPath)));
+				confineTargets(Localisation.targetsToCopyTo(packageResources)));
 	}
 
 	/**
-	 * Writes the generated, compiled settings class named by the released
-	 * {@code TestBehaviorConfiguration.GENERATED_CLASS_NAME}, with one literal
-	 * field per contributed category; writes nothing when no category has
-	 * contributed a field yet, so the class is only ever present on the classpath
-	 * once something is actually configured.
+	 * Writes the generated settings class, one literal field per configured
+	 * setting. With nothing configured it writes nothing and deletes a class left
+	 * by an earlier run, so a removed setting cannot stay in force.
 	 *
 	 * @since 2.1.5
 	 * @author Luka Petrovic
-	 * @param testBehaviorConfiguration the configuration whose literal field
-	 *                                  assignments to write; must not be null.
+	 * @param testBehaviorConfiguration the configuration to write; must not be
+	 *                                  null.
 	 * @param testFolderPath            the project's source root; must not be null.
 	 * @return the written file's path, or an empty list if nothing was configured.
 	 */
 	@Nonnull
 	private List<Path> createTestBehaviorSettingsFiles(@Nonnull TestBehaviorConfiguration testBehaviorConfiguration,
 			@Nonnull Path testFolderPath) {
+		Path target = resolveTestBehaviorSettingsTarget(testFolderPath);
 		List<String> fieldAssignments = testBehaviorConfiguration.literalFieldAssignments();
 		if (fieldAssignments.isEmpty()) {
+			deleteStaleTestBehaviorSettings(target);
+			deleteStaleCompiledTestBehaviorSettings();
 			return List.of();
 		}
 		String fullyQualifiedName = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
 		int lastDot = fullyQualifiedName.lastIndexOf('.');
 		String settingsPackageName = fullyQualifiedName.substring(0, lastDot);
 		String simpleClassName = fullyQualifiedName.substring(lastDot + 1);
-		Path target = confineToProject(
-				testFolderPath.resolve(settingsPackageName.replace('.', '/')).resolve(simpleClassName + ".java"));
 		String content = "package " + settingsPackageName + ";" + System.lineSeparator() + System.lineSeparator()
 				+ "public final class " + simpleClassName + " {" + System.lineSeparator() + System.lineSeparator()
 				+ "\tprivate " + simpleClassName + "() {" + System.lineSeparator()
@@ -230,6 +231,49 @@ public class JavaWriter implements Writer {
 			throw new SecurityException("Unable to write generated test-behaviour settings class: " + target, failure);
 		}
 		return List.of(target);
+	}
+
+	/**
+	 * The fixed path of the generated settings class inside the project's source
+	 * root, confined to the project.
+	 *
+	 * @param testFolderPath the project's source root; must not be null.
+	 * @return the path of {@code GeneratedTestBehaviorSettings.java}
+	 */
+	@Nonnull
+	private Path resolveTestBehaviorSettingsTarget(@Nonnull Path testFolderPath) {
+		String fullyQualifiedName = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
+		return confineToProject(testFolderPath.resolve(fullyQualifiedName.replace('.', '/') + ".java"));
+	}
+
+	/**
+	 * Deletes the compiled settings class an earlier build left in the test output,
+	 * when the build layout is known. A build tool can keep it after its source is
+	 * gone, and Ares would then still read it.
+	 */
+	private void deleteStaleCompiledTestBehaviorSettings() {
+		if (buildConfiguration == null) {
+			return;
+		}
+		deleteStaleTestBehaviorSettings(confineToProject(buildConfiguration.testOutputRoot()
+				.resolve(TestBehaviorConfiguration.GENERATED_CLASS_NAME.replace('.', '/') + ".class")));
+	}
+
+	/**
+	 * Deletes a settings file an earlier run left behind, source or compiled, if
+	 * there is one. Failing to delete it stops generation, since the old settings
+	 * would otherwise still apply.
+	 *
+	 * @param target the path of the stale file; must not be null.
+	 * @throws SecurityException if an existing file cannot be deleted
+	 */
+	private static void deleteStaleTestBehaviorSettings(@Nonnull Path target) {
+		try {
+			Files.deleteIfExists(target);
+		} catch (IOException failure) {
+			throw new SecurityException("Unable to delete stale generated test-behaviour settings class: " + target,
+					failure);
+		}
 	}
 
 	@Nonnull
@@ -321,17 +365,16 @@ public class JavaWriter implements Writer {
 						javaArchitectureTestCases, validatedTestFolderPath).stream(),
 						createJavaAOPFiles(aopMode, essentialPackages, essentialClasses, testClasses, packageName,
 								mainClassInPackageName, javaAOPTestCases, validatedTestFolderPath).stream(),
-						createLocalisationFiles(validatedTestFolderPath).stream(),
+						createLocalisationFiles(validatedTestFolderPath, packageName).stream(),
 						createPhobosFiles(packageName, javaPhobosTestCases, validatedTestFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 
 	/**
 	 * Writes security test cases to files, then adds the generated test-behaviour
-	 * settings class. Calls the released overload virtually first, so a subclass
-	 * overriding only that one still has its customisation applied even though this
-	 * is the overload {@code JavaTestCaseFactoryAndBuilder} actually calls, before
-	 * adding behaviour-specific outputs on top.
+	 * settings class and the failure-reporting hooks. Calls the released overload
+	 * virtually first, so a subclass overriding only that one keeps its
+	 * customisation, although {@code JavaTestCaseFactoryAndBuilder} calls this one.
 	 *
 	 * @since 2.1.5
 	 * @author Luka Petrovic
@@ -359,7 +402,11 @@ public class JavaWriter implements Writer {
 		List<Path> written = new ArrayList<>(writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 				essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 				javaAOPTestCases, javaPhobosTestCases, testFolderPath));
-		written.addAll(createTestBehaviorSettingsFiles(testBehaviorConfiguration, confineToProject(testFolderPath)));
+		Path validatedTestFolderPath = confineToProject(testFolderPath);
+		written.addAll(createTestBehaviorSettingsFiles(testBehaviorConfiguration, validatedTestFolderPath));
+		written.addAll(new FailureReportingWriter(projectRoot, buildConfiguration, this::confineToProject).write(
+				testBehaviorConfiguration, packageName, validatedTestFolderPath,
+				resolveResourcesFolderPath(validatedTestFolderPath)));
 		return written;
 	}
 	// </editor-fold>

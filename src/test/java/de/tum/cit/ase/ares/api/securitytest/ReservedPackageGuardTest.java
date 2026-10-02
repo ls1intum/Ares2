@@ -31,6 +31,15 @@ class ReservedPackageGuardTest {
 		assertThat(ReservedPackageGuard.reservedPrefixOf("com.sun.example")).isEqualTo("com.sun.");
 	}
 
+	/** The package precompile writes its own code into is reserved too. */
+	@Test
+	void rejectsTheGeneratedPackage() {
+		assertThat(ReservedPackageGuard.reservedPrefixOf("de.tum.cit.ase.ares.generated.Fake"))
+				.isEqualTo("de.tum.cit.ase.ares.generated.");
+		assertThatThrownBy(() -> ReservedPackageGuard.validatePackage("de.tum.cit.ase.ares.generated"))
+				.isInstanceOf(SecurityException.class);
+	}
+
 	@Test
 	void allowsLegitimateAndHarnessPackages() {
 		// The harness subjects and the pinned package must NOT be reserved.

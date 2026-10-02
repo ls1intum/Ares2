@@ -1,12 +1,13 @@
 # Ares reserved-package build boundary
-# version=2
-# boundary-version=2
+# version=3
+# boundary-version=3
 java/**
 javax/**
 sun/**
 jdk/**
 com/sun/**
 de/tum/cit/ase/ares/api/**
+de/tum/cit/ase/ares/generated/**
 net/bytebuddy/**
 org/aspectj/**
 com/ibm/wala/**

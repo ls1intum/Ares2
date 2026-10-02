@@ -1,0 +1,15 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theFollowingClassesAreTestClasses: []
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts: []
+  theFollowingTestBehaviorIsConfigured:
+    regardingPrivilegedExceptions:
+      onlyPrivilegedExceptionsAreReported: true
+      theFailureMessageIs: "Policy message"
