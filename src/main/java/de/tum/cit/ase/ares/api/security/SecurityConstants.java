@@ -43,7 +43,6 @@ public final class SecurityConstants {
 			"com.intellij", "org.assertj", "org.opentest4j.", "com.sun.", "sun.", "org.apache.", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
 			"de.tum.cit.ase.ares.api", //$NON-NLS-1$
 			"ch.qos.logback", "org.jacoco", "javax.", "org.json", "org.gradle", "worker.org.gradle", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
-																										// //$NON-NLS-7$
 			"com.github.javaparser");
 	static final Set<String> STACK_WHITELIST = Stream
 			.concat(STATIC_STACK_WHITELIST.stream(), USER_DEFINED_STACK_WHITELIST.stream())

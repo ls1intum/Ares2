@@ -205,7 +205,7 @@ class PenguinTest {
 }
 ```
 
-The `@ParameterizedTest` annotations come from the `junit-jupiter-params` artifact. Add it to
+The `@ParameterizedTest` annotations come from the `junit-jupiter-params` artefact. Add it to
 the test dependencies if your build does not already have it.
 
 **What you lose.** jqwik shrinks a failing input to the simplest one that still fails, and
