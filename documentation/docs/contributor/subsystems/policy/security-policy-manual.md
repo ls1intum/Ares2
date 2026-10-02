@@ -139,7 +139,7 @@ The `@Policy` annotation has three parameters:
 | `withinPath` | `String` | `""` | The path to the **compiled** student bytecode, **relative to the build output directory**. This tells Ares 2 which `.class` files to monitor and restrict. The path must match the package structure of the supervised student code. See the mapping table below. |
 | `activated` | `boolean` | `true` | Whether the policy is active. Set to `false` to run in **unprotected mode** (AOP settings are reset and policy enforcement is skipped). |
 
-> **Note:** Both `JupiterSecurityExtension` and `JqwikSecurityExtension` evaluate `activated`. Setting `@Policy(activated = false)` is the only way to disable enforcement for a supervised test.
+> **Note:** `JupiterSecurityExtension` evaluates `activated`. Setting `@Policy(activated = false)` is the only way to disable enforcement for a supervised test.
 
 > **Important:** The `@Policy` annotation can be placed on the **test method** or on the **test class**. A class-level annotation applies to all test methods in that class and its nested test classes. Resolution proceeds from the method through the innermost test class to its enclosing classes, so the nearest annotation takes precedence (policies are not merged).
 

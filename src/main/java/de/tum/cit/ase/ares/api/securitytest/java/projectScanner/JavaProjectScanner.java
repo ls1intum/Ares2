@@ -51,16 +51,12 @@ public class JavaProjectScanner implements ProjectScanner {
 	// no-policy scan.
 	//
 	// Maintenance: an annotation absent from this set is silently not
-	// recognised, so its tests are no longer detected. Add new JUnit, jqwik
-	// or Ares test annotation types here when they are introduced, for
-	// example a future de.tum.cit.ase.ares.api.jqwik.PublicTest (only the
-	// Jupiter variants of PublicTest/HiddenTest exist today; jqwik supplies
-	// Public/Hidden, which accompany net.jqwik.api.Property/Example).
+	// recognised, so its tests are no longer detected. Add new JUnit or Ares
+	// test annotation types here when they are introduced.
 	private static final Set<String> TEST_ANNOTATIONS = Set.of("org.junit.jupiter.api.Test", "org.junit.Test",
 			"org.junit.jupiter.params.ParameterizedTest", "org.junit.jupiter.api.RepeatedTest",
-			"org.junit.jupiter.api.TestFactory", "org.junit.jupiter.api.TestTemplate", "net.jqwik.api.Property",
-			"net.jqwik.api.Example", "de.tum.cit.ase.ares.api.jupiter.PublicTest",
-			"de.tum.cit.ase.ares.api.jupiter.HiddenTest");
+			"org.junit.jupiter.api.TestFactory", "org.junit.jupiter.api.TestTemplate",
+			"de.tum.cit.ase.ares.api.jupiter.PublicTest", "de.tum.cit.ase.ares.api.jupiter.HiddenTest");
 	// The simple names of those types are reserved: a project-defined annotation
 	// may not claim one. Were it allowed to, a look-alike meta-annotated with a
 	// genuine test annotation would re-enter through the composed-annotation set

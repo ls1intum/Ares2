@@ -11,7 +11,7 @@
     </properties>
     <dependencies>
         <dependency>
-            <!-- Comes with JUnit 5, AssertJ and Hamcrest. JUnit 4 (JUnit 5 Vintage) or jqwik need to be added explicitly -->
+            <!-- Comes with JUnit 5, AssertJ and Hamcrest. JUnit 4 (JUnit 5 Vintage) needs to be added explicitly -->
             <groupId>de.tum.in.ase</groupId>
             <artifactId>artemis-java-test-sandbox</artifactId>
             <version>1.13.0</version>
@@ -65,7 +65,6 @@
                                 <file>${project.build.outputDirectory}/java/</file>
                                 <file>${project.build.outputDirectory}/javax/</file>
                                 <file>${project.build.outputDirectory}/jdk/</file>
-                                <file>${project.build.outputDirectory}/net/jqwik/</file>
                                 <file>${project.build.outputDirectory}/org/apache/</file>
                                 <file>${project.build.outputDirectory}/org/assertj/</file>
                                 <file>${project.build.outputDirectory}/org/eclipse/</file>

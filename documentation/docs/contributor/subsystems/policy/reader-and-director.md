@@ -346,9 +346,9 @@ class SecurityTest {
 
 In practice, instructors do not call `SecurityPolicyReaderAndDirector` directly. Instead, they annotate test methods with `@Policy` (see [Security Policy Manual](security-policy-manual.md)), and Ares’s JUnit extension handles the rest:
 
-1. **Before each test method**, `JupiterSecurityExtension` (or `JqwikSecurityExtension`) checks for a `@Policy` annotation on the test method or test class.
+1. **Before each test method**, `JupiterSecurityExtension` checks for a `@Policy` annotation on the test method or test class.
 2. It **resets** all previous security settings so that tests are isolated from each other.
-3. Enforcement is **on by default**: both extensions evaluate the `activated` field and skip enforcement only for `@Policy(activated = false)`. `JupiterSecurityExtension` enforces whenever Ares is activated and a `@Policy` annotation or a test method is present; `JqwikSecurityExtension` enforces for every activated property. With `@Policy` present, the annotation's `value` (policy path) and `withinPath` (bytecode scope) are used; **without** `@Policy`, a `SecurityPolicyReaderAndDirector` is still created with a `null` policy path, which triggers the default most-restricted enforcement (see Section 7.3).
+3. Enforcement is **on by default**: the extension evaluates the `activated` field and skips enforcement only for `@Policy(activated = false)`. `JupiterSecurityExtension` enforces whenever Ares is activated and a `@Policy` annotation or a test method is present. With `@Policy` present, the annotation's `value` (policy path) and `withinPath` (bytecode scope) are used; **without** `@Policy`, a `SecurityPolicyReaderAndDirector` is still created with a `null` policy path, which triggers the default most-restricted enforcement (see Section 7.3).
 4. It calls `createTestCases().executeTestCases()`, this runs the architecture checks and configures the runtime agent.
 5. The test method executes. Any forbidden I/O call is intercepted by the agent and throws a `SecurityException`.
 6. **After each test method**, the settings are reset again in a `finally` block.

@@ -14,7 +14,7 @@ Everything else on this page follows from that one choice, so make it first.
 ## The two modes
 
 **Postcompile.** Ares is a dependency of the project under test and is activated by the test
-methods themselves, through `JupiterSecurityExtension` or `JqwikSecurityExtension`. Nothing is
+methods themselves, through `JupiterSecurityExtension`. Nothing is
 generated: when a test runs, Ares installs the policy into the already-running Java Virtual Machine (JVM) and checks
 each action as it is attempted, so it can report exactly which file or which address was asked
 for. Every test may carry its own `@Policy`. This assumes tests run sequentially, because the

@@ -46,8 +46,8 @@ implementation("de.tum.cit.ase:ares:2.1.5")
 ## Related dependencies
 
 You can remove explicit JUnit 5 dependencies, because Ares 2 already includes them. Keep or
-add AssertJ and Hamcrest if your tests use them. If you want to use jqwik (1.2.4 or later) or
-JUnit 4 (through the JUnit 5 vintage engine), include them in the dependencies section
+add AssertJ and Hamcrest if your tests use them. If you want to use
+JUnit 4 (through the JUnit 5 vintage engine), include it in the dependencies section
 yourself.
 
 ## Alternative: GitHub Packages

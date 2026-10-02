@@ -170,27 +170,6 @@ This package enables testing of **console input and output** (`System.in` / `Sys
 
 ---
 
-## `jqwik`: Jqwik Property-Based Testing Integration
-
-This package integrates the Ares testing framework with the **jqwik** property-based testing engine. It mirrors the structure of the `jupiter` package but targets jqwik's lifecycle hooks instead.
-
-| Class | Purpose |
-|---|---|
-| `JqwikAresTest` | Meta-annotation that registers all jqwik lifecycle hooks |
-| `@Hidden` / `@Public` | Annotations for test visibility in Artemis |
-| `JqwikSecurityExtension` | Security enforcement hook |
-| `JqwikIOExtension` | I/O testing hook |
-| `JqwikStrictTimeoutExtension` | Timeout enforcement |
-| `JqwikLocaleExtension` | Applies the `@UseLocale` annotation around test containers |
-| `JqwikTestGuard` | Pre- and post-condition guard |
-| `JqwikContext` | Adapter from jqwik's lifecycle context to the Ares `TestContext` |
-
-`JqwikContext` adapts jqwik's native lifecycle context to the framework-agnostic `TestContext` interface, enabling code reuse between the `jupiter` and `jqwik` integrations.
-
-**Key design patterns:** Adapter (`JqwikContext`), Composite (meta-annotation), Decorator (lifecycle hooks).
-
----
-
 ## `jupiter`: JUnit Jupiter Integration
 
 This package integrates Ares with **JUnit Jupiter**. It is the primary test-framework binding and defines the most commonly used annotations.

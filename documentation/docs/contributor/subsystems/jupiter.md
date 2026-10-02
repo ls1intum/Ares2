@@ -42,7 +42,7 @@ annotation runs unsupervised.
 
 `JupiterContext` is an adapter. It exists so that the logic behind the guards and the sandbox
 is written against the framework-agnostic `TestContext` rather than against JUnit, which is
-what allows the [jqwik integration](./jqwik.md) to reuse it instead of duplicating it.
+which keeps that logic independent of the test framework.
 
 The deadline check runs in the guard **before** the test body executes. A hidden test that is
 not yet due never runs at all, rather than running and having its result suppressed, because a

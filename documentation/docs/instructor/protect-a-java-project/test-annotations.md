@@ -35,7 +35,7 @@ corresponds to using `@Public` and `@Test` together, and the same applies to `@H
 ```java
 import static org.junit.jupiter.api.Assertions.*;
 
-// IMPORTANT: make sure to use the "jupiter" ones (if you are not using jqwik)
+// IMPORTANT: make sure to use the "jupiter" ones
 import de.tum.cit.ase.ares.api.jupiter.HiddenTest;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 

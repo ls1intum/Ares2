@@ -35,7 +35,8 @@ The migration splits into work that is the same in both modes, Postcompile and P
 work that is not:
 
 1. Read this page: why to migrate, what changes, the prerequisites, the import rewrite and the
-   translation from Ares 1 annotations into an Ares 2 policy file.
+   translation from Ares 1 annotations into an Ares 2 policy file. If your exercise uses jqwik, the
+   move to JUnit Jupiter is part of it.
 2. Choose a mode on [Postcompile or Precompile](./postcompile-or-precompile.md).
 3. Follow the leaf for your mode and build tool. It carries the dependency and build wiring, the
    activation, the class-shadowing guard and the verification procedure.
@@ -67,6 +68,7 @@ Neither depends on a platform feature that is going away. The cost is that the b
 | Build requirements | A dependency | A dependency, AspectJ weaving, an agent attachment, JVM module-access flags |
 | Class-shadowing guard | `maven-enforcer-plugin`, or a Gradle `doFirst` assertion, with the Ares 1 prefix list | The shipped reserved-package boundary, version 2, with the Ares 2 prefix list |
 | Test-type annotations | `@Public`, `@Hidden`, `@Deadline`, `@StrictTimeout`, … | The same, with new imports |
+| Property-based tests | jqwik `@Property` or `@Example` with `@Public` or `@Hidden` | Not supported; rewrite them as JUnit Jupiter tests, see [Move jqwik tests to JUnit Jupiter](#move-jqwik-tests-to-junit-jupiter) |
 
 The essential shape of the migration: **the test-type and lifecycle annotations survive a rename; the security annotations do not survive at all and must be re-expressed as a policy file.**
 
@@ -106,7 +108,6 @@ The test-type and lifecycle annotations survive the migration. Rewrite the packa
 | `de.tum.in.test.api.jupiter.Hidden` | `de.tum.cit.ase.ares.api.jupiter.Hidden` |
 | `de.tum.in.test.api.jupiter.PublicTest` | `de.tum.cit.ase.ares.api.jupiter.PublicTest` |
 | `de.tum.in.test.api.jupiter.HiddenTest` | `de.tum.cit.ase.ares.api.jupiter.HiddenTest` |
-| `de.tum.in.test.api.jqwik.Public` / `.Hidden` | `de.tum.cit.ase.ares.api.jqwik.Public` / `.Hidden` |
 | `de.tum.in.test.api.Deadline` | `de.tum.cit.ase.ares.api.Deadline` |
 | `de.tum.in.test.api.ExtendedDeadline` | `de.tum.cit.ase.ares.api.ExtendedDeadline` |
 | `de.tum.in.test.api.ActivateHiddenBefore` | `de.tum.cit.ase.ares.api.ActivateHiddenBefore` |
@@ -132,6 +133,85 @@ right target.
 A blanket search and replace of `de.tum.in.test.api` with `de.tum.cit.ase.ares.api` handles all of these. It produces unresolved imports for every **security** annotation, which is the correct outcome: those have no Ares 2 counterpart and are the subject of the step named in section 6 of this guide. Delete them as you translate them, rather than before, so you do not lose the configuration they encoded.
 
 > **Keep `@StrictTimeout`.** It is the effective timeout mechanism in Ares 2, exactly as in Ares 1. Do **not** rewrite it as a policy entry; see the step named in section 6.2 of this guide.
+
+## Move jqwik tests to JUnit Jupiter
+
+Ares 2 no longer supports jqwik. There is no `de.tum.cit.ase.ares.api.jqwik` package, so a
+test class that imports `Public` or `Hidden` from it, or marks a method `@Property` or
+`@Example`, will not compile or will not run under Ares. Rewrite those tests for JUnit
+Jupiter and use the `jupiter` annotations of Ares.
+
+Pick the Jupiter form by where the inputs come from:
+
+| Your jqwik test | Jupiter replacement |
+|---|---|
+| `@Example`, or a property whose inputs you can list | `@ParameterizedTest` with `@MethodSource` (or `@ValueSource` for plain values), one entry per edge case |
+| `@Property` with generated inputs | `@RepeatedTest`, or a `@TestFactory` that returns one dynamic test per generated input, drawing the inputs from a `java.util.Random` created with a fixed seed |
+
+Two details matter for Ares:
+
+- `@PublicTest` and `@HiddenTest` already contain JUnit's `@Test`. Next to
+  `@ParameterizedTest`, `@RepeatedTest` or `@TestFactory` that would register the method
+  twice, so use `@Public` or `@Hidden` beside the Jupiter annotation instead.
+- Generated inputs are only useful if a failure can be replayed. Create the `Random` from a seed,
+  and put that seed into the assertion message. Rerunning with the printed seed then shows
+  the same failing input.
+
+Before, with jqwik:
+
+```java
+import de.tum.cit.ase.ares.api.jqwik.Public;
+import net.jqwik.api.ForAll;
+import net.jqwik.api.Property;
+
+class PenguinTest {
+
+    @Public
+    @Property
+    void nameLengthIsKept(@ForAll String name) {
+        assertEquals(name.length(), new Penguin(name).getName().length());
+    }
+}
+```
+
+After, with JUnit Jupiter:
+
+```java
+import de.tum.cit.ase.ares.api.jupiter.Public;
+import java.util.Random;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.RepetitionInfo;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+class PenguinTest {
+
+    @Public
+    @ParameterizedTest
+    @ValueSource(strings = { "", "Julian", "a name with spaces" })
+    void nameLengthIsKeptForEdgeCases(String name) {
+        assertEquals(name.length(), new Penguin(name).getName().length());
+    }
+
+    @Public
+    @RepeatedTest(100)
+    void nameLengthIsKeptForGeneratedNames(RepetitionInfo info) {
+        long seed = 42L + info.getCurrentRepetition();
+        Random random = new Random(seed);
+        String name = "x".repeat(random.nextInt(50));
+        assertEquals(name.length(), new Penguin(name).getName().length(),
+                "failed for seed " + seed);
+    }
+}
+```
+
+The `@ParameterizedTest` annotations come from the `junit-jupiter-params` artifact. Add it to
+the test dependencies if your build does not already have it.
+
+**What you lose.** jqwik shrinks a failing input to the simplest one that still fails, and
+Jupiter does not. With a seeded `Random` you get a failing input you can replay, but it is the
+input as generated, not the smallest one. Keep the edge cases you care about in the
+`@MethodSource` list, since generated inputs will no longer find them for you by shrinking.
 
 ## Translate the security annotations into a policy file
 
