@@ -97,7 +97,7 @@ This package abstracts **Maven and Gradle build configurations**. The `BuildMode
 
 ## `context`: Test Context Management
 
-This package provides an **adapter layer** over different JUnit 5 test-context implementations. The `TestContext` interface exposes the current test method, test class, test instance, and display name in a framework-agnostic way.
+This package provides an **adapter layer** over JUnit Jupiter's `ExtensionContext`. The `TestContext` interface exposes the current test method, test class, test instance, and display name in a framework-agnostic way.
 
 | Class | Purpose |
 |---|---|

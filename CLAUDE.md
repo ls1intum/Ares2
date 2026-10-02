@@ -39,7 +39,7 @@ utilities for improved feedback.
 - **Language**: Java, built with **JDK 21**, targeting **Java 17**
   (`maven.compiler.source` / `maven.compiler.target`), so exercises on Java 17 stay supported
 - **Build**: Maven 3.9+
-- **Testing**: JUnit 5
+- **Testing**: JUnit Jupiter (JUnit 6)
 - **Enforcement**: AspectJ and Java instrumentation (AOP layer), ArchUnit and WALA
   (architecture layer)
 - **Formatting**: Spotless with Eclipse rules; **tabs, 4 spaces per tab**
@@ -131,9 +131,8 @@ page should lean on the cast below rather than inventing a metaphor of its own.
   checklist arrive together, because Ares prepares that visit's checks beforehand and clears
   the active settings away afterwards, on the failure path too. Never state one mechanism as
   though it were universal: Jupiter uses `BeforeTestExecutionCallback` and `afterTestExecution`,
-  and Precompile generates one
-  project-wide set outside the run altogether, so there is nothing to prepare per visit. A
-  visit is also not one pupil: a test method may exercise several student methods. What Ares
+  and Precompile generates one project-wide set outside the run altogether, so there is
+  nothing to prepare per visit. A visit is also not one pupil: a test method may exercise several student methods. What Ares
   generates is a **security test case**; what the instructor wrote is a **test method**. Keep
   those two apart.
 - **The examination**: the whole round of desk visits, that is, the test run.

@@ -136,30 +136,51 @@ A blanket search and replace of `de.tum.in.test.api` with `de.tum.cit.ase.ares.a
 
 ## Move jqwik tests to JUnit Jupiter
 
-Ares 2 no longer supports jqwik. There is no `de.tum.cit.ase.ares.api.jqwik` package, so a
-test class that imports `Public` or `Hidden` from it, or marks a method `@Property` or
-`@Example`, will not compile or will not run under Ares. Rewrite those tests for JUnit
-Jupiter and use the `jupiter` annotations of Ares.
+Ares 2 no longer supports jqwik, from the first release after 2.1.5 on. That release has no
+`de.tum.cit.ase.ares.api.jqwik` package, and version 2.1.5 and earlier still have it. A test
+class that imports `Public` or `Hidden` from that package no longer compiles. Rewrite those
+tests for JUnit Jupiter and use the `jupiter` annotations of Ares.
+
+:::danger[Remove jqwik from your build]
+Delete the `net.jqwik:jqwik` dependency from your build file. If you only change the import
+and leave `@Property` or `@Example` in place, the test still compiles and jqwik still runs
+it, but Ares's `@Public` and `@Hidden` do nothing there. The test then runs with no policy and
+no deadline guard, and a hidden test is not held back. Without the dependency, a leftover
+`@Property` or `@Example` stops compiling instead.
+:::
 
 Pick the Jupiter form by where the inputs come from:
 
 | Your jqwik test | Jupiter replacement |
 |---|---|
-| `@Example`, or a property whose inputs you can list | `@ParameterizedTest` with `@MethodSource` (or `@ValueSource` for plain values), one entry per edge case |
-| `@Property` with generated inputs | `@RepeatedTest`, or a `@TestFactory` that returns one dynamic test per generated input, drawing the inputs from a `java.util.Random` created with a fixed seed |
+| `@Example` | `@PublicTest` or `@HiddenTest`, which already contain `@Test` |
+| A property whose inputs you can list | `@Public` or `@Hidden` with `@ParameterizedTest` and `@MethodSource` (or `@ValueSource` for plain values), one entry per edge case |
+| `@Property` with generated inputs | `@Public` or `@Hidden` with `@RepeatedTest`, drawing the inputs from a `java.util.Random` created with a fixed seed |
 
-Two details matter for Ares:
+Details that matter for Ares:
 
-- `@PublicTest` and `@HiddenTest` already contain JUnit's `@Test`. Next to
-  `@ParameterizedTest`, `@RepeatedTest` or `@TestFactory` that would register the method
-  twice, so use `@Public` or `@Hidden` beside the Jupiter annotation instead.
-- Generated inputs are only useful if a failure can be replayed. Create the `Random` from a seed,
-  and put that seed into the assertion message. Rerunning with the printed seed then shows
-  the same failing input.
+- `@PublicTest` and `@HiddenTest` already contain JUnit's `@Test`. Next to `@ParameterizedTest`
+  or `@RepeatedTest` that adds a second, plain test that fails, because it has parameters
+  nothing supplies. Next to `@TestFactory` JUnit ignores the extra test with a warning. In all
+  three cases use `@Public` or `@Hidden` beside the Jupiter annotation.
+- `@Hidden` still needs a `@Deadline`, on the class or on the method, and `@Public` must not
+  have one.
+- A fixed seed gives every submission the same inputs, so the grading is fair and a failure
+  repeats on every run. Put the generated input into the assertion message, so a failure
+  shows what was tried.
+- With `@TestFactory`, call the student's code only inside the executable you pass to
+  `dynamicTest(...)`. Code that runs while the stream is built is not supervised. Console
+  capture covers all dynamic tests of the factory together.
+- jqwik applied the checks once per property. Jupiter applies them to every invocation, so
+  the thread budget and the console capture start again for each repetition and each entry.
+- A repetition or a parameter entry may appear as its own test in the report. Check how your
+  platform lists them before you move a hidden test with many repetitions.
 
-Before, with jqwik:
+Before, with jqwik (Ares 2.1.5 package shown; Ares 1 used `de.tum.in.test.api.jqwik`):
 
 ```java
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import de.tum.cit.ase.ares.api.jqwik.Public;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
@@ -177,6 +198,8 @@ class PenguinTest {
 After, with JUnit Jupiter:
 
 ```java
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import java.util.Random;
 import org.junit.jupiter.api.RepeatedTest;
@@ -200,18 +223,20 @@ class PenguinTest {
         Random random = new Random(seed);
         String name = "x".repeat(random.nextInt(50));
         assertEquals(name.length(), new Penguin(name).getName().length(),
-                "failed for seed " + seed);
+                "failed for name \"" + name + "\" (seed " + seed + ")");
     }
 }
 ```
 
-The `@ParameterizedTest` annotations come from the `junit-jupiter-params` artefact. Add it to
-the test dependencies if your build does not already have it.
+The `@ParameterizedTest` annotations come from the `junit-jupiter-params` artefact. In
+Postcompile, Ares already brings it. In Precompile, add it to the test dependencies at the
+same version as your JUnit Jupiter engine.
 
 **What you lose.** jqwik shrinks a failing input to the simplest one that still fails, and
-Jupiter does not. With a seeded `Random` you get a failing input you can replay, but it is the
-input as generated, not the smallest one. Keep the edge cases you care about in the
-`@MethodSource` list, since generated inputs will no longer find them for you by shrinking.
+Jupiter does not. With a seeded `Random` you get a failing input that repeats on every run, but
+it is the input as generated, not the smallest one. Keep the edge cases you care about in the
+`@ValueSource` or `@MethodSource` list, since generated inputs will no longer find them for
+you by shrinking.
 
 ## Translate the security annotations into a policy file
 
