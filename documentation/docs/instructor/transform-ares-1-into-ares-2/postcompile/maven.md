@@ -324,7 +324,7 @@ Delete the `maven-enforcer-plugin` execution with the `requireFilesDontExist` ru
 
 `process-classes` precedes `test`, so `mvn test` runs it. The Maven binding was already correct at boundary version 1; version 3 adds the service-file and configuration-file checks and the generated package.
 
-> **What this boundary does not defend against.** The build descriptor and the command that invokes it are **trusted instructor configuration**. "No bypass flag is supported" describes the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV3`, can remove it. The threat addressed is student **code** that declares a reserved package. Your exercise template and its CI must own the build files and the invocation.
+> **What this boundary does not defend against.** The build descriptor and the command that invokes it are **trusted instructor configuration**. "No bypass flag is supported" describes the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-Dmaven.antrun.skip`, can remove it. The threat addressed is student **code** that declares a reserved package. Your exercise template and its CI must own the build files and the invocation.
 
 :::warning[Ares does not generate this boundary in either mode]
 The shipped snippets under

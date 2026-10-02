@@ -123,6 +123,43 @@ class FailureReportingWriterTest {
 	}
 
 	/**
+	 * A mention of jqwik that is not its group id, such as in a comment, writes no
+	 * jqwik hook, and the JUnit sentinel then checks for a jqwik it was not told
+	 * of.
+	 *
+	 * @throws IOException if a file cannot be written or read
+	 */
+	@Test
+	void aMereMentionOfJqwikWritesNoJqwikHook() throws IOException {
+		Files.writeString(projectRoot.resolve("build.gradle"), "// jqwik later, maybe");
+
+		writer(null).write(configuration(true), PACKAGE, testFolder, resources);
+
+		assertThat(generatedSource("GeneratedJqwikFailureReporting")).doesNotExist();
+		assertThat(generatedSource("GeneratedFailureReportingSentinelTest")).content()
+				.contains("JQWIK_HOOK_GENERATED = false;").contains("generated.failure.reporting.jqwik.missing");
+	}
+
+	/**
+	 * jqwik named only in the Gradle version catalogue still gets its hook, and the
+	 * JUnit sentinel knows it.
+	 *
+	 * @throws IOException if a file cannot be written or read
+	 */
+	@Test
+	void jqwikInTheVersionCatalogueWritesTheJqwikHook() throws IOException {
+		Files.createDirectories(projectRoot.resolve("gradle"));
+		Files.writeString(projectRoot.resolve("gradle/libs.versions.toml"),
+				"[libraries]\njqwik = { module = \"net.jqwik:jqwik\", version = \"1.9.3\" }\n");
+
+		writer(null).write(configuration(true), PACKAGE, testFolder, resources);
+
+		assertThat(generatedSource("GeneratedJqwikFailureReporting")).exists();
+		assertThat(generatedSource("GeneratedFailureReportingSentinelTest")).content()
+				.contains("JQWIK_HOOK_GENERATED = true;");
+	}
+
+	/**
 	 * Running the generator twice leaves exactly the files of one run.
 	 *
 	 * @throws IOException if a written file cannot be read

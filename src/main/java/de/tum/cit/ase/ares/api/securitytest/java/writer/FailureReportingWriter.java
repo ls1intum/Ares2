@@ -108,7 +108,7 @@ final class FailureReportingWriter {
 		written.add(writeSource(testFolderPath, FailureReportingSources.JUPITER_HOOK,
 				FailureReportingSources.jupiterHook(messagesClass)));
 		written.add(writeSource(testFolderPath, FailureReportingSources.JUPITER_SENTINEL,
-				FailureReportingSources.jupiterSentinel(messagesClass)));
+				FailureReportingSources.jupiterSentinel(messagesClass, jqwik)));
 		written.add(writeBlock(jupiterServices, List.of(qualified(FailureReportingSources.JUPITER_HOOK))));
 		written.add(writeBlock(properties, List.of(AUTODETECTION_ENABLED + "=true",
 				AUTODETECTION_INCLUDE + "=" + includeValue(instructorExtensions))));
@@ -137,24 +137,26 @@ final class FailureReportingWriter {
 	}
 
 	/**
-	 * Whether the exercise's build file names jqwik, so the jqwik hook compiles.
+	 * Whether the exercise's build file or Gradle version catalogue names jqwik's
+	 * group id, so the jqwik hook compiles.
 	 *
-	 * @return true when any build file mentions jqwik
+	 * @return true when any of them names {@code net.jqwik}
 	 */
 	private boolean usesJqwik() {
-		return Stream.of("pom.xml", "build.gradle", "build.gradle.kts").map(projectRoot::resolve)
-				.filter(Files::isRegularFile).anyMatch(FailureReportingWriter::mentionsJqwik);
+		return Stream.of("pom.xml", "build.gradle", "build.gradle.kts", "gradle/libs.versions.toml")
+				.map(projectRoot::resolve).filter(Files::isRegularFile).anyMatch(FailureReportingWriter::mentionsJqwik);
 	}
 
 	/**
-	 * Whether a build file mentions jqwik.
+	 * Whether a build file names jqwik's group id. A miss, such as jqwik from a
+	 * parent POM, is caught by the generated JUnit sentinel instead.
 	 *
 	 * @param buildFile the build file to read.
-	 * @return true when the file contains "jqwik"
+	 * @return true when the file contains "net.jqwik"
 	 */
 	private static boolean mentionsJqwik(@Nonnull Path buildFile) {
 		try {
-			return Files.readString(buildFile).contains("jqwik");
+			return Files.readString(buildFile).contains("net.jqwik");
 		} catch (IOException failure) {
 			throw new SecurityException(
 					Messages.localized("security.writer.failure.reporting.io", buildFile.toString()), failure);

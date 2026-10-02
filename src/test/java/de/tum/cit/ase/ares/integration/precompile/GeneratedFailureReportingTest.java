@@ -22,6 +22,7 @@ import javax.tools.ToolProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.platform.engine.TestEngine;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
@@ -43,6 +44,9 @@ class GeneratedFailureReportingTest {
 	/** Test data a fixture tries to leak through its failure message. */
 	private static final String LEAKED = "expected=42";
 
+	/** The jqwik engine, loaded afresh for each nested jqwik run. */
+	private static final String JQWIK_ENGINE = "net.jqwik.engine.JqwikTestEngine";
+
 	/** Set by the instructor's own extension when it runs. */
 	private static final String INSTRUCTOR_RAN = "ares.test.instructorExtensionRan";
 
@@ -61,6 +65,26 @@ class GeneratedFailureReportingTest {
 
 	/** A folder standing in for student output, with a service file of its own. */
 	private static Path studentOutput;
+
+	/** Generated code compiled from a build that does not name jqwik. */
+	private static Path withoutJqwikHook;
+
+	/**
+	 * Generated code nested runs load ahead of {@link #compiled}, which also holds
+	 * the fixtures; the same folder unless a test swaps it.
+	 */
+	private static Path classes;
+
+	/**
+	 * A settings class with the setting off, standing in for one a student
+	 * replaced.
+	 */
+	private static Path shadowSettings;
+
+	/**
+	 * Whether nested runs put {@link #shadowSettings} first on their class path.
+	 */
+	private static boolean shadowed;
 
 	/**
 	 * The include value the generator wrote into {@code junit-platform.properties}.
@@ -97,9 +121,44 @@ class GeneratedFailureReportingTest {
 		Path studentServices = studentOutput.resolve("META-INF/services/org.junit.jupiter.api.extension.Extension");
 		Files.createDirectories(studentServices.getParent());
 		Files.writeString(studentServices, "com.example.fixtures.StudentExtension" + System.lineSeparator());
-		compile(Stream.of(testSources.resolve("de/tum/cit/ase/ares/generated"),
-				testSources.resolve("com/example/ares/api/localization"), fixtures).toList(),
+		compile(compiled,
+				Stream.of(testSources.resolve("de/tum/cit/ase/ares/generated"),
+						testSources.resolve("com/example/ares/api/localization"), fixtures).toList(),
 				testSources.resolve("com/example/ares/api/util/LruCache.java"));
+		shadowSettings = Files.createDirectories(tempDir.resolve("shadow"));
+		Path shadowSource = Files.createDirectories(tempDir.resolve("shadow-source/de/tum/cit/ase/ares/generated"))
+				.resolve("GeneratedTestBehaviorSettings.java");
+		Files.writeString(shadowSource,
+				Files.readString(
+						testSources.resolve("de/tum/cit/ase/ares/generated/GeneratedTestBehaviorSettings.java"))
+						.replace("= true;", "= false;"));
+		compile(shadowSettings, List.of(), shadowSource);
+		withoutJqwikHook = generateWithoutJqwik(policy);
+		classes = compiled;
+	}
+
+	/**
+	 * Generates and compiles a second project whose build does not name jqwik, so
+	 * its sentinel is told no jqwik hook exists.
+	 *
+	 * @param policy the policy file to generate from.
+	 * @return the folder holding the compiled generated code
+	 * @throws IOException if writing or compiling fails
+	 */
+	private static Path generateWithoutJqwik(Path policy) throws IOException {
+		Path project = Files.createDirectory(tempDir.resolve("project-without-jqwik"));
+		Files.writeString(project.resolve("pom.xml"), "<project/>");
+		Files.createDirectories(project.resolve("src/main/java"));
+		Path testSources = Files.createDirectories(project.resolve("src/test/java"));
+		Files.createDirectories(project.resolve("target/classes"));
+		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy).projectFolderPath(project).build()
+				.createTestCases().writeTestCases(testSources);
+		Path output = Files.createDirectories(tempDir.resolve("compiled-without-jqwik"));
+		compile(output,
+				List.of(testSources.resolve("de/tum/cit/ase/ares/generated"),
+						testSources.resolve("com/example/ares/api/localization")),
+				testSources.resolve("com/example/ares/api/util/LruCache.java"));
+		return output;
 	}
 
 	/**
@@ -134,6 +193,22 @@ class GeneratedFailureReportingTest {
 	void anOrdinaryFailureShowsThePolicyMessage() throws Exception {
 		assertThat(failureOf(runJupiter("FailingFixture", true, Locale.ENGLISH), "ordinaryFailure"))
 				.isEqualTo(POLICY_MESSAGE);
+	}
+
+	/**
+	 * Replacing the generated settings class, as student code with write access to
+	 * the test output could, changes nothing: the hook carries the settings as
+	 * compile-time constants and never reads that class while reporting.
+	 */
+	@Test
+	void aReplacedSettingsClassChangesNothing() throws Exception {
+		shadowed = true;
+		try {
+			assertThat(failureOf(runJupiter("FailingFixture", true, Locale.ENGLISH), "ordinaryFailure"))
+					.isEqualTo(POLICY_MESSAGE);
+		} finally {
+			shadowed = false;
+		}
 	}
 
 	/** A forged Ares-looking security error gets no pass-through. */
@@ -180,7 +255,7 @@ class GeneratedFailureReportingTest {
 		EngineExecutionResults results = runJupiter(
 				"de.tum.cit.ase.ares.generated.GeneratedFailureReportingSentinelTest", true, Locale.ENGLISH);
 
-		assertThat(results.testEvents().succeeded().count()).isEqualTo(1);
+		assertThat(results.testEvents().succeeded().count()).isEqualTo(2);
 	}
 
 	/** The sentinel fails when JUnit does not load the hook. */
@@ -191,6 +266,24 @@ class GeneratedFailureReportingTest {
 
 		assertThat(results.testEvents().failed().stream().map(GeneratedFailureReportingTest::messageOf)).singleElement()
 				.asString().contains("not active");
+	}
+
+	/**
+	 * With jqwik on the class path but no jqwik hook generated, the JUnit sentinel
+	 * fails, so jqwik properties cannot quietly show their real errors.
+	 */
+	@Test
+	void theSentinelFailsWhenJqwikIsPresentWithoutItsHook() throws Exception {
+		classes = withoutJqwikHook;
+		try {
+			EngineExecutionResults results = runJupiter(
+					"de.tum.cit.ase.ares.generated.GeneratedFailureReportingSentinelTest", true, Locale.ENGLISH);
+
+			assertThat(results.testEvents().failed().stream().map(GeneratedFailureReportingTest::messageOf))
+					.singleElement().asString().contains("without its jqwik hook");
+		} finally {
+			classes = compiled;
+		}
 	}
 
 	/**
@@ -252,7 +345,9 @@ class GeneratedFailureReportingTest {
 
 	/**
 	 * Runs a class through a nested session of one engine, with a fresh class
-	 * loader, so no earlier run leaves a hook marked active.
+	 * loader, so no earlier run leaves a hook marked active. jqwik itself is loaded
+	 * afresh in that loader too, because it caches the hooks it finds once per
+	 * loaded engine, and the outer test run has usually loaded it already.
 	 *
 	 * @param engine        the engine id.
 	 * @param className     the class to run.
@@ -265,12 +360,14 @@ class GeneratedFailureReportingTest {
 			throws Exception {
 		Locale originalLocale = Locale.getDefault(Locale.Category.DISPLAY);
 		ClassLoader originalLoader = Thread.currentThread().getContextClassLoader();
-		try (URLClassLoader loader = new URLClassLoader(
-				new URL[] { compiled.toUri().toURL(), resources.toUri().toURL(), studentOutput.toUri().toURL() },
-				originalLoader)) {
+		try (URLClassLoader loader = new JqwikIsolatingClassLoader(nestedRunClassPath(), originalLoader)) {
 			Locale.setDefault(Locale.Category.DISPLAY, locale);
 			Thread.currentThread().setContextClassLoader(loader);
-			return EngineTestKit.engine(engine)
+			EngineTestKit.Builder builder = "jqwik".equals(engine)
+					? EngineTestKit
+							.engine((TestEngine) loader.loadClass(JQWIK_ENGINE).getDeclaredConstructor().newInstance())
+					: EngineTestKit.engine(engine);
+			return builder
 					.configurationParameter("junit.jupiter.extensions.autodetection.enabled",
 							String.valueOf(autodetection))
 					.configurationParameter("junit.jupiter.extensions.autodetection.include", include)
@@ -278,6 +375,71 @@ class GeneratedFailureReportingTest {
 		} finally {
 			Thread.currentThread().setContextClassLoader(originalLoader);
 			Locale.setDefault(Locale.Category.DISPLAY, originalLocale);
+		}
+	}
+
+	/**
+	 * The class path of a nested run: the generated code, its resources, the
+	 * student output and this run's jqwik JARs.
+	 *
+	 * @return the class path entries
+	 * @throws IOException if a path cannot be turned into a URL
+	 */
+	private static URL[] nestedRunClassPath() throws IOException {
+		List<URL> urls = new ArrayList<>();
+		if (shadowed) {
+			urls.add(shadowSettings.toUri().toURL());
+		}
+		for (Path root : List.of(classes, compiled, resources, studentOutput)) {
+			urls.add(root.toUri().toURL());
+		}
+		for (String entry : System.getProperty("java.class.path").split(java.io.File.pathSeparator)) {
+			if (Path.of(entry).getFileName().toString().startsWith("jqwik")) {
+				urls.add(Path.of(entry).toUri().toURL());
+			}
+		}
+		return urls.toArray(URL[]::new);
+	}
+
+	/**
+	 * Loads jqwik's classes from its own class path first, so each nested run gets
+	 * a jqwik that has not yet looked for hooks. Everything else comes from the
+	 * outer test run as usual.
+	 */
+	private static final class JqwikIsolatingClassLoader extends URLClassLoader {
+
+		/**
+		 * Creates the loader.
+		 *
+		 * @param urls   the nested run's class path.
+		 * @param parent the outer test run's class loader.
+		 */
+		JqwikIsolatingClassLoader(URL[] urls, ClassLoader parent) {
+			super(urls, parent);
+		}
+
+		/**
+		 * Loads a jqwik class from this loader's own class path, anything else parent
+		 * first.
+		 *
+		 * @param name    the binary class name.
+		 * @param resolve whether to link the class.
+		 * @return the class
+		 * @throws ClassNotFoundException if no loader has it
+		 */
+		@Override
+		protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+			if (!name.startsWith("net.jqwik.")) {
+				return super.loadClass(name, resolve);
+			}
+			synchronized (getClassLoadingLock(name)) {
+				Class<?> loaded = findLoadedClass(name);
+				Class<?> found = loaded != null ? loaded : findClass(name);
+				if (resolve) {
+					resolveClass(found);
+				}
+				return found;
+			}
 		}
 	}
 
@@ -435,16 +597,17 @@ class GeneratedFailureReportingTest {
 	}
 
 	/**
-	 * Compiles every Java file below the given folders, plus single files, into
-	 * {@link #compiled}, against this test run's own classpath.
+	 * Compiles every Java file below the given folders, plus single files, against
+	 * this test run's own classpath.
 	 *
+	 * @param output      the folder to compile into.
 	 * @param folders     folders whose Java files to compile.
 	 * @param singleFiles further files to compile.
 	 * @throws IOException if a folder cannot be listed
 	 */
-	private static void compile(List<Path> folders, Path... singleFiles) throws IOException {
+	private static void compile(Path output, List<Path> folders, Path... singleFiles) throws IOException {
 		List<String> arguments = new ArrayList<>(
-				List.of("-d", compiled.toString(), "-classpath", System.getProperty("java.class.path"), "-proc:none"));
+				List.of("-d", output.toString(), "-classpath", System.getProperty("java.class.path"), "-proc:none"));
 		for (Path folder : folders) {
 			try (Stream<Path> files = Files.walk(folder)) {
 				files.filter(file -> file.toString().endsWith(".java")).map(Path::toString).forEach(arguments::add);
