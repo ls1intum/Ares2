@@ -45,6 +45,9 @@ final class FailureReportingWriter {
 	/** JUnit's settings file at the root of the test resources. */
 	static final String PLATFORM_PROPERTIES = "junit-platform.properties";
 
+	/** Where Gradle copies test resources, relative to the project root. */
+	private static final String GRADLE_TEST_RESOURCES_OUTPUT = "build/resources/test";
+
 	/** JUnit setting that switches on loading extensions from service files. */
 	static final String AUTODETECTION_ENABLED = "junit.jupiter.extensions.autodetection.enabled";
 
@@ -210,8 +213,8 @@ final class FailureReportingWriter {
 	private void removeAll(@Nonnull Path testFolderPath, @Nonnull Path resourcesPath) {
 		deleteGenerated(testFolderPath, FailureReportingSources.JUPITER_HOOK);
 		deleteGenerated(testFolderPath, FailureReportingSources.JUPITER_SENTINEL);
-		removeBlock(confine.apply(resourcesPath.resolve(JUPITER_SERVICE_FILE)));
-		removeBlock(confine.apply(resourcesPath.resolve(PLATFORM_PROPERTIES)));
+		removeGeneratedResource(resourcesPath, JUPITER_SERVICE_FILE);
+		removeGeneratedResource(resourcesPath, PLATFORM_PROPERTIES);
 		removeJqwik(testFolderPath, resourcesPath);
 	}
 
@@ -224,7 +227,39 @@ final class FailureReportingWriter {
 	private void removeJqwik(@Nonnull Path testFolderPath, @Nonnull Path resourcesPath) {
 		deleteGenerated(testFolderPath, FailureReportingSources.JQWIK_HOOK);
 		deleteGenerated(testFolderPath, FailureReportingSources.JQWIK_SENTINEL);
-		removeBlock(confine.apply(resourcesPath.resolve(JQWIK_SERVICE_FILE)));
+		removeGeneratedResource(resourcesPath, JQWIK_SERVICE_FILE);
+	}
+
+	/**
+	 * Removes the generated block from a test resource and from the copies an
+	 * earlier build left in the test output, so a stale copy cannot name a hook
+	 * that no longer exists.
+	 *
+	 * @param resourcesPath the test resources root.
+	 * @param relativePath  the resource's path below that root.
+	 */
+	private void removeGeneratedResource(@Nonnull Path resourcesPath, @Nonnull String relativePath) {
+		removeBlock(confine.apply(resourcesPath.resolve(relativePath)));
+		for (Path copyRoot : resourceCopyRoots()) {
+			removeBlock(confine.apply(copyRoot.resolve(relativePath)));
+		}
+	}
+
+	/**
+	 * Where the build copies test resources: Maven's test output, or Gradle's test
+	 * resources output. Empty when the build layout is unknown.
+	 *
+	 * @return the folders holding copied test resources
+	 */
+	@Nonnull
+	private List<Path> resourceCopyRoots() {
+		if (buildConfiguration == null) {
+			return List.of();
+		}
+		return switch (buildConfiguration.buildMode()) {
+		case MAVEN -> List.of(buildConfiguration.testOutputRoot());
+		case GRADLE -> List.of(buildConfiguration.projectRoot().resolve(GRADLE_TEST_RESOURCES_OUTPUT));
+		};
 	}
 
 	/**

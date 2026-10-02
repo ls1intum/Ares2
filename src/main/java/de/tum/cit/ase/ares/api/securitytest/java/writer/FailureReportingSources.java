@@ -63,10 +63,14 @@ final class FailureReportingSources {
 	private static final String JUPITER_HOOK_SOURCE = """
 			package de.tum.cit.ase.ares.generated;
 
+			import java.lang.reflect.Constructor;
 			import java.util.concurrent.TimeoutException;
 
+			import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
 			import org.junit.jupiter.api.extension.ExtensionContext;
+			import org.junit.jupiter.api.extension.InvocationInterceptor;
 			import org.junit.jupiter.api.extension.LifecycleMethodExecutionExceptionHandler;
+			import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 			import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
 			import org.opentest4j.TestAbortedException;
 
@@ -75,7 +79,7 @@ final class FailureReportingSources {
 			 * error; a timeout shows a fixed text. Do not edit: regenerate instead.
 			 */
 			public final class GeneratedFailureReporting
-					implements TestExecutionExceptionHandler, LifecycleMethodExecutionExceptionHandler {
+					implements TestExecutionExceptionHandler, LifecycleMethodExecutionExceptionHandler, InvocationInterceptor {
 
 				/** Set once JUnit has created this extension; the sentinel test checks it. */
 				private static volatile boolean active;
@@ -110,6 +114,46 @@ final class FailureReportingSources {
 				@Override
 				public void handleTestExecutionException(ExtensionContext context, Throwable throwable) throws Throwable {
 					throw isSentinel(context) ? throwable : replacementFor(throwable);
+				}
+
+				/**
+				 * Replaces a failure of a dynamic test, which no exception handler sees.
+				 *
+				 * @param invocation        runs the dynamic test
+				 * @param invocationContext the dynamic test's invocation
+				 * @param extensionContext  the dynamic test's context
+				 * @throws Throwable the failure to report instead
+				 */
+				@Override
+				public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext,
+						ExtensionContext extensionContext) throws Throwable {
+					try {
+						invocation.proceed();
+					} catch (Throwable throwable) {
+						throw replacementFor(throwable);
+					}
+				}
+
+				/**
+				 * Replaces a failure while the test class is created, such as from a field
+				 * initialiser, which no exception handler sees.
+				 *
+				 * @param <T>               the test class
+				 * @param invocation        creates the test instance
+				 * @param invocationContext the constructor call
+				 * @param extensionContext  the test class's context
+				 * @return the test instance
+				 * @throws Throwable the failure to report instead
+				 */
+				@Override
+				public <T> T interceptTestClassConstructor(Invocation<T> invocation,
+						ReflectiveInvocationContext<Constructor<T>> invocationContext, ExtensionContext extensionContext)
+						throws Throwable {
+					try {
+						return invocation.proceed();
+					} catch (Throwable throwable) {
+						throw replacementFor(throwable);
+					}
 				}
 
 				/**

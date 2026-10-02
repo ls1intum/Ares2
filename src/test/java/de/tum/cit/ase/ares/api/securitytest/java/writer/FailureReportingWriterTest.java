@@ -344,6 +344,43 @@ class FailureReportingWriterTest {
 	}
 
 	/**
+	 * Turning the setting off cleans the copies an earlier build left of the
+	 * generated service and settings blocks, in Maven's test output and in Gradle's
+	 * test resources output, and keeps the instructor's lines there.
+	 *
+	 * @param mode the build tool whose layout is used.
+	 * @throws IOException if a file cannot be written or read
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "MAVEN", "GRADLE" })
+	void turningTheSettingOffCleansTheCopiedResources(String mode) throws IOException {
+		BuildMode buildMode = BuildMode.valueOf(mode);
+		String testOutput = buildMode == BuildMode.MAVEN ? "target/test-classes" : "build/classes/java/test";
+		String copies = buildMode == BuildMode.MAVEN ? "target/test-classes" : "build/resources/test";
+		String mainOutput = buildMode == BuildMode.MAVEN ? "target/classes" : "build/classes/java/main";
+		for (String directory : List.of("src/main/java", mainOutput, testOutput, copies)) {
+			Files.createDirectories(projectRoot.resolve(directory));
+		}
+		Files.writeString(projectRoot.resolve("pom.xml"), "<project/>");
+		BuildToolConfiguration layout = new BuildToolConfiguration(buildMode, projectRoot,
+				List.of(projectRoot.resolve("src/main/java")), List.of(testFolder), projectRoot.resolve(mainOutput),
+				projectRoot.resolve(testOutput));
+		Files.createDirectories(jupiterServices().getParent());
+		Files.writeString(jupiterServices(), INSTRUCTOR_EXTENSION + System.lineSeparator());
+		writer(layout).write(configuration(true), PACKAGE, testFolder, resources);
+		Path copiedServices = projectRoot.resolve(copies).resolve(FailureReportingWriter.JUPITER_SERVICE_FILE);
+		Path copiedProperties = projectRoot.resolve(copies).resolve("junit-platform.properties");
+		Files.createDirectories(copiedServices.getParent());
+		Files.copy(jupiterServices(), copiedServices);
+		Files.copy(resources.resolve("junit-platform.properties"), copiedProperties);
+
+		writer(layout).write(configuration(false), PACKAGE, testFolder, resources);
+
+		assertThat(Files.readString(copiedServices)).contains(INSTRUCTOR_EXTENSION).doesNotContain(JUPITER_HOOK);
+		assertThat(copiedProperties).doesNotExist();
+	}
+
+	/**
 	 * A writer for this test's exercise, confining nothing.
 	 *
 	 * @param layout the build layout, or null.

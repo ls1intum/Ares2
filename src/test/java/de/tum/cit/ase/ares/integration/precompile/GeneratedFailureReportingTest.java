@@ -234,6 +234,24 @@ class GeneratedFailureReportingTest {
 				.isEqualTo("The test timed out.");
 	}
 
+	/**
+	 * A failing dynamic test, which no exception handler sees, shows the policy's
+	 * message.
+	 */
+	@Test
+	void aFailingDynamicTestShowsThePolicyMessage() throws Exception {
+		assertThat(failureOf(runJupiter("DynamicFixture", true, Locale.ENGLISH), "case")).isEqualTo(POLICY_MESSAGE);
+	}
+
+	/** A test class that fails while it is created shows the policy's message. */
+	@Test
+	void aFailingTestClassConstructorShowsThePolicyMessage() throws Exception {
+		EngineExecutionResults results = runJupiter("ConstructorFixture", true, Locale.ENGLISH);
+
+		assertThat(results.allEvents().failed().stream().map(GeneratedFailureReportingTest::messageOf)).isNotEmpty()
+				.allMatch(POLICY_MESSAGE::equals);
+	}
+
 	/** A failing {@code @BeforeEach} method shows the policy's message. */
 	@Test
 	void aFailingSetupMethodShowsThePolicyMessage() throws Exception {
@@ -507,6 +525,36 @@ class GeneratedFailureReportingTest {
 					@Test
 					void forgedTimeout() throws TimeoutException {
 						throw new TimeoutException("expected=42");
+					}
+				}
+				""");
+		Files.writeString(folder.resolve("DynamicFixture.java"), """
+				package com.example.fixtures;
+
+				import java.util.stream.Stream;
+
+				import org.junit.jupiter.api.DynamicTest;
+				import org.junit.jupiter.api.TestFactory;
+
+				class DynamicFixture {
+					@TestFactory
+					Stream<DynamicTest> cases() {
+						return Stream.of(DynamicTest.dynamicTest("case", () -> {
+							throw new AssertionError("expected=42");
+						}));
+					}
+				}
+				""");
+		Files.writeString(folder.resolve("ConstructorFixture.java"), """
+				package com.example.fixtures;
+
+				import org.junit.jupiter.api.Test;
+
+				class ConstructorFixture {
+					private final int answer = Integer.parseInt("expected=42");
+
+					@Test
+					void test() {
 					}
 				}
 				""");
