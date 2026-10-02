@@ -2,9 +2,6 @@ package de.tum.cit.ase.ares.api.internal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -28,9 +25,6 @@ class ConfigurationUtilsTest {
 
 	/** A test class compiled beside a settings class, as a precompile run does. */
 	private static final String BESIDE_TEST_CLASS = "com.example.exercise.GeneratedBesideTest";
-
-	/** Set only if a student-supplied settings class's static initialiser runs. */
-	private static final String INITIALISER_RAN_PROPERTY = "ares.test.studentSettingsInitialiserRan";
 
 	/**
 	 * A policy enabling privileged-exceptions-only reporting with its own message.
@@ -236,8 +230,8 @@ class ConfigurationUtilsTest {
 	}
 
 	/**
-	 * A disabling policy is final, even when an enabled generated settings class
-	 * exists.
+	 * A disabling policy is final, even with an enabled generated settings class
+	 * left on the classpath.
 	 */
 	@Test
 	void explicitlyDisabledPolicyWinsOverAnEnabledGeneratedSettingsClass(@TempDir Path tempDir) throws Exception {
@@ -258,79 +252,35 @@ class ConfigurationUtilsTest {
 	}
 
 	/**
-	 * A settings class beside the test classes that lacks an expected field comes
-	 * from another Ares version and must fail closed, not count as unconfigured.
+	 * Postcompile no longer reads a generated settings class: an enabled one left
+	 * beside the test classes changes nothing, so the real error shows.
 	 */
 	@Test
-	void generatedSettingsClassMissingExpectedFieldFailsClosed(@TempDir Path tempDir) throws Exception {
-		GeneratedSettingsClassTestSupport.compileSource(tempDir, TestBehaviorConfiguration.GENERATED_CLASS_NAME,
-				GeneratedSettingsClassTestSupport.settingsClassSource(TestBehaviorConfiguration.GENERATED_CLASS_NAME,
-						"public static final boolean "
-								+ TestBehaviorConfiguration.PRIVILEGED_EXCEPTIONS_ENABLED_FIELD_NAME + " = true;"));
-		Class<?> testClass = GeneratedSettingsClassTestSupport.compileTestClassBeside(tempDir, BESIDE_TEST_CLASS);
-		GeneratedSettingsClassTestSupport.runWithClassLoader(testClass.getClassLoader(), () -> {
-			SecurityException failure = assertThrows(SecurityException.class,
-					() -> ConfigurationUtils.getNonprivilegedFailureMessage(context(testClass)));
-
-			assertInstanceOf(NoSuchFieldException.class, failure.getCause());
-		});
-	}
-
-	/**
-	 * A settings class compiled into the same output as the running test class is
-	 * the generated one, and its message is used.
-	 */
-	@Test
-	void generatedSettingsClassBesideTheTestClassIsRead(@TempDir Path tempDir) throws Exception {
-		compileEnabledSettingsClass(tempDir, "");
+	void aLeftoverGeneratedSettingsClassIsIgnored(@TempDir Path tempDir) throws Exception {
+		compileEnabledSettingsClass(tempDir);
 		Class<?> testClass = GeneratedSettingsClassTestSupport.compileTestClassBeside(tempDir, BESIDE_TEST_CLASS);
 		GeneratedSettingsClassTestSupport.runWithClassLoader(testClass.getClassLoader(), () -> {
 			Optional<String> message = ConfigurationUtils.getNonprivilegedFailureMessage(context(testClass));
 
-			assertEquals(Optional.of("Generated settings message"), message);
+			assertFalse(message.isPresent());
 		});
 	}
 
 	/**
-	 * A class carrying the generated name but loaded from somewhere other than the
-	 * test classes, as student code would be, is rejected before its static
-	 * initialiser can run.
-	 */
-	@Test
-	void studentSuppliedSettingsClassIsRejectedWithoutRunningIt(@TempDir Path tempDir) throws Exception {
-		ClassLoader studentOutput = compileEnabledSettingsClass(tempDir,
-				"static { System.setProperty(\"" + INITIALISER_RAN_PROPERTY + "\", \"true\"); }");
-		try {
-			GeneratedSettingsClassTestSupport.runWithClassLoader(studentOutput, () -> {
-				SecurityException failure = assertThrows(SecurityException.class,
-						() -> ConfigurationUtils.getNonprivilegedFailureMessage(context(PlainFixture.class)));
-
-				assertTrue(failure.getMessage().contains(TestBehaviorConfiguration.GENERATED_CLASS_NAME));
-			});
-			assertNull(System.getProperty(INITIALISER_RAN_PROPERTY));
-		} finally {
-			System.clearProperty(INITIALISER_RAN_PROPERTY);
-		}
-	}
-
-	/**
-	 * Compiles an enabled settings class with a fixed message into {@code tempDir},
-	 * plus any extra member such as a static initialiser.
+	 * Compiles an enabled settings class with a fixed message into {@code tempDir}.
 	 *
-	 * @param tempDir     the directory to compile into.
-	 * @param extraMember source text of one more member, or an empty string.
+	 * @param tempDir the directory to compile into.
 	 * @return a class loader rooted at {@code tempDir}.
 	 * @throws IOException if writing or compiling the source fails.
 	 */
-	private static ClassLoader compileEnabledSettingsClass(Path tempDir, String extraMember) throws IOException {
+	private static ClassLoader compileEnabledSettingsClass(Path tempDir) throws IOException {
 		return GeneratedSettingsClassTestSupport.compileSource(tempDir, TestBehaviorConfiguration.GENERATED_CLASS_NAME,
 				GeneratedSettingsClassTestSupport.settingsClassSource(TestBehaviorConfiguration.GENERATED_CLASS_NAME,
 						"public static final boolean "
 								+ TestBehaviorConfiguration.PRIVILEGED_EXCEPTIONS_ENABLED_FIELD_NAME + " = true;",
 						"public static final String "
 								+ TestBehaviorConfiguration.PRIVILEGED_EXCEPTIONS_MESSAGE_FIELD_NAME
-								+ " = \"Generated settings message\";",
-						extraMember));
+								+ " = \"Generated settings message\";"));
 	}
 
 	/**

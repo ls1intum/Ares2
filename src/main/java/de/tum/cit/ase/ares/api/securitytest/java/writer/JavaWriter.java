@@ -175,16 +175,18 @@ public class JavaWriter implements Writer {
 
 	/**
 	 * Copies the localisation files into the resources directory sibling to
-	 * {@code testFolderPath}.
+	 * {@code testFolderPath}, below the exercise package, which is where the copied
+	 * {@code Messages} looks for them.
 	 *
 	 * @param testFolderPath the source root; must not be null.
+	 * @param packageName    the exercise package the copied classes live in.
 	 * @return the copied files' paths.
 	 */
 	@Nonnull
-	private List<Path> createLocalisationFiles(@Nonnull Path testFolderPath) {
-		Path resourcesFolderPath = resolveResourcesFolderPath(testFolderPath);
+	private List<Path> createLocalisationFiles(@Nonnull Path testFolderPath, @Nonnull String packageName) {
+		Path packageResources = resolveResourcesFolderPath(testFolderPath).resolve(packageName.replace('.', '/'));
 		return FileTools.copyFiles(Localisation.filesToCopy(),
-				confineTargets(Localisation.targetsToCopyTo(resourcesFolderPath)));
+				confineTargets(Localisation.targetsToCopyTo(packageResources)));
 	}
 
 	/**
@@ -363,17 +365,16 @@ public class JavaWriter implements Writer {
 						javaArchitectureTestCases, validatedTestFolderPath).stream(),
 						createJavaAOPFiles(aopMode, essentialPackages, essentialClasses, testClasses, packageName,
 								mainClassInPackageName, javaAOPTestCases, validatedTestFolderPath).stream(),
-						createLocalisationFiles(validatedTestFolderPath).stream(),
+						createLocalisationFiles(validatedTestFolderPath, packageName).stream(),
 						createPhobosFiles(packageName, javaPhobosTestCases, validatedTestFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 
 	/**
 	 * Writes security test cases to files, then adds the generated test-behaviour
-	 * settings class. Calls the released overload virtually first, so a subclass
-	 * overriding only that one still has its customisation applied even though this
-	 * is the overload {@code JavaTestCaseFactoryAndBuilder} actually calls, before
-	 * adding behaviour-specific outputs on top.
+	 * settings class and the failure-reporting hooks. Calls the released overload
+	 * virtually first, so a subclass overriding only that one keeps its
+	 * customisation, although {@code JavaTestCaseFactoryAndBuilder} calls this one.
 	 *
 	 * @since 2.1.5
 	 * @author Luka Petrovic
@@ -401,7 +402,11 @@ public class JavaWriter implements Writer {
 		List<Path> written = new ArrayList<>(writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 				essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 				javaAOPTestCases, javaPhobosTestCases, testFolderPath));
-		written.addAll(createTestBehaviorSettingsFiles(testBehaviorConfiguration, confineToProject(testFolderPath)));
+		Path validatedTestFolderPath = confineToProject(testFolderPath);
+		written.addAll(createTestBehaviorSettingsFiles(testBehaviorConfiguration, validatedTestFolderPath));
+		written.addAll(new FailureReportingWriter(projectRoot, buildConfiguration, this::confineToProject).write(
+				testBehaviorConfiguration, packageName, validatedTestFolderPath,
+				resolveResourcesFolderPath(validatedTestFolderPath)));
 		return written;
 	}
 	// </editor-fold>

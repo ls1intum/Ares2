@@ -1,11 +1,18 @@
-// Ares reserved-package build boundary, version 2. Apply from the exercise build.
+// Ares reserved-package build boundary, version 3. Apply from the exercise build.
 //
-// Boundary version 2 supersedes version 1, which attached the validation to
+// Boundary version 2 superseded version 1, which attached the validation to
 // `check` alone. Gradle's Java plugin defines `check.dependsOn test`, not the
 // reverse, so `gradlew test` never ran it and a student class under a reserved
 // package survived a grading run that only invoked `test`. Every Test task is
 // gated as well now. An exercise still carrying a version 1 snippet is
 // bypassable and must be migrated.
+//
+// Boundary version 3 scans the whole student output, resources included, and
+// also rejects every META-INF/services file (JUnit, jqwik and the JUnit Platform
+// load the classes named there by themselves) and junit-platform.properties and
+// archunit.properties at the root, which would reconfigure JUnit or the static
+// analysis. It also reserves de/tum/cit/ase/ares/generated, where precompile
+// writes its own code.
 //
 // The build descriptor and the command used to invoke it are trusted instructor
 // configuration. This validates student *code*; it is not a defence against
@@ -15,24 +22,28 @@
 // code: `tasks.withType(Test)` covers only the project it is applied to.
 import org.gradle.api.tasks.testing.Test
 
-def aresReservedPackageBoundaryVersion = '2'
+def aresReservedPackageBoundaryVersion = '3'
 def aresReservedPackagePatterns = [
         'java/**', 'javax/**', 'sun/**', 'jdk/**', 'com/sun/**',
-        'de/tum/cit/ase/ares/api/**', 'net/bytebuddy/**', 'org/aspectj/**',
-        'com/ibm/wala/**', 'com/tngtech/archunit/**'
+        'de/tum/cit/ase/ares/api/**', 'de/tum/cit/ase/ares/generated/**', 'net/bytebuddy/**',
+        'org/aspectj/**', 'com/ibm/wala/**', 'com/tngtech/archunit/**'
 ]
+def aresReservedFilePrefixes = ['META-INF/services/']
+def aresReservedRootFiles = ['junit-platform.properties', 'archunit.properties']
 
-tasks.register('verifyAresReservedPackagesV2') {
+tasks.register('verifyAresReservedPackagesV3') {
     dependsOn tasks.named('classes')
     // Resolved at configuration time and declared as an input, so the task body
     // touches no Project API and the build stays configuration-cache compatible.
-    def studentClassesDirs = sourceSets.main.output.classesDirs
-    def reservedPrefixes = aresReservedPackagePatterns.collect { it.substring(0, it.length() - 2) }
+    // The whole main output: compiled classes and processed resources alike.
+    def studentOutputDirs = sourceSets.main.output
+    def reservedPrefixes = aresReservedPackagePatterns.collect { it.substring(0, it.length() - 2) } + aresReservedFilePrefixes
+    def reservedRootFiles = aresReservedRootFiles
     def boundaryVersion = aresReservedPackageBoundaryVersion
-    inputs.files(studentClassesDirs).withPropertyName('studentClasses')
+    inputs.files(studentOutputDirs).withPropertyName('studentOutput')
     doLast {
         def forbidden = []
-        studentClassesDirs.files.each { root ->
+        studentOutputDirs.files.each { root ->
             if (!root.isDirectory()) {
                 return
             }
@@ -44,7 +55,7 @@ tasks.register('verifyAresReservedPackagesV2') {
                 // Compared as a '/'-separated relative path, so the same prefixes
                 // apply on Windows as on Linux and macOS.
                 def relative = rootPath.relativize(candidate.toPath()).toString().replace(File.separator, '/')
-                if (reservedPrefixes.any { relative.startsWith(it) }) {
+                if (reservedPrefixes.any { relative.startsWith(it) } || reservedRootFiles.contains(relative)) {
                     forbidden << relative
                 }
             }
@@ -59,5 +70,5 @@ tasks.register('verifyAresReservedPackagesV2') {
 // Both hooks are required. `check` covers `gradlew check` and `gradlew build`;
 // the Test hook covers `gradlew test` and any custom Test task, which is what a
 // grading run actually invokes.
-tasks.named('check') { dependsOn tasks.named('verifyAresReservedPackagesV2') }
-tasks.withType(Test).configureEach { dependsOn tasks.named('verifyAresReservedPackagesV2') }
+tasks.named('check') { dependsOn tasks.named('verifyAresReservedPackagesV3') }
+tasks.withType(Test).configureEach { dependsOn tasks.named('verifyAresReservedPackagesV3') }

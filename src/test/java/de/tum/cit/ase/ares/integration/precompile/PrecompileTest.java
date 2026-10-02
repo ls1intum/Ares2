@@ -4,21 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly;
-import de.tum.cit.ase.ares.api.context.TestContext;
-import de.tum.cit.ase.ares.api.context.TestType;
-import de.tum.cit.ase.ares.api.internal.ConfigurationUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.testutilities.GeneratedSettingsClassTestSupport;
@@ -104,110 +97,12 @@ public class PrecompileTest {
 		Field messageField = settingsClass.getField(TestBehaviorConfiguration.PRIVILEGED_EXCEPTIONS_MESSAGE_FIELD_NAME);
 		assertEquals(true, enabledField.get(null));
 		assertEquals("Precompiled default message", messageField.get(null));
-	}
-
-	/**
-	 * With the generated settings class compiled beside the test class and no
-	 * {@code @Policy} anywhere, as in a real precompile exercise, its message is
-	 * the one used.
-	 */
-	@Test
-	void generatedSettingsClassGovernsBehaviourWithNoPolicyAnnotationPresent(@TempDir Path tempDir) throws Exception {
-		generatedSettingsClassLoader(tempDir, true, "Generated settings message");
-		Class<?> testClass = GeneratedSettingsClassTestSupport.compileTestClassBeside(tempDir,
-				"com.example.exercise.PrecompiledExerciseTest");
-		GeneratedSettingsClassTestSupport.runWithClassLoader(testClass.getClassLoader(), () -> {
-			Optional<String> message = ConfigurationUtils.getNonprivilegedFailureMessage(context(testClass));
-
-			assertTrue(message.isPresent());
-			assertEquals("Generated settings message", message.get());
-		});
-	}
-
-	/**
-	 * A present annotation still wins over the generated settings class -
-	 * precedence must hold identically in a precompile deployment, not only a
-	 * postcompile one.
-	 */
-	@Test
-	void annotationStillWinsOverTheGeneratedSettingsClass(@TempDir Path tempDir) throws Exception {
-		ClassLoader isolated = generatedSettingsClassLoader(tempDir, true, "Generated settings message");
-		GeneratedSettingsClassTestSupport.runWithClassLoader(isolated, () -> {
-			Optional<String> message = ConfigurationUtils
-					.getNonprivilegedFailureMessage(context(AnnotatedFixture.class));
-
-			assertTrue(message.isPresent());
-			assertEquals("Annotation message", message.get());
-		});
-	}
-
-	/**
-	 * Compiles a settings class with the given values into {@code tempDir}.
-	 *
-	 * @param tempDir the directory to compile into.
-	 * @param enabled the value of the switch.
-	 * @param message the message.
-	 * @return a class loader rooted at {@code tempDir}.
-	 * @throws IOException if writing or compiling fails.
-	 */
-	private ClassLoader generatedSettingsClassLoader(Path tempDir, boolean enabled, String message) throws IOException {
-		return GeneratedSettingsClassTestSupport.compileSource(tempDir, TestBehaviorConfiguration.GENERATED_CLASS_NAME,
-				GeneratedSettingsClassTestSupport.settingsClassSource(TestBehaviorConfiguration.GENERATED_CLASS_NAME,
-						"public static final boolean "
-								+ TestBehaviorConfiguration.PRIVILEGED_EXCEPTIONS_ENABLED_FIELD_NAME + " = " + enabled
-								+ ";",
-						"public static final String "
-								+ TestBehaviorConfiguration.PRIVILEGED_EXCEPTIONS_MESSAGE_FIELD_NAME + " = \"" + message
-								+ "\";"));
-	}
-
-	/** A test class with its own {@code @PrivilegedExceptionsOnly}. */
-	@PrivilegedExceptionsOnly("Annotation message")
-	static class AnnotatedFixture {
-		/** The fixture's test method, looked up by name. */
-		void test() {
-		}
-	}
-
-	/**
-	 * A context for the {@code test} method of {@code type}.
-	 *
-	 * @param type the fixture class.
-	 * @return the context.
-	 * @throws Exception if the method cannot be found.
-	 */
-	private static TestContext context(Class<?> type) throws Exception {
-		Method method = type.getDeclaredMethod("test");
-		return new TestContext() {
-			@Override
-			public Optional<Method> testMethod() {
-				return Optional.of(method);
-			}
-
-			@Override
-			public Optional<Class<?>> testClass() {
-				return Optional.of(type);
-			}
-
-			@Override
-			public Optional<Object> testInstance() {
-				return Optional.empty();
-			}
-
-			@Override
-			public Optional<String> displayName() {
-				return Optional.of("test");
-			}
-
-			@Override
-			public Optional<AnnotatedElement> annotatedElement() {
-				return Optional.of(method);
-			}
-
-			@Override
-			public Optional<TestType> findTestType() {
-				return Optional.empty();
-			}
-		};
+		assertTrue(Files.exists(writeTarget.resolve("de/tum/cit/ase/ares/generated/GeneratedFailureReporting.java")),
+				"the failure-reporting hook must be generated beside the settings class");
+		Path resources = projectFolderPath.resolve("src/test/resources");
+		assertTrue(Files.exists(resources.resolve("com/example/ares/api/localization/messages.properties")),
+				"the copied Messages looks for its bundle below the exercise package");
+		assertTrue(Files.notExists(resources.resolve("ares/api/localization/messages.properties")),
+				"no bundle may land outside the exercise package, where the copied Messages never looks");
 	}
 }

@@ -351,7 +351,8 @@ public class JavaWriterTest {
 
 				List<Path> result = writeWith(privilegedExceptionsConfigured());
 
-				assertEquals(4, result.size());
+				assertEquals(8, result.size(), "3 released outputs, the settings class and 4 failure-reporting files");
+				assertTrue(result.stream().anyMatch(path -> path.endsWith("GeneratedFailureReporting.java")));
 				Path written = generatedSettingsClassPath();
 				assertTrue(Files.exists(written));
 				String content = Files.readString(written);
@@ -383,6 +384,8 @@ public class JavaWriterTest {
 
 				assertEquals(3, result.size());
 				assertFalse(Files.exists(generatedSettingsClassPath()));
+				assertFalse(
+						Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedFailureReporting.java")));
 			}
 		}
 

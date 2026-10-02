@@ -396,7 +396,7 @@ theFollowingTestBehaviorIsConfigured:
 
 **Precedence:** a `@PrivilegedExceptionsOnly` annotation directly on a test method or class always wins over this policy default, whether the policy enables or disables the default, matching the nearest-annotation-wins precedent used elsewhere in this codebase. This field only takes effect for a test that carries no such annotation of its own.
 
-**Precompile:** the generator writes this setting as a class, `GeneratedTestBehaviorSettings`, among the test sources. Ares only reads that class when the build put it into the same output as the test classes, and rejects a class of that name anywhere else, such as in student code. Regenerating after removing this field deletes the old class.
+**Precompile:** a precompile exercise has no Ares dependency at run time. The generator therefore writes its own failure reporting into the exercise's test sources, in the package `de.tum.cit.ase.ares.generated`. It writes the setting as the class `GeneratedTestBehaviorSettings`, a JUnit extension, and a jqwik hook when the build uses jqwik. JUnit and jqwik load these hooks by themselves, so no test needs an annotation. With the setting on, every failing test shows the policy's message. That includes security violations and failing generated architecture tests. A test that exceeds JUnit's `@Timeout` shows the fixed text "The test timed out." instead. A precompile exercise has no hidden tests, so the setting applies to every test. Generated sentinel tests fail when the hooks are not active. Regenerating without this field, or with it set to `false`, deletes all of this again. Keep generated precompile output and the Ares dependency out of the same exercise, since both rewrite the same failure.
 
 ---
 
