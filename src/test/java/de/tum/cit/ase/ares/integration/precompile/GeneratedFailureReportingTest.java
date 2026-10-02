@@ -107,7 +107,8 @@ class GeneratedFailureReportingTest {
 		resources = Files.createDirectories(project.resolve("src/test/resources"));
 		Path instructorServices = resources.resolve("META-INF/services/org.junit.jupiter.api.extension.Extension");
 		Files.createDirectories(instructorServices.getParent());
-		Files.writeString(instructorServices, "com.example.fixtures.InstructorExtension" + System.lineSeparator());
+		Files.writeString(instructorServices,
+				"com.example.fixtures.InstructorExtension # setup" + System.lineSeparator());
 		Path policy = tempDir.resolve("SecurityPolicy.yaml");
 		Files.writeString(policy, policyText());
 		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy).projectFolderPath(project).build()
@@ -241,6 +242,29 @@ class GeneratedFailureReportingTest {
 	@Test
 	void aFailingDynamicTestShowsThePolicyMessage() throws Exception {
 		assertThat(failureOf(runJupiter("DynamicFixture", true, Locale.ENGLISH), "case")).isEqualTo(POLICY_MESSAGE);
+	}
+
+	/**
+	 * A factory whose tests fail while JUnit walks them, directly or inside a
+	 * container, shows the policy's message, and a passing factory still runs.
+	 */
+	@Test
+	void aFactoryFailingWhileWalkedShowsThePolicyMessage() throws Exception {
+		EngineExecutionResults results = runJupiter("LazyFactoryFixture", true, Locale.ENGLISH);
+
+		assertThat(results.allEvents().failed().stream().map(GeneratedFailureReportingTest::messageOf)).hasSize(2)
+				.allMatch(POLICY_MESSAGE::equals);
+		assertThat(results.testEvents().succeeded().stream().map(event -> event.getTestDescriptor().getDisplayName()))
+				.containsExactly("ok");
+	}
+
+	/** A jqwik hook that throws instead of returning a result is redacted too. */
+	@Test
+	void aThrowingInnerJqwikHookShowsThePolicyMessage() throws Exception {
+		EngineExecutionResults results = run("jqwik", "com.example.fixtures.ThrowingHookFixture", true, Locale.ENGLISH);
+
+		assertThat(results.allEvents().failed().stream().map(GeneratedFailureReportingTest::messageOf))
+				.containsExactly(POLICY_MESSAGE);
 	}
 
 	/** A test class that fails while it is created shows the policy's message. */
@@ -542,6 +566,68 @@ class GeneratedFailureReportingTest {
 						return Stream.of(DynamicTest.dynamicTest("case", () -> {
 							throw new AssertionError("expected=42");
 						}));
+					}
+				}
+				""");
+		Files.writeString(folder.resolve("LazyFactoryFixture.java"), """
+				package com.example.fixtures;
+
+				import java.util.List;
+				import java.util.stream.Stream;
+
+				import org.junit.jupiter.api.DynamicContainer;
+				import org.junit.jupiter.api.DynamicNode;
+				import org.junit.jupiter.api.DynamicTest;
+				import org.junit.jupiter.api.TestFactory;
+
+				class LazyFactoryFixture {
+					@TestFactory
+					Stream<DynamicTest> failsWhileWalked() {
+						return Stream.<DynamicTest>generate(() -> {
+							throw new AssertionError("expected=42");
+						}).limit(1);
+					}
+
+					@TestFactory
+					Stream<DynamicNode> failsInsideAContainer() {
+						return Stream.of(DynamicContainer.dynamicContainer("box", Stream.<DynamicTest>generate(() -> {
+							throw new AssertionError("expected=42");
+						}).limit(1)));
+					}
+
+					@TestFactory
+					List<DynamicTest> passes() {
+						return List.of(DynamicTest.dynamicTest("ok", () -> {
+						}));
+					}
+				}
+				""");
+		Files.writeString(folder.resolve("ThrowingHook.java"),
+				"""
+						package com.example.fixtures;
+
+						import net.jqwik.api.lifecycle.AroundPropertyHook;
+						import net.jqwik.api.lifecycle.PropertyExecutionResult;
+						import net.jqwik.api.lifecycle.PropertyExecutor;
+						import net.jqwik.api.lifecycle.PropertyLifecycleContext;
+
+						public class ThrowingHook implements AroundPropertyHook {
+							@Override
+							public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property) {
+								throw new IllegalStateException("expected=42");
+							}
+						}
+						""");
+		Files.writeString(folder.resolve("ThrowingHookFixture.java"), """
+				package com.example.fixtures;
+
+				import net.jqwik.api.Example;
+				import net.jqwik.api.lifecycle.AddLifecycleHook;
+
+				class ThrowingHookFixture {
+					@Example
+					@AddLifecycleHook(ThrowingHook.class)
+					void setUpByAThrowingHook() {
 					}
 				}
 				""");

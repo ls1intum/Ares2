@@ -1,12 +1,14 @@
 package de.tum.cit.ase.ares.api.securitytest.java.writer;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
@@ -103,8 +105,8 @@ final class FailureReportingWriter {
 		boolean jqwik = usesJqwik();
 		Path properties = confine.apply(resourcesPath.resolve(PLATFORM_PROPERTIES));
 		Path jupiterServices = confine.apply(resourcesPath.resolve(JUPITER_SERVICE_FILE));
-		List<String> instructorExtensions = linesOutsideBlock(jupiterServices).stream().map(String::strip)
-				.filter(line -> !line.isEmpty() && !line.startsWith("#")).toList();
+		List<String> instructorExtensions = linesOutsideBlock(jupiterServices).stream()
+				.map(FailureReportingWriter::providerName).filter(name -> !name.isEmpty()).toList();
 		requireNoConflictingSetting(properties);
 		String messagesClass = packageName + ".ares.api.localization.Messages";
 		List<Path> written = new ArrayList<>();
@@ -174,21 +176,48 @@ final class FailureReportingWriter {
 	 * @throws SecurityException naming the file and the conflicting setting
 	 */
 	private static void requireNoConflictingSetting(@Nonnull Path properties) {
-		for (String line : linesOutsideBlock(properties)) {
-			String stripped = line.strip();
-			int separator = stripped.indexOf('=');
-			if (stripped.startsWith("#") || separator < 0) {
-				continue;
-			}
-			String key = stripped.substring(0, separator).strip();
-			String value = stripped.substring(separator + 1).strip();
+		Properties instructorSettings = instructorSettings(properties);
+		for (String key : instructorSettings.stringPropertyNames()) {
+			String value = instructorSettings.getProperty(key).strip();
 			boolean conflicting = AUTODETECTION_INCLUDE.equals(key) || AUTODETECTION_EXCLUDE.equals(key)
-					|| AUTODETECTION_ENABLED.equals(key) && !"true".equals(value);
+					|| AUTODETECTION_ENABLED.equals(key) && !"true".equalsIgnoreCase(value);
 			if (conflicting) {
 				throw new SecurityException(
 						Messages.localized("security.writer.failure.reporting.conflict", properties.toString(), key));
 			}
 		}
+	}
+
+	/**
+	 * The instructor's JUnit settings, read the way JUnit reads them, so every
+	 * separator, escape and continuation line counts.
+	 *
+	 * @param properties the JUnit settings file.
+	 * @return the settings outside the generated block
+	 */
+	@Nonnull
+	private static Properties instructorSettings(@Nonnull Path properties) {
+		Properties settings = new Properties();
+		try {
+			settings.load(new StringReader(String.join("\n", linesOutsideBlock(properties))));
+		} catch (IOException | IllegalArgumentException failure) {
+			throw new SecurityException(
+					Messages.localized("security.writer.failure.reporting.io", properties.toString()), failure);
+		}
+		return settings;
+	}
+
+	/**
+	 * The provider class a service-file line names, without a trailing comment, the
+	 * way {@code ServiceLoader} reads it.
+	 *
+	 * @param line one line of a service file.
+	 * @return the class name, or an empty string for a blank or comment line
+	 */
+	@Nonnull
+	private static String providerName(@Nonnull String line) {
+		int comment = line.indexOf('#');
+		return (comment < 0 ? line : line.substring(0, comment)).strip();
 	}
 
 	/**

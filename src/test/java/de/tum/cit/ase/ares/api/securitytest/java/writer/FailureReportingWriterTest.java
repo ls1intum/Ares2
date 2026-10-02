@@ -235,6 +235,61 @@ class FailureReportingWriterTest {
 	}
 
 	/**
+	 * A conflicting setting is refused however the instructor separates key and
+	 * value, since JUnit reads the file as Java properties.
+	 *
+	 * @param conflictingLine the instructor's conflicting setting.
+	 * @throws IOException if the settings file cannot be written
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "junit.jupiter.extensions.autodetection.exclude:com.example.Other",
+			"junit.jupiter.extensions.autodetection.enabled false",
+			"junit.jupiter.extensions.autodetection.include = com.example.Other" })
+	void refusesAConflictWrittenWithAnotherSeparator(String conflictingLine) throws IOException {
+		Files.writeString(resources.resolve("junit-platform.properties"), conflictingLine + System.lineSeparator());
+
+		SecurityException failure = assertThrows(SecurityException.class,
+				() -> writer(null).write(configuration(true), PACKAGE, testFolder, resources));
+
+		assertThat(failure.getMessage()).contains(conflictingLine.split("[:= ]")[0]);
+		assertThat(generatedSource("GeneratedFailureReporting")).doesNotExist();
+	}
+
+	/**
+	 * Auto-detection the instructor already switched on, in any spelling JUnit
+	 * accepts, is no conflict.
+	 *
+	 * @throws IOException if the settings file cannot be written
+	 */
+	@Test
+	void acceptsAutodetectionAlreadySwitchedOn() throws IOException {
+		Files.writeString(resources.resolve("junit-platform.properties"),
+				"junit.jupiter.extensions.autodetection.enabled : TRUE" + System.lineSeparator());
+
+		writer(null).write(configuration(true), PACKAGE, testFolder, resources);
+
+		assertThat(generatedSource("GeneratedFailureReporting")).exists();
+	}
+
+	/**
+	 * A service-file entry with a trailing comment still names its class in the
+	 * include filter, so the instructor's extension keeps running.
+	 *
+	 * @throws IOException if a file cannot be written or read
+	 */
+	@Test
+	void includesAnInstructorExtensionRegisteredWithATrailingComment() throws IOException {
+		Files.createDirectories(jupiterServices().getParent());
+		Files.writeString(jupiterServices(), INSTRUCTOR_EXTENSION + " # setup" + System.lineSeparator());
+
+		writer(null).write(configuration(true), PACKAGE, testFolder, resources);
+
+		assertThat(Files.readString(resources.resolve("junit-platform.properties")))
+				.contains("autodetection.include=" + JUPITER_HOOK + "," + INSTRUCTOR_EXTENSION + System.lineSeparator())
+				.doesNotContain("# setup");
+	}
+
+	/**
 	 * The refusal is localised: in German it still names the file and the key.
 	 *
 	 * @throws IOException if the settings file cannot be written

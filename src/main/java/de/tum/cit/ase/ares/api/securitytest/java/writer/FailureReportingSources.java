@@ -64,8 +64,18 @@ final class FailureReportingSources {
 			package de.tum.cit.ase.ares.generated;
 
 			import java.lang.reflect.Constructor;
+			import java.lang.reflect.Method;
+			import java.util.Arrays;
+			import java.util.Iterator;
+			import java.util.List;
+			import java.util.Spliterator;
+			import java.util.Spliterators;
 			import java.util.concurrent.TimeoutException;
+			import java.util.stream.Stream;
+			import java.util.stream.StreamSupport;
 
+			import org.junit.jupiter.api.DynamicContainer;
+			import org.junit.jupiter.api.DynamicNode;
 			import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
 			import org.junit.jupiter.api.extension.ExtensionContext;
 			import org.junit.jupiter.api.extension.InvocationInterceptor;
@@ -131,6 +141,146 @@ final class FailureReportingSources {
 						invocation.proceed();
 					} catch (Throwable throwable) {
 						throw replacementFor(throwable);
+					}
+				}
+
+				/**
+				 * Replaces a failure of a test factory, including one that happens only while
+				 * JUnit walks the tests it returned, which no exception handler sees.
+				 *
+				 * @param <T>               the factory's return type
+				 * @param invocation        runs the factory
+				 * @param invocationContext the factory call
+				 * @param extensionContext  the factory's context
+				 * @return the factory's tests, wrapped so walking them reports no real error
+				 * @throws Throwable the failure to report instead
+				 */
+				@Override
+				@SuppressWarnings("unchecked")
+				public <T> T interceptTestFactoryMethod(Invocation<T> invocation,
+						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext)
+						throws Throwable {
+					try {
+						T result = invocation.proceed();
+						Iterator<?> nodes = nodeIterator(result);
+						return nodes == null ? result : (T) redactedNodes(nodes, result);
+					} catch (Throwable throwable) {
+						throw replacementFor(throwable);
+					}
+				}
+
+				/**
+				 * The tests a factory result holds, in every shape JUnit accepts.
+				 *
+				 * @param result the factory's result
+				 * @return its elements, or null for a shape JUnit rejects itself
+				 */
+				static Iterator<?> nodeIterator(Object result) {
+					if (result instanceof DynamicNode node) {
+						return List.of(node).iterator();
+					}
+					if (result instanceof Stream<?> stream) {
+						return stream.iterator();
+					}
+					if (result instanceof Iterable<?> iterable) {
+						return iterable.iterator();
+					}
+					if (result instanceof Iterator<?> iterator) {
+						return iterator;
+					}
+					if (result instanceof Object[] array) {
+						return Arrays.asList(array).iterator();
+					}
+					return null;
+				}
+
+				/**
+				 * A stream of the given tests that reports no real error while it is walked,
+				 * and closes the original stream when JUnit closes it.
+				 *
+				 * @param nodes  the tests
+				 * @param source the original result, closed if it is a stream
+				 * @return the redacting stream
+				 */
+				static Stream<DynamicNode> redactedNodes(Iterator<?> nodes, Object source) {
+					Stream<DynamicNode> redacted = StreamSupport
+							.stream(Spliterators.spliteratorUnknownSize(new RedactingIterator(nodes), Spliterator.ORDERED), false);
+					return source instanceof Stream<?> stream ? redacted.onClose(stream::close) : redacted;
+				}
+
+				/**
+				 * The given test, with a container's children wrapped too, since JUnit walks
+				 * them lazily as well.
+				 *
+				 * @param node the test or container
+				 * @return the test, or a container whose children report no real error
+				 */
+				static DynamicNode redactedNode(Object node) {
+					if (node instanceof DynamicContainer container) {
+						Stream<? extends DynamicNode> children = container.getChildren();
+						return DynamicContainer.dynamicContainer(container.getDisplayName(),
+								container.getTestSourceUri().orElse(null), redactedNodes(children.iterator(), children));
+					}
+					return (DynamicNode) node;
+				}
+
+				/**
+				 * Throws any throwable without declaring it, so an iterator can report the
+				 * replaced failure.
+				 *
+				 * @param <E>       the type the compiler is told is thrown
+				 * @param throwable the failure to throw
+				 * @return never returns
+				 * @throws E always
+				 */
+				@SuppressWarnings("unchecked")
+				static <E extends Throwable> RuntimeException rethrow(Throwable throwable) throws E {
+					throw (E) throwable;
+				}
+
+				/** Walks a factory's tests and replaces any failure while doing so. */
+				static final class RedactingIterator implements Iterator<DynamicNode> {
+
+					/** The factory's own tests. */
+					private final Iterator<?> source;
+
+					/**
+					 * Wraps a factory's tests.
+					 *
+					 * @param source the factory's own tests
+					 */
+					RedactingIterator(Iterator<?> source) {
+						this.source = source;
+					}
+
+					/**
+					 * Whether another test follows, with any failure replaced.
+					 *
+					 * @return true if another test follows
+					 */
+					@Override
+					public boolean hasNext() {
+						try {
+							return source.hasNext();
+						} catch (Throwable throwable) {
+							throw GeneratedFailureReporting.<RuntimeException>rethrow(replacementFor(throwable));
+						}
+					}
+
+					/**
+					 * The next test, with any failure replaced.
+					 *
+					 * @return the next test
+					 */
+					@Override
+					public DynamicNode next() {
+						Object next;
+						try {
+							next = source.next();
+						} catch (Throwable throwable) {
+							throw GeneratedFailureReporting.<RuntimeException>rethrow(replacementFor(throwable));
+						}
+						return redactedNode(next);
 					}
 				}
 
@@ -247,6 +397,8 @@ final class FailureReportingSources {
 	private static final String JQWIK_HOOK_SOURCE = """
 			package de.tum.cit.ase.ares.generated;
 
+			import org.opentest4j.TestAbortedException;
+
 			import net.jqwik.api.lifecycle.AroundPropertyHook;
 			import net.jqwik.api.lifecycle.PropagationMode;
 			import net.jqwik.api.lifecycle.PropertyExecutionResult;
@@ -289,8 +441,8 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * Runs the property and replaces the error of a failed or aborted run with the
-				 * policy's message.
+				 * Runs the property and replaces the error of a failed or aborted run, whether
+				 * it is returned or thrown by an inner hook.
 				 *
 				 * @param context  the property's context
 				 * @param property runs the property
@@ -301,11 +453,36 @@ final class FailureReportingSources {
 				public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property)
 						throws Throwable {
 					markActive();
-					PropertyExecutionResult result = property.execute();
+					PropertyExecutionResult result;
+					try {
+						result = property.execute();
+					} catch (Throwable throwable) {
+						throw replacementFor(throwable);
+					}
 					if (!@SETTINGS@.@ENABLED@ || result.status() == PropertyExecutionResult.Status.SUCCESSFUL) {
 						return result;
 					}
-					return result.mapTo(result.status(), new AssertionError(@SETTINGS@.@MESSAGE@));
+					Throwable original = result.throwable().orElseGet(() -> result.status() == PropertyExecutionResult.Status.ABORTED
+							? new TestAbortedException()
+							: new AssertionError());
+					return result.mapTo(result.status(), replacementFor(original));
+				}
+
+				/**
+				 * The failure to report instead of the real one: a skipped property stays
+				 * skipped without its reason, everything else shows the policy's message.
+				 *
+				 * @param throwable the real failure
+				 * @return the failure to report
+				 */
+				static Throwable replacementFor(Throwable throwable) {
+					if (!@SETTINGS@.@ENABLED@) {
+						return throwable;
+					}
+					if (throwable instanceof TestAbortedException) {
+						return new TestAbortedException();
+					}
+					return new AssertionError(@SETTINGS@.@MESSAGE@);
 				}
 
 				/**
