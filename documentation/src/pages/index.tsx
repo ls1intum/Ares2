@@ -31,7 +31,7 @@ const destinations: Destination[] = [
 
 const features: string[] = [
     'Policy-based sandboxing through static and dynamic analysis',
-    'Supports JUnit Jupiter and jqwik',
+    'Supports JUnit Jupiter',
     'More robust tests and builds through limits on time, threads and IO',
     'Public and hidden tests, where hidden tests obey a custom deadline',
     'Clearer feedback with multiline errors and fault locations',

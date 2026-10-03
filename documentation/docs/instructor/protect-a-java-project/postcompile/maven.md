@@ -299,7 +299,7 @@ Apply the shipped `MavenReservedPackages.xml`, a `maven-antrun-plugin` execution
 
 The list above is the versioned reserved-package boundary, and it is deliberately a superset of
 the canonical Ares list. Besides the packages Ares trusts by name, it stops student code
-shadowing the test harness itself (JUnit, jqwik, AssertJ, Logback, Gradle).
+shadowing the test harness itself (JUnit, AssertJ, Logback, Gradle).
 
 Keep it aligned with `WalaPathClassification.RESERVED_PACKAGE_PREFIX_VERSION` (the prefix data)
 and `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION` (the build-side contract), and do not disable it.

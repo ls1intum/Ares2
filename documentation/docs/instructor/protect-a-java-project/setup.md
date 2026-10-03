@@ -107,7 +107,7 @@ with the `@Public` and `@Hidden` annotations:
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
-// IMPORTANT: make sure to use the "jupiter" ones (if you are not using jqwik)
+// IMPORTANT: use the Ares 2 package de.tum.cit.ase.ares.api.jupiter
 import de.tum.cit.ase.ares.api.jupiter.Hidden;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 

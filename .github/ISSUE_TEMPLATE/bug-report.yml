@@ -50,7 +50,7 @@ body:
         - Console input and output testing
         - Dynamic access API
         - Messages shown to a student (localisation)
-        - JUnit or jqwik integration
+        - JUnit integration
         - Maven or Gradle integration
         - Not sure
     validations:

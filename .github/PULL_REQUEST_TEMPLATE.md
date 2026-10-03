@@ -60,7 +60,7 @@
     external Phobos sandbox runs a submission with, checking that a submission has the
     classes, methods, fields and annotations it should (the structural check), the
     console input and output testing, the dynamic access API, the wording a student is
-    shown (localisation), how Ares hooks into JUnit or jqwik, or how it is plugged into
+    shown (localisation), how Ares hooks into JUnit, or how it is plugged into
     the build (Maven or Gradle). If the part you mean is not listed, name it in your own
     words. A reviewer of a security tool needs to know where to look, so name it even
     where the rest stays plain.

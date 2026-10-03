@@ -271,9 +271,6 @@ jobs:
       - name: Core integration tests
         run: mvn test -Pintegration-core-tests,coverage -f pom.xml
 
-      - name: jqwik integration tests
-        run: mvn test -f pom.xml -Pcoverage -Dtest=de.tum.cit.ase.ares.integration.JqwickTest
-
       - name: Upload coverage execution data
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

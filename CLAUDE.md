@@ -39,7 +39,7 @@ utilities for improved feedback.
 - **Language**: Java, built with **JDK 21**, targeting **Java 17**
   (`maven.compiler.source` / `maven.compiler.target`), so exercises on Java 17 stay supported
 - **Build**: Maven 3.9+
-- **Testing**: JUnit 5, jqwik (property-based)
+- **Testing**: JUnit Jupiter (JUnit 6)
 - **Enforcement**: AspectJ and Java instrumentation (AOP layer), ArchUnit and WALA
   (architecture layer)
 - **Formatting**: Spotless with Eclipse rules; **tabs, 4 spaces per tab**
@@ -109,8 +109,10 @@ page should lean on the cast below rather than inventing a metaphor of its own.
 - **The paper and the mark scheme**: the test methods, including the AST structural
   requirements ("solve it without a loop"). AST is explicitly not a security boundary, so it
   belongs here and never on the checklist.
-- **The teachers**: JUnit Jupiter and jqwik. One asks prepared questions. The other invents
-  hundreds on the spot, then shrinks to the simplest question the pupil still fails.
+- **The teacher**: JUnit Jupiter. Asks the prepared questions one at a time. There is no
+  second teacher who invents questions on the spot and shrinks them; jqwik was removed, and
+  an instructor who wants generated questions writes them into the paper, for example with a
+  seeded `java.util.Random`.
 - **The checklist**: Ares, as configured by `security-policy.yaml`. One document in three
   parts, matching the three lists the director produces:
   1. **The room**, arranged before anyone is let in: Phobos. A desk with dividers, so forbidden
@@ -129,9 +131,8 @@ page should lean on the cast below rather than inventing a metaphor of its own.
   checklist arrive together, because Ares prepares that visit's checks beforehand and clears
   the active settings away afterwards, on the failure path too. Never state one mechanism as
   though it were universal: Jupiter uses `BeforeTestExecutionCallback` and `afterTestExecution`,
-  jqwik hooks the same lifecycle through `AroundPropertyHook`, and Precompile generates one
-  project-wide set outside the run altogether, so there is nothing to prepare per visit. A
-  visit is also not one pupil: a test method may exercise several student methods. What Ares
+  and Precompile generates one project-wide set outside the run altogether, so there is
+  nothing to prepare per visit. A visit is also not one pupil: a test method may exercise several student methods. What Ares
   generates is a **security test case**; what the instructor wrote is a **test method**. Keep
   those two apart.
 - **The examination**: the whole round of desk visits, that is, the test run.
@@ -166,7 +167,7 @@ Server code lives under `src/main/java/de/tum/cit/ase/ares/`:
   security tests
 - `api/buildtoolconfiguration/` — Maven and Gradle integration
 - `api/io/` — console IO testing utilities
-- `api/jqwik/`, `api/jupiter/` — test-framework integration
+- `api/jupiter/` — test-framework integration
 - `api/localization/` — internationalisation
 - `api/internal/` — internal infrastructure
 
