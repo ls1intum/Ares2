@@ -120,6 +120,19 @@ public class JavaAOPTestCaseToolboxTest {
 	}
 
 	@Test
+	public void testGetPublicStaticFinalLongAssignmentWithValidValue() {
+		String result = JavaAOPTestCaseToolbox.getPublicStaticFinalLongAssignment("myLong", 42L);
+		Assertions.assertEquals("public static final long myLong = 42L;" + System.lineSeparator(), result);
+	}
+
+	@Test
+	public void testGetPublicStaticFinalLongAssignmentWithInvalidValue() {
+		Object invalidValue = 42;
+		Assertions.assertThrows(SecurityException.class,
+				() -> JavaAOPTestCaseToolbox.getPublicStaticFinalLongAssignment("myLong", invalidValue));
+	}
+
+	@Test
 	public void testGetStringAssignmentEscapesBackslashAndQuote() {
 		// A Windows path and an embedded quote must not break out of the generated
 		// string literal.

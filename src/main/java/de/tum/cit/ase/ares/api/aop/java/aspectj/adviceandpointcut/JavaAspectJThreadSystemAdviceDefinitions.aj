@@ -46,6 +46,15 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	private static final String UNRESOLVED_THREAD_CLASS = "<unresolved-thread-class>";
 
 	/**
+	 * The generated precompile timeout, whose worker thread is exempt like
+	 * {@code TimeoutUtils}'s. Split so precompile copying, which rewrites every
+	 * "de.tum.cit.ase" in this file to the exercise package, leaves it intact. The
+	 * package is reserved, so no student class can carry this name.
+	 */
+	@Nonnull
+	private static final String GENERATED_STRICT_TIMEOUT = "de.tum.cit." + "ase.ares.generated.GeneratedStrictTimeout";
+
+	/**
 	 * Weak identity map from admitted Thread receivers to their effective task class.
 	 * The recorded class survives Thread.exit() clearing the task field and is
 	 * revalidated against every active policy rather than preserving stale permission.
@@ -144,6 +153,9 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * method of that class refuses it. {@code rethrowThrowableSafe} is the one that
 	 * makes refusing necessary, being where the student's test body runs on the
 	 * worker, while the rest are Ares-internal and have no worker to claim;</li>
+	 * <li>exactly {@code GeneratedStrictTimeout}, the timeout a precompile run
+	 * generates: the same rule by method name. Its nested classes, such as its
+	 * thread factory, are skipped;</li>
 	 * <li>any other Ares class ({@code de.tum.cit.ase.ares.api.}): skipped, because
 	 * Ares' own frames are never student code even when {@code restrictedPackage}
 	 * is broad enough to cover them, as {@code de.tum.cit.ase} is for Ares' own
@@ -180,6 +192,12 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				String className = frame.getClassName();
 				if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
 					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
+				}
+				if (GENERATED_STRICT_TIMEOUT.equals(className)) {
+					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
+				}
+				if (className.startsWith(GENERATED_STRICT_TIMEOUT + "$")) {
+					continue;
 				}
 				// Ares's own infrastructure frames (this advice, internals) are never student
 				// code, even when restrictedPackage is a broad prefix that nominally covers

@@ -1,13 +1,21 @@
 package de.tum.cit.ase.ares.api.policy.reader.yaml;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -15,11 +23,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.StrictTimeoutsConfiguration;
 
 @DisplayName("SecurityPolicyYAMLReader Tests")
 public class SecurityPolicyYAMLReaderTest {
@@ -437,6 +448,101 @@ public class SecurityPolicyYAMLReaderTest {
 
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
 		}
+
+		@Test
+		@DisplayName("Should read a full strict-timeout category")
+		void fullStrictTimeoutsCategoryParses(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("strict-timeouts-full.yaml");
+			Files.writeString(policyFile, withStrictTimeouts("theTimeoutIs: 2", "theTimeUnitIs: MINUTES",
+					"theTerminationGraceIs: 200", "theTerminationGraceUnitIs: MICROSECONDS"));
+
+			StrictTimeoutsConfiguration category = reader.readSecurityPolicyFrom(policyFile)
+					.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfiguredOrEmpty()
+					.regardingStrictTimeouts();
+
+			assertNotNull(category);
+			assertEquals(Duration.ofMinutes(2), category.timeout());
+			assertEquals(Optional.of(Duration.ofNanos(200_000)), category.terminationGrace());
+		}
+
+		@Test
+		@DisplayName("Should default the units and leave the grace period unconfigured")
+		void strictTimeoutsDefaultsApply(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("strict-timeouts-defaults.yaml");
+			Files.writeString(policyFile, withStrictTimeouts("theTimeoutIs: 3"));
+
+			StrictTimeoutsConfiguration category = reader.readSecurityPolicyFrom(policyFile)
+					.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfiguredOrEmpty()
+					.regardingStrictTimeouts();
+
+			assertNotNull(category);
+			assertEquals(TimeUnit.SECONDS, category.theTimeUnitIs());
+			assertNull(category.theTerminationGraceIs());
+			assertEquals(TimeUnit.MILLISECONDS, category.theTerminationGraceUnitIs());
+		}
+
+		@ParameterizedTest(name = "{0}")
+		@DisplayName("Should reject a malformed or out-of-range strict-timeout category, naming the field")
+		@CsvSource(delimiter = '|', value = { "theTimeoutIs|theTimeUnitIs: SECONDS", "theTimeoutIs|theTimeoutIs: two",
+				"theTimeoutIs|theTimeoutIs: 0", "theTimeoutIs|theTimeoutIs: -1",
+				"theTimeUnitIs|theTimeoutIs: 1\\ntheTimeUnitIs: seconds",
+				"theTimeUnitIs|theTimeoutIs: 1\\ntheTimeUnitIs: FORTNIGHTS",
+				"theTimeUnitIs|theTimeoutIs: 1\\ntheTimeUnitIs: null",
+				"theTerminationGraceIs|theTimeoutIs: 1\\ntheTerminationGraceIs: -1",
+				"theTerminationGraceIs|theTimeoutIs: 1\\ntheTerminationGraceIs: 2\\ntheTerminationGraceUnitIs: DAYS",
+				"theTerminationGraceIs|theTimeoutIs: 1\\ntheTerminationGraceIs: soon",
+				"theTerminationGraceIs|theTimeoutIs: 1\\ntheTerminationGraceIs: null",
+				"theTerminationGraceUnitIs|theTimeoutIs: 1\\ntheTerminationGraceUnitIs: ms",
+				"theTimeoutIsSoon|theTimeoutIs: 1\\ntheTimeoutIsSoon: 2" })
+		void malformedStrictTimeoutsAreRejected(String field, String body, @TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("strict-timeouts-malformed.yaml");
+			Files.writeString(policyFile, withStrictTimeouts(body.split("\\\\n")));
+
+			SecurityException failure = assertThrows(SecurityException.class,
+					() -> reader.readSecurityPolicyFrom(policyFile));
+
+			assertTrue(causeChainText(failure).contains("regardingStrictTimeouts"), () -> causeChainText(failure));
+			assertTrue(causeChainText(failure).contains(field), () -> causeChainText(failure));
+		}
+
+		@Test
+		@DisplayName("Should reject an explicit null strict-timeout category")
+		void explicitNullStrictTimeoutsAreRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("strict-timeouts-null.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing()
+					+ "\n  theFollowingTestBehaviorIsConfigured:\n    regardingStrictTimeouts: null\n");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+	}
+
+	/**
+	 * The minimal policy with a strict-timeout category.
+	 *
+	 * @param categoryLines the category's lines, unindented.
+	 * @return the policy text
+	 */
+	private static String withStrictTimeouts(String... categoryLines) {
+		StringBuilder policy = new StringBuilder(minimalPolicy().stripTrailing())
+				.append("\n  theFollowingTestBehaviorIsConfigured:\n    regardingStrictTimeouts:\n");
+		for (String line : categoryLines) {
+			policy.append("      ").append(line.strip()).append('\n');
+		}
+		return policy.toString();
+	}
+
+	/**
+	 * The messages of a failure and every cause, joined.
+	 *
+	 * @param failure the failure.
+	 * @return the joined messages
+	 */
+	private static String causeChainText(Throwable failure) {
+		StringBuilder text = new StringBuilder();
+		for (Throwable current = failure; current != null; current = current.getCause()) {
+			text.append(current.getMessage()).append('\n');
+		}
+		return text.toString();
 	}
 
 	private static String minimalPolicy() {

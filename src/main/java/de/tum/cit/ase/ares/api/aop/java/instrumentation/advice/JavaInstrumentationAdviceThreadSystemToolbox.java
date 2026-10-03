@@ -54,6 +54,15 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	private static final String UNRESOLVED_THREAD_CLASS = "<unresolved-thread-class>";
 
 	/**
+	 * The generated precompile timeout, whose worker thread is exempt like
+	 * {@code TimeoutUtils}'s. Split so precompile copying, which rewrites every
+	 * "de.tum.cit.ase" in this file to the exercise package, leaves it intact. The
+	 * package is reserved, so no student class can carry this name.
+	 */
+	@Nonnull
+	private static final String GENERATED_STRICT_TIMEOUT = "de.tum.cit." + "ase.ares.generated.GeneratedStrictTimeout";
+
+	/**
 	 * Prefix for synthetic allow-list entries representing operations which create
 	 * or use threads without exposing a task object to the intercepted method.
 	 */
@@ -132,6 +141,9 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * method of that class refuses it. {@code rethrowThrowableSafe} is the one that
 	 * makes refusing necessary, being where the student's test body runs on the
 	 * worker, while the rest are Ares-internal and have no worker to claim;</li>
+	 * <li>exactly {@code GeneratedStrictTimeout}, the timeout a precompile run
+	 * generates: the same rule by method name. Its nested classes, such as its
+	 * thread factory, are skipped;</li>
 	 * <li>any other Ares class ({@code de.tum.cit.ase.ares.api.}): skipped, because
 	 * Ares' own frames are never student code even when {@code restrictedPackage}
 	 * is broad enough to cover them, as {@code de.tum.cit.ase} is for Ares' own
@@ -168,6 +180,12 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 				String className = frame.getClassName();
 				if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
 					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
+				}
+				if (GENERATED_STRICT_TIMEOUT.equals(className)) {
+					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
+				}
+				if (className.startsWith(GENERATED_STRICT_TIMEOUT + "$")) {
+					continue;
 				}
 				// Ares's own infrastructure frames (this advice, internals) are never student
 				// code, even when restrictedPackage is a broad prefix that nominally covers
