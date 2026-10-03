@@ -56,7 +56,7 @@
 		<jackson-version>2.22.3</jackson-version>
 		<!-- Declared directly so the version Ares resolves for consumers is fixed here
 			and matches the Artemis Docker image's dependency cache. -->
-		<snakeyaml-version>2.6</snakeyaml-version>
+		<snakeyaml-version>2.7</snakeyaml-version>
 		<json-version>20260814</json-version>
 		<!-- 6. Large Tooling Libraries -->
 		<commons-io-version>2.22.0</commons-io-version>
