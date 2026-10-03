@@ -283,6 +283,12 @@ regardingTheSupervisedCode:
     # REQUIRED list: Timeouts (can be empty array)
     regardingTimeouts:
       - timeout: 10000                               # REQUIRED (milliseconds)
+
+  # OPTIONAL: Behavioural test-lifecycle defaults, see 7.7
+  theFollowingTestBehaviorIsConfigured:
+    regardingOutputMirroring:
+      theOutputIsMirrored: false                     # OPTIONAL, defaults as shown
+      theMaximumCharacterCountIs: 100000000          # OPTIONAL, defaults as shown
 ```
 
 ### 7.3 Configuration Options
@@ -363,6 +369,35 @@ theFollowingClassesAreTestClasses:
 **Matching:** an entry matches a class name **exactly**, or matches a nested class of it on the `$` boundary. So `"com.instructor.ExerciseTest"` covers `com.instructor.ExerciseTest$Inner`, while never matching the unrelated `com.instructor.ExerciseTestOther`. The same comparison is used by the static architecture rules and by the runtime advice, so the behaviour is identical in both layers.
 
 > **Package names and package prefixes do not work here, and are not harmless.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package; it matches a class literally named `com.instructor`, which does not exist, so it exempts nothing. The likely symptom is that your own test classes are treated as supervised code and your assertions start tripping the policy, if they fall within the supervised scope. Worse, the entry is not inert: Ares derives a permitted package from every entry by stripping the last dotted component, so `"com.instructor"` permits imports from the whole `com` prefix. List each test class by its exact fully qualified name.
+
+---
+
+### 7.7 Test Behaviour Configuration
+
+The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for how Ares runs a test, as opposed to which resources code can access. Its category `regardingOutputMirroring` mirrors what the `@MirrorOutput` annotation controls per test: whether a test's console output appears on the real console as well, and the limit on a test's output.
+
+**Field Properties:**
+- **Type:** Object (optional wrapper), containing the optional `regardingOutputMirroring` object
+- **Required:** No. A policy without this field, or without `regardingOutputMirroring` inside it, behaves exactly as before.
+
+**`regardingOutputMirroring` sub-fields:**
+- `theOutputIsMirrored` (boolean, optional): `true` echoes everything a test writes to `System.out` and `System.err` to the real console as well. Defaults to `false`, as without the annotation.
+- `theMaximumCharacterCountIs` (integer, optional): the limit on what a test writes to each of the two streams. A test that writes more fails with `too much standard output`. It must be positive and defaults to 100000000, like `@MirrorOutput`.
+
+A non-boolean switch, a limit that is not a positive whole number, or an unknown field fails every test and names the field.
+
+**Example:**
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingOutputMirroring:
+    theOutputIsMirrored: true
+    theMaximumCharacterCountIs: 10000
+```
+
+**Precedence:** a `@MirrorOutput` on the test method or class replaces this category entirely. Without one, the policy applies to every test marked `@PublicTest` or `@HiddenTest`, from its `@BeforeEach` methods to its `@AfterEach` methods.
+
+**Precompile:** a precompile exercise has no Ares dependency at run time. The generator therefore writes the two values as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`, together with a JUnit extension that gives every test the same echo, the same limit and the same error messages. A generated sentinel test fails when the extension is not active. An instructor who replaces `System.out` in a `@BeforeEach` method takes over for that test. An instructor who replaces it earlier, in a `@BeforeAll` method or a field initialiser, receives nothing while mirroring is off, because the extension treats that stream as the console. Regenerating without this field deletes all of this again. Keep generated precompile output and the Ares dependency out of the same exercise.
 
 ---
 

@@ -281,7 +281,9 @@ Ares 2 trusts a different set of identities by name, including its own `de.tum.c
 
 They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reservedPackages/`, and live in the Ares repository at `src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`. Both are reproduced in full below, so you can complete the migration without extracting them.
 
-Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side contract that enforces it.
+
+Boundary version 3 rejects more than reserved packages. It rejects every `META-INF/services` file in student output. It rejects `junit-platform.properties` and `archunit.properties` at the root of that output. JUnit, jqwik and ArchUnit read these files by themselves, so a student file there can plug code into the test run or reconfigure the static analysis. Version 3 reserves `de/tum/cit/ase/ares/generated` as well, because Precompile writes its generated code there. Migrate every exercise that still carries a version 2 snippet.
 
 ### Maven
 
@@ -294,22 +296,23 @@ Delete the `maven-enforcer-plugin` execution with the `requireFilesDontExist` ru
   <version>3.2.0</version>
   <executions>
     <execution>
-      <id>verify-ares-reserved-packages-v2</id>
+      <id>verify-ares-reserved-packages-v3</id>
       <phase>process-classes</phase>
       <goals><goal>run</goal></goals>
       <configuration>
         <target>
-          <resourcecount property="ares.reserved.package.count">
-            <fileset dir="${project.build.outputDirectory}">
-              <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
-              <include name="jdk/**"/><include name="com/sun/**"/>
-              <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
-              <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-              <include name="com/tngtech/archunit/**"/><include name="anonymous/toolclasses/**"/>
-              <include name="metatest/**"/>
-            </fileset>
-          </resourcecount>
-          <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">
+          <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}">
+            <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
+            <include name="jdk/**"/><include name="com/sun/**"/>
+            <include name="de/tum/cit/ase/ares/api/**"/><include name="de/tum/cit/ase/ares/generated/**"/>
+            <include name="net/bytebuddy/**"/><include name="org/aspectj/**"/>
+            <include name="com/ibm/wala/**"/><include name="com/tngtech/archunit/**"/>
+            <include name="META-INF/services/**"/>
+            <include name="junit-platform.properties"/><include name="archunit.properties"/>
+          </fileset>
+          <resourcecount property="ares.reserved.package.count" refid="ares.reserved.files"/>
+          <pathconvert property="ares.reserved.package.files" refid="ares.reserved.files" pathsep=", "/>
+          <fail message="Ares reserved-package validation 3 rejected student output: ${ares.reserved.package.files}. No bypass flag is supported.">
             <condition><not><equals arg1="${ares.reserved.package.count}" arg2="0"/></not></condition>
           </fail>
         </target>
@@ -319,9 +322,9 @@ Delete the `maven-enforcer-plugin` execution with the `requireFilesDontExist` ru
 </plugin>
 ```
 
-`process-classes` precedes `test`, so `mvn test` runs it. The Maven binding was already correct at boundary version 1; the version moves to 2 only so both build tools name the same contract.
+`process-classes` precedes `test`, so `mvn test` runs it. The Maven binding was already correct at boundary version 1; version 3 adds the service-file and configuration-file checks and the generated package.
 
-> **What this boundary does not defend against.** The build descriptor and the command that invokes it are **trusted instructor configuration**. "No bypass flag is supported" describes the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV2`, can remove it. The threat addressed is student **code** that declares a reserved package. Your exercise template and its CI must own the build files and the invocation.
+> **What this boundary does not defend against.** The build descriptor and the command that invokes it are **trusted instructor configuration**. "No bypass flag is supported" describes the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-Dmaven.antrun.skip`, can remove it. The threat addressed is student **code** that declares a reserved package. Your exercise template and its CI must own the build files and the invocation.
 
 :::warning[Ares does not generate this boundary in either mode]
 The shipped snippets under
@@ -455,36 +458,37 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
                 </executions>
             </plugin>
 
-            <!-- 2. Reserved-package build boundary, version 2. Replaces the Ares 1
+            <!-- 2. Reserved-package build boundary, version 3. Replaces the Ares 1
                     maven-enforcer-plugin rule. See Section 8.2. -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>verify-ares-reserved-packages-v2</id>
-                        <phase>process-classes</phase>
-                        <goals><goal>run</goal></goals>
-                        <configuration>
-                            <target>
-                                <resourcecount property="ares.reserved.package.count">
-                                    <fileset dir="${project.build.outputDirectory}">
-                                        <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
-                                        <include name="jdk/**"/><include name="com/sun/**"/>
-                                        <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
-                                        <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-                                        <include name="com/tngtech/archunit/**"/><include name="anonymous/toolclasses/**"/>
-                                        <include name="metatest/**"/>
-                                    </fileset>
-                                </resourcecount>
-                                <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">
-                                    <condition><not><equals arg1="${ares.reserved.package.count}" arg2="0"/></not></condition>
-                                </fail>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-antrun-plugin</artifactId>
+              <version>3.2.0</version>
+              <executions>
+                <execution>
+                  <id>verify-ares-reserved-packages-v3</id>
+                  <phase>process-classes</phase>
+                  <goals><goal>run</goal></goals>
+                  <configuration>
+                    <target>
+                      <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}">
+                        <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
+                        <include name="jdk/**"/><include name="com/sun/**"/>
+                        <include name="de/tum/cit/ase/ares/api/**"/><include name="de/tum/cit/ase/ares/generated/**"/>
+                        <include name="net/bytebuddy/**"/><include name="org/aspectj/**"/>
+                        <include name="com/ibm/wala/**"/><include name="com/tngtech/archunit/**"/>
+                        <include name="META-INF/services/**"/>
+                        <include name="junit-platform.properties"/><include name="archunit.properties"/>
+                      </fileset>
+                      <resourcecount property="ares.reserved.package.count" refid="ares.reserved.files"/>
+                      <pathconvert property="ares.reserved.package.files" refid="ares.reserved.files" pathsep=", "/>
+                      <fail message="Ares reserved-package validation 3 rejected student output: ${ares.reserved.package.files}. No bypass flag is supported.">
+                        <condition><not><equals arg1="${ares.reserved.package.count}" arg2="0"/></not></condition>
+                      </fail>
+                    </target>
+                  </configuration>
+                </execution>
+              </executions>
             </plugin>
 
             <!-- 3. Put the agent and the AspectJ runtime at a known path. -->

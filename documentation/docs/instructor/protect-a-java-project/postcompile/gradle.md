@@ -296,15 +296,17 @@ and live in the repository at
 - `MavenReservedPackages.xml`
 - `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
-Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
+Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
+
+Boundary version 3 rejects more than reserved packages. It rejects every `META-INF/services` file in student output. It rejects `junit-platform.properties` and `archunit.properties` at the root of that output. JUnit, jqwik and ArchUnit read these files by themselves, so a student file there can plug code into the test run or reconfigure the static analysis. Version 3 reserves `de/tum/cit/ase/ares/generated` as well, because Precompile writes its generated code there. Migrate every exercise that still carries a version 2 snippet.
 
 ### Gradle
 
-Apply the shipped `GradleReservedPackages.gradle`, which registers `verifyAresReservedPackagesV2` over `sourceSets.main.output.classesDirs` and then attaches it in **two** places:
+Apply the shipped `GradleReservedPackages.gradle`, which registers `verifyAresReservedPackagesV3` over the whole `sourceSets.main.output`, classes and resources alike, and then attaches it in **two** places:
 
 ```gradle
-tasks.named('check') { dependsOn tasks.named('verifyAresReservedPackagesV2') }
-tasks.withType(Test).configureEach { dependsOn tasks.named('verifyAresReservedPackagesV2') }
+tasks.named('check') { dependsOn tasks.named('verifyAresReservedPackagesV3') }
+tasks.withType(Test).configureEach { dependsOn tasks.named('verifyAresReservedPackagesV3') }
 ```
 
 Both are required, and the second is the one that is easy to get wrong. Gradle's Java plugin defines `check.dependsOn test`, **not** the reverse. A snippet that hangs the validation off `check` alone is therefore never executed by `gradlew test`, which is the command this manual gives you and the command a grading run invokes. That was the defect in boundary version 1: an exercise carrying it accepted student classes in reserved packages. If your exercise still contains a `verifyAresReservedPackagesV1` task, migrate it.
@@ -336,7 +338,7 @@ and complete working exercises are in
 
 ### What this boundary does not defend against
 
-The build descriptor and the command that invokes it are **trusted instructor configuration**. The failure message says "No bypass flag is supported", and that is a statement about the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV2`, can remove the boundary outright.
+The build descriptor and the command that invokes it are **trusted instructor configuration**. The failure message says "No bypass flag is supported", and that is a statement about the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV3`, can remove the boundary outright.
 
 The threat this addresses is student **code** that declares a reserved package, not student control over the build. Your exercise template and its CI must own the build files and the invocation, and must fail visibly if either is altered.
 
@@ -474,6 +476,6 @@ tasks.withType(Test).configureEach {
     jvmArgumentProviders.add(aresJvmArguments)
 }
 
-// Ares reserved-package build boundary, version 2. See Section 4.
+// Ares reserved-package build boundary, version 3. See Section 4.
 apply from: 'gradle/AresReservedPackages.gradle'
 ```
