@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.policy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -21,7 +20,7 @@ class SecurityPolicyPipelineIntegrationTest {
 	Path temporaryDirectory;
 
 	@Test
-	void carriesFullyPopulatedYamlThroughRealMavenAndGradlePipelines() throws IOException {
+	void carriesFullyPopulatedYamlThroughRealMavenAndGradlePipelines() throws Exception {
 		for (BuildMode mode : BuildMode.values()) {
 			Path root = Files.createDirectory(temporaryDirectory.resolve(mode.name().toLowerCase()));
 			if (mode == BuildMode.MAVEN) {
@@ -50,7 +49,7 @@ class SecurityPolicyPipelineIntegrationTest {
 	}
 
 	@Test
-	void invalidPolicyFailsBeforeAFactoryExists() throws IOException {
+	void invalidPolicyFailsBeforeAFactoryExists() throws Exception {
 		Path root = Files.createDirectory(temporaryDirectory.resolve("invalid"));
 		Files.writeString(root.resolve("pom.xml"), "<project/>");
 		Path policy = root.resolve("policy.yaml");
@@ -58,7 +57,8 @@ class SecurityPolicyPipelineIntegrationTest {
 		SecurityPolicyReaderAndDirector pipeline = SecurityPolicyReaderAndDirector.builder()
 				.securityPolicyFilePath(policy).projectFolderPath(root).build();
 		assertThrows(SecurityException.class, pipeline::createTestCases);
-		assertThrows(NullPointerException.class, pipeline::factoryAndBuilder);
+		assertThrows(NullPointerException.class, pipeline::factoryAndBuilder,
+				"no factory should exist after a failed createTestCases()");
 	}
 
 	private String yaml(BuildMode mode) {

@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
+import java.util.Objects;
+
 import javax.annotation.Nonnull;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
@@ -11,6 +13,31 @@ public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
 
 	public JavaProgrammingExerciseProjectScanner(BuildToolConfiguration buildConfiguration) {
 		super(buildConfiguration);
+	}
+
+	/**
+	 * Rebinds this TUM-specific scanner to the discovered build configuration,
+	 * preserving its concrete type. Overrides
+	 * {@link JavaProjectScanner#withBuildConfiguration(BuildToolConfiguration)} so
+	 * a framework-default {@code JavaProgrammingExerciseProjectScanner} is rebuilt
+	 * as one of its own kind rather than as a plain {@link JavaProjectScanner}. A
+	 * further subclass is returned unchanged.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param buildConfiguration the discovered build configuration; must not be
+	 *                           null.
+	 * @return the scanner bound to the configuration, or this instance when it is a
+	 *         further subclass.
+	 */
+	@Override
+	@Nonnull
+	public JavaProgrammingExerciseProjectScanner withBuildConfiguration(
+			@Nonnull BuildToolConfiguration buildConfiguration) {
+		Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
+		return getClass() == JavaProgrammingExerciseProjectScanner.class
+				? new JavaProgrammingExerciseProjectScanner(buildConfiguration)
+				: this;
 	}
 
 	// <editor-fold desc="TUM-specific scan defaults">
