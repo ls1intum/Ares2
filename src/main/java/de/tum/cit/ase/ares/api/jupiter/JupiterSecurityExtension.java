@@ -24,6 +24,12 @@ public class JupiterSecurityExtension
 	private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace
 			.create(JupiterSecurityExtension.class);
 	private static final String POLICY_PREPARED_KEY = "policy-prepared";
+	/**
+	 * Store key for the guard state of class-level callbacks. It differs from the
+	 * method-level key because a store lookup also reads the parent's entries, and
+	 * a method must never see a state that belongs to the class.
+	 */
+	private static final String CLASS_POLICY_PREPARED_KEY = "class-policy-prepared";
 
 	private enum LifecycleState {
 		PREPARING,
@@ -33,35 +39,83 @@ public class JupiterSecurityExtension
 
 	// <editor-fold desc="Lifecycle Callbacks">
 
+	/**
+	 * Arms the guard before a setup method of a test method runs and leaves it
+	 * armed for the test, so student code reached from {@code @BeforeEach} is
+	 * restricted. A failure or abort closes it again, because the callback that
+	 * normally does so is then skipped.
+	 */
 	@Override
 	public void interceptBeforeEachMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		invocation.proceed();
+		proceedArmedUntilTestEnds(invocation, extensionContext);
 	}
 
+	/**
+	 * Arms the guard while the test class constructor runs and closes it
+	 * afterwards, so a student constructor reached from a field initialiser or the
+	 * constructor is restricted. JUnit hands this callback the class context even
+	 * for a test instance created per method, so the guard is closed again and
+	 * armed anew for the test. A policy on the class is needed for this to take
+	 * effect, because a policy on a test method is not known yet.
+	 */
 	@Override
 	public <T> T interceptTestClassConstructor(Invocation<T> invocation,
 			ReflectiveInvocationContext<java.lang.reflect.Constructor<T>> invocationContext,
 			ExtensionContext extensionContext) throws Throwable {
-		return invocation.proceed();
+		return interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
+	/**
+	 * Arms the guard while a {@code @BeforeAll} method runs and closes it
+	 * afterwards. This only happens when Ares is registered for the class, for
+	 * example by a class-level {@code @Public}, and the class carries a
+	 * {@code @Policy}.
+	 */
 	@Override
 	public void interceptBeforeAllMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		invocation.proceed();
+		interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
+	/**
+	 * Arms the guard again while an {@code @AfterEach} method runs, because the
+	 * test has already closed it, and closes it afterwards.
+	 */
 	@Override
 	public void interceptAfterEachMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		invocation.proceed();
+		interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
+	/**
+	 * Arms the guard while an {@code @AfterAll} method runs and closes it
+	 * afterwards.
+	 */
 	@Override
 	public void interceptAfterAllMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		invocation.proceed();
+		interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
+	}
+
+	/**
+	 * Arms the guard, runs the invocation and leaves the guard armed for the test
+	 * that follows. It closes the guard only when the invocation throws, because
+	 * the callback that usually closes it is not reached then.
+	 */
+	private void proceedArmedUntilTestEnds(Invocation<Void> invocation, ExtensionContext extensionContext)
+			throws Throwable {
+		prepareSecurityOnce(extensionContext);
+		try {
+			invocation.proceed();
+		} catch (Throwable failure) {
+			try {
+				closeSecurityOnce(extensionContext);
+			} catch (Throwable closeFailure) {
+				failure.addSuppressed(closeFailure);
+			}
+			throw failure;
+		}
 	}
 
 	/**
@@ -81,20 +135,21 @@ public class JupiterSecurityExtension
 
 	private void prepareSecurityOnce(ExtensionContext extensionContext) {
 		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
+		String stateKey = stateKey(extensionContext);
 		synchronized (store) {
-			LifecycleState state = store.get(POLICY_PREPARED_KEY, LifecycleState.class);
+			LifecycleState state = store.get(stateKey, LifecycleState.class);
 			if (state == LifecycleState.PREPARED || state == LifecycleState.PREPARING) {
 				return;
 			}
-			store.put(POLICY_PREPARED_KEY, LifecycleState.PREPARING);
+			store.put(stateKey, LifecycleState.PREPARING);
 		}
 		try {
 			resetSettingsInStandardClassLoader();
 			resetSettingsInBootstrapClassLoader();
 			prepareSecurity(extensionContext);
-			store.put(POLICY_PREPARED_KEY, LifecycleState.PREPARED);
+			store.put(stateKey, LifecycleState.PREPARED);
 		} catch (RuntimeException | Error failure) {
-			store.remove(POLICY_PREPARED_KEY);
+			store.remove(stateKey);
 			try {
 				resetSettingsInStandardClassLoader();
 				resetSettingsInBootstrapClassLoader();
@@ -133,20 +188,28 @@ public class JupiterSecurityExtension
 
 	private static void closeSecurityOnce(ExtensionContext extensionContext) {
 		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
+		String stateKey = stateKey(extensionContext);
 		synchronized (store) {
-			LifecycleState state = store.get(POLICY_PREPARED_KEY, LifecycleState.class);
+			LifecycleState state = store.get(stateKey, LifecycleState.class);
 			if (state == null || state == LifecycleState.CLOSED) {
 				return;
 			}
-			store.put(POLICY_PREPARED_KEY, LifecycleState.CLOSED);
+			store.put(stateKey, LifecycleState.CLOSED);
 		}
 		try {
 			JavaInstrumentationAgent.throwIfTransformationFailed();
 		} finally {
 			resetSettingsInStandardClassLoader();
 			resetSettingsInBootstrapClassLoader();
-			store.remove(POLICY_PREPARED_KEY);
+			store.remove(stateKey);
 		}
+	}
+
+	/**
+	 * Picks the store key that matches the level of the given context.
+	 */
+	private static String stateKey(ExtensionContext extensionContext) {
+		return extensionContext.getTestMethod().isPresent() ? POLICY_PREPARED_KEY : CLASS_POLICY_PREPARED_KEY;
 	}
 
 	// </editor-fold>

@@ -83,7 +83,7 @@ regardingTheSupervisedCode:
 | `theFollowingProgrammingLanguageConfigurationIsUsed` | Selects the processing pipeline (build system, static analysis tool and dynamic analysis backend). See the table below. |
 | `theSupervisedCodeUsesTheFollowingPackage` | The root package containing all student code to be supervised. |
 | `theMainClassInsideThisPackageIs` | The entrypoint class used to construct the call graph of the student program. |
-| `theFollowingClassesAreTestClasses` | Test classes that execute student code. These are trusted and not sandboxed. |
+| `theFollowingClassesAreTestClasses` | Test classes that execute student code. These are trusted and not sandboxed. Ares sandboxes an unlisted test class inside the supervised package like student code, setup methods included. |
 | `regardingFileSystemInteractions` | Which paths the student code may interact with, and which operations (read, create, overwrite, execute, delete) are allowed. |
 | `regardingNetworkConnections` | Hosts and ports the student program may connect to. |
 | `regardingCommandExecutions` | System commands the supervised program may execute. |

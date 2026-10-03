@@ -25,7 +25,7 @@ gets a say before, around and after every test.
 | `@Public` / `@Hidden` | Marks whether a test's result is shown immediately or held until the deadline |
 | `@PublicTest` / `@HiddenTest` | The same, combined with JUnit's own `@Test` |
 | `JupiterAresTest` | Internal meta-annotation that registers all four extensions at once |
-| `JupiterSecurityExtension` | Reads the `@Policy` configuration and applies the sandbox around each test, resetting it before and after |
+| `JupiterSecurityExtension` | Reads the `@Policy` configuration and applies the sandbox around each test and around the constructor and setup and teardown methods, resetting it afterwards |
 | `JupiterTestGuard` | Applies the pre- and post-test guards, including the deadline check |
 | `JupiterIOExtension` | Redirects `System.in`, `System.out` and `System.err` |
 | `JupiterStrictTimeoutExtension` | Enforces `@StrictTimeout` |
