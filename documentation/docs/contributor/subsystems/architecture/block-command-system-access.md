@@ -870,7 +870,7 @@ java.lang.ProcessBuilder.startPipeline
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.1.5</version>
+        <version>2.2.0</version>
     </dependency>
 </dependencies>
 ```

@@ -194,7 +194,7 @@ public class JavaWriter implements Writer {
 	 * contributed a field yet, so the class is only ever present on the classpath
 	 * once something is actually configured.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @param testBehaviorConfiguration the configuration whose literal field
 	 *                                  assignments to write; must not be null.
@@ -333,7 +333,7 @@ public class JavaWriter implements Writer {
 	 * is the overload {@code JavaTestCaseFactoryAndBuilder} actually calls, before
 	 * adding behaviour-specific outputs on top.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @param essentialClasses          the list of essential classes; must not be
 	 *                                  null
