@@ -13,7 +13,7 @@ Requires Java 17 and Maven 3.8 or newer.
 ## Expected output
 
 ```
-[INFO] --- antrun:3.2.0:run (verify-ares-reserved-packages-v2) @ ares-exercise-maven ---
+[INFO] --- antrun:3.2.0:run (verify-ares-reserved-packages-v3) @ ares-exercise-maven ---
 ...
 [INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS

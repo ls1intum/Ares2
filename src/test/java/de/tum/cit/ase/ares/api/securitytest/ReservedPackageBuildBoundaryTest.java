@@ -65,6 +65,61 @@ class ReservedPackageBuildBoundaryTest {
 		assertTrue(gradle.contains("def aresReservedPackageBoundaryVersion = '" + version + "'"));
 	}
 
+	/**
+	 * Both scripts reject the files that would plug student code into the test run:
+	 * every service file, and JUnit's and ArchUnit's settings at the root.
+	 *
+	 * @throws Exception if a script cannot be read
+	 */
+	@Test
+	void bothFixturesRejectServiceAndFrameworkConfigurationFiles() throws Exception {
+		String maven = Files.readString(ROOT.resolve("MavenReservedPackages.xml"));
+		String gradle = Files.readString(ROOT.resolve("GradleReservedPackages.gradle"));
+		for (String file : List.of("META-INF/services/**", "junit-platform.properties", "archunit.properties")) {
+			assertTrue(maven.contains("<include name=\"" + file + "\"/>"), () -> "Maven fixture misses " + file);
+		}
+		assertTrue(gradle.contains("'META-INF/services/'"), "Gradle fixture misses the service files");
+		assertTrue(gradle.contains("'junit-platform.properties', 'archunit.properties'"),
+				"Gradle fixture misses the root configuration files");
+		assertTrue(maven.contains("${ares.reserved.package.files}"), "Maven fixture must name the rejected files");
+	}
+
+	/**
+	 * The Gradle script scans the whole student output, resources included, since
+	 * service and configuration files are resources rather than classes.
+	 *
+	 * @throws Exception if the script cannot be read
+	 */
+	@Test
+	void gradleFixtureScansTheWholeMainOutput() throws Exception {
+		String gradle = Files.readString(ROOT.resolve("GradleReservedPackages.gradle"));
+		assertTrue(
+				gradle.contains("def studentOutputDirs = sourceSets.main.output\n")
+						|| gradle.contains("def studentOutputDirs = sourceSets.main.output\r\n"),
+				"Gradle fixture must scan sourceSets.main.output, not only its class directories");
+		assertTrue(!gradle.contains("sourceSets.main.output.classesDirs"),
+				"scanning only the class directories misses student resources");
+	}
+
+	/**
+	 * The examples carry copies of the shipped scripts; they must match, so CI
+	 * tests the guard that ships.
+	 *
+	 * @throws Exception if a file cannot be read
+	 */
+	@Test
+	void theExamplesCarryTheShippedScripts() throws Exception {
+		String gradle = Files.readString(ROOT.resolve("GradleReservedPackages.gradle")).replace("\r\n", "\n");
+		String exampleGradle = Files
+				.readString(Path.of("examples/ares-exercise-gradle/gradle/AresReservedPackages.gradle"))
+				.replace("\r\n", "\n");
+		assertEquals(gradle, exampleGradle);
+		String examplePom = Files.readString(Path.of("examples/ares-exercise-maven/pom.xml"));
+		assertTrue(examplePom.contains(
+				"verify-ares-reserved-packages-v" + WalaPathClassification.RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION));
+		assertTrue(examplePom.contains("<include name=\"META-INF/services/**\"/>"));
+	}
+
 	private boolean matches(String pattern, String classFile) {
 		return classFile.startsWith(pattern.substring(0, pattern.length() - 2));
 	}

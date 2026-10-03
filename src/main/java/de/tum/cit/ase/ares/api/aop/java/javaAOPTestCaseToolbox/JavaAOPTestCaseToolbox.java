@@ -99,6 +99,24 @@ public final class JavaAOPTestCaseToolbox {
 		}
 		return String.format("public static final boolean %s = %b;%n", fieldName, value);
 	}
+
+	/**
+	 * Formats a {@code public static final long} field assignment, for a generated
+	 * class read directly, as the boolean variant above.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 * @param fieldName the name of the field to assign; must not be null.
+	 * @param value     the value to assign; must be a {@link Long}.
+	 * @return the formatted field assignment, terminated with a newline.
+	 */
+	public static String getPublicStaticFinalLongAssignment(@Nonnull String fieldName, @Nullable Object value) {
+		if (!(value instanceof Long)) {
+			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.long",
+					value != null ? value.getClass() : null));
+		}
+		return String.format("public static final long %s = %dL;%n", fieldName, value);
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="1-Dimensional Array Types">
