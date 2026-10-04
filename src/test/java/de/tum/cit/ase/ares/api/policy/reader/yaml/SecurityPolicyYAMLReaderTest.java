@@ -15,10 +15,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.HiddenTestsConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 
 @DisplayName("SecurityPolicyYAMLReader Tests")
@@ -437,6 +440,97 @@ public class SecurityPolicyYAMLReaderTest {
 
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
 		}
+
+		@Test
+		@DisplayName("Should read a full hidden-test category")
+		void fullHiddenTestsCategoryParses(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("hidden-tests-full.yaml");
+			Files.writeString(policyFile,
+					withHiddenTests("theDeadlineIs: \"2000-01-01 00:00 UTC\"", "theDeadlineIsExtendedBy: \"1d\"",
+							"hiddenTestsAlwaysRunBefore: \"1990-01-01 00:00 UTC\"",
+							"theFollowingTestsAreHidden: [ \"org.example.A\", \"org.example.B#m\" ]"));
+
+			HiddenTestsConfiguration category = reader.readSecurityPolicyFrom(policyFile).regardingTheSupervisedCode()
+					.theFollowingTestBehaviorIsConfiguredOrEmpty().regardingHiddenTests();
+
+			assertNotNull(category);
+			assertEquals(List.of("org.example.A", "org.example.B#m"), category.theFollowingTestsAreHidden());
+			assertTrue(category.extension().isPresent());
+			assertTrue(category.alwaysRunBefore().isPresent());
+		}
+
+		@Test
+		@DisplayName("Should read a hidden-test category with only the deadline")
+		void deadlineOnlyHiddenTestsCategoryParses(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("hidden-tests-deadline.yaml");
+			Files.writeString(policyFile, withHiddenTests("theDeadlineIs: \"2000-01-01 00:00 UTC\""));
+
+			HiddenTestsConfiguration category = reader.readSecurityPolicyFrom(policyFile).regardingTheSupervisedCode()
+					.theFollowingTestBehaviorIsConfiguredOrEmpty().regardingHiddenTests();
+
+			assertNotNull(category);
+			assertTrue(category.theFollowingTestsAreHidden().isEmpty());
+		}
+
+		@ParameterizedTest(name = "{0}")
+		@DisplayName("Should reject a malformed hidden-test category, naming the field")
+		@CsvSource(delimiter = '|', value = { "theDeadlineIs|theDeadlineIsExtendedBy: \"1d\"",
+				"theDeadlineIs|theDeadlineIs: null", "theDeadlineIs|theDeadlineIs: 2026",
+				"theDeadlineIs|theDeadlineIs: \"2026-12-24 23:59\"",
+				"theDeadlineIsExtendedBy|theDeadlineIs: \"2000-01-01 00:00 UTC\";theDeadlineIsExtendedBy: null",
+				"hiddenTestsAlwaysRunBefore|theDeadlineIs: \"2000-01-01 00:00 UTC\";hiddenTestsAlwaysRunBefore: \"x\"",
+				"theFollowingTestsAreHidden|theDeadlineIs: \"2000-01-01 00:00 UTC\";theFollowingTestsAreHidden: \"org.example.A\"",
+				"theFollowingTestsAreHidden|theDeadlineIs: \"2000-01-01 00:00 UTC\";theFollowingTestsAreHidden: [ 5 ]",
+				"theFollowingTestsAreHidden|theDeadlineIs: \"2000-01-01 00:00 UTC\";theFollowingTestsAreHidden: null",
+				"theHiddenTestsAreLoud|theDeadlineIs: \"2000-01-01 00:00 UTC\";theHiddenTestsAreLoud: true" })
+		void malformedHiddenTestsIsRejected(String field, String lines, @TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("hidden-tests-malformed.yaml");
+			Files.writeString(policyFile, withHiddenTests(lines.split(";")));
+
+			SecurityException failure = assertThrows(SecurityException.class,
+					() -> reader.readSecurityPolicyFrom(policyFile));
+
+			assertTrue(causeChainText(failure).contains(field), () -> causeChainText(failure));
+		}
+
+		@Test
+		@DisplayName("Should reject an explicit null hidden-test category")
+		void explicitNullHiddenTestsIsRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("hidden-tests-null.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing()
+					+ "\n  theFollowingTestBehaviorIsConfigured:\n    regardingHiddenTests: null\n");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+	}
+
+	/**
+	 * The minimal policy with a hidden-test category.
+	 *
+	 * @param categoryLines the category's lines, unindented.
+	 * @return the policy text
+	 */
+	private static String withHiddenTests(String... categoryLines) {
+		StringBuilder policy = new StringBuilder(minimalPolicy().stripTrailing())
+				.append("\n  theFollowingTestBehaviorIsConfigured:\n    regardingHiddenTests:\n");
+		for (String line : categoryLines) {
+			policy.append("      ").append(line.strip()).append('\n');
+		}
+		return policy.toString();
+	}
+
+	/**
+	 * The messages of a failure and every cause, joined.
+	 *
+	 * @param failure the failure.
+	 * @return the joined messages
+	 */
+	private static String causeChainText(Throwable failure) {
+		StringBuilder text = new StringBuilder();
+		for (Throwable current = failure; current != null; current = current.getCause()) {
+			text.append(current.getMessage()).append('\n');
+		}
+		return text.toString();
 	}
 
 	private static String minimalPolicy() {

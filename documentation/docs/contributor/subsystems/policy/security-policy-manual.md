@@ -283,6 +283,14 @@ regardingTheSupervisedCode:
     # REQUIRED list: Timeouts (can be empty array)
     regardingTimeouts:
       - timeout: 10000                               # REQUIRED (milliseconds)
+
+  # OPTIONAL: Behavioural test-lifecycle defaults, see 7.7
+  theFollowingTestBehaviorIsConfigured:
+    regardingHiddenTests:
+      theDeadlineIs: "2026-12-24 23:59 Europe/Berlin"               # REQUIRED in this category
+      theDeadlineIsExtendedBy: "1d 12h"                             # OPTIONAL
+      hiddenTestsAlwaysRunBefore: "2026-11-01 00:00 Europe/Berlin"  # OPTIONAL
+      theFollowingTestsAreHidden: [ "org.example.PenguinTest#name" ] # OPTIONAL
 ```
 
 ### 7.3 Configuration Options
@@ -363,6 +371,39 @@ theFollowingClassesAreTestClasses:
 **Matching:** an entry matches a class name **exactly**, or matches a nested class of it on the `$` boundary. So `"com.instructor.ExerciseTest"` covers `com.instructor.ExerciseTest$Inner`, while never matching the unrelated `com.instructor.ExerciseTestOther`. The same comparison is used by the static architecture rules and by the runtime advice, so the behaviour is identical in both layers.
 
 > **Package names and package prefixes do not work here, and are not harmless.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package; it matches a class literally named `com.instructor`, which does not exist, so it exempts nothing. The likely symptom is that your own test classes are treated as supervised code and your assertions start tripping the policy, if they fall within the supervised scope. Worse, the entry is not inert: Ares derives a permitted package from every entry by stripping the last dotted component, so `"com.instructor"` permits imports from the whole `com` prefix. List each test class by its exact fully qualified name.
+
+---
+
+### 7.7 Hidden Tests
+
+The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for how Ares runs a test, as opposed to which resources code can access. Its category `regardingHiddenTests` sets, for the whole exercise, what `@Deadline`, `@ExtendedDeadline` and `@ActivateHiddenBefore` set per class or method: when hidden tests run, and which tests are hidden.
+
+**Field Properties:**
+- **Type:** Object (optional wrapper), containing the optional `regardingHiddenTests` object
+- **Required:** No. A policy without this field, or without `regardingHiddenTests` inside it, behaves exactly as before.
+
+**`regardingHiddenTests` sub-fields:**
+- `theDeadlineIs` (string, required): the deadline, in the `@Deadline` format, ending in a time zone such as `Europe/Berlin` or `UTC`. Hidden tests run once it has passed.
+- `theDeadlineIsExtendedBy` (string, optional): a duration in the `@ExtendedDeadline` format, such as `1d 12h`, added to the deadline.
+- `hiddenTestsAlwaysRunBefore` (string, optional): a date in the same format as the deadline, before which hidden tests always run, as `@ActivateHiddenBefore` does.
+- `theFollowingTestsAreHidden` (list of strings, optional): the hidden tests. A fully qualified class name (`org.example.PenguinTest`) covers every test in that class and in its nested classes. A class name followed by `#` and a method name (`org.example.PenguinTest#name`) covers every method of that name. Write a nested class with dots (`org.example.PenguinTest.Inner`).
+
+A missing deadline, a date without a time zone and a malformed date or duration each fail every test, naming the field. A malformed entry, or one that matches no test class or method, does the same and names the entry.
+
+**Example:**
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingHiddenTests:
+    theDeadlineIs: "2026-12-24 23:59 Europe/Berlin"
+    theDeadlineIsExtendedBy: "1d"
+    theFollowingTestsAreHidden:
+      - "org.example.PenguinTest#name"
+```
+
+**Precedence:** the policy is the outermost level. A hidden test takes its deadline from a `@Deadline` on its method, else from one on its class, else from the policy. The `@ExtendedDeadline` annotations on its class and method add to a class or policy deadline, as they always have. `@ActivateHiddenBefore` on the method, then on the class, wins over `hiddenTestsAlwaysRunBefore`. A test is hidden when its method or class carries `@HiddenTest` or `@Hidden`, public when they carry `@PublicTest` or `@Public`, and only otherwise does the list decide. Every test Ares supervises today carries one of those annotations, so in this workflow the list does not change a test's type yet. The policy's deadline never counts as a deadline on a public test.
+
+**Precompile:** a precompile exercise has no Ares dependency at run time, so it has no `@HiddenTest` either, and the list is the only way to mark a test hidden. The generator writes the values as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`, together with a JUnit extension. For each listed test, the extension holds back the test method, every invocation of a parameterised or repeated test, a test factory and its dynamic tests until the deadline. It fails them with the same message as `@HiddenTest`, and it replaces any failure of theirs with `Hidden test failed.`. The extension leaves the constructor and the `@BeforeAll`, `@BeforeEach`, `@AfterEach` and `@AfterAll` methods alone, exactly like postcompile. The generator stops when a list entry matches no test source or no method in it, naming the entry. A generated sentinel test fails when the extension is not active. Regenerating without this field deletes all of this again. Keep generated precompile output and the Ares dependency out of the same exercise.
 
 ---
 

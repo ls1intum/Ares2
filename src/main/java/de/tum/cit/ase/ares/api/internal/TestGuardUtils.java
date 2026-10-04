@@ -17,6 +17,7 @@ import org.slf4j.*;
 
 import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.context.*;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.HiddenTestsConfiguration;
 
 /**
  * This class handles public/hidden tests and deadline evaluation.
@@ -40,6 +41,7 @@ public final class TestGuardUtils {
 	}
 
 	public static void checkForHidden(TestContext context) {
+		Optional<HiddenTestsConfiguration> policy = ConfigurationUtils.findPolicyHiddenTests(context);
 		if (hasAnnotationType(context, TestType.HIDDEN)) {
 			// check if there are both, that would be a mistake
 			if (hasAnnotationType(context, TestType.PUBLIC)) {
@@ -47,13 +49,13 @@ public final class TestGuardUtils {
 						localized("test_guard.test_cannot_be_public_and_hidden", context.displayName())); //$NON-NLS-1$
 			}
 			var now = ZonedDateTime.now();
-			var finalDeadline = extractDeadline(context);
+			var finalDeadline = extractDeadline(context, policy);
 			// check if now is after the deadline including extensions
 			if (now.isAfter(finalDeadline)) {
 				return;
 			}
 			// check if now is in the activate hidden tests period
-			Optional<ZonedDateTime> activationBefore = extractActivationBefore(context);
+			Optional<ZonedDateTime> activationBefore = extractActivationBefore(context, policy);
 			if (activationBefore.map(now::isBefore).orElse(false)) {
 				return;
 			}
@@ -76,6 +78,22 @@ public final class TestGuardUtils {
 
 	public static ResolvedDeadlineAnnotations resolveDeadlineAnnotations(Optional<Class<?>> testClass,
 			Optional<Method> testMethod) {
+		return resolveDeadlineAnnotations(testClass, testMethod, Optional.empty());
+	}
+
+	/**
+	 * Resolves the effective deadline with the policy as the outermost level: a
+	 * method {@code @Deadline} first, then a class one, then the policy's, each
+	 * with the extensions that apply to it. The flags report annotations only, so
+	 * the policy never counts as a deadline annotation on a public test.
+	 *
+	 * @param testClass  the test's class.
+	 * @param testMethod the test's method.
+	 * @param policy     the active policy's hidden-test schedule, if any.
+	 * @return the effective deadline and which annotations were found
+	 */
+	public static ResolvedDeadlineAnnotations resolveDeadlineAnnotations(Optional<Class<?>> testClass,
+			Optional<Method> testMethod, Optional<HiddenTestsConfiguration> policy) {
 		Optional<ZonedDateTime> methodDeadline = getDeadlineOf(testMethod);
 		Optional<Duration> methodExtension = getExtensionDurationOf(testMethod);
 		Optional<ZonedDateTime> classDeadline = getDeadlineOf(testClass);
@@ -84,7 +102,8 @@ public final class TestGuardUtils {
 		if (methodDeadline.isPresent()) {
 			effectiveDeadline = methodDeadline.map(value -> value.plus(methodExtension.orElse(Duration.ZERO)));
 		} else {
-			effectiveDeadline = classDeadline.map(value -> value.plus(classExtension.orElse(Duration.ZERO)))
+			effectiveDeadline = classDeadline.or(() -> policy.map(HiddenTestsConfiguration::effectiveDeadline))
+					.map(value -> value.plus(classExtension.orElse(Duration.ZERO)))
 					.map(value -> value.plus(methodExtension.orElse(Duration.ZERO)));
 		}
 		return new ResolvedDeadlineAnnotations(effectiveDeadline, methodDeadline.isPresent(), classDeadline.isPresent(),
@@ -96,7 +115,21 @@ public final class TestGuardUtils {
 	}
 
 	public static ZonedDateTime extractDeadline(TestContext context) {
-		var deadline = extractDeadline(context.testClass(), context.testMethod());
+		return extractDeadline(context, ConfigurationUtils.findPolicyHiddenTests(context));
+	}
+
+	/**
+	 * The effective deadline of a hidden test, with the policy as the outermost
+	 * level.
+	 *
+	 * @param context the test's context.
+	 * @param policy  the active policy's hidden-test schedule, if any.
+	 * @return the deadline
+	 * @throws AnnotationFormatError when no annotation and no policy sets one
+	 */
+	public static ZonedDateTime extractDeadline(TestContext context, Optional<HiddenTestsConfiguration> policy) {
+		var deadline = resolveDeadlineAnnotations(context.testClass(), context.testMethod(), policy)
+				.effectiveDeadline();
 		if (deadline.isPresent()) {
 			return deadline.get();
 		}
@@ -119,8 +152,22 @@ public final class TestGuardUtils {
 	}
 
 	public static Optional<ZonedDateTime> extractActivationBefore(TestContext context) {
+		return extractActivationBefore(context, ConfigurationUtils.findPolicyHiddenTests(context));
+	}
+
+	/**
+	 * The date before which a hidden test always runs: a method
+	 * {@code @ActivateHiddenBefore} first, then a class one, then the policy's.
+	 *
+	 * @param context the test's context.
+	 * @param policy  the active policy's hidden-test schedule, if any.
+	 * @return the date, if any level sets one
+	 */
+	public static Optional<ZonedDateTime> extractActivationBefore(TestContext context,
+			Optional<HiddenTestsConfiguration> policy) {
 		var methodLevel = getActivationBeforeOf(context.testMethod());
-		return methodLevel.or(() -> getActivationBeforeOf(context.testClass()));
+		return methodLevel.or(() -> getActivationBeforeOf(context.testClass()))
+				.or(() -> policy.flatMap(HiddenTestsConfiguration::alwaysRunBefore));
 	}
 
 	public static Optional<ZonedDateTime> getDeadlineOf(Optional<? extends AnnotatedElement> element) {

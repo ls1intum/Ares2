@@ -31,7 +31,8 @@ back, and the protection of the hidden tests fails.
 
 Use `@ActivateHiddenBefore` just like `@Deadline` to state the `LocalDateTime` before which
 hidden tests should be executed. This date should lie before the release of the
-exercise on Artemis.
+exercise on Artemis. The security policy can set the same date for the whole exercise under
+[`regardingHiddenTests`](/contributor/subsystems/policy/security-policy-manual#77-hidden-tests); an annotation on a class or method still wins over it.
 
 ## Extending a Deadline and Disability Compensation
 
@@ -40,7 +41,9 @@ deadline by that amount. `@ExtendedDeadline("1d")`, for example, extends the dea
 day.
 
 If you use the annotation at several levels (for example class and method) without stating a
-new deadline (for example a deadline only at class level), the extensions add up.
+new deadline (for example a deadline only at class level), the extensions add up. The security
+policy can extend its own deadline under [`regardingHiddenTests`](/contributor/subsystems/policy/security-policy-manual#77-hidden-tests), and the extensions on a
+class or method then add to it as well.
 
 ## Threads and Concurrency
 

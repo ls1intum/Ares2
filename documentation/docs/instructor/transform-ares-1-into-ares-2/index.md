@@ -431,7 +431,7 @@ assertTrue(violation.getMessage().contains("secret.txt"),
 
 **Some restrictions are not policy-controlled.** Ares 2 installs fixed restrictions covering reflection, native access, JVM termination, class loading, JNDI and related domains. A policy governs the five resource domains; it cannot grant these.
 
-**`@Deadline` and the hidden-test annotations remain available** with updated imports, so the public/hidden workflow you have carries across unchanged in shape.
+**`@Deadline` and the hidden-test annotations remain available** with updated imports, so the public/hidden workflow you have carries across unchanged in shape. The security policy can now set the deadline, its extension and the date before which hidden tests always run for the whole exercise, under [`regardingHiddenTests`](/contributor/subsystems/policy/security-policy-manual#77-hidden-tests); the annotations still win on a class or method.
 
 ## Glossary
 

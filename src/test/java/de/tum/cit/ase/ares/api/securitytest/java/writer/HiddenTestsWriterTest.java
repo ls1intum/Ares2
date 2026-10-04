@@ -1,0 +1,240 @@
+package de.tum.cit.ase.ares.api.securitytest.java.writer;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.UnaryOperator;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.HiddenTestsConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
+
+/**
+ * Checks what the hidden-test writer generates for a precompile exercise, that
+ * it refuses entries no test source matches, and that it removes exactly what
+ * it wrote again.
+ */
+class HiddenTestsWriterTest {
+
+	/** The exercise package the copied Ares classes live in. */
+	private static final String PACKAGE = "com.example";
+
+	/** The exercise root of each test. */
+	@TempDir
+	Path projectRoot;
+
+	/** The exercise's test source root. */
+	private Path testFolder;
+
+	/**
+	 * Creates the exercise's test source folder with one test class holding a
+	 * nested class.
+	 *
+	 * @throws IOException if it cannot be created
+	 */
+	@BeforeEach
+	void setUp() throws IOException {
+		testFolder = Files.createDirectories(projectRoot.resolve("src/test/java"));
+		Path folder = Files.createDirectories(testFolder.resolve("com/example"));
+		Files.writeString(folder.resolve("PenguinTest.java"), """
+				package com.example;
+
+				class PenguinTest {
+					@org.junit.jupiter.api.Test
+					void name() {
+					}
+
+					@org.junit.jupiter.api.Nested
+					class Inner {
+						@org.junit.jupiter.api.Test
+						void deep() {
+						}
+					}
+				}
+				""");
+	}
+
+	/** Without the setting, nothing is generated or registered. */
+	@Test
+	void writesNothingWithoutTheSetting() {
+		GeneratedHookFiles.Contribution generated = writer(null).write(TestBehaviorConfiguration.builder().build(),
+				PACKAGE, testFolder);
+
+		assertThat(generated.written()).isEmpty();
+		assertThat(generated.jupiterHooks()).isEmpty();
+		assertThat(source(HiddenTestsSources.JUPITER_HOOK)).doesNotExist();
+	}
+
+	/**
+	 * With the setting, the extension and its sentinel are written and the
+	 * extension registered.
+	 *
+	 * @throws IOException if a written file cannot be read
+	 */
+	@Test
+	void writesTheExtensionAndItsSentinel() throws IOException {
+		GeneratedHookFiles.Contribution generated = writer(null).write(configured("com.example.PenguinTest#name"),
+				PACKAGE, testFolder);
+
+		assertThat(generated.jupiterHooks()).containsExactly(HiddenTestsSources.JUPITER_HOOK);
+		assertThat(generated.jqwikHooks()).isEmpty();
+		assertThat(source(HiddenTestsSources.JUPITER_HOOK)).content().contains("implements InvocationInterceptor")
+				.contains(
+						"com.example.ares.api.localization.Messages.localized(\"test_guard.hidden_test_before_deadline_message\")")
+				.contains("REGARDING_HIDDEN_TESTS_THE_FOLLOWING_TESTS_ARE_HIDDEN");
+		assertThat(source(HiddenTestsSources.JUPITER_SENTINEL)).exists();
+	}
+
+	/**
+	 * Entries naming a class, a method, a nested class and a method in a nested
+	 * class all match.
+	 *
+	 * @param entry the entry.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "com.example.PenguinTest", "com.example.PenguinTest#name", "com.example.PenguinTest.Inner",
+			"com.example.PenguinTest.Inner#deep" })
+	void matchingEntriesAreAccepted(String entry) {
+		assertThat(writer(null).write(configured(entry), PACKAGE, testFolder).jupiterHooks()).isNotEmpty();
+	}
+
+	/**
+	 * An entry no test source matches stops the generator, naming the entry.
+	 *
+	 * @param entry the entry.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "com.example.PenguinTset", "com.example.PenguinTest#nmae", "com.example.PenguinTest.Outer",
+			"org.example.PenguinTest" })
+	void anUnmatchedEntryStopsTheGenerator(String entry) {
+		assertThatThrownBy(() -> writer(null).write(configured(entry), PACKAGE, testFolder))
+				.isInstanceOf(SecurityException.class).hasMessageContaining(entry);
+		assertThat(source(HiddenTestsSources.JUPITER_HOOK)).doesNotExist();
+	}
+
+	/** The refusal is localised: in German it is the German text. */
+	@Test
+	void theRefusalIsLocalisedInGerman() {
+		Locale original = Locale.getDefault(Locale.Category.DISPLAY);
+		try {
+			Locale.setDefault(Locale.Category.DISPLAY, Locale.GERMAN);
+
+			assertThatThrownBy(() -> writer(null).write(configured("com.example.Nothing"), PACKAGE, testFolder))
+					.hasMessageStartingWith("Ares Sicherheitsfehler").hasMessageContaining("com.example.Nothing");
+		} finally {
+			Locale.setDefault(Locale.Category.DISPLAY, original);
+		}
+	}
+
+	/**
+	 * Generating twice writes the same files.
+	 *
+	 * @throws IOException if a written file cannot be read
+	 */
+	@Test
+	void aSecondRunWritesTheSameFiles() throws IOException {
+		writer(null).write(configured("com.example.PenguinTest"), PACKAGE, testFolder);
+		String hook = Files.readString(source(HiddenTestsSources.JUPITER_HOOK));
+
+		writer(null).write(configured("com.example.PenguinTest"), PACKAGE, testFolder);
+
+		assertThat(Files.readString(source(HiddenTestsSources.JUPITER_HOOK))).isEqualTo(hook);
+	}
+
+	/**
+	 * Removing the setting removes the extension and its sentinel, source and
+	 * compiled, in the Maven layout.
+	 *
+	 * @throws IOException if a file cannot be written
+	 */
+	@Test
+	void removingTheSettingRemovesTheHookUnderMaven() throws IOException {
+		assertRemoval(BuildMode.MAVEN, "pom.xml", "target/classes", "target/test-classes");
+	}
+
+	/**
+	 * Removing the setting removes the extension and its sentinel, source and
+	 * compiled, in the Gradle layout.
+	 *
+	 * @throws IOException if a file cannot be written
+	 */
+	@Test
+	void removingTheSettingRemovesTheHookUnderGradle() throws IOException {
+		assertRemoval(BuildMode.GRADLE, "build.gradle", "build/classes/java/main", "build/classes/java/test");
+	}
+
+	/**
+	 * Generates the hook in a build layout, then removes the setting and checks
+	 * that source and compiled class are gone.
+	 *
+	 * @param buildMode  the build tool.
+	 * @param descriptor the build file.
+	 * @param classes    the production output folder.
+	 * @param tests      the test output folder.
+	 * @throws IOException if a file cannot be written
+	 */
+	private void assertRemoval(BuildMode buildMode, String descriptor, String classes, String tests)
+			throws IOException {
+		for (String directory : List.of("src/main/java", classes, tests)) {
+			Files.createDirectories(projectRoot.resolve(directory));
+		}
+		Files.writeString(projectRoot.resolve(descriptor), "");
+		BuildToolConfiguration layout = new BuildToolConfiguration(buildMode, projectRoot,
+				List.of(projectRoot.resolve("src/main/java")), List.of(testFolder), projectRoot.resolve(classes),
+				projectRoot.resolve(tests));
+		writer(layout).write(configured("com.example.PenguinTest"), PACKAGE, testFolder);
+		Path compiled = projectRoot.resolve(tests + "/de/tum/cit/ase/ares/generated/GeneratedHiddenTests.class");
+		Files.createDirectories(compiled.getParent());
+		Files.write(compiled, new byte[] { (byte) 0xCA, (byte) 0xFE });
+
+		writer(layout).write(TestBehaviorConfiguration.builder().build(), PACKAGE, testFolder);
+
+		assertThat(source(HiddenTestsSources.JUPITER_HOOK)).doesNotExist();
+		assertThat(source(HiddenTestsSources.JUPITER_SENTINEL)).doesNotExist();
+		assertThat(compiled).doesNotExist();
+	}
+
+	/**
+	 * The writer for this test's exercise, confining nothing.
+	 *
+	 * @param layout the build layout, or null.
+	 * @return the writer
+	 */
+	private HiddenTestsWriter writer(BuildToolConfiguration layout) {
+		return new HiddenTestsWriter(new GeneratedHookFiles(projectRoot, layout, UnaryOperator.identity()));
+	}
+
+	/**
+	 * A configuration hiding the given tests.
+	 *
+	 * @param entries the hidden-test entries.
+	 * @return the configuration
+	 */
+	private static TestBehaviorConfiguration configured(String... entries) {
+		return TestBehaviorConfiguration.builder().regardingHiddenTests(
+				HiddenTestsConfiguration.builder().theDeadlineIs("2000-01-01 00:00 UTC").hiddenTests(entries).build())
+				.build();
+	}
+
+	/**
+	 * Where a generated class's source belongs.
+	 *
+	 * @param simpleName the class's simple name.
+	 * @return the source path
+	 */
+	private Path source(String simpleName) {
+		return testFolder.resolve("de/tum/cit/ase/ares/generated").resolve(simpleName + ".java");
+	}
+}
