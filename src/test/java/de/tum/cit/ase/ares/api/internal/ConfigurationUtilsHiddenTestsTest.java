@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -152,6 +153,34 @@ class ConfigurationUtilsHiddenTestsTest {
 	}
 
 	/**
+	 * Entries naming interface default methods, directly or through another
+	 * interface, by the class that inherits them are valid: a public test of that
+	 * class still runs.
+	 *
+	 * @throws Exception if the fixture cannot be read
+	 */
+	@Test
+	void interfaceDefaultMethodsListedThroughTheirClassAreValid() throws Exception {
+		TestContext context = context(InheritsInterfaceDefaults.class, "test");
+		when(context.findTestType()).thenReturn(Optional.of(TestType.PUBLIC));
+
+		assertThatCode(() -> TestGuardUtils.checkForHidden(context)).doesNotThrowAnyException();
+	}
+
+	/**
+	 * An interface default method listed through the class inheriting it is hidden
+	 * when JUnit runs it for that class.
+	 *
+	 * @throws Exception if the fixture cannot be read
+	 */
+	@Test
+	void anInheritedInterfaceDefaultMethodIsHidden() throws Exception {
+		Method inherited = DefaultTests.class.getDeclaredMethod("interfaceDefault");
+
+		assertThat(jupiterContext(InheritsInterfaceDefaults.class, inherited).findTestType()).contains(TestType.HIDDEN);
+	}
+
+	/**
 	 * A mocked context for a fixture method.
 	 *
 	 * @param type       the fixture class.
@@ -177,7 +206,18 @@ class ConfigurationUtilsHiddenTestsTest {
 	 * @throws NoSuchMethodException if the method does not exist
 	 */
 	private static JupiterContext jupiterContext(Class<?> type, String methodName) throws NoSuchMethodException {
-		Method method = type.getDeclaredMethod(methodName);
+		return jupiterContext(type, type.getDeclaredMethod(methodName));
+	}
+
+	/**
+	 * A Jupiter context over a mocked extension context for a test method JUnit
+	 * runs for a class, which may be inherited from elsewhere.
+	 *
+	 * @param type   the class JUnit runs the test for.
+	 * @param method the test method.
+	 * @return the context
+	 */
+	private static JupiterContext jupiterContext(Class<?> type, Method method) {
 		ExtensionContext extensionContext = mock(ExtensionContext.class);
 		when(extensionContext.getTestMethod()).thenReturn(Optional.of(method));
 		when(extensionContext.getTestClass()).thenReturn(Optional.of(type));
@@ -317,6 +357,31 @@ class ConfigurationUtilsHiddenTestsTest {
 	/** A class under a policy listing a method that does not exist. */
 	@Policy(FIXTURES + "PolicyHiddenTestsUnmatchedMethod.yaml")
 	static class UnmatchedMethod {
+		/** Read reflectively. */
+		void test() {
+			// Fixture only.
+		}
+	}
+
+	/** An interface whose default method is inherited through another one. */
+	interface GrandparentTests {
+		/** Read reflectively. */
+		default void grandparentDefault() {
+			// Fixture only.
+		}
+	}
+
+	/** An interface with a default test method, as JUnit runs it. */
+	interface DefaultTests extends GrandparentTests {
+		/** Read reflectively. */
+		default void interfaceDefault() {
+			// Fixture only.
+		}
+	}
+
+	/** A class under a policy listing the default methods it inherits. */
+	@Policy(FIXTURES + "PolicyHiddenTestsInheritedInterface.yaml")
+	static class InheritsInterfaceDefaults implements DefaultTests {
 		/** Read reflectively. */
 		void test() {
 			// Fixture only.

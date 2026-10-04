@@ -1,16 +1,13 @@
 package de.tum.cit.ase.ares.api.securitytest.java.writer;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
+
+import com.github.javaparser.ast.body.TypeDeclaration;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.HiddenTestsConfiguration;
@@ -58,8 +55,9 @@ final class HiddenTestsWriter {
 			hookFiles.deleteGenerated(testFolderPath, HiddenTestsSources.JUPITER_SENTINEL);
 			return GeneratedHookFiles.Contribution.NONE;
 		}
+		TestSourceDeclarations declarations = new TestSourceDeclarations(testFolderPath);
 		for (String entry : hiddenTests.theFollowingTestsAreHidden()) {
-			requireMatch(entry, testFolderPath);
+			requireMatch(entry, declarations);
 		}
 		String messagesClass = packageName + ".ares.api.localization.Messages";
 		List<Path> written = List.of(
@@ -71,73 +69,21 @@ final class HiddenTestsWriter {
 	}
 
 	/**
-	 * Fails unless an entry names a class in the test sources and, if it names a
-	 * method, one declared in that class's source file.
+	 * Fails unless an entry names a class declared in the test sources and, if it
+	 * names a method, one that class declares or inherits. A method of an enclosing
+	 * class does not count, since the generated hook would never match it.
 	 *
-	 * @param entry          the entry, {@code pkg.Class} or {@code pkg.Class#m}.
-	 * @param testFolderPath the test source root.
+	 * @param entry        the entry, {@code pkg.Class} or {@code pkg.Class#m}.
+	 * @param declarations the classes of the test sources.
 	 * @throws SecurityException naming the entry
 	 */
-	private static void requireMatch(@Nonnull String entry, @Nonnull Path testFolderPath) {
+	private static void requireMatch(@Nonnull String entry, @Nonnull TestSourceDeclarations declarations) {
 		int hash = entry.indexOf('#');
-		List<String> segments = Arrays.asList((hash < 0 ? entry : entry.substring(0, hash)).split("\\."));
-		Optional<String> source = classSource(segments, testFolderPath);
-		boolean matches = source.isPresent()
-				&& (hash < 0 || declares(source.get(), "\\b" + Pattern.quote(entry.substring(hash + 1)) + "\\s*\\("));
+		Optional<TypeDeclaration<?>> testClass = declarations.findClass(hash < 0 ? entry : entry.substring(0, hash));
+		boolean matches = testClass.isPresent()
+				&& (hash < 0 || declarations.hasMethod(testClass.get(), entry.substring(hash + 1)));
 		if (!matches) {
 			throw new SecurityException(Messages.localized("security.writer.hidden.tests.unmatched", entry));
-		}
-	}
-
-	/**
-	 * The source of the file declaring a class given by its canonical name: the
-	 * shortest prefix that is a file, with every later segment declared in it as a
-	 * nested class.
-	 *
-	 * @param segments       the name's dot-separated segments.
-	 * @param testFolderPath the test source root.
-	 * @return the file's text, or empty when no file and nesting match
-	 */
-	@Nonnull
-	private static Optional<String> classSource(@Nonnull List<String> segments, @Nonnull Path testFolderPath) {
-		for (int fileSegment = 0; fileSegment < segments.size(); fileSegment++) {
-			Path file = testFolderPath.resolve(String.join("/", segments.subList(0, fileSegment + 1)) + ".java");
-			if (Files.isRegularFile(file)) {
-				String text = read(file);
-				boolean nestedDeclared = segments.subList(fileSegment + 1, segments.size()).stream()
-						.allMatch(nested -> declares(text,
-								"\\b(?:class|interface|record|enum)\\s+" + Pattern.quote(nested) + "\\b"));
-				return nestedDeclared ? Optional.of(text) : Optional.empty();
-			}
-		}
-		return Optional.empty();
-	}
-
-	/**
-	 * Whether a source text contains a declaration matching a pattern.
-	 *
-	 * @param text    the source text.
-	 * @param pattern the declaration's pattern.
-	 * @return true when it does
-	 */
-	private static boolean declares(@Nonnull String text, @Nonnull String pattern) {
-		return Pattern.compile(pattern).matcher(text).find();
-	}
-
-	/**
-	 * Reads a test source.
-	 *
-	 * @param file the file.
-	 * @return its text
-	 * @throws SecurityException if it cannot be read
-	 */
-	@Nonnull
-	private static String read(@Nonnull Path file) {
-		try {
-			return Files.readString(file, StandardCharsets.UTF_8);
-		} catch (IOException unreadable) {
-			throw new SecurityException(Messages.localized("security.writer.generated.hooks.io", file.toString()),
-					unreadable);
 		}
 	}
 }

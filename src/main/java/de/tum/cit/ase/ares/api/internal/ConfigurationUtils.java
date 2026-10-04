@@ -1,7 +1,12 @@
 package de.tum.cit.ase.ares.api.internal;
 
 import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.apiguardian.api.API;
@@ -132,19 +137,37 @@ public final class ConfigurationUtils {
 	}
 
 	/**
-	 * Whether a class or one of its superclasses declares a method of that name.
+	 * Whether a class, one of its superclasses or one of the interfaces any of them
+	 * implements declares a method of that name, the classes JUnit looks in for
+	 * test methods.
 	 *
 	 * @param type       the class.
 	 * @param methodName the method's name.
 	 * @return true when one does
 	 */
 	private static boolean declaresMethod(Class<?> type, String methodName) {
-		for (Class<?> current = type; current != null; current = current.getSuperclass()) {
-			if (Stream.of(current.getDeclaredMethods()).anyMatch(method -> method.getName().equals(methodName))) {
-				return true;
+		return typeHierarchy(type).flatMap(current -> Stream.of(current.getDeclaredMethods()))
+				.anyMatch(method -> method.getName().equals(methodName));
+	}
+
+	/**
+	 * A class followed by its superclasses and every interface they implement,
+	 * directly or through other interfaces.
+	 *
+	 * @param type the class.
+	 * @return the class and all its supertypes, each once
+	 */
+	private static Stream<Class<?>> typeHierarchy(Class<?> type) {
+		Set<Class<?>> found = new LinkedHashSet<>();
+		Deque<Class<?>> pending = new ArrayDeque<>(List.of(type));
+		while (!pending.isEmpty()) {
+			Class<?> current = pending.pop();
+			if (found.add(current)) {
+				Optional.ofNullable(current.getSuperclass()).ifPresent(pending::add);
+				pending.addAll(List.of(current.getInterfaces()));
 			}
 		}
-		return false;
+		return found.stream();
 	}
 
 	/**

@@ -39,8 +39,9 @@ class HiddenTestsWriterTest {
 	private Path testFolder;
 
 	/**
-	 * Creates the exercise's test source folder with one test class holding a
-	 * nested class.
+	 * Creates the exercise's test source folder: a test class holding a nested
+	 * class, a comment and a call, and a test class inheriting methods from a
+	 * superclass in another package and from interfaces.
 	 *
 	 * @throws IOException if it cannot be created
 	 */
@@ -52,8 +53,10 @@ class HiddenTestsWriterTest {
 				package com.example;
 
 				class PenguinTest {
+					// ghost() was removed.
 					@org.junit.jupiter.api.Test
 					void name() {
+						Helper.called();
 					}
 
 					@org.junit.jupiter.api.Nested
@@ -62,6 +65,43 @@ class HiddenTestsWriterTest {
 						void deep() {
 						}
 					}
+				}
+				""");
+		Path base = Files.createDirectories(folder.resolve("base"));
+		Files.writeString(base.resolve("AbstractBirdTest.java"), """
+				package com.example.base;
+
+				public abstract class AbstractBirdTest {
+					@org.junit.jupiter.api.Test
+					void flies() {
+					}
+				}
+				""");
+		Files.writeString(folder.resolve("Gliding.java"), """
+				package com.example;
+
+				public interface Gliding {
+					@org.junit.jupiter.api.Test
+					default void glides() {
+					}
+				}
+				""");
+		Path birds = Files.createDirectories(folder.resolve("birds"));
+		Files.writeString(birds.resolve("Flying.java"), """
+				package com.example.birds;
+
+				import com.example.*;
+
+				public interface Flying extends Gliding {
+				}
+				""");
+		Files.writeString(folder.resolve("ParrotTest.java"), """
+				package com.example;
+
+				import com.example.base.AbstractBirdTest;
+				import com.example.birds.Flying;
+
+				class ParrotTest extends AbstractBirdTest implements Flying {
 				}
 				""");
 	}
@@ -98,30 +138,48 @@ class HiddenTestsWriterTest {
 	}
 
 	/**
-	 * Entries naming a class, a method, a nested class and a method in a nested
-	 * class all match.
+	 * Entries naming a class, a method, a nested class, a method in a nested class,
+	 * a method inherited from a superclass in another package and one inherited
+	 * from an interface through another interface all match.
 	 *
 	 * @param entry the entry.
 	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "com.example.PenguinTest", "com.example.PenguinTest#name", "com.example.PenguinTest.Inner",
-			"com.example.PenguinTest.Inner#deep" })
+			"com.example.PenguinTest.Inner#deep", "com.example.ParrotTest#flies", "com.example.ParrotTest#glides" })
 	void matchingEntriesAreAccepted(String entry) {
 		assertThat(writer(null).write(configured(entry), PACKAGE, testFolder).jupiterHooks()).isNotEmpty();
 	}
 
 	/**
-	 * An entry no test source matches stops the generator, naming the entry.
+	 * An entry no test source matches stops the generator, naming the entry: a
+	 * method of the enclosing class is not a method of the nested one, and a name
+	 * in a comment or a call is not a declaration.
 	 *
 	 * @param entry the entry.
 	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "com.example.PenguinTset", "com.example.PenguinTest#nmae", "com.example.PenguinTest.Outer",
-			"org.example.PenguinTest" })
+			"org.example.PenguinTest", "com.example.PenguinTest.Inner#name", "com.example.PenguinTest#ghost",
+			"com.example.PenguinTest#called" })
 	void anUnmatchedEntryStopsTheGenerator(String entry) {
 		assertThatThrownBy(() -> writer(null).write(configured(entry), PACKAGE, testFolder))
 				.isInstanceOf(SecurityException.class).hasMessageContaining(entry);
 		assertThat(source(HiddenTestsSources.JUPITER_HOOK)).doesNotExist();
+	}
+
+	/**
+	 * A test source that is not valid Java stops the generator, naming the file,
+	 * rather than letting an entry pass unchecked.
+	 *
+	 * @throws IOException if the source cannot be written
+	 */
+	@Test
+	void anUnparsableSourceStopsTheGenerator() throws IOException {
+		Files.writeString(testFolder.resolve("com/example/BrokenTest.java"), "class BrokenTest {");
+
+		assertThatThrownBy(() -> writer(null).write(configured("com.example.BrokenTest"), PACKAGE, testFolder))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("BrokenTest.java");
 	}
 
 	/** The refusal is localised: in German it is the German text. */
