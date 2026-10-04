@@ -18,12 +18,27 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent
 import de.tum.cit.ase.ares.api.context.TestContextUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
+/**
+ * Arms the security guard for a test method and for the constructor,
+ * {@code @BeforeEach}, {@code @AfterEach}, {@code @BeforeAll} and
+ * {@code @AfterAll} code around it. The class phases are guarded only if the
+ * class itself carries {@code @Policy}. A per-method test instance is built
+ * under the policy of its test method.
+ */
 @API(status = Status.INTERNAL)
-public class JupiterSecurityExtension
-		implements UnifiedInvocationInterceptor, BeforeTestExecutionCallback, AfterTestExecutionCallback {
+public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, TestInstantiationAwareExtension,
+		BeforeTestExecutionCallback, AfterTestExecutionCallback, AfterEachCallback {
+	/** Namespace of the guard state in the extension store. */
 	private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace
 			.create(JupiterSecurityExtension.class);
+	/** Store key for the guard state of a test method. */
 	private static final String POLICY_PREPARED_KEY = "policy-prepared";
+	/**
+	 * Store key for the guard state of callbacks that run without a test method. It
+	 * differs from the method key because a store lookup also reads the parent's
+	 * entries, and a method must never see a state of the class.
+	 */
+	private static final String CLASS_POLICY_PREPARED_KEY = "class-policy-prepared";
 
 	private enum LifecycleState {
 		PREPARING,
@@ -33,35 +48,67 @@ public class JupiterSecurityExtension
 
 	// <editor-fold desc="Lifecycle Callbacks">
 
+	/**
+	 * Makes JUnit hand the constructor interception the context of the test method,
+	 * so the policy on that method is known when a per-method test instance is
+	 * created. A shared instance is still built under the class context.
+	 */
+	@Override
+	public ExtensionContextScope getTestInstantiationExtensionContextScope(ExtensionContext rootContext) {
+		return ExtensionContextScope.TEST_METHOD;
+	}
+
+	/**
+	 * Arms the guard before a setup method runs and leaves it armed for the test. A
+	 * failure or abort closes it again, because the callback that normally does so
+	 * is then skipped.
+	 */
 	@Override
 	public void interceptBeforeEachMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		invocation.proceed();
+		proceedArmedUntilTestEnds(invocation, extensionContext);
 	}
 
+	/**
+	 * Arms the guard while the constructor of a test class runs and closes it
+	 * afterwards. For a per-method instance the policy is that of the test method.
+	 * JUnit builds the instance before it decides to skip the test, so a failure to
+	 * arm the guard here is left for the test itself. A shared instance is built
+	 * under the class context, so the guard is armed only for a class with a
+	 * policy.
+	 */
 	@Override
 	public <T> T interceptTestClassConstructor(Invocation<T> invocation,
 			ReflectiveInvocationContext<java.lang.reflect.Constructor<T>> invocationContext,
 			ExtensionContext extensionContext) throws Throwable {
-		return invocation.proceed();
+		if (extensionContext.getTestMethod().isPresent()) {
+			try {
+				prepareSecurityOnce(extensionContext);
+			} catch (RuntimeException armingFailure) {
+				return invocation.proceed();
+			}
+		}
+		return interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
 
-	@Override
-	public void interceptBeforeAllMethod(Invocation<Void> invocation,
-			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		invocation.proceed();
-	}
-
-	@Override
-	public void interceptAfterEachMethod(Invocation<Void> invocation,
-			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		invocation.proceed();
-	}
-
-	@Override
-	public void interceptAfterAllMethod(Invocation<Void> invocation,
-			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		invocation.proceed();
+	/**
+	 * Arms the guard, runs the invocation and leaves the guard armed for the test
+	 * that follows. It closes the guard only when the invocation throws, because
+	 * the callback that usually closes it is not reached then.
+	 */
+	private <T> T proceedArmedUntilTestEnds(Invocation<T> invocation, ExtensionContext extensionContext)
+			throws Throwable {
+		prepareSecurityOnce(extensionContext);
+		try {
+			return invocation.proceed();
+		} catch (Throwable failure) {
+			try {
+				closeSecurityOnce(extensionContext);
+			} catch (Throwable closeFailure) {
+				failure.addSuppressed(closeFailure);
+			}
+			throw failure;
+		}
 	}
 
 	/**
@@ -79,22 +126,27 @@ public class JupiterSecurityExtension
 		prepareSecurityOnce(extensionContext);
 	}
 
+	/**
+	 * Reads the policy and arms the guard once for the given context. A second call
+	 * for the same context does nothing, and a failure leaves the guard reset.
+	 */
 	private void prepareSecurityOnce(ExtensionContext extensionContext) {
 		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
+		String stateKey = stateKey(extensionContext);
 		synchronized (store) {
-			LifecycleState state = store.get(POLICY_PREPARED_KEY, LifecycleState.class);
+			LifecycleState state = store.get(stateKey, LifecycleState.class);
 			if (state == LifecycleState.PREPARED || state == LifecycleState.PREPARING) {
 				return;
 			}
-			store.put(POLICY_PREPARED_KEY, LifecycleState.PREPARING);
+			store.put(stateKey, LifecycleState.PREPARING);
 		}
 		try {
 			resetSettingsInStandardClassLoader();
 			resetSettingsInBootstrapClassLoader();
 			prepareSecurity(extensionContext);
-			store.put(POLICY_PREPARED_KEY, LifecycleState.PREPARED);
+			store.put(stateKey, LifecycleState.PREPARED);
 		} catch (RuntimeException | Error failure) {
-			store.remove(POLICY_PREPARED_KEY);
+			store.remove(stateKey);
 			try {
 				resetSettingsInStandardClassLoader();
 				resetSettingsInBootstrapClassLoader();
@@ -131,22 +183,44 @@ public class JupiterSecurityExtension
 		closeSecurityOnce(extensionContext);
 	}
 
+	/**
+	 * Closes the guard if nothing else did, for example when an interceptor outside
+	 * this extension failed a setup method after it had returned. JUnit calls this
+	 * for every test, even when {@link #afterTestExecution} was skipped.
+	 */
+	@Override
+	public void afterEach(ExtensionContext extensionContext) throws Exception {
+		closeSecurityOnce(extensionContext);
+	}
+
+	/**
+	 * Resets the guard once for the given context. It also reports a failed class
+	 * transformation of the instrumentation agent.
+	 */
 	private static void closeSecurityOnce(ExtensionContext extensionContext) {
 		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
+		String stateKey = stateKey(extensionContext);
 		synchronized (store) {
-			LifecycleState state = store.get(POLICY_PREPARED_KEY, LifecycleState.class);
+			LifecycleState state = store.get(stateKey, LifecycleState.class);
 			if (state == null || state == LifecycleState.CLOSED) {
 				return;
 			}
-			store.put(POLICY_PREPARED_KEY, LifecycleState.CLOSED);
+			store.put(stateKey, LifecycleState.CLOSED);
 		}
 		try {
 			JavaInstrumentationAgent.throwIfTransformationFailed();
 		} finally {
 			resetSettingsInStandardClassLoader();
 			resetSettingsInBootstrapClassLoader();
-			store.remove(POLICY_PREPARED_KEY);
+			store.remove(stateKey);
 		}
+	}
+
+	/**
+	 * Picks the store key that matches the level of the given context.
+	 */
+	private static String stateKey(ExtensionContext extensionContext) {
+		return extensionContext.getTestMethod().isPresent() ? POLICY_PREPARED_KEY : CLASS_POLICY_PREPARED_KEY;
 	}
 
 	// </editor-fold>
