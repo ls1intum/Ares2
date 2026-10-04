@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,17 +20,23 @@ import java.util.function.Function;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
+import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.platform.testkit.engine.EngineExecutionResults;
 import org.junit.platform.testkit.engine.EngineTestKit;
 
 class JupiterSecurityExtensionLifecycleTest {
@@ -91,7 +98,8 @@ class JupiterSecurityExtensionLifecycleTest {
 				.configurationParameter("junit.jupiter.execution.parallel.enabled", "true")
 				.configurationParameter("junit.jupiter.execution.parallel.mode.default", "concurrent").execute()
 				.testEvents().assertStatistics(statistics -> statistics.started(7).succeeded(7).failed(0));
-		assertEquals(7, ENGINE_PREPARATIONS.get());
+		assertEquals(14, ENGINE_PREPARATIONS.get(),
+				"each of the 7 invocations prepares once for its constructor and once for its test");
 	}
 
 	@Test
@@ -108,8 +116,10 @@ class JupiterSecurityExtensionLifecycleTest {
 		assertNull(restrictedPackageField().get(null));
 	}
 
+	/** Whether the guard was armed, recorded by each phase of a fixture. */
 	private static final List<String> OBSERVATIONS = new CopyOnWriteArrayList<>();
 
+	/** Arms a marker setting on prepare, so a fixture can see the guard. */
 	public static class ArmingSecurityExtension extends JupiterSecurityExtension {
 		@Override
 		void prepareSecurity(ExtensionContext context) {
@@ -120,6 +130,7 @@ class JupiterSecurityExtensionLifecycleTest {
 		}
 	}
 
+	/** Records whether the guard is armed during the named phase. */
 	private static void observe(String phase) {
 		try {
 			OBSERVATIONS.add(phase + "=" + (restrictedPackageField().get(null) != null));
@@ -128,12 +139,48 @@ class JupiterSecurityExtensionLifecycleTest {
 		}
 	}
 
+	/**
+	 * Cannot arm the guard for a test method, as when the policy analysis fails.
+	 */
+	public static class FailingPreparationExtension extends JupiterSecurityExtension {
+		@Override
+		void prepareSecurity(ExtensionContext context) {
+			if (context.getTestMethod().isPresent()) {
+				throw new SecurityException("deliberate preparation failure");
+			}
+		}
+	}
+
+	/** Has a disabled test, which JUnit skips after it has built the instance. */
+	@ExtendWith(FailingPreparationExtension.class)
+	static class DisabledTestFixture {
+		/** Must be skipped, not failed by the failing preparation. */
+		@Disabled
+		@Test
+		void test() {
+			observe("test");
+		}
+	}
+
+	/** Has an enabled test, whose start must report the failing preparation. */
+	@ExtendWith(FailingPreparationExtension.class)
+	static class EnabledTestFixture {
+		/** Must fail, because its guard cannot be armed. */
+		@Test
+		void test() {
+			observe("test");
+		}
+	}
+
+	/** Observes the guard in every phase of one test per method. */
 	@ExtendWith(ArmingSecurityExtension.class)
 	static class SetupPhasesFixture {
+		/** Observes the constructor phase. */
 		SetupPhasesFixture() {
 			observe("constructor");
 		}
 
+		/** Observes the guard in the other phases. */
 		@BeforeAll
 		static void beforeAll() {
 			observe("beforeAll");
@@ -160,6 +207,7 @@ class JupiterSecurityExtensionLifecycleTest {
 		}
 	}
 
+	/** Observes the guard when one instance serves two tests. */
 	@ExtendWith(ArmingSecurityExtension.class)
 	@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 	static class PerClassFixture {
@@ -188,6 +236,7 @@ class JupiterSecurityExtensionLifecycleTest {
 		}
 	}
 
+	/** Throws from the setup method to see whether the guard is closed. */
 	@ExtendWith(ArmingSecurityExtension.class)
 	static class FailingSetupFixture {
 		@BeforeEach
@@ -202,11 +251,12 @@ class JupiterSecurityExtensionLifecycleTest {
 		}
 	}
 
+	/** Aborts from the setup method to see whether the guard is closed. */
 	@ExtendWith(ArmingSecurityExtension.class)
 	static class AbortedSetupFixture {
 		@BeforeEach
 		void beforeEach() {
-			org.junit.jupiter.api.Assumptions.assumeTrue(false);
+			Assumptions.assumeTrue(false);
 		}
 
 		@Test
@@ -215,28 +265,103 @@ class JupiterSecurityExtensionLifecycleTest {
 		}
 	}
 
-	private static void runFixture(Class<?> fixture) throws ReflectiveOperationException {
+	/**
+	 * Wraps the setup methods of a fixture from outside and fails them once they
+	 * have run.
+	 */
+	public static class FailingOuterInterceptor implements InvocationInterceptor {
+		@Override
+		public void interceptBeforeEachMethod(Invocation<Void> invocation,
+				ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext)
+				throws Throwable {
+			invocation.proceed();
+			throw new IllegalStateException("deliberate failure after the setup method returned");
+		}
+	}
+
+	/**
+	 * Fails the setup method from an interceptor that sits outside Ares, after Ares
+	 * has returned.
+	 */
+	@ExtendWith({ FailingOuterInterceptor.class, ArmingSecurityExtension.class })
+	static class OuterInterceptorFailureFixture {
+		/** Observes the setup method. */
+		@BeforeEach
+		void beforeEach() {
+			observe("beforeEach");
+		}
+
+		/** Must not run, because the setup method failed. */
+		@Test
+		void test() {
+			observe("test");
+		}
+	}
+
+	/** Declares a setup method that a subclass inherits. */
+	static class InheritedSetup {
+		/** Observes the inherited setup method. */
+		@BeforeEach
+		void inheritedSetup() {
+			observe("inheritedSetup");
+		}
+	}
+
+	/** Has an inherited and an own setup method. */
+	@ExtendWith(ArmingSecurityExtension.class)
+	static class MultipleSetupFixture extends InheritedSetup {
+		/** Observes the own setup method. */
+		@BeforeEach
+		void ownSetup() {
+			observe("ownSetup");
+		}
+
+		/** Observes the test. */
+		@Test
+		void test() {
+			observe("test");
+		}
+	}
+
+	/** Has a nested class with its own setup method and test. */
+	@ExtendWith(ArmingSecurityExtension.class)
+	static class NestedFixture {
+		/** The nested class whose phases are observed. */
+		@Nested
+		class Inner {
+			/** Observes the setup method of the nested class. */
+			@BeforeEach
+			void innerBeforeEach() {
+				observe("innerBeforeEach");
+			}
+
+			/** Observes the test of the nested class. */
+			@Test
+			void innerTest() {
+				observe("innerTest");
+			}
+		}
+	}
+
+	/** Runs one fixture alone with a closed guard and empty records. */
+	private static EngineExecutionResults runFixture(Class<?> fixture) throws ReflectiveOperationException {
 		OBSERVATIONS.clear();
 		ENGINE_PREPARATIONS.set(0);
 		restrictedPackageField().set(null, null);
-		EngineTestKit.engine("junit-jupiter").selectors(selectClass(fixture)).execute();
+		return EngineTestKit.engine("junit-jupiter").selectors(selectClass(fixture)).execute();
 	}
 
+	/** Every phase sees an armed guard, and it is closed at the end. */
 	@Test
 	void setupAndTeardownMethodsRunWithTheGuardArmed() throws ReflectiveOperationException {
 		runFixture(SetupPhasesFixture.class);
 
-		assertEquals(
-				List.of("constructor=true", "beforeAll=true", "beforeEach=true", "test=true", "afterEach=true",
-						"afterAll=true"),
-				List.copyOf(OBSERVATIONS).stream()
-						.sorted(java.util.Comparator.comparingInt(
-								o -> List.of("constructor", "beforeAll", "beforeEach", "test", "afterEach", "afterAll")
-										.indexOf(o.substring(0, o.indexOf('=')))))
-						.toList());
+		assertEquals(List.of("beforeAll=true", "constructor=true", "beforeEach=true", "test=true", "afterEach=true",
+				"afterAll=true"), OBSERVATIONS);
 		assertNull(restrictedPackageField().get(null), "the guard must be closed once the class has finished");
 	}
 
+	/** A shared instance must not leave later tests unguarded. */
 	@Test
 	void everyTestOfAPerClassInstanceStillRunsWithTheGuardArmed() throws ReflectiveOperationException {
 		runFixture(PerClassFixture.class);
@@ -249,27 +374,96 @@ class JupiterSecurityExtensionLifecycleTest {
 		assertNull(restrictedPackageField().get(null));
 	}
 
+	/** A failing setup method must close the guard. */
 	@Test
 	void setupMethodThatThrowsDoesNotLeaveTheGuardArmed() throws ReflectiveOperationException {
-		runFixture(FailingSetupFixture.class);
+		runFixture(FailingSetupFixture.class).testEvents()
+				.assertStatistics(statistics -> statistics.started(1).failed(1));
 
 		assertEquals(List.of("beforeEach=true"), OBSERVATIONS);
 		assertNull(restrictedPackageField().get(null), "a failed setup method must still close the guard");
 	}
 
+	/** An aborted setup method must close the guard. */
 	@Test
 	void setupMethodThatAbortsDoesNotLeaveTheGuardArmed() throws ReflectiveOperationException {
-		runFixture(AbortedSetupFixture.class);
+		runFixture(AbortedSetupFixture.class).testEvents()
+				.assertStatistics(statistics -> statistics.started(1).aborted(1));
 
 		assertEquals(List.of(), OBSERVATIONS);
+		assertEquals(2, ENGINE_PREPARATIONS.get(), "the constructor and the setup method must both have been armed");
 		assertNull(restrictedPackageField().get(null), "an aborted setup method must still close the guard");
 	}
 
+	/** The test method reuses the preparation done for its setup method. */
 	@Test
 	void armingBeforeEachDoesNotPrepareAgainWhenTheTestMethodStarts() throws ReflectiveOperationException {
 		runFixture(PerClassFixture.class);
 
 		assertEquals(2, ENGINE_PREPARATIONS.get(), "exactly one preparation per test method, shared with beforeEach");
+	}
+
+	/**
+	 * A test that JUnit skips is not failed by a policy that cannot be applied
+	 * while its instance is built.
+	 */
+	@Test
+	void skippedTestIsNotFailedByAFailingPreparation() throws ReflectiveOperationException {
+		runFixture(DisabledTestFixture.class).testEvents()
+				.assertStatistics(statistics -> statistics.skipped(1).failed(0));
+
+		assertEquals(List.of(), OBSERVATIONS);
+	}
+
+	/**
+	 * The failing preparation still fails a test that runs, and the test body does
+	 * not run.
+	 */
+	@Test
+	void failingPreparationStillFailsATestThatRuns() throws ReflectiveOperationException {
+		runFixture(EnabledTestFixture.class).testEvents()
+				.assertStatistics(statistics -> statistics.started(1).failed(1));
+
+		assertEquals(List.of(), OBSERVATIONS);
+		assertNull(restrictedPackageField().get(null));
+	}
+
+	/**
+	 * An interceptor outside this extension that fails a setup method must not
+	 * leave the guard armed.
+	 */
+	@Test
+	void outerInterceptorFailingTheSetupMethodDoesNotLeaveTheGuardArmed() throws ReflectiveOperationException {
+		runFixture(OuterInterceptorFailureFixture.class).testEvents()
+				.assertStatistics(statistics -> statistics.started(1).failed(1));
+
+		assertEquals(List.of("beforeEach=true"), OBSERVATIONS);
+		assertNull(restrictedPackageField().get(null), "the guard must be closed after the test has failed");
+	}
+
+	/**
+	 * Several setup methods, inherited ones included, all run armed and share one
+	 * preparation.
+	 */
+	@Test
+	void inheritedAndOwnSetupMethodsRunArmedWithOnePreparation() throws ReflectiveOperationException {
+		runFixture(MultipleSetupFixture.class);
+
+		assertEquals(List.of("inheritedSetup=true", "ownSetup=true", "test=true"), OBSERVATIONS);
+		assertEquals(2, ENGINE_PREPARATIONS.get(),
+				"one for the constructor, one shared by the setup methods and the test");
+		assertNull(restrictedPackageField().get(null));
+	}
+
+	/**
+	 * A nested class runs its setup method and test armed, and closes the guard.
+	 */
+	@Test
+	void nestedClassRunsArmedAndClosesTheGuard() throws ReflectiveOperationException {
+		runFixture(NestedFixture.class).testEvents().assertStatistics(statistics -> statistics.succeeded(1));
+
+		assertEquals(List.of("innerBeforeEach=true", "innerTest=true"), OBSERVATIONS);
+		assertNull(restrictedPackageField().get(null));
 	}
 
 	private static void setRestrictedPackage(String value) {

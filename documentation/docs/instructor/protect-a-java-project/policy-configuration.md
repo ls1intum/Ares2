@@ -83,7 +83,7 @@ regardingTheSupervisedCode:
 | `theFollowingProgrammingLanguageConfigurationIsUsed` | Selects the processing pipeline (build system, static analysis tool and dynamic analysis backend). See the table below. |
 | `theSupervisedCodeUsesTheFollowingPackage` | The root package containing all student code to be supervised. |
 | `theMainClassInsideThisPackageIs` | The entrypoint class used to construct the call graph of the student program. |
-| `theFollowingClassesAreTestClasses` | Test classes that execute student code. These are trusted and not sandboxed. Ares sandboxes an unlisted test class inside the supervised package like student code, setup methods included. |
+| `theFollowingClassesAreTestClasses` | Test classes that execute student code. These are trusted and not sandboxed. Ares sandboxes an unlisted test class, helper class or superclass inside the supervised package like student code, constructor and setup and teardown methods included. |
 | `regardingFileSystemInteractions` | Which paths the student code may interact with, and which operations (read, create, overwrite, execute, delete) are allowed. |
 | `regardingNetworkConnections` | Hosts and ports the student program may connect to. |
 | `regardingCommandExecutions` | System commands the supervised program may execute. |
@@ -94,6 +94,15 @@ regardingTheSupervisedCode:
 :::warning[Everything is default-deny]
 Any resource not listed is denied. An empty list such as `regardingNetworkConnections: [ ]`
 forbids all network access.
+:::
+
+:::note[Setup code and the class policy]
+Ares restricts student code that runs from a field initialiser, a constructor, `@BeforeEach` or
+`@AfterEach`, not only from the test method. The `@Policy` on the test method covers a test
+instance created for that method. A `@BeforeAll`, an `@AfterAll` and an instance shared by the
+whole class (`@TestInstance(PER_CLASS)`) run before any method policy is known, so Ares restricts
+them only when the test class itself carries `@Policy`. `@BeforeAll` and `@AfterAll` need
+`@Public` or `@Hidden` on the class as well.
 :::
 
 ## Supported programming language configurations
