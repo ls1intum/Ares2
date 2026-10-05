@@ -74,6 +74,7 @@ public final class JavaInstrumentationAgent {
 		classInjectorFactory = unsafeFactory;
 
 		putToolboxOnBootClassLoader(unsafeFactory);
+		initializeToolboxes();
 
 		// Pre-warm the StackWalker infrastructure on the bootstrap class loader before
 		// any pointcut goes live. The toolbox advice paths use StackWalker for the fast
@@ -133,6 +134,27 @@ public final class JavaInstrumentationAgent {
 						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 								JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding)));
 		installThreadCallSiteBuilder(inst, unsafeFactory);
+	}
+
+	/**
+	 * Initialises the toolboxes injected into the boot class loader before any
+	 * transformer is installed. Their static initialisers load guarded JDK classes
+	 * such as {@link ProcessBuilder}; a class first loaded inside a running
+	 * transformation never reaches any transformer, so it must be loaded now, where
+	 * the installation's retransformation pass still covers it.
+	 */
+	private static void initializeToolboxes() {
+		for (Class<?> toolbox : List.of(JavaInstrumentationAdviceAbstractToolbox.class,
+				JavaInstrumentationAdviceFileSystemToolbox.class, JavaInstrumentationAdviceThreadSystemToolbox.class,
+				JavaInstrumentationThreadSystemCallSite.class, JavaInstrumentationAdviceNetworkSystemToolbox.class,
+				JavaInstrumentationAdviceCommandSystemToolbox.class)) {
+			try {
+				Class.forName(toolbox.getName(), true, null);
+			} catch (ClassNotFoundException e) {
+				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.instrumentation.agent.toolbox.installation.failed", toolbox.getName()), e);
+			}
+		}
 	}
 
 	private static void preloadPlatformClass(String className) {
