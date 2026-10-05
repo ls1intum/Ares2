@@ -81,6 +81,58 @@ class PreferencesBackingStoreDenyTest {
 	}
 
 	@Test
+	void testScopedCreatePolicyStillBlocksNodeCreation(@TempDir Path tempDir) throws Exception {
+		try {
+			configure();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { tempDir.toString() },
+					"ARCH", "INSTRUMENTATION");
+			assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe.checkPreferencesNode("child"));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void testWildcardCreatePolicyAllowsNodeCreation() throws Exception {
+		try {
+			configure();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { "*" }, "ARCH",
+					"INSTRUMENTATION");
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkPreferencesNode("child"));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void testRemoveNodeChecksDeletePermissionNotOverwrite(@TempDir Path tempDir) throws Exception {
+		try {
+			configure();
+			// Overwrite is fully open, delete is only scoped: removeNode must still be
+			// rejected, proving it is checked against the delete allow-list.
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten", new String[] { "*" }, "ARCH",
+					"INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeDeleted", new String[] { tempDir.toString() },
+					"ARCH", "INSTRUMENTATION");
+			assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe.checkPreferencesRemoveNode());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void testWildcardDeletePolicyAllowsRemoveNode() throws Exception {
+		try {
+			configure();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeDeleted", new String[] { "*" }, "ARCH",
+					"INSTRUMENTATION");
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkPreferencesRemoveNode());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
 	void testKeyMatchingAllowedDirIsNotMistakenForAnAllowedPath(@TempDir Path tempDir) throws Exception {
 		try {
 			configure();

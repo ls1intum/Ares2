@@ -235,6 +235,7 @@ java.util.prefs.Preferences.getInt
 java.util.prefs.Preferences.getLong
 java.util.prefs.Preferences.importPreferences
 java.util.prefs.Preferences.keys
+java.util.prefs.Preferences.node
 java.util.prefs.Preferences.nodeExists
 java.util.prefs.Preferences.put
 java.util.prefs.Preferences.putBoolean

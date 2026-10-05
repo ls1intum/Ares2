@@ -449,7 +449,7 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// gate; it is registered here so the AOP layer classifies it as a write too.
 			Map.entry("java.util.prefs.Preferences",
 					List.of("put", "putInt", "putLong", "putBoolean", "putFloat", "putDouble", "putByteArray", "remove",
-							"removeNode", "clear", "flush", "sync", "importPreferences")),
+							"clear", "flush", "sync", "importPreferences")),
 			Map.entry("java.util.Formatter", List.of("<init>")),
 			Map.entry("java.io.RandomAccessFile", List.of("<init>")),
 			Map.entry("java.io.File",
@@ -534,6 +534,9 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move")),
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete")),
 			Map.entry("java.nio.file.SecureDirectoryStream", List.of("deleteFile", "deleteDirectory")),
+			// Preferences.removeNode removes the node from the backing store, so it is a
+			// delete and is checked against the delete allow-list, not overwrite.
+			Map.entry("java.util.prefs.Preferences", List.of("removeNode")),
 			Map.entry("org.apache.commons.io.FileUtils", List.of("forceDelete")));
 	// </editor-fold>
 
@@ -562,6 +565,9 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.file.Files",
 					List.of("createDirectories", "createDirectory", "createFile", "createLink", "createTempDirectory",
 							"createTempFile", "createSymbolicLink", "newBufferedWriter", "newOutputStream")),
+			// Preferences.node(path) creates the node and any missing ancestors in the
+			// backing store, like File.mkdir, so it is a create.
+			Map.entry("java.util.prefs.Preferences", List.of("node")),
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("createDirectory")));
 	// </editor-fold>
 

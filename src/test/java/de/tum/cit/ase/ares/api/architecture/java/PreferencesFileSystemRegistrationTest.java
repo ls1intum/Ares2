@@ -74,6 +74,22 @@ class PreferencesFileSystemRegistrationTest {
 		List<String> methods = write.get(PREFS);
 		assertTrue(methods != null && methods.contains("put") && methods.contains("flush"),
 				"Instrumentation overwrite map must list Preferences write methods");
+		assertTrue(methods != null && !methods.contains("removeNode"), "removeNode is a delete, not an overwrite");
+	}
+
+	@Test
+	void testInstrumentationCreateMapContainsPreferencesNode() {
+		Map<String, List<String>> create = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES;
+		List<String> methods = create.get(PREFS);
+		assertTrue(methods != null && methods.contains("node"), "node creates a node, so the create map must list it");
+	}
+
+	@Test
+	void testInstrumentationDeleteMapContainsPreferencesRemoveNode() {
+		Map<String, List<String>> delete = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES;
+		List<String> methods = delete.get(PREFS);
+		assertTrue(methods != null && methods.contains("removeNode"),
+				"removeNode removes a node, so the delete map must list it");
 	}
 
 	@Test

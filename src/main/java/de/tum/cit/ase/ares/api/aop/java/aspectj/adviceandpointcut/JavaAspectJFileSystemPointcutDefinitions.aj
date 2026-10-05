@@ -65,7 +65,6 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.util.prefs.Preferences+.putDouble(..)) ||
                     call(* java.util.prefs.Preferences+.putByteArray(..)) ||
                     call(* java.util.prefs.Preferences+.remove(..)) ||
-                    call(* java.util.prefs.Preferences+.removeNode(..)) ||
                     call(* java.util.prefs.Preferences+.clear(..)) ||
                     call(* java.util.prefs.Preferences+.flush(..)) ||
                     call(* java.util.prefs.Preferences+.sync(..)) ||
@@ -81,7 +80,10 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(java.io.BufferedOutputStream+.new(..)) ||
                     call(java.io.FileWriter+.new(..)) ||
                     call(java.io.PrintWriter+.new(..)) ||
-                    call(java.io.RandomAccessFile+.new(..)));
+                    call(java.io.RandomAccessFile+.new(..)) ||
+                    // Preferences.node(path) creates the node and any missing ancestors in the
+                    // backing store, like File.mkdir, so it is a create.
+                    call(* java.util.prefs.Preferences+.node(..)));
 
     // Note: ProcessBuilder.start, startPipeline, and Runtime.exec are handled by the Command System
     // in Byte Buddy mode, as they execute commands rather than individual files.
@@ -103,7 +105,10 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             (call(* java.awt.Desktop+.moveToTrash(..)) ||
                     call(* java.io.File+.delete(..)) ||
                     call(* java.io.File+.deleteOnExit(..)) ||
-                    call(* org.apache.commons.io.FileUtils+.forceDelete(..)));
+                    call(* org.apache.commons.io.FileUtils+.forceDelete(..)) ||
+                    // Preferences.removeNode removes the node from the backing store, so it is
+                    // a delete and is checked against the delete allow-list, not overwrite.
+                    call(* java.util.prefs.Preferences+.removeNode(..)));
 
     pointcut fileInputStreamInitMethods(): call(java.io.FileInputStream+.new(..));
 

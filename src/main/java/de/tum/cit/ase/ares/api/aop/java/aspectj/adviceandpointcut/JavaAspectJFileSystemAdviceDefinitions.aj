@@ -1340,6 +1340,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			@Nullable
 			final String[] allowedPreferencePaths = getValueFromSettings(switch (action) {
 			case "read" -> "pathsAllowedToBeRead";
+			case "create" -> "pathsAllowedToBeCreated";
+			case "delete" -> "pathsAllowedToBeDeleted";
+			case "execute" -> "pathsAllowedToBeExecuted";
 			default -> "pathsAllowedToBeOverwritten";
 			});
 			if (!allowsAllPaths(allowedPreferencePaths)) {

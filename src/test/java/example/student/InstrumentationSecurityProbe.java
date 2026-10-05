@@ -48,6 +48,17 @@ public final class InstrumentationSecurityProbe {
 				null);
 	}
 
+	public static void checkPreferencesNode(String pathName) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create",
+				"java.util.prefs.AbstractPreferences", "node", "(Ljava/lang/String;)Ljava/util/prefs/Preferences;",
+				null, new Object[] { pathName }, null);
+	}
+
+	public static void checkPreferencesRemoveNode() {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("delete",
+				"java.util.prefs.AbstractPreferences", "removeNode", "()V", null, new Object[0], null);
+	}
+
 	/**
 	 * Simulates the "read" leg of a woven
 	 * {@code Files.copy(source, destination, ...)} call (I-114): the real advice
