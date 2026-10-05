@@ -35,7 +35,7 @@ First, add the AspectJ compiler plugin:
 ```gradle
 plugins {
     id 'java'
-    id 'io.freefair.aspectj.post-compile-weaving' version '9.5.0'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.8.0'
 }
 ```
 
@@ -209,6 +209,60 @@ tasks.withType(Test).configureEach {
 4. **Runtime references:** the woven bytecode references AspectJ runtime classes, supplied by `aspectjrt` on the bootstrap classpath (configured in the agent step above).
 
 **Without the plugin, no weaving occurs** and the `-Xbootclasspath/a:` flag has no effect.
+
+### Make the build faster
+
+Every Artemis submission is built in a fresh container, so each of the steps below saves time on
+every submission. None of them changes what is woven or enforced.
+
+> **Tip (aspect path):** Let `ajc` look for aspects in the Ares JAR only. The `aspect`
+> configuration is transitive, so by default `ajc` also searches every dependency of Ares for
+> aspects, which costs time and finds none.
+>
+> ```gradle
+> configurations {
+>     aresAspectPath {
+>         canBeConsumed = false
+>         canBeResolved = true
+>         transitive = false
+>     }
+> }
+>
+> dependencies {
+>     aresAspectPath "de.tum.cit.ase:ares:${aresVersion}"
+> }
+>
+> tasks.named('compileJava') {
+>     ajc.options.aspectpath.setFrom(configurations.aresAspectPath)
+> }
+> ```
+>
+> Keep the `aspect` dependency as it is. If a future Ares release ships aspects in a separate
+> artefact, this setting would leave them out, so rerun the negative control from
+> [Verify your setup](#verify-your-setup) after every Ares upgrade.
+
+> **Tip (test classes):** The plugin also runs `ajc` on the test classes, which have no aspects to
+> weave in. Switching that run off saves a second `ajc` start:
+>
+> ```gradle
+> tasks.named('compileTestJava') {
+>     ajc.enabled = false
+> }
+> ```
+
+> **Tip (Gradle daemon):** Add a `gradle.properties` file next to `build.gradle`:
+>
+> ```properties
+> org.gradle.jvmargs=-Xmx512m -XX:MaxMetaspaceSize=384m -XX:TieredStopAtLevel=1 -XX:+UseSerialGC
+> ```
+>
+> The first two values are Gradle's own defaults, repeated because setting `org.gradle.jvmargs`
+> replaces them. The last two make the short-lived daemon start faster and use less CPU. They
+> apply to the Gradle daemon only, not to the JVM that runs the tests, so they do not change how
+> fast student code runs or when a `@StrictTimeout` fires.
+
+> **Tip (plugin version):** Use a version of the AspectJ plugin that your build image already has
+> in its Gradle cache. Otherwise every build downloads it, together with its Kotlin libraries.
 
 ## Provide the policy file
 
@@ -397,7 +451,7 @@ import org.gradle.process.CommandLineArgumentProvider
 
 plugins {
     id 'java'
-    id 'io.freefair.aspectj.post-compile-weaving' version '9.5.0'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.8.0'
 }
 
 ext {
@@ -420,6 +474,11 @@ configurations {
         canBeResolved = true
         transitive = false
     }
+    aresAspectPath {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
 }
 
 dependencies {
@@ -428,6 +487,15 @@ dependencies {
     testImplementation "de.tum.cit.ase:ares:${aresVersion}"
     aspect "de.tum.cit.ase:ares:${aresVersion}"
     implementation "org.aspectj:aspectjrt:${aspectjVersion}"
+    aresAspectPath "de.tum.cit.ase:ares:${aresVersion}"
+}
+
+tasks.named('compileJava') {
+    ajc.options.aspectpath.setFrom(configurations.aresAspectPath)
+}
+
+tasks.named('compileTestJava') {
+    ajc.enabled = false
 }
 
 abstract class AresJvmArguments implements CommandLineArgumentProvider {

@@ -8,7 +8,7 @@ import org.gradle.process.CommandLineArgumentProvider
 
 plugins {
     id 'java'
-    id 'io.freefair.aspectj.post-compile-weaving' version '9.5.0'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.8.0'
 }
 
 ext {
@@ -34,6 +34,11 @@ configurations {
         canBeResolved = true
         transitive = false
     }
+    aresAspectPath {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
 }
 
 dependencies {
@@ -44,6 +49,20 @@ dependencies {
     // weaves nothing, because ajc ignores binary aspects on the plain classpath.
     aspect "de.tum.cit.ase:ares:${aresVersion}"
     implementation "org.aspectj:aspectjrt:${aspectjVersion}"
+    aresAspectPath "de.tum.cit.ase:ares:${aresVersion}"
+}
+
+// Optional, for a faster build. ajc looks for aspects only in the Ares JAR,
+// which is the only artefact that ships any, instead of in every dependency
+// of Ares as well.
+tasks.named('compileJava') {
+    ajc.options.aspectpath.setFrom(configurations.aresAspectPath)
+}
+
+// Optional, for a faster build. The test classes have no aspects to weave in,
+// so the second ajc run only costs time.
+tasks.named('compileTestJava') {
+    ajc.enabled = false
 }
 
 // Computes the test JVM arguments when the test task runs rather than while the
