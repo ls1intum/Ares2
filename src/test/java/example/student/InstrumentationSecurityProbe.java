@@ -35,6 +35,19 @@ public final class InstrumentationSecurityProbe {
 				"deleteIfExists", "(Ljava/nio/file/Path;)Z", null, new Object[] { path }, null);
 	}
 
+	public static void checkPreferencesPut(String key, String value) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("overwrite",
+				"java.util.prefs.AbstractPreferences", "put", "(Ljava/lang/String;Ljava/lang/String;)V", null,
+				new Object[] { key, value }, null);
+	}
+
+	public static void checkPreferencesGet(String key) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read",
+				"java.util.prefs.AbstractPreferences", "get",
+				"(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", null, new Object[] { key, "default" },
+				null);
+	}
+
 	/**
 	 * Simulates the "read" leg of a woven
 	 * {@code Files.copy(source, destination, ...)} call (I-114): the real advice

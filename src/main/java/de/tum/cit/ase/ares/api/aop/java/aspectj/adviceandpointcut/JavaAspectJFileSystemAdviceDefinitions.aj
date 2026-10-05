@@ -132,6 +132,43 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			"ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
 
 	/**
+	 * Stand-in shown in the denial message for a {@code java.util.prefs.Preferences}
+	 * operation, which has no path to report because the OS fixes the store's
+	 * location.
+	 */
+	private static final String PREFERENCES_BACKING_STORE = "<java.util.prefs backing store>";
+
+	/**
+	 * Returns whether the intercepted call targets the Java Preferences API, whose
+	 * backing store is a disk location the student cannot name or scope.
+	 *
+	 * @param declaringTypeName the fully qualified type the called method belongs to
+	 * @return true for any {@code java.util.prefs} type
+	 */
+	private static boolean isPreferencesBackingStore(@Nullable String declaringTypeName) {
+		return declaringTypeName != null && declaringTypeName.startsWith("java.util.prefs.");
+	}
+
+	/**
+	 * Returns whether the allow-list authorises every path, the only rule under
+	 * which the unscopable Preferences backing store may be touched.
+	 *
+	 * @param allowedPaths the configured allow-list for the action, may be null
+	 * @return true if the list contains the {@code "*"} wildcard
+	 */
+	private static boolean allowsAllPaths(@Nullable String[] allowedPaths) {
+		if (allowedPaths == null) {
+			return false;
+		}
+		for (String allowedPath : allowedPaths) {
+			if ("*".equals(allowedPath)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Native-library file suffixes whose loads under {@code java.home} are JVM
 	 * infrastructure rather than student file access.
 	 */
@@ -1293,6 +1330,25 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
 				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint)) {
+			return;
+		}
+		// java.util.prefs.Preferences reads and writes a backing store whose location
+		// the OS fixes, so the student passes no path and the key/value arguments must
+		// not be checked as paths. The store is never inside a directory a policy scopes
+		// to, so it can only be permitted by allowing all paths ("*").
+		if (isPreferencesBackingStore(declaringTypeName)) {
+			@Nullable
+			final String[] allowedPreferencePaths = getValueFromSettings(switch (action) {
+			case "read" -> "pathsAllowedToBeRead";
+			default -> "pathsAllowedToBeOverwritten";
+			});
+			if (!allowsAllPaths(allowedPreferencePaths)) {
+				throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
+						action, PREFERENCES_BACKING_STORE,
+						describeDeniedCall(thisJoinPoint, fullMethodSignature)
+								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+								+ buildDenialReason(allowedPreferencePaths == null || allowedPreferencePaths.length == 0)));
+			}
 			return;
 		}
 		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, parameters);
