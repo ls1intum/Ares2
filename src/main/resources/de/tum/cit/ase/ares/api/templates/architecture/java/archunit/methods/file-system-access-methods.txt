@@ -221,6 +221,35 @@ java.util.logging.FileHandler.<init>(java.lang.String, int, int, boolean)
 java.util.logging.FileHandler.<init>(java.lang.String, long, int, boolean)
 java.util.logging.FileHandler.close()
 java.util.logging.FileHandler.publish(java.util.logging.LogRecord)
+java.util.prefs.Preferences.childrenNames
+java.util.prefs.Preferences.clear
+java.util.prefs.Preferences.exportNode
+java.util.prefs.Preferences.exportSubtree
+java.util.prefs.Preferences.flush
+java.util.prefs.Preferences.get
+java.util.prefs.Preferences.getBoolean
+java.util.prefs.Preferences.getByteArray
+java.util.prefs.Preferences.getDouble
+java.util.prefs.Preferences.getFloat
+java.util.prefs.Preferences.getInt
+java.util.prefs.Preferences.getLong
+java.util.prefs.Preferences.importPreferences
+java.util.prefs.Preferences.keys
+java.util.prefs.Preferences.nodeExists
+java.util.prefs.Preferences.put
+java.util.prefs.Preferences.putBoolean
+java.util.prefs.Preferences.putByteArray
+java.util.prefs.Preferences.putDouble
+java.util.prefs.Preferences.putFloat
+java.util.prefs.Preferences.putInt
+java.util.prefs.Preferences.putLong
+java.util.prefs.Preferences.remove
+java.util.prefs.Preferences.removeNode
+java.util.prefs.Preferences.sync
+java.util.prefs.Preferences.systemNodeForPackage
+java.util.prefs.Preferences.systemRoot
+java.util.prefs.Preferences.userNodeForPackage
+java.util.prefs.Preferences.userRoot
 java.util.zip.GZIPInputStream.<init>(java.io.InputStream)
 java.util.zip.GZIPOutputStream.<init>(java.io.OutputStream)
 java.util.zip.GZIPOutputStream.<init>(java.io.OutputStream, int)
