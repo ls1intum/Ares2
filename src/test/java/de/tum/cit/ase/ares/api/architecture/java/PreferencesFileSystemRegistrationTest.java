@@ -78,10 +78,17 @@ class PreferencesFileSystemRegistrationTest {
 	}
 
 	@Test
-	void testInstrumentationCreateMapContainsPreferencesNode() {
+	void testInstrumentationCreateMapContainsPreferencesNodeAndFactories() {
 		Map<String, List<String>> create = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES;
 		List<String> methods = create.get(PREFS);
-		assertTrue(methods != null && methods.contains("node"), "node creates a node, so the create map must list it");
+		assertTrue(
+				methods != null && methods.contains("node") && methods.contains("userNodeForPackage")
+						&& methods.contains("systemNodeForPackage"),
+				"node and the package-node factories create nodes, so the create map must list them");
+		Map<String, List<String>> read = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES;
+		List<String> readMethods = read.get(PREFS);
+		assertTrue(readMethods != null && !readMethods.contains("userNodeForPackage"),
+				"the package-node factories create nodes, so they are not read-only");
 	}
 
 	@Test

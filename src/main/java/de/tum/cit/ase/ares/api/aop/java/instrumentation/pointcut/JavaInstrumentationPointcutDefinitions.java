@@ -416,8 +416,7 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// gate.
 			Map.entry("java.util.prefs.Preferences",
 					List.of("get", "getInt", "getLong", "getBoolean", "getFloat", "getDouble", "getByteArray", "keys",
-							"childrenNames", "nodeExists", "exportNode", "exportSubtree", "userRoot", "systemRoot",
-							"userNodeForPackage", "systemNodeForPackage")));
+							"childrenNames", "nodeExists", "exportNode", "exportSubtree", "userRoot", "systemRoot")));
 	// </editor-fold>
 
 	// <editor-fold desc="Overwrite Path">
@@ -565,9 +564,10 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.file.Files",
 					List.of("createDirectories", "createDirectory", "createFile", "createLink", "createTempDirectory",
 							"createTempFile", "createSymbolicLink", "newBufferedWriter", "newOutputStream")),
-			// Preferences.node(path) creates the node and any missing ancestors in the
-			// backing store, like File.mkdir, so it is a create.
-			Map.entry("java.util.prefs.Preferences", List.of("node")),
+			// Preferences.node(path) and the userNodeForPackage/systemNodeForPackage
+			// factories create the node and any missing ancestors in the backing store,
+			// like File.mkdir, so they are creates.
+			Map.entry("java.util.prefs.Preferences", List.of("node", "userNodeForPackage", "systemNodeForPackage")),
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("createDirectory")));
 	// </editor-fold>
 

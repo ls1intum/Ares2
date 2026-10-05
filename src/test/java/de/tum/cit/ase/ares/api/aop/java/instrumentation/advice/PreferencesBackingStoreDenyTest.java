@@ -121,6 +121,35 @@ class PreferencesBackingStoreDenyTest {
 	}
 
 	@Test
+	void testReadWildcardDoesNotAllowPackageNodeCreation(@TempDir Path tempDir) throws Exception {
+		try {
+			configure();
+			// Read is fully open, create is only scoped: userNodeForPackage creates the
+			// package node, so a read wildcard must not permit it.
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { "*" }, "ARCH",
+					"INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { tempDir.toString() },
+					"ARCH", "INSTRUMENTATION");
+			assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkPreferencesUserNodeForPackage());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
+	void testWildcardCreatePolicyAllowsPackageNode() throws Exception {
+		try {
+			configure();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { "*" }, "ARCH",
+					"INSTRUMENTATION");
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkPreferencesUserNodeForPackage());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	@Test
 	void testWildcardDeletePolicyAllowsRemoveNode() throws Exception {
 		try {
 			configure();
