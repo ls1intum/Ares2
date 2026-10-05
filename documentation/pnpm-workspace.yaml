@@ -9,7 +9,7 @@ autoInstallPeers: true
 # documentation site on the identical Docusaurus 3.10.2 stack.
 overrides:
   # GHSA-5c6j-r48x-rmvq (RCE via RegExp.flags) and GHSA-qj8w-gfj5-8c6v (CPU exhaustion).
-  serialize-javascript: '7.1.1'
+  serialize-javascript: '7.1.2'
   # GHSA-w5hq-g745-h8pq
   uuid: '14.0.2'
 
