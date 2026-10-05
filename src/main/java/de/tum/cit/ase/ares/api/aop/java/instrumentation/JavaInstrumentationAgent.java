@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.MemberSubstitution;
@@ -90,59 +91,47 @@ public final class JavaInstrumentationAgent {
 		preloadPlatformClass("sun.nio.fs.UnixException");
 		preloadPlatformClass("sun.nio.fs.WindowsException");
 
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
-				JavaInstrumentationBindingDefinitions::createReadPathMethodBinding);
 		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
-				JavaInstrumentationBindingDefinitions::createOverwritePathMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
-				JavaInstrumentationBindingDefinitions::createCreatePathMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
-				JavaInstrumentationBindingDefinitions::createExecutePathMethodBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
-				JavaInstrumentationBindingDefinitions::createDeletePathMethodBinding);
-		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
-				JavaInstrumentationBindingDefinitions::createCreateThreadMethodBinding);
-		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
-				JavaInstrumentationBindingDefinitions::createExecuteCommandMethodBinding);
-		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
-				JavaInstrumentationBindingDefinitions::createConnectNetworkMethodBinding);
-		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
-				JavaInstrumentationBindingDefinitions::createSendNetworkMethodBinding);
-		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
-				JavaInstrumentationBindingDefinitions::createReceiveNetworkMethodBinding);
-
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
-				JavaInstrumentationBindingDefinitions::createReadPathConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
-				JavaInstrumentationBindingDefinitions::createOverwritePathConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
-				JavaInstrumentationBindingDefinitions::createCreatePathConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
-				JavaInstrumentationBindingDefinitions::createExecutePathConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory, JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
-				JavaInstrumentationBindingDefinitions::createDeletePathConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
-				JavaInstrumentationBindingDefinitions::createCreateThreadConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
-				JavaInstrumentationBindingDefinitions::createExecuteCommandConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
-				JavaInstrumentationBindingDefinitions::createConnectNetworkConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
-				JavaInstrumentationBindingDefinitions::createSendNetworkConstructorBinding);
-		installAgentBuilder(inst, unsafeFactory,
-				JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
-				JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding);
+				List.of(new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
+						JavaInstrumentationBindingDefinitions::createReadPathMethodBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
+								JavaInstrumentationBindingDefinitions::createOverwritePathMethodBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
+								JavaInstrumentationBindingDefinitions::createCreatePathMethodBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
+								JavaInstrumentationBindingDefinitions::createExecutePathMethodBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
+								JavaInstrumentationBindingDefinitions::createDeletePathMethodBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
+								JavaInstrumentationBindingDefinitions::createCreateThreadMethodBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
+								JavaInstrumentationBindingDefinitions::createExecuteCommandMethodBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
+								JavaInstrumentationBindingDefinitions::createConnectNetworkMethodBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
+								JavaInstrumentationBindingDefinitions::createSendNetworkMethodBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
+								JavaInstrumentationBindingDefinitions::createReceiveNetworkMethodBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
+								JavaInstrumentationBindingDefinitions::createReadPathConstructorBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
+								JavaInstrumentationBindingDefinitions::createOverwritePathConstructorBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
+								JavaInstrumentationBindingDefinitions::createCreatePathConstructorBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
+								JavaInstrumentationBindingDefinitions::createExecutePathConstructorBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
+								JavaInstrumentationBindingDefinitions::createDeletePathConstructorBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
+								JavaInstrumentationBindingDefinitions::createCreateThreadConstructorBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
+								JavaInstrumentationBindingDefinitions::createExecuteCommandConstructorBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
+								JavaInstrumentationBindingDefinitions::createConnectNetworkConstructorBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
+								JavaInstrumentationBindingDefinitions::createSendNetworkConstructorBinding),
+						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
+								JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding)));
 		installThreadCallSiteBuilder(inst, unsafeFactory);
 	}
 
@@ -313,24 +302,23 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * This method installs an agent builder for the provided methods map. It
-	 * applies a pointcut to match the methods and installs the transformer for
-	 * bytecode modification.
+	 * Installs one agent builder that carries every pointcut, so each loaded class
+	 * is matched once rather than once per pointcut, and shares one type pool
+	 * cache, so each superclass is parsed once. Retransformation repeats until no
+	 * new class appears, because classes loaded while installing are neither in the
+	 * first snapshot nor seen by the load hook.
 	 *
 	 * @param inst          The instrumentation instance used to instrument
 	 *                      bytecode.
 	 * @param unsafeFactory Factory for unsafe class injection.
-	 * @param methodsMap    A map containing method signatures as keys with lists of
-	 *                      method names. These define which method CALLS should be
-	 *                      intercepted.
-	 * @param transformer   The transformer responsible for applying the bytecode
-	 *                      modifications at runtime.
+	 * @param pointcuts     The method calls to intercept, each with the transformer
+	 *                      that applies its bytecode modification.
 	 * @throws SecurityException If the installation of the agent builder fails.
 	 */
 	private static void installAgentBuilder(Instrumentation inst, ClassInjector.UsingUnsafe.Factory unsafeFactory,
-			Map<String, List<String>> methodsMap, AgentBuilder.Transformer transformer) {
+			List<Pointcut> pointcuts) {
 		try {
-			new AgentBuilder.Default()
+			AgentBuilder agentBuilder = new AgentBuilder.Default()
 					// Use one combined matcher: AgentBuilder.ignore replaces the previous
 					// matcher, so separate calls would accidentally re-enable earlier groups.
 					.ignore(ElementMatchers.nameStartsWith("net.bytebuddy.")
@@ -359,16 +347,57 @@ public final class JavaInstrumentationAgent {
 							.or(ElementMatchers.nameStartsWith("java.lang.LiveStackFrameInfo"))
 							// Ignore Ares internal classes to avoid self-instrumentation
 							.or(ElementMatchers.nameStartsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation.")))
-					.with(TRANSFORMATION_FAILURE_LISTENER).with(AgentBuilder.TypeStrategy.Default.REBASE)
+					.with(TRANSFORMATION_FAILURE_LISTENER)
+					.with(new AgentBuilder.PoolStrategy.WithTypePoolCache.Simple(new ConcurrentHashMap<>()))
+					.with(AgentBuilder.TypeStrategy.Default.REBASE)
 					.with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+					.with(AgentBuilder.RedefinitionStrategy.DiscoveryStrategy.Reiterating.INSTANCE)
 					.with(new AgentBuilder.InjectionStrategy.UsingUnsafe.OfFactory(unsafeFactory))
-					.disableClassFormatChanges()
-					.type(JavaInstrumentationPointcutDefinitions.getClassesMatcher(methodsMap)).transform(transformer)
-					.installOn(inst);
+					.disableClassFormatChanges();
+			for (Pointcut interception : pointcuts) {
+				agentBuilder = agentBuilder
+						.type(JavaInstrumentationPointcutDefinitions.getClassesMatcher(interception.methodsMap()))
+						.transform(isolated(interception.transformer()));
+			}
+			agentBuilder.installOn(inst);
 		} catch (Exception e) {
-			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox.localize(
-					"security.instrumentation.agent.installation.error", String.join(", ", methodsMap.keySet())), e);
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.agent.installation.error", pointcutNames(pointcuts)), e);
 		}
+	}
+
+	/**
+	 * Wraps one pointcut's transformer so that its failure on a class costs only
+	 * that pointcut: the failure is recorded for
+	 * {@link #throwIfTransformationFailed()}, as a failed class would be, and the
+	 * other pointcuts still transform the class.
+	 *
+	 * @param transformer The pointcut's transformer.
+	 * @return The transformer that records its own failure and leaves the class to
+	 *         the other pointcuts.
+	 */
+	private static AgentBuilder.Transformer isolated(AgentBuilder.Transformer transformer) {
+		return (builder, typeDescription, classLoader, module, protectionDomain) -> {
+			try {
+				return transformer.transform(builder, typeDescription, classLoader, module, protectionDomain);
+			} catch (RuntimeException | LinkageError failure) {
+				TRANSFORMATION_FAILURE.compareAndSet(null,
+						new TransformationFailure(typeDescription.getName(), failure));
+				return builder;
+			}
+		};
+	}
+
+	/**
+	 * Names every class the given pointcuts watch, for the message shown when the
+	 * agent cannot be installed.
+	 *
+	 * @param pointcuts The pointcuts the agent builder was meant to install.
+	 * @return The watched class names, without duplicates, joined by commas.
+	 */
+	private static String pointcutNames(List<Pointcut> pointcuts) {
+		return pointcuts.stream().flatMap(interception -> interception.methodsMap().keySet().stream()).distinct()
+				.collect(Collectors.joining(", "));
 	}
 
 	/**
@@ -428,5 +457,15 @@ public final class JavaInstrumentationAgent {
 	}
 
 	private record TransformationFailure(String typeName, Throwable cause) {
+	}
+
+	/**
+	 * One group of method calls the agent intercepts, paired with the transformer
+	 * that rewrites them.
+	 *
+	 * @param methodsMap  The watched classes, each with the names of its methods.
+	 * @param transformer The transformer that applies the bytecode modification.
+	 */
+	private record Pointcut(Map<String, List<String>> methodsMap, AgentBuilder.Transformer transformer) {
 	}
 }
