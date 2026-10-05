@@ -8,10 +8,16 @@ import javax.annotation.Nullable;
 /**
  * Allowed package import.
  * <p>
- * Description: Specifies the package that is permitted to be imported.
+ * Description: Names a package the supervised code may import, covering that
+ * package and everything below it.
  * <p>
  * Design Rationale: Explicitly declaring permitted package imports prevents
- * unauthorised dependencies.
+ * unauthorised dependencies. Only the universal invariant, that the name is not
+ * null, is checked on construction. Whether it is a package name or {@code *}
+ * for the supervised code's language is validated where the language is known:
+ * the schema validator on the policy-file path, and the language-specific
+ * component that scans the project (currently {@code JavaCreator}) on the
+ * derived path.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -26,10 +32,10 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
+	 * @throws NullPointerException if the package name is null.
 	 */
 	public PackagePermission {
 		Objects.requireNonNull(importTheFollowingPackage, "Package name must not be null");
-		PolicyValueValidator.requirePackageImport(importTheFollowingPackage);
 	}
 
 	/**
@@ -37,8 +43,11 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param importTheFollowingPackage the package name to allow.
+	 * @param importTheFollowingPackage the package name to allow, or {@code *} for
+	 *                                  every package; must not be null.
 	 * @return a new PackagePermission instance.
+	 * @throws NullPointerException     if the package name is null.
+	 * @throws IllegalArgumentException if the package name is not valid.
 	 */
 	@Nonnull
 	public static PackagePermission allowPackage(@Nonnull String importTheFollowingPackage) {
@@ -84,13 +93,15 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param importTheFollowingPackage the package name.
+		 * @param importTheFollowingPackage the package name; must not be null, and is
+		 *                                  validated for shape by {@link #build()}.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the package name is null.
 		 */
 		@Nonnull
 		public Builder importTheFollowingPackage(@Nonnull String importTheFollowingPackage) {
 			this.importTheFollowingPackage = Objects.requireNonNull(importTheFollowingPackage,
-					"@Nonnull String importTheFollowingPackage must not be null");
+					"importTheFollowingPackage must not be null");
 			return this;
 		}
 
@@ -100,11 +111,13 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @return a new PackagePermission instance.
+		 * @throws NullPointerException     if no package name was set.
+		 * @throws IllegalArgumentException if the package name is not valid.
 		 */
 		@Nonnull
 		public PackagePermission build() {
 			return new PackagePermission(
-					Objects.requireNonNull(importTheFollowingPackage, "packageName must not be null"));
+					Objects.requireNonNull(importTheFollowingPackage, "importTheFollowingPackage must not be null"));
 		}
 	}
 }

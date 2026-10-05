@@ -1,0 +1,945 @@
+@startuml AOPClassDiagram
+
+title Ares 2 Aspect-Oriented Enforcement API
+
+scale max 3799 width
+top to bottom direction
+hide circle
+hide empty members
+' Private helpers remain documented in the source below but are hidden in the
+' rendered AOP overview so the complete 68-type source set fits the browser.
+hide private methods
+skinparam ArrowFontSize 8
+skinparam classAttributeFontSize 5
+skinparam classAttributeIconSize 0
+skinparam classFontSize 8
+skinparam classMethodFontSize 5
+skinparam linetype ortho
+' Reduced from the 170/220 starting values because the browser renderer
+' rejects the natural 5962x10699 layout.
+skinparam nodesep 20
+skinparam noteFontSize 5
+skinparam packageStyle rectangle
+skinparam ranksep 10
+skinparam shadowing false
+
+package "aop" {
+  enum AOPMode <<enum>> {
+    INSTRUMENTATION
+    ASPECTJ
+    --
+    - {static} MAX_CONFIGURATION_COUNT: int
+    + {static} setFileLoader(loader: JavaFileLoader): void
+    + getCopyFSConfigurationEntries(): List<List<String>>
+    + getCopyNonFSConfigurationEntries(): List<List<String>>
+    + getEditConfigurationEntries(): List<List<String>>
+    - validateConfigurationRows(entries: List<List<String>>, minColumns: int, context: String, requireNonEmpty: boolean): void
+    + fsFilesToCopy(): List<Path>
+    + nonFSFilesToCopy(): List<Path>
+    + placeholderValues(): List<String[]>
+    + fsFormatValues(packageName: String, mainClassInPackageName: String): List<String[]>
+    + nonFSFormatValues(packageName: String, mainClassInPackageName: String): List<String[]>
+    + fsTargetsToCopyTo(targetPath: Path): List<Path>
+    + nonFSTargetsToCopyTo(targetPath: Path): List<Path>
+    + threePartedFileHeader(): Path
+    + threePartedFileBody(aopMode: String, restrictedPackage: String, allowedListedClasses: List<String>, ...): String
+    - extractPermissions(testCases: List<JavaAOPTestCase>, supported: JavaAOPTestCaseSupported): List<T>
+    + threePartedFileFooter(): Path
+    + formatValues(packageName: String): String[]
+    + targetToCopyTo(targetPath: Path): Path
+    + reset(): void
+  }
+
+  abstract class AOPTestCase {
+    # AOPTestCase(aopTestCaseSupported: AOPTestCaseSupported, fileSystemExtractor: FileSystemExtractor, ...)
+    + getAopTestCaseSupported(): AOPTestCaseSupported
+    + getFileSystemExtractor(): FileSystemExtractor
+    + getNetworkConnectionExtractor(): NetworkSystemExtractor
+    + getCommandExecutionExtractor(): CommandSystemExtractor
+    + getThreadCreationExtractor(): ThreadSystemExtractor
+    + {abstract} writeAOPTestCase(architectureMode: String, aopMode: String): String
+    + {abstract} executeAOPTestCase(architectureMode: String, aopMode: String): void
+  }
+
+  note left of AOPTestCase
+    aopTestCaseSupported: nonnull
+    - allowed: exactly one supported dynamic test
+    fileSystemExtractor: nonnull
+    - allowed: injected extractor
+    networkConnectionExtractor: nonnull
+    - allowed: injected extractor
+    commandExecutionExtractor: nonnull
+    - allowed: injected extractor
+    threadCreationExtractor: nonnull
+    - allowed: injected extractor
+  end note
+
+  interface AOPTestCaseSupported {
+    + getDynamic(): List<AOPTestCaseSupported>
+  }
+}
+
+package "extractors" {
+  interface CommandSystemExtractor {
+    + getPermittedCommands(): List<String>
+    + getPermittedArguments(): List<List<String>>
+  }
+
+  class JavaCommandSystemExtractor {
+    - resourceAccessSupplier: Supplier<List<?>>
+    + JavaCommandSystemExtractor(resourceAccessSupplier: Supplier<List<?>>)
+    + {static} extractCommands(configs: List<CommandPermission>): List<String>
+    + {static} extractArguments(configs: List<CommandPermission>): List<String>
+    + getPermittedCommands(): List<String>
+    + getPermittedArguments(): List<List<String>>
+  }
+
+  interface FileSystemExtractor {
+    + getPermittedFilePaths(filePermission: String): List<String>
+  }
+
+  class JavaFileSystemExtractor {
+    - resourceAccessSupplier: Supplier<List<?>>
+    + JavaFileSystemExtractor(resourceAccessSupplier: Supplier<List<?>>)
+    + {static} extractPaths(configs: List<FilePermission>, predicate: Predicate<FilePermission>): List<String>
+    + getPermittedFilePaths(filePermission: String): List<String>
+  }
+
+  interface NetworkSystemExtractor {
+    + getPermittedNetworkHosts(networkPermission: String): List<String>
+    + getPermittedNetworkPorts(networkPermission: String): List<Integer>
+  }
+
+  class JavaNetworkSystemExtractor {
+    - resourceAccessSupplier: Supplier<List<?>>
+    + JavaNetworkSystemExtractor(resourceAccessSupplier: Supplier<List<?>>)
+    + {static} extractHosts(configs: List<NetworkPermission>, predicate: Predicate<NetworkPermission>): List<String>
+    + {static} extractPorts(configs: List<NetworkPermission>, predicate: Predicate<NetworkPermission>): List<String>
+    + getPermittedNetworkHosts(networkPermission: String): List<String>
+    + getPermittedNetworkPorts(networkPermission: String): List<Integer>
+  }
+
+  interface ResourceLimitsExtractor {
+    + getTightestTimeout(): Long
+    + collectResourceLimits(): Map<String, Long>
+  }
+
+  class JavaResourceLimitsExtractor {
+    - resourceAccessSupplier: Supplier<List<?>>
+    + JavaResourceLimitsExtractor(resourceAccessSupplier: Supplier<List<?>>)
+    + getTightestTimeout(): Long
+    + collectResourceLimits(): Map<String, Long>
+    - {static} validatePermissions(rawList: List<?>): List<ResourceLimitsPermission>
+  }
+
+  interface ThreadSystemExtractor {
+    + getPermittedNumberOfThreads(): List<Integer>
+    + getPermittedThreadClasses(): List<String>
+  }
+
+  class JavaThreadSystemExtractor {
+    - resourceAccessSupplier: Supplier<List<?>>
+    + JavaThreadSystemExtractor(resourceAccessSupplier: Supplier<List<?>>)
+    + {static} extractThreadNumbers(configs: List<ThreadPermission>): List<String>
+    + {static} extractThreadClasses(configs: List<ThreadPermission>): List<String>
+    + getPermittedNumberOfThreads(): List<Integer>
+    + getPermittedThreadClasses(): List<String>
+  }
+
+  note bottom of JavaCommandSystemExtractor
+    resourceAccessSupplier: nonnull
+    - allowed: lazy permission-list supplier
+  end note
+  note bottom of JavaFileSystemExtractor
+    resourceAccessSupplier: nonnull
+    - allowed: lazy permission-list supplier
+  end note
+  note bottom of JavaNetworkSystemExtractor
+    resourceAccessSupplier: nonnull
+    - allowed: lazy permission-list supplier
+  end note
+  note bottom of JavaResourceLimitsExtractor
+    resourceAccessSupplier: nonnull
+    - allowed: lazy permission-list supplier
+  end note
+  note bottom of JavaThreadSystemExtractor
+    resourceAccessSupplier: nonnull
+    - allowed: lazy permission-list supplier
+  end note
+}
+
+package "aop.java" {
+  class JavaAOPTestCase {
+    - resourceAccessSupplier: Supplier<List<?>>
+    - allowedClasses: Set<ClassPermission>
+    + JavaAOPTestCase(javaTestCaseSupported: JavaAOPTestCaseSupported, resourceAccessSupplier: Supplier<List<?>>, ...): JavaAOPTestCase
+    + getResourceAccessSupplier(): Supplier<List<?>>
+    + getAllowedClasses(): Set<ClassPermission>
+    - {static} generateAdviceSettingValue(dataType: String, adviceSetting: String, value: Object): String
+    - {static} generateAdviceSettingValue(adviceSettingTriple: JavaAOPAdviceSettingTriple): String
+    + {static} setJavaAdviceSettingValue(adviceSetting: String, value: Object, architectureMode: String, aopMode: String): void
+    - {static} setSettingFieldOnLoader(adviceSetting: String, value: Object, loader: ClassLoader): void
+    + writeAOPTestCase(architectureMode: String, aopMode: String): String
+    + {static} writeAOPTestCaseFile(aopMode: String, restrictedPackage: String, allowedListedClasses: List<String>, ...): String
+    + executeAOPTestCase(architectureMode: String, aopMode: String): void
+    + {static} builder(): JavaAOPTestCase.Builder
+  }
+
+  note left of JavaAOPTestCase
+    resourceAccessSupplier: nonnull
+    - allowed: lazy permission-list supplier
+    allowedClasses: nonnull
+    - allowed: exhaustive permitted-class set
+  end note
+
+  class JavaAOPTestCaseSettings <<utility>> {
+    - {static} SETTINGS_LOCK: Object
+    - {static} buildMode: String
+    - {static} architectureMode: String
+    - {static} aopMode: String
+    - {static} restrictedPackage: String
+    - {static} mainClass: String
+    - {static} allowedListedPackages: String[]
+    - {static} allowedListedClasses: String[]
+    - {static} pathsAllowedToBeRead: String[]
+    - {static} pathsAllowedToBeOverwritten: String[]
+    - {static} pathsAllowedToBeCreated: String[]
+    - {static} pathsAllowedToBeExecuted: String[]
+    - {static} pathsAllowedToBeDeleted: String[]
+    - {static} hostsAllowedToBeConnectedTo: String[]
+    - {static} portsAllowedToBeConnectedTo: int[]
+    - {static} hostsAllowedToBeSentTo: String[]
+    - {static} portsAllowedToBeSentTo: int[]
+    - {static} hostsAllowedToBeReceivedFrom: String[]
+    - {static} portsAllowedToBeReceivedFrom: int[]
+    - {static} commandsAllowedToBeExecuted: String[]
+    - {static} argumentsAllowedToBePassed: String[][]
+    - {static} threadClassAllowedToBeCreated: String[]
+    - {static} threadNumberAllowedToBeCreated: int[]
+    - JavaAOPTestCaseSettings()
+    + {static} getSettingsLock(): Object
+    + {static} reset(): void
+  }
+
+  enum JavaAOPTestCaseSupported <<enum>> {
+    FILESYSTEM_INTERACTION
+    NETWORK_CONNECTION
+    COMMAND_EXECUTION
+    THREAD_CREATION
+    --
+    + getDynamic(): List<AOPTestCaseSupported>
+  }
+}
+
+package "aspectj.adviceandpointcut" {
+  record "CommandTarget" as AspectJCommandTarget <<record>> {
+    + command: String
+    + arguments: String[]
+    ~ toDisplayString(): String
+  }
+
+  record "FileTarget" as AspectJFileTarget <<record>> {
+    + path: Path
+    ~ toDisplayString(): String
+  }
+
+  class "IgnoreValues" as AspectJIgnoreValues {
+    - type: String
+    - index: Integer
+    - IgnoreValues(type: String)
+    - IgnoreValues(type: String, index: Integer)
+    + {static} noneExcept(index: int): IgnoreValues
+    + {static} allExcept(index: int): IgnoreValues
+    + getType(): String
+    + getIndex(): int
+    - {static} localize(key: String, args: Object...): String
+  }
+
+  record "NetworkTarget" as AspectJNetworkTarget <<record>> {
+    + host: String
+    + port: int
+    ~ toDisplayString(): String
+  }
+
+  record "ThreadTarget" as AspectJThreadTarget <<record>> {
+    + className: String
+    ~ toDisplayString(): String
+  }
+
+  abstract class JavaAspectJAbstractAdviceDefinitions <<aspect>> {
+    - {static} setValueToSettings(fieldName: String, newValue: T): void
+    - {static} getSettingsLock(): Object
+    + {static} localize(key: String, args: Object...): String
+    - {static} isTrustedSetupUtility(className: String): boolean
+    - {static} inspectCallstackOnce(restrictedPackage: String, allowedPackages: String[], allowedClasses: String[]): String[]
+    - {static} startsWithAny(className: String, prefixes: String[]): boolean
+    # {static} enterAdvice(): boolean
+    # {static} exitAdvice(): void
+    # {static} requireTrustedRuntimeType(value: Object): void
+    # {static} formatSignature(sig: Signature): String
+    # {static} extractMethodNameWithoutModifiers(fullMethodSignature: String): String
+  }
+
+  class JavaAspectJCommandSystemAdviceDefinitions <<aspect>> {
+    - {static} findFieldIndex(clazz: Class<?>, fieldName: String): int
+    - {static} commandMatches(actualCommand: String, allowedCommand: String): boolean
+    - {static} argumentsMatch(allowedArguments: String[], actualArguments: String[]): boolean
+    - {static} variableToCommand(variableValue: Object): CommandTarget
+    - {static} parseCommandString(command: String): String[]
+    - {static} extractPipelineCommands(pipeline: List<?>): List<List<String>>
+    - {static} resolveExecutable(command: String): Path
+    - {static} executableExtensions(): String[]
+    - {static} commandToExistingPath(command: String): Path
+    - {static} commandToComparablePath(pathAsString: String): Path
+    - {static} pathMatches(candidate: Path, allowedPath: Path): boolean
+    + {static} checkCommandSystemInteraction(action: String, thisJoinPoint: JoinPoint): void
+    - {static} checkCommandSystemInteractionImpl(action: String, thisJoinPoint: JoinPoint): void
+  }
+
+  class JavaAspectJFileSystemAdviceDefinitions <<aspect>> {
+    - {static} findFieldIndex(clazz: Class<?>, fieldName: String): int
+    - {static} resolveExistingAncestorRealPath(absolute: Path): Path
+    - {static} variableToPath(variableValue: Object, allowNonExistingPathsToBeConsidered: boolean): Path
+    - {static} hasAppendFalseParameter(declaringTypeName: String, parameters: Object[]): boolean
+    - {static} getRandomAccessFileModeAction(parameters: Object[], defaultAction: String): String
+    - {static} hasReplaceExisting(parameters: Object[]): boolean
+    - {static} containsReplaceExisting(candidate: Object): boolean
+    - {static} isolateParameter(parameters: Object[], index: int): Object[]
+    - {static} shouldAllowNonExistingByDefault(action: String): boolean
+    - {static} extractStandardOpenOptions(parameters: Object[]): Set<StandardOpenOption>
+    - {static} extractMapMode(parameters: Object[]): FileChannel.MapMode
+    - {static} isSystemJarReadExempt(path: String): boolean
+    - {static} resolveTrustedMavenRepository(): String
+    - {static} isPathWithin(path: String, directory: String): boolean
+    - {static} isExemptSystemFileAccess(action: String, path: String): boolean
+    - {static} isJdkNativeLibraryLoad(path: String): boolean
+    + checkFileSystemInteraction(action: String, thisJoinPoint: JoinPoint): void
+    - checkFileSystemInteractionImpl(action: String, thisJoinPoint: JoinPoint): void
+  }
+
+  class JavaAspectJNetworkSystemAdviceDefinitions <<aspect>> {
+    - {static} hostMatches(actualHost: String, allowedHost: String): boolean
+    - {static} portMatches(actualPort: int, allowedPort: int): boolean
+    - {static} variableToTarget(value: Object): NetworkTarget
+    - {static} stringToHostPortTarget(str: String): NetworkTarget
+    - {static} portSuffixToTarget(host: String, portSuffix: String): NetworkTarget
+    - {static} parametersToTarget(parameters: Object[]): NetworkTarget
+    - {static} extractPort(value: Object): Integer
+    - {static} extractSocketTarget(socket: Socket): NetworkTarget
+    - {static} extractDatagramSocketTarget(datagramSocket: DatagramSocket): NetworkTarget
+    - {static} effectivePort(explicitPort: int, scheme: String): int
+  }
+
+  class JavaAspectJThreadSystemAdviceDefinitions <<aspect>> {
+    - {static} getRecordedThreadClass(thread: Thread): String
+    - {static} recordAllowedThread(thread: Thread, threadClassName: String): void
+    - {static} removeClearedThreadEntries(): void
+    - {static} isThreadCreationFromCommandExecution(): boolean
+    - {static} isThreadCreationFromAresTimeout(restrictedPackage: String): boolean
+    - {static} implicitThreadOperationToken(declaringTypeName: String, methodName: String): String
+    - {static} isImmediateCallerWithinRestrictedPackage(restrictedPackage: String): boolean
+    - {static} handleFoundClassIsForbidden(allowedThreadNumbers: int[], index: int): boolean
+    - {static} checkIfThreadIsForbidden(target: ThreadTarget, allowedThreadClasses: String[], allowedThreadNumbers: int[], ...): boolean
+    - {static} threadClassMatches(actualClassname: String, allowedClassName: String): boolean
+    - {static} isReallyLambda(variableClass: Class<?>): boolean
+    - {static} isThreadFieldHolder(variableValue: Object): boolean
+    - {static} getTaskFromThreadFieldHolder(threadFieldHolder: Object): String
+    - {static} threadTaskClassName(thread: Thread): String
+    - {static} readThreadTask(thread: Thread): Object
+    - {static} readField(field: Field, owner: Object): Object
+    - {static} variableToClassname(variableValue: Object): String
+    - {static} collectThreadClassNames(observedVariable: Object, out: Set<String>): void
+  }
+
+  class JavaAspectJCommandSystemPointcutDefinitions <<aspect>> {
+    ~ commandExecuteMethods(): pointcut
+  }
+
+  class JavaAspectJFileSystemPointcutDefinitions <<aspect>> {
+    ~ defaultFileSystemExecuteMethods(): pointcut
+    ~ desktopExecuteMethods(): pointcut
+    ~ fileChannelCreateMethods(): pointcut
+    ~ fileChannelExecuteMethods(): pointcut
+    ~ fileChannelReadMethods(): pointcut
+    ~ fileChannelWriteMethods(): pointcut
+    ~ fileCreateMethods(): pointcut
+    ~ fileDeleteMethods(): pointcut
+    ~ fileExecuteMethods(): pointcut
+    ~ fileHandlerMethods(): pointcut
+    ~ fileImageSourceInitMethods(): pointcut
+    ~ fileInputStreamInitMethods(): pointcut
+    ~ fileOutputStreamInitMethods(): pointcut
+    ~ fileReadMethods(): pointcut
+    ~ fileSystemExecuteMethods(): pointcut
+    ~ fileSystemProviderCreateMethods(): pointcut
+    ~ fileSystemProviderDeleteMethods(): pointcut
+    ~ fileSystemProviderExecuteMethods(): pointcut
+    ~ fileSystemProviderReadMethods(): pointcut
+    ~ fileSystemProviderWriteMethods(): pointcut
+    ~ fileSystemReadMethods(): pointcut
+    ~ fileSystemWriteMethods(): pointcut
+    ~ fileSystemsReadMethods(): pointcut
+    ~ fileTypeDetectorProbeContentTypeMethods(): pointcut
+    ~ fileWriteMethods(): pointcut
+    ~ filesCreateMethods(): pointcut
+    ~ filesDeleteMethods(): pointcut
+    ~ filesExecuteMethods(): pointcut
+    ~ filesReadMethods(): pointcut
+    ~ filesWriteMethods(): pointcut
+    ~ imageConsumerQueueInitMethods(): pointcut
+    ~ midiSystemMethods(): pointcut
+    ~ objectStreamClassMethods(): pointcut
+    ~ randomAccessFileInitMethods(): pointcut
+    ~ scannerInitMethods(): pointcut
+    ~ writerMethods(): pointcut
+  }
+
+  class JavaAspectJNetworkSystemPointcutDefinitions <<aspect>> {
+    ~ networkConnectMethods(): pointcut
+    ~ networkReceiveMethods(): pointcut
+    ~ networkSendMethods(): pointcut
+  }
+
+  class JavaAspectJThreadSystemPointcutDefinitions <<aspect>> {
+    ~ threadCreateMethodsWithParameters(): pointcut
+    ~ threadCreateMethodsWithoutParameters(): pointcut
+    ~ threadManipulateMethods(): pointcut
+  }
+}
+
+package "instrumentation" {
+  class JavaInstrumentationAgent <<utility>> {
+    - {static} instrumentation: Instrumentation
+    - {static} classInjectorFactory: Factory
+    - {static} INSTRUMENTED_THREAD_MONITOR_PACKAGES: Set<String>
+    - {static} THREAD_MONITOR_PACKAGE_REGISTRATION_LOCK: Object
+    - {static} TRANSFORMATION_FAILURE: AtomicReference<TransformationFailure>
+    - {static} TRANSFORMATION_FAILURE_LISTENER: AgentBuilder.Listener
+    - JavaInstrumentationAgent()
+    + {static} premain(agentArgs: String, inst: Instrumentation): void
+    - {static} preloadPlatformClass(className: String): void
+    + {static} agentmain(agentArgs: String, inst: Instrumentation): void
+    + {static} throwIfTransformationFailed(): void
+    + {static} registerThreadMonitorRestrictedPackage(restrictedPackage: String): void
+    - {static} putToolboxOnBootClassLoader(unsafeFactory: Factory): void
+    - {static} injectClassesSafely(classInjector: ClassInjector, classes: Map<String, byte[]>): void
+    - {static} installAgentBuilder(inst: Instrumentation, unsafeFactory: Factory, ...): void
+    - {static} installThreadCallSiteBuilder(inst: Instrumentation, unsafeFactory: Factory): void
+    - {static} threadStartSubstitution(replacement: Method): ForDeclaredMethods
+    - {static} monitorSubstitution(methodName: String, argumentCount: int, replacement: Method): ForDeclaredMethods
+  }
+}
+
+package "instrumentation.pointcut" {
+  class JavaInstrumentationBindingDefinitions <<utility>> {
+    - JavaInstrumentationBindingDefinitions()
+    + {static} createCreatePathMethodBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createCreatePathConstructorBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    - {static} createMethodBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    - {static} createConstructorBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createReadPathMethodBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createReadPathConstructorBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createOverwritePathMethodBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createOverwritePathConstructorBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createExecutePathMethodBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createExecutePathConstructorBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createDeletePathMethodBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createDeletePathConstructorBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createCreateThreadMethodBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createCreateThreadConstructorBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createExecuteCommandMethodBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createExecuteCommandConstructorBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createConnectNetworkMethodBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createConnectNetworkConstructorBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createSendNetworkMethodBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createSendNetworkConstructorBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createReceiveNetworkMethodBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+    + {static} createReceiveNetworkConstructorBinding(builder: DynamicType.Builder<?>, typeDescription: TypeDescription, classLoader: ClassLoader, ...): DynamicType.Builder<?>
+  }
+
+  class JavaInstrumentationPointcutDefinitions <<utility>> {
+    + {static} IGNORED_METHODS_BY_CLASS: Map<String, List<String>>
+    + {static} METHODS_WHICH_CAN_READ_FILES: Map<String, List<String>>
+    + {static} METHODS_WHICH_CAN_OVERWRITE_FILES: Map<String, List<String>>
+    + {static} METHODS_WHICH_CAN_EXECUTE_FILES: Map<String, List<String>>
+    + {static} METHODS_WHICH_CAN_DELETE_FILES: Map<String, List<String>>
+    + {static} METHODS_WHICH_CAN_CREATE_FILES: Map<String, List<String>>
+    + {static} METHODS_WHICH_CAN_CREATE_THREADS: Map<String, List<String>>
+    + {static} METHODS_WHICH_CAN_EXECUTE_COMMANDS: Map<String, List<String>>
+    + {static} METHODS_WHICH_CAN_CONNECT_TO_NETWORK: Map<String, List<String>>
+    + {static} METHODS_WHICH_CAN_SEND_TO_NETWORK: Map<String, List<String>>
+    + {static} METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK: Map<String, List<String>>
+    - JavaInstrumentationPointcutDefinitions()
+    + {static} getClassesMatcher(methodsMap: Map<String, List<String>>): ElementMatcher<TypeDescription>
+    ~ {static} getConstructorsMatcher(typeDescription: TypeDescription, methodsMap: Map<String, List<String>>): ElementMatcher<MethodDescription>
+    ~ {static} getMethodsMatcher(typeDescription: TypeDescription, methodsMap: Map<String, List<String>>): ElementMatcher<MethodDescription>
+  }
+}
+
+package "instrumentation.advice" {
+  record "CommandTarget" as InstrumentationCommandTarget <<record>> {
+    + command: String
+    + arguments: String[]
+    + toDisplayString(): String
+  }
+
+  record "FileTarget" as InstrumentationFileTarget <<record>> {
+    + path: Path
+    + toDisplayString(): String
+  }
+
+  class "IgnoreValues" as InstrumentationIgnoreValues {
+    - type: String
+    - index: Integer
+    - IgnoreValues(type: String)
+    - IgnoreValues(type: String, index: Integer)
+    + {static} noneExcept(index: int): IgnoreValues
+    + {static} allExcept(index: int): IgnoreValues
+    + getType(): String
+    + getIndex(): int
+  }
+
+  record "NetworkTarget" as InstrumentationNetworkTarget <<record>> {
+    + host: String
+    + port: int
+    + toDisplayString(): String
+  }
+
+  record "ThreadTarget" as InstrumentationThreadTarget <<record>> {
+    + className: String
+    + toDisplayString(): String
+  }
+
+  abstract class JavaInstrumentationAdviceAbstractToolbox {
+    + {static} IGNORE_CALLSTACK: List<String>
+    - {static} STACK_WALKER: StackWalker
+    - {static} SETTINGS_CLASS_CACHE: Class<?>
+    - {static} SETTINGS_FIELD_CACHE: ConcurrentHashMap<String, Field>
+    - {static} SETTINGS_LOCK_CACHE: Object
+    - {static} CALLSTACK_INSPECTION_CACHE: ThreadLocal<String[]>
+    - {static} ADVICE_IN_PROGRESS: ThreadLocal<Boolean>
+    ~ JavaInstrumentationAdviceAbstractToolbox()
+    ~ {static} getValueFromSettings(fieldName: String): T
+    - {static} resolveSettingsField(fieldName: String): Field
+    - {static} setValueToSettings(fieldName: String, newValue: T): void
+    - {static} getSettingsLock(): Object
+    ~ {static} checkAndDecrementSettingsArrayValue(settingsArray: String, position: int): boolean
+    + {static} localize(key: String, args: Object...): String
+    ~ {static} buildDenialReason(noAllowRuleConfigured: boolean): String
+    ~ {static} isClassLoadingInProgress(): boolean
+    ~ {static} isProjectSourcesFinderInProgress(): boolean
+    ~ {static} isByteBuddyTransformationInProgress(): boolean
+    - {static} isTrustedSetupUtility(className: String): boolean
+    ~ {static} checkIfCallstackCriteriaIsViolated(restrictedPackage: String, allowedClasses: String[], declaringTypeName: String, methodName: String): String
+    - {static} inspectCallstackOnce(restrictedPackage: String, allowedPackages: String[], allowedClasses: String[]): String[]
+    - {static} startsWithAny(className: String, prefixes: String[]): boolean
+    ~ {static} enterAdvice(): boolean
+    ~ {static} exitAdvice(): void
+    ~ {static} requireTrustedRuntimeType(value: Object): void
+    ~ {static} findFirstMethodOutsideOfRestrictedPackage(restrictedPackage: String): String
+    ~ {static} findFieldIndex(clazz: Class<?>, fieldName: String): int
+    ~ {static} filterVariables(variables: Object[], ignoreVariables: IgnoreValues): Object[]
+  }
+
+  class JavaInstrumentationAdviceCommandSystemToolbox {
+    - JavaInstrumentationAdviceCommandSystemToolbox()
+    - {static} checkIfCommandIsForbidden(actual: CommandTarget, allowedCommands: String[], allowedArguments: String[][]): boolean
+    - {static} commandMatches(actualCommand: String, allowedCommand: String): boolean
+    - {static} argumentsMatch(allowedArguments: String[], actualArguments: String[]): boolean
+    - {static} variableToCommand(variableValue: Object): CommandTarget
+    - {static} parseCommandString(command: String): String[]
+    - {static} extractPipelineCommands(pipeline: List<?>): List<List<String>>
+    - {static} analyseViolation(observedVariable: Object, allowedCommands: String[], allowedArguments: String[][]): boolean
+    - {static} extractViolationPath(observedVariable: Object, allowedCommands: String[], allowedArguments: String[][]): String
+    - {static} extractExecutablePathViolation(observedVariable: Object, pathsAllowedToExecute: String[]): String
+    - {static} extractExecutablePathViolation(observedCommand: CommandTarget, pathsAllowedToExecute: String[]): String
+    - {static} resolveExecutable(command: String): Path
+    - {static} executableExtensions(): String[]
+    - {static} commandToExistingPath(command: String): Path
+    - {static} commandToComparablePath(pathAsString: String): Path
+    - {static} pathMatches(candidate: Path, allowedPath: Path): boolean
+    - {static} checkIfVariableCriteriaIsViolated(observedVariables: Object[], commandsAllowedToBeExecuted: String[], ...): String
+    - {static} checkIfExecutablePathCriteriaIsViolated(observedVariables: Object[], pathsAllowedToExecute: String[], ignoreVariables: IgnoreValues): String
+    + {static} checkCommandSystemInteraction(action: String, declaringTypeName: String, methodName: String, methodSignature: String, ...): void
+    - {static} checkCommandSystemInteractionImpl(action: String, declaringTypeName: String, methodName: String, methodSignature: String, ...): void
+  }
+
+  class JavaInstrumentationAdviceFileSystemToolbox {
+    - {static} INTERNAL_PATH_SUFFIXES: Set<String>
+    - {static} NATIVE_LIBRARY_SUFFIXES: Set<String>
+    - {static} CRYPTO_POLICY_NAMES: Set<String>
+    - {static} TRUSTED_JAVA_HOME: String
+    - {static} TRUSTED_MAVEN_REPOSITORY: String
+    - {static} APPEND_PARAMETER_INDEX: Map<String, Integer>
+    - JavaInstrumentationAdviceFileSystemToolbox()
+    - {static} checkIfPathIsForbidden(target: FileTarget, allowedPathsAsStrings: String[], allowNonExistingPathsToBeConsidered: boolean): boolean
+    - {static} resolveExistingAncestorRealPath(absolute: Path): Path
+    - {static} pathMatches(candidate: Path, allowedPath: Path, allowNonExistingPathsToBeConsidered: boolean): boolean
+    - {static} variableToPath(variableValue: Object, allowNonExistingPathsToBeConsidered: boolean): Path
+    - {static} fileChannelPath(fileChannel: FileChannel): Path
+    - {static} variableToTarget(variableValue: Object, allowNonExistingPathsToBeConsidered: boolean): FileTarget
+    - {static} analyseViolation(observedVariable: Object, allowedPaths: String[], allowNonExistingPathsToBeConsidered: boolean): boolean
+    - {static} extractViolationPath(observedVariable: Object, allowedPaths: String[], allowNonExistingPathsToBeConsidered: boolean): String
+    - {static} checkIfVariableCriteriaIsViolated(observedVariables: Object[], allowedPaths: String[], ignoreVariables: IgnoreValues, ...): String
+    - {static} hasAppendFalseParameter(declaringTypeName: String, parameters: Object[]): boolean
+    - {static} getRandomAccessFileModeAction(parameters: Object[]): String
+    - {static} checkCopyOrTransferSpecialCase(action: String, declaringTypeName: String, methodName: String, parameters: Object[], ...): boolean
+    - {static} parameterAt(parameters: Object[], index: int): Object
+    - {static} checkSinglePathRole(actionLabel: String, allowedPathsSettingKey: String, candidates: Object[], ...): void
+    - {static} hasReplaceExisting(parameters: Object[]): boolean
+    - {static} containsReplaceExisting(candidate: Object): boolean
+    - {static} isolateParameter(parameters: Object[], index: int): Object[]
+    - {static} deriveActionChecks(defaultAction: String, declaringTypeName: String, parameters: Object[]): List<Entry<String, Boolean>>
+    - {static} mergeBoolean(actions: Map<String, Boolean>, key: String, value: Boolean): void
+    - {static} shouldAllowNonExistingByDefault(action: String): boolean
+    - {static} extractStandardOpenOptions(parameters: Object[]): Set<StandardOpenOption>
+    - {static} extractMapMode(parameters: Object[]): FileChannel.MapMode
+    - {static} collectStandardOpenOptions(candidate: Object, target: EnumSet<StandardOpenOption>): void
+    - {static} isSystemJarReadExempt(path: String): boolean
+    - {static} resolveTrustedMavenRepository(): String
+    - {static} isPathWithin(path: String, directory: String): boolean
+    - {static} isExemptSystemFileAccess(action: String, path: String): boolean
+    - {static} isJdkNativeLibraryLoad(path: String): boolean
+    - {static} isCryptoPolicyPath(path: String): boolean
+    - {static} checkFileSystemInteractionForAction(action: String, allowNonExistingPathsToBeConsidered: boolean, declaringTypeName: String, ...): void
+    + {static} checkFileSystemInteraction(action: String, declaringTypeName: String, methodName: String, methodSignature: String, ...): void
+  }
+
+  class JavaInstrumentationAdviceNetworkSystemToolbox {
+    - JavaInstrumentationAdviceNetworkSystemToolbox()
+    - {static} checkIfNetworkIsForbidden(target: NetworkTarget, allowedHosts: String[], allowedPorts: int[]): boolean
+    - {static} hostMatches(actualHost: String, allowedHost: String): boolean
+    - {static} portMatches(actualPort: int, allowedPort: int): boolean
+    - {static} variableToTarget(value: Object): NetworkTarget
+    - {static} stringToHostPortTarget(str: String): NetworkTarget
+    - {static} portSuffixToTarget(host: String, portSuffix: String): NetworkTarget
+    - {static} toTarget(value: Object): NetworkTarget
+    - {static} parametersToTarget(parameters: Object[]): NetworkTarget
+    - {static} parametersToTarget(parameters: Object[], consumedIndices: BitSet): NetworkTarget
+    - {static} hostAndPortToTarget(hostCandidate: Object, portCandidate: Object): NetworkTarget
+    - {static} extractPort(value: Object): Integer
+    - {static} extractSocketTarget(socket: Socket): NetworkTarget
+    - {static} extractDatagramSocketTarget(datagramSocket: DatagramSocket): NetworkTarget
+    - {static} effectivePort(explicitPort: int, scheme: String): int
+    - {static} analyseViolation(observedVariable: Object, allowedHosts: String[], allowedPorts: int[]): boolean
+    - {static} extractViolationPath(observedVariable: Object, allowedHosts: String[], allowedPorts: int[]): String
+    - {static} checkIfVariableCriteriaIsViolated(observedVariables: Object[], allowedHosts: String[], allowedPorts: int[], ...): String
+    - {static} deriveActionChecks(defaultAction: String, methodName: String, instance: Object): List<Entry<String, Boolean>>
+    - {static} checkNetworkSystemInteractionForAction(action: String, declaringTypeName: String, methodName: String, attributes: Object[], ...): void
+    + {static} checkNetworkSystemInteraction(action: String, declaringTypeName: String, methodName: String, methodSignature: String, ...): void
+    ~ {static} checkNetworkSystemInteractionWithinAdvice(action: String, declaringTypeName: String, methodName: String, methodSignature: String, ...): void
+    - {static} checkNetworkSystemInteractionImpl(action: String, declaringTypeName: String, methodName: String, methodSignature: String, ...): void
+  }
+
+  class JavaInstrumentationAdviceThreadSystemToolbox {
+    - {static} UNRESOLVED_THREAD_CLASS: String
+    - {static} IMPLICIT_THREAD_OPERATION_PREFIX: String
+    - JavaInstrumentationAdviceThreadSystemToolbox()
+    - {static} isThreadCreationFromCommandExecution(): boolean
+    - {static} isThreadCreationFromAresTimeout(restrictedPackage: String): boolean
+    - {static} implicitThreadOperationToken(declaringTypeName: String, methodName: String): String
+    - {static} isImmediateCallerWithinRestrictedPackage(restrictedPackage: String): boolean
+    - {static} handleFoundClassIsForbidden(allowedThreadNumbers: int[], index: int): boolean
+    - {static} checkIfThreadIsForbidden(target: ThreadTarget, allowedThreadClasses: String[], allowedThreadNumbers: int[], ...): boolean
+    - {static} threadClassMatches(actualClassname: String, allowedClassName: String): boolean
+    - {static} isReallyLambda(variableClass: Class<?>): boolean
+    - {static} isThreadFieldHolder(variableValue: Object): boolean
+    - {static} getTaskFromThreadFieldHolder(threadFieldHolder: Object): String
+    - {static} threadTaskClassName(thread: Thread): String
+    - {static} readThreadTask(thread: Thread): Object
+    - {static} readField(field: Field, owner: Object): Object
+    - {static} variableToClassname(variableValue: Object): String
+    ~ {static} resolveThreadClass(thread: Thread): String
+    - {static} collectThreadClassNames(observedVariable: Object, out: Set<String>): void
+    + {static} checkThreadSystemInteraction(action: String, declaringTypeName: String, methodName: String, methodSignature: String, ...): void
+    - {static} checkThreadSystemInteractionImpl(action: String, declaringTypeName: String, methodName: String, methodSignature: String, ...): void
+  }
+
+  class JavaInstrumentationThreadSystemCallSite {
+    - {static} ALLOWED_THREAD_CLASSES_QUEUE: ReferenceQueue<Thread>
+    - {static} ALLOWED_THREAD_CLASSES: Map<WeakReference<Thread>, String>
+    - JavaInstrumentationThreadSystemCallSite()
+    + {static} start(receiver: Thread): void
+    + {static} notify(receiver: Object): void
+    + {static} notifyAll(receiver: Object): void
+    + {static} wait(receiver: Object): void
+    + {static} wait(receiver: Object, timeout: long): void
+    + {static} wait(receiver: Object, timeout: long, nanos: int): void
+    - {static} checkMonitorInteraction(receiver: Object, methodName: String, methodSignature: String, parameters: Object[]): void
+    ~ {static} getRecordedThreadClass(thread: Thread): String
+    ~ {static} recordAllowedThread(thread: Thread, threadClassName: String): void
+    - {static} removeClearedThreadEntries(): void
+  }
+
+  class JavaInstrumentationConnectNetworkConstructorAdvice {
+    - JavaInstrumentationConnectNetworkConstructorAdvice()
+    + {static} onEnter(declaringTypeName: String, parameters: Object): void
+  }
+  class JavaInstrumentationConnectNetworkMethodAdvice {
+    - JavaInstrumentationConnectNetworkMethodAdvice()
+    + {static} onEnter(declaringTypeName: String, methodName: String, methodSignature: String, instance: Object, ...): void
+  }
+  class JavaInstrumentationCreatePathConstructorAdvice {
+    - JavaInstrumentationCreatePathConstructorAdvice()
+    + {static} onEnter(declaringTypeName: String, parameters: Object): void
+  }
+  class JavaInstrumentationCreatePathMethodAdvice {
+    - JavaInstrumentationCreatePathMethodAdvice()
+    + {static} onEnter(declaringTypeName: String, methodName: String, methodSignature: String, instance: Object, ...): void
+  }
+  class JavaInstrumentationCreateThreadConstructorAdvice {
+    - JavaInstrumentationCreateThreadConstructorAdvice()
+    + {static} onEnter(declaringTypeName: String, parameters: Object): void
+  }
+  class JavaInstrumentationCreateThreadMethodAdvice {
+    - JavaInstrumentationCreateThreadMethodAdvice()
+    + {static} onEnter(declaringTypeName: String, methodName: String, methodSignature: String, instance: Object, ...): void
+  }
+  class JavaInstrumentationDeletePathConstructorAdvice {
+    - JavaInstrumentationDeletePathConstructorAdvice()
+    + {static} onEnter(declaringTypeName: String, parameters: Object): void
+  }
+  class JavaInstrumentationDeletePathMethodAdvice {
+    - JavaInstrumentationDeletePathMethodAdvice()
+    + {static} onEnter(declaringTypeName: String, methodName: String, methodSignature: String, instance: Object, ...): void
+  }
+  class JavaInstrumentationExecuteCommandConstructorAdvice {
+    - JavaInstrumentationExecuteCommandConstructorAdvice()
+    + {static} onEnter(declaringTypeName: String, parameters: Object): void
+  }
+  class JavaInstrumentationExecuteCommandMethodAdvice {
+    - JavaInstrumentationExecuteCommandMethodAdvice()
+    + {static} onEnter(declaringTypeName: String, methodName: String, methodSignature: String, instance: Object, ...): void
+  }
+  class JavaInstrumentationExecutePathConstructorAdvice {
+    - JavaInstrumentationExecutePathConstructorAdvice()
+    + {static} onEnter(declaringTypeName: String, parameters: Object): void
+  }
+  class JavaInstrumentationExecutePathMethodAdvice {
+    - JavaInstrumentationExecutePathMethodAdvice()
+    + {static} onEnter(declaringTypeName: String, methodName: String, methodSignature: String, instance: Object, ...): void
+  }
+  class JavaInstrumentationOverwritePathConstructorAdvice {
+    - JavaInstrumentationOverwritePathConstructorAdvice()
+    + {static} onEnter(declaringTypeName: String, parameters: Object): void
+  }
+  class JavaInstrumentationOverwritePathMethodAdvice {
+    - JavaInstrumentationOverwritePathMethodAdvice()
+    + {static} onEnter(declaringTypeName: String, methodName: String, methodSignature: String, instance: Object, ...): void
+  }
+  class JavaInstrumentationReadPathConstructorAdvice {
+    - JavaInstrumentationReadPathConstructorAdvice()
+    + {static} onEnter(declaringTypeName: String, parameters: Object): void
+  }
+  class JavaInstrumentationReadPathMethodAdvice {
+    - JavaInstrumentationReadPathMethodAdvice()
+    + {static} onEnter(declaringTypeName: String, methodName: String, methodSignature: String, instance: Object, ...): void
+  }
+  class JavaInstrumentationReceiveNetworkConstructorAdvice {
+    - JavaInstrumentationReceiveNetworkConstructorAdvice()
+    + {static} onEnter(declaringTypeName: String, parameters: Object): void
+  }
+  class JavaInstrumentationReceiveNetworkMethodAdvice {
+    - JavaInstrumentationReceiveNetworkMethodAdvice()
+    + {static} onEnter(declaringTypeName: String, methodName: String, methodSignature: String, instance: Object, ...): void
+  }
+  class JavaInstrumentationSendNetworkConstructorAdvice {
+    - JavaInstrumentationSendNetworkConstructorAdvice()
+    + {static} onEnter(declaringTypeName: String, parameters: Object): void
+  }
+  class JavaInstrumentationSendNetworkMethodAdvice {
+    - JavaInstrumentationSendNetworkMethodAdvice()
+    + {static} onEnter(declaringTypeName: String, methodName: String, methodSignature: String, instance: Object, ...): void
+  }
+}
+
+package "javaAOPModeData" {
+  interface JavaFileLoader {
+    + loadCopyData(mode: ArchitectureMode, formatStringFileRequested: boolean): List<List<String>>
+    + loadCopyData(mode: AOPMode, formatStringFileRequested: boolean): List<List<String>>
+    + loadLocalisationCopyData(): List<List<String>>
+    + loadPhobosCopyData(): List<List<String>>
+    + loadEditData(mode: ArchitectureMode): List<List<String>>
+    + loadEditData(mode: AOPMode): List<List<String>>
+    + loadPhobosEditData(): List<List<String>>
+  }
+
+  class JavaCSVFileLoader {
+    + getCopyPaths(mode: ArchitectureMode, formatStringFileRequested: boolean): File
+    + getCopyPaths(mode: AOPMode, formatStringFileRequested: boolean): File
+    + getLocalisationCopyPaths(): File
+    - getPhobosCopyPaths(): File
+    + getEditPaths(mode: ArchitectureMode): File
+    + getEditPaths(mode: AOPMode): File
+    - getPhobosEditPaths(): File
+    + loadCopyData(mode: ArchitectureMode, fs: boolean): List<List<String>>
+    + loadCopyData(mode: AOPMode, fs: boolean): List<List<String>>
+    + loadLocalisationCopyData(): List<List<String>>
+    + loadPhobosCopyData(): List<List<String>>
+    + loadEditData(mode: ArchitectureMode): List<List<String>>
+    + loadEditData(mode: AOPMode): List<List<String>>
+    + loadPhobosEditData(): List<List<String>>
+  }
+}
+
+package "javaAOPTestCaseToolbox" {
+  record JavaAOPAdviceSettingTriple <<record>> {
+    + dataTyp: String
+    + adviceSetting: String
+    + value: Object
+  }
+
+  note left of JavaAOPAdviceSettingTriple
+    dataTyp: nonnull
+    - allowed: generated Java data type
+    adviceSetting: nonnull
+    - allowed: settings-field name
+    value: nullable
+    - allowed: generated assignment value
+  end note
+
+  class JavaAOPTestCaseToolbox <<utility>> {
+    - JavaAOPTestCaseToolbox()
+    + {static} getStringAssignment(adviceSetting: String, value: Object): String
+    - {static} escapeJavaString(raw: String): String
+    + {static} getIntegerAssignment(adviceSetting: String, value: Object): String
+    + {static} getStringOneDArrayAssignment(adviceSetting: String, value: Object): String
+    + {static} getIntegerOneDArrayAssignment(adviceSetting: String, value: Object): String
+    + {static} getStringTwoDArrayAssignment(adviceSetting: String, value: Object): String
+    - {static} formatInnerStringArray(inner: Object): String
+    + {static} getIntegerTwoDArrayAssignment(adviceSetting: String, value: Object): String
+  }
+}
+
+' Inheritance and realisation.
+AOPTestCase <|-down- JavaAOPTestCase
+AOPTestCaseSupported <|.down. JavaAOPTestCaseSupported
+CommandSystemExtractor <|.down. JavaCommandSystemExtractor
+FileSystemExtractor <|.down. JavaFileSystemExtractor
+NetworkSystemExtractor <|.down. JavaNetworkSystemExtractor
+ResourceLimitsExtractor <|.down. JavaResourceLimitsExtractor
+ThreadSystemExtractor <|.down. JavaThreadSystemExtractor
+JavaFileLoader <|.down. JavaCSVFileLoader
+JavaAspectJAbstractAdviceDefinitions <|-down- JavaAspectJCommandSystemAdviceDefinitions
+JavaAspectJAbstractAdviceDefinitions <|-down- JavaAspectJFileSystemAdviceDefinitions
+JavaAspectJAbstractAdviceDefinitions <|-down- JavaAspectJNetworkSystemAdviceDefinitions
+JavaAspectJAbstractAdviceDefinitions <|-down- JavaAspectJThreadSystemAdviceDefinitions
+JavaInstrumentationAdviceAbstractToolbox <|-down- JavaInstrumentationAdviceCommandSystemToolbox
+JavaInstrumentationAdviceAbstractToolbox <|-down- JavaInstrumentationAdviceFileSystemToolbox
+JavaInstrumentationAdviceAbstractToolbox <|-down- JavaInstrumentationAdviceNetworkSystemToolbox
+JavaInstrumentationAdviceAbstractToolbox <|-down- JavaInstrumentationAdviceThreadSystemToolbox
+
+' Associations for in-scope reference attributes.
+AOPMode "1" o-right- "1" JavaFileLoader : - {static} fileLoader: JavaFileLoader
+AOPTestCase "1" o-right- "1" AOPTestCaseSupported : # aopTestCaseSupported: AOPTestCaseSupported
+AOPTestCase "1" o-left- "1" FileSystemExtractor : # fileSystemExtractor: FileSystemExtractor
+AOPTestCase "1" o-right- "1" NetworkSystemExtractor : # networkConnectionExtractor: NetworkSystemExtractor
+AOPTestCase "1" o-left- "1" CommandSystemExtractor : # commandExecutionExtractor: CommandSystemExtractor
+AOPTestCase "1" o-right- "1" ThreadSystemExtractor : # threadCreationExtractor: ThreadSystemExtractor
+AspectJIgnoreValues "1" o-right- "2" AspectJIgnoreValues : + {static} NONE: IgnoreValues\n+ {static} ALL: IgnoreValues
+InstrumentationIgnoreValues "1" o-right- "2" InstrumentationIgnoreValues : + {static} NONE: IgnoreValues\n+ {static} ALL: IgnoreValues
+JavaInstrumentationAdviceCommandSystemToolbox "1" o-left- "*" InstrumentationIgnoreValues : - {static} COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT: Map<String, IgnoreValues>\n- {static} COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT: Map<String, IgnoreValues>
+JavaInstrumentationAdviceFileSystemToolbox "1" o-left- "*" InstrumentationIgnoreValues : - {static} FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT: Map<String, IgnoreValues>\n- {static} FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT: Map<String, IgnoreValues>
+JavaInstrumentationAdviceNetworkSystemToolbox "1" o-right- "*" InstrumentationIgnoreValues : - {static} NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT: Map<String, IgnoreValues>\n- {static} NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT: Map<String, IgnoreValues>
+
+' Dependencies.
+AOPMode ..right..> JavaFileLoader : loads configuration
+AOPMode ..down..> JavaAOPTestCase : formats test cases
+JavaAOPTestCase ..right..> JavaAOPAdviceSettingTriple : formats settings
+JavaAOPTestCase ..right..> JavaAOPTestCaseToolbox : generates assignments
+JavaInstrumentationAgent ..down..> JavaInstrumentationBindingDefinitions : installs bindings
+JavaInstrumentationAgent ..down..> JavaInstrumentationPointcutDefinitions : selects methods
+JavaInstrumentationBindingDefinitions ..down..> JavaInstrumentationAdviceAbstractToolbox : binds advice
+JavaInstrumentationAdviceCommandSystemToolbox ..left..> InstrumentationCommandTarget : resolves
+JavaInstrumentationAdviceFileSystemToolbox ..left..> InstrumentationFileTarget : resolves
+JavaInstrumentationAdviceNetworkSystemToolbox ..right..> InstrumentationNetworkTarget : resolves
+JavaInstrumentationAdviceThreadSystemToolbox ..right..> InstrumentationThreadTarget : resolves
+JavaAspectJCommandSystemAdviceDefinitions ..left..> AspectJCommandTarget : resolves
+JavaAspectJFileSystemAdviceDefinitions ..left..> AspectJFileTarget : resolves
+JavaAspectJNetworkSystemAdviceDefinitions ..right..> AspectJNetworkTarget : resolves
+JavaAspectJThreadSystemAdviceDefinitions ..right..> AspectJThreadTarget : resolves
+JavaAspectJCommandSystemAdviceDefinitions ..down..> JavaAspectJCommandSystemPointcutDefinitions : advises
+JavaAspectJFileSystemAdviceDefinitions ..down..> JavaAspectJFileSystemPointcutDefinitions : advises
+JavaAspectJNetworkSystemAdviceDefinitions ..down..> JavaAspectJNetworkSystemPointcutDefinitions : advises
+JavaAspectJThreadSystemAdviceDefinitions ..down..> JavaAspectJThreadSystemPointcutDefinitions : advises
+
+' Hidden ranking rails.
+AOPMode -[hidden]right- AOPTestCase
+AOPTestCase -[hidden]right- AOPTestCaseSupported
+AOPTestCaseSupported -[hidden]right- JavaAOPTestCase
+CommandSystemExtractor -[hidden]right- JavaCommandSystemExtractor
+JavaCommandSystemExtractor -[hidden]right- FileSystemExtractor
+FileSystemExtractor -[hidden]right- JavaFileSystemExtractor
+NetworkSystemExtractor -[hidden]right- JavaNetworkSystemExtractor
+JavaNetworkSystemExtractor -[hidden]right- ResourceLimitsExtractor
+ResourceLimitsExtractor -[hidden]right- JavaResourceLimitsExtractor
+JavaResourceLimitsExtractor -[hidden]right- ThreadSystemExtractor
+ThreadSystemExtractor -[hidden]right- JavaThreadSystemExtractor
+JavaAOPTestCase -[hidden]right- JavaAOPTestCaseSettings
+JavaAOPTestCaseSettings -[hidden]right- JavaAOPTestCaseSupported
+AspectJCommandTarget -[hidden]right- AspectJFileTarget
+AspectJFileTarget -[hidden]right- AspectJIgnoreValues
+AspectJIgnoreValues -[hidden]right- AspectJNetworkTarget
+AspectJNetworkTarget -[hidden]right- AspectJThreadTarget
+JavaAspectJCommandSystemAdviceDefinitions -[hidden]right- JavaAspectJFileSystemAdviceDefinitions
+JavaAspectJFileSystemAdviceDefinitions -[hidden]right- JavaAspectJNetworkSystemAdviceDefinitions
+JavaAspectJNetworkSystemAdviceDefinitions -[hidden]right- JavaAspectJThreadSystemAdviceDefinitions
+JavaAspectJCommandSystemPointcutDefinitions -[hidden]right- JavaAspectJFileSystemPointcutDefinitions
+JavaAspectJFileSystemPointcutDefinitions -[hidden]right- JavaAspectJNetworkSystemPointcutDefinitions
+JavaAspectJNetworkSystemPointcutDefinitions -[hidden]right- JavaAspectJThreadSystemPointcutDefinitions
+JavaInstrumentationAgent -[hidden]right- JavaInstrumentationBindingDefinitions
+JavaInstrumentationBindingDefinitions -[hidden]right- JavaInstrumentationPointcutDefinitions
+InstrumentationCommandTarget -[hidden]right- InstrumentationFileTarget
+InstrumentationFileTarget -[hidden]right- InstrumentationIgnoreValues
+InstrumentationIgnoreValues -[hidden]right- InstrumentationNetworkTarget
+InstrumentationNetworkTarget -[hidden]right- InstrumentationThreadTarget
+JavaInstrumentationAdviceCommandSystemToolbox -[hidden]right- JavaInstrumentationAdviceFileSystemToolbox
+JavaInstrumentationAdviceFileSystemToolbox -[hidden]right- JavaInstrumentationAdviceNetworkSystemToolbox
+JavaInstrumentationAdviceNetworkSystemToolbox -[hidden]right- JavaInstrumentationAdviceThreadSystemToolbox
+JavaInstrumentationConnectNetworkConstructorAdvice -[hidden]right- JavaInstrumentationCreatePathConstructorAdvice
+JavaInstrumentationCreatePathConstructorAdvice -[hidden]right- JavaInstrumentationCreateThreadConstructorAdvice
+JavaInstrumentationCreateThreadConstructorAdvice -[hidden]right- JavaInstrumentationDeletePathConstructorAdvice
+JavaInstrumentationDeletePathConstructorAdvice -[hidden]right- JavaInstrumentationExecuteCommandConstructorAdvice
+JavaInstrumentationExecuteCommandConstructorAdvice -[hidden]right- JavaInstrumentationExecutePathConstructorAdvice
+JavaInstrumentationExecutePathConstructorAdvice -[hidden]right- JavaInstrumentationOverwritePathConstructorAdvice
+JavaInstrumentationOverwritePathConstructorAdvice -[hidden]right- JavaInstrumentationReadPathConstructorAdvice
+JavaInstrumentationReadPathConstructorAdvice -[hidden]right- JavaInstrumentationReceiveNetworkConstructorAdvice
+JavaInstrumentationReceiveNetworkConstructorAdvice -[hidden]right- JavaInstrumentationSendNetworkConstructorAdvice
+JavaInstrumentationConnectNetworkMethodAdvice -[hidden]right- JavaInstrumentationCreatePathMethodAdvice
+JavaInstrumentationCreatePathMethodAdvice -[hidden]right- JavaInstrumentationCreateThreadMethodAdvice
+JavaInstrumentationCreateThreadMethodAdvice -[hidden]right- JavaInstrumentationDeletePathMethodAdvice
+JavaInstrumentationDeletePathMethodAdvice -[hidden]right- JavaInstrumentationExecuteCommandMethodAdvice
+JavaInstrumentationExecuteCommandMethodAdvice -[hidden]right- JavaInstrumentationExecutePathMethodAdvice
+JavaInstrumentationExecutePathMethodAdvice -[hidden]right- JavaInstrumentationOverwritePathMethodAdvice
+JavaInstrumentationOverwritePathMethodAdvice -[hidden]right- JavaInstrumentationReadPathMethodAdvice
+JavaInstrumentationReadPathMethodAdvice -[hidden]right- JavaInstrumentationReceiveNetworkMethodAdvice
+JavaInstrumentationReceiveNetworkMethodAdvice -[hidden]right- JavaInstrumentationSendNetworkMethodAdvice
+JavaFileLoader -[hidden]right- JavaCSVFileLoader
+JavaCSVFileLoader -[hidden]right- JavaAOPAdviceSettingTriple
+JavaAOPAdviceSettingTriple -[hidden]right- JavaAOPTestCaseToolbox
+
+AOPMode -[hidden]down- CommandSystemExtractor
+CommandSystemExtractor -[hidden]down- AspectJCommandTarget
+JavaAOPTestCase -[hidden]down- AspectJCommandTarget
+AspectJCommandTarget -[hidden]down- JavaAspectJAbstractAdviceDefinitions
+JavaAspectJAbstractAdviceDefinitions -[hidden]down- JavaAspectJCommandSystemAdviceDefinitions
+JavaAspectJCommandSystemAdviceDefinitions -[hidden]down- JavaAspectJCommandSystemPointcutDefinitions
+JavaAspectJCommandSystemPointcutDefinitions -[hidden]down- JavaInstrumentationAgent
+JavaInstrumentationAgent -[hidden]down- InstrumentationCommandTarget
+InstrumentationCommandTarget -[hidden]down- JavaInstrumentationAdviceAbstractToolbox
+JavaInstrumentationAdviceAbstractToolbox -[hidden]down- JavaInstrumentationAdviceCommandSystemToolbox
+JavaInstrumentationAdviceCommandSystemToolbox -[hidden]down- JavaInstrumentationThreadSystemCallSite
+JavaInstrumentationThreadSystemCallSite -[hidden]down- JavaInstrumentationConnectNetworkConstructorAdvice
+JavaInstrumentationConnectNetworkConstructorAdvice -[hidden]down- JavaInstrumentationConnectNetworkMethodAdvice
+JavaInstrumentationCreatePathConstructorAdvice -[hidden]down- JavaInstrumentationCreatePathMethodAdvice
+JavaInstrumentationCreateThreadConstructorAdvice -[hidden]down- JavaInstrumentationCreateThreadMethodAdvice
+JavaInstrumentationDeletePathConstructorAdvice -[hidden]down- JavaInstrumentationDeletePathMethodAdvice
+JavaInstrumentationExecuteCommandConstructorAdvice -[hidden]down- JavaInstrumentationExecuteCommandMethodAdvice
+JavaInstrumentationExecutePathConstructorAdvice -[hidden]down- JavaInstrumentationExecutePathMethodAdvice
+JavaInstrumentationOverwritePathConstructorAdvice -[hidden]down- JavaInstrumentationOverwritePathMethodAdvice
+JavaInstrumentationReadPathConstructorAdvice -[hidden]down- JavaInstrumentationReadPathMethodAdvice
+JavaInstrumentationReceiveNetworkConstructorAdvice -[hidden]down- JavaInstrumentationReceiveNetworkMethodAdvice
+JavaInstrumentationSendNetworkConstructorAdvice -[hidden]down- JavaInstrumentationSendNetworkMethodAdvice
+JavaInstrumentationConnectNetworkMethodAdvice -[hidden]down- JavaFileLoader
+
+@enduml

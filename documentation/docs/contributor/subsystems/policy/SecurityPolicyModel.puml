@@ -1,0 +1,279 @@
+@startuml SecurityPolicyModel
+
+title Ares 2 Security Policy Domain Model
+
+scale max 3799 width
+top to bottom direction
+hide circle
+hide empty members
+skinparam ArrowFontSize 9
+skinparam classAttributeFontSize 9
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+skinparam classMethodFontSize 8
+skinparam linetype ortho
+' Reduced only enough for the browser renderer's 4096-pixel limit.
+skinparam nodesep 168
+skinparam noteFontSize 8
+skinparam packageStyle rectangle
+skinparam ranksep 220
+skinparam shadowing false
+
+class SecurityPolicy <<record>> {
+    + thisPolicyFileCompliesToThePolicyVersion: int
+    - {static} requireSupportedPolicyVersion(version: int): int
+    + {static} createRestrictive(programmingLanguageConfiguration: ProgrammingLanguageConfiguration): SecurityPolicy
+    + {static} builder(): SecurityPolicy.Builder
+}
+
+note top of SecurityPolicy
+  thisPolicyFileCompliesToThePolicyVersion: nonnull
+  - limits: AresConstants.MINIMUM_POLICY_VERSION..AresConstants.MAXIMUM_POLICY_VERSION (inclusive)
+  - default: AresConstants.MAXIMUM_POLICY_VERSION
+  - validated by the constructor and builder setter
+  regardingTheSupervisedCode: nonnull
+  - allowed: exactly one
+end note
+
+class SupervisedCode <<record>> {
+    + theSupervisedCodeUsesTheFollowingPackage: String
+    + theMainClassInsideThisPackageIs: String
+    + theFollowingClassesAreTestClasses: List<String>
+    -- Factories --
+    + {static} createRestrictive(theFollowingProgrammingLanguageConfigurationIsUsed: ProgrammingLanguageConfiguration): SupervisedCode
+    + {static} builder(): SupervisedCode.Builder
+}
+
+note left of SupervisedCode
+  theFollowingProgrammingLanguageConfigurationIsUsed: nonnull
+  - allowed: one of eight enum values
+  - selects the language name rules for the fields below
+  theSupervisedCodeUsesTheFollowingPackage: nullable
+  - allowed: a package name in the selected language
+  theMainClassInsideThisPackageIs: nullable
+  - allowed: a type name in the selected language
+  theFollowingClassesAreTestClasses: nonnull
+  - allowed: a class path in the selected language per entry
+  - immutable list
+  theFollowingResourceAccessesArePermitted: nonnull
+  - allowed: exactly one
+end note
+
+enum ProgrammingLanguageConfiguration <<enum>> {
+    JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+    JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION
+    JAVA_USING_MAVEN_WALA_AND_ASPECTJ
+    JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION
+    JAVA_USING_GRADLE_ARCHUNIT_AND_ASPECTJ
+    JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION
+    JAVA_USING_GRADLE_WALA_AND_ASPECTJ
+    JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION
+    --
+    + nameRules(): LanguageNameRules
+}
+
+class ResourceAccesses <<record>> {
+    -- Factories --
+    + {static} createRestrictive(): ResourceAccesses
+    + {static} builder(): ResourceAccesses.Builder
+}
+
+note top of ResourceAccesses
+  regardingFileSystemInteractions: nonnull
+  - allowed: immutable exhaustive list (default: empty)
+  regardingNetworkConnections: nonnull
+  - allowed: immutable exhaustive list (default: empty)
+  regardingCommandExecutions: nonnull
+  - allowed: immutable exhaustive list (default: empty)
+  regardingThreadCreations: nonnull
+  - allowed: immutable exhaustive list (default: empty)
+  regardingPackageImports: nonnull
+  - allowed: immutable exhaustive list (default: empty)
+  regardingTimeouts: nonnull
+  - allowed: immutable list with one restrictive default
+  - limits: minimum timeout applies
+end note
+
+class FilePermission <<record>> {
+    + onThisPathAndAllPathsBelow: String
+    + readAllFiles: boolean
+    + overwriteAllFiles: boolean
+    + createAllFiles: boolean
+    + executeAllFiles: boolean
+    + deleteAllFiles: boolean
+    -- Factories --
+    + {static} createRestrictive(path: String): FilePermission
+    + {static} builder(): FilePermission.Builder
+}
+
+note left of FilePermission
+  onThisPathAndAllPathsBelow: nonnull
+  - regex: valid path | recognised placeholder | "*"
+  - no control characters
+  - no upward traversal
+  - placeholders expand only when read from a file
+  readAllFiles: nonnull
+  - allowed: true | false (default)
+  overwriteAllFiles: nonnull
+  - allowed: true | false (default)
+  createAllFiles: nonnull
+  - allowed: true | false (default)
+  executeAllFiles: nonnull
+  - allowed: true | false (default)
+  deleteAllFiles: nonnull
+  - allowed: true | false (default)
+end note
+
+class NetworkPermission <<record>> {
+    + onTheHost: String
+    + onThePort: int
+    + openConnections: boolean
+    + sendData: boolean
+    + receiveData: boolean
+    -- Factories --
+    + {static} createRestrictive(onTheHost: String, onThePort: int): NetworkPermission
+    + {static} builder(): NetworkPermission.Builder
+}
+
+note left of NetworkPermission
+  onTheHost: nonnull
+  - regex: DNS | IPv4 | IPv6 | "localhost" | "*"
+  onThePort: nonnull
+  - limits: 0..65535
+  - 0 means every port
+  - must be set explicitly
+  openConnections: nonnull
+  - allowed: true | false (default)
+  sendData: nonnull
+  - allowed: true | false (default)
+  receiveData: nonnull
+  - allowed: true | false (default)
+end note
+
+class CommandPermission <<record>> {
+    + executeTheCommand: String
+    + withTheseArguments: List<String>
+    + {static} ANY_ARGUMENTS: String = "*"
+    -- Factories --
+    + {static} allowWithoutArguments(executeTheCommand: String): CommandPermission
+    + {static} allowWithAnyArguments(executeTheCommand: String): CommandPermission
+    + {static} builder(): CommandPermission.Builder
+}
+
+note bottom of CommandPermission
+  executeTheCommand: nonnull
+  - regex: non-blank, no control characters and no surrounding whitespace | "*"
+  withTheseArguments: nonnull
+  - regex: no control characters per entry | "*"
+  - immutable list
+  - empty entries are allowed
+  - empty list allows no arguments
+  - sole "*" allows every argument list
+end note
+
+class ThreadPermission <<record>> {
+    + createTheFollowingNumberOfThreads: int
+    + ofThisClass: String
+    -- Factories --
+    + {static} createRestrictive(threadClass: String): ThreadPermission
+    + {static} builder(): ThreadPermission.Builder
+}
+
+note bottom of ThreadPermission
+  createTheFollowingNumberOfThreads: nonnull
+  - limits: >= 0 (default: 0)
+  ofThisClass: nonnull
+  - allowed: a thread construct in the selected language | "*"
+  - validated per language, not by the record
+end note
+
+class PackagePermission <<record>> {
+    + importTheFollowingPackage: String
+    -- Factories --
+    + {static} allowPackage(importTheFollowingPackage: String): PackagePermission
+    + {static} builder(): PackagePermission.Builder
+}
+
+note right of PackagePermission
+  importTheFollowingPackage: nonnull
+  - allowed: a package name in the selected language | "*"
+  - validated where the language is known, not by the record
+end note
+
+class ResourceLimitsPermission <<record>> {
+    + timeout: long
+    -- Factories --
+    + {static} createRestrictive(): ResourceLimitsPermission
+    + {static} builder(): ResourceLimitsPermission.Builder
+}
+
+note right of ResourceLimitsPermission
+  timeout: nonnull
+  - limits: > 0 ms
+  - createRestrictive(): 3,000 ms
+  - minimum entry applies
+  - must be set explicitly
+end note
+
+class ClassPermission <<record>> {
+    + className: String
+    -- Factories --
+    + {static} builder(): ClassPermission.Builder
+}
+
+note right of ClassPermission
+  className: nonnull
+  - regex: non-blank class name in the selected language
+  - runtime-derived and validated by the deriving component
+end note
+
+SupervisedCode "1" -right-> "1" ProgrammingLanguageConfiguration : + theFollowingProgrammingLanguageConfigurationIsUsed: ProgrammingLanguageConfiguration
+
+ResourceAccesses "1" *-[norank]left- "*" FilePermission : + regardingFileSystemInteractions: List<FilePermission>
+ResourceAccesses "1" *-[norank]left- "*" NetworkPermission : + regardingNetworkConnections: List<NetworkPermission>
+ResourceAccesses "1" *-[norank]down- "*" CommandPermission : + regardingCommandExecutions: List<CommandPermission>
+ResourceAccesses "1" *-[norank]down- "*" ThreadPermission : + regardingThreadCreations: List<ThreadPermission>
+ResourceAccesses "1" *-[norank]right- "*" PackagePermission : + regardingPackageImports: List<PackagePermission>
+ResourceAccesses "1" *-[norank]right- "*" ResourceLimitsPermission : + regardingTimeouts: List<ResourceLimitsPermission>
+
+' Horizontal row constraints.
+FilePermission -[hidden]right- SupervisedCode
+SupervisedCode -[hidden]right- ProgrammingLanguageConfiguration
+ProgrammingLanguageConfiguration -[hidden]right- ClassPermission
+NetworkPermission -[hidden]right- ResourceAccesses
+ResourceAccesses -[hidden]right- PackagePermission
+CommandPermission -[hidden]right- ThreadPermission
+ThreadPermission -[hidden]right- ResourceLimitsPermission
+
+' Repeated vertical rails align the outer columns.
+FilePermission -[hidden]down- NetworkPermission
+FilePermission -[hidden]down- NetworkPermission
+FilePermission -[hidden]down- NetworkPermission
+PackagePermission -[hidden]down- ResourceLimitsPermission
+PackagePermission -[hidden]down- ResourceLimitsPermission
+PackagePermission -[hidden]down- ResourceLimitsPermission
+
+' Odd-sized bundles align the central column and centre its compositions.
+SecurityPolicy -[hidden]down- SupervisedCode
+SecurityPolicy -[hidden]down- SupervisedCode
+SecurityPolicy -[hidden]down- SupervisedCode
+SecurityPolicy -[hidden]down- SupervisedCode
+SecurityPolicy -[hidden]down- SupervisedCode
+SecurityPolicy -[hidden]down- SupervisedCode
+SecurityPolicy -[hidden]down- SupervisedCode
+SecurityPolicy -[hidden]down- SupervisedCode
+SecurityPolicy "1\n+ regardingTheSupervisedCode: SupervisedCode" *-down- "1" SupervisedCode
+
+SupervisedCode -[hidden]down- ResourceAccesses
+SupervisedCode -[hidden]down- ResourceAccesses
+SupervisedCode -[hidden]down- ResourceAccesses
+SupervisedCode -[hidden]down- ResourceAccesses
+SupervisedCode -[hidden]down- ResourceAccesses
+SupervisedCode -[hidden]down- ResourceAccesses
+SupervisedCode -[hidden]down- ResourceAccesses
+SupervisedCode -[hidden]down- ResourceAccesses
+SupervisedCode -[hidden]down- ResourceAccesses
+SupervisedCode -[hidden]down- ResourceAccesses
+SupervisedCode "1\n+ theFollowingResourceAccessesArePermitted: ResourceAccesses" *-down- "1" ResourceAccesses
+
+@enduml

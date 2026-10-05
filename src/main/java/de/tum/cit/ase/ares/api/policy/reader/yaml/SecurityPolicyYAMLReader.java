@@ -18,6 +18,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLParser;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
+import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicySchemaValidator;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
@@ -55,6 +56,26 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 		this(yamlMapper, null);
 	}
 
+	/**
+	 * Constructs a new SecurityPolicyYAMLReader with the specified YAML mapper and
+	 * project root.
+	 * <p>
+	 * The supplied {@code yamlMapper} is hardened in place: this constructor
+	 * enables the strict parsing features the reader relies on (fail on null
+	 * primitives, fail on unknown properties, strict duplicate detection,
+	 * boolean-like words as strings). The mapper is deliberately used rather than
+	 * copied, so a caller that registers custom (de)serialisers keeps control of
+	 * the binding; the trade-off is that this reader mutates the mapper handed to
+	 * it.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param yamlMapper      the non-null YAML mapper, configured in place with the
+	 *                        reader's strict parsing features.
+	 * @param projectRootPath the project root used to expand
+	 *                        {@code ${PROJECT_ROOT}} placeholders, or null to
+	 *                        derive it from the policy file location at read time.
+	 */
 	public SecurityPolicyYAMLReader(@Nonnull YAMLMapper yamlMapper, @Nullable Path projectRootPath) {
 		super(yamlMapper);
 		yamlMapper.enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);

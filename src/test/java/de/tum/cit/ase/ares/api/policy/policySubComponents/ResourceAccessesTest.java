@@ -22,6 +22,22 @@ class ResourceAccessesTest {
 	}
 
 	@Test
+	void theRestrictiveTimeoutIsThreeSeconds() {
+		// Pinned literally on purpose: the assertion above compares two factories
+		// against each other and would stay green no matter what they both became, so
+		// on its own it cannot notice the value silently drifting.
+		assertThat(ResourceLimitsPermission.createRestrictive().timeout()).isEqualTo(3000L);
+	}
+
+	@Test
+	void anOmittedTimeoutFallsBackToTheRestrictiveOne() {
+		// The builder default is what decides whether a programmatically assembled
+		// policy is bounded at all, so it must not quietly become an empty list.
+		ResourceAccesses withoutTimeouts = ResourceAccesses.builder().build();
+		assertThat(withoutTimeouts.regardingTimeouts()).containsExactly(ResourceLimitsPermission.createRestrictive());
+	}
+
+	@Test
 	void restrictiveDeniesEveryOtherResource() {
 		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
 		assertThat(restrictive.regardingFileSystemInteractions()).isEmpty();
