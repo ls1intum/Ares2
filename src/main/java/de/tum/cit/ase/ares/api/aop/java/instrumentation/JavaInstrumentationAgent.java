@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
 import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
@@ -12,9 +13,12 @@ import java.util.stream.Collectors;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.MemberSubstitution;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
+import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.loading.ClassInjector;
 import net.bytebuddy.dynamic.loading.ClassInjector.UsingUnsafe.Factory;
+import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.utility.JavaModule;
 
@@ -44,13 +48,80 @@ public final class JavaInstrumentationAgent {
 	private static final Set<String> INSTRUMENTED_THREAD_MONITOR_PACKAGES = ConcurrentHashMap.newKeySet();
 	private static final Object THREAD_MONITOR_PACKAGE_REGISTRATION_LOCK = new Object();
 	private static final AtomicReference<TransformationFailure> TRANSFORMATION_FAILURE = new AtomicReference<>();
+	/**
+	 * The classes the pointcut transformers have rewritten, each as its name and
+	 * its class loader, so a check can prove that no watched class was left out.
+	 */
+	private static final Set<String> TRANSFORMED_TYPES = ConcurrentHashMap.newKeySet();
+	/**
+	 * Records every class the pointcut transformers rewrote, for
+	 * {@link #wasTransformed(Class)}.
+	 */
+	private static final AgentBuilder.Listener TRANSFORMATION_RECORDER = new AgentBuilder.Listener.Adapter() {
+		/**
+		 * Notes the rewritten class with its class loader.
+		 */
+		@Override
+		public void onTransformation(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module,
+				boolean loaded, DynamicType dynamicType) {
+			TRANSFORMED_TYPES.add(transformedTypeKey(typeDescription.getName(), classLoader));
+		}
+	};
+	/**
+	 * Records the first class a transformer failed on, for
+	 * {@link #throwIfTransformationFailed()}.
+	 */
 	private static final AgentBuilder.Listener TRANSFORMATION_FAILURE_LISTENER = new AgentBuilder.Listener.Adapter() {
+		/**
+		 * Keeps the failure unless an earlier one is still unreported.
+		 */
 		@Override
 		public void onError(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded,
 				Throwable throwable) {
-			TRANSFORMATION_FAILURE.compareAndSet(null, new TransformationFailure(typeName, throwable));
+			recordFailure(new TransformationFailure(typeName, throwable));
 		}
 	};
+	/**
+	 * Records a batch of already loaded classes the JVM refused to retransform.
+	 * Byte Buddy otherwise drops such a failure silently, and the batch would stay
+	 * unguarded.
+	 */
+	private static final AgentBuilder.RedefinitionStrategy.Listener RETRANSFORMATION_FAILURE_LISTENER = new AgentBuilder.RedefinitionStrategy.Listener.Adapter() {
+		/**
+		 * Records the refused batch and does not retry it.
+		 */
+		@Override
+		public Iterable<? extends List<Class<?>>> onError(int index, List<Class<?>> batch, Throwable throwable,
+				List<Class<?>> types) {
+			recordFailure(new TransformationFailure(
+					batch.stream().map(Class::getName).collect(Collectors.joining(", ")), throwable));
+			return List.of();
+		}
+	};
+	/**
+	 * The first transformation failure seen while the transformers are being
+	 * installed. Unlike the per-test report, no test can consume it before the
+	 * installation has checked it.
+	 */
+	private static final AtomicReference<TransformationFailure> INSTALLATION_FAILURE = new AtomicReference<>();
+	/**
+	 * Whether the transformers are being installed right now.
+	 */
+	private static volatile boolean installing;
+	/**
+	 * Guards the one-time installation of the transformers.
+	 */
+	private static final Object ACTIVATION_LOCK = new Object();
+	/**
+	 * Whether the transformers are installed. Once true, it stays true.
+	 */
+	private static volatile boolean activated;
+	/**
+	 * The failure of the first installation attempt, including a class it could not
+	 * transform, rethrown by every later attempt, so that no test runs unguarded
+	 * after it and no transformer is installed twice.
+	 */
+	private static volatile SecurityException activationFailure;
 
 	private JavaInstrumentationAgent() {
 		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -58,8 +129,11 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * This method is called before the application's main method is called. It
-	 * installs the agent builder for the different types of file operations.
+	 * Called before the application's main method. It prepares the agent but
+	 * installs the transformers only if a policy for instrumentation is already
+	 * compiled in. Otherwise {@link #activate()} installs them when the first such
+	 * policy is prepared, so a run that never uses instrumentation does not pay for
+	 * it.
 	 *
 	 * @param agentArgs The agent arguments.
 	 * @param inst      The instrumentation instance.
@@ -92,48 +166,199 @@ public final class JavaInstrumentationAgent {
 		preloadPlatformClass("sun.nio.fs.UnixException");
 		preloadPlatformClass("sun.nio.fs.WindowsException");
 
-		installAgentBuilder(inst, unsafeFactory,
-				List.of(new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
+		if (isPolicyCompiledIn()) {
+			installTransformersOnce();
+		}
+	}
+
+	/**
+	 * Installs the transformers for the first policy that asks for instrumentation,
+	 * before any supervised code of that test runs, and reports any class a
+	 * transformer has failed on since. Later calls only report. Safe to call from
+	 * several threads at once.
+	 *
+	 * @throws SecurityException if the agent is not attached, if installing failed
+	 *                           now or at an earlier attempt, or if a class could
+	 *                           not be transformed
+	 */
+	public static void activate() {
+		if (!activated) {
+			installTransformersOnce();
+		}
+		throwIfTransformationFailed();
+	}
+
+	/**
+	 * Installs the pointcut transformers and the thread call-site transformer
+	 * exactly once. A failed attempt, or a class it could not transform, is kept
+	 * and rethrown by every later one, so a half-finished installation is never
+	 * repeated and never ignored.
+	 *
+	 * @throws SecurityException if the agent is not attached or installing failed
+	 */
+	private static void installTransformersOnce() {
+		synchronized (ACTIVATION_LOCK) {
+			if (activated) {
+				return;
+			}
+			throwIfActivationFailed();
+			Instrumentation currentInstrumentation = instrumentation;
+			Factory currentFactory = classInjectorFactory;
+			try {
+				if (currentInstrumentation == null || currentFactory == null) {
+					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+							.localize("security.instrumentation.agent.not.attached"));
+				}
+				installing = true;
+				installAgentBuilder(currentInstrumentation, currentFactory, guardedPointcuts());
+				installThreadCallSiteBuilder(currentInstrumentation, currentFactory);
+				throwIfInstallationFailed();
+				activated = true;
+			} catch (SecurityException failure) {
+				activationFailure = failure;
+				throw failure;
+			} catch (RuntimeException | LinkageError failure) {
+				activationFailure = new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+						.localize("security.instrumentation.agent.installation.error", "instrumentation"), failure);
+				throw activationFailure;
+			} finally {
+				installing = false;
+			}
+		}
+	}
+
+	/**
+	 * Rethrows the failure of installing the transformers, if it failed, so a
+	 * caller that otherwise tolerates a failed preparation still refuses to run
+	 * code unguarded.
+	 *
+	 * @throws SecurityException if installing the transformers failed
+	 */
+	public static void throwIfActivationFailed() {
+		SecurityException failure = activationFailure;
+		if (failure != null) {
+			throw new SecurityException(failure.getMessage(), failure);
+		}
+	}
+
+	/**
+	 * Fails the installation if a class could not be transformed while it ran.
+	 *
+	 * @throws SecurityException if a transformation failed during installation
+	 */
+	private static void throwIfInstallationFailed() {
+		TransformationFailure failure = INSTALLATION_FAILURE.get();
+		if (failure != null) {
+			throw new SecurityException(
+					JavaInstrumentationAdviceAbstractToolbox
+							.localize("security.instrumentation.agent.transformation.error", failure.typeName()),
+					failure.cause());
+		}
+	}
+
+	/**
+	 * Keeps a transformation failure for the per-test report and, while the
+	 * transformers are being installed, for the installation's own check.
+	 *
+	 * @param failure The class and the cause.
+	 */
+	private static void recordFailure(TransformationFailure failure) {
+		TRANSFORMATION_FAILURE.compareAndSet(null, failure);
+		if (installing) {
+			INSTALLATION_FAILURE.compareAndSet(null, failure);
+		}
+	}
+
+	/**
+	 * Tells whether the settings already name an AOP mode when the agent starts.
+	 * Only a policy compiled into the project (Precompile) does that; there nothing
+	 * calls {@link #activate()}, so the transformers must be installed at once. If
+	 * the settings cannot be read, it answers yes, so the agent fails closed.
+	 *
+	 * @return True if the transformers must be installed at start-up.
+	 */
+	private static boolean isPolicyCompiledIn() {
+		try {
+			Field aopMode = Class.forName(JavaAOPTestCaseSettings.class.getName(), true, null)
+					.getDeclaredField("aopMode");
+			aopMode.setAccessible(true);
+			return aopMode.get(null) != null;
+		} catch (ReflectiveOperationException | RuntimeException | LinkageError unreadable) {
+			return true;
+		}
+	}
+
+	/**
+	 * Tells whether a pointcut transformer has rewritten the given class.
+	 *
+	 * @param type The loaded class.
+	 * @return True if the class was transformed at loading or retransformed.
+	 */
+	static boolean wasTransformed(Class<?> type) {
+		return TRANSFORMED_TYPES.contains(transformedTypeKey(type.getName(), type.getClassLoader()));
+	}
+
+	/**
+	 * Identifies a class by its name and its class loader, since two loaders may
+	 * define classes of the same name.
+	 *
+	 * @param typeName    The fully qualified class name.
+	 * @param classLoader The defining class loader, or null for the boot loader.
+	 * @return The key under which the class is recorded.
+	 */
+	private static String transformedTypeKey(String typeName, ClassLoader classLoader) {
+		return typeName + "@" + System.identityHashCode(classLoader);
+	}
+
+	/**
+	 * Lists every group of method calls the agent intercepts, each paired with the
+	 * transformer that rewrites it.
+	 *
+	 * @return The method and constructor groups for files, threads, commands and
+	 *         network.
+	 */
+	static List<Pointcut> guardedPointcuts() {
+		return List.of(
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
 						JavaInstrumentationBindingDefinitions::createReadPathMethodBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
-								JavaInstrumentationBindingDefinitions::createOverwritePathMethodBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
-								JavaInstrumentationBindingDefinitions::createCreatePathMethodBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
-								JavaInstrumentationBindingDefinitions::createExecutePathMethodBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
-								JavaInstrumentationBindingDefinitions::createDeletePathMethodBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
-								JavaInstrumentationBindingDefinitions::createCreateThreadMethodBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
-								JavaInstrumentationBindingDefinitions::createExecuteCommandMethodBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
-								JavaInstrumentationBindingDefinitions::createConnectNetworkMethodBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
-								JavaInstrumentationBindingDefinitions::createSendNetworkMethodBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
-								JavaInstrumentationBindingDefinitions::createReceiveNetworkMethodBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
-								JavaInstrumentationBindingDefinitions::createReadPathConstructorBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
-								JavaInstrumentationBindingDefinitions::createOverwritePathConstructorBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
-								JavaInstrumentationBindingDefinitions::createCreatePathConstructorBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
-								JavaInstrumentationBindingDefinitions::createExecutePathConstructorBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
-								JavaInstrumentationBindingDefinitions::createDeletePathConstructorBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
-								JavaInstrumentationBindingDefinitions::createCreateThreadConstructorBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
-								JavaInstrumentationBindingDefinitions::createExecuteCommandConstructorBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
-								JavaInstrumentationBindingDefinitions::createConnectNetworkConstructorBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
-								JavaInstrumentationBindingDefinitions::createSendNetworkConstructorBinding),
-						new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
-								JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding)));
-		installThreadCallSiteBuilder(inst, unsafeFactory);
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
+						JavaInstrumentationBindingDefinitions::createOverwritePathMethodBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
+						JavaInstrumentationBindingDefinitions::createCreatePathMethodBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
+						JavaInstrumentationBindingDefinitions::createExecutePathMethodBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
+						JavaInstrumentationBindingDefinitions::createDeletePathMethodBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
+						JavaInstrumentationBindingDefinitions::createCreateThreadMethodBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
+						JavaInstrumentationBindingDefinitions::createExecuteCommandMethodBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
+						JavaInstrumentationBindingDefinitions::createConnectNetworkMethodBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
+						JavaInstrumentationBindingDefinitions::createSendNetworkMethodBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
+						JavaInstrumentationBindingDefinitions::createReceiveNetworkMethodBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
+						JavaInstrumentationBindingDefinitions::createReadPathConstructorBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
+						JavaInstrumentationBindingDefinitions::createOverwritePathConstructorBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
+						JavaInstrumentationBindingDefinitions::createCreatePathConstructorBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
+						JavaInstrumentationBindingDefinitions::createExecutePathConstructorBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
+						JavaInstrumentationBindingDefinitions::createDeletePathConstructorBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
+						JavaInstrumentationBindingDefinitions::createCreateThreadConstructorBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
+						JavaInstrumentationBindingDefinitions::createExecuteCommandConstructorBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
+						JavaInstrumentationBindingDefinitions::createConnectNetworkConstructorBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
+						JavaInstrumentationBindingDefinitions::createSendNetworkConstructorBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
+						JavaInstrumentationBindingDefinitions::createReceiveNetworkConstructorBinding));
 	}
 
 	/**
@@ -196,16 +421,12 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Installs call-site substitutions for Thread start and monitor operations in
-	 * one restricted package.
-	 * <p>
-	 * Object's final native monitor methods cannot be advised at their declaration,
-	 * so their application-side call sites have to be rewritten. Restricting the
-	 * transformer to the package governed by the current policy is both the precise
-	 * security boundary and avoids transforming every framework and dependency
-	 * class in the JVM. The package is registered before supervised classes are
-	 * first used, so their definitions pass through this transformer without a
-	 * structurally unsafe second retransformation.
+	 * Rewrites calls to Thread start and the monitor methods in the package the
+	 * current policy governs. Object's final native monitor methods cannot be
+	 * advised where they are declared, so their call sites are rewritten instead;
+	 * limiting this to the governed package leaves framework classes untouched.
+	 * Register the package before supervised classes are first used, so they pass
+	 * this transformer without a second retransformation.
 	 *
 	 * @param restrictedPackage package prefix governed by the current policy
 	 */
@@ -324,18 +545,14 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Installs one agent builder that carries every pointcut, so each loaded class
-	 * is matched once rather than once per pointcut, and shares one type pool
-	 * cache, so each superclass is parsed once. Retransformation repeats until no
-	 * new class appears, because classes loaded while installing are neither in the
-	 * first snapshot nor seen by the load hook.
+	 * Installs one agent builder for every pointcut, so each class is matched once.
+	 * Retransformation repeats until no new class appears, since classes loaded
+	 * while installing are in neither the first snapshot nor the load hook.
 	 *
-	 * @param inst          The instrumentation instance used to instrument
-	 *                      bytecode.
+	 * @param inst          The instrumentation instance.
 	 * @param unsafeFactory Factory for unsafe class injection.
-	 * @param pointcuts     The method calls to intercept, each with the transformer
-	 *                      that applies its bytecode modification.
-	 * @throws SecurityException If the installation of the agent builder fails.
+	 * @param pointcuts     The method groups to intercept, with their transformers.
+	 * @throws SecurityException If installing fails.
 	 */
 	private static void installAgentBuilder(Instrumentation inst, ClassInjector.UsingUnsafe.Factory unsafeFactory,
 			List<Pointcut> pointcuts) {
@@ -343,37 +560,12 @@ public final class JavaInstrumentationAgent {
 			AgentBuilder agentBuilder = new AgentBuilder.Default()
 					// Use one combined matcher: AgentBuilder.ignore replaces the previous
 					// matcher, so separate calls would accidentally re-enable earlier groups.
-					.ignore(ElementMatchers.nameStartsWith("net.bytebuddy.")
-							// Mockito injects MockMethodDispatcher into the bootstrap loader while its
-							// advice class is loading. Resolving that class's hierarchy from another
-							// transformer before injection has completed fails. Exclude only the advice
-							// class itself: Mockito-generated implementations of guarded interfaces must
-							// remain instrumentable.
-							.or(ElementMatchers
-									.nameStartsWith("org.mockito.internal.creation.bytebuddy.MockMethodAdvice"))
-							// Ignore deepest JDK internals that must never be instrumented.
-							// sun.nio.ch.*Impl
-							// classes are intentionally NOT excluded here so SocketChannelImpl,
-							// DatagramChannelImpl, AsynchronousSocketChannel impls remain instrumentable
-							// for their connect / send / receive methods which the abstract NIO base
-							// classes only declare.
-							.or(ElementMatchers.nameStartsWith("jdk.internal."))
-							.or(ElementMatchers.nameStartsWith("java.lang.invoke."))
-							.or(ElementMatchers.nameStartsWith("java.lang.reflect."))
-							// StackWalker plumbing must stay un-instrumented; the advice toolbox uses
-							// StackWalker on every call-stack inspection and any retransformation here
-							// trips ClassCircularityError when the first pointcut fires.
-							.or(ElementMatchers.nameStartsWith("java.lang.StackWalker"))
-							.or(ElementMatchers.nameStartsWith("java.lang.StackStreamFactory"))
-							.or(ElementMatchers.nameStartsWith("java.lang.StackFrameInfo"))
-							.or(ElementMatchers.nameStartsWith("java.lang.LiveStackFrameInfo"))
-							// Ignore Ares internal classes to avoid self-instrumentation
-							.or(ElementMatchers.nameStartsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation.")))
-					.with(TRANSFORMATION_FAILURE_LISTENER)
+					.ignore(ignoredTypes()).with(TRANSFORMATION_FAILURE_LISTENER).with(TRANSFORMATION_RECORDER)
 					.with(new AgentBuilder.PoolStrategy.WithTypePoolCache.Simple(new ConcurrentHashMap<>()))
 					.with(AgentBuilder.TypeStrategy.Default.REBASE)
 					.with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
 					.with(AgentBuilder.RedefinitionStrategy.DiscoveryStrategy.Reiterating.INSTANCE)
+					.with(RETRANSFORMATION_FAILURE_LISTENER)
 					.with(new AgentBuilder.InjectionStrategy.UsingUnsafe.OfFactory(unsafeFactory))
 					.disableClassFormatChanges();
 			for (Pointcut interception : pointcuts) {
@@ -386,6 +578,29 @@ public final class JavaInstrumentationAgent {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 					.localize("security.instrumentation.agent.installation.error", pointcutNames(pointcuts)), e);
 		}
+	}
+
+	/**
+	 * Selects the classes no pointcut transformer may touch: Byte Buddy, Mockito's
+	 * advice class (resolving it while Mockito injects its dispatcher fails), the
+	 * deepest JDK internals, the stack walking the advice relies on (instrumenting
+	 * it causes a ClassCircularityError), and the agent's own classes. The
+	 * sun.nio.ch channel implementations stay watched on purpose: they implement
+	 * the guarded connect, send and receive methods.
+	 *
+	 * @return The matcher of the ignored classes.
+	 */
+	static ElementMatcher.Junction<TypeDescription> ignoredTypes() {
+		return ElementMatchers.nameStartsWith("net.bytebuddy.")
+				.or(ElementMatchers.nameStartsWith("org.mockito.internal.creation.bytebuddy.MockMethodAdvice"))
+				.or(ElementMatchers.nameStartsWith("jdk.internal."))
+				.or(ElementMatchers.nameStartsWith("java.lang.invoke."))
+				.or(ElementMatchers.nameStartsWith("java.lang.reflect."))
+				.or(ElementMatchers.nameStartsWith("java.lang.StackWalker"))
+				.or(ElementMatchers.nameStartsWith("java.lang.StackStreamFactory"))
+				.or(ElementMatchers.nameStartsWith("java.lang.StackFrameInfo"))
+				.or(ElementMatchers.nameStartsWith("java.lang.LiveStackFrameInfo"))
+				.or(ElementMatchers.nameStartsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation."));
 	}
 
 	/**
@@ -403,8 +618,7 @@ public final class JavaInstrumentationAgent {
 			try {
 				return transformer.transform(builder, typeDescription, classLoader, module, protectionDomain);
 			} catch (RuntimeException | LinkageError failure) {
-				TRANSFORMATION_FAILURE.compareAndSet(null,
-						new TransformationFailure(typeDescription.getName(), failure));
+				recordFailure(new TransformationFailure(typeDescription.getName(), failure));
 				return builder;
 			}
 		};
@@ -488,6 +702,6 @@ public final class JavaInstrumentationAgent {
 	 * @param methodsMap  The watched classes, each with the names of its methods.
 	 * @param transformer The transformer that applies the bytecode modification.
 	 */
-	private record Pointcut(Map<String, List<String>> methodsMap, AgentBuilder.Transformer transformer) {
+	record Pointcut(Map<String, List<String>> methodsMap, AgentBuilder.Transformer transformer) {
 	}
 }
