@@ -35,6 +35,36 @@ public final class InstrumentationSecurityProbe {
 				"deleteIfExists", "(Ljava/nio/file/Path;)Z", null, new Object[] { path }, null);
 	}
 
+	public static void checkPreferencesPut(String key, String value) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("overwrite",
+				"java.util.prefs.AbstractPreferences", "put", "(Ljava/lang/String;Ljava/lang/String;)V", null,
+				new Object[] { key, value }, null);
+	}
+
+	public static void checkPreferencesGet(String key) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read",
+				"java.util.prefs.AbstractPreferences", "get",
+				"(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;", null, new Object[] { key, "default" },
+				null);
+	}
+
+	public static void checkPreferencesNode(String pathName) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create",
+				"java.util.prefs.AbstractPreferences", "node", "(Ljava/lang/String;)Ljava/util/prefs/Preferences;",
+				null, new Object[] { pathName }, null);
+	}
+
+	public static void checkPreferencesRemoveNode() {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("delete",
+				"java.util.prefs.AbstractPreferences", "removeNode", "()V", null, new Object[0], null);
+	}
+
+	public static void checkPreferencesUserNodeForPackage() {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.util.prefs.Preferences",
+				"userNodeForPackage", "(Ljava/lang/Class;)Ljava/util/prefs/Preferences;", null,
+				new Object[] { InstrumentationSecurityProbe.class }, null);
+	}
+
 	/**
 	 * Simulates the "read" leg of a woven
 	 * {@code Files.copy(source, destination, ...)} call (I-114): the real advice

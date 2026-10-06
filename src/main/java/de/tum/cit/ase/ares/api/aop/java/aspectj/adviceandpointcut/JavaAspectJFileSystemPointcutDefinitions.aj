@@ -52,7 +52,23 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.util.jar.JarOutputStream+.putNextEntry(..)) ||
                     call(* java.util.jar.JarOutputStream+.closeEntry(..)) ||
                     call(* java.util.Properties+.store(..)) ||
-                    call(* java.util.Properties+.storeToXML(..))
+                    call(* java.util.Properties+.storeToXML(..)) ||
+                    // java.util.prefs.Preferences writes to a backing store on disk through
+                    // no student-opened stream, so it carries no path argument, exactly like
+                    // Properties.store above. The architecture layer (reach) is its real gate;
+                    // it is registered here so the AOP layer classifies it as a write too.
+                    call(* java.util.prefs.Preferences+.put(..)) ||
+                    call(* java.util.prefs.Preferences+.putInt(..)) ||
+                    call(* java.util.prefs.Preferences+.putLong(..)) ||
+                    call(* java.util.prefs.Preferences+.putBoolean(..)) ||
+                    call(* java.util.prefs.Preferences+.putFloat(..)) ||
+                    call(* java.util.prefs.Preferences+.putDouble(..)) ||
+                    call(* java.util.prefs.Preferences+.putByteArray(..)) ||
+                    call(* java.util.prefs.Preferences+.remove(..)) ||
+                    call(* java.util.prefs.Preferences+.clear(..)) ||
+                    call(* java.util.prefs.Preferences+.flush(..)) ||
+                    call(* java.util.prefs.Preferences+.sync(..)) ||
+                    call(* java.util.prefs.Preferences+.importPreferences(..))
                     );
 
     pointcut fileCreateMethods():
@@ -64,7 +80,13 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(java.io.BufferedOutputStream+.new(..)) ||
                     call(java.io.FileWriter+.new(..)) ||
                     call(java.io.PrintWriter+.new(..)) ||
-                    call(java.io.RandomAccessFile+.new(..)));
+                    call(java.io.RandomAccessFile+.new(..)) ||
+                    // Preferences.node(path) and the userNodeForPackage/systemNodeForPackage
+                    // factories create the node and any missing ancestors in the backing
+                    // store, like File.mkdir, so they are creates.
+                    call(* java.util.prefs.Preferences+.node(..)) ||
+                    call(* java.util.prefs.Preferences+.userNodeForPackage(..)) ||
+                    call(* java.util.prefs.Preferences+.systemNodeForPackage(..)));
 
     // Note: ProcessBuilder.start, startPipeline, and Runtime.exec are handled by the Command System
     // in Byte Buddy mode, as they execute commands rather than individual files.
@@ -86,7 +108,10 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             (call(* java.awt.Desktop+.moveToTrash(..)) ||
                     call(* java.io.File+.delete(..)) ||
                     call(* java.io.File+.deleteOnExit(..)) ||
-                    call(* org.apache.commons.io.FileUtils+.forceDelete(..)));
+                    call(* org.apache.commons.io.FileUtils+.forceDelete(..)) ||
+                    // Preferences.removeNode removes the node from the backing store, so it is
+                    // a delete and is checked against the delete allow-list, not overwrite.
+                    call(* java.util.prefs.Preferences+.removeNode(..)));
 
     pointcut fileInputStreamInitMethods(): call(java.io.FileInputStream+.new(..));
 
@@ -165,7 +190,25 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(java.util.jar.JarInputStream+.new(..)) ||
                     call(* java.util.jar.JarInputStream+.getNextJarEntry(..)) ||
                     call(* java.util.Properties+.load(..)) ||
-                    call(* java.util.Properties+.loadFromXML(..)));
+                    call(* java.util.Properties+.loadFromXML(..)) ||
+                    // java.util.prefs.Preferences reads from a backing store on disk without a
+                    // path argument, like Properties.load above. The accessor methods
+                    // (userRoot, systemRoot, ...) are the only way to reach the store, so they
+                    // are classified as reads. The architecture layer (reach) is the real gate.
+                    call(* java.util.prefs.Preferences+.get(..)) ||
+                    call(* java.util.prefs.Preferences+.getInt(..)) ||
+                    call(* java.util.prefs.Preferences+.getLong(..)) ||
+                    call(* java.util.prefs.Preferences+.getBoolean(..)) ||
+                    call(* java.util.prefs.Preferences+.getFloat(..)) ||
+                    call(* java.util.prefs.Preferences+.getDouble(..)) ||
+                    call(* java.util.prefs.Preferences+.getByteArray(..)) ||
+                    call(* java.util.prefs.Preferences+.keys(..)) ||
+                    call(* java.util.prefs.Preferences+.childrenNames(..)) ||
+                    call(* java.util.prefs.Preferences+.nodeExists(..)) ||
+                    call(* java.util.prefs.Preferences+.exportNode(..)) ||
+                    call(* java.util.prefs.Preferences+.exportSubtree(..)) ||
+                    call(* java.util.prefs.Preferences+.userRoot(..)) ||
+                    call(* java.util.prefs.Preferences+.systemRoot(..)));
 
     // Note: Files.newByteChannel is intentionally NOT included here.
     // It is already in filesReadMethods, and the actual operation (read/write/create)

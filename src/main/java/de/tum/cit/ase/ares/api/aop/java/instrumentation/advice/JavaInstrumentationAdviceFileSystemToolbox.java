@@ -134,6 +134,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	private static final Set<String> NATIVE_LIBRARY_SUFFIXES = Set.of(".dylib", ".jnilib", ".so", ".dll");
 
 	/**
+	 * Stand-in shown in the denial message for a
+	 * {@code java.util.prefs.Preferences} operation, which has no path to report
+	 * because the OS fixes the store's location.
+	 */
+	private static final String PREFERENCES_BACKING_STORE = "<java.util.prefs backing store>";
+
+	/**
 	 * The fixed set of JCE jurisdiction crypto-policy file names, plus the exact
 	 * directory-scan glob {@code javax.crypto.JceSecurity} uses to locate them
 	 * during TLS/cryptography initialisation. Matched exactly (not by prefix) so
@@ -1391,6 +1398,37 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @throws SecurityException if the interaction violates configured policies
 	 * @since 2.0.0
 	 */
+	/**
+	 * Returns whether the intercepted call targets the Java Preferences API, whose
+	 * backing store is a disk location the student cannot name or scope.
+	 *
+	 * @param declaringTypeName the fully qualified type the called method belongs
+	 *                          to
+	 * @return true for any {@code java.util.prefs} type
+	 */
+	private static boolean isPreferencesBackingStore(@Nullable String declaringTypeName) {
+		return declaringTypeName != null && declaringTypeName.startsWith("java.util.prefs.");
+	}
+
+	/**
+	 * Returns whether the allow-list authorises every path, the only rule under
+	 * which the unscopable Preferences backing store may be touched.
+	 *
+	 * @param allowedPaths the configured allow-list for the action, may be null
+	 * @return true if the list contains the {@code "*"} wildcard
+	 */
+	private static boolean allowsAllPaths(@Nullable String[] allowedPaths) {
+		if (allowedPaths == null) {
+			return false;
+		}
+		for (String allowedPath : allowedPaths) {
+			if ("*".equals(allowedPath)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private static void checkFileSystemInteractionForAction(@Nonnull String action,
 			boolean allowNonExistingPathsToBeConsidered, @Nonnull String declaringTypeName, @Nonnull String methodName,
 			@Nullable Object[] attributes, @Nullable Object[] parameters, @Nullable Object instance,
@@ -1407,6 +1445,23 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 		});
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
+		// </editor-fold>
+		// <editor-fold desc="Preferences backing store (no path to scope)">
+		// java.util.prefs.Preferences reads and writes a backing store whose location
+		// the OS fixes (on Linux ~/.java/.userPrefs, on Windows the registry), so the
+		// student passes no path and the key/value arguments must not be checked as
+		// paths. The store is never inside a directory a policy scopes to, so it can
+		// only be permitted by allowing all paths ("*"); any narrower rule forbids it.
+		if (isPreferencesBackingStore(declaringTypeName) && !allowsAllPaths(allowedPaths)) {
+			throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
+					action, PREFERENCES_BACKING_STORE,
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ buildDenialReason(noAllowRuleConfigured)));
+		}
+		if (isPreferencesBackingStore(declaringTypeName)) {
+			return;
+		}
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
 		@Nullable
