@@ -13,7 +13,7 @@ can quietly take it off the desk.
 
 ## The path, in order
 
-1. **Add the dependency and the agent**, below.
+1. **Add the dependency**, and **the agent** if your configuration ends in `_INSTRUMENTATION`, below.
 2. **[Set up the public and hidden test model](../setup.md)**.
 3. **[Mark your tests](../test-annotations.md)** with `@PublicTest` or `@HiddenTest`, and give
    hidden tests a `@Deadline`.
@@ -29,6 +29,14 @@ can quietly take it off the desk.
 Blockquoted tips (marked `>`) in the setup steps below describe optional configuration that can be
 skipped on a first setup. Everything not in a blockquote is required.
 :::
+
+**The agent is required only for configurations ending in `_INSTRUMENTATION`.** It enforces the
+policy by rewriting Java classes as they load. A configuration ending in `_ASPECTJ` enforces the
+same policy through aspects that `ajc` weaves in at compile time. Ares leaves the agent's checks
+idle in that mode, so there the agent only adds start-up time to every test run. For an
+`_ASPECTJ` configuration, leave out the `aresAgent` configuration and dependency, the `agentJar`
+property with its `from(...)` line, and the `-javaagent` argument. Keep everything else, including
+`-Xbootclasspath/a:` and the module access flags.
 
 First, add the AspectJ compiler plugin:
 
@@ -188,7 +196,7 @@ tasks.withType(Test).configureEach {
 - **Why an argument provider rather than `jvmArgs`.** Writing `jvmArgs += ["-javaagent:${configurations.aresAgent.singleFile}"]` looks simpler, but the string is evaluated while Gradle is *configuring* the build. That resolves the dependency even when you run an unrelated task, it fails the whole build if resolution fails, and it is incompatible with the configuration cache. A `CommandLineArgumentProvider` declares the JARs as task inputs and computes the arguments when the test task runs. The `@InputFiles` annotations are what let Gradle track them for the configuration and build caches.
 - **Why `singleFile` is safe here.** Both configurations are `transitive = false` with exactly one dependency each, so each resolves to exactly one file. No file-name matching is involved, so there is no way to pick up the wrong JAR.
 - `useJUnitPlatform()`: enables JUnit 5 (Jupiter) test discovery.
-- `-javaagent:...`: loads the Ares agent before any user code runs, which is what the instrumentation enforcement path relies on.
+- `-javaagent:...`: loads the Ares agent before any user code runs, which is what the instrumentation enforcement path relies on. Only `_INSTRUMENTATION` configurations need it.
 - `-Xbootclasspath/a:...`: appends the AspectJ **runtime** JAR to the bootstrap classpath, so woven bytecode can resolve AspectJ runtime types at the bootstrap class-loader level.
 - `tasks.withType(Test).configureEach`: applies to every test task, including custom ones, rather than only the default `test` task.
 - **JVM module access flags.** All listed packages must be opened for Ares to introspect intercepted Java Development Kit (JDK) objects and instrument bytecode. The list mirrors the `jvm.module.access.args` property in the Ares `pom.xml`:
@@ -213,11 +221,11 @@ tasks.withType(Test).configureEach {
 ### Make the build faster
 
 Every Artemis submission is built in a fresh container, so each of the steps below saves time on
-every submission. None of them changes what is woven or enforced.
+every submission. None of them changes what `ajc` weaves or what Ares enforces.
 
 > **Tip (aspect path):** Let `ajc` look for aspects in the Ares JAR only. The `aspect`
-> configuration is transitive, so by default `ajc` also searches every dependency of Ares for
-> aspects, which costs time and finds none.
+> configuration is transitive, so by default `ajc` searches every dependency of Ares for aspects
+> as well, which costs time and finds none.
 >
 > ```gradle
 > configurations {
@@ -238,11 +246,11 @@ every submission. None of them changes what is woven or enforced.
 > ```
 >
 > Keep the `aspect` dependency as it is. If a future Ares release ships aspects in a separate
-> artefact, this setting would leave them out, so rerun the negative control from
+> artefact, this setting leaves them out, so rerun the negative control from
 > [Verify your setup](#verify-your-setup) after every Ares upgrade.
 
-> **Tip (test classes):** The plugin also runs `ajc` on the test classes, which have no aspects to
-> weave in. Switching that run off saves a second `ajc` start:
+> **Tip (test classes):** The plugin runs `ajc` on the test classes as well, which have no aspects
+> to weave in. Switching that run off saves a second `ajc` start:
 >
 > ```gradle
 > tasks.named('compileTestJava') {
