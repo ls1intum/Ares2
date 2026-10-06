@@ -13,7 +13,7 @@ can quietly take it off the desk.
 
 ## The path, in order
 
-1. **Add the dependency and the agent**, below.
+1. **Add the dependency**, and **the agent** if your configuration ends in `_INSTRUMENTATION`, below.
 2. **[Set up the public and hidden test model](../setup.md)**.
 3. **[Mark your tests](../test-annotations.md)** with `@PublicTest` or `@HiddenTest`, and give
    hidden tests a `@Deadline`.
@@ -29,6 +29,13 @@ can quietly take it off the desk.
 Blockquoted tips (marked `>`) in the setup steps below describe optional configuration that can be
 skipped on a first setup. Everything not in a blockquote is required.
 :::
+
+**The agent is required only for configurations ending in `_INSTRUMENTATION`.** It enforces the
+policy by rewriting Java classes as they load. A configuration ending in `_ASPECTJ` enforces the
+same policy through aspects that `ajc` weaves in at compile time. Ares leaves the agent's checks
+idle in that mode, so there the agent only adds start-up time to every test run. For an
+`_ASPECTJ` configuration, leave out the copy of `ares-agent.jar` and the `-javaagent` argument.
+Keep everything else, including `-Xbootclasspath/a:` and the module access flags.
 
 There is no repository step for Maven: the super-POM already defines Central at `https://repo.maven.apache.org/maven2`, so re-declaring it adds nothing and can conflict with an organisational mirror.
 
