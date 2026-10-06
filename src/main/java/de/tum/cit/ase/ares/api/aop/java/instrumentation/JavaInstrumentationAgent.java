@@ -99,15 +99,11 @@ public final class JavaInstrumentationAgent {
 		}
 	};
 	/**
-	 * The first transformation failure seen while the transformers are being
-	 * installed. Unlike the per-test report, no test can consume it before the
-	 * installation has checked it.
+	 * The first transformation failure of this JVM, kept for good. Unlike the
+	 * per-test report, no test consumes it, so every later activation and test
+	 * constructor still refuses to run next to a class left untransformed.
 	 */
-	private static final AtomicReference<TransformationFailure> INSTALLATION_FAILURE = new AtomicReference<>();
-	/**
-	 * Whether the transformers are being installed right now.
-	 */
-	private static volatile boolean installing;
+	private static final AtomicReference<TransformationFailure> PERMANENT_FAILURE = new AtomicReference<>();
 	/**
 	 * Guards the one-time installation of the transformers.
 	 */
@@ -185,6 +181,7 @@ public final class JavaInstrumentationAgent {
 		if (!activated) {
 			installTransformersOnce();
 		}
+		throwIfActivationFailed();
 		throwIfTransformationFailed();
 	}
 
@@ -209,10 +206,9 @@ public final class JavaInstrumentationAgent {
 					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 							.localize("security.instrumentation.agent.not.attached"));
 				}
-				installing = true;
 				installAgentBuilder(currentInstrumentation, currentFactory, guardedPointcuts());
 				installThreadCallSiteBuilder(currentInstrumentation, currentFactory);
-				throwIfInstallationFailed();
+				throwIfPermanentFailure();
 				activated = true;
 			} catch (SecurityException failure) {
 				activationFailure = failure;
@@ -221,33 +217,33 @@ public final class JavaInstrumentationAgent {
 				activationFailure = new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 						.localize("security.instrumentation.agent.installation.error", "instrumentation"), failure);
 				throw activationFailure;
-			} finally {
-				installing = false;
 			}
 		}
 	}
 
 	/**
-	 * Rethrows the failure of installing the transformers, if it failed, so a
-	 * caller that otherwise tolerates a failed preparation still refuses to run
-	 * code unguarded.
+	 * Rethrows the failure of installing the transformers, or of transforming any
+	 * class since, so a caller that otherwise tolerates a failed preparation still
+	 * refuses to run code unguarded.
 	 *
-	 * @throws SecurityException if installing the transformers failed
+	 * @throws SecurityException if installing or a transformation failed
 	 */
 	public static void throwIfActivationFailed() {
 		SecurityException failure = activationFailure;
 		if (failure != null) {
 			throw new SecurityException(failure.getMessage(), failure);
 		}
+		throwIfPermanentFailure();
 	}
 
 	/**
-	 * Fails the installation if a class could not be transformed while it ran.
+	 * Fails if any class of this JVM could not be transformed, during installation
+	 * or after it.
 	 *
-	 * @throws SecurityException if a transformation failed during installation
+	 * @throws SecurityException if a transformation has ever failed
 	 */
-	private static void throwIfInstallationFailed() {
-		TransformationFailure failure = INSTALLATION_FAILURE.get();
+	private static void throwIfPermanentFailure() {
+		TransformationFailure failure = PERMANENT_FAILURE.get();
 		if (failure != null) {
 			throw new SecurityException(
 					JavaInstrumentationAdviceAbstractToolbox
@@ -257,16 +253,14 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Keeps a transformation failure for the per-test report and, while the
-	 * transformers are being installed, for the installation's own check.
+	 * Keeps a transformation failure for the per-test report and for good. It takes
+	 * no lock and builds no message, because it runs inside class loading.
 	 *
 	 * @param failure The class and the cause.
 	 */
 	private static void recordFailure(TransformationFailure failure) {
 		TRANSFORMATION_FAILURE.compareAndSet(null, failure);
-		if (installing) {
-			INSTALLATION_FAILURE.compareAndSet(null, failure);
-		}
+		PERMANENT_FAILURE.compareAndSet(null, failure);
 	}
 
 	/**

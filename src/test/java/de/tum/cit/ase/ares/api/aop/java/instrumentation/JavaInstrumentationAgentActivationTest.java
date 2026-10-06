@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -79,7 +80,7 @@ class JavaInstrumentationAgentActivationTest {
 		for (int i = 0; i < STATE_FIELDS.size(); i++) {
 			field(STATE_FIELDS.get(i)).set(null, savedState.get(i));
 		}
-		((AtomicReference<?>) field("INSTALLATION_FAILURE").get(null)).set(null);
+		((AtomicReference<?>) field("PERMANENT_FAILURE").get(null)).set(null);
 		((AtomicReference<?>) field("TRANSFORMATION_FAILURE").get(null)).set(null);
 	}
 
@@ -244,6 +245,32 @@ class JavaInstrumentationAgentActivationTest {
 	}
 
 	/**
+	 * A transformation failure recorded after a successful activation, for example
+	 * by a class-loading thread that raced the installation, fails every later
+	 * activation, not only the next test's report.
+	 *
+	 * @throws ReflectiveOperationException If the agent state cannot be set.
+	 */
+	@Test
+	void transformationFailureAfterActivationFailsEveryLaterActivation() throws ReflectiveOperationException {
+		Instrumentation instrumentation = standIn(true);
+		deactivate(instrumentation);
+		JavaInstrumentationAgent.activate();
+		Class<?> failureType = Class.forName(JavaInstrumentationAgent.class.getName() + "$TransformationFailure");
+		Constructor<?> failureConstructor = failureType.getDeclaredConstructor(String.class, Throwable.class);
+		failureConstructor.setAccessible(true);
+		Method record = JavaInstrumentationAgent.class.getDeclaredMethod("recordFailure", failureType);
+		record.setAccessible(true);
+
+		record.invoke(null,
+				failureConstructor.newInstance("example.Late", new IllegalStateException("deliberate test failure")));
+
+		assertThrows(SecurityException.class, JavaInstrumentationAgent::activate);
+		assertThrows(SecurityException.class, JavaInstrumentationAgent::activate);
+		assertThrows(SecurityException.class, JavaInstrumentationAgent::throwIfActivationFailed);
+	}
+
+	/**
 	 * Puts the agent back into its state before activation, with the given
 	 * instrumentation.
 	 *
@@ -256,7 +283,7 @@ class JavaInstrumentationAgentActivationTest {
 		field("classInjectorFactory").set(null, instrumentation == null ? null : mock(Factory.class));
 		field("activated").set(null, false);
 		field("activationFailure").set(null, null);
-		((AtomicReference<?>) field("INSTALLATION_FAILURE").get(null)).set(null);
+		((AtomicReference<?>) field("PERMANENT_FAILURE").get(null)).set(null);
 	}
 
 	/**

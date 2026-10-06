@@ -17,10 +17,11 @@ import net.bytebuddy.matcher.ElementMatcher;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
 
 /**
- * Activates the real agent of this test JVM and checks that the deferred
- * installation left no watched class untransformed. Classes are told apart by
- * name and the identity hash of their loader, so two loaders with colliding
- * hashes could hide an escape. It leaves the agent activated.
+ * Activates the real agent of this test JVM and checks that every loaded class
+ * a pointcut watches went through a transformer. This is a coverage check: it
+ * does not show that each pointcut's advice took effect, which the
+ * instrumentation integration tests show by running forbidden code. Classes are
+ * told apart by name and loader identity hash. It leaves the agent activated.
  */
 class JavaInstrumentationAgentEscapeTest {
 
