@@ -29,12 +29,12 @@ Ares 2 requires at least **Java 17**.
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.2.0</version>
+    <version>2.2.1</version>
 </dependency>
 ```
 
 ```groovy
-implementation("de.tum.cit.ase:ares:2.2.0")
+implementation("de.tum.cit.ase:ares:2.2.1")
 ```
 
 ## Documentation
