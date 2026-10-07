@@ -315,6 +315,39 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
+	 * Translates an action name such as "read" into the active language, for a
+	 * violation message only. Enforcement keeps comparing the raw name, so this
+	 * must never feed a decision. An unknown action is returned unchanged.
+	 *
+	 * @param action the raw action name used by enforcement
+	 * @return the translated action, or the raw name when no translation exists
+	 */
+	@Nonnull
+	static String localizeAction(@Nonnull String action) {
+		return switch (action) {
+		case "read", "overwrite", "create", "delete", "execute", "connect", "send", "receive", "manipulate" -> localize(
+				"security.advice.action." + action);
+		default -> action;
+		};
+	}
+
+	/**
+	 * Names the student method that called the blocked operation, in the active
+	 * language, for appending to a violation message.
+	 *
+	 * @param studentCalledMethod the calling student method, or {@code null} if
+	 *                            unknown
+	 * @return the caller note with a leading space, or an empty text when unknown
+	 */
+	@Nonnull
+	static String describeCaller(@Nullable String studentCalledMethod) {
+		if (studentCalledMethod == null) {
+			return "";
+		}
+		return " " + localize("security.advice.called.by", studentCalledMethod);
+	}
+
+	/**
 	 * Returns {@code true} when the current call stack is inside the JVM's
 	 * class-loading machinery, i.e. a class loader is reading a {@code .class} file
 	 * to define a class. Such a read is the JVM loading bytecode in order to

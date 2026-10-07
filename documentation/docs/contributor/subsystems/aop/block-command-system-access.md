@@ -880,10 +880,10 @@ Block the forbidden command operation and provide a comprehensive error message.
 throw new SecurityException(localize(
     "security.advice.illegal.command.execution",
     violatingMethod,           // de.student.StudentCode.exploit
-    action,                    // "execute"
+    localizeAction(action),    // "execute", worded in the active language
     violatingCommand,          // "rm -rf /"
     fullMethodSignature        // "java.lang.Runtime.exec(java.lang.String)"
-        + " (called by " + studentCalledMethod + ")"  // " (called by org.junit.TestClass.testStudent)"
+        + describeCaller(studentCalledMethod)  // " (called by org.junit.TestClass.testStudent)"
         + " | " + buildDenialReason(noAllowRuleConfigured)  // " | Reason: No configured allow rule permits this access."
 ));
 ```

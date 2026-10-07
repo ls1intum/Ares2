@@ -243,18 +243,23 @@ public final class FileTools {
 				return tmp.toFile();
 			}
 		} catch (OutOfMemoryError e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.",
+			throw new SecurityException(
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): Out of memory while reading content.",
 					e);
 		} catch (IllegalFormatException e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): An illegal format in content.", e);
+			throw new SecurityException(
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): An illegal format in content.", e);
 		} catch (NullPointerException e) {
 			throw new SecurityException(
-					"Ares Security Error (Stage: Creation): A null pointer encountered while reading file.", e);
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): A null pointer encountered while reading file.",
+					e);
 		} catch (UnsupportedOperationException e) {
 			throw new SecurityException(
-					"Ares Security Error (Stage: Creation): Unsupported operation while reading file.", e);
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): Unsupported operation while reading file.",
+					e);
 		} catch (IOException e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): I/O error while reading file.", e);
+			throw new SecurityException(
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): I/O error while reading file.", e);
 		}
 	}
 
@@ -381,7 +386,8 @@ public final class FileTools {
 		} catch (IOException e) {
 			throw new SecurityException(localize("security.file-tools.read.content.failure"), e);
 		} catch (OutOfMemoryError e) {
-			throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.",
+			throw new SecurityException(
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): Out of memory while reading content.",
 					e);
 		}
 	}
@@ -425,16 +431,20 @@ public final class FileTools {
 			return Files.writeString(targetPath, content, options).toFile();
 		} catch (IllegalArgumentException e) {
 			throw new SecurityException(
-					"Ares Security Error (Stage: Creation): Illegal argument provided for targetPath writing.", e);
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): Illegal argument provided for targetPath writing.",
+					e);
 		} catch (IOException e) {
 			throw new SecurityException(
-					"Ares Security Error (Stage: Creation): IO error occurred during targetPath writing.", e);
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): IO error occurred during targetPath writing.",
+					e);
 		} catch (NullPointerException e) {
 			throw new SecurityException(
-					"Ares Security Error (Stage: Creation): A null pointer encountered during targetPath writing.", e);
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): A null pointer encountered during targetPath writing.",
+					e);
 		} catch (UnsupportedOperationException e) {
 			throw new SecurityException(
-					"Ares Security Error (Stage: Creation): Unsupported operation during targetPath writing.", e);
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): Unsupported operation during targetPath writing.",
+					e);
 		}
 	}
 	// </editor-fold>
@@ -469,16 +479,20 @@ public final class FileTools {
 						StandardCopyOption.REPLACE_EXISTING);
 			} catch (InvalidPathException e) {
 				throw new SecurityException(
-						"Ares Security Error (Stage: Creation): Invalid path provided during file copy.", e);
+						"Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid path provided during file copy.",
+						e);
 			} catch (UnsupportedOperationException e) {
 				throw new SecurityException(
-						"Ares Security Error (Stage: Creation): Unsupported operation during file copy.", e);
+						"Ares Security Error (Reason: Ares-Code; Stage: Creation): Unsupported operation during file copy.",
+						e);
 			} catch (FileAlreadyExistsException e) {
 				throw new SecurityException(
-						"Ares Security Error (Stage: Creation): File already exists at target location.", e);
+						"Ares Security Error (Reason: Ares-Code; Stage: Creation): File already exists at target location.",
+						e);
 			} catch (IOException e) {
 				throw new SecurityException(
-						"Ares Security Error (Stage: Creation): IO error occurred during file copy.", e);
+						"Ares Security Error (Reason: Ares-Code; Stage: Creation): IO error occurred during file copy.",
+						e);
 			}
 			return targetFilePaths.get(i);
 		}).toList();
@@ -544,13 +558,20 @@ public final class FileTools {
 
 	// <editor-fold desc="Format">
 
+	/**
+	 * Fills a copied template's format specifiers with its values.
+	 *
+	 * @param template     the template text
+	 * @param values       the values for its specifiers
+	 * @param pathForError the file named if formatting fails
+	 * @return the filled text
+	 */
 	private static String formatTemplate(String template, String[] values, Path pathForError) {
 		try {
 			return String.format(template, (Object[]) values);
 		} catch (IllegalFormatException e) {
-			throw new SecurityException(
-					"Ares Security Error (Stage: Creation): Illegal format in " + pathForError.toAbsolutePath() + ".",
-					e);
+			throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Illegal format in "
+					+ pathForError.toAbsolutePath() + ".", e);
 		}
 	}
 
@@ -690,13 +711,14 @@ public final class FileTools {
 				try {
 					Files.createDirectories(targetParent);
 				} catch (IOException e) {
-					throw new SecurityException(localize("security.file-tools.create.target.directory.failed"), e);
+					throw new SecurityException(
+							localize("security.file-tools.create.target.directory.failed", targetParent), e);
 				}
 			}
 			return FileTools.writeFile(fullTargetPath, fileContent, StandardOpenOption.CREATE,
 					StandardOpenOption.TRUNCATE_EXISTING).toPath();
 		} catch (IOException e) {
-			throw new SecurityException(localize("security.file-tools.create.target.directory.failed"), e);
+			throw new SecurityException(localize("security.file-tools.read.content.failure"), e);
 		}
 	}
 
