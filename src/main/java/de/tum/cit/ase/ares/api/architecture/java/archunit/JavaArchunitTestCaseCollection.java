@@ -213,29 +213,42 @@ public final class JavaArchunitTestCaseCollection {
 	}
 
 	/**
+	 * Whether a permission covers a package: the package is the permitted one or
+	 * lies below it, compared on a segment boundary and tolerant of a trailing dot,
+	 * and no trusted namespace the permission does not name lies in between. The
+	 * wildcard covers everything.
+	 *
+	 * @param allowed     the permitted package, or {@code *}
+	 * @param packageName the imported package
+	 * @return true if the permission covers the package
+	 */
+	private static boolean permits(String allowed, String packageName) {
+		if ("*".equals(allowed)) {
+			return true;
+		}
+		String normalizedAllowed = allowed.endsWith(".") ? allowed.substring(0, allowed.length() - 1) : allowed;
+		return (packageName.equals(normalizedAllowed) || packageName.startsWith(normalizedAllowed + "."))
+				&& !JavaArchunitSupervisedClasses.isReservedBelow(normalizedAllowed, packageName);
+	}
+
+	/**
 	 * Package-import rule that also exempts the allow-listed classes (an empty
-	 * allow-list reproduces the original behaviour).
+	 * allow-list reproduces the original behaviour). A permission covers the
+	 * packages below it, but never a trusted namespace below it that it does not
+	 * name; {@code *} still covers every package.
 	 */
 	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages,
 			Set<ClassPermission> allowedClasses) {
 		return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses)).should()
 				.dependOnClassesThat(new DescribedPredicate<>("imports a forbidden package package") {
+					/**
+					 * Whether no permission covers the package of the imported class.
+					 */
 					@Override
 					public boolean test(JavaClass javaClass) {
 						String packageName = javaClass.getPackageName();
-						return allowedPackages.stream().noneMatch(allowedPackage -> {
-							String allowed = allowedPackage.importTheFollowingPackage();
-							if ("*".equals(allowed)) {
-								return true;
-							}
-							// Trailing-dot tolerant, boundary-aware match: a bare startsWith would
-							// let allowed "com.foo" also cover the unrelated package "com.foobar".
-							String normalizedAllowed = allowed.endsWith(".")
-									? allowed.substring(0, allowed.length() - 1)
-									: allowed;
-							return packageName.equals(normalizedAllowed)
-									|| packageName.startsWith(normalizedAllowed + ".");
-						});
+						return allowedPackages.stream().noneMatch(
+								allowedPackage -> permits(allowedPackage.importTheFollowingPackage(), packageName));
 					}
 				}).as(Messages.localized("security.architecture.package.import"));
 	}
