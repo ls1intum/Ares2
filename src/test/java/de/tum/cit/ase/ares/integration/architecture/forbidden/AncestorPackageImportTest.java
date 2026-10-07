@@ -23,12 +23,15 @@ import org.junit.platform.testkit.engine.EngineTestKit;
 import org.junit.platform.testkit.engine.Event;
 import org.junit.platform.testkit.engine.Events;
 
+import net.bytebuddy.ByteBuddy;
+
 import de.tum.cit.ase.AncestorPackageAresImport;
 import de.tum.cit.ase.AncestorPackageAspectJImport;
 import de.tum.cit.ase.AncestorPackageByteBuddyImport;
 import de.tum.cit.ase.AncestorPackageExercise;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 /**
  * An exercise in the package {@code de.tum.cit.ase}, above Ares' own trusted
@@ -560,11 +563,25 @@ public class AncestorPackageImportTest {
 		Throwable failure = failureOf(events).orElseThrow();
 		Assertions.assertInstanceOf(SecurityException.class, failure);
 		String message = failure.getMessage();
-		Assertions.assertTrue(message.contains(studentClass.getName()),
-				() -> "The refusal should name " + studentClass.getName() + ", but was:\n" + message);
-		Assertions.assertTrue(
-				message.contains("Imports forbidden packages") || message.contains("Importiert verbotene Pakete"),
+		String forbiddenPackage = forbiddenPackageOf(studentClass);
+		Assertions.assertTrue(message.contains(forbiddenPackage),
+				() -> "The refusal should name " + forbiddenPackage + ", but was:\n" + message);
+		Assertions.assertTrue(message.contains("illegally import the forbidden package")
+				|| message.contains("illegal die verbotenen Pakete") || message.contains("Importiert verbotene Pakete"),
 				() -> "The refusal should come from the import rule, but was:\n" + message);
+	}
+
+	/**
+	 * The package a student class imports that the import rule must refuse.
+	 *
+	 * @param studentClass the student class
+	 * @return the name of that package
+	 */
+	private static String forbiddenPackageOf(Class<?> studentClass) {
+		if (studentClass == AncestorPackageAresImport.class) {
+			return PackagePermission.class.getPackageName();
+		}
+		return ByteBuddy.class.getPackageName();
 	}
 
 	/**
