@@ -151,10 +151,10 @@ class JupiterSecurityExtensionLifecycleTest {
 		}
 	}
 
-	/** Has a disabled test, which JUnit skips after it has built the instance. */
+	/** Has a disabled test, which JUnit checks only once it has an instance. */
 	@ExtendWith(FailingPreparationExtension.class)
 	static class DisabledTestFixture {
-		/** Must be skipped, not failed by the failing preparation. */
+		/** Must fail, because its instance cannot be built under its policy. */
 		@Disabled
 		@Test
 		void test() {
@@ -404,15 +404,16 @@ class JupiterSecurityExtensionLifecycleTest {
 	}
 
 	/**
-	 * A test that JUnit skips is not failed by a policy that cannot be applied
-	 * while its instance is built.
+	 * A test that JUnit would skip fails instead when its policy cannot be applied
+	 * while its instance is built, because the instance is not built unguarded.
 	 */
 	@Test
-	void skippedTestIsNotFailedByAFailingPreparation() throws ReflectiveOperationException {
+	void disabledTestFailsWhenItsPreparationFails() throws ReflectiveOperationException {
 		runFixture(DisabledTestFixture.class).testEvents()
-				.assertStatistics(statistics -> statistics.skipped(1).failed(0));
+				.assertStatistics(statistics -> statistics.skipped(0).failed(1));
 
 		assertEquals(List.of(), OBSERVATIONS);
+		assertNull(restrictedPackageField().get(null));
 	}
 
 	/**
