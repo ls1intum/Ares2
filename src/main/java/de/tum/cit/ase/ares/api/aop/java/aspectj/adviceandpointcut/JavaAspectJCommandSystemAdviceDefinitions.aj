@@ -760,6 +760,14 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		}
 	}
 
+	/**
+	 * Performs the command check behind {@link #checkCommandSystemInteraction}, which calls it
+	 * only for the outermost advice on a thread. Throws a {@link SecurityException}
+	 * naming the blocked command operation when the policy forbids it.
+	 *
+	 * @param action the raw action name, which drives every decision
+	 * @param thisJoinPoint the join point of the intercepted call
+	 */
 	private static void checkCommandSystemInteractionImpl(@Nonnull String action, @Nonnull JoinPoint thisJoinPoint) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
@@ -848,8 +856,8 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		// be validated against the allow-list, so it must be denied rather than allowed.
 		if (criticalCommandFieldUnreadable) {
 			throw new SecurityException(localize(
-					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action, "<unknown>",
-					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					"security.advice.illegal.command.execution", commandSystemMethodToCheck, localizeAction(action), "<unknown>",
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
 							+ " | " + buildDenialReason(noAllowRuleConfigured)));
 		}
 		// <editor-fold desc="Check parameters">
@@ -860,9 +868,9 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 								extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughParameter != null) {
 			throw new SecurityException(localize(
-					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
+					"security.advice.illegal.command.execution", commandSystemMethodToCheck, localizeAction(action),
 					commandIllegallyExecutedThroughParameter,
-					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
 							+ " | " + buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
@@ -876,9 +884,9 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
 			throw new SecurityException(localize(
-					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
+					"security.advice.illegal.file.execution", commandSystemMethodToCheck, localizeAction(action),
 					pathIllegallyExecutedThroughParameter,
-					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
 							+ " | " + localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
@@ -890,9 +898,9 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 								extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughAttribute != null) {
 			throw new SecurityException(localize(
-					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
+					"security.advice.illegal.command.execution", commandSystemMethodToCheck, localizeAction(action),
 					commandIllegallyExecutedThroughAttribute,
-					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
 							+ " | " + buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
@@ -906,9 +914,9 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
 			throw new SecurityException(localize(
-					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
+					"security.advice.illegal.file.execution", commandSystemMethodToCheck, localizeAction(action),
 					pathIllegallyExecutedThroughAttribute,
-					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
 							+ " | " + localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>

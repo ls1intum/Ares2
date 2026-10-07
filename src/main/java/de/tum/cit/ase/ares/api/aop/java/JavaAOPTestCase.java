@@ -440,28 +440,47 @@ public class JavaAOPTestCase extends AOPTestCase {
 		private Supplier<List<?>> resourceAccessSupplier;
 		private Set<ClassPermission> allowedClasses;
 
+		/**
+		 * Sets which kind of AOP test case to build.
+		 *
+		 * @param javaAOPTestCaseSupported the kind of test case, never {@code null}
+		 * @return this builder
+		 */
 		public JavaAOPTestCase.Builder javaAOPTestCaseSupported(JavaAOPTestCaseSupported javaAOPTestCaseSupported) {
 			if (javaAOPTestCaseSupported == null) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-						.localize("security.common.not.null", "javaAOPTestCaseSupported"));
+						.localize("security.common.not.null", "javaAOPTestCaseSupported", "JavaAOPTestCase.Builder"));
 			}
 			this.javaAOPTestCaseSupported = javaAOPTestCaseSupported;
 			return this;
 		}
 
+		/**
+		 * Sets the classes that are exempt from the checks.
+		 *
+		 * @param allowedClasses the exempt classes, never {@code null}
+		 * @return this builder
+		 */
 		public JavaAOPTestCase.Builder allowedClasses(Set<ClassPermission> allowedClasses) {
 			if (allowedClasses == null) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-						.localize("security.common.not.null", "resourceAccessSupplier"));
+						.localize("security.common.not.null", "allowedClasses", "JavaAOPTestCase.Builder"));
 			}
 			this.allowedClasses = allowedClasses;
 			return this;
 		}
 
+		/**
+		 * Sets where the permitted resource accesses come from.
+		 *
+		 * @param resourceAccessSupplier the source of permitted accesses, never
+		 *                               {@code null}
+		 * @return this builder
+		 */
 		public JavaAOPTestCase.Builder resourceAccessSupplier(Supplier<List<?>> resourceAccessSupplier) {
 			if (resourceAccessSupplier == null) {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
-						.localize("security.common.not.null", "resourceAccessSupplier"));
+						.localize("security.common.not.null", "resourceAccessSupplier", "JavaAOPTestCase.Builder"));
 			}
 			this.resourceAccessSupplier = resourceAccessSupplier;
 			return this;

@@ -1,6 +1,9 @@
 package de.tum.cit.ase.ares.api.architecture.java;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -41,6 +44,26 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
 	// <editor-fold desc="Attributes">
+
+	/** The message catalogue that names the architecture rules. */
+	private static final String MESSAGES_BUNDLE = "de.tum.cit.ase.ares.api.localization.messages"; //$NON-NLS-1$
+
+	/**
+	 * The catalogues a rule name may come from. A rule keeps the name it got when
+	 * its class was loaded, which can be a different language from the one active
+	 * when its violation is reported, so every catalogue is searched.
+	 */
+	private static final List<Locale> RULE_NAME_LOCALES = List.of(Locale.ROOT, Locale.GERMAN);
+
+	/**
+	 * The architecture rules, by the part of their message key after
+	 * {@code security.architecture.}; the same part names their action under
+	 * {@code security.archunit.action.}.
+	 */
+	private static final List<String> RULE_KEYS = List.of("file.system.access", "network.access", "terminate.jvm", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+			"reflection.uses", "execute.command", "manipulate.threads", "package.import", "serialize", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+			"class.loading", "native.code.access", "agent.attach", "environment.access", "module.system.access", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+			"jndi.injection"); //$NON-NLS-1$
 
 	/**
 	 * Optional lazy supplier of the call graph. When non-null, the WALA conversion
@@ -285,7 +308,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		String ruleName = messageParts[0].replaceAll(ruleNamePattern, "$1").trim();
 
 		// Check if this is a package import violation (different message format)
-		if (ruleName.toLowerCase().contains("imports forbidden packages")) {
+		if (isImportRule(ruleName)) {
 			// Extract all forbidden packages from the message
 			// The message can have multiple formats:
 			// 1. "Class <class> depends on <forbidden.package.Class> in (File.java:0)" -
@@ -437,7 +460,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	}
 
 	/**
-	 * Maps an ArchUnit rule name to a human-readable action description.
+	 * Maps a rule name, in any supported language, to the action it forbids, worded
+	 * in the active language. An unknown name is returned unchanged.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -446,23 +470,50 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 */
 	@Nonnull
 	private static String mapRuleNameToAction(@Nonnull String ruleName) {
-		return switch (ruleName.toLowerCase()) {
-		case "accesses file system" -> "access the file system";
-		case "accesses network" -> "access the network";
-		case "terminates jvm" -> "terminate the JVM";
-		case "uses reflection" -> "use reflection";
-		case "executes commands" -> "execute a command";
-		case "manipulates threads" -> "manipulate threads";
-		case "imports forbidden packages" -> "import forbidden packages";
-		case "serialises objects" -> "serialise objects";
-		case "manipulates the loading of classes" -> "manipulate class loading";
-		case "accesses native code" -> "access native code";
-		case "attaches agents" -> "attach an agent";
-		case "accesses environment" -> "access the environment";
-		case "accesses module system" -> "access the module system";
-		case "performs jndi lookups" -> "perform a JNDI lookup";
-		default -> ruleName;
-		};
+		@Nullable
+		String ruleKey = findRuleKey(ruleName);
+		return ruleKey == null ? ruleName : Messages.localized("security.archunit.action." + ruleKey); //$NON-NLS-1$
+	}
+
+	/**
+	 * Finds which architecture rule a name belongs to, comparing it with that
+	 * rule's name in every supported language.
+	 *
+	 * @param ruleName The name of the violated rule
+	 * @return The rule's key part after {@code security.architecture.}, or
+	 *         {@code null} when the name belongs to no known rule
+	 */
+	@Nullable
+	private static String findRuleKey(@Nonnull String ruleName) {
+		String trimmed = ruleName.trim();
+		return RULE_KEYS.stream().filter(ruleKey -> ruleNamesOf(ruleKey).stream().anyMatch(trimmed::equalsIgnoreCase))
+				.findFirst().orElse(null);
+	}
+
+	/**
+	 * Tells whether a rule name is the forbidden-import rule, in any supported
+	 * language. It matches when the name contains that rule's name, as the
+	 * English-only check before it did.
+	 *
+	 * @param ruleName The name of the violated rule
+	 * @return {@code true} when the name is the forbidden-import rule
+	 */
+	private static boolean isImportRule(@Nonnull String ruleName) {
+		String lowerCaseName = ruleName.toLowerCase(Locale.ROOT);
+		return ruleNamesOf("package.import").stream() //$NON-NLS-1$
+				.anyMatch(name -> lowerCaseName.contains(name.toLowerCase(Locale.ROOT)));
+	}
+
+	/**
+	 * Reads one rule's name from every supported catalogue.
+	 *
+	 * @param ruleKey The rule's key part after {@code security.architecture.}
+	 * @return The rule's name in each supported language
+	 */
+	@Nonnull
+	private static List<String> ruleNamesOf(@Nonnull String ruleKey) {
+		return RULE_NAME_LOCALES.stream().map(locale -> ResourceBundle.getBundle(MESSAGES_BUNDLE, locale)
+				.getString("security.architecture." + ruleKey)).toList(); //$NON-NLS-1$
 	}
 	// </editor-fold>
 

@@ -1399,11 +1399,11 @@ Block the forbidden file operation and provide a comprehensive error message. Wh
 throw new SecurityException(localize(
     "security.advice.illegal.file.execution",
     violatingMethod,           // de.student.StudentCode.exploit
-    messageAction,             // "read" (the reported verb; "create" is aliased to
+    localizeAction(messageAction), // "read" (the reported verb; "create" is aliased to
                                // "overwrite" for truncating writers, see below)
     violatingPath,             // "/etc/passwd"
     fullMethodSignature        // "java.io.FileInputStream.<init>(Ljava/lang/String;)V"
-        + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+        + describeCaller(studentCalledMethod)
         + " | " + buildDenialReason(noAllowRuleConfigured)
 ));
 ```
