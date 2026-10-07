@@ -28,7 +28,7 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
  */
 @API(status = Status.INTERNAL)
 public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, TestInstantiationAwareExtension,
-		BeforeTestExecutionCallback, AfterTestExecutionCallback, AfterEachCallback {
+		TestInstancePreConstructCallback, BeforeTestExecutionCallback, AfterTestExecutionCallback, AfterEachCallback {
 	/** Namespace of the guard state in the extension store. */
 	private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace
 			.create(JupiterSecurityExtension.class);
@@ -62,6 +62,15 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	}
 
 	/**
+	 * Refuses enabled parallel execution before a test instance is built, whether
+	 * by its constructor or by a test instance factory.
+	 */
+	@Override
+	public void preConstructTestInstance(TestInstanceFactoryContext factoryContext, ExtensionContext extensionContext) {
+		refuseParallelExecution(extensionContext);
+	}
+
+	/**
 	 * Arms the guard before a setup method runs and leaves it armed for the test. A
 	 * failure or abort closes it again, because the callback that normally does so
 	 * is then skipped.
@@ -78,14 +87,12 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 * JUnit builds the instance before it decides to skip the test, so a failure to
 	 * arm the guard here is left for the test itself, unless the instrumentation
 	 * could not be installed at all. A shared instance is built under the class
-	 * context, so the guard is armed only for a class with a policy. Enabled
-	 * parallel execution is refused before the constructor runs.
+	 * context, so the guard is armed only for a class with a policy.
 	 */
 	@Override
 	public <T> T interceptTestClassConstructor(Invocation<T> invocation,
 			ReflectiveInvocationContext<java.lang.reflect.Constructor<T>> invocationContext,
 			ExtensionContext extensionContext) throws Throwable {
-		refuseParallelExecution(extensionContext);
 		if (extensionContext.getTestMethod().isPresent()) {
 			try {
 				prepareSecurityOnce(extensionContext);
