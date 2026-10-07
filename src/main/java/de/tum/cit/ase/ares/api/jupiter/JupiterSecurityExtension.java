@@ -23,7 +23,8 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
  * {@code @BeforeEach}, {@code @AfterEach}, {@code @BeforeAll} and
  * {@code @AfterAll} code around it. The class phases are guarded only if the
  * class itself carries {@code @Policy}. A per-method test instance is built
- * under the policy of its test method.
+ * under the policy of its test method. It refuses to run while JUnit parallel
+ * execution is enabled.
  */
 @API(status = Status.INTERNAL)
 public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, TestInstantiationAwareExtension,
@@ -39,6 +40,8 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 * entries, and a method must never see a state of the class.
 	 */
 	private static final String CLASS_POLICY_PREPARED_KEY = "class-policy-prepared";
+	/** JUnit setting that lets tests run in several threads at once. */
+	private static final String PARALLEL_EXECUTION_ENABLED_KEY = "junit.jupiter.execution.parallel.enabled";
 
 	private enum LifecycleState {
 		PREPARING,
@@ -75,12 +78,14 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 * JUnit builds the instance before it decides to skip the test, so a failure to
 	 * arm the guard here is left for the test itself, unless the instrumentation
 	 * could not be installed at all. A shared instance is built under the class
-	 * context, so the guard is armed only for a class with a policy.
+	 * context, so the guard is armed only for a class with a policy. Enabled
+	 * parallel execution is refused before the constructor runs.
 	 */
 	@Override
 	public <T> T interceptTestClassConstructor(Invocation<T> invocation,
 			ReflectiveInvocationContext<java.lang.reflect.Constructor<T>> invocationContext,
 			ExtensionContext extensionContext) throws Throwable {
+		refuseParallelExecution(extensionContext);
 		if (extensionContext.getTestMethod().isPresent()) {
 			try {
 				prepareSecurityOnce(extensionContext);
@@ -130,8 +135,10 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	/**
 	 * Reads the policy and arms the guard once for the given context. A second call
 	 * for the same context does nothing, and a failure leaves the guard reset.
+	 * Enabled parallel execution is refused before anything is reset or armed.
 	 */
 	private void prepareSecurityOnce(ExtensionContext extensionContext) {
+		refuseParallelExecution(extensionContext);
 		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
 		String stateKey = stateKey(extensionContext);
 		synchronized (store) {
@@ -214,6 +221,18 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 			resetSettingsInStandardClassLoader();
 			resetSettingsInBootstrapClassLoader();
 			store.remove(stateKey);
+		}
+	}
+
+	/**
+	 * Fails closed when JUnit parallel execution is enabled, read as JUnit reads
+	 * it. The policy is one setting for the whole JVM, so a test that ends could
+	 * lift it while another test still runs student code.
+	 */
+	private static void refuseParallelExecution(ExtensionContext extensionContext) {
+		if (extensionContext.getConfigurationParameter(PARALLEL_EXECUTION_ENABLED_KEY, Boolean::parseBoolean)
+				.orElse(false)) {
+			throw new SecurityException(localize("security.policy.parallel.execution.refused"));
 		}
 	}
 
