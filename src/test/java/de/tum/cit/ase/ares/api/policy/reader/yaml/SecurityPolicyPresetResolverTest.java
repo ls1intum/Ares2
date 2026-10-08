@@ -64,18 +64,42 @@ class SecurityPolicyPresetResolverTest {
 				3000L);
 	}
 
+	/**
+	 * Test classes of a preset and of the policy are combined, preset first. The
+	 * preset here is test data only, since no shipped preset names a test class.
+	 */
 	@Test
 	void concatenatesTestClassesAdditively() {
+		SecurityPolicy presetWithTestClass = new SecurityPolicy(SecurityPolicy.CURRENT_POLICY_VERSION,
+				new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, null, null,
+						List.of("preset.only.PresetOwnTest"), ownResourceAccesses()));
 		SupervisedCode supervisedCode = new SupervisedCode(
 				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, null, null,
 				List.of("policy.own.PolicyOwnTest"), ownResourceAccesses());
 		SecurityPolicy policy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode)
 				.basedOnTheFollowingPreset(SecurityPolicyPreset.SMOKE_TEST).build();
 
-		SecurityPolicy merged = SecurityPolicyPresetResolver.resolveAndMerge(policy, yamlMapper);
+		SecurityPolicy merged = SecurityPolicyPresetResolver.merge(presetWithTestClass, policy);
 
 		assertThat(merged.regardingTheSupervisedCode().theFollowingClassesAreTestClasses())
-				.containsExactlyInAnyOrder("smoke.test.preset.SmokeTestPresetTest", "policy.own.PolicyOwnTest");
+				.containsExactly("preset.only.PresetOwnTest", "policy.own.PolicyOwnTest");
+	}
+
+	/**
+	 * The shipped smoke-test preset names no test class, so a submission's class
+	 * that takes the name the preset once listed gets no exemption from it.
+	 */
+	@Test
+	void theShippedSmokeTestPresetExemptsNoClass() {
+		SupervisedCode supervisedCode = new SupervisedCode(
+				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, null, null, List.of(),
+				ownResourceAccesses());
+		SecurityPolicy policy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode)
+				.basedOnTheFollowingPreset(SecurityPolicyPreset.SMOKE_TEST).build();
+
+		SecurityPolicy merged = SecurityPolicyPresetResolver.resolveAndMerge(policy, yamlMapper);
+
+		assertThat(merged.regardingTheSupervisedCode().theFollowingClassesAreTestClasses()).isEmpty();
 	}
 
 	@Test

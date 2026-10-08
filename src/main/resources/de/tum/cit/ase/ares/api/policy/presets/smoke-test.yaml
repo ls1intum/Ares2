@@ -1,8 +1,7 @@
 thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
-  theFollowingClassesAreTestClasses:
-    - "smoke.test.preset.SmokeTestPresetTest"
+  theFollowingClassesAreTestClasses: []
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/presetMerge/smoke-test-marker.txt"

@@ -179,14 +179,15 @@ final class SecurityPolicyPresetResolver {
 	}
 
 	/**
-	 * Merges a preset with the policy that references it.
+	 * Merges a preset with the policy that references it. Package-private so tests
+	 * can merge preset data that is never shipped.
 	 *
 	 * @param presetPolicy the bound preset; must not be null.
 	 * @param policy       the referencing policy; must not be null.
 	 * @return the merged policy.
 	 */
 	@Nonnull
-	private static SecurityPolicy merge(@Nonnull SecurityPolicy presetPolicy, @Nonnull SecurityPolicy policy) {
+	static SecurityPolicy merge(@Nonnull SecurityPolicy presetPolicy, @Nonnull SecurityPolicy policy) {
 		SupervisedCode mergedSupervisedCode = mergeSupervisedCode(presetPolicy.regardingTheSupervisedCode(),
 				policy.regardingTheSupervisedCode());
 		return new SecurityPolicy(policy.thisPolicyFileCompliesToThePolicyVersion(), mergedSupervisedCode,
