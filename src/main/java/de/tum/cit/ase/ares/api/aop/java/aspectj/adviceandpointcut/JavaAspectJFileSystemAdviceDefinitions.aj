@@ -812,7 +812,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		Object explicitDirectory = resolveExplicitTempDirectory(declaringTypeName, parameters, systemMethodToCheck,
 				fullMethodSignature);
 		if (explicitDirectory == null) {
-			requireFrozenDefaultTempDirectory(systemMethodToCheck, fullMethodSignature);
+			requireFrozenDefaultTempDirectory();
 		} else {
 			requireDirectoryAllowedForTempFiles(explicitDirectory, systemMethodToCheck, studentCalledMethod,
 					fullMethodSignature, thisJoinPoint);
@@ -861,18 +861,16 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Allows a {@code createTempFile} call without a directory only if Ares fixed
-	 * the default temp directory at start-up. Otherwise Ares cannot tell which
+	 * Allows a {@code createTempFile} call without a directory only if the trusted
+	 * start-up fixed the default temp directory. Otherwise Ares cannot tell which
 	 * directory the JDK will write to, so the call is refused whatever the policy
-	 * lists.
+	 * lists, with the same message as any access without trusted start-up.
 	 *
 	 * @throws SecurityException if no default temp directory was fixed
 	 */
-	private static void requireFrozenDefaultTempDirectory(@Nonnull String systemMethodToCheck,
-			@Nonnull String fullMethodSignature) {
+	private static void requireFrozenDefaultTempDirectory() {
 		if (frozenDefaultTempDirectory() == null) {
-			throw new SecurityException(localize("security.advice.file.system.temp.directory.not.frozen",
-					systemMethodToCheck, fullMethodSignature));
+			throw new SecurityException(localize("security.advice.trusted.startup.missing"));
 		}
 	}
 

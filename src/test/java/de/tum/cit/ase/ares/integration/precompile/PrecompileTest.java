@@ -93,7 +93,7 @@ public class PrecompileTest {
 		assertContains(generated.resolve("aop/java/JavaAOPTestCaseSettings.java"), "frozenDefaultTempDirectory");
 		if ("INSTRUMENTATION".equals(aop)) {
 			assertContains(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java"),
-					"freezeTrustedStartupValues(ClassLoader.getSystemClassLoader())");
+					"captureTrustedStartupValues();");
 			assertContains(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java"), EXERCISE_PACKAGE
 					+ ".ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions");
 		} else {

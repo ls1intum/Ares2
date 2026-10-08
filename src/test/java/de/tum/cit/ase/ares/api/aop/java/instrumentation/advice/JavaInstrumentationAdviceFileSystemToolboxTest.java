@@ -678,7 +678,8 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 	/**
 	 * Without a fixed default temp directory, a temp file without a directory is
 	 * denied even when the policy covers the temp directory, because Ares cannot
-	 * tell where the JDK will write. The message is checked in both languages.
+	 * tell where the JDK will write. It says trusted start-up is missing, as every
+	 * access without it does; checked in both languages.
 	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "en", "de" })
@@ -688,7 +689,7 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 					new String[] { realDefaultTempDirectory() }, "ARCH", "INSTRUMENTATION");
 			SecurityException denial = assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkFilesCreateTempFile(null, "ares-baseline-", ".tmp"));
-			assertLocalisedMessage("security.advice.file.system.temp.directory.not.frozen", denial);
+			assertLocalisedMessage("security.advice.trusted.startup.missing", denial);
 		}));
 	}
 

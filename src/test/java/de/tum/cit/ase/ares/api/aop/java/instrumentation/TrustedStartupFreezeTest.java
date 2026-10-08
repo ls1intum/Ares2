@@ -57,6 +57,19 @@ class TrustedStartupFreezeTest {
 	}
 
 	/**
+	 * The trusted start-up stores the start-up temp directory in both settings
+	 * copies, once: a later change of the property leaves both as they were.
+	 * Without the agent nothing is stored, and temp files without a directory are
+	 * then refused.
+	 */
+	@Test
+	void theFrozenTempDirectoryOutlivesALaterPropertyChange(@TempDir Path elsewhere) throws Exception {
+		String startUpDirectory = Path.of(System.getProperty("java.io.tmpdir")).toRealPath().toString();
+		assertEquals("null|absent", runProbe(false, "settings", elsewhere));
+		assertEquals(startUpDirectory + "|" + startUpDirectory, runProbe(true, "settings", elsewhere));
+	}
+
+	/**
 	 * Without a freeze, the aspect trusts whatever Java home is set before its
 	 * first use; with the agent's freeze it keeps the start-up Java home.
 	 */
