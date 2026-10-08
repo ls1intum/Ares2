@@ -90,6 +90,26 @@ class ReservedPackageBuildBoundaryTest {
 	 *
 	 * @throws Exception if the script cannot be read
 	 */
+	/**
+	 * Both fixtures, and the examples' copies, match reserved files in any letter
+	 * case, because a case-insensitive file system serves
+	 * {@code meta-inf/services/...} to a lookup of {@code META-INF/services/...}.
+	 */
+	@Test
+	void bothFixturesMatchReservedFilesInAnyLetterCase() throws Exception {
+		String maven = Files.readString(ROOT.resolve("MavenReservedPackages.xml"));
+		String gradle = Files.readString(ROOT.resolve("GradleReservedPackages.gradle")).replace("\r\n", "\n");
+		String examplePom = Files.readString(Path.of("examples/ares-exercise-maven/pom.xml"));
+		assertTrue(maven.contains("dir=\"${project.build.outputDirectory}\" casesensitive=\"false\">"),
+				"Maven fixture must match reserved files case-insensitively");
+		assertTrue(examplePom.contains("dir=\"${project.build.outputDirectory}\" casesensitive=\"false\">"),
+				"the Maven example must carry the case-insensitive fileset");
+		assertTrue(gradle.contains(".collect { it.toLowerCase(Locale.ROOT) }"),
+				"Gradle fixture must lower-case the reserved prefixes and root files");
+		assertTrue(gradle.contains("def comparable = relative.toLowerCase(Locale.ROOT)"),
+				"Gradle fixture must lower-case the path it compares");
+	}
+
 	@Test
 	void gradleFixtureScansTheWholeMainOutput() throws Exception {
 		String gradle = Files.readString(ROOT.resolve("GradleReservedPackages.gradle"));

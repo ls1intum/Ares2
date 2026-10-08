@@ -58,8 +58,8 @@ public final class TimeoutUtils {
 	/**
 	 * The termination grace period the instructor configured, if any: the active
 	 * policy's {@code regardingStrictTimeouts} grace. Empty means the caller's own
-	 * period applies, 50 ms for JUnit and one second for jqwik. The annotation
-	 * gains its own grace, ahead of the policy's, with {@code terminationGrace}.
+	 * period applies, 50 ms. The annotation gains its own grace, ahead of the
+	 * policy's, with {@code terminationGrace}.
 	 *
 	 * @param context the test context to read the policy from.
 	 * @return the configured period, or empty if none was configured.
@@ -139,8 +139,9 @@ public final class TimeoutUtils {
 		// this repository pass a constant" is not an invariant.
 		Duration terminationGracePeriod = findTerminationGracePeriod(context).orElse(defaultTerminationGracePeriod);
 		long terminationGraceNanos = terminationGraceNanos(terminationGracePeriod, "terminationGracePeriod"); //$NON-NLS-1$
-		return executeWithTimeout(timeout.get(), () -> rethrowThrowableSafe(execution), context, terminationGraceNanos,
-				fatalProcessTerminator);
+		long timeoutNanos = timeoutNanos(timeout.get());
+		return executeWithTimeout(timeout.get(), timeoutNanos, () -> rethrowThrowableSafe(execution), context,
+				terminationGraceNanos, fatalProcessTerminator);
 	}
 
 	private static <T> T rethrowThrowableSafe(ThrowingSupplier<T> execution) throws Exception { // NOSONAR
@@ -157,13 +158,30 @@ public final class TimeoutUtils {
 		}
 	}
 
-	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context,
-			long terminationGraceNanos, IntConsumer fatalProcessTerminator) throws Throwable { // NOSONAR
+	/**
+	 * The timeout as a nanosecond count, the precision the wait uses, converted
+	 * before the worker starts so an overflow never surfaces while student code
+	 * runs.
+	 *
+	 * @param timeout the timeout to convert.
+	 * @return the timeout in nanoseconds.
+	 * @throws IllegalArgumentException if it does not fit a nanosecond count.
+	 */
+	static long timeoutNanos(Duration timeout) {
+		try {
+			return timeout.toNanos();
+		} catch (ArithmeticException tooLong) {
+			throw new IllegalArgumentException("timeout must fit a nanosecond count, but was " + timeout, tooLong); //$NON-NLS-1$
+		}
+	}
+
+	private static <T> T executeWithTimeout(Duration timeout, long timeoutNanos, Callable<T> action,
+			TestContext context, long terminationGraceNanos, IntConsumer fatalProcessTerminator) throws Throwable { // NOSONAR
 		var threadFactory = new WhitelistedThreadFactory();
 		var executorService = Executors.newSingleThreadExecutor(threadFactory);
 		Future<T> future = executorService.submit(action);
 		try {
-			return invokeChecked(() -> future.get(timeout.toMillis(), TimeUnit.MILLISECONDS));
+			return invokeChecked(() -> future.get(timeoutNanos, TimeUnit.NANOSECONDS));
 		} catch (ExecutionException ex) {
 			// should never happen, but you never know
 			if (ex.getCause() instanceof ExecutionException) {

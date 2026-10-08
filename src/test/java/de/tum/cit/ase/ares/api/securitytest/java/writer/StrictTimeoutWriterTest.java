@@ -34,7 +34,7 @@ class StrictTimeoutWriterTest {
 	private Path testFolder;
 
 	/**
-	 * Creates the exercise folders and a Gradle build without jqwik.
+	 * Creates the exercise folders and a plain Gradle build.
 	 *
 	 * @throws IOException if the folders cannot be created
 	 */
@@ -57,7 +57,7 @@ class StrictTimeoutWriterTest {
 
 	/**
 	 * With the setting, the JUnit interceptor and its sentinel are written and
-	 * registered; without jqwik, no jqwik file is written.
+	 * registered.
 	 *
 	 * @throws IOException if a written file cannot be read
 	 */
@@ -66,33 +66,14 @@ class StrictTimeoutWriterTest {
 		GeneratedHookFiles.Contribution generated = writer(null).write(configured(), PACKAGE, testFolder);
 
 		assertThat(generated.jupiterHooks()).containsExactly(StrictTimeoutSources.JUPITER_HOOK);
-		assertThat(generated.jqwikHooks()).isEmpty();
 		assertThat(source(StrictTimeoutSources.JUPITER_HOOK)).content()
 				.contains("public final class GeneratedStrictTimeout implements InvocationInterceptor")
 				.contains("public static <T> T executeWithTimeout(")
+				.contains("future.get(timeoutNanos, TimeUnit.NANOSECONDS)")
 				.contains("com.example.ares.api.localization.Messages.localized(\"timeout.failure_message\"").contains(
 						"de.tum.cit.ase.ares.generated.GeneratedTestBehaviorSettings.REGARDING_STRICT_TIMEOUTS_THE_TIMEOUT_IS");
-		assertThat(source(StrictTimeoutSources.JUPITER_SENTINEL)).content().contains("JQWIK_HOOK_GENERATED = false;");
-		assertThat(source(StrictTimeoutSources.JQWIK_HOOK)).doesNotExist();
-	}
-
-	/**
-	 * A build naming jqwik also gets the jqwik hook, compiled against jqwik's API
-	 * only, and its sentinel.
-	 *
-	 * @throws IOException if a file cannot be written or read
-	 */
-	@Test
-	void writesTheJqwikHookWhenTheBuildUsesJqwik() throws IOException {
-		Files.writeString(projectRoot.resolve("build.gradle"), "dependencies { testImplementation 'net.jqwik:jqwik' }");
-
-		GeneratedHookFiles.Contribution generated = writer(null).write(configured(), PACKAGE, testFolder);
-
-		assertThat(generated.jqwikHooks()).containsExactly(StrictTimeoutSources.JQWIK_HOOK);
-		assertThat(source(StrictTimeoutSources.JQWIK_HOOK)).content().contains("implements AroundTryHook")
-				.contains("PropagationMode.ALL_DESCENDANTS").doesNotContain("import net.jqwik.engine");
-		assertThat(source(StrictTimeoutSources.JQWIK_SENTINEL)).exists();
-		assertThat(source(StrictTimeoutSources.JUPITER_SENTINEL)).content().contains("JQWIK_HOOK_GENERATED = true;");
+		assertThat(source(StrictTimeoutSources.JUPITER_SENTINEL)).content()
+				.contains("class GeneratedStrictTimeoutSentinelTest");
 	}
 
 	/**

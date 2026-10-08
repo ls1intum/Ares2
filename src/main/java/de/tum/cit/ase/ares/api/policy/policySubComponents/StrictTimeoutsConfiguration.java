@@ -90,19 +90,21 @@ public record StrictTimeoutsConfiguration(long theTimeoutIs, @Nonnull TimeUnit t
 	}
 
 	/**
-	 * An amount in a unit as a duration, or empty when it does not fit one.
+	 * An amount in a unit as a duration, or empty when it does not fit a nanosecond
+	 * count, the precision every timed wait uses. Refusing it here keeps an
+	 * overflow from surfacing only once student code already runs.
 	 *
 	 * @param amount the amount.
 	 * @param unit   its unit.
-	 * @return the duration, or empty on overflow
+	 * @return the duration, or empty when it does not fit
 	 */
 	@Nonnull
 	private static Optional<Duration> durationOf(long amount, @Nonnull TimeUnit unit) {
-		try {
-			return Optional.of(Duration.of(amount, unit.toChronoUnit()));
-		} catch (ArithmeticException tooLarge) {
+		long nanos = unit.toNanos(amount);
+		if (nanos == Long.MAX_VALUE || nanos == Long.MIN_VALUE) {
 			return Optional.empty();
 		}
+		return Optional.of(Duration.ofNanos(nanos));
 	}
 
 	/**

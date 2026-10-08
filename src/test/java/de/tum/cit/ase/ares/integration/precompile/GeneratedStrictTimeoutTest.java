@@ -2,10 +2,7 @@ package de.tum.cit.ase.ares.integration.precompile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -25,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.junit.platform.engine.TestEngine;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.engine.discovery.DiscoverySelectors;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
@@ -37,19 +33,13 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 /**
  * Runs the strict timeout a precompile run generates, end to end: the real
  * generator writes it into a project, the generated sources are compiled with
- * fixture tests, and nested JUnit and jqwik runs show every timed invocation
- * stopping at the policy's limit.
+ * fixture tests, and nested JUnit runs show every timed invocation stopping at
+ * the policy's limit.
  */
 class GeneratedStrictTimeoutTest {
 
-	/** The jqwik engine, loaded afresh for each nested jqwik run. */
-	private static final String JQWIK_ENGINE = "net.jqwik.engine.JqwikTestEngine";
-
 	/** The generated JUnit interceptor's sentinel test. */
 	private static final String JUPITER_SENTINEL = "de.tum.cit.ase.ares.generated.GeneratedStrictTimeoutSentinelTest";
-
-	/** The generated jqwik hook's sentinel test. */
-	private static final String JQWIK_SENTINEL = "de.tum.cit.ase.ares.generated.GeneratedJqwikStrictTimeoutSentinelTest";
 
 	/** The policy's timeout, as the timeout message formats it. */
 	private static final String LIMIT = "100 ms";
@@ -60,9 +50,6 @@ class GeneratedStrictTimeoutTest {
 
 	/** The compiled generated code and fixtures. */
 	private static Path compiled;
-
-	/** Generated code compiled from a build that does not name jqwik. */
-	private static Path withoutJqwikHook;
 
 	/**
 	 * A settings class with an hour's timeout, standing in for one a student
@@ -96,7 +83,7 @@ class GeneratedStrictTimeoutTest {
 	static void generateAndCompile() throws IOException {
 		Path policy = tempDir.resolve("SecurityPolicy.yaml");
 		Files.writeString(policy, policyText("JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ"));
-		Path testSources = generate(tempDir, policy, "project", "<project><!-- net.jqwik:jqwik --></project>");
+		Path testSources = generate(tempDir, policy, "project", "<project/>");
 		resources = testSources.resolveSibling("resources");
 		include = Files.readAllLines(resources.resolve("junit-platform.properties")).stream()
 				.filter(line -> line.startsWith("junit.jupiter.extensions.autodetection.include="))
@@ -105,12 +92,6 @@ class GeneratedStrictTimeoutTest {
 		compile(compiled, List.of(testSources.resolve("de/tum/cit/ase/ares/generated"),
 				testSources.resolve("com/example/ares/api/localization"), writeFixtures(tempDir.resolve("fixtures"))),
 				testSources.resolve("com/example/ares/api/util/LruCache.java"));
-		Path withoutJqwikSources = generate(tempDir, policy, "project-without-jqwik", "<project/>");
-		withoutJqwikHook = Files.createDirectories(tempDir.resolve("compiled-without-jqwik"));
-		compile(withoutJqwikHook,
-				List.of(withoutJqwikSources.resolve("de/tum/cit/ase/ares/generated"),
-						withoutJqwikSources.resolve("com/example/ares/api/localization")),
-				withoutJqwikSources.resolve("com/example/ares/api/util/LruCache.java"));
 		shadowSettings = Files.createDirectories(tempDir.resolve("shadow"));
 		Path shadowSource = Files.createDirectories(tempDir.resolve("shadow-source/de/tum/cit/ase/ares/generated"))
 				.resolve("GeneratedTestBehaviorSettings.java");
@@ -215,27 +196,13 @@ class GeneratedStrictTimeoutTest {
 	}
 
 	/**
-	 * A jqwik try that loops stops at the limit.
+	 * The sentinel passes when the interceptor timed it.
 	 *
 	 * @throws Exception if the run cannot be set up
 	 */
 	@Test
-	void aJqwikTryTimesOut() throws Exception {
-		EngineExecutionResults results = run("jqwik", "com.example.fixtures.JqwikFixture", true, Locale.ENGLISH);
-
-		assertThat(failureMessages(results)).containsExactly(timeoutMessage(Locale.ENGLISH));
-	}
-
-	/**
-	 * Both sentinels pass when their hooks timed them.
-	 *
-	 * @throws Exception if the run cannot be set up
-	 */
-	@Test
-	void theSentinelsPassWithTheirHooks() throws Exception {
-		assertThat(run("junit-jupiter", JUPITER_SENTINEL, true, Locale.ENGLISH).testEvents().succeeded().count())
-				.isEqualTo(2);
-		assertThat(run("jqwik", JQWIK_SENTINEL, true, Locale.ENGLISH).testEvents().succeeded().count()).isEqualTo(1);
+	void theSentinelPassesWithTheInterceptor() throws Exception {
+		assertThat(run(JUPITER_SENTINEL, true, Locale.ENGLISH).testEvents().succeeded().count()).isEqualTo(1);
 	}
 
 	/**
@@ -245,27 +212,9 @@ class GeneratedStrictTimeoutTest {
 	 */
 	@Test
 	void theSentinelFailsWithoutTheInterceptor() throws Exception {
-		EngineExecutionResults results = run("junit-jupiter", JUPITER_SENTINEL, false, Locale.ENGLISH);
+		EngineExecutionResults results = run(JUPITER_SENTINEL, false, Locale.ENGLISH);
 
 		assertThat(failureMessages(results)).singleElement().asString().contains("not active");
-	}
-
-	/**
-	 * With jqwik on the class path but no jqwik hook generated, the JUnit sentinel
-	 * fails, so properties cannot quietly run unbounded.
-	 *
-	 * @throws Exception if the run cannot be set up
-	 */
-	@Test
-	void theSentinelFailsWhenJqwikIsPresentWithoutItsHook() throws Exception {
-		classes = withoutJqwikHook;
-		try {
-			EngineExecutionResults results = run("junit-jupiter", JUPITER_SENTINEL, true, Locale.ENGLISH);
-
-			assertThat(failureMessages(results)).singleElement().asString().contains("without its jqwik hook");
-		} finally {
-			classes = compiled;
-		}
 	}
 
 	/**
@@ -286,43 +235,6 @@ class GeneratedStrictTimeoutTest {
 	}
 
 	/**
-	 * Without jqwik's engine on the class path, the jqwik hook refuses to time a
-	 * try, naming the engine, instead of running it without its context.
-	 *
-	 * @throws Exception if the stand-in loader cannot be set up
-	 */
-	@Test
-	void theJqwikHookNamesAMissingEngine() throws Exception {
-		try (URLClassLoader withoutEngine = new JqwikIsolatingClassLoader(nestedRunClassPath(),
-				Thread.currentThread().getContextClassLoader(), false)) {
-			Method capture = withoutEngine
-					.loadClass("de.tum.cit.ase.ares.generated.GeneratedJqwikStrictTimeout$EngineState")
-					.getDeclaredMethod("capture");
-			capture.setAccessible(true);
-
-			Throwable failure = captureFailure(capture);
-
-			assertThat(failure).isInstanceOf(AssertionError.class).hasMessageContaining("jqwik-engine");
-		}
-	}
-
-	/**
-	 * What calling a static method threw.
-	 *
-	 * @param method the method.
-	 * @return what it threw
-	 * @throws IllegalAccessException if it cannot be called
-	 */
-	private static Throwable captureFailure(Method method) throws IllegalAccessException {
-		try {
-			method.invoke(null);
-			throw new AssertionError("capture succeeded without jqwik's engine");
-		} catch (InvocationTargetException thrown) {
-			return thrown.getCause();
-		}
-	}
-
-	/**
 	 * The timeout message the copied bundle holds for a locale.
 	 *
 	 * @param locale the locale.
@@ -334,6 +246,25 @@ class GeneratedStrictTimeoutTest {
 	}
 
 	/**
+	 * Reusing a class loader cannot make a sentinel pass after its hook is
+	 * disabled.
+	 *
+	 * @throws Exception if either nested run cannot be set up
+	 */
+	@Test
+	void theSentinelNeedsEvidenceFromItsOwnRun() throws Exception {
+		try (URLClassLoader loader = new URLClassLoader(nestedRunClassPath(),
+				Thread.currentThread().getContextClassLoader())) {
+			assertThat(runIn(loader, JUPITER_SENTINEL, true, Locale.ENGLISH).testEvents().succeeded().count())
+					.isEqualTo(1);
+
+			EngineExecutionResults withoutExtension = runIn(loader, JUPITER_SENTINEL, false, Locale.ENGLISH);
+
+			assertThat(failureMessages(withoutExtension)).singleElement().asString().contains("not active");
+		}
+	}
+
+	/**
 	 * Runs a fixture class through a nested JUnit Jupiter session.
 	 *
 	 * @param fixture the fixture's simple name.
@@ -342,33 +273,45 @@ class GeneratedStrictTimeoutTest {
 	 * @throws Exception if the run cannot be set up
 	 */
 	private static EngineExecutionResults runJupiter(String fixture, Locale locale) throws Exception {
-		return run("junit-jupiter", "com.example.fixtures." + fixture, true, locale);
+		return run("com.example.fixtures." + fixture, true, locale);
 	}
 
 	/**
-	 * Runs a class through a nested session of one engine, with a fresh class
-	 * loader, so no earlier run leaves a hook marked active. jqwik is loaded afresh
-	 * too, because it caches the hooks it finds once per loaded engine.
+	 * Runs a class through a nested JUnit Jupiter session with a fresh class
+	 * loader, keeping generated classes separate from other fixtures.
 	 *
-	 * @param engine        the engine id.
 	 * @param className     the class to run.
 	 * @param autodetection whether JUnit loads extensions from service files.
 	 * @param locale        the locale messages are shown in.
 	 * @return the session's results
 	 * @throws Exception if the run cannot be set up
 	 */
-	private static EngineExecutionResults run(String engine, String className, boolean autodetection, Locale locale)
-			throws Exception {
+	private static EngineExecutionResults run(String className, boolean autodetection, Locale locale) throws Exception {
+		try (URLClassLoader loader = new URLClassLoader(nestedRunClassPath(),
+				Thread.currentThread().getContextClassLoader())) {
+			return runIn(loader, className, autodetection, locale);
+		}
+	}
+
+	/**
+	 * Runs a class using an existing loader, restoring the caller's locale and
+	 * loader.
+	 *
+	 * @param loader        the loader shared by the nested runs
+	 * @param className     the test class
+	 * @param autodetection whether JUnit loads registered extensions
+	 * @param locale        the locale for messages
+	 * @return the run's results
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static EngineExecutionResults runIn(ClassLoader loader, String className, boolean autodetection,
+			Locale locale) throws Exception {
 		Locale originalLocale = Locale.getDefault(Locale.Category.DISPLAY);
 		ClassLoader originalLoader = Thread.currentThread().getContextClassLoader();
-		try (URLClassLoader loader = new JqwikIsolatingClassLoader(nestedRunClassPath(), originalLoader, true)) {
+		try {
 			Locale.setDefault(Locale.Category.DISPLAY, locale);
 			Thread.currentThread().setContextClassLoader(loader);
-			EngineTestKit.Builder builder = "jqwik".equals(engine)
-					? EngineTestKit
-							.engine((TestEngine) loader.loadClass(JQWIK_ENGINE).getDeclaredConstructor().newInstance())
-					: EngineTestKit.engine(engine);
-			return builder
+			return EngineTestKit.engine("junit-jupiter")
 					.configurationParameter("junit.jupiter.extensions.autodetection.enabled",
 							String.valueOf(autodetection))
 					.configurationParameter("junit.jupiter.extensions.autodetection.include", include)
@@ -380,8 +323,8 @@ class GeneratedStrictTimeoutTest {
 	}
 
 	/**
-	 * The class path of a nested run: the generated code, the fixtures, the
-	 * resources and this run's jqwik JARs.
+	 * The class path of a nested run: the generated code, the fixtures and the
+	 * resources.
 	 *
 	 * @return the class path entries
 	 * @throws IOException if a path cannot be turned into a URL
@@ -394,82 +337,7 @@ class GeneratedStrictTimeoutTest {
 		for (Path root : List.of(classes, compiled, resources)) {
 			urls.add(root.toUri().toURL());
 		}
-		jqwikJars().map(GeneratedStrictTimeoutTest::url).forEach(urls::add);
 		return urls.toArray(URL[]::new);
-	}
-
-	/**
-	 * The jqwik JARs on this test run's class path.
-	 *
-	 * @return their paths
-	 */
-	private static Stream<Path> jqwikJars() {
-		return Stream.of(System.getProperty("java.class.path").split(File.pathSeparator)).map(Path::of)
-				.filter(entry -> entry.getFileName().toString().startsWith("jqwik"));
-	}
-
-	/**
-	 * A path as a URL.
-	 *
-	 * @param path the path.
-	 * @return its URL
-	 */
-	private static URL url(Path path) {
-		try {
-			return path.toUri().toURL();
-		} catch (IOException malformed) {
-			throw new IllegalStateException(malformed);
-		}
-	}
-
-	/**
-	 * Loads jqwik's classes from its own class path first, so each nested run gets
-	 * a jqwik that has not yet looked for hooks. Everything else comes from the
-	 * outer test run as usual. It can also pretend jqwik's engine is absent.
-	 */
-	private static final class JqwikIsolatingClassLoader extends URLClassLoader {
-
-		/** Whether jqwik's engine classes may load. */
-		private final boolean withEngine;
-
-		/**
-		 * Creates the loader.
-		 *
-		 * @param urls       the nested run's class path.
-		 * @param parent     the outer test run's class loader.
-		 * @param withEngine whether jqwik's engine classes may load.
-		 */
-		JqwikIsolatingClassLoader(URL[] urls, ClassLoader parent, boolean withEngine) {
-			super(urls, parent);
-			this.withEngine = withEngine;
-		}
-
-		/**
-		 * Loads a jqwik class from this loader's own class path, anything else parent
-		 * first.
-		 *
-		 * @param name    the binary class name.
-		 * @param resolve whether to link the class.
-		 * @return the class
-		 * @throws ClassNotFoundException if no loader has it
-		 */
-		@Override
-		protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-			if (!name.startsWith("net.jqwik.")) {
-				return super.loadClass(name, resolve);
-			}
-			if (!withEngine && name.startsWith("net.jqwik.engine.")) {
-				throw new ClassNotFoundException(name);
-			}
-			synchronized (getClassLoadingLock(name)) {
-				Class<?> loaded = findLoadedClass(name);
-				Class<?> found = loaded != null ? loaded : findClass(name);
-				if (resolve) {
-					resolveClass(found);
-				}
-				return found;
-			}
-		}
 	}
 
 	/**
@@ -533,18 +401,6 @@ class GeneratedStrictTimeoutTest {
 		fixture(folder, "AfterAllFixture", "@AfterAll static void tearDown() { Loop.untilInterrupted(); }",
 				"@Test void test() {}");
 		fixture(folder, "FastFixture", "", "@Test void fast() throws InterruptedException { Thread.sleep(10); }");
-		Files.writeString(folder.resolve("JqwikFixture.java"), """
-				package com.example.fixtures;
-
-				import net.jqwik.api.Example;
-
-				class JqwikFixture {
-					@Example
-					void loops() {
-						Loop.untilInterrupted();
-					}
-				}
-				""");
 		return root;
 	}
 

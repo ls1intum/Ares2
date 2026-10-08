@@ -10,10 +10,9 @@ import javax.annotation.Nonnull;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 
 /**
- * Writes the strict-timeout hooks of a precompile run: a JUnit interceptor, a
- * jqwik hook when the build uses jqwik, and a sentinel test for each. Writes
- * them only while the policy sets {@code regardingStrictTimeouts}, and removes
- * them again once it does not.
+ * Writes the strict-timeout hooks of a precompile run: a JUnit interceptor and
+ * a sentinel test proving it ran. Writes them only while the policy sets
+ * {@code regardingStrictTimeouts}, and removes them again once it does not.
  *
  * @since 2.1.5
  * @author Luka Petrovic
@@ -49,23 +48,13 @@ final class StrictTimeoutWriter {
 			removeAll(testFolderPath);
 			return GeneratedHookFiles.Contribution.NONE;
 		}
-		boolean jqwik = hookFiles.usesJqwik();
 		String messagesClass = packageName + ".ares.api.localization.Messages";
 		List<Path> written = new ArrayList<>();
 		written.add(hookFiles.writeSource(testFolderPath, StrictTimeoutSources.JUPITER_HOOK,
 				StrictTimeoutSources.jupiterHook(messagesClass)));
 		written.add(hookFiles.writeSource(testFolderPath, StrictTimeoutSources.JUPITER_SENTINEL,
-				StrictTimeoutSources.jupiterSentinel(messagesClass, jqwik)));
-		if (!jqwik) {
-			removeJqwik(testFolderPath);
-			return new GeneratedHookFiles.Contribution(written, List.of(StrictTimeoutSources.JUPITER_HOOK), List.of());
-		}
-		written.add(hookFiles.writeSource(testFolderPath, StrictTimeoutSources.JQWIK_HOOK,
-				StrictTimeoutSources.jqwikHook(messagesClass)));
-		written.add(hookFiles.writeSource(testFolderPath, StrictTimeoutSources.JQWIK_SENTINEL,
-				StrictTimeoutSources.jqwikSentinel(messagesClass)));
-		return new GeneratedHookFiles.Contribution(written, List.of(StrictTimeoutSources.JUPITER_HOOK),
-				List.of(StrictTimeoutSources.JQWIK_HOOK));
+				StrictTimeoutSources.jupiterSentinel(messagesClass)));
+		return new GeneratedHookFiles.Contribution(written, List.of(StrictTimeoutSources.JUPITER_HOOK));
 	}
 
 	/**
@@ -76,16 +65,5 @@ final class StrictTimeoutWriter {
 	private void removeAll(@Nonnull Path testFolderPath) {
 		hookFiles.deleteGenerated(testFolderPath, StrictTimeoutSources.JUPITER_HOOK);
 		hookFiles.deleteGenerated(testFolderPath, StrictTimeoutSources.JUPITER_SENTINEL);
-		removeJqwik(testFolderPath);
-	}
-
-	/**
-	 * Removes the jqwik hook and its sentinel, source and compiled.
-	 *
-	 * @param testFolderPath the test source root.
-	 */
-	private void removeJqwik(@Nonnull Path testFolderPath) {
-		hookFiles.deleteGenerated(testFolderPath, StrictTimeoutSources.JQWIK_HOOK);
-		hookFiles.deleteGenerated(testFolderPath, StrictTimeoutSources.JQWIK_SENTINEL);
 	}
 }

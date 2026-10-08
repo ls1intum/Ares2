@@ -18,23 +18,11 @@ final class StrictTimeoutSources {
 	/** Simple name of the generated JUnit Jupiter interceptor. */
 	static final String JUPITER_HOOK = "GeneratedStrictTimeout";
 
-	/** Simple name of the generated jqwik lifecycle hook. */
-	static final String JQWIK_HOOK = "GeneratedJqwikStrictTimeout";
-
 	/** Simple name of the generated JUnit sentinel test. */
 	static final String JUPITER_SENTINEL = "GeneratedStrictTimeoutSentinelTest";
 
-	/** Simple name of the generated jqwik sentinel test. */
-	static final String JQWIK_SENTINEL = "GeneratedJqwikStrictTimeoutSentinelTest";
-
 	/** Message key of the text a sentinel shows when its hook did not time it. */
 	static final String INACTIVE_KEY = "generated.strict.timeout.inactive";
-
-	/** Message key of the text shown when jqwik is present but not covered. */
-	static final String JQWIK_MISSING_KEY = "generated.strict.timeout.jqwik.missing";
-
-	/** Message key of the text shown when jqwik's engine cannot be reached. */
-	static final String ENGINE_MISSING_KEY = "generated.strict.timeout.jqwik.engine.missing";
 
 	/** Placeholder for the copied {@code Messages} class in the source texts. */
 	private static final String MESSAGES = "@MESSAGES@";
@@ -53,9 +41,6 @@ final class StrictTimeoutSources {
 
 	/** Placeholder for the grace unit field of the settings class. */
 	private static final String GRACE_UNIT = "@GRACE_UNIT@";
-
-	/** Placeholder for whether the jqwik hook was generated beside the sentinel. */
-	private static final String JQWIK_GENERATED = "@JQWIK_GENERATED@";
 
 	/**
 	 * Source text of the JUnit Jupiter interceptor, before the placeholders are
@@ -96,22 +81,17 @@ final class StrictTimeoutSources {
 				/** The exit code of a test process halted because a worker did not stop. */
 				private static final int UNRESPONSIVE_EXIT_CODE = 124;
 
-				/** Set once a test method ran under this interceptor; the sentinel checks it. */
-				private static volatile boolean active;
-
-				/** Records that a test method ran under this interceptor. */
-				private static void markActive() {
-					active = true;
-				}
+				/** The test guarded now, inherited by a worker another hook starts. */
+				private static final InheritableThreadLocal<String> GUARDING = new InheritableThreadLocal<>();
 
 				/**
-				 * Whether a test method ran under this interceptor in this test run, which
-				 * includes the sentinel itself.
+				 * Whether this hook is guarding the named test in this invocation.
 				 *
-				 * @return true once a test method was timed
+				 * @param test the test, as {@code fully.qualified.Class#method}
+				 * @return true while that test runs inside this hook
 				 */
-				public static boolean isActive() {
-					return active;
+				public static boolean isGuarding(String test) {
+					return test.equals(GUARDING.get());
 				}
 
 				/**
@@ -173,8 +153,16 @@ final class StrictTimeoutSources {
 				public void interceptTestMethod(Invocation<Void> invocation,
 						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext)
 						throws Throwable {
-					markActive();
-					executeWithTimeout(invocation::proceed, DEFAULT_GRACE);
+					executeWithTimeout(() -> {
+						GUARDING.set(extensionContext.getRequiredTestClass().getName() + "#" +
+								extensionContext.getRequiredTestMethod().getName());
+						try {
+							invocation.proceed();
+							return null;
+						} finally {
+							GUARDING.remove();
+						}
+					}, DEFAULT_GRACE);
 				}
 
 				/**
@@ -254,9 +242,10 @@ final class StrictTimeoutSources {
 				}
 
 				/**
-				 * Runs an action on a worker thread and stops it after the policy's timeout.
-				 * A worker that does not stop within the grace period halts the test process,
-				 * since it would otherwise keep running untrusted code. The thread-creation
+				 * Runs an action on a worker thread and stops it after the policy's timeout,
+				 * waited for to the nanosecond and converted before the worker starts. A worker
+				 * that does not stop within the grace period halts the test process, since it
+				 * would otherwise keep running untrusted code. The thread-creation
 				 * check exempts exactly this method, by name.
 				 *
 				 * @param <T>          the action's result
@@ -267,11 +256,12 @@ final class StrictTimeoutSources {
 				 */
 				public static <T> T executeWithTimeout(TimedAction<T> action, Duration defaultGrace) throws Throwable {
 					Duration timeout = timeout();
+					long timeoutNanos = timeout.toNanos();
 					long graceNanos = graceNanos(defaultGrace);
 					ExecutorService executor = Executors.newSingleThreadExecutor(new WorkerFactory());
 					Future<T> future = executor.submit(() -> call(action));
 					try {
-						return future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+						return future.get(timeoutNanos, TimeUnit.NANOSECONDS);
 					} catch (ExecutionException failure) {
 						throw unwrapped(failure);
 					} catch (TimeoutException expired) {
@@ -457,233 +447,6 @@ final class StrictTimeoutSources {
 			}
 			""";
 
-	/** Source text of the jqwik hook, before the placeholders are filled. */
-	private static final String JQWIK_HOOK_SOURCE = """
-			package de.tum.cit.ase.ares.generated;
-
-			import java.lang.reflect.InvocationTargetException;
-			import java.lang.reflect.Method;
-			import java.time.Duration;
-			import java.util.List;
-			import java.util.function.Supplier;
-
-			import net.jqwik.api.lifecycle.AroundTryHook;
-			import net.jqwik.api.lifecycle.PropagationMode;
-			import net.jqwik.api.lifecycle.TryExecutionResult;
-			import net.jqwik.api.lifecycle.TryExecutor;
-			import net.jqwik.api.lifecycle.TryLifecycleContext;
-
-			/**
-			 * Generated by Ares. Stops every jqwik try that runs longer than the policy's
-			 * strict timeout, as {@code @StrictTimeout} does. Do not edit: regenerate
-			 * instead.
-			 */
-			public final class GeneratedJqwikStrictTimeout implements AroundTryHook {
-
-				/** The grace period a jqwik try gets when the policy names none. */
-				private static final Duration DEFAULT_GRACE = Duration.ofSeconds(1);
-
-				/** Set once this hook has timed a try; the sentinel checks it. */
-				private static volatile boolean active;
-
-				/** Records that this hook timed a try. */
-				private static void markActive() {
-					active = true;
-				}
-
-				/**
-				 * Whether this hook has timed a try in this test run, which includes the
-				 * sentinel itself.
-				 *
-				 * @return true once a try was timed
-				 */
-				public static boolean isActive() {
-					return active;
-				}
-
-				/**
-				 * Applies this hook to every property, not only to the container jqwik
-				 * registers it on.
-				 *
-				 * @return every descendant
-				 */
-				@Override
-				public PropagationMode propagateTo() {
-					return PropagationMode.ALL_DESCENDANTS;
-				}
-
-				/**
-				 * Keeps the timeout inside jqwik's try lifecycle, as Ares's own jqwik timeout
-				 * does: setup and cleanup must stay on jqwik's own thread.
-				 *
-				 * @return the proximity Ares's jqwik timeout uses
-				 */
-				@Override
-				public int aroundTryProximity() {
-					return 40;
-				}
-
-				/**
-				 * Runs one try on a worker thread, bounded by the policy's timeout, with
-				 * jqwik's engine state handed over to the worker.
-				 *
-				 * @param context    the try's context
-				 * @param aTry       runs the try
-				 * @param parameters the try's parameters
-				 * @return the try's result
-				 * @throws Throwable whatever the try threw, or the timeout
-				 */
-				@Override
-				public TryExecutionResult aroundTry(TryLifecycleContext context, TryExecutor aTry, List<Object> parameters)
-						throws Throwable {
-					markActive();
-					EngineState state = EngineState.capture();
-					return GeneratedStrictTimeout.executeWithTimeout(() -> state.runWith(() -> aTry.execute(parameters)),
-							DEFAULT_GRACE);
-				}
-
-				/**
-				 * jqwik's per-thread engine state, reached by reflection, because jqwik's
-				 * engine is only on the run-time class path of an exercise.
-				 */
-				static final class EngineState {
-
-					/** jqwik's holder of the current domain context. */
-					private static final String DOMAIN_CONTEXT = "net.jqwik.engine.execution.lifecycle.CurrentDomainContext";
-
-					/** jqwik's holder of the current test descriptor. */
-					private static final String TEST_DESCRIPTOR = "net.jqwik.engine.execution.lifecycle.CurrentTestDescriptor";
-
-					/** The domain context of the calling thread. */
-					private final Object domainContext;
-
-					/** The test descriptor of the calling thread. */
-					private final Object testDescriptor;
-
-					/** Runs a supplier with a domain context set. */
-					private final Method runWithContext;
-
-					/** Runs a supplier with a test descriptor set. */
-					private final Method runWithDescriptor;
-
-					/**
-					 * Holds the captured state.
-					 *
-					 * @param domainContext     the domain context
-					 * @param testDescriptor    the test descriptor
-					 * @param runWithContext    jqwik's method setting a domain context
-					 * @param runWithDescriptor jqwik's method setting a test descriptor
-					 */
-					private EngineState(Object domainContext, Object testDescriptor, Method runWithContext,
-							Method runWithDescriptor) {
-						this.domainContext = domainContext;
-						this.testDescriptor = testDescriptor;
-						this.runWithContext = runWithContext;
-						this.runWithDescriptor = runWithDescriptor;
-					}
-
-					/**
-					 * Captures the calling thread's engine state.
-					 *
-					 * @return the state
-					 * @throws AssertionError naming jqwik's engine when it cannot be reached
-					 */
-					static EngineState capture() {
-						try {
-							ClassLoader loader = GeneratedJqwikStrictTimeout.class.getClassLoader();
-							Class<?> domainHolder = Class.forName(DOMAIN_CONTEXT, true, loader);
-							Class<?> descriptorHolder = Class.forName(TEST_DESCRIPTOR, true, loader);
-							Method runWithContext = findStatic(domainHolder, "runWithContext");
-							Method runWithDescriptor = findStatic(descriptorHolder, "runWithDescriptor");
-							return new EngineState(domainHolder.getMethod("get").invoke(null),
-									descriptorHolder.getMethod("get").invoke(null), runWithContext, runWithDescriptor);
-						} catch (ReflectiveOperationException | LinkageError missing) {
-							throw new AssertionError(@MESSAGES@.localized("generated.strict.timeout.jqwik.engine.missing"),
-									missing);
-						}
-					}
-
-					/**
-					 * Runs the body with the captured state set on the current thread.
-					 *
-					 * @param <T>  the body's result
-					 * @param body the body
-					 * @return the body's result
-					 * @throws Throwable whatever the body threw
-					 */
-					@SuppressWarnings("unchecked")
-					<T> T runWith(Supplier<T> body) throws Throwable {
-						Supplier<Object> withDescriptor = () -> invokeUnchecked(runWithDescriptor, testDescriptor, body);
-						return (T) invoke(runWithContext, domainContext, withDescriptor);
-					}
-
-					/**
-					 * The public static two-argument method of that name.
-					 *
-					 * @param holder the class declaring it
-					 * @param name   the method's name
-					 * @return the method
-					 * @throws NoSuchMethodException if there is none
-					 */
-					private static Method findStatic(Class<?> holder, String name) throws NoSuchMethodException {
-						for (Method method : holder.getMethods()) {
-							if (method.getName().equals(name) && method.getParameterCount() == 2) {
-								return method;
-							}
-						}
-						throw new NoSuchMethodException(holder.getName() + "." + name);
-					}
-
-					/**
-					 * Calls a static method, passing on what it throws.
-					 *
-					 * @param method   the method
-					 * @param state    its first argument
-					 * @param supplier its second argument
-					 * @return its result
-					 * @throws Throwable whatever it threw
-					 */
-					private static Object invoke(Method method, Object state, Supplier<?> supplier) throws Throwable {
-						try {
-							return method.invoke(null, state, supplier);
-						} catch (InvocationTargetException thrown) {
-							throw thrown.getCause();
-						}
-					}
-
-					/**
-					 * Calls a static method from inside a supplier, passing on what it throws
-					 * without declaring it.
-					 *
-					 * @param method   the method
-					 * @param state    its first argument
-					 * @param supplier its second argument
-					 * @return its result
-					 */
-					private static Object invokeUnchecked(Method method, Object state, Supplier<?> supplier) {
-						try {
-							return invoke(method, state, supplier);
-						} catch (Throwable thrown) {
-							throw EngineState.<RuntimeException>rethrow(thrown);
-						}
-					}
-
-					/**
-					 * Throws any throwable without declaring it.
-					 *
-					 * @param <E>       the type the compiler is told is thrown
-					 * @param throwable the throwable
-					 * @return never returns
-					 * @throws E always
-					 */
-					@SuppressWarnings("unchecked")
-					private static <E extends Throwable> RuntimeException rethrow(Throwable throwable) throws E {
-						throw (E) throwable;
-					}
-				}
-			}
-			""";
-
 	/**
 	 * Source text of the JUnit sentinel test, before the placeholders are filled.
 	 */
@@ -694,69 +457,18 @@ final class StrictTimeoutSources {
 
 			/**
 			 * Generated by Ares. Fails when the generated strict timeout did not time this
-			 * test, or when jqwik is present without its hook, so a missing hook shows up
-			 * as a red test instead of unbounded tests.
+			 * test, so a missing hook shows up as a red test instead of unbounded tests.
 			 */
 			class GeneratedStrictTimeoutSentinelTest {
-
-				/** Whether the generator wrote the jqwik hook beside this test. */
-				private static final boolean JQWIK_HOOK_GENERATED = @JQWIK_GENERATED@;
 
 				/** Checks that the generated strict timeout timed this test. */
 				@Test
 				void strictTimeoutIsActive() {
-					if (!GeneratedStrictTimeout.isActive()) {
+					if (!GeneratedStrictTimeout.isGuarding(GeneratedStrictTimeoutSentinelTest.class.getName() + "#strictTimeoutIsActive")) {
 						throw new AssertionError(@MESSAGES@.localized("generated.strict.timeout.inactive"));
 					}
 				}
 
-				/** Checks that jqwik, when the test run has it, got its hook as well. */
-				@Test
-				void jqwikIsCoveredWhenPresent() {
-					if (!JQWIK_HOOK_GENERATED && jqwikIsPresent()) {
-						throw new AssertionError(@MESSAGES@.localized("generated.strict.timeout.jqwik.missing"));
-					}
-				}
-
-				/**
-				 * Whether jqwik's hook interface is on this test run's class path.
-				 *
-				 * @return true when jqwik can run properties here
-				 */
-				private static boolean jqwikIsPresent() {
-					try {
-						Class.forName("net.jqwik.api.lifecycle.AroundTryHook", false,
-								GeneratedStrictTimeoutSentinelTest.class.getClassLoader());
-						return true;
-					} catch (ClassNotFoundException absent) {
-						return false;
-					}
-				}
-			}
-			""";
-
-	/**
-	 * Source text of the jqwik sentinel test, before the placeholders are filled.
-	 */
-	private static final String JQWIK_SENTINEL_SOURCE = """
-			package de.tum.cit.ase.ares.generated;
-
-			import net.jqwik.api.Example;
-
-			/**
-			 * Generated by Ares. Fails when the generated jqwik strict timeout did not
-			 * time this property, so a missing hook shows up as a red test instead of
-			 * unbounded properties.
-			 */
-			class GeneratedJqwikStrictTimeoutSentinelTest {
-
-				/** Checks that the generated jqwik strict timeout timed this property. */
-				@Example
-				void strictTimeoutIsActive() {
-					if (!GeneratedJqwikStrictTimeout.isActive()) {
-						throw new AssertionError(@MESSAGES@.localized("generated.strict.timeout.inactive"));
-					}
-				}
 			}
 			""";
 
@@ -777,39 +489,14 @@ final class StrictTimeoutSources {
 	}
 
 	/**
-	 * The jqwik hook's source.
-	 *
-	 * @param messagesClass fully qualified name of the copied {@code Messages}.
-	 * @return the source text
-	 */
-	@Nonnull
-	static String jqwikHook(@Nonnull String messagesClass) {
-		return fill(JQWIK_HOOK_SOURCE, messagesClass);
-	}
-
-	/**
 	 * The JUnit sentinel test's source.
 	 *
-	 * @param messagesClass      fully qualified name of the copied
-	 *                           {@code Messages}.
-	 * @param jqwikHookGenerated whether the jqwik hook is generated beside it.
-	 * @return the source text
-	 */
-	@Nonnull
-	static String jupiterSentinel(@Nonnull String messagesClass, boolean jqwikHookGenerated) {
-		return fill(JUPITER_SENTINEL_SOURCE, messagesClass).replace(JQWIK_GENERATED,
-				String.valueOf(jqwikHookGenerated));
-	}
-
-	/**
-	 * The jqwik sentinel test's source.
-	 *
 	 * @param messagesClass fully qualified name of the copied {@code Messages}.
 	 * @return the source text
 	 */
 	@Nonnull
-	static String jqwikSentinel(@Nonnull String messagesClass) {
-		return fill(JQWIK_SENTINEL_SOURCE, messagesClass);
+	static String jupiterSentinel(@Nonnull String messagesClass) {
+		return fill(JUPITER_SENTINEL_SOURCE, messagesClass);
 	}
 
 	/**
@@ -817,7 +504,7 @@ final class StrictTimeoutSources {
 	 *
 	 * @param source        the source text with placeholders.
 	 * @param messagesClass fully qualified name of the copied {@code Messages}.
-	 * @return the source text with every placeholder but the jqwik flag replaced
+	 * @return the source text with every placeholder replaced
 	 */
 	@Nonnull
 	private static String fill(@Nonnull String source, @Nonnull String messagesClass) {

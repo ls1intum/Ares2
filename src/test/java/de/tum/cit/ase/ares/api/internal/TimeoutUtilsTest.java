@@ -134,6 +134,43 @@ class TimeoutUtilsTest {
 		assertThat(executionStarted).isFalse();
 	}
 
+	/**
+	 * A sub-millisecond timeout is waited for in full rather than rounded down to
+	 * the zero that would fail the test at once.
+	 */
+	@Test
+	void aSubMillisecondTimeoutIsWaitedForInFull() throws Exception {
+		TestContext context = contextFor("subMillisecondTimeout"); //$NON-NLS-1$
+		long startedAt = System.nanoTime();
+
+		assertThrows(AssertionFailedError.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+			while (!Thread.currentThread().isInterrupted()) {
+				Thread.onSpinWait();
+			}
+			return null;
+		}, context, Duration.ofSeconds(5), exitCode -> fail("must not terminate the fork"))); //$NON-NLS-1$
+
+		assertThat(Duration.ofNanos(System.nanoTime() - startedAt)).isGreaterThanOrEqualTo(Duration.ofNanos(500_000));
+		assertThat(TimeoutUtils.timeoutNanos(Duration.ofNanos(500_000))).isEqualTo(500_000);
+	}
+
+	/**
+	 * A timeout too long for a nanosecond count is refused before the worker
+	 * starts, so the overflow never surfaces while student code runs.
+	 */
+	@Test
+	void anUnrepresentableTimeoutIsRefusedBeforeTheWorkerStarts() throws Exception {
+		AtomicBoolean executionStarted = new AtomicBoolean();
+		TestContext context = contextFor("unrepresentableTimeout"); //$NON-NLS-1$
+
+		assertThrows(IllegalArgumentException.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+			executionStarted.set(true);
+			return null;
+		}, context, Duration.ofSeconds(5), exitCode -> fail("must not terminate the fork"))); //$NON-NLS-1$
+
+		assertThat(executionStarted).isFalse();
+	}
+
 	@Test
 	void jupiterKeepsItsFiftyMillisecondDefault() throws Exception {
 		java.lang.reflect.Field field = TimeoutUtils.class.getDeclaredField("DEFAULT_TERMINATION_GRACE_PERIOD"); //$NON-NLS-1$
@@ -232,6 +269,18 @@ class TimeoutUtilsTest {
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void strictTimeoutTarget() {
 		// Provides the annotation consumed through the mocked test context.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@StrictTimeout(value = 500, unit = TimeUnit.MICROSECONDS)
+	private static void subMillisecondTimeout() {
+		// Provides a timeout below one millisecond.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@StrictTimeout(value = Long.MAX_VALUE, unit = TimeUnit.SECONDS)
+	private static void unrepresentableTimeout() {
+		// Provides a timeout no nanosecond count holds.
 	}
 
 	@SuppressWarnings("PMD.UnusedPrivateMethod")

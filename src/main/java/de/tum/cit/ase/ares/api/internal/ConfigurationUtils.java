@@ -77,9 +77,9 @@ public final class ConfigurationUtils {
 
 	/**
 	 * Resolves the file path of the policy YAML dynamically active for this test,
-	 * exactly as {@code JupiterSecurityExtension}/{@code JqwikSecurityExtension}
-	 * already do at real test-run time - skipping {@code SecurityPolicyDirector},
-	 * since nothing here needs test-case creation.
+	 * exactly as {@code JupiterSecurityExtension} already does at real test-run
+	 * time - skipping {@code SecurityPolicyDirector}, since nothing here needs
+	 * test-case creation.
 	 *
 	 * @param context the current test context
 	 * @return the active policy's path, or empty when no policy dynamically applies

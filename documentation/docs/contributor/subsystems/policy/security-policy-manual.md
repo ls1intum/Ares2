@@ -385,7 +385,7 @@ The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for h
 **`regardingStrictTimeouts` sub-fields:**
 - `theTimeoutIs` (integer, **required** once the category is present): the time limit. It must be positive.
 - `theTimeUnitIs` (optional): the limit's unit, one of `NANOSECONDS`, `MICROSECONDS`, `MILLISECONDS`, `SECONDS`, `MINUTES`, `HOURS` and `DAYS`, written exactly so. Defaults to `SECONDS`, like `@StrictTimeout`.
-- `theTerminationGraceIs` (integer, optional): the time a stopped test gets to finish before Ares halts the test process with exit code 124. It must lie between zero and one day; zero means at once. Without it, a JUnit test gets 50 ms and a jqwik try gets one second.
+- `theTerminationGraceIs` (integer, optional): the time a stopped test gets to finish before Ares halts the test process with exit code 124. It must lie between zero and one day; zero means at once. Without it, a test gets 50 ms.
 - `theTerminationGraceUnitIs` (optional): the grace period's unit, written as above. Defaults to `MILLISECONDS`.
 
 A value out of range, an unknown unit or a missing `theTimeoutIs` fails every test and names the field, so a mistyped limit never leaves tests unbounded.
@@ -403,7 +403,7 @@ theFollowingTestBehaviorIsConfigured:
 
 **Not `regardingTimeouts`:** the resource-access list `regardingTimeouts` (8.6) is a separate, not yet enforced Phobos limit. `regardingStrictTimeouts` is the setting that bounds tests today.
 
-**Precompile:** a precompile exercise has no Ares dependency at run time. The generator therefore writes the time limit as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`. Beside it, it writes a JUnit extension that times every test, setup and teardown, and a jqwik hook that times every try when the build names `net.jqwik`. JUnit and jqwik load these hooks by themselves, so no test needs an annotation. Generated sentinel tests fail when a hook is not active. Regenerating without this field deletes all of this again. Keep generated precompile output and the Ares dependency out of the same exercise.
+**Precompile:** a precompile exercise has no Ares dependency at run time. The generator therefore writes the time limit as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`. Beside it, it writes a JUnit extension that times every test, setup and teardown. JUnit loads this extension by itself, so no test needs an annotation. Generated sentinel tests fail when a hook is not active. Regenerating without this field deletes all of this again. Keep generated precompile output and the Ares dependency out of the same exercise.
 
 ---
 

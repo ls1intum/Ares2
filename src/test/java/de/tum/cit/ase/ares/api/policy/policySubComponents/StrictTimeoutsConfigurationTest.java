@@ -53,6 +53,27 @@ class StrictTimeoutsConfigurationTest {
 	}
 
 	/**
+	 * A timeout of 500 microseconds keeps its precision, since every wait counts in
+	 * nanoseconds.
+	 */
+	@Test
+	void aSubMillisecondTimeoutKeepsItsPrecision() {
+		assertThat(StrictTimeoutsConfiguration.builder().theTimeoutIs(500).theTimeUnitIs(TimeUnit.MICROSECONDS).build()
+				.timeout()).isEqualTo(Duration.ofNanos(500_000));
+	}
+
+	/**
+	 * A timeout that fits a duration but not a nanosecond count, such as 300 years,
+	 * is refused when the policy is read, before any test runs.
+	 */
+	@Test
+	void aTimeoutBeyondANanosecondCountIsRefused() {
+		assertThatThrownBy(() -> StrictTimeoutsConfiguration.builder().theTimeoutIs(300L * 365)
+				.theTimeUnitIs(TimeUnit.DAYS).build()).isInstanceOf(IllegalArgumentException.class)
+						.hasMessageContaining("theTimeoutIs");
+	}
+
+	/**
 	 * A timeout that is not positive, or does not fit a duration, is refused and
 	 * named.
 	 *

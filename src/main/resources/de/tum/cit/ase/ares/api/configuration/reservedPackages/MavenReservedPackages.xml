@@ -1,9 +1,11 @@
 <!-- Ares reserved-package build boundary, version 3. Insert this plugin under build/plugins.
      Version 3 also rejects files that would let student code plug into the test run:
-     every META-INF/services file (JUnit, jqwik and the JUnit Platform load the classes
-     named there by themselves), and junit-platform.properties and archunit.properties at
-     the root of the student output, which would reconfigure JUnit or the static analysis.
+     every META-INF/services file (JUnit and the JUnit Platform load the classes named
+     there by themselves), and junit-platform.properties and archunit.properties at the
+     root of the student output, which would reconfigure JUnit or the static analysis.
      It also reserves de/tum/cit/ase/ares/generated, where precompile writes its own code.
+     Matching ignores letter case, because a case-insensitive file system (Windows, a
+     default macOS volume) also finds meta-inf/services/... for META-INF/services/...
      The build descriptor and the command used to invoke it are trusted instructor
      configuration; this validates student code, not the build itself. -->
 <plugin>
@@ -17,7 +19,7 @@
       <goals><goal>run</goal></goals>
       <configuration>
         <target>
-          <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}">
+          <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}" casesensitive="false">
             <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
             <include name="jdk/**"/><include name="com/sun/**"/>
             <include name="de/tum/cit/ase/ares/api/**"/><include name="de/tum/cit/ase/ares/generated/**"/>

@@ -10,6 +10,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.UnaryOperator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -20,9 +22,9 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * The files every generated precompile hook shares: its source in the reserved
- * package, and its registration with JUnit and jqwik. A feature writer
- * contributes hook names; the registration is written once for all of them,
- * since JUnit reads its include filter as one setting.
+ * package, and its registration with JUnit. A feature writer contributes hook
+ * names; the registration is written once for all of them, since JUnit reads
+ * its include filter as one setting.
  *
  * @since 2.1.5
  * @author Luka Petrovic
@@ -41,9 +43,6 @@ final class GeneratedHookFiles {
 	/** Where JUnit finds auto-detected extensions, below the test resources. */
 	static final String JUPITER_SERVICE_FILE = "META-INF/services/org.junit.jupiter.api.extension.Extension";
 
-	/** Where jqwik finds global lifecycle hooks, below the test resources. */
-	static final String JQWIK_SERVICE_FILE = "META-INF/services/net.jqwik.api.lifecycle.LifecycleHook";
-
 	/** JUnit's settings file at the root of the test resources. */
 	static final String PLATFORM_PROPERTIES = "junit-platform.properties";
 
@@ -59,6 +58,13 @@ final class GeneratedHookFiles {
 	/** JUnit's filter of which auto-detected extensions may not load. */
 	static final String AUTODETECTION_EXCLUDE = "junit.jupiter.extensions.autodetection.exclude";
 
+	/** Any of JUnit's auto-detection settings, as a build file would name it. */
+	private static final Pattern AUTODETECTION_SETTING = Pattern
+			.compile("junit\\.jupiter\\.extensions\\.autodetection\\.[A-Za-z]+");
+
+	/** The build files a setting for the test run can live in, below the root. */
+	private static final List<String> BUILD_FILES = List.of("pom.xml", "build.gradle", "build.gradle.kts");
+
 	/** The exercise's root folder. */
 	@Nonnull
 	private final Path projectRoot;
@@ -72,18 +78,16 @@ final class GeneratedHookFiles {
 	private final UnaryOperator<Path> confine;
 
 	/**
-	 * What one feature generated: its written files and the hooks it asks JUnit and
-	 * jqwik to load, by simple name.
+	 * What one feature generated: its written files and the hooks it asks JUnit to
+	 * load, by simple name.
 	 *
 	 * @param written      the files the feature wrote.
 	 * @param jupiterHooks its JUnit extensions; empty when none.
-	 * @param jqwikHooks   its jqwik hooks; empty when none.
 	 */
-	record Contribution(@Nonnull List<Path> written, @Nonnull List<String> jupiterHooks,
-			@Nonnull List<String> jqwikHooks) {
+	record Contribution(@Nonnull List<Path> written, @Nonnull List<String> jupiterHooks) {
 
 		/** A feature that generated nothing. */
-		static final Contribution NONE = new Contribution(List.of(), List.of(), List.of());
+		static final Contribution NONE = new Contribution(List.of(), List.of());
 
 		/**
 		 * This contribution followed by another.
@@ -94,8 +98,7 @@ final class GeneratedHookFiles {
 		@Nonnull
 		Contribution and(@Nonnull Contribution other) {
 			return new Contribution(Stream.concat(written.stream(), other.written.stream()).toList(),
-					Stream.concat(jupiterHooks.stream(), other.jupiterHooks.stream()).toList(),
-					Stream.concat(jqwikHooks.stream(), other.jqwikHooks.stream()).toList());
+					Stream.concat(jupiterHooks.stream(), other.jupiterHooks.stream()).toList());
 		}
 	}
 
@@ -114,8 +117,8 @@ final class GeneratedHookFiles {
 	}
 
 	/**
-	 * Registers every contributed hook with JUnit and jqwik, or removes the
-	 * registration where nothing is contributed. The instructor's own lines stay.
+	 * Registers every contributed hook with JUnit, or removes the registration
+	 * where nothing is contributed. The instructor's own lines stay.
 	 *
 	 * @param resourcesPath the test resources root.
 	 * @param contribution  what every feature generated together.
@@ -135,29 +138,12 @@ final class GeneratedHookFiles {
 			List<String> instructorExtensions = linesOutsideBlock(jupiterServices).stream()
 					.map(GeneratedHookFiles::providerName).filter(name -> !name.isEmpty()).toList();
 			requireNoConflictingSetting(properties);
+			requireNoAutodetectionSettingInBuildFiles();
 			List<String> generated = contribution.jupiterHooks().stream().map(GeneratedHookFiles::qualified).toList();
 			written.add(writeBlock(jupiterServices, generated));
-			written.add(writeBlock(properties, List.of(AUTODETECTION_ENABLED + "=true",
-					AUTODETECTION_INCLUDE + "=" + includeValue(generated, instructorExtensions))));
-		}
-		if (contribution.jqwikHooks().isEmpty()) {
-			removeGeneratedResource(resourcesPath, JQWIK_SERVICE_FILE);
-		} else {
-			written.add(writeBlock(confine.apply(resourcesPath.resolve(JQWIK_SERVICE_FILE)),
-					contribution.jqwikHooks().stream().map(GeneratedHookFiles::qualified).toList()));
+			written.add(writeBlock(properties, autodetectionSettings(properties, generated, instructorExtensions)));
 		}
 		return written;
-	}
-
-	/**
-	 * Whether the exercise's build file or Gradle version catalogue names jqwik's
-	 * group id, so a jqwik hook compiles.
-	 *
-	 * @return true when any of them names {@code net.jqwik}
-	 */
-	boolean usesJqwik() {
-		return Stream.of("pom.xml", "build.gradle", "build.gradle.kts", "gradle/libs.versions.toml")
-				.map(projectRoot::resolve).filter(Files::isRegularFile).anyMatch(GeneratedHookFiles::mentionsJqwik);
 	}
 
 	/**
@@ -202,18 +188,67 @@ final class GeneratedHookFiles {
 	}
 
 	/**
-	 * Whether a build file names jqwik's group id.
+	 * The auto-detection settings of the generated block. When the instructor
+	 * already switched auto-detection on, every provider on the test class path
+	 * loaded before, those registered inside dependency JARs included, so no
+	 * include filter narrows that. Otherwise the filter admits the generated
+	 * extensions and the instructor's own, keeping every other provider off as
+	 * before.
 	 *
-	 * @param buildFile the build file to read.
-	 * @return true when the file contains "net.jqwik"
+	 * @param properties           the JUnit settings file.
+	 * @param generated            the generated extensions' names.
+	 * @param instructorExtensions extensions the instructor registered.
+	 * @return the block's lines
 	 */
-	private static boolean mentionsJqwik(@Nonnull Path buildFile) {
-		try {
-			return Files.readString(buildFile).contains("net.jqwik");
-		} catch (IOException failure) {
-			throw new SecurityException(Messages.localized("security.writer.generated.hooks.io", buildFile.toString()),
-					failure);
+	@Nonnull
+	private static List<String> autodetectionSettings(@Nonnull Path properties, @Nonnull List<String> generated,
+			@Nonnull List<String> instructorExtensions) {
+		String enabled = AUTODETECTION_ENABLED + "=true";
+		if (instructorEnablesAutodetection(properties)) {
+			return List.of(enabled);
 		}
+		return List.of(enabled, AUTODETECTION_INCLUDE + "=" + includeValue(generated, instructorExtensions));
+	}
+
+	/**
+	 * Whether the instructor's own JUnit settings switch auto-detection on.
+	 *
+	 * @param properties the JUnit settings file.
+	 * @return true when they set it to {@code true}
+	 */
+	private static boolean instructorEnablesAutodetection(@Nonnull Path properties) {
+		return "true".equalsIgnoreCase(instructorSettings(properties).getProperty(AUTODETECTION_ENABLED, "").strip());
+	}
+
+	/**
+	 * Refuses to continue when a build file sets one of JUnit's auto-detection
+	 * settings, since such a setting overrides the generated one and cannot be read
+	 * from here, so the generator could not tell which extensions load.
+	 *
+	 * @throws SecurityException naming the build file and the setting
+	 */
+	private void requireNoAutodetectionSettingInBuildFiles() {
+		for (String buildFile : BUILD_FILES) {
+			Path file = projectRoot.resolve(buildFile);
+			Optional<String> setting = readLines(file).map(lines -> String.join("\n", lines))
+					.flatMap(GeneratedHookFiles::autodetectionSetting);
+			if (setting.isPresent()) {
+				throw new SecurityException(Messages.localized("security.writer.generated.hooks.build.conflict",
+						file.toString(), setting.get()));
+			}
+		}
+	}
+
+	/**
+	 * The first JUnit auto-detection setting a text names.
+	 *
+	 * @param text the text to search.
+	 * @return the setting's key, or empty when it names none
+	 */
+	@Nonnull
+	private static Optional<String> autodetectionSetting(@Nonnull String text) {
+		Matcher matcher = AUTODETECTION_SETTING.matcher(text);
+		return matcher.find() ? Optional.of(matcher.group()) : Optional.empty();
 	}
 
 	/**
