@@ -22,9 +22,9 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * The files every generated precompile hook shares: its source in the reserved
- * package, and its registration with JUnit and jqwik. A feature writer
- * contributes hook names; the registration is written once for all of them,
- * since JUnit reads its include filter as one setting.
+ * package, and its registration with JUnit. A feature writer contributes hook
+ * names; the registration is written once for all of them, since JUnit reads
+ * its include filter as one setting.
  *
  * @since 2.1.5
  * @author Luka Petrovic
@@ -42,9 +42,6 @@ final class GeneratedHookFiles {
 
 	/** Where JUnit finds auto-detected extensions, below the test resources. */
 	static final String JUPITER_SERVICE_FILE = "META-INF/services/org.junit.jupiter.api.extension.Extension";
-
-	/** Where jqwik finds global lifecycle hooks, below the test resources. */
-	static final String JQWIK_SERVICE_FILE = "META-INF/services/net.jqwik.api.lifecycle.LifecycleHook";
 
 	/** JUnit's settings file at the root of the test resources. */
 	static final String PLATFORM_PROPERTIES = "junit-platform.properties";
@@ -81,18 +78,16 @@ final class GeneratedHookFiles {
 	private final UnaryOperator<Path> confine;
 
 	/**
-	 * What one feature generated: its written files and the hooks it asks JUnit and
-	 * jqwik to load, by simple name.
+	 * What one feature generated: its written files and the hooks it asks JUnit to
+	 * load, by simple name.
 	 *
 	 * @param written      the files the feature wrote.
 	 * @param jupiterHooks its JUnit extensions; empty when none.
-	 * @param jqwikHooks   its jqwik hooks; empty when none.
 	 */
-	record Contribution(@Nonnull List<Path> written, @Nonnull List<String> jupiterHooks,
-			@Nonnull List<String> jqwikHooks) {
+	record Contribution(@Nonnull List<Path> written, @Nonnull List<String> jupiterHooks) {
 
 		/** A feature that generated nothing. */
-		static final Contribution NONE = new Contribution(List.of(), List.of(), List.of());
+		static final Contribution NONE = new Contribution(List.of(), List.of());
 
 		/**
 		 * This contribution followed by another.
@@ -103,8 +98,7 @@ final class GeneratedHookFiles {
 		@Nonnull
 		Contribution and(@Nonnull Contribution other) {
 			return new Contribution(Stream.concat(written.stream(), other.written.stream()).toList(),
-					Stream.concat(jupiterHooks.stream(), other.jupiterHooks.stream()).toList(),
-					Stream.concat(jqwikHooks.stream(), other.jqwikHooks.stream()).toList());
+					Stream.concat(jupiterHooks.stream(), other.jupiterHooks.stream()).toList());
 		}
 	}
 
@@ -123,8 +117,8 @@ final class GeneratedHookFiles {
 	}
 
 	/**
-	 * Registers every contributed hook with JUnit and jqwik, or removes the
-	 * registration where nothing is contributed. The instructor's own lines stay.
+	 * Registers every contributed hook with JUnit, or removes the registration
+	 * where nothing is contributed. The instructor's own lines stay.
 	 *
 	 * @param resourcesPath the test resources root.
 	 * @param contribution  what every feature generated together.
@@ -149,24 +143,7 @@ final class GeneratedHookFiles {
 			written.add(writeBlock(jupiterServices, generated));
 			written.add(writeBlock(properties, autodetectionSettings(properties, generated, instructorExtensions)));
 		}
-		if (contribution.jqwikHooks().isEmpty()) {
-			removeGeneratedResource(resourcesPath, JQWIK_SERVICE_FILE);
-		} else {
-			written.add(writeBlock(confine.apply(resourcesPath.resolve(JQWIK_SERVICE_FILE)),
-					contribution.jqwikHooks().stream().map(GeneratedHookFiles::qualified).toList()));
-		}
 		return written;
-	}
-
-	/**
-	 * Whether the exercise's build file or Gradle version catalogue names jqwik's
-	 * group id, so a jqwik hook compiles.
-	 *
-	 * @return true when any of them names {@code net.jqwik}
-	 */
-	boolean usesJqwik() {
-		return Stream.concat(BUILD_FILES.stream(), Stream.of("gradle/libs.versions.toml")).map(projectRoot::resolve)
-				.filter(Files::isRegularFile).anyMatch(GeneratedHookFiles::mentionsJqwik);
 	}
 
 	/**
@@ -272,21 +249,6 @@ final class GeneratedHookFiles {
 	private static Optional<String> autodetectionSetting(@Nonnull String text) {
 		Matcher matcher = AUTODETECTION_SETTING.matcher(text);
 		return matcher.find() ? Optional.of(matcher.group()) : Optional.empty();
-	}
-
-	/**
-	 * Whether a build file names jqwik's group id.
-	 *
-	 * @param buildFile the build file to read.
-	 * @return true when the file contains "net.jqwik"
-	 */
-	private static boolean mentionsJqwik(@Nonnull Path buildFile) {
-		try {
-			return Files.readString(buildFile).contains("net.jqwik");
-		} catch (IOException failure) {
-			throw new SecurityException(Messages.localized("security.writer.generated.hooks.io", buildFile.toString()),
-					failure);
-		}
 	}
 
 	/**

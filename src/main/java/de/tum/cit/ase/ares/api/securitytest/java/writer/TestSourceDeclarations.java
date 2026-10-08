@@ -45,10 +45,9 @@ final class TestSourceDeclarations {
 	@Nonnull
 	private final Path testFolderPath;
 
-	/** Reads test sources at the language level Ares supports. */
+	/** Reads test sources at the exercise's language level. */
 	@Nonnull
-	private final JavaParser parser = new JavaParser(
-			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
+	private final JavaParser parser;
 
 	/** Each source file parsed so far, so a file is read once. */
 	@Nonnull
@@ -58,15 +57,19 @@ final class TestSourceDeclarations {
 	 * Creates the declarations of one test source root.
 	 *
 	 * @param testFolderPath the test source root.
+	 * @param languageLevel  the Java version the exercise compiles for.
 	 */
-	TestSourceDeclarations(@Nonnull Path testFolderPath) {
+	TestSourceDeclarations(@Nonnull Path testFolderPath, @Nonnull ParserConfiguration.LanguageLevel languageLevel) {
 		this.testFolderPath = Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
+		this.parser = new JavaParser(new ParserConfiguration()
+				.setLanguageLevel(Objects.requireNonNull(languageLevel, "languageLevel must not be null")));
 	}
 
 	/**
 	 * Finds a class by its canonical name: the shortest prefix that names a source
 	 * file, then each later segment as a class declared directly inside the one
-	 * before.
+	 * before. The class must declare that very name, so a file whose package
+	 * differs from its folder matches no entry at all.
 	 *
 	 * @param canonicalName the name with dots only, such as
 	 *                      {@code pkg.Outer.Inner}.
@@ -79,7 +82,8 @@ final class TestSourceDeclarations {
 		for (int fileSegment = 0; fileSegment < segments.size(); fileSegment++) {
 			Path file = testFolderPath.resolve(String.join("/", segments.subList(0, fileSegment + 1)) + ".java");
 			if (Files.isRegularFile(file)) {
-				return nestedClass(parse(file).getTypes().stream(), segments.subList(fileSegment, segments.size()));
+				return nestedClass(parse(file).getTypes().stream(), segments.subList(fileSegment, segments.size()))
+						.filter(type -> type.getFullyQualifiedName().filter(canonicalName::equals).isPresent());
 			}
 		}
 		return Optional.empty();

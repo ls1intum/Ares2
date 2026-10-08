@@ -32,9 +32,9 @@ import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 
 /**
- * Checks the files every generated hook shares: one registration with JUnit and
- * jqwik for all features, merged with the instructor's own entries, refused on
- * conflict, and removed again exactly.
+ * Checks the files every generated hook shares: one registration with JUnit for
+ * all features, merged with the instructor's own entries, refused on conflict,
+ * and removed again exactly.
  */
 class GeneratedHookFilesTest {
 
@@ -55,7 +55,7 @@ class GeneratedHookFilesTest {
 	private Path resources;
 
 	/**
-	 * Creates the exercise's resources folder and a build without jqwik.
+	 * Creates the exercise's resources folder and a plain Gradle build.
 	 *
 	 * @throws IOException if the folders cannot be created
 	 */
@@ -73,12 +73,11 @@ class GeneratedHookFilesTest {
 	 */
 	@Test
 	void registersAJupiterHook() throws IOException {
-		files(null).register(resources, contribution(List.of("FirstHook"), List.of()));
+		files(null).register(resources, contribution(List.of("FirstHook")));
 
 		assertThat(Files.readString(jupiterServices())).contains(FIRST_HOOK);
 		assertThat(Files.readString(properties())).contains("junit.jupiter.extensions.autodetection.enabled=true")
 				.contains("junit.jupiter.extensions.autodetection.include=" + FIRST_HOOK);
-		assertThat(resources.resolve(GeneratedHookFiles.JQWIK_SERVICE_FILE)).doesNotExist();
 	}
 
 	/**
@@ -88,15 +87,13 @@ class GeneratedHookFilesTest {
 	 */
 	@Test
 	void twoFeaturesShareOneRegistration() throws IOException {
-		GeneratedHookFiles.Contribution both = contribution(List.of("FirstHook"), List.of())
-				.and(contribution(List.of("SecondHook"), List.of("SecondJqwikHook")));
+		GeneratedHookFiles.Contribution both = contribution(List.of("FirstHook"))
+				.and(contribution(List.of("SecondHook")));
 
 		files(null).register(resources, both);
 
 		assertThat(Files.readString(properties())).contains("autodetection.include=" + FIRST_HOOK + "," + SECOND_HOOK);
 		assertThat(Files.readString(jupiterServices())).contains(FIRST_HOOK).contains(SECOND_HOOK);
-		assertThat(Files.readString(resources.resolve(GeneratedHookFiles.JQWIK_SERVICE_FILE)))
-				.contains("de.tum.cit.ase.ares.generated.SecondJqwikHook");
 	}
 
 	/**
@@ -106,9 +103,9 @@ class GeneratedHookFilesTest {
 	 */
 	@Test
 	void droppingOneFeatureKeepsTheOther() throws IOException {
-		files(null).register(resources, contribution(List.of("FirstHook", "SecondHook"), List.of()));
+		files(null).register(resources, contribution(List.of("FirstHook", "SecondHook")));
 
-		files(null).register(resources, contribution(List.of("SecondHook"), List.of()));
+		files(null).register(resources, contribution(List.of("SecondHook")));
 
 		assertThat(Files.readString(properties())).contains("autodetection.include=" + SECOND_HOOK)
 				.doesNotContain(FIRST_HOOK);
@@ -122,11 +119,11 @@ class GeneratedHookFilesTest {
 	 */
 	@Test
 	void aSecondRunDuplicatesNothing() throws IOException {
-		files(null).register(resources, contribution(List.of("FirstHook"), List.of("FirstJqwikHook")));
+		files(null).register(resources, contribution(List.of("FirstHook")));
 		String services = Files.readString(jupiterServices());
 		String settings = Files.readString(properties());
 
-		files(null).register(resources, contribution(List.of("FirstHook"), List.of("FirstJqwikHook")));
+		files(null).register(resources, contribution(List.of("FirstHook")));
 
 		assertThat(Files.readString(jupiterServices())).isEqualTo(services);
 		assertThat(Files.readString(properties())).isEqualTo(settings);
@@ -143,7 +140,7 @@ class GeneratedHookFilesTest {
 		Files.createDirectories(jupiterServices().getParent());
 		Files.writeString(jupiterServices(), INSTRUCTOR_EXTENSION + " # setup" + System.lineSeparator());
 
-		files(null).register(resources, contribution(List.of("FirstHook"), List.of()));
+		files(null).register(resources, contribution(List.of("FirstHook")));
 
 		assertThat(Files.readString(jupiterServices())).contains(INSTRUCTOR_EXTENSION).contains(FIRST_HOOK);
 		assertThat(Files.readString(properties()))
@@ -162,7 +159,7 @@ class GeneratedHookFilesTest {
 		Files.writeString(properties(), "junit.jupiter.execution.parallel.enabled=false" + System.lineSeparator()
 				+ "junit.jupiter.extensions.autodetection.enabled : TRUE" + System.lineSeparator());
 
-		files(null).register(resources, contribution(List.of("FirstHook"), List.of()));
+		files(null).register(resources, contribution(List.of("FirstHook")));
 
 		assertThat(Files.readString(properties())).contains("junit.jupiter.execution.parallel.enabled=false");
 	}
@@ -179,7 +176,7 @@ class GeneratedHookFilesTest {
 		Files.writeString(properties(),
 				"junit.jupiter.extensions.autodetection.enabled : TRUE" + System.lineSeparator());
 
-		files(null).register(resources, contribution(List.of("FirstHook"), List.of()));
+		files(null).register(resources, contribution(List.of("FirstHook")));
 
 		assertThat(Files.readString(properties())).contains("junit.jupiter.extensions.autodetection.enabled=true")
 				.doesNotContain("autodetection.include");
@@ -197,7 +194,7 @@ class GeneratedHookFilesTest {
 	@Test
 	void aDependencyExtensionKeepsLoadingWhenTheInstructorEnabledAutodetection() throws Exception {
 		Files.writeString(properties(), "junit.jupiter.extensions.autodetection.enabled=true" + System.lineSeparator());
-		files(null).register(resources, contribution(List.of("FirstHook"), List.of()));
+		files(null).register(resources, contribution(List.of("FirstHook")));
 
 		runWithDependencyExtension().testEvents().assertStatistics(stats -> stats.succeeded(1).failed(0));
 	}
@@ -210,7 +207,7 @@ class GeneratedHookFilesTest {
 	 */
 	@Test
 	void aDependencyExtensionStaysOffWhenTheInstructorHadNotEnabledAutodetection() throws Exception {
-		files(null).register(resources, contribution(List.of("FirstHook"), List.of()));
+		files(null).register(resources, contribution(List.of("FirstHook")));
 
 		runWithDependencyExtension().testEvents().assertStatistics(stats -> stats.succeeded(0).failed(1));
 	}
@@ -230,7 +227,7 @@ class GeneratedHookFilesTest {
 				"systemProperty 'junit.jupiter.extensions.autodetection.include', 'com.example.*'");
 
 		SecurityException failure = assertThrows(SecurityException.class,
-				() -> files(null).register(resources, contribution(List.of("FirstHook"), List.of())));
+				() -> files(null).register(resources, contribution(List.of("FirstHook"))));
 
 		assertThat(failure.getMessage()).contains(buildFile).contains("junit.jupiter.extensions.autodetection.include");
 		assertThat(jupiterServices()).doesNotExist();
@@ -252,7 +249,7 @@ class GeneratedHookFilesTest {
 			Locale.setDefault(Locale.Category.DISPLAY, Locale.GERMAN);
 
 			SecurityException failure = assertThrows(SecurityException.class,
-					() -> files(null).register(resources, contribution(List.of("FirstHook"), List.of())));
+					() -> files(null).register(resources, contribution(List.of("FirstHook"))));
 
 			assertThat(failure.getMessage()).startsWith("Ares Sicherheitsfehler").contains("pom.xml")
 					.contains("junit.jupiter.extensions.autodetection.enabled");
@@ -272,7 +269,7 @@ class GeneratedHookFilesTest {
 		Files.writeString(projectRoot.resolve("build.gradle"),
 				"systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'");
 
-		assertThat(files(null).register(resources, contribution(List.of(), List.of()))).isEmpty();
+		assertThat(files(null).register(resources, contribution(List.of()))).isEmpty();
 	}
 
 	/**
@@ -291,7 +288,7 @@ class GeneratedHookFilesTest {
 		Files.writeString(properties(), conflictingLine + System.lineSeparator());
 
 		SecurityException failure = assertThrows(SecurityException.class,
-				() -> files(null).register(resources, contribution(List.of("FirstHook"), List.of())));
+				() -> files(null).register(resources, contribution(List.of("FirstHook"))));
 
 		assertThat(failure.getMessage()).contains("junit-platform.properties")
 				.contains(conflictingLine.split("[:= ]")[0]);
@@ -312,7 +309,7 @@ class GeneratedHookFilesTest {
 			Locale.setDefault(Locale.Category.DISPLAY, Locale.GERMAN);
 
 			SecurityException failure = assertThrows(SecurityException.class,
-					() -> files(null).register(resources, contribution(List.of("FirstHook"), List.of())));
+					() -> files(null).register(resources, contribution(List.of("FirstHook"))));
 
 			assertThat(failure.getMessage()).startsWith("Ares Sicherheitsfehler").contains("junit-platform.properties")
 					.contains("junit.jupiter.extensions.autodetection.enabled");
@@ -331,14 +328,13 @@ class GeneratedHookFilesTest {
 	void registeringNothingRemovesOnlyWhatWasGenerated() throws IOException {
 		Files.createDirectories(jupiterServices().getParent());
 		Files.writeString(jupiterServices(), INSTRUCTOR_EXTENSION + System.lineSeparator());
-		files(null).register(resources, contribution(List.of("FirstHook"), List.of("FirstJqwikHook")));
+		files(null).register(resources, contribution(List.of("FirstHook")));
 
 		files(null).register(resources, GeneratedHookFiles.Contribution.NONE);
 
 		assertThat(Files.readString(jupiterServices())).contains(INSTRUCTOR_EXTENSION).doesNotContain(FIRST_HOOK)
 				.doesNotContain(GeneratedHookFiles.BLOCK_BEGIN);
 		assertThat(properties()).doesNotExist();
-		assertThat(resources.resolve(GeneratedHookFiles.JQWIK_SERVICE_FILE)).doesNotExist();
 	}
 
 	/**
@@ -356,7 +352,7 @@ class GeneratedHookFilesTest {
 		String copies = buildMode == BuildMode.MAVEN ? "target/test-classes" : "build/resources/test";
 		Files.createDirectories(jupiterServices().getParent());
 		Files.writeString(jupiterServices(), INSTRUCTOR_EXTENSION + System.lineSeparator());
-		files(layout).register(resources, contribution(List.of("FirstHook"), List.of()));
+		files(layout).register(resources, contribution(List.of("FirstHook")));
 		Path copiedServices = projectRoot.resolve(copies).resolve(GeneratedHookFiles.JUPITER_SERVICE_FILE);
 		Path copiedProperties = projectRoot.resolve(copies).resolve("junit-platform.properties");
 		Files.createDirectories(copiedServices.getParent());
@@ -389,23 +385,6 @@ class GeneratedHookFilesTest {
 
 		assertThat(source).doesNotExist();
 		assertThat(compiled).doesNotExist();
-	}
-
-	/**
-	 * jqwik counts only where its group id is named, in a build file or the Gradle
-	 * version catalogue.
-	 *
-	 * @throws IOException if a build file cannot be written
-	 */
-	@Test
-	void jqwikIsDetectedByItsGroupId() throws IOException {
-		assertThat(files(null).usesJqwik()).isFalse();
-		Files.writeString(projectRoot.resolve("build.gradle"), "// jqwik later, maybe");
-		assertThat(files(null).usesJqwik()).isFalse();
-		Files.createDirectories(projectRoot.resolve("gradle"));
-		Files.writeString(projectRoot.resolve("gradle/libs.versions.toml"),
-				"[libraries]\njqwik = { module = \"net.jqwik:jqwik\", version = \"1.9.3\" }\n");
-		assertThat(files(null).usesJqwik()).isTrue();
 	}
 
 	/**
@@ -459,11 +438,10 @@ class GeneratedHookFilesTest {
 	 * A contribution with no written files.
 	 *
 	 * @param jupiterHooks the JUnit hooks' simple names.
-	 * @param jqwikHooks   the jqwik hooks' simple names.
 	 * @return the contribution
 	 */
-	private static GeneratedHookFiles.Contribution contribution(List<String> jupiterHooks, List<String> jqwikHooks) {
-		return new GeneratedHookFiles.Contribution(List.of(), jupiterHooks, jqwikHooks);
+	private static GeneratedHookFiles.Contribution contribution(List<String> jupiterHooks) {
+		return new GeneratedHookFiles.Contribution(List.of(), jupiterHooks);
 	}
 
 	/**

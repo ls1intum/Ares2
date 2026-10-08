@@ -191,8 +191,9 @@ jobs:
           fi
 
       # Student output may hold none of these. A class in a reserved package
-      # inherits Ares's trust by name, and JUnit, jqwik and ArchUnit read the
-      # service and configuration files by themselves, so a student file there could
+      # inherits Ares's trust by name, and JUnit and ArchUnit read the service
+      # and configuration files by themselves, in any letter case on a
+      # case-insensitive file system, so a student file there could
       # plug code into the test run or reconfigure the static analysis. Each script
       # collects every offending file before it fails, so one build checks them all,
       # and each must be named on its own: a pattern that stopped matching would
@@ -217,7 +218,7 @@ jobs:
           plant_class de/tum/cit/ase/ares/api
           plant_class de/tum/cit/ase/ares/generated
           plant_resource META-INF/services/org.junit.jupiter.api.extension.Extension org.example.Spy
-          plant_resource META-INF/services/net.jqwik.api.lifecycle.LifecycleHook org.example.Spy
+          plant_resource meta-inf/services/org.junit.jupiter.api.extension.Extension org.example.Spy
           plant_resource META-INF/services/org.junit.platform.engine.TestEngine org.example.Spy
           plant_resource junit-platform.properties junit.jupiter.extensions.autodetection.enabled=false
           plant_resource archunit.properties archRule.failOnEmptyShould=false
@@ -244,7 +245,7 @@ jobs:
             de/tum/cit/ase/ares/api/Impostor.class \
             de/tum/cit/ase/ares/generated/Impostor.class \
             META-INF/services/org.junit.jupiter.api.extension.Extension \
-            META-INF/services/net.jqwik.api.lifecycle.LifecycleHook \
+            meta-inf/services/org.junit.jupiter.api.extension.Extension \
             META-INF/services/org.junit.platform.engine.TestEngine \
             junit-platform.properties \
             archunit.properties; do

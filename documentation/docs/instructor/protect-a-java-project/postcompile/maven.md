@@ -298,7 +298,7 @@ and live in the repository at
 
 Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
 
-Boundary version 3 rejects more than reserved packages. It rejects every `META-INF/services` file in student output. It rejects `junit-platform.properties` and `archunit.properties` at the root of that output. JUnit, jqwik and ArchUnit read these files by themselves, so a student file there can plug code into the test run or reconfigure the static analysis. Version 3 reserves `de/tum/cit/ase/ares/generated` as well, because Precompile writes its generated code there. Migrate every exercise that still carries a version 2 snippet.
+Boundary version 3 rejects more than reserved packages. It rejects every `META-INF/services` file in student output. It rejects `junit-platform.properties` and `archunit.properties` at the root of that output. JUnit and ArchUnit read these files by themselves, so a student file there can plug code into the test run or reconfigure the static analysis. Ares matches these names in any letter case, because a file system that ignores letter case finds them under any spelling. Version 3 reserves `de/tum/cit/ase/ares/generated` as well, because Precompile writes its generated code there. Migrate every exercise that still carries a version 2 snippet.
 
 ### Maven
 

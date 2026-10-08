@@ -16,6 +16,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import com.github.javaparser.ParserConfiguration.LanguageLevel;
+
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.HiddenTestsConfiguration;
@@ -129,7 +131,6 @@ class HiddenTestsWriterTest {
 				PACKAGE, testFolder);
 
 		assertThat(generated.jupiterHooks()).containsExactly(HiddenTestsSources.JUPITER_HOOK);
-		assertThat(generated.jqwikHooks()).isEmpty();
 		assertThat(source(HiddenTestsSources.JUPITER_HOOK)).content().contains("implements InvocationInterceptor")
 				.contains(
 						"com.example.ares.api.localization.Messages.localized(\"test_guard.hidden_test_before_deadline_message\")")
@@ -166,6 +167,70 @@ class HiddenTestsWriterTest {
 		assertThatThrownBy(() -> writer(null).write(configured(entry), PACKAGE, testFolder))
 				.isInstanceOf(SecurityException.class).hasMessageContaining(entry);
 		assertThat(source(HiddenTestsSources.JUPITER_HOOK)).doesNotExist();
+	}
+
+	/**
+	 * A source whose folder says one package but which declares another stops the
+	 * generator under either name, so the hook can never see a different class than
+	 * the one the entry was checked against.
+	 *
+	 * @throws IOException if the source cannot be written
+	 */
+	@Test
+	void aSourceWhosePackageDiffersFromItsFolderIsRefused() throws IOException {
+		Path folder = Files.createDirectories(testFolder.resolve("org/example"));
+		Files.writeString(folder.resolve("PenguinTest.java"), "package com.example; class PenguinTest {}");
+		Files.delete(testFolder.resolve("com/example/PenguinTest.java"));
+
+		assertThatThrownBy(() -> writer(null).write(configured("org.example.PenguinTest"), PACKAGE, testFolder))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("org.example.PenguinTest");
+		assertThatThrownBy(() -> writer(null).write(configured("com.example.PenguinTest"), PACKAGE, testFolder))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("com.example.PenguinTest");
+	}
+
+	/**
+	 * A listed test using a Java 21 record pattern is read at the version the
+	 * exercise's build names.
+	 *
+	 * @throws IOException if a file cannot be written
+	 */
+	@Test
+	void aListedTestUsingARecordPatternIsReadAtTheExercisesVersion() throws IOException {
+		Files.writeString(projectRoot.resolve("pom.xml"),
+				"<project><properties><maven.compiler.release>21</maven.compiler.release></properties></project>");
+		Files.writeString(testFolder.resolve("com/example/PointTest.java"), """
+				package com.example;
+
+				class PointTest {
+					record Point(int x, int y) {}
+
+					int sum(Object value) {
+						return value instanceof Point(int x, int y) ? x + y : 0;
+					}
+				}
+				""");
+
+		assertThat(ExerciseLanguageLevel.of(projectRoot)).isEqualTo(LanguageLevel.JAVA_21);
+		assertThat(writer(null).write(configured("com.example.PointTest#sum"), PACKAGE, testFolder).jupiterHooks())
+				.isNotEmpty();
+	}
+
+	/**
+	 * Without a version in the build, or with one newer than the parser knows, the
+	 * sources are read at Java 25; Gradle's toolchain and Maven's source setting
+	 * are read as well.
+	 *
+	 * @throws IOException if a build file cannot be written
+	 */
+	@Test
+	void theLanguageLevelFallsBackToJava25() throws IOException {
+		assertThat(ExerciseLanguageLevel.of(projectRoot)).isEqualTo(LanguageLevel.JAVA_25);
+		Files.writeString(projectRoot.resolve("build.gradle"),
+				"java { toolchain { languageVersion = JavaLanguageVersion.of(17) } }");
+		assertThat(ExerciseLanguageLevel.of(projectRoot)).isEqualTo(LanguageLevel.JAVA_17);
+		Files.writeString(projectRoot.resolve("pom.xml"),
+				"<project><properties><maven.compiler.source>99</maven.compiler.source></properties></project>");
+		assertThat(ExerciseLanguageLevel.of(projectRoot)).isEqualTo(LanguageLevel.JAVA_25);
 	}
 
 	/**
@@ -322,7 +387,8 @@ class HiddenTestsWriterTest {
 	 * @return the writer
 	 */
 	private HiddenTestsWriter writer(BuildToolConfiguration layout) {
-		return new HiddenTestsWriter(new GeneratedHookFiles(projectRoot, layout, UnaryOperator.identity()));
+		return new HiddenTestsWriter(new GeneratedHookFiles(projectRoot, layout, UnaryOperator.identity()),
+				ExerciseLanguageLevel.of(projectRoot));
 	}
 
 	/**

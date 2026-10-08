@@ -23,6 +23,12 @@ public class HiddenTestsPolicyUser {
 	/** Where the policies of this class live. */
 	private static final String POLICIES = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/";
 
+	/**
+	 * Where the deliberately unreadable policies live, outside the folder every
+	 * checked-in policy is read from.
+	 */
+	private static final String INVALID_POLICIES = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/invalidsecuritypolicies/";
+
 	/** The benign subject the policies analyse. */
 	private static final String SUBJECT = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld";
 
@@ -103,7 +109,7 @@ public class HiddenTestsPolicyUser {
 	 * hidden.
 	 */
 	@PublicTest
-	@Policy(value = POLICIES + "PolicyHiddenTestsWithoutSwitchUser.yaml", withinPath = SUBJECT)
+	@Policy(value = INVALID_POLICIES + "PolicyHiddenTestsWithoutSwitchUser.yaml", withinPath = SUBJECT)
 	void aPolicyWithoutTheUnlistedSwitchFailsATest() {
 		// Never runs: the policy cannot be read.
 	}

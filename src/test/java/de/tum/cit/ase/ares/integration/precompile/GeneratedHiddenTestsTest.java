@@ -331,6 +331,25 @@ class GeneratedHiddenTestsTest {
 	}
 
 	/**
+	 * A sentinel that passed once does not pass again in the same class loader once
+	 * the extension is gone, since it needs evidence from its own run.
+	 *
+	 * @throws Exception if the runs cannot be set up
+	 */
+	@Test
+	void theSentinelNeedsEvidenceFromItsOwnRun() throws Exception {
+		ClassLoader originalLoader = Thread.currentThread().getContextClassLoader();
+		try (URLClassLoader loader = new URLClassLoader(classPath(List.of(future)), originalLoader)) {
+			assertThat(runIn(loader, SENTINEL, Locale.ENGLISH, Map.of()).testEvents().succeeded().count()).isEqualTo(1);
+
+			EngineExecutionResults withoutExtension = runIn(loader, SENTINEL, Locale.ENGLISH,
+					Map.of("junit.jupiter.extensions.autodetection.enabled", "false"));
+
+			assertThat(failureMessages(withoutExtension)).singleElement().asString().contains("not active");
+		}
+	}
+
+	/**
 	 * Under a policy that hides unlisted tests, an unlisted test is held back
 	 * before the deadline on the method, template and factory paths.
 	 *
@@ -490,8 +509,7 @@ class GeneratedHiddenTestsTest {
 	}
 
 	/**
-	 * Runs a class through a nested JUnit session with a fresh class loader, so no
-	 * earlier run leaves the extension's record of intercepted tests behind.
+	 * Runs a class through a nested JUnit session with a fresh class loader.
 	 *
 	 * @param roots      the compiled class roots, first wins.
 	 * @param className  the class to run.
@@ -502,9 +520,27 @@ class GeneratedHiddenTestsTest {
 	 */
 	private static EngineExecutionResults run(List<Path> roots, String className, Locale locale,
 			Map<String, String> parameters) throws Exception {
+		try (URLClassLoader loader = new URLClassLoader(classPath(roots),
+				Thread.currentThread().getContextClassLoader())) {
+			return runIn(loader, className, locale, parameters);
+		}
+	}
+
+	/**
+	 * Runs a class through a nested JUnit session in a given class loader.
+	 *
+	 * @param loader     the class loader to load the class from.
+	 * @param className  the class to run.
+	 * @param locale     the locale messages are shown in.
+	 * @param parameters further JUnit configuration parameters.
+	 * @return the session's results
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static EngineExecutionResults runIn(URLClassLoader loader, String className, Locale locale,
+			Map<String, String> parameters) throws Exception {
 		Locale originalLocale = Locale.getDefault(Locale.Category.DISPLAY);
 		ClassLoader originalLoader = Thread.currentThread().getContextClassLoader();
-		try (URLClassLoader loader = new URLClassLoader(classPath(roots), originalLoader)) {
+		try {
 			Locale.setDefault(Locale.Category.DISPLAY, locale);
 			Thread.currentThread().setContextClassLoader(loader);
 			EngineTestKit.Builder builder = EngineTestKit.engine("junit-jupiter")

@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
+import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import com.github.javaparser.ast.body.TypeDeclaration;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
@@ -28,13 +29,19 @@ final class HiddenTestsWriter {
 	@Nonnull
 	private final GeneratedHookFiles hookFiles;
 
+	/** The Java version the exercise compiles its test sources for. */
+	@Nonnull
+	private final LanguageLevel languageLevel;
+
 	/**
 	 * Creates the writer for one exercise.
 	 *
-	 * @param hookFiles the shared generated-file handling.
+	 * @param hookFiles     the shared generated-file handling.
+	 * @param languageLevel the Java version the exercise compiles for.
 	 */
-	HiddenTestsWriter(@Nonnull GeneratedHookFiles hookFiles) {
+	HiddenTestsWriter(@Nonnull GeneratedHookFiles hookFiles, @Nonnull LanguageLevel languageLevel) {
 		this.hookFiles = Objects.requireNonNull(hookFiles, "hookFiles must not be null");
+		this.languageLevel = Objects.requireNonNull(languageLevel, "languageLevel must not be null");
 	}
 
 	/**
@@ -56,7 +63,7 @@ final class HiddenTestsWriter {
 			hookFiles.deleteGenerated(testFolderPath, HiddenTestsSources.JUPITER_SENTINEL);
 			return GeneratedHookFiles.Contribution.NONE;
 		}
-		TestSourceDeclarations declarations = new TestSourceDeclarations(testFolderPath);
+		TestSourceDeclarations declarations = new TestSourceDeclarations(testFolderPath, languageLevel);
 		for (String entry : hiddenTests.theFollowingTestsAreHidden()) {
 			requireMatch("theFollowingTestsAreHidden", entry, declarations);
 		}
@@ -69,7 +76,7 @@ final class HiddenTestsWriter {
 						HiddenTestsSources.jupiterHook(messagesClass, packageName)),
 				hookFiles.writeSource(testFolderPath, HiddenTestsSources.JUPITER_SENTINEL,
 						HiddenTestsSources.jupiterSentinel(messagesClass)));
-		return new GeneratedHookFiles.Contribution(written, List.of(HiddenTestsSources.JUPITER_HOOK), List.of());
+		return new GeneratedHookFiles.Contribution(written, List.of(HiddenTestsSources.JUPITER_HOOK));
 	}
 
 	/**

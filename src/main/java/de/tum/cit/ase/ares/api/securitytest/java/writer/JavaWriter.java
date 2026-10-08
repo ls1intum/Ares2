@@ -405,8 +405,9 @@ public class JavaWriter implements Writer {
 		Path validatedTestFolderPath = confineToProject(testFolderPath);
 		written.addAll(createTestBehaviorSettingsFiles(testBehaviorConfiguration, validatedTestFolderPath));
 		GeneratedHookFiles hookFiles = new GeneratedHookFiles(projectRoot, buildConfiguration, this::confineToProject);
-		GeneratedHookFiles.Contribution generated = new HiddenTestsWriter(hookFiles).write(testBehaviorConfiguration,
-				packageName, validatedTestFolderPath);
+		GeneratedHookFiles.Contribution generated = new HiddenTestsWriter(hookFiles,
+				ExerciseLanguageLevel.of(projectRoot)).write(testBehaviorConfiguration, packageName,
+						validatedTestFolderPath);
 		written.addAll(generated.written());
 		written.addAll(hookFiles.register(resolveResourcesFolderPath(validatedTestFolderPath), generated));
 		return written;
