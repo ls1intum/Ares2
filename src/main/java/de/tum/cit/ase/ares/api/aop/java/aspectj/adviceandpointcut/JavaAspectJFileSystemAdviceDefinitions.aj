@@ -82,18 +82,14 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * Map of methods with parameter index exceptions for file system ignore logic.
 	 * <p>
 	 * Description: Specifies for certain methods which parameter index should be
-	 * exempted from ignore rules during file system checks. For methods like
-	 * Files.createTempFile and Files.writeString, only the first parameter (the
-	 * Path) should be checked, not content or prefix/suffix strings.
+	 * exempted from ignore rules during file system checks. For a method like
+	 * Files.writeString, only the first parameter (the Path) should be checked, not
+	 * the content.
 	 */
 	@Nonnull
 	private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries(
-			// Files.createTempFile and File.createTempFile are deliberately absent here:
-			// their overloads mix a leading directory parameter (a real path) with
-			// leading prefix/suffix String parameters (not paths) at the SAME positions
-			// across overloads, which this fixed-index ignore-mask cannot express safely.
-			// See checkTempFileCreationSpecialCase, which resolves the effective
-			// directory per-overload instead.
+			// createTempFile is absent on purpose: its overloads put a directory or a
+			// name prefix at the same index, so checkTempFileCreationSpecialCase decides.
 			// Files.writeString(Path path, CharSequence csq, OpenOption...) - only check
 			// path (index 0)
 			Map.entry("java.nio.file.Files.writeString", IgnoreValues.allExcept(0)),
@@ -140,27 +136,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	private static final List<String> NATIVE_LIBRARY_SUFFIXES = List.of(".dylib", ".jnilib", ".so", ".dll");
 
 	/**
-	 * The fixed set of OS entropy-device paths that {@link java.security.SecureRandom}
-	 * seeds itself from. Matched exactly, and only when
-	 * {@link #isSecureRandomSeedingInProgress()} confirms the read originates from
-	 * SecureRandom's own seeding machinery, so a student directly opening one of
-	 * these devices is never exempted by name alone.
-	 */
-	@Nonnull
-	private static final Set<String> ENTROPY_SOURCE_PATHS = Set.of("/dev/urandom", "/dev/random");
-
-	/**
-	 * The system timezone symlink read by {@code java.time} internals (e.g.
-	 * {@code ZoneId.systemDefault()}) on Linux/BSD to determine the platform
-	 * default zone. The JDK's own bundled zoneinfo database ({@code tzdb.dat})
-	 * lives under {@code java.home} and is already covered by
-	 * {@link #isExemptSystemFileAccess(String, String)}; this constant only closes
-	 * the gap for the one system file that lives outside {@code java.home}.
-	 */
-	@Nonnull
-	private static final String SYSTEM_TIMEZONE_PATH = "/etc/localtime";
-
-	/**
 	 * Trusted JVM home captured at class-initialisation time, before student code
 	 * runs, so a later {@code System.setProperty("java.home", ...)} cannot widen the
 	 * system-file access exemption into a fail-open read/execute bypass.
@@ -175,15 +150,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 */
 	@Nullable
 	private static final String TRUSTED_MAVEN_REPOSITORY = resolveTrustedMavenRepository();
-
-	/**
-	 * Trusted JVM default temp directory ({@code java.io.tmpdir}) captured at
-	 * class-initialisation time, before student code runs, so a later
-	 * {@code System.setProperty("java.io.tmpdir", ...)} cannot widen the
-	 * default-temp-file exemption into a fail-open create bypass.
-	 */
-	@Nullable
-	private static final String TRUSTED_DEFAULT_TEMP_DIR = System.getProperty("java.io.tmpdir");
 
 	// </editor-fold>
 
@@ -823,122 +789,113 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Special-cases {@code Files.createTempFile} and {@code File.createTempFile},
-	 * whose overloads mix a leading directory parameter (a real path) with leading
-	 * prefix/suffix String parameters (not paths) at the same argument positions
-	 * across overloads — a shape the generic per-method ignore-mask
-	 * ({@link #FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT}, which addresses only one
-	 * fixed parameter index per method name) cannot express safely. Resolves the
-	 * effective creation directory — the explicit directory argument if the caller
-	 * supplied one, or the JVM's default temp directory ({@code java.io.tmpdir})
-	 * when none was — and validates ONLY that directory.
-	 * <p>
-	 * When the effective directory is the default temp directory, the write is
-	 * exempt from needing an explicit {@code pathsAllowedToBeCreated} entry:
-	 * {@code java.io.tmpdir} is a JVM/library default, not a location the student
-	 * chose. An explicit non-default directory argument is still validated against
-	 * the policy's create allow-list, closing a previous gap where
-	 * {@code File.createTempFile(prefix, suffix, directory)}'s directory argument
-	 * was never checked at all (the old ignore-mask ignored every parameter for
-	 * that method name, including the directory).
+	 * Decides a {@code createTempFile} call on its own, since its overloads put a
+	 * directory or a name prefix at the same position. Without a directory it is
+	 * allowed once Ares fixed the default temp directory at start-up; with one it
+	 * needs that directory or a {@code pathsAllowedToBeCreated} entry.
 	 *
-	 * @return {@code true} if the call was one of the special-cased methods and
-	 *         has been fully handled (the generic path must be skipped)
-	 * @throws SecurityException if the action is not {@code "create"}, or if the
-	 *                            captured parameters do not match the shape of any
-	 *                            known overload of the intercepted method — an
-	 *                            unresolved or wrongly shaped directory argument is
-	 *                            denied outright rather than silently treated as
-	 *                            "no directory supplied"
+	 * @return {@code true} if the call was {@code createTempFile} and is allowed,
+	 *         {@code false} for any other call
+	 * @throws SecurityException if the call is not allowed or fits no overload
 	 */
 	private static boolean checkTempFileCreationSpecialCase(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nullable Object[] parameters, @Nonnull String systemMethodToCheck,
 			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature,
 			@Nonnull JoinPoint thisJoinPoint) {
-		boolean isFilesCreateTempFile = "java.nio.file.Files".equals(declaringTypeName)
-				&& "createTempFile".equals(methodName);
-		boolean isFileCreateTempFile = "java.io.File".equals(declaringTypeName) && "createTempFile".equals(methodName);
-		if (!isFilesCreateTempFile && !isFileCreateTempFile) {
+		if (!isTempFileCreation(declaringTypeName, methodName)) {
 			return false;
 		}
 		if (!"create".equals(action)) {
 			throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 		}
-		// The directory argument is only present, at a fixed position, on the overloads
-		// that declare one: Files.createTempFile(Path dir, prefix, suffix, attrs...) at
-		// index 0 (4 parameters total), File.createTempFile(prefix, suffix, File
-		// directory) at index 2 (3 parameters total, directory legitimately nullable).
-		// Parameter COUNT identifies which overload was actually called; an instanceof
-		// check on the directory-position argument then additionally guards against a
-		// prefix/suffix string being mistaken for a path. A parameter count or shape
-		// that matches neither known overload is unresolved/malformed and must fail
-		// closed — NOT be silently treated as "no directory supplied" (the default-temp-
-		// dir exemption), which would let a genuinely-unvalidated directory through.
-		Object explicitDirectory;
-		if (isFilesCreateTempFile) {
-			if (parameters == null || parameters.length < 3 || parameters.length > 4) {
-				throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
-						systemMethodToCheck, fullMethodSignature));
-			}
-			if (parameters.length == 3) {
-				// Files.createTempFile(prefix, suffix, attrs...): no directory argument.
-				explicitDirectory = null;
-			} else if (parameters[0] instanceof Path) {
-				// Files.createTempFile(dir, prefix, suffix, attrs...).
-				explicitDirectory = parameters[0];
-			} else {
-				throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
-						systemMethodToCheck, fullMethodSignature));
-			}
-		} else {
-			if (parameters == null || (parameters.length != 2 && parameters.length != 3)) {
-				throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
-						systemMethodToCheck, fullMethodSignature));
-			}
-			if (parameters.length == 2) {
-				// File.createTempFile(prefix, suffix): no directory argument.
-				explicitDirectory = null;
-			} else if (parameters[2] == null || parameters[2] instanceof File) {
-				// File.createTempFile(prefix, suffix, directory): directory is legitimately
-				// nullable here (null means "use the default temp directory").
-				explicitDirectory = parameters[2];
-			} else {
-				throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
-						systemMethodToCheck, fullMethodSignature));
-			}
-		}
+		@Nullable
+		Object explicitDirectory = resolveExplicitTempDirectory(declaringTypeName, parameters, systemMethodToCheck,
+				fullMethodSignature);
 		if (explicitDirectory == null) {
-			// No explicit directory: the JVM writes to java.io.tmpdir - but ONLY when that
-			// property still resolves to the value captured at class-initialisation time,
-			// before student code could run. Student code can call
-			// System.setProperty("java.io.tmpdir", ...) at any time (setting a property is
-			// not itself a file operation), and the JDK's own
-			// TempFileHelper/File$TempDirectory caches whichever value is current at THEIR
-			// own first use - which may happen later than ours and thus already be
-			// student-controlled. If the property no longer matches the trusted snapshot,
-			// we cannot prove where the JDK will actually write, so this fails closed
-			// rather than trusting the "default directory" label.
-			if (isCurrentDefaultTempDirStillTrusted()) {
-				return true;
-			}
-			throw new SecurityException(localize("security.advice.file.system.temp.directory.property.tampered",
+			requireFrozenDefaultTempDirectory(systemMethodToCheck, fullMethodSignature);
+		} else {
+			requireDirectoryAllowedForTempFiles(explicitDirectory, systemMethodToCheck, studentCalledMethod,
+					fullMethodSignature, thisJoinPoint);
+		}
+		return true;
+	}
+
+	/**
+	 * Tells whether a call is {@code Files.createTempFile} or
+	 * {@code File.createTempFile}.
+	 *
+	 * @param declaringTypeName the class that declares the called method
+	 * @param methodName        the called method
+	 * @return {@code true} for either of the two methods
+	 */
+	private static boolean isTempFileCreation(@Nonnull String declaringTypeName, @Nonnull String methodName) {
+		return "createTempFile".equals(methodName)
+				&& ("java.nio.file.Files".equals(declaringTypeName) || "java.io.File".equals(declaringTypeName));
+	}
+
+	/**
+	 * Returns the directory a {@code createTempFile} call names, or {@code null}
+	 * when it names none. {@code Files.createTempFile} takes three arguments, or
+	 * four with the directory first; {@code File.createTempFile} takes two, or
+	 * three with the directory last, where {@code null} means the default one.
+	 *
+	 * @return the directory argument, or {@code null} for the default directory
+	 * @throws SecurityException if the arguments fit neither overload
+	 */
+	@Nullable
+	private static Object resolveExplicitTempDirectory(@Nonnull String declaringTypeName,
+			@Nullable Object[] parameters, @Nonnull String systemMethodToCheck, @Nonnull String fullMethodSignature) {
+		boolean isFilesMethod = "java.nio.file.Files".equals(declaringTypeName);
+		int count = parameters == null ? -1 : parameters.length;
+		if ((isFilesMethod && count == 3) || (!isFilesMethod && count == 2)) {
+			return null;
+		}
+		if (isFilesMethod && count == 4 && parameters[0] instanceof Path) {
+			return parameters[0];
+		}
+		if (!isFilesMethod && count == 3 && (parameters[2] == null || parameters[2] instanceof File)) {
+			return parameters[2];
+		}
+		throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
+				systemMethodToCheck, fullMethodSignature));
+	}
+
+	/**
+	 * Allows a {@code createTempFile} call without a directory only if Ares fixed
+	 * the default temp directory at start-up. Otherwise Ares cannot tell which
+	 * directory the JDK will write to, so the call is refused whatever the policy
+	 * lists.
+	 *
+	 * @throws SecurityException if no default temp directory was fixed
+	 */
+	private static void requireFrozenDefaultTempDirectory(@Nonnull String systemMethodToCheck,
+			@Nonnull String fullMethodSignature) {
+		if (frozenDefaultTempDirectory() == null) {
+			throw new SecurityException(localize("security.advice.file.system.temp.directory.not.frozen",
 					systemMethodToCheck, fullMethodSignature));
 		}
+	}
+
+	/**
+	 * Allows a {@code createTempFile} directory that is exactly the default temp
+	 * directory fixed at start-up, or that {@code pathsAllowedToBeCreated} covers.
+	 * Ares's own internal file names grant nothing here, since a student can name a
+	 * directory after them.
+	 *
+	 * @throws SecurityException if neither holds
+	 */
+	private static void requireDirectoryAllowedForTempFiles(@Nonnull Object explicitDirectory,
+			@Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature, @Nonnull JoinPoint thisJoinPoint) {
 		@Nullable
 		String[] allowedPaths = getValueFromSettings("pathsAllowedToBeCreated");
-		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		@Nullable
 		String violation = checkIfVariableCriteriaIsViolated(new Object[] { explicitDirectory }, allowedPaths,
 				IgnoreValues.NONE, true);
-		// Deliberately no INTERNAL_PATH_SUFFIXES exemption here (unlike the generic
-		// read/write paths below): that exemption exists for Ares's own fixed,
-		// hardcoded classpath-resource suffixes, not for a student-supplied directory.
-		// A student can create and name their own directory tree, so a suffix-only
-		// match would let them craft a path ending in one of those exact strings and
-		// bypass pathsAllowedToBeCreated entirely.
-		if (violation == null || isExplicitDirectoryTheTrustedDefaultTempDir(explicitDirectory)) {
-			return true;
+		if (violation == null || isFrozenDefaultTempDirectory(explicitDirectory)) {
+			return;
 		}
+		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck, "create",
 				violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
 						+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
@@ -946,72 +903,40 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Returns {@code true} only when {@code explicitDirectory} resolves — after
-	 * following symlinks — to exactly the same real location as
-	 * {@link #TRUSTED_DEFAULT_TEMP_DIR} (itself resolved the same way). Only the
-	 * default temp directory itself is baseline-exempt from
-	 * {@code pathsAllowedToBeCreated}; a descendant, sibling, or symlink that
-	 * merely resolves lexically under it (e.g. a directory named
-	 * {@code link-to-forbidden} that is actually a symlink out of the temp root)
-	 * is not the default directory and must still be explicitly allow-listed —
-	 * {@link #isPathWithin}'s prefix match is deliberately not used here, since it
-	 * would treat every such descendant/symlink as exempt. Both sides are
-	 * resolved via {@link Path#toRealPath(LinkOption...)}, which performs real
-	 * filesystem access; that is safe here because the only caller,
-	 * {@link #checkTempFileCreationSpecialCase}, is reached exclusively from
-	 * inside {@link #checkFileSystemInteraction}'s re-entrancy guard, so any
-	 * advice re-entered by that filesystem access is a no-op, not unbounded
-	 * recursion. Any resolution failure (directory does not exist, permission
-	 * denied, a filesystem loop) is treated as "not proven equal" and fails
-	 * closed.
+	 * Tells whether a directory is exactly the default temp directory fixed at
+	 * start-up once symbolic links are followed, so a subdirectory or a link
+	 * leading elsewhere does not count. Following links reads the file system,
+	 * which is safe because this runs inside the advice's guard against calling
+	 * itself. Any failure counts as "not the same directory".
 	 *
-	 * @param explicitDirectory the directory argument as passed to
-	 *                          {@code createTempFile} (a {@code Path} or
-	 *                          {@code File})
-	 * @return {@code true} only if the explicit directory is exactly the trusted
-	 *         default temp directory
+	 * @param explicitDirectory the directory argument, a {@code Path} or a
+	 *                          {@code File}
+	 * @return {@code true} only for the fixed default temp directory itself
 	 */
-	private static boolean isExplicitDirectoryTheTrustedDefaultTempDir(@Nonnull Object explicitDirectory) {
-		if (TRUSTED_DEFAULT_TEMP_DIR == null) {
+	private static boolean isFrozenDefaultTempDirectory(@Nonnull Object explicitDirectory) {
+		@Nullable
+		String frozenDirectory = frozenDefaultTempDirectory();
+		if (frozenDirectory == null) {
 			return false;
 		}
 		try {
+			@Nullable
 			Path candidate = variableToPath(explicitDirectory, true);
-			if (candidate == null) {
-				return false;
-			}
-			Path candidateReal = candidate.toRealPath();
-			Path trustedReal = Path.of(TRUSTED_DEFAULT_TEMP_DIR).toRealPath();
-			return candidateReal.equals(trustedReal);
-		} catch (IOException | InvalidPathException ignored) {
+			return candidate != null && candidate.toRealPath().equals(Path.of(frozenDirectory));
+		} catch (IOException | InvalidPathException unresolvable) {
 			return false;
 		}
 	}
 
 	/**
-	 * Returns {@code true} when {@code java.io.tmpdir} still resolves to the same
-	 * location as {@link #TRUSTED_DEFAULT_TEMP_DIR}, the value captured at
-	 * class-initialisation time before student code could run. Comparison is
-	 * purely lexical (no filesystem access, matching {@link #isPathWithin}) to
-	 * avoid re-entering the interceptors.
+	 * Returns the default temp directory that trusted Ares code fixed at start-up,
+	 * already resolved to its real location, or {@code null} if nothing fixed it.
 	 *
-	 * @return {@code true} if the property has not been redirected since startup
+	 * @return the fixed directory, or {@code null}
 	 */
-	private static boolean isCurrentDefaultTempDirStillTrusted() {
-		if (TRUSTED_DEFAULT_TEMP_DIR == null) {
-			return false;
-		}
-		String currentTempDir = System.getProperty("java.io.tmpdir");
-		if (currentTempDir == null) {
-			return false;
-		}
-		try {
-			Path trusted = Path.of(TRUSTED_DEFAULT_TEMP_DIR).toAbsolutePath().normalize();
-			Path current = Path.of(currentTempDir).toAbsolutePath().normalize();
-			return trusted.equals(current);
-		} catch (InvalidPathException ignored) {
-			return false;
-		}
+	@Nullable
+	private static String frozenDefaultTempDirectory() {
+		return getValueFromSettings("frozenDefaultTempDirectory");
 	}
 
 	// </editor-fold>
@@ -1308,46 +1233,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Determines whether a read targets an OS entropy device
-	 * ({@code /dev/urandom}/{@code /dev/random}) as part of
-	 * {@link java.security.SecureRandom}'s own internal seeding, rather than
-	 * student code opening that device directly.
-	 *
-	 * @param action the concrete file-system action under inspection
-	 * @param path   the already-resolved path string under inspection
-	 * @return true if the path is an entropy device being read by SecureRandom's
-	 *         seeding machinery
-	 */
-	private static boolean isEntropySourceRead(@Nonnull String action, @Nullable String path) {
-		if (!"read".equals(action) || path == null || !ENTROPY_SOURCE_PATHS.contains(path)) {
-			return false;
-		}
-		return isSecureRandomSeedingInProgress();
-	}
-
-	/**
-	 * Determines whether a read targets the system timezone symlink
-	 * ({@code /etc/localtime}) consulted by {@code java.time} internals (e.g.
-	 * {@code ZoneId.systemDefault()}) to resolve the platform default zone. This
-	 * is JVM/OS infrastructure with no attacker-controlled input, not student file
-	 * access. Matched exactly, and only when
-	 * {@link #isTimezoneResolutionInProgress()} confirms the read originates from
-	 * the JDK's own timezone-resolution machinery, so a student directly opening
-	 * the symlink is never exempted by path name alone.
-	 *
-	 * @param action the concrete file-system action under inspection
-	 * @param path   the already-resolved path string under inspection
-	 * @return true if the path is the system timezone file being read by a
-	 *         trusted JDK timezone-resolution frame
-	 */
-	private static boolean isSystemTimezoneRead(@Nonnull String action, @Nullable String path) {
-		if (!"read".equals(action) || !SYSTEM_TIMEZONE_PATH.equals(path)) {
-			return false;
-		}
-		return isTimezoneResolutionInProgress();
-	}
-
-	/**
 	 * Resolves the Maven local repository root from {@code maven.repo.local}, with
 	 * the conventional {@code ~/.m2/repository} fallback. Returns {@code null} when
 	 * neither can be determined.
@@ -1622,12 +1507,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				// student file access, and must not be blocked.
 				boolean isExemptSystemFileAccess = isExemptSystemFileAccess(actionToCheck,
 						illegallyInteractedThroughParameter);
-				// SecureRandom's own entropy-device seeding and the system timezone symlink
-				// read are JVM/OS infrastructure, not student file access.
-				boolean isEntropySourceRead = isEntropySourceRead(actionToCheck, illegallyInteractedThroughParameter);
-				boolean isSystemTimezoneRead = isSystemTimezoneRead(actionToCheck, illegallyInteractedThroughParameter);
-				if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess
-						&& !isEntropySourceRead && !isSystemTimezoneRead) {
+				if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess) {
 					throw new SecurityException(localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughParameter,
@@ -1660,15 +1540,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 				// JDK-internal reads and native-library loads under java.home are exempt.
 				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughReceiver)) {
-					isInternalAllowed = true;
-				}
-
-				// SecureRandom's own entropy-device seeding and the system timezone symlink
-				// read are JVM/OS infrastructure, not student file access.
-				if (!isInternalAllowed && isEntropySourceRead(actionToCheck, illegallyInteractedThroughReceiver)) {
-					isInternalAllowed = true;
-				}
-				if (!isInternalAllowed && isSystemTimezoneRead(actionToCheck, illegallyInteractedThroughReceiver)) {
 					isInternalAllowed = true;
 				}
 
@@ -1716,15 +1587,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 				// JDK-internal reads and native-library loads under java.home are exempt.
 				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughAttribute)) {
-					isInternalAllowed = true;
-				}
-
-				// SecureRandom's own entropy-device seeding and the system timezone symlink
-				// read are JVM/OS infrastructure, not student file access.
-				if (!isInternalAllowed && isEntropySourceRead(actionToCheck, illegallyInteractedThroughAttribute)) {
-					isInternalAllowed = true;
-				}
-				if (!isInternalAllowed && isSystemTimezoneRead(actionToCheck, illegallyInteractedThroughAttribute)) {
 					isInternalAllowed = true;
 				}
 

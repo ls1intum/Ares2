@@ -128,8 +128,10 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	}
 
 	/**
-	 * Reads the policy and arms the guard once for the given context. A second call
-	 * for the same context does nothing, and a failure leaves the guard reset.
+	 * Reads the policy and arms the guard once for the given context, after fixing
+	 * the values the file-system checks trust if nothing has fixed them yet. A
+	 * second call for the same context does nothing, and a failure leaves the guard
+	 * reset.
 	 */
 	private void prepareSecurityOnce(ExtensionContext extensionContext) {
 		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
@@ -142,6 +144,7 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 			store.put(stateKey, LifecycleState.PREPARING);
 		}
 		try {
+			JavaInstrumentationAgent.freezeTrustedStartupValues(Thread.currentThread().getContextClassLoader());
 			resetSettingsInStandardClassLoader();
 			resetSettingsInBootstrapClassLoader();
 			prepareSecurity(extensionContext);

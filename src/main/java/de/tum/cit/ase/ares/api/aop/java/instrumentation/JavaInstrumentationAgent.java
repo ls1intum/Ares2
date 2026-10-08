@@ -1,8 +1,12 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Method;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -119,6 +123,31 @@ public final class JavaInstrumentationAgent {
 	 */
 	private static volatile SecurityException activationFailure;
 
+	/**
+	 * Serialises {@link #freezeTrustedStartupValues(ClassLoader)}, so two callers
+	 * cannot both see the temp directory as not yet fixed.
+	 */
+	private static final Object FREEZE_LOCK = new Object();
+
+	/**
+	 * The settings class the advice of both backends reads, named as a string so
+	 * the bootstrap copy and the application copy can each be looked up.
+	 */
+	private static final String SETTINGS_CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings";
+
+	/**
+	 * The aspect whose start-up values (Java home, Maven repository) must be read
+	 * before student code runs.
+	 */
+	private static final String FILE_SYSTEM_ASPECT_CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions";
+
+	/**
+	 * The JDK classes that remember the default temp directory on first use.
+	 * Loading them early makes the JDK keep the start-up value.
+	 */
+	private static final List<String> JDK_TEMP_DIRECTORY_HOLDERS = List.of("java.io.File$TempDirectory",
+			"java.nio.file.TempFileHelper");
+
 	private JavaInstrumentationAgent() {
 		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 				.localize("security.instrumentation.utility.initialization", "JavaInstrumentationAgent"));
@@ -145,6 +174,7 @@ public final class JavaInstrumentationAgent {
 
 		putToolboxOnBootClassLoader(unsafeFactory);
 		initializeToolboxes();
+		freezeTrustedStartupValues(ClassLoader.getSystemClassLoader());
 
 		// Pre-warm the StackWalker infrastructure on the bootstrap class loader before
 		// any pointcut goes live. The toolbox advice paths use StackWalker for the fast
@@ -373,6 +403,146 @@ public final class JavaInstrumentationAgent {
 				throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 						.localize("security.instrumentation.agent.toolbox.installation.failed", toolbox.getName()), e);
 			}
+		}
+	}
+
+	/**
+	 * Fixes, once per JVM, the values the file-system checks trust: the default
+	 * temp directory (for Ares and for the JDK alike) and the file-system aspect's
+	 * start-up values. Ares calls it at agent start and before each test is
+	 * prepared; the first call wins. It does nothing while student code is on the
+	 * call stack, so student code cannot fix a directory of its choosing.
+	 *
+	 * @param applicationClassLoader the loader of the application's settings copy
+	 *                               and of the aspect
+	 */
+	public static void freezeTrustedStartupValues(ClassLoader applicationClassLoader) {
+		synchronized (FREEZE_LOCK) {
+			if (isCalledFromSupervisedCode(applicationClassLoader)) {
+				return;
+			}
+			JDK_TEMP_DIRECTORY_HOLDERS.forEach(holder -> initializeIfPresent(holder, null));
+			String defaultTempDirectory = resolveDefaultTempDirectory();
+			if (defaultTempDirectory != null) {
+				publishFrozenTempDirectory(defaultTempDirectory, null);
+				publishFrozenTempDirectory(defaultTempDirectory, applicationClassLoader);
+			}
+			initializeIfPresent(FILE_SYSTEM_ASPECT_CLASS_NAME, applicationClassLoader);
+		}
+	}
+
+	/**
+	 * Tells whether a class of the supervised package, the package holding the
+	 * student code, is on the call stack. Ares's own classes never count, as in the
+	 * advice's own search for student code, since a supervised package may enclose
+	 * them.
+	 *
+	 * @param applicationClassLoader the loader of the application's settings copy
+	 * @return {@code true} if student code takes part in this call
+	 */
+	private static boolean isCalledFromSupervisedCode(ClassLoader applicationClassLoader) {
+		Object restrictedPackage = readSetting("restrictedPackage", applicationClassLoader);
+		if (!(restrictedPackage instanceof String packageName) || packageName.isBlank()) {
+			return false;
+		}
+		return StackWalker.getInstance()
+				.walk(frames -> frames.map(StackWalker.StackFrame::getClassName)
+						.anyMatch(className -> className.startsWith(packageName)
+								&& JavaInstrumentationAdviceAbstractToolbox.IGNORE_CALLSTACK.stream()
+										.noneMatch(className::startsWith)));
+	}
+
+	/**
+	 * Returns the default temp directory resolved to its real location, following
+	 * symbolic links, or {@code null} if it cannot be resolved, in which case
+	 * nothing is fixed.
+	 *
+	 * @return the real default temp directory, or {@code null}
+	 */
+	private static String resolveDefaultTempDirectory() {
+		String property = System.getProperty("java.io.tmpdir");
+		if (property == null) {
+			return null;
+		}
+		try {
+			return Path.of(property).toRealPath().toString();
+		} catch (IOException | InvalidPathException unresolvable) {
+			return null;
+		}
+	}
+
+	/**
+	 * Stores the default temp directory in one copy of the settings, unless that
+	 * copy already holds one. A copy that does not exist, or that lacks the field,
+	 * is left alone, and the checks then refuse temp files without a directory.
+	 *
+	 * @param directory the real default temp directory
+	 * @param loader    the loader of the copy, {@code null} for the bootstrap copy
+	 * @return {@code true} if this call stored the directory
+	 */
+	private static boolean publishFrozenTempDirectory(String directory, ClassLoader loader) {
+		Field field = settingsField("frozenDefaultTempDirectory", loader);
+		try {
+			if (field == null || field.get(null) != null) {
+				return false;
+			}
+			field.set(null, directory);
+			return true;
+		} catch (IllegalAccessException | IllegalArgumentException notWritable) {
+			return false;
+		}
+	}
+
+	/**
+	 * Reads one field of one copy of the settings.
+	 *
+	 * @param fieldName the field to read
+	 * @param loader    the loader of the copy, {@code null} for the bootstrap copy
+	 * @return the value, or {@code null} if the copy or field does not exist
+	 */
+	private static Object readSetting(String fieldName, ClassLoader loader) {
+		Field field = settingsField(fieldName, loader);
+		try {
+			return field == null ? null : field.get(null);
+		} catch (IllegalAccessException | IllegalArgumentException notReadable) {
+			return null;
+		}
+	}
+
+	/**
+	 * Looks up one field of one copy of the settings without initialising anything
+	 * else.
+	 *
+	 * @param fieldName the field to look up
+	 * @param loader    the loader of the copy, {@code null} for the bootstrap copy
+	 * @return the accessible field, or {@code null} if the copy or field does not
+	 *         exist
+	 */
+	private static Field settingsField(String fieldName, ClassLoader loader) {
+		try {
+			Field field = Class.forName(SETTINGS_CLASS_NAME, true, loader).getDeclaredField(fieldName);
+			field.setAccessible(true);
+			return field;
+		} catch (ClassNotFoundException | NoSuchFieldException | LinkageError | InaccessibleObjectException
+				| SecurityException absent) {
+			return null;
+		}
+	}
+
+	/**
+	 * Initialises a class if the loader can find it, so its start-up values are
+	 * read now rather than on first use.
+	 *
+	 * @param className the class to initialise
+	 * @param loader    the loader to use, {@code null} for the bootstrap loader
+	 * @return {@code true} if the class was found and initialised
+	 */
+	private static boolean initializeIfPresent(String className, ClassLoader loader) {
+		try {
+			Class.forName(className, true, loader);
+			return true;
+		} catch (ClassNotFoundException | LinkageError absent) {
+			return false;
 		}
 	}
 

@@ -25,3 +25,10 @@ public class JavaAOPTestCaseSettings {
     private JavaAOPTestCaseSettings() {
         throw new UnsupportedOperationException("JavaAOPTestCaseSettings is a utility class and should not be instantiated");
     }
+
+    /**
+     * The default temp directory, resolved to its real location, that trusted Ares
+     * code fixed when the JVM started; {@code null} means nothing fixed it, and a
+     * temp file without a named directory is then refused.
+     */
+    private static volatile String frozenDefaultTempDirectory = null;

@@ -59,6 +59,15 @@ public final class InstrumentationSecurityProbe {
 	}
 
 	/**
+	 * Calls the agent's freeze from student code, to check that student code cannot
+	 * fix a temp directory of its choosing.
+	 */
+	public static void freezeTrustedStartupValues(ClassLoader applicationClassLoader) {
+		de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent
+				.freezeTrustedStartupValues(applicationClassLoader);
+	}
+
+	/**
 	 * Simulates a woven {@code Files.createTempFile(...)} call, with or without an
 	 * explicit directory argument (I-baseline-low-risk-jdk-read-exemptions).
 	 */
