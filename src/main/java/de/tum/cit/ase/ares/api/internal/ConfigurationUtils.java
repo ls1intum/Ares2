@@ -3,8 +3,6 @@ package de.tum.cit.ase.ares.api.internal;
 import java.nio.file.Path;
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
-
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 
@@ -17,7 +15,6 @@ import de.tum.cit.ase.ares.api.context.TestContextUtils;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PrivilegedExceptionsConfiguration;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
 
 /**
@@ -68,20 +65,35 @@ public final class ConfigurationUtils {
 		if (fromAnnotation.isPresent()) {
 			return fromAnnotation;
 		}
-		Optional<Path> dynamicPolicyPath = activeDynamicPolicyPath(context);
-		if (dynamicPolicyPath.isPresent()) {
-			SecurityPolicy securityPolicy = SecurityPolicyReader.selectSecurityPolicyReader(dynamicPolicyPath.get())
-					.readSecurityPolicyFrom(dynamicPolicyPath.get());
-			return privilegedExceptionsMessageFrom(securityPolicy);
+		return findPolicyPrivilegedExceptions(context)
+				.filter(PrivilegedExceptionsConfiguration::onlyPrivilegedExceptionsAreReported)
+				.map(PrivilegedExceptionsConfiguration::theFailureMessageIs);
+	}
+
+	/**
+	 * The privileged-exceptions category of the policy dynamically active for this
+	 * test, read straight from its file. Empty when no active {@code @Policy}
+	 * applies or the policy configures no {@code regardingPrivilegedExceptions}.
+	 *
+	 * @param context the current test context
+	 * @return the policy's privileged-exceptions category, if any
+	 */
+	public static Optional<PrivilegedExceptionsConfiguration> findPolicyPrivilegedExceptions(TestContext context) {
+		Optional<Path> policyPath = activeDynamicPolicyPath(context);
+		if (policyPath.isEmpty()) {
+			return Optional.empty();
 		}
-		return Optional.empty();
+		SecurityPolicy securityPolicy = SecurityPolicyReader.selectSecurityPolicyReader(policyPath.get())
+				.readSecurityPolicyFrom(policyPath.get());
+		return Optional.ofNullable(securityPolicy.regardingTheSupervisedCode()
+				.theFollowingTestBehaviorIsConfiguredOrEmpty().regardingPrivilegedExceptions());
 	}
 
 	/**
 	 * Resolves the file path of the policy YAML dynamically active for this test,
-	 * exactly as {@code JupiterSecurityExtension}/{@code JqwikSecurityExtension}
-	 * already do at real test-run time - skipping {@code SecurityPolicyDirector},
-	 * since nothing here needs test-case creation.
+	 * exactly as {@code JupiterSecurityExtension} already does at real test-run
+	 * time - skipping {@code SecurityPolicyDirector}, since nothing here needs
+	 * test-case creation.
 	 *
 	 * @param context the current test context
 	 * @return the active policy's path, or empty when no policy dynamically applies
@@ -93,22 +105,5 @@ public final class ConfigurationUtils {
 			return Optional.empty();
 		}
 		return Optional.of(JupiterSecurityExtension.testAndGetPolicyValue(policyAnnotation.get()));
-	}
-
-	/**
-	 * Extracts the effective privileged-exceptions message from a resolved policy.
-	 *
-	 * @param securityPolicy the policy to read; must not be null.
-	 * @return the configured message, if the policy enables the feature.
-	 */
-	@Nonnull
-	private static Optional<String> privilegedExceptionsMessageFrom(SecurityPolicy securityPolicy) {
-		SupervisedCode supervisedCode = securityPolicy.regardingTheSupervisedCode();
-		PrivilegedExceptionsConfiguration configuration = supervisedCode.theFollowingTestBehaviorIsConfiguredOrEmpty()
-				.regardingPrivilegedExceptions();
-		if (configuration == null || !configuration.onlyPrivilegedExceptionsAreReported()) {
-			return Optional.empty();
-		}
-		return Optional.of(configuration.theFailureMessageIs());
 	}
 }

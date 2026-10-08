@@ -404,9 +404,11 @@ public class JavaWriter implements Writer {
 				javaAOPTestCases, javaPhobosTestCases, testFolderPath));
 		Path validatedTestFolderPath = confineToProject(testFolderPath);
 		written.addAll(createTestBehaviorSettingsFiles(testBehaviorConfiguration, validatedTestFolderPath));
-		written.addAll(new FailureReportingWriter(projectRoot, buildConfiguration, this::confineToProject).write(
-				testBehaviorConfiguration, packageName, validatedTestFolderPath,
-				resolveResourcesFolderPath(validatedTestFolderPath)));
+		GeneratedHookFiles hookFiles = new GeneratedHookFiles(projectRoot, buildConfiguration, this::confineToProject);
+		GeneratedHookFiles.Contribution generated = new FailureReportingWriter(hookFiles)
+				.write(testBehaviorConfiguration, packageName, validatedTestFolderPath);
+		written.addAll(generated.written());
+		written.addAll(hookFiles.register(resolveResourcesFolderPath(validatedTestFolderPath), generated));
 		return written;
 	}
 	// </editor-fold>

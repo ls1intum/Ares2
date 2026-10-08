@@ -179,6 +179,23 @@ class ConfigurationUtilsTest {
 		assertFalse(message.isPresent());
 	}
 
+	/**
+	 * The resolver returns the policy's category as written, switched off included,
+	 * and nothing without an active policy that configures it.
+	 */
+	@Test
+	void findPolicyPrivilegedExceptionsReturnsThePoliciesCategory() throws Exception {
+		assertTrue(ConfigurationUtils.findPolicyPrivilegedExceptions(context(PolicyEnabledFixture.class))
+				.filter(category -> category.onlyPrivilegedExceptionsAreReported()).isPresent());
+		assertTrue(ConfigurationUtils.findPolicyPrivilegedExceptions(context(PolicyDisabledFixture.class))
+				.filter(category -> !category.onlyPrivilegedExceptionsAreReported()).isPresent());
+		assertFalse(ConfigurationUtils.findPolicyPrivilegedExceptions(context(PolicyWithoutBehaviorFixture.class))
+				.isPresent());
+		assertFalse(
+				ConfigurationUtils.findPolicyPrivilegedExceptions(context(PolicyInactiveFixture.class)).isPresent());
+		assertFalse(ConfigurationUtils.findPolicyPrivilegedExceptions(context(PlainFixture.class)).isPresent());
+	}
+
 	/** The annotation's message wins over an enabling policy's. */
 	@Test
 	void annotationWinsOverPolicyEnabled() throws Exception {

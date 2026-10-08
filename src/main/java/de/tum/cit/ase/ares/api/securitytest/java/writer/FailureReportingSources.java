@@ -16,20 +16,11 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfigurat
  */
 final class FailureReportingSources {
 
-	/** The reserved package every generated class lives in. */
-	static final String GENERATED_PACKAGE = "de.tum.cit.ase.ares.generated";
-
 	/** Simple name of the generated JUnit Jupiter extension. */
 	static final String JUPITER_HOOK = "GeneratedFailureReporting";
 
-	/** Simple name of the generated jqwik lifecycle hook. */
-	static final String JQWIK_HOOK = "GeneratedJqwikFailureReporting";
-
 	/** Simple name of the generated JUnit sentinel test. */
 	static final String JUPITER_SENTINEL = "GeneratedFailureReportingSentinelTest";
-
-	/** Simple name of the generated jqwik sentinel test. */
-	static final String JQWIK_SENTINEL = "GeneratedJqwikFailureReportingSentinelTest";
 
 	/**
 	 * Message key of the fixed text a timed-out test shows instead of its error.
@@ -38,9 +29,6 @@ final class FailureReportingSources {
 
 	/** Message key of the text a sentinel shows when its hook is not active. */
 	static final String INACTIVE_KEY = "generated.failure.reporting.inactive";
-
-	/** Message key of the text shown when jqwik is present but not covered. */
-	static final String JQWIK_MISSING_KEY = "generated.failure.reporting.jqwik.missing";
 
 	/** Placeholder for the copied {@code Messages} class in the source texts. */
 	private static final String MESSAGES = "@MESSAGES@";
@@ -53,9 +41,6 @@ final class FailureReportingSources {
 
 	/** Placeholder for the message field of the settings class. */
 	private static final String MESSAGE = "@MESSAGE@";
-
-	/** Placeholder for whether the jqwik hook was generated beside the sentinel. */
-	private static final String JQWIK_GENERATED = "@JQWIK_GENERATED@";
 
 	/**
 	 * Source text of the JUnit Jupiter hook, before the placeholders are filled.
@@ -91,26 +76,36 @@ final class FailureReportingSources {
 			public final class GeneratedFailureReporting
 					implements TestExecutionExceptionHandler, LifecycleMethodExecutionExceptionHandler, InvocationInterceptor {
 
-				/** Set once JUnit has created this extension; the sentinel test checks it. */
-				private static volatile boolean active;
+				/** The test guarded now, inherited by a worker another hook starts. */
+				private static final InheritableThreadLocal<String> GUARDING = new InheritableThreadLocal<>();
 
-				/** Creates the extension, which JUnit does before any test runs. */
-				public GeneratedFailureReporting() {
-					markActive();
-				}
-
-				/** Records that JUnit created this extension. */
-				private static void markActive() {
-					active = true;
+				/**
+				 * Whether this hook is guarding the named test in this invocation.
+				 *
+				 * @param test the test, as {@code fully.qualified.Class#method}
+				 * @return true while that test runs inside this hook
+				 */
+				public static boolean isGuarding(String test) {
+					return test.equals(GUARDING.get());
 				}
 
 				/**
-				 * Whether JUnit created this extension in this test run.
+				 * Marks this method as guarded only while the invocation runs.
 				 *
-				 * @return true once the extension exists
+				 * @param invocation runs the test
+				 * @param invocationContext the method and its arguments
+				 * @param context the test's context
+				 * @throws Throwable the test's failure, handled by the exception handler
 				 */
-				public static boolean isActive() {
-					return active;
+				@Override
+				public void interceptTestMethod(Invocation<Void> invocation,
+						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext context) throws Throwable {
+					GUARDING.set(context.getRequiredTestClass().getName() + "#" + context.getRequiredTestMethod().getName());
+					try {
+						invocation.proceed();
+					} finally {
+						GUARDING.remove();
+					}
 				}
 
 				/**
@@ -195,8 +190,8 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * A stream of the given tests that reports no real error while it is walked,
-				 * and closes the original stream when JUnit closes it.
+				 * A stream of the given tests that reports no real error while it is walked
+				 * or closed, and closes the original stream when JUnit closes it.
 				 *
 				 * @param nodes  the tests
 				 * @param source the original result, closed if it is a stream
@@ -205,7 +200,21 @@ final class FailureReportingSources {
 				static Stream<DynamicNode> redactedNodes(Iterator<?> nodes, Object source) {
 					Stream<DynamicNode> redacted = StreamSupport
 							.stream(Spliterators.spliteratorUnknownSize(new RedactingIterator(nodes), Spliterator.ORDERED), false);
-					return source instanceof Stream<?> stream ? redacted.onClose(stream::close) : redacted;
+					return source instanceof Stream<?> stream ? redacted.onClose(() -> closeRedacted(stream)) : redacted;
+				}
+
+				/**
+				 * Closes a factory's own stream, replacing any failure a close handler raises,
+				 * since JUnit closes it only after this extension's interceptor returned.
+				 *
+				 * @param stream the factory's or a container's own stream
+				 */
+				static void closeRedacted(Stream<?> stream) {
+					try {
+						stream.close();
+					} catch (Throwable throwable) {
+						throw GeneratedFailureReporting.<RuntimeException>rethrow(replacementFor(throwable));
+					}
 				}
 
 				/**
@@ -393,111 +402,6 @@ final class FailureReportingSources {
 			}
 			""";
 
-	/** Source text of the jqwik hook, before the placeholders are filled. */
-	private static final String JQWIK_HOOK_SOURCE = """
-			package de.tum.cit.ase.ares.generated;
-
-			import org.opentest4j.TestAbortedException;
-
-			import net.jqwik.api.lifecycle.AroundPropertyHook;
-			import net.jqwik.api.lifecycle.PropagationMode;
-			import net.jqwik.api.lifecycle.PropertyExecutionResult;
-			import net.jqwik.api.lifecycle.PropertyExecutor;
-			import net.jqwik.api.lifecycle.PropertyLifecycleContext;
-
-			/**
-			 * Generated by Ares. Shows the policy's message instead of a failed property's
-			 * real error. Do not edit: regenerate instead.
-			 */
-			public final class GeneratedJqwikFailureReporting implements AroundPropertyHook {
-
-				/** Set once this hook has wrapped a property; the sentinel test checks it. */
-				private static volatile boolean active;
-
-				/** Records that this hook wrapped a property. */
-				private static void markActive() {
-					active = true;
-				}
-
-				/**
-				 * Whether this hook has wrapped a property in this test run, which includes
-				 * the sentinel itself.
-				 *
-				 * @return true once the hook has wrapped a property
-				 */
-				public static boolean isActive() {
-					return active;
-				}
-
-				/**
-				 * Applies this hook to every property, not only to the container jqwik
-				 * registers it on.
-				 *
-				 * @return every descendant
-				 */
-				@Override
-				public PropagationMode propagateTo() {
-					return PropagationMode.ALL_DESCENDANTS;
-				}
-
-				/**
-				 * Runs the property and replaces the error of a failed or aborted run, whether
-				 * it is returned or thrown by an inner hook.
-				 *
-				 * @param context  the property's context
-				 * @param property runs the property
-				 * @return the result to report
-				 * @throws Throwable whatever running the property throws
-				 */
-				@Override
-				public PropertyExecutionResult aroundProperty(PropertyLifecycleContext context, PropertyExecutor property)
-						throws Throwable {
-					markActive();
-					PropertyExecutionResult result;
-					try {
-						result = property.execute();
-					} catch (Throwable throwable) {
-						throw replacementFor(throwable);
-					}
-					if (!@SETTINGS@.@ENABLED@ || result.status() == PropertyExecutionResult.Status.SUCCESSFUL) {
-						return result;
-					}
-					Throwable original = result.throwable().orElseGet(() -> result.status() == PropertyExecutionResult.Status.ABORTED
-							? new TestAbortedException()
-							: new AssertionError());
-					return result.mapTo(result.status(), replacementFor(original));
-				}
-
-				/**
-				 * The failure to report instead of the real one: a skipped property stays
-				 * skipped without its reason, everything else shows the policy's message.
-				 *
-				 * @param throwable the real failure
-				 * @return the failure to report
-				 */
-				static Throwable replacementFor(Throwable throwable) {
-					if (!@SETTINGS@.@ENABLED@) {
-						return throwable;
-					}
-					if (throwable instanceof TestAbortedException) {
-						return new TestAbortedException();
-					}
-					return new AssertionError(@SETTINGS@.@MESSAGE@);
-				}
-
-				/**
-				 * Places this hook outside every other around-property hook, so it sees the
-				 * final result.
-				 *
-				 * @return the lowest proximity
-				 */
-				@Override
-				public int aroundPropertyProximity() {
-					return Integer.MIN_VALUE;
-				}
-			}
-			""";
-
 	/**
 	 * Source text of the JUnit sentinel test, before the placeholders are filled.
 	 */
@@ -508,69 +412,18 @@ final class FailureReportingSources {
 
 			/**
 			 * Generated by Ares. Fails when the generated failure reporting is not active,
-			 * or when jqwik is present without its hook, so a missing hook shows up as a
-			 * red test instead of real errors.
+			 * so a missing hook shows up as a red test instead of real errors.
 			 */
 			class GeneratedFailureReportingSentinelTest {
 
-				/** Whether the generator wrote the jqwik hook beside this test. */
-				private static final boolean JQWIK_HOOK_GENERATED = @JQWIK_GENERATED@;
-
-				/** Checks that JUnit created the generated failure-reporting extension. */
+				/** Checks that the generated reporting hook guards this invocation. */
 				@Test
 				void failureReportingIsActive() {
-					if (!GeneratedFailureReporting.isActive()) {
+					if (!GeneratedFailureReporting.isGuarding(GeneratedFailureReportingSentinelTest.class.getName() + "#failureReportingIsActive")) {
 						throw new AssertionError(@MESSAGES@.localized("generated.failure.reporting.inactive"));
 					}
 				}
 
-				/** Checks that jqwik, when the test run has it, got its hook as well. */
-				@Test
-				void jqwikIsCoveredWhenPresent() {
-					if (!JQWIK_HOOK_GENERATED && jqwikIsPresent()) {
-						throw new AssertionError(@MESSAGES@.localized("generated.failure.reporting.jqwik.missing"));
-					}
-				}
-
-				/**
-				 * Whether jqwik's hook interface is on this test run's class path.
-				 *
-				 * @return true when jqwik can run properties here
-				 */
-				private static boolean jqwikIsPresent() {
-					try {
-						Class.forName("net.jqwik.api.lifecycle.AroundPropertyHook", false,
-								GeneratedFailureReportingSentinelTest.class.getClassLoader());
-						return true;
-					} catch (ClassNotFoundException absent) {
-						return false;
-					}
-				}
-			}
-			""";
-
-	/**
-	 * Source text of the jqwik sentinel test, before the placeholders are filled.
-	 */
-	private static final String JQWIK_SENTINEL_SOURCE = """
-			package de.tum.cit.ase.ares.generated;
-
-			import net.jqwik.api.Example;
-
-			/**
-			 * Generated by Ares. Fails when the generated jqwik failure reporting did not
-			 * wrap this property, so a missing hook shows up as a red test instead of
-			 * real errors.
-			 */
-			class GeneratedJqwikFailureReportingSentinelTest {
-
-				/** Checks that the generated failure-reporting hook wrapped this property. */
-				@Example
-				void failureReportingIsActive() {
-					if (!GeneratedJqwikFailureReporting.isActive()) {
-						throw new AssertionError(@MESSAGES@.localized("generated.failure.reporting.inactive"));
-					}
-				}
 			}
 			""";
 
@@ -591,39 +444,14 @@ final class FailureReportingSources {
 	}
 
 	/**
-	 * The jqwik hook's source.
-	 *
-	 * @param messagesClass fully qualified name of the copied {@code Messages}.
-	 * @return the source text
-	 */
-	@Nonnull
-	static String jqwikHook(@Nonnull String messagesClass) {
-		return fill(JQWIK_HOOK_SOURCE, messagesClass);
-	}
-
-	/**
 	 * The JUnit sentinel test's source.
 	 *
-	 * @param messagesClass      fully qualified name of the copied
-	 *                           {@code Messages}.
-	 * @param jqwikHookGenerated whether the jqwik hook is generated beside it.
-	 * @return the source text
-	 */
-	@Nonnull
-	static String jupiterSentinel(@Nonnull String messagesClass, boolean jqwikHookGenerated) {
-		return fill(JUPITER_SENTINEL_SOURCE, messagesClass).replace(JQWIK_GENERATED,
-				String.valueOf(jqwikHookGenerated));
-	}
-
-	/**
-	 * The jqwik sentinel test's source.
-	 *
 	 * @param messagesClass fully qualified name of the copied {@code Messages}.
 	 * @return the source text
 	 */
 	@Nonnull
-	static String jqwikSentinel(@Nonnull String messagesClass) {
-		return fill(JQWIK_SENTINEL_SOURCE, messagesClass);
+	static String jupiterSentinel(@Nonnull String messagesClass) {
+		return fill(JUPITER_SENTINEL_SOURCE, messagesClass);
 	}
 
 	/**

@@ -249,7 +249,7 @@ They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reser
 
 Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side contract that enforces it.
 
-Boundary version 3 rejects more than reserved packages. It rejects every `META-INF/services` file in student output. It rejects `junit-platform.properties` and `archunit.properties` at the root of that output. JUnit, jqwik and ArchUnit read these files by themselves, so a student file there can plug code into the test run or reconfigure the static analysis. Version 3 reserves `de/tum/cit/ase/ares/generated` as well, because Precompile writes its failure-reporting code there. Migrate every exercise that still carries a version 2 snippet.
+Boundary version 3 rejects more than reserved packages. It rejects every `META-INF/services` file in student output. It rejects `junit-platform.properties` and `archunit.properties` at the root of that output. JUnit and ArchUnit read these files by themselves, so a student file there can plug code into the test run or reconfigure the static analysis. Ares matches these names in any letter case, because a file system that ignores letter case finds them under any spelling. Version 3 reserves `de/tum/cit/ase/ares/generated` as well, because Precompile writes its failure-reporting code there. Migrate every exercise that still carries a version 2 snippet.
 
 ### Gradle
 
@@ -266,11 +266,13 @@ Delete the Ares 1 `forbiddenPackageFolders` list and its `test { doFirst { ... }
 // bypassable and must be migrated.
 //
 // Boundary version 3 scans the whole student output, resources included, and
-// also rejects every META-INF/services file (JUnit, jqwik and the JUnit Platform
-// load the classes named there by themselves) and junit-platform.properties and
+// also rejects every META-INF/services file (JUnit and the JUnit Platform load
+// the classes named there by themselves) and junit-platform.properties and
 // archunit.properties at the root, which would reconfigure JUnit or the static
 // analysis. It also reserves de/tum/cit/ase/ares/generated, where precompile
-// writes its own code.
+// writes its own code. Matching ignores letter case: on a case-insensitive file
+// system, such as Windows or a default macOS volume, a lookup of
+// META-INF/services/... also finds meta-inf/services/...
 //
 // The build descriptor and the command used to invoke it are trusted instructor
 // configuration. This validates student *code*; it is not a defence against
@@ -279,6 +281,8 @@ Delete the Ares 1 `forbiddenPackageFolders` list and its `test { doFirst { ... }
 // In a multi-project build, apply this to every project that compiles student
 // code: `tasks.withType(Test)` covers only the project it is applied to.
 import org.gradle.api.tasks.testing.Test
+
+import java.util.Locale
 
 def aresReservedPackageBoundaryVersion = '3'
 def aresReservedPackagePatterns = [
@@ -295,8 +299,9 @@ tasks.register('verifyAresReservedPackagesV3') {
     // touches no Project API and the build stays configuration-cache compatible.
     // The whole main output: compiled classes and processed resources alike.
     def studentOutputDirs = sourceSets.main.output
-    def reservedPrefixes = aresReservedPackagePatterns.collect { it.substring(0, it.length() - 2) } + aresReservedFilePrefixes
-    def reservedRootFiles = aresReservedRootFiles
+    def reservedPrefixes = (aresReservedPackagePatterns.collect { it.substring(0, it.length() - 2) } + aresReservedFilePrefixes)
+            .collect { it.toLowerCase(Locale.ROOT) }
+    def reservedRootFiles = aresReservedRootFiles.collect { it.toLowerCase(Locale.ROOT) }
     def boundaryVersion = aresReservedPackageBoundaryVersion
     inputs.files(studentOutputDirs).withPropertyName('studentOutput')
     doLast {
@@ -310,10 +315,11 @@ tasks.register('verifyAresReservedPackagesV3') {
                 if (!candidate.isFile()) {
                     return
                 }
-                // Compared as a '/'-separated relative path, so the same prefixes
-                // apply on Windows as on Linux and macOS.
+                // Compared as a lower-case, '/'-separated relative path, so the same
+                // prefixes apply on Windows as on Linux and macOS, in any letter case.
                 def relative = rootPath.relativize(candidate.toPath()).toString().replace(File.separator, '/')
-                if (reservedPrefixes.any { relative.startsWith(it) } || reservedRootFiles.contains(relative)) {
+                def comparable = relative.toLowerCase(Locale.ROOT)
+                if (reservedPrefixes.any { comparable.startsWith(it) } || reservedRootFiles.contains(comparable)) {
                     forbidden << relative
                 }
             }
