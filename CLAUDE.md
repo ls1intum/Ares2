@@ -130,7 +130,7 @@ page should lean on the cast below rather than inventing a metaphor of its own.
 - **A desk visit**: one run of one test method. **In Postcompile** the question and the
   checklist arrive together, because Ares prepares that visit's checks beforehand and clears
   the active settings away afterwards, on the failure path too. Never state one mechanism as
-  though it were universal: Jupiter uses `BeforeTestExecutionCallback` and `afterTestExecution`,
+  though it were universal: Jupiter arms them before the setup methods and in `BeforeTestExecutionCallback` and clears them in `afterTestExecution`,
   and Precompile generates one project-wide set outside the run altogether, so there is
   nothing to prepare per visit. A visit is also not one pupil: a test method may exercise several student methods. What Ares
   generates is a **security test case**; what the instructor wrote is a **test method**. Keep
