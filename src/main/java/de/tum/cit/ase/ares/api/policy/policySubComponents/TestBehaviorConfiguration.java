@@ -46,6 +46,15 @@ public record TestBehaviorConfiguration(@Nullable HiddenTestsConfiguration regar
 	public static final String HIDDEN_TESTS_LIST_FIELD_NAME = "REGARDING_HIDDEN_TESTS_THE_FOLLOWING_TESTS_ARE_HIDDEN";
 
 	/**
+	 * Name of the generated field holding the public tests, one entry per line, a
+	 * single string for the same reason as the hidden tests.
+	 */
+	public static final String HIDDEN_TESTS_PUBLIC_LIST_FIELD_NAME = "REGARDING_HIDDEN_TESTS_THE_FOLLOWING_TESTS_ARE_PUBLIC";
+
+	/** Name of the generated field saying whether unlisted tests are hidden. */
+	public static final String HIDDEN_TESTS_UNLISTED_FIELD_NAME = "REGARDING_HIDDEN_TESTS_UNLISTED_TESTS_ARE_HIDDEN";
+
+	/**
 	 * Literal field assignments every configured category contributes, one entry
 	 * per field, each already formatted by {@code JavaAOPTestCaseToolbox}'s
 	 * public-static-final assignment helpers, defaults already applied. Empty when
@@ -68,7 +77,11 @@ public record TestBehaviorConfiguration(@Nullable HiddenTestsConfiguration regar
 						regardingHiddenTests.alwaysRunBefore().map(date -> date.toInstant().toEpochMilli())
 								.orElse(Long.MIN_VALUE)),
 				JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment(HIDDEN_TESTS_LIST_FIELD_NAME,
-						String.join("\n", regardingHiddenTests.theFollowingTestsAreHidden())));
+						String.join("\n", regardingHiddenTests.theFollowingTestsAreHidden())),
+				JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment(HIDDEN_TESTS_PUBLIC_LIST_FIELD_NAME,
+						String.join("\n", regardingHiddenTests.theFollowingTestsArePublic())),
+				JavaAOPTestCaseToolbox.getPublicStaticFinalBooleanAssignment(HIDDEN_TESTS_UNLISTED_FIELD_NAME,
+						regardingHiddenTests.unlistedTestsAreHidden()));
 	}
 
 	/**

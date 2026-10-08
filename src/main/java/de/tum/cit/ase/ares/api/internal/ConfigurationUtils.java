@@ -64,10 +64,10 @@ public final class ConfigurationUtils {
 	}
 
 	/**
-	 * The hidden-test schedule of the policy dynamically active for this test, read
-	 * straight from its file, with every list entry checked against the loaded
-	 * classes. Empty when no active {@code @Policy} applies or the policy
-	 * configures no {@code regardingHiddenTests}.
+	 * The hidden-test schedule and test visibility of the policy dynamically active
+	 * for this test, read straight from its file, with every entry of both lists
+	 * checked against the loaded classes. Empty when no active {@code @Policy}
+	 * applies or the policy configures no {@code regardingHiddenTests}.
 	 *
 	 * @param context the current test context
 	 * @return the policy's hidden-test category, if any
@@ -89,27 +89,32 @@ public final class ConfigurationUtils {
 		ClassLoader loader = context.testClass().map(Class::getClassLoader)
 				.orElseGet(() -> Thread.currentThread().getContextClassLoader());
 		for (String entry : hiddenTests.theFollowingTestsAreHidden()) {
-			requireMatch(entry, loader);
+			requireMatch("theFollowingTestsAreHidden", entry, loader);
+		}
+		for (String entry : hiddenTests.theFollowingTestsArePublic()) {
+			requireMatch("theFollowingTestsArePublic", entry, loader);
 		}
 		return Optional.of(hiddenTests);
 	}
 
 	/**
-	 * Fails unless a hidden-test entry names a loadable class and, if it names a
-	 * method, one that class or a superclass declares.
+	 * Fails unless an entry names a loadable class and, if it names a method, one
+	 * that class or one of its supertypes declares.
 	 *
+	 * @param field  the list the entry is in.
 	 * @param entry  the entry, {@code pkg.Class} or {@code pkg.Class#method}.
 	 * @param loader the loader of the test classes.
-	 * @throws IllegalArgumentException naming the entry
+	 * @throws IllegalArgumentException naming the list and the entry
 	 */
-	private static void requireMatch(String entry, ClassLoader loader) {
+	private static void requireMatch(String field, String entry, ClassLoader loader) {
 		int hash = entry.indexOf('#');
 		String className = hash < 0 ? entry : entry.substring(0, hash);
 		Optional<Class<?>> testClass = loadByCanonicalName(className, loader);
 		boolean matches = testClass.isPresent()
 				&& (hash < 0 || declaresMethod(testClass.get(), entry.substring(hash + 1)));
 		if (!matches) {
-			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.unmatched", entry));
+			throw new IllegalArgumentException(
+					Messages.localized("policy.behavior.hidden.tests.unmatched", field, entry));
 		}
 	}
 

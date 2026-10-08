@@ -28,30 +28,37 @@ class TestBehaviorConfigurationTest {
 				.isEqualTo("de.tum.cit.ase.ares.generated.GeneratedTestBehaviorSettings");
 	}
 
-	/** A deadline alone gives the deadline, no always-run date and no list. */
+	/**
+	 * The required fields alone give the deadline, no always-run date, empty lists
+	 * and the switch.
+	 */
 	@Test
-	void aDeadlineAloneContributesItsDefaults() {
+	void theRequiredFieldsAloneContributeTheirDefaults() {
 		TestBehaviorConfiguration configuration = TestBehaviorConfiguration.builder()
-				.regardingHiddenTests(HiddenTestsConfiguration.builder().theDeadlineIs("2000-01-01 00:00 UTC").build())
+				.regardingHiddenTests(HiddenTestsConfiguration.builder().theDeadlineIs("2000-01-01 00:00 UTC")
+						.unlistedTestsAreHidden(false).build())
 				.build();
 
 		assertThat(String.join("", configuration.literalFieldAssignments()))
 				.contains("public static final long REGARDING_HIDDEN_TESTS_THE_DEADLINE_IS = 946684800000L;")
 				.contains(
 						"public static final long REGARDING_HIDDEN_TESTS_ALWAYS_RUN_BEFORE = " + Long.MIN_VALUE + "L;")
-				.contains("public static final String REGARDING_HIDDEN_TESTS_THE_FOLLOWING_TESTS_ARE_HIDDEN = \"\";");
+				.contains("public static final String REGARDING_HIDDEN_TESTS_THE_FOLLOWING_TESTS_ARE_HIDDEN = \"\";")
+				.contains("public static final String REGARDING_HIDDEN_TESTS_THE_FOLLOWING_TESTS_ARE_PUBLIC = \"\";")
+				.contains("public static final boolean REGARDING_HIDDEN_TESTS_UNLISTED_TESTS_ARE_HIDDEN = false;");
 	}
 
 	/**
-	 * The extension is folded into the deadline, and the list is one line per
-	 * entry.
+	 * The extension is folded into the deadline, each list is one line per entry,
+	 * and the switch is written as given.
 	 */
 	@Test
 	void configuredValuesAreWritten() {
 		TestBehaviorConfiguration configuration = TestBehaviorConfiguration.builder()
 				.regardingHiddenTests(HiddenTestsConfiguration.builder().theDeadlineIs("2000-01-01 00:00 UTC")
 						.theDeadlineIsExtendedBy("1d").hiddenTestsAlwaysRunBefore("1990-01-01 00:00 UTC")
-						.hiddenTests("org.example.A", "org.example.B#m").build())
+						.unlistedTestsAreHidden(true).hiddenTests("org.example.A", "org.example.B#m")
+						.publicTests("org.example.B", "org.example.C#n").build())
 				.build();
 
 		assertThat(String.join("", configuration.literalFieldAssignments()))
@@ -60,6 +67,9 @@ class TestBehaviorConfigurationTest {
 				.contains("REGARDING_HIDDEN_TESTS_ALWAYS_RUN_BEFORE = "
 						+ ZonedDateTime.parse("1990-01-01T00:00Z").toInstant().toEpochMilli() + "L;")
 				.contains(
-						"REGARDING_HIDDEN_TESTS_THE_FOLLOWING_TESTS_ARE_HIDDEN = \"org.example.A\\norg.example.B#m\";");
+						"REGARDING_HIDDEN_TESTS_THE_FOLLOWING_TESTS_ARE_HIDDEN = \"org.example.A\\norg.example.B#m\";")
+				.contains(
+						"REGARDING_HIDDEN_TESTS_THE_FOLLOWING_TESTS_ARE_PUBLIC = \"org.example.B\\norg.example.C#n\";")
+				.contains("REGARDING_HIDDEN_TESTS_UNLISTED_TESTS_ARE_HIDDEN = true;");
 	}
 }

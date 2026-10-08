@@ -83,4 +83,28 @@ public class HiddenTestsPolicyUser {
 	void unmatchedEntryFailsAPublicTest() {
 		// Never runs: the policy fails every test.
 	}
+
+	/** A public test under a policy that hides unlisted tests stays public. */
+	@PublicTest
+	@Policy(value = POLICIES + "PolicyHiddenTestsUnlistedHiddenUser.yaml", withinPath = SUBJECT)
+	void annotationWinsWhenUnlistedTestsAreHidden() {
+		// Runs: the annotation wins over the policy's setting for unlisted tests.
+	}
+
+	/** A public test under a policy whose public list names nothing that exists. */
+	@PublicTest
+	@Policy(value = POLICIES + "PolicyHiddenTestsUnmatchedPublicUser.yaml", withinPath = SUBJECT)
+	void unmatchedPublicEntryFailsAPublicTest() {
+		// Never runs: the policy fails every test.
+	}
+
+	/**
+	 * A public test under a policy that does not say whether unlisted tests are
+	 * hidden.
+	 */
+	@PublicTest
+	@Policy(value = POLICIES + "PolicyHiddenTestsWithoutSwitchUser.yaml", withinPath = SUBJECT)
+	void aPolicyWithoutTheUnlistedSwitchFailsATest() {
+		// Never runs: the policy cannot be read.
+	}
 }

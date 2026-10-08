@@ -14,7 +14,8 @@ import de.tum.cit.ase.ares.testutilities.UserTestResults;
 
 /**
  * Checks that the policy's hidden-test schedule holds back and releases hidden
- * tests, that annotations still win, and that an unmatched list entry fails.
+ * tests, that annotations still win, also over the policy's visibility, and
+ * that an unmatched entry or a missing visibility switch fails.
  */
 @UserBased(HiddenTestsPolicyUser.class)
 class HiddenTestsPolicyTest {
@@ -75,5 +76,27 @@ class HiddenTestsPolicyTest {
 	void unmatchedEntryFailsAPublicTest() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith("unmatchedEntryFailsAPublicTest",
 				IllegalArgumentException.class, "HiddenTestsPolicyUser#noSuchTest", Option.MESSAGE_CONTAINS));
+	}
+
+	/** A public annotation wins over a policy that hides unlisted tests. */
+	@TestTest
+	void annotationWinsWhenUnlistedTestsAreHidden() {
+		tests.assertThatEvents().haveExactly(1, finishedSuccessfully("annotationWinsWhenUnlistedTestsAreHidden"));
+	}
+
+	/** An unmatched public entry fails a public test, naming the list and entry. */
+	@TestTest
+	void unmatchedPublicEntryFailsAPublicTest() {
+		tests.assertThatEvents().haveExactly(1, testFailedWith("unmatchedPublicEntryFailsAPublicTest",
+				IllegalArgumentException.class,
+				"theFollowingTestsArePublic entry \"de.tum.cit.ase.ares.integration.testuser.HiddenTestsPolicyUser#noSuchPublicTest\"",
+				Option.MESSAGE_CONTAINS));
+	}
+
+	/** A policy without the visibility switch fails, naming the policy file. */
+	@TestTest
+	void aPolicyWithoutTheUnlistedSwitchFailsATest() {
+		tests.assertThatEvents().haveExactly(1, testFailedWith("aPolicyWithoutTheUnlistedSwitchFailsATest",
+				SecurityException.class, "PolicyHiddenTestsWithoutSwitchUser.yaml", Option.MESSAGE_CONTAINS));
 	}
 }

@@ -182,6 +182,57 @@ class HiddenTestsWriterTest {
 				.isInstanceOf(SecurityException.class).hasMessageContaining("BrokenTest.java");
 	}
 
+	/**
+	 * Public entries are checked like hidden ones: a matching one is accepted, an
+	 * unmatched one stops the generator, naming the list and the entry.
+	 */
+	@Test
+	void publicEntriesAreCheckedLikeHiddenOnes() {
+		assertThat(writer(null).write(configuredPublic("com.example.ParrotTest#glides"), PACKAGE, testFolder)
+				.jupiterHooks()).isNotEmpty();
+		assertThatThrownBy(
+				() -> writer(null).write(configuredPublic("com.example.PenguinTest.Inner#name"), PACKAGE, testFolder))
+						.isInstanceOf(SecurityException.class)
+						.hasMessageContaining("com.example.PenguinTest.Inner#name")
+						.hasMessageContaining("theFollowingTestsArePublic");
+	}
+
+	/**
+	 * The public-list refusal is localised: in German it names the list and the
+	 * entry.
+	 */
+	@Test
+	void thePublicRefusalIsLocalisedInGerman() {
+		Locale original = Locale.getDefault(Locale.Category.DISPLAY);
+		try {
+			Locale.setDefault(Locale.Category.DISPLAY, Locale.GERMAN);
+
+			assertThatThrownBy(() -> writer(null).write(configuredPublic("com.example.Nothing"), PACKAGE, testFolder))
+					.hasMessageStartingWith("Ares Sicherheitsfehler").hasMessageContaining("com.example.Nothing")
+					.hasMessageContaining("theFollowingTestsArePublic");
+		} finally {
+			Locale.setDefault(Locale.Category.DISPLAY, original);
+		}
+	}
+
+	/**
+	 * The generated hook reads the public list and the switch, and names the
+	 * exercise's own generated security tests by their exact names.
+	 *
+	 * @throws IOException if the written hook cannot be read
+	 */
+	@Test
+	void theHookReadsTheVisibilitySettings() throws IOException {
+		writer(null).write(configuredPublic(), PACKAGE, testFolder);
+
+		assertThat(source(HiddenTestsSources.JUPITER_HOOK)).content()
+				.contains("REGARDING_HIDDEN_TESTS_THE_FOLLOWING_TESTS_ARE_PUBLIC")
+				.contains("REGARDING_HIDDEN_TESTS_UNLISTED_TESTS_ARE_HIDDEN")
+				.contains("\"com.example.ares.api.architecture.java.archunit.JavaArchunitTestCase\"")
+				.contains("\"com.example.ares.api.architecture.java.wala.JavaWalaTestCase\"")
+				.doesNotContain("@EXERCISE_PACKAGE@").doesNotContain("@PUBLIC@").doesNotContain("@UNLISTED@");
+	}
+
 	/** The refusal is localised: in German it is the German text. */
 	@Test
 	void theRefusalIsLocalisedInGerman() {
@@ -281,8 +332,20 @@ class HiddenTestsWriterTest {
 	 * @return the configuration
 	 */
 	private static TestBehaviorConfiguration configured(String... entries) {
-		return TestBehaviorConfiguration.builder().regardingHiddenTests(
-				HiddenTestsConfiguration.builder().theDeadlineIs("2000-01-01 00:00 UTC").hiddenTests(entries).build())
+		return TestBehaviorConfiguration.builder().regardingHiddenTests(HiddenTestsConfiguration.builder()
+				.theDeadlineIs("2000-01-01 00:00 UTC").unlistedTestsAreHidden(false).hiddenTests(entries).build())
+				.build();
+	}
+
+	/**
+	 * A configuration hiding unlisted tests and making the given tests public.
+	 *
+	 * @param entries the public-test entries.
+	 * @return the configuration
+	 */
+	private static TestBehaviorConfiguration configuredPublic(String... entries) {
+		return TestBehaviorConfiguration.builder().regardingHiddenTests(HiddenTestsConfiguration.builder()
+				.theDeadlineIs("2000-01-01 00:00 UTC").unlistedTestsAreHidden(true).publicTests(entries).build())
 				.build();
 	}
 

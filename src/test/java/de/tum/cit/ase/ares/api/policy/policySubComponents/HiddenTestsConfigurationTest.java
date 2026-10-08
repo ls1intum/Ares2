@@ -13,33 +13,58 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
+
+import de.tum.cit.ase.ares.api.context.TestType;
+
 /**
- * Checks the policy's hidden-test category: its required deadline, the time
- * zone it insists on, and that it refuses values and entries it could not
- * apply.
+ * Checks the policy's hidden-test category: its required deadline and
+ * visibility switch, the time zone it insists on, which visibility it gives a
+ * test, and that it refuses values and entries it could not apply.
  */
 class HiddenTestsConfigurationTest {
 
 	/** A valid deadline. */
 	private static final String DEADLINE = "2026-12-24 23:59 Europe/Berlin";
 
-	/** A deadline alone gives the deadline, no extension, no date and no list. */
+	/**
+	 * The deadline and the switch alone give the deadline, no extension, no date
+	 * and no lists.
+	 */
 	@Test
-	void aDeadlineAloneIsEnough() {
-		HiddenTestsConfiguration configuration = HiddenTestsConfiguration.builder().theDeadlineIs(DEADLINE).build();
+	void theRequiredFieldsAloneAreEnough() {
+		HiddenTestsConfiguration configuration = base().build();
 
 		assertThat(configuration.effectiveDeadline())
 				.isEqualTo(ZonedDateTime.parse("2026-12-24T23:59+01:00[Europe/Berlin]"));
 		assertThat(configuration.extension()).isEmpty();
 		assertThat(configuration.alwaysRunBefore()).isEmpty();
 		assertThat(configuration.theFollowingTestsAreHidden()).isEmpty();
+		assertThat(configuration.theFollowingTestsArePublic()).isEmpty();
+	}
+
+	/** A missing visibility switch is refused, naming it, in English and German. */
+	@Test
+	void aMissingUnlistedSwitchIsRefused() {
+		assertThatThrownBy(() -> HiddenTestsConfiguration.builder().theDeadlineIs(DEADLINE).build())
+				.isInstanceOf(IllegalArgumentException.class).hasMessageStartingWith("Ares Security Error")
+				.hasMessageContaining("unlistedTestsAreHidden");
+		Locale original = Locale.getDefault(Locale.Category.DISPLAY);
+		try {
+			Locale.setDefault(Locale.Category.DISPLAY, Locale.GERMAN);
+
+			assertThatThrownBy(() -> HiddenTestsConfiguration.builder().theDeadlineIs(DEADLINE).build())
+					.hasMessageStartingWith("Ares Sicherheitsfehler").hasMessageContaining("unlistedTestsAreHidden");
+		} finally {
+			Locale.setDefault(Locale.Category.DISPLAY, original);
+		}
 	}
 
 	/** The extension is added to the deadline. */
 	@Test
 	void theExtensionIsAddedToTheDeadline() {
-		HiddenTestsConfiguration configuration = HiddenTestsConfiguration.builder().theDeadlineIs(DEADLINE)
-				.theDeadlineIsExtendedBy("1d 12h").build();
+		HiddenTestsConfiguration configuration = base().theDeadlineIsExtendedBy("1d 12h").build();
 
 		assertThat(configuration.extension()).contains(Duration.ofHours(36));
 		assertThat(configuration.effectiveDeadline())
@@ -65,9 +90,8 @@ class HiddenTestsConfigurationTest {
 	void aDateWithoutAZoneIsRefused(String value) {
 		assertThatThrownBy(() -> HiddenTestsConfiguration.builder().theDeadlineIs(value).build())
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("theDeadlineIs");
-		assertThatThrownBy(() -> HiddenTestsConfiguration.builder().theDeadlineIs(DEADLINE)
-				.hiddenTestsAlwaysRunBefore(value).build()).isInstanceOf(IllegalArgumentException.class)
-						.hasMessageContaining("hiddenTestsAlwaysRunBefore");
+		assertThatThrownBy(() -> base().hiddenTestsAlwaysRunBefore(value).build())
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("hiddenTestsAlwaysRunBefore");
 	}
 
 	/**
@@ -97,7 +121,7 @@ class HiddenTestsConfigurationTest {
 	@CsvSource(delimiter = '|', value = { "theDeadlineIs|2026-13-45 23:59 UTC", "theDeadlineIs|tomorrow UTC",
 			"theDeadlineIsExtendedBy|soon", "theDeadlineIsExtendedBy|0d", "hiddenTestsAlwaysRunBefore|yesterday UTC" })
 	void aMalformedValueIsRefused(String field, String value) {
-		HiddenTestsConfiguration.Builder builder = HiddenTestsConfiguration.builder().theDeadlineIs(DEADLINE);
+		HiddenTestsConfiguration.Builder builder = base();
 		switch (field) {
 		case "theDeadlineIs" -> builder.theDeadlineIs(value);
 		case "theDeadlineIsExtendedBy" -> builder.theDeadlineIsExtendedBy(value);
@@ -108,7 +132,7 @@ class HiddenTestsConfigurationTest {
 	}
 
 	/**
-	 * A malformed list entry is refused, naming the entry.
+	 * A malformed entry in either list is refused, naming the list and the entry.
 	 *
 	 * @param entry the malformed entry.
 	 */
@@ -116,24 +140,126 @@ class HiddenTestsConfigurationTest {
 	@ValueSource(strings = { "org.example.PenguinTest#", "#name", "org example.PenguinTest", "org..PenguinTest",
 			"org.example.PenguinTest#a#b" })
 	void aMalformedEntryIsRefused(String entry) {
-		assertThatThrownBy(() -> HiddenTestsConfiguration.builder().theDeadlineIs(DEADLINE).hiddenTests(entry).build())
-				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining(entry);
+		assertThatThrownBy(() -> base().hiddenTests(entry).build()).isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining(entry).hasMessageContaining("theFollowingTestsAreHidden");
+		assertThatThrownBy(() -> base().publicTests(entry).build()).isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining(entry).hasMessageContaining("theFollowingTestsArePublic");
+	}
+
+	/** An entry in both lists is refused, naming it, in English and German. */
+	@Test
+	void anEntryInBothListsIsRefused() {
+		String entry = Other.class.getCanonicalName();
+		assertThatThrownBy(() -> base().hiddenTests(entry).publicTests(entry).build())
+				.isInstanceOf(IllegalArgumentException.class).hasMessageStartingWith("Ares Security Error")
+				.hasMessageContaining(entry);
+		Locale original = Locale.getDefault(Locale.Category.DISPLAY);
+		try {
+			Locale.setDefault(Locale.Category.DISPLAY, Locale.GERMAN);
+
+			assertThatThrownBy(() -> base().hiddenTests(entry).publicTests(entry).build())
+					.hasMessageStartingWith("Ares Sicherheitsfehler").hasMessageContaining(entry);
+		} finally {
+			Locale.setDefault(Locale.Category.DISPLAY, original);
+		}
 	}
 
 	/**
 	 * A class entry covers the class and its nested classes; a method entry its
-	 * method.
+	 * method; an unlisted test is untyped while unlisted tests are not hidden.
 	 */
 	@Test
 	void entriesCoverTheirClassesAndMethods() {
-		HiddenTestsConfiguration configuration = HiddenTestsConfiguration.builder().theDeadlineIs(DEADLINE)
+		HiddenTestsConfiguration configuration = base()
 				.hiddenTests(Outer.class.getCanonicalName(), Other.class.getCanonicalName() + "#listed").build();
 
-		assertThat(configuration.covers(Outer.class, Optional.empty())).isTrue();
-		assertThat(configuration.covers(Outer.Inner.class, Optional.of("any"))).isTrue();
-		assertThat(configuration.covers(Other.class, Optional.of("listed"))).isTrue();
-		assertThat(configuration.covers(Other.class, Optional.of("unlisted"))).isFalse();
-		assertThat(configuration.covers(Other.class, Optional.empty())).isFalse();
+		assertThat(configuration.visibilityOf(Outer.class, Optional.empty())).contains(TestType.HIDDEN);
+		assertThat(configuration.visibilityOf(Outer.Inner.class, Optional.of("any"))).contains(TestType.HIDDEN);
+		assertThat(configuration.visibilityOf(Other.class, Optional.of("listed"))).contains(TestType.HIDDEN);
+		assertThat(configuration.visibilityOf(Other.class, Optional.of("unlisted"))).isEmpty();
+		assertThat(configuration.visibilityOf(Other.class, Optional.empty())).isEmpty();
+	}
+
+	/** Under {@code unlistedTestsAreHidden: true} an unlisted test is hidden. */
+	@Test
+	void unlistedTestsAreHiddenWhenTheSwitchSaysSo() {
+		HiddenTestsConfiguration configuration = base().unlistedTestsAreHidden(true).build();
+
+		assertThat(configuration.visibilityOf(Other.class, Optional.of("any"))).contains(TestType.HIDDEN);
+	}
+
+	/**
+	 * The nearer entry wins: a method entry over its class entry, in either
+	 * direction.
+	 */
+	@Test
+	void aMethodEntryWinsOverItsClassEntry() {
+		String other = Other.class.getCanonicalName();
+		HiddenTestsConfiguration publicMethod = base().hiddenTests(other).publicTests(other + "#shown").build();
+		HiddenTestsConfiguration hiddenMethod = base().unlistedTestsAreHidden(true).publicTests(other)
+				.hiddenTests(other + "#secret").build();
+
+		assertThat(publicMethod.visibilityOf(Other.class, Optional.of("shown"))).contains(TestType.PUBLIC);
+		assertThat(publicMethod.visibilityOf(Other.class, Optional.of("rest"))).contains(TestType.HIDDEN);
+		assertThat(hiddenMethod.visibilityOf(Other.class, Optional.of("secret"))).contains(TestType.HIDDEN);
+		assertThat(hiddenMethod.visibilityOf(Other.class, Optional.of("rest"))).contains(TestType.PUBLIC);
+	}
+
+	/** A nested class entry wins over its enclosing class entry. */
+	@Test
+	void aNestedClassEntryWinsOverItsEnclosingClass() {
+		HiddenTestsConfiguration configuration = base().hiddenTests(Outer.class.getCanonicalName())
+				.publicTests(Outer.Inner.class.getCanonicalName()).build();
+
+		assertThat(configuration.visibilityOf(Outer.Inner.class, Optional.of("any"))).contains(TestType.PUBLIC);
+		assertThat(configuration.visibilityOf(Outer.class, Optional.of("any"))).contains(TestType.HIDDEN);
+	}
+
+	/**
+	 * A method entry of an enclosing class does not reach a nested class's method.
+	 */
+	@Test
+	void anEnclosingClassMethodEntryDoesNotReachANestedClass() {
+		HiddenTestsConfiguration configuration = base().hiddenTests(Outer.class.getCanonicalName() + "#same").build();
+
+		assertThat(configuration.visibilityOf(Outer.Inner.class, Optional.of("same"))).isEmpty();
+		assertThat(configuration.visibilityOf(Outer.class, Optional.of("same"))).contains(TestType.HIDDEN);
+	}
+
+	/**
+	 * A class in the reserved generated package is public even when unlisted tests
+	 * are hidden, so the generated sentinels run; a same-named class elsewhere is
+	 * not.
+	 */
+	@Test
+	void aGeneratedClassIsAlwaysPublic() {
+		HiddenTestsConfiguration configuration = base().unlistedTestsAreHidden(true).build();
+
+		assertThat(configuration.visibilityOf(classNamed("de.tum.cit.ase.ares.generated.SomeSentinelTest"),
+				Optional.of("check"))).contains(TestType.PUBLIC);
+		assertThat(configuration.visibilityOf(classNamed("org.example.SomeSentinelTest"), Optional.of("check")))
+				.contains(TestType.HIDDEN);
+	}
+
+	/**
+	 * A builder with the required deadline and unlisted tests not hidden.
+	 *
+	 * @return the builder
+	 */
+	private static HiddenTestsConfiguration.Builder base() {
+		return HiddenTestsConfiguration.builder().theDeadlineIs(DEADLINE).unlistedTestsAreHidden(false);
+	}
+
+	/**
+	 * An empty class of the given name, defined in its own class loader.
+	 *
+	 * @param name the fully qualified name.
+	 * @return the class
+	 */
+	private static Class<?> classNamed(String name) {
+		return new ByteBuddy().subclass(Object.class).name(name).make()
+				.load(HiddenTestsConfigurationTest.class.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
+				.getLoaded();
 	}
 
 	/** A listed fixture class with a nested class. */

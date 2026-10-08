@@ -153,6 +153,38 @@ class ConfigurationUtilsHiddenTestsTest {
 	}
 
 	/**
+	 * Under a policy that hides unlisted tests, an unannotated, unlisted test is
+	 * hidden, a public entry makes its test public, and a class annotation still
+	 * wins over both.
+	 *
+	 * @throws Exception if the fixture cannot be read
+	 */
+	@Test
+	void theUnlistedSwitchComesLast() throws Exception {
+		assertThat(jupiterContext(UnlistedHidden.class, "unlistedMethod").findTestType()).contains(TestType.HIDDEN);
+		assertThat(jupiterContext(UnlistedHidden.class, "publicMethod").findTestType()).contains(TestType.PUBLIC);
+		assertThat(jupiterContext(UnlistedHiddenButPublicClass.class, "test").findTestType()).contains(TestType.PUBLIC);
+	}
+
+	/**
+	 * An unmatched public entry fails a public and a hidden test, naming the list
+	 * and the entry.
+	 *
+	 * @throws Exception if the fixture cannot be read
+	 */
+	@Test
+	void anUnmatchedPublicEntryFailsEveryTest() throws Exception {
+		for (TestType type : TestType.values()) {
+			TestContext context = context(UnmatchedPublic.class, "test");
+			when(context.findTestType()).thenReturn(Optional.of(type));
+
+			assertThatThrownBy(() -> TestGuardUtils.checkForHidden(context))
+					.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("theFollowingTestsArePublic")
+					.hasMessageContaining("Methods#noSuchPublicMethod");
+		}
+	}
+
+	/**
 	 * Entries naming interface default methods, directly or through another
 	 * interface, by the class that inherits them are valid: a public test of that
 	 * class still runs.
@@ -382,6 +414,41 @@ class ConfigurationUtilsHiddenTestsTest {
 	/** A class under a policy listing the default methods it inherits. */
 	@Policy(FIXTURES + "PolicyHiddenTestsInheritedInterface.yaml")
 	static class InheritsInterfaceDefaults implements DefaultTests {
+		/** Read reflectively. */
+		void test() {
+			// Fixture only.
+		}
+	}
+
+	/**
+	 * A class under a policy that hides unlisted tests, one method listed public.
+	 */
+	@Policy(FIXTURES + "PolicyHiddenTestsUnlistedHidden.yaml")
+	static class UnlistedHidden {
+		/** Read reflectively. */
+		void unlistedMethod() {
+			// Fixture only.
+		}
+
+		/** Read reflectively. */
+		void publicMethod() {
+			// Fixture only.
+		}
+	}
+
+	/** A public class under a policy that hides unlisted tests. */
+	@Policy(FIXTURES + "PolicyHiddenTestsUnlistedHidden.yaml")
+	@Public
+	static class UnlistedHiddenButPublicClass {
+		/** Read reflectively. */
+		void test() {
+			// Fixture only.
+		}
+	}
+
+	/** A class under a policy whose public list names a missing method. */
+	@Policy(FIXTURES + "PolicyHiddenTestsUnmatchedPublic.yaml")
+	static class UnmatchedPublic {
 		/** Read reflectively. */
 		void test() {
 			// Fixture only.

@@ -172,12 +172,15 @@ The generated directory contains Ares 2 specific helper code, instrumentation lo
 metadata required during test execution, and the message bundles below
 `src/test/resources/org/example`. When the policy sets
 `regardingHiddenTests`, the generator writes
-`de/tum/cit/ase/ares/generated`: the settings, a JUnit extension that holds back the hidden
-tests the policy lists until the deadline and hides why they failed, and a sentinel test. JUnit loads the extension through
+`de/tum/cit/ase/ares/generated`: the settings, a JUnit extension that holds back the tests the
+policy makes hidden until the deadline and hides why they failed, and a sentinel test. JUnit loads the extension through
 the file under `META-INF/services`, and
-`junit-platform.properties` switches JUnit's automatic loading on for these hooks only. An existing `junit-platform.properties`
+`junit-platform.properties` switches JUnit's automatic loading on for these hooks and the extensions your own service file
+lists. If your `junit-platform.properties` already switched automatic loading on, the generator leaves it unrestricted, so
+everything that loaded before keeps loading. An existing `junit-platform.properties`
 or service file keeps its own lines; the generator adds a marked block of its own. A
-setting there that contradicts the block stops the generator, which then names the file.
+setting there that contradicts the block stops the generator, which then names the file, and so does any
+`junit.jupiter.extensions.autodetection` setting in `build.gradle`, which would override the block.
 
 :::danger[Do not edit the generated files]
 They are produced automatically by the precompile phase and must not be modified by hand.

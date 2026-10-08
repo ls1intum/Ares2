@@ -318,8 +318,8 @@ public class JavaWriterTest {
 		 * @return the configuration.
 		 */
 		private TestBehaviorConfiguration hiddenTestsConfigured() {
-			return TestBehaviorConfiguration.builder().regardingHiddenTests(
-					HiddenTestsConfiguration.builder().theDeadlineIs("2000-01-01 00:00 UTC").build()).build();
+			return TestBehaviorConfiguration.builder().regardingHiddenTests(HiddenTestsConfiguration.builder()
+					.theDeadlineIs("2000-01-01 00:00 UTC").unlistedTestsAreHidden(false).build()).build();
 		}
 
 		@Test

@@ -16,5 +16,7 @@ regardingTheSupervisedCode:
     regardingTimeouts: []
   theFollowingTestBehaviorIsConfigured:
     regardingHiddenTests:
-      theDeadlineIs: "2000-01-01 00:00 UTC"
+      theDeadlineIs: "2200-01-01 00:00 UTC"
       unlistedTestsAreHidden: false
+      theFollowingTestsArePublic:
+        - "de.tum.cit.ase.ares.integration.testuser.HiddenTestsPolicyUser#noSuchPublicTest"

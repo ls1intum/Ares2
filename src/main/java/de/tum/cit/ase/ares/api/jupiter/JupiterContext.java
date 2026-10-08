@@ -47,7 +47,7 @@ public class JupiterContext extends TestContext {
 
 	/**
 	 * The test's type: a method annotation first, then a class one, then the active
-	 * policy's list of hidden tests, which only makes a test hidden.
+	 * policy's nearest hidden or public entry, then its setting for unlisted tests.
 	 *
 	 * @return the type, if any level sets one
 	 */
@@ -64,8 +64,7 @@ public class JupiterContext extends TestContext {
 		}
 		Optional<String> methodName = testMethod().map(Method::getName);
 		return ConfigurationUtils.findPolicyHiddenTests(this)
-				.filter(hiddenTests -> hiddenTests.covers(testClass.get(), methodName))
-				.map(hiddenTests -> TestType.HIDDEN);
+				.flatMap(hiddenTests -> hiddenTests.visibilityOf(testClass.get(), methodName));
 	}
 
 	public ExtensionContext getExtensionContext() {

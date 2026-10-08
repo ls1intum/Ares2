@@ -6,21 +6,25 @@ import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import de.tum.cit.ase.ares.api.context.TestType;
 import de.tum.cit.ase.ares.api.internal.TestGuardUtils;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
- * The policy-wide hidden-test schedule: the deadline after which hidden tests
- * run, how long it is extended, a date before which they always run, and which
- * tests are hidden. It mirrors {@code @Deadline}, {@code @ExtendedDeadline} and
- * {@code @ActivateHiddenBefore}, which still win on a class or method.
+ * The policy-wide hidden-test schedule and test visibility: the deadline after
+ * which hidden tests run, its extension, a date before which they always run,
+ * which tests are hidden or public, and what an unlisted test is. It mirrors
+ * the deadline annotations and {@code @Hidden}/{@code @Public}, which still
+ * win.
  *
  * @since 2.1.5
  * @author Luka Petrovic
@@ -28,11 +32,22 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @param theDeadlineIsExtendedBy    how long the deadline is extended, or null.
  * @param hiddenTestsAlwaysRunBefore a date before which hidden tests always
  *                                   run, with a time zone, or null.
+ * @param unlistedTestsAreHidden     whether a test no entry covers is hidden;
+ *                                   required.
  * @param theFollowingTestsAreHidden the hidden tests, as {@code pkg.Class} or
  *                                   {@code pkg.Class#method}; null means none.
+ * @param theFollowingTestsArePublic the public tests, in the same form; null
+ *                                   means none.
  */
 public record HiddenTestsConfiguration(@Nullable String theDeadlineIs, @Nullable String theDeadlineIsExtendedBy,
-		@Nullable String hiddenTestsAlwaysRunBefore, @Nullable List<String> theFollowingTestsAreHidden) {
+		@Nullable String hiddenTestsAlwaysRunBefore, @Nullable Boolean unlistedTestsAreHidden,
+		@Nullable List<String> theFollowingTestsAreHidden, @Nullable List<String> theFollowingTestsArePublic) {
+
+	/**
+	 * The package every generated class lives in. Its tests are never hidden, so
+	 * the generated sentinels run even when unlisted tests are.
+	 */
+	public static final String GENERATED_PACKAGE = "de.tum.cit.ase.ares.generated";
 
 	/** One Java identifier. */
 	private static final String IDENTIFIER = "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*";
@@ -42,8 +57,9 @@ public record HiddenTestsConfiguration(@Nullable String theDeadlineIs, @Nullable
 			.compile(IDENTIFIER + "(?:\\." + IDENTIFIER + ")*(?:#" + IDENTIFIER + ")?");
 
 	/**
-	 * Constructs a HiddenTestsConfiguration, rejecting a missing deadline, a date
-	 * without a time zone, a malformed value and a malformed list entry.
+	 * Constructs a HiddenTestsConfiguration, rejecting a missing deadline or
+	 * visibility switch, a date without a time zone, a malformed value, a malformed
+	 * list entry and an entry in both lists.
 	 *
 	 * @throws IllegalArgumentException naming the field or entry
 	 */
@@ -58,14 +74,37 @@ public record HiddenTestsConfiguration(@Nullable String theDeadlineIs, @Nullable
 		if (hiddenTestsAlwaysRunBefore != null) {
 			parseDate("hiddenTestsAlwaysRunBefore", hiddenTestsAlwaysRunBefore);
 		}
-		theFollowingTestsAreHidden = theFollowingTestsAreHidden == null ? List.of()
-				: List.copyOf(theFollowingTestsAreHidden);
-		for (String entry : theFollowingTestsAreHidden) {
+		if (unlistedTestsAreHidden == null) {
+			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.unlisted.missing"));
+		}
+		theFollowingTestsAreHidden = checkedEntries("theFollowingTestsAreHidden", theFollowingTestsAreHidden);
+		theFollowingTestsArePublic = checkedEntries("theFollowingTestsArePublic", theFollowingTestsArePublic);
+		Set<String> inBoth = new HashSet<>(theFollowingTestsAreHidden);
+		inBoth.retainAll(theFollowingTestsArePublic);
+		if (!inBoth.isEmpty()) {
+			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.entry.conflict",
+					inBoth.stream().sorted().findFirst().orElseThrow()));
+		}
+	}
+
+	/**
+	 * An entry list as an unmodifiable copy, empty for null, each entry checked.
+	 *
+	 * @param field   the list's field name.
+	 * @param entries the entries, or null.
+	 * @return the checked entries
+	 * @throws IllegalArgumentException naming the field and the malformed entry
+	 */
+	@Nonnull
+	private static List<String> checkedEntries(@Nonnull String field, @Nullable List<String> entries) {
+		List<String> given = entries == null ? List.of() : entries;
+		for (String entry : given) {
 			if (entry == null || !ENTRY.matcher(entry).matches()) {
 				throw new IllegalArgumentException(
-						Messages.localized("policy.behavior.hidden.tests.entry.invalid", entry));
+						Messages.localized("policy.behavior.hidden.tests.entry.invalid", field, entry));
 			}
 		}
+		return List.copyOf(given);
 	}
 
 	/**
@@ -101,22 +140,47 @@ public record HiddenTestsConfiguration(@Nullable String theDeadlineIs, @Nullable
 	}
 
 	/**
-	 * Whether the list names a test: its class, a class enclosing it, or that class
-	 * together with the test's method.
+	 * The visibility the policy gives a test. The nearest entry wins: the test's
+	 * own class with its method, then that class, then each enclosing class. A
+	 * method entry never reaches into a nested class. Without an entry,
+	 * {@code unlistedTestsAreHidden} decides. A generated class is public.
 	 *
 	 * @param testClass  the test's class.
 	 * @param methodName the test's method, or empty.
-	 * @return true when an entry covers the test
+	 * @return hidden or public, or empty when the policy leaves the test untyped
 	 */
-	public boolean covers(@Nonnull Class<?> testClass, @Nonnull Optional<String> methodName) {
+	@Nonnull
+	public Optional<TestType> visibilityOf(@Nonnull Class<?> testClass, @Nonnull Optional<String> methodName) {
+		if (testClass.getName().startsWith(GENERATED_PACKAGE + ".")) {
+			return Optional.of(TestType.PUBLIC);
+		}
+		Optional<String> ownClass = Optional.ofNullable(testClass.getCanonicalName());
+		Optional<TestType> byMethod = ownClass
+				.flatMap(name -> methodName.flatMap(method -> listed(name + "#" + method)));
+		if (byMethod.isPresent()) {
+			return byMethod;
+		}
 		for (Class<?> current = testClass; current != null; current = current.getEnclosingClass()) {
-			String className = current.getCanonicalName();
-			if (className != null && (theFollowingTestsAreHidden.contains(className) || methodName
-					.map(name -> theFollowingTestsAreHidden.contains(className + "#" + name)).orElse(false))) {
-				return true;
+			Optional<TestType> byClass = Optional.ofNullable(current.getCanonicalName()).flatMap(this::listed);
+			if (byClass.isPresent()) {
+				return byClass;
 			}
 		}
-		return false;
+		return Boolean.TRUE.equals(unlistedTestsAreHidden) ? Optional.of(TestType.HIDDEN) : Optional.empty();
+	}
+
+	/**
+	 * Which list names an entry exactly.
+	 *
+	 * @param entry the entry.
+	 * @return hidden or public, or empty when neither list names it
+	 */
+	@Nonnull
+	private Optional<TestType> listed(@Nonnull String entry) {
+		if (theFollowingTestsAreHidden.contains(entry)) {
+			return Optional.of(TestType.HIDDEN);
+		}
+		return theFollowingTestsArePublic.contains(entry) ? Optional.of(TestType.PUBLIC) : Optional.empty();
 	}
 
 	/**
@@ -211,9 +275,17 @@ public record HiddenTestsConfiguration(@Nullable String theDeadlineIs, @Nullable
 		@Nullable
 		private String hiddenTestsAlwaysRunBefore;
 
+		/** Whether unlisted tests are hidden, or null when not set. */
+		@Nullable
+		private Boolean unlistedTestsAreHidden;
+
 		/** The hidden tests collected so far. */
 		@Nonnull
 		private final List<String> theFollowingTestsAreHidden = new ArrayList<>();
+
+		/** The public tests collected so far. */
+		@Nonnull
+		private final List<String> theFollowingTestsArePublic = new ArrayList<>();
 
 		/**
 		 * Sets the deadline.
@@ -258,6 +330,34 @@ public record HiddenTestsConfiguration(@Nullable String theDeadlineIs, @Nullable
 		}
 
 		/**
+		 * Sets whether a test no entry covers is hidden.
+		 *
+		 * @since 2.1.5
+		 * @author Luka Petrovic
+		 * @param unlistedTestsAreHidden true to hide unlisted tests.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder unlistedTestsAreHidden(@Nullable Boolean unlistedTestsAreHidden) {
+			this.unlistedTestsAreHidden = unlistedTestsAreHidden;
+			return this;
+		}
+
+		/**
+		 * Adds public tests.
+		 *
+		 * @since 2.1.5
+		 * @author Luka Petrovic
+		 * @param entries entries such as {@code pkg.Class} or {@code pkg.Class#m}.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder publicTests(@Nonnull String... entries) {
+			theFollowingTestsArePublic.addAll(List.of(entries));
+			return this;
+		}
+
+		/**
 		 * Adds hidden tests.
 		 *
 		 * @since 2.1.5
@@ -282,7 +382,7 @@ public record HiddenTestsConfiguration(@Nullable String theDeadlineIs, @Nullable
 		@Nonnull
 		public HiddenTestsConfiguration build() {
 			return new HiddenTestsConfiguration(theDeadlineIs, theDeadlineIsExtendedBy, hiddenTestsAlwaysRunBefore,
-					theFollowingTestsAreHidden);
+					unlistedTestsAreHidden, theFollowingTestsAreHidden, theFollowingTestsArePublic);
 		}
 	}
 }

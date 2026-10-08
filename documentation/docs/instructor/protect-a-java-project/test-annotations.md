@@ -25,6 +25,12 @@ class therefore loses all enforcement without an error, which is the failure mod
 exists to prevent.
 :::
 
+In a precompile exercise, which has no Ares dependency at run time, the security policy marks
+tests hidden or public for the whole exercise instead, under
+[`regardingHiddenTests`](/contributor/subsystems/policy/security-policy-manual#77-hidden-tests).
+With the Ares dependency every test still needs one of these annotations, and an annotation
+always wins over the policy.
+
 ## Combined annotations
 
 Besides using `@Public` and `@Hidden` together with JUnit's `@Test`, Ares 2 provides two
