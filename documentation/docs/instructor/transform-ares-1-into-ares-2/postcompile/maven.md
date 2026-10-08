@@ -301,14 +301,23 @@ Delete the `maven-enforcer-plugin` execution with the `requireFilesDontExist` ru
       <goals><goal>run</goal></goals>
       <configuration>
         <target>
-          <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}" casesensitive="false">
-            <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
-            <include name="jdk/**"/><include name="com/sun/**"/>
-            <include name="de/tum/cit/ase/ares/api/**"/><include name="de/tum/cit/ase/ares/generated/**"/>
-            <include name="net/bytebuddy/**"/><include name="org/aspectj/**"/>
-            <include name="com/ibm/wala/**"/><include name="com/tngtech/archunit/**"/>
-            <include name="META-INF/services/**"/>
-            <include name="junit-platform.properties"/><include name="archunit.properties"/>
+          <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}" defaultexcludes="no">
+            <or>
+              <filename name="java/**" casesensitive="false"/>
+              <filename name="javax/**" casesensitive="false"/>
+              <filename name="sun/**" casesensitive="false"/>
+              <filename name="jdk/**" casesensitive="false"/>
+              <filename name="com/sun/**" casesensitive="false"/>
+              <filename name="de/tum/cit/ase/ares/api/**" casesensitive="false"/>
+              <filename name="de/tum/cit/ase/ares/generated/**" casesensitive="false"/>
+              <filename name="net/bytebuddy/**" casesensitive="false"/>
+              <filename name="org/aspectj/**" casesensitive="false"/>
+              <filename name="com/ibm/wala/**" casesensitive="false"/>
+              <filename name="com/tngtech/archunit/**" casesensitive="false"/>
+              <filename name="META-INF/services/**" casesensitive="false"/>
+              <filename name="junit-platform.properties" casesensitive="false"/>
+              <filename name="archunit.properties" casesensitive="false"/>
+            </or>
           </fileset>
           <resourcecount property="ares.reserved.package.count" refid="ares.reserved.files"/>
           <pathconvert property="ares.reserved.package.files" refid="ares.reserved.files" pathsep=", "/>
@@ -471,14 +480,23 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
                   <goals><goal>run</goal></goals>
                   <configuration>
                     <target>
-                      <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}" casesensitive="false">
-                        <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
-                        <include name="jdk/**"/><include name="com/sun/**"/>
-                        <include name="de/tum/cit/ase/ares/api/**"/><include name="de/tum/cit/ase/ares/generated/**"/>
-                        <include name="net/bytebuddy/**"/><include name="org/aspectj/**"/>
-                        <include name="com/ibm/wala/**"/><include name="com/tngtech/archunit/**"/>
-                        <include name="META-INF/services/**"/>
-                        <include name="junit-platform.properties"/><include name="archunit.properties"/>
+                      <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}" defaultexcludes="no">
+                        <or>
+                          <filename name="java/**" casesensitive="false"/>
+                          <filename name="javax/**" casesensitive="false"/>
+                          <filename name="sun/**" casesensitive="false"/>
+                          <filename name="jdk/**" casesensitive="false"/>
+                          <filename name="com/sun/**" casesensitive="false"/>
+                          <filename name="de/tum/cit/ase/ares/api/**" casesensitive="false"/>
+                          <filename name="de/tum/cit/ase/ares/generated/**" casesensitive="false"/>
+                          <filename name="net/bytebuddy/**" casesensitive="false"/>
+                          <filename name="org/aspectj/**" casesensitive="false"/>
+                          <filename name="com/ibm/wala/**" casesensitive="false"/>
+                          <filename name="com/tngtech/archunit/**" casesensitive="false"/>
+                          <filename name="META-INF/services/**" casesensitive="false"/>
+                          <filename name="junit-platform.properties" casesensitive="false"/>
+                          <filename name="archunit.properties" casesensitive="false"/>
+                        </or>
                       </fileset>
                       <resourcecount property="ares.reserved.package.count" refid="ares.reserved.files"/>
                       <pathconvert property="ares.reserved.package.files" refid="ares.reserved.files" pathsep=", "/>
