@@ -283,7 +283,7 @@ They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reser
 
 Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side contract that enforces it.
 
-Boundary version 3 rejects more than reserved packages. It rejects every `META-INF/services` file in student output. It rejects `junit-platform.properties` and `archunit.properties` at the root of that output. JUnit, jqwik and ArchUnit read these files by themselves, so a student file there can plug code into the test run or reconfigure the static analysis. Version 3 reserves `de/tum/cit/ase/ares/generated` as well, because Precompile writes its generated code there. Migrate every exercise that still carries a version 2 snippet.
+Boundary version 3 rejects more than reserved packages. It rejects every `META-INF/services` file in student output. It rejects `junit-platform.properties` and `archunit.properties` at the root of that output. JUnit and ArchUnit read these files by themselves, so a student file there can plug code into the test run or reconfigure the static analysis. Ares matches these names in any letter case, because a file system that ignores letter case finds them under any spelling. Version 3 reserves `de/tum/cit/ase/ares/generated` as well, because Precompile writes its generated code there. Migrate every exercise that still carries a version 2 snippet.
 
 ### Maven
 
@@ -301,7 +301,7 @@ Delete the `maven-enforcer-plugin` execution with the `requireFilesDontExist` ru
       <goals><goal>run</goal></goals>
       <configuration>
         <target>
-          <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}">
+          <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}" casesensitive="false">
             <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
             <include name="jdk/**"/><include name="com/sun/**"/>
             <include name="de/tum/cit/ase/ares/api/**"/><include name="de/tum/cit/ase/ares/generated/**"/>
@@ -471,7 +471,7 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
                   <goals><goal>run</goal></goals>
                   <configuration>
                     <target>
-                      <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}">
+                      <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}" casesensitive="false">
                         <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
                         <include name="jdk/**"/><include name="com/sun/**"/>
                         <include name="de/tum/cit/ase/ares/api/**"/><include name="de/tum/cit/ase/ares/generated/**"/>

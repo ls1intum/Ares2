@@ -77,22 +77,17 @@ final class OutputMirroringSources {
 				/** Whether this hook's streams are installed right now. */
 				private static boolean installed;
 
-				/** Set once the hook ran around a test; the sentinel checks it. */
-				private static volatile boolean active;
-
-				/** Records that the hook ran around a test. */
-				private static void markActive() {
-					active = true;
-				}
+				/** The test guarded now, inherited by a worker another hook starts. */
+				private static final InheritableThreadLocal<String> GUARDING = new InheritableThreadLocal<>();
 
 				/**
-				 * Whether the hook ran around a test in this test run, which includes the
-				 * sentinel itself.
+				 * Whether this hook is guarding the named test in this invocation.
 				 *
-				 * @return true once the hook ran
+				 * @param test the test, as {@code fully.qualified.Class#method}
+				 * @return true while that test runs inside this hook
 				 */
-				public static boolean isActive() {
-					return active;
+				public static boolean isGuarding(String test) {
+					return test.equals(GUARDING.get());
 				}
 
 				/**
@@ -114,7 +109,7 @@ final class OutputMirroringSources {
 						installed = true;
 						context.getStore(NAMESPACE).put(GeneratedOutputMirroring.class, Boolean.TRUE);
 					}
-					markActive();
+					GUARDING.set(context.getRequiredTestClass().getName() + "#" + context.getRequiredTestMethod().getName());
 				}
 
 				/**
@@ -125,6 +120,7 @@ final class OutputMirroringSources {
 				 */
 				@Override
 				public void afterEach(ExtensionContext context) {
+					GUARDING.remove();
 					synchronized (LOCK) {
 						if (context.getStore(NAMESPACE).remove(GeneratedOutputMirroring.class) == null) {
 							return;
@@ -275,7 +271,7 @@ final class OutputMirroringSources {
 				/** Checks that the generated output mirroring ran around this test. */
 				@Test
 				void outputMirroringIsActive() {
-					if (!GeneratedOutputMirroring.isActive()) {
+					if (!GeneratedOutputMirroring.isGuarding(GeneratedOutputMirroringSentinelTest.class.getName() + "#outputMirroringIsActive")) {
 						throw new AssertionError(@MESSAGES@.localized("generated.output.mirroring.inactive"));
 					}
 				}

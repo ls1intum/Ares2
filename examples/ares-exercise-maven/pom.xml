@@ -97,7 +97,7 @@
                   <goals><goal>run</goal></goals>
                   <configuration>
                     <target>
-                      <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}">
+                      <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}" casesensitive="false">
                         <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
                         <include name="jdk/**"/><include name="com/sun/**"/>
                         <include name="de/tum/cit/ase/ares/api/**"/><include name="de/tum/cit/ase/ares/generated/**"/>

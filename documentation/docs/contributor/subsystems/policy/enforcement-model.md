@@ -68,7 +68,8 @@ Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
 `net/bytebuddy/**`, `org/aspectj/**`, `com/ibm/wala/**` and
 `com/tngtech/archunit/**`. It fails for every `META-INF/services/**` file as
 well, and for `junit-platform.properties` and `archunit.properties` at the
-root of the output. JUnit, jqwik and ArchUnit read these files by themselves.
+root of the output, in any letter case. JUnit and ArchUnit read these files by
+themselves, and a case-insensitive file system finds them under any spelling.
 A student file there can plug code into the test run or reconfigure the static
 analysis. `process-classes` precedes `test`, so `mvn test` runs it.
 

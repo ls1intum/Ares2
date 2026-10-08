@@ -65,7 +65,6 @@ class OutputMirroringWriterTest {
 		GeneratedHookFiles.Contribution generated = writer(null).write(configured(), PACKAGE, testFolder);
 
 		assertThat(generated.jupiterHooks()).containsExactly(OutputMirroringSources.JUPITER_HOOK);
-		assertThat(generated.jqwikHooks()).isEmpty();
 		assertThat(source(OutputMirroringSources.JUPITER_HOOK)).content()
 				.contains("implements BeforeEachCallback, AfterEachCallback")
 				.contains("com.example.ares.api.localization.Messages.localized(\"output_tester.output_maxExceeded\"")

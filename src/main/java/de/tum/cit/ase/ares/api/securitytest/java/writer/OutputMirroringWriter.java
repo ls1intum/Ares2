@@ -54,6 +54,6 @@ final class OutputMirroringWriter {
 						OutputMirroringSources.jupiterHook(messagesClass)),
 				hookFiles.writeSource(testFolderPath, OutputMirroringSources.JUPITER_SENTINEL,
 						OutputMirroringSources.jupiterSentinel(messagesClass)));
-		return new GeneratedHookFiles.Contribution(written, List.of(OutputMirroringSources.JUPITER_HOOK), List.of());
+		return new GeneratedHookFiles.Contribution(written, List.of(OutputMirroringSources.JUPITER_HOOK));
 	}
 }

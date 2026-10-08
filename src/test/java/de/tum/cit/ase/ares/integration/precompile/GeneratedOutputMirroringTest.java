@@ -270,6 +270,26 @@ class GeneratedOutputMirroringTest {
 	}
 
 	/**
+	 * Reusing a class loader cannot make a sentinel pass after its hook is
+	 * disabled.
+	 *
+	 * @throws Exception if either nested run cannot be set up
+	 */
+	@Test
+	void theSentinelNeedsEvidenceFromItsOwnRun() throws Exception {
+		try (URLClassLoader loader = new URLClassLoader(classPath(List.of(silent)),
+				Thread.currentThread().getContextClassLoader())) {
+			assertThat(runIn(loader, SENTINEL, Locale.ENGLISH, Map.of()).results().testEvents().succeeded().count())
+					.isEqualTo(1);
+
+			EngineExecutionResults withoutExtension = runIn(loader, SENTINEL, Locale.ENGLISH,
+					Map.of("junit.jupiter.extensions.autodetection.enabled", "false")).results();
+
+			assertThat(failureMessages(withoutExtension)).singleElement().asString().contains("not active");
+		}
+	}
+
+	/**
 	 * What one nested run produced.
 	 *
 	 * @param results          the run's results.
@@ -311,9 +331,8 @@ class GeneratedOutputMirroringTest {
 	}
 
 	/**
-	 * Runs a class through a nested JUnit session with a fresh class loader, so no
-	 * earlier run leaves the extension installed or marked active, while a capture
-	 * stands in for the console.
+	 * Runs a class through a nested JUnit session with a fresh class loader, while
+	 * a capture stands in for the console.
 	 *
 	 * @param roots      the compiled class roots, first wins.
 	 * @param className  the class to run.
@@ -324,13 +343,32 @@ class GeneratedOutputMirroringTest {
 	 */
 	private static NestedRun run(List<Path> roots, String className, Locale locale, Map<String, String> parameters)
 			throws Exception {
+		try (URLClassLoader loader = new URLClassLoader(classPath(roots),
+				Thread.currentThread().getContextClassLoader())) {
+			return runIn(loader, className, locale, parameters);
+		}
+	}
+
+	/**
+	 * Runs a class in an existing loader and restores the caller's streams and
+	 * locale.
+	 *
+	 * @param loader     the loader shared by the nested runs
+	 * @param className  the test class
+	 * @param locale     the locale for messages
+	 * @param parameters further JUnit settings
+	 * @return the results and captured output
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static NestedRun runIn(ClassLoader loader, String className, Locale locale, Map<String, String> parameters)
+			throws Exception {
 		Locale originalLocale = Locale.getDefault(Locale.Category.DISPLAY);
 		ClassLoader originalLoader = Thread.currentThread().getContextClassLoader();
 		PrintStream originalOut = System.out;
 		PrintStream originalErr = System.err;
 		ByteArrayOutputStream console = new ByteArrayOutputStream();
 		PrintStream consoleStream = new PrintStream(console, true, StandardCharsets.UTF_8);
-		try (URLClassLoader loader = new URLClassLoader(classPath(roots), originalLoader)) {
+		try {
 			Locale.setDefault(Locale.Category.DISPLAY, locale);
 			Thread.currentThread().setContextClassLoader(loader);
 			System.setOut(consoleStream);

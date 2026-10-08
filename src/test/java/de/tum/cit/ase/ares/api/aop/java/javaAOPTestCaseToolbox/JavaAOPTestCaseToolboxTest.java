@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -144,5 +145,23 @@ public class JavaAOPTestCaseToolboxTest {
 	public void testGetStringOneDArrayAssignmentEscapesElements() {
 		String result = JavaAOPTestCaseToolbox.getStringOneDArrayAssignment("paths", Arrays.asList("C:\\tmp", "a\"b"));
 		Assertions.assertEquals("private static String[] paths = new String[] {\"C:\\\\tmp\", \"a\\\"b\"};\n", result);
+	}
+
+	/**
+	 * Generated source keeps ASCII digits when the JVM's default locale writes
+	 * numbers in another script, since generated Java would not compile otherwise.
+	 */
+	@Test
+	public void testAssignmentsUseAsciiDigitsUnderAnyDefaultLocale() {
+		Locale original = Locale.getDefault();
+		try {
+			Locale.setDefault(Locale.forLanguageTag("ar-EG"));
+			Assertions.assertEquals("private static int count = 42;" + System.lineSeparator(),
+					JavaAOPTestCaseToolbox.getIntegerAssignment("count", 42));
+			Assertions.assertEquals("public static final long limit = 1234567L;" + System.lineSeparator(),
+					JavaAOPTestCaseToolbox.getPublicStaticFinalLongAssignment("limit", 1_234_567L));
+		} finally {
+			Locale.setDefault(original);
+		}
 	}
 }
