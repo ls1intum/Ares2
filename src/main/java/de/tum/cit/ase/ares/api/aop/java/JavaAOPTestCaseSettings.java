@@ -171,6 +171,14 @@ public final class JavaAOPTestCaseSettings {
 	private static volatile int[] threadNumberAllowedToBeCreated = null;
 
 	/**
+	 * The default temp directory, resolved to its real location, that trusted Ares
+	 * code fixed when the JVM started. It holds for the whole JVM, so
+	 * {@link #reset()} leaves it alone; {@code null} means nothing fixed it, and a
+	 * temp file without a named directory is then refused.
+	 */
+	private static volatile String frozenDefaultTempDirectory = null;
+
+	/**
 	 * Resets the configuration settings to their default values.
 	 * <p>
 	 * This method is called via reflection from

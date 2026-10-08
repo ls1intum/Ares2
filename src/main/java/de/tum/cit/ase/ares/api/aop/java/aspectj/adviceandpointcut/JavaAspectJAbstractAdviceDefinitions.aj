@@ -40,7 +40,6 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	@Nonnull
 	private static final StackWalker STACK_WALKER = StackWalker.getInstance();
 
-
 	/**
 	 * Lazily resolved Class&lt;?&gt; reference for the AOP settings holder, cached
 	 * so the reflective lookup runs once per JVM rather than on every advice call.
@@ -354,7 +353,6 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 			return Boolean.FALSE;
 		});
 	}
-
 
 	/**
 	 * Returns {@code true} only while Ares itself is reading framework support

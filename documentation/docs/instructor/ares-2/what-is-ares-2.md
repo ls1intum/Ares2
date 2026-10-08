@@ -16,8 +16,7 @@ still gets marked, and what it may reach is what the checklist allows.
 :::
 
 Ares 2 is a framework for the easy and secure remote execution of student submissions on an
-interactive learning platform. It is the second Java-based implementation of the Secure COder
-Remote Execution (SCORE) framework, and the first to support Java 25 and later.
+interactive learning platform. It supports Java 25 and later.
 
 Its main features are:
 

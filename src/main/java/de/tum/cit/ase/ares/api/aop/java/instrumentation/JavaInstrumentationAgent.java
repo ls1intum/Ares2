@@ -1,8 +1,12 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Method;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -123,6 +127,19 @@ public final class JavaInstrumentationAgent {
 	 */
 	private static volatile SecurityException activationFailure;
 
+	/**
+	 * The settings class the advice of both backends reads, named as a string so
+	 * the bootstrap copy and the application copy can each be looked up.
+	 */
+	private static final String SETTINGS_CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings";
+
+	/**
+	 * The JDK classes that remember the default temp directory on first use.
+	 * Loading them at start-up makes the JDK keep the start-up value.
+	 */
+	private static final List<String> JDK_TEMP_DIRECTORY_HOLDERS = List.of("java.io.File$TempDirectory",
+			"java.nio.file.TempFileHelper");
+
 	private JavaInstrumentationAgent() {
 		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 				.localize("security.instrumentation.utility.initialization", "JavaInstrumentationAgent"));
@@ -140,7 +157,7 @@ public final class JavaInstrumentationAgent {
 
 		putToolboxOnBootClassLoader(unsafeFactory);
 		initializeToolboxes();
-		initialiseAspectJFileSystem();
+		captureTrustedStartupValues();
 		java.lang.StackWalker walker = java.lang.StackWalker.getInstance();
 		walker.walk(stream -> stream.limit(1L).count());
 		java.nio.file.Files.exists(java.nio.file.Path.of("."));
@@ -241,6 +258,79 @@ public final class JavaInstrumentationAgent {
 	/** Reports whether the JVM's trusted agent startup has finished. */
 	public static boolean hasCompletedTrustedStartup() {
 		return trustedStartupComplete;
+	}
+
+	/**
+	 * Captures, once and before any supervised code runs, the values the
+	 * file-system checks trust: the default temp directory, kept by the JDK's own
+	 * holders and stored in both settings copies, and the AspectJ aspect's Java
+	 * home and Maven repository. The one start-up routine every runtime check
+	 * relies on.
+	 */
+	private static void captureTrustedStartupValues() {
+		JDK_TEMP_DIRECTORY_HOLDERS.forEach(holder -> initialiseIfPresent(holder, null));
+		String defaultTempDirectory = resolveDefaultTempDirectory();
+		if (defaultTempDirectory != null) {
+			publishFrozenTempDirectory(defaultTempDirectory, null);
+			publishFrozenTempDirectory(defaultTempDirectory, ClassLoader.getSystemClassLoader());
+		}
+		initialiseAspectJFileSystem();
+	}
+
+	/**
+	 * Returns the default temp directory resolved to its real location, following
+	 * symbolic links, or {@code null} if it cannot be resolved, in which case
+	 * nothing is stored and temp files without a directory are refused.
+	 *
+	 * @return the real default temp directory, or {@code null}
+	 */
+	private static String resolveDefaultTempDirectory() {
+		String property = System.getProperty("java.io.tmpdir");
+		if (property == null) {
+			return null;
+		}
+		try {
+			return Path.of(property).toRealPath().toString();
+		} catch (IOException | InvalidPathException unresolvable) {
+			return null;
+		}
+	}
+
+	/**
+	 * Stores the default temp directory in one copy of the settings, unless that
+	 * copy already holds one. A copy that does not exist, or that lacks the field,
+	 * is left alone, and the checks then refuse temp files without a directory.
+	 *
+	 * @param directory the real default temp directory
+	 * @param loader    the loader of the copy, {@code null} for the bootstrap copy
+	 */
+	private static void publishFrozenTempDirectory(String directory, ClassLoader loader) {
+		try {
+			Field field = Class.forName(SETTINGS_CLASS_NAME, true, loader)
+					.getDeclaredField("frozenDefaultTempDirectory");
+			field.setAccessible(true);
+			if (field.get(null) == null) {
+				field.set(null, directory);
+			}
+		} catch (ReflectiveOperationException | LinkageError | InaccessibleObjectException | SecurityException
+				| IllegalArgumentException absent) {
+			return;
+		}
+	}
+
+	/**
+	 * Initialises a class if the loader can find it, so its start-up values are
+	 * read now rather than on first use.
+	 *
+	 * @param className the class to initialise
+	 * @param loader    the loader to use, {@code null} for the bootstrap loader
+	 */
+	private static void initialiseIfPresent(String className, ClassLoader loader) {
+		try {
+			Class.forName(className, true, loader);
+		} catch (ClassNotFoundException | LinkageError absent) {
+			return;
+		}
 	}
 
 	/** Captures the AspectJ filesystem root before entering student code. */
