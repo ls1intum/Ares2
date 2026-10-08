@@ -13,7 +13,7 @@ import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseTo
  * today; every field is optional, and omitting one means that feature was never
  * configured.
  *
- * @since 2.1.5
+ * @since 2.2.0
  * @author Luka Petrovic
  * @param regardingPrivilegedExceptions the policy-level default; null when not
  *                                      configured.
@@ -51,7 +51,7 @@ public record TestBehaviorConfiguration(@Nullable PrivilegedExceptionsConfigurat
 	 * {@link #regardingPrivilegedExceptions()} is null, since nothing is
 	 * configured.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @return the literal field assignments to write into the generated settings
 	 *         class; empty when nothing is configured.
@@ -71,7 +71,7 @@ public record TestBehaviorConfiguration(@Nullable PrivilegedExceptionsConfigurat
 	/**
 	 * Returns a builder for creating a TestBehaviorConfiguration instance.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @return a new Builder instance.
 	 */
@@ -83,7 +83,7 @@ public record TestBehaviorConfiguration(@Nullable PrivilegedExceptionsConfigurat
 	/**
 	 * Builder for TestBehaviorConfiguration.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 */
 	public static class Builder {
@@ -109,7 +109,7 @@ public record TestBehaviorConfiguration(@Nullable PrivilegedExceptionsConfigurat
 		/**
 		 * Builds a new TestBehaviorConfiguration instance.
 		 *
-		 * @since 2.1.5
+		 * @since 2.2.0
 		 * @author Luka Petrovic
 		 * @return a new TestBehaviorConfiguration instance.
 		 */

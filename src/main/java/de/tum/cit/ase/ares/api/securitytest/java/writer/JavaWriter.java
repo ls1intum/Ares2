@@ -194,7 +194,7 @@ public class JavaWriter implements Writer {
 	 * setting. With nothing configured it writes nothing and deletes a class left
 	 * by an earlier run, so a removed setting cannot stay in force.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @param testBehaviorConfiguration the configuration to write; must not be
 	 *                                  null.
@@ -376,7 +376,7 @@ public class JavaWriter implements Writer {
 	 * virtually first, so a subclass overriding only that one keeps its
 	 * customisation, although {@code JavaTestCaseFactoryAndBuilder} calls this one.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @param essentialClasses          the list of essential classes; must not be
 	 *                                  null

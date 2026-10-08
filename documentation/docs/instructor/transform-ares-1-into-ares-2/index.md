@@ -14,9 +14,9 @@ mode you pick, and lives on the four pages behind it.
 > **Audience:** IT-Education experts maintaining an existing Ares 1 exercise.
 > **Scope:** The whole exercise: build files, test sources, security configuration.
 > **From:** Ares 1 (`de.tum.in.ase:artemis-java-test-sandbox:1.15.0`)
-> **To:** Ares 2 (`de.tum.cit.ase:ares:2.1.5`)
+> **To:** Ares 2 (`de.tum.cit.ase:ares:2.2.1`)
 
-> **Version snapshot:** the configuration on these pages is correct for Ares 2.1.5. Later
+> **Version snapshot:** the configuration on these pages is correct for Ares 2.2.1. Later
 > releases may change it; check [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md)
 > before copying it into a new exercise.
 
@@ -35,7 +35,8 @@ The migration splits into work that is the same in both modes, Postcompile and P
 work that is not:
 
 1. Read this page: why to migrate, what changes, the prerequisites, the import rewrite and the
-   translation from Ares 1 annotations into an Ares 2 policy file.
+   translation from Ares 1 annotations into an Ares 2 policy file. If your exercise uses jqwik, the
+   move to JUnit Jupiter is part of it.
 2. Choose a mode on [Postcompile or Precompile](./postcompile-or-precompile.md).
 3. Follow the leaf for your mode and build tool. It carries the dependency and build wiring, the
    activation, the class-shadowing guard and the verification procedure.
@@ -67,6 +68,7 @@ Neither depends on a platform feature that is going away. The cost is that the b
 | Build requirements | A dependency | A dependency, AspectJ weaving, an agent attachment, JVM module-access flags |
 | Class-shadowing guard | `maven-enforcer-plugin`, or a Gradle `doFirst` assertion, with the Ares 1 prefix list | The shipped reserved-package boundary, version 2, with the Ares 2 prefix list |
 | Test-type annotations | `@Public`, `@Hidden`, `@Deadline`, `@StrictTimeout`, … | The same, with new imports |
+| Property-based tests | jqwik `@Property` or `@Example` with `@Public` or `@Hidden` | Not supported; rewrite them as JUnit Jupiter tests, see [Move jqwik tests to JUnit Jupiter](#move-jqwik-tests-to-junit-jupiter) |
 
 The essential shape of the migration: **the test-type and lifecycle annotations survive a rename; the security annotations do not survive at all and must be re-expressed as a policy file.**
 
@@ -106,7 +108,6 @@ The test-type and lifecycle annotations survive the migration. Rewrite the packa
 | `de.tum.in.test.api.jupiter.Hidden` | `de.tum.cit.ase.ares.api.jupiter.Hidden` |
 | `de.tum.in.test.api.jupiter.PublicTest` | `de.tum.cit.ase.ares.api.jupiter.PublicTest` |
 | `de.tum.in.test.api.jupiter.HiddenTest` | `de.tum.cit.ase.ares.api.jupiter.HiddenTest` |
-| `de.tum.in.test.api.jqwik.Public` / `.Hidden` | `de.tum.cit.ase.ares.api.jqwik.Public` / `.Hidden` |
 | `de.tum.in.test.api.Deadline` | `de.tum.cit.ase.ares.api.Deadline` |
 | `de.tum.in.test.api.ExtendedDeadline` | `de.tum.cit.ase.ares.api.ExtendedDeadline` |
 | `de.tum.in.test.api.ActivateHiddenBefore` | `de.tum.cit.ase.ares.api.ActivateHiddenBefore` |
@@ -132,6 +133,110 @@ right target.
 A blanket search and replace of `de.tum.in.test.api` with `de.tum.cit.ase.ares.api` handles all of these. It produces unresolved imports for every **security** annotation, which is the correct outcome: those have no Ares 2 counterpart and are the subject of the step named in section 6 of this guide. Delete them as you translate them, rather than before, so you do not lose the configuration they encoded.
 
 > **Keep `@StrictTimeout`.** It is the effective timeout mechanism in Ares 2, exactly as in Ares 1. Do **not** rewrite it as a policy entry; see the step named in section 6.2 of this guide.
+
+## Move jqwik tests to JUnit Jupiter
+
+Ares 2.2.0 no longer supports jqwik. It has no `de.tum.cit.ase.ares.api.jqwik` package,
+and version 2.1.5 and earlier still have it. A test class that imports `Public` or `Hidden`
+from that package no longer compiles. Rewrite those
+tests for JUnit Jupiter and use the `jupiter` annotations of Ares.
+
+:::danger[Remove jqwik from your build]
+Delete the `net.jqwik:jqwik` dependency from your build file. If you only change the import
+and leave `@Property` or `@Example` in place, the test still compiles and jqwik still runs
+it, but Ares's `@Public` and `@Hidden` do nothing there. The test then runs with no policy and
+no deadline guard, and a hidden test is not held back. Without the dependency, a leftover
+`@Property` or `@Example` stops compiling instead.
+:::
+
+Pick the Jupiter form by where the inputs come from:
+
+| Your jqwik test | Jupiter replacement |
+|---|---|
+| `@Example` | `@PublicTest` or `@HiddenTest`, which already contain `@Test` |
+| A property whose inputs you can list | `@Public` or `@Hidden` with `@ParameterizedTest` and `@MethodSource` (or `@ValueSource` for plain values), one entry per edge case |
+| `@Property` with generated inputs | `@Public` or `@Hidden` with `@RepeatedTest`, drawing the inputs from a `java.util.Random` created with a fixed seed |
+
+Details that matter for Ares:
+
+- `@PublicTest` and `@HiddenTest` already contain JUnit's `@Test`. Next to `@ParameterizedTest`
+  or `@RepeatedTest` that adds a second, plain test that fails, because it has parameters
+  nothing supplies. Next to `@TestFactory` JUnit ignores the extra test with a warning. In all
+  three cases use `@Public` or `@Hidden` beside the Jupiter annotation.
+- `@Hidden` still needs a `@Deadline`, on the class or on the method, and `@Public` must not
+  have one.
+- A fixed seed gives every submission the same inputs, so the grading is fair and a failure
+  repeats on every run. Put the generated input into the assertion message, so a failure
+  shows what was tried.
+- With `@TestFactory`, call the student's code only inside the executable you pass to
+  `dynamicTest(...)`. Code that runs while the stream is built is not supervised. Console
+  capture covers all dynamic tests of the factory together.
+- jqwik applied the checks once per property. Jupiter applies them to every invocation, so
+  the thread budget and the console capture start again for each repetition and each entry.
+- A repetition or a parameter entry may appear as its own test in the report. Check how your
+  platform lists them before you move a hidden test with many repetitions.
+
+Before, with jqwik (Ares 2.1.5 package shown; Ares 1 used `de.tum.in.test.api.jqwik`):
+
+```java
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import de.tum.cit.ase.ares.api.jqwik.Public;
+import net.jqwik.api.ForAll;
+import net.jqwik.api.Property;
+
+class PenguinTest {
+
+    @Public
+    @Property
+    void nameLengthIsKept(@ForAll String name) {
+        assertEquals(name.length(), new Penguin(name).getName().length());
+    }
+}
+```
+
+After, with JUnit Jupiter:
+
+```java
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import de.tum.cit.ase.ares.api.jupiter.Public;
+import java.util.Random;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.RepetitionInfo;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+class PenguinTest {
+
+    @Public
+    @ParameterizedTest
+    @ValueSource(strings = { "", "Julian", "a name with spaces" })
+    void nameLengthIsKeptForEdgeCases(String name) {
+        assertEquals(name.length(), new Penguin(name).getName().length());
+    }
+
+    @Public
+    @RepeatedTest(100)
+    void nameLengthIsKeptForGeneratedNames(RepetitionInfo info) {
+        long seed = 42L + info.getCurrentRepetition();
+        Random random = new Random(seed);
+        String name = "x".repeat(random.nextInt(50));
+        assertEquals(name.length(), new Penguin(name).getName().length(),
+                "failed for name \"" + name + "\" (seed " + seed + ")");
+    }
+}
+```
+
+The `@ParameterizedTest` annotations come from the `junit-jupiter-params` artefact. In
+Postcompile, Ares already brings it. In Precompile, add it to the test dependencies at the
+same version as your JUnit Jupiter engine.
+
+**What you lose.** jqwik shrinks a failing input to the simplest one that still fails, and
+Jupiter does not. With a seeded `Random` you get a failing input that repeats on every run, but
+it is the input as generated, not the smallest one. Keep the edge cases you care about in the
+`@ValueSource` or `@MethodSource` list, since generated inputs will no longer find them for
+you by shrinking.
 
 ## Translate the security annotations into a policy file
 
@@ -248,7 +353,7 @@ Ares 1 and Ares 2 do not express the same things, so this is not a substitution 
 
 Notes on the rows that need them:
 
-**`@StrictTimeout` and `regardingTimeouts`.** Keep the annotation. `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the **Phobos** test-case family, which Ares 2.1.5 generates without yet dispatching it from the in-process execution path. That stage of the pipeline has not been migrated across, so a timeout expressed in the policy does not bound a test today. The list must still be present in the file, because the schema requires all six; `regardingTimeouts: [ ]` is the clearest form unless you want to record an intended value for a later release. Use `@StrictTimeout` wherever a test needs a deadline.
+**`@StrictTimeout` and `regardingTimeouts`.** Keep the annotation. `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the **Phobos** test-case family, which Ares 2.2.1 generates without yet dispatching it from the in-process execution path. That stage of the pipeline has not been migrated across, so a timeout expressed in the policy does not bound a test today. The list must still be present in the file, because the schema requires all six; `regardingTimeouts: [ ]` is the clearest form unless you want to record an intended value for a later release. Use `@StrictTimeout` wherever a test needs a deadline.
 
 **`@WhitelistPath` and path types.** Only the `STARTS_WITH` path type maps naturally onto `onThisPathAndAllPathsBelow`, which is prefix-shaped by construction. `PathType.GLOB` and regular-expression variants have no counterpart. A glob such as `@WhitelistPath(value = "../course1920xyz**", type = PathType.GLOB)` must be re-expressed as one or more concrete path prefixes, and the result is usually narrower than the original, which is the safe direction.
 
@@ -341,6 +446,6 @@ assertTrue(violation.getMessage().contains("secret.txt"),
 | **Instrumentation** | The other runtime mechanism: class bytecode modified at load time by a ByteBuddy `-javaagent`. |
 | **Reserved package** | A package prefix student code may not declare, because Ares trusts that identity by name. Enforced by the build, see the step named in section 8 of this guide. |
 | **`withinPath`** | The path to compiled student bytecode, relative to the build output directory. Differs between Gradle and Maven. |
-| **Phobos** | A test-case family covering the file-system, network and timeout domains. Ares 2.1.5 generates Phobos cases but does not yet dispatch them from the in-process execution path, so a policy timeout does not bound a test today. Use `@StrictTimeout` for a deadline. |
+| **Phobos** | A test-case family covering the file-system, network and timeout domains. Ares 2.2.1 generates Phobos cases but does not yet dispatch them from the in-process execution path, so a policy timeout does not bound a test today. Use `@StrictTimeout` for a deadline. |
 | **`@StrictTimeout`** | The annotation that bounds test execution. Applied to a test class or method, and unchanged from Ares 1 apart from its package. |
 | **Positive / negative control** | The paired checks of the step named in section 10 of this guide: one permitted operation that must succeed, one forbidden operation that must be rejected. Neither alone demonstrates that enforcement works. |
