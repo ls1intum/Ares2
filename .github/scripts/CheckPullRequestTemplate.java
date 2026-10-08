@@ -46,7 +46,7 @@ public class CheckPullRequestTemplate {
         sections.put("## 3. Improvement from the maintainer's perspective",
                 List.of("1000", "No Improvement from the maintainer's perspective"));
         sections.put("## 4. Testing manual", List.of("5000", ""));
-        sections.put("## 5. Test case coverage regarding this PR", List.of("", "No production Java code changed"));
+        sections.put("## 5. Test case coverage regarding this PR", List.of("", "No production code changed"));
         sections.put("## Breaking changes and migration", List.of("1000", "No breaking changes or migration"));
         sections.put("## Checklist", List.of("", ""));
         sections.put("## Review progress", List.of("", ""));
@@ -72,6 +72,32 @@ public class CheckPullRequestTemplate {
 
     /** Code between backticks, the same but within a paragraph rather than across blocks. */
     private static final int SPAN = 2;
+
+    /** Where a region found by {@link #regions(String)} keeps its start, its end and its kind. */
+    private static final int REGION_START = 0;
+    private static final int REGION_END = 1;
+    private static final int REGION_KIND = 2;
+
+    /** Where a heading's bounds keep its start and its end. */
+    private static final int BOUND_START = 0;
+    private static final int BOUND_END = 1;
+
+    /** The rules each entry of {@link #SECTIONS} carries: a limit and a phrase. */
+    private static final int RULES_PER_SECTION = 2;
+
+    /** Markdown lets a fence or a heading be indented by up to this many spaces. */
+    private static final int MAXIMUM_BLOCK_INDENT = 3;
+
+    /** A fence is at least this many backticks or tildes. */
+    private static final int MINIMUM_FENCE_LENGTH = 3;
+
+    /** The columns of indentation that make a line indented code, and the tab stop tabs fill to. */
+    private static final int CODE_BLOCK_INDENT = 4;
+    private static final int TAB_STOP = 4;
+
+    /** The two ends of a comment. */
+    private static final String COMMENT_OPEN = "<!--";
+    private static final String COMMENT_CLOSE = "-->";
 
     /** A heading as a whole line, which is how the span scan knows one interrupts its paragraph. */
     private static final Pattern HEADING_LINE = Pattern.compile(" {0,3}#{1,6}(?:[ \\t].*)?", LINES);
@@ -250,7 +276,7 @@ public class CheckPullRequestTemplate {
      */
     private static List<String> miswrittenSection(String heading, List<String> rules) {
         List<String> problems = new ArrayList<>(miswrittenHeading(heading));
-        if (rules.size() != 2) {
+        if (rules.size() != RULES_PER_SECTION) {
             problems.add("This check is miswritten: the rules for '" + heading + "' are not the two "
                     + "expected, a limit and a phrase, either of which may be empty (found "
                     + rules.size() + "). Fix CheckPullRequestTemplate.java, not the pull request body.");
@@ -452,8 +478,8 @@ public class CheckPullRequestTemplate {
     private static String painted(String text, char spanFiller) {
         StringBuilder result = new StringBuilder(text);
         for (int[] region : regions(text)) {
-            char filler = region[2] == SPAN ? spanFiller : ' ';
-            for (int index = region[0]; index < region[1]; index++) {
+            char filler = region[REGION_KIND] == SPAN ? spanFiller : ' ';
+            for (int index = region[REGION_START]; index < region[REGION_END]; index++) {
                 if (result.charAt(index) != '\n') {
                     result.setCharAt(index, filler);
                 }
@@ -475,7 +501,7 @@ public class CheckPullRequestTemplate {
         while (index < text.length()) {
             int end = index == 0 || text.charAt(index - 1) == '\n' ? fenceEnd(text, index) : -1;
             int kind = FENCE;
-            if (end < 0 && text.startsWith("<!--", index) && !treatedAsIndentedCode(text, index)) {
+            if (end < 0 && text.startsWith(COMMENT_OPEN, index) && !treatedAsIndentedCode(text, index)) {
                 end = commentEnd(text, index);
                 kind = COMMENT;
             }
@@ -502,7 +528,7 @@ public class CheckPullRequestTemplate {
      */
     private static int fenceEnd(String text, int start) {
         int open = start;
-        while (open < text.length() && open - start < 3 && text.charAt(open) == ' ') {
+        while (open < text.length() && open - start < MAXIMUM_BLOCK_INDENT && text.charAt(open) == ' ') {
             open++;
         }
         if (open >= text.length() || text.charAt(open) != '`' && text.charAt(open) != '~') {
@@ -511,7 +537,7 @@ public class CheckPullRequestTemplate {
         char marker = text.charAt(open);
         int length = runLength(text, open, marker);
         int lineEnd = endOfLine(text, open);
-        if (length < 3 || marker == '`' && text.indexOf('`', open + length) >= 0
+        if (length < MINIMUM_FENCE_LENGTH || marker == '`' && text.indexOf('`', open + length) >= 0
                 && text.indexOf('`', open + length) < lineEnd) {
             return -1;
         }
@@ -524,7 +550,7 @@ public class CheckPullRequestTemplate {
         while (line < text.length()) {
             line++;
             int marks = line;
-            while (marks < text.length() && marks - line < 3 && text.charAt(marks) == ' ') {
+            while (marks < text.length() && marks - line < MAXIMUM_BLOCK_INDENT && text.charAt(marks) == ' ') {
                 marks++;
             }
             int end = endOfLine(text, marks);
@@ -575,16 +601,16 @@ public class CheckPullRequestTemplate {
         String next = text.substring(line, endOfLine(text, line));
         int marker = line + next.length() - next.stripLeading().length();
         return next.isBlank() || HEADING_LINE.matcher(next).matches() || fenceEnd(text, line) >= 0
-                || text.startsWith("<!--", marker) && !treatedAsIndentedCode(text, marker);
+                || text.startsWith(COMMENT_OPEN, marker) && !treatedAsIndentedCode(text, marker);
     }
 
     /** Where the comment starting here ends, or -1 when none does. An unclosed one runs to the end. */
     private static int commentEnd(String text, int start) {
-        if (!text.startsWith("<!--", start)) {
+        if (!text.startsWith(COMMENT_OPEN, start)) {
             return -1;
         }
-        int close = text.indexOf("-->", start + 4);
-        return close < 0 ? text.length() : close + 3;
+        int close = text.indexOf(COMMENT_CLOSE, start + COMMENT_OPEN.length());
+        return close < 0 ? text.length() : close + COMMENT_CLOSE.length();
     }
 
     /**
@@ -645,8 +671,8 @@ public class CheckPullRequestTemplate {
 
         Map<String, String> result = new LinkedHashMap<>();
         for (int index = 0; index < names.size(); index++) {
-            int end = index + 1 < bounds.size() ? bounds.get(index + 1)[0] : text.length();
-            result.put(names.get(index), text.substring(bounds.get(index)[1], end));
+            int end = index + 1 < bounds.size() ? bounds.get(index + 1)[BOUND_START] : text.length();
+            result.put(names.get(index), text.substring(bounds.get(index)[BOUND_END], end));
         }
         return result;
     }
@@ -660,11 +686,11 @@ public class CheckPullRequestTemplate {
         StringBuilder result = new StringBuilder();
         int cursor = 0;
         for (int[] region : regions(text)) {
-            if (region[2] != COMMENT) {
+            if (region[REGION_KIND] != COMMENT) {
                 continue;
             }
-            result.append(text, cursor, region[0]);
-            cursor = region[1];
+            result.append(text, cursor, region[REGION_START]);
+            cursor = region[REGION_END];
         }
         result.append(text, cursor, text.length());
         return result.toString().trim();
@@ -679,16 +705,16 @@ public class CheckPullRequestTemplate {
      */
     private static boolean treatedAsIndentedCode(String text, int place) {
         int column = 0;
-        for (int index = text.lastIndexOf(10, place - 1) + 1; index < place; index++) {
+        for (int index = text.lastIndexOf('\n', place - 1) + 1; index < place; index++) {
             char character = text.charAt(index);
-            if (character == 32) {
+            if (character == ' ') {
                 column++;
-            } else if (character == 9) {
-                column += 4 - column % 4;
+            } else if (character == '\t') {
+                column += TAB_STOP - column % TAB_STOP;
             } else {
                 return false;
             }
-            if (column >= 4) {
+            if (column >= CODE_BLOCK_INDENT) {
                 return true;
             }
         }
@@ -696,8 +722,8 @@ public class CheckPullRequestTemplate {
     }
 
     /**
-     * Makes every line ending the same. GitHub sends Windows line endings and this repository stores
-     * Markdown with them too, so without this the same text would measure longer than it reads.
+     * Makes every line ending the same. GitHub sends Windows line endings, so without this the same
+     * text would measure longer than it reads.
      */
     private static String normalise(String text) {
         return text.replace("\r\n", "\n").replace("\r", "\n");

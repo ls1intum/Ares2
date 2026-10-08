@@ -57,13 +57,13 @@ way an otherwise correct contribution arrives unreviewable.
 - Fill in every section. The template states what to write when a section does not
   apply; use that section's documented phrase (`No linked issues`, `No Improvement from
   the user's perspective`, `No Improvement from the maintainer's perspective`,
-  `No breaking changes or migration`, `No production Java code changed`,
+  `No breaking changes or migration`, `No production code changed`,
   `Not reproducible from an exercise`, `No mode-specific behaviour changed`) rather than
   deleting the section. Each phrase belongs to the section that documents it, so the wrong
   one does not answer a section, and neither does a shortened one.
 - Five of those phrases answer a whole section: `No linked issues`, the two
   `No Improvement from the ...'s perspective` phrases, `No breaking changes or migration`
-  and `No production Java code changed`. Written as the section's whole answer, apart from
+  and `No production code changed`. Written as the section's whole answer, apart from
   a trailing full stop, they finish it and nothing further is checked in it. The phrase
   left standing above the empty table or the numbered stub does not because that section
   was not finished.
@@ -167,6 +167,55 @@ all, spells a heading so that it could never match one, states anything other th
 and a phrase for a section, gives a limit that is not a whole number of at least one that
 fits in an `int`, or gives a phrase of whitespace, which is neither a phrase nor the empty
 string that says there is none.
+
+## Publishing a release
+
+Every release description must follow `.github/RELEASE_TEMPLATE.md`. **Read that file before
+writing the notes**, do not reconstruct it from memory.
+
+**Why:** GitHub does not prefill a release from the template the way it prefills a pull
+request in the web UI, and nothing on GitHub validates the result. Creating a release from
+the command line with `gh release create --notes` or `--notes-file` bypasses the template
+entirely, so notes written from memory arrive in the wrong shape.
+
+**Rule:**
+
+- Build the notes from the template. Copy it into the release description and fill in every
+  section.
+- Keep the opening summary unheaded. The release opens with a paragraph of at most three
+  lines; a top-level heading there would duplicate the release title GitHub already shows.
+- Fill in every section. Where a section does not apply, use its documented phrase (`None`
+  for `Linked issues` and for `Breaking changes and migration`, `No Improvement` for each of
+  the two `Improvements` sections) rather than deleting the section.
+- `Problems` is never answered with `None`. A release with nothing to say under Problems does
+  not need notes; describe the gaps, limitations or maintenance it addresses instead.
+- `## Coordinates` ships placeholders (`REPLACE_WITH_THIS_TAG`, `REPLACE_WITH_PREVIOUS_TAG`,
+  `REPLACE_WITH_THIS_VERSION`). Replace them all before publishing.
+- Do not delete, rename or reorder the `##` headings. The check knows them by name, so a
+  renamed heading fails it.
+
+Check the notes before publishing, from the repository root:
+
+```
+RELEASE_BODY="$(cat notes.md)" java .github/scripts/CheckReleaseTemplate.java
+```
+
+The checker is a single-file Java program, run through the source-code launcher of JDK 11 or
+newer, so it needs no build step and adds no language to the repository.
+
+`release-template.yml` runs the same program on `release: published` and `release: edited`.
+Read it as an alarm rather than a gate: the event fires once the release is already public,
+and GitHub offers no event for a release while it is still a draft, so the workflow cannot
+stop malformed notes from being published. It makes them visible immediately, and the command
+above is what actually prevents them.
+
+**Changing the template is two edits, not one.** The required headings and the phrases that
+answer a section live in `SECTIONS` at the top of `.github/scripts/CheckReleaseTemplate.java`,
+the opening line cap lives in `OPENING_MAX_LINES` beside it, and the closing section whose
+placeholders are checked is named in `PLACEHOLDER_SECTION`. The checker does not read the
+template, so a section renamed, added, removed or given a different whole-section phrase, or a
+changed opening cap, has to be changed in both files in the same commit. Nothing detects the
+drift.
 
 ## Documenting Java
 

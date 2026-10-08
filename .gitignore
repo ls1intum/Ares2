@@ -33,7 +33,6 @@ gradle-app.setting
 /artemis-java-test-sandbox.iml
 /Ares.iml
 /.idea
-/.jqwik-database
 /build
 /.gradle
 

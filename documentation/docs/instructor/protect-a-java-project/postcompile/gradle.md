@@ -13,7 +13,7 @@ can quietly take it off the desk.
 
 ## The path, in order
 
-1. **Add the dependency and the agent**, below.
+1. **Add the dependency**, and **the agent** if your configuration ends in `_INSTRUMENTATION`, below.
 2. **[Set up the public and hidden test model](../setup.md)**.
 3. **[Mark your tests](../test-annotations.md)** with `@PublicTest` or `@HiddenTest`, and give
    hidden tests a `@Deadline`.
@@ -30,12 +30,20 @@ Blockquoted tips (marked `>`) in the setup steps below describe optional configu
 skipped on a first setup. Everything not in a blockquote is required.
 :::
 
+**The agent is required only for configurations ending in `_INSTRUMENTATION`.** It enforces the
+policy by rewriting Java classes as they load. A configuration ending in `_ASPECTJ` enforces the
+same policy through aspects that `ajc` weaves in at compile time. Ares leaves the agent's checks
+idle in that mode, so there the agent only adds start-up time to every test run. For an
+`_ASPECTJ` configuration, leave out the `aresAgent` configuration and dependency, the `agentJar`
+property with its `from(...)` line, and the `-javaagent` argument. Keep everything else, including
+`-Xbootclasspath/a:` and the module access flags.
+
 First, add the AspectJ compiler plugin:
 
 ```gradle
 plugins {
     id 'java'
-    id 'io.freefair.aspectj.post-compile-weaving' version '9.5.0'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.8.0'
 }
 ```
 
@@ -57,7 +65,7 @@ repositories {
 
 ```gradle
 ext {
-    aresVersion = '2.1.5'
+    aresVersion = '2.2.1'
     aspectjVersion = '1.9.25.1'
 }
 ```
@@ -68,7 +76,7 @@ ext {
 >
 > ```toml
 > [versions]
-> ares = "2.1.5"
+> ares = "2.2.1"
 > aspectjrt = "1.9.25.1"
 > [libraries]
 > ares = { module = "de.tum.cit.ase:ares", version.ref = "ares" }
@@ -188,7 +196,7 @@ tasks.withType(Test).configureEach {
 - **Why an argument provider rather than `jvmArgs`.** Writing `jvmArgs += ["-javaagent:${configurations.aresAgent.singleFile}"]` looks simpler, but the string is evaluated while Gradle is *configuring* the build. That resolves the dependency even when you run an unrelated task, it fails the whole build if resolution fails, and it is incompatible with the configuration cache. A `CommandLineArgumentProvider` declares the JARs as task inputs and computes the arguments when the test task runs. The `@InputFiles` annotations are what let Gradle track them for the configuration and build caches.
 - **Why `singleFile` is safe here.** Both configurations are `transitive = false` with exactly one dependency each, so each resolves to exactly one file. No file-name matching is involved, so there is no way to pick up the wrong JAR.
 - `useJUnitPlatform()`: enables JUnit 5 (Jupiter) test discovery.
-- `-javaagent:...`: loads the Ares agent before any user code runs, which is what the instrumentation enforcement path relies on.
+- `-javaagent:...`: loads the Ares agent before any user code runs, which is what the instrumentation enforcement path relies on. Only `_INSTRUMENTATION` configurations need it.
 - `-Xbootclasspath/a:...`: appends the AspectJ **runtime** JAR to the bootstrap classpath, so woven bytecode can resolve AspectJ runtime types at the bootstrap class-loader level.
 - `tasks.withType(Test).configureEach`: applies to every test task, including custom ones, rather than only the default `test` task.
 - **JVM module access flags.** All listed packages must be opened for Ares to introspect intercepted Java Development Kit (JDK) objects and instrument bytecode. The list mirrors the `jvm.module.access.args` property in the Ares `pom.xml`:
@@ -209,6 +217,60 @@ tasks.withType(Test).configureEach {
 4. **Runtime references:** the woven bytecode references AspectJ runtime classes, supplied by `aspectjrt` on the bootstrap classpath (configured in the agent step above).
 
 **Without the plugin, no weaving occurs** and the `-Xbootclasspath/a:` flag has no effect.
+
+### Make the build faster
+
+Every Artemis submission is built in a fresh container, so each of the steps below saves time on
+every submission. None of them changes what `ajc` weaves or what Ares enforces.
+
+> **Tip (aspect path):** Let `ajc` look for aspects in the Ares JAR only. The `aspect`
+> configuration is transitive, so by default `ajc` searches every dependency of Ares for aspects
+> as well, which costs time and finds none.
+>
+> ```gradle
+> configurations {
+>     aresAspectPath {
+>         canBeConsumed = false
+>         canBeResolved = true
+>         transitive = false
+>     }
+> }
+>
+> dependencies {
+>     aresAspectPath "de.tum.cit.ase:ares:${aresVersion}"
+> }
+>
+> tasks.named('compileJava') {
+>     ajc.options.aspectpath.setFrom(configurations.aresAspectPath)
+> }
+> ```
+>
+> Keep the `aspect` dependency as it is. If a future Ares release ships aspects in a separate
+> artefact, this setting leaves them out, so rerun the negative control from
+> [Verify your setup](#verify-your-setup) after every Ares upgrade.
+
+> **Tip (test classes):** The plugin runs `ajc` on the test classes as well, which have no aspects
+> to weave in. Switching that run off saves a second `ajc` start:
+>
+> ```gradle
+> tasks.named('compileTestJava') {
+>     ajc.enabled = false
+> }
+> ```
+
+> **Tip (Gradle daemon):** Add a `gradle.properties` file next to `build.gradle`:
+>
+> ```properties
+> org.gradle.jvmargs=-Xmx512m -XX:MaxMetaspaceSize=384m -XX:TieredStopAtLevel=1 -XX:+UseSerialGC
+> ```
+>
+> The first two values are Gradle's own defaults, repeated because setting `org.gradle.jvmargs`
+> replaces them. The last two make the short-lived daemon start faster and use less CPU. They
+> apply to the Gradle daemon only, not to the JVM that runs the tests, so they do not change how
+> fast student code runs or when a `@StrictTimeout` fires.
+
+> **Tip (plugin version):** Use a version of the AspectJ plugin that your build image already has
+> in its Gradle cache. Otherwise every build downloads it, together with its Kotlin libraries.
 
 ## Provide the policy file
 
@@ -315,7 +377,7 @@ In a multi-project build, apply the snippet to **every** project that compiles s
 
 The list above is the versioned reserved-package boundary, and it is deliberately a superset of
 the canonical Ares list. Besides the packages Ares trusts by name, it stops student code
-shadowing the test harness itself (JUnit, jqwik, AssertJ, Logback, Gradle).
+shadowing the test harness itself (JUnit, AssertJ, Logback, Gradle).
 
 Keep it aligned with `WalaPathClassification.RESERVED_PACKAGE_PREFIX_VERSION` (the prefix data)
 and `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION` (the build-side contract), and do not disable it.
@@ -397,11 +459,11 @@ import org.gradle.process.CommandLineArgumentProvider
 
 plugins {
     id 'java'
-    id 'io.freefair.aspectj.post-compile-weaving' version '9.5.0'
+    id 'io.freefair.aspectj.post-compile-weaving' version '9.8.0'
 }
 
 ext {
-    aresVersion = '2.1.5'
+    aresVersion = '2.2.1'
     aspectjVersion = '1.9.25.1'
 }
 
@@ -420,6 +482,11 @@ configurations {
         canBeResolved = true
         transitive = false
     }
+    aresAspectPath {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
 }
 
 dependencies {
@@ -428,6 +495,15 @@ dependencies {
     testImplementation "de.tum.cit.ase:ares:${aresVersion}"
     aspect "de.tum.cit.ase:ares:${aresVersion}"
     implementation "org.aspectj:aspectjrt:${aspectjVersion}"
+    aresAspectPath "de.tum.cit.ase:ares:${aresVersion}"
+}
+
+tasks.named('compileJava') {
+    ajc.options.aspectpath.setFrom(configurations.aresAspectPath)
+}
+
+tasks.named('compileTestJava') {
+    ajc.enabled = false
 }
 
 abstract class AresJvmArguments implements CommandLineArgumentProvider {

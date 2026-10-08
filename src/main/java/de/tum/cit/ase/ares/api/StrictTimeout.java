@@ -10,8 +10,9 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.*;
 
-import de.tum.cit.ase.ares.api.jqwik.JqwikStrictTimeoutExtension;
-import de.tum.cit.ase.ares.api.jupiter.*;
+import de.tum.cit.ase.ares.api.jupiter.Hidden;
+import de.tum.cit.ase.ares.api.jupiter.JupiterStrictTimeoutExtension;
+import de.tum.cit.ase.ares.api.jupiter.Public;
 
 /**
  * Works like
@@ -23,7 +24,6 @@ import de.tum.cit.ase.ares.api.jupiter.*;
  * <p>
  * To use {@link StrictTimeout} <b>without</b> any {@link Public} or
  * {@link Hidden}, you need to declare the {@link JupiterStrictTimeoutExtension}
- * for JUnit 5 Jupiter or {@link JqwikStrictTimeoutExtension} for jqwik
  * explicitly. However, this is not recommended as it is less effective.
  *
  * @author Christian Femers

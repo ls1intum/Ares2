@@ -39,8 +39,6 @@ The [`api/jupiter`](https://github.com/ls1intum/Ares2/blob/main/src/main/java/de
 - Parameter resolution supplies `IOTester` to a test that declares it, which is how console
   interaction is tested without the test touching `System.in` directly.
 
-Ares ships a jqwik integration for property-based tests too; see [Jqwik](./jqwik.md).
-
 ## Further reading
 
 - [JUnit 5 User Guide](https://docs.junit.org/current/user-guide/) — JUnit team
