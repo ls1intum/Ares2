@@ -1,13 +1,17 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
 
 import net.bytebuddy.description.NamedElement;
 import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDefinition;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
@@ -78,11 +82,12 @@ public final class JavaInstrumentationPointcutDefinitions {
 			return ElementMatchers.none();
 		}
 
-		ElementMatcher.Junction<TypeDescription> matcher = ElementMatchers.none();
+		ElementMatcher.Junction<TypeDescription> perTargetMatcher = ElementMatchers.none();
 		for (String target : targets) {
-			matcher = matcher.or(ElementMatchers.named(target))
+			perTargetMatcher = perTargetMatcher.or(ElementMatchers.named(target))
 					.or(ElementMatchers.hasSuperType(ElementMatchers.named(target)));
 		}
+		ElementMatcher.Junction<TypeDescription> matcher = new SuperTypeNameMatcher(Set.of(targets), perTargetMatcher);
 
 		// Exclude internal JVM implementation classes that have different method
 		// signatures
@@ -98,6 +103,122 @@ public final class JavaInstrumentationPointcutDefinitions {
 				.and(ElementMatchers.not(ElementMatchers.nameStartsWith("jdk.internal."))));
 
 		return matcher;
+	}
+
+	/**
+	 * Matches a type if its own name or the name of any of its supertypes is one of
+	 * the targets, exactly as {@code named(t).or(hasSuperType(named(t)))} for every
+	 * target would, but walks the type hierarchy once per type instead of once per
+	 * target and builder. If the walk fails, the per-target matcher decides.
+	 */
+	private static final class SuperTypeNameMatcher extends ElementMatcher.Junction.AbstractBase<TypeDescription> {
+
+		/**
+		 * The most recently walked type with its supertype names, shared by every
+		 * matcher because the agent asks all of them about the same type in a row.
+		 */
+		private static volatile SuperTypeNames lastWalked;
+
+		/**
+		 * The fully qualified names of the classes whose subtypes are matched.
+		 */
+		private final Set<String> targets;
+
+		/**
+		 * The per-target matcher that decides when the hierarchy walk fails.
+		 */
+		private final ElementMatcher<TypeDescription> fallback;
+
+		/**
+		 * Creates a matcher for the given targets.
+		 *
+		 * @param targets  The fully qualified names of the classes to match.
+		 * @param fallback The equivalent per-target matcher used if the walk fails.
+		 */
+		private SuperTypeNameMatcher(Set<String> targets, ElementMatcher<TypeDescription> fallback) {
+			this.targets = targets;
+			this.fallback = fallback;
+		}
+
+		/**
+		 * Checks whether the type or any of its supertypes is named as a target.
+		 *
+		 * @param target The type to check.
+		 * @return True if the type or one of its supertypes is a target.
+		 */
+		@Override
+		public boolean matches(TypeDescription target) {
+			if (target == null) {
+				return false;
+			}
+			Set<String> names;
+			try {
+				names = superTypeNames(target);
+			} catch (RuntimeException walkFailure) {
+				return fallback.matches(target);
+			}
+			for (String name : names) {
+				if (targets.contains(name)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/**
+		 * Returns the names of the type and all its supertypes, reusing the result of
+		 * the previous call for the same type instance.
+		 *
+		 * @param type The type whose hierarchy is walked.
+		 * @return The erasure names of the type, its superclasses and interfaces.
+		 */
+		private static Set<String> superTypeNames(TypeDescription type) {
+			SuperTypeNames cached = lastWalked;
+			if (cached != null && cached.type() == type) {
+				return cached.names();
+			}
+			Set<String> names = walk(type);
+			lastWalked = new SuperTypeNames(type, names);
+			return names;
+		}
+
+		/**
+		 * Collects the erasure names in the order and with the cycle guard of Byte
+		 * Buddy's {@code HasSuperTypeMatcher}.
+		 *
+		 * @param type The type whose hierarchy is walked.
+		 * @return The erasure names of the type, its superclasses and interfaces.
+		 */
+		private static Set<String> walk(TypeDescription type) {
+			Set<TypeDescription> previous = new HashSet<>();
+			Set<String> names = new HashSet<>();
+			for (TypeDefinition typeDefinition : type) {
+				TypeDescription erasure = typeDefinition.asErasure();
+				if (!previous.add(erasure)) {
+					break;
+				}
+				names.add(erasure.getActualName());
+				Queue<TypeDefinition> interfaceTypes = new ArrayDeque<>(typeDefinition.getInterfaces());
+				while (!interfaceTypes.isEmpty()) {
+					TypeDefinition interfaceType = interfaceTypes.remove();
+					TypeDescription interfaceErasure = interfaceType.asErasure();
+					if (previous.add(interfaceErasure)) {
+						names.add(interfaceErasure.getActualName());
+						interfaceTypes.addAll(interfaceType.getInterfaces());
+					}
+				}
+			}
+			return Set.copyOf(names);
+		}
+
+		/**
+		 * One walked type and the names of its supertypes.
+		 *
+		 * @param type  The walked type instance.
+		 * @param names The erasure names of the type and all its supertypes.
+		 */
+		private record SuperTypeNames(TypeDescription type, Set<String> names) {
+		}
 	}
 
 	private static final class MethodPointcutSpec {

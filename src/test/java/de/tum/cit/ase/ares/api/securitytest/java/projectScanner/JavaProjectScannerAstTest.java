@@ -40,17 +40,16 @@ class JavaProjectScannerAstTest {
 				}
 				record RecordCases(int value) { @org.junit.jupiter.api.TestFactory Object factory() { return null; } }
 				interface InterfaceCases { @org.junit.jupiter.api.RepeatedTest(2) default void repeated() {} }
-				enum EnumCases { VALUE; @net.jqwik.api.Property boolean property() { return true; } }
+				enum EnumCases { VALUE; @org.junit.jupiter.api.Test void property() {} }
 				class JupiterTemplate { @org.junit.jupiter.api.TestTemplate void template() {} }
 				class JunitFour { @org.junit.Test void oldTest() {} }
-				class JqwikExample { @net.jqwik.api.Example void example() {} }
 				""");
 		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
 		assertEquals("alpha", scanner.scanForPackageName());
 		assertEquals("Application", scanner.scanForMainClassInPackage());
 		assertArrayEquals(
 				new String[] { "checks.Cases", "checks.Cases.Nested", "checks.EnumCases", "checks.InterfaceCases",
-						"checks.JqwikExample", "checks.JunitFour", "checks.JupiterTemplate", "checks.RecordCases" },
+						"checks.JunitFour", "checks.JupiterTemplate", "checks.RecordCases" },
 				scanner.scanForTestClasses());
 	}
 

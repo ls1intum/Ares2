@@ -9,7 +9,7 @@ When students submit programming homework, something has to run their code to se
 works. Running a stranger's code on your machine is exactly as risky as it sounds.
 
 So picture an examination. The methods the student wrote are the pupils. The test framework,
-JUnit or jqwik, is the teacher, putting the exercise's questions one at a time and marking each
+JUnit Jupiter, is the teacher, putting the exercise's questions one at a time and marking each
 answer on the spot. Ares is the checklist the teacher works through at every desk: what a pupil
 may reach for, and what happens when they reach for anything else. The work still runs and
 still gets marked, and what it may reach is what the checklist allows.

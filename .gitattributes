@@ -52,9 +52,6 @@ gradlew    text eol=lf
 *.dll      binary
 *.dylib    binary
 
-# jqwik property-based testing database
-.jqwik-database binary
-
 # Text files where line endings should be preserved
 *.patch    -text
 

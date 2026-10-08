@@ -28,7 +28,8 @@ timeline spans two processes.
 ## 1. Discovery and extension registration
 
 How `@Public` / `@Hidden` resolve through `@JupiterAresTest` to the four registered extensions,
-and why `BeforeTestExecutionCallback` is used rather than `interceptTestMethod`.
+and why the guard is armed in `interceptBeforeEachMethod` and `BeforeTestExecutionCallback`
+rather than in `interceptTestMethod`.
 
 ## 2. Reading the policy
 
@@ -53,7 +54,7 @@ allow-list.
 
 ## 6. Teardown
 
-`afterTestExecution`, the reset in both the standard and the bootstrap class loader, and why the
+`afterTestExecution`, the `afterEach` backstop, the reset in both the standard and the bootstrap class loader, and why the
 reset must happen on the failure path too.
 
 ## 7. Where Precompile differs

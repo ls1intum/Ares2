@@ -13,7 +13,7 @@ import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseTo
  * to {@link ResourceAccesses} on {@link SupervisedCode}. Every field is
  * optional, and omitting one means that feature was never configured.
  *
- * @since 2.1.5
+ * @since 2.2.0
  * @author Luka Petrovic
  * @param regardingStrictTimeouts the policy-level timeout default; null when
  *                                not configured.
@@ -51,7 +51,7 @@ public record TestBehaviorConfiguration(@Nullable StrictTimeoutsConfiguration re
 	 * per field, each already formatted by {@code JavaAOPTestCaseToolbox}'s
 	 * public-static-final assignment helpers. Empty when nothing is configured.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @return the literal field assignments to write into the generated settings
 	 *         class; empty when nothing is configured.
@@ -76,7 +76,7 @@ public record TestBehaviorConfiguration(@Nullable StrictTimeoutsConfiguration re
 	/**
 	 * Returns a builder for creating a TestBehaviorConfiguration instance.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @return a new Builder instance.
 	 */
@@ -88,7 +88,7 @@ public record TestBehaviorConfiguration(@Nullable StrictTimeoutsConfiguration re
 	/**
 	 * Builder for TestBehaviorConfiguration.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 */
 	public static class Builder {
@@ -114,7 +114,7 @@ public record TestBehaviorConfiguration(@Nullable StrictTimeoutsConfiguration re
 		/**
 		 * Builds a new TestBehaviorConfiguration instance.
 		 *
-		 * @since 2.1.5
+		 * @since 2.2.0
 		 * @author Luka Petrovic
 		 * @return a new TestBehaviorConfiguration instance.
 		 */

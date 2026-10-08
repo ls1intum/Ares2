@@ -14,7 +14,7 @@ test cases it calls for.
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `de.tum.cit.ase.ares.api.securitytest` — the abstract factory/builder, the Java-specific factory, and the `creator`, `essentialModel`, `executer`, `writer`, `projectScanner`, and `specific` sub-packages.
-> **Ares Version:** 2.1.5
+> **Ares Version:** 2.2.1
 
 **Related documentation:**
 - [Security Policy Manual](../policy/security-policy-manual.md) — how to write a security policy YAML file
@@ -458,7 +458,7 @@ Defines five scanning methods that auto-detect project metadata:
 | Method | Returns | What it discovers |
 |---|---|---|
 | `scanForBuildMode()` | `BuildMode` | Whether the project uses Maven (`pom.xml`) or Gradle (`build.gradle`) |
-| `scanForTestClasses()` | `String[]` | Fully qualified names of all classes in the **test source directory** containing `@Test` or `@Property` annotations, or extending JUnit 3's `TestCase` |
+| `scanForTestClasses()` | `String[]` | Fully qualified names of all classes in the **test source directory** containing a test annotation (`@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@TestTemplate`, JUnit 4's `@Test`, or Ares's `@PublicTest` and `@HiddenTest`), or extending JUnit 3's `TestCase` |
 | `scanForPackageName()` | `String` | The most frequently used non-reserved package: taken from the production sources, otherwise from the compiled production output, otherwise the configured default |
 | `scanForMainClassInPackage()` | `String` | The class containing `public static void main(String[])` |
 | `scanForTestPath()` | `Path` | The file system path to the test source directory |
@@ -477,7 +477,7 @@ Defines five scanning methods that auto-detect project metadata:
 | Package declaration | the compilation unit's `PackageDeclaration` | `scanForPackageName()` |
 | Type declarations | the top-level `TypeDeclaration`s, nested types included | `scanForMainClassInPackage()`, `scanForTestClasses()` |
 | `main` method | a `public static void main(String[])` declaration, varargs included | `scanForMainClassInPackage()` |
-| Test classes | a `@Test` or `@Property` annotation, or a JUnit 3 `TestCase` supertype resolved through the imports of the file | `scanForTestClasses()` |
+| Test classes | a test annotation (`@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@TestTemplate`, JUnit 4's `@Test`, `@PublicTest` or `@HiddenTest`), or a JUnit 3 `TestCase` supertype resolved through the imports of the file | `scanForTestClasses()` |
 
 Resolving the supertype through the imports is why this is not a regex: `extends TestCase` names a type, and which type it names depends on what the file imported.
 
@@ -522,7 +522,7 @@ Step 1 is skipped entirely when the discovered source roots are not known to be 
 >
 > An exercise that needs a scope it can rely on declares its package in the security policy. The scanner is then not consulted at all, which is the only version of this that cannot be steered from the submission.
 
-**`scanForTestClasses()` algorithm:** Scans only the **test source directory** (see `scanForTestPath()`) and returns every class whose file contains a `@Test` / `@Property` annotation or `extends TestCase`.
+**`scanForTestClasses()` algorithm:** Scans only the **test source directory** (see `scanForTestPath()`) and returns every class whose file contains a test annotation (`@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@TestTemplate`, JUnit 4's `@Test`, `@PublicTest` or `@HiddenTest`) or `extends TestCase`.
 
 **`scanForMainClassInPackage()` algorithm:** Collects all classes with a `main` method → prefers a class named `Main` or `Application` → otherwise returns the first match → defaults to `"Main"`.
 
@@ -690,7 +690,7 @@ class SecurityTest {
 | `SecurityException` from `EssentialDataYAMLReader` — "read failed" or "data bind failed" | The `EssentialClasses.yaml` or `EssentialPackages.yaml` file is malformed or missing | Check that the YAML files exist at the expected classpath location and have the correct schema (7 list fields each) |
 | Architecture tests pass but runtime enforcement is missing | The Java agent JAR is not loaded via `-javaagent` | See the [Maven](/instructor/protect-a-java-project/postcompile/maven) or [Gradle](/instructor/protect-a-java-project/postcompile/gradle) walkthrough for agent setup |
 | Scanner detects the wrong package name | The most-frequent-package heuristic picks a utility package instead of the student's main package | Specify `theSupervisedCodeUsesTheFollowingPackage` explicitly in the security policy YAML |
-| Scanner finds no test classes | Java source files do not contain `@Test` or `@Property` annotations (or `extends TestCase`), or files are not under the test source directory | Specify `theFollowingClassesAreTestClasses` explicitly in the security policy YAML (note: with a policy present, test classes come **only** from the policy — the scanner is not consulted) |
+| Scanner finds no test classes | Java source files do not contain test annotations (or `extends TestCase`), or files are not under the test source directory | Specify `theFollowingClassesAreTestClasses` explicitly in the security policy YAML (note: with a policy present, test classes come **only** from the policy — the scanner is not consulted) |
 | `SecurityException` from `PathLocationProvider` — "can only be used on classes annotated with…" | The test class using `PathLocationProvider` is missing the `@StudentCompiledClassesPath` annotation | Add `@StudentCompiledClassesPath("build/classes/java/main")` to the test class |
 | Call-graph analysis is slow | WALA call-graph construction is computationally expensive for large projects | Switch to `ArchitectureMode.ARCHUNIT` (rule-based, faster but less precise), or ensure the cache is not invalidated between runs |
 
