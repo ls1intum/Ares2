@@ -6,6 +6,9 @@
      It also reserves de/tum/cit/ase/ares/generated, where precompile writes its own code.
      Matching ignores letter case, because a case-insensitive file system (Windows, a
      default macOS volume) also finds meta-inf/services/... for META-INF/services/...
+     Each name is a filename selector, not an include: Ant follows an include's fixed
+     leading folders in one spelling only, so it would miss meta-inf/ beside META-INF/.
+     Ant's default excludes are off, so a folder named CVS or .git is checked too.
      The build descriptor and the command used to invoke it are trusted instructor
      configuration; this validates student code, not the build itself. -->
 <plugin>
@@ -19,14 +22,23 @@
       <goals><goal>run</goal></goals>
       <configuration>
         <target>
-          <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}" casesensitive="false">
-            <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
-            <include name="jdk/**"/><include name="com/sun/**"/>
-            <include name="de/tum/cit/ase/ares/api/**"/><include name="de/tum/cit/ase/ares/generated/**"/>
-            <include name="net/bytebuddy/**"/><include name="org/aspectj/**"/>
-            <include name="com/ibm/wala/**"/><include name="com/tngtech/archunit/**"/>
-            <include name="META-INF/services/**"/>
-            <include name="junit-platform.properties"/><include name="archunit.properties"/>
+          <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}" defaultexcludes="no">
+            <or>
+              <filename name="java/**" casesensitive="false"/>
+              <filename name="javax/**" casesensitive="false"/>
+              <filename name="sun/**" casesensitive="false"/>
+              <filename name="jdk/**" casesensitive="false"/>
+              <filename name="com/sun/**" casesensitive="false"/>
+              <filename name="de/tum/cit/ase/ares/api/**" casesensitive="false"/>
+              <filename name="de/tum/cit/ase/ares/generated/**" casesensitive="false"/>
+              <filename name="net/bytebuddy/**" casesensitive="false"/>
+              <filename name="org/aspectj/**" casesensitive="false"/>
+              <filename name="com/ibm/wala/**" casesensitive="false"/>
+              <filename name="com/tngtech/archunit/**" casesensitive="false"/>
+              <filename name="META-INF/services/**" casesensitive="false"/>
+              <filename name="junit-platform.properties" casesensitive="false"/>
+              <filename name="archunit.properties" casesensitive="false"/>
+            </or>
           </fileset>
           <resourcecount property="ares.reserved.package.count" refid="ares.reserved.files"/>
           <pathconvert property="ares.reserved.package.files" refid="ares.reserved.files" pathsep=", "/>
