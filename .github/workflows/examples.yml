@@ -114,11 +114,30 @@ jobs:
             echo "${installed} is the JAR this build produced"
           done
 
-      - name: Verify the Gradle wrapper JAR is the one we generated
+      # The expected checksum is the one Gradle publishes for the version named in
+      # distributionUrl, not one written here: a fixed value failed every Renovate
+      # update that changed the JAR's bytes. The version reaches a URL, so it is
+      # validated first, and the properties file is checked out with CRLF line
+      # endings, so the carriage returns are removed.
+      - name: Verify the Gradle wrapper JAR is Gradle's own for the version it names
         if: matrix.tool == 'gradle'
+        working-directory: examples/ares-exercise-gradle
         run: |
-          echo "497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7  examples/ares-exercise-gradle/gradle/wrapper/gradle-wrapper.jar" \
-            | sha256sum --check --strict
+          gradle_version="$(tr -d '\r' < gradle/wrapper/gradle-wrapper.properties \
+            | sed -n 's/^distributionUrl=.*\/gradle-\(.*\)-\(bin\|all\)\.zip$/\1/p')"
+          case "${gradle_version}" in
+            '' | [!0-9A-Za-z]* | *[!0-9A-Za-z.-]*)
+              echo "::error::distributionUrl did not name a Gradle version"
+              exit 1
+              ;;
+          esac
+          expected="$(curl --fail --silent --show-error --location --proto '=https' --retry 3 \
+            "https://services.gradle.org/distributions/gradle-${gradle_version}-wrapper.jar.sha256")"
+          if ! printf '%s' "${expected}" | grep -Eqx '[0-9a-f]{64}'; then
+            echo "::error::Gradle published no wrapper checksum for ${gradle_version}"
+            exit 1
+          fi
+          echo "${expected}  gradle/wrapper/gradle-wrapper.jar" | sha256sum --check --strict
 
       # The examples resolve from Maven Central as shipped. CI consumes the
       # just-built artefact instead, so the exercise files stay exactly what a

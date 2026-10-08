@@ -54,21 +54,16 @@ public class JavaExecuter implements Executer {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param buildMode                 the Java build mode to use; must not be null
-	 * @param architectureMode          the Java architecture mode to use; must not
-	 *                                  be null
-	 * @param aopMode                   the Java AOP mode to use; must not be null
-	 * @param essentialPackages         the list of essential packages; must not be
-	 *                                  null
-	 * @param essentialClasses          the list of essential classes; must not be
-	 *                                  null
-	 * @param testClasses               the list of test classes; must not be null
-	 * @param packageName               the name of the package containing the main
-	 *                                  class; must not be null
-	 * @param mainClassInPackageName    the name of the main class; must not be null
-	 * @param javaArchitectureTestCases the list of architecture test cases; must
-	 *                                  not be null
-	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
+	 * @param buildMode                 build mode
+	 * @param architectureMode          architecture mode
+	 * @param aopMode                   AOP mode
+	 * @param essentialPackages         essential packages
+	 * @param essentialClasses          essential classes
+	 * @param testClasses               test classes
+	 * @param packageName               main class's package
+	 * @param mainClassInPackageName    main class's name
+	 * @param javaArchitectureTestCases architecture test cases
+	 * @param javaAOPTestCases          AOP test cases
 	 */
 	@Override
 	public void executeTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
@@ -104,6 +99,9 @@ public class JavaExecuter implements Executer {
 				.executeArchitectureTestCase(architectureModeString, aopModeString));
 		javaAOPTestCases
 				.forEach(javaTestCase -> javaTestCase.executeAOPTestCase(architectureModeString, aopModeString));
+		if (aopMode == AOPMode.INSTRUMENTATION) {
+			JavaInstrumentationAgent.activate();
+		}
 		setJavaAdviceSettingValue("restrictedPackage", packageName, architectureMode, aopMode);
 		if (aopMode == AOPMode.INSTRUMENTATION) {
 			// Object's final monitor methods require application call-site rewriting.

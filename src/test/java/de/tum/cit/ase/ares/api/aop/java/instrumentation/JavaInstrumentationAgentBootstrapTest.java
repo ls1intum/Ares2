@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -17,6 +18,19 @@ import net.bytebuddy.dynamic.loading.ClassInjector;
 import net.bytebuddy.dynamic.loading.ClassInjector.UsingUnsafe.Factory;
 
 class JavaInstrumentationAgentBootstrapTest {
+
+	/**
+	 * Drops the transformation failure a test recorded on purpose, which the agent
+	 * otherwise keeps for good and which would fail every later activation.
+	 *
+	 * @throws ReflectiveOperationException If the field cannot be reached.
+	 */
+	@AfterEach
+	void forgetRecordedFailure() throws ReflectiveOperationException {
+		java.lang.reflect.Field permanentFailure = JavaInstrumentationAgent.class.getDeclaredField("PERMANENT_FAILURE");
+		permanentFailure.setAccessible(true);
+		((java.util.concurrent.atomic.AtomicReference<?>) permanentFailure.get(null)).set(null);
+	}
 
 	@Test
 	void nullBootstrapInjectorFailsClosed() throws Exception {
