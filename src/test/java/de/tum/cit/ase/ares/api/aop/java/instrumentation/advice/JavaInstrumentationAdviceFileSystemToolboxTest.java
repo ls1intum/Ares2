@@ -17,9 +17,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
+import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
+import de.tum.cit.ase.ares.testutilities.JceFileSystemContract;
 
 import example.student.InstrumentationSecurityProbe;
 
@@ -27,7 +29,13 @@ import example.student.InstrumentationSecurityProbe;
  * Carries a loopback literal for the network-adjacent cases in this class.
  */
 @SuppressWarnings("PMD.AvoidUsingHardCodedIP")
-class JavaInstrumentationAdviceFileSystemToolboxTest {
+class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContract {
+
+	/** Selects the JDK-definition enforcement backend for the shared contract. */
+	@Override
+	protected AOPMode jceMode() {
+		return AOPMode.INSTRUMENTATION;
+	}
 
 	@Test
 	void pathWildcardAllowsEveryPath(@TempDir Path tempDir) throws Exception {

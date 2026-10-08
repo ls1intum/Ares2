@@ -138,7 +138,7 @@ Instructors define file system access policies in a policy file, and Ares 2 tran
 2. **Student code detected**: The call stack contains classes in `restrictedPackage` and not in `allowedListedClasses`
 3. **Derived actions**: The actions are derived from the intercepted method and any `StandardOpenOption` values (may include multiple actions)
 4. **Path violation found**: After method-specific parameter filtering, at least one extracted path (from parameters or attributes) does not match the list of allowed paths for its allowed actions
-5. **Not exempt infrastructure access**: The violating path is not an internal configuration/resource file of Ares and does not fall under one of the JVM-infrastructure exemptions (class-loading `.class` reads, system JAR reads, JDK-internal reads, native-library loads, JCE crypto-policy files, archive entry reads, root `/`). These exemptions apply at all check sites (parameters, receiver, and attributes).
+5. **Not exempt infrastructure access**: The violating path is not an internal configuration/resource file of Ares and does not fall under one of the JVM-infrastructure exemptions (class-loading `.class` reads, system JAR reads, JDK-internal reads, native-library loads, archive entry reads, root `/`). These exemptions apply at all check sites (parameters, receiver, and attributes).
 
 Plain-language summary: if student code triggers a monitored file method and the path is outside the allowlist for the needed action, Ares blocks the access.
 
@@ -1224,6 +1224,7 @@ Object[] filteredParameters = filterVariables(parameters, parameterIgnoreRule);
 | `Files.createTempFile(dir, prefix, suffix, ...)` | Only parameter 0 (the directory `Path`) | Prefix/suffix strings are not paths |
 | `Files.writeString(path, csq, ...)` | Only parameter 0 (the `Path`) | The written content is not a path |
 | `Files.write(path, bytes, ...)` | Only parameter 0 (the `Path`) | The written content is not a path |
+| `Files.newDirectoryStream(dir, glob)` | Only parameter 0 (the directory `Path`) | The glob filters entry names and never grants directory access |
 | `Files.readString(path, cs)` | Only parameter 0 (the `Path`) | The charset is not a path |
 | `File.createTempFile(prefix, suffix)` | Nothing (all parameters ignored) | There is no path parameter at all |
 | `Runtime.exec(cmd, ...)` | Only parameter 0 (the command) | Flags like `"-c"` are not paths |
@@ -1366,10 +1367,15 @@ This exemption is applied at **all three** check sites: parameter-based, receive
 **Further infrastructure exemptions:** Besides Ares's own files, a flagged path is allowed when the access is Java Virtual Machine (JVM)/library infrastructure rather than student file access:
 - `.class` reads performed by the class-loading machinery (a class-loader frame is on the stack, or the caller is `Class.forName`/`ClassLoader`)
 - `.jar` reads from system infrastructure, meaning the Maven local repository or the Java Development Kit (JDK) installation under `java.home`
-- JDK-internal reads under `java.home` and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
-- JCE crypto-policy files read during Transport Layer Security (TLS)/cryptography initialisation
+- JDK-internal reads under the trusted startup snapshot of `java.home` and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
 - Entry reads on an **already-open** `JarFile`/`ZipFile` (the constructor is NOT exempt and still validates its path)
 - The root path `"/"` when found in object attributes (a side effect of class resolution)
+
+**JCE policy reads and trusted startup:** Cryptography needs the JDK's jurisdiction policies. These files use the existing trusted JDK-root read allowance; filenames such as `default_local.policy`, `default_US_export.policy` and `exempt_local.policy` grant no permission themselves. Student files with those names remain subject to the exercise policy, including reads from provider callbacks. Creation, replacement and deletion receive no special allowance.
+
+Instrumentation observes JCE's JDK filesystem calls. AspectJ checks calls woven into the exercise and library sources; the cold-start fixture does not weave the JDK's own JCE callers. Consequently successful cold cryptography proves compatibility in both modes, while the separate student read proves that the selected backend enforces the file policy. Direct advice tests cover parameter, receiver and object-field representations separately.
+
+The Ares agent initialises the filesystem advice during trusted JVM startup, before student execution. Both packaged Postcompile exercises and generated Precompile exercises must configure their corresponding agent with `-javaagent`. A generated exercise uses the copied agent and its generated manifest. Active AspectJ supervision without completed trusted startup fails with a localised configuration error. Changing `java.home` later cannot replace the trusted root. The isolated cold-start and capture tests record class initialisation and backend interception under `target/jce-proofs/` and `target/jce-generated-capture-*/`; those logs distinguish normal startup from fixture warm-up.
 
 **3. Used variables**
 

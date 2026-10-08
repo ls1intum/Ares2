@@ -134,17 +134,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	private static final Set<String> NATIVE_LIBRARY_SUFFIXES = Set.of(".dylib", ".jnilib", ".so", ".dll");
 
 	/**
-	 * The fixed set of JCE jurisdiction crypto-policy file names, plus the exact
-	 * directory-scan glob {@code javax.crypto.JceSecurity} uses to locate them
-	 * during TLS/cryptography initialisation. Matched exactly (not by prefix) so
-	 * the crypto-policy read exemption cannot be widened by a student-chosen file
-	 * name.
-	 */
-	@Nonnull
-	private static final Set<String> CRYPTO_POLICY_NAMES = Set.of("default_US_export.policy", "default_local.policy",
-			"exempt_local.policy", "{default,exempt}_*.policy");
-
-	/**
 	 * Trusted JVM home captured at class-initialisation time, before student code
 	 * runs, so a later {@code System.setProperty("java.home", ...)} cannot widen
 	 * the system-file access exemption into a fail-open read/execute bypass.
@@ -1328,92 +1317,14 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
-	 * Returns {@code true} when {@code path} refers to a JCE jurisdiction crypto
-	 * policy file (or the directory-scan glob used to locate them). When TLS/JCE
-	 * initialises (e.g. {@code SSLContext.init},
-	 * {@code SSLContextImpl$TLSContext}), {@code javax.crypto.JceSecurity} scans
-	 * for {@code default_*.policy} and {@code exempt_*.policy} via
-	 * {@code Files.newDirectoryStream}. That read is JVM cryptography
-	 * infrastructure, not student file access; blocking it makes cryptography fail
-	 * to initialise ({@code NoClassDefFoundError} / "Can not initialize
-	 * cryptographic mechanism"). The AspectJ backend applies this same exemption,
-	 * so this keeps the two backends consistent. The bare
-	 * {@code {default,exempt}_*.policy} directory-scan glob is not itself a real
-	 * file path — it resolves against the working directory, not {@code java.home},
-	 * when converted to a path — so a location check on the intercepted argument
-	 * cannot validate it. The match instead requires the access to originate from
-	 * {@code javax.crypto.JceSecurity}'s own scan (see
-	 * {@link #isJceCryptoPolicyScanInProgress()}), which a student cannot spoof and
-	 * which never takes a student-influenceable path/glob argument, so a
-	 * student-controlled file (or a directly-called {@code newDirectoryStream} with
-	 * the same glob) cannot bypass the read policy merely by matching one of the
-	 * exempt names.
-	 *
-	 * @param path the already-resolved path string under inspection
-	 * @return true if the path is a JCE crypto policy file or scan glob read by a
-	 *         genuine JCE-triggered scan
-	 */
-	private static boolean isCryptoPolicyPath(@Nullable String path) {
-		if (path == null) {
-			return false;
-		}
-		int slash = path.lastIndexOf('/');
-		String name = slash >= 0 ? path.substring(slash + 1) : path;
-		// Match only the fixed JCE jurisdiction-policy file names and the exact
-		// directory-scan glob JceSecurity uses, never an arbitrary
-		// "default_*"/"exempt_*"
-		// prefix, so a student-named file such as "default_tokens.policy" is NOT
-		// exempt.
-		if (!CRYPTO_POLICY_NAMES.contains(name)) {
-			return false;
-		}
-		// SECURITY: the name match alone is not sufficient — a student-controlled file
-		// (or a directly student-called newDirectoryStream) could bear one of these
-		// exact names/glob to bypass the read policy. Require the read to actually
-		// originate from JCE's own scanning code.
-		return isJceCryptoPolicyScanInProgress();
-	}
-
-	/**
-	 * Performs the security validation for a single derived file-system action.
-	 * <p>
-	 * Description: Reuses the previously gathered contextual information to
-	 * evaluate both method parameters and instance attributes against the allowed
-	 * path lists. When a violation is detected, a {@link SecurityException} is
-	 * raised containing localisation-aware details.
-	 * </p>
-	 *
-	 * @param action                              concrete file-system action under
-	 *                                            inspection
-	 * @param allowNonExistingPathsToBeConsidered whether non-existing paths are
-	 *                                            permitted
-	 * @param declaringTypeName                   fully qualified declaring type
-	 *                                            name
-	 * @param methodName                          method being intercepted
-	 * @param methodSignature                     JVM method signature
-	 * @param attributes                          instance attributes (if any)
-	 * @param parameters                          intercepted method arguments
-	 * @param instance                            instance on which the method is
-	 *                                            invoked
-	 * @param restrictedPackage                   package prefix under security
-	 *                                            scrutiny
-	 * @param allowedClasses                      classes allowed within the
-	 *                                            restricted package
-	 * @param fileSystemMethodToCheck             offending method discovered in the
-	 *                                            restricted call stack
-	 * @param studentCalledMethod                 external method initiating the
-	 *                                            restricted call (may be null)
-	 * @param fullMethodSignature                 human-readable method signature
-	 *                                            for diagnostics
-	 * @throws SecurityException if the interaction violates configured policies
-	 * @since 2.0.0
+	 * Checks actual path parameters, receivers and attributes for one filesystem
+	 * action.
 	 */
 	private static void checkFileSystemInteractionForAction(@Nonnull String action,
 			boolean allowNonExistingPathsToBeConsidered, @Nonnull String declaringTypeName, @Nonnull String methodName,
 			@Nullable Object[] attributes, @Nullable Object[] parameters, @Nullable Object instance,
 			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature) {
-		// <editor-fold desc="Resolve allowed paths">
 		@Nullable
 		final String[] allowedPaths = getValueFromSettings(switch (action) {
 		case "read" -> "pathsAllowedToBeRead";
@@ -1424,21 +1335,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 		});
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
-		// </editor-fold>
-		// <editor-fold desc="Check parameters">
 		@Nullable
 		String pathIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
 				: checkIfVariableCriteriaIsViolated(
 						parameters, allowedPaths, FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT
 								.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE),
 						allowNonExistingPathsToBeConsidered);
-		// When a "create" pointcut intercepts a class/method that semantically
-		// truncates/overwrites
-		// (FileOutputStream, FileWriter, PrintWriter, or
-		// Files.newBufferedWriter/newOutputStream
-		// without an explicit append=true), the reported verb should be "overwrite" so
-		// that
-		// messages match test expectations.
 		boolean isWriteAliasedAsCreate = "create".equals(action)
 				&& ("java.io.FileOutputStream".equals(declaringTypeName)
 						|| "java.io.FileWriter".equals(declaringTypeName)
@@ -1446,50 +1348,17 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 						|| ("java.nio.file.Files".equals(declaringTypeName)
 								&& ("newBufferedWriter".equals(methodName) || "newOutputStream".equals(methodName))));
 		String messageAction = isWriteAliasedAsCreate ? "overwrite" : action;
-		// Reads of entries from an ALREADY-OPEN JarFile/ZipFile (getInputStream,
-		// entries, getEntry, stream, ...) are JVM/library infrastructure: ServiceLoader
-		// scanning META-INF/services (e.g. JCA/TLS providers, channel providers),
-		// manifest reads, and resource loading triggered transitively (e.g. while
-		// capturing a launched process's output or initialising cryptography). The
-		// CONSTRUCTOR is deliberately NOT exempt: new JarFile(path)/new ZipFile(path)
-		// opens a file and its path must still be validated, otherwise student code
-		// could open an arbitrary archive undetected. Entry reads on an already-open
-		// archive carry no fresh path argument, so exempting them cannot mask a student
-		// data read (which uses FileInputStream/Files/Reader, never JarFile/ZipFile).
-		// This also mirrors the AspectJ backend, whose pointcuts never intercept these
-		// JarFile/ZipFile entry methods.
 		boolean isJarResourceRead = "read".equals(action) && !"<init>".equals(methodName)
 				&& ("java.util.jar.JarFile".equals(declaringTypeName)
 						|| "java.util.zip.ZipFile".equals(declaringTypeName));
 		if (pathIllegallyInteractedThroughParameter != null) {
-			// Check if this is a .class file access by ClassLoader - should be allowed.
-			// The JVM reads a class's bytecode while defining it (e.g. when the test
-			// harness reflectively invokes a subject method, which lazily loads the
-			// subject class under an already-active policy). That read is class loading,
-			// not student code reading a file as data, so it is exempted. The
-			// studentCalledMethod prefixes cover a direct Class.forName/ClassLoader call;
-			// isClassLoadingInProgress() additionally covers loads triggered indirectly
-			// (e.g. via reflective invocation) by detecting a class-loader frame on the
-			// stack. A student opening a .class file directly has no such frame, so this
-			// stays a precise, non-bypassable exemption.
 			boolean isClassLoaderAccess = pathIllegallyInteractedThroughParameter.endsWith(".class")
 					&& (isClassLoadingInProgress() || (studentCalledMethod != null
 							&& (studentCalledMethod.startsWith("java.lang.Class.forName")
 									|| studentCalledMethod.startsWith("java.lang.ClassLoader")
 									|| studentCalledMethod.startsWith("jdk.internal.loader"))));
-			// Allow .jar reads from system infrastructure paths (Maven repo, JDK).
-			// These are triggered by JUnit / ServiceLoader during class loading and are
-			// not initiated by student code accessing arbitrary project files.
 			boolean isSystemJarRead = "read".equals(action)
 					&& isSystemJarReadExempt(pathIllegallyInteractedThroughParameter);
-			// Allow reads of Ares's own internal files (e.g. the localization resources
-			// loaded while building this very message). Without this exemption, resolving
-			// the denial message reads Messages.class / messages.properties, that read is
-			// blocked here, and constructing the new message recurses until the stack
-			// overflows. The receiver and attribute sites already apply this exemption;
-			// the parameter site must do the same. An explicit loop is used instead of
-			// stream().anyMatch() to avoid synthesising lambda classes that may be absent
-			// from the agent JAR.
 			boolean isInternalAllowed = false;
 			for (String suffix : INTERNAL_PATH_SUFFIXES) {
 				if (pathIllegallyInteractedThroughParameter.endsWith(suffix)) {
@@ -1497,15 +1366,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					break;
 				}
 			}
-			// Allow JDK-internal reads and native-library loads under java.home. These are
-			// JVM infrastructure (e.g. JceSecurity reading the crypto-policy files), not
-			// student file access, and must not be blocked.
 			boolean isExemptSystemFileAccess = isExemptSystemFileAccess(action,
 					pathIllegallyInteractedThroughParameter);
-			boolean isCryptoPolicyRead = "read".equals(action)
-					&& isCryptoPolicyPath(pathIllegallyInteractedThroughParameter);
 			if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess
-					&& !isJarResourceRead && !isCryptoPolicyRead) {
+					&& !isJarResourceRead) {
 				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
 						messageAction, pathIllegallyInteractedThroughParameter,
 						fullMethodSignature
@@ -1513,8 +1377,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
 			}
 		}
-		// </editor-fold>
-		// <editor-fold desc="Check receiver instance">
 		@Nullable
 		String pathIllegallyInteractedThroughReceiver = instance == null ? null
 				: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedPaths, IgnoreValues.NONE,
@@ -1525,9 +1387,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (INTERNAL_PATH_SUFFIXES.stream().anyMatch(pathIllegallyInteractedThroughReceiver::endsWith)) {
 				isInternalAllowed = true;
 			}
-
-			// A .class read performed by the JVM class-loading machinery is class
-			// loading, not student file access (see isClassLoadingInProgress).
 			if (!isInternalAllowed && pathIllegallyInteractedThroughReceiver.endsWith(".class")
 					&& isClassLoadingInProgress()) {
 				isInternalAllowed = true;
@@ -1537,22 +1396,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					&& isSystemJarReadExempt(pathIllegallyInteractedThroughReceiver)) {
 				isInternalAllowed = true;
 			}
-
-			// JDK-internal reads and native-library loads under java.home are exempt.
 			if (!isInternalAllowed && isExemptSystemFileAccess(action, pathIllegallyInteractedThroughReceiver)) {
 				isInternalAllowed = true;
 			}
-
-			// Reads of a JAR/ZIP entry via getInputStream are JVM/library infrastructure
-			// (see isJarResourceRead), not student file access.
 			if (!isInternalAllowed && isJarResourceRead) {
-				isInternalAllowed = true;
-			}
-
-			// JCE crypto-policy scans during TLS/cryptography initialisation are JVM
-			// infrastructure (see isCryptoPolicyPath).
-			if (!isInternalAllowed && "read".equals(action)
-					&& isCryptoPolicyPath(pathIllegallyInteractedThroughReceiver)) {
 				isInternalAllowed = true;
 			}
 
@@ -1564,8 +1411,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
 			}
 		}
-		// </editor-fold>
-		// <editor-fold desc="Check attributes">
 		@Nullable
 		String pathIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null
 				: checkIfVariableCriteriaIsViolated(
@@ -1573,25 +1418,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 								.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE),
 						allowNonExistingPathsToBeConsidered);
 		if (pathIllegallyInteractedThroughAttribute != null) {
-			// Check if the path is an internal path that should be allowed
-			// Note: Using explicit loop instead of stream().anyMatch() with method
-			// reference
-			// to avoid creating lambda classes that may not be in the agent JAR
 			boolean isInternalAllowed = false;
-
-			// Root path "/" is used by ClassLoader during class loading and should be
-			// allowed
-			// This is a side effect of how the JVM resolves classes and is not a security
-			// concern
 			if ("/".equals(pathIllegallyInteractedThroughAttribute)) {
 				isInternalAllowed = true;
 			}
-
-			// .class file access by ClassLoader should be allowed
-			// When the JVM loads a class (e.g., via Class.forName), it reads the .class
-			// file
-			// from the filesystem. This is not a security concern as it's part of normal
-			// class loading behaviour, not arbitrary file access by student code.
 			if (pathIllegallyInteractedThroughAttribute.endsWith(".class") && (isClassLoadingInProgress()
 					|| (studentCalledMethod != null && (studentCalledMethod.startsWith("java.lang.Class.forName")
 							|| studentCalledMethod.startsWith("java.lang.ClassLoader")
@@ -1605,30 +1435,14 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					break;
 				}
 			}
-
-			// Allow .jar reads from system infrastructure paths (Maven repo, JDK).
-			// These are triggered by JUnit / ServiceLoader during class loading and are
-			// not initiated by student code accessing arbitrary project files.
 			if (!isInternalAllowed && "read".equals(action)
 					&& isSystemJarReadExempt(pathIllegallyInteractedThroughAttribute)) {
 				isInternalAllowed = true;
 			}
-
-			// JDK-internal reads and native-library loads under java.home are exempt.
 			if (!isInternalAllowed && isExemptSystemFileAccess(action, pathIllegallyInteractedThroughAttribute)) {
 				isInternalAllowed = true;
 			}
-
-			// Reads of a JAR/ZIP entry via getInputStream are JVM/library infrastructure
-			// (see isJarResourceRead), not student file access.
 			if (!isInternalAllowed && isJarResourceRead) {
-				isInternalAllowed = true;
-			}
-
-			// JCE crypto-policy scans during TLS/cryptography initialisation are JVM
-			// infrastructure (see isCryptoPolicyPath).
-			if (!isInternalAllowed && "read".equals(action)
-					&& isCryptoPolicyPath(pathIllegallyInteractedThroughAttribute)) {
 				isInternalAllowed = true;
 			}
 
@@ -1640,7 +1454,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
 			}
 		}
-		// </editor-fold>
 	}
 
 	/**

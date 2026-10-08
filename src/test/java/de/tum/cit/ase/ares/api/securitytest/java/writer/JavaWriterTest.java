@@ -64,6 +64,25 @@ public class JavaWriterTest {
 		emptyTestBehaviorConfiguration = TestBehaviorConfiguration.builder().build();
 	}
 
+	/**
+	 * Writes resource bundles where the generated namespace can load both locales.
+	 */
+	@Test
+	void writesLocalisationIntoTheGeneratedNamespace() throws IOException {
+		Path sourceRoot = Files.createDirectories(tempDir.resolve("src/test/java"));
+		javaWriter.writeTestCases(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, List.of(), List.of(),
+				List.of(), "exercise.security", "Main", List.of(), List.of(), List.of(), sourceRoot);
+		Path bundles = tempDir.resolve("src/test/resources/exercise/security/ares/api/localization");
+		for (String name : List.of("messages.properties", "messages_de.properties")) {
+			var messages = new java.util.Properties();
+			try (var input = Files.newInputStream(bundles.resolve(name))) {
+				messages.load(input);
+			}
+			assertNotNull(messages.getProperty("security.advice.trusted.startup.missing"));
+			assertNotNull(messages.getProperty("security.advice.denial.reason.not.in.allowlist"));
+		}
+	}
+
 	@Nested
 	@DisplayName("writeTestCases() Tests")
 	class WriteTestCasesTests {

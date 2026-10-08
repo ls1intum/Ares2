@@ -2,7 +2,6 @@ package de.tum.cit.ase.ares.api.util;
 
 //<editor-fold desc="Import">
 
-import static de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.localize;
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 import java.io.File;
@@ -363,23 +362,18 @@ public final class FileTools {
 	}
 
 	/**
-	 * Reads the content of a sourceFile and returns it as a set of strings.
-	 *
-	 * @param sourceFile The sourceFile to read
-	 * @return a set of strings representing the content of the sourceFile
+	 * Reads distinct, non-empty method names, excluding comment lines, from a
+	 * source file.
 	 */
 	public static Set<String> readMethodsFile(@Nonnull File sourceFile) {
 		try {
 			String fileContent = Files.readString(sourceFile.toPath(), StandardCharsets.UTF_8);
 			String normalizedContent = fileContent.replace("\r\n", "\n").replace("\r", "\n");
-			// Strip Unicode whitespace, drop blank and comment lines so empty entries do
-			// not
-			// match every WALA signature via the prefix matcher.
 			List<String> methods = Arrays.stream(normalizedContent.split("\n")).map(String::strip)
 					.filter(str -> !str.isEmpty() && !str.startsWith("#")).toList();
 			return new HashSet<>(methods);
 		} catch (IOException e) {
-			throw new SecurityException(localize("security.file-tools.read.content.failure"), e);
+			throw new SecurityException(localized("security.file-tools.read.content.failure"), e);
 		} catch (OutOfMemoryError e) {
 			throw new SecurityException("Ares Security Error (Stage: Creation): Out of memory while reading content.",
 					e);
@@ -657,24 +651,7 @@ public final class FileTools {
 
 	// <editor-fold desc="Three Parted Java File">
 
-	/**
-	 * Creates a new file by combining the content of a header file, a body string,
-	 * and a footer file.
-	 * <p>
-	 * This method reads the content from the specified header and footer files,
-	 * combines it with the provided body string, and writes the combined content to
-	 * a new file in the target directory with the specified file name.
-	 * </p>
-	 *
-	 * @param sourceHeaderPath the {@link Path} of the header file.
-	 * @param sourceBody       the body content as a {@link String}.
-	 * @param sourceFooterPath the {@link Path} of the footer file.
-	 * @param target           the target directory {@link Path} where the file will
-	 *                         be created.
-	 * @return the {@link Path} of the created file.
-	 * @throws SecurityException if an error occurs during the file creation or
-	 *                           writing process.
-	 */
+	/** Writes a file containing the supplied header, body and footer. */
 	public static Path createThreePartedFile(Path sourceHeaderPath, String sourceBody, Path sourceFooterPath,
 			Path target) {
 		try {
@@ -690,13 +667,13 @@ public final class FileTools {
 				try {
 					Files.createDirectories(targetParent);
 				} catch (IOException e) {
-					throw new SecurityException(localize("security.file-tools.create.target.directory.failed"), e);
+					throw new SecurityException(localized("security.file-tools.create.target.directory.failed"), e);
 				}
 			}
 			return FileTools.writeFile(fullTargetPath, fileContent, StandardOpenOption.CREATE,
 					StandardOpenOption.TRUNCATE_EXISTING).toPath();
 		} catch (IOException e) {
-			throw new SecurityException(localize("security.file-tools.create.target.directory.failed"), e);
+			throw new SecurityException(localized("security.file-tools.create.target.directory.failed"), e);
 		}
 	}
 

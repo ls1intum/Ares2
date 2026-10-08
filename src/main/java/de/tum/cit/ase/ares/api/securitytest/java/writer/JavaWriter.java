@@ -177,14 +177,15 @@ public class JavaWriter implements Writer {
 	 * Copies the localisation files into the resources directory sibling to
 	 * {@code testFolderPath}.
 	 *
+	 * @param packageName    the namespace used by generated Messages
 	 * @param testFolderPath the source root; must not be null.
 	 * @return the copied files' paths.
 	 */
 	@Nonnull
-	private List<Path> createLocalisationFiles(@Nonnull Path testFolderPath) {
+	private List<Path> createLocalisationFiles(@Nonnull String packageName, @Nonnull Path testFolderPath) {
 		Path resourcesFolderPath = resolveResourcesFolderPath(testFolderPath);
-		return FileTools.copyFiles(Localisation.filesToCopy(),
-				confineTargets(Localisation.targetsToCopyTo(resourcesFolderPath)));
+		return FileTools.copyFiles(Localisation.filesToCopy(), confineTargets(
+				Localisation.targetsToCopyTo(FileTools.resolveOnPath(resourcesFolderPath, packageName.split("\\.")))));
 	}
 
 	/**
@@ -321,7 +322,7 @@ public class JavaWriter implements Writer {
 						javaArchitectureTestCases, validatedTestFolderPath).stream(),
 						createJavaAOPFiles(aopMode, essentialPackages, essentialClasses, testClasses, packageName,
 								mainClassInPackageName, javaAOPTestCases, validatedTestFolderPath).stream(),
-						createLocalisationFiles(validatedTestFolderPath).stream(),
+						createLocalisationFiles(packageName, validatedTestFolderPath).stream(),
 						createPhobosFiles(packageName, javaPhobosTestCases, validatedTestFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}

@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import java.util.Objects;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -33,6 +34,24 @@ public record ClassPermission(@Nonnull String className) {
 		if (className.isBlank()) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.class.blank"));
 		}
+	}
+
+	/**
+	 * Permits an exact class name and its nested classes from the supplied
+	 * exemptions.
+	 */
+	public static boolean isAllowedClass(@Nullable String fullyQualifiedClassName,
+			@Nonnull Set<ClassPermission> allowedClasses) {
+		if (fullyQualifiedClassName == null || allowedClasses == null || allowedClasses.isEmpty()) {
+			return false;
+		}
+		for (ClassPermission allowed : allowedClasses) {
+			String name = allowed.className();
+			if (fullyQualifiedClassName.equals(name) || fullyQualifiedClassName.startsWith(name + "$")) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

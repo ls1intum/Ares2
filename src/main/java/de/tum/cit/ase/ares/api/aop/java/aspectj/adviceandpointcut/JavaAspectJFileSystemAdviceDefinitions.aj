@@ -139,17 +139,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	private static final List<String> NATIVE_LIBRARY_SUFFIXES = List.of(".dylib", ".jnilib", ".so", ".dll");
 
 	/**
-	 * The fixed set of JCE jurisdiction crypto-policy file names, plus the exact
-	 * directory-scan glob {@code javax.crypto.JceSecurity} uses to locate them
-	 * during TLS/cryptography initialisation. Matched exactly (not by prefix) so
-	 * the crypto-policy read exemption cannot be widened by a student-chosen file
-	 * name.
-	 */
-	@Nonnull
-	private static final Set<String> CRYPTO_POLICY_NAMES = Set.of("default_US_export.policy", "default_local.policy",
-			"exempt_local.policy", "{default,exempt}_*.policy");
-
-	/**
 	 * Trusted JVM home captured at class-initialisation time, before student code
 	 * runs, so a later {@code System.setProperty("java.home", ...)} cannot widen the
 	 * system-file access exemption into a fail-open read/execute bypass.
@@ -1210,51 +1199,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Returns {@code true} when {@code path} refers to a JCE jurisdiction crypto
-	 * policy file (or the directory-scan glob used to locate them). When TLS/JCE
-	 * initialises (e.g. {@code SSLContext.init},
-	 * {@code SSLContextImpl$TLSContext}), {@code javax.crypto.JceSecurity} scans
-	 * for {@code default_*.policy} and {@code exempt_*.policy} via
-	 * {@code Files.newDirectoryStream}. That read is JVM cryptography
-	 * infrastructure, not student file access; blocking it makes cryptography fail
-	 * to initialise ({@code NoClassDefFoundError} / "Can not initialize
-	 * cryptographic mechanism"). The instrumentation backend applies this same
-	 * exemption, so this keeps the two backends consistent. The bare
-	 * {@code {default,exempt}_*.policy} directory-scan glob is not itself a real
-	 * file path — it resolves against the working directory, not
-	 * {@code java.home}, when converted to a path — so a location check on the
-	 * intercepted argument cannot validate it. The match instead requires the
-	 * access to originate from {@code javax.crypto.JceSecurity}'s own scan (see
-	 * {@link #isJceCryptoPolicyScanInProgress()}), which a student cannot spoof
-	 * and which never takes a student-influenceable path/glob argument, so a
-	 * student-controlled file (or a directly-called {@code newDirectoryStream}
-	 * with the same glob) cannot bypass the read policy merely by matching one of
-	 * the exempt names.
-	 *
-	 * @param path the already-resolved path string under inspection
-	 * @return true if the path is a JCE crypto policy file or scan glob read by a
-	 *         genuine JCE-triggered scan
-	 */
-	private static boolean isCryptoPolicyPath(@Nullable String path) {
-		if (path == null) {
-			return false;
-		}
-		int slash = path.lastIndexOf('/');
-		String name = slash >= 0 ? path.substring(slash + 1) : path;
-		// Match only the fixed JCE jurisdiction-policy file names and the exact
-		// directory-scan glob JceSecurity uses, never an arbitrary "default_*"/"exempt_*"
-		// prefix, so a student-named file such as "default_tokens.policy" is NOT exempt.
-		if (!CRYPTO_POLICY_NAMES.contains(name)) {
-			return false;
-		}
-		// SECURITY: the name match alone is not sufficient — a student-controlled file
-		// (or a directly student-called newDirectoryStream) could bear one of these
-		// exact names/glob to bypass the read policy. Require the read to actually
-		// originate from JCE's own scanning code.
-		return isJceCryptoPolicyScanInProgress();
-	}
-
-	/**
 	 * Validates a file system interaction against security policies.
 	 * <p>
 	 * Description: Verifies that the specified action (read, overwrite, create,
@@ -1283,8 +1227,21 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 	}
 
+	/** Refuses supervised file access when the trusted startup hook was omitted. */
+	private static void requireTrustedStartup() {
+		try {
+			Class<?> agent = Class.forName("de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent",
+					false, JavaAspectJFileSystemAdviceDefinitions.class.getClassLoader());
+			if (!Boolean.TRUE.equals(agent.getMethod("hasCompletedTrustedStartup").invoke(null))) {
+				throw new SecurityException(localize("security.advice.trusted.startup.missing"));
+			}
+		} catch (ReflectiveOperationException | LinkageError failure) {
+			throw new SecurityException(localize("security.advice.trusted.startup.missing"), failure);
+		}
+	}
+
+	/** Checks the selected policy against the caller and file-operation arguments. */
 	private void checkFileSystemInteractionImpl(@Nonnull String action, @Nonnull JoinPoint thisJoinPoint) {
-		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
 		if (aopMode == null || !aopMode.equals("ASPECTJ")) {
@@ -1297,8 +1254,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 		@Nullable
 		final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
-		// </editor-fold>
-		// <editor-fold desc="Get information from join point">
 		@Nonnull
 		Object[] parameters = thisJoinPoint.getArgs();
 		@Nullable
@@ -1309,8 +1264,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
 		@Nonnull
 		String methodName = thisJoinPoint.getSignature().getName();
-		// </editor-fold>
-		// <editor-fold desc="Extract attributes from object instance">
 		@Nonnull
 		Object[] attributes = new Object[0];
 		if (instance != null) {
@@ -1324,11 +1277,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 						attributes[i] = fields[i].get(instance);
 					} catch (InaccessibleObjectException | IllegalAccessException | SecurityException
 							| IllegalArgumentException | NullPointerException | ExceptionInInitializerError e) {
-						// Skip an unreadable field rather than aborting the whole interaction: a
-						// JDK-internal field (e.g. reached via Ares's own timeout executor) that throws
-						// on read must not turn a JDK-side reflection limit into an Ares-Code
-						// SecurityException. The check still runs over the parameters and the readable
-						// fields. Uniform across all four subsystems and both engines.
 						continue;
 					}
 				}
@@ -1336,15 +1284,13 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				throw e;
 			}
 		}
-		// </editor-fold>
-		// <editor-fold desc="Check callstack">
 		@Nullable
 		String systemMethodToCheck = (restrictedPackage == null) ? null
 				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
 		if (systemMethodToCheck == null) {
 			return;
 		}
-		// </editor-fold>
+		requireTrustedStartup();
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
@@ -1355,10 +1301,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
 			String actionToCheck = actionCheck.getKey();
 			boolean allowNonExistingPaths = Boolean.TRUE.equals(actionCheck.getValue());
-			// When a "create" pointcut intercepts a class/method that semantically truncates/overwrites
-			// (FileOutputStream, FileWriter, PrintWriter, or Files.newBufferedWriter/newOutputStream
-			// without an explicit append=true), the reported verb should be "overwrite" so that
-			// messages match test expectations.
 			boolean isWriteAliasedAsCreate = "create".equals(actionToCheck)
 					&& ("java.io.FileOutputStream".equals(declaringTypeName)
 							|| "java.io.FileWriter".equals(declaringTypeName)
@@ -1377,7 +1319,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", actionToCheck));
 			});
 			boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
-			// <editor-fold desc="Check parameters">
 			@Nullable
 			String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
 					: checkIfVariableCriteriaIsViolated(parameters, allowedPaths,
@@ -1385,38 +1326,19 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 									extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE),
 							allowNonExistingPaths);
 			if (illegallyInteractedThroughParameter != null) {
-				// A .class read performed by the JVM class-loading machinery is class
-				// loading, not student file access. The studentCalledMethod prefixes cover a
-				// direct Class.forName/ClassLoader call; isClassLoadingInProgress() covers
-				// loads triggered indirectly (e.g. via reflective invocation). A student
-				// opening a .class file directly has no such frame, so this stays precise.
 				boolean isClassLoaderAccess = illegallyInteractedThroughParameter.endsWith(".class")
 						&& (isClassLoadingInProgress()
 								|| (studentCalledMethod != null
 										&& (studentCalledMethod.startsWith("java.lang.Class.forName")
 												|| studentCalledMethod.startsWith("java.lang.ClassLoader")
 												|| studentCalledMethod.startsWith("jdk.internal.loader"))));
-				// Allow .jar reads from system infrastructure paths (Maven repo, JDK).
-				// These are triggered by JUnit / ServiceLoader during class loading and are
-				// not initiated by student code accessing arbitrary project files.
 				boolean isSystemJarRead = "read".equals(actionToCheck)
 						&& isSystemJarReadExempt(illegallyInteractedThroughParameter);
-				// Allow reads of Ares's own internal files (e.g. the localization resources
-				// loaded while building this very message); without this the denial-message
-				// construction would recurse into another intercepted read.
 				boolean isInternalAllowed = INTERNAL_PATH_SUFFIXES.stream()
 						.anyMatch(illegallyInteractedThroughParameter::endsWith);
-				// Allow JDK-internal reads and native-library loads under java.home. These are
-				// JVM infrastructure (e.g. JceSecurity reading the crypto-policy files), not
-				// student file access, and must not be blocked.
 				boolean isExemptSystemFileAccess = isExemptSystemFileAccess(actionToCheck,
 						illegallyInteractedThroughParameter);
-				// JCE crypto-policy scans during TLS/cryptography initialisation are JVM
-				// infrastructure (see isCryptoPolicyPath).
-				boolean isCryptoPolicyRead = "read".equals(actionToCheck)
-						&& isCryptoPolicyPath(illegallyInteractedThroughParameter);
-				if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess
-						&& !isCryptoPolicyRead) {
+				if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess) {
 					throw new SecurityException(localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughParameter,
@@ -1425,8 +1347,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
 			}
-			// </editor-fold>
-			// <editor-fold desc="Check receiver instance">
 			@Nullable
 			String illegallyInteractedThroughReceiver = instance == null ? null
 					: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedPaths, IgnoreValues.NONE,
@@ -1434,9 +1354,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			if (illegallyInteractedThroughReceiver != null) {
 				boolean isInternalAllowed = INTERNAL_PATH_SUFFIXES.stream()
 						.anyMatch(illegallyInteractedThroughReceiver::endsWith);
-
-				// A .class read performed by the JVM class-loading machinery is class
-				// loading, not student file access (see isClassLoadingInProgress).
 				if (!isInternalAllowed && illegallyInteractedThroughReceiver.endsWith(".class")
 						&& isClassLoadingInProgress()) {
 					isInternalAllowed = true;
@@ -1446,16 +1363,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 						&& isSystemJarReadExempt(illegallyInteractedThroughReceiver)) {
 					isInternalAllowed = true;
 				}
-
-				// JDK-internal reads and native-library loads under java.home are exempt.
 				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughReceiver)) {
-					isInternalAllowed = true;
-				}
-
-				// JCE crypto-policy scans during TLS/cryptography initialisation are JVM
-				// infrastructure (see isCryptoPolicyPath).
-				if (!isInternalAllowed && "read".equals(actionToCheck)
-						&& isCryptoPolicyPath(illegallyInteractedThroughReceiver)) {
 					isInternalAllowed = true;
 				}
 
@@ -1468,8 +1376,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
 			}
-			// </editor-fold>
-			// <editor-fold desc="Check attributes">
 			@Nullable
 			String illegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null
 					: checkIfVariableCriteriaIsViolated(attributes, allowedPaths,
@@ -1477,11 +1383,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 									extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE),
 							allowNonExistingPaths);
 			if (illegallyInteractedThroughAttribute != null) {
-				// Root path "/" is used by ClassLoader during class loading and is allowed.
 				boolean isInternalAllowed = illegallyInteractedThroughAttribute.equals("/");
-
-				// A .class read performed by the JVM class-loading machinery is class
-				// loading, not student file access.
 				if (!isInternalAllowed && illegallyInteractedThroughAttribute.endsWith(".class")
 						&& (isClassLoadingInProgress()
 								|| (studentCalledMethod != null
@@ -1500,16 +1402,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 						&& isSystemJarReadExempt(illegallyInteractedThroughAttribute)) {
 					isInternalAllowed = true;
 				}
-
-				// JDK-internal reads and native-library loads under java.home are exempt.
 				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughAttribute)) {
-					isInternalAllowed = true;
-				}
-
-				// JCE crypto-policy scans during TLS/cryptography initialisation are JVM
-				// infrastructure (see isCryptoPolicyPath).
-				if (!isInternalAllowed && "read".equals(actionToCheck)
-						&& isCryptoPolicyPath(illegallyInteractedThroughAttribute)) {
 					isInternalAllowed = true;
 				}
 
@@ -1522,12 +1415,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
 			}
-			// </editor-fold>
 		}
 	}
-	// </editor-fold>
-
-	// </editor-fold>
 
 	before():
 			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileReadMethods() ||

@@ -13,3 +13,9 @@ localization/Messages.java,3,ares/api/localization/Messages.java
 policy/policySubComponents/PackagePermission.java,2,ares/api/policy/policySubComponents/PackagePermission.java
 util/FileTools.java,14,ares/api/util/FileTools.java
 util/LruCache.java,1,ares/api/util/LruCache.java
+architecture/java/ForbiddenMethodMatcher.java,3,ares/api/architecture/java/ForbiddenMethodMatcher.java
+policy/policySubComponents/ClassPermission.java,2,ares/api/policy/policySubComponents/ClassPermission.java
+policy/policySubComponents/PolicyValueValidator.java,2,ares/api/policy/policySubComponents/PolicyValueValidator.java
+util/YamlPlaceholderResolver.java,2,ares/api/util/YamlPlaceholderResolver.java
+architecture/java/wala/WalaPathClassification.java,8,ares/api/architecture/java/wala/WalaPathClassification.java
+architecture/java/archunit/TransitivelyAccessesMethodsCondition.java,1,ares/api/architecture/java/archunit/TransitivelyAccessesMethodsCondition.java
