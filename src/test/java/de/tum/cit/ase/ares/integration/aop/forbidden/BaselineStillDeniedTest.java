@@ -97,7 +97,7 @@ class BaselineStillDeniedTest extends SystemAccessTest {
 		tempSubdirectory = Files.createDirectories(tempDirectory.resolve("ares-baseline-subdirectory"));
 		directPlantingTarget = tempDirectory.resolve("ares-baseline-plant-" + UUID.randomUUID() + ".txt");
 		KeyPairGenerator generator = KeyPairGenerator.getInstance("DSA");
-		generator.initialize(1024);
+		generator.initialize(2048);
 		dsaKey = generator.generateKeyPair().getPrivate();
 		Path link = tempDirectory.resolve("ares-baseline-link");
 		Files.deleteIfExists(link);

@@ -65,7 +65,7 @@ public final class BaselineStillDeniedMain {
 				}
 			}
 		};
-		Signature signer = Signature.getInstance("SHA1withDSA", "SUN");
+		Signature signer = Signature.getInstance("SHA256withDSA", "SUN");
 		signer.initSign(key, studentRandom);
 		signer.update((byte) 1);
 		signer.sign();
