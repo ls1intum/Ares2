@@ -83,7 +83,7 @@ way an otherwise correct contribution arrives unreviewable.
   apply to your change, then `Limit`, then `Simple words`.
 - Respect the character limit a section declares. Summary carries `Limit: 500
   characters`; `Linked issues`, sections 1 to 3 and `Breaking changes and migration` carry
-  `Limit: 1000 characters`; section 4 carries `Limit: 5000 characters`, counted over the
+  `Limit: 1000 characters`; section 4 carries `Limit: 20000 characters`, counted over the
   whole section including the modes below it. The count is in code points over the text left once every
   instruction comment the checker recognises is removed, so a comment kept in the body does
   not count towards it.
