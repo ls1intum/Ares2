@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -82,6 +83,8 @@ class TrustedStartupFreezeTest {
 
 	/**
 	 * Runs {@link StartupFreezeProbe} in a fresh JVM and returns what it printed.
+	 * The output goes to a log read only after the timed wait, so a hung JVM fails
+	 * the check instead of blocking it, and the JVM is always stopped afterwards.
 	 *
 	 * @param withAgent whether the Ares agent is attached
 	 * @param probe     the probe to run
@@ -101,14 +104,20 @@ class TrustedStartupFreezeTest {
 		command.add(StartupFreezeProbe.class.getName());
 		command.add(probe);
 		command.add(directory.toString());
-		Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
-		String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-		assertTrue(process.waitFor(60, TimeUnit.SECONDS), "the probe JVM did not finish");
-		Optional<String> result = output.lines().filter(line -> line.startsWith("RESULT=")).findFirst();
-		if (result.isEmpty()) {
-			fail("the probe JVM printed no result:\n" + output);
+		Path log = Files.createTempFile("startup-freeze-probe", ".log");
+		Process process = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(log.toFile()).start();
+		try {
+			assertTrue(process.waitFor(60, TimeUnit.SECONDS), "the probe JVM did not finish");
+			String output = Files.readString(log, StandardCharsets.UTF_8);
+			Optional<String> result = output.lines().filter(line -> line.startsWith("RESULT=")).findFirst();
+			if (result.isEmpty()) {
+				fail("the probe JVM printed no result:\n" + output);
+			}
+			return result.get().substring("RESULT=".length());
+		} finally {
+			process.destroyForcibly();
+			Files.deleteIfExists(log);
 		}
-		return result.get().substring("RESULT=".length());
 	}
 
 	/**
