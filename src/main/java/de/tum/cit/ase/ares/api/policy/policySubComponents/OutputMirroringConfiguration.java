@@ -70,7 +70,7 @@ public record OutputMirroringConfiguration(@Nullable Boolean theOutputIsMirrored
 	 * @since 2.1.5
 	 * @author Luka Petrovic
 	 */
-	public static class Builder {
+	public static final class Builder {
 
 		/** Whether output is echoed, or null when not configured. */
 		@Nullable
@@ -79,6 +79,12 @@ public record OutputMirroringConfiguration(@Nullable Boolean theOutputIsMirrored
 		/** The output limit, or null when not configured. */
 		@Nullable
 		private Long theMaximumCharacterCountIs;
+
+		/**
+		 * Creates an empty builder; use {@link OutputMirroringConfiguration#builder()}.
+		 */
+		private Builder() {
+		}
 
 		/**
 		 * Sets whether output is echoed to the real console.
