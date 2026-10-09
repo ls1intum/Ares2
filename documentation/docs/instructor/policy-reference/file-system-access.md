@@ -76,7 +76,7 @@ Implemented by `FilePermission` in
 | `executeAllFiles` | `boolean` | Permits executing files below the path. | `false` | `true` or `false`. Required: an entry that omits it is rejected on load. |
 | `deleteAllFiles` | `boolean` | Permits deleting files below the path. | `false` | `true` or `false`. Required: an entry that omits it is rejected on load. |
 
-## What works without an entry
+### What works without an entry
 
 Some file accesses are part of what ordinary Java code does and carry no risk, so Ares allows them even when this list is empty.
 
