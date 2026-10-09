@@ -21,7 +21,8 @@ disagree, the full one is right.
 ## Project Overview
 
 Ares 2 is a framework for the secure remote execution of student submissions on interactive
-learning platforms such as Artemis.
+learning platforms such as Artemis. It is the second Java implementation of the Secure COder
+Remote Execution (SCORE) framework.
 
 Ares 2 is **itself the security boundary**. That single fact drives most of the conventions
 in `AGENTS.md`. A false negative lets forbidden student code through; a false positive fails
