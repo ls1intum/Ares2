@@ -125,7 +125,7 @@ public record StrictTimeoutsConfiguration(long theTimeoutIs, @Nonnull TimeUnit t
 	 * @since 2.1.5
 	 * @author Luka Petrovic
 	 */
-	public static class Builder {
+	public static final class Builder {
 
 		/** The timeout to build with. */
 		private long theTimeoutIs;
@@ -141,6 +141,12 @@ public record StrictTimeoutsConfiguration(long theTimeoutIs, @Nonnull TimeUnit t
 		/** The grace period's unit, or null to accept the default. */
 		@Nullable
 		private TimeUnit theTerminationGraceUnitIs;
+
+		/**
+		 * Creates an empty builder; use {@link StrictTimeoutsConfiguration#builder()}.
+		 */
+		private Builder() {
+		}
 
 		/**
 		 * Sets the timeout.

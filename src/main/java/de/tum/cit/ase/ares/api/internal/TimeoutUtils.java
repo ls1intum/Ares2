@@ -108,6 +108,7 @@ public final class TimeoutUtils {
 	/**
 	 * Runs the execution under its {@link StrictTimeout}, if it has one.
 	 *
+	 * @param <T>                           the type the execution returns.
 	 * @param execution                     the execution to bound.
 	 * @param context                       the test context carrying the
 	 *                                      annotation.
