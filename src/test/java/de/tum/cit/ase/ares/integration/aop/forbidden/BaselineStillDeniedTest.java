@@ -1,8 +1,13 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
@@ -72,14 +77,28 @@ class BaselineStillDeniedTest extends SystemAccessTest {
 	private static Path tempLink;
 
 	/**
+	 * A unique direct child of the frozen temp directory for callback probes.
+	 */
+	private static Path directPlantingTarget;
+
+	/**
+	 * A DSA key prepared before any student policy starts.
+	 */
+	private static PrivateKey dsaKey;
+
+	/**
 	 * Creates the subdirectory and the link, outside any policy.
 	 *
-	 * @throws IOException if the subdirectory cannot be created
+	 * @throws Exception if a fixture cannot be prepared
 	 */
 	@BeforeAll
-	static void createTempDirectoryFixtures() throws IOException {
+	static void createTempDirectoryFixtures() throws Exception {
 		Path tempDirectory = Path.of(System.getProperty("java.io.tmpdir"));
 		tempSubdirectory = Files.createDirectories(tempDirectory.resolve("ares-baseline-subdirectory"));
+		directPlantingTarget = tempDirectory.resolve("ares-baseline-plant-" + UUID.randomUUID() + ".txt");
+		KeyPairGenerator generator = KeyPairGenerator.getInstance("DSA");
+		generator.initialize(1024);
+		dsaKey = generator.generateKeyPair().getPrivate();
 		Path link = tempDirectory.resolve("ares-baseline-link");
 		Files.deleteIfExists(link);
 		try {
@@ -100,6 +119,7 @@ class BaselineStillDeniedTest extends SystemAccessTest {
 			Files.deleteIfExists(tempLink);
 		}
 		Files.deleteIfExists(tempSubdirectory.resolve("planted.txt"));
+		Files.deleteIfExists(directPlantingTarget);
 		Files.deleteIfExists(tempSubdirectory);
 	}
 
@@ -110,6 +130,29 @@ class BaselineStillDeniedTest extends SystemAccessTest {
 	 */
 	private static void assumeExists(Path file) {
 		Assumptions.assumeTrue(Files.exists(file), () -> "requires " + file);
+	}
+
+	/**
+	 * Denies a seed-device read from student randomness called by the JDK DSA
+	 * signer under ArchUnit and instrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void test_dsaStudentRandomCallbackCannotReadEntropyMavenArchunitInstrumentation() {
+		assumeExists(ENTROPY_DEVICE);
+		assertAresSecurityExceptionRead(() -> BaselineStillDeniedMain.readEntropyFromDsaRandomCallback(dsaKey),
+				BaselineStillDeniedMain.class, ENTROPY_DEVICE);
+	}
+
+	/**
+	 * Denies the same callback under WALA and instrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void test_dsaStudentRandomCallbackCannotReadEntropyMavenWalaInstrumentation() {
+		assumeExists(ENTROPY_DEVICE);
+		assertAresSecurityExceptionRead(() -> BaselineStillDeniedMain.readEntropyFromDsaRandomCallback(dsaKey),
+				BaselineStillDeniedMain.class, ENTROPY_DEVICE);
 	}
 
 	// <editor-fold desc="readEntropyDeviceDirectly">
@@ -430,9 +473,9 @@ class BaselineStillDeniedTest extends SystemAccessTest {
 	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
 	void test_plantFileFromTempFileAttributeMavenArchunitInstrumentation() {
 		assertAresSecurityExceptionCreate(
-				() -> BaselineStillDeniedMain
-						.createTempFileWithPlantingAttribute(tempSubdirectory.resolve("planted.txt")),
-				BaselineStillDeniedMain.class, tempSubdirectory.resolve("planted.txt"));
+				() -> BaselineStillDeniedMain.createTempFileWithPlantingAttribute(directPlantingTarget),
+				BaselineStillDeniedMain.class, directPlantingTarget);
+		assertFalse(Files.exists(directPlantingTarget));
 	}
 
 	/**
@@ -456,9 +499,9 @@ class BaselineStillDeniedTest extends SystemAccessTest {
 	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
 	void test_plantFileFromTempFileAttributeMavenWalaInstrumentation() {
 		assertAresSecurityExceptionCreate(
-				() -> BaselineStillDeniedMain
-						.createTempFileWithPlantingAttribute(tempSubdirectory.resolve("planted.txt")),
-				BaselineStillDeniedMain.class, tempSubdirectory.resolve("planted.txt"));
+				() -> BaselineStillDeniedMain.createTempFileWithPlantingAttribute(directPlantingTarget),
+				BaselineStillDeniedMain.class, directPlantingTarget);
+		assertFalse(Files.exists(directPlantingTarget));
 	}
 	// </editor-fold>
 

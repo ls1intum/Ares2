@@ -355,43 +355,30 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
-	 * Tells whether the call stack holds a frame of a trusted JDK class that the
-	 * JVM itself loaded. The names must belong to internal JDK packages that
-	 * student code cannot call into with its own callbacks; the loader check stops
-	 * a student class that merely borrows such a name.
+	 * Tells whether a JDK seed implementation is acting without an intervening
+	 * student callback. Other security providers can invoke student code, so their
+	 * frames cannot grant the entropy-device exemption.
 	 *
-	 * @param exactClassNames trusted class names, matched exactly
-	 * @param packagePrefixes trusted package prefixes
-	 * @return {@code true} if such a frame is on the stack
+	 * @return {@code true} if the JDK is seeding a random-number generator
 	 */
-	private static boolean isTrustedJdkFrame(@Nonnull Set<String> exactClassNames,
-			@Nonnull Set<String> packagePrefixes) {
+	static boolean isSecureRandomSeedingInProgress() {
+		String restrictedPackage = getValueFromSettings("restrictedPackage");
 		return STACK_WALKER_WITH_CLASS_REFERENCE.walk(frames -> {
 			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
 				StackWalker.StackFrame frame = iterator.next();
 				String className = frame.getClassName();
-				boolean nameIsTrusted = exactClassNames.contains(className)
-						|| packagePrefixes.stream().anyMatch(className::startsWith);
-				if (nameIsTrusted && frame.getDeclaringClass().getClassLoader() == null) {
+				if (isStudentFrame(className, restrictedPackage)) {
+					return Boolean.FALSE;
+				}
+				if ((className.startsWith("sun.security.provider.NativePRNG$")
+						|| className.startsWith("sun.security.provider.SeedGenerator$"))
+						&& frame.getDeclaringClass().getClassLoader() == null) {
 					return Boolean.TRUE;
 				}
 			}
 			return Boolean.FALSE;
 		});
-	}
-
-	/**
-	 * Tells whether the JDK's own random-number code
-	 * ({@code sun.security.provider}) is on the call stack, which is the case when
-	 * the JDK seeds {@link java.security.SecureRandom} or
-	 * {@link java.util.UUID#randomUUID()}. The public {@code SecureRandom} class is
-	 * not trusted, because student code can plug its own generator in beneath it.
-	 *
-	 * @return {@code true} if the JDK is seeding a random-number generator
-	 */
-	static boolean isSecureRandomSeedingInProgress() {
-		return isTrustedJdkFrame(Set.of(), Set.of("sun.security.provider."));
 	}
 
 	/**

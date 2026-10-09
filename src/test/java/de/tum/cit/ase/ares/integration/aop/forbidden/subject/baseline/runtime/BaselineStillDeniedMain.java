@@ -4,9 +4,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileAttribute;
+import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.SecureRandom;
+import java.security.Signature;
 
 /**
  * Student code trying what the secure baseline still denies without a policy
@@ -34,6 +39,36 @@ public final class BaselineStillDeniedMain {
 		try (InputStream device = new FileInputStream("/dev/urandom")) {
 			return device.read();
 		}
+	}
+
+	/**
+	 * Makes the JDK DSA signer call student randomness that tries to read a seed
+	 * device. The JDK signer frame must not grant the student callback an
+	 * exemption.
+	 *
+	 * @param key a DSA key prepared outside the active policy
+	 * @throws GeneralSecurityException if signing cannot be prepared
+	 */
+	public static void readEntropyFromDsaRandomCallback(PrivateKey key) throws GeneralSecurityException {
+		SecureRandom studentRandom = new SecureRandom() {
+			/**
+			 * Attempts the forbidden read when the signer requests random bytes.
+			 *
+			 * @param bytes destination for the random bytes
+			 */
+			@Override
+			public void nextBytes(byte[] bytes) {
+				try {
+					readEntropyDeviceDirectly();
+				} catch (IOException e) {
+					throw new UncheckedIOException(e);
+				}
+			}
+		};
+		Signature signer = Signature.getInstance("SHA1withDSA", "SUN");
+		signer.initSign(key, studentRandom);
+		signer.update((byte) 1);
+		signer.sign();
 	}
 
 	/**
