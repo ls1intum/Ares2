@@ -28,6 +28,17 @@ public final class ForbiddenMethodMatcher {
 
 	public static final String POLICY_SCHEMA_VERSION = "2";
 
+	/**
+	 * JDK calls the secure baseline allows without a policy entry: a temp file
+	 * without a named directory, which always lands in the default temp directory.
+	 * The WALA analysis treats a call to one as allowed and does not look inside
+	 * it; ArchUnit's transitive check keeps the same two calls in its own copy.
+	 */
+	private static final Set<String> STANDARD_ALLOWED_CALLS = Set.of(
+			canonicalise("java.io.File.createTempFile(java.lang.String, java.lang.String)"),
+			canonicalise("java.nio.file.Files.createTempFile(java.lang.String, java.lang.String, "
+					+ "java.nio.file.attribute.FileAttribute[])"));
+
 	private ForbiddenMethodMatcher() {
 		throw new SecurityException(
 				Messages.localized("security.general.utility.initialization", "ForbiddenMethodMatcher"));
@@ -45,6 +56,17 @@ public final class ForbiddenMethodMatcher {
 			effective.addAll(loadValidated(counterpart));
 		}
 		return Set.copyOf(effective);
+	}
+
+	/**
+	 * Tells whether a call is one the secure baseline allows without a policy
+	 * entry, whatever notation the analysis reports it in.
+	 *
+	 * @param signature the called method, as ArchUnit or WALA names it
+	 * @return {@code true} for a standard-allowed call
+	 */
+	public static boolean isStandardAllowed(@Nullable String signature) {
+		return signature != null && STANDARD_ALLOWED_CALLS.contains(canonicalise(signature));
 	}
 
 	/**
