@@ -53,12 +53,19 @@ public record PrivilegedExceptionsConfiguration(boolean onlyPrivilegedExceptions
 	 * @since 2.1.5
 	 * @author Luka Petrovic
 	 */
-	public static class Builder {
+	public static final class Builder {
 		/** The on/off switch to build with. */
 		private boolean onlyPrivilegedExceptionsAreReported;
 		/** The failure message to build with, or null to accept the default. */
 		@Nullable
 		private String theFailureMessageIs;
+
+		/**
+		 * Creates an empty builder; use
+		 * {@link PrivilegedExceptionsConfiguration#builder()}.
+		 */
+		private Builder() {
+		}
 
 		/**
 		 * Sets whether only privileged exceptions are reported by default.
