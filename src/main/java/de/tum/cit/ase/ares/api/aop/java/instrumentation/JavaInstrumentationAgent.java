@@ -148,6 +148,9 @@ public final class JavaInstrumentationAgent {
 	/**
 	 * Initialises Ares before supervised code and optionally installs
 	 * instrumentation.
+	 *
+	 * @param agentArgs The agent arguments.
+	 * @param inst      The instrumentation instance.
 	 */
 	public static void premain(String agentArgs, Instrumentation inst) {
 		Messages.init();
@@ -255,7 +258,11 @@ public final class JavaInstrumentationAgent {
 		}
 	}
 
-	/** Reports whether the JVM's trusted agent startup has finished. */
+	/**
+	 * Reports whether the JVM's trusted agent startup has finished.
+	 *
+	 * @return {@code true} once the agent's startup has run to its end.
+	 */
 	public static boolean hasCompletedTrustedStartup() {
 		return trustedStartupComplete;
 	}
