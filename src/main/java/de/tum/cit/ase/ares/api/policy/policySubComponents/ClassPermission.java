@@ -39,6 +39,10 @@ public record ClassPermission(@Nonnull String className) {
 	/**
 	 * Permits an exact class name and its nested classes from the supplied
 	 * exemptions.
+	 *
+	 * @param fullyQualifiedClassName the class to check, or {@code null}.
+	 * @param allowedClasses          the exempted classes.
+	 * @return {@code true} if the class or a class enclosing it is exempted.
 	 */
 	public static boolean isAllowedClass(@Nullable String fullyQualifiedClassName,
 			@Nonnull Set<ClassPermission> allowedClasses) {

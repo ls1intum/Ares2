@@ -113,6 +113,11 @@ public class WalaRule {
 	/**
 	 * Checks direct calls, resolving missing targets through WALA and rejecting
 	 * unresolved targets.
+	 *
+	 * @param javaClasses    imported classes under analysis
+	 * @param allowedClasses classes exempted by the policy
+	 * @param classHierarchy WALA's static class hierarchy, or {@code null} when no
+	 *                       fallback is available
 	 */
 	public void checkDirectAccesses(JavaClasses javaClasses, Set<ClassPermission> allowedClasses,
 			IClassHierarchy classHierarchy) {

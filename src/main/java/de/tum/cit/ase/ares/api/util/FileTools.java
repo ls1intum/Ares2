@@ -364,6 +364,9 @@ public final class FileTools {
 	/**
 	 * Reads distinct, non-empty method names, excluding comment lines, from a
 	 * source file.
+	 *
+	 * @param sourceFile the file to read.
+	 * @return the method names it lists.
 	 */
 	public static Set<String> readMethodsFile(@Nonnull File sourceFile) {
 		try {
@@ -651,7 +654,15 @@ public final class FileTools {
 
 	// <editor-fold desc="Three Parted Java File">
 
-	/** Writes a file containing the supplied header, body and footer. */
+	/**
+	 * Writes a file containing the supplied header, body and footer.
+	 *
+	 * @param sourceHeaderPath the file holding the header.
+	 * @param sourceBody       the body text.
+	 * @param sourceFooterPath the file holding the footer.
+	 * @param target           the file to write.
+	 * @return the path of the written file.
+	 */
 	public static Path createThreePartedFile(Path sourceHeaderPath, String sourceBody, Path sourceFooterPath,
 			Path target) {
 		try {
