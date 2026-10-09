@@ -200,7 +200,7 @@
   from an exercise" under Steps and describe instead how a reviewer verifies the change,
   for example which workflow run to inspect.
 
-  Limit: 5000 characters, counted over the text left once every instruction comment such
+  Limit: 20000 characters, counted over the text left once every instruction comment such
   as this one is removed, so keeping the comment costs nothing.
 
   Simple words: write this so that an instructor who does not know the inside of Ares can
