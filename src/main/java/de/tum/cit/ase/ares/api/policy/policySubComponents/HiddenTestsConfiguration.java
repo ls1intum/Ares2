@@ -261,7 +261,7 @@ public record HiddenTestsConfiguration(@Nullable String theDeadlineIs, @Nullable
 	 * @since 2.1.5
 	 * @author Luka Petrovic
 	 */
-	public static class Builder {
+	public static final class Builder {
 
 		/** The deadline, or null when not set. */
 		@Nullable
@@ -286,6 +286,10 @@ public record HiddenTestsConfiguration(@Nullable String theDeadlineIs, @Nullable
 		/** The public tests collected so far. */
 		@Nonnull
 		private final List<String> theFollowingTestsArePublic = new ArrayList<>();
+
+		/** Creates an empty builder; use {@link HiddenTestsConfiguration#builder()}. */
+		private Builder() {
+		}
 
 		/**
 		 * Sets the deadline.
