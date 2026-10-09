@@ -1,0 +1,23 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.allowed.BaselineStandardAllowTest"
+  theFollowingResourceAccessesArePermitted:
+    # Encrypted connections need a network entry, but reading the JDK's trusted
+    # certificates for them needs no file entry.
+    regardingFileSystemInteractions: [ ]
+    regardingNetworkConnections:
+      - onTheHost: "127.0.0.1"
+        onThePort: 12345
+        openConnections: true
+        sendData: false
+        receiveData: false
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations: [ ]
+    regardingPackageImports:
+      - importTheFollowingPackage: "javax.net.ssl"
+    regardingTimeouts:
+      - timeout: 3000

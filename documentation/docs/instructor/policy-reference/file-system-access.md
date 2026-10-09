@@ -76,6 +76,20 @@ Implemented by `FilePermission` in
 | `executeAllFiles` | `boolean` | Permits executing files below the path. | `false` | `true` or `false`. Required: an entry that omits it is rejected on load. |
 | `deleteAllFiles` | `boolean` | Permits deleting files below the path. | `false` | `true` or `false`. Required: an entry that omits it is rejected on load. |
 
+### What works without an entry
+
+Some file accesses are part of what ordinary Java code does and carry no risk, so Ares allows them even when this list is empty.
+
+| What the student code does | Why it needs no entry |
+| --- | --- |
+| Draws random numbers with `SecureRandom`, or calls `UUID.randomUUID()` | The Java Development Kit (JDK) reads its random-seed device itself. Opening `/dev/urandom` directly still needs an entry. |
+| Uses the system timezone, for example `ZoneId.systemDefault()` or `ZonedDateTime.now()` | The JDK reads the timezone without Java's file classes, so no check sees it. |
+| Loads the JDK's trusted certificates, as an encrypted connection does | The certificate file lies inside the Java installation, which is readable anyway. The connection itself still needs a network entry. |
+| Formats numbers, dates or text for a locale, or uses a charset | Their data lies inside the Java installation too. |
+| Creates a temporary file without naming a directory: `File.createTempFile(prefix, suffix)` or `Files.createTempFile(prefix, suffix)` | The file always lands in the default temp directory, which Ares fixes when the tests start. |
+
+A temporary file in a directory the code names still needs an entry for that directory, even for a folder inside the temp directory, and so does `Files.createTempDirectory`. Ares fixes the temp directory when the Ares agent starts with the Java Virtual Machine (JVM). Without the agent Ares refuses a temporary file without a named directory, with a message saying Ares did not start. That happens, for example, in an exercise prepared ahead of time that runs with AspectJ. Name a directory there and list it here with `createAllFiles: true`.
+
 ## Notes
 
 `createRestrictive(path)` builds an entry that names a path and grants nothing, which is how a deny-all default is expressed for a path that must still be mentioned.
