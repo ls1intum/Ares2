@@ -15,7 +15,7 @@ Requires Java 17. The Gradle wrapper is included, so no Gradle installation is n
 The build succeeds, and the task list contains the reserved-package validation **before** the tests:
 
 ```
-> Task :verifyAresReservedPackagesV2
+> Task :verifyAresReservedPackagesV3
 > Task :test
 
 BUILD SUCCESSFUL

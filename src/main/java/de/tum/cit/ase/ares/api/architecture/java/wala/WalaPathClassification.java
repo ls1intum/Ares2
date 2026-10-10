@@ -58,53 +58,32 @@ public final class WalaPathClassification {
 			"org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.", "anonymous.toolclasses.", "metatest.");
 
 	/**
-	 * Package prefixes that supervised code may not declare. This is broader than
-	 * {@link #INFRA_PREFIXES}: platform namespaces remain reserved against student
-	 * impersonation even though application-loaded third-party libraries in those
-	 * namespaces are analysed rather than trusted.
-	 * <p>
-	 * Every entry names either the platform or a library that performs the
-	 * supervision itself, so declaring code into one of them would have it mistaken
-	 * for the very machinery meant to inspect it. That is the whole membership
-	 * rule, and it is what {@code anonymous.toolclasses.} and {@code metatest.} did
-	 * not satisfy: those are the test helpers of one downstream consumer, the
-	 * reproducibility package, and reserving them here made every Ares user refuse
-	 * two ordinary package names on that consumer's behalf. They remain in
-	 * {@link #INFRA_PREFIXES}, which is a different question: not what supervised
-	 * code may be called, but which frames are the harness rather than the subject.
+	 * Package prefixes that supervised code may not declare: the platform, the
+	 * libraries that perform the supervision, and Ares's own code, including
+	 * {@code de.tum.cit.ase.ares.generated.}, where precompile writes the code that
+	 * reports failures. Code declared there would be mistaken for the machinery
+	 * meant to inspect it. Broader than {@link #INFRA_PREFIXES}, which answers
+	 * which frames are the harness rather than what code may be called.
 	 */
 	public static final List<String> RESERVED_PACKAGE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
-			"de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.");
+			"de.tum.cit.ase.ares.api.", "de.tum.cit.ase.ares.generated.", "net.bytebuddy.", "org.aspectj.",
+			"com.ibm.wala.", "com.tngtech.archunit.");
 
 	/**
-	 * Version of the prefix data above. Version 2 drops
-	 * {@code anonymous.toolclasses.} and {@code metatest.}.
-	 * <p>
-	 * A version 1 snippet still in an exercise reserves more than this version
-	 * does, so it refuses what is now allowed rather than allowing what is now
-	 * refused. It is over-strict rather than bypassable, which is why no migration
-	 * is urgent, but the identifier must still change: one version must not denote
-	 * two different lists.
+	 * Version of the prefix data above. Version 2 dropped two consumer-specific
+	 * prefixes; version 3 adds {@code de.tum.cit.ase.ares.generated.}. One version
+	 * must never denote two different lists.
 	 */
-	public static final String RESERVED_PACKAGE_PREFIX_VERSION = "2";
+	public static final String RESERVED_PACKAGE_PREFIX_VERSION = "3";
 
 	/**
-	 * Version of the build-side contract that enforces
-	 * {@link #RESERVED_PACKAGE_PREFIXES}, which is versioned separately from the
-	 * prefix data because the two change for different reasons.
-	 * <p>
-	 * Version 2 gates every Gradle {@code Test} task, not only {@code check}.
-	 * Version 1 attached the validation to {@code check} alone, and Gradle's Java
-	 * plugin defines {@code check.dependsOn test} rather than the reverse, so
-	 * {@code gradlew test} never ran it: a grading run that invoked only
-	 * {@code test} accepted student classes under a reserved package. An exercise
-	 * carrying a version 1 snippet is bypassable and must be migrated, which is why
-	 * it must not keep the same identifier. The prefix data is versioned separately
-	 * by {@link #RESERVED_PACKAGE_PREFIX_VERSION} and moved to 2 for its own,
-	 * unrelated reason.
-	 * </p>
+	 * Version of the build-side contract that enforces the prefixes, versioned
+	 * separately because it changes for other reasons. Version 2 gated every Gradle
+	 * {@code Test} task, not only {@code check}. Version 3 scans the whole student
+	 * output, resources included, and also rejects service files and framework
+	 * configuration files that would plug student code into the run.
 	 */
-	public static final String RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = "2";
+	public static final String RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = "3";
 
 	/**
 	 * Application-loaded subset of {@link #INFRA_PREFIXES} that genuinely indicates
