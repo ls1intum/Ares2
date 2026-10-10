@@ -79,6 +79,8 @@ public class JavaWriterTest {
 				messages.load(input);
 			}
 			assertNotNull(messages.getProperty("security.advice.trusted.startup.missing"));
+			assertNotNull(messages.getProperty("security.advice.startup.properties.unavailable"));
+			assertNotNull(messages.getProperty("security.advice.temp.directory.holder.unreadable"));
 			assertNotNull(messages.getProperty("security.advice.denial.reason.not.in.allowlist"));
 		}
 	}

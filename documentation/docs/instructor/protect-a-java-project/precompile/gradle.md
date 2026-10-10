@@ -266,6 +266,9 @@ test {
         jvmArgs '--add-opens', 'java.base/java.io=ALL-UNNAMED'
         jvmArgs '--add-opens', 'java.base/java.nio.file=ALL-UNNAMED'
         jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
+
+        // Lets the AspectJ aspect read the values this JVM started with; no agent needed
+        jvmArgs '--add-exports', 'java.base/jdk.internal.misc=ALL-UNNAMED'
     }
 }
 

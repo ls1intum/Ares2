@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.integration.jce;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 
@@ -43,7 +44,7 @@ public final class JceForkProbe {
 	public static void main(String[] arguments) throws Exception {
 		System.out.println("JCE_PROBE_ENTRY");
 		if ("lifecycle".equals(arguments[0])) {
-			verifyLifecycle();
+			verifyLifecycle(!Files.readString(Path.of(arguments[1])).contains("_ASPECTJ"));
 			System.out.println("JCE_PROBE_PASSED");
 			return;
 		}
@@ -105,10 +106,13 @@ public final class JceForkProbe {
 	}
 
 	/**
-	 * Verifies each Jupiter result and both settings copies after the whole
+	 * Verifies each Jupiter result and the settings copies after the whole
 	 * lifecycle.
+	 *
+	 * @param bootstrapRequired whether the agent's bootstrap copy must exist, which
+	 *                          holds for every mode except AspectJ
 	 */
-	private static void verifyLifecycle() throws Exception {
+	private static void verifyLifecycle(boolean bootstrapRequired) throws Exception {
 		var results = org.junit.platform.testkit.engine.EngineTestKit.engine("junit-jupiter").selectors(
 				org.junit.platform.engine.discovery.DiscoverySelectors.selectClass(JcePolicyLifecycleUser.class))
 				.execute();
@@ -140,8 +144,7 @@ public final class JceForkProbe {
 				throw new AssertionError("An unrelated failure masked the lifecycle case: " + name, failure);
 			}
 		}
-		for (ClassLoader loader : new ClassLoader[] { JceForkProbe.class.getClassLoader(), null }) {
-			var settings = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", false, loader);
+		for (Class<?> settings : JceRuntimeContract.settingsCopies("de.tum.cit.ase.ares", bootstrapRequired)) {
 			var mode = settings.getDeclaredField("aopMode");
 			mode.setAccessible(true);
 			if (mode.get(null) != null) {

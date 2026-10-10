@@ -6,7 +6,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Provider;
 import java.security.Security;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import net.bytebuddy.ByteBuddy;
@@ -104,14 +106,13 @@ public final class JceRuntimeContract {
 	}
 
 	/**
-	 * Grants only fixture reads in both real settings copies, then restores them
+	 * Grants only fixture reads in every real settings copy, then restores them
 	 * under their locks.
 	 */
 	private static void permitReads(String namespace, Path allowed, CheckedOperation operation) throws Exception {
 		Map<Field, Object> saved = new LinkedHashMap<>();
 		try {
-			for (ClassLoader loader : new ClassLoader[] { JceRuntimeContract.class.getClassLoader(), null }) {
-				Class<?> settings = Class.forName(namespace + ".api.aop.java.JavaAOPTestCaseSettings", false, loader);
+			for (Class<?> settings : settingsCopies(namespace, !isAspectJ(namespace))) {
 				Field paths = settings.getDeclaredField("pathsAllowedToBeRead");
 				paths.setAccessible(true);
 				Object lock = settings.getMethod("getSettingsLock").invoke(null);
@@ -129,6 +130,34 @@ public final class JceRuntimeContract {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Returns the application copy of the settings and the bootstrap copy the agent
+	 * puts on the boot class path. The bootstrap copy may be missing only where it
+	 * is not required, that is for AspectJ, which runs without an agent.
+	 */
+	static List<Class<?>> settingsCopies(String namespace, boolean bootstrapRequired) throws ClassNotFoundException {
+		String name = namespace + ".api.aop.java.JavaAOPTestCaseSettings";
+		List<Class<?>> copies = new ArrayList<>();
+		copies.add(Class.forName(name, false, JceRuntimeContract.class.getClassLoader()));
+		try {
+			copies.add(Class.forName(name, false, null));
+		} catch (ClassNotFoundException noBootstrapCopy) {
+			if (bootstrapRequired) {
+				throw noBootstrapCopy;
+			}
+		}
+		return copies;
+	}
+
+	/** Tells whether the armed application settings select AspectJ. */
+	private static boolean isAspectJ(String namespace) throws ReflectiveOperationException {
+		Class<?> settings = Class.forName(namespace + ".api.aop.java.JavaAOPTestCaseSettings", false,
+				JceRuntimeContract.class.getClassLoader());
+		Field mode = settings.getDeclaredField("aopMode");
+		mode.setAccessible(true);
+		return "ASPECTJ".equals(mode.get(null));
 	}
 
 	/**

@@ -22,8 +22,8 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageCon
 class JceConsumerBuildTest {
 
 	/**
-	 * Runs the selected build tool against generated advice, its copied agent and
-	 * real student operations.
+	 * Runs the selected build tool against generated advice, its copied agent for
+	 * instrumentation (none for AspectJ) and real student operations.
 	 */
 	@ParameterizedTest
 	@EnumSource(ProgrammingLanguageConfiguration.class)
@@ -36,7 +36,8 @@ class JceConsumerBuildTest {
 		Files.writeString(test, consumerTest());
 		boolean gradle = configuration.name().contains("GRADLE");
 		Files.writeString(project.resolve(gradle ? "build.gradle" : "pom.xml"),
-				gradle ? gradleBuild(project) : mavenBuild(project));
+				gradle ? gradleBuild(project, true, needsAgent(configuration))
+						: mavenBuild(project, true, needsAgent(configuration)));
 		if (gradle) {
 			Files.writeString(project.resolve("settings.gradle"), "rootProject.name = 'jce-generated-consumer'");
 		}
@@ -78,7 +79,8 @@ class JceConsumerBuildTest {
 		Files.copy(agent.resolveSibling(agent.getFileName().toString().replace("-agent.jar", ".jar")),
 				project.resolve("ares.jar"));
 		Files.writeString(project.resolve(gradle ? "build.gradle" : "pom.xml"),
-				gradle ? gradleBuild(project, false) : mavenBuild(project, false));
+				gradle ? gradleBuild(project, false, needsAgent(configuration))
+						: mavenBuild(project, false, needsAgent(configuration)));
 		if (gradle) {
 			Files.writeString(project.resolve("settings.gradle"), "rootProject.name = 'jce-postcompile-consumer'");
 		}
@@ -150,32 +152,34 @@ class JceConsumerBuildTest {
 	}
 
 	/**
-	 * Preserves the required bootstrap runtime and module access alongside the
-	 * copied agent.
+	 * Tells whether a configuration enforces through the agent. AspectJ runs with
+	 * the woven aspects alone, so its builds attach no agent at all.
 	 */
-	private static List<String> runtimeArguments(Path project) {
+	private static boolean needsAgent(ProgrammingLanguageConfiguration configuration) {
+		return configuration.name().endsWith("INSTRUMENTATION");
+	}
+
+	/**
+	 * Preserves the required bootstrap runtime and module access, and adds the
+	 * copied agent only where the configuration needs it.
+	 */
+	private static List<String> runtimeArguments(Path project, boolean agent) {
 		List<String> arguments = new ArrayList<>();
 		ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
 				.filter(argument -> argument.startsWith("-Xbootclasspath/a:") || argument.startsWith("--add-opens=")
 						|| argument.startsWith("--add-exports="))
 				.forEach(arguments::add);
-		arguments.add("-javaagent:" + project.resolve("agent.jar"));
+		if (agent) {
+			arguments.add("-javaagent:" + project.resolve("agent.jar"));
+		}
 		return arguments;
-	}
-
-	/**
-	 * Compiles emitted Java and AspectJ through Maven's lifecycle before Surefire
-	 * runs Jupiter.
-	 */
-	private static String mavenBuild(Path project) {
-		return mavenBuild(project, true);
 	}
 
 	/**
 	 * Compiles copied or packaged advice in Maven using the corresponding source
 	 * roots.
 	 */
-	private static String mavenBuild(Path project, boolean generated) {
+	private static String mavenBuild(Path project, boolean generated, boolean agent) {
 		StringBuilder dependencies = new StringBuilder();
 		int index = 0;
 		for (Path jar : buildDependencies(project, generated)) {
@@ -183,7 +187,7 @@ class JceConsumerBuildTest {
 					.append("</artifactId><version>1</version><scope>system</scope><systemPath>")
 					.append(xml(jar.toString())).append("</systemPath></dependency>");
 		}
-		String arguments = runtimeArguments(project).stream().map(value -> "\"" + value + "\"")
+		String arguments = runtimeArguments(project, agent).stream().map(value -> "\"" + value + "\"")
 				.collect(java.util.stream.Collectors.joining(" "));
 		return """
 				<project xmlns="http://maven.apache.org/POM/4.0.0">
@@ -227,21 +231,13 @@ class JceConsumerBuildTest {
 	}
 
 	/**
-	 * Uses Gradle's JavaExec compilation task and Test task on the actual copied
-	 * sources.
-	 */
-	private static String gradleBuild(Path project) {
-		return gradleBuild(project, true);
-	}
-
-	/**
 	 * Compiles copied or packaged advice in Gradle using the corresponding source
 	 * roots.
 	 */
-	private static String gradleBuild(Path project, boolean generated) {
+	private static String gradleBuild(Path project, boolean generated, boolean agent) {
 		String files = buildDependencies(project, generated).stream().map(path -> groovy(path.toString()))
 				.collect(java.util.stream.Collectors.joining(","));
-		String arguments = runtimeArguments(project).stream().map(JceConsumerBuildTest::groovy)
+		String arguments = runtimeArguments(project, agent).stream().map(JceConsumerBuildTest::groovy)
 				.collect(java.util.stream.Collectors.joining(","));
 		return """
 				plugins { id 'java' }

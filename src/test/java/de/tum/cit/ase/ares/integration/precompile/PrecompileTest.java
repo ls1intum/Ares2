@@ -55,8 +55,9 @@ public class PrecompileTest {
 	/**
 	 * Precompile carries the secure baseline's temp-file rules into an exercise:
 	 * the copied deny list still names the two calls with a directory and not the
-	 * two without one, the copied ArchUnit check lets the latter through, and the
-	 * copied settings, agent and aspect carry the start-up freeze.
+	 * two without one, the copied ArchUnit check lets the latter through, the
+	 * copied settings and agent carry the start-up freeze, and the copied aspect
+	 * reads the JVM's start-up values itself, with no reference to the agent.
 	 */
 	@ParameterizedTest
 	@CsvSource({ "ARCHUNIT,INSTRUMENTATION", "ARCHUNIT,ASPECTJ", "WALA,INSTRUMENTATION", "WALA,ASPECTJ" })
@@ -94,12 +95,30 @@ public class PrecompileTest {
 		if ("INSTRUMENTATION".equals(aop)) {
 			assertContains(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java"),
 					"captureTrustedStartupValues();");
-			assertContains(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java"), EXERCISE_PACKAGE
-					+ ".ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions");
+			assertDoesNotContain(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java"),
+					"JavaAspectJFileSystemAdviceDefinitions");
 		} else {
-			assertContains(
-					generated.resolve("aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemAdviceDefinitions.aj"),
-					"frozenDefaultTempDirectory");
+			Path aspect = generated
+					.resolve("aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemAdviceDefinitions.aj");
+			assertContains(aspect, "getSavedProperties");
+			assertContains(aspect, "TRUSTED_DEFAULT_TEMP_DIRECTORY");
+			assertDoesNotContain(aspect, "JavaInstrumentationAgent");
+			assertFalse(Files.exists(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java")),
+					"an AspectJ exercise was given the instrumentation agent");
+		}
+	}
+
+	/**
+	 * Checks that a generated file does not contain a text.
+	 *
+	 * @param file      the generated file
+	 * @param forbidden the text it must not contain
+	 * @throws IOException if the file cannot be read
+	 */
+	private static void assertDoesNotContain(Path file, String forbidden) throws IOException {
+		assertTrue(Files.exists(file), () -> "precompile did not write " + file);
+		try (Stream<String> lines = Files.lines(file)) {
+			assertTrue(lines.noneMatch(line -> line.contains(forbidden)), () -> file + " contains " + forbidden);
 		}
 	}
 

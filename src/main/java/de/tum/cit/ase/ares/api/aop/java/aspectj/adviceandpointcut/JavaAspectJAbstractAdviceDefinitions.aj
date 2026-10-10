@@ -572,6 +572,16 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	}
 
 	/**
+	 * Tells whether an advice body is already executing on the current thread,
+	 * without entering one.
+	 *
+	 * @return {@code true} inside an advice body on this thread
+	 */
+	protected static boolean isAdviceInProgress() {
+		return Boolean.TRUE.equals(ADVICE_IN_PROGRESS.get());
+	}
+
+	/**
 	 * Clears the per-thread advice re-entrancy flag. Must be called from a
 	 * {@code finally} paired with an {@link #enterAdvice()} that returned
 	 * {@code true}.
