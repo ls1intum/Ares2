@@ -7,10 +7,11 @@ import javax.xml.transform.stream.StreamResult
 import org.gradle.api.tasks.testing.Test
 
 def aresTestTask = tasks.named('test', Test)
+def hiddenReportsDirectory = layout.buildDirectory.dir('test-results/test')
 def aresSanitizer = tasks.register('aresSanitizeHiddenReports') {
     doLast {
-        def reports = aresTestTask.get().reports.junitXml.outputLocation.get().asFile
-        fileTree(reports).matching { include 'TEST-*.xml' }.files.each { report ->
+        def reports = hiddenReportsDirectory.get().asFile
+        (reports.listFiles() ?: []).findAll { it.name.startsWith('TEST-') && it.name.endsWith('.xml') }.each { report ->
             def documentFactory = DocumentBuilderFactory.newInstance()
             documentFactory.setFeature('http://apache.org/xml/features/disallow-doctype-decl', true)
             documentFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
