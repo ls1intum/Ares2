@@ -5,9 +5,6 @@ import %1$s.ares.api.localization.Messages;
 /** Holds the generated policy settings read by runtime advice. */
 public final class JavaAOPTestCaseSettings {
 
-    /** Package exemptions are absent until the generated policy supplies them. */
-    private static volatile String[] allowedListedPackages = null;
-
     /** Serialises reflective reads and writes of this settings copy. */
     private static final Object SETTINGS_LOCK = new Object();
 

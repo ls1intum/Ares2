@@ -269,66 +269,101 @@ public class JavaAOPTestCase extends AOPTestCase {
 	// <editor-fold desc="Write security test case methods">
 
 	/**
-	 * Generates the content for the AOP security test case.
-	 * <p>
-	 * Serialises this case's permission domain into the Java advice-settings source
-	 * consumed by AspectJ and instrumentation.
-	 * </p>
+	 * Writes the settings of this test case's own permission domain, the same ones
+	 * {@link #executeAOPTestCase} sets. The AOP mode, the supervised package and
+	 * the exemptions belong to the whole settings file, which
+	 * {@link #writeAOPTestCaseFile} writes, so they are not written here.
 	 *
-	 * @return a string representing the content of the aspect configuration.
+	 * @param architectureMode the architecture mode, not needed for writing
+	 * @param aopMode          the AOP mode, not needed for writing
+	 * @return this test case's settings as Java source
 	 */
 	@Override
 	@Nonnull
 	public String writeAOPTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
 		Objects.requireNonNull(architectureMode, "architectureMode must not be null");
+		Objects.requireNonNull(aopMode, "aopMode must not be null");
 		List<?> permissions = resourceAccessSupplier.get();
-		List<FilePermission> files = List.of();
-		List<NetworkPermission> networks = List.of();
-		List<CommandPermission> commands = List.of();
-		List<ThreadPermission> threads = List.of();
-		switch ((JavaAOPTestCaseSupported) aopTestCaseSupported) {
-		case FILESYSTEM_INTERACTION -> files = permissions.stream().map(FilePermission.class::cast).toList();
-		case NETWORK_CONNECTION -> networks = permissions.stream().map(NetworkPermission.class::cast).toList();
-		case COMMAND_EXECUTION -> commands = permissions.stream().map(CommandPermission.class::cast).toList();
-		case THREAD_CREATION -> threads = permissions.stream().map(ThreadPermission.class::cast).toList();
+		Stream<JavaAOPAdviceSettingTriple> settings = switch ((JavaAOPTestCaseSupported) aopTestCaseSupported) {
+		case FILESYSTEM_INTERACTION -> fileSettings(permissions.stream().map(FilePermission.class::cast).toList());
+		case NETWORK_CONNECTION -> networkSettings(permissions.stream().map(NetworkPermission.class::cast).toList());
+		case COMMAND_EXECUTION -> commandSettings(permissions.stream().map(CommandPermission.class::cast).toList());
+		case THREAD_CREATION -> threadSettings(permissions.stream().map(ThreadPermission.class::cast).toList());
 		default -> throw new IllegalStateException("Unsupported Java AOP test case: " + aopTestCaseSupported);
-		}
-		return writeAOPTestCaseFile(aopMode, architectureMode,
-				allowedClasses.stream().map(ClassPermission::className).sorted().toList(), files, networks, commands,
-				threads);
+		};
+		StringBuilder content = new StringBuilder();
+		settings.map(JavaAOPTestCase::generateAdviceSettingValue).forEach(content::append);
+		return content.toString();
 	}
 	// </editor-fold>
 
 	// <editor-fold desc="Write security test case file methods">
 
 	/**
-	 * Writes the aspect configuration content based on the provided security test
-	 * cases.
+	 * Writes the settings file without exempted packages, as the signature released
+	 * before packages became a setting of their own.
 	 *
-	 * @param aopMode              the AOP mode (AspectJ or Instrumentation), must
-	 *                             not be null.
-	 * @param restrictedPackage    the restricted package, must not be null.
-	 * @param allowedListedClasses the list of allowed classes in the restricted
-	 *                             package, must not be null.
-	 * @param filePermissions      the list of file permissions, must not be null.
-	 * @param networkPermissions   the list of network permissions, must not be
-	 *                             null.
-	 * @param commandPermissions   the list of command permissions, must not be
-	 *                             null.
-	 * @param threadPermissions    the list of thread permissions, must not be null.
-	 * @return a string representing the content of the AOP security test case
-	 *         configuration file.
+	 * @param aopMode              the AOP mode
+	 * @param restrictedPackage    supervised package
+	 * @param allowedListedClasses exempted classes
+	 * @param filePermissions      file rules
+	 * @param networkPermissions   network rules
+	 * @param commandPermissions   command rules
+	 * @param threadPermissions    thread rules
+	 * @return the content
 	 */
 	@Nonnull
 	public static String writeAOPTestCaseFile(@Nonnull String aopMode, @Nonnull String restrictedPackage,
 			@Nonnull List<String> allowedListedClasses, @Nonnull List<FilePermission> filePermissions,
 			@Nonnull List<NetworkPermission> networkPermissions, @Nonnull List<CommandPermission> commandPermissions,
 			@Nonnull List<ThreadPermission> threadPermissions) {
+		return writeAOPTestCaseFile(aopMode, restrictedPackage, List.of(), allowedListedClasses, filePermissions,
+				networkPermissions, commandPermissions, threadPermissions);
+	}
+
+	/**
+	 * Writes the settings file, enabling settings last, so a read during
+	 * initialisation finds the policy off.
+	 *
+	 * @param aopMode               the AOP mode
+	 * @param restrictedPackage     supervised package
+	 * @param allowedListedPackages exempted packages
+	 * @param allowedListedClasses  exempted classes
+	 * @param filePermissions       file rules
+	 * @param networkPermissions    network rules
+	 * @param commandPermissions    command rules
+	 * @param threadPermissions     thread rules
+	 * @return the content
+	 */
+	@Nonnull
+	public static String writeAOPTestCaseFile(@Nonnull String aopMode, @Nonnull String restrictedPackage,
+			@Nonnull List<String> allowedListedPackages, @Nonnull List<String> allowedListedClasses,
+			@Nonnull List<FilePermission> filePermissions, @Nonnull List<NetworkPermission> networkPermissions,
+			@Nonnull List<CommandPermission> commandPermissions, @Nonnull List<ThreadPermission> threadPermissions) {
 		@Nonnull
 		StringBuilder fileContentBuilder = new StringBuilder();
-		Stream.of(new JavaAOPAdviceSettingTriple("String", " aopMode", aopMode),
-				new JavaAOPAdviceSettingTriple("String", " restrictedPackage", restrictedPackage),
-				new JavaAOPAdviceSettingTriple("String[]", " allowedListedClasses", allowedListedClasses),
+		Stream.of(
+				Stream.of(new JavaAOPAdviceSettingTriple("String[]", " allowedListedPackages", allowedListedPackages),
+						new JavaAOPAdviceSettingTriple("String[]", " allowedListedClasses", allowedListedClasses)),
+				fileSettings(filePermissions), networkSettings(networkPermissions), commandSettings(commandPermissions),
+				threadSettings(threadPermissions),
+				Stream.of(new JavaAOPAdviceSettingTriple("String", " aopMode", aopMode),
+						new JavaAOPAdviceSettingTriple("String", " restrictedPackage", restrictedPackage)))
+				.flatMap(settings -> settings).map(JavaAOPTestCase::generateAdviceSettingValue)
+				.forEach(fileContentBuilder::append);
+		return fileContentBuilder.toString();
+	}
+
+	/**
+	 * Returns the file settings for the given file permissions.
+	 *
+	 * @param filePermissions the file rules
+	 * @return the settings for reading, overwriting, creating, executing and
+	 *         deleting
+	 */
+	@Nonnull
+	private static Stream<JavaAOPAdviceSettingTriple> fileSettings(@Nonnull List<FilePermission> filePermissions) {
+		return Stream.of(
 				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeRead",
 						JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::readAllFiles)),
 				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeOverwritten",
@@ -338,7 +373,19 @@ public class JavaAOPTestCase extends AOPTestCase {
 				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeExecuted",
 						JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::executeAllFiles)),
 				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeDeleted",
-						JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::deleteAllFiles)),
+						JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::deleteAllFiles)));
+	}
+
+	/**
+	 * Returns the network settings for the given network permissions.
+	 *
+	 * @param networkPermissions the network rules
+	 * @return the host and port settings for connecting, sending and receiving
+	 */
+	@Nonnull
+	private static Stream<JavaAOPAdviceSettingTriple> networkSettings(
+			@Nonnull List<NetworkPermission> networkPermissions) {
+		return Stream.of(
 				new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeConnectedTo",
 						JavaNetworkSystemExtractor.extractHosts(networkPermissions,
 								NetworkPermission::openConnections)),
@@ -352,17 +399,39 @@ public class JavaAOPTestCase extends AOPTestCase {
 				new JavaAOPAdviceSettingTriple("String[]", " hostsAllowedToBeReceivedFrom",
 						JavaNetworkSystemExtractor.extractHosts(networkPermissions, NetworkPermission::receiveData)),
 				new JavaAOPAdviceSettingTriple("int[]", " portsAllowedToBeReceivedFrom",
-						JavaNetworkSystemExtractor.extractPorts(networkPermissions, NetworkPermission::receiveData)),
+						JavaNetworkSystemExtractor.extractPorts(networkPermissions, NetworkPermission::receiveData)));
+	}
+
+	/**
+	 * Returns the command settings for the given command permissions.
+	 *
+	 * @param commandPermissions the command rules
+	 * @return the settings for allowed commands and their arguments
+	 */
+	@Nonnull
+	private static Stream<JavaAOPAdviceSettingTriple> commandSettings(
+			@Nonnull List<CommandPermission> commandPermissions) {
+		return Stream.of(
 				new JavaAOPAdviceSettingTriple("String[]", " commandsAllowedToBeExecuted",
 						JavaCommandSystemExtractor.extractCommands(commandPermissions)),
 				new JavaAOPAdviceSettingTriple("String[][]", " argumentsAllowedToBePassed",
-						JavaCommandSystemExtractor.extractArguments(commandPermissions)),
+						JavaCommandSystemExtractor.extractArguments(commandPermissions)));
+	}
+
+	/**
+	 * Returns the thread settings for the given thread permissions.
+	 *
+	 * @param threadPermissions the thread rules
+	 * @return the settings for allowed thread numbers and classes
+	 */
+	@Nonnull
+	private static Stream<JavaAOPAdviceSettingTriple> threadSettings(
+			@Nonnull List<ThreadPermission> threadPermissions) {
+		return Stream.of(
 				new JavaAOPAdviceSettingTriple("int[]", " threadNumberAllowedToBeCreated",
 						JavaThreadSystemExtractor.extractThreadNumbers(threadPermissions)),
 				new JavaAOPAdviceSettingTriple("String[]", " threadClassAllowedToBeCreated",
-						JavaThreadSystemExtractor.extractThreadClasses(threadPermissions)))
-				.map(JavaAOPTestCase::generateAdviceSettingValue).forEach(fileContentBuilder::append);
-		return fileContentBuilder.toString();
+						JavaThreadSystemExtractor.extractThreadClasses(threadPermissions)));
 	}
 	// </editor-fold>
 

@@ -136,20 +136,50 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	private static final List<String> NATIVE_LIBRARY_SUFFIXES = List.of(".dylib", ".jnilib", ".so", ".dll");
 
 	/**
-	 * Trusted JVM home captured at class-initialisation time, before student code
-	 * runs, so a later {@code System.setProperty("java.home", ...)} cannot widen the
-	 * system-file access exemption into a fail-open read/execute bypass.
+	 * The JDK class whose public static methods return the system properties as the
+	 * JVM recorded them at start-up. Reading it needs the JVM argument
+	 * {@code --add-exports java.base/jdk.internal.misc=ALL-UNNAMED}, and no agent.
 	 */
-	@Nullable
-	private static final String TRUSTED_JAVA_HOME = System.getProperty("java.home");
+	@Nonnull
+	private static final String START_UP_PROPERTIES_CLASS = "jdk.internal.misc.VM";
 
 	/**
-	 * Trusted Maven repository root captured at class-initialisation time for the
-	 * same reason, resolved from {@code maven.repo.local} with the conventional
-	 * {@code ~/.m2/repository} fallback.
+	 * The JDK class that keeps the directory {@code File.createTempFile} writes to
+	 * when no directory is given. On JDK 17 it copies {@code java.io.tmpdir} when
+	 * first used, so Ares reads the copy rather than the property.
+	 */
+	@Nonnull
+	private static final String JDK_FILE_TEMP_DIRECTORY_HOLDER = "java.io.File$TempDirectory";
+
+	/**
+	 * The system properties as this JVM started with them, which a later
+	 * {@code System.setProperty} cannot change, or {@code null} if this JVM does not
+	 * let Ares read them.
+	 */
+	@Nullable
+	private static final Map<String, String> START_UP_PROPERTIES = readStartUpPropertiesOrNull();
+
+	/**
+	 * The Java installation as the JVM started with it, so changing
+	 * {@code java.home} later cannot turn a student folder into a trusted one.
+	 */
+	@Nullable
+	private static final String TRUSTED_JAVA_HOME = startUpProperty("java.home");
+
+	/**
+	 * The Maven repository as the JVM started with it, from {@code maven.repo.local}
+	 * or else {@code ~/.m2/repository}. A value set after start-up is not trusted.
 	 */
 	@Nullable
 	private static final String TRUSTED_MAVEN_REPOSITORY = resolveTrustedMavenRepository();
+
+	/**
+	 * The default temp directory as the JVM started with it, with links followed
+	 * once when this aspect is first used and never again, so a link changed later
+	 * cannot move it. {@code null} if it could not be determined.
+	 */
+	@Nullable
+	private static final Path TRUSTED_DEFAULT_TEMP_DIRECTORY = resolveRealDirectory(startUpProperty("java.io.tmpdir"));
 
 	// </editor-fold>
 
@@ -790,9 +820,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 	/**
 	 * Decides a {@code createTempFile} call on its own, since its overloads put a
-	 * directory or a name prefix at the same position. Without a directory it is
-	 * allowed once Ares fixed the default temp directory at start-up; with one it
-	 * needs that directory or a {@code pathsAllowedToBeCreated} entry.
+	 * directory or a name prefix at the same position. The directory the JDK will
+	 * really write to, named or default, needs a {@code pathsAllowedToBeCreated}
+	 * entry or must be the default temp directory the JVM started with.
 	 *
 	 * @return {@code true} if the call was {@code createTempFile} and is allowed,
 	 *         {@code false} for any other call
@@ -811,12 +841,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		@Nullable
 		Object explicitDirectory = resolveExplicitTempDirectory(declaringTypeName, parameters, systemMethodToCheck,
 				fullMethodSignature);
-		if (explicitDirectory == null) {
-			requireFrozenDefaultTempDirectory();
-		} else {
-			requireDirectoryAllowedForTempFiles(explicitDirectory, systemMethodToCheck, studentCalledMethod,
-					fullMethodSignature, thisJoinPoint);
-		}
+		@Nonnull
+		Object effectiveDirectory = explicitDirectory != null ? explicitDirectory
+				: resolveDefaultTempDirectory(declaringTypeName);
+		requireDirectoryAllowedForTempFiles(effectiveDirectory, systemMethodToCheck, studentCalledMethod,
+				fullMethodSignature, thisJoinPoint);
 		return true;
 	}
 
@@ -861,22 +890,105 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Allows a {@code createTempFile} call without a directory only if the trusted
-	 * start-up fixed the default temp directory. Otherwise Ares cannot tell which
-	 * directory the JDK will write to, so the call is refused whatever the policy
-	 * lists, with the same message as any access without trusted start-up.
+	 * Returns the directory a {@code createTempFile} call without one writes to.
+	 * {@code Files} uses the {@code java.io.tmpdir} the JVM started with, as a path
+	 * that is not followed until the file is created; {@code File} uses the JDK's
+	 * own copy, which on JDK 17 is taken from the property when first used.
 	 *
-	 * @throws SecurityException if no default temp directory was fixed
+	 * @param declaringTypeName the class that declares the called method
+	 * @return the directory the JDK will write to
+	 * @throws SecurityException if Ares cannot find out which directory that is
 	 */
-	private static void requireFrozenDefaultTempDirectory() {
-		if (frozenDefaultTempDirectory() == null) {
-			throw new SecurityException(localize("security.advice.trusted.startup.missing"));
+	@Nonnull
+	private static Object resolveDefaultTempDirectory(@Nonnull String declaringTypeName) {
+		if ("java.io.File".equals(declaringTypeName)) {
+			return readJdkFileTempDirectory();
+		}
+		requireStartUpProperties();
+		@Nullable
+		String startUpDirectory = startUpProperty("java.io.tmpdir");
+		if (startUpDirectory == null) {
+			throw new SecurityException(localize("security.advice.startup.properties.unavailable"));
+		}
+		return Path.of(startUpDirectory);
+	}
+
+	/**
+	 * Prepares the JDK class behind {@code File.createTempFile}'s default directory
+	 * before this advice's guard is entered. Preparing it creates a
+	 * {@code SecureRandom}, which can run student code such as a provider, and that
+	 * code must stay checked. A failure is left to the later read, which refuses.
+	 *
+	 * @param thisJoinPoint the intercepted call
+	 */
+	private static void initialiseJdkFileTempDirectoryBeforeTheGuard(@Nonnull JoinPoint thisJoinPoint) {
+		if (!"java.io.File".equals(thisJoinPoint.getSignature().getDeclaringTypeName())
+				|| !"createTempFile".equals(thisJoinPoint.getSignature().getName())) {
+			return;
+		}
+		try {
+			Class.forName(JDK_FILE_TEMP_DIRECTORY_HOLDER, true, null);
+		} catch (ClassNotFoundException | LinkageError unprepared) {
+			return;
 		}
 	}
 
 	/**
-	 * Allows a {@code createTempFile} directory that is exactly the default temp
-	 * directory fixed at start-up, or that {@code pathsAllowedToBeCreated} covers.
+	 * Reads the directory {@code File.createTempFile} without a directory writes
+	 * to, from the JDK class that keeps it, which was prepared before the guard.
+	 * That class must hold exactly one static {@code File}. Needs the JVM argument
+	 * {@code --add-opens java.base/java.io=ALL-UNNAMED}.
+	 *
+	 * @return the directory the JDK will write to
+	 * @throws SecurityException if the directory cannot be read
+	 */
+	@Nonnull
+	private static File readJdkFileTempDirectory() {
+		@Nullable
+		Object directory;
+		try {
+			@Nullable
+			java.lang.reflect.Field holderField = findSingleStaticFileField(
+					Class.forName(JDK_FILE_TEMP_DIRECTORY_HOLDER, false, null));
+			if (holderField == null) {
+				throw new SecurityException(localize("security.advice.temp.directory.holder.unreadable"));
+			}
+			holderField.setAccessible(true);
+			directory = holderField.get(null);
+		} catch (ReflectiveOperationException | InaccessibleObjectException | LinkageError unreadable) {
+			throw new SecurityException(localize("security.advice.temp.directory.holder.unreadable"), unreadable);
+		}
+		if (directory instanceof File file) {
+			return file;
+		}
+		throw new SecurityException(localize("security.advice.temp.directory.holder.unreadable"));
+	}
+
+	/**
+	 * Returns the only static field of type {@code File} a class declares, or
+	 * {@code null} if it declares none or more than one.
+	 *
+	 * @param holder the class to search
+	 * @return the field, or {@code null}
+	 */
+	@Nullable
+	private static java.lang.reflect.Field findSingleStaticFileField(@Nonnull Class<?> holder) {
+		@Nullable
+		java.lang.reflect.Field found = null;
+		for (java.lang.reflect.Field field : holder.getDeclaredFields()) {
+			if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) && field.getType() == File.class) {
+				if (found != null) {
+					return null;
+				}
+				found = field;
+			}
+		}
+		return found;
+	}
+
+	/**
+	 * Allows a {@code createTempFile} directory that {@code pathsAllowedToBeCreated}
+	 * covers, or that is exactly the default temp directory the JVM started with.
 	 * Ares's own internal file names grant nothing here, since a student can name a
 	 * directory after them.
 	 *
@@ -890,7 +1002,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		@Nullable
 		String violation = checkIfVariableCriteriaIsViolated(new Object[] { explicitDirectory }, allowedPaths,
 				IgnoreValues.NONE, true);
-		if (violation == null || isFrozenDefaultTempDirectory(explicitDirectory)) {
+		if (violation == null || isTrustedDefaultTempDirectory(explicitDirectory)) {
 			return;
 		}
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
@@ -901,40 +1013,27 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Tells whether a directory is exactly the default temp directory fixed at
-	 * start-up once symbolic links are followed, so a subdirectory or a link
-	 * leading elsewhere does not count. Following links reads the file system,
-	 * which is safe because this runs inside the advice's guard against calling
-	 * itself. Any failure counts as "not the same directory".
+	 * Tells whether a directory, with links followed now, is exactly the default
+	 * temp directory the JVM started with; a subdirectory or a link leading
+	 * elsewhere does not count, and a directory that does not resolve counts as
+	 * different. Runs inside the advice's guard.
 	 *
-	 * @param explicitDirectory the directory argument, a {@code Path} or a
-	 *                          {@code File}
-	 * @return {@code true} only for the fixed default temp directory itself
+	 * @param explicitDirectory the directory, a {@code Path} or a {@code File}
+	 * @return {@code true} only for the start-up default temp directory itself
+	 * @throws SecurityException if the JVM's start-up values cannot be read
 	 */
-	private static boolean isFrozenDefaultTempDirectory(@Nonnull Object explicitDirectory) {
-		@Nullable
-		String frozenDirectory = frozenDefaultTempDirectory();
-		if (frozenDirectory == null) {
+	private static boolean isTrustedDefaultTempDirectory(@Nonnull Object explicitDirectory) {
+		requireStartUpProperties();
+		if (TRUSTED_DEFAULT_TEMP_DIRECTORY == null) {
 			return false;
 		}
 		try {
 			@Nullable
 			Path candidate = variableToPath(explicitDirectory, true);
-			return candidate != null && candidate.toRealPath().equals(Path.of(frozenDirectory));
+			return candidate != null && candidate.toRealPath().equals(TRUSTED_DEFAULT_TEMP_DIRECTORY);
 		} catch (IOException | InvalidPathException unresolvable) {
 			return false;
 		}
-	}
-
-	/**
-	 * Returns the default temp directory that trusted Ares code fixed at start-up,
-	 * already resolved to its real location, or {@code null} if nothing fixed it.
-	 *
-	 * @return the fixed directory, or {@code null}
-	 */
-	@Nullable
-	private static String frozenDefaultTempDirectory() {
-		return getValueFromSettings("frozenDefaultTempDirectory");
 	}
 
 	// </editor-fold>
@@ -1211,43 +1310,121 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Returns {@code true} when {@code path} points at a .jar inside the system
-	 * infrastructure (the Maven local repository or the JDK installation). Such
-	 * reads are triggered by JUnit / ServiceLoader during class loading, never by
-	 * student code accessing project files, so they are exempt from the read
-	 * policy. The Maven repository is anchored to {@code maven.repo.local} (or
-	 * {@code ~/.m2/repository}) rather than matched as a loose substring, so a
-	 * student cannot bypass the read policy by reading from a self-made
-	 * ".m2/repository" directory.
+	 * Tells whether a read is of a {@code .jar} inside the Maven repository or the
+	 * Java installation the JVM started with, which is allowed whoever reads it. The
+	 * repository is matched as a directory, so a student's own
+	 * {@code .m2/repository} folder elsewhere does not count.
 	 *
-	 * @param path the already-resolved path string under inspection
-	 * @return true if the path is a system-infrastructure .jar read
+	 * @param path the already-resolved path under inspection
+	 * @return true for such a {@code .jar} read
+	 * @throws SecurityException if the JVM's start-up values cannot be read
 	 */
 	private static boolean isSystemJarReadExempt(@Nonnull String path) {
 		if (!path.endsWith(".jar")) {
 			return false;
 		}
+		requireStartUpProperties();
 		return isPathWithin(path, TRUSTED_MAVEN_REPOSITORY) || isPathWithin(path, TRUSTED_JAVA_HOME);
 	}
 
 	/**
-	 * Resolves the Maven local repository root from {@code maven.repo.local}, with
-	 * the conventional {@code ~/.m2/repository} fallback. Returns {@code null} when
-	 * neither can be determined.
+	 * Resolves the Maven local repository root from the start-up value of
+	 * {@code maven.repo.local}, with the conventional {@code ~/.m2/repository}
+	 * fallback. Returns {@code null} when neither can be determined.
 	 *
 	 * @return the Maven repository root, or {@code null}
 	 */
 	@Nullable
 	private static String resolveTrustedMavenRepository() {
-		String mavenRepository = System.getProperty("maven.repo.local");
+		String mavenRepository = startUpProperty("maven.repo.local");
 		if (mavenRepository == null || mavenRepository.isEmpty()) {
-			String userHome = System.getProperty("user.home");
+			String userHome = startUpProperty("user.home");
 			if (userHome == null) {
 				return null;
 			}
 			mavenRepository = userHome + File.separator + ".m2" + File.separator + "repository";
 		}
 		return mavenRepository;
+	}
+
+	/**
+	 * Reads the system properties as this JVM started with them, or returns
+	 * {@code null} if this JVM does not let Ares read them.
+	 *
+	 * @return the start-up properties, or {@code null}
+	 */
+	@Nullable
+	private static Map<String, String> readStartUpPropertiesOrNull() {
+		try {
+			return readStartUpProperties();
+		} catch (ReflectiveOperationException | RuntimeException | LinkageError unreadable) {
+			return null;
+		}
+	}
+
+	/**
+	 * Copies the system properties as this JVM started with them from the JDK's own
+	 * record, which {@code System.setProperty} does not change. The JDK hands out a
+	 * view of a mutable map, so only a copy stays fixed.
+	 *
+	 * @return a copy of the start-up properties
+	 * @throws ReflectiveOperationException if the JDK does not let Ares read them
+	 */
+	@SuppressWarnings("unchecked")
+	@Nonnull
+	private static Map<String, String> readStartUpProperties() throws ReflectiveOperationException {
+		return Map.copyOf((Map<String, String>) Map.class.cast(
+				Class.forName(START_UP_PROPERTIES_CLASS).getMethod("getSavedProperties").invoke(null)));
+	}
+
+	/**
+	 * Returns one system property as this JVM started with it, or {@code null} if
+	 * it was not set or the start-up properties cannot be read.
+	 *
+	 * @param key the property name
+	 * @return the start-up value, or {@code null}
+	 */
+	@Nullable
+	private static String startUpProperty(@Nonnull String key) {
+		return START_UP_PROPERTIES == null ? null : START_UP_PROPERTIES.get(key);
+	}
+
+	/**
+	 * Refuses the current check when it depends on the JVM's start-up values and
+	 * Ares cannot read them, naming the JVM argument that would let it, with the
+	 * JDK's own reason attached.
+	 *
+	 * @throws SecurityException if the start-up properties cannot be read
+	 */
+	private static void requireStartUpProperties() {
+		if (START_UP_PROPERTIES != null) {
+			return;
+		}
+		try {
+			readStartUpProperties();
+		} catch (ReflectiveOperationException | RuntimeException | LinkageError unreadable) {
+			throw new SecurityException(localize("security.advice.startup.properties.unavailable"), unreadable);
+		}
+		throw new SecurityException(localize("security.advice.startup.properties.unavailable"));
+	}
+
+	/**
+	 * Resolves a directory to its real location with links followed, or returns
+	 * {@code null} if there is no directory name or it does not resolve.
+	 *
+	 * @param directory the directory name, or {@code null}
+	 * @return the real directory, or {@code null}
+	 */
+	@Nullable
+	private static Path resolveRealDirectory(@Nullable String directory) {
+		if (directory == null) {
+			return null;
+		}
+		try {
+			return Path.of(directory).toRealPath();
+		} catch (IOException | InvalidPathException | SecurityException unresolvable) {
+			return null;
+		}
 	}
 
 	/**
@@ -1275,21 +1452,20 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Determines whether a file-system access targets JVM infrastructure under
-	 * {@code java.home} that must never be treated as student file access.
-	 * <p>
-	 * Description: JDK-internal reads under {@code java.home} (e.g. the
-	 * conf/security crypto-policy files read by {@code javax.crypto.JceSecurity}'s
-	 * static initialiser) are JVM infrastructure, not student file access, and must
-	 * not be blocked. Native-library loads ({@code .dylib}/{@code .jnilib}/
-	 * {@code .so}/{@code .dll}) under {@code java.home} are exempt for the
-	 * {@code execute} action for the same reason.
+	 * Tells whether an access is the JVM's own: a read under the Java installation
+	 * the JVM started with, or a load of a native library there, by path or by the
+	 * bare name {@code System.loadLibrary} uses. Other actions are never exempt.
 	 *
-	 * @param action the concrete file-system action under inspection
-	 * @param path   the already-resolved path string under inspection
-	 * @return true if the access is exempt JVM-infrastructure access
+	 * @param action the file-system action under inspection
+	 * @param path   the already-resolved path under inspection
+	 * @return true if the access is exempt
+	 * @throws SecurityException if the JVM's start-up values cannot be read
 	 */
 	private static boolean isExemptSystemFileAccess(@Nonnull String action, @Nonnull String path) {
+		if (!"read".equals(action) && !"execute".equals(action)) {
+			return false;
+		}
+		requireStartUpProperties();
 		// System.loadLibrary(name)/Runtime.loadLibrary(name) resolve a JDK native library by name
 		// on java.library.path, but the intercepted path is the bare name resolved against the
 		// working directory (e.g. "<cwd>/awt" when java.awt.Toolkit initialises). Recognise such
@@ -1363,6 +1539,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		// thread, causing unbounded recursion (and ClassCircularityError during class
 		// loading). Skip nested invocations (trusted Ares internals); enforce only the
 		// outermost one.
+		if (isAdviceInProgress()) {
+			return;
+		}
+		initialiseJdkFileTempDirectoryBeforeTheGuard(thisJoinPoint);
 		if (!enterAdvice()) {
 			return;
 		}
@@ -1373,8 +1553,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 	}
 
+	/** Checks the selected policy against the caller and file-operation arguments. */
 	private void checkFileSystemInteractionImpl(@Nonnull String action, @Nonnull JoinPoint thisJoinPoint) {
-		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
 		if (aopMode == null || !aopMode.equals("ASPECTJ")) {
@@ -1387,8 +1567,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 		@Nullable
 		final String[] allowedClasses = getValueFromSettings("allowedListedClasses");
-		// </editor-fold>
-		// <editor-fold desc="Get information from join point">
 		@Nonnull
 		Object[] parameters = thisJoinPoint.getArgs();
 		@Nullable
@@ -1399,8 +1577,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
 		@Nonnull
 		String methodName = thisJoinPoint.getSignature().getName();
-		// </editor-fold>
-		// <editor-fold desc="Extract attributes from object instance">
 		@Nonnull
 		Object[] attributes = new Object[0];
 		if (instance != null) {
@@ -1414,11 +1590,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 						attributes[i] = fields[i].get(instance);
 					} catch (InaccessibleObjectException | IllegalAccessException | SecurityException
 							| IllegalArgumentException | NullPointerException | ExceptionInInitializerError e) {
-						// Skip an unreadable field rather than aborting the whole interaction: a
-						// JDK-internal field (e.g. reached via Ares's own timeout executor) that throws
-						// on read must not turn a JDK-side reflection limit into an Ares-Code
-						// SecurityException. The check still runs over the parameters and the readable
-						// fields. Uniform across all four subsystems and both engines.
 						continue;
 					}
 				}
@@ -1426,15 +1597,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				throw e;
 			}
 		}
-		// </editor-fold>
-		// <editor-fold desc="Check callstack">
 		@Nullable
 		String systemMethodToCheck = (restrictedPackage == null) ? null
 				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
 		if (systemMethodToCheck == null) {
 			return;
 		}
-		// </editor-fold>
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
@@ -1449,10 +1617,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
 			String actionToCheck = actionCheck.getKey();
 			boolean allowNonExistingPaths = Boolean.TRUE.equals(actionCheck.getValue());
-			// When a "create" pointcut intercepts a class/method that semantically truncates/overwrites
-			// (FileOutputStream, FileWriter, PrintWriter, or Files.newBufferedWriter/newOutputStream
-			// without an explicit append=true), the reported verb should be "overwrite" so that
-			// messages match test expectations.
 			boolean isWriteAliasedAsCreate = "create".equals(actionToCheck)
 					&& ("java.io.FileOutputStream".equals(declaringTypeName)
 							|| "java.io.FileWriter".equals(declaringTypeName)
@@ -1471,7 +1635,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", actionToCheck));
 			});
 			boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
-			// <editor-fold desc="Check parameters">
 			@Nullable
 			String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
 					: checkIfVariableCriteriaIsViolated(parameters, allowedPaths,
@@ -1479,33 +1642,20 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 									extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE),
 							allowNonExistingPaths);
 			if (illegallyInteractedThroughParameter != null) {
-				// A .class read performed by the JVM class-loading machinery is class
-				// loading, not student file access. The studentCalledMethod prefixes cover a
-				// direct Class.forName/ClassLoader call; isClassLoadingInProgress() covers
-				// loads triggered indirectly (e.g. via reflective invocation). A student
-				// opening a .class file directly has no such frame, so this stays precise.
 				boolean isClassLoaderAccess = illegallyInteractedThroughParameter.endsWith(".class")
 						&& (isClassLoadingInProgress()
 								|| (studentCalledMethod != null
 										&& (studentCalledMethod.startsWith("java.lang.Class.forName")
 												|| studentCalledMethod.startsWith("java.lang.ClassLoader")
 												|| studentCalledMethod.startsWith("jdk.internal.loader"))));
-				// Allow .jar reads from system infrastructure paths (Maven repo, JDK).
-				// These are triggered by JUnit / ServiceLoader during class loading and are
-				// not initiated by student code accessing arbitrary project files.
-				boolean isSystemJarRead = "read".equals(actionToCheck)
-						&& isSystemJarReadExempt(illegallyInteractedThroughParameter);
-				// Allow reads of Ares's own internal files (e.g. the localization resources
-				// loaded while building this very message); without this the denial-message
-				// construction would recurse into another intercepted read.
 				boolean isInternalAllowed = INTERNAL_PATH_SUFFIXES.stream()
 						.anyMatch(illegallyInteractedThroughParameter::endsWith);
-				// Allow JDK-internal reads and native-library loads under java.home. These are
-				// JVM infrastructure (e.g. JceSecurity reading the crypto-policy files), not
-				// student file access, and must not be blocked.
-				boolean isExemptSystemFileAccess = isExemptSystemFileAccess(actionToCheck,
-						illegallyInteractedThroughParameter);
-				if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess) {
+				boolean isAllowedWithoutStartUpValues = isClassLoaderAccess || isInternalAllowed;
+				boolean isSystemJarRead = !isAllowedWithoutStartUpValues && "read".equals(actionToCheck)
+						&& isSystemJarReadExempt(illegallyInteractedThroughParameter);
+				boolean isExemptSystemFileAccess = !isAllowedWithoutStartUpValues && !isSystemJarRead
+						&& isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughParameter);
+				if (!isAllowedWithoutStartUpValues && !isSystemJarRead && !isExemptSystemFileAccess) {
 					throw new SecurityException(localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughParameter,
@@ -1514,8 +1664,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
 			}
-			// </editor-fold>
-			// <editor-fold desc="Check receiver instance">
 			@Nullable
 			String illegallyInteractedThroughReceiver = instance == null ? null
 					: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedPaths, IgnoreValues.NONE,
@@ -1523,9 +1671,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			if (illegallyInteractedThroughReceiver != null) {
 				boolean isInternalAllowed = INTERNAL_PATH_SUFFIXES.stream()
 						.anyMatch(illegallyInteractedThroughReceiver::endsWith);
-
-				// A .class read performed by the JVM class-loading machinery is class
-				// loading, not student file access (see isClassLoadingInProgress).
 				if (!isInternalAllowed && illegallyInteractedThroughReceiver.endsWith(".class")
 						&& isClassLoadingInProgress()) {
 					isInternalAllowed = true;
@@ -1535,8 +1680,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 						&& isSystemJarReadExempt(illegallyInteractedThroughReceiver)) {
 					isInternalAllowed = true;
 				}
-
-				// JDK-internal reads and native-library loads under java.home are exempt.
 				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughReceiver)) {
 					isInternalAllowed = true;
 				}
@@ -1550,8 +1693,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
 			}
-			// </editor-fold>
-			// <editor-fold desc="Check attributes">
 			@Nullable
 			String illegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null
 					: checkIfVariableCriteriaIsViolated(attributes, allowedPaths,
@@ -1559,11 +1700,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 									extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE),
 							allowNonExistingPaths);
 			if (illegallyInteractedThroughAttribute != null) {
-				// Root path "/" is used by ClassLoader during class loading and is allowed.
 				boolean isInternalAllowed = illegallyInteractedThroughAttribute.equals("/");
-
-				// A .class read performed by the JVM class-loading machinery is class
-				// loading, not student file access.
 				if (!isInternalAllowed && illegallyInteractedThroughAttribute.endsWith(".class")
 						&& (isClassLoadingInProgress()
 								|| (studentCalledMethod != null
@@ -1582,8 +1719,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 						&& isSystemJarReadExempt(illegallyInteractedThroughAttribute)) {
 					isInternalAllowed = true;
 				}
-
-				// JDK-internal reads and native-library loads under java.home are exempt.
 				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughAttribute)) {
 					isInternalAllowed = true;
 				}
@@ -1597,12 +1732,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
 			}
-			// </editor-fold>
 		}
 	}
-	// </editor-fold>
-
-	// </editor-fold>
 
 	before():
 			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileReadMethods() ||

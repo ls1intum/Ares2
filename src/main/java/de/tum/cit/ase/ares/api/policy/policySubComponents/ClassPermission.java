@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import java.util.Objects;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -33,6 +34,29 @@ public record ClassPermission(@Nonnull String className) {
 		if (className.isBlank()) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.class.blank"));
 		}
+	}
+
+	/**
+	 * Permits a class only if its exact binary name is exempted. Classes declared
+	 * inside an exempted class are exempted by name too, because
+	 * {@link ExemptedClassNests} lists them from that class's own file; a class
+	 * merely named like a nested one is not.
+	 *
+	 * @param fullyQualifiedClassName the class to check, or {@code null}.
+	 * @param allowedClasses          the exempted classes.
+	 * @return {@code true} if exactly this class is exempted.
+	 */
+	public static boolean isAllowedClass(@Nullable String fullyQualifiedClassName,
+			@Nonnull Set<ClassPermission> allowedClasses) {
+		if (fullyQualifiedClassName == null || allowedClasses == null || allowedClasses.isEmpty()) {
+			return false;
+		}
+		for (ClassPermission allowed : allowedClasses) {
+			if (fullyQualifiedClassName.equals(allowed.className())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

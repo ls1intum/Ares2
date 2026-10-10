@@ -21,10 +21,11 @@ import org.junit.jupiter.api.io.TempDir;
 import de.tum.cit.ase.ares.testutilities.StartupFreezeProbe;
 
 /**
- * Checks, each in a fresh JVM, that values the file-system checks trust are
- * fixed when the agent starts, before any student code: a later change of a JVM
- * property must not move temp files or the trusted Java home. Each check first
- * runs without the agent to show it can fail.
+ * Checks, each in a fresh JVM, that a later change of a JVM property moves
+ * neither temp files nor the trusted Java home. The temp directory is fixed
+ * when the agent starts, so those checks first run without the agent to show
+ * they can fail; the AspectJ aspect reads the JVM's own start-up record, with
+ * or without the agent.
  */
 class TrustedStartupFreezeTest {
 
@@ -71,14 +72,15 @@ class TrustedStartupFreezeTest {
 	}
 
 	/**
-	 * Without a freeze, the aspect trusts whatever Java home is set before its
-	 * first use; with the agent's freeze it keeps the start-up Java home.
+	 * The aspect keeps the start-up Java home after the property changed before its
+	 * first use, with and without the agent. The probe also reports the changed
+	 * property, which shows the change did happen.
 	 */
 	@Test
 	void aJavaHomeChangeAfterStartupDoesNotChangeTheTrustedJavaHome(@TempDir Path forbidden) throws Exception {
-		assertEquals(forbidden.toString(), runProbe(false, "javaHome", forbidden),
-				"without the freeze the aspect should trust the changed Java home, or this check proves nothing");
-		assertEquals(System.getProperty("java.home"), runProbe(true, "javaHome", forbidden));
+		String expected = System.getProperty("java.home") + "|" + forbidden;
+		assertEquals(expected, runProbe(false, "javaHome", forbidden));
+		assertEquals(expected, runProbe(true, "javaHome", forbidden));
 	}
 
 	/**

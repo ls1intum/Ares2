@@ -56,6 +56,13 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	 */
 	@Nonnull
 	private final JavaProjectScanner javaProjectScanner;
+
+	/**
+	 * The creator at its own type, so the exempted class names it worked out, and
+	 * its check for production classes named like them, can be reached.
+	 */
+	@Nonnull
+	private final JavaCreator javaCreator;
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -94,6 +101,7 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 		super(creator, writer, executer, essentialDataReader, projectScanner, essentialPackagesPath,
 				essentialClassesPath, buildMode, architectureMode, aopMode, securityPolicy, projectPath);
 		this.javaProjectScanner = projectScanner;
+		this.javaCreator = creator;
 	}
 
 	// </editor-fold>
@@ -118,7 +126,7 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	public List<Path> writeTestCases(@Nonnull Path testFolderPath) {
 		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
 		return writer.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
-				testClasses, packageName, mainClassInPackageName,
+				javaCreator.exemptedClassNames(), packageName, mainClassInPackageName,
 				this.architectureTestCases.stream()
 						.map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
 				this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList(),
@@ -146,8 +154,9 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 		if (supervisedScopeWasDerived) {
 			javaProjectScanner.requireDerivedScopeToCoverTheProject(packageName);
 		}
+		javaCreator.requireNoProductionClassNamedLikeAnExemptedOne(buildMode);
 		executer.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
-				testClasses, packageName, mainClassInPackageName,
+				javaCreator.exemptedClassNames(), packageName, mainClassInPackageName,
 				this.architectureTestCases.stream()
 						.map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
 				this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList());

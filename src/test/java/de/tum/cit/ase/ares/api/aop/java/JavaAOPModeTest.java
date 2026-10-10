@@ -175,20 +175,37 @@ public class JavaAOPModeTest {
 				threadSystemTestCase);
 
 		MockedStatic<JavaAOPTestCase> tcMock = Mockito.mockStatic(JavaAOPTestCase.class);
-		tcMock.when(() -> JavaAOPTestCase.writeAOPTestCaseFile(ArgumentMatchers.anyString(),
-				ArgumentMatchers.anyString(), ArgumentMatchers.anyList(), ArgumentMatchers.anyList(),
-				ArgumentMatchers.anyList(), ArgumentMatchers.anyList(), ArgumentMatchers.anyList()))
+		tcMock.when(
+				() -> JavaAOPTestCase.writeAOPTestCaseFile(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+						ArgumentMatchers.anyList(), ArgumentMatchers.anyList(), ArgumentMatchers.anyList(),
+						ArgumentMatchers.anyList(), ArgumentMatchers.anyList(), ArgumentMatchers.anyList()))
 				.thenReturn(BODY_RESULT);
 
 		try (tcMock) {
-			String bodyResult = AOPMode.ASPECTJ.threePartedFileBody("ASPECTJ", "restricted.pkg", List.of("A", "B"),
-					allCases);
+			String bodyResult = AOPMode.ASPECTJ.threePartedFileBody("ASPECTJ", "restricted.pkg", List.of("p"),
+					List.of("A", "B"), allCases);
 			Assertions.assertEquals(BODY_RESULT, bodyResult);
 
-			tcMock.verify(() -> JavaAOPTestCase.writeAOPTestCaseFile("ASPECTJ", "restricted.pkg", List.of("A", "B"),
-					List.of(filePermission), List.of(networkPermission), List.of(commandPermission),
+			tcMock.verify(() -> JavaAOPTestCase.writeAOPTestCaseFile("ASPECTJ", "restricted.pkg", List.of("p"),
+					List.of("A", "B"), List.of(filePermission), List.of(networkPermission), List.of(commandPermission),
 					List.of(threadPermission)));
 		}
+	}
+
+	/**
+	 * The signatures released before exempted packages became their own setting
+	 * still exist and write exactly what the new ones write without packages.
+	 */
+	@Test
+	public void testReleasedSignaturesWriteNoPackages() {
+		Assertions.assertEquals(
+				JavaAOPTestCase.writeAOPTestCaseFile("ASPECTJ", "restricted.pkg", List.of(), List.of("A"), List.of(),
+						List.of(), List.of(), List.of()),
+				JavaAOPTestCase.writeAOPTestCaseFile("ASPECTJ", "restricted.pkg", List.of("A"), List.of(), List.of(),
+						List.of(), List.of()));
+		Assertions.assertEquals(
+				AOPMode.ASPECTJ.threePartedFileBody("ASPECTJ", "restricted.pkg", List.of(), List.of("A"), List.of()),
+				AOPMode.ASPECTJ.threePartedFileBody("ASPECTJ", "restricted.pkg", List.of("A"), List.of()));
 	}
 
 	@Test

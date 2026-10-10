@@ -401,7 +401,7 @@ does not become three policy fragments. Work out the *effective* permission set 
 
 ### Naming your test classes correctly
 
-`theFollowingClassesAreTestClasses` takes **exact fully qualified class names**. Nested classes are recognised, but only on the `$` boundary, so listing `org.example.ExerciseTest` covers `org.example.ExerciseTest$Inner`.
+`theFollowingClassesAreTestClasses` takes **exact fully qualified class names**. Listing `org.example.ExerciseTest` covers that class and the classes declared inside it, such as `org.example.ExerciseTest$Inner`, as its compiled file lists them; a separate class merely named that way does not count.
 
 Package names and package prefixes do not exempt anything. `"org.example"` does not trust the classes in `org.example`; it matches a class literally named `org.example`, which does not exist. List every test class explicitly:
 

@@ -55,8 +55,9 @@ public class PrecompileTest {
 	/**
 	 * Precompile carries the secure baseline's temp-file rules into an exercise:
 	 * the copied deny list still names the two calls with a directory and not the
-	 * two without one, the copied ArchUnit check lets the latter through, and the
-	 * copied settings, agent and aspect carry the start-up freeze.
+	 * two without one, the copied ArchUnit check lets the latter through, the
+	 * copied settings and agent carry the start-up freeze, and the copied aspect
+	 * reads the JVM's start-up values itself, with no reference to the agent.
 	 */
 	@ParameterizedTest
 	@CsvSource({ "ARCHUNIT,INSTRUMENTATION", "ARCHUNIT,ASPECTJ", "WALA,INSTRUMENTATION", "WALA,ASPECTJ" })
@@ -94,12 +95,90 @@ public class PrecompileTest {
 		if ("INSTRUMENTATION".equals(aop)) {
 			assertContains(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java"),
 					"captureTrustedStartupValues();");
-			assertContains(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java"), EXERCISE_PACKAGE
-					+ ".ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions");
+			assertDoesNotContain(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java"),
+					"JavaAspectJFileSystemAdviceDefinitions");
 		} else {
-			assertContains(
-					generated.resolve("aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemAdviceDefinitions.aj"),
-					"frozenDefaultTempDirectory");
+			Path aspect = generated
+					.resolve("aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemAdviceDefinitions.aj");
+			assertContains(aspect, "getSavedProperties");
+			assertContains(aspect, "TRUSTED_DEFAULT_TEMP_DIRECTORY");
+			assertDoesNotContain(aspect, "JavaInstrumentationAgent");
+			assertFalse(Files.exists(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java")),
+					"an AspectJ exercise was given the instrumentation agent");
+		}
+	}
+
+	/**
+	 * Precompile writes the exempted names into the generated settings: the test
+	 * classes plus the classes their own compiled files list as declared inside
+	 * them in the project's own test output, never a class merely named like one,
+	 * and nothing beyond the exact name when the test output lacks the class.
+	 * Essential packages go into their own setting, and the settings that switch
+	 * enforcement on come after every allow-list.
+	 */
+	@ParameterizedTest
+	@CsvSource({ "ASPECTJ,true", "INSTRUMENTATION,true", "ASPECTJ,false" })
+	void precompileWritesTheTrustedNestAndKeepsPackagesApart(String aop, boolean compiled, @TempDir Path tempDir)
+			throws IOException {
+		Path projectFolderPath = Files.createDirectory(tempDir.resolve("project"));
+		Files.writeString(projectFolderPath.resolve("pom.xml"), "<project/>");
+		Files.createDirectories(projectFolderPath.resolve("src/main/java"));
+		Files.createDirectories(projectFolderPath.resolve("target/classes"));
+		Path testClassFile = Files.createDirectories(projectFolderPath.resolve("target/test-classes/example/nest"))
+				.resolve("NestHostFixture.class");
+		if (compiled) {
+			try (var input = PrecompileTest.class.getResourceAsStream("/example/nest/NestHostFixture.class")) {
+				Files.write(testClassFile, input.readAllBytes());
+			}
+		}
+		Path writeTarget = Files.createDirectories(projectFolderPath.resolve("src/test/java"));
+		Path policy = Files.writeString(tempDir.resolve("policy.yaml"),
+				policyWithOneReadPath("ARCHUNIT", aop).replace("theFollowingClassesAreTestClasses: [ ]",
+						"theFollowingClassesAreTestClasses: [ \"example.nest.NestHostFixture\" ]"));
+
+		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy).projectFolderPath(projectFolderPath)
+				.build().createTestCases().writeTestCases(writeTarget);
+
+		String settings = Files.readString(writeTarget.resolve(EXERCISE_PACKAGE.replace('.', '/'))
+				.resolve("ares/api/aop/java/JavaAOPTestCaseSettings.java"));
+		String classes = declarationOf(settings, "allowedListedClasses");
+		String packages = declarationOf(settings, "allowedListedPackages");
+		assertTrue(classes.contains("\"example.nest.NestHostFixture\""), classes);
+		for (Class<?> member : example.nest.NestHostFixture.class.getNestMembers()) {
+			assertTrue(classes.contains("\"" + member.getName() + "\"") == compiled
+					|| member == example.nest.NestHostFixture.class, member.getName() + " in " + classes);
+		}
+		assertFalse(classes.contains("NestHostFixture$Evil"), classes);
+		assertTrue(packages.contains("\"java\""), packages);
+		assertFalse(classes.contains("\"java\""), classes);
+		int lastAllowList = Math.max(settings.indexOf(classes), settings.indexOf(packages));
+		assertTrue(settings.indexOf(declarationOf(settings, "aopMode")) > lastAllowList, settings);
+		assertTrue(settings.indexOf(declarationOf(settings, "restrictedPackage")) > lastAllowList, settings);
+	}
+
+	/**
+	 * Returns the line of a generated settings file that declares a field.
+	 *
+	 * @param settings the generated settings source
+	 * @param field    the field name
+	 * @return the declaring line
+	 */
+	private static String declarationOf(String settings, String field) {
+		return settings.lines().filter(line -> line.contains(" " + field + " =")).findFirst()
+				.orElseThrow(() -> new AssertionError(field + " is not declared in:\n" + settings));
+	}
+
+	/**
+	 * Checks that a generated file does not contain a text.
+	 *
+	 * @param file      the generated file
+	 * @param forbidden the text it must not contain
+	 * @throws IOException if the file cannot be read
+	 */
+	private static void assertDoesNotContain(Path file, String forbidden) throws IOException {
+		assertTrue(Files.exists(file), () -> "precompile did not write " + file);
+		try (Stream<String> lines = Files.lines(file)) {
+			assertTrue(lines.noneMatch(line -> line.contains(forbidden)), () -> file + " contains " + forbidden);
 		}
 	}
 
