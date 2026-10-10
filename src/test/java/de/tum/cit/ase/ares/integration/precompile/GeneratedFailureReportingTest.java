@@ -584,7 +584,9 @@ class GeneratedFailureReportingTest {
 				package com.example.fixtures;
 
 				import java.util.List;
+				import java.util.Spliterator;
 				import java.util.stream.Stream;
+				import java.util.stream.StreamSupport;
 
 				import org.junit.jupiter.api.DynamicContainer;
 				import org.junit.jupiter.api.DynamicNode;
@@ -601,9 +603,10 @@ class GeneratedFailureReportingTest {
 
 					@TestFactory
 					Stream<DynamicNode> failsInsideAContainer() {
-						return Stream.of(DynamicContainer.dynamicContainer("box", Stream.<DynamicTest>generate(() -> {
-							throw new AssertionError("expected=42");
-						}).limit(1)));
+						return Stream.of(DynamicContainer.dynamicContainer("box",
+								StreamSupport.<DynamicNode>stream(() -> {
+									throw new AssertionError("expected=42");
+								}, Spliterator.ORDERED, false)));
 					}
 
 					@TestFactory

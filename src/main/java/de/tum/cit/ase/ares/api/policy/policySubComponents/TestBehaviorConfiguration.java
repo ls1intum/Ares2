@@ -21,6 +21,13 @@ import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseTo
 public record TestBehaviorConfiguration(@Nullable PrivilegedExceptionsConfiguration regardingPrivilegedExceptions) {
 
 	/**
+	 * Preserves the public empty configuration constructor for existing callers.
+	 */
+	public TestBehaviorConfiguration() {
+		this(null);
+	}
+
+	/**
 	 * Fully-qualified name of the class a precompile run generates to carry this
 	 * configuration as literal constants. Its package is deliberately not one of
 	 * the packages inside the Ares JAR: those are sealed, so a class compiled into

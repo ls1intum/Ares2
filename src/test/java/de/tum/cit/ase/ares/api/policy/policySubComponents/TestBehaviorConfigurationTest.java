@@ -18,6 +18,13 @@ import org.junit.jupiter.api.Test;
  */
 class TestBehaviorConfigurationTest {
 
+	/** The released no-argument constructor still creates an empty setting. */
+	@Test
+	void noArgumentConstructorPreservesCompatibility() {
+		TestBehaviorConfiguration configuration = new TestBehaviorConfiguration();
+		assertTrue(configuration.literalFieldAssignments().isEmpty());
+	}
+
 	/** A configuration built empty has no privileged-exceptions category. */
 	@Test
 	void builderDefaultsToNullCategory() {

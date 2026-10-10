@@ -33,10 +33,14 @@ import de.tum.cit.ase.ares.api.context.TestType;
 import de.tum.cit.ase.ares.api.internal.ReportingUtils;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.integration.testuser.FutureHiddenConstructorUser;
+import de.tum.cit.ase.ares.integration.testuser.HiddenCallbackFailureUser;
 import de.tum.cit.ase.ares.integration.testuser.HiddenFeedbackUser;
 import de.tum.cit.ase.ares.integration.testuser.HiddenLifecycleOutputUser;
+import de.tum.cit.ase.ares.integration.testuser.HiddenSecurityCallbackFailureUser;
 import de.tum.cit.ase.ares.integration.testuser.InheritedMixedVisibilityOutputUser;
+import de.tum.cit.ase.ares.integration.testuser.MixedLifecycleRegressionUser;
 import de.tum.cit.ase.ares.integration.testuser.MixedVisibilityOutputUser;
+import de.tum.cit.ase.ares.integration.testuser.SharedHiddenVisibilityUsers;
 import de.tum.cit.ase.ares.testutilities.UserBased;
 import de.tum.cit.ase.ares.testutilities.UserTestResults;
 
@@ -112,6 +116,54 @@ class HiddenFeedbackContractTest {
 				.doesNotContain("SECRET_HIDDEN_MIXED");
 	}
 
+	/**
+	 * Public setup diagnostics and hidden I/O assertions survive in a mixed class.
+	 */
+	@Test
+	void mixedPerTestSetupKeepsItsOwnVisibilityAndRecording() {
+		PrintStream previousOut = System.out;
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8);
+		Events mixed;
+		try {
+			System.setOut(capture);
+			mixed = EngineTestKit.engine("junit-jupiter").selectors(selectClass(MixedLifecycleRegressionUser.class))
+					.execute().testEvents();
+		} finally {
+			System.setOut(previousOut);
+			capture.close();
+		}
+		assertThat(mixed.succeeded().count()).isEqualTo(1);
+		assertThat(mixed.failed().count()).isEqualTo(1);
+		assertThat(mixed.failed().stream().findFirst().orElseThrow().getRequiredPayload(TestExecutionResult.class)
+				.getThrowable().orElseThrow().getMessage()).contains("VISIBLE_PUBLIC_SETUP_FAILURE");
+		assertThat(output.toString(StandardCharsets.UTF_8)).doesNotContain("SECRET_SHARED_SETUP");
+	}
+
+	/** Composed and inherited hidden methods protect shared class output. */
+	@Test
+	void composedAndInterfaceHiddenMethodsProtectSharedOutput() {
+		assertSharedOutputHidden(SharedHiddenVisibilityUsers.Composed.class, "SECRET_COMPOSED_SHARED");
+		assertSharedOutputHidden(SharedHiddenVisibilityUsers.Interface.class, "SECRET_INTERFACE_SHARED");
+	}
+
+	/** Runs one mixed fixture and checks that its shared marker stayed private. */
+	private static void assertSharedOutputHidden(Class<?> fixture, String marker) {
+		PrintStream previousOut = System.out;
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8);
+		try {
+			System.setOut(capture);
+			Events events = EngineTestKit.engine("junit-jupiter").selectors(selectClass(fixture)).execute()
+					.testEvents();
+			assertThat(events.succeeded().count()).isEqualTo(2);
+		} finally {
+			System.setOut(previousOut);
+			capture.close();
+		}
+		assertThat(output.toString(StandardCharsets.UTF_8)).doesNotContain(marker);
+	}
+
 	/** Inherited hidden methods also protect shared class lifecycle output. */
 	@Test
 	void inheritedHiddenMethodHidesSharedLifecycle() {
@@ -157,6 +209,26 @@ class HiddenFeedbackContractTest {
 		}
 		assertThat(FutureHiddenConstructorUser.bodyRan).isFalse();
 		assertThat(output.toString(StandardCharsets.UTF_8)).doesNotContain("SECRET_FUTURE_CONSTRUCTOR");
+	}
+
+	/** A hidden callback failure is redacted before JUnit receives it. */
+	@Test
+	void hiddenIoCallbackFailureHasNoDiagnostics() {
+		Events events = EngineTestKit.engine("junit-jupiter").selectors(selectClass(HiddenCallbackFailureUser.class))
+				.execute().testEvents();
+		assertThat(events.failed().count()).isEqualTo(1);
+		assertNoThrowableDetails(events.failed().stream().findFirst().orElseThrow()
+				.getRequiredPayload(TestExecutionResult.class).getThrowable().orElseThrow());
+	}
+
+	/** A hidden policy callback failure is redacted before JUnit receives it. */
+	@Test
+	void hiddenSecurityCallbackFailureHasNoDiagnostics() {
+		Events events = EngineTestKit.engine("junit-jupiter")
+				.selectors(selectClass(HiddenSecurityCallbackFailureUser.class)).execute().testEvents();
+		assertThat(events.failed().count()).isEqualTo(1);
+		assertNoThrowableDetails(events.failed().stream().findFirst().orElseThrow()
+				.getRequiredPayload(TestExecutionResult.class).getThrowable().orElseThrow());
 	}
 
 	/** A public result retains the message needed by students. */

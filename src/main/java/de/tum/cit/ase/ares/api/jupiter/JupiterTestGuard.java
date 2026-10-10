@@ -6,12 +6,14 @@ import static de.tum.cit.ase.ares.api.internal.TestGuardUtils.checkForHidden;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
+import org.junit.platform.commons.support.AnnotationSupport;
 
 import de.tum.cit.ase.ares.api.Deadline;
 import de.tum.cit.ase.ares.api.context.TestType;
@@ -54,35 +56,35 @@ public final class JupiterTestGuard implements UnifiedInvocationInterceptor, Bef
 	public <T> T interceptTestClassConstructor(Invocation<T> invocation,
 			ReflectiveInvocationContext<Constructor<T>> invocationContext, ExtensionContext extensionContext)
 			throws Throwable {
-		return proceedWithLifecycleCapture(invocation, extensionContext);
+		return proceedWithLifecycleCapture(invocation, extensionContext, extensionContext.getTestMethod().isEmpty());
 	}
 
 	/** Hides class setup output when the class includes hidden tests. */
 	@Override
 	public void interceptBeforeAllMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		proceedWithLifecycleCapture(invocation, extensionContext);
+		proceedWithLifecycleCapture(invocation, extensionContext, true);
 	}
 
 	/** Hides setup output for a hidden test. */
 	@Override
 	public void interceptBeforeEachMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		proceedWithLifecycleCapture(invocation, extensionContext);
+		proceedWithLifecycleCapture(invocation, extensionContext, false);
 	}
 
 	/** Hides teardown output for a hidden test. */
 	@Override
 	public void interceptAfterEachMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		proceedWithLifecycleCapture(invocation, extensionContext);
+		proceedWithLifecycleCapture(invocation, extensionContext, false);
 	}
 
 	/** Hides class teardown output when the class includes hidden tests. */
 	@Override
 	public void interceptAfterAllMethod(Invocation<Void> invocation,
 			ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext) throws Throwable {
-		proceedWithLifecycleCapture(invocation, extensionContext);
+		proceedWithLifecycleCapture(invocation, extensionContext, true);
 	}
 
 	/** Checks the deadline and reports a supervised test result. */
@@ -97,11 +99,14 @@ public final class JupiterTestGuard implements UnifiedInvocationInterceptor, Bef
 	/**
 	 * Runs a lifecycle phase with output capture if it belongs to a hidden test.
 	 */
-	private static <T> T proceedWithLifecycleCapture(Invocation<T> invocation, ExtensionContext context)
+	private static <T> T proceedWithLifecycleCapture(Invocation<T> invocation, ExtensionContext context, boolean shared)
 			throws Throwable {
 		boolean hidden = isHidden(context);
-		if (!hidden && !containsHiddenTest(context)) {
+		if (!hidden && !(shared && containsHiddenTest(context))) {
 			return invocation.proceed();
+		}
+		if (!shared) {
+			return doProceedAndPostProcess(invocation, JupiterContext.of(context));
 		}
 		HiddenOutputCapture capture = HiddenOutputCapture.start();
 		try {
@@ -123,17 +128,41 @@ public final class JupiterTestGuard implements UnifiedInvocationInterceptor, Bef
 		return JupiterContext.of(context).findTestType().orElse(null) == TestType.HIDDEN;
 	}
 
+	/** Redacts a hidden callback failure before Jupiter receives it. */
+	static RuntimeException callbackFailure(ExtensionContext context, Throwable failure) {
+		Throwable safe = isHidden(context) ? redactHiddenLifecycleFailure(failure) : failure;
+		if (safe instanceof Error error) {
+			throw error;
+		}
+		return (RuntimeException) safe;
+	}
+
 	/** Finds a hidden method in a mixed test class for class lifecycle methods. */
 	private static boolean containsHiddenTest(ExtensionContext context) {
 		return context.getTestClass().map(JupiterTestGuard::hasHiddenMethodInHierarchy).orElse(false);
 	}
 
-	/** Finds a hidden method declared on this class or a parent test class. */
+	/** Finds a hidden method on this class, its parents, or its interfaces. */
 	private static boolean hasHiddenMethodInHierarchy(Class<?> type) {
-		for (Class<?> current = type; current != null; current = current.getSuperclass()) {
-			if (Arrays.stream(current.getDeclaredMethods())
-					.anyMatch(method -> method.isAnnotationPresent(HiddenTest.class)
-							|| method.isAnnotationPresent(Hidden.class))) {
+		return hasHiddenMethodInHierarchy(type, new HashSet<>());
+	}
+
+	/** Traverses a type once, including inherited default test methods. */
+	private static boolean hasHiddenMethodInHierarchy(Class<?> type, Set<Class<?>> visited) {
+		if (type == null || !visited.add(type)) {
+			return false;
+		}
+		for (Method method : type.getDeclaredMethods()) {
+			if (AnnotationSupport.findAnnotation(method, JupiterAresTest.class).map(JupiterAresTest::value)
+					.orElse(null) == TestType.HIDDEN) {
+				return true;
+			}
+		}
+		if (hasHiddenMethodInHierarchy(type.getSuperclass(), visited)) {
+			return true;
+		}
+		for (Class<?> parent : type.getInterfaces()) {
+			if (hasHiddenMethodInHierarchy(parent, visited)) {
 				return true;
 			}
 		}

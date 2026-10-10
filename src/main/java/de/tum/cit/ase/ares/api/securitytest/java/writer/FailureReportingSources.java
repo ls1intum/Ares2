@@ -283,13 +283,11 @@ final class FailureReportingSources {
 					 */
 					@Override
 					public DynamicNode next() {
-						Object next;
 						try {
-							next = source.next();
+							return redactedNode(source.next());
 						} catch (Throwable throwable) {
 							throw GeneratedFailureReporting.<RuntimeException>rethrow(replacementFor(throwable));
 						}
-						return redactedNode(next);
 					}
 				}
 
