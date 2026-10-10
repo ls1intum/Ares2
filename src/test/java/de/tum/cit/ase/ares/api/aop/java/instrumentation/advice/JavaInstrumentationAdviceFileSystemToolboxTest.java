@@ -3,6 +3,9 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
@@ -10,16 +13,25 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileAttribute;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.List;
+import java.util.Locale;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumentationPointcutDefinitions;
+import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.testutilities.FakeSecureRandomSeedingFixture;
 
 import example.student.InstrumentationSecurityProbe;
 
@@ -430,6 +442,438 @@ class JavaInstrumentationAdviceFileSystemToolboxTest {
 		} finally {
 			resetSettings();
 		}
+	}
+
+	// </editor-fold>
+
+	// <editor-fold desc="baseline-low-risk-jdk-read-exemptions">
+
+	/**
+	 * Placeholder used to cut a localised message template into its fixed parts.
+	 */
+	private static final String MESSAGE_ARGUMENT_MARKER = "\u0000";
+
+	/**
+	 * Name of the settings field that holds the default temp directory Ares fixed
+	 * at start-up.
+	 */
+	private static final String FROZEN_TEMP_DIRECTORY_FIELD = "frozenDefaultTempDirectory";
+
+	/**
+	 * A student opening a seed device directly has no JDK seeding code on the call
+	 * stack, so the read stays denied.
+	 */
+	@Test
+	void entropySourceReadDirectlyByStudentCodeIsStillDenied() throws Exception {
+		Assumptions.assumeTrue(Files.exists(Path.of("/dev/urandom")), "requires /dev/urandom (Linux/BSD)");
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkEntropyDeviceReadDirectly("/dev/urandom"));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * A student-written random generator runs beneath the public
+	 * {@code SecureRandom} class, which is not trusted, so a seed-device read from
+	 * inside it stays denied.
+	 */
+	@Test
+	void customSecureRandomSpiCannotForgeTheEntropyDeviceReadExemption() throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			assertThrows(SecurityException.class, () -> FakeSecureRandomSeedingFixture.triggerFakeSecureRandomSeeding(
+					() -> InstrumentationSecurityProbe.checkEntropyDeviceReadDirectly("/dev/urandom")));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * Real JDK seeding still works with a policy that allows no reads. The blocking
+	 * generator is requested by name because the JDK caches its default device
+	 * stream, which could let the call pass without reaching the check at all.
+	 */
+	@Test
+	void genuineSecureRandomEntropySeedingIsPermittedByAnActivePolicy() throws Exception {
+		SecureRandom nativeBlockingSecureRandom;
+		try {
+			nativeBlockingSecureRandom = SecureRandom.getInstance("NativePRNGBlocking");
+		} catch (NoSuchAlgorithmException e) {
+			Assumptions.abort("NativePRNGBlocking unavailable on this platform (" + e.getMessage() + ")");
+			return;
+		}
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			SecureRandom finalNativeBlockingSecureRandom = nativeBlockingSecureRandom;
+			assertDoesNotThrow(() -> finalNativeBlockingSecureRandom.generateSeed(8));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * Reading the system timezone file directly is denied, since no exemption
+	 * exists for it: the JDK reads it natively.
+	 */
+	@Test
+	void systemTimezoneReadDirectlyByStudentCodeIsDenied() throws Exception {
+		Assumptions.assumeTrue(Files.exists(Path.of("/etc/localtime")), "requires /etc/localtime (Linux/BSD)");
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkSystemFileReadDirectly("/etc/localtime"));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * The trusted certificates file lies under the Java home, which is already
+	 * readable without an entry; this keeps that from narrowing unnoticed.
+	 */
+	@Test
+	void cacertsReadUnderJavaHomeIsAlreadyExemptWithoutAllowlistEntry() throws Exception {
+		String cacertsPath = Path.of(System.getProperty("java.home"), "lib", "security", "cacerts").toString();
+		Assumptions.assumeTrue(Files.exists(Path.of(cacertsPath)), "requires a JDK-bundled cacerts file");
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[0], "ARCH", "INSTRUMENTATION");
+
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkSystemFileReadDirectly(cacertsPath));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * {@code Files.createTempFile} without a directory is allowed without an entry
+	 * once the default temp directory is fixed.
+	 */
+	@Test
+	void filesCreateTempFileWithoutDirectoryIsAllowedOnceTheTempDirectoryIsFrozen() throws Exception {
+		withFrozenTempDirectory(realDefaultTempDirectory(), () -> assertDoesNotThrow(
+				() -> InstrumentationSecurityProbe.checkFilesCreateTempFile(null, "ares-baseline-", ".tmp")));
+	}
+
+	/**
+	 * {@code File.createTempFile} without a directory, or with {@code null} for it,
+	 * is allowed without an entry once the default temp directory is fixed.
+	 */
+	@Test
+	void fileCreateTempFileWithoutDirectoryIsAllowedOnceTheTempDirectoryIsFrozen() throws Exception {
+		withFrozenTempDirectory(realDefaultTempDirectory(), () -> {
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe
+					.checkFileCreateTempFileMalformed(new Object[] { "ares-baseline-", ".tmp", null }));
+			assertDoesNotThrow(
+					() -> InstrumentationSecurityProbe.checkFileCreateTempFile("ares-baseline-", ".tmp", null));
+		});
+	}
+
+	/**
+	 * Naming the fixed default temp directory itself is allowed without an entry.
+	 */
+	@Test
+	void fileCreateTempFileInTheFrozenTempDirectoryIsAllowed() throws Exception {
+		withFrozenTempDirectory(realDefaultTempDirectory(), () -> assertDoesNotThrow(() -> InstrumentationSecurityProbe
+				.checkFileCreateTempFile("ares-baseline-", ".tmp", new File(realDefaultTempDirectory()))));
+	}
+
+	/**
+	 * Naming a directory outside the temp directory needs an entry; this was
+	 * silently allowed before, when every argument of the method was ignored.
+	 */
+	@Test
+	void fileCreateTempFileInAnotherDirectoryIsDenied() throws Exception {
+		File explicitDir = createNonTempDirOutsideDefaultTempDir("fileCreateTempFileInAnotherDirectory");
+		withFrozenTempDirectory(realDefaultTempDirectory(), () -> assertThrows(SecurityException.class,
+				() -> InstrumentationSecurityProbe.checkFileCreateTempFile("ares-baseline-", ".tmp", explicitDir)));
+	}
+
+	/**
+	 * A directory the policy lets students create files in is allowed.
+	 */
+	@Test
+	void filesCreateTempFileInAnAllowedDirectoryIsAllowed() throws Exception {
+		Path explicitDir = createNonTempDirOutsideDefaultTempDir("filesCreateTempFileInAnAllowedDirectory").toPath();
+		withFrozenTempDirectory(realDefaultTempDirectory(), () -> {
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated",
+					new String[] { explicitDir.toString() }, "ARCH", "INSTRUMENTATION");
+			assertDoesNotThrow(
+					() -> InstrumentationSecurityProbe.checkFilesCreateTempFile(explicitDir, "ares-baseline-", ".tmp"));
+		});
+	}
+
+	/**
+	 * A directory the policy does not list is denied.
+	 */
+	@Test
+	void filesCreateTempFileInADirectoryNotAllowedIsDenied() throws Exception {
+		Path explicitDir = createNonTempDirOutsideDefaultTempDir("filesCreateTempFileInADirectoryNotAllowed").toPath();
+		withFrozenTempDirectory(realDefaultTempDirectory(), () -> assertThrows(SecurityException.class,
+				() -> InstrumentationSecurityProbe.checkFilesCreateTempFile(explicitDir, "ares-baseline-", ".tmp")));
+	}
+
+	/**
+	 * A subdirectory of the temp directory is not the temp directory itself, so it
+	 * needs an entry.
+	 */
+	@Test
+	void fileCreateTempFileInASubdirectoryOfTheFrozenTempDirectoryIsDenied(@TempDir Path subdirectory)
+			throws Exception {
+		Assumptions.assumeTrue(subdirectory.toRealPath().startsWith(realDefaultTempDirectory()),
+				"JUnit's temporary directory is not below java.io.tmpdir here");
+		withFrozenTempDirectory(realDefaultTempDirectory(),
+				() -> assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileCreateTempFile("ares-baseline-", ".tmp", subdirectory.toFile())));
+	}
+
+	/**
+	 * A link inside the temp directory that leads somewhere else is judged by where
+	 * it leads, so it needs an entry.
+	 */
+	@Test
+	void fileCreateTempFileThroughALinkInsideTheFrozenTempDirectoryIsDenied(@TempDir Path linkParent) throws Exception {
+		Path target = createNonTempDirOutsideDefaultTempDir("linkTargetOutsideTempDirectory").toPath().toAbsolutePath();
+		Path link;
+		try {
+			link = Files.createSymbolicLink(linkParent.resolve("link-to-elsewhere"), target);
+		} catch (UnsupportedOperationException | IOException e) {
+			Assumptions.abort("symbolic links are not available here (" + e.getMessage() + ")");
+			return;
+		}
+		Path finalLink = link;
+		withFrozenTempDirectory(realDefaultTempDirectory(),
+				() -> assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileCreateTempFile("ares-baseline-", ".tmp", finalLink.toFile())));
+	}
+
+	/**
+	 * A directory named after one of Ares's own internal files grants nothing,
+	 * since a student can create a directory with any name.
+	 */
+	@Test
+	void explicitTempDirectoryEndingInInternalPathSuffixIsNotExempt() throws Exception {
+		File explicitDir = Path.of("target", "baseline-low-risk-test-dirs", "student-crafted", "ares", "api",
+				"localization", "Messages.class").toFile();
+		withFrozenTempDirectory(realDefaultTempDirectory(), () -> assertThrows(SecurityException.class,
+				() -> InstrumentationSecurityProbe.checkFileCreateTempFile("ares-baseline-", ".tmp", explicitDir)));
+	}
+
+	/**
+	 * Without a fixed default temp directory, a temp file without a directory is
+	 * denied even when the policy covers the temp directory, because Ares cannot
+	 * tell where the JDK will write. It says trusted start-up is missing, as every
+	 * access without it does; checked in both languages.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "en", "de" })
+	void tempFileWithoutDirectoryIsDeniedWhenNothingFroze(String language) throws Exception {
+		withDisplayLocale(Locale.forLanguageTag(language), () -> withFrozenTempDirectory(null, () -> {
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated",
+					new String[] { realDefaultTempDirectory() }, "ARCH", "INSTRUMENTATION");
+			SecurityException denial = assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkFilesCreateTempFile(null, "ares-baseline-", ".tmp"));
+			assertLocalisedMessage("security.advice.trusted.startup.missing", denial);
+		}));
+	}
+
+	/**
+	 * Arguments that fit no {@code Files.createTempFile} overload are denied, in
+	 * both languages, rather than treated as "no directory".
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "en", "de" })
+	void filesCreateTempFileWithWrongParameterCountFailsClosed(String language) throws Exception {
+		withDisplayLocale(Locale.forLanguageTag(language),
+				() -> withFrozenTempDirectory(realDefaultTempDirectory(), () -> {
+					SecurityException denial = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+							.checkFilesCreateTempFileMalformed(new Object[] { "ares-baseline-" }));
+					assertLocalisedMessage("security.advice.file.system.malformed.temp.file.creation", denial);
+				}));
+	}
+
+	/**
+	 * Four arguments with something other than a {@code Path} first are denied.
+	 */
+	@Test
+	void filesCreateTempFileWithNonPathDirectoryPositionFailsClosed() throws Exception {
+		withFrozenTempDirectory(realDefaultTempDirectory(),
+				() -> assertThrows(SecurityException.class,
+						() -> InstrumentationSecurityProbe.checkFilesCreateTempFileMalformed(
+								new Object[] { "not-a-path", "ares-baseline-", ".tmp", new FileAttribute<?>[0] })));
+	}
+
+	/**
+	 * Arguments that fit no {@code File.createTempFile} overload are denied.
+	 */
+	@Test
+	void fileCreateTempFileWithWrongParameterCountFailsClosed() throws Exception {
+		withFrozenTempDirectory(realDefaultTempDirectory(),
+				() -> assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileCreateTempFileMalformed(new Object[] { "ares-baseline-" })));
+	}
+
+	/**
+	 * Three arguments with something other than a {@code File} or {@code null} last
+	 * are denied.
+	 */
+	@Test
+	void fileCreateTempFileWithNonFileDirectoryPositionFailsClosed() throws Exception {
+		withFrozenTempDirectory(realDefaultTempDirectory(),
+				() -> assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileCreateTempFileMalformed(new Object[] { "ares-baseline-", ".tmp", "not-a-file" })));
+	}
+
+	/**
+	 * Something a temp-file test runs while the settings are prepared.
+	 */
+	@FunctionalInterface
+	private interface SettingsBody {
+
+		/**
+		 * Runs the test body.
+		 *
+		 * @throws Exception whatever the body throws
+		 */
+		void run() throws Exception;
+	}
+
+	/**
+	 * Runs a body with instrumentation on, no create entries, and the given fixed
+	 * temp directory in both settings copies, then puts the previous fixed values
+	 * back, since they outlive {@code reset()}.
+	 *
+	 * @param frozenDirectory the fixed directory to use, or {@code null} for none
+	 * @param body            the test body
+	 * @throws Exception whatever the body throws
+	 */
+	private static void withFrozenTempDirectory(String frozenDirectory, SettingsBody body) throws Exception {
+		Field bootstrapField = frozenTempDirectoryField(null);
+		Field applicationField = frozenTempDirectoryField(JavaAOPTestCaseSettings.class.getClassLoader());
+		Object bootstrapBefore = bootstrapField == null ? null : bootstrapField.get(null);
+		Object applicationBefore = applicationField.get(null);
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue(FROZEN_TEMP_DIRECTORY_FIELD, frozenDirectory, "ARCH",
+					"INSTRUMENTATION");
+			body.run();
+		} finally {
+			if (bootstrapField != null) {
+				bootstrapField.set(null, bootstrapBefore);
+			}
+			applicationField.set(null, applicationBefore);
+			resetSettings();
+		}
+	}
+
+	/**
+	 * Runs a body with the given display language, loading its message bundle first
+	 * so the check does not block reading it.
+	 *
+	 * @param locale the language to use
+	 * @param body   the test body
+	 * @throws Exception whatever the body throws
+	 */
+	private static void withDisplayLocale(Locale locale, SettingsBody body) throws Exception {
+		Locale before = Locale.getDefault(Locale.Category.DISPLAY);
+		try {
+			Locale.setDefault(Locale.Category.DISPLAY, locale);
+			Messages.init();
+			body.run();
+		} finally {
+			Locale.setDefault(Locale.Category.DISPLAY, before);
+		}
+	}
+
+	/**
+	 * Checks that a denial carries the localised text of a key, with every fixed
+	 * part of the template in order, whatever the arguments were.
+	 *
+	 * @param key    the message key
+	 * @param denial the denial to check
+	 */
+	private static void assertLocalisedMessage(String key, SecurityException denial) {
+		String[] fixedParts = Messages.localized(key, MESSAGE_ARGUMENT_MARKER, MESSAGE_ARGUMENT_MARKER)
+				.split(MESSAGE_ARGUMENT_MARKER, -1);
+		int searchFrom = 0;
+		for (String fixedPart : fixedParts) {
+			int found = denial.getMessage().indexOf(fixedPart, searchFrom);
+			assertTrue(found >= 0, () -> "Expected \"" + fixedPart + "\" in: " + denial.getMessage());
+			searchFrom = found + fixedPart.length();
+		}
+	}
+
+	/**
+	 * Returns the settings field holding the fixed temp directory in one copy of
+	 * the settings.
+	 *
+	 * @param loader the loader of the copy, {@code null} for the bootstrap copy
+	 * @return the accessible field, or {@code null} if that copy does not exist
+	 * @throws NoSuchFieldException if the copy lacks the field
+	 */
+	private static Field frozenTempDirectoryField(ClassLoader loader) throws NoSuchFieldException {
+		Class<?> settings;
+		try {
+			settings = Class.forName(JavaAOPTestCaseSettings.class.getName(), false, loader);
+		} catch (ClassNotFoundException absent) {
+			return null;
+		}
+		Field field = settings.getDeclaredField(FROZEN_TEMP_DIRECTORY_FIELD);
+		field.setAccessible(true);
+		return field;
+	}
+
+	/**
+	 * Returns the JVM's default temp directory resolved to its real location, the
+	 * way Ares fixes it.
+	 *
+	 * @return the real default temp directory
+	 * @throws IOException if it cannot be resolved
+	 */
+	private static String realDefaultTempDirectory() throws IOException {
+		return Path.of(System.getProperty("java.io.tmpdir")).toRealPath().toString();
+	}
+
+	/**
+	 * Creates a directory under {@code target/}, which unlike JUnit's
+	 * {@code @TempDir} is not below the default temp directory, and skips the test
+	 * if this environment places {@code target/} there anyway.
+	 *
+	 * @param name the directory name
+	 * @return the directory
+	 * @throws IOException if it cannot be created
+	 */
+	private static File createNonTempDirOutsideDefaultTempDir(String name) throws IOException {
+		Path dir = Path.of("target", "baseline-low-risk-test-dirs", name);
+		Files.createDirectories(dir);
+		dir.toFile().deleteOnExit();
+
+		Path realDir = dir.toRealPath();
+		Path realDefaultTempDir = Path.of(realDefaultTempDirectory());
+		if (realDir.startsWith(realDefaultTempDir)) {
+			Assumptions.abort("fixture directory " + realDir + " is inside java.io.tmpdir (" + realDefaultTempDir
+					+ ") in this environment; cannot exercise a genuine non-default-temp-directory denial here");
+		}
+		return dir.toFile();
 	}
 
 	// </editor-fold>

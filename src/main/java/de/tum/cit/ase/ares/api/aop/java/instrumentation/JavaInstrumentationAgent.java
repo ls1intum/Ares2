@@ -1,8 +1,12 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.Method;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +47,11 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * the agent builder for the different types of file operations.
  */
 public final class JavaInstrumentationAgent {
+	/** The instrumentation handle supplied by JVM startup. */
 	private static volatile Instrumentation instrumentation;
+
+	/** Whether trusted startup finished before student execution. */
+	private static volatile boolean trustedStartupComplete;
 	private static volatile Factory classInjectorFactory;
 	private static final Set<String> INSTRUMENTED_THREAD_MONITOR_PACKAGES = ConcurrentHashMap.newKeySet();
 	private static final Object THREAD_MONITOR_PACKAGE_REGISTRATION_LOCK = new Object();
@@ -119,25 +127,32 @@ public final class JavaInstrumentationAgent {
 	 */
 	private static volatile SecurityException activationFailure;
 
+	/**
+	 * The settings class the advice of both backends reads, named as a string so
+	 * the bootstrap copy and the application copy can each be looked up.
+	 */
+	private static final String SETTINGS_CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings";
+
+	/**
+	 * The JDK classes that remember the default temp directory on first use.
+	 * Loading them at start-up makes the JDK keep the start-up value.
+	 */
+	private static final List<String> JDK_TEMP_DIRECTORY_HOLDERS = List.of("java.io.File$TempDirectory",
+			"java.nio.file.TempFileHelper");
+
 	private JavaInstrumentationAgent() {
 		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 				.localize("security.instrumentation.utility.initialization", "JavaInstrumentationAgent"));
 	}
 
 	/**
-	 * Called before the application's main method. It prepares the agent but
-	 * installs the transformers only if a policy for instrumentation is already
-	 * compiled in. Otherwise {@link #activate()} installs them when the first such
-	 * policy is prepared, so a run that never uses instrumentation does not pay for
-	 * it.
+	 * Initialises Ares before supervised code and optionally installs
+	 * instrumentation.
 	 *
 	 * @param agentArgs The agent arguments.
 	 * @param inst      The instrumentation instance.
 	 */
 	public static void premain(String agentArgs, Instrumentation inst) {
-		// ResourceBundle loading performs file-system operations. Populate Ares'
-		// localisation cache before those JDK operations are instrumented, otherwise a
-		// first security diagnostic can recursively request its own message bundle.
 		Messages.init();
 		Factory unsafeFactory = Factory.resolve(inst);
 		instrumentation = inst;
@@ -145,19 +160,9 @@ public final class JavaInstrumentationAgent {
 
 		putToolboxOnBootClassLoader(unsafeFactory);
 		initializeToolboxes();
-
-		// Pre-warm the StackWalker infrastructure on the bootstrap class loader before
-		// any pointcut goes live. The toolbox advice paths use StackWalker for the fast
-		// caller-package check; without this warm-up the first invocation from a
-		// pointcut would lazily load StackStreamFactory + StackFrameInfo while the
-		// advice is already on the stack, which manifests as a ClassCircularityError
-		// the moment the JDK retransforms java.io.* during agent install.
+		captureTrustedStartupValues();
 		java.lang.StackWalker walker = java.lang.StackWalker.getInstance();
 		walker.walk(stream -> stream.limit(1L).count());
-		// File-policy checks call Files.exists/toRealPath. Load the platform's file
-		// provider exception classes before those JDK methods are instrumented,
-		// avoiding
-		// a cold-start ClassCircularityError inside the first security check.
 		java.nio.file.Files.exists(java.nio.file.Path.of("."));
 		preloadPlatformClass("sun.nio.fs.UnixException");
 		preloadPlatformClass("sun.nio.fs.WindowsException");
@@ -165,6 +170,7 @@ public final class JavaInstrumentationAgent {
 		if (isPolicyCompiledIn()) {
 			installTransformersOnce();
 		}
+		trustedStartupComplete = true;
 	}
 
 	/**
@@ -253,6 +259,102 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
+	 * Reports whether the JVM's trusted agent startup has finished.
+	 *
+	 * @return {@code true} once the agent's startup has run to its end.
+	 */
+	public static boolean hasCompletedTrustedStartup() {
+		return trustedStartupComplete;
+	}
+
+	/**
+	 * Captures, once and before any supervised code runs, the values the
+	 * file-system checks trust: the default temp directory, kept by the JDK's own
+	 * holders and stored in both settings copies, and the AspectJ aspect's Java
+	 * home and Maven repository. The one start-up routine every runtime check
+	 * relies on.
+	 */
+	private static void captureTrustedStartupValues() {
+		JDK_TEMP_DIRECTORY_HOLDERS.forEach(holder -> initialiseIfPresent(holder, null));
+		String defaultTempDirectory = resolveDefaultTempDirectory();
+		if (defaultTempDirectory != null) {
+			publishFrozenTempDirectory(defaultTempDirectory, null);
+			publishFrozenTempDirectory(defaultTempDirectory, ClassLoader.getSystemClassLoader());
+		}
+		initialiseAspectJFileSystem();
+	}
+
+	/**
+	 * Returns the default temp directory resolved to its real location, following
+	 * symbolic links, or {@code null} if it cannot be resolved, in which case
+	 * nothing is stored and temp files without a directory are refused.
+	 *
+	 * @return the real default temp directory, or {@code null}
+	 */
+	private static String resolveDefaultTempDirectory() {
+		String property = System.getProperty("java.io.tmpdir");
+		if (property == null) {
+			return null;
+		}
+		try {
+			return Path.of(property).toRealPath().toString();
+		} catch (IOException | InvalidPathException unresolvable) {
+			return null;
+		}
+	}
+
+	/**
+	 * Stores the default temp directory in one copy of the settings, unless that
+	 * copy already holds one. A copy that does not exist, or that lacks the field,
+	 * is left alone, and the checks then refuse temp files without a directory.
+	 *
+	 * @param directory the real default temp directory
+	 * @param loader    the loader of the copy, {@code null} for the bootstrap copy
+	 */
+	private static void publishFrozenTempDirectory(String directory, ClassLoader loader) {
+		try {
+			Field field = Class.forName(SETTINGS_CLASS_NAME, true, loader)
+					.getDeclaredField("frozenDefaultTempDirectory");
+			field.setAccessible(true);
+			if (field.get(null) == null) {
+				field.set(null, directory);
+			}
+		} catch (ReflectiveOperationException | LinkageError | InaccessibleObjectException | SecurityException
+				| IllegalArgumentException absent) {
+			return;
+		}
+	}
+
+	/**
+	 * Initialises a class if the loader can find it, so its start-up values are
+	 * read now rather than on first use.
+	 *
+	 * @param className the class to initialise
+	 * @param loader    the loader to use, {@code null} for the bootstrap loader
+	 */
+	private static void initialiseIfPresent(String className, ClassLoader loader) {
+		try {
+			Class.forName(className, true, loader);
+		} catch (ClassNotFoundException | LinkageError absent) {
+			return;
+		}
+	}
+
+	/** Captures the AspectJ filesystem root before entering student code. */
+	private static void initialiseAspectJFileSystem() {
+		try {
+			Class.forName(
+					"de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions",
+					true, JavaInstrumentationAgent.class.getClassLoader());
+		} catch (ClassNotFoundException missingAspect) {
+			if (!isPolicyCompiledIn()) {
+				throw new SecurityException(Messages.localized("security.advice.trusted.startup.missing"),
+						missingAspect);
+			}
+		}
+	}
+
+	/**
 	 * Keeps a transformation failure for the per-test report and for good. It takes
 	 * no lock and builds no message, because it runs inside class loading.
 	 *
@@ -264,19 +366,16 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Tells whether the settings already name an AOP mode when the agent starts.
-	 * Only a policy compiled into the project (Precompile) does that; there nothing
-	 * calls {@link #activate()}, so the transformers must be installed at once. If
-	 * the settings cannot be read, it answers yes, so the agent fails closed.
-	 *
-	 * @return True if the transformers must be installed at start-up.
+	 * Reports whether compiled settings or unreadable settings require JDK
+	 * transformers at startup.
 	 */
 	private static boolean isPolicyCompiledIn() {
 		try {
 			Field aopMode = Class.forName(JavaAOPTestCaseSettings.class.getName(), true, null)
 					.getDeclaredField("aopMode");
 			aopMode.setAccessible(true);
-			return aopMode.get(null) != null;
+			Object mode = aopMode.get(null);
+			return mode != null && !"ASPECTJ".equals(mode);
 		} catch (ReflectiveOperationException | RuntimeException | LinkageError unreadable) {
 			return true;
 		}
