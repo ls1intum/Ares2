@@ -391,6 +391,16 @@ The build descriptor and the command that invokes it are **trusted instructor co
 
 The threat this addresses is student **code** that declares a reserved package, not student control over the build. Your exercise template and its CI must own the build files and the invocation, and must fail visibly if either is altered.
 
+## Keep hidden report details out of build output
+
+A hidden test can fail for grading after its deadline without giving students its failure details. Copy `examples/ares-exercise-gradle/gradle/AresHiddenReports.gradle` from this Ares repository into the exercise's `gradle/` folder and add this line to `build.gradle`:
+
+```groovy
+apply from: 'gradle/AresHiddenReports.gradle'
+```
+
+The script removes hidden failure text from Gradle's XML report and prevents Gradle from printing exception stacks in its console log. The HTML report keeps the test name and failed status; public failure details remain in its report page.
+
 ## Verify your setup
 
 ### The two controls that matter

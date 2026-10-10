@@ -374,7 +374,7 @@ theFollowingClassesAreTestClasses:
 
 ### 7.7 Test Behaviour Configuration
 
-The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for how Ares reports a test's own failure to a student, as opposed to which resources code can access. It currently has one category, `regardingPrivilegedExceptions`, mirroring what the `@PrivilegedExceptionsOnly` annotation already controls per test. It decides whether a failing test that is not hidden shows the student its real assertion or exception message, or a fixed message instead. This field never changes a hidden test: a hidden test always shows the fixed hidden-test message.
+The `theFollowingTestBehaviorIsConfigured` field controls how Ares reports a test's own failure to a student, as opposed to which resources code can access. It currently has one category, `regardingPrivilegedExceptions`. This policy field is the only way to choose privileged-exception reporting; there is no inline annotation. It decides whether a failing public test shows its real assertion or exception message or a fixed message instead. Hidden failures keep their grading status but show no failure detail.
 
 **Field Properties:**
 - **Type:** Object (optional wrapper), containing the optional `regardingPrivilegedExceptions` object
@@ -383,7 +383,7 @@ The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for h
 
 **`regardingPrivilegedExceptions` sub-fields:**
 - `onlyPrivilegedExceptionsAreReported` (boolean, **required** once `regardingPrivilegedExceptions` is present): the policy-wide default. `true` hides a non-privileged failure's real detail from the student; `false` (or omitting the whole category) reports it in full.
-- `theFailureMessageIs` (string, optional): the message shown instead of the real failure detail when the policy enables the default. Defaults to `"Test failed."` if omitted or blank, the same default `@PrivilegedExceptionsOnly` itself uses.
+- `theFailureMessageIs` (string, optional): the message shown instead of the real failure detail when the policy enables the setting. Defaults to `"Test failed."` if omitted or blank.
 
 **Example:**
 
@@ -394,7 +394,7 @@ theFollowingTestBehaviorIsConfigured:
     theFailureMessageIs: "Something went wrong."
 ```
 
-**Precedence:** a `@PrivilegedExceptionsOnly` annotation directly on a test method or class always wins over this policy default, whether the policy enables or disables the default, matching the nearest-annotation-wins precedent used elsewhere in this codebase. This field only takes effect for a test that carries no such annotation of its own.
+**Precedence:** the active exercise policy alone chooses privileged-exception reporting for public tests. Hidden visibility overrides this setting for student-facing diagnostics.
 
 **Precompile:** a precompile exercise has no Ares dependency at run time. The generator therefore writes its own failure reporting into the exercise's test sources, in the package `de.tum.cit.ase.ares.generated`. It writes the setting as the class `GeneratedTestBehaviorSettings` and a JUnit extension. JUnit loads this extension by itself, so no test needs an annotation. With the setting on, every failing test shows the policy's message. That includes security violations and failing generated architecture tests. A test that exceeds JUnit's `@Timeout` shows the fixed text "The test timed out." instead. A precompile exercise has no hidden tests, so the setting applies to every test. One failure keeps its own message: one thrown by another extension's callback, such as an instructor's `BeforeEachCallback`, because JUnit hands it to no extension that could replace it. Keep student code out of such callbacks. Generated sentinel tests fail when the hooks are not active. Regenerating without this field, or with it set to `false`, deletes all of this again. Keep generated precompile output and the Ares dependency out of the same exercise, since both rewrite the same failure.
 

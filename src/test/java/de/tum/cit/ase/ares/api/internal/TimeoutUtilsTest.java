@@ -20,7 +20,6 @@ import org.mockito.InOrder;
 import org.opentest4j.AssertionFailedError;
 
 import de.tum.cit.ase.ares.api.Policy;
-import de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly;
 import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.context.TestContext;
 
@@ -65,20 +64,6 @@ class TimeoutUtilsTest {
 		assertThat(workerFinished).isTrue();
 	}
 
-	/** With the annotation, a timeout is still reported as a timeout. */
-	@Test
-	void annotationBasedTimeoutStaysPrivileged() throws Exception {
-		TestContext context = contextFor("annotationTimeoutTarget"); //$NON-NLS-1$
-
-		PrivilegedException failure = assertThrows(PrivilegedException.class,
-				() -> TimeoutUtils.performTimeoutExecution(() -> {
-					Thread.sleep(1000);
-					return null;
-				}, context));
-
-		assertThat(failure.getPriviledgedThrowable().getMessage()).contains("execution timed out after");
-	}
-
 	/** With an enabling policy, a timeout is still reported as a timeout. */
 	@Test
 	void policyEnabledTimeoutStaysPrivileged() throws Exception {
@@ -105,23 +90,6 @@ class TimeoutUtilsTest {
 				}, context));
 
 		assertThat(failure.getMessage()).contains("execution timed out after");
-	}
-
-	/**
-	 * The annotation keeps a timeout privileged even when the policy disables the
-	 * default.
-	 */
-	@Test
-	void policyDisabledButAnnotationPresentTimeoutStaysPrivileged() throws Exception {
-		TestContext context = contextFor("policyDisabledButAnnotatedTimeoutTarget"); //$NON-NLS-1$
-
-		PrivilegedException failure = assertThrows(PrivilegedException.class,
-				() -> TimeoutUtils.performTimeoutExecution(() -> {
-					Thread.sleep(1000);
-					return null;
-				}, context));
-
-		assertThat(failure.getPriviledgedThrowable().getMessage()).contains("execution timed out after");
 	}
 
 	@Test
@@ -182,16 +150,6 @@ class TimeoutUtilsTest {
 	}
 
 	/**
-	 * Carries the annotation and a timeout; used only through the mocked test
-	 * context.
-	 */
-	@SuppressWarnings("PMD.UnusedPrivateMethod")
-	@PrivilegedExceptionsOnly("Annotation message")
-	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
-	private static void annotationTimeoutTarget() {
-	}
-
-	/**
 	 * Carries an enabling policy and a timeout; used only through the mocked test
 	 * context.
 	 */
@@ -209,16 +167,5 @@ class TimeoutUtilsTest {
 	@Policy(value = POLICY_DISABLED)
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void policyDisabledTimeoutTarget() {
-	}
-
-	/**
-	 * Carries the annotation, a disabling policy and a timeout; used only through
-	 * the mocked test context.
-	 */
-	@SuppressWarnings("PMD.UnusedPrivateMethod")
-	@PrivilegedExceptionsOnly("Annotation message")
-	@Policy(value = POLICY_DISABLED)
-	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
-	private static void policyDisabledButAnnotatedTimeoutTarget() {
 	}
 }

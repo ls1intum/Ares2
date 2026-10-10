@@ -9,9 +9,9 @@ import org.apiguardian.api.API.Status;
 import de.tum.cit.ase.ares.api.MirrorOutput;
 import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.Policy;
-import de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.context.TestContextUtils;
+import de.tum.cit.ase.ares.api.context.TestType;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PrivilegedExceptionsConfiguration;
@@ -34,6 +34,9 @@ public final class ConfigurationUtils {
 	 * @return whether mirroring is enabled
 	 */
 	public static boolean shouldMirrorOutput(TestContext context) {
+		if (context.findTestType().orElse(null) == TestType.HIDDEN) {
+			return false;
+		}
 		return TestContextUtils.findAnnotationIn(context, MirrorOutput.class).map(MirrorOutput::value)
 				.map(MirrorOutputPolicy::isEnabled).orElse(false);
 	}
@@ -51,20 +54,14 @@ public final class ConfigurationUtils {
 
 	/**
 	 * Resolves the message a failed test shows instead of its real error, if any.
-	 * Checks, in order: the nearest {@code @PrivilegedExceptionsOnly}, then the
-	 * policy file named by an active {@code @Policy}. A precompile exercise reports
-	 * failures through its own generated hooks instead, never through this method.
+	 * Reads only the policy file named by an active {@code @Policy}. A precompile
+	 * exercise reports failures through its own generated hooks instead.
 	 *
 	 * @param context the current test context
 	 * @return the configured message, if privileged-exceptions-only reporting is
 	 *         effectively enabled
 	 */
 	public static Optional<String> getNonprivilegedFailureMessage(TestContext context) {
-		Optional<String> fromAnnotation = TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class)
-				.map(PrivilegedExceptionsOnly::value);
-		if (fromAnnotation.isPresent()) {
-			return fromAnnotation;
-		}
 		return findPolicyPrivilegedExceptions(context)
 				.filter(PrivilegedExceptionsConfiguration::onlyPrivilegedExceptionsAreReported)
 				.map(PrivilegedExceptionsConfiguration::theFailureMessageIs);

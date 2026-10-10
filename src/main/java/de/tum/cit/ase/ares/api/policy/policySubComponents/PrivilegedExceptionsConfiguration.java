@@ -4,9 +4,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * The policy-wide default of {@code @PrivilegedExceptionsOnly}: whether a
- * failed test without that annotation shows a fixed message instead of its real
- * error.
+ * The policy setting that chooses whether a failed public test shows a fixed
+ * message instead of its real error.
  *
  * @since 2.1.5
  * @author Luka Petrovic
@@ -20,8 +19,7 @@ public record PrivilegedExceptionsConfiguration(boolean onlyPrivilegedExceptions
 		@Nonnull String theFailureMessageIs) {
 
 	/**
-	 * Default failure message, matching {@code @PrivilegedExceptionsOnly}'s own
-	 * annotation default.
+	 * Default message for a non-privileged public failure.
 	 */
 	public static final String DEFAULT_FAILURE_MESSAGE = "Test failed.";
 

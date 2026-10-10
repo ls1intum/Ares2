@@ -14,9 +14,9 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.PrivilegedExceptionPenguin;
 
 /**
- * Carries no {@code @PrivilegedExceptionsOnly} at all, so every test below
- * relies only on the policy's own default. This proves the policy-only path end
- * to end through the real reporting and timeout handling.
+ * Uses only the policy setting, so every test below relies only on the policy's
+ * own default. This proves the policy-only path end to end through the real
+ * reporting and timeout handling.
  */
 @UseLocale("en")
 @MirrorOutput(MirrorOutputPolicy.DISABLED)

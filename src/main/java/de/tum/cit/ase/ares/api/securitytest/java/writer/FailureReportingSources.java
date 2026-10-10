@@ -388,6 +388,9 @@ final class FailureReportingSources {
 				 * @return the failure to report
 				 */
 				static Throwable replacementFor(Throwable throwable) {
+					if (isHiddenResult(throwable)) {
+						return throwable;
+					}
 					if (!@SETTINGS@.@ENABLED@) {
 						return throwable;
 					}
@@ -398,6 +401,15 @@ final class FailureReportingSources {
 						return new AssertionError(@MESSAGES@.localized("generated.failure.reporting.timeout"));
 					}
 					return new AssertionError(@SETTINGS@.@MESSAGE@);
+				}
+
+				/** Keeps a generated hidden result or scheduling notice unchanged. */
+				private static boolean isHiddenResult(Throwable throwable) {
+					String type = throwable.getClass().getName();
+					return type.equals("de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure")
+							|| type.equals("de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestAbort")
+							|| type.equals("de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestScheduled")
+							|| type.equals("de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$HiddenTestFailure");
 				}
 			}
 			""";

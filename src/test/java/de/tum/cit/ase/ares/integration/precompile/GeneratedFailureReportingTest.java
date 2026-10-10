@@ -107,6 +107,7 @@ class GeneratedFailureReportingTest {
 				.filter(line -> line.startsWith("junit.jupiter.extensions.autodetection.include="))
 				.map(line -> line.substring(line.indexOf('=') + 1)).findFirst().orElseThrow();
 		Path fixtures = writeFixtures(tempDir.resolve("fixtures"));
+		writeHiddenResultFixture(testSources);
 		compiled = Files.createDirectories(tempDir.resolve("compiled"));
 		studentOutput = Files.createDirectories(tempDir.resolve("student"));
 		Path studentServices = studentOutput.resolve("META-INF/services/org.junit.jupiter.api.extension.Extension");
@@ -125,6 +126,35 @@ class GeneratedFailureReportingTest {
 						.replace("= true;", "= false;"));
 		compile(shadowSettings, List.of(), shadowSource);
 		classes = compiled;
+	}
+
+	/** Writes the generated hidden-result types used by the combined hook. */
+	private static void writeHiddenResultFixture(Path testSources) throws IOException {
+		Path folder = Files.createDirectories(testSources.resolve("de/tum/cit/ase/ares/generated"));
+		Files.writeString(folder.resolve("GeneratedHiddenTests.java"),
+				"""
+						package de.tum.cit.ase.ares.generated;
+
+						public final class GeneratedHiddenTests implements org.junit.jupiter.api.extension.InvocationInterceptor {
+							/** Hides one failing test invocation. */
+							@Override public void interceptTestMethod(Invocation<Void> invocation,
+									org.junit.jupiter.api.extension.ReflectiveInvocationContext<java.lang.reflect.Method> method,
+									org.junit.jupiter.api.extension.ExtensionContext context) throws Throwable {
+								try { invocation.proceed(); } catch (Throwable failure) { throw new HiddenTestFailure(); }
+							}
+							public static final class HiddenTestFailure extends AssertionError {
+								public HiddenTestFailure() { setStackTrace(new StackTraceElement[0]); }
+								@Override public String toString() { return ""; }
+							}
+							public static final class HiddenTestAbort extends org.opentest4j.TestAbortedException {
+								public HiddenTestAbort() { setStackTrace(new StackTraceElement[0]); }
+								@Override public String toString() { return ""; }
+							}
+							public static final class HiddenTestScheduled extends org.opentest4j.AssertionFailedError {
+								public HiddenTestScheduled() { super("hidden tests will be executed after the deadline."); }
+							}
+						}
+						""");
 	}
 
 	/**
@@ -198,6 +228,26 @@ class GeneratedFailureReportingTest {
 	void aForgedTimeoutShowsOnlyTheFixedText() throws Exception {
 		assertThat(failureOf(runJupiter("FailingFixture", true, Locale.ENGLISH), "forgedTimeout"))
 				.isEqualTo("The test timed out.");
+	}
+
+	/** The reporting hook preserves hidden results from either hook order. */
+	@Test
+	void generatedHiddenMarkersKeepTheirStatusAndMessage() throws Exception {
+		EngineExecutionResults results = runJupiter("HiddenMarkerFixture", true, Locale.ENGLISH);
+		assertThat(failureOf(results, "failed")).isEmpty();
+		assertThat(failureOf(results, "scheduled")).isEqualTo("hidden tests will be executed after the deadline.");
+		assertThat(results.testEvents().aborted().count()).isEqualTo(1);
+		assertThat(results.testEvents().failed().count()).isEqualTo(2);
+	}
+
+	/**
+	 * Hidden results stay opaque with either generated extension registration
+	 * order.
+	 */
+	@Test
+	void hiddenReportingHookOrdersKeepFailuresOpaque() throws Exception {
+		assertThat(failureOf(runJupiter("HiddenFirstFixture", false, Locale.ENGLISH), "secret")).isEmpty();
+		assertThat(failureOf(runJupiter("ReportingFirstFixture", false, Locale.ENGLISH), "secret")).isEmpty();
 	}
 
 	/**
@@ -473,6 +523,44 @@ class GeneratedFailureReportingTest {
 					void forgedTimeout() throws TimeoutException {
 						throw new TimeoutException("expected=42");
 					}
+				}
+				""");
+		Files.writeString(folder.resolve("HiddenMarkerFixture.java"), """
+				package com.example.fixtures;
+
+				import org.junit.jupiter.api.Test;
+				import de.tum.cit.ase.ares.generated.GeneratedHiddenTests;
+
+				class HiddenMarkerFixture {
+					@Test void failed() { throw new GeneratedHiddenTests.HiddenTestFailure(); }
+					@Test void aborted() { throw new GeneratedHiddenTests.HiddenTestAbort(); }
+					@Test void scheduled() { throw new GeneratedHiddenTests.HiddenTestScheduled(); }
+				}
+				""");
+		Files.writeString(folder.resolve("HiddenFirstFixture.java"), """
+				package com.example.fixtures;
+
+				import org.junit.jupiter.api.Test;
+				import org.junit.jupiter.api.extension.ExtendWith;
+				import de.tum.cit.ase.ares.generated.GeneratedHiddenTests;
+				import de.tum.cit.ase.ares.generated.GeneratedFailureReporting;
+
+				@ExtendWith({ GeneratedHiddenTests.class, GeneratedFailureReporting.class })
+				class HiddenFirstFixture {
+					@Test void secret() { throw new AssertionError("SECRET_HIDDEN_ORDER"); }
+				}
+				""");
+		Files.writeString(folder.resolve("ReportingFirstFixture.java"), """
+				package com.example.fixtures;
+
+				import org.junit.jupiter.api.Test;
+				import org.junit.jupiter.api.extension.ExtendWith;
+				import de.tum.cit.ase.ares.generated.GeneratedHiddenTests;
+				import de.tum.cit.ase.ares.generated.GeneratedFailureReporting;
+
+				@ExtendWith({ GeneratedFailureReporting.class, GeneratedHiddenTests.class })
+				class ReportingFirstFixture {
+					@Test void secret() { throw new AssertionError("SECRET_HIDDEN_ORDER"); }
 				}
 				""");
 		Files.writeString(folder.resolve("DynamicFixture.java"), """

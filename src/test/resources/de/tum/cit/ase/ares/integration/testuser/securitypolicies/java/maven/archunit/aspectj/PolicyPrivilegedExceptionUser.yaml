@@ -23,11 +23,8 @@ regardingTheSupervisedCode:
     regardingPackageImports: []
     regardingTimeouts:
       - timeout: 3000
-  # Deliberately set to false with a different message, so that every existing test
-  # method below - all annotated with @PrivilegedExceptionsOnly("ABC") at the class
-  # level - continues to observe "ABC" untouched, proving the annotation still wins
-  # even when the policy explicitly disables the feature.
+  # The policy is the only source of this failure-reporting choice.
   theFollowingTestBehaviorIsConfigured:
     regardingPrivilegedExceptions:
-      onlyPrivilegedExceptionsAreReported: false
-      theFailureMessageIs: "Policy message should never be observed here"
+      onlyPrivilegedExceptionsAreReported: true
+      theFailureMessageIs: "ABC"

@@ -172,6 +172,8 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
+                    <printSummary>false</printSummary>
+                    <useFile>true</useFile>
                     <argLine>
                         @{argLine}
                         "-javaagent:${project.build.directory}/ares/ares-agent.jar"
