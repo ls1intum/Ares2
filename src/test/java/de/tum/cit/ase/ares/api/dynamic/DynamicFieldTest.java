@@ -17,6 +17,16 @@ class DynamicFieldTest {
 
 	interface FieldOwningInterface {
 		int CONSTANT = 42;
+
+		/**
+		 * Gives the interface a method, so it describes a type rather than only holding
+		 * a constant.
+		 *
+		 * @return the constant
+		 */
+		default int constant() {
+			return CONSTANT;
+		}
 	}
 
 	interface ExtendingInterface extends FieldOwningInterface {
