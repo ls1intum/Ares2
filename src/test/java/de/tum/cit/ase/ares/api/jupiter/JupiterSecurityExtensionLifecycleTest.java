@@ -5,6 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;
+import static org.junit.platform.testkit.engine.EventConditions.container;
+import static org.junit.platform.testkit.engine.EventConditions.event;
+import static org.junit.platform.testkit.engine.EventConditions.finishedWithFailure;
+import static org.junit.platform.testkit.engine.EventConditions.test;
+import static org.junit.platform.testkit.engine.TestExecutionResultConditions.instanceOf;
+import static org.junit.platform.testkit.engine.TestExecutionResultConditions.message;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -32,8 +38,8 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
-import org.junit.jupiter.api.parallel.Execution;
-import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.extension.TestInstanceFactory;
+import org.junit.jupiter.api.extension.TestInstanceFactoryContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
@@ -52,7 +58,6 @@ class JupiterSecurityExtensionLifecycleTest {
 	}
 
 	@ExtendWith(CountingSecurityExtension.class)
-	@Execution(ExecutionMode.CONCURRENT)
 	static class EngineFixture {
 		@Test
 		void ordinary() {
@@ -91,13 +96,15 @@ class JupiterSecurityExtensionLifecycleTest {
 		assertEquals(2, preparations.get());
 	}
 
+	/**
+	 * Every invocation of an ordinary, a repeated and a parameterised test prepares
+	 * once for its constructor and once for its test.
+	 */
 	@Test
-	void engineTestKitPreparesOrdinaryRepeatedParameterisedAndParallelInvocationsExactlyOnce() {
+	void engineTestKitPreparesOrdinaryRepeatedAndParameterisedInvocationsExactlyOnce() {
 		ENGINE_PREPARATIONS.set(0);
-		EngineTestKit.engine("junit-jupiter").selectors(selectClass(EngineFixture.class))
-				.configurationParameter("junit.jupiter.execution.parallel.enabled", "true")
-				.configurationParameter("junit.jupiter.execution.parallel.mode.default", "concurrent").execute()
-				.testEvents().assertStatistics(statistics -> statistics.started(7).succeeded(7).failed(0));
+		EngineTestKit.engine("junit-jupiter").selectors(selectClass(EngineFixture.class)).execute().testEvents()
+				.assertStatistics(statistics -> statistics.started(7).succeeded(7).failed(0));
 		assertEquals(14, ENGINE_PREPARATIONS.get(),
 				"each of the 7 invocations prepares once for its constructor and once for its test");
 	}
@@ -115,6 +122,12 @@ class JupiterSecurityExtensionLifecycleTest {
 		assertThrows(IllegalStateException.class, () -> extension.beforeTestExecution(contextWithStore()));
 		assertNull(restrictedPackageField().get(null));
 	}
+
+	/** JUnit setting that lets tests run in several threads at once. */
+	private static final String PARALLEL_EXECUTION_ENABLED = "junit.jupiter.execution.parallel.enabled";
+
+	/** Marker standing for the policy another test left armed. */
+	private static final String OTHER_TEST_POLICY = "armed by another test";
 
 	/** Whether the guard was armed, recorded by each phase of a fixture. */
 	private static final List<String> OBSERVATIONS = new CopyOnWriteArrayList<>();
@@ -204,6 +217,47 @@ class JupiterSecurityExtensionLifecycleTest {
 		@AfterAll
 		static void afterAll() {
 			observe("afterAll");
+		}
+	}
+
+	/** Observes the constructor, the setup method and the test of one test. */
+	@ExtendWith(ArmingSecurityExtension.class)
+	static class ConstructorSetupAndTestFixture {
+		/** Observes the constructor phase. */
+		ConstructorSetupAndTestFixture() {
+			observe("constructor");
+		}
+
+		/** Observes the setup method. */
+		@BeforeEach
+		void beforeEach() {
+			observe("beforeEach");
+		}
+
+		/** Observes the test. */
+		@Test
+		void test() {
+			observe("test");
+		}
+	}
+
+	/** Builds test instances itself, so JUnit never calls their constructor. */
+	public static class ObservingInstanceFactory implements TestInstanceFactory {
+		/** Records that it ran, then builds the instance. */
+		@Override
+		public Object createTestInstance(TestInstanceFactoryContext factoryContext, ExtensionContext extensionContext) {
+			observe("factory");
+			return new FactoryBuiltFixture();
+		}
+	}
+
+	/** Has its instance built by a factory instead of by its constructor. */
+	@ExtendWith({ ArmingSecurityExtension.class, ObservingInstanceFactory.class })
+	static class FactoryBuiltFixture {
+		/** Observes the test. */
+		@Test
+		void test() {
+			observe("test");
 		}
 	}
 
@@ -345,10 +399,20 @@ class JupiterSecurityExtensionLifecycleTest {
 
 	/** Runs one fixture alone with a closed guard and empty records. */
 	private static EngineExecutionResults runFixture(Class<?> fixture) throws ReflectiveOperationException {
+		return runFixture(fixture, Map.of(), null);
+	}
+
+	/**
+	 * Runs one fixture alone as {@link #runFixture(Class)} does, with JUnit
+	 * settings and the given setting left armed beforehand.
+	 */
+	private static EngineExecutionResults runFixture(Class<?> fixture, Map<String, String> configurationParameters,
+			String armedBefore) throws ReflectiveOperationException {
 		OBSERVATIONS.clear();
 		ENGINE_PREPARATIONS.set(0);
-		restrictedPackageField().set(null, null);
-		return EngineTestKit.engine("junit-jupiter").selectors(selectClass(fixture)).execute();
+		restrictedPackageField().set(null, armedBefore);
+		return EngineTestKit.engine("junit-jupiter").selectors(selectClass(fixture))
+				.configurationParameters(configurationParameters).execute();
 	}
 
 	/** Every phase sees an armed guard, and it is closed at the end. */
@@ -463,6 +527,82 @@ class JupiterSecurityExtensionLifecycleTest {
 		runFixture(NestedFixture.class).testEvents().assertStatistics(statistics -> statistics.succeeded(1));
 
 		assertEquals(List.of("innerBeforeEach=true", "innerTest=true"), OBSERVATIONS);
+		assertNull(restrictedPackageField().get(null));
+	}
+
+	/**
+	 * Enabled parallel execution, spelled in any case JUnit accepts, fails the test
+	 * before its constructor, setup method or body runs.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "true", "TRUE" })
+	void enabledParallelExecutionIsRefusedBeforeTheConstructorRuns(String enabled) throws ReflectiveOperationException {
+		assertRefusedBeforeAnyPhaseRuns(ConstructorSetupAndTestFixture.class, enabled);
+	}
+
+	/**
+	 * Enabled parallel execution fails the test before a test instance factory
+	 * builds its instance.
+	 */
+	@Test
+	void enabledParallelExecutionIsRefusedBeforeATestInstanceFactoryRuns() throws ReflectiveOperationException {
+		assertRefusedBeforeAnyPhaseRuns(FactoryBuiltFixture.class, "true");
+	}
+
+	/**
+	 * Runs the fixture with parallel execution set as given, while another test's
+	 * setting is armed, and checks that its one test failed with the refusal, that
+	 * no phase ran and that nothing was reset or armed.
+	 */
+	private static void assertRefusedBeforeAnyPhaseRuns(Class<?> fixture, String enabled)
+			throws ReflectiveOperationException {
+		try {
+			runFixture(fixture, Map.of(PARALLEL_EXECUTION_ENABLED, enabled), OTHER_TEST_POLICY).testEvents()
+					.assertThatEvents()
+					.haveExactly(1, event(test(), finishedWithFailure(instanceOf(SecurityException.class),
+							message(text -> text.contains(PARALLEL_EXECUTION_ENABLED)))));
+
+			assertEquals(List.of(), OBSERVATIONS);
+			assertEquals(0, ENGINE_PREPARATIONS.get(), "the guard must never have been armed");
+			assertEquals(OTHER_TEST_POLICY, restrictedPackageField().get(null),
+					"the setting of another test must be neither reset nor replaced");
+		} finally {
+			restrictedPackageField().set(null, null);
+		}
+	}
+
+	/**
+	 * Enabled parallel execution fails the class before its class setup and
+	 * teardown methods run.
+	 */
+	@Test
+	void enabledParallelExecutionIsRefusedBeforeTheClassSetupMethodRuns() throws ReflectiveOperationException {
+		try {
+			runFixture(SetupPhasesFixture.class, Map.of(PARALLEL_EXECUTION_ENABLED, "true"), OTHER_TEST_POLICY)
+					.containerEvents().assertThatEvents().haveExactly(1, event(container(SetupPhasesFixture.class),
+							finishedWithFailure(instanceOf(SecurityException.class))));
+
+			assertEquals(List.of(), OBSERVATIONS);
+			assertEquals(0, ENGINE_PREPARATIONS.get(), "the guard must never have been armed");
+			assertEquals(OTHER_TEST_POLICY, restrictedPackageField().get(null),
+					"the setting of another test must be neither reset nor replaced");
+		} finally {
+			restrictedPackageField().set(null, null);
+		}
+	}
+
+	/**
+	 * Parallel execution set to false, or to a value JUnit reads as false, leaves
+	 * every phase armed as when the setting is absent.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "false", "yes" })
+	void disabledParallelExecutionLeavesEveryPhaseArmed(String enabled) throws ReflectiveOperationException {
+		runFixture(SetupPhasesFixture.class, Map.of(PARALLEL_EXECUTION_ENABLED, enabled), null).testEvents()
+				.assertStatistics(statistics -> statistics.started(1).succeeded(1));
+
+		assertEquals(List.of("beforeAll=true", "constructor=true", "beforeEach=true", "test=true", "afterEach=true",
+				"afterAll=true"), OBSERVATIONS);
 		assertNull(restrictedPackageField().get(null));
 	}
 
