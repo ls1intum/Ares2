@@ -1,0 +1,10 @@
+# Provenance of libnetblocker.so, written by tools/netblocker/build-netblocker.sh.
+# Rerun that script after editing netblocker.c, to renew both the library and this file.
+source=netblocker.c
+source-sha256=77cb63c48dbada20c5e8f4585efa4849be32fba4619491a808c145af9ef0380e
+artifact=libnetblocker.so
+artifact-sha256=b13494b94a8bd47cf640397ec03670acf277593fa42852648a2d1b77c229f283
+architecture=x86_64
+glibc-required=2.34
+compile-flags=-fPIC -shared -Wl,--build-id=none
+compiler=gcc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
