@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,6 +52,13 @@ final class TestSourceDeclarations {
 	@Nonnull
 	private final Map<Path, CompilationUnit> parsedFiles = new HashMap<>();
 
+	/** Declarations keyed by the names written in their Java packages. */
+	@Nonnull
+	private final Map<String, TypeDeclaration<?>> declarations = new HashMap<>();
+
+	/** Whether the test source root has already been indexed. */
+	private boolean indexed;
+
 	/**
 	 * Creates the declarations of one test source root.
 	 *
@@ -66,10 +72,8 @@ final class TestSourceDeclarations {
 	}
 
 	/**
-	 * Finds a class by its canonical name: the shortest prefix that names a source
-	 * file, then each later segment as a class declared directly inside the one
-	 * before. The class must declare that very name, so a file whose package
-	 * differs from its folder matches no entry at all.
+	 * Finds a class by its declared canonical name. Every top-level declaration in
+	 * each correctly placed source file is indexed, including secondary types.
 	 *
 	 * @param canonicalName the name with dots only, such as
 	 *                      {@code pkg.Outer.Inner}.
@@ -78,15 +82,45 @@ final class TestSourceDeclarations {
 	 */
 	@Nonnull
 	Optional<TypeDeclaration<?>> findClass(@Nonnull String canonicalName) {
-		List<String> segments = Arrays.asList(canonicalName.split("\\."));
-		for (int fileSegment = 0; fileSegment < segments.size(); fileSegment++) {
-			Path file = testFolderPath.resolve(String.join("/", segments.subList(0, fileSegment + 1)) + ".java");
-			if (Files.isRegularFile(file)) {
-				return nestedClass(parse(file).getTypes().stream(), segments.subList(fileSegment, segments.size()))
-						.filter(type -> type.getFullyQualifiedName().filter(canonicalName::equals).isPresent());
-			}
+		indexSources();
+		return Optional.ofNullable(declarations.get(canonicalName));
+	}
+
+	/**
+	 * Reads correctly placed test sources once and indexes their declared types.
+	 */
+	private void indexSources() {
+		if (indexed) {
+			return;
 		}
-		return Optional.empty();
+		try (Stream<Path> files = Files.walk(testFolderPath)) {
+			files.filter(file -> Files.isRegularFile(file) && file.toString().endsWith(".java")).sorted()
+					.forEach(this::indexFile);
+		} catch (IOException unreadable) {
+			throw new SecurityException(
+					Messages.localized("security.writer.hidden.tests.unparsable", testFolderPath.toString()),
+					unreadable);
+		}
+		indexed = true;
+	}
+
+	/** Adds every top-level and member type from one correctly placed source. */
+	private void indexFile(@Nonnull Path file) {
+		CompilationUnit unit = parse(file);
+		Path declaredFolder = unit.getPackageDeclaration().map(pkg -> Path.of(pkg.getNameAsString().replace('.', '/')))
+				.orElse(Path.of(""));
+		Path actualFolder = file.getParent();
+		if (actualFolder == null
+				|| !testFolderPath.resolve(declaredFolder).normalize().equals(actualFolder.normalize())) {
+			return;
+		}
+		unit.getTypes().forEach(this::indexType);
+	}
+
+	/** Adds a declared type and the member types directly inside it. */
+	private void indexType(@Nonnull TypeDeclaration<?> type) {
+		type.getFullyQualifiedName().ifPresent(name -> declarations.put(name, type));
+		memberClasses(type).forEach(this::indexType);
 	}
 
 	/**
@@ -113,24 +147,6 @@ final class TestSourceDeclarations {
 					.forEach(pending::push);
 		}
 		return false;
-	}
-
-	/**
-	 * Descends from a set of classes into nested classes by name.
-	 *
-	 * @param candidates the classes the first segment is looked up in.
-	 * @param segments   the remaining simple names, outermost first.
-	 * @return the innermost class, or empty when a segment matches nothing
-	 */
-	@Nonnull
-	private static Optional<TypeDeclaration<?>> nestedClass(@Nonnull Stream<TypeDeclaration<?>> candidates,
-			@Nonnull List<String> segments) {
-		Optional<TypeDeclaration<?>> found = candidates.filter(type -> type.getNameAsString().equals(segments.get(0)))
-				.findFirst();
-		if (found.isEmpty() || segments.size() == 1) {
-			return found;
-		}
-		return nestedClass(memberClasses(found.get()), segments.subList(1, segments.size()));
 	}
 
 	/**

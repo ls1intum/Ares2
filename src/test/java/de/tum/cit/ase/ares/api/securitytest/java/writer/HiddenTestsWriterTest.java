@@ -189,6 +189,28 @@ class HiddenTestsWriterTest {
 	}
 
 	/**
+	 * Secondary top-level tests and their inherited methods resolve by declaration.
+	 */
+	@Test
+	void secondaryTopLevelDeclarationsAreAccepted() throws IOException {
+		Files.writeString(testFolder.resolve("com/example/PenguinTest.java"), """
+				package com.example;
+				abstract class BaseBirdTest {
+					@org.junit.jupiter.api.Test void flies() {}
+				}
+				class PenguinTest extends BaseBirdTest {}
+				class OtherBirdTest {
+					@org.junit.jupiter.api.Test void sings() {}
+				}
+				""");
+		assertThat(writer(null).write(configured("com.example.PenguinTest#flies"), PACKAGE, testFolder).jupiterHooks())
+				.isNotEmpty();
+		assertThat(
+				writer(null).write(configured("com.example.OtherBirdTest#sings"), PACKAGE, testFolder).jupiterHooks())
+						.isNotEmpty();
+	}
+
+	/**
 	 * A listed test using a Java 21 record pattern is read at the version the
 	 * exercise's build names.
 	 *

@@ -64,6 +64,7 @@ final class HiddenTestsSources {
 			import java.util.function.Function;
 
 			import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
+			import org.junit.jupiter.api.extension.BeforeAllCallback;
 			import org.junit.jupiter.api.extension.ExtensionContext;
 			import org.junit.jupiter.api.extension.InvocationInterceptor;
 			import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
@@ -75,7 +76,15 @@ final class HiddenTestsSources {
 			 * deadline and hides why they failed, as {@code @HiddenTest} does. Do not
 			 * edit: regenerate instead.
 			 */
-			public final class GeneratedHiddenTests implements InvocationInterceptor {
+			public final class GeneratedHiddenTests implements InvocationInterceptor, BeforeAllCallback {
+				/** Refuses concurrent tests before a hidden invocation can alter process streams. */
+				@Override
+				public void beforeAll(ExtensionContext context) {
+					if (context.getConfigurationParameter("junit.jupiter.execution.parallel.enabled")
+							.map(Boolean::parseBoolean).orElse(false)) {
+						throw new IllegalStateException("Generated hidden tests require JUnit parallel execution to be disabled");
+					}
+				}
 
 				/** The hidden tests, as {@code pkg.Class} or {@code pkg.Class#method}. */
 				private static final List<String> HIDDEN = List.of(@SETTINGS@.@HIDDEN@.split("\\n"));

@@ -374,6 +374,15 @@ class GeneratedHiddenTestsTest {
 		}
 	}
 
+	/** A parallel configuration fails before any hidden test body can run. */
+	@Test
+	void parallelExecutionIsRejectedBeforeHiddenTestsRun() throws Exception {
+		EngineExecutionResults results = run(List.of(past), "com.example.fixtures.MethodFixture", Locale.ENGLISH,
+				Map.of("junit.jupiter.execution.parallel.enabled", "true"));
+		assertThat(results.testEvents().started().count()).isZero();
+		assertThat(results.containerEvents().failed().count()).isPositive();
+	}
+
 	/**
 	 * Under a policy that hides unlisted tests, an unlisted test is held back
 	 * before the deadline on the method, template and factory paths.
