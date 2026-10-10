@@ -261,10 +261,14 @@ final class OutputMirroringSources {
 						if (closed) {
 							throw new IOException(@MESSAGES@.localized("output_tester.output_closed"));
 						}
-						count += newBytes;
-						if (count > limit) {
-							throw new SecurityException(@MESSAGES@.localized("output_tester.output_maxExceeded", count));
+						if (newBytes < 0) {
+							throw new IndexOutOfBoundsException("Negative output length");
 						}
+						long next = count + (long) newBytes;
+						if (next < count || next > limit) {
+							throw new SecurityException(@MESSAGES@.localized("output_tester.output_maxExceeded", next));
+						}
+						count = next;
 					}
 				}
 			}

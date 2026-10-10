@@ -10,6 +10,13 @@ import org.junit.jupiter.api.Test;
  */
 class TestBehaviorConfigurationTest {
 
+	/** The released no-argument constructor still creates an empty setting. */
+	@Test
+	void noArgumentConstructorPreservesCompatibility() {
+		TestBehaviorConfiguration configuration = new TestBehaviorConfiguration();
+		assertThat(configuration.literalFieldAssignments()).isEmpty();
+	}
+
 	/** Without a category, the wrapper holds none and contributes no constant. */
 	@Test
 	void anEmptyConfigurationContributesNothing() {

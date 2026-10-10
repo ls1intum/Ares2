@@ -8,6 +8,7 @@ import org.apiguardian.api.API.Status;
 
 import de.tum.cit.ase.ares.api.MirrorOutput;
 import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.context.TestContextUtils;
 import de.tum.cit.ase.ares.api.context.TestType;
@@ -29,15 +30,7 @@ public final class ConfigurationUtils {
 	 * @return whether mirroring is enabled
 	 */
 	public static boolean shouldMirrorOutput(TestContext context) {
-		if (context.findTestType().orElse(null) == TestType.HIDDEN) {
-			return false;
-		}
-		Optional<MirrorOutput> annotation = TestContextUtils.findAnnotationIn(context, MirrorOutput.class);
-		if (annotation.isPresent()) {
-			return annotation.get().value().isEnabled();
-		}
-		Optional<OutputMirroringConfiguration> policy = findPolicyOutputMirroring(context);
-		return policy.isPresent() && policy.get().mirrored();
+		return resolveOutputMirroring(context).mirrored();
 	}
 
 	/**
@@ -47,12 +40,35 @@ public final class ConfigurationUtils {
 	 * @return the configured limit
 	 */
 	public static long getMaxStandardOutput(TestContext context) {
+		return resolveOutputMirroring(context).maximumCharacterCount();
+	}
+
+	/**
+	 * Resolves both I/O settings from the same annotation or policy read.
+	 *
+	 * @param context the current test
+	 * @return its resolved output settings
+	 */
+	public static ResolvedOutputMirroring resolveOutputMirroring(TestContext context) {
 		Optional<MirrorOutput> annotation = TestContextUtils.findAnnotationIn(context, MirrorOutput.class);
+		boolean hidden = context.findTestType().orElse(null) == TestType.HIDDEN;
 		if (annotation.isPresent()) {
-			return annotation.get().maxCharCount();
+			return new ResolvedOutputMirroring(!hidden && annotation.get().value().isEnabled(),
+					annotation.get().maxCharCount());
 		}
 		Optional<OutputMirroringConfiguration> policy = findPolicyOutputMirroring(context);
-		return policy.isPresent() ? policy.get().maximumCharacterCount() : MirrorOutput.DEFAULT_MAX_STD_OUT;
+		return new ResolvedOutputMirroring(!hidden && policy.map(OutputMirroringConfiguration::mirrored).orElse(false),
+				policy.map(OutputMirroringConfiguration::maximumCharacterCount)
+						.orElse(MirrorOutput.DEFAULT_MAX_STD_OUT));
+	}
+
+	/**
+	 * The two output settings resolved from one policy version.
+	 *
+	 * @param mirrored              whether output reaches the original console
+	 * @param maximumCharacterCount the output limit for each stream
+	 */
+	public record ResolvedOutputMirroring(boolean mirrored, long maximumCharacterCount) {
 	}
 
 	/**
@@ -62,7 +78,8 @@ public final class ConfigurationUtils {
 	 * @return the configured message, if present
 	 */
 	public static Optional<String> getNonprivilegedFailureMessage(TestContext context) {
-		return Optional.empty();
+		return TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class)
+				.map(PrivilegedExceptionsOnly::value);
 	}
 
 	/**
