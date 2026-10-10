@@ -25,6 +25,12 @@ class therefore loses all enforcement without an error, which is the failure mod
 exists to prevent.
 :::
 
+In a precompile exercise, which has no Ares dependency at run time, the security policy marks
+tests hidden or public for the whole exercise instead, under
+[`regardingHiddenTests`](/contributor/subsystems/policy/security-policy-manual#77-hidden-tests).
+With the Ares dependency every test still needs one of these annotations, and an annotation
+always wins over the policy.
+
 ## Combined annotations
 
 Besides using `@Public` and `@Hidden` together with JUnit's `@Test`, Ares 2 provides two
@@ -79,6 +85,9 @@ public class PenguinTest {
 
 Like most Ares 2 annotations, `@Deadline` can be placed on the test method too (and on
 nested classes). When several are present, the one closest to the test method wins.
+
+The security policy can set one deadline for the whole exercise instead, under
+[`regardingHiddenTests`](/contributor/subsystems/policy/security-policy-manual#77-hidden-tests). A `@Deadline` on a class or method still wins over it.
 
 That is enough to make the example work. Try varying the deadline: if the given
 `LocalDateTime` lies in the past, the test method is executed and, together with the student
