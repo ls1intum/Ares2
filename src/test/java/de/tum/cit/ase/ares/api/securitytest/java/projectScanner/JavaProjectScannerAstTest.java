@@ -83,6 +83,41 @@ class JavaProjectScannerAstTest {
 		assertEquals("Cannot parse Java source file: " + malformed.toRealPath(), failure.getMessage());
 	}
 
+	/**
+	 * Valid code written for a Java version newer than 17, here record patterns in
+	 * a switch, must be read like any other code rather than be rejected as
+	 * malformed.
+	 */
+	@Test
+	void parsesSyntaxNewerThanJavaSeventeen() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Main.java"), """
+				package modern;
+				record Point(int x, int y) {}
+				class Main {
+				  static int first(Object value) {
+				    return switch (value) { case Point(int x, int y) -> x; case null -> 0; default -> 1; };
+				  }
+				  public static void main(String[] args) {}
+				}
+				""");
+		Files.writeString(tests.resolve("MainTest.java"), """
+				package modern;
+				class MainTest {
+				  @org.junit.jupiter.api.Test
+				  void first() {
+				    Object value = new Point(1, 2);
+				    if (value instanceof Point(int x, int y) && x != 1) { throw new AssertionError(); }
+				  }
+				}
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertEquals("modern", scanner.scanForPackageName());
+		assertEquals("Main", scanner.scanForMainClassInPackage());
+		assertArrayEquals(new String[] { "modern.MainTest" }, scanner.scanForTestClasses());
+	}
+
 	@Test
 	void reportsAConfiguredNonDirectorySourceRoot() throws IOException {
 		Path production = root.resolve("not-a-directory");

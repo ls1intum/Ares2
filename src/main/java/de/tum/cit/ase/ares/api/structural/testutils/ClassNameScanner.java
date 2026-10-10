@@ -57,21 +57,15 @@ public class ClassNameScanner {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ClassNameScanner.class);
 
-	/*
-	 * A dedicated JavaParser instance per thread, configured for this project's
-	 * Java 17 language level (records, pattern-matching instanceof, text blocks,
-	 * ...), rather than the bare StaticJavaParser entry point: StaticJavaParser's
-	 * default configuration only supports much older syntax and its shared static
-	 * configuration is mutated as a side effect elsewhere (e.g.
-	 * UnwantedNodesAssert#withLanguageLevel), which would make parsing here depend
-	 * on unrelated test execution order. Mirrors the same language-level setup
-	 * already used by JavaProjectScanner. Thread-local rather than a single shared
-	 * instance: StructuralTestProvider documents that provider subclasses for
-	 * different exercises may execute concurrently, and JavaParser does not
-	 * guarantee that a single instance can safely be reused across threads.
+	/**
+	 * One JavaParser per thread, set to the newest Java version this JavaParser
+	 * knows, so newer syntax an exercise uses is not reported as a problem. Raise
+	 * it when JavaParser is updated. Not StaticJavaParser, whose shared settings
+	 * other code changes. One per thread because exercises may be checked in
+	 * parallel and a parser is not guaranteed to be safe to share.
 	 */
 	private static final ThreadLocal<JavaParser> JAVA_PARSER = ThreadLocal.withInitial(() -> new JavaParser(
-			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)));
+			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_26)));
 
 	/*
 	 * Every ClassNameScanner instantiation re-walks and, since I-099, re-parses the
