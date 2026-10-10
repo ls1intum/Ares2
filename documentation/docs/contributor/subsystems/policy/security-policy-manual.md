@@ -376,7 +376,7 @@ theFollowingClassesAreTestClasses:
 
 ### 7.7 Test Behaviour Configuration
 
-The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for how Ares runs a test, as opposed to which resources code can access. Its category `regardingStrictTimeouts` gives every supervised test a time limit, mirroring what the `@StrictTimeout` annotation controls per test. Ares stops a test that runs longer, and the test fails with "execution timed out after …".
+The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for how Ares runs a test, as opposed to which resources code can access. Its category `regardingStrictTimeouts` gives every supervised test a time limit, mirroring what the `@StrictTimeout` annotation controls per test. Ares stops a test that runs longer. A public test reports "execution timed out after …"; a hidden test keeps failed status without timeout details after its deadline.
 
 **Field Properties:**
 - **Type:** Object (optional wrapper), containing the optional `regardingStrictTimeouts` object

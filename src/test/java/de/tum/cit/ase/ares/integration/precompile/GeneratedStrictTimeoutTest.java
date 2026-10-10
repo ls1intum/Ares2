@@ -84,6 +84,7 @@ class GeneratedStrictTimeoutTest {
 		Path policy = tempDir.resolve("SecurityPolicy.yaml");
 		Files.writeString(policy, policyText("JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ"));
 		Path testSources = generate(tempDir, policy, "project", "<project/>");
+		writeHiddenVisibilityFixture(testSources);
 		resources = testSources.resolveSibling("resources");
 		include = Files.readAllLines(resources.resolve("junit-platform.properties")).stream()
 				.filter(line -> line.startsWith("junit.jupiter.extensions.autodetection.include="))
@@ -101,6 +102,35 @@ class GeneratedStrictTimeoutTest {
 						.replace("\"MILLISECONDS\"", "\"HOURS\""));
 		compile(shadowSettings, List.of(), shadowSource);
 		classes = compiled;
+	}
+
+	/** Writes a test-only generated visibility hook for the timeout contract. */
+	private static void writeHiddenVisibilityFixture(Path testSources) throws IOException {
+		Path folder = Files.createDirectories(testSources.resolve("de/tum/cit/ase/ares/generated"));
+		Files.writeString(folder.resolve("GeneratedHiddenTests.java"),
+				"""
+						package de.tum.cit.ase.ares.generated;
+
+						public final class GeneratedHiddenTests implements org.junit.jupiter.api.extension.InvocationInterceptor {
+							public static boolean isHiddenContext(org.junit.jupiter.api.extension.ExtensionContext context) {
+								for (var current = context; current != null; current = current.getParent().orElse(null)) {
+									if (current.getTestClass().isPresent()) {
+										return current.getTestClass().orElseThrow().getSimpleName().startsWith("HiddenTimeout");
+									}
+								}
+								return false;
+							}
+							@Override public void interceptTestMethod(Invocation<Void> invocation,
+									org.junit.jupiter.api.extension.ReflectiveInvocationContext<java.lang.reflect.Method> method,
+									org.junit.jupiter.api.extension.ExtensionContext context) throws Throwable {
+								try { invocation.proceed(); } catch (Throwable failure) { throw new HiddenTestFailure(); }
+							}
+							public static final class HiddenTestFailure extends AssertionError {
+								public HiddenTestFailure() { setStackTrace(new StackTraceElement[0]); }
+								@Override public String toString() { return ""; }
+							}
+						}
+						""");
 	}
 
 	/**
@@ -169,6 +199,25 @@ class GeneratedStrictTimeoutTest {
 		EngineExecutionResults results = runJupiter(fixture, Locale.ENGLISH);
 
 		assertThat(failureMessages(results)).isNotEmpty().allMatch(timeoutMessage(Locale.ENGLISH)::equals);
+	}
+
+	/**
+	 * A hidden timeout keeps failed status without the duration or worker stack.
+	 */
+	@Test
+	void hiddenTimeoutHasNoDiagnosticText() throws Exception {
+		EngineExecutionResults results = runJupiter("HiddenTimeoutFixture", Locale.ENGLISH);
+		assertThat(results.testEvents().failed().count()).isEqualTo(1);
+		assertThat(failureMessages(results)).containsExactly("");
+	}
+
+	/** The timeout and hidden interceptors keep both registration orders opaque. */
+	@Test
+	void hiddenTimeoutHookOrdersStayOpaque() throws Exception {
+		assertThat(failureMessages(run("com.example.fixtures.HiddenTimeoutHiddenFirst", false, Locale.ENGLISH)))
+				.containsExactly("");
+		assertThat(failureMessages(run("com.example.fixtures.HiddenTimeoutStrictFirst", false, Locale.ENGLISH)))
+				.containsExactly("");
 	}
 
 	/**
@@ -390,6 +439,11 @@ class GeneratedStrictTimeoutTest {
 		fixture(folder, "BeforeEachFixture", "@BeforeEach void setUp() { Loop.untilInterrupted(); }",
 				"@Test void test() {}");
 		fixture(folder, "TestMethodFixture", "", "@Test void loops() { Loop.untilInterrupted(); }");
+		fixture(folder, "HiddenTimeoutFixture", "", "@Test void loops() { Loop.untilInterrupted(); }");
+		fixture(folder, "HiddenTimeoutHiddenFirst", "",
+				"@org.junit.jupiter.api.extension.ExtendWith({ de.tum.cit.ase.ares.generated.GeneratedHiddenTests.class, de.tum.cit.ase.ares.generated.GeneratedStrictTimeout.class }) @Test void loops() { Loop.untilInterrupted(); }");
+		fixture(folder, "HiddenTimeoutStrictFirst", "",
+				"@org.junit.jupiter.api.extension.ExtendWith({ de.tum.cit.ase.ares.generated.GeneratedStrictTimeout.class, de.tum.cit.ase.ares.generated.GeneratedHiddenTests.class }) @Test void loops() { Loop.untilInterrupted(); }");
 		fixture(folder, "FactoryFixture", "",
 				"@TestFactory java.util.List<DynamicTest> cases() { Loop.untilInterrupted(); return java.util.List.of(); }");
 		fixture(folder, "TemplateFixture", "",

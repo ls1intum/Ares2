@@ -108,7 +108,7 @@ final class StrictTimeoutSources {
 				public <T> T interceptTestClassConstructor(Invocation<T> invocation,
 						ReflectiveInvocationContext<Constructor<T>> invocationContext, ExtensionContext extensionContext)
 						throws Throwable {
-					return executeWithTimeout(invocation::proceed, DEFAULT_GRACE);
+					return executeWithTimeout(invocation::proceed, DEFAULT_GRACE, extensionContext);
 				}
 
 				/**
@@ -123,7 +123,7 @@ final class StrictTimeoutSources {
 				public void interceptBeforeAllMethod(Invocation<Void> invocation,
 						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext)
 						throws Throwable {
-					executeWithTimeout(invocation::proceed, DEFAULT_GRACE);
+					executeWithTimeout(invocation::proceed, DEFAULT_GRACE, extensionContext);
 				}
 
 				/**
@@ -138,7 +138,7 @@ final class StrictTimeoutSources {
 				public void interceptBeforeEachMethod(Invocation<Void> invocation,
 						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext)
 						throws Throwable {
-					executeWithTimeout(invocation::proceed, DEFAULT_GRACE);
+					executeWithTimeout(invocation::proceed, DEFAULT_GRACE, extensionContext);
 				}
 
 				/**
@@ -162,7 +162,7 @@ final class StrictTimeoutSources {
 						} finally {
 							GUARDING.remove();
 						}
-					}, DEFAULT_GRACE);
+					}, DEFAULT_GRACE, extensionContext);
 				}
 
 				/**
@@ -179,7 +179,7 @@ final class StrictTimeoutSources {
 				public <T> T interceptTestFactoryMethod(Invocation<T> invocation,
 						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext)
 						throws Throwable {
-					return executeWithTimeout(invocation::proceed, DEFAULT_GRACE);
+					return executeWithTimeout(invocation::proceed, DEFAULT_GRACE, extensionContext);
 				}
 
 				/**
@@ -194,7 +194,7 @@ final class StrictTimeoutSources {
 				public void interceptTestTemplateMethod(Invocation<Void> invocation,
 						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext)
 						throws Throwable {
-					executeWithTimeout(invocation::proceed, DEFAULT_GRACE);
+					executeWithTimeout(invocation::proceed, DEFAULT_GRACE, extensionContext);
 				}
 
 				/**
@@ -208,7 +208,7 @@ final class StrictTimeoutSources {
 				@Override
 				public void interceptDynamicTest(Invocation<Void> invocation, DynamicTestInvocationContext invocationContext,
 						ExtensionContext extensionContext) throws Throwable {
-					executeWithTimeout(invocation::proceed, DEFAULT_GRACE);
+					executeWithTimeout(invocation::proceed, DEFAULT_GRACE, extensionContext);
 				}
 
 				/**
@@ -223,7 +223,7 @@ final class StrictTimeoutSources {
 				public void interceptAfterEachMethod(Invocation<Void> invocation,
 						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext)
 						throws Throwable {
-					executeWithTimeout(invocation::proceed, DEFAULT_GRACE);
+					executeWithTimeout(invocation::proceed, DEFAULT_GRACE, extensionContext);
 				}
 
 				/**
@@ -238,7 +238,7 @@ final class StrictTimeoutSources {
 				public void interceptAfterAllMethod(Invocation<Void> invocation,
 						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext)
 						throws Throwable {
-					executeWithTimeout(invocation::proceed, DEFAULT_GRACE);
+					executeWithTimeout(invocation::proceed, DEFAULT_GRACE, extensionContext);
 				}
 
 				/**
@@ -255,6 +255,12 @@ final class StrictTimeoutSources {
 				 * @throws Throwable whatever the action threw, or a timeout naming the limit
 				 */
 				public static <T> T executeWithTimeout(TimedAction<T> action, Duration defaultGrace) throws Throwable {
+					return executeWithTimeout(action, defaultGrace, null);
+				}
+
+				/** Runs a bounded action and hides its timeout when visibility is hidden. */
+				private static <T> T executeWithTimeout(TimedAction<T> action, Duration defaultGrace,
+						ExtensionContext context) throws Throwable {
 					Duration timeout = timeout();
 					long timeoutNanos = timeout.toNanos();
 					long graceNanos = graceNanos(defaultGrace);
@@ -266,9 +272,45 @@ final class StrictTimeoutSources {
 						throw unwrapped(failure);
 					} catch (TimeoutException expired) {
 						terminate(future, executor, graceNanos);
+						if (isHiddenContext(context)) {
+							throw new HiddenTestFailure();
+						}
 						throw new TimeoutException(@MESSAGES@.localized("timeout.failure_message", format(timeout)));
 					} finally {
 						executor.shutdownNow();
+					}
+				}
+
+				/** Reads generated hidden visibility when that hook is present. */
+				private static boolean isHiddenContext(ExtensionContext context) {
+					if (context == null) {
+						return false;
+					}
+					try {
+						Class<?> visibility = Class.forName("de.tum.cit.ase.ares.generated.GeneratedHiddenTests", false,
+								GeneratedStrictTimeout.class.getClassLoader());
+						return (Boolean) visibility.getMethod("isHiddenContext", ExtensionContext.class).invoke(null, context);
+					} catch (ClassNotFoundException absent) {
+						return false;
+					} catch (ReflectiveOperationException | LinkageError | ClassCastException invalid) {
+						return true;
+					}
+				}
+
+				/** A timed-out hidden result with no student-facing details. */
+				private static final class HiddenTestFailure extends AssertionError {
+					/** Serialization identifier for the generated marker. */
+					private static final long serialVersionUID = 1L;
+
+					/** Removes the generated marker's stack. */
+					HiddenTestFailure() {
+						setStackTrace(new StackTraceElement[0]);
+					}
+
+					/** Leaves no text for report renderers. */
+					@Override
+					public String toString() {
+						return "";
 					}
 				}
 

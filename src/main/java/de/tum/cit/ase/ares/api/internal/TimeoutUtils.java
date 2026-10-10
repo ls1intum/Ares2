@@ -141,7 +141,7 @@ public final class TimeoutUtils {
 		Duration terminationGracePeriod = findTerminationGracePeriod(context).orElse(defaultTerminationGracePeriod);
 		long terminationGraceNanos = terminationGraceNanos(terminationGracePeriod, "terminationGracePeriod"); //$NON-NLS-1$
 		long timeoutNanos = timeoutNanos(timeout.get());
-		return executeWithTimeout(timeout.get(), timeoutNanos, () -> rethrowThrowableSafe(execution), context,
+		return executeWithTimeout(timeout.get(), timeoutNanos, () -> rethrowThrowableSafe(execution),
 				terminationGraceNanos, fatalProcessTerminator);
 	}
 
@@ -177,7 +177,7 @@ public final class TimeoutUtils {
 	}
 
 	private static <T> T executeWithTimeout(Duration timeout, long timeoutNanos, Callable<T> action,
-			TestContext context, long terminationGraceNanos, IntConsumer fatalProcessTerminator) throws Throwable { // NOSONAR
+			long terminationGraceNanos, IntConsumer fatalProcessTerminator) throws Throwable { // NOSONAR
 		var threadFactory = new WhitelistedThreadFactory();
 		var executorService = Executors.newSingleThreadExecutor(threadFactory);
 		Future<T> future = executorService.submit(action);
@@ -191,7 +191,7 @@ public final class TimeoutUtils {
 			throw ex.getCause();
 		} catch (@SuppressWarnings("unused") TimeoutException ex) {
 			terminateTimedOutExecution(future, executorService, terminationGraceNanos, fatalProcessTerminator);
-			throw generateTimeoutFailure(timeout, context);
+			throw generateTimeoutFailure(timeout);
 		} finally {
 			executorService.shutdownNow();
 		}
@@ -247,11 +247,8 @@ public final class TimeoutUtils {
 		}
 	}
 
-	private static AssertionFailedError generateTimeoutFailure(Duration timeout, TestContext context) {
+	private static AssertionFailedError generateTimeoutFailure(Duration timeout) {
 		var failure = localizedFailure("timeout.failure_message", formatDuration(timeout)); //$NON-NLS-1$
-		if (TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class).isPresent()) {
-			throw new PrivilegedException(failure);
-		}
 		return failure;
 	}
 

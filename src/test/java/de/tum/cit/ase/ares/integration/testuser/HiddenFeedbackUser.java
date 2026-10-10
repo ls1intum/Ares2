@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.integration.testuser;
 
 import org.junit.jupiter.api.MethodOrderer.MethodName;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.opentest4j.TestAbortedException;
 
 import de.tum.cit.ase.ares.api.Deadline;
 import de.tum.cit.ase.ares.api.MirrorOutput;
@@ -12,21 +13,8 @@ import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 
 /**
- * TEMPORARY end-to-end "student" test cases for the student-feedback leakage
- * fixes of PR #96 (hidden-test leakage) and PR #98 (Ares-internal error
- * leakage). The driver
- * {@link de.tum.cit.ase.ares.integration.InternalErrorLeakageTemporaryTest}
- * runs them and asserts what a student would actually see.
- * <p>
- * The class runs under a real, activated {@code @Policy} (Maven + ArchUnit +
- * AspectJ) so the demonstration covers the full enforced configuration: the
- * security policy is read, the architecture analysis runs, and the
- * {@code JupiterTestGuard} reporting path post-processes the thrown exceptions
- * exactly as it would for a real submission. Both fixes live in
- * {@code ReportingUtils.processThrowable} (the exception reporting layer).
- * <p>
- * Marked temporary: delete or fold into permanent coverage once the two PRs
- * land.
+ * Supervised fixtures for the permanent hidden-feedback contract test. Public
+ * failures keep useful messages; hidden failures keep status without details.
  */
 @UseLocale("en")
 @MirrorOutput(MirrorOutput.MirrorOutputPolicy.DISABLED)
@@ -34,7 +22,7 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 @Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyInternalErrorLeakage.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 @TestMethodOrder(MethodName.class)
 @SuppressWarnings("static-method")
-public class InternalErrorLeakageTemporaryUser {
+public class HiddenFeedbackUser {
 
 	/**
 	 * The exact message an Ares-internal setup failure carries, mirroring the
@@ -55,9 +43,7 @@ public class InternalErrorLeakageTemporaryUser {
 	// --- PR #96: hidden-test leakage ------------------------------------------
 
 	/**
-	 * PR #96: a hidden test that leaks a secret through its failure. The past
-	 * deadline lets the body run so the thrown exception passes through the hidden
-	 * suppression in {@code ReportingUtils.processThrowable}.
+	 * A hidden failure after its deadline, carrying a distinctive secret.
 	 */
 	@HiddenTest
 	@Deadline("2000-01-01 00:00")
@@ -94,12 +80,35 @@ public class InternalErrorLeakageTemporaryUser {
 	// --- Merge resolution: hidden wins display, internal error still logged ----
 
 	/**
-	 * Hidden test that hits an Ares-internal error: the student must still see only
-	 * the hidden message.
+	 * Hidden test with a framework-shaped error that must emit no details.
 	 */
 	@HiddenTest
 	@Deadline("2000-01-01 00:00")
 	void hiddenTestWithInternalAresError() {
 		throw new SecurityException(INTERNAL_ARES_ERROR_MESSAGE);
+	}
+
+	/** A hidden abort keeps its status without its private reason. */
+	@HiddenTest
+	@Deadline("2000-01-01 00:00")
+	void hiddenAbortWithSecret() {
+		throw new TestAbortedException("SECRET_HIDDEN_ABORT");
+	}
+
+	/**
+	 * A hidden timeout keeps failed status without its duration or worker stack.
+	 */
+	@HiddenTest
+	@Deadline("2000-01-01 00:00")
+	@StrictTimeout(1)
+	void hiddenTimeoutWithSecret() throws InterruptedException {
+		Thread.sleep(3000);
+	}
+
+	/** A future deadline prevents this hidden method from executing. */
+	@HiddenTest
+	@Deadline("2999-01-01 00:00")
+	void futureHiddenMethod() {
+		throw new AssertionError("SECRET_FUTURE_BODY_RAN");
 	}
 }
