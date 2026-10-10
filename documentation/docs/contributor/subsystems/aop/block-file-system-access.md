@@ -1221,15 +1221,15 @@ Object[] filteredParameters = filterVariables(parameters, parameterIgnoreRule);
 
 | Method | What We Check | Why |
 |--------|---------------|-----|
-| `Files.createTempFile(dir, prefix, suffix, ...)` | Only parameter 0 (the directory `Path`) | Prefix/suffix strings are not paths |
 | `Files.writeString(path, csq, ...)` | Only parameter 0 (the `Path`) | The written content is not a path |
 | `Files.write(path, bytes, ...)` | Only parameter 0 (the `Path`) | The written content is not a path |
 | `Files.readString(path, cs)` | Only parameter 0 (the `Path`) | The charset is not a path |
-| `File.createTempFile(prefix, suffix)` | Nothing (all parameters ignored) | There is no path parameter at all |
 | `Runtime.exec(cmd, ...)` | Only parameter 0 (the command) | Flags like `"-c"` are not paths |
 | `RandomAccessFile.<new>(file, mode)` | Only parameter 0 (the file) | The mode string (`"r"`/`"rw"`/...) is not a path |
 | `DataOutputStream.writeUTF/writeChars/writeBytes(String)` | Nothing (all parameters ignored) | The argument is payload, never a path; the underlying file was validated when the `FileOutputStream` was opened |
 | `PrintStream.<new>(sink, ...)` | Only parameter 0 (the sink) | A charset name like `"UTF-8"` is not a path |
+
+**`checkTempFileCreationSpecialCase` decides `createTempFile` on its own.** Its overloads put either a directory or a name prefix at the same position, so no fixed parameter index fits. Ares allows a call without a directory once it has fixed the default temp directory at start-up ([5.4.6](#546-allow-the-secure-baselines-standard-operations)). Such a call is `File.createTempFile(prefix, suffix)`, the same with `null` as directory, or `Files.createTempFile(prefix, suffix, ...)`. If nothing fixed the directory, Ares refuses the call whatever the policy lists. A call with a directory needs exactly that directory, with links followed, or an entry in `pathsAllowedToBeCreated`; a folder inside the temp directory, or a link out of it, does not count. Ares refuses arguments that fit neither overload.
 
 **4. Result**
 
@@ -1381,6 +1381,31 @@ This exemption is applied at **all three** check sites: parameter-based, receive
 
 - Forbidden path found (not an Ares internal file) → 🔴 **Block and throw security exception** (analysis terminated - forbidden file access detected)
 - All paths allowed → 🟢 **Allow the file operation** (analysis terminated - no forbidden access detected)
+
+<a id="546-allow-the-secure-baselines-standard-operations"></a>
+#### 5.4.6 Allow the Secure Baseline's Standard Operations
+
+**1. Purpose**
+
+Let ordinary Java code use random numbers, the system timezone, the JDK's trusted certificates, locale and charset data, and temporary files in the default temp directory without a policy entry. A student reaching for the same files directly is still refused.
+
+**2. How it works**
+
+- **Fixing the start-up values.** `JavaInstrumentationAgent.premain` runs one trusted start-up routine, `captureTrustedStartupValues`, before any test, and nothing else fixes these values. It initialises the JDK's own temp-directory holders (`java.io.File$TempDirectory`, `java.nio.file.TempFileHelper`), so the JDK keeps the start-up directory even if `java.io.tmpdir` changes later. It stores that directory, resolved to its real location, in `frozenDefaultTempDirectory` of both copies of `JavaAOPTestCaseSettings`, a field `reset()` leaves alone. It then initialises the file-system aspect, which reads its `TRUSTED_JAVA_HOME` and `TRUSTED_MAVEN_REPOSITORY` before student code runs. Without the agent Ares stores nothing, and refuses a temporary file without a named directory with the message that Ares did not start before the tests.
+- **Random numbers (instrumentation only).** A read of `/dev/urandom` or `/dev/random` is allowed while a `sun.security.provider` class loaded by the JVM itself is on the stack. The public `SecureRandom` class is not trusted, because student code can plug its own generator in beneath it. AspectJ has no such exemption on purpose: its `call()` pointcuts only fire in woven exercise code, never inside the JDK, so the JDK's own seeding is never checked there. This asymmetry is intended, like the `JarFile`/`ZipFile` entry-read exemption.
+- **Temporary files, inner step (instrumentation only).** `Files.createTempFile` creates the file through `Files.createFile`, which the agent rewrites as well. That inner create is allowed only for a file directly inside the fixed temp directory. It further needs `java.nio.file.TempFileHelper`, loaded by the JVM, on the stack with no student frame between it and the check. A student callback, such as a `FileAttribute` whose `name()` creates a file, therefore stays refused.
+- **Timezone: nothing to allow.** The JDK reads `/etc/localtime` in native code, which no check sees, and its `tzdb.dat` lies under `java.home`. Ares refuses a Java read of `/etc/localtime` like any other path.
+- **Static analysis.** Both deny lists keep the `createTempFile` overloads that take a directory. ArchUnit's transitive check (`TransitivelyAccessesMethodsCondition`) and the WALA analysis (`WalaRule`, `CustomCallgraphBuilder`) treat the two overloads without a directory as allowed. They do not look inside them, because their JDK bodies reach denied methods that the runtime check covers instead.
+
+**3. Known limits**
+
+- Precompile with AspectJ copies the aspect but not the agent, so nothing fixes the copied aspect's temp directory: Ares refuses a temporary file without a named directory there.
+- In a JVM with the agent attached, the freeze applies to code Ares does not supervise as well: on JDK 17, changing `java.io.tmpdir` at run time no longer moves `File.createTempFile`, as on JDK 25 already.
+
+**4. Result**
+
+- One of the cases above → 🟢 **Allow the file operation**
+- Otherwise → 🔴 **Block and throw security exception**
 
 ---
 
