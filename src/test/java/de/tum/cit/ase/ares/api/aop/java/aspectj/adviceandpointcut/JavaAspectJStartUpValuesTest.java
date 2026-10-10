@@ -61,7 +61,7 @@ class JavaAspectJStartUpValuesTest {
 	 */
 	@Test
 	void theJdkTempDirectoryIsWhereFileWritesTempFiles() throws Exception {
-		Path created = File.createTempFile("ares", ".tmp").toPath();
+		Path created = example.jce.JceTempFileSubject.createWithFile(null).toPath();
 		try {
 			File read = (File) invoke("readJdkFileTempDirectory", new Class<?>[0]);
 			assertEquals(created.getParent().toRealPath(), read.toPath().toRealPath());

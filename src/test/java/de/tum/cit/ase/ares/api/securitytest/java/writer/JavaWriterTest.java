@@ -85,6 +85,22 @@ public class JavaWriterTest {
 		}
 	}
 
+	/**
+	 * A package name that is not a Java package, such as an absolute path inside
+	 * the project, is refused before anything is written, so it cannot steer the
+	 * generated files out of their directories.
+	 */
+	@Test
+	void refusesAPackageNameThatIsNotAJavaPackage() throws IOException {
+		Path sourceRoot = Files.createDirectories(tempDir.resolve("src/test/java"));
+		String escaping = tempDir.resolve("src/main/java").toString();
+		assertThrows(IllegalArgumentException.class,
+				() -> javaWriter.writeTestCases(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, List.of(),
+						List.of(), List.of(), escaping, "Main", List.of(), List.of(), List.of(), sourceRoot));
+		assertFalse(Files.exists(tempDir.resolve("src/test/resources")));
+		assertFalse(Files.exists(tempDir.resolve("src/main")));
+	}
+
 	@Nested
 	@DisplayName("writeTestCases() Tests")
 	class WriteTestCasesTests {
