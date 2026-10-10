@@ -175,18 +175,19 @@ public class JavaAOPModeTest {
 				threadSystemTestCase);
 
 		MockedStatic<JavaAOPTestCase> tcMock = Mockito.mockStatic(JavaAOPTestCase.class);
-		tcMock.when(() -> JavaAOPTestCase.writeAOPTestCaseFile(ArgumentMatchers.anyString(),
-				ArgumentMatchers.anyString(), ArgumentMatchers.anyList(), ArgumentMatchers.anyList(),
-				ArgumentMatchers.anyList(), ArgumentMatchers.anyList(), ArgumentMatchers.anyList()))
+		tcMock.when(
+				() -> JavaAOPTestCase.writeAOPTestCaseFile(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(),
+						ArgumentMatchers.anyList(), ArgumentMatchers.anyList(), ArgumentMatchers.anyList(),
+						ArgumentMatchers.anyList(), ArgumentMatchers.anyList(), ArgumentMatchers.anyList()))
 				.thenReturn(BODY_RESULT);
 
 		try (tcMock) {
-			String bodyResult = AOPMode.ASPECTJ.threePartedFileBody("ASPECTJ", "restricted.pkg", List.of("A", "B"),
-					allCases);
+			String bodyResult = AOPMode.ASPECTJ.threePartedFileBody("ASPECTJ", "restricted.pkg", List.of("p"),
+					List.of("A", "B"), allCases);
 			Assertions.assertEquals(BODY_RESULT, bodyResult);
 
-			tcMock.verify(() -> JavaAOPTestCase.writeAOPTestCaseFile("ASPECTJ", "restricted.pkg", List.of("A", "B"),
-					List.of(filePermission), List.of(networkPermission), List.of(commandPermission),
+			tcMock.verify(() -> JavaAOPTestCase.writeAOPTestCaseFile("ASPECTJ", "restricted.pkg", List.of("p"),
+					List.of("A", "B"), List.of(filePermission), List.of(networkPermission), List.of(commandPermission),
 					List.of(threadPermission)));
 		}
 	}

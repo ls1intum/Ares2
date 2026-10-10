@@ -37,12 +37,14 @@ public record ClassPermission(@Nonnull String className) {
 	}
 
 	/**
-	 * Permits an exact class name and its nested classes from the supplied
-	 * exemptions.
+	 * Permits a class only if its exact binary name is exempted. Classes declared
+	 * inside an exempted class are exempted by name too, because
+	 * {@link ExemptedClassNests} lists them from that class's own file; a class
+	 * merely named like a nested one is not.
 	 *
 	 * @param fullyQualifiedClassName the class to check, or {@code null}.
 	 * @param allowedClasses          the exempted classes.
-	 * @return {@code true} if the class or a class enclosing it is exempted.
+	 * @return {@code true} if exactly this class is exempted.
 	 */
 	public static boolean isAllowedClass(@Nullable String fullyQualifiedClassName,
 			@Nonnull Set<ClassPermission> allowedClasses) {
@@ -50,8 +52,7 @@ public record ClassPermission(@Nonnull String className) {
 			return false;
 		}
 		for (ClassPermission allowed : allowedClasses) {
-			String name = allowed.className();
-			if (fullyQualifiedClassName.equals(name) || fullyQualifiedClassName.startsWith(name + "$")) {
+			if (fullyQualifiedClassName.equals(allowed.className())) {
 				return true;
 			}
 		}

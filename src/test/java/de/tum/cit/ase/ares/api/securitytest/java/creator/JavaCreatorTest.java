@@ -3,9 +3,13 @@ package de.tum.cit.ase.ares.api.securitytest.java.creator;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -316,6 +320,78 @@ public class JavaCreatorTest {
 					() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
 							aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
+		}
+	}
+
+	/**
+	 * Checks that the creator reads nest members from the trusted test output and
+	 * scans the whole production output for a class named like one of them.
+	 */
+	@Nested
+	@DisplayName("Exempted nest tests")
+	class ExemptedNestTests {
+
+		/** The fixture whose nest members are exempted with it. */
+		private static final String HOST = "example.nest.NestHostFixture";
+
+		/** The fixture's package, supervised in these tests. */
+		private static final String PACKAGE = "example.nest";
+
+		/**
+		 * Lays out a test output holding the fixture and an empty production output.
+		 */
+		@BeforeEach
+		void arrangeOutputs() throws IOException {
+			Path testOutput = tempDir.resolve("test-classes");
+			Path productionOutput = tempDir.resolve("classes");
+			Files.createDirectories(testOutput.resolve("example/nest"));
+			Files.createDirectories(productionOutput.resolve("example/nest"));
+			Files.write(testOutput.resolve("example/nest/NestHostFixture.class"), fixtureBytes());
+			when(buildMode.getTestBuildDirectory()).thenReturn(testOutput.toString());
+			when(buildMode.getBuildDirectory()).thenReturn(productionOutput.toString());
+			when(buildMode.getClasspath(tempDir, PACKAGE)).thenReturn("/narrow/classpath");
+			when(architectureMode.getJavaClasses("/narrow/classpath")).thenReturn(javaClasses);
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+		}
+
+		/** Reads the compiled fixture through the test class loader. */
+		private byte[] fixtureBytes() throws IOException {
+			try (InputStream input = JavaCreatorTest.class.getClassLoader()
+					.getResourceAsStream("example/nest/NestHostFixture.class")) {
+				return Objects.requireNonNull(input, "the fixture is compiled").readAllBytes();
+			}
+		}
+
+		/** Runs createTestCases with the fixture as the only test class. */
+		private void createTestCases() {
+			javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of(), List.of(), List.of(HOST),
+					PACKAGE, "Main", new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), resourceAccesses, tempDir,
+					true);
+		}
+
+		/**
+		 * The nest members listed in the test output are exempted, without collision.
+		 */
+		@Test
+		@DisplayName("Exempts the nest members the test output lists")
+		void exemptsTheNestMembersTheTestOutputLists() {
+			createTestCases();
+			assertTrue(javaCreator.exemptedClassNames().containsAll(
+					List.of(HOST, HOST + "$Member", HOST + "$Member$Deeper", HOST + "$1", HOST + "$Pair")));
+			assertDoesNotThrow(() -> javaCreator.requireNoProductionClassNamedLikeAnExemptedOne(buildMode));
+		}
+
+		/**
+		 * A production class named like a nest member is refused, although the narrower
+		 * analysis classpath does not contain it.
+		 */
+		@Test
+		@DisplayName("Refuses a production class named like a nest member outside the classpath")
+		void refusesAProductionClassNamedLikeANestMember() throws IOException {
+			Files.write(tempDir.resolve("classes/example/nest/NestHostFixture$Member.class"), new byte[] { 0 });
+			createTestCases();
+			assertThrows(SecurityException.class,
+					() -> javaCreator.requireNoProductionClassNamedLikeAnExemptedOne(buildMode));
 		}
 	}
 }

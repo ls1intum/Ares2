@@ -293,7 +293,7 @@ public class JavaAOPTestCase extends AOPTestCase {
 		case THREAD_CREATION -> threads = permissions.stream().map(ThreadPermission.class::cast).toList();
 		default -> throw new IllegalStateException("Unsupported Java AOP test case: " + aopTestCaseSupported);
 		}
-		return writeAOPTestCaseFile(aopMode, architectureMode,
+		return writeAOPTestCaseFile(aopMode, architectureMode, List.of(),
 				allowedClasses.stream().map(ClassPermission::className).sorted().toList(), files, networks, commands,
 				threads);
 	}
@@ -302,32 +302,27 @@ public class JavaAOPTestCase extends AOPTestCase {
 	// <editor-fold desc="Write security test case file methods">
 
 	/**
-	 * Writes the aspect configuration content based on the provided security test
-	 * cases.
+	 * Writes the settings file, enabling settings last, so a read during
+	 * initialisation finds the policy off.
 	 *
-	 * @param aopMode              the AOP mode (AspectJ or Instrumentation), must
-	 *                             not be null.
-	 * @param restrictedPackage    the restricted package, must not be null.
-	 * @param allowedListedClasses the list of allowed classes in the restricted
-	 *                             package, must not be null.
-	 * @param filePermissions      the list of file permissions, must not be null.
-	 * @param networkPermissions   the list of network permissions, must not be
-	 *                             null.
-	 * @param commandPermissions   the list of command permissions, must not be
-	 *                             null.
-	 * @param threadPermissions    the list of thread permissions, must not be null.
-	 * @return a string representing the content of the AOP security test case
-	 *         configuration file.
+	 * @param aopMode               the AOP mode
+	 * @param restrictedPackage     supervised package
+	 * @param allowedListedPackages exempted packages
+	 * @param allowedListedClasses  exempted classes
+	 * @param filePermissions       file rules
+	 * @param networkPermissions    network rules
+	 * @param commandPermissions    command rules
+	 * @param threadPermissions     thread rules
+	 * @return the content
 	 */
 	@Nonnull
 	public static String writeAOPTestCaseFile(@Nonnull String aopMode, @Nonnull String restrictedPackage,
-			@Nonnull List<String> allowedListedClasses, @Nonnull List<FilePermission> filePermissions,
-			@Nonnull List<NetworkPermission> networkPermissions, @Nonnull List<CommandPermission> commandPermissions,
-			@Nonnull List<ThreadPermission> threadPermissions) {
+			@Nonnull List<String> allowedListedPackages, @Nonnull List<String> allowedListedClasses,
+			@Nonnull List<FilePermission> filePermissions, @Nonnull List<NetworkPermission> networkPermissions,
+			@Nonnull List<CommandPermission> commandPermissions, @Nonnull List<ThreadPermission> threadPermissions) {
 		@Nonnull
 		StringBuilder fileContentBuilder = new StringBuilder();
-		Stream.of(new JavaAOPAdviceSettingTriple("String", " aopMode", aopMode),
-				new JavaAOPAdviceSettingTriple("String", " restrictedPackage", restrictedPackage),
+		Stream.of(new JavaAOPAdviceSettingTriple("String[]", " allowedListedPackages", allowedListedPackages),
 				new JavaAOPAdviceSettingTriple("String[]", " allowedListedClasses", allowedListedClasses),
 				new JavaAOPAdviceSettingTriple("String[]", " pathsAllowedToBeRead",
 						JavaFileSystemExtractor.extractPaths(filePermissions, FilePermission::readAllFiles)),
@@ -360,7 +355,9 @@ public class JavaAOPTestCase extends AOPTestCase {
 				new JavaAOPAdviceSettingTriple("int[]", " threadNumberAllowedToBeCreated",
 						JavaThreadSystemExtractor.extractThreadNumbers(threadPermissions)),
 				new JavaAOPAdviceSettingTriple("String[]", " threadClassAllowedToBeCreated",
-						JavaThreadSystemExtractor.extractThreadClasses(threadPermissions)))
+						JavaThreadSystemExtractor.extractThreadClasses(threadPermissions)),
+				new JavaAOPAdviceSettingTriple("String", " aopMode", aopMode),
+				new JavaAOPAdviceSettingTriple("String", " restrictedPackage", restrictedPackage))
 				.map(JavaAOPTestCase::generateAdviceSettingValue).forEach(fileContentBuilder::append);
 		return fileContentBuilder.toString();
 	}

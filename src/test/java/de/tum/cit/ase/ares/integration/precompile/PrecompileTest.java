@@ -109,6 +109,66 @@ public class PrecompileTest {
 	}
 
 	/**
+	 * Precompile writes the exempted names into the generated settings: the test
+	 * classes plus the classes their own compiled files list as declared inside
+	 * them in the project's own test output, never a class merely named like one,
+	 * and nothing beyond the exact name when the test output lacks the class.
+	 * Essential packages go into their own setting, and the settings that switch
+	 * enforcement on come after every allow-list.
+	 */
+	@ParameterizedTest
+	@CsvSource({ "ASPECTJ,true", "INSTRUMENTATION,true", "ASPECTJ,false" })
+	void precompileWritesTheTrustedNestAndKeepsPackagesApart(String aop, boolean compiled, @TempDir Path tempDir)
+			throws IOException {
+		Path projectFolderPath = Files.createDirectory(tempDir.resolve("project"));
+		Files.writeString(projectFolderPath.resolve("pom.xml"), "<project/>");
+		Files.createDirectories(projectFolderPath.resolve("src/main/java"));
+		Files.createDirectories(projectFolderPath.resolve("target/classes"));
+		Path testClassFile = Files.createDirectories(projectFolderPath.resolve("target/test-classes/example/nest"))
+				.resolve("NestHostFixture.class");
+		if (compiled) {
+			try (var input = PrecompileTest.class.getResourceAsStream("/example/nest/NestHostFixture.class")) {
+				Files.write(testClassFile, input.readAllBytes());
+			}
+		}
+		Path writeTarget = Files.createDirectories(projectFolderPath.resolve("src/test/java"));
+		Path policy = Files.writeString(tempDir.resolve("policy.yaml"),
+				policyWithOneReadPath("ARCHUNIT", aop).replace("theFollowingClassesAreTestClasses: [ ]",
+						"theFollowingClassesAreTestClasses: [ \"example.nest.NestHostFixture\" ]"));
+
+		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy).projectFolderPath(projectFolderPath)
+				.build().createTestCases().writeTestCases(writeTarget);
+
+		String settings = Files.readString(writeTarget.resolve(EXERCISE_PACKAGE.replace('.', '/'))
+				.resolve("ares/api/aop/java/JavaAOPTestCaseSettings.java"));
+		String classes = declarationOf(settings, "allowedListedClasses");
+		String packages = declarationOf(settings, "allowedListedPackages");
+		assertTrue(classes.contains("\"example.nest.NestHostFixture\""), classes);
+		for (Class<?> member : example.nest.NestHostFixture.class.getNestMembers()) {
+			assertTrue(classes.contains("\"" + member.getName() + "\"") == compiled
+					|| member == example.nest.NestHostFixture.class, member.getName() + " in " + classes);
+		}
+		assertFalse(classes.contains("NestHostFixture$Evil"), classes);
+		assertTrue(packages.contains("\"java\""), packages);
+		assertFalse(classes.contains("\"java\""), classes);
+		int lastAllowList = Math.max(settings.indexOf(classes), settings.indexOf(packages));
+		assertTrue(settings.indexOf(declarationOf(settings, "aopMode")) > lastAllowList, settings);
+		assertTrue(settings.indexOf(declarationOf(settings, "restrictedPackage")) > lastAllowList, settings);
+	}
+
+	/**
+	 * Returns the line of a generated settings file that declares a field.
+	 *
+	 * @param settings the generated settings source
+	 * @param field    the field name
+	 * @return the declaring line
+	 */
+	private static String declarationOf(String settings, String field) {
+		return settings.lines().filter(line -> line.contains(" " + field + " =")).findFirst()
+				.orElseThrow(() -> new AssertionError(field + " is not declared in:\n" + settings));
+	}
+
+	/**
 	 * Checks that a generated file does not contain a text.
 	 *
 	 * @param file      the generated file

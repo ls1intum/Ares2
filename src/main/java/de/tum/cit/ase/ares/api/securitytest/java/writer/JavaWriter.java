@@ -128,9 +128,8 @@ public class JavaWriter implements Writer {
 			@Nonnull String mainClassInPackageName, @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
 			@Nonnull Path testFolderPath) {
 		@Nonnull
-		ArrayList<String> allowedClasses = Stream
-				.concat(Stream.concat(essentialPackages.stream(), essentialClasses.stream()), testClasses.stream())
-				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+		List<String> allowedClasses = Stream.concat(essentialClasses.stream(), testClasses.stream()).distinct()
+				.toList();
 		return Stream.concat(
 				Stream.concat(
 						FileTools
@@ -144,7 +143,8 @@ public class JavaWriter implements Writer {
 								aopMode.placeholderValues(),
 								aopMode.nonFSFormatValues(packageName, mainClassInPackageName)).stream()),
 				Stream.of(FileTools.createThreePartedFormatStringFile(aopMode.threePartedFileHeader(),
-						aopMode.threePartedFileBody(aopMode.toString(), packageName, allowedClasses, javaAOPTestCases),
+						aopMode.threePartedFileBody(
+								aopMode.toString(), packageName, essentialPackages, allowedClasses, javaAOPTestCases),
 						aopMode.threePartedFileFooter(),
 						confineToProject(aopMode
 								.targetToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),

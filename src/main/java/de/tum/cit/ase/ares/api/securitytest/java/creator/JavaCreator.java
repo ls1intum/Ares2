@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,7 @@ import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ExemptedClassNests;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
@@ -71,6 +73,18 @@ public class JavaCreator implements Creator {
 
 	/** Whether {@link #supervisedPackage} was derived rather than pinned. */
 	private boolean supervisedScopeWasDerived;
+
+	/**
+	 * The exempted classes of the run in progress: the essential and test classes
+	 * plus the classes their own compiled files list as declared inside them.
+	 */
+	private List<String> exemptedClassNames = List.of();
+
+	/**
+	 * The part of {@link #exemptedClassNames} that comes from the test classes,
+	 * whose names a student could otherwise reuse in the supervised package.
+	 */
+	private List<String> testExemptedClassNames = List.of();
 	private final BuildToolConfiguration buildConfiguration;
 
 	public JavaCreator() {
@@ -231,29 +245,71 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
-	 * Prepares the set of allowed classes based on the essential classes and
-	 * security policy.
+	 * Returns the given class names without null or blank entries.
 	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @param essentialClasses the list of essential classes; must not be null
-	 * @param testClasses      the list of test classes; must not be null
-	 * @return a set of allowed class names; never null
+	 * @param classNames the class names; must not be null
+	 * @return the usable names
 	 */
 	@Nonnull
-	private Set<ClassPermission> prepareAllowedClasses(@Nonnull List<String> essentialClasses,
-			@Nonnull List<String> testClasses) {
-		return Stream.of(
-				// Essential classes are allowed to do anything
-				essentialClasses.stream(),
-				// Test classes are allowed to do anything
-				testClasses.stream()).flatMap(Function.identity())
-				// Filter null/blank before constructing ClassPermission: its constructor throws
-				// on null/blank, so an unfiltered bad entry (e.g. from a scanned project or a
-				// malformed policy) would otherwise abort all test-case creation. Mirrors
-				// prepareAllowedPackages.
-				.filter(java.util.Objects::nonNull).filter(className -> !className.isBlank()).map(ClassPermission::new)
-				.collect(Collectors.toSet());
+	private static List<String> usableClassNames(@Nonnull List<String> classNames) {
+		return classNames.stream().filter(java.util.Objects::nonNull).filter(className -> !className.isBlank())
+				.toList();
+	}
+
+	/**
+	 * Returns the compiled test classes' root, which only the instructor's build
+	 * writes to, or {@code null} if the build mode names none.
+	 *
+	 * @param buildMode the build mode used when no configuration was discovered
+	 * @return the test output root, or {@code null}
+	 */
+	@Nullable
+	private Path testOutputRoot(@Nonnull BuildMode buildMode) {
+		if (buildConfiguration != null) {
+			return buildConfiguration.testOutputRoot();
+		}
+		String directory = buildMode.getTestBuildDirectory();
+		return directory == null ? null : Path.of(directory).toAbsolutePath();
+	}
+
+	/**
+	 * Returns the complete compiled production root, independent of any narrower
+	 * analysis path, or {@code null} if the build mode names none.
+	 *
+	 * @param buildMode the build mode used when no configuration was discovered
+	 * @return the production output root, or {@code null}
+	 */
+	@Nullable
+	private Path productionOutputRoot(@Nonnull BuildMode buildMode) {
+		if (buildConfiguration != null) {
+			return buildConfiguration.productionOutputRoot();
+		}
+		String directory = buildMode.getBuildDirectory();
+		return directory == null ? null : Path.of(directory).toAbsolutePath();
+	}
+
+	/**
+	 * Returns the exempted class names worked out by {@link #createTestCases}.
+	 *
+	 * @return the exempted names, exact matches only
+	 */
+	@Nonnull
+	public List<String> exemptedClassNames() {
+		return exemptedClassNames;
+	}
+
+	/**
+	 * Refuses a compiled production class named like an exempted test class or one
+	 * of its nest members within the supervised scope. Essential classes are left
+	 * out: they lie in namespaces a student cannot define classes in, which the JVM
+	 * and the reserved-package boundary enforce. Run before arming.
+	 *
+	 * @param buildMode the build mode used when no configuration was discovered
+	 * @throws SecurityException if such a class exists or the output is unreadable
+	 */
+	public void requireNoProductionClassNamedLikeAnExemptedOne(@Nonnull BuildMode buildMode) {
+		ExemptedClassNests.requireNoProductionClassNamedLikeAnExemptedOne(productionOutputRoot(buildMode),
+				supervisedPackage, testExemptedClassNames);
 	}
 
 	/**
@@ -537,22 +593,11 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
-	 * Builds the test cases, told whether Ares derived the supervised scope.
-	 *
-	 * @param buildMode                 the build tool
-	 * @param architectureMode          the architecture analyser
-	 * @param aopMode                   the enforcement backend
-	 * @param essentialPackages         the packages Ares itself needs
-	 * @param essentialClasses          the classes Ares itself needs
-	 * @param testClasses               the test classes
-	 * @param packageName               the supervised scope
-	 * @param mainClassInPackageName    the main class
-	 * @param architectureTestCases     the architecture test cases to fill
-	 * @param aopTestCases              the AOP test cases to fill
-	 * @param phobosTestCases           the Phobos test cases to fill
-	 * @param resourceAccesses          the permitted resource accesses
-	 * @param projectPath               the project root
-	 * @param supervisedScopeWasDerived whether Ares derived the supervised scope
+	 * {@inheritDoc}
+	 * <p>
+	 * Also works out the exempted class names, the essential and test classes plus
+	 * the classes their own compiled files list as declared inside them, for
+	 * {@link #exemptedClassNames()}.
 	 */
 	@Override
 	public void createTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
@@ -598,8 +643,14 @@ public class JavaCreator implements Creator {
 		@Nonnull
 		Set<PackagePermission> allowedPackages = prepareAllowedPackages(essentialPackages, resourceAccesses,
 				packageName, supervisedPackages, testClasses);
+		this.testExemptedClassNames = ExemptedClassNests.expandFromTestOutput(usableClassNames(testClasses),
+				testOutputRoot(buildMode));
+		this.exemptedClassNames = Stream.concat(ExemptedClassNests
+				.expandThroughLoader(usableClassNames(essentialClasses), JavaCreator.class.getClassLoader()).stream(),
+				testExemptedClassNames.stream()).distinct().toList();
 		@Nonnull
-		Set<ClassPermission> allowedClasses = prepareAllowedClasses(essentialClasses, testClasses);
+		Set<ClassPermission> allowedClasses = exemptedClassNames.stream().map(ClassPermission::new)
+				.collect(Collectors.toSet());
 		// </editor-fold>
 
 		// <editor-fold desc="Create priority rules code (checked before variable

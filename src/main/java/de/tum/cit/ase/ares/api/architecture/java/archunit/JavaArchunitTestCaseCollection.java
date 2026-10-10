@@ -99,8 +99,8 @@ public final class JavaArchunitTestCaseCollection {
 
 	/**
 	 * Predicate selecting classes that are NOT on the allow-list, so a rule built
-	 * with {@code .that(...)} only applies to non-exempt classes. Boundary-aware
-	 * nested-class matching is delegated to {@link ClassPermission#isAllowedClass}.
+	 * with {@code .that(...)} only applies to non-exempt classes. Exact-name
+	 * matching is delegated to {@link ClassPermission#isAllowedClass}.
 	 */
 	private static DescribedPredicate<JavaClass> isNotAllowedClass(Set<ClassPermission> allowedClasses) {
 		return new DescribedPredicate<>("not an allow-listed class") {

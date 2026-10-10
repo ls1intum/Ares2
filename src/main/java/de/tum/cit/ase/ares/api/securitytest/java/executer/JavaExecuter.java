@@ -83,8 +83,8 @@ public class JavaExecuter implements Executer {
 		setJavaAdviceSettingValue("allowedListedPackages", essentialPackages.toArray(String[]::new), architectureMode,
 				aopMode);
 		setJavaAdviceSettingValue("allowedListedClasses",
-				Stream.concat(essentialClasses.stream(), testClasses.stream()).toArray(String[]::new), architectureMode,
-				aopMode);
+				Stream.concat(essentialClasses.stream(), testClasses.stream()).distinct().toArray(String[]::new),
+				architectureMode, aopMode);
 		setJavaAdviceSettingValue("buildMode", buildModeString, architectureMode, aopMode);
 		setJavaAdviceSettingValue("architectureMode", architectureModeString, architectureMode, aopMode);
 		setJavaAdviceSettingValue("aopMode", aopModeString, architectureMode, aopMode);

@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
 
@@ -14,14 +15,26 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 /** Guards the class-name boundary shared by packaged and generated checks. */
 class ClassPermissionMatchingTest {
 
-	/** An exemption covers nested classes but never a neighbouring class name. */
+	/**
+	 * An exemption covers exactly the listed name; a name that merely looks nested
+	 * in it, or neighbours it, is not covered.
+	 */
 	@ParameterizedTest
-	@CsvSource({ "fixture.Trusted, true", "fixture.Trusted$Nested, true", "fixture.Trusted$1, true",
+	@CsvSource({ "fixture.Trusted, true", "fixture.Trusted$Nested, false", "fixture.Trusted$1, false",
 			"fixture.TrustedOther, false", "fixture.Trusted.Nested, false", "other.Trusted, false" })
 	void exemptionsRespectClassNameBoundaries(String className, boolean allowed) {
 		Set<ClassPermission> exemptions = Set.of(new ClassPermission("fixture.Trusted"));
 		assertEquals(allowed, ClassPermission.isAllowedClass(className, exemptions));
 		assertEquals(allowed, JavaArchitectureTestCase.isAllowedClass(className, exemptions));
+	}
+
+	/** A nested class is covered once its name comes from the nest listing. */
+	@Test
+	void listedNestMembersAreCoveredByName() {
+		Set<ClassPermission> exemptions = Set.of(new ClassPermission("fixture.Trusted"),
+				new ClassPermission("fixture.Trusted$Nested"));
+		assertTrue(ClassPermission.isAllowedClass("fixture.Trusted$Nested", exemptions));
+		assertFalse(ClassPermission.isAllowedClass("fixture.Trusted$Nested$Deeper", exemptions));
 	}
 
 	/** Missing names or exemptions cannot authorise access. */

@@ -521,7 +521,7 @@ ArchRule rule = ArchRuleDefinition.noClasses()
 **Rule Components:**
 - **DescribedPredicate**: Tests if a method access is forbidden (prefix match on the target's full name)
 - **TransitivelyAccessesMethodsCondition**: Finds transitive access paths
-- **`.that(isNotAllowedClass(...))`**: Exempts classes on the `allowedClasses` allow-list (delegating to `JavaArchitectureTestCase.isAllowedClass`, which matches nested classes on the `$` boundary too)
+- **`.that(isNotAllowedClass(...))`**: Exempts classes on the `allowedClasses` allow-list (delegating to `ClassPermission.isAllowedClass`, which matches exact names; the allow-list already holds the classes each exempted class's own file lists as declared inside it)
 - **ArchRule**: Complete rule that can be checked against `JavaClasses`
 
 The pre-built constant `JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS` is the unfiltered variant (empty allow-list), used by the generated-template path. The runtime execution path instead obtains the rule via `allowAwareRuleFor(THREAD_CREATION, allowedClasses, allowedPackages)`.

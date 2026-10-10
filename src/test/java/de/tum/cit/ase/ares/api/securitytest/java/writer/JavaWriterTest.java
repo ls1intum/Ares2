@@ -228,13 +228,13 @@ public class JavaWriterTest {
 				// Assert
 				assertNotNull(result);
 				verify(architectureMode).threePartedFileBody(emptyArchTestCases);
-				verify(aopMode).threePartedFileBody(eq("INSTRUMENTATION"), eq(packageName), any(),
+				verify(aopMode).threePartedFileBody(eq("INSTRUMENTATION"), eq(packageName), any(), any(),
 						eq(emptyAOPTestCases));
 			}
 		}
 
 		@Test
-		@DisplayName("Should merge essential classes and test classes correctly")
+		@DisplayName("Should keep essential packages apart and merge essential and test classes")
 		void shouldMergeEssentialClassesAndTestClassesCorrectly() {
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
 					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
@@ -248,13 +248,14 @@ public class JavaWriterTest {
 						testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases,
 						javaPhobosTestCases, emptyTestBehaviorConfiguration, tempDir);
 
-				// Assert - verify that merged list contains both essential and test classes
-				verify(aopMode).threePartedFileBody(eq("INSTRUMENTATION"), eq(packageName), argThat(list -> {
-					List<String> allowedClasses = (List<String>) list;
-					return allowedClasses.containsAll(essentialPackages) && allowedClasses.containsAll(essentialClasses)
-							&& allowedClasses.containsAll(testClasses) && allowedClasses
-									.size() == essentialPackages.size() + essentialClasses.size() + testClasses.size();
-				}), eq(javaAOPTestCases));
+				verify(aopMode).threePartedFileBody(eq("INSTRUMENTATION"), eq(packageName), eq(essentialPackages),
+						argThat(list -> {
+							List<String> allowedClasses = (List<String>) list;
+							return allowedClasses.containsAll(essentialClasses)
+									&& allowedClasses.containsAll(testClasses)
+									&& allowedClasses.stream().noneMatch(essentialPackages::contains)
+									&& allowedClasses.size() == essentialClasses.size() + testClasses.size();
+						}), eq(javaAOPTestCases));
 			}
 		}
 
@@ -386,7 +387,7 @@ public class JavaWriterTest {
 		when(aopMode.nonFSFormatValues(any(), any()))
 				.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
 		when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
-		when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
+		when(aopMode.threePartedFileBody(any(), any(), any(), any(), any())).thenReturn("body");
 		when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
 		when(aopMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("aop.java"));
 		when(aopMode.formatValues(any())).thenReturn(new String[] { "pkg" });

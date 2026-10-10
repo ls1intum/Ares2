@@ -292,15 +292,17 @@ public enum AOPMode {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param aopMode              the AOP mode identifier.
-	 * @param restrictedPackage    the package being restricted.
-	 * @param allowedListedClasses the list of allowed classes.
-	 * @param javaAOPTestCases     the list of security test cases.
+	 * @param aopMode               the AOP mode identifier.
+	 * @param restrictedPackage     the package being restricted.
+	 * @param allowedListedPackages the packages whose classes are exempted.
+	 * @param allowedListedClasses  the list of allowed classes.
+	 * @param javaAOPTestCases      the list of security test cases.
 	 * @return a string representing the body content.
 	 */
 	@Nonnull
 	public String threePartedFileBody(@Nonnull String aopMode, @Nonnull String restrictedPackage,
-			@Nonnull List<String> allowedListedClasses, @Nonnull List<JavaAOPTestCase> javaAOPTestCases) {
+			@Nonnull List<String> allowedListedPackages, @Nonnull List<String> allowedListedClasses,
+			@Nonnull List<JavaAOPTestCase> javaAOPTestCases) {
 		List<FilePermission> filePermissions = extractPermissions(javaAOPTestCases,
 				JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION);
 		List<NetworkPermission> networkPermissions = extractPermissions(javaAOPTestCases,
@@ -310,8 +312,8 @@ public enum AOPMode {
 		List<ThreadPermission> threadPermissions = extractPermissions(javaAOPTestCases,
 				JavaAOPTestCaseSupported.THREAD_CREATION);
 
-		return JavaAOPTestCase.writeAOPTestCaseFile(aopMode, restrictedPackage, allowedListedClasses, filePermissions,
-				networkPermissions, commandPermissions, threadPermissions);
+		return JavaAOPTestCase.writeAOPTestCaseFile(aopMode, restrictedPackage, allowedListedPackages,
+				allowedListedClasses, filePermissions, networkPermissions, commandPermissions, threadPermissions);
 	}
 
 	/**
