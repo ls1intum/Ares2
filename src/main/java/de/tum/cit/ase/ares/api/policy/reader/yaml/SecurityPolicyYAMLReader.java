@@ -95,7 +95,7 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 			if (policy == null) {
 				throw new SecurityException(Messages.localized("security.policy.data.bind.failed", path.toString()));
 			}
-			return policy;
+			return SecurityPolicyPresetResolver.resolveAndMerge(policy, objectMapper);
 		} catch (StreamReadException e) {
 			throw new SecurityException(Messages.localized("security.policy.read.failed", path.toString()), e);
 		} catch (DatabindException e) {

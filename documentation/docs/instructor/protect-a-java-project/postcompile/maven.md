@@ -129,6 +129,8 @@ The alternative some guides use, pointing `-javaagent` at `${settings.localRepos
     <artifactId>maven-surefire-plugin</artifactId>
     <version>3.6.0</version>
     <configuration>
+        <printSummary>false</printSummary>
+        <useFile>true</useFile>
         <argLine>
             @{argLine}
             "-javaagent:${project.build.directory}/ares/ares-agent.jar"
@@ -331,6 +333,10 @@ The build descriptor and the command that invokes it are **trusted instructor co
 
 The threat this addresses is student **code** that declares a reserved package, not student control over the build. Your exercise template and its CI must own the build files and the invocation, and must fail visibly if either is altered.
 
+## Keep hidden report details out of build output
+
+For a hidden failure after its deadline, configure Surefire to keep the test name and failed status without printing its exception in the build log. In the `maven-surefire-plugin` configuration, set `printSummary` to `false` and `useFile` to `true`. The test report files still contain public failure details.
+
 ## Verify your setup
 
 ### Start from a runnable example
@@ -494,6 +500,8 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
+                    <printSummary>false</printSummary>
+                    <useFile>true</useFile>
                     <argLine>
                         @{argLine}
                         "-javaagent:${project.build.directory}/ares/ares-agent.jar"

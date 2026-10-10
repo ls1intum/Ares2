@@ -10,6 +10,7 @@ import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.context.TestContextUtils;
+import de.tum.cit.ase.ares.api.context.TestType;
 
 /** Resolvers for the non-policy test annotations retained by Ares. */
 @API(status = Status.INTERNAL)
@@ -24,6 +25,9 @@ public final class ConfigurationUtils {
 	 * @return whether mirroring is enabled
 	 */
 	public static boolean shouldMirrorOutput(TestContext context) {
+		if (context.findTestType().orElse(null) == TestType.HIDDEN) {
+			return false;
+		}
 		return TestContextUtils.findAnnotationIn(context, MirrorOutput.class).map(MirrorOutput::value)
 				.map(MirrorOutputPolicy::isEnabled).orElse(false);
 	}

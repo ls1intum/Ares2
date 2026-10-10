@@ -366,6 +366,12 @@ theFollowingClassesAreTestClasses:
 
 ---
 
+### 7.7 Presets and Test Behaviour
+
+The optional top-level `basedOnTheFollowingPreset` field names a preset bundled with Ares, such as `SMOKE_TEST`. Ares merges resource permissions from the preset and the exercise policy. Test behaviour stays local to the exercise policy: Ares rejects a bundled preset containing `theFollowingTestBehaviorIsConfigured` by name when it loads, even if that object is empty. Instructors set any test behaviour directly in their exercise's `SecurityPolicy.yaml`.
+
+---
+
 ## 8. Permission Types Explained
 
 ### 8.1 File System Permissions

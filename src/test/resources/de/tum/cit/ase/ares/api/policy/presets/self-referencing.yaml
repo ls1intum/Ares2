@@ -1,17 +1,12 @@
 thisPolicyFileCompliesToThePolicyVersion: 1
+basedOnTheFollowingPreset: SMOKE_TEST
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
-  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
-  theMainClassInsideThisPackageIs: "Main"
-  theFollowingClassesAreTestClasses:
-    - "de.tum.cit.ase.ares.integration.testuser.HiddenFeedbackUser"
-    - "de.tum.cit.ase.ares.integration.InternalErrorLeakageTemporaryTest"
-    - "de.tum.cit.ase.ares.testutilities"
+  theFollowingClassesAreTestClasses: []
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: []
     regardingNetworkConnections: []
     regardingCommandExecutions: []
     regardingThreadCreations: []
     regardingPackageImports: []
-    regardingTimeouts:
-      - timeout: 3000
+    regardingTimeouts: []
