@@ -66,8 +66,14 @@ public class JavaProjectScanner implements ProjectScanner {
 	// The superclass JUnit 3 marks a test class with, recognised on the same terms.
 	private static final String JUNIT_THREE_TEST_CASE = "junit.framework.TestCase";
 	private final BuildToolConfiguration buildConfiguration;
+	/**
+	 * Reads the project's Java files, set to the newest Java version this
+	 * JavaParser knows. A file it reports a problem for is refused outright, so a
+	 * lower version would refuse valid code written for a newer Java. Raise it when
+	 * JavaParser is updated.
+	 */
 	private final JavaParser parser = new JavaParser(
-			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
+			new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_26));
 
 	public JavaProjectScanner() {
 		this.buildConfiguration = null;

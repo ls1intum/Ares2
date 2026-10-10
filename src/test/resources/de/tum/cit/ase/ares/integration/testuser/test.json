@@ -162,4 +162,37 @@
     "package" : "",
     "isInterface" : true
   }
+}, {
+  "class" : {
+    "name" : "SomeClass.Nested",
+    "package" : "de.tum.cit.ase.ares.integration.testuser.subject.structural"
+  },
+  "methods" : [ {
+    "name" : "publicMethod",
+    "modifiers" : [ "public", "static" ],
+    "returnType" : "void"
+  } ],
+  "constructors" : [ {
+    "modifiers" : [ "public" ]
+  } ],
+  "attributes" : [ {
+    "name" : "innerValue",
+    "modifiers" : [ "public" ],
+    "type" : "int"
+  } ]
+}, {
+  "class" : {
+    "name" : "AdditionalTopLevelType",
+    "package" : "de.tum.cit.ase.ares.integration.testuser.subject.structural"
+  },
+  "methods" : [ {
+    "name" : "acceptCanonicalParameter",
+    "modifiers" : [ "public" ],
+    "parameters" : [ "java.lang.String" ],
+    "returnType" : "void"
+  } ],
+  "constructors" : [ {
+    "modifiers" : [ "public" ],
+    "parameters" : [ "java.lang.String" ]
+  } ]
 } ]
