@@ -22,6 +22,7 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.OutputMirroringConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -258,6 +259,67 @@ public class JavaWriterTest {
 				assertEquals(3, result.size());
 				assertFalse(Files.exists(generatedSettingsClassPath()));
 			}
+		}
+
+		@Test
+		@DisplayName("Should write the settings class and the output-mirroring hook when the category is configured")
+		void shouldWriteTheOutputMirroringHookWhenConfigured() throws IOException {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				List<Path> result = writeWith(outputMirroringConfigured());
+
+				assertEquals(8, result.size(), "3 released outputs, the settings class, 2 sources, 2 registrations");
+				assertTrue(Files.readString(generatedSettingsClassPath())
+						.contains("REGARDING_OUTPUT_MIRRORING_THE_MAXIMUM_CHARACTER_COUNT_IS = 10L;"));
+				assertTrue(Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedOutputMirroring.java")));
+			}
+		}
+
+		@Test
+		@DisplayName("Should remove the output-mirroring hook when regenerated without the category")
+		void shouldRemoveTheOutputMirroringHookWhenRegeneratedWithout() {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+				writeWith(outputMirroringConfigured());
+
+				List<Path> result = writeWith(emptyTestBehaviorConfiguration);
+
+				assertEquals(3, result.size());
+				assertFalse(Files.exists(generatedSettingsClassPath()));
+				assertFalse(Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedOutputMirroring.java")));
+			}
+		}
+
+		/**
+		 * Runs the configuration-aware {@code writeTestCases} into {@code tempDir} with
+		 * this class's fixed inputs.
+		 *
+		 * @param testBehaviorConfiguration the behaviour configuration to write.
+		 * @return the written files.
+		 */
+		private List<Path> writeWith(TestBehaviorConfiguration testBehaviorConfiguration) {
+			return javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+					testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases,
+					javaPhobosTestCases, testBehaviorConfiguration, tempDir);
+		}
+
+		/**
+		 * A configuration limiting output to 10 per stream.
+		 *
+		 * @return the configuration.
+		 */
+		private TestBehaviorConfiguration outputMirroringConfigured() {
+			return TestBehaviorConfiguration.builder().regardingOutputMirroring(
+					OutputMirroringConfiguration.builder().theMaximumCharacterCountIs(10L).build()).build();
 		}
 
 		@Test
