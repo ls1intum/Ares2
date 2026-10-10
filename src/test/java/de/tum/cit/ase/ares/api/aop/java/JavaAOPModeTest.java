@@ -192,6 +192,22 @@ public class JavaAOPModeTest {
 		}
 	}
 
+	/**
+	 * The signatures released before exempted packages became their own setting
+	 * still exist and write exactly what the new ones write without packages.
+	 */
+	@Test
+	public void testReleasedSignaturesWriteNoPackages() {
+		Assertions.assertEquals(
+				JavaAOPTestCase.writeAOPTestCaseFile("ASPECTJ", "restricted.pkg", List.of(), List.of("A"), List.of(),
+						List.of(), List.of(), List.of()),
+				JavaAOPTestCase.writeAOPTestCaseFile("ASPECTJ", "restricted.pkg", List.of("A"), List.of(), List.of(),
+						List.of(), List.of()));
+		Assertions.assertEquals(
+				AOPMode.ASPECTJ.threePartedFileBody("ASPECTJ", "restricted.pkg", List.of(), List.of("A"), List.of()),
+				AOPMode.ASPECTJ.threePartedFileBody("ASPECTJ", "restricted.pkg", List.of("A"), List.of()));
+	}
+
 	@Test
 	public void testResetDoesNotThrow() {
 		Executable resetCall = AOPMode.INSTRUMENTATION::reset;

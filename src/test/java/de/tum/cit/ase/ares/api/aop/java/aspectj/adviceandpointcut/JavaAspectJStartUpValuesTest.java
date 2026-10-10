@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,6 +11,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -41,6 +43,25 @@ class JavaAspectJStartUpValuesTest {
 			assertEquals(original, staticValue("TRUSTED_JAVA_HOME"));
 		} finally {
 			System.setProperty("java.home", original);
+		}
+	}
+
+	/**
+	 * The aspect keeps a copy of the start-up values, so a change to the JDK's own
+	 * record after the aspect read it changes nothing.
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	void aChangeToTheJdkRecordAfterReadingIsIgnored() throws Exception {
+		Field record = Class.forName("jdk.internal.misc.VM").getDeclaredField("savedProps");
+		record.setAccessible(true);
+		Map<String, String> jdkRecord = (Map<String, String>) record.get(null);
+		Map<String, String> copy = (Map<String, String>) staticValue("START_UP_PROPERTIES");
+		try {
+			jdkRecord.put("ares.test.injected", "x");
+			assertFalse(copy.containsKey("ares.test.injected"), copy.toString());
+		} finally {
+			jdkRecord.remove("ares.test.injected");
 		}
 	}
 

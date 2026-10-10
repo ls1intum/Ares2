@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -258,34 +257,32 @@ public class JavaCreator implements Creator {
 
 	/**
 	 * Returns the compiled test classes' root, which only the instructor's build
-	 * writes to, or {@code null} if the build mode names none.
+	 * writes to.
 	 *
 	 * @param buildMode the build mode used when no configuration was discovered
-	 * @return the test output root, or {@code null}
+	 * @return the test output root
 	 */
-	@Nullable
+	@Nonnull
 	private Path testOutputRoot(@Nonnull BuildMode buildMode) {
 		if (buildConfiguration != null) {
 			return buildConfiguration.testOutputRoot();
 		}
-		String directory = buildMode.getTestBuildDirectory();
-		return directory == null ? null : Path.of(directory).toAbsolutePath();
+		return Path.of(buildMode.getTestBuildDirectory()).toAbsolutePath();
 	}
 
 	/**
 	 * Returns the complete compiled production root, independent of any narrower
-	 * analysis path, or {@code null} if the build mode names none.
+	 * analysis path.
 	 *
 	 * @param buildMode the build mode used when no configuration was discovered
-	 * @return the production output root, or {@code null}
+	 * @return the production output root
 	 */
-	@Nullable
+	@Nonnull
 	private Path productionOutputRoot(@Nonnull BuildMode buildMode) {
 		if (buildConfiguration != null) {
 			return buildConfiguration.productionOutputRoot();
 		}
-		String directory = buildMode.getBuildDirectory();
-		return directory == null ? null : Path.of(directory).toAbsolutePath();
+		return Path.of(buildMode.getBuildDirectory()).toAbsolutePath();
 	}
 
 	/**

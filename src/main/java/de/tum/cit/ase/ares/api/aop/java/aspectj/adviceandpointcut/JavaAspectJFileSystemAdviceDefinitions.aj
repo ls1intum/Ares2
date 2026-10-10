@@ -1363,17 +1363,18 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Reads the system properties as this JVM started with them from the JDK's own
-	 * record, which {@code System.setProperty} does not change.
+	 * Copies the system properties as this JVM started with them from the JDK's own
+	 * record, which {@code System.setProperty} does not change. The JDK hands out a
+	 * view of a mutable map, so only a copy stays fixed.
 	 *
-	 * @return the start-up properties
+	 * @return a copy of the start-up properties
 	 * @throws ReflectiveOperationException if the JDK does not let Ares read them
 	 */
 	@SuppressWarnings("unchecked")
 	@Nonnull
 	private static Map<String, String> readStartUpProperties() throws ReflectiveOperationException {
-		return (Map<String, String>) Map.class.cast(
-				Class.forName(START_UP_PROPERTIES_CLASS).getMethod("getSavedProperties").invoke(null));
+		return Map.copyOf((Map<String, String>) Map.class.cast(
+				Class.forName(START_UP_PROPERTIES_CLASS).getMethod("getSavedProperties").invoke(null)));
 	}
 
 	/**

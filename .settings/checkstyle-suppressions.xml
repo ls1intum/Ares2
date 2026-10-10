@@ -27,6 +27,13 @@
 	<suppress files="[\\/]src[\\/]test[\\/]java[\\/]org[\\/]apache[\\/]xyz[\\/]" checks=".*"/>
 	<suppress files="[\\/]src[\\/]test[\\/]java[\\/]de[\\/]tum[\\/]cit[\\/]ase[\\/]ares[\\/]integration[\\/]testuser[\\/]" checks=".*"/>
 	<suppress files="Probe\.java$" checks=".*"/>
+
+	<!--
+		Impostor fixtures named like a class declared inside a trusted test class, such as
+		TrustedTest$Evil. The dollar sign in the class name is the attack under test, so only
+		TypeName is suppressed, and only for these files.
+	-->
+	<suppress files="\$Evil\.java$" checks="TypeName"/>
 	<suppress files="[\\/]src[\\/]test[\\/]java[\\/]" checks="MethodName"/>
 
 	<!--

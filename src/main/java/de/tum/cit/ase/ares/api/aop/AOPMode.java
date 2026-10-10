@@ -288,6 +288,22 @@ public enum AOPMode {
 	}
 
 	/**
+	 * Generates the body content without exempted packages, as the signature
+	 * released before packages became a setting of their own.
+	 *
+	 * @param aopMode              the AOP mode identifier.
+	 * @param restrictedPackage    the package being restricted.
+	 * @param allowedListedClasses the list of allowed classes.
+	 * @param javaAOPTestCases     the list of security test cases.
+	 * @return a string representing the body content.
+	 */
+	@Nonnull
+	public String threePartedFileBody(@Nonnull String aopMode, @Nonnull String restrictedPackage,
+			@Nonnull List<String> allowedListedClasses, @Nonnull List<JavaAOPTestCase> javaAOPTestCases) {
+		return threePartedFileBody(aopMode, restrictedPackage, List.of(), allowedListedClasses, javaAOPTestCases);
+	}
+
+	/**
 	 * Generates the body content for the three-parted security test case file.
 	 *
 	 * @since 2.0.0

@@ -57,7 +57,7 @@ public final class ExemptedClassNests {
 	@Nonnull
 	public static List<String> expandFromTestOutput(@Nonnull Collection<String> classNames,
 			@Nullable Path testOutputRoot) {
-		return expand(classNames, className -> readFromOutput(className, testOutputRoot));
+		return expand(classNames, className -> readFromOutput(className, testOutputRoot), true);
 	}
 
 	/**
@@ -72,33 +72,51 @@ public final class ExemptedClassNests {
 	@Nonnull
 	public static List<String> expandThroughLoader(@Nonnull Collection<String> classNames,
 			@Nullable ClassLoader loader) {
-		return expand(classNames, className -> readThroughLoader(className, loader));
+		return expand(classNames, className -> readThroughLoader(className, loader), false);
 	}
 
 	/**
 	 * Returns the exempted classes plus their listed nest members, reading each
 	 * class file with the given reader.
 	 *
-	 * @param classNames the exempted binary class names
-	 * @param reader     reads one class file, or yields empty
+	 * @param classNames      the exempted binary class names
+	 * @param reader          reads one class file, or yields empty
+	 * @param warnWhenMissing whether a missing class is the instructor's to fix,
+	 *                        rather than an entry of Ares's own configuration
 	 * @return the exempted names and their nest members, without repeats
 	 */
 	@Nonnull
 	private static List<String> expand(@Nonnull Collection<String> classNames,
-			@Nonnull Function<String, Optional<byte[]>> reader) {
+			@Nonnull Function<String, Optional<byte[]>> reader, boolean warnWhenMissing) {
 		Set<String> exempted = new LinkedHashSet<>();
 		for (String className : classNames) {
 			exempted.add(className);
 			Optional<byte[]> classFile = reader.apply(className);
 			if (classFile.isEmpty()) {
-				LOG.warn("Ares could not read the compiled class {} from its trusted location, so only that exact "
-						+ "class is exempted and the classes declared inside it are not. Compile the tests before "
-						+ "generating or running.", className);
+				reportMissing(className, warnWhenMissing);
 				continue;
 			}
 			exempted.addAll(nestMembersOf(className, classFile.get()));
 		}
 		return List.copyOf(exempted);
+	}
+
+	/**
+	 * Reports a class whose file Ares could not read: as a warning for a test
+	 * class, which the instructor can compile, and quietly for an essential entry
+	 * of Ares's own configuration, some of which name packages.
+	 *
+	 * @param className       the class that stays exempted by exact name only
+	 * @param warnWhenMissing whether the instructor can fix it
+	 */
+	private static void reportMissing(@Nonnull String className, boolean warnWhenMissing) {
+		if (warnWhenMissing) {
+			LOG.warn("Ares could not read the compiled class {} from its trusted location, so only that exact "
+					+ "class is exempted and the classes declared inside it are not. Compile the tests before "
+					+ "generating or running.", className);
+		} else {
+			LOG.debug("Ares found no class file for the essential entry {}, so it adds no nested classes.", className);
+		}
 	}
 
 	/**
@@ -140,7 +158,7 @@ public final class ExemptedClassNests {
 		Set<String> exempted = Set.copyOf(exemptedClassNames);
 		try (Stream<Path> files = Files.walk(productionOutputRoot)) {
 			files.peek(file -> requireNoLink(productionOutputRoot, file))
-					.filter(file -> file.getFileName().toString().endsWith(".class"))
+					.filter(file -> file.toString().endsWith(".class"))
 					.map(file -> binaryNameOf(productionOutputRoot, file))
 					.filter(name -> name.startsWith(restrictedPackage) && exempted.contains(name)).findFirst()
 					.ifPresent(name -> {

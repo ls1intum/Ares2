@@ -76,6 +76,8 @@ public class JavaCreatorTest {
 	@BeforeEach
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
+		when(buildMode.getTestBuildDirectory()).thenReturn(tempDir.resolve("test-classes").toString());
+		when(buildMode.getBuildDirectory()).thenReturn(tempDir.resolve("classes").toString());
 		javaCreator = new JavaCreator();
 	}
 

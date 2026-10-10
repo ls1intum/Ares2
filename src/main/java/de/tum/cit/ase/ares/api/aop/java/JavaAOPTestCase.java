@@ -302,6 +302,28 @@ public class JavaAOPTestCase extends AOPTestCase {
 	// <editor-fold desc="Write security test case file methods">
 
 	/**
+	 * Writes the settings file without exempted packages, as the signature released
+	 * before packages became a setting of their own.
+	 *
+	 * @param aopMode              the AOP mode
+	 * @param restrictedPackage    supervised package
+	 * @param allowedListedClasses exempted classes
+	 * @param filePermissions      file rules
+	 * @param networkPermissions   network rules
+	 * @param commandPermissions   command rules
+	 * @param threadPermissions    thread rules
+	 * @return the content
+	 */
+	@Nonnull
+	public static String writeAOPTestCaseFile(@Nonnull String aopMode, @Nonnull String restrictedPackage,
+			@Nonnull List<String> allowedListedClasses, @Nonnull List<FilePermission> filePermissions,
+			@Nonnull List<NetworkPermission> networkPermissions, @Nonnull List<CommandPermission> commandPermissions,
+			@Nonnull List<ThreadPermission> threadPermissions) {
+		return writeAOPTestCaseFile(aopMode, restrictedPackage, List.of(), allowedListedClasses, filePermissions,
+				networkPermissions, commandPermissions, threadPermissions);
+	}
+
+	/**
 	 * Writes the settings file, enabling settings last, so a read during
 	 * initialisation finds the policy off.
 	 *
