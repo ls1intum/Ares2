@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
@@ -22,6 +23,20 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfigurat
 class SecurityPolicyPresetResolverTest {
 
 	private final YAMLMapper yamlMapper = new YAMLMapper();
+
+	/**
+	 * A preset that contains test behavior fails before its category is discarded.
+	 */
+	@Test
+	void rejectsPresetTestBehaviorByName() {
+		ObjectNode preset = yamlMapper.createObjectNode();
+		ObjectNode supervised = preset.putObject("regardingTheSupervisedCode");
+		supervised.putObject("theFollowingTestBehaviorIsConfigured").putObject("regardingPrivilegedExceptions");
+
+		SecurityException error = assertThrows(SecurityException.class,
+				() -> SecurityPolicyPresetResolver.rejectPresetTestBehavior(preset));
+		assertThat(error.getMessage()).isEqualTo(Messages.localized("security.policy.preset.test_behavior.forbidden"));
+	}
 
 	private static ResourceAccesses ownResourceAccesses() {
 		return new ResourceAccesses(

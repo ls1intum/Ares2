@@ -107,6 +107,7 @@ final class SecurityPolicyPresetResolver {
 		String resourcePath = "/" + PRESET_RESOURCE_BASE_PATH + resourceFileName;
 		try (InputStream resourceStream = openFromOwnCodeSource(PRESET_RESOURCE_BASE_PATH + resourceFileName)) {
 			JsonNode presetRoot = objectMapper.readTree(resourceStream);
+			rejectPresetTestBehavior(presetRoot);
 			SecurityPolicySchemaValidator.validate(presetRoot, false);
 			SecurityPolicy presetPolicy = objectMapper.treeToValue(presetRoot, SecurityPolicy.class);
 			if (presetPolicy == null || pinsPackageOrMainClass(presetPolicy)) {
@@ -118,6 +119,14 @@ final class SecurityPolicyPresetResolver {
 			throw new SecurityException(Messages.localized("security.policy.preset.resource.invalid", resourcePath), e);
 		} catch (IOException e) {
 			throw new SecurityException(Messages.localized("security.policy.preset.resource.missing", resourcePath), e);
+		}
+	}
+
+	/** Rejects a preset that attempts to supply exercise-owned test behavior. */
+	static void rejectPresetTestBehavior(@Nonnull JsonNode presetRoot) {
+		JsonNode supervisedCode = presetRoot.path("regardingTheSupervisedCode"); //$NON-NLS-1$
+		if (supervisedCode.has("theFollowingTestBehaviorIsConfigured")) { //$NON-NLS-1$
+			throw new SecurityException(Messages.localized("security.policy.preset.test_behavior.forbidden")); //$NON-NLS-1$
 		}
 	}
 
