@@ -13,13 +13,12 @@ Requires Java 17 and Maven 3.8 or newer.
 ## Expected output
 
 ```
-[INFO] --- antrun:3.2.0:run (verify-ares-reserved-packages-v2) @ ares-exercise-maven ---
+[INFO] --- antrun:3.2.0:run (verify-ares-reserved-packages-v3) @ ares-exercise-maven ---
 ...
-[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
-The three tests are `name()`, `readsThePermittedFile()` and `rejectsTheForbiddenFile()`. The last one asserts that Ares blocks the forbidden read, so a green run **is** the demonstration that enforcement works.
+Surefire keeps per-test results in `target/surefire-reports/TEST-org.example.PenguinTest.xml` rather than printing them to the console. The three tests are `name()`, `readsThePermittedFile()` and `rejectsTheForbiddenFile()`. The last one asserts that Ares blocks the forbidden read, so a green run **is** the demonstration that enforcement works.
 
 The AspectJ compiler prints a number of `[Xlint:adviceDidNotMatch]` warnings during `process-classes`. These are expected: the Ares JAR carries advice for the file, network, command and thread domains, and this exercise only touches files.
 

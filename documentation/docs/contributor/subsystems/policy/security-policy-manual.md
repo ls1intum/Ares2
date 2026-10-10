@@ -110,7 +110,7 @@ This policy forbids all file, network, command and thread operations.
 
 > **`thisPolicyFileCompliesToThePolicyVersion` is required** and must be exactly `1`. A policy file that omits it, or that declares any other value, is rejected on load.
 
-> **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.2.1. Use [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
+> **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.2.1. Use [`regardingStrictTimeouts`](#77-test-behaviour-configuration) or [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
 
 ### 5.2 Step 2: Apply the Policy to Your Test
 
@@ -283,6 +283,14 @@ regardingTheSupervisedCode:
     # REQUIRED list: Timeouts (can be empty array)
     regardingTimeouts:
       - timeout: 10000                               # REQUIRED (milliseconds)
+
+  # OPTIONAL: Behavioural test-lifecycle defaults, see 7.7
+  theFollowingTestBehaviorIsConfigured:
+    regardingStrictTimeouts:
+      theTimeoutIs: 2                                # REQUIRED within this block
+      theTimeUnitIs: SECONDS                         # OPTIONAL, defaults as shown
+      theTerminationGraceIs: 200                     # OPTIONAL, see 7.7
+      theTerminationGraceUnitIs: MILLISECONDS        # OPTIONAL, defaults as shown
 ```
 
 ### 7.3 Configuration Options
@@ -363,6 +371,39 @@ theFollowingClassesAreTestClasses:
 **Matching:** an entry matches a class name **exactly**, or matches a nested class of it on the `$` boundary. So `"com.instructor.ExerciseTest"` covers `com.instructor.ExerciseTest$Inner`, while never matching the unrelated `com.instructor.ExerciseTestOther`. The same comparison is used by the static architecture rules and by the runtime advice, so the behaviour is identical in both layers.
 
 > **Package names and package prefixes do not work here, and are not harmless.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package; it matches a class literally named `com.instructor`, which does not exist, so it exempts nothing. The likely symptom is that your own test classes are treated as supervised code and your assertions start tripping the policy, if they fall within the supervised scope. Worse, the entry is not inert: Ares derives a permitted package from every entry by stripping the last dotted component, so `"com.instructor"` permits imports from the whole `com` prefix. List each test class by its exact fully qualified name.
+
+---
+
+### 7.7 Test Behaviour Configuration
+
+The `theFollowingTestBehaviorIsConfigured` field sets policy-wide defaults for how Ares runs a test, as opposed to which resources code can access. Its category `regardingStrictTimeouts` gives every supervised test a time limit, mirroring what the `@StrictTimeout` annotation controls per test. Ares stops a test that runs longer. A public test reports "execution timed out after …"; a hidden test keeps failed status without timeout details after its deadline.
+
+**Field Properties:**
+- **Type:** Object (optional wrapper), containing the optional `regardingStrictTimeouts` object
+- **Required:** No. A policy without this field, or without `regardingStrictTimeouts` inside it, behaves exactly as before.
+
+**`regardingStrictTimeouts` sub-fields:**
+- `theTimeoutIs` (integer, **required** once the category is present): the time limit. It must be positive.
+- `theTimeUnitIs` (optional): the limit's unit, one of `NANOSECONDS`, `MICROSECONDS`, `MILLISECONDS`, `SECONDS`, `MINUTES`, `HOURS` and `DAYS`, written exactly so. Defaults to `SECONDS`, like `@StrictTimeout`.
+- `theTerminationGraceIs` (integer, optional): the time a stopped test gets to finish before Ares halts the test process with exit code 124. It must lie between zero and one day; zero means at once. Without it, a test gets 50 ms.
+- `theTerminationGraceUnitIs` (optional): the grace period's unit, written as above. Defaults to `MILLISECONDS`.
+
+A value out of range, an unknown unit or a missing `theTimeoutIs` fails every test and names the field, so a mistyped limit never leaves tests unbounded.
+
+**Example:**
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingStrictTimeouts:
+    theTimeoutIs: 2
+    theTimeUnitIs: SECONDS
+```
+
+**Precedence:** the nearest `@StrictTimeout` sets the time limit wherever it is present. Whatever the annotation leaves open, the policy fills in: today that is the grace period, which the annotation cannot set. The policy reaches the tests Ares supervises, those marked `@PublicTest` or `@HiddenTest`, and a plain `@Test` stays unbounded as before.
+
+**Not `regardingTimeouts`:** the resource-access list `regardingTimeouts` (8.6) is a separate, not yet enforced Phobos limit. `regardingStrictTimeouts` is the setting that bounds tests today.
+
+**Precompile:** a precompile exercise has no Ares dependency at run time. The generator therefore writes the time limit as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`. Beside it, it writes a JUnit extension that times every test, setup and teardown. JUnit loads this extension by itself, so no test needs an annotation. Generated sentinel tests fail when a hook is not active. Regenerating without this field deletes all of this again. Keep generated precompile output and the Ares dependency out of the same exercise.
 
 ---
 
@@ -586,7 +627,7 @@ regardingTimeouts:
   - timeout: 60000
 ```
 
-> **Not in effect yet.** `regardingTimeouts` is parsed and validated into the policy model, but the resulting limit becomes a **Phobos** test case. Phobos is the test-case family covering the file-system, network and timeout domains, and in Ares 2.2.1 it is a generation-only stage: Ares writes those cases out, but the in-process execution path used by the JUnit extension does not dispatch them yet. That migration is still in progress. A timeout expressed here therefore does not bound test execution today, whether the list is populated or empty. Use `@StrictTimeout` on the test class or method wherever a deadline is required. The list must still be present in the file, because all six resource-access lists are structurally required; `regardingTimeouts: []` is the clearest form unless you want to record an intended value for a later release.
+> **Not in effect yet.** `regardingTimeouts` is parsed and validated into the policy model, but the resulting limit becomes a **Phobos** test case. Phobos is the test-case family covering the file-system, network and timeout domains, and in Ares 2.2.1 it is a generation-only stage: Ares writes those cases out, but the in-process execution path used by the JUnit extension does not dispatch them yet. That migration is still in progress. A timeout expressed here therefore does not bound test execution today, whether the list is populated or empty. Use [`regardingStrictTimeouts`](#77-test-behaviour-configuration) in the policy, or `@StrictTimeout` on the test class or method, wherever a deadline is required. The list must still be present in the file, because all six resource-access lists are structurally required; `regardingTimeouts: []` is the clearest form unless you want to record an intended value for a later release.
 
 ### 8.7 Internal Record: `ClassPermission`
 

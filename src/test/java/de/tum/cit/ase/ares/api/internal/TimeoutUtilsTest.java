@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.opentest4j.AssertionFailedError;
 
+import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.context.TestContext;
 
@@ -29,7 +30,7 @@ class TimeoutUtilsTest {
 		ExecutorService executorService = mock(ExecutorService.class);
 		when(executorService.isTerminated()).thenReturn(true);
 
-		TimeoutUtils.terminateTimedOutExecution(future, executorService, Duration.ofSeconds(1),
+		TimeoutUtils.terminateTimedOutExecution(future, executorService, Duration.ofSeconds(1).toNanos(),
 				exitCode -> fail("Interruption-aware execution must not request fatal termination")); //$NON-NLS-1$
 
 		InOrder cancellationOrder = inOrder(executorService, future);
@@ -95,6 +96,162 @@ class TimeoutUtilsTest {
 		}
 	}
 
+	@Test
+	void interruptionAwareExecutionHasTimeForBoundedFrameworkCleanup() throws Exception {
+		AtomicBoolean workerFinished = new AtomicBoolean();
+		AtomicInteger requestedExitCode = new AtomicInteger(-1);
+		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
+
+		assertThrows(AssertionFailedError.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+			try {
+				while (!Thread.currentThread().isInterrupted()) {
+					Thread.onSpinWait();
+				}
+			} finally {
+				long cleanupDeadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(200);
+				while (System.nanoTime() < cleanupDeadline) {
+					Thread.onSpinWait();
+				}
+				workerFinished.set(true);
+			}
+			return null;
+		}, context, Duration.ofSeconds(1), requestedExitCode::set));
+
+		assertThat(workerFinished).isTrue();
+		assertThat(requestedExitCode).hasValue(-1);
+	}
+
+	@Test
+	void anUnusableCallerDefaultIsRefusedBeforeTheWorkerStarts() throws Exception {
+		AtomicBoolean executionStarted = new AtomicBoolean();
+		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
+
+		assertThrows(IllegalArgumentException.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+			executionStarted.set(true);
+			return null;
+		}, context, Duration.ofSeconds(Long.MAX_VALUE), exitCode -> fail("must not terminate the fork"))); //$NON-NLS-1$
+
+		assertThat(executionStarted).isFalse();
+	}
+
+	/**
+	 * A sub-millisecond timeout is waited for in full rather than rounded down to
+	 * the zero that would fail the test at once.
+	 */
+	@Test
+	void aSubMillisecondTimeoutIsWaitedForInFull() throws Exception {
+		TestContext context = contextFor("subMillisecondTimeout"); //$NON-NLS-1$
+		long startedAt = System.nanoTime();
+
+		assertThrows(AssertionFailedError.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+			while (!Thread.currentThread().isInterrupted()) {
+				Thread.onSpinWait();
+			}
+			return null;
+		}, context, Duration.ofSeconds(5), exitCode -> fail("must not terminate the fork"))); //$NON-NLS-1$
+
+		assertThat(Duration.ofNanos(System.nanoTime() - startedAt)).isGreaterThanOrEqualTo(Duration.ofNanos(500_000));
+		assertThat(TimeoutUtils.timeoutNanos(Duration.ofNanos(500_000))).isEqualTo(500_000);
+	}
+
+	/**
+	 * A timeout too long for a nanosecond count is refused before the worker
+	 * starts, so the overflow never surfaces while student code runs.
+	 */
+	@Test
+	void anUnrepresentableTimeoutIsRefusedBeforeTheWorkerStarts() throws Exception {
+		AtomicBoolean executionStarted = new AtomicBoolean();
+		TestContext context = contextFor("unrepresentableTimeout"); //$NON-NLS-1$
+
+		assertThrows(IllegalArgumentException.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+			executionStarted.set(true);
+			return null;
+		}, context, Duration.ofSeconds(5), exitCode -> fail("must not terminate the fork"))); //$NON-NLS-1$
+
+		assertThat(executionStarted).isFalse();
+	}
+
+	@Test
+	void jupiterKeepsItsFiftyMillisecondDefault() throws Exception {
+		java.lang.reflect.Field field = TimeoutUtils.class.getDeclaredField("DEFAULT_TERMINATION_GRACE_PERIOD"); //$NON-NLS-1$
+		field.setAccessible(true);
+
+		assertThat((Duration) field.get(null)).isEqualTo(Duration.ofMillis(50));
+	}
+
+	@Test
+	void policyTimeoutAppliesWithoutAnAnnotation() throws Exception {
+		assertThat(TimeoutUtils.findTimeout(contextFor("policyOnly"))).contains(Duration.ofMillis(20)); //$NON-NLS-1$
+	}
+
+	@Test
+	void annotationTimeoutWinsOverThePolicy() throws Exception {
+		assertThat(TimeoutUtils.findTimeout(contextFor("annotationAndPolicyWithGrace"))) //$NON-NLS-1$
+				.contains(Duration.ofMillis(300));
+	}
+
+	@Test
+	void policyGraceAppliesWhenAnAnnotationSetsTheTimeout() throws Exception {
+		assertThat(TimeoutUtils.findTerminationGracePeriod(contextFor("annotationAndPolicyWithGrace"))) //$NON-NLS-1$
+				.contains(Duration.ofMillis(10));
+	}
+
+	@Test
+	void noPolicyMeansAnnotationOnly() throws Exception {
+		assertThat(TimeoutUtils.findTimeout(contextFor("strictTimeoutTarget"))).contains(Duration.ofMillis(20)); //$NON-NLS-1$
+		assertThat(TimeoutUtils.findTerminationGracePeriod(contextFor("strictTimeoutTarget"))).isEmpty(); //$NON-NLS-1$
+		assertThat(TimeoutUtils.findTimeout(contextFor("unbounded"))).isEmpty(); //$NON-NLS-1$
+	}
+
+	@Test
+	void deactivatedPolicyMeansAnnotationOnly() throws Exception {
+		assertThat(TimeoutUtils.findTimeout(contextFor("deactivatedPolicy"))).isEmpty(); //$NON-NLS-1$
+	}
+
+	@Test
+	void aPolicyWithoutTheCategoryBoundsNothing() throws Exception {
+		assertThat(TimeoutUtils.findTimeout(contextFor("policyWithoutTestBehavior"))).isEmpty(); //$NON-NLS-1$
+	}
+
+	@Test
+	void zeroPolicyGraceIsConfiguredRatherThanAbsent() throws Exception {
+		assertThat(TimeoutUtils.findTerminationGracePeriod(contextFor("policyWithZeroGrace"))) //$NON-NLS-1$
+				.contains(Duration.ZERO);
+	}
+
+	@Test
+	void subMillisecondPolicyGraceKeepsItsPrecision() throws Exception {
+		assertThat(TimeoutUtils.findTerminationGracePeriod(contextFor("policyWithSubMillisecondGrace"))) //$NON-NLS-1$
+				.contains(Duration.ofNanos(500_000));
+	}
+
+	@Test
+	void policyGraceOverridesTheCallersDefault() throws Exception {
+		AtomicBoolean workerStarted = new AtomicBoolean();
+		AtomicBoolean releaseWorker = new AtomicBoolean();
+		AtomicInteger requestedExitCode = new AtomicInteger(-1);
+		TestContext context = contextFor("policyWithGrace"); //$NON-NLS-1$
+		long startedAt = System.nanoTime();
+		try {
+			assertThrows(FatalTermination.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+				workerStarted.set(true);
+				while (!releaseWorker.get()) {
+					Thread.onSpinWait();
+				}
+				return null;
+			}, context, Duration.ofSeconds(30), exitCode -> {
+				requestedExitCode.set(exitCode);
+				throw new FatalTermination();
+			}));
+		} finally {
+			releaseWorker.set(true);
+		}
+
+		assertThat(workerStarted).isTrue();
+		assertThat(requestedExitCode).hasValue(124);
+		assertThat(Duration.ofNanos(System.nanoTime() - startedAt)).isLessThan(Duration.ofSeconds(10));
+	}
+
 	private static final class FatalTermination extends RuntimeException {
 		private static final long serialVersionUID = 1L;
 	}
@@ -112,5 +269,65 @@ class TimeoutUtilsTest {
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void strictTimeoutTarget() {
 		// Provides the annotation consumed through the mocked test context.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@StrictTimeout(value = 500, unit = TimeUnit.MICROSECONDS)
+	private static void subMillisecondTimeout() {
+		// Provides a timeout below one millisecond.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@StrictTimeout(value = Long.MAX_VALUE, unit = TimeUnit.SECONDS)
+	private static void unrepresentableTimeout() {
+		// Provides a timeout no nanosecond count holds.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy("src/test/resources/de/tum/cit/ase/ares/api/internal/strictTimeouts/PolicyStrictTimeoutsOnly.yaml")
+	private static void policyOnly() {
+		// Provides a policy with a timeout and no annotation.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
+	@Policy("src/test/resources/de/tum/cit/ase/ares/api/internal/strictTimeouts/PolicyStrictTimeoutsWithGrace.yaml")
+	private static void annotationAndPolicyWithGrace() {
+		// Provides an annotation timeout beside a policy with a grace period.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy("src/test/resources/de/tum/cit/ase/ares/api/internal/strictTimeouts/PolicyStrictTimeoutsWithGrace.yaml")
+	private static void policyWithGrace() {
+		// Provides a policy timeout of 500 ms with a 10 ms grace period.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy("src/test/resources/de/tum/cit/ase/ares/api/internal/strictTimeouts/PolicyStrictTimeoutsZeroGrace.yaml")
+	private static void policyWithZeroGrace() {
+		// Provides a policy grace period of zero.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy("src/test/resources/de/tum/cit/ase/ares/api/internal/strictTimeouts/PolicyStrictTimeoutsSubMillisecondGrace.yaml")
+	private static void policyWithSubMillisecondGrace() {
+		// Provides a policy grace period below a millisecond.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/api/internal/strictTimeouts/PolicyStrictTimeoutsOnly.yaml", activated = false)
+	private static void deactivatedPolicy() {
+		// Provides a deactivated policy with a timeout.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy("src/test/resources/de/tum/cit/ase/ares/api/internal/strictTimeouts/PolicyWithoutTestBehavior.yaml")
+	private static void policyWithoutTestBehavior() {
+		// Provides an active policy without the category.
+	}
+
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	private static void unbounded() {
+		// Provides neither annotation nor policy.
 	}
 }
