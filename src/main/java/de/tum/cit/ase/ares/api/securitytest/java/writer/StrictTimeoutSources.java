@@ -276,6 +276,13 @@ final class StrictTimeoutSources {
 							throw new HiddenTestFailure();
 						}
 						throw new TimeoutException(@MESSAGES@.localized("timeout.failure_message", format(timeout)));
+					} catch (InterruptedException interrupted) {
+						try {
+							terminate(future, executor, graceNanos);
+						} finally {
+							Thread.currentThread().interrupt();
+						}
+						throw interrupted;
 					} finally {
 						executor.shutdownNow();
 					}

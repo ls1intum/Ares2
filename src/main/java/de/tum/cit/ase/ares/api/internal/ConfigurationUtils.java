@@ -9,6 +9,7 @@ import org.apiguardian.api.API.Status;
 import de.tum.cit.ase.ares.api.MirrorOutput;
 import de.tum.cit.ase.ares.api.MirrorOutput.MirrorOutputPolicy;
 import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.context.TestContextUtils;
 import de.tum.cit.ase.ares.api.context.TestType;
@@ -55,7 +56,8 @@ public final class ConfigurationUtils {
 	 * @return the configured message, if present
 	 */
 	public static Optional<String> getNonprivilegedFailureMessage(TestContext context) {
-		return Optional.empty();
+		return TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class)
+				.map(PrivilegedExceptionsOnly::value);
 	}
 
 	/**

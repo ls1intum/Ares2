@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.integration.precompile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import javax.tools.JavaCompiler;
@@ -244,6 +246,36 @@ class GeneratedStrictTimeoutTest {
 		assertThat(results.allEvents().failed().count()).isZero();
 	}
 
+	/** An interrupted caller still halts when its worker ignores cancellation. */
+	@Test
+	void interruptedCallerAppliesTerminationGrace() throws Exception {
+		String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
+		String classPath = compiled + File.pathSeparator + System.getProperty("java.class.path");
+		Process process = new ProcessBuilder(java, "-cp", classPath, "com.example.fixtures.InterruptedCallerProbe")
+				.start();
+		try {
+			assertThat(process.waitFor(5, TimeUnit.SECONDS)).isTrue();
+			assertThat(process.exitValue()).isEqualTo(124);
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
+	/** An interrupted caller keeps its interrupted flag after a worker stops. */
+	@Test
+	void interruptedCallerKeepsItsInterruptFlag() throws Exception {
+		String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
+		String classPath = compiled + File.pathSeparator + System.getProperty("java.class.path");
+		Process process = new ProcessBuilder(java, "-cp", classPath, "com.example.fixtures.InterruptStatusProbe")
+				.start();
+		try {
+			assertThat(process.waitFor(5, TimeUnit.SECONDS)).isTrue();
+			assertThat(process.exitValue()).isZero();
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
 	/**
 	 * The sentinel passes when the interceptor timed it.
 	 *
@@ -455,6 +487,53 @@ class GeneratedStrictTimeoutTest {
 		fixture(folder, "AfterAllFixture", "@AfterAll static void tearDown() { Loop.untilInterrupted(); }",
 				"@Test void test() {}");
 		fixture(folder, "FastFixture", "", "@Test void fast() throws InterruptedException { Thread.sleep(10); }");
+		Files.writeString(folder.resolve("InterruptedCallerProbe.java"), """
+				package com.example.fixtures;
+				import java.time.Duration;
+				import java.util.concurrent.CountDownLatch;
+				import de.tum.cit.ase.ares.generated.GeneratedStrictTimeout;
+				public final class InterruptedCallerProbe {
+					public static void main(String[] args) throws Exception {
+						CountDownLatch started = new CountDownLatch(1);
+						Thread caller = new Thread(() -> {
+							try {
+								GeneratedStrictTimeout.executeWithTimeout(() -> {
+									started.countDown();
+									while (true) Thread.onSpinWait();
+								}, Duration.ofSeconds(1));
+							} catch (Throwable failure) {
+								System.exit(20);
+							}
+						});
+						caller.start();
+						started.await();
+						caller.interrupt();
+						caller.join();
+						System.exit(21);
+					}
+				}
+				""");
+		Files.writeString(folder.resolve("InterruptStatusProbe.java"), """
+				package com.example.fixtures;
+				import java.time.Duration;
+				import de.tum.cit.ase.ares.generated.GeneratedStrictTimeout;
+				public final class InterruptStatusProbe {
+					public static void main(String[] args) {
+						Thread.currentThread().interrupt();
+						try {
+							GeneratedStrictTimeout.executeWithTimeout(() -> {
+								new java.util.concurrent.CountDownLatch(1).await();
+								return 1;
+							}, Duration.ofSeconds(1));
+							System.exit(21);
+						} catch (InterruptedException expected) {
+							System.exit(Thread.currentThread().isInterrupted() ? 0 : 22);
+						} catch (Throwable failure) {
+							System.exit(23);
+						}
+					}
+				}
+				""");
 		return root;
 	}
 
