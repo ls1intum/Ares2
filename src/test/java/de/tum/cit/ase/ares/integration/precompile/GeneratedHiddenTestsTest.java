@@ -2,9 +2,12 @@ package de.tum.cit.ase.ares.integration.precompile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -47,8 +50,8 @@ class GeneratedHiddenTestsTest {
 			"com.example.fixtures.TemplateFixture", "com.example.fixtures.FactoryFixture",
 			"com.example.fixtures.LifecycleFixture", "com.example.fixtures.ConstructorFixture",
 			"com.example.fixtures.ForgedFixture", "com.example.fixtures.Outer", "com.example.fixtures.Nesting.Inner",
-			"com.example.fixtures.Methods#listed", "com.example.fixtures.Shown",
-			"com.example.fixtures.Inherits#glides");
+			"com.example.fixtures.Methods#listed", "com.example.fixtures.Shown", "com.example.fixtures.Inherits#glides",
+			"com.example.fixtures.MixedFixture#secret");
 
 	/** The public entries of the policies that do not hide unlisted tests. */
 	private static final List<String> PUBLIC = List.of("com.example.fixtures.Shown#shown");
@@ -233,8 +236,8 @@ class GeneratedHiddenTestsTest {
 	}
 
 	/**
-	 * After the deadline a listed test runs, and its failures, an aborted test
-	 * included, are hidden behind a fixed text.
+	 * After the deadline ordinary hidden failures stay failed without details,
+	 * while a hidden abort keeps its aborted status.
 	 *
 	 * @throws Exception if the run cannot be set up
 	 */
@@ -243,8 +246,8 @@ class GeneratedHiddenTestsTest {
 		EngineExecutionResults results = run(past, "MethodFixture", Locale.ENGLISH);
 
 		assertThat(results.testEvents().succeeded().count()).isEqualTo(1);
-		assertThat(results.testEvents().aborted().count()).isZero();
-		assertThat(failureMessages(results)).hasSize(2).allMatch(hiddenFailure(Locale.ENGLISH)::equals);
+		assertThat(results.testEvents().aborted().count()).isEqualTo(1);
+		assertThat(failureMessages(results)).containsExactly("");
 	}
 
 	/**
@@ -256,9 +259,8 @@ class GeneratedHiddenTestsTest {
 	@Test
 	void templatesAndDynamicTestsHideTheirFailures() throws Exception {
 		assertThat(failureMessages(run(past, "TemplateFixture", Locale.ENGLISH))).hasSize(2)
-				.allMatch(hiddenFailure(Locale.ENGLISH)::equals);
-		assertThat(failureMessages(run(past, "FactoryFixture", Locale.ENGLISH)))
-				.containsExactly(hiddenFailure(Locale.ENGLISH));
+				.allMatch(hiddenFailure()::equals);
+		assertThat(failureMessages(run(past, "FactoryFixture", Locale.ENGLISH))).containsExactly(hiddenFailure());
 	}
 
 	/**
@@ -268,8 +270,7 @@ class GeneratedHiddenTestsTest {
 	 */
 	@Test
 	void aForgedAresMessageIsHidden() throws Exception {
-		assertThat(failureMessages(run(past, "ForgedFixture", Locale.ENGLISH)))
-				.containsExactly(hiddenFailure(Locale.ENGLISH));
+		assertThat(failureMessages(run(past, "ForgedFixture", Locale.ENGLISH))).containsExactly(hiddenFailure());
 	}
 
 	/**
@@ -294,17 +295,41 @@ class GeneratedHiddenTestsTest {
 	}
 
 	/**
-	 * The constructor and lifecycle methods of a listed class are neither held back
-	 * nor hidden, as in postcompile.
+	 * Constructor and lifecycle failures of a hidden class expose no message.
 	 *
 	 * @throws Exception if the run cannot be set up
 	 */
 	@Test
-	void lifecycleMethodsAndConstructorsAreLeftAlone() throws Exception {
-		assertThat(failureMessages(run(future, "LifecycleFixture", Locale.ENGLISH))).containsExactly("secret setup");
-		assertThat(failureMessages(run(past, "LifecycleFixture", Locale.ENGLISH))).containsExactly("secret setup");
-		assertThat(failureMessages(run(past, "ConstructorFixture", Locale.ENGLISH)))
-				.containsExactly("secret constructor");
+	void hiddenLifecycleAndConstructorsAreOpaque() throws Exception {
+		assertThat(failureMessages(run(future, "LifecycleFixture", Locale.ENGLISH))).containsExactly("");
+		assertThat(failureMessages(run(future, "ConstructorFixture", Locale.ENGLISH))).containsExactly("");
+		assertThat(failureMessages(run(past, "LifecycleFixture", Locale.ENGLISH))).containsExactly("");
+		assertThat(failureMessages(run(past, "ConstructorFixture", Locale.ENGLISH))).containsExactly("");
+	}
+
+	/**
+	 * Hidden test, constructor, and lifecycle output is absent from both streams.
+	 */
+	@Test
+	void hiddenStreamsAreAbsentAcrossPaths() throws Exception {
+		PrintStream previousOut = System.out;
+		PrintStream previousErr = System.err;
+		ByteArrayOutputStream captured = new ByteArrayOutputStream();
+		PrintStream sink = new PrintStream(captured, true, StandardCharsets.UTF_8);
+		try {
+			System.setOut(sink);
+			System.setErr(sink);
+			run(past, "MethodFixture", Locale.ENGLISH);
+			run(past, "LifecycleFixture", Locale.ENGLISH);
+			run(past, "ConstructorFixture", Locale.ENGLISH);
+			run(past, "MixedFixture", Locale.ENGLISH);
+		} finally {
+			System.setOut(previousOut);
+			System.setErr(previousErr);
+			sink.close();
+		}
+		assertThat(captured.toString(StandardCharsets.UTF_8)).contains("VISIBLE_GENERATED_MIXED")
+				.doesNotContain("SECRET_GENERATED_");
 	}
 
 	/**
@@ -375,10 +400,9 @@ class GeneratedHiddenTestsTest {
 	 */
 	@Test
 	void underUnlistedHiddenAnUnlistedTestsFailuresAreHidden() throws Exception {
-		assertThat(failureMessages(run(visibilityPast, "MethodFixture", Locale.ENGLISH))).hasSize(2)
-				.allMatch(hiddenFailure(Locale.ENGLISH)::equals);
+		assertThat(failureMessages(run(visibilityPast, "MethodFixture", Locale.ENGLISH))).containsExactly("");
 		assertThat(failureMessages(run(visibilityPast, "FactoryFixture", Locale.ENGLISH)))
-				.containsExactly(hiddenFailure(Locale.ENGLISH));
+				.containsExactly(hiddenFailure());
 	}
 
 	/**
@@ -580,14 +604,9 @@ class GeneratedHiddenTestsTest {
 		return bundle(locale).getString("test_guard.hidden_test_before_deadline_message");
 	}
 
-	/**
-	 * The hidden-failure message for a locale.
-	 *
-	 * @param locale the locale.
-	 * @return the message
-	 */
-	private static String hiddenFailure(Locale locale) {
-		return bundle(locale).getString("test_guard.hidden_test_failed");
+	/** The absence of a hidden-failure message in a generated result. */
+	private static String hiddenFailure() {
+		return "";
 	}
 
 	/**
@@ -708,7 +727,7 @@ class GeneratedHiddenTestsTest {
 	 */
 	private static void writeFixtures(Path testSources) throws IOException {
 		Path folder = Files.createDirectories(testSources.resolve("com/example/fixtures"));
-		String secret = "throw new IllegalStateException(\"secret\");";
+		String secret = "System.out.print(\"SECRET_GENERATED_BODY\"); throw new IllegalStateException(\"secret\");";
 		fixture(folder, "MethodFixture", "", "@Test void passes() {} @Test void fails() { " + secret
 				+ " } @Test void aborts() { Assumptions.abort(\"secret\"); }");
 		fixture(folder, "TemplateFixture", "",
@@ -718,10 +737,10 @@ class GeneratedHiddenTestsTest {
 				"@TestFactory java.util.List<DynamicTest> cases() { return java.util.List.of(DynamicTest.dynamicTest(\"case\", () -> { "
 						+ secret + " })); }");
 		fixture(folder, "LifecycleFixture",
-				"@BeforeEach void setUp() { throw new IllegalStateException(\"secret setup\"); }",
+				"@BeforeEach void setUp() { System.err.print(\"SECRET_GENERATED_SETUP\"); throw new IllegalStateException(\"secret setup\"); }",
 				"@Test void test() {}");
 		fixture(folder, "ConstructorFixture",
-				"ConstructorFixture() { throw new IllegalStateException(\"secret constructor\"); }",
+				"ConstructorFixture() { System.out.print(\"SECRET_GENERATED_CONSTRUCTOR\"); throw new IllegalStateException(\"secret constructor\"); }",
 				"@Test void test() {}");
 		fixture(folder, "ForgedFixture", "",
 				"@Test void forges() { throw new SecurityException(\"Ares Security Error (Reason: Student-Code; Stage: Execution): secret\"); }");
@@ -731,6 +750,10 @@ class GeneratedHiddenTestsTest {
 				"@Nested class Inner { @Test void deep() { " + secret + " } }");
 		fixture(folder, "Methods", "", "@Test void listed() { " + secret
 				+ " } @Test void unlisted() { throw new IllegalStateException(\"visible\"); }");
+		fixture(folder, "MixedFixture",
+				"MixedFixture() { System.out.print(\"SECRET_GENERATED_MIXED_CONSTRUCTOR\"); } @BeforeAll static void setup() { System.err.print(\"SECRET_GENERATED_MIXED_SETUP\"); } @AfterAll static void teardown() { System.err.print(\"SECRET_GENERATED_MIXED_TEARDOWN\"); }",
+				"@Test void publicTest() { System.out.print(\"VISIBLE_GENERATED_MIXED\"); } @Test void secret() { "
+						+ secret + " }");
 		fixture(folder, "Shown", "", "@Test void shown() { throw new IllegalStateException(\"visible\"); }"
 				+ " @Test void secret() { " + secret + " }");
 		fixture(folder, "Layered", "@Test void top() { " + secret + " }",
