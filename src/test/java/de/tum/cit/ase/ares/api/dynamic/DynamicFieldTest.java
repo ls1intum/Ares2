@@ -38,6 +38,52 @@ class DynamicFieldTest {
 		// declares no fields of its own
 	}
 
+	/** Declares the field {@link Child} inherits through {@link Parent}. */
+	static class Grandparent {
+		/** The superclass field a lookup on {@link Child} must find. */
+		int LIMIT = 1;
+	}
+
+	/** Passes {@link Grandparent}'s field on without declaring one. */
+	static class Parent extends Grandparent {
+		// declares no fields of its own: LIMIT comes from Grandparent
+	}
+
+	/** Declares a constant with the same name as {@link Grandparent}'s field. */
+	interface LimitOwningInterface {
+		/** The interface constant of the same name, which must not win. */
+		int LIMIT = 2;
+
+		/**
+		 * Gives the interface a method, so it describes a type rather than only holding
+		 * a constant.
+		 *
+		 * @return the constant
+		 */
+		default int limit() {
+			return LIMIT;
+		}
+	}
+
+	/** Sees the same field name on a superclass and on an interface. */
+	static class Child extends Parent implements LimitOwningInterface {
+		// declares no fields of its own: LIMIT is found on Grandparent and on the
+		// interface
+	}
+
+	/**
+	 * A field of the same name on a superclass further up wins over a constant of
+	 * an interface, as it did before interfaces were searched at all.
+	 */
+	@Test
+	void superclassFieldWinsOverAnInterfaceConstantOfTheSameName() {
+		var field = DynamicClass.toDynamic(Child.class).field(int.class, "LIMIT");
+		var child = new Child();
+		assertThat(field.getOf(child)).isEqualTo(1);
+		field.setOf(child, 3);
+		assertThat(field.getOf(child)).isEqualTo(3);
+	}
+
 	@Test
 	void fieldDeclaredDirectlyOnInterfaceIsFound() {
 		var field = DynamicClass.toDynamic(FieldOwningInterface.class).field(int.class, "CONSTANT");

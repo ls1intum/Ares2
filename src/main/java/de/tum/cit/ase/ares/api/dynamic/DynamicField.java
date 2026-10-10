@@ -107,29 +107,45 @@ public class DynamicField<T> implements Checkable {
 				.findFirst();
 	}
 
+	/**
+	 * Lists the fields of the wanted type declared by {@code c}, its superclasses
+	 * and its interfaces. Those of {@code c} and its superclasses come first,
+	 * nearest first, and interface constants only after all of them, so a
+	 * superclass field wins over an interface constant of the same name.
+	 *
+	 * @param c the class or interface to search
+	 * @return the matching fields, in the order a lookup should prefer them
+	 */
 	private List<Field> fieldsOf(Class<?> c) {
 		List<Field> al = new ArrayList<>();
-		Deque<Class<?>> toVisit = new ArrayDeque<>(List.of(c));
+		Deque<Class<?>> interfaces = new ArrayDeque<>();
+		for (Class<?> current = c; current != null && current != Object.class; current = current.getSuperclass()) {
+			addFieldsOfWantedType(current, al);
+			interfaces.addAll(List.of(current.getInterfaces()));
+		}
 		Set<Class<?>> visited = new HashSet<>();
-		while (!toVisit.isEmpty()) {
-			Class<?> current = toVisit.poll();
-			if (current == null || current == Object.class || !visited.add(current)) {
-				continue;
+		while (!interfaces.isEmpty()) {
+			Class<?> current = interfaces.poll();
+			if (visited.add(current)) {
+				addFieldsOfWantedType(current, al);
+				interfaces.addAll(List.of(current.getInterfaces()));
 			}
-			for (Field ff : current.getDeclaredFields()) {
-				if (type.toClass().isAssignableFrom(ff.getType())) {
-					al.add(ff);
-				}
-			}
-			var superclass = current.getSuperclass();
-			if (superclass != null) {
-				// ArrayDeque rejects null elements (interfaces, and Object.class itself,
-				// have no superclass) — only enqueue when there is one.
-				toVisit.add(superclass);
-			}
-			toVisit.addAll(List.of(current.getInterfaces()));
 		}
 		return al;
+	}
+
+	/**
+	 * Adds the fields {@code c} itself declares whose type fits the wanted type.
+	 *
+	 * @param c      the class or interface whose own fields are added
+	 * @param fields the list the fields are added to
+	 */
+	private void addFieldsOfWantedType(Class<?> c, List<Field> fields) {
+		for (Field ff : c.getDeclaredFields()) {
+			if (type.toClass().isAssignableFrom(ff.getType())) {
+				fields.add(ff);
+			}
+		}
 	}
 
 	@Override
