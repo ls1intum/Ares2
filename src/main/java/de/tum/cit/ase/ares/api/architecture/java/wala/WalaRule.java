@@ -134,6 +134,9 @@ public class WalaRule {
 	}
 
 	private boolean isDirectlyForbidden(JavaAccess<?> access, IClassHierarchy classHierarchy) {
+		if (ForbiddenMethodMatcher.isStandardAllowed(access.getTarget().getFullName())) {
+			return false;
+		}
 		Set<String> targets = new HashSet<>();
 		targets.add(access.getTarget().getFullName());
 		access.getTarget().resolveMember().ifPresent(member -> targets.add(member.getFullName()));
@@ -283,7 +286,10 @@ public class WalaRule {
 				target, declaringClass, access.getLineNumber(), caller));
 	}
 
-	/** Returns {@code true} if the node's method matches a forbidden signature. */
+	/**
+	 * Returns {@code true} if the node's method matches a forbidden signature and
+	 * is not one the secure baseline allows without a policy entry.
+	 */
 	private boolean isForbidden(CGNode node) {
 		String signature = node.getMethod().getSignature();
 		if (signature != null && signature.startsWith("java.lang.invoke.LambdaMetafactory.") //$NON-NLS-1$
@@ -291,6 +297,9 @@ public class WalaRule {
 			// WALA materialises ordinary Java lambda bootstrap linkage as synthetic
 			// LambdaMetafactory.call$... nodes. These are compiler plumbing, not an
 			// explicit reflective call by supervised code.
+			return false;
+		}
+		if (ForbiddenMethodMatcher.isStandardAllowed(signature)) {
 			return false;
 		}
 		return forbiddenMethods.stream().anyMatch(m -> matchesForbiddenMethod(signature, m));

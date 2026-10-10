@@ -82,15 +82,14 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * Map of methods with parameter index exceptions for file system ignore logic.
 	 * <p>
 	 * Description: Specifies for certain methods which parameter index should be
-	 * exempted from ignore rules during file system checks. For methods like
-	 * Files.createTempFile and Files.writeString, only the first parameter (the
-	 * Path) should be checked, not content or prefix/suffix strings.
+	 * exempted from ignore rules during file system checks. For a method like
+	 * Files.writeString, only the first parameter (the Path) should be checked, not
+	 * the content.
 	 */
 	@Nonnull
 	private static final Map<String, IgnoreValues> FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries(
-			// Files.createTempFile(Path dir, String prefix, String suffix,
-			// FileAttribute<?>...) - only check dir (index 0)
-			Map.entry("java.nio.file.Files.createTempFile", IgnoreValues.allExcept(0)),
+			// createTempFile is absent on purpose: its overloads put a directory or a
+			// name prefix at the same index, so checkTempFileCreationSpecialCase decides.
 			// Files.writeString(Path path, CharSequence csq, OpenOption...) - only check
 			// path (index 0)
 			Map.entry("java.nio.file.Files.writeString", IgnoreValues.allExcept(0)),
@@ -103,8 +102,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			// DirectoryStream.Filter) - only check dir (index 0); the glob/filter is not
 			// a path and must not be treated as one.
 			Map.entry("java.nio.file.Files.newDirectoryStream", IgnoreValues.allExcept(0)),
-			// File.createTempFile(String prefix, String suffix) - no path parameter at all
-			Map.entry("java.io.File.createTempFile", IgnoreValues.ALL),
 			// Runtime.exec(String[]) - only check command (index 0), not flags like "-c"
 			Map.entry("java.lang.Runtime.exec", IgnoreValues.allExcept(0)),
 			// RandomAccessFile(File|String file, String mode) - only check the file
@@ -791,6 +788,155 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		return (parameters != null && parameters.length > index) ? new Object[] { parameters[index] } : new Object[0];
 	}
 
+	/**
+	 * Decides a {@code createTempFile} call on its own, since its overloads put a
+	 * directory or a name prefix at the same position. Without a directory it is
+	 * allowed once Ares fixed the default temp directory at start-up; with one it
+	 * needs that directory or a {@code pathsAllowedToBeCreated} entry.
+	 *
+	 * @return {@code true} if the call was {@code createTempFile} and is allowed,
+	 *         {@code false} for any other call
+	 * @throws SecurityException if the call is not allowed or fits no overload
+	 */
+	private static boolean checkTempFileCreationSpecialCase(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nullable Object[] parameters, @Nonnull String systemMethodToCheck,
+			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature,
+			@Nonnull JoinPoint thisJoinPoint) {
+		if (!isTempFileCreation(declaringTypeName, methodName)) {
+			return false;
+		}
+		if (!"create".equals(action)) {
+			throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+		}
+		@Nullable
+		Object explicitDirectory = resolveExplicitTempDirectory(declaringTypeName, parameters, systemMethodToCheck,
+				fullMethodSignature);
+		if (explicitDirectory == null) {
+			requireFrozenDefaultTempDirectory();
+		} else {
+			requireDirectoryAllowedForTempFiles(explicitDirectory, systemMethodToCheck, studentCalledMethod,
+					fullMethodSignature, thisJoinPoint);
+		}
+		return true;
+	}
+
+	/**
+	 * Tells whether a call is {@code Files.createTempFile} or
+	 * {@code File.createTempFile}.
+	 *
+	 * @param declaringTypeName the class that declares the called method
+	 * @param methodName        the called method
+	 * @return {@code true} for either of the two methods
+	 */
+	private static boolean isTempFileCreation(@Nonnull String declaringTypeName, @Nonnull String methodName) {
+		return "createTempFile".equals(methodName)
+				&& ("java.nio.file.Files".equals(declaringTypeName) || "java.io.File".equals(declaringTypeName));
+	}
+
+	/**
+	 * Returns the directory a {@code createTempFile} call names, or {@code null}
+	 * when it names none. {@code Files.createTempFile} takes three arguments, or
+	 * four with the directory first; {@code File.createTempFile} takes two, or
+	 * three with the directory last, where {@code null} means the default one.
+	 *
+	 * @return the directory argument, or {@code null} for the default directory
+	 * @throws SecurityException if the arguments fit neither overload
+	 */
+	@Nullable
+	private static Object resolveExplicitTempDirectory(@Nonnull String declaringTypeName,
+			@Nullable Object[] parameters, @Nonnull String systemMethodToCheck, @Nonnull String fullMethodSignature) {
+		boolean isFilesMethod = "java.nio.file.Files".equals(declaringTypeName);
+		int count = parameters == null ? -1 : parameters.length;
+		if ((isFilesMethod && count == 3) || (!isFilesMethod && count == 2)) {
+			return null;
+		}
+		if (isFilesMethod && count == 4 && parameters[0] instanceof Path) {
+			return parameters[0];
+		}
+		if (!isFilesMethod && count == 3 && (parameters[2] == null || parameters[2] instanceof File)) {
+			return parameters[2];
+		}
+		throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
+				systemMethodToCheck, fullMethodSignature));
+	}
+
+	/**
+	 * Allows a {@code createTempFile} call without a directory only if the trusted
+	 * start-up fixed the default temp directory. Otherwise Ares cannot tell which
+	 * directory the JDK will write to, so the call is refused whatever the policy
+	 * lists, with the same message as any access without trusted start-up.
+	 *
+	 * @throws SecurityException if no default temp directory was fixed
+	 */
+	private static void requireFrozenDefaultTempDirectory() {
+		if (frozenDefaultTempDirectory() == null) {
+			throw new SecurityException(localize("security.advice.trusted.startup.missing"));
+		}
+	}
+
+	/**
+	 * Allows a {@code createTempFile} directory that is exactly the default temp
+	 * directory fixed at start-up, or that {@code pathsAllowedToBeCreated} covers.
+	 * Ares's own internal file names grant nothing here, since a student can name a
+	 * directory after them.
+	 *
+	 * @throws SecurityException if neither holds
+	 */
+	private static void requireDirectoryAllowedForTempFiles(@Nonnull Object explicitDirectory,
+			@Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature, @Nonnull JoinPoint thisJoinPoint) {
+		@Nullable
+		String[] allowedPaths = getValueFromSettings("pathsAllowedToBeCreated");
+		@Nullable
+		String violation = checkIfVariableCriteriaIsViolated(new Object[] { explicitDirectory }, allowedPaths,
+				IgnoreValues.NONE, true);
+		if (violation == null || isFrozenDefaultTempDirectory(explicitDirectory)) {
+			return;
+		}
+		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
+		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck, "create",
+				violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
+						+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+						+ buildDenialReason(noAllowRuleConfigured)));
+	}
+
+	/**
+	 * Tells whether a directory is exactly the default temp directory fixed at
+	 * start-up once symbolic links are followed, so a subdirectory or a link
+	 * leading elsewhere does not count. Following links reads the file system,
+	 * which is safe because this runs inside the advice's guard against calling
+	 * itself. Any failure counts as "not the same directory".
+	 *
+	 * @param explicitDirectory the directory argument, a {@code Path} or a
+	 *                          {@code File}
+	 * @return {@code true} only for the fixed default temp directory itself
+	 */
+	private static boolean isFrozenDefaultTempDirectory(@Nonnull Object explicitDirectory) {
+		@Nullable
+		String frozenDirectory = frozenDefaultTempDirectory();
+		if (frozenDirectory == null) {
+			return false;
+		}
+		try {
+			@Nullable
+			Path candidate = variableToPath(explicitDirectory, true);
+			return candidate != null && candidate.toRealPath().equals(Path.of(frozenDirectory));
+		} catch (IOException | InvalidPathException unresolvable) {
+			return false;
+		}
+	}
+
+	/**
+	 * Returns the default temp directory that trusted Ares code fixed at start-up,
+	 * already resolved to its real location, or {@code null} if nothing fixed it.
+	 *
+	 * @return the fixed directory, or {@code null}
+	 */
+	@Nullable
+	private static String frozenDefaultTempDirectory() {
+		return getValueFromSettings("frozenDefaultTempDirectory");
+	}
+
 	// </editor-fold>
 
 	/**
@@ -1293,6 +1439,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
 				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint)) {
+			return;
+		}
+		if (checkTempFileCreationSpecialCase(action, declaringTypeName, methodName, parameters, systemMethodToCheck,
+				studentCalledMethod, fullMethodSignature, thisJoinPoint)) {
 			return;
 		}
 		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, parameters);

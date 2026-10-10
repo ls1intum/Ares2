@@ -28,6 +28,7 @@ import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.thirdparty.com.google.common.base.Preconditions;
 import com.tngtech.archunit.thirdparty.com.google.common.collect.Iterables;
+
 //</editor-fold>
 
 /**
@@ -58,6 +59,16 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 	 * analysis.
 	 */
 	private final DescribedPredicate<? super JavaAccess<?>> checkIfAccessIsViolating;
+
+	/**
+	 * JDK calls the secure baseline allows without a policy entry, in ArchUnit's
+	 * own notation: a temp file without a named directory. Kept in this class, not
+	 * shared, because precompile copies this class but not the shared matcher; the
+	 * WALA analysis uses the same two calls through that matcher.
+	 */
+	private static final Set<String> STANDARD_ALLOWED_CALLS = Set.of(
+			"java.io.File.createTempFile(java.lang.String, java.lang.String)",
+			"java.nio.file.Files.createTempFile(java.lang.String, java.lang.String, [Ljava.nio.file.attribute.FileAttribute;)");
 
 	private final Map<String, List<JavaAccess<?>>> outgoingAccessesByMethod = new HashMap<>();
 
@@ -240,6 +251,17 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 			return violationByAccess.computeIfAbsent(access, checkIfAccessIsViolating::test);
 		}
 
+		/**
+		 * Tells whether an access calls one of the JDK methods the secure baseline
+		 * allows, so it is neither a violation nor followed into the JDK.
+		 *
+		 * @param access access to classify
+		 * @return whether the call is standard-allowed
+		 */
+		private boolean isStandardAllowed(JavaAccess<?> access) {
+			return STANDARD_ALLOWED_CALLS.contains(access.getTarget().getFullName());
+		}
+
 		private Optional<List<JavaAccess<?>>> findPathFromMethod(String startingMethod, JavaClass startingClass) {
 			if (methodsWithoutViolation.contains(startingMethod)) {
 				return Optional.empty();
@@ -271,6 +293,9 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 
 				for (JavaAccess<?> outgoingAccess : getAccessesFromClassCalledBySpecificMethod(currentMethod.owner(),
 						currentMethod.name())) {
+					if (isStandardAllowed(outgoingAccess)) {
+						continue;
+					}
 					if (isViolating(outgoingAccess)) {
 						List<JavaAccess<?>> path = pathTo(currentMethod.name(), startingMethod, parentAccessByMethod);
 						path.add(outgoingAccess);
@@ -332,6 +357,9 @@ public class TransitivelyAccessesMethodsCondition extends ArchCondition<JavaClas
 		 *         none found
 		 */
 		List<JavaAccess<?>> findPathFromViolatingMethodTo(JavaAccess<?> access) {
+			if (isStandardAllowed(access)) {
+				return List.of();
+			}
 			if (isViolating(access)) {
 				return List.of(access);
 			}
