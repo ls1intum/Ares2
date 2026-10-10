@@ -395,9 +395,9 @@ theFollowingTestBehaviorIsConfigured:
     theMaximumCharacterCountIs: 10000
 ```
 
-**Precedence:** a `@MirrorOutput` on the test method or class replaces this category entirely. Without one, the policy applies to every test marked `@PublicTest` or `@HiddenTest`, from its `@BeforeEach` methods to its `@AfterEach` methods.
+**Precedence:** hidden visibility suppresses console mirroring even when `@MirrorOutput(ENABLED)` or the policy enables it. The output limit still applies. For public tests, a `@MirrorOutput` on the method or class replaces this category entirely. Without one, the policy applies from `@BeforeEach` to `@AfterEach`.
 
-**Precompile:** a precompile exercise has no Ares dependency at run time. The generator therefore writes the two values as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`, together with a JUnit extension that gives every test the same echo, the same limit and the same error messages. A generated sentinel test fails when the extension is not active. An instructor who replaces `System.out` in a `@BeforeEach` method takes over for that test. An instructor who replaces it earlier, in a `@BeforeAll` method or a field initialiser, receives nothing while mirroring is off, because the extension treats that stream as the console. Regenerating without this field deletes all of this again. Keep generated precompile output and the Ares dependency out of the same exercise.
+**Precompile:** a precompile exercise has no Ares dependency at run time. The generator therefore writes the two values as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`, together with a JUnit extension that applies the output limit and echoes public output when enabled. When generated hidden-test visibility is present, hidden output is never echoed. A generated sentinel test fails when the extension is not active. An instructor who replaces `System.out` in a `@BeforeEach` method takes over for that test. An instructor who replaces it earlier, in a `@BeforeAll` method or a field initialiser, receives nothing while mirroring is off, because the extension treats that stream as the console. Regenerating without this field deletes all of this again. Keep generated precompile output and the Ares dependency out of the same exercise.
 
 ---
 

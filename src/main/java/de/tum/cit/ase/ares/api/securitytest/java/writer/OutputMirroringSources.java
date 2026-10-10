@@ -102,10 +102,11 @@ final class OutputMirroringSources {
 						if (installed) {
 							throw new IllegalStateException(@MESSAGES@.localized("io_tester.already_installed"));
 						}
+						boolean hidden = hiddenByGeneratedPolicy(context);
 						originalOut = System.out;
 						originalErr = System.err;
-						System.setOut(boundedOver(originalOut));
-						System.setErr(boundedOver(originalErr));
+						System.setOut(boundedOver(originalOut, hidden));
+						System.setErr(boundedOver(originalErr, hidden));
 						installed = true;
 						context.getStore(NAMESPACE).put(GeneratedOutputMirroring.class, Boolean.TRUE);
 					}
@@ -136,11 +137,25 @@ final class OutputMirroringSources {
 				 * when the policy mirrors output.
 				 *
 				 * @param original the stream in place before the test
+				 * @param hidden whether generated visibility hides this test
 				 * @return the replacement
 				 */
-				private static PrintStream boundedOver(PrintStream original) {
-					OutputStream mirror = @SETTINGS@.@MIRRORED@ ? original : null;
+				private static PrintStream boundedOver(PrintStream original, boolean hidden) {
+					OutputStream mirror = @SETTINGS@.@MIRRORED@ && !hidden ? original : null;
 					return new PrintStream(new BoundedStream(mirror, @SETTINGS@.@LIMIT@), true, StandardCharsets.UTF_8);
+				}
+
+				/** Reads generated visibility when that hook is present in the exercise. */
+				private static boolean hiddenByGeneratedPolicy(ExtensionContext context) {
+					try {
+						Class<?> visibility = Class.forName("de.tum.cit.ase.ares.generated.GeneratedHiddenTests", false,
+								context.getRequiredTestClass().getClassLoader());
+						return (Boolean) visibility.getMethod("isHiddenContext", ExtensionContext.class).invoke(null, context);
+					} catch (ClassNotFoundException absent) {
+						return false;
+					} catch (ReflectiveOperationException | LinkageError | ClassCastException invalid) {
+						return true;
+					}
 				}
 
 				/**

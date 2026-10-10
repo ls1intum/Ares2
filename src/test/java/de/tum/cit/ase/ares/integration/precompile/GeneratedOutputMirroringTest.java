@@ -79,12 +79,15 @@ class GeneratedOutputMirroringTest {
 	static void generateAndCompile() throws IOException {
 		Path fixtures = writeFixtures(tempDir.resolve("fixtures"));
 		Path silentSources = generate("silent", false);
+		writeHiddenVisibilityFixture(silentSources);
 		resources = silentSources.resolveSibling("resources");
 		include = Files.readAllLines(resources.resolve("junit-platform.properties")).stream()
 				.filter(line -> line.startsWith("junit.jupiter.extensions.autodetection.include="))
 				.map(line -> line.substring(line.indexOf('=') + 1)).findFirst().orElseThrow();
 		silent = compileProject("compiled-silent", silentSources, fixtures);
-		mirrored = compileProject("compiled-mirrored", generate("mirrored", true), fixtures);
+		Path mirroredSources = generate("mirrored", true);
+		writeHiddenVisibilityFixture(mirroredSources);
+		mirrored = compileProject("compiled-mirrored", mirroredSources, fixtures);
 		shadowSettings = Files.createDirectories(tempDir.resolve("shadow"));
 		Path shadowSource = Files.createDirectories(tempDir.resolve("shadow-source/de/tum/cit/ase/ares/generated"))
 				.resolve("GeneratedTestBehaviorSettings.java");
@@ -93,6 +96,23 @@ class GeneratedOutputMirroringTest {
 						silentSources.resolve("de/tum/cit/ase/ares/generated/GeneratedTestBehaviorSettings.java"))
 						.replace("= 10L;", "= 100000000L;"));
 		compile(shadowSettings, List.of(), shadowSource);
+	}
+
+	/** Writes the generated visibility type used by the combined output hook. */
+	private static void writeHiddenVisibilityFixture(Path testSources) throws IOException {
+		Path folder = Files.createDirectories(testSources.resolve("de/tum/cit/ase/ares/generated"));
+		Files.writeString(folder.resolve("GeneratedHiddenTests.java"), """
+				package de.tum.cit.ase.ares.generated;
+
+				public final class GeneratedHiddenTests implements org.junit.jupiter.api.extension.BeforeEachCallback,
+						org.junit.jupiter.api.extension.AfterEachCallback {
+					public static boolean isHiddenContext(org.junit.jupiter.api.extension.ExtensionContext context) {
+						return context.getRequiredTestClass().getSimpleName().startsWith("Hidden");
+					}
+					@Override public void beforeEach(org.junit.jupiter.api.extension.ExtensionContext context) {}
+					@Override public void afterEach(org.junit.jupiter.api.extension.ExtensionContext context) {}
+				}
+				""");
 	}
 
 	/**
@@ -148,6 +168,24 @@ class GeneratedOutputMirroringTest {
 		assertThat(mirroredRun.console()).contains("hi");
 		assertThat(silentRun.results().testEvents().succeeded().count()).isEqualTo(1);
 		assertThat(silentRun.console()).doesNotContain("hi");
+	}
+
+	/** Generated hidden visibility suppresses both streams with mirroring on. */
+	@Test
+	void hiddenVisibilityOverridesMirroring() throws Exception {
+		NestedRun run = run(mirrored, "HiddenFixture", Locale.ENGLISH);
+		assertThat(run.results().testEvents().succeeded().count()).isEqualTo(1);
+		assertThat(run.console()).doesNotContain("HOUT", "HERR");
+	}
+
+	/** Hidden output stays absent with either extension registration order. */
+	@Test
+	void hiddenMirroringHookOrdersAreSilent() throws Exception {
+		Map<String, String> noAutodetection = Map.of("junit.jupiter.extensions.autodetection.enabled", "false");
+		assertThat(run(mirrored, "HiddenMirrorHiddenFirst", Locale.ENGLISH, noAutodetection).console())
+				.doesNotContain("HOUT", "HERR");
+		assertThat(run(mirrored, "HiddenMirrorMirrorFirst", Locale.ENGLISH, noAutodetection).console())
+				.doesNotContain("HOUT", "HERR");
 	}
 
 	/**
@@ -531,6 +569,12 @@ class GeneratedOutputMirroringTest {
 		fixture(folder, "BeforeAllFixture", "@BeforeAll static void setUp() { " + longLine + " }",
 				"@Test void test() {}");
 		fixture(folder, "ShortFixture", "", "@Test void writes() { System.out.println(\"hi\"); }");
+		fixture(folder, "HiddenFixture", "",
+				"@Test void writes() { System.out.print(\"HOUT\"); System.err.print(\"HERR\"); }");
+		fixture(folder, "HiddenMirrorHiddenFirst", "",
+				"@org.junit.jupiter.api.extension.ExtendWith({ de.tum.cit.ase.ares.generated.GeneratedHiddenTests.class, de.tum.cit.ase.ares.generated.GeneratedOutputMirroring.class }) @Test void writes() { System.out.print(\"HOUT\"); System.err.print(\"HERR\"); }");
+		fixture(folder, "HiddenMirrorMirrorFirst", "",
+				"@org.junit.jupiter.api.extension.ExtendWith({ de.tum.cit.ase.ares.generated.GeneratedOutputMirroring.class, de.tum.cit.ase.ares.generated.GeneratedHiddenTests.class }) @Test void writes() { System.out.print(\"HOUT\"); System.err.print(\"HERR\"); }");
 		fixture(folder, "InvalidUtf8Fixture", "",
 				"@Test void writes() { System.out.write(new byte[] { (byte) 0xC3 }, 0, 1); System.out.flush(); }");
 		fixture(folder, "ClosedFixture", "",
