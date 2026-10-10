@@ -86,8 +86,9 @@ for b in "${base_cfgs[@]}"; do
                  "$PARSED_RO_FILE" "$PARSED_RW_FILE" "$PARSED_HIDE_FILE"
   # NET: union
   tmpnet="$(mktemp)"; net_union "$tmpnet" "$base_net" "$PARSED_NET_FILE"; mv "$tmpnet" "$base_net"
-  # TIMEOUT: last base wins
-  [[ -n "${PARSED_TIMEOUT:-}" || "${PARSED_TIMEOUT:-__unset__}" == "" ]] && timeout_eff="${PARSED_TIMEOUT:-}"
+  # TIMEOUT: the last base that says anything wins, and saying "zero" is saying
+  # something, so it clears an earlier limit instead of being read as silence.
+  if [[ "${PARSED_TIMEOUT_SET:-0}" == "1" ]]; then timeout_eff="${PARSED_TIMEOUT:-}"; fi
 done
 
 # Effective policy (start from base, then apply exercise overrides)
@@ -99,7 +100,9 @@ for c in "${cfgs[@]}"; do
   merge_fs_per_path "$base_ro" "$base_rw" "$base_hide" eff_ro eff_rw eff_hide \
                     "$PARSED_RO_FILE" "$PARSED_RW_FILE" "$PARSED_HIDE_FILE"
   tmpnet="$(mktemp)"; net_union "$tmpnet" "$eff_net" "$PARSED_NET_FILE"; mv "$tmpnet" "$eff_net"
-  [[ -n "${PARSED_TIMEOUT:-}" || "${PARSED_TIMEOUT:-__unset__}" == "" ]] && timeout_eff="${PARSED_TIMEOUT:-}"
+  # An exercise policy that stays silent keeps the base limit; one that supplies
+  # a value replaces it, including an explicit zero that removes it entirely.
+  if [[ "${PARSED_TIMEOUT_SET:-0}" == "1" ]]; then timeout_eff="${PARSED_TIMEOUT:-}"; fi
 done
 
 SPEC_DIR="$(mktemp -d -t phobos-spec.XXXXXX)"
