@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
@@ -40,6 +41,16 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 */
 	@Nonnull
 	private static final StackWalker STACK_WALKER = StackWalker.getInstance();
+
+	/**
+	 * A stack walker that also reports each frame's class, so a trusted-looking
+	 * frame can be checked for having been loaded by the JVM itself. Kept apart
+	 * from {@link #STACK_WALKER} because this is slower and needed only for the
+	 * random-seed and temp-file exemptions.
+	 */
+	@Nonnull
+	private static final StackWalker STACK_WALKER_WITH_CLASS_REFERENCE = StackWalker
+			.getInstance(Set.of(StackWalker.Option.RETAIN_CLASS_REFERENCE));
 
 	/**
 	 * Lazily resolved Class&lt;?&gt; reference for the AOP settings holder, cached
@@ -341,6 +352,82 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			}
 			return Boolean.FALSE;
 		});
+	}
+
+	/**
+	 * Tells whether a JDK seed implementation is acting without an intervening
+	 * student callback. Other security providers can invoke student code, so their
+	 * frames cannot grant the entropy-device exemption.
+	 *
+	 * @return {@code true} if the JDK is seeding a random-number generator
+	 */
+	static boolean isSecureRandomSeedingInProgress() {
+		String restrictedPackage = getValueFromSettings("restrictedPackage");
+		return STACK_WALKER_WITH_CLASS_REFERENCE.walk(frames -> {
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+				StackWalker.StackFrame frame = iterator.next();
+				String className = frame.getClassName();
+				if (isStudentFrame(className, restrictedPackage)) {
+					return Boolean.FALSE;
+				}
+				if ((className.startsWith("sun.security.provider.NativePRNG$")
+						|| className.startsWith("sun.security.provider.SeedGenerator$"))
+						&& frame.getDeclaringClass().getClassLoader() == null) {
+					return Boolean.TRUE;
+				}
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
+	 * Tells whether the JDK's own temp-file code
+	 * ({@code java.nio.file.TempFileHelper}, loaded by the JVM itself) is on the
+	 * call stack with no student code between it and this check. Student code
+	 * further down, the caller of the temp-file method, is expected; student code
+	 * above it means a callback is acting.
+	 *
+	 * @param restrictedPackage the package holding the student code
+	 * @return {@code true} if the JDK's temp-file code itself is acting
+	 */
+	static boolean isJdkTempFileHelperCallingWithoutStudentCode(@Nullable String restrictedPackage) {
+		return STACK_WALKER_WITH_CLASS_REFERENCE.walk(frames -> {
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+				StackWalker.StackFrame frame = iterator.next();
+				String className = frame.getClassName();
+				if ("java.nio.file.TempFileHelper".equals(className)
+						&& frame.getDeclaringClass().getClassLoader() == null) {
+					return Boolean.TRUE;
+				}
+				if (isStudentFrame(className, restrictedPackage)) {
+					return Boolean.FALSE;
+				}
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
+	 * Tells whether a frame's class belongs to the student code: inside the
+	 * restricted package and not one of the trusted prefixes in
+	 * {@link #IGNORE_CALLSTACK}.
+	 *
+	 * @param className         the frame's class
+	 * @param restrictedPackage the package holding the student code
+	 * @return {@code true} for a student frame
+	 */
+	private static boolean isStudentFrame(@Nonnull String className, @Nullable String restrictedPackage) {
+		if (restrictedPackage == null || restrictedPackage.isBlank() || !className.startsWith(restrictedPackage)) {
+			return false;
+		}
+		for (String trustedPrefix : IGNORE_CALLSTACK) {
+			if (className.startsWith(trustedPrefix)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
