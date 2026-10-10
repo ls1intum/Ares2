@@ -137,6 +137,10 @@ class JavaAOPTestCaseTest {
 		assertSame(allowed, tc.getAllowedClasses());
 	}
 
+	/**
+	 * A test case writes only its own domain's settings, never a supervised package
+	 * or mode, which it does not know.
+	 */
 	@Test
 	void testWriteAOPTestCaseSerialisesConfiguration() {
 		Supplier<List<?>> supplier = Collections::emptyList;
@@ -146,10 +150,13 @@ class JavaAOPTestCaseTest {
 				.javaAOPTestCaseSupported(JavaAOPTestCaseSupported.COMMAND_EXECUTION).resourceAccessSupplier(supplier)
 				.allowedClasses(allowed).build();
 
-		String serialised = tc.writeAOPTestCase("arch", "mode");
-		assertTrue(serialised.contains("aopMode = \"mode\""));
-		assertTrue(serialised.contains("restrictedPackage = \"arch\""));
-		assertTrue(serialised.contains("commandsAllowedToBeExecuted"));
+		String serialised = tc.writeAOPTestCase("WALA", "ASPECTJ");
+		assertTrue(serialised.contains("commandsAllowedToBeExecuted"), serialised);
+		assertTrue(serialised.contains("argumentsAllowedToBePassed"), serialised);
+		for (String foreign : List.of("restrictedPackage", "aopMode", "allowedListed", "pathsAllowed", "hostsAllowed",
+				"threadNumberAllowed")) {
+			assertFalse(serialised.contains(foreign), foreign + " in " + serialised);
+		}
 	}
 
 	@Test
