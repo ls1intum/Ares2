@@ -283,6 +283,12 @@ regardingTheSupervisedCode:
     # REQUIRED list: Timeouts (can be empty array)
     regardingTimeouts:
       - timeout: 10000                               # REQUIRED (milliseconds)
+
+  # OPTIONAL: Behavioural test-lifecycle defaults, see 7.7
+  theFollowingTestBehaviorIsConfigured:
+    regardingPrivilegedExceptions:
+      onlyPrivilegedExceptionsAreReported: true      # REQUIRED within this block
+      theFailureMessageIs: "Test failed."            # OPTIONAL, defaults as shown
 ```
 
 ### 7.3 Configuration Options
@@ -363,6 +369,34 @@ theFollowingClassesAreTestClasses:
 **Matching:** an entry matches a class name **exactly**, or matches a nested class of it on the `$` boundary. So `"com.instructor.ExerciseTest"` covers `com.instructor.ExerciseTest$Inner`, while never matching the unrelated `com.instructor.ExerciseTestOther`. The same comparison is used by the static architecture rules and by the runtime advice, so the behaviour is identical in both layers.
 
 > **Package names and package prefixes do not work here, and are not harmless.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package; it matches a class literally named `com.instructor`, which does not exist, so it exempts nothing. The likely symptom is that your own test classes are treated as supervised code and your assertions start tripping the policy, if they fall within the supervised scope. Worse, the entry is not inert: Ares derives a permitted package from every entry by stripping the last dotted component, so `"com.instructor"` permits imports from the whole `com` prefix. List each test class by its exact fully qualified name.
+
+---
+
+### 7.7 Test Behaviour Configuration
+
+The `theFollowingTestBehaviorIsConfigured` field controls how Ares reports a test's own failure to a student, as opposed to which resources code can access. It currently has one category, `regardingPrivilegedExceptions`. This policy field is the only way to choose privileged-exception reporting; there is no inline annotation. It decides whether a failing public test shows its real assertion or exception message or a fixed message instead. Hidden failures keep their grading status but show no failure detail.
+
+**Field Properties:**
+- **Type:** Object (optional wrapper), containing the optional `regardingPrivilegedExceptions` object
+- **Required:** No. A policy omitting this field entirely, or omitting `regardingPrivilegedExceptions` inside it, behaves exactly as if the feature were never mentioned; no student-visible behaviour changes for a policy written before this field existed.
+- **Description:** Policy-wide defaults for test-lifecycle reporting behaviour, currently limited to privileged-exceptions-only reporting
+
+**`regardingPrivilegedExceptions` sub-fields:**
+- `onlyPrivilegedExceptionsAreReported` (boolean, **required** once `regardingPrivilegedExceptions` is present): the policy-wide default. `true` hides a non-privileged failure's real detail from the student; `false` (or omitting the whole category) reports it in full.
+- `theFailureMessageIs` (string, optional): the message shown instead of the real failure detail when the policy enables the setting. Defaults to `"Test failed."` if omitted or blank.
+
+**Example:**
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingPrivilegedExceptions:
+    onlyPrivilegedExceptionsAreReported: true
+    theFailureMessageIs: "Something went wrong."
+```
+
+**Precedence:** the active exercise policy alone chooses privileged-exception reporting for public tests. Hidden visibility overrides this setting for student-facing diagnostics.
+
+**Precompile:** a precompile exercise has no Ares dependency at run time. The generator therefore writes its own failure reporting into the exercise's test sources, in the package `de.tum.cit.ase.ares.generated`. It writes the setting as the class `GeneratedTestBehaviorSettings` and a JUnit extension. JUnit loads this extension by itself, so no test needs an annotation. With the setting on, every failing test shows the policy's message. That includes security violations and failing generated architecture tests. A test that exceeds JUnit's `@Timeout` shows the fixed text "The test timed out." instead. A precompile exercise has no hidden tests, so the setting applies to every test. One failure keeps its own message: one thrown by another extension's callback, such as an instructor's `BeforeEachCallback`, because JUnit hands it to no extension that could replace it. Keep student code out of such callbacks. Generated sentinel tests fail when the hooks are not active. Regenerating without this field, or with it set to `false`, deletes all of this again. Keep generated precompile output and the Ares dependency out of the same exercise, since both rewrite the same failure.
 
 ---
 

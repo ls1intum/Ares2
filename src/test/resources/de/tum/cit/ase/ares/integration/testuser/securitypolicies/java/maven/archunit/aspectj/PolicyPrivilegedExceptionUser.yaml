@@ -23,3 +23,8 @@ regardingTheSupervisedCode:
     regardingPackageImports: []
     regardingTimeouts:
       - timeout: 3000
+  # The policy is the only source of this failure-reporting choice.
+  theFollowingTestBehaviorIsConfigured:
+    regardingPrivilegedExceptions:
+      onlyPrivilegedExceptionsAreReported: true
+      theFailureMessageIs: "ABC"

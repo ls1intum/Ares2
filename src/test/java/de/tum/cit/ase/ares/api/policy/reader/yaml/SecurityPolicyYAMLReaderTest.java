@@ -377,6 +377,7 @@ public class SecurityPolicyYAMLReaderTest {
 		}
 	}
 
+	/** Reading and validating {@code theFollowingTestBehaviorIsConfigured}. */
 	@Nested
 	@DisplayName("theFollowingTestBehaviorIsConfigured Tests")
 	class TestBehaviorConfigurationTests {
@@ -392,9 +393,13 @@ public class SecurityPolicyYAMLReaderTest {
 			assertNull(policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured());
 		}
 
+		/**
+		 * An empty {@code theFollowingTestBehaviorIsConfigured} parses, with no
+		 * category.
+		 */
 		@Test
-		@DisplayName("Should parse the wrapper present but empty")
-		void wrapperPresentButEmptyParses(@TempDir Path tempDir) throws IOException {
+		@DisplayName("Should parse the wrapper present but with no category configured")
+		void wrapperPresentWithoutPrivilegedExceptionsCategory(@TempDir Path tempDir) throws IOException {
 			Path policyFile = tempDir.resolve("empty-behavior.yaml");
 			Files.writeString(policyFile,
 					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: {}\n");
@@ -402,6 +407,131 @@ public class SecurityPolicyYAMLReaderTest {
 			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
 
 			assertNotNull(policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured());
+			assertNull(policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured()
+					.regardingPrivilegedExceptions());
+		}
+
+		/** An enabled category parses with both fields. */
+		@Test
+		@DisplayName("Should parse a fully configured privileged-exceptions category set to true")
+		void validConfigurationTrue(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-true.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing() + """
+
+					  theFollowingTestBehaviorIsConfigured:
+					    regardingPrivilegedExceptions:
+					      onlyPrivilegedExceptionsAreReported: true
+					      theFailureMessageIs: "Custom message"
+					""");
+
+			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
+
+			var privilegedExceptions = policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured()
+					.regardingPrivilegedExceptions();
+			assertTrue(privilegedExceptions.onlyPrivilegedExceptionsAreReported());
+			assertEquals("Custom message", privilegedExceptions.theFailureMessageIs());
+		}
+
+		/** A disabled category parses. */
+		@Test
+		@DisplayName("Should parse a fully configured privileged-exceptions category set to false")
+		void validConfigurationFalse(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-false.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing() + """
+
+					  theFollowingTestBehaviorIsConfigured:
+					    regardingPrivilegedExceptions:
+					      onlyPrivilegedExceptionsAreReported: false
+					      theFailureMessageIs: "Custom message"
+					""");
+
+			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
+
+			assertFalse(policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured()
+					.regardingPrivilegedExceptions().onlyPrivilegedExceptionsAreReported());
+		}
+
+		/** A category without a message gets the default message. */
+		@Test
+		@DisplayName("Should default the omitted failure message")
+		void omittedFailureMessageDefaults(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-default-message.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing() + """
+
+					  theFollowingTestBehaviorIsConfigured:
+					    regardingPrivilegedExceptions:
+					      onlyPrivilegedExceptionsAreReported: true
+					""");
+
+			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
+
+			assertEquals("Test failed.", policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured()
+					.regardingPrivilegedExceptions().theFailureMessageIs());
+		}
+
+		/** A blank message gets the default instead of being rejected. */
+		@Test
+		@DisplayName("Should default a whitespace-only failure message, not reject it")
+		void blankFailureMessageDefaultsInsteadOfBeingRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-blank-message.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing() + """
+
+					  theFollowingTestBehaviorIsConfigured:
+					    regardingPrivilegedExceptions:
+					      onlyPrivilegedExceptionsAreReported: true
+					      theFailureMessageIs: "   "
+					""");
+
+			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
+
+			assertEquals("Test failed.", policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured()
+					.regardingPrivilegedExceptions().theFailureMessageIs());
+		}
+
+		/** A category without its required switch is rejected. */
+		@Test
+		@DisplayName("Should reject a missing onlyPrivilegedExceptionsAreReported field")
+		void missingRequiredFieldIsRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-missing-required.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing() + """
+
+					  theFollowingTestBehaviorIsConfigured:
+					    regardingPrivilegedExceptions:
+					      theFailureMessageIs: "Custom message"
+					""");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+
+		/** A switch that is not a boolean is rejected. */
+		@Test
+		@DisplayName("Should reject a non-boolean onlyPrivilegedExceptionsAreReported")
+		void nonBooleanOnlyPrivilegedExceptionsAreReportedIsRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-non-boolean.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing() + """
+
+					  theFollowingTestBehaviorIsConfigured:
+					    regardingPrivilegedExceptions:
+					      onlyPrivilegedExceptionsAreReported: "yes"
+					""");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+
+		/** An unknown field inside the category is rejected. */
+		@Test
+		@DisplayName("Should reject an unknown field inside regardingPrivilegedExceptions")
+		void unknownFieldInsideCategoryIsRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-unknown-field.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing() + """
+
+					  theFollowingTestBehaviorIsConfigured:
+					    regardingPrivilegedExceptions:
+					      onlyPrivilegedExceptionsAreReported: true
+					      unknownField: "value"
+					""");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
 		}
 
 		@Test
@@ -434,6 +564,34 @@ public class SecurityPolicyYAMLReaderTest {
 			Path policyFile = tempDir.resolve("privileged-null-wrapper.yaml");
 			Files.writeString(policyFile,
 					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: null\n");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+
+		/**
+		 * An explicit {@code null} category is rejected, like an explicit {@code null}
+		 * wrapper.
+		 */
+		@Test
+		@DisplayName("Should reject an explicit null privileged-exceptions category")
+		void explicitNullCategoryIsRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-null-category.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing()
+					+ "\n  theFollowingTestBehaviorIsConfigured:\n    regardingPrivilegedExceptions: null\n");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+
+		/** A category that is not an object is rejected. */
+		@Test
+		@DisplayName("Should reject a malformed (non-object) privileged-exceptions category")
+		void malformedCategoryTypeIsRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("privileged-malformed-category.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing() + """
+
+					  theFollowingTestBehaviorIsConfigured:
+					    regardingPrivilegedExceptions: "not-an-object"
+					""");
 
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
 		}
