@@ -10,6 +10,7 @@ import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import de.tum.cit.ase.ares.api.context.*;
+import de.tum.cit.ase.ares.api.internal.ConfigurationUtils;
 
 @API(status = Status.INTERNAL)
 public class JupiterContext extends TestContext {
@@ -44,9 +45,26 @@ public class JupiterContext extends TestContext {
 		return Optional.of(extensionContext.getDisplayName());
 	}
 
+	/**
+	 * The test's type: a method annotation first, then a class one, then the active
+	 * policy's nearest hidden or public entry, then its setting for unlisted tests.
+	 *
+	 * @return the type, if any level sets one
+	 */
 	@Override
 	public Optional<TestType> findTestType() {
-		return TestContextUtils.findAnnotationIn(this, JupiterAresTest.class).map(JupiterAresTest::value);
+		Optional<TestType> annotated = TestContextUtils.findAnnotationIn(this, JupiterAresTest.class)
+				.map(JupiterAresTest::value);
+		if (annotated.isPresent()) {
+			return annotated;
+		}
+		Optional<Class<?>> testClass = testClass();
+		if (testClass.isEmpty()) {
+			return Optional.empty();
+		}
+		Optional<String> methodName = testMethod().map(Method::getName);
+		return ConfigurationUtils.findPolicyHiddenTests(this)
+				.flatMap(hiddenTests -> hiddenTests.visibilityOf(testClass.get(), methodName));
 	}
 
 	public ExtensionContext getExtensionContext() {

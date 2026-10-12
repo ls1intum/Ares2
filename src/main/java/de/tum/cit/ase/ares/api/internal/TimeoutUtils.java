@@ -46,7 +46,7 @@ public final class TimeoutUtils {
 		if (timeout.isEmpty()) {
 			return execution.get();
 		}
-		return executeWithTimeout(timeout.get(), () -> rethrowThrowableSafe(execution), context, terminationGracePeriod,
+		return executeWithTimeout(timeout.get(), () -> rethrowThrowableSafe(execution), terminationGracePeriod,
 				fatalProcessTerminator);
 	}
 
@@ -64,8 +64,8 @@ public final class TimeoutUtils {
 		}
 	}
 
-	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context,
-			Duration terminationGracePeriod, IntConsumer fatalProcessTerminator) throws Throwable { // NOSONAR
+	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, Duration terminationGracePeriod,
+			IntConsumer fatalProcessTerminator) throws Throwable { // NOSONAR
 		var threadFactory = new WhitelistedThreadFactory();
 		var executorService = Executors.newSingleThreadExecutor(threadFactory);
 		Future<T> future = executorService.submit(action);
@@ -79,7 +79,7 @@ public final class TimeoutUtils {
 			throw ex.getCause();
 		} catch (@SuppressWarnings("unused") TimeoutException ex) {
 			terminateTimedOutExecution(future, executorService, terminationGracePeriod, fatalProcessTerminator);
-			throw generateTimeoutFailure(timeout, context);
+			throw generateTimeoutFailure(timeout);
 		} finally {
 			executorService.shutdownNow();
 		}
@@ -131,11 +131,8 @@ public final class TimeoutUtils {
 		}
 	}
 
-	private static AssertionFailedError generateTimeoutFailure(Duration timeout, TestContext context) {
+	private static AssertionFailedError generateTimeoutFailure(Duration timeout) {
 		var failure = localizedFailure("timeout.failure_message", formatDuration(timeout)); //$NON-NLS-1$
-		if (TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class).isPresent()) {
-			throw new PrivilegedException(failure);
-		}
 		return failure;
 	}
 

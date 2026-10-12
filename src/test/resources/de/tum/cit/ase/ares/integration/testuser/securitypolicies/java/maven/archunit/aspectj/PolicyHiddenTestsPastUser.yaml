@@ -1,0 +1,20 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.testuser.HiddenTestsPolicyUser"
+    - "de.tum.cit.ase.ares.integration.HiddenTestsPolicyTest"
+    - "de.tum.cit.ase.ares.testutilities"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts: []
+  theFollowingTestBehaviorIsConfigured:
+    regardingHiddenTests:
+      theDeadlineIs: "2000-01-01 00:00 UTC"
+      unlistedTestsAreHidden: false

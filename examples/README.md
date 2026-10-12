@@ -32,10 +32,10 @@ Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
 
 The three tests are `name()`, `readsThePermittedFile()` and `rejectsTheForbiddenFile()`.
 
-For Gradle, the task list must also show `verifyAresReservedPackagesV2` running **before** `test`:
+For Gradle, the task list must also show `verifyAresReservedPackagesV3` running **before** `test`:
 
 ```
-> Task :verifyAresReservedPackagesV2
+> Task :verifyAresReservedPackagesV3
 > Task :test
 ```
 
@@ -54,7 +54,7 @@ Each break below must be detected. Make them in a **copy**, not in the example i
 | Break | Expected consequence |
 |---|---|
 | Delete the `aspect` dependency (Gradle) or `<aspectLibraries>` (Maven) | `rejectsTheForbiddenFile` fails: nothing is woven, so nothing is enforced |
-| Add a class in package `de.tum.cit.ase.ares.api` to `src/main/java` | The build fails with `Ares reserved-package validation 2 rejected student output` |
+| Add a class in package `de.tum.cit.ase.ares.api` to `src/main/java` | The build fails with `Ares reserved-package validation 3 rejected student output` |
 | Remove the permitted-file entry from the policy | `readsThePermittedFile` fails, and the negative control stops proving anything, because static deny-all now covers the whole domain |
 
 Removing `-javaagent` changes nothing in these two examples, and that is correct: both use an `_ASPECTJ` configuration, where the aspects are woven at compile time. Removing the agent is only a meaningful break under an `_INSTRUMENTATION` configuration.

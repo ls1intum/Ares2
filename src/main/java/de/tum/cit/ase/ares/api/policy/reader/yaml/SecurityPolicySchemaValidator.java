@@ -34,7 +34,27 @@ final class SecurityPolicySchemaValidator {
 	private static final Set<String> THREAD_FIELDS = Set.of("createTheFollowingNumberOfThreads", "ofThisClass");
 	private static final Set<String> PACKAGE_FIELDS = Set.of("importTheFollowingPackage");
 	private static final Set<String> TIMEOUT_FIELDS = Set.of("timeout");
-	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of();
+	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of("regardingHiddenTests");
+
+	/** The fields of the hidden-test category. */
+	private static final Set<String> HIDDEN_TESTS_FIELDS = Set.of("theDeadlineIs", "theDeadlineIsExtendedBy",
+			"hiddenTestsAlwaysRunBefore", "unlistedTestsAreHidden", "theFollowingTestsAreHidden",
+			"theFollowingTestsArePublic");
+
+	/** The fields the hidden-test category requires whenever it is present. */
+	private static final Set<String> HIDDEN_TESTS_REQUIRED_FIELDS = Set.of("theDeadlineIs", "unlistedTestsAreHidden");
+
+	/**
+	 * The list fields of the hidden-test category, none of them an explicit null.
+	 */
+	private static final Set<String> HIDDEN_TESTS_LIST_FIELDS = Set.of("theFollowingTestsAreHidden",
+			"theFollowingTestsArePublic");
+
+	/**
+	 * The text fields of the hidden-test category, none of them an explicit null.
+	 */
+	private static final Set<String> HIDDEN_TESTS_TEXT_FIELDS = Set.of("theDeadlineIs", "theDeadlineIsExtendedBy",
+			"hiddenTestsAlwaysRunBefore");
 
 	private SecurityPolicySchemaValidator() {
 		throw new UnsupportedOperationException("SecurityPolicySchemaValidator is a utility class");
@@ -110,6 +130,35 @@ final class SecurityPolicySchemaValidator {
 		if (testBehavior != null) {
 			requireObject(testBehavior, "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured",
 					TEST_BEHAVIOR_FIELDS, Set.of());
+			JsonNode hiddenTests = testBehavior.get("regardingHiddenTests");
+			if (hiddenTests != null) {
+				validateHiddenTests(hiddenTests);
+			}
+		}
+	}
+
+	/**
+	 * Checks the hidden-test category's shape: a required deadline and a required
+	 * boolean saying whether unlisted tests are hidden, optional text values and
+	 * two optional lists of text entries, none of them an explicit null. The values
+	 * themselves are checked when the record is built.
+	 *
+	 * @param hiddenTests the category's node.
+	 * @throws MismatchedInputException naming the offending field
+	 */
+	private static void validateHiddenTests(JsonNode hiddenTests) throws MismatchedInputException {
+		String path = "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured.regardingHiddenTests";
+		requireObject(hiddenTests, path, HIDDEN_TESTS_FIELDS, HIDDEN_TESTS_REQUIRED_FIELDS);
+		for (String field : HIDDEN_TESTS_TEXT_FIELDS) {
+			if (hiddenTests.has(field)) {
+				requireText(hiddenTests, field, path);
+			}
+		}
+		requireBooleans(hiddenTests, Set.of("unlistedTestsAreHidden"), Set.of(), path);
+		for (String field : HIDDEN_TESTS_LIST_FIELDS) {
+			if (hiddenTests.has(field)) {
+				requireTextArray(hiddenTests.get(field), path + "." + field);
+			}
 		}
 	}
 
