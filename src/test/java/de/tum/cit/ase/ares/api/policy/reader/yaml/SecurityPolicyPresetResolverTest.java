@@ -1,0 +1,195 @@
+package de.tum.cit.ase.ares.api.policy.reader.yaml;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.List;
+
+import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+
+import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.SecurityPolicyPreset;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
+
+class SecurityPolicyPresetResolverTest {
+
+	private final YAMLMapper yamlMapper = new YAMLMapper();
+
+	/**
+	 * A preset that contains test behavior fails before its category is discarded.
+	 */
+	@Test
+	void rejectsPresetTestBehaviorByName() {
+		ObjectNode preset = yamlMapper.createObjectNode();
+		ObjectNode supervised = preset.putObject("regardingTheSupervisedCode");
+		supervised.putObject("theFollowingTestBehaviorIsConfigured").putObject("regardingPrivilegedExceptions");
+
+		SecurityException error = assertThrows(SecurityException.class,
+				() -> SecurityPolicyPresetResolver.rejectPresetTestBehavior(preset));
+		assertThat(error.getMessage()).isEqualTo(Messages.localized("security.policy.preset.test_behavior.forbidden"));
+	}
+
+	private static ResourceAccesses ownResourceAccesses() {
+		return new ResourceAccesses(
+				List.of(new FilePermission("policy-own-marker.txt", true, false, false, false, false)), List.of(),
+				List.of(), List.of(), List.of(), List.of(new ResourceLimitsPermission(3000)));
+	}
+
+	@Test
+	void returnsThePolicyUnchangedWhenNoPresetIsConfigured() {
+		SupervisedCode supervisedCode = new SupervisedCode(
+				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, null, null, List.of(),
+				ownResourceAccesses());
+		SecurityPolicy policy = new SecurityPolicy(SecurityPolicy.CURRENT_POLICY_VERSION, supervisedCode);
+
+		SecurityPolicy result = SecurityPolicyPresetResolver.resolveAndMerge(policy, yamlMapper);
+
+		assertThat(result).isSameAs(policy);
+	}
+
+	@Test
+	void concatenatesFileSystemAndTimeoutPermissionsFromBothSources() {
+		SupervisedCode supervisedCode = new SupervisedCode(
+				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, null, null, List.of(),
+				ownResourceAccesses());
+		SecurityPolicy policy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode)
+				.basedOnTheFollowingPreset(SecurityPolicyPreset.SMOKE_TEST).build();
+
+		SecurityPolicy merged = SecurityPolicyPresetResolver.resolveAndMerge(policy, yamlMapper);
+
+		List<FilePermission> mergedFilePermissions = merged.regardingTheSupervisedCode()
+				.theFollowingResourceAccessesArePermitted().regardingFileSystemInteractions();
+		assertThat(mergedFilePermissions).extracting(FilePermission::onThisPathAndAllPathsBelow)
+				.containsExactlyInAnyOrder(
+						"src/test/java/de/tum/cit/ase/ares/integration/testuser/subject/presetMerge/smoke-test-marker.txt",
+						"policy-own-marker.txt");
+
+		List<ResourceLimitsPermission> mergedTimeouts = merged.regardingTheSupervisedCode()
+				.theFollowingResourceAccessesArePermitted().regardingTimeouts();
+		assertThat(mergedTimeouts).extracting(ResourceLimitsPermission::timeout).containsExactlyInAnyOrder(5000L,
+				3000L);
+	}
+
+	/**
+	 * Test classes of a preset and of the policy are combined, preset first. The
+	 * preset here is test data only, since no shipped preset names a test class.
+	 */
+	@Test
+	void concatenatesTestClassesAdditively() {
+		SecurityPolicy presetWithTestClass = new SecurityPolicy(SecurityPolicy.CURRENT_POLICY_VERSION,
+				new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, null, null,
+						List.of("preset.only.PresetOwnTest"), ownResourceAccesses()));
+		SupervisedCode supervisedCode = new SupervisedCode(
+				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, null, null,
+				List.of("policy.own.PolicyOwnTest"), ownResourceAccesses());
+		SecurityPolicy policy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode)
+				.basedOnTheFollowingPreset(SecurityPolicyPreset.SMOKE_TEST).build();
+
+		SecurityPolicy merged = SecurityPolicyPresetResolver.merge(presetWithTestClass, policy);
+
+		assertThat(merged.regardingTheSupervisedCode().theFollowingClassesAreTestClasses())
+				.containsExactly("preset.only.PresetOwnTest", "policy.own.PolicyOwnTest");
+	}
+
+	/**
+	 * The shipped smoke-test preset names no test class, so a submission's class
+	 * that takes the name the preset once listed gets no exemption from it.
+	 */
+	@Test
+	void theShippedSmokeTestPresetExemptsNoClass() {
+		SupervisedCode supervisedCode = new SupervisedCode(
+				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, null, null, List.of(),
+				ownResourceAccesses());
+		SecurityPolicy policy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode)
+				.basedOnTheFollowingPreset(SecurityPolicyPreset.SMOKE_TEST).build();
+
+		SecurityPolicy merged = SecurityPolicyPresetResolver.resolveAndMerge(policy, yamlMapper);
+
+		assertThat(merged.regardingTheSupervisedCode().theFollowingClassesAreTestClasses()).isEmpty();
+	}
+
+	@Test
+	void neverTakesThePackageOrMainClassFromThePreset() {
+		SupervisedCode supervisedCode = new SupervisedCode(
+				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, null, null, List.of(),
+				ownResourceAccesses());
+		SecurityPolicy policy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode)
+				.basedOnTheFollowingPreset(SecurityPolicyPreset.SMOKE_TEST).build();
+
+		SecurityPolicy merged = SecurityPolicyPresetResolver.resolveAndMerge(policy, yamlMapper);
+
+		assertThat(merged.regardingTheSupervisedCode().theSupervisedCodeUsesTheFollowingPackage()).isNull();
+		assertThat(merged.regardingTheSupervisedCode().theMainClassInsideThisPackageIs()).isNull();
+	}
+
+	@Test
+	void keepsThePoliciesOwnTestBehaviorConfiguration() {
+		TestBehaviorConfiguration testBehavior = new TestBehaviorConfiguration();
+		SupervisedCode supervisedCode = new SupervisedCode(
+				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, null, null, List.of(),
+				ownResourceAccesses(), testBehavior);
+		SecurityPolicy policy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode)
+				.basedOnTheFollowingPreset(SecurityPolicyPreset.SMOKE_TEST).build();
+
+		SecurityPolicy merged = SecurityPolicyPresetResolver.resolveAndMerge(policy, yamlMapper);
+
+		assertThat(merged.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured()).isEqualTo(testBehavior);
+	}
+
+	@Test
+	void ignoresAPresetCopyShadowedOnTheTestClasspath() {
+		SupervisedCode supervisedCode = new SupervisedCode(
+				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, null, null, List.of(),
+				ownResourceAccesses());
+		SecurityPolicy policy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode)
+				.basedOnTheFollowingPreset(SecurityPolicyPreset.SMOKE_TEST).build();
+
+		SecurityPolicy merged = SecurityPolicyPresetResolver.resolveAndMerge(policy, yamlMapper);
+
+		assertThat(merged.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
+				.regardingFileSystemInteractions()).extracting(FilePermission::onThisPathAndAllPathsBelow)
+						.doesNotContain("shadow-grant.txt");
+		assertThat(merged.regardingTheSupervisedCode().theFollowingClassesAreTestClasses())
+				.doesNotContain("shadow.ShadowTest");
+	}
+
+	@Test
+	void keepsThePoliciesOwnPackageAndMainClassWhenProvided() {
+		SupervisedCode supervisedCode = new SupervisedCode(
+				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, "policy.own.pkg",
+				"PolicyOwnMain", List.of(), ownResourceAccesses());
+		SecurityPolicy policy = SecurityPolicy.builder().regardingTheSupervisedCode(supervisedCode)
+				.basedOnTheFollowingPreset(SecurityPolicyPreset.SMOKE_TEST).build();
+
+		SecurityPolicy merged = SecurityPolicyPresetResolver.resolveAndMerge(policy, yamlMapper);
+
+		assertThat(merged.regardingTheSupervisedCode().theSupervisedCodeUsesTheFollowingPackage())
+				.isEqualTo("policy.own.pkg");
+		assertThat(merged.regardingTheSupervisedCode().theMainClassInsideThisPackageIs()).isEqualTo("PolicyOwnMain");
+	}
+
+	@Test
+	void missingPresetResourceFailsClosed() {
+		SecurityException exception = assertThrows(SecurityException.class,
+				() -> SecurityPolicyPresetResolver.readPresetResource("does-not-exist.yaml", yamlMapper));
+		assertThat(exception.getMessage()).isEqualTo(Messages.localized("security.policy.preset.resource.missing",
+				"/de/tum/cit/ase/ares/api/policy/presets/does-not-exist.yaml"));
+	}
+
+	@Test
+	void presetResourceOnlyOutsideAresFailsClosed() {
+		SecurityException exception = assertThrows(SecurityException.class,
+				() -> SecurityPolicyPresetResolver.readPresetResource("self-referencing.yaml", yamlMapper));
+		assertThat(exception.getMessage()).isEqualTo(Messages.localized("security.policy.preset.resource.missing",
+				"/de/tum/cit/ase/ares/api/policy/presets/self-referencing.yaml"));
+	}
+}

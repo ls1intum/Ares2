@@ -1,0 +1,21 @@
+# Shadows the bundled smoke-test preset at the same classpath path, the way a
+# student resource could. The test classpath lists this directory before the
+# Ares classes, so the resolver must ignore this copy and use its own.
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theFollowingClassesAreTestClasses:
+    - "shadow.ShadowTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions:
+      - onThisPathAndAllPathsBelow: "shadow-grant.txt"
+        readAllFiles: true
+        overwriteAllFiles: true
+        createAllFiles: true
+        executeAllFiles: true
+        deleteAllFiles: true
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts: []

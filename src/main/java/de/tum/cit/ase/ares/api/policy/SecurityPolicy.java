@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.SecurityPolicyPreset;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 
 /**
@@ -32,10 +33,13 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
  *                                                 {@value #CURRENT_POLICY_VERSION}.
  * @param regardingTheSupervisedCode               the details of the supervised
  *                                                 code; must not be null.
+ * @param basedOnTheFollowingPreset                the named preset this policy
+ *                                                 is merged on top of; null
+ *                                                 when no preset is used.
  */
 @SuppressWarnings("unused")
 public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
-		@Nonnull SupervisedCode regardingTheSupervisedCode) {
+		@Nonnull SupervisedCode regardingTheSupervisedCode, @Nullable SecurityPolicyPreset basedOnTheFollowingPreset) {
 
 	/** The policy-format version supported by this Ares release. */
 	public static final int CURRENT_POLICY_VERSION = 1;
@@ -52,6 +56,24 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 					"thisPolicyFileCompliesToThePolicyVersion must be exactly " + CURRENT_POLICY_VERSION);
 		}
 		Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
+	}
+
+	/**
+	 * Constructs a SecurityPolicy instance with no preset, for source and binary
+	 * compatibility with code built against the two-argument constructor released
+	 * before {@link #basedOnTheFollowingPreset} existed.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 * @param thisPolicyFileCompliesToThePolicyVersion the policy format version;
+	 *                                                 must be exactly
+	 *                                                 {@value #CURRENT_POLICY_VERSION}.
+	 * @param regardingTheSupervisedCode               the details of the supervised
+	 *                                                 code; must not be null.
+	 */
+	public SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
+			@Nonnull SupervisedCode regardingTheSupervisedCode) {
+		this(thisPolicyFileCompliesToThePolicyVersion, regardingTheSupervisedCode, null);
 	}
 
 	/**
@@ -107,6 +129,12 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		private SupervisedCode regardingTheSupervisedCode;
 
 		/**
+		 * The named preset this policy is merged on top of, or null when none is used.
+		 */
+		@Nullable
+		private SecurityPolicyPreset basedOnTheFollowingPreset;
+
+		/**
 		 * Sets the policy-format version declared by the policy file.
 		 *
 		 * @param thisPolicyFileCompliesToThePolicyVersion the declared policy-format
@@ -137,6 +165,20 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		}
 
 		/**
+		 * Sets the named preset this policy is merged on top of.
+		 *
+		 * @since 2.1.5
+		 * @author Luka Petrovic
+		 * @param basedOnTheFollowingPreset the preset to use; null for none.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder basedOnTheFollowingPreset(@Nullable SecurityPolicyPreset basedOnTheFollowingPreset) {
+			this.basedOnTheFollowingPreset = basedOnTheFollowingPreset;
+			return this;
+		}
+
+		/**
 		 * Builds a new SecurityPolicy instance.
 		 *
 		 * @since 2.0.0
@@ -146,7 +188,8 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		@Nonnull
 		public SecurityPolicy build() {
 			return new SecurityPolicy(thisPolicyFileCompliesToThePolicyVersion,
-					Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null"));
+					Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null"),
+					basedOnTheFollowingPreset);
 		}
 	}
 }

@@ -124,7 +124,11 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 */
 	@Override
 	public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
-		prepareSecurityOnce(extensionContext);
+		try {
+			prepareSecurityOnce(extensionContext);
+		} catch (RuntimeException | Error failure) {
+			throw JupiterTestGuard.callbackFailure(extensionContext, failure);
+		}
 	}
 
 	/**
@@ -181,7 +185,11 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 */
 	@Override
 	public void afterTestExecution(ExtensionContext extensionContext) throws Exception {
-		closeSecurityOnce(extensionContext);
+		try {
+			closeSecurityOnce(extensionContext);
+		} catch (RuntimeException | Error failure) {
+			throw JupiterTestGuard.callbackFailure(extensionContext, failure);
+		}
 	}
 
 	/**
@@ -191,7 +199,11 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 */
 	@Override
 	public void afterEach(ExtensionContext extensionContext) throws Exception {
-		closeSecurityOnce(extensionContext);
+		try {
+			closeSecurityOnce(extensionContext);
+		} catch (RuntimeException | Error failure) {
+			throw JupiterTestGuard.callbackFailure(extensionContext, failure);
+		}
 	}
 
 	/**

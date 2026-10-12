@@ -1,0 +1,28 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+basedOnTheFollowingPreset: SMOKE_TEST
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.testuser.PresetMergeUser"
+    - "de.tum.cit.ase.ares.integration.PresetMergeTest"
+    - "de.tum.cit.ase.ares.testutilities"
+  # Deliberately grants nothing itself for smoke-test-marker.txt or pom.xml. The
+  # only file-related grant this policy states on its own is "target", needed so
+  # the woven test harness's own incidental reads/writes under the compiled test
+  # output are not denied - it is not the permission this test is demonstrating.
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions:
+      - readAllFiles: true
+        overwriteAllFiles: true
+        createAllFiles: true
+        executeAllFiles: false
+        deleteAllFiles: true
+        onThisPathAndAllPathsBelow: "target"
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts:
+      - timeout: 3000
