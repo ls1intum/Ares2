@@ -3,6 +3,9 @@ package de.tum.cit.ase.ares.api.securitytest.java.creator;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +22,7 @@ import org.mockito.MockitoAnnotations;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 
+import de.tum.cit.ase.AncestorPackageExercise;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
@@ -247,6 +251,35 @@ public class JavaCreatorTest {
 			// implementation details)
 			// We verify that the method completed successfully and the parameters were used
 			verify(resourceAccesses).regardingPackageImports();
+		}
+
+		/**
+		 * Student code declared in {@code de.tum.cit.ase}, above Ares' own API, gets
+		 * its own package as an import permission instead of a refusal.
+		 *
+		 * @throws IOException if the fixture cannot be copied
+		 */
+		@Test
+		@DisplayName("Should permit a supervised package that lies above a trusted namespace")
+		void shouldPermitASupervisedPackageAboveATrustedNamespace() throws IOException {
+			Path output = Files.createDirectories(tempDir.resolve("classes/de/tum/cit/ase"));
+			try (InputStream bytecode = AncestorPackageExercise.class
+					.getResourceAsStream(AncestorPackageExercise.class.getSimpleName() + ".class")) {
+				Files.copy(bytecode, output.resolve(AncestorPackageExercise.class.getSimpleName() + ".class"));
+			}
+			String ancestorPackage = AncestorPackageExercise.class.getPackageName();
+			String ancestorClasspath = tempDir.resolve("classes").toString();
+			when(buildMode.getClasspath(tempDir, ancestorPackage)).thenReturn(ancestorClasspath);
+			when(architectureMode.getJavaClasses(ancestorClasspath)).thenReturn(javaClasses);
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+
+			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of("java"),
+					List.of(), List.of(), ancestorPackage, mainClassName, architectureTestCases, aopTestCases,
+					phobosTestCases, resourceAccesses, tempDir, false));
+
+			assertFalse(architectureTestCases.isEmpty());
+			assertTrue(
+					architectureTestCases.get(0).getAllowedPackages().contains(new PackagePermission(ancestorPackage)));
 		}
 	}
 
