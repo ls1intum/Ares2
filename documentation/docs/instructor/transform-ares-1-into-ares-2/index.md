@@ -100,7 +100,7 @@ known to work for each. The Artemis block is the easy one to get subtly wrong, s
 
 ## Rewrite the imports
 
-The test-type and lifecycle annotations survive the migration. Rewrite the package and nothing else:
+Test-type, lifecycle and privileged-failure annotations survive this migration. Rewrite their package as shown:
 
 | Ares 1 | Ares 2 |
 |---|---|
@@ -114,7 +114,7 @@ The test-type and lifecycle annotations survive the migration. Rewrite the packa
 | `de.tum.in.test.api.StrictTimeout` | `de.tum.cit.ase.ares.api.StrictTimeout` |
 | `de.tum.in.test.api.MirrorOutput` | `de.tum.cit.ase.ares.api.MirrorOutput` |
 | `de.tum.in.test.api.WithIOManager` | `de.tum.cit.ase.ares.api.WithIOManager` |
-| `de.tum.in.test.api.PrivilegedExceptionsOnly` | `de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly` |
+| `de.tum.in.test.api.PrivilegedExceptionsOnly` | Use `de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly`; this branch retains the annotation and its failure filtering. |
 | `de.tum.in.test.api.TestUtils` | `de.tum.cit.ase.ares.api.TestUtils` |
 | `de.tum.in.test.api.AresConfiguration` | `de.tum.cit.ase.ares.api.AresConfiguration` |
 | `de.tum.in.test.api.localization.UseLocale` | `de.tum.cit.ase.ares.api.localization.UseLocale` |
@@ -336,7 +336,8 @@ Ares 1 and Ares 2 do not express the same things, so this is not a substitution 
 |---|---|---|
 | `@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest` | Faithful | Same annotations, new import |
 | `@Deadline`, `@ExtendedDeadline`, `@ActivateHiddenBefore` | Faithful | Same annotations, new import |
-| `@MirrorOutput`, `@WithIOManager`, `@PrivilegedExceptionsOnly`, `@UseLocale` | Faithful | Same annotations, new import |
+| `@MirrorOutput`, `@WithIOManager`, `@UseLocale` | Faithful | Same annotations, new import |
+| `@PrivilegedExceptionsOnly` | Keep the annotation | This branch retains it. A later policy version can provide an explicit migration. |
 | `@StrictTimeout` | Faithful | Same annotation, new import. **Do not** convert to `regardingTimeouts` |
 | `@WhitelistPath` | Approximate | A `regardingFileSystemInteractions` entry with `onThisPathAndAllPathsBelow` |
 | `PathActionLevel` | Approximate | The five independent booleans; see the conversion below |

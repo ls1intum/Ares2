@@ -22,6 +22,7 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.StrictTimeoutsConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -258,6 +259,67 @@ public class JavaWriterTest {
 				assertEquals(3, result.size());
 				assertFalse(Files.exists(generatedSettingsClassPath()));
 			}
+		}
+
+		@Test
+		@DisplayName("Should write the settings class and the strict-timeout hooks when a strict timeout is configured")
+		void shouldWriteTheStrictTimeoutHooksWhenConfigured() throws IOException {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				List<Path> result = writeWith(strictTimeoutConfigured());
+
+				assertEquals(8, result.size(), "3 released outputs, the settings class, 2 sources, 2 registrations");
+				assertTrue(Files.readString(generatedSettingsClassPath())
+						.contains("REGARDING_STRICT_TIMEOUTS_THE_TIMEOUT_IS = 2L;"));
+				assertTrue(Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedStrictTimeout.java")));
+			}
+		}
+
+		@Test
+		@DisplayName("Should remove the strict-timeout hooks when regenerated without the setting")
+		void shouldRemoveTheStrictTimeoutHooksWhenRegeneratedWithout() {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+				writeWith(strictTimeoutConfigured());
+
+				List<Path> result = writeWith(emptyTestBehaviorConfiguration);
+
+				assertEquals(3, result.size());
+				assertFalse(Files.exists(generatedSettingsClassPath()));
+				assertFalse(Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedStrictTimeout.java")));
+			}
+		}
+
+		/**
+		 * Runs the configuration-aware {@code writeTestCases} into {@code tempDir} with
+		 * this class's fixed inputs.
+		 *
+		 * @param testBehaviorConfiguration the behaviour configuration to write.
+		 * @return the written files.
+		 */
+		private List<Path> writeWith(TestBehaviorConfiguration testBehaviorConfiguration) {
+			return javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+					testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases,
+					javaPhobosTestCases, testBehaviorConfiguration, tempDir);
+		}
+
+		/**
+		 * A configuration with a two-second strict timeout.
+		 *
+		 * @return the configuration.
+		 */
+		private TestBehaviorConfiguration strictTimeoutConfigured() {
+			return TestBehaviorConfiguration.builder()
+					.regardingStrictTimeouts(StrictTimeoutsConfiguration.builder().theTimeoutIs(2).build()).build();
 		}
 
 		@Test

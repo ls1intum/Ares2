@@ -1,9 +1,13 @@
 package de.tum.cit.ase.ares.api.policy.reader.yaml;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
@@ -34,7 +38,18 @@ final class SecurityPolicySchemaValidator {
 	private static final Set<String> THREAD_FIELDS = Set.of("createTheFollowingNumberOfThreads", "ofThisClass");
 	private static final Set<String> PACKAGE_FIELDS = Set.of("importTheFollowingPackage");
 	private static final Set<String> TIMEOUT_FIELDS = Set.of("timeout");
-	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of();
+	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of("regardingStrictTimeouts");
+
+	/** The fields of the strict-timeout category; only the timeout is required. */
+	private static final Set<String> STRICT_TIMEOUTS_FIELDS = Set.of("theTimeoutIs", "theTimeUnitIs",
+			"theTerminationGraceIs", "theTerminationGraceUnitIs");
+
+	/**
+	 * The unit names a strict-timeout field accepts: exactly {@link TimeUnit}'s
+	 * constants.
+	 */
+	private static final Set<String> TIME_UNIT_NAMES = Arrays.stream(TimeUnit.values()).map(TimeUnit::name)
+			.collect(Collectors.toUnmodifiableSet());
 
 	private SecurityPolicySchemaValidator() {
 		throw new UnsupportedOperationException("SecurityPolicySchemaValidator is a utility class");
@@ -110,6 +125,46 @@ final class SecurityPolicySchemaValidator {
 		if (testBehavior != null) {
 			requireObject(testBehavior, "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured",
 					TEST_BEHAVIOR_FIELDS, Set.of());
+			JsonNode strictTimeouts = testBehavior.get("regardingStrictTimeouts");
+			if (strictTimeouts != null) {
+				validateStrictTimeouts(strictTimeouts);
+			}
+		}
+	}
+
+	/**
+	 * Checks the strict-timeout category's shape: a required integral timeout, an
+	 * optional integral grace period, and units that name a {@link TimeUnit}
+	 * exactly. Ranges are checked when the record is built.
+	 *
+	 * @param strictTimeouts the category's node.
+	 * @throws MismatchedInputException naming the offending field
+	 */
+	private static void validateStrictTimeouts(JsonNode strictTimeouts) throws MismatchedInputException {
+		String path = "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured.regardingStrictTimeouts";
+		requireObject(strictTimeouts, path, STRICT_TIMEOUTS_FIELDS, Set.of("theTimeoutIs"));
+		requireIntegral(strictTimeouts, "theTimeoutIs", path);
+		if (strictTimeouts.has("theTerminationGraceIs")) {
+			requireIntegral(strictTimeouts, "theTerminationGraceIs", path);
+		}
+		requireOptionalTimeUnit(strictTimeouts, "theTimeUnitIs", path);
+		requireOptionalTimeUnit(strictTimeouts, "theTerminationGraceUnitIs", path);
+	}
+
+	/**
+	 * Fails unless an optional field is absent or names a {@link TimeUnit} constant
+	 * exactly; an explicit null fails too.
+	 *
+	 * @param parent the object holding the field.
+	 * @param field  the field's name.
+	 * @param path   the object's path, for the message.
+	 * @throws MismatchedInputException naming the field and the allowed names
+	 */
+	private static void requireOptionalTimeUnit(JsonNode parent, String field, String path)
+			throws MismatchedInputException {
+		JsonNode node = parent.get(field);
+		if (node != null && (!node.isTextual() || !TIME_UNIT_NAMES.contains(node.textValue()))) {
+			fail(path + "." + field + " must be one of " + new TreeSet<>(TIME_UNIT_NAMES));
 		}
 	}
 

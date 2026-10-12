@@ -1,0 +1,44 @@
+import javax.xml.XMLConstants
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.transform.TransformerFactory
+import javax.xml.transform.dom.DOMSource
+import javax.xml.transform.stream.StreamResult
+
+import org.gradle.api.tasks.testing.Test
+
+def aresTestTask = tasks.named('test', Test)
+def hiddenReportsDirectory = layout.buildDirectory.dir('test-results/test')
+def aresSanitizer = tasks.register('aresSanitizeHiddenReports') {
+    doLast {
+        def reports = hiddenReportsDirectory.get().asFile
+        (reports.listFiles() ?: []).findAll { it.name.startsWith('TEST-') && it.name.endsWith('.xml') }.each { report ->
+            def documentFactory = DocumentBuilderFactory.newInstance()
+            documentFactory.setFeature('http://apache.org/xml/features/disallow-doctype-decl', true)
+            documentFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+            def document = documentFactory.newDocumentBuilder().parse(report)
+            ['failure', 'skipped'].each { tag ->
+                def elements = document.getElementsByTagName(tag)
+                for (int index = 0; index < elements.length; index++) {
+                    def element = elements.item(index)
+                    def type = element.getAttributes().getNamedItem('type')?.getNodeValue()
+                    if (type?.endsWith('HiddenTestFailure') || type?.endsWith('HiddenTestAbort')) {
+                        element.removeAttribute('message')
+                        element.removeAttribute('type')
+                        element.setTextContent('')
+                    }
+                }
+            }
+            def transformerFactory = TransformerFactory.newInstance()
+            transformerFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+            transformerFactory.newTransformer().transform(new DOMSource(document), new StreamResult(report))
+        }
+    }
+}
+aresTestTask.configure {
+    testLogging {
+        showExceptions = false
+        showCauses = false
+        showStackTraces = false
+    }
+    finalizedBy(aresSanitizer)
+}
