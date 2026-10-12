@@ -1,0 +1,20 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.testuser.OutputMirroringPolicyUser"
+    - "de.tum.cit.ase.ares.integration.OutputMirroringPolicyTest"
+    - "de.tum.cit.ase.ares.testutilities"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts: []
+  theFollowingTestBehaviorIsConfigured:
+    regardingOutputMirroring:
+      theOutputIsMirrored: false
+      theMaximumCharacterCountIs: 10

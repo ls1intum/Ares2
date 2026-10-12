@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,7 +23,8 @@ public final class JavaAOPTestCaseToolbox {
 			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.string",
 					value != null ? value.getClass() : null));
 		}
-		return String.format("private static String %s = \"%s\";%n", adviceSetting, escapeJavaString((String) value));
+		return String.format(Locale.ROOT, "private static String %s = \"%s\";%n", adviceSetting,
+				escapeJavaString((String) value));
 	}
 
 	/**
@@ -57,7 +59,7 @@ public final class JavaAOPTestCaseToolbox {
 			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.int",
 					value != null ? value.getClass() : null));
 		}
-		return String.format("private static int %s = %d;%n", adviceSetting, value);
+		return String.format(Locale.ROOT, "private static int %s = %d;%n", adviceSetting, value);
 	}
 
 	/**
@@ -77,7 +79,8 @@ public final class JavaAOPTestCaseToolbox {
 			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.string",
 					value != null ? value.getClass() : null));
 		}
-		return String.format("public static final String %s = \"%s\";%n", fieldName, escapeJavaString((String) value));
+		return String.format(Locale.ROOT, "public static final String %s = \"%s\";%n", fieldName,
+				escapeJavaString((String) value));
 	}
 
 	/**
@@ -97,7 +100,25 @@ public final class JavaAOPTestCaseToolbox {
 			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.boolean",
 					value != null ? value.getClass() : null));
 		}
-		return String.format("public static final boolean %s = %b;%n", fieldName, value);
+		return String.format(Locale.ROOT, "public static final boolean %s = %b;%n", fieldName, value);
+	}
+
+	/**
+	 * Formats a {@code public static final long} field assignment, for a generated
+	 * class read directly, as the boolean variant above.
+	 *
+	 * @since 2.1.5
+	 * @author Luka Petrovic
+	 * @param fieldName the name of the field to assign; must not be null.
+	 * @param value     the value to assign; must be a {@link Long}.
+	 * @return the formatted field assignment, terminated with a newline.
+	 */
+	public static String getPublicStaticFinalLongAssignment(@Nonnull String fieldName, @Nullable Object value) {
+		if (!(value instanceof Long)) {
+			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.long",
+					value != null ? value.getClass() : null));
+		}
+		return String.format(Locale.ROOT, "public static final long %s = %dL;%n", fieldName, value);
 	}
 	// </editor-fold>
 
@@ -109,7 +130,8 @@ public final class JavaAOPTestCaseToolbox {
 		}
 		String stringArrayValue = ((List<?>) value).stream().map(Object::toString)
 				.map(s -> "\"" + escapeJavaString(s) + "\"").collect(Collectors.joining(", "));
-		return String.format("private static String[] %s = new String[] {%s};%n", adviceSetting, stringArrayValue);
+		return String.format(Locale.ROOT, "private static String[] %s = new String[] {%s};%n", adviceSetting,
+				stringArrayValue);
 	}
 
 	public static String getIntegerOneDArrayAssignment(@Nonnull String adviceSetting, @Nullable Object value) {
@@ -118,7 +140,7 @@ public final class JavaAOPTestCaseToolbox {
 					value != null ? value.getClass() : null));
 		}
 		String intArrayValue = ((List<?>) value).stream().map(Object::toString).collect(Collectors.joining(", "));
-		return String.format("private static int[] %s = new int[] {%s};%n", adviceSetting, intArrayValue);
+		return String.format(Locale.ROOT, "private static int[] %s = new int[] {%s};%n", adviceSetting, intArrayValue);
 	}
 	// </editor-fold>
 
@@ -151,7 +173,7 @@ public final class JavaAOPTestCaseToolbox {
 			}
 		}).collect(Collectors.joining(", "));
 		// No trailing semicolon/newline to match expected output
-		return String.format("private static String[][] %s = new String[][] {%s};%n", adviceSetting,
+		return String.format(Locale.ROOT, "private static String[][] %s = new String[][] {%s};%n", adviceSetting,
 				stringArrayArrayValue);
 	}
 
@@ -190,7 +212,8 @@ public final class JavaAOPTestCaseToolbox {
 		String intArrayArrayValue = outer.stream().map(e -> (List<?>) e)
 				.map(innerList -> innerList.stream().map(Object::toString).collect(Collectors.joining(", ")))
 				.map(innerArray -> "new int[]{" + innerArray + "}").collect(Collectors.joining(", "));
-		return String.format("private static int[][] %s = new int[][] {%s};%n", adviceSetting, intArrayArrayValue);
+		return String.format(Locale.ROOT, "private static int[][] %s = new int[][] {%s};%n", adviceSetting,
+				intArrayArrayValue);
 	}
 	// </editor-fold>
 }

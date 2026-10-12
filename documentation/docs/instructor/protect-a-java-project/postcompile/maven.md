@@ -129,6 +129,8 @@ The alternative some guides use, pointing `-javaagent` at `${settings.localRepos
     <artifactId>maven-surefire-plugin</artifactId>
     <version>3.6.0</version>
     <configuration>
+        <printSummary>false</printSummary>
+        <useFile>true</useFile>
         <argLine>
             @{argLine}
             "-javaagent:${project.build.directory}/ares/ares-agent.jar"
@@ -296,11 +298,13 @@ and live in the repository at
 - `MavenReservedPackages.xml`
 - `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
-Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
+Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
+
+Boundary version 3 rejects more than reserved packages. It rejects every `META-INF/services` file in student output. It rejects `junit-platform.properties` and `archunit.properties` at the root of that output. JUnit and ArchUnit read these files by themselves, so a student file there can plug code into the test run or reconfigure the static analysis. Ares matches these names in any letter case, because a file system that ignores letter case finds them under any spelling. Version 3 reserves `de/tum/cit/ase/ares/generated` as well, because Precompile writes its generated code there. Migrate every exercise that still carries a version 2 snippet.
 
 ### Maven
 
-Apply the shipped `MavenReservedPackages.xml`, a `maven-antrun-plugin` execution bound to `process-classes` that scans `${project.build.outputDirectory}`. `process-classes` precedes `test`, so `mvn test` runs it. The Maven binding was already correct at boundary version 1; it carries version 2 only so that both build tools name the same contract.
+Apply the shipped `MavenReservedPackages.xml`, a `maven-antrun-plugin` execution bound to `process-classes` that scans `${project.build.outputDirectory}`. `process-classes` precedes `test`, so `mvn test` runs it. The Maven binding was already correct at boundary version 1. Version 3 adds the service files, the root framework settings and the generated package to what it rejects.
 
 ### About the forbidden package list
 
@@ -327,9 +331,13 @@ and complete working exercises are in
 
 ### What this boundary does not defend against
 
-The build descriptor and the command that invokes it are **trusted instructor configuration**. The failure message says "No bypass flag is supported", and that is a statement about the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV2`, can remove the boundary outright.
+The build descriptor and the command that invokes it are **trusted instructor configuration**. The failure message says "No bypass flag is supported", and that is a statement about the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-Dmaven.antrun.skip`, can remove the boundary outright.
 
 The threat this addresses is student **code** that declares a reserved package, not student control over the build. Your exercise template and its CI must own the build files and the invocation, and must fail visibly if either is altered.
+
+## Keep hidden report details out of build output
+
+For a hidden failure after its deadline, configure Surefire to keep the test name and failed status without printing its exception in the build log. In the `maven-surefire-plugin` configuration, set `printSummary` to `false` and `useFile` to `true`. The test report files still contain public failure details.
 
 ## Verify your setup
 
@@ -448,7 +456,7 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
                 </executions>
             </plugin>
 
-            <!-- 2. Reserved-package build boundary, version 2. See Section 4. -->
+            <!-- 2. Reserved-package build boundary, version 3. See Section 4. -->
             <!--    Copy the body of configuration/reservedPackages/MavenReservedPackages.xml here. -->
 
             <!-- 3. Put the agent and the AspectJ runtime at a known path. -->
@@ -494,6 +502,8 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
+                    <printSummary>false</printSummary>
+                    <useFile>true</useFile>
                     <argLine>
                         @{argLine}
                         "-javaagent:${project.build.directory}/ares/ares-agent.jar"

@@ -117,3 +117,6 @@ tasks.withType(Test).configureEach {
 // the manual. It gates every Test task as well as check, because
 // check.dependsOn test and not the reverse.
 apply from: 'gradle/AresReservedPackages.gradle'
+
+// Keeps hidden failures failed while removing their report diagnostics.
+apply from: 'gradle/AresHiddenReports.gradle'

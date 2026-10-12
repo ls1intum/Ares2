@@ -39,9 +39,14 @@ public final class AresIOContext extends AresContext {
 		return maxStdOut;
 	}
 
+	/**
+	 * Resolves both I/O settings for one test from the same policy read.
+	 *
+	 * @param testContext the current test
+	 * @return its I/O context
+	 */
 	public static AresIOContext from(TestContext testContext) {
-		boolean mirrorOutput = ConfigurationUtils.shouldMirrorOutput(testContext);
-		long maxStdOut = ConfigurationUtils.getMaxStandardOutput(testContext);
-		return new AresIOContext(testContext, mirrorOutput, maxStdOut);
+		ConfigurationUtils.ResolvedOutputMirroring output = ConfigurationUtils.resolveOutputMirroring(testContext);
+		return new AresIOContext(testContext, output.mirrored(), output.maximumCharacterCount());
 	}
 }

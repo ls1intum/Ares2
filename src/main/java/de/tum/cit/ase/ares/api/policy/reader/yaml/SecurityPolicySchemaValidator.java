@@ -34,7 +34,11 @@ final class SecurityPolicySchemaValidator {
 	private static final Set<String> THREAD_FIELDS = Set.of("createTheFollowingNumberOfThreads", "ofThisClass");
 	private static final Set<String> PACKAGE_FIELDS = Set.of("importTheFollowingPackage");
 	private static final Set<String> TIMEOUT_FIELDS = Set.of("timeout");
-	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of();
+	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of("regardingOutputMirroring");
+
+	/** The fields of the output-mirroring category; neither is required. */
+	private static final Set<String> OUTPUT_MIRRORING_FIELDS = Set.of("theOutputIsMirrored",
+			"theMaximumCharacterCountIs");
 
 	private SecurityPolicySchemaValidator() {
 		throw new UnsupportedOperationException("SecurityPolicySchemaValidator is a utility class");
@@ -110,6 +114,29 @@ final class SecurityPolicySchemaValidator {
 		if (testBehavior != null) {
 			requireObject(testBehavior, "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured",
 					TEST_BEHAVIOR_FIELDS, Set.of());
+			JsonNode outputMirroring = testBehavior.get("regardingOutputMirroring");
+			if (outputMirroring != null) {
+				validateOutputMirroring(outputMirroring);
+			}
+		}
+	}
+
+	/**
+	 * Checks the output-mirroring category's shape: an optional boolean switch and
+	 * an optional integral limit, neither of them an explicit null. The limit's
+	 * range is checked when the record is built.
+	 *
+	 * @param outputMirroring the category's node.
+	 * @throws MismatchedInputException naming the offending field
+	 */
+	private static void validateOutputMirroring(JsonNode outputMirroring) throws MismatchedInputException {
+		String path = "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured.regardingOutputMirroring";
+		requireObject(outputMirroring, path, OUTPUT_MIRRORING_FIELDS, Set.of());
+		if (outputMirroring.has("theOutputIsMirrored") && !outputMirroring.get("theOutputIsMirrored").isBoolean()) {
+			fail(path + ".theOutputIsMirrored must be a boolean");
+		}
+		if (outputMirroring.has("theMaximumCharacterCountIs")) {
+			requireIntegral(outputMirroring, "theMaximumCharacterCountIs", path);
 		}
 	}
 

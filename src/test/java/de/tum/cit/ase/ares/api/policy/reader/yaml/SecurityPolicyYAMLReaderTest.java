@@ -1,6 +1,10 @@
 package de.tum.cit.ase.ares.api.policy.reader.yaml;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,10 +19,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
+import de.tum.cit.ase.ares.api.MirrorOutput;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.OutputMirroringConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 
 @DisplayName("SecurityPolicyYAMLReader Tests")
@@ -437,6 +445,97 @@ public class SecurityPolicyYAMLReaderTest {
 
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
 		}
+
+		@Test
+		@DisplayName("Should read a full output-mirroring category")
+		void fullOutputMirroringCategoryParses(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("output-mirroring-full.yaml");
+			Files.writeString(policyFile,
+					withOutputMirroring("theOutputIsMirrored: true", "theMaximumCharacterCountIs: 10"));
+
+			OutputMirroringConfiguration category = reader.readSecurityPolicyFrom(policyFile)
+					.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfiguredOrEmpty()
+					.regardingOutputMirroring();
+
+			assertNotNull(category);
+			assertTrue(category.mirrored());
+			assertEquals(10, category.maximumCharacterCount());
+		}
+
+		@Test
+		@DisplayName("Should read an empty output-mirroring category as the defaults")
+		void emptyOutputMirroringCategoryParses(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("output-mirroring-empty.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing()
+					+ "\n  theFollowingTestBehaviorIsConfigured:\n    regardingOutputMirroring: {}\n");
+
+			OutputMirroringConfiguration category = reader.readSecurityPolicyFrom(policyFile)
+					.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfiguredOrEmpty()
+					.regardingOutputMirroring();
+
+			assertNotNull(category);
+			assertEquals(false, category.mirrored());
+			assertEquals(MirrorOutput.DEFAULT_MAX_STD_OUT, category.maximumCharacterCount());
+		}
+
+		@ParameterizedTest(name = "{0}")
+		@DisplayName("Should reject a malformed output-mirroring category, naming the field")
+		@CsvSource(delimiter = '|', value = { "theOutputIsMirrored|theOutputIsMirrored: yes please",
+				"theOutputIsMirrored|theOutputIsMirrored: null",
+				"theMaximumCharacterCountIs|theMaximumCharacterCountIs: lots",
+				"theMaximumCharacterCountIs|theMaximumCharacterCountIs: 0",
+				"theMaximumCharacterCountIs|theMaximumCharacterCountIs: -5",
+				"theMaximumCharacterCountIs|theMaximumCharacterCountIs: null",
+				"theOutputIsLoud|theOutputIsLoud: true" })
+		void malformedOutputMirroringIsRejected(String field, String line, @TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("output-mirroring-malformed.yaml");
+			Files.writeString(policyFile, withOutputMirroring(line));
+
+			SecurityException failure = assertThrows(SecurityException.class,
+					() -> reader.readSecurityPolicyFrom(policyFile));
+
+			assertTrue(causeChainText(failure).contains("regardingOutputMirroring"), () -> causeChainText(failure));
+			assertTrue(causeChainText(failure).contains(field), () -> causeChainText(failure));
+		}
+
+		@Test
+		@DisplayName("Should reject an explicit null output-mirroring category")
+		void explicitNullOutputMirroringIsRejected(@TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("output-mirroring-null.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing()
+					+ "\n  theFollowingTestBehaviorIsConfigured:\n    regardingOutputMirroring: null\n");
+
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+	}
+
+	/**
+	 * The minimal policy with an output-mirroring category.
+	 *
+	 * @param categoryLines the category's lines, unindented.
+	 * @return the policy text
+	 */
+	private static String withOutputMirroring(String... categoryLines) {
+		StringBuilder policy = new StringBuilder(minimalPolicy().stripTrailing())
+				.append("\n  theFollowingTestBehaviorIsConfigured:\n    regardingOutputMirroring:\n");
+		for (String line : categoryLines) {
+			policy.append("      ").append(line.strip()).append('\n');
+		}
+		return policy.toString();
+	}
+
+	/**
+	 * The messages of a failure and every cause, joined.
+	 *
+	 * @param failure the failure.
+	 * @return the joined messages
+	 */
+	private static String causeChainText(Throwable failure) {
+		StringBuilder text = new StringBuilder();
+		for (Throwable current = failure; current != null; current = current.getCause()) {
+			text.append(current.getMessage()).append('\n');
+		}
+		return text.toString();
 	}
 
 	private static String minimalPolicy() {
