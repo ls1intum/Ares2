@@ -1,11 +1,14 @@
 package de.tum.cit.ase.ares.api.securitytest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +18,34 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 class ReservedPackageBuildBoundaryTest {
 	private static final Path ROOT = FileTools.resolveFileOnSourceDirectory("configuration", "reservedPackages");
 
+	/**
+	 * The fileset of the Maven snippet, whose includes are the rejected patterns.
+	 */
+	private static final Pattern MAVEN_FILESET = Pattern.compile("<fileset[^>]*>(.*?)</fileset>", Pattern.DOTALL);
+
+	/** One include of that fileset, capturing its pattern. */
+	private static final Pattern MAVEN_INCLUDE = Pattern.compile("<include\\s+name\\s*=\\s*\"([^\"]*)\"\\s*/>");
+
+	/**
+	 * An XML comment, which Maven ignores, so a pattern inside one rejects nothing.
+	 */
+	private static final Pattern XML_COMMENT = Pattern.compile("<!--.*?-->", Pattern.DOTALL);
+
+	/** What may separate the entries of a list: whitespace and commas. */
+	private static final Pattern SEPARATORS = Pattern.compile("[\\s,]+");
+
+	/** The pattern list of the Gradle snippet. */
+	private static final Pattern GRADLE_LIST = Pattern.compile("def aresReservedPackagePatterns = \\[(.*?)\\]",
+			Pattern.DOTALL);
+
+	/** One quoted entry of that list, capturing its pattern. */
+	private static final Pattern GRADLE_PATTERN = Pattern.compile("'([^']*)'");
+
+	/**
+	 * The prefix list, its versions and both build snippets agree with the code.
+	 * The snippets must list exactly the reserved patterns, in order, since an
+	 * extra pattern refuses student packages Ares does not reserve.
+	 */
 	@Test
 	void versionedMavenAndGradleFixturesRejectEveryReservedPrefix() throws Exception {
 		Path patternsFile = ROOT.resolve("ReservedPackagePrefixes.txt");
@@ -29,9 +60,12 @@ class ReservedPackageBuildBoundaryTest {
 
 		String maven = Files.readString(ROOT.resolve("MavenReservedPackages.xml"));
 		String gradle = Files.readString(ROOT.resolve("GradleReservedPackages.gradle"));
+		assertEquals(patterns,
+				valuesIn(XML_COMMENT.matcher(onlyMatch(MAVEN_FILESET, maven)).replaceAll(""), MAVEN_INCLUDE),
+				"Maven fixture must reject exactly the reserved prefixes");
+		assertEquals(patterns, valuesIn(onlyMatch(GRADLE_LIST, gradle), GRADLE_PATTERN),
+				"Gradle fixture must reject exactly the reserved prefixes");
 		for (String pattern : patterns) {
-			assertTrue(maven.contains(pattern), () -> "Maven fixture misses " + pattern);
-			assertTrue(gradle.contains("'" + pattern + "'"), () -> "Gradle fixture misses " + pattern);
 			String syntheticClass = pattern.replace("/**", "/Student.class");
 			assertTrue(matches(pattern, syntheticClass), () -> "Fixture does not reject " + syntheticClass);
 		}
@@ -63,6 +97,29 @@ class ReservedPackageBuildBoundaryTest {
 		assertTrue(maven.contains("verify-ares-reserved-packages-v" + version));
 		assertTrue(maven.contains("Ares reserved-package validation " + version + " rejected"));
 		assertTrue(gradle.contains("def aresReservedPackageBoundaryVersion = '" + version + "'"));
+	}
+
+	/**
+	 * Returns what the container pattern captures, failing when it matches nowhere
+	 * or more than once, so a reshaped snippet cannot pass with an empty list.
+	 */
+	private static String onlyMatch(Pattern container, String text) {
+		Matcher matcher = container.matcher(text);
+		assertTrue(matcher.find(), () -> "No match for " + container);
+		String region = matcher.group(1);
+		assertFalse(matcher.find(), () -> "More than one match for " + container);
+		return region;
+	}
+
+	/**
+	 * Returns every value the pattern captures in the region, in order, failing
+	 * when anything but those values and separators is left, so an entry written
+	 * another way cannot hide from the comparison.
+	 */
+	private static List<String> valuesIn(String region, Pattern value) {
+		String leftover = SEPARATORS.matcher(value.matcher(region).replaceAll("")).replaceAll("");
+		assertTrue(leftover.isEmpty(), () -> "Unrecognised content in a pattern list: " + leftover);
+		return value.matcher(region).results().map(result -> result.group(1)).toList();
 	}
 
 	private boolean matches(String pattern, String classFile) {
