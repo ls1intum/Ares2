@@ -49,7 +49,7 @@ class NoJqwikReferenceTest {
 	}
 
 	/**
-	 * Every regular file at or below a path.
+	 * Every regular file at or below a path, apart from an example's build output.
 	 *
 	 * @param root a file or folder.
 	 * @return its files

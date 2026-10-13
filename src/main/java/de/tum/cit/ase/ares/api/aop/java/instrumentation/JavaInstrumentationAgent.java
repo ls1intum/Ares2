@@ -49,9 +49,6 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 public final class JavaInstrumentationAgent {
 	/** The instrumentation handle supplied by JVM startup. */
 	private static volatile Instrumentation instrumentation;
-
-	/** Whether trusted startup finished before student execution. */
-	private static volatile boolean trustedStartupComplete;
 	private static volatile Factory classInjectorFactory;
 	private static final Set<String> INSTRUMENTED_THREAD_MONITOR_PACKAGES = ConcurrentHashMap.newKeySet();
 	private static final Object THREAD_MONITOR_PACKAGE_REGISTRATION_LOCK = new Object();
@@ -170,7 +167,6 @@ public final class JavaInstrumentationAgent {
 		if (isPolicyCompiledIn()) {
 			installTransformersOnce();
 		}
-		trustedStartupComplete = true;
 	}
 
 	/**
@@ -259,20 +255,10 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Reports whether the JVM's trusted agent startup has finished.
-	 *
-	 * @return {@code true} once the agent's startup has run to its end.
-	 */
-	public static boolean hasCompletedTrustedStartup() {
-		return trustedStartupComplete;
-	}
-
-	/**
-	 * Captures, once and before any supervised code runs, the values the
-	 * file-system checks trust: the default temp directory, kept by the JDK's own
-	 * holders and stored in both settings copies, and the AspectJ aspect's Java
-	 * home and Maven repository. The one start-up routine every runtime check
-	 * relies on.
+	 * Captures, once and before any supervised code runs, the default temp
+	 * directory the instrumentation checks trust: it makes the JDK's own holders
+	 * keep it and stores it in both settings copies. The AspectJ checks do not use
+	 * it; they read the JVM's start-up values themselves.
 	 */
 	private static void captureTrustedStartupValues() {
 		JDK_TEMP_DIRECTORY_HOLDERS.forEach(holder -> initialiseIfPresent(holder, null));
@@ -281,7 +267,6 @@ public final class JavaInstrumentationAgent {
 			publishFrozenTempDirectory(defaultTempDirectory, null);
 			publishFrozenTempDirectory(defaultTempDirectory, ClassLoader.getSystemClassLoader());
 		}
-		initialiseAspectJFileSystem();
 	}
 
 	/**
@@ -337,20 +322,6 @@ public final class JavaInstrumentationAgent {
 			Class.forName(className, true, loader);
 		} catch (ClassNotFoundException | LinkageError absent) {
 			return;
-		}
-	}
-
-	/** Captures the AspectJ filesystem root before entering student code. */
-	private static void initialiseAspectJFileSystem() {
-		try {
-			Class.forName(
-					"de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions",
-					true, JavaInstrumentationAgent.class.getClassLoader());
-		} catch (ClassNotFoundException missingAspect) {
-			if (!isPolicyCompiledIn()) {
-				throw new SecurityException(Messages.localized("security.advice.trusted.startup.missing"),
-						missingAspect);
-			}
 		}
 	}
 

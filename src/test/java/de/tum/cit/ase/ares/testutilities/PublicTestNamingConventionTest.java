@@ -9,38 +9,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
 /**
- * Build-time safety net for I-111/TD-060: a test source file that uses
- * {@code @PublicTest} but whose filename does not match Surefire's configured
- * {@code *Test.java} include pattern (used by every profile in {@code pom.xml}
- * that runs this test tree) silently never runs. This is exactly how
- * {@code FileSystemAccessReadTestOld.java} (suffixed {@code TestOld}, 800
- * {@code @PublicTest} methods) went undiscovered for an extended period.
- * <p>
- * One legitimate exception exists: files under {@code integration/testuser/}
- * are not run by Surefire directly but by a {@code *Test.java} wrapper
- * elsewhere in the tree that launches them in-process via
- * {@code @UserBased(...)} ({@link TestUserExtension}, the JUnit Platform
- * Launcher). This check treats such a file as covered only if some
- * {@code *Test.java} file actually references it via
- * {@code @UserBased(<SimpleName>.class)} - if that wiring is missing, the file
- * is flagged just like any other orphan. This is precisely how this test caught
- * {@code MavenConfigurationUser.java}, a second, previously undocumented
- * instance of the same defect class as I-111/TD-060.
- * <p>
- * Description: Scans {@code src/test/java} for {@code .java} files that
- * reference {@code @PublicTest} and asserts each such file's name ends with
- * {@code Test.java}, unless it is demonstrably launched via an
- * {@code @UserBased} wrapper. This is a plain text scan (not a
- * classpath/annotation scan) deliberately kept simple: it only needs to catch a
- * filename that would silently fall outside every profile's
- * {@code <include>**&#47;*Test.java</include>} pattern with no other execution
- * path wired up, not to understand Java semantics precisely.
+ * Build-time safety net for I-111/TD-060: a test source using
+ * {@code @PublicTest} whose name does not end in {@code Test.java} is never run
+ * by Surefire, which is how {@code FileSystemAccessReadTestOld.java} went
+ * unnoticed. Such a file passes only if another test runs it, through
+ * {@code @UserBased(Name.class)} or a JUnit launcher's {@code selectClass}. A
+ * plain text scan, kept simple on purpose.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -65,7 +46,8 @@ class PublicTestNamingConventionTest {
 				continue;
 			}
 			String simpleClassName = filename.substring(0, filename.length() - ".java".length());
-			if (allSourcesConcatenated.contains("@UserBased(" + simpleClassName + ".class)")) {
+			if (allSourcesConcatenated.contains("@UserBased(" + simpleClassName + ".class)")
+					|| isSelectedByName(allSourcesConcatenated, simpleClassName)) {
 				continue;
 			}
 			offendingFiles.add(path.toString());
@@ -73,9 +55,25 @@ class PublicTestNamingConventionTest {
 
 		assertTrue(offendingFiles.isEmpty(),
 				() -> "The following files use @PublicTest but their filename does not end in 'Test.java' "
-						+ "and no *Test.java file wires them up via @UserBased(...), so they silently never run "
+						+ "and no test runs them via @UserBased(...) or a launcher's selectClass(...), so they silently never run "
 						+ "(see I-111/TD-060 - this is exactly how FileSystemAccessReadTestOld.java went "
 						+ "undiscovered): " + offendingFiles);
+	}
+
+	/**
+	 * Tells whether a test source hands the class to a JUnit launcher by name, as
+	 * the fork probes do, through {@code selectClass(Name.class)} or
+	 * {@code selectClass("pkg.Name")}. Such a class runs in that launcher's JVM, so
+	 * it must not end in {@code Test}, or Surefire would run it a second time.
+	 *
+	 * @param sources         every test source, concatenated
+	 * @param simpleClassName the class's simple name
+	 * @return {@code true} if a launcher selects the class by name
+	 */
+	private static boolean isSelectedByName(String sources, String simpleClassName) {
+		return sources.contains("selectClass(" + simpleClassName + ".class)")
+				|| Pattern.compile("selectClass\\(\"(?:[\\w$]+\\.)*" + Pattern.quote(simpleClassName) + "\"\\)")
+						.matcher(sources).find();
 	}
 
 	private static String concatenateSources(List<Path> paths) {

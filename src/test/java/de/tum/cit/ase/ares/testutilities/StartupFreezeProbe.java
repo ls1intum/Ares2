@@ -29,7 +29,8 @@ public final class StartupFreezeProbe {
 	 * changes {@code java.io.tmpdir} and prints where a new temp file lands.
 	 * {@code settings} changes it and prints the frozen temp directory of the
 	 * application and the bootstrap settings copy. {@code javaHome} changes
-	 * {@code java.home} and prints the Java home the file-system aspect trusts.
+	 * {@code java.home} and prints the Java home the file-system aspect trusts and
+	 * the changed property.
 	 *
 	 * @param args the probe name and the directory
 	 * @throws Exception if the probe cannot run
@@ -56,7 +57,7 @@ public final class StartupFreezeProbe {
 					"de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemAdviceDefinitions");
 			Field trustedJavaHome = aspect.getDeclaredField("TRUSTED_JAVA_HOME");
 			trustedJavaHome.setAccessible(true);
-			System.out.println("RESULT=" + trustedJavaHome.get(null));
+			System.out.println("RESULT=" + trustedJavaHome.get(null) + "|" + System.getProperty("java.home"));
 		}
 		}
 	}
