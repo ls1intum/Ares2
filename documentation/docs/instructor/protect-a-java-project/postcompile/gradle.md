@@ -358,7 +358,7 @@ and live in the repository at
 - `MavenReservedPackages.xml`
 - `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
-Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
+Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
 
 ### Gradle
 
@@ -375,9 +375,8 @@ In a multi-project build, apply the snippet to **every** project that compiles s
 
 ### About the forbidden package list
 
-The list above is the versioned reserved-package boundary, and it is deliberately a superset of
-the canonical Ares list. Besides the packages Ares trusts by name, it stops student code
-shadowing the test harness itself (JUnit, AssertJ, Logback, Gradle).
+The shipped snippets are the versioned reserved-package boundary. They reject exactly the
+package prefixes listed in `ReservedPackagePrefixes.txt`, which student code must not declare.
 
 Keep it aligned with `WalaPathClassification.RESERVED_PACKAGE_PREFIX_VERSION` (the prefix data)
 and `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION` (the build-side contract), and do not disable it.
