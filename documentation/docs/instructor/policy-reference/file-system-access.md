@@ -88,7 +88,13 @@ Some file accesses are part of what ordinary Java code does and carry no risk, s
 | Formats numbers, dates or text for a locale, or uses a charset | Their data lies inside the Java installation too. |
 | Creates a temporary file without naming a directory: `File.createTempFile(prefix, suffix)` or `Files.createTempFile(prefix, suffix)` | The file always lands in the default temp directory, which Ares fixes when the tests start. |
 
-A temporary file in a directory the code names still needs an entry for that directory, even for a folder inside the temp directory, and so does `Files.createTempDirectory`. Ares fixes the temp directory when the Ares agent starts with the Java Virtual Machine (JVM). Without the agent Ares refuses a temporary file without a named directory, with a message saying Ares did not start. That happens, for example, in an exercise prepared ahead of time that runs with AspectJ. Name a directory there and list it here with `createAllFiles: true`.
+A temporary file in a directory the code names still needs an entry for that directory, even for a folder inside the temp directory, and so does `Files.createTempDirectory`.
+
+Ares takes the temp directory from the values the Java Virtual Machine (JVM) started with, so code that changes `java.io.tmpdir` later cannot move it. With instrumentation the Ares agent records them at start-up. With AspectJ no agent is needed, but the test JVM needs the arguments the documented build files pass: `--add-exports java.base/jdk.internal.misc=ALL-UNNAMED`, and for `File.createTempFile` also `--add-opens java.base/java.io=ALL-UNNAMED`. Without them Ares refuses the temporary file, and its message names the missing argument.
+
+Ares's own files, such as its messages, need no entry either. Ares reads them itself, not on behalf of the student code, so no rule about their names is needed. A file that merely has the same name as one of Ares's files is checked like any other.
+
+[How each of these is verified](/contributor/subsystems/aop/baseline-verification) on both enforcement backends is described for contributors.
 
 ## Notes
 
