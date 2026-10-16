@@ -90,11 +90,11 @@ Some file accesses are part of what ordinary Java code does and carry no risk, s
 
 A temporary file in a directory the code names still needs an entry for that directory, even for a folder inside the temp directory, and so does `Files.createTempDirectory`.
 
-Ares takes the temp directory from the values the Java Virtual Machine (JVM) started with, so code that changes `java.io.tmpdir` later cannot move it. With instrumentation the Ares agent records them at start-up. With AspectJ no agent is needed, but the test JVM needs the arguments the documented build files pass: `--add-exports java.base/jdk.internal.misc=ALL-UNNAMED`, and for `File.createTempFile` also `--add-opens java.base/java.io=ALL-UNNAMED`. Without them Ares refuses the temporary file, and its message names the missing argument.
+Ares takes the temp directory from the values the Java Virtual Machine (JVM) started with, so code that changes `java.io.tmpdir` later cannot move it. With instrumentation the Ares agent records them at start-up. With AspectJ no agent is needed, but the test JVM needs the arguments the documented build files pass: `--add-exports java.base/jdk.internal.misc=ALL-UNNAMED`, and, for `File.createTempFile`, `--add-opens java.base/java.io=ALL-UNNAMED`. Without them Ares refuses the temporary file, and its message names the missing argument.
 
-Ares's own files, such as its messages, need no entry either. Ares reads them itself, not on behalf of the student code, so no rule about their names is needed. A file that merely has the same name as one of Ares's files is checked like any other.
+Ares's own files, such as its messages, need no entry either. Ares reads them itself, not on behalf of the student code, so no rule about their names is needed. A file that merely has the same name as one of Ares's files gets the same check as any other.
 
-[How each of these is verified](/contributor/subsystems/aop/baseline-verification) on both enforcement backends is described for contributors.
+[The contributor documentation](/contributor/subsystems/aop/baseline-verification) describes how both enforcement backends verify each of these.
 
 ## Notes
 

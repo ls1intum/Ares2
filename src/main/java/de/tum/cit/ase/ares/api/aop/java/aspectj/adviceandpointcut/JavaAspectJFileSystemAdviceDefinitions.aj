@@ -1528,7 +1528,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 	}
 
-	/** Checks the selected policy against the caller and file-operation arguments. */
 	/**
 	 * Tells whether the call reads an entry of a {@code JarFile} or
 	 * {@code ZipFile} that is already open. Opening the archive is still checked
@@ -1547,6 +1546,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 						|| "java.util.zip.ZipFile".equals(declaringTypeName));
 	}
 
+	/**
+	 * Checks the selected policy against the caller and file-operation arguments.
+	 *
+	 * @param action        the file-system action being checked
+	 * @param thisJoinPoint the intercepted call
+	 */
 	private void checkFileSystemInteractionImpl(@Nonnull String action, @Nonnull JoinPoint thisJoinPoint) {
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");

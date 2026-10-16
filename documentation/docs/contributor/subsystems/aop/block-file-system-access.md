@@ -1148,7 +1148,7 @@ This check finds all file paths involved in the operation and validates them aga
 2. **5.4.2** Apply special method rules (ignore some parameters)
 3. **5.4.3** Extract paths from **parameters** and check against list
 4. **5.4.4** Extract paths from **object state** and check against list
-5. **5.4.5** Exceptions for JVM and library infrastructure (no exception for Ares's own file names)
+5. **5.4.5** Exceptions for Java Virtual Machine (JVM) and library infrastructure (no exception for Ares's own file names)
 
 <a id="541-load-list-of-allowed-paths"></a>
 #### 5.4.1 Load List of Allowed Paths
@@ -1336,11 +1336,11 @@ Extract and validate all file paths from the object's internal state. This step 
 
 **1. Purpose**
 
-Let the JVM, the JDK and the libraries do the file work they need while a test runs, without letting student code borrow those exceptions. Ares's own files, such as its messages and its lists of essential classes, get no exception by name: Ares reads them itself, either before student code runs or inside a check whose nested file accesses the re-entrancy guard (`enterAdvice`) skips, and `Messages` guards its own bundle loading. An earlier allow-list matched six Ares file names by their ending, wherever the file lay and for every action, so a student file with such a name could be read, replaced or deleted. It was removed on both backends; `BaselineExemptionParityTest` checks it stays gone.
+Let the JVM, the JDK and the libraries do the file work they need while a test runs, without letting student code borrow those exceptions. Ares's own files, such as its messages and its lists of essential classes, get no exception by name. Ares reads them itself, either before student code runs or inside a check whose nested file accesses the re-entrancy guard (`enterAdvice`) skips, and `Messages` guards its own bundle loading. An earlier allow-list matched six Ares file names by their ending, wherever the file lay and for every action, so student code could read, replace or delete a file with such a name. Both backends dropped it, and `BaselineExemptionParityTest` checks it stays gone.
 
 **2. How it works**
 
-A flagged path is allowed only when the access is Java Virtual Machine (JVM)/library infrastructure rather than student file access. This exemption is applied at **all three** check sites: parameter-based, receiver-based, and attribute-based violations.
+A flagged path is allowed only when the access is JVM/library infrastructure rather than student file access. Both backends apply this exemption at **all three** check sites: parameter-based, receiver-based, and attribute-based violations.
 - `.class` reads performed by the class-loading machinery (a class-loader frame is on the stack, or the caller is `Class.forName`/`ClassLoader`)
 - `.jar` reads from system infrastructure, meaning the Maven local repository or the JDK installation under `java.home`
 - JDK-internal reads under `java.home` as the JVM started with it, and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
