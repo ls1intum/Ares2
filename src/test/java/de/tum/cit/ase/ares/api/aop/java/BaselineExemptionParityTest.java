@@ -1,11 +1,14 @@
 package de.tum.cit.ase.ares.api.aop.java;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -128,6 +131,22 @@ class BaselineExemptionParityTest {
 		Map<AOPMode, Verdict> actual = verdicts(row, directory);
 		assertThat(actual).as(row.name()).containsEntry(AOPMode.INSTRUMENTATION, row.instrumentation())
 				.containsEntry(AOPMode.ASPECTJ, row.aspectJ());
+	}
+
+	/**
+	 * An archive a row opens is closed once both backends have judged it, so the
+	 * test folder can be deleted on every platform.
+	 *
+	 * @param directory a fresh folder outside every allow-list
+	 */
+	@Test
+	void anOpenArchiveIsClosedAfterItsRow(@TempDir Path directory) {
+		Call call = jarEntryRead(archive(directory));
+
+		verdicts(row("closes its archive", "read", none(), dir -> call, Verdict.ALLOW, Verdict.ALLOW), directory);
+
+		JarFile jar = (JarFile) call.instance();
+		assertThatThrownBy(jar::entries).isInstanceOf(IllegalStateException.class);
 	}
 
 	/**
@@ -318,7 +337,8 @@ class BaselineExemptionParityTest {
 	}
 
 	/**
-	 * Runs a row through both backends.
+	 * Runs a row through both backends, then closes the call's receiver if it holds
+	 * a file open, such as an archive.
 	 *
 	 * @param row       the row
 	 * @param directory the test folder
@@ -326,13 +346,33 @@ class BaselineExemptionParityTest {
 	 */
 	private static Map<AOPMode, Verdict> verdicts(Row row, Path directory) {
 		Call call = row.call().apply(directory);
-		String[] allowList = row.allowList().apply(directory);
-		Map<AOPMode, Verdict> verdicts = new EnumMap<>(AOPMode.class);
-		for (AOPMode mode : BACKENDS) {
-			configure(mode, allowList);
-			verdicts.put(mode, verdictOf(mode, row.action(), call));
+		try {
+			String[] allowList = row.allowList().apply(directory);
+			Map<AOPMode, Verdict> verdicts = new EnumMap<>(AOPMode.class);
+			for (AOPMode mode : BACKENDS) {
+				configure(mode, allowList);
+				verdicts.put(mode, verdictOf(mode, row.action(), call));
+			}
+			return verdicts;
+		} finally {
+			close(call.instance());
 		}
-		return verdicts;
+	}
+
+	/**
+	 * Closes a call's receiver if it holds a file open, so the test folder can be
+	 * deleted on every platform.
+	 *
+	 * @param instance the receiver, or {@code null}
+	 */
+	private static void close(Object instance) {
+		if (instance instanceof Closeable closeable) {
+			try {
+				closeable.close();
+			} catch (IOException exception) {
+				throw new UncheckedIOException(exception);
+			}
+		}
 	}
 
 	/**

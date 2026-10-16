@@ -1,22 +1,22 @@
 ---
 title: "Verifying the Secure Baseline"
 sidebar_position: 5
-description: "How each operation the secure baseline allows without a policy entry is handled and proven on every backend."
+description: "How every backend decides and proves each operation the secure baseline allows without a policy entry."
 ---
 
 :::tip[Simple Story]
 The board of education does not have to write "may sharpen a pencil" on the checklist. Some
-things every pupil does are fine without asking, and some things that look just as small never
+things every pupil does are fine without asking, and some things that look equally small never
 are.
 
-This page is the record that both ways of watching the pupil, the one at every desk and the one at
-the pencil sharpener itself, wave the same small things through and stop the same things. Where the
-two genuinely differ, the difference is written down by name, so a new one cannot slip in unseen.
+This page is the record that both ways of watching the pupil wave the same small things through and
+stop the same things. One watches at every desk, the other at the pencil sharpener itself. Where the
+two genuinely differ, this page names the difference, so a new one cannot slip in unseen.
 :::
 
 The secure baseline is what a policy with no file entries still allows. The instructor-facing list
 is [What works without an entry](/instructor/policy-reference/file-system-access#what-works-without-an-entry).
-This page records how each item is decided on each backend and which test proves it, so a change
+This page records how each backend decides each item and which test proves it, so a change
 to one backend that the other does not follow fails the build.
 
 ## The parity test
@@ -33,17 +33,17 @@ The same class compares the constants the backends duplicate:
 - the native-library suffixes trusted under `java.home`, equal on both;
 - the random-seed devices, named on instrumentation only (see below);
 - no list of file names allowed wherever they lie, on either backend;
-- the calls ArchUnit and WALA allow without an entry, equal once both are written in one notation.
+- the calls ArchUnit and T. J. Watson Libraries for Analysis (WALA) allow without an entry, equal once both use one notation.
 
 ## What each backend decides
 
 | Operation | Instrumentation | AspectJ | Proven in all four modes by |
 | --- | --- | --- | --- |
-| Read under `java.home` | Allowed: trusted start-up root | Allowed: same root, from the JVM's start-up record | Parity test; `BaselineStandardAllowTest` (certificates, locale and charset data) |
+| Read under `java.home` | Allowed: trusted start-up root | Allowed: same root, from the Java Virtual Machine (JVM)'s start-up record | Parity test; `BaselineStandardAllowTest` (certificates, locale and charset data) |
 | Create, replace or delete under `java.home` | Refused | Refused | Parity test |
-| Load a JDK native library by name or under `java.home` | Allowed | Allowed | Parity test |
+| Load a Java Development Kit (JDK) native library by name or under `java.home` | Allowed | Allowed | Parity test |
 | Read a `.jar` in the start-up Maven repository | Allowed | Allowed | Parity test; `JceGeneratedExerciseTest` (start-up repository only) |
-| Read an entry of an already-open `JarFile`/`ZipFile` | Allowed; opening it is checked | Allowed; opening it is checked | Parity test |
+| Read an entry of an already-open `JarFile`/`ZipFile` | Allowed; Ares still checks opening it | Allowed; Ares still checks opening it | Parity test |
 | `SecureRandom`, `UUID.randomUUID()` | Allowed while the JDK's own seed class reads the device | Nothing to allow: the JDK's read is not woven | `BaselineStandardAllowTest`; `BaselineStillDeniedTest` (direct read, provider callback) |
 | System timezone | Nothing to allow: read natively or under `java.home` | Same | `BaselineStandardAllowTest`; `BaselineStillDeniedTest` (direct read) |
 | Temporary file without a directory | Allowed in the directory fixed at start-up | Allowed in the start-up directory | Parity test; `BaselineStandardAllowTest`; `BaselineStillDeniedTest` (named directories, links, a planting file attribute) |
@@ -54,8 +54,8 @@ The same class compares the constants the backends duplicate:
 ## Named differences
 
 - **Random-seed devices.** Instrumentation sees the JDK opening `/dev/urandom` while seeding and
-  allows exactly that; AspectJ never sees it. A student opening the device directly is refused on
-  both. The reason AspectJ cannot see the JDK's own calls is
+  allows exactly that; AspectJ never sees it. Both refuse a student who opens the device
+  directly. The reason AspectJ cannot see the JDK's own calls is
   [section 2 of the weaknesses page](aspectj-vs-instrumentation-weaknesses.md#2-jdk-internal-call-sites-cannot-be-woven).
 - **A thread started through a method reference.** Refused on instrumentation, missed by AspectJ;
   this is an AspectJ weakness outside the baseline, listed in
@@ -63,13 +63,13 @@ The same class compares the constants the backends duplicate:
 
 ## Removed name-based exemptions
 
-Two exemptions once matched a file by its name alone and were removed on both backends:
+Both backends dropped two exemptions that once matched a file by its name alone:
 
 - the JDK's cryptography policy file names (`default_local.policy` and the like): genuine
   cryptography reads them under `java.home`;
 - six Ares file names (`messages.properties`, `EssentialClasses.yaml` and others), matched by their
-  ending for every action: Ares reads its own files itself, outside any student call, and the
-  re-entrancy guard skips file access made while a check is running.
+  ending for every action. Ares reads its own files itself, outside any student call. The
+  re-entrancy guard skips file access made while a check runs.
 
 The parity test has a row for each, and `PrecompileTest` checks that a generated exercise's copy
 of the advice carries neither list.
