@@ -118,16 +118,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// their path at index 0.
 			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)));
 
-	/**
-	 * Internal Ares files that should be excluded from file system interception.
-	 * These are implementation details of Ares itself and should not trigger
-	 * sandbox violations when accessed internally.
-	 */
-	private static final Set<String> INTERNAL_PATH_SUFFIXES = Set.of("ares/api/localization/Messages.class",
-			"ares/api/localization/messages.class", "ares/api/localization/messages.properties",
-			"ares/api/util/LruCache.class", "ares/api/configuration/essentialFiles/java/EssentialPackages.yaml",
-			"ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
-
 	private static final Set<String> NATIVE_LIBRARY_SUFFIXES = Set.of(".dylib", ".jnilib", ".so", ".dll");
 
 	/**
@@ -187,24 +177,18 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	// <editor-fold desc="Forbidden handling">
 
 	/**
-	 * Checks if a Path is outside of the allowed paths whitelist.
-	 * <p>
-	 * Description: Returns true if allowedPathsAsStrings is null or if the given
-	 * actualPath does not match one of the allowed patterns. This method resolves
-	 * symlinks FIRST to prevent symlink-based sandbox escapes (TOCTOU attacks).
-	 * <p>
-	 * Security Note: Symlinks are resolved to their canonical form BEFORE checking
-	 * against allowed paths, preventing attacks where a path like
-	 * "/allowed/../../../etc/passwd" could bypass prefix checks.
+	 * Tells whether a path lies outside every allowed path. A missing or empty
+	 * allow-list allows nothing, so every path is forbidden; a {@code *} entry
+	 * allows everything. Links are resolved first, so a link cannot lead out of an
+	 * allowed folder.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param actualPath                          the Path to test
-	 * @param allowedPathsAsStrings               whitelist of allowed actualPath
-	 *                                            strings
-	 * @param allowNonExistingPathsToBeConsidered whether to allow paths that don't
-	 *                                            exist yet
-	 * @return true if actualPath is forbidden; false otherwise
+	 * @param target                              the path to test
+	 * @param allowedPathsAsStrings               the allowed paths, possibly null
+	 * @param allowNonExistingPathsToBeConsidered whether a path that does not exist
+	 *                                            yet is still checked
+	 * @return true if the path is forbidden
 	 */
 	private static boolean checkIfPathIsForbidden(@Nullable FileTarget target, @Nullable String[] allowedPathsAsStrings,
 			boolean allowNonExistingPathsToBeConsidered) {
@@ -459,8 +443,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param observedVariable the variable to analyse
-	 * @param allowedPaths     whitelist of allowed path strings; if null, all paths
-	 *                         are considered allowed
+	 * @param allowedPaths     the allowed paths; null or empty allows nothing
 	 * @return true if a violation is found, false otherwise
 	 */
 	private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedPaths,
@@ -553,8 +536,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param observedVariables array of values to validate
-	 * @param allowedPaths      whitelist of allowed path strings; if null, all
-	 *                          paths are considered allowed
+	 * @param allowedPaths      the allowed paths; null or empty allows nothing
 	 * @param ignoreVariables   criteria determining which observedVariables to skip
 	 * @return the first path (as String) that is not allowed, or null if none
 	 *         violate
@@ -927,11 +909,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
-	 * Checks a single isolated parameter/receiver candidate array against one
-	 * specific allow-list, throwing {@code SecurityException} on violation. Applies
-	 * only the internal-path-suffix exemption (Ares's own framework files) — the
-	 * class-loading/system-JAR exemptions the generic path applies are not relevant
-	 * to a student-initiated file copy/transfer.
+	 * Checks one side of a student's file copy or transfer against one allow-list
+	 * and throws a {@code SecurityException} on a violation. No exemption applies:
+	 * the student names both paths, so neither is Ares or the JDK at work.
 	 */
 	private static void checkSinglePathRole(@Nonnull String actionLabel, @Nonnull String allowedPathsSettingKey,
 			@Nonnull Object[] candidates, boolean allowNonExistingPaths, @Nonnull String fileSystemMethodToCheck,
@@ -946,9 +926,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		String violation = checkIfVariableCriteriaIsViolated(candidates, allowedPaths, IgnoreValues.NONE,
 				allowNonExistingPaths);
 		if (violation == null) {
-			return;
-		}
-		if (INTERNAL_PATH_SUFFIXES.stream().anyMatch(violation::endsWith)) {
 			return;
 		}
 		throw new SecurityException(
@@ -1541,6 +1518,24 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
+	 * Tells whether the call reads an entry of a {@code JarFile} or {@code ZipFile}
+	 * that is already open. Opening the archive is still checked against the
+	 * policy, and the entry call names no file of its own, so the entry read is
+	 * allowed, exactly as on the AspectJ backend.
+	 *
+	 * @param action            the file-system action being checked
+	 * @param declaringTypeName the class of the intercepted method
+	 * @param methodName        the intercepted method
+	 * @return {@code true} for a read of an entry, never for opening the archive
+	 */
+	private static boolean isEntryReadOnOpenArchive(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull String methodName) {
+		return "read".equals(action) && !"<init>".equals(methodName)
+				&& ("java.util.jar.JarFile".equals(declaringTypeName)
+						|| "java.util.zip.ZipFile".equals(declaringTypeName));
+	}
+
+	/**
 	 * Checks actual path parameters, receivers and attributes for one filesystem
 	 * action.
 	 */
@@ -1572,9 +1567,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 						|| ("java.nio.file.Files".equals(declaringTypeName)
 								&& ("newBufferedWriter".equals(methodName) || "newOutputStream".equals(methodName))));
 		String messageAction = isWriteAliasedAsCreate ? "overwrite" : action;
-		boolean isJarResourceRead = "read".equals(action) && !"<init>".equals(methodName)
-				&& ("java.util.jar.JarFile".equals(declaringTypeName)
-						|| "java.util.zip.ZipFile".equals(declaringTypeName));
+		boolean isJarResourceRead = isEntryReadOnOpenArchive(action, declaringTypeName, methodName);
 		if (pathIllegallyInteractedThroughParameter != null) {
 			boolean isClassLoaderAccess = pathIllegallyInteractedThroughParameter.endsWith(".class")
 					&& (isClassLoadingInProgress() || (studentCalledMethod != null
@@ -1583,20 +1576,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 									|| studentCalledMethod.startsWith("jdk.internal.loader"))));
 			boolean isSystemJarRead = "read".equals(action)
 					&& isSystemJarReadExempt(pathIllegallyInteractedThroughParameter);
-			boolean isInternalAllowed = false;
-			for (String suffix : INTERNAL_PATH_SUFFIXES) {
-				if (pathIllegallyInteractedThroughParameter.endsWith(suffix)) {
-					isInternalAllowed = true;
-					break;
-				}
-			}
 			boolean isExemptSystemFileAccess = isExemptSystemFileAccess(action,
 					pathIllegallyInteractedThroughParameter);
 			boolean isEntropySourceRead = isEntropySourceRead(action, pathIllegallyInteractedThroughParameter);
 			boolean isJdkTempFileCreation = isJdkTempFileCreation(action, declaringTypeName, methodName,
 					pathIllegallyInteractedThroughParameter);
-			if (!isClassLoaderAccess && !isSystemJarRead && !isInternalAllowed && !isExemptSystemFileAccess
-					&& !isJarResourceRead && !isEntropySourceRead && !isJdkTempFileCreation) {
+			if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess && !isJarResourceRead
+					&& !isEntropySourceRead && !isJdkTempFileCreation) {
 				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
 						messageAction, pathIllegallyInteractedThroughParameter,
 						fullMethodSignature
@@ -1609,15 +1595,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedPaths, IgnoreValues.NONE,
 						allowNonExistingPathsToBeConsidered);
 		if (pathIllegallyInteractedThroughReceiver != null) {
-			boolean isInternalAllowed = false;
-
-			if (INTERNAL_PATH_SUFFIXES.stream().anyMatch(pathIllegallyInteractedThroughReceiver::endsWith)) {
-				isInternalAllowed = true;
-			}
-			if (!isInternalAllowed && pathIllegallyInteractedThroughReceiver.endsWith(".class")
-					&& isClassLoadingInProgress()) {
-				isInternalAllowed = true;
-			}
+			boolean isInternalAllowed = pathIllegallyInteractedThroughReceiver.endsWith(".class")
+					&& isClassLoadingInProgress();
 
 			if (!isInternalAllowed && "read".equals(action)
 					&& isSystemJarReadExempt(pathIllegallyInteractedThroughReceiver)) {
@@ -1658,13 +1637,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 							|| studentCalledMethod.startsWith("java.lang.ClassLoader")
 							|| studentCalledMethod.startsWith("jdk.internal.loader"))))) {
 				isInternalAllowed = true;
-			}
-
-			for (String suffix : INTERNAL_PATH_SUFFIXES) {
-				if (pathIllegallyInteractedThroughAttribute.endsWith(suffix)) {
-					isInternalAllowed = true;
-					break;
-				}
 			}
 			if (!isInternalAllowed && "read".equals(action)
 					&& isSystemJarReadExempt(pathIllegallyInteractedThroughAttribute)) {

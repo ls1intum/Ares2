@@ -1148,7 +1148,7 @@ This check finds all file paths involved in the operation and validates them aga
 2. **5.4.2** Apply special method rules (ignore some parameters)
 3. **5.4.3** Extract paths from **parameters** and check against list
 4. **5.4.4** Extract paths from **object state** and check against list
-5. **5.4.5** Exception for Ares-internal files (so Ares itself can function)
+5. **5.4.5** Exceptions for Java Virtual Machine (JVM) and library infrastructure (no exception for Ares's own file names)
 
 <a id="541-load-list-of-allowed-paths"></a>
 #### 5.4.1 Load List of Allowed Paths
@@ -1306,7 +1306,7 @@ for (Object variable : filteredVariables) {
 **4. Result**
 
 - All paths allowed → 🌕 **Continue to 5.4.4**
-- Forbidden path found → Record violation → 🌕 **Continue to 5.4.5** (check if Ares internal)
+- Forbidden path found → Record violation → 🌕 **Continue to 5.4.5** (check the infrastructure exceptions)
 
 <a id="544-check-object-state-for-file-paths"></a>
 #### 5.4.4 Check Object State for File Paths
@@ -1329,46 +1329,22 @@ Extract and validate all file paths from the object's internal state. This step 
 **4. Result**
 
 - All paths allowed → 🌕 **Continue to 5.4.5**
-- Forbidden path found → Record violation → 🌕 **Continue to 5.4.5** (check if Ares internal)
+- Forbidden path found → Record violation → 🌕 **Continue to 5.4.5** (check the infrastructure exceptions)
 
 <a id="545-allow-ares-internal-files"></a>
-#### 5.4.5 Allow Ares Internal Files
+#### 5.4.5 Allow JVM and Library Infrastructure
 
 **1. Purpose**
 
-Allow Ares to access its own configuration and resource files. Ares needs to read its own files (localization messages, configuration, internal classes) to function properly. Without this exception, Ares would block itself from accessing necessary resources. This allowlist ensures that only genuine Ares internal files are exempted, not files that students might name similarly to bypass security.
+Let the JVM, the JDK and the libraries do the file work they need while a test runs, without letting student code borrow those exceptions. Ares's own files, such as its messages and its lists of essential classes, get no exception by name. Ares reads them itself, either before student code runs or inside a check whose nested file accesses the re-entrancy guard (`enterAdvice`) skips, and `Messages` guards its own bundle loading. An earlier allow-list matched six Ares file names by their ending, wherever the file lay and for every action, so student code could read, replace or delete a file with such a name. Both backends dropped it, and `BaselineExemptionParityTest` checks it stays gone.
 
 **2. How it works**
 
-```java
-boolean isInternalAllowed = false;
-for (String suffix : INTERNAL_PATH_SUFFIXES) {
-    if (pathViolation.endsWith(suffix)) {
-        isInternalAllowed = true;
-        break;
-    }
-}
-
-if (!isInternalAllowed) {
-    throw SecurityException;
-}
-```
-
-This exemption is applied at **all three** check sites: parameter-based, receiver-based, and attribute-based violations.
-
-**Ares Internal Files (`INTERNAL_PATH_SUFFIXES`, 6 entries):**
-- `"ares/api/localization/Messages.class"`
-- `"ares/api/localization/messages.class"`
-- `"ares/api/localization/messages.properties"`
-- `"ares/api/util/LruCache.class"`
-- `"ares/api/configuration/essentialFiles/java/EssentialPackages.yaml"`
-- `"ares/api/configuration/essentialFiles/java/EssentialClasses.yaml"`
-
-**Further infrastructure exemptions:** Besides Ares's own files, a flagged path is allowed when the access is Java Virtual Machine (JVM)/library infrastructure rather than student file access:
+A flagged path is allowed only when the access is JVM/library infrastructure rather than student file access. Both backends apply this exemption at **all three** check sites: parameter-based, receiver-based, and attribute-based violations.
 - `.class` reads performed by the class-loading machinery (a class-loader frame is on the stack, or the caller is `Class.forName`/`ClassLoader`)
 - `.jar` reads from system infrastructure, meaning the Maven local repository or the JDK installation under `java.home`
 - JDK-internal reads under `java.home` as the JVM started with it, and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
-- Entry reads on an **already-open** `JarFile`/`ZipFile` (the constructor is NOT exempt and still validates its path)
+- Entry reads on an **already-open** `JarFile`/`ZipFile` (`isEntryReadOnOpenArchive`, the same rule on both backends; the constructor is NOT exempt and still validates its path). Before this rule existed on AspectJ, that backend read `JarFile`'s static `MANIFEST_NAME` field as a path relative to the working directory and refused entry reads of a jar the policy allowed.
 - The root path `"/"` when found in object attributes (a side effect of class resolution)
 
 **JCE policy reads and trusted startup:** Cryptography needs the JDK's jurisdiction policies. These files use the existing trusted JDK-root read allowance; filenames such as `default_local.policy`, `default_US_export.policy` and `exempt_local.policy` grant no permission themselves. Student files with those names remain subject to the exercise policy, including reads from provider callbacks. Creation, replacement and deletion receive no special allowance.
@@ -1380,12 +1356,11 @@ Neither backend takes its trusted roots from a property that can change after st
 **3. Used variables**
 
 - **`pathViolation`** (String): The file path that was flagged as forbidden in 5.4.3 (parameters), the receiver check, or 5.4.4 (attributes)
-- **`INTERNAL_PATH_SUFFIXES`** (Set<String>): Predefined list of Ares internal file path suffixes that should always be allowed
-- **`isInternalAllowed`** (boolean): `true` if the path ends with an Ares internal file suffix or matches one of the infrastructure exemptions, `false` otherwise
+- **`isInternalAllowed`** (boolean): `true` if the path matches one of the infrastructure exemptions, `false` otherwise
 
 **4. Result**
 
-- Forbidden path found (not an Ares internal file) → 🔴 **Block and throw security exception** (analysis terminated - forbidden file access detected)
+- Forbidden path found (no infrastructure exemption applies) → 🔴 **Block and throw security exception** (analysis terminated - forbidden file access detected)
 - All paths allowed → 🟢 **Allow the file operation** (analysis terminated - no forbidden access detected)
 
 <a id="546-allow-the-secure-baselines-standard-operations"></a>
@@ -1399,7 +1374,7 @@ Let ordinary Java code use random numbers, the system timezone, the JDK's truste
 
 - **Fixing the start-up values, instrumentation.** `JavaInstrumentationAgent.premain` runs one trusted start-up routine, `captureTrustedStartupValues`, before any test. It initialises the JDK's own temp-directory holders (`java.io.File$TempDirectory`, `java.nio.file.TempFileHelper`), so the JDK keeps the start-up directory even if `java.io.tmpdir` changes later. It stores that directory, resolved to its real location, in `frozenDefaultTempDirectory` of both copies of `JavaAOPTestCaseSettings`, a field `reset()` leaves alone.
 - **Fixing the start-up values, AspectJ.** The aspect uses no agent and none of those fields. It takes `java.io.tmpdir` from the JVM's start-up record and resolves it to its real location once, when the aspect is first used, and never again. For a temporary file without a directory it checks the directory the JDK uses. For `Files` that is the start-up path as it resolves now, so a link changed later no longer matches. For `java.io.File` it is the directory kept in `java.io.File$TempDirectory`, read with the JVM argument `--add-opens java.base/java.io=ALL-UNNAMED`. The aspect prepares that class before its own checks start, because preparing it runs random-number code that can call student code, which stays checked. On JDK 17 that class copies `java.io.tmpdir` when first used, so an earlier change can leave it pointing elsewhere, and the aspect refuses such a directory unless the policy allows it.
-- **Random numbers (instrumentation only).** A read of `/dev/urandom` or `/dev/random` is allowed while a `sun.security.provider` class loaded by the JVM itself is on the stack. The public `SecureRandom` class is not trusted, because student code can plug its own generator in beneath it. AspectJ has no such exemption on purpose: its `call()` pointcuts only fire in woven exercise code, never inside the JDK, so the JDK's own seeding is never checked there. This asymmetry is intended, like the `JarFile`/`ZipFile` entry-read exemption.
+- **Random numbers (instrumentation only).** A read of `/dev/urandom` or `/dev/random` is allowed while a `sun.security.provider` class loaded by the JVM itself is on the stack. The public `SecureRandom` class is not trusted, because student code can plug its own generator in beneath it. AspectJ has no such exemption on purpose: its `call()` pointcuts only fire in woven exercise code, never inside the JDK, so the JDK's own seeding is never checked there. This asymmetry is intended; the [weaknesses page](aspectj-vs-instrumentation-weaknesses.md#2-jdk-internal-call-sites-cannot-be-woven) explains why AspectJ cannot see such calls, and the [baseline verification page](baseline-verification.md) lists every asymmetry the parity test allows.
 - **Temporary files, inner step (instrumentation only).** `Files.createTempFile` creates the file through `Files.createFile`, which the agent rewrites as well. That inner create is allowed only for a file directly inside the fixed temp directory. It further needs `java.nio.file.TempFileHelper`, loaded by the JVM, on the stack with no student frame between it and the check. A student callback, such as a `FileAttribute` whose `name()` creates a file, therefore stays refused.
 - **Timezone: nothing to allow.** The JDK reads `/etc/localtime` in native code, which no check sees, and its `tzdb.dat` lies under `java.home`. Ares refuses a Java read of `/etc/localtime` like any other path.
 - **Static analysis.** Both deny lists keep the `createTempFile` overloads that take a directory. ArchUnit's transitive check (`TransitivelyAccessesMethodsCondition`) and the WALA analysis (`WalaRule`, `CustomCallgraphBuilder`) treat the two overloads without a directory as allowed. They do not look inside them, because their JDK bodies reach denied methods that the runtime check covers instead.
