@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.integration.aop.allowed;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,17 +10,24 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.baseline.BaselineRecordsMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.baseline.BaselineStandardAllowMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.baselineCertificates.TrustedCertificatesMain;
 
 /**
  * Runs student code that uses the secure baseline's standard-allowed operations
  * under a policy granting no file access, in all four mode combinations,
- * through the real static analysis and the real runtime checks.
+ * through the real static analysis and the real runtime checks. The tests with
+ * a switched-off policy run last, so a supervised test has already registered
+ * the package with the agent.
  */
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class BaselineStandardAllowTest {
 
 	/**
@@ -356,6 +364,71 @@ class BaselineStandardAllowTest {
 	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
 	void test_formatWithLocaleAndCharsetDataMavenWalaInstrumentation() {
 		assertDoesNotThrow(() -> BaselineStandardAllowMain.formatWithLocaleAndCharsetData());
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="useRecord">
+	/**
+	 * A student record works under ArchUnit and AspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void test_useRecordMavenArchunitAspectJ() {
+		assertEquals("ArchunitAspectJPoint[x=1, y=2] true true", BaselineRecordsMain.useArchunitAspectJRecord());
+	}
+
+	/**
+	 * A student record works under ArchUnit and instrumentation, whose agent
+	 * rewrites the record's thread and monitor calls.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void test_useRecordMavenArchunitInstrumentation() {
+		assertEquals("ArchunitInstrumentationPoint[x=1, y=2] true true",
+				BaselineRecordsMain.useArchunitInstrumentationRecord());
+	}
+
+	/**
+	 * A student record works under WALA and AspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void test_useRecordMavenWalaAspectJ() {
+		assertEquals("WalaAspectJPoint[x=1, y=2] true true", BaselineRecordsMain.useWalaAspectJRecord());
+	}
+
+	/**
+	 * A student record works under WALA and instrumentation, whose agent rewrites
+	 * the record's thread and monitor calls.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void test_useRecordMavenWalaInstrumentation() {
+		assertEquals("WalaInstrumentationPoint[x=1, y=2] true true",
+				BaselineRecordsMain.useWalaInstrumentationRecord());
+	}
+
+	/**
+	 * A record from a package the agent already rewrites works under a switched-off
+	 * ArchUnit and instrumentation policy.
+	 */
+	@PublicTest
+	@Order(Integer.MAX_VALUE)
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH, activated = false)
+	void test_recordUnderDeactivatedPolicyMavenArchunitInstrumentation() {
+		assertEquals("DeactivatedArchunitPoint[x=1, y=2] true true",
+				BaselineRecordsMain.useDeactivatedArchunitRecord());
+	}
+
+	/**
+	 * A record from a package the agent already rewrites works under a switched-off
+	 * WALA and instrumentation policy.
+	 */
+	@PublicTest
+	@Order(Integer.MAX_VALUE)
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH, activated = false)
+	void test_recordUnderDeactivatedPolicyMavenWalaInstrumentation() {
+		assertEquals("DeactivatedWalaPoint[x=1, y=2] true true", BaselineRecordsMain.useDeactivatedWalaRecord());
 	}
 	// </editor-fold>
 

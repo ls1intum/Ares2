@@ -133,24 +133,11 @@ public final class BaselineStillDeniedMain {
 
 	/**
 	 * A file attribute that creates a file as soon as the JDK asks for its name. A
-	 * plain class, not a record: the instrumentation agent cannot yet transform the
-	 * bootstrap call a record uses for its generated methods.
+	 * record, so the baseline tests also run a student record in every mode.
+	 *
+	 * @param plantedFile where the file is created
 	 */
-	private static final class PlantingAttribute implements FileAttribute<Object> {
-
-		/**
-		 * Where the file is created.
-		 */
-		private final Path plantedFile;
-
-		/**
-		 * Creates the attribute.
-		 *
-		 * @param plantedFile where the file is created
-		 */
-		private PlantingAttribute(Path plantedFile) {
-			this.plantedFile = plantedFile;
-		}
+	private record PlantingAttribute(Path plantedFile) implements FileAttribute<Object> {
 
 		/**
 		 * Creates the planted file, then reports a name no file system supports.

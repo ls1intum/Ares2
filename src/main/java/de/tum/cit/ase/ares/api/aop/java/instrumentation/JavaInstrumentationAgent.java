@@ -742,18 +742,37 @@ public final class JavaInstrumentationAgent {
 		}
 	}
 
-	private static net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods threadStartSubstitution(Method replacement) {
+	/**
+	 * Rewrites every call to {@code Thread.start()} into a call to the given
+	 * replacement, leaving a record's generated methods alone.
+	 *
+	 * @param replacement the method each call is redirected to
+	 * @return the rewrite, applied to every method of a class
+	 */
+	static net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods threadStartSubstitution(Method replacement) {
 		net.bytebuddy.matcher.ElementMatcher.Junction<MethodDescription> matcher = ElementMatchers
 				.isDeclaredBy(Thread.class).and(ElementMatchers.named("start")).and(ElementMatchers.takesArguments(0));
-		return MemberSubstitution.relaxed().method(matcher).replaceWith(replacement).on(ElementMatchers.any());
+		return new net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods().invokable(ElementMatchers.any(),
+				new RecordMethodsPassThrough(MemberSubstitution.relaxed().method(matcher).replaceWith(replacement)));
 	}
 
-	private static net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods monitorSubstitution(String methodName,
+	/**
+	 * Rewrites every call to one of Object's monitor methods ({@code wait},
+	 * {@code notify}, {@code notifyAll}) into a call to the given replacement,
+	 * leaving a record's generated methods alone.
+	 *
+	 * @param methodName    the monitor method
+	 * @param argumentCount how many arguments that variant takes
+	 * @param replacement   the method each call is redirected to
+	 * @return the rewrite, applied to every method of a class
+	 */
+	static net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods monitorSubstitution(String methodName,
 			int argumentCount, Method replacement) {
 		net.bytebuddy.matcher.ElementMatcher.Junction<MethodDescription> matcher = ElementMatchers
 				.isDeclaredBy(Object.class).and(ElementMatchers.named(methodName))
 				.and(ElementMatchers.takesArguments(argumentCount));
-		return MemberSubstitution.relaxed().method(matcher).replaceWith(replacement).on(ElementMatchers.any());
+		return new net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods().invokable(ElementMatchers.any(),
+				new RecordMethodsPassThrough(MemberSubstitution.relaxed().method(matcher).replaceWith(replacement)));
 	}
 
 	private record TransformationFailure(String typeName, Throwable cause) {
