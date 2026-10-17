@@ -9,6 +9,7 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.conditions.ArchConditions;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
@@ -213,30 +214,41 @@ public final class JavaArchunitTestCaseCollection {
 
 	/**
 	 * Package-import rule that also exempts the allow-listed classes (an empty
-	 * allow-list reproduces the original behaviour).
+	 * allow-list reproduces the original behaviour). A type named only through a
+	 * type annotation, such as {@code @NonNull String}, counts as an import too.
 	 */
 	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages,
 			Set<ClassPermission> allowedClasses) {
-		return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses)).should()
-				.dependOnClassesThat(new DescribedPredicate<>("imports a forbidden package package") {
+		return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses)).should(ArchConditions
+				.dependOnClassesThat(new DescribedPredicate<JavaClass>("imports a forbidden package package") {
 					@Override
 					public boolean test(JavaClass javaClass) {
-						String packageName = javaClass.getPackageName();
-						return allowedPackages.stream().noneMatch(allowedPackage -> {
-							String allowed = allowedPackage.importTheFollowingPackage();
-							if ("*".equals(allowed)) {
-								return true;
-							}
-							// Trailing-dot tolerant, boundary-aware match: a bare startsWith would
-							// let allowed "com.foo" also cover the unrelated package "com.foobar".
-							String normalizedAllowed = allowed.endsWith(".")
-									? allowed.substring(0, allowed.length() - 1)
-									: allowed;
-							return packageName.equals(normalizedAllowed)
-									|| packageName.startsWith(normalizedAllowed + ".");
-						});
+						return isForbiddenPackage(javaClass.getPackageName(), allowedPackages);
 					}
-				}).as(Messages.localized("security.architecture.package.import"));
+				})
+				.or(TypeAnnotationDependencies
+						.useTypeAnnotationsFrom(packageName -> isForbiddenPackage(packageName, allowedPackages))))
+				.as(Messages.localized("security.architecture.package.import"));
+	}
+
+	/**
+	 * Tells whether a package is outside every allowed package. {@code *} allows
+	 * everything, and an allowed package also covers the packages below it, but
+	 * {@code com.foo} does not cover the unrelated {@code com.foobar}.
+	 *
+	 * @param packageName     the package to check
+	 * @param allowedPackages the packages the policy allows
+	 * @return {@code true} if the package is forbidden
+	 */
+	private static boolean isForbiddenPackage(String packageName, Set<PackagePermission> allowedPackages) {
+		return allowedPackages.stream().noneMatch(allowedPackage -> {
+			String allowed = allowedPackage.importTheFollowingPackage();
+			if ("*".equals(allowed)) {
+				return true;
+			}
+			String normalizedAllowed = allowed.endsWith(".") ? allowed.substring(0, allowed.length() - 1) : allowed;
+			return packageName.equals(normalizedAllowed) || packageName.startsWith(normalizedAllowed + ".");
+		});
 	}
 	// </editor-fold>
 	// </editor-fold>
