@@ -13,6 +13,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.TypeAnnotationDependencies;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
@@ -239,6 +240,25 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	// TODO Markus: Move to better fitting class
 
 	/**
+	 * Throws the dedicated error when the type-annotation check could not read a
+	 * class file. The check marks that case with a text that is never translated,
+	 * so it is found before the rule is told apart by its translated description.
+	 *
+	 * @param message the message of the rule violation
+	 * @throws SecurityException naming the unreadable class, if the marker is there
+	 */
+	private static void throwIfTypeAnnotationsWereUnreadable(@Nonnull String message) {
+		int marker = message.indexOf(TypeAnnotationDependencies.UNREADABLE_MARKER);
+		if (marker < 0) {
+			return;
+		}
+		int start = message.indexOf('<', marker);
+		int end = start < 0 ? -1 : message.indexOf('>', start);
+		String className = start < 0 || end < 0 ? "unknown class" : message.substring(start + 1, end);
+		throw new SecurityException(Messages.localized("security.archunit.type.annotation.unreadable", className));
+	}
+
+	/**
 	 * Parses the error message of an assertion error to provide more descriptive
 	 * security violation messages. Extracts relevant information from Archunit's
 	 * error messages and creates a standardized security exception.
@@ -254,6 +274,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nullable
 		String message = e.getMessage();
 		Objects.requireNonNull(message, "message must not be null");
+		throwIfTypeAnnotationsWereUnreadable(message);
 		@Nullable
 		String[] messageParts = e.getMessage().split("\n");
 		Objects.requireNonNull(messageParts, "messageParts must not be null");

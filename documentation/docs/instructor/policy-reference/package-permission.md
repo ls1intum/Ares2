@@ -76,3 +76,5 @@ Implemented by `PackagePermission` in
 Matching is by **prefix**. A permitted package `java.util` matches any package whose name starts with it, so `java.util.concurrent` and `java.util.stream` are covered by the single entry above.
 
 `*` is accepted as a whole value by `matchesPackageImport`, which checks for it before falling through to the package pattern. It is not a general glob: `java.*` is not valid.
+
+**Type annotations count as imports.** A type that the code names only through a type annotation, such as `@NonNull` in `@NonNull String`, is checked like any other import. So are the classes, enums and annotations written inside the values of such an annotation. The Checker Framework's `@NonNull` therefore needs `importTheFollowingPackage: "org.checkerframework.checker.nullness.qual"`. An annotation with source retention never reaches the compiled class, so Ares neither sees it nor needs a permission for it.
