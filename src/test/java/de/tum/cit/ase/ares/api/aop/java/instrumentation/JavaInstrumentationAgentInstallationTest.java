@@ -14,12 +14,15 @@ import static org.mockito.Mockito.when;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -46,6 +49,22 @@ class JavaInstrumentationAgentInstallationTest {
 	 */
 	private static final AgentBuilder.Transformer UNCHANGED = (builder, typeDescription, classLoader, module,
 			protectionDomain) -> builder;
+
+	/**
+	 * Drops the transformation failure a test provoked on purpose. The agent keeps
+	 * such a failure for good, so it would otherwise fail every later activation in
+	 * this JVM, depending on which test class happens to run next.
+	 *
+	 * @throws ReflectiveOperationException If a field cannot be reached.
+	 */
+	@AfterEach
+	void forgetProvokedFailures() throws ReflectiveOperationException {
+		for (String name : List.of("PERMANENT_FAILURE", "TRANSFORMATION_FAILURE")) {
+			Field field = JavaInstrumentationAgent.class.getDeclaredField(name);
+			field.setAccessible(true);
+			((AtomicReference<?>) field.get(null)).set(null);
+		}
+	}
 
 	/**
 	 * Every pointcut ends up in one transformer, registered once with the JVM.
