@@ -53,7 +53,7 @@
 		<!-- 4. AST: 4.1 JavaParser -->
 		<java-parser-version>3.28.2</java-parser-version>
 		<!-- 5. Formats: YAML and XML (JSON handled via Jackson) -->
-		<jackson-version>2.22.3</jackson-version>
+		<jackson-version>2.22.4</jackson-version>
 		<!-- Declared directly so the version Ares resolves for consumers is fixed here
 			and matches the Artemis Docker image's dependency cache. -->
 		<snakeyaml-version>2.7</snakeyaml-version>
