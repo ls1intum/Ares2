@@ -31,7 +31,7 @@
 			fields. The four JavaInstrumentation*PathMethodAdviceTest classes were refactored
 			to use named nested classes instead of field-declaring anonymous classes, which
 			sidesteps that ajc crash, so the toolchain runs cleanly on 1.9.25.1. -->
-		<aspectj-version>1.9.25.1</aspectj-version>
+		<aspectj-version>1.9.26</aspectj-version>
 		<aspectj-path>
 			${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj-version}${file.separator}aspectjrt-${aspectj-version}.jar
 		</aspectj-path>
