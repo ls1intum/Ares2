@@ -79,7 +79,7 @@
 			isolation needs, and overriding the whole `argLine` to do so would duplicate the
 			agent and bootclasspath arguments into every profile that tried. -->
 		<surefire-max-heap>6g</surefire-max-heap>
-		<jacoco-version>0.8.15</jacoco-version>
+		<jacoco-version>0.8.16</jacoco-version>
 		<!-- BUNDLE-level minima, shared by the `coverage` profile (one local full-suite
 			run) and the `coverage-aggregate` profile (the merged CI runs) so that the two
 			gates cannot drift apart. -->
