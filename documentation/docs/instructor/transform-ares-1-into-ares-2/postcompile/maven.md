@@ -281,7 +281,7 @@ Ares 2 trusts a different set of identities by name, including its own `de.tum.c
 
 They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reservedPackages/`, and live in the Ares repository at `src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`. Both are reproduced in full below, so you can complete the migration without extracting them.
 
-Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
 
 ### Maven
 
@@ -305,8 +305,7 @@ Delete the `maven-enforcer-plugin` execution with the `requireFilesDontExist` ru
               <include name="jdk/**"/><include name="com/sun/**"/>
               <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
               <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-              <include name="com/tngtech/archunit/**"/><include name="anonymous/toolclasses/**"/>
-              <include name="metatest/**"/>
+              <include name="com/tngtech/archunit/**"/>
             </fileset>
           </resourcecount>
           <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">
@@ -474,8 +473,7 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
                                         <include name="jdk/**"/><include name="com/sun/**"/>
                                         <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
                                         <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-                                        <include name="com/tngtech/archunit/**"/><include name="anonymous/toolclasses/**"/>
-                                        <include name="metatest/**"/>
+                                        <include name="com/tngtech/archunit/**"/>
                                     </fileset>
                                 </resourcecount>
                                 <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">

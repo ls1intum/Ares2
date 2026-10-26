@@ -31,12 +31,12 @@
 			fields. The four JavaInstrumentation*PathMethodAdviceTest classes were refactored
 			to use named nested classes instead of field-declaring anonymous classes, which
 			sidesteps that ajc crash, so the toolchain runs cleanly on 1.9.25.1. -->
-		<aspectj-version>1.9.25.1</aspectj-version>
+		<aspectj-version>1.9.26</aspectj-version>
 		<aspectj-path>
 			${user.home}${file.separator}.m2${file.separator}repository${file.separator}org${file.separator}aspectj${file.separator}aspectjrt${file.separator}${aspectj-version}${file.separator}aspectjrt-${aspectj-version}.jar
 		</aspectj-path>
 		<!-- 3. AOP: 3.2 Byte Buddy -->
-		<byte-buddy-version>1.18.15</byte-buddy-version>
+		<byte-buddy-version>1.18.16</byte-buddy-version>
 		<byte-buddy-path>
 			${project.build.directory}${file.separator}${project.artifactId}-${project.version}-agent.jar
 		</byte-buddy-path>
@@ -53,7 +53,7 @@
 		<!-- 4. AST: 4.1 JavaParser -->
 		<java-parser-version>3.28.2</java-parser-version>
 		<!-- 5. Formats: YAML and XML (JSON handled via Jackson) -->
-		<jackson-version>2.22.3</jackson-version>
+		<jackson-version>2.22.4</jackson-version>
 		<!-- Declared directly so the version Ares resolves for consumers is fixed here
 			and matches the Artemis Docker image's dependency cache. -->
 		<snakeyaml-version>2.7</snakeyaml-version>
