@@ -77,7 +77,6 @@ class TestProfileCoverageTest {
 	private static final Pattern TEST_ANNOTATION = Pattern
 			.compile("@(?:" + "(?:org\\.junit\\.jupiter\\.api\\.)?(?:Test|RepeatedTest|TestFactory|TestTemplate)"
 					+ "|(?:org\\.junit\\.)?Test" + "|(?:org\\.junit\\.jupiter\\.params\\.)?ParameterizedTest"
-					+ "|(?:net\\.jqwik\\.api\\.)?(?:Property|Example)"
 					+ "|(?:de\\.tum\\.cit\\.ase\\.ares\\.api\\.jupiter\\.)?(?:PublicTest|HiddenTest)" + ")\\b");
 
 	/**
@@ -161,8 +160,8 @@ class TestProfileCoverageTest {
 	@DisplayName("Every annotation that marks a test is detected in an exemption")
 	void detectsEveryAnnotationThatMarksATest() {
 		for (String annotation : List.of("@Test", "@ParameterizedTest", "@RepeatedTest", "@TestFactory",
-				"@TestTemplate", "@Property", "@Example", "@PublicTest", "@HiddenTest", "@org.junit.jupiter.api.Test",
-				"@org.junit.Test", "@net.jqwik.api.Property", "@de.tum.cit.ase.ares.api.jupiter.PublicTest")) {
+				"@TestTemplate", "@PublicTest", "@HiddenTest", "@org.junit.jupiter.api.Test", "@org.junit.Test",
+				"@de.tum.cit.ase.ares.api.jupiter.PublicTest")) {
 			assertTrue(TEST_ANNOTATION.matcher("\t" + annotation + "\n\tvoid something() {}").find(),
 					annotation + " marks a test, so a file carrying it is not a fixture.");
 		}

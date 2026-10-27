@@ -28,13 +28,6 @@
     },
     {
       "matchPackageNames": [
-        "net.jqwik:*"
-      ],
-      "allowedVersions": "<1.10.0",
-      "description": "Pinned to the newest 1.9.x (1.9.3). jqwik is a JUnit TestEngine, so it plugs into junit-platform through the TestEngine SPI rather than depending on a fixed JUnit release. Neither the 1.9 nor the 1.10 line is actually built for JUnit 6: jqwik 1.9.3 was compiled against junit-platform 1.11 and jqwik 1.10.x against junit-platform 1.14, both the old JUnit 5 platform line. Ares declares junit-jupiter and junit-platform-testkit directly at 6.x, and Maven nearest-wins mediation force-upgrades jqwik's transitive junit-platform up to 6.x on the classpath (there is no junit-platform node under net.jqwik in the dependency tree, proving the override). jqwik 1.9.3 tolerates that force-fit and the full suite is green; jqwik 1.10.x does not: it fails deterministically with ArrayIndexOutOfBoundsException in StoreRepository.streamAllStores when Ares runs thread-spawning properties (JqwickTest), and its move to junit-platform 1.14 while Ares builds on junit-platform 6.x likely contributes. Do not update until jqwik ships a release built for JUnit 6 (junit-platform 6.x), then re-run the full suite before lifting the pin."
-    },
-    {
-      "matchPackageNames": [
         "net.bytebuddy:*"
       ],
       "allowedVersions": "!/-jdk5$/",

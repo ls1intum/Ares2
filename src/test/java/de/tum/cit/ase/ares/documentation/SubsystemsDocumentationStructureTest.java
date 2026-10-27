@@ -51,9 +51,9 @@ class SubsystemsDocumentationStructureTest {
 			"block-thread-system-access.md", "block-thread-system-access.md", "package-overview.md",
 			"reader-and-director.md", "security-policy-manual.md", "test-case-factory-and-builder.md");
 
-	/** The eight subsystems the section is expected to cover. */
-	private static final List<String> EXPECTED_SUBSYSTEMS = List.of("aop", "architecture", "ast", "jqwik", "jupiter",
-			"phobos", "policy", "securitytest");
+	/** The seven subsystems the section is expected to cover. */
+	private static final List<String> EXPECTED_SUBSYSTEMS = List.of("aop", "architecture", "ast", "jupiter", "phobos",
+			"policy", "securitytest");
 
 	private static List<Path> subsystemPages() {
 		return DocumentationPages.pagesBelow("contributor", "subsystems");
@@ -69,8 +69,8 @@ class SubsystemsDocumentationStructureTest {
 
 	@Test
 	void theSubsystemSectionHoldsAPageForEveryPackageAndItsManuals() {
-		assertEquals(16, subsystemPages().size(),
-				"The subsystem section is expected to hold exactly the eight package pages and the "
+		assertEquals(15, subsystemPages().size(),
+				"The subsystem section is expected to hold exactly the seven package pages and the "
 						+ "reference manuals beneath them.");
 	}
 

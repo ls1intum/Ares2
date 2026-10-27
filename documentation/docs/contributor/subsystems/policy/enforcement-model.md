@@ -57,16 +57,14 @@ student classes beneath every prefix in
 deployment prerequisite, not an optional Ares runtime feature.
 
 Two versions are pinned, because the data and the contract that enforces it
-change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the
+change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the
 prefix list. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side
 contract. Templates and continuous integration (CI) must pin both.
 
 Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
 `process-classes` that scans `${project.build.outputDirectory}` and fails for
-`java/**`, `javax/**`, `sun/**`, `jdk/**`, `com/sun/**`,
-`de/tum/cit/ase/ares/api/**`, `net/bytebuddy/**`, `org/aspectj/**`,
-`com/ibm/wala/**`, `com/tngtech/archunit/**`, `anonymous/toolclasses/**` and
-`metatest/**`. `process-classes` precedes `test`, so `mvn test` runs it.
+every pattern in `ReservedPackagePrefixes.txt`. `process-classes` precedes
+`test`, so `mvn test` runs it.
 
 Canonical Gradle configuration registers a `verifyAresReservedPackagesV2` task
 over `sourceSets.main.output.classesDirs` with the same paths, and **both**
@@ -123,7 +121,7 @@ counterpart, and the intent must be re-expressed by granting less.
 | `WhitelistPackage` | approximate | `regardingPackageImports`, after recomputing the effective permission set |
 | `BlacklistPackage` | **none** | there is no negative package rule. Note that the `java` prefix is always permitted as an essential package, so a blacklist of a `java.*` package cannot be reproduced |
 | `WhitelistClass` | conditional | `theFollowingClassesAreTestClasses`, **only** for instructor-owned, student-unmodifiable test infrastructure. An entry there is exempt from both the static and the runtime checks |
-| `AddTrustedPackage` | **none** | do not place a package name in `theFollowingClassesAreTestClasses`: entries match an exact fully qualified class name, or a nested class on the `$` boundary, so a package name grants no exemption. It is not inert either, because a permitted package is derived from every entry by stripping the last dotted component, so such an entry silently widens the package allowlist. Infrastructure packages stay in the versioned essential configuration |
+| `AddTrustedPackage` | **none** | do not place a package name in `theFollowingClassesAreTestClasses`: entries match an exact fully qualified class name, or a class that the named class's own compiled file lists as declared inside it. A package name therefore grants no exemption. It is not inert either, because a permitted package is derived from every entry by stripping the last dotted component, so such an entry silently widens the package allowlist. Infrastructure packages stay in the versioned essential configuration |
 | `AllowLocalPort` | approximate | `regardingNetworkConnections` with explicit host, port and operation booleans. Range-with-exclusion forms do not map. Note that port `0` is a **wildcard** matching every port, which makes an unrestricted threshold representable and makes a literal `0` dangerously broad |
 | `AllowThreads` | approximate | `regardingThreadCreations` with an explicit class and count. The original capped concurrently active threads, so the accounting differs and the limit must be re-derived |
 | `TrustedThreads`, `DisableThreadGroupCheckFor` | **none** | these controlled the trusted execution context, not permission to create a thread |

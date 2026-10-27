@@ -27,7 +27,6 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 
 import de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 
@@ -112,10 +111,8 @@ public class WalaRule {
 	}
 
 	/**
-	 * Checks direct bytecode accesses using ArchUnit's imported graph first and the
-	 * already-built WALA hierarchy when ArchUnit deliberately left a dependency
-	 * unresolved. If neither graph can classify an inherited target, the check
-	 * fails closed.
+	 * Checks direct calls, resolving missing targets through WALA and rejecting
+	 * unresolved targets.
 	 *
 	 * @param javaClasses    imported classes under analysis
 	 * @param allowedClasses classes exempted by the policy
@@ -125,15 +122,18 @@ public class WalaRule {
 	public void checkDirectAccesses(JavaClasses javaClasses, Set<ClassPermission> allowedClasses,
 			IClassHierarchy classHierarchy) {
 		javaClasses.stream().flatMap(javaClass -> javaClass.getAccessesFromSelf().stream())
-				.sorted(Comparator.comparing(access -> access.getOrigin().getFullName() + "->" //$NON-NLS-1$
-						+ access.getTarget().getFullName()))
-				.filter(access -> !JavaArchitectureTestCase.isAllowedClass(access.getOriginOwner().getFullName(),
+				.sorted(Comparator.comparing(
+						access -> access.getOrigin().getFullName() + "->" + access.getTarget().getFullName()))
+				.filter(access -> !ClassPermission.isAllowedClass(access.getOriginOwner().getFullName(),
 						allowedClasses))
 				.filter(access -> isDirectlyForbidden(access, classHierarchy)).findFirst()
 				.ifPresent(this::throwDirectAccessViolation);
 	}
 
 	private boolean isDirectlyForbidden(JavaAccess<?> access, IClassHierarchy classHierarchy) {
+		if (ForbiddenMethodMatcher.isStandardAllowed(access.getTarget().getFullName())) {
+			return false;
+		}
 		Set<String> targets = new HashSet<>();
 		targets.add(access.getTarget().getFullName());
 		access.getTarget().resolveMember().ifPresent(member -> targets.add(member.getFullName()));
@@ -283,7 +283,10 @@ public class WalaRule {
 				target, declaringClass, access.getLineNumber(), caller));
 	}
 
-	/** Returns {@code true} if the node's method matches a forbidden signature. */
+	/**
+	 * Returns {@code true} if the node's method matches a forbidden signature and
+	 * is not one the secure baseline allows without a policy entry.
+	 */
 	private boolean isForbidden(CGNode node) {
 		String signature = node.getMethod().getSignature();
 		if (signature != null && signature.startsWith("java.lang.invoke.LambdaMetafactory.") //$NON-NLS-1$
@@ -291,6 +294,9 @@ public class WalaRule {
 			// WALA materialises ordinary Java lambda bootstrap linkage as synthetic
 			// LambdaMetafactory.call$... nodes. These are compiler plumbing, not an
 			// explicit reflective call by supervised code.
+			return false;
+		}
+		if (ForbiddenMethodMatcher.isStandardAllowed(signature)) {
 			return false;
 		}
 		return forbiddenMethods.stream().anyMatch(m -> matchesForbiddenMethod(signature, m));
@@ -601,25 +607,17 @@ public class WalaRule {
 		try {
 			com.ibm.wala.types.TypeName typeName = node.getMethod().getDeclaringClass().getName();
 			String fullyQualifiedName = typeName == null ? null : walaTypeToFullyQualifiedName(typeName.toString());
-			return JavaArchitectureTestCase.isAllowedClass(fullyQualifiedName, allowedClasses);
+			return ClassPermission.isAllowedClass(fullyQualifiedName, allowedClasses);
 		} catch (RuntimeException | com.ibm.wala.util.debug.UnimplementedError unclassifiable) {
 			return false;
 		}
 	}
 
-	/**
-	 * Returns the index of the student frame nearest the forbidden sink whose class
-	 * is NOT allow-listed, or {@code -1} when every student (non-infra) frame on
-	 * the path is allow-listed. Infrastructure frames (including malformed ones,
-	 * which {@link WalaPathClassification#isInfraFrame} already treats as infra)
-	 * are not student frames and are skipped; the local catch is a defensive
-	 * fallback that does not exempt a frame it cannot classify.
-	 */
+	/** Finds the nearest non-exempt student frame, or -1 when none exists. */
 	private static int nearestNonAllowedStudentFrame(List<CGNode> path, Set<ClassPermission> allowedClasses) {
 		for (int i = path.size() - 1; i >= 0; i--) {
 			CGNode frame = path.get(i);
 			if (WalaPathClassification.isInfraFrame(frame)) {
-				// Not student-authored (JDK / Ares / test-helper infrastructure).
 				continue;
 			}
 			String fullyQualifiedName;
@@ -627,9 +625,9 @@ public class WalaRule {
 				com.ibm.wala.types.TypeName typeName = frame.getMethod().getDeclaringClass().getName();
 				fullyQualifiedName = typeName == null ? null : walaTypeToFullyQualifiedName(typeName.toString());
 			} catch (RuntimeException | com.ibm.wala.util.debug.UnimplementedError unclassifiable) {
-				return i; // cannot classify -> do not exempt
+				return i;
 			}
-			if (!JavaArchitectureTestCase.isAllowedClass(fullyQualifiedName, allowedClasses)) {
+			if (!ClassPermission.isAllowedClass(fullyQualifiedName, allowedClasses)) {
 				return i;
 			}
 		}

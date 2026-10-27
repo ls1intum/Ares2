@@ -2,9 +2,8 @@ package de.tum.cit.ase.ares.api.io;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
-import org.junit.jupiter.api.extension.*;
-
-import net.jqwik.api.lifecycle.AroundPropertyHook;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 
 import de.tum.cit.ase.ares.api.WithIOManager;
 
@@ -32,7 +31,6 @@ public interface IOManager<T> {
 	 *
 	 * @param context the current Ares IO context
 	 * @see BeforeEachCallback
-	 * @see AroundPropertyHook
 	 */
 	void beforeTestExecution(AresIOContext context);
 
@@ -41,7 +39,6 @@ public interface IOManager<T> {
 	 *
 	 * @param context the current Ares IO context
 	 * @see AfterEachCallback
-	 * @see AroundPropertyHook
 	 */
 	void afterTestExecution(AresIOContext context);
 

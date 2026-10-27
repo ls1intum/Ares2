@@ -3,12 +3,16 @@ package de.tum.cit.ase.ares.api.securitytest.java.creator;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -30,7 +34,6 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 
@@ -78,6 +81,8 @@ public class JavaCreatorTest {
 	@BeforeEach
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
+		when(buildMode.getTestBuildDirectory()).thenReturn(tempDir.resolve("test-classes").toString());
+		when(buildMode.getBuildDirectory()).thenReturn(tempDir.resolve("classes").toString());
 		javaCreator = new JavaCreator();
 	}
 
@@ -365,17 +370,19 @@ public class JavaCreatorTest {
 		assertEquals(Set.of(new PackagePermission("*")), result);
 	}
 
+	/**
+	 * Checks that blank entries are dropped and a malformed class name is refused
+	 * before any class is exempted.
+	 */
 	@Test
 	@SuppressWarnings("unchecked")
-	void prepareAllowedClassesFiltersBlanksThenValidates() throws Exception {
-		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedClasses", List.class, List.class);
-		prepare.setAccessible(true);
-		Set<ClassPermission> result = (Set<ClassPermission>) prepare.invoke(javaCreator,
-				Arrays.asList("com.example.Foo", "   ", null), Arrays.asList("com.example.BarTest", "", null));
-		assertEquals(Set.of(new ClassPermission("com.example.Foo"), new ClassPermission("com.example.BarTest")),
-				result);
-		assertInvocationCause(IllegalArgumentException.class,
-				() -> prepare.invoke(javaCreator, List.of("com..example.Foo"), List.of()));
+	void usableClassNamesFiltersBlanksThenValidates() throws Exception {
+		Method usable = JavaCreator.class.getDeclaredMethod("usableClassNames", List.class);
+		usable.setAccessible(true);
+		List<String> result = (List<String>) usable.invoke(null,
+				Arrays.asList("com.example.Foo", "   ", null, "com.example.BarTest", ""));
+		assertEquals(List.of("com.example.Foo", "com.example.BarTest"), result);
+		assertInvocationCause(IllegalArgumentException.class, () -> usable.invoke(null, List.of("com..example.Foo")));
 	}
 
 	/**
@@ -390,5 +397,77 @@ public class JavaCreatorTest {
 	private static <T extends Throwable> T assertInvocationCause(Class<T> expected, Executable invocation) {
 		InvocationTargetException wrapper = assertThrows(InvocationTargetException.class, invocation);
 		return assertInstanceOf(expected, wrapper.getCause());
+	}
+
+	/**
+	 * Checks that the creator reads nest members from the trusted test output and
+	 * scans the whole production output for a class named like one of them.
+	 */
+	@Nested
+	@DisplayName("Exempted nest tests")
+	class ExemptedNestTests {
+
+		/** The fixture whose nest members are exempted with it. */
+		private static final String HOST = "example.nest.NestHostFixture";
+
+		/** The fixture's package, supervised in these tests. */
+		private static final String PACKAGE = "example.nest";
+
+		/**
+		 * Lays out a test output holding the fixture and an empty production output.
+		 */
+		@BeforeEach
+		void arrangeOutputs() throws IOException {
+			Path testOutput = tempDir.resolve("test-classes");
+			Path productionOutput = tempDir.resolve("classes");
+			Files.createDirectories(testOutput.resolve("example/nest"));
+			Files.createDirectories(productionOutput.resolve("example/nest"));
+			Files.write(testOutput.resolve("example/nest/NestHostFixture.class"), fixtureBytes());
+			when(buildMode.getTestBuildDirectory()).thenReturn(testOutput.toString());
+			when(buildMode.getBuildDirectory()).thenReturn(productionOutput.toString());
+			when(buildMode.getClasspath(tempDir, PACKAGE)).thenReturn("/narrow/classpath");
+			when(architectureMode.getJavaClasses("/narrow/classpath")).thenReturn(javaClasses);
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+		}
+
+		/** Reads the compiled fixture through the test class loader. */
+		private byte[] fixtureBytes() throws IOException {
+			try (InputStream input = JavaCreatorTest.class.getClassLoader()
+					.getResourceAsStream("example/nest/NestHostFixture.class")) {
+				return Objects.requireNonNull(input, "the fixture is compiled").readAllBytes();
+			}
+		}
+
+		/** Runs createTestCases with the fixture as the only test class. */
+		private void createTestCases() {
+			javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of(), List.of(), List.of(HOST),
+					PACKAGE, "Main", new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), resourceAccesses, tempDir,
+					true);
+		}
+
+		/**
+		 * The nest members listed in the test output are exempted, without collision.
+		 */
+		@Test
+		@DisplayName("Exempts the nest members the test output lists")
+		void exemptsTheNestMembersTheTestOutputLists() {
+			createTestCases();
+			assertTrue(javaCreator.exemptedClassNames().containsAll(
+					List.of(HOST, HOST + "$Member", HOST + "$Member$Deeper", HOST + "$1", HOST + "$Pair")));
+			assertDoesNotThrow(() -> javaCreator.requireNoProductionClassNamedLikeAnExemptedOne(buildMode));
+		}
+
+		/**
+		 * A production class named like a nest member is refused, although the narrower
+		 * analysis classpath does not contain it.
+		 */
+		@Test
+		@DisplayName("Refuses a production class named like a nest member outside the classpath")
+		void refusesAProductionClassNamedLikeANestMember() throws IOException {
+			Files.write(tempDir.resolve("classes/example/nest/NestHostFixture$Member.class"), new byte[] { 0 });
+			createTestCases();
+			assertThrows(SecurityException.class,
+					() -> javaCreator.requireNoProductionClassNamedLikeAnExemptedOne(buildMode));
+		}
 	}
 }

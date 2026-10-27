@@ -84,17 +84,13 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 	}
 
 	/**
-	 * This method checks if a observed class' constructors match the expected ones
-	 * defined in the structure oracle.
+	 * Checks that the class has every constructor {@code test.json} expects, with
+	 * the expected parameters, modifiers and annotations, and fails naming the
+	 * first one it does not find.
 	 *
-	 * @param expectedClassName    The simple name of the class, mainly used for
-	 *                             error messages.
-	 * @param observedClass        The class that needs to be checked as a Class
-	 *                             object.
-	 * @param expectedConstructors The information on the expected constructors
-	 *                             contained in a JSON array. This information
-	 *                             consists of the parameter types and the
-	 *                             visibility modifiers.
+	 * @param expectedClassName    the class name, used in the failure message
+	 * @param observedClass        the class to check
+	 * @param expectedConstructors the expected constructors as a JSON array
 	 */
 	protected static void checkConstructors(String expectedClassName, Class<?> observedClass,
 			JsonNode expectedConstructors) {
@@ -110,7 +106,7 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 			var annotationsAreRight = false;
 
 			for (Constructor<?> observedConstructor : observedClass.getDeclaredConstructors()) {
-				var observedParameters = observedConstructor.getParameterTypes();
+				var observedParameters = sourceParametersOf(observedConstructor);
 				var observedModifiers = Modifier.toString(observedConstructor.getModifiers()).split(" "); //$NON-NLS-1$
 				var observedAnnotations = observedConstructor.getAnnotations();
 
@@ -118,7 +114,6 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 				modifiersAreRight = checkModifiers(observedModifiers, expectedModifiers);
 				annotationsAreRight = checkAnnotations(observedAnnotations, expectedAnnotations);
 
-				// If both are correct, then we found our constructor and we can break the loop
 				if (parametersAreRight && modifiersAreRight && annotationsAreRight) {
 					break;
 				}
@@ -126,6 +121,36 @@ public abstract class ConstructorTestProvider extends StructuralTestProvider {
 			checkConstructorCorrectness(expectedClassName, expectedParameters, parametersAreRight, modifiersAreRight,
 					annotationsAreRight);
 		}
+	}
+
+	/**
+	 * Returns the constructor's parameter types. For a non-static nested class,
+	 * Java adds a first parameter for the enclosing object that the source does not
+	 * show; it is left out, but only when its type is the enclosing class.
+	 *
+	 * @param constructor the constructor to read
+	 * @return its parameter types, without that hidden first one
+	 */
+	private static Class<?>[] sourceParametersOf(Constructor<?> constructor) {
+		var parameters = constructor.getParameterTypes();
+		if (startsWithEnclosingObject(constructor.getDeclaringClass(), parameters)) {
+			return Arrays.copyOfRange(parameters, 1, parameters.length);
+		}
+		return parameters;
+	}
+
+	/**
+	 * Tells whether the class is a non-static nested class and the first parameter
+	 * has the type of the class it is nested in, which is how Java passes the
+	 * enclosing object.
+	 *
+	 * @param declaringClass the class the constructor belongs to
+	 * @param parameters     the constructor's parameter types
+	 * @return true if both hold
+	 */
+	private static boolean startsWithEnclosingObject(Class<?> declaringClass, Class<?>[] parameters) {
+		return declaringClass.isMemberClass() && !Modifier.isStatic(declaringClass.getModifiers())
+				&& parameters.length > 0 && parameters[0] == declaringClass.getDeclaringClass();
 	}
 
 	private static void checkConstructorCorrectness(String expectedClassName, JsonNode expectedParameters,

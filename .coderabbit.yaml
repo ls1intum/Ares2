@@ -33,7 +33,7 @@ reviews:
     - label: policy
       instructions: Apply when a change touches security policy parsing, policy data classes, YAML handling, or permission modelling.
     - label: tests
-      instructions: Apply when a change primarily touches JUnit, jqwik, fixtures, test utilities, or integration tests.
+      instructions: Apply when a change primarily touches JUnit, fixtures, test utilities, or integration tests.
     - label: docs
       instructions: Apply when a change primarily touches documentation, manuals, Markdown, or AsciiDoc.
   path_filters:

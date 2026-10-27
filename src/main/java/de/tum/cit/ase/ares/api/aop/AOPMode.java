@@ -288,10 +288,9 @@ public enum AOPMode {
 	}
 
 	/**
-	 * Generates the body content for the three-parted security test case file.
+	 * Generates the body content without exempted packages, as the signature
+	 * released before packages became a setting of their own.
 	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
 	 * @param aopMode              the AOP mode identifier.
 	 * @param restrictedPackage    the package being restricted.
 	 * @param allowedListedClasses the list of allowed classes.
@@ -301,6 +300,25 @@ public enum AOPMode {
 	@Nonnull
 	public String threePartedFileBody(@Nonnull String aopMode, @Nonnull String restrictedPackage,
 			@Nonnull List<String> allowedListedClasses, @Nonnull List<JavaAOPTestCase> javaAOPTestCases) {
+		return threePartedFileBody(aopMode, restrictedPackage, List.of(), allowedListedClasses, javaAOPTestCases);
+	}
+
+	/**
+	 * Generates the body content for the three-parted security test case file.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param aopMode               the AOP mode identifier.
+	 * @param restrictedPackage     the package being restricted.
+	 * @param allowedListedPackages the packages whose classes are exempted.
+	 * @param allowedListedClasses  the list of allowed classes.
+	 * @param javaAOPTestCases      the list of security test cases.
+	 * @return a string representing the body content.
+	 */
+	@Nonnull
+	public String threePartedFileBody(@Nonnull String aopMode, @Nonnull String restrictedPackage,
+			@Nonnull List<String> allowedListedPackages, @Nonnull List<String> allowedListedClasses,
+			@Nonnull List<JavaAOPTestCase> javaAOPTestCases) {
 		List<FilePermission> filePermissions = extractPermissions(javaAOPTestCases,
 				JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION);
 		List<NetworkPermission> networkPermissions = extractPermissions(javaAOPTestCases,
@@ -310,8 +328,8 @@ public enum AOPMode {
 		List<ThreadPermission> threadPermissions = extractPermissions(javaAOPTestCases,
 				JavaAOPTestCaseSupported.THREAD_CREATION);
 
-		return JavaAOPTestCase.writeAOPTestCaseFile(aopMode, restrictedPackage, allowedListedClasses, filePermissions,
-				networkPermissions, commandPermissions, threadPermissions);
+		return JavaAOPTestCase.writeAOPTestCaseFile(aopMode, restrictedPackage, allowedListedPackages,
+				allowedListedClasses, filePermissions, networkPermissions, commandPermissions, threadPermissions);
 	}
 
 	/**

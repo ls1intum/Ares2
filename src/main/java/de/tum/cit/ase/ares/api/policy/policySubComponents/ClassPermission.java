@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import java.util.Objects;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -31,37 +32,45 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 public record ClassPermission(@Nonnull String className) {
 
 	/**
-	 * Constructs a ClassPermission instance.
-	 * <p>
-	 * Only the universal invariants are checked here: the name must be neither null
-	 * nor blank. Whether it has the shape a class name takes in the supervised
-	 * code's language is not checked here, because this record does not carry the
-	 * language. This permission is not read from a policy file; it is derived by
-	 * the language-specific component that builds it (currently
-	 * {@code JavaCreator}), and that component validates the name for its language
-	 * before construction.
-	 * <p>
-	 * Elevation covers the named class together with its nested classes, matched on
-	 * the {@code $} boundary so that {@code Outer} never matches the unrelated
-	 * {@code OuterOther}. It is not a package-subtree prefix: an entry
-	 * {@code com.example.Trusted} does not elevate
-	 * {@code com.example.TrustedHelper} or {@code com.example.trusted.Other}.
-	 * Matching one class rather than a whole subtree keeps the exemption as narrow
-	 * as the enforcement engines ({@code JavaArchitectureTestCase#isAllowedClass}
-	 * and the AOP advice) apply it.
+	 * Constructs a ClassPermission, refusing only a null or blank name. The record
+	 * does not know the language, so {@code JavaCreator} checks the Java syntax
+	 * first. Elevation covers exactly the named class; a nested class is elevated
+	 * only because {@link ExemptedClassNests} lists it too.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param className the name of the class that receives elevated privileges;
-	 *                  must be neither null nor blank.
-	 * @throws NullPointerException     if the class name is null.
-	 * @throws IllegalArgumentException if the class name is blank.
+	 * @param className the elevated class; neither null nor blank.
+	 * @throws NullPointerException     if the name is null.
+	 * @throws IllegalArgumentException if the name is blank.
 	 */
 	public ClassPermission {
 		Objects.requireNonNull(className, "className must not be null");
 		if (className.isBlank()) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.class.blank"));
 		}
+	}
+
+	/**
+	 * Permits a class only if its exact binary name is exempted. Classes declared
+	 * inside an exempted class are exempted by name too, because
+	 * {@link ExemptedClassNests} lists them from that class's own file; a class
+	 * merely named like a nested one is not.
+	 *
+	 * @param fullyQualifiedClassName the class to check, or {@code null}.
+	 * @param allowedClasses          the exempted classes.
+	 * @return {@code true} if exactly this class is exempted.
+	 */
+	public static boolean isAllowedClass(@Nullable String fullyQualifiedClassName,
+			@Nonnull Set<ClassPermission> allowedClasses) {
+		if (fullyQualifiedClassName == null || allowedClasses == null || allowedClasses.isEmpty()) {
+			return false;
+		}
+		for (ClassPermission allowed : allowedClasses) {
+			if (fullyQualifiedClassName.equals(allowed.className())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

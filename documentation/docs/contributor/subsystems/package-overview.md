@@ -97,7 +97,7 @@ This package abstracts **Maven and Gradle build configurations**. The `BuildMode
 
 ## `context`: Test Context Management
 
-This package provides an **adapter layer** over different JUnit 5 test-context implementations. The `TestContext` interface exposes the current test method, test class, test instance, and display name in a framework-agnostic way.
+This package provides an **adapter layer** over JUnit Jupiter's `ExtensionContext`. The `TestContext` interface exposes the current test method, test class, test instance, and display name in a framework-agnostic way.
 
 | Class | Purpose |
 |---|---|
@@ -167,27 +167,6 @@ This package enables testing of **console input and output** (`System.in` / `Sys
 `IOTester` is thread-safe: all static methods (`isInstalled()`, `installNew()`, `uninstallCurrent()`) are synchronised, and a volatile flag tracks the installation state.
 
 **Key design patterns:** Strategy (`IOManager` interface), Decorator (stream wrapping), Observer/Callback (`LineAcceptor`, `LineProvider`).
-
----
-
-## `jqwik`: Jqwik Property-Based Testing Integration
-
-This package integrates the Ares testing framework with the **jqwik** property-based testing engine. It mirrors the structure of the `jupiter` package but targets jqwik's lifecycle hooks instead.
-
-| Class | Purpose |
-|---|---|
-| `JqwikAresTest` | Meta-annotation that registers all jqwik lifecycle hooks |
-| `@Hidden` / `@Public` | Annotations for test visibility in Artemis |
-| `JqwikSecurityExtension` | Security enforcement hook |
-| `JqwikIOExtension` | I/O testing hook |
-| `JqwikStrictTimeoutExtension` | Timeout enforcement |
-| `JqwikLocaleExtension` | Applies the `@UseLocale` annotation around test containers |
-| `JqwikTestGuard` | Pre- and post-condition guard |
-| `JqwikContext` | Adapter from jqwik's lifecycle context to the Ares `TestContext` |
-
-`JqwikContext` adapts jqwik's native lifecycle context to the framework-agnostic `TestContext` interface, enabling code reuse between the `jupiter` and `jqwik` integrations.
-
-**Key design patterns:** Adapter (`JqwikContext`), Composite (meta-annotation), Decorator (lifecycle hooks).
 
 ---
 

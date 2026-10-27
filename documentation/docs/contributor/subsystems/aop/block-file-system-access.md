@@ -138,7 +138,7 @@ Instructors define file system access policies in a policy file, and Ares 2 tran
 2. **Student code detected**: The call stack contains classes in `restrictedPackage` and not in `allowedListedClasses`
 3. **Derived actions**: The actions are derived from the intercepted method and any `StandardOpenOption` values (may include multiple actions)
 4. **Path violation found**: After method-specific parameter filtering, at least one extracted path (from parameters or attributes) does not match the list of allowed paths for its allowed actions
-5. **Not exempt infrastructure access**: The violating path is not an internal configuration/resource file of Ares and does not fall under one of the JVM-infrastructure exemptions (class-loading `.class` reads, system JAR reads, JDK-internal reads, native-library loads, JCE crypto-policy files, archive entry reads, root `/`). These exemptions apply at all check sites (parameters, receiver, and attributes).
+5. **Not exempt infrastructure access**: The violating path is not an internal configuration/resource file of Ares and does not fall under one of the JVM-infrastructure exemptions (class-loading `.class` reads, system JAR reads, JDK-internal reads, native-library loads, archive entry reads, root `/`). These exemptions apply at all check sites (parameters, receiver, and attributes).
 
 Plain-language summary: if student code triggers a monitored file method and the path is outside the allowlist for the needed action, Ares blocks the access.
 
@@ -1221,15 +1221,16 @@ Object[] filteredParameters = filterVariables(parameters, parameterIgnoreRule);
 
 | Method | What We Check | Why |
 |--------|---------------|-----|
-| `Files.createTempFile(dir, prefix, suffix, ...)` | Only parameter 0 (the directory `Path`) | Prefix/suffix strings are not paths |
 | `Files.writeString(path, csq, ...)` | Only parameter 0 (the `Path`) | The written content is not a path |
 | `Files.write(path, bytes, ...)` | Only parameter 0 (the `Path`) | The written content is not a path |
+| `Files.newDirectoryStream(dir, glob)` | Only parameter 0 (the directory `Path`) | The glob filters entry names and never grants directory access |
 | `Files.readString(path, cs)` | Only parameter 0 (the `Path`) | The charset is not a path |
-| `File.createTempFile(prefix, suffix)` | Nothing (all parameters ignored) | There is no path parameter at all |
 | `Runtime.exec(cmd, ...)` | Only parameter 0 (the command) | Flags like `"-c"` are not paths |
 | `RandomAccessFile.<new>(file, mode)` | Only parameter 0 (the file) | The mode string (`"r"`/`"rw"`/...) is not a path |
 | `DataOutputStream.writeUTF/writeChars/writeBytes(String)` | Nothing (all parameters ignored) | The argument is payload, never a path; the underlying file was validated when the `FileOutputStream` was opened |
 | `PrintStream.<new>(sink, ...)` | Only parameter 0 (the sink) | A charset name like `"UTF-8"` is not a path |
+
+**`checkTempFileCreationSpecialCase` decides `createTempFile` on its own.** Its overloads put either a directory or a name prefix at the same position, so no fixed parameter index fits. A call without a directory is `File.createTempFile(prefix, suffix)`, the same with `null` as directory, or `Files.createTempFile(prefix, suffix, ...)`. The instrumentation backend allows such a call once its agent has fixed the default temp directory at start-up, and refuses it otherwise. The AspectJ aspect instead finds the directory the Java Development Kit (JDK) writes to, as [5.4.6](#546-allow-the-secure-baselines-standard-operations) describes, and checks it like a named one. A named or found directory needs an entry in `pathsAllowedToBeCreated`, or must be exactly the default temp directory fixed at start-up, with links followed. A folder inside the temp directory, or a link out of it, does not count. Ares refuses arguments that fit neither overload.
 
 **4. Result**
 
@@ -1365,11 +1366,16 @@ This exemption is applied at **all three** check sites: parameter-based, receive
 
 **Further infrastructure exemptions:** Besides Ares's own files, a flagged path is allowed when the access is Java Virtual Machine (JVM)/library infrastructure rather than student file access:
 - `.class` reads performed by the class-loading machinery (a class-loader frame is on the stack, or the caller is `Class.forName`/`ClassLoader`)
-- `.jar` reads from system infrastructure, meaning the Maven local repository or the Java Development Kit (JDK) installation under `java.home`
-- JDK-internal reads under `java.home` and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
-- JCE crypto-policy files read during Transport Layer Security (TLS)/cryptography initialisation
+- `.jar` reads from system infrastructure, meaning the Maven local repository or the JDK installation under `java.home`
+- JDK-internal reads under `java.home` as the JVM started with it, and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
 - Entry reads on an **already-open** `JarFile`/`ZipFile` (the constructor is NOT exempt and still validates its path)
 - The root path `"/"` when found in object attributes (a side effect of class resolution)
+
+**JCE policy reads and trusted startup:** Cryptography needs the JDK's jurisdiction policies. These files use the existing trusted JDK-root read allowance; filenames such as `default_local.policy`, `default_US_export.policy` and `exempt_local.policy` grant no permission themselves. Student files with those names remain subject to the exercise policy, including reads from provider callbacks. Creation, replacement and deletion receive no special allowance.
+
+Instrumentation observes JCE's JDK filesystem calls. AspectJ checks calls woven into the exercise and library sources; the cold-start fixture does not weave the JDK's own JCE callers. Consequently, successful cold cryptography proves compatibility in both modes, while the separate student read proves that the selected backend enforces the file policy. Direct advice tests cover parameter, receiver and object-field representations separately.
+
+Neither backend takes its trusted roots from a property that can change after start-up. The instrumentation backend reads them when its agent starts, before student execution, so packaged and generated instrumentation exercises attach their agent with `-javaagent`; a generated exercise uses the copied agent and its generated manifest. The AspectJ aspect needs no agent: it reads `java.home`, `maven.repo.local`, `user.home` and `java.io.tmpdir` from the JVM's own record of its start-up properties in `jdk.internal.misc.VM`, which needs the JVM argument `--add-exports java.base/jdk.internal.misc=ALL-UNNAMED`. When a decision depends on those values and they cannot be read, the aspect refuses with a localised configuration error naming that argument, and makes every other decision as before. Changing `java.home` later cannot replace the trusted root. The isolated cold-start and capture tests record class initialisation and backend interception under `target/jce-proofs/` and `target/jce-generated-capture-*/`; those logs distinguish normal startup from fixture warm-up.
 
 **3. Used variables**
 
@@ -1381,6 +1387,33 @@ This exemption is applied at **all three** check sites: parameter-based, receive
 
 - Forbidden path found (not an Ares internal file) → 🔴 **Block and throw security exception** (analysis terminated - forbidden file access detected)
 - All paths allowed → 🟢 **Allow the file operation** (analysis terminated - no forbidden access detected)
+
+<a id="546-allow-the-secure-baselines-standard-operations"></a>
+#### 5.4.6 Allow the Secure Baseline's Standard Operations
+
+**1. Purpose**
+
+Let ordinary Java code use random numbers, the system timezone, the JDK's trusted certificates, locale and charset data, and temporary files in the default temp directory without a policy entry. A student reaching for the same files directly is still refused.
+
+**2. How it works**
+
+- **Fixing the start-up values, instrumentation.** `JavaInstrumentationAgent.premain` runs one trusted start-up routine, `captureTrustedStartupValues`, before any test. It initialises the JDK's own temp-directory holders (`java.io.File$TempDirectory`, `java.nio.file.TempFileHelper`), so the JDK keeps the start-up directory even if `java.io.tmpdir` changes later. It stores that directory, resolved to its real location, in `frozenDefaultTempDirectory` of both copies of `JavaAOPTestCaseSettings`, a field `reset()` leaves alone.
+- **Fixing the start-up values, AspectJ.** The aspect uses no agent and none of those fields. It takes `java.io.tmpdir` from the JVM's start-up record and resolves it to its real location once, when the aspect is first used, and never again. For a temporary file without a directory it checks the directory the JDK uses. For `Files` that is the start-up path as it resolves now, so a link changed later no longer matches. For `java.io.File` it is the directory kept in `java.io.File$TempDirectory`, read with the JVM argument `--add-opens java.base/java.io=ALL-UNNAMED`. The aspect prepares that class before its own checks start, because preparing it runs random-number code that can call student code, which stays checked. On JDK 17 that class copies `java.io.tmpdir` when first used, so an earlier change can leave it pointing elsewhere, and the aspect refuses such a directory unless the policy allows it.
+- **Random numbers (instrumentation only).** A read of `/dev/urandom` or `/dev/random` is allowed while a `sun.security.provider` class loaded by the JVM itself is on the stack. The public `SecureRandom` class is not trusted, because student code can plug its own generator in beneath it. AspectJ has no such exemption on purpose: its `call()` pointcuts only fire in woven exercise code, never inside the JDK, so the JDK's own seeding is never checked there. This asymmetry is intended, like the `JarFile`/`ZipFile` entry-read exemption.
+- **Temporary files, inner step (instrumentation only).** `Files.createTempFile` creates the file through `Files.createFile`, which the agent rewrites as well. That inner create is allowed only for a file directly inside the fixed temp directory. It further needs `java.nio.file.TempFileHelper`, loaded by the JVM, on the stack with no student frame between it and the check. A student callback, such as a `FileAttribute` whose `name()` creates a file, therefore stays refused.
+- **Timezone: nothing to allow.** The JDK reads `/etc/localtime` in native code, which no check sees, and its `tzdb.dat` lies under `java.home`. Ares refuses a Java read of `/etc/localtime` like any other path.
+- **Static analysis.** Both deny lists keep the `createTempFile` overloads that take a directory. ArchUnit's transitive check (`TransitivelyAccessesMethodsCondition`) and the WALA analysis (`WalaRule`, `CustomCallgraphBuilder`) treat the two overloads without a directory as allowed. They do not look inside them, because their JDK bodies reach denied methods that the runtime check covers instead.
+
+**3. Known limits**
+
+- The AspectJ aspect resolves the start-up temp directory when it is first used. Any change to the file system that the aspect checks comes after that, but a link changed earlier by code the aspect does not weave, or by another process, is not detected. A check and the file creation that follows it can still race with a link changed in between, as for every path check.
+- The trusted Maven repository is the one the JVM started with: `-Dmaven.repo.local` on the test JVM's command line, else `~/.m2/repository`. Ares does not trust a value a build tool sets after start-up, so the aspect refuses a student's own read of a `.jar` there.
+- In a JVM with the agent attached, the freeze applies to code Ares does not supervise as well: on JDK 17, changing `java.io.tmpdir` at run time no longer moves `File.createTempFile`, as on JDK 25 already.
+
+**4. Result**
+
+- One of the cases above → 🟢 **Allow the file operation**
+- Otherwise → 🔴 **Block and throw security exception**
 
 ---
 

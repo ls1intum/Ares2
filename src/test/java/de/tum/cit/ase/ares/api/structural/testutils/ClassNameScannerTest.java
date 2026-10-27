@@ -4,6 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.TypeDeclaration;
+
 /**
  * Tests the typo-detection threshold decisions of
  * {@link ClassNameScanner#isMisspelledWithHighProbability(String, String)}.
@@ -12,8 +16,53 @@ import org.junit.jupiter.api.Test;
  * string-similarity algorithms in
  * {@link de.tum.cit.ase.ares.api.util.StringSimilarity} cannot silently shift
  * the decisions.
+ * <p>
+ * Also tests {@link ClassNameScanner#qualifiedNameWithinFile(TypeDeclaration)},
+ * guarding against I-099: {@code walkProjectFileStructure} previously derived a
+ * file's single type name from its filename alone, so a member/nested type (or
+ * an additional top-level type declared alongside the filename-matching one)
+ * could never be discovered.
  */
 class ClassNameScannerTest {
+
+	private static TypeDeclaration<?> typeNamed(CompilationUnit compilationUnit, String simpleName) {
+		return compilationUnit.findAll(TypeDeclaration.class).stream()
+				.filter(type -> type.getNameAsString().equals(simpleName)).findFirst()
+				.orElseThrow(() -> new AssertionError("no type named " + simpleName + " in fixture source"));
+	}
+
+	@Test
+	void topLevelTypeQualifiedNameIsItsOwnSimpleName() {
+		var compilationUnit = StaticJavaParser.parse("class Outer {}");
+		assertThat(ClassNameScanner.qualifiedNameWithinFile(typeNamed(compilationUnit, "Outer"))).contains("Outer");
+	}
+
+	@Test
+	void additionalTopLevelTypeInTheSameFileIsItsOwnSimpleName() {
+		var compilationUnit = StaticJavaParser.parse("class Outer {} class SecondTopLevelType {}");
+		assertThat(ClassNameScanner.qualifiedNameWithinFile(typeNamed(compilationUnit, "SecondTopLevelType")))
+				.contains("SecondTopLevelType");
+	}
+
+	@Test
+	void memberTypeQualifiedNameIsDotSeparated() {
+		var compilationUnit = StaticJavaParser.parse("class Outer { static class Inner {} }");
+		assertThat(ClassNameScanner.qualifiedNameWithinFile(typeNamed(compilationUnit, "Inner")))
+				.contains("Outer.Inner");
+	}
+
+	@Test
+	void doublyNestedMemberTypeQualifiedNameJoinsEveryEnclosingName() {
+		var compilationUnit = StaticJavaParser.parse("class Outer { static class Middle { static class Inner {} } }");
+		assertThat(ClassNameScanner.qualifiedNameWithinFile(typeNamed(compilationUnit, "Inner")))
+				.contains("Outer.Middle.Inner");
+	}
+
+	@Test
+	void localClassHasNoQualifiedNameWithinFile() {
+		var compilationUnit = StaticJavaParser.parse("class Outer { void method() { class Local {} } }");
+		assertThat(ClassNameScanner.qualifiedNameWithinFile(typeNamed(compilationUnit, "Local"))).isEmpty();
+	}
 
 	@Test
 	void singleEditTyposAreMisspellings() {

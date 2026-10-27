@@ -143,4 +143,28 @@ public final class JavaWalaTestCaseCollection {
 			Messages.localized("security.architecture.class.loading"), FileHandlerConstants.WALA_CLASSLOADER_METHODS);
 	// </editor-fold>
 	// </editor-fold>
+
+	/** Checks the methods forbidden by the native code access rule. */
+	public static final WalaRule NO_CLASS_MUST_ACCESS_NATIVE_CODE = createNoClassShouldHaveMethodRule(
+			Messages.localized("security.architecture.native.code.access"),
+			FileHandlerConstants.WALA_NATIVE_CODE_METHODS);
+
+	/** Checks the methods forbidden by the agent attach rule. */
+	public static final WalaRule NO_CLASS_MUST_ATTACH_AGENTS = createNoClassShouldHaveMethodRule(
+			Messages.localized("security.architecture.agent.attach"), FileHandlerConstants.WALA_AGENT_ATTACH_METHODS);
+
+	/** Checks the methods forbidden by the environment access rule. */
+	public static final WalaRule NO_CLASS_MUST_ACCESS_ENVIRONMENT = createNoClassShouldHaveMethodRule(
+			Messages.localized("security.architecture.environment.access"),
+			FileHandlerConstants.WALA_ENVIRONMENT_ACCESS_METHODS);
+
+	/** Checks the methods forbidden by the module system access rule. */
+	public static final WalaRule NO_CLASS_MUST_ACCESS_MODULE_SYSTEM = createNoClassShouldHaveMethodRule(
+			Messages.localized("security.architecture.module.system.access"),
+			FileHandlerConstants.WALA_MODULE_SYSTEM_METHODS);
+
+	/** Checks the methods forbidden by the jndi injection rule. */
+	public static final WalaRule NO_CLASS_MUST_PERFORM_JNDI_LOOKUPS = createNoClassShouldHaveMethodRule(
+			Messages.localized("security.architecture.jndi.injection"),
+			FileHandlerConstants.WALA_JNDI_INJECTION_METHODS);
 }

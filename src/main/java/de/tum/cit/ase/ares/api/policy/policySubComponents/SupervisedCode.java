@@ -108,7 +108,7 @@ public record SupervisedCode(
 	 * configuration, for source and binary compatibility with code built against
 	 * the five-argument constructor released before that field existed.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 */
 	public SupervisedCode(@Nonnull ProgrammingLanguageConfiguration theFollowingProgrammingLanguageConfigurationIsUsed,
@@ -125,7 +125,7 @@ public record SupervisedCode(
 	 * configuration when none were configured, so callers never need their own null
 	 * check.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @return a non-null, possibly-empty TestBehaviorConfiguration.
 	 */
@@ -239,7 +239,7 @@ public record SupervisedCode(
 		 * The behavioural test-lifecycle configuration to build with, or null to build
 		 * with none configured.
 		 *
-		 * @since 2.1.5
+		 * @since 2.2.0
 		 */
 		@Nullable
 		private TestBehaviorConfiguration theFollowingTestBehaviorIsConfigured;
@@ -338,7 +338,7 @@ public record SupervisedCode(
 		/**
 		 * Sets the behavioural test-lifecycle configuration.
 		 *
-		 * @since 2.1.5
+		 * @since 2.2.0
 		 * @author Luka Petrovic
 		 * @param theFollowingTestBehaviorIsConfigured the behavioural configuration;
 		 *                                             may be null.

@@ -36,9 +36,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
-          java-version: '21.0.12+101.0.LTS'
+          java-version: '21.0.13+9.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -62,9 +62,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
-          java-version: '21.0.12+101.0.LTS'
+          java-version: '21.0.13+9.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -100,7 +100,7 @@ jobs:
 
       - name: Upload analysis reports
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           retention-days: 7
           name: static-analysis-reports
@@ -125,9 +125,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
-          java-version: '21.0.12+101.0.LTS'
+          java-version: '21.0.13+9.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -143,7 +143,7 @@ jobs:
       # step failed, so the aggregate still reflects everything that did run.
       - name: Upload coverage execution data
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           retention-days: 7
           name: jacoco-exec-unit-tests
@@ -159,7 +159,7 @@ jobs:
       # uses it: a failed test step is the case this artefact exists for.
       - name: Upload test results
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           retention-days: 7
           name: test-results-unit-tests
@@ -206,9 +206,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
-          java-version: '21.0.12+101.0.LTS'
+          java-version: '21.0.13+9.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -225,7 +225,7 @@ jobs:
 
       - name: Upload coverage execution data
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           retention-days: 7
           name: jacoco-exec-${{ matrix.slug }}
@@ -241,7 +241,7 @@ jobs:
       # uses it: a failed test step is the case this artefact exists for.
       - name: Upload test results
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           retention-days: 7
           name: test-results-${{ matrix.slug }}
@@ -262,21 +262,18 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
-          java-version: '21.0.12+101.0.LTS'
+          java-version: '21.0.13+9.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
       - name: Core integration tests
         run: mvn test -Pintegration-core-tests,coverage -f pom.xml
 
-      - name: jqwik integration tests
-        run: mvn test -f pom.xml -Pcoverage -Dtest=de.tum.cit.ase.ares.integration.JqwickTest
-
       - name: Upload coverage execution data
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           retention-days: 7
           name: jacoco-exec-core-integration-tests
@@ -292,7 +289,7 @@ jobs:
       # uses it: a failed test step is the case this artefact exists for.
       - name: Upload test results
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           retention-days: 7
           name: test-results-core-integration-tests
@@ -326,9 +323,9 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
-          java-version: '21.0.12+101.0.LTS'
+          java-version: '21.0.13+9.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -337,7 +334,7 @@ jobs:
       # strict: if the test jobs ran but produced no execution data at all, that is a
       # defect in the coverage wiring and should be visible rather than swallowed.
       - name: Download coverage execution data
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: jacoco-exec-*
           path: target/jacoco-exec
@@ -404,7 +401,7 @@ jobs:
 
       - name: Upload coverage report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           retention-days: 7
           name: coverage-report
