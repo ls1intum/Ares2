@@ -3,11 +3,15 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut;
 import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.utility.JavaModule;
 
@@ -45,6 +49,13 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
  */
 public final class JavaInstrumentationBindingDefinitions {
 
+	/**
+	 * Each advice class resolved once, with the settings Byte Buddy's
+	 * {@code AgentBuilder.Transformer.ForAdvice} uses, instead of re-reading and
+	 * re-parsing the advice class file for every transformed class.
+	 */
+	private static final Map<Class<?>, Advice> RESOLVED_ADVICE = new ConcurrentHashMap<>();
+
 	// <editor-fold desc="Constructor">
 	/**
 	 * This class is a utility class and should not be instantiated.
@@ -70,7 +81,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createMethodBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
 					JavaInstrumentationCreatePathMethodAdvice.class);
 		} catch (Exception e) {
@@ -94,7 +105,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createConstructorBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES,
 					JavaInstrumentationCreatePathConstructorAdvice.class);
 		} catch (Exception e) {
@@ -106,17 +117,16 @@ public final class JavaInstrumentationBindingDefinitions {
 
 	// <editor-fold desc="Tools">
 	/**
-	 * This method creates a binding for the given type description, class loader,
-	 * pointcuts, and advice. The binding connects the bytecode modification process
-	 * to the specific methods defined by the pointcuts and applies the provided
-	 * advice. This ensures that security policies are enforced on methods
-	 * interacting with the file system, preventing unauthorised actions such as
-	 * file manipulation or access.
+	 * This method creates a binding for the given type description, pointcuts, and
+	 * advice. The binding connects the bytecode modification process to the
+	 * specific methods defined by the pointcuts and applies the provided advice.
+	 * This ensures that security policies are enforced on methods interacting with
+	 * the file system, preventing unauthorised actions such as file manipulation or
+	 * access.
 	 *
 	 * @param builder         The builder used to create the binding.
 	 * @param typeDescription The description of the class whose methods are being
 	 *                        instrumented.
-	 * @param classLoader     The class loader responsible for loading the class.
 	 * @param pointcuts       The pointcuts that specify which methods should be
 	 *                        instrumented.
 	 * @param advice          The advice to be applied to the methods matched by the
@@ -126,40 +136,57 @@ public final class JavaInstrumentationBindingDefinitions {
 	 *                           enforcement of security policies.
 	 */
 	private static DynamicType.Builder<?> createMethodBinding(DynamicType.Builder<?> builder,
-			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
-			ProtectionDomain protectionDomain, Map<String, List<String>> pointcuts, Class<?> advice) {
+			TypeDescription typeDescription, Map<String, List<String>> pointcuts, Class<?> advice) {
 		try {
-			String adviceClassName = advice.getName();
 			ElementMatcher<? super MethodDescription> matcher = JavaInstrumentationPointcutDefinitions
 					.getMethodsMatcher(typeDescription, pointcuts);
-
-			AgentBuilder.Transformer.ForAdvice transformer = new AgentBuilder.Transformer.ForAdvice()
-					.include(advice.getClassLoader()).advice(matcher, adviceClassName);
-
-			// Invoke the transformer rather than builder.visit(...)
-			return transformer.transform(builder, typeDescription, classLoader, javaModule, protectionDomain);
+			return builder.visit(resolvedAdvice(advice).on(matcher));
 		} catch (Exception e) {
 			throw new SecurityException(
 					JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.binding.error"), e);
 		}
 	}
 
+	/**
+	 * Creates a binding that applies the given advice to the constructors of the
+	 * type that the pointcuts name.
+	 *
+	 * @param builder         The builder used to create the binding.
+	 * @param typeDescription The description of the class whose constructors are
+	 *                        being instrumented.
+	 * @param pointcuts       The pointcuts that specify which constructors should
+	 *                        be instrumented.
+	 * @param advice          The advice to be applied to the matched constructors.
+	 * @return The builder with the binding applied.
+	 * @throws SecurityException If the binding could not be created.
+	 */
 	private static DynamicType.Builder<?> createConstructorBinding(DynamicType.Builder<?> builder,
-			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
-			ProtectionDomain protectionDomain, Map<String, List<String>> pointcuts, Class<?> advice) {
+			TypeDescription typeDescription, Map<String, List<String>> pointcuts, Class<?> advice) {
 		try {
-			String adviceClassName = advice.getName();
 			ElementMatcher<? super MethodDescription> matcher = JavaInstrumentationPointcutDefinitions
 					.getConstructorsMatcher(typeDescription, pointcuts);
-
-			AgentBuilder.Transformer.ForAdvice transformer = new AgentBuilder.Transformer.ForAdvice()
-					.include(advice.getClassLoader()).advice(matcher, adviceClassName);
-
-			return transformer.transform(builder, typeDescription, classLoader, javaModule, protectionDomain);
+			return builder.visit(resolvedAdvice(advice).on(matcher));
 		} catch (Exception e) {
 			throw new SecurityException(
 					JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.binding.error"), e);
 		}
+	}
+
+	/**
+	 * Returns the advice for the given advice class, resolving it on first use from
+	 * the advice's own class loader with Byte Buddy's default advice settings.
+	 *
+	 * @param advice The advice class.
+	 * @return The resolved advice, shared by all transformed classes.
+	 */
+	private static Advice resolvedAdvice(Class<?> advice) {
+		return RESOLVED_ADVICE.computeIfAbsent(advice, adviceClass -> {
+			ClassFileLocator classFileLocator = ClassFileLocator.ForClassLoader.of(adviceClass.getClassLoader());
+			return Advice.withCustomMapping()
+					.to(AgentBuilder.PoolStrategy.Default.FAST.typePool(classFileLocator, adviceClass.getClassLoader())
+							.describe(adviceClass.getName()).resolve(), classFileLocator)
+					.withAssigner(Assigner.DEFAULT).withExceptionHandler(Advice.ExceptionHandler.Default.SUPPRESSING);
+		});
 	}
 
 	// </editor-fold>
@@ -189,7 +216,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createMethodBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
 					JavaInstrumentationReadPathMethodAdvice.class);
 		} catch (Exception e) {
@@ -202,7 +229,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createConstructorBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES,
 					JavaInstrumentationReadPathConstructorAdvice.class);
 		} catch (Exception e) {
@@ -237,7 +264,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createMethodBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
 					JavaInstrumentationOverwritePathMethodAdvice.class);
 		} catch (Exception e) {
@@ -250,7 +277,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createConstructorBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES,
 					JavaInstrumentationOverwritePathConstructorAdvice.class);
 		} catch (Exception e) {
@@ -285,7 +312,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createMethodBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
 					JavaInstrumentationExecutePathMethodAdvice.class);
 		} catch (Exception e) {
@@ -298,7 +325,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createConstructorBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
 					JavaInstrumentationExecutePathConstructorAdvice.class);
 		} catch (Exception e) {
@@ -333,7 +360,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createMethodBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
 					JavaInstrumentationDeletePathMethodAdvice.class);
 		} catch (Exception e) {
@@ -346,7 +373,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createConstructorBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
 					JavaInstrumentationDeletePathConstructorAdvice.class);
 		} catch (Exception e) {
@@ -381,7 +408,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createMethodBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
 					JavaInstrumentationCreateThreadMethodAdvice.class);
 		} catch (Exception e) {
@@ -394,7 +421,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createConstructorBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
 					JavaInstrumentationCreateThreadConstructorAdvice.class);
 		} catch (Exception e) {
@@ -430,7 +457,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createMethodBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
 					JavaInstrumentationExecuteCommandMethodAdvice.class);
 		} catch (Exception e) {
@@ -443,7 +470,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createConstructorBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,
 					JavaInstrumentationExecuteCommandConstructorAdvice.class);
 		} catch (Exception e) {
@@ -458,7 +485,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createMethodBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
 					JavaInstrumentationConnectNetworkMethodAdvice.class);
 		} catch (Exception e) {
@@ -471,7 +498,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createConstructorBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CONNECT_TO_NETWORK,
 					JavaInstrumentationConnectNetworkConstructorAdvice.class);
 		} catch (Exception e) {
@@ -486,7 +513,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createMethodBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
 					JavaInstrumentationSendNetworkMethodAdvice.class);
 		} catch (Exception e) {
@@ -499,7 +526,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createConstructorBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_SEND_TO_NETWORK,
 					JavaInstrumentationSendNetworkConstructorAdvice.class);
 		} catch (Exception e) {
@@ -514,7 +541,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createMethodBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createMethodBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 					JavaInstrumentationReceiveNetworkMethodAdvice.class);
 		} catch (Exception e) {
@@ -527,7 +554,7 @@ public final class JavaInstrumentationBindingDefinitions {
 			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
 			ProtectionDomain protectionDomain) {
 		try {
-			return createConstructorBinding(builder, typeDescription, classLoader, javaModule, protectionDomain,
+			return createConstructorBinding(builder, typeDescription,
 					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK,
 					JavaInstrumentationReceiveNetworkConstructorAdvice.class);
 		} catch (Exception e) {

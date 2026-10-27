@@ -109,6 +109,10 @@ public class JavaArchitectureTestCaseTest {
 				"Exception message should contain Ares Security Error prefix");
 	}
 
+	/**
+	 * The British rule label is turned into the lower-case action and never leaks
+	 * into the message unchanged.
+	 */
 	@Test
 	void testParseErrorMessage_withBritishSerializationRule_normalisesAction() {
 		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Serialises objects' was violated (1 time):\n"

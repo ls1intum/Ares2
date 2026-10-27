@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
@@ -63,16 +64,7 @@ class JavaAspectJNetworkSystemAdviceDefinitionsTest {
 	 */
 	@Test
 	void urlOfConnection_letsADenialThrough() throws Exception {
-		URLConnection denying = new URLConnection(URI.create("https://example.org/path").toURL()) {
-			@Override
-			public void connect() {
-			}
-
-			@Override
-			public URL getURL() {
-				throw new SecurityException("Ares denied this connection");
-			}
-		};
+		URLConnection denying = new UrlConnectionThatFails(new SecurityException("Ares denied this connection"));
 
 		Method urlOfConnection = JavaAspectJNetworkSystemAdviceDefinitions.class.getDeclaredMethod("urlOfConnection",
 				URLConnection.class);
@@ -91,16 +83,7 @@ class JavaAspectJNetworkSystemAdviceDefinitionsTest {
 	 */
 	@Test
 	void urlOfConnection_yieldsNoUrlWhenTheConnectionCannotReportOneYet() throws Exception {
-		URLConnection notReadyYet = new URLConnection(URI.create("https://example.org/path").toURL()) {
-			@Override
-			public void connect() {
-			}
-
-			@Override
-			public URL getURL() {
-				throw new NullPointerException("delegate is null");
-			}
-		};
+		URLConnection notReadyYet = new UrlConnectionThatFails(new NullPointerException("delegate is null"));
 
 		Method urlOfConnection = JavaAspectJNetworkSystemAdviceDefinitions.class.getDeclaredMethod("urlOfConnection",
 				URLConnection.class);
@@ -109,5 +92,46 @@ class JavaAspectJNetworkSystemAdviceDefinitionsTest {
 		assertNull(urlOfConnection.invoke(null, notReadyYet),
 				"A connection that cannot report its URL yet must not let its own failure escape into"
 						+ " the code under test");
+	}
+
+	/**
+	 * A connection whose URL lookup fails, as an HTTPS connection does before it is
+	 * set up, or as it would when Ares denies it.
+	 */
+	private static final class UrlConnectionThatFails extends URLConnection {
+
+		/**
+		 * What the URL lookup throws.
+		 */
+		private final RuntimeException failure;
+
+		/**
+		 * Creates a connection to a fixed address whose URL lookup throws the given
+		 * failure.
+		 *
+		 * @param failure what the URL lookup throws
+		 * @throws MalformedURLException never, since the address is fixed
+		 */
+		UrlConnectionThatFails(RuntimeException failure) throws MalformedURLException {
+			super(URI.create("https://example.org/path").toURL());
+			this.failure = failure;
+		}
+
+		/**
+		 * Opens nothing, since no test sends anything through this connection.
+		 */
+		@Override
+		public void connect() {
+		}
+
+		/**
+		 * Throws the given failure instead of reporting the URL.
+		 *
+		 * @return never
+		 */
+		@Override
+		public URL getURL() {
+			throw failure;
+		}
 	}
 }

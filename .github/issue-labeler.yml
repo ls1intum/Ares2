@@ -45,7 +45,6 @@ tests:
   - test
   - tests
   - junit
-  - jqwik
   - integration
   - caseSensitive: false
 

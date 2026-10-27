@@ -66,7 +66,7 @@ public final class JavaAOPTestCaseToolbox {
 	 * opposed to the {@code private static} advice-settings fields the other
 	 * assignment methods in this class produce.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @param fieldName the name of the field to assign; must not be null.
 	 * @param value     the value to assign; must be a {@link String}.
@@ -86,7 +86,7 @@ public final class JavaAOPTestCaseToolbox {
 	 * opposed to the {@code private static} advice-settings fields the other
 	 * assignment methods in this class produce.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @param fieldName the name of the field to assign; must not be null.
 	 * @param value     the value to assign; must be a {@link Boolean}.

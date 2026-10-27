@@ -48,7 +48,7 @@ Declare the versions and an empty `argLine` property:
 <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <ares.version>2.1.5</ares.version>
+    <ares.version>2.2.1</ares.version>
     <aspectj.version>1.9.25.1</aspectj.version>
     <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
     <argLine></argLine>
@@ -281,7 +281,7 @@ Ares 2 trusts a different set of identities by name, including its own `de.tum.c
 
 They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reservedPackages/`, and live in the Ares repository at `src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`. Both are reproduced in full below, so you can complete the migration without extracting them.
 
-Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
 
 ### Maven
 
@@ -305,8 +305,7 @@ Delete the `maven-enforcer-plugin` execution with the `requireFilesDontExist` ru
               <include name="jdk/**"/><include name="com/sun/**"/>
               <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
               <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-              <include name="com/tngtech/archunit/**"/><include name="anonymous/toolclasses/**"/>
-              <include name="metatest/**"/>
+              <include name="com/tngtech/archunit/**"/>
             </fileset>
           </resourcecount>
           <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">
@@ -338,7 +337,7 @@ What it restricts:
 
 - **File system, network, command execution and thread creation: denied.** No allowance exists.
 - **Package imports: restricted, not eliminated.** Ares always permits an implicit allowlist made of the essential packages it ships, the supervised package itself, and the packages of the recognised test classes. The essential list includes the `java` prefix, so all of `java.*` stays importable.
-- **No default execution timeout yet.** A 10,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.1.5 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
+- **No default execution timeout yet.** A 10,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.2.1 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
 
 It fixes the modes: always ArchUnit for static analysis and AspectJ for the runtime layer, with the build tool discovered from the project. So the AspectJ weaving of the step named in section 4 of this guide is what enforces at runtime here, and a project that is not woven falls back to the static checks alone.
 
@@ -397,7 +396,7 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <ares.version>2.1.5</ares.version>
+        <ares.version>2.2.1</ares.version>
         <aspectj.version>1.9.25.1</aspectj.version>
         <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
         <argLine></argLine>
@@ -474,8 +473,7 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
                                         <include name="jdk/**"/><include name="com/sun/**"/>
                                         <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
                                         <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-                                        <include name="com/tngtech/archunit/**"/><include name="anonymous/toolclasses/**"/>
-                                        <include name="metatest/**"/>
+                                        <include name="com/tngtech/archunit/**"/>
                                     </fileset>
                                 </resourcecount>
                                 <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">
