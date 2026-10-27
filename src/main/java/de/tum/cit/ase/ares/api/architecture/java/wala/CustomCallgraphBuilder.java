@@ -52,6 +52,7 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
+import de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -858,9 +859,23 @@ public class CustomCallgraphBuilder {
 					return null;
 				}
 			}
+			if (ForbiddenMethodMatcher.isStandardAllowed(site.getDeclaredTarget().getSignature())) {
+				return opaque(target);
+			}
 			if (!target.getDeclaringClass().getClassLoader().getReference().equals(ClassLoaderReference.Primordial)) {
 				return target;
 			}
+			return opaque(target);
+		}
+
+		/**
+		 * Returns a stand-in for a method that keeps its call-graph node but has no
+		 * body, so nothing inside it is analysed. Stand-ins are cached per method.
+		 *
+		 * @param target the method to stand in for
+		 * @return the bodiless stand-in
+		 */
+		private IMethod opaque(IMethod target) {
 			MethodReference ref = target.getReference();
 			SummarizedMethod cached = opaqueCache.get(ref);
 			if (cached != null) {

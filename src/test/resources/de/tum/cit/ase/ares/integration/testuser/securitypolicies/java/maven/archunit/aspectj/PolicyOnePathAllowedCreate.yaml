@@ -1,0 +1,24 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.BaselineStillDeniedTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
+  theFollowingResourceAccessesArePermitted:
+    # One create path unrelated to the temp directory: any file permission makes
+    # the runtime check, not the static rule, decide every file access.
+    regardingFileSystemInteractions:
+      - readAllFiles: false
+        overwriteAllFiles: false
+        createAllFiles: true
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
+    regardingNetworkConnections: [ ]
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations: [ ]
+    regardingPackageImports: [ ]
+    regardingTimeouts:
+      - timeout: 3000

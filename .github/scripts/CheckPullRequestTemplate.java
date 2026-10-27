@@ -45,7 +45,7 @@ public class CheckPullRequestTemplate {
                 List.of("1000", "No Improvement from the user's perspective"));
         sections.put("## 3. Improvement from the maintainer's perspective",
                 List.of("1000", "No Improvement from the maintainer's perspective"));
-        sections.put("## 4. Testing manual", List.of("5000", ""));
+        sections.put("## 4. Testing manual", List.of("20000", ""));
         sections.put("## 5. Test case coverage regarding this PR", List.of("", "No production code changed"));
         sections.put("## Breaking changes and migration", List.of("1000", "No breaking changes or migration"));
         sections.put("## Checklist", List.of("", ""));

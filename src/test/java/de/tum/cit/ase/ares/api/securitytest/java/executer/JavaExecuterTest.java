@@ -93,6 +93,53 @@ public class JavaExecuterTest {
 		}
 	}
 
+	/**
+	 * The instrumentation agent is activated after the AOP cases published their
+	 * settings and before the restricted package arms the advice, so no supervised
+	 * code can run before the transformers are installed.
+	 */
+	@Test
+	void instrumentationActivationPrecedesArmingTheRestrictedPackage() {
+		try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class);
+				MockedStatic<JavaInstrumentationAgent> mockedAgent = mockStatic(JavaInstrumentationAgent.class)) {
+			List<String> events = new java.util.ArrayList<>();
+			mockedJavaAOPTestCase.when(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("restrictedPackage"), any(),
+					any(String.class), any(String.class))).thenAnswer(invocation -> events.add("arm"));
+			javaAOPTestCases.forEach(testCase -> doAnswer(invocation -> events.add("aop")).when(testCase)
+					.executeAOPTestCase("ARCHUNIT", "INSTRUMENTATION"));
+			mockedAgent.when(JavaInstrumentationAgent::activate).thenAnswer(invocation -> events.add("activate"));
+			mockedAgent.when(() -> JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage(packageName))
+					.thenAnswer(invocation -> events.add("monitor"));
+
+			javaExecuter.executeTestCases(buildMode, architectureMode, AOPMode.INSTRUMENTATION, essentialPackages,
+					essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+					javaAOPTestCases);
+
+			assertEquals(List.of("aop", "aop", "activate", "arm", "monitor"), events);
+		}
+	}
+
+	/**
+	 * A failed activation stops the preparation before the restricted package arms
+	 * the advice, so the test fails instead of running unguarded.
+	 */
+	@Test
+	void failedInstrumentationActivationLeavesPolicyUnarmed() {
+		try (MockedStatic<JavaAOPTestCase> mockedJavaAOPTestCase = mockStatic(JavaAOPTestCase.class);
+				MockedStatic<JavaInstrumentationAgent> mockedAgent = mockStatic(JavaInstrumentationAgent.class)) {
+			mockedAgent.when(JavaInstrumentationAgent::activate).thenThrow(new SecurityException("not installed"));
+
+			assertThrows(SecurityException.class,
+					() -> javaExecuter.executeTestCases(buildMode, architectureMode, AOPMode.INSTRUMENTATION,
+							essentialPackages, essentialClasses, testClasses, packageName, mainClassInPackageName,
+							javaArchitectureTestCases, javaAOPTestCases));
+
+			mockedJavaAOPTestCase.verify(() -> JavaAOPTestCase.setJavaAdviceSettingValue(eq("restrictedPackage"), any(),
+					any(String.class), any(String.class)), never());
+			mockedAgent.verify(() -> JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage(any()), never());
+		}
+	}
+
 	// See the note above: a MockedStatic resource scopes the mock, it is not meant
 	// to be read.
 	@SuppressWarnings("PMD.UnusedLocalVariable")

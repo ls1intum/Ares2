@@ -20,6 +20,7 @@ import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.localization.Localisation;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -127,9 +128,8 @@ public class JavaWriter implements Writer {
 			@Nonnull String mainClassInPackageName, @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
 			@Nonnull Path testFolderPath) {
 		@Nonnull
-		ArrayList<String> allowedClasses = Stream
-				.concat(Stream.concat(essentialPackages.stream(), essentialClasses.stream()), testClasses.stream())
-				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+		List<String> allowedClasses = Stream.concat(essentialClasses.stream(), testClasses.stream()).distinct()
+				.toList();
 		return Stream.concat(
 				Stream.concat(
 						FileTools
@@ -143,7 +143,8 @@ public class JavaWriter implements Writer {
 								aopMode.placeholderValues(),
 								aopMode.nonFSFormatValues(packageName, mainClassInPackageName)).stream()),
 				Stream.of(FileTools.createThreePartedFormatStringFile(aopMode.threePartedFileHeader(),
-						aopMode.threePartedFileBody(aopMode.toString(), packageName, allowedClasses, javaAOPTestCases),
+						aopMode.threePartedFileBody(
+								aopMode.toString(), packageName, essentialPackages, allowedClasses, javaAOPTestCases),
 						aopMode.threePartedFileFooter(),
 						confineToProject(aopMode
 								.targetToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
@@ -177,14 +178,19 @@ public class JavaWriter implements Writer {
 	 * Copies the localisation files into the resources directory sibling to
 	 * {@code testFolderPath}.
 	 *
+	 * @param packageName    the namespace used by generated Messages, whose path
+	 *                       below the resources directory is where the bundles go;
+	 *                       {@link #writeTestCases} has already required it to be a
+	 *                       Java package name, so it cannot supply an absolute path
+	 *                       or a traversal segment.
 	 * @param testFolderPath the source root; must not be null.
 	 * @return the copied files' paths.
 	 */
 	@Nonnull
-	private List<Path> createLocalisationFiles(@Nonnull Path testFolderPath) {
+	private List<Path> createLocalisationFiles(@Nonnull String packageName, @Nonnull Path testFolderPath) {
 		Path resourcesFolderPath = resolveResourcesFolderPath(testFolderPath);
-		return FileTools.copyFiles(Localisation.filesToCopy(),
-				confineTargets(Localisation.targetsToCopyTo(resourcesFolderPath)));
+		return FileTools.copyFiles(Localisation.filesToCopy(), confineTargets(
+				Localisation.targetsToCopyTo(FileTools.resolveOnPath(resourcesFolderPath, packageName.split("\\.")))));
 	}
 
 	/**
@@ -266,35 +272,12 @@ public class JavaWriter implements Writer {
 	// <editor-fold desc="Write security test cases methods">
 
 	/**
-	 * Writes security test cases to files. This is the released generation hook: a
-	 * subclass built against the signature released before
-	 * {@code testBehaviorConfiguration} existed overrides this method to customise
-	 * generation, and the configuration-aware overload below calls it virtually, so
-	 * that override still fires even though the factory that owns this writer
-	 * always calls the configuration-aware overload.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @param buildMode                 the Java build mode to use; must not be null
-	 * @param architectureMode          the Java architecture mode to use; must not
-	 *                                  be null
-	 * @param aopMode                   the Java AOP mode to use; must not be null
-	 * @param essentialPackages         the list of essential packages; must not be
-	 *                                  null
-	 * @param essentialClasses          the list of essential classes; must not be
-	 *                                  null
-	 * @param testClasses               the list of test classes; must not be null
-	 * @param packageName               the name of the package containing the main
-	 *                                  class; must not be null
-	 * @param mainClassInPackageName    the name of the main class; must not be null
-	 * @param javaArchitectureTestCases the list of architecture test cases; must
-	 *                                  not be null
-	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
-	 * @param javaPhobosTestCases       the list of Phobos test cases; must not be
-	 *                                  null
-	 * @param testFolderPath            the directory of the project; must not be
-	 *                                  null
-	 * @return a list of paths to the created files
+	 * {@inheritDoc}
+	 * <p>
+	 * Refuses a {@code packageName} that is not a Java package name before writing
+	 * anything. Subclasses built against this signature override it, and the
+	 * configuration-aware overload calls it virtually, so their override still
+	 * runs.
 	 */
 	@Override
 	@Nonnull
@@ -316,12 +299,13 @@ public class JavaWriter implements Writer {
 		}
 		Path validatedTestFolderPath = confineToProject(
 				Objects.requireNonNull(testFolderPath, "testFolderPath must not be null"));
+		PolicyValueValidator.requireMatch("packageName", packageName, PolicyValueValidator.JAVA_PACKAGE_PATTERN);
 		return Stream
 				.of(createJavaArchitectureFiles(architectureMode, packageName, mainClassInPackageName,
 						javaArchitectureTestCases, validatedTestFolderPath).stream(),
 						createJavaAOPFiles(aopMode, essentialPackages, essentialClasses, testClasses, packageName,
 								mainClassInPackageName, javaAOPTestCases, validatedTestFolderPath).stream(),
-						createLocalisationFiles(validatedTestFolderPath).stream(),
+						createLocalisationFiles(packageName, validatedTestFolderPath).stream(),
 						createPhobosFiles(packageName, javaPhobosTestCases, validatedTestFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
