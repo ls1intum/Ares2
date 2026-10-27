@@ -9,6 +9,10 @@ on:
     branches: [ "main" ]
     paths:
       - ".github/**"
+  # Weekly, so that a new shellcheck finding is noticed without anyone touching .github
+  # first. actionlint runs the shellcheck of the runner image over every `run:` block, so a
+  # newer shellcheck arrives whenever an image update ships one. actionlint itself is
+  # pinned below and does not move.
   schedule:
     - cron: "0 15 * * 0"
   workflow_dispatch:

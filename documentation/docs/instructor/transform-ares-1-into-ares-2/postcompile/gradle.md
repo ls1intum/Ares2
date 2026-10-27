@@ -53,7 +53,7 @@ Declare the versions once, so an upgrade is a single edit:
 
 ```gradle
 ext {
-    aresVersion = '2.1.5'
+    aresVersion = '2.2.1'
     aspectjVersion = '1.9.25.1'
 }
 
@@ -247,7 +247,7 @@ Ares 2 trusts a different set of identities by name, including its own `de.tum.c
 
 They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reservedPackages/`, and live in the Ares repository at `src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`. Both are reproduced in full below, so you can complete the migration without extracting them.
 
-Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
 
 ### Gradle
 
@@ -275,7 +275,7 @@ def aresReservedPackageBoundaryVersion = '2'
 def aresReservedPackagePatterns = [
         'java/**', 'javax/**', 'sun/**', 'jdk/**', 'com/sun/**',
         'de/tum/cit/ase/ares/api/**', 'net/bytebuddy/**', 'org/aspectj/**',
-        'com/ibm/wala/**', 'com/tngtech/archunit/**', 'anonymous/toolclasses/**', 'metatest/**'
+        'com/ibm/wala/**', 'com/tngtech/archunit/**'
 ]
 
 tasks.register('verifyAresReservedPackagesV2') {
@@ -354,7 +354,7 @@ What it restricts:
 
 - **File system, network, command execution and thread creation: denied.** No allowance exists.
 - **Package imports: restricted, not eliminated.** Ares always permits an implicit allowlist made of the essential packages it ships, the supervised package itself, and the packages of the recognised test classes. The essential list includes the `java` prefix, so all of `java.*` stays importable.
-- **No default execution timeout yet.** A 10,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.1.5 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
+- **No default execution timeout yet.** A 10,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.2.1 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
 
 It fixes the modes: always ArchUnit for static analysis and AspectJ for the runtime layer, with the build tool discovered from the project. So the AspectJ weaving of the step named in section 4 of this guide is what enforces at runtime here, and a project that is not woven falls back to the static checks alone.
 
@@ -415,7 +415,7 @@ plugins {
 }
 
 ext {
-    aresVersion = '2.1.5'
+    aresVersion = '2.2.1'
     aspectjVersion = '1.9.25.1'
 }
 
