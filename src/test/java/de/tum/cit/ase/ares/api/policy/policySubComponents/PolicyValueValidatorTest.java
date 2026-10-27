@@ -117,15 +117,15 @@ class PolicyValueValidatorTest {
 		ResourceAccesses resources = ResourceAccesses.createRestrictive();
 		assertDoesNotThrow(
 				() -> new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ,
-						"de.übung", "Main", List.of("de.übung.MainTest"), resources));
+						"de.übung", "Main", List.of("de.übung.MainTest"), resources, null));
 		assertThrows(IllegalArgumentException.class,
 				() -> new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ,
-						"de.class", "Main", List.of("de.übung.MainTest"), resources));
+						"de.class", "Main", List.of("de.übung.MainTest"), resources, null));
 		assertThrows(IllegalArgumentException.class,
 				() -> new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ,
-						"de.übung", "main.Class", List.of("de.übung.MainTest"), resources));
+						"de.übung", "main.Class", List.of("de.übung.MainTest"), resources, null));
 		assertThrows(IllegalArgumentException.class,
 				() -> new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ,
-						"de.übung", "Main", List.of("de.übung."), resources));
+						"de.übung", "Main", List.of("de.übung."), resources, null));
 	}
 }

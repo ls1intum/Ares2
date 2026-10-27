@@ -13,7 +13,6 @@ import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
 import de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher;
-import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
@@ -100,15 +99,15 @@ public final class JavaArchunitTestCaseCollection {
 
 	/**
 	 * Predicate selecting classes that are NOT on the allow-list, so a rule built
-	 * with {@code .that(...)} only applies to non-exempt classes. Boundary-aware
-	 * nested-class matching is delegated to
-	 * {@link JavaArchitectureTestCase#isAllowedClass}.
+	 * with {@code .that(...)} only applies to non-exempt classes. Exact-name
+	 * matching is delegated to {@link ClassPermission#isAllowedClass}.
 	 */
 	private static DescribedPredicate<JavaClass> isNotAllowedClass(Set<ClassPermission> allowedClasses) {
 		return new DescribedPredicate<>("not an allow-listed class") {
+			/** Checks whether the policy leaves this class subject to the rule. */
 			@Override
 			public boolean test(JavaClass javaClass) {
-				return !JavaArchitectureTestCase.isAllowedClass(javaClass.getFullName(), allowedClasses);
+				return !ClassPermission.isAllowedClass(javaClass.getFullName(), allowedClasses);
 			}
 		};
 	}

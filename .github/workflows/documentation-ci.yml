@@ -1,0 +1,34 @@
+# Pull request validation for the documentation site.
+#
+# Builds documentation/ without publishing anything, so a broken link, a stale PlantUML render
+# or a type error is caught on the pull request rather than on the deploy.
+name: Documentation CI
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'documentation/**'
+      - '.github/workflows/documentation.yml'
+      - '.github/workflows/documentation-ci.yml'
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'documentation/**'
+      - '.github/workflows/documentation.yml'
+      - '.github/workflows/documentation-ci.yml'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: documentation-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  documentation:
+    uses: ./.github/workflows/documentation.yml
+    permissions:
+      contents: read
+    with:
+      upload_pages_artifact: false

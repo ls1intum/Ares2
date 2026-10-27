@@ -30,6 +30,7 @@ The AspectJ compiler prints a number of `[Xlint:adviceDidNotMatch]` warnings dur
 | Path | Purpose |
 |---|---|
 | `build.gradle` | The full setup: dependencies, aspect path, agent wiring, reserved-package boundary |
+| `gradle.properties` | Optional: a leaner Gradle daemon JVM for a faster build; it does not affect the test JVM |
 | `gradle/AresReservedPackages.gradle` | Copied verbatim from the snippet Ares ships at `configuration/reservedPackages/GradleReservedPackages.gradle` |
 | `src/main/java/org/example/Penguin.java` | Supervised code, standing in for a student submission |
 | `src/test/java/org/example/PenguinTest.java` | Trusted test class, exempt through the policy |

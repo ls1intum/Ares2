@@ -1,0 +1,8 @@
+{
+    "label": "Architecture Tests",
+    "position": 3,
+    "link": {
+        "type": "generated-index",
+        "description": "Static detection of forbidden operations before the code runs."
+    }
+}

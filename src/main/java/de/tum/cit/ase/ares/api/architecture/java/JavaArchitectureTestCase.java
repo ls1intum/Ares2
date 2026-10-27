@@ -105,27 +105,10 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		return allowedClasses;
 	}
 
-	/**
-	 * Returns {@code true} if {@code fullyQualifiedClassName} is exempt: it exactly
-	 * matches an allowed class, or it is a nested/anonymous class of one (matched
-	 * on the {@code '$'} boundary so {@code Outer} never matches the unrelated
-	 * {@code OuterOther}).
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 */
+	/** Checks exact and nested class names against the policy exemptions. */
 	public static boolean isAllowedClass(@Nullable String fullyQualifiedClassName,
 			@Nonnull Set<ClassPermission> allowedClasses) {
-		if (fullyQualifiedClassName == null || allowedClasses == null || allowedClasses.isEmpty()) {
-			return false;
-		}
-		for (ClassPermission allowed : allowedClasses) {
-			String name = allowed.className();
-			if (fullyQualifiedClassName.equals(name) || fullyQualifiedClassName.startsWith(name + "$")) {
-				return true;
-			}
-		}
-		return false;
+		return ClassPermission.isAllowedClass(fullyQualifiedClassName, allowedClasses);
 	}
 	// </editor-fold>
 

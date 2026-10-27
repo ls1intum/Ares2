@@ -321,22 +321,14 @@ public final class ProjectSourcesFinder {
 
 	/**
 	 * Applies one {@code srcDir} or {@code srcDirs} declaration and returns the
-	 * offset to continue from.
+	 * offset to continue from. {@code =} replaces, everything else adds.
 	 * <p>
-	 * The operator decides the operation: {@code =} replaces, while {@code +=}, a
-	 * parenthesised call and Groovy's bare {@code srcDir 'path'} all add. An
-	 * occurrence outside a Java source set is skipped rather than attributed to
-	 * one.
+	 * A parenthesised call is pointed AT rather than past, so its opening delimiter
+	 * stays visible and the operand is seen as bracketed at all.
 	 * <p>
-	 * A parenthesised call is pointed AT rather than past, so the opening delimiter
-	 * stays visible and {@code srcDirs(…)} is recognised as a bracketed operand at
-	 * all. An unbalanced collection cannot be apportioned and is unresolved; a
-	 * token that is only whitespace or a comment is skipped, an empty list being
-	 * empty rather than unreadable. Whether the roots were there is folded in
-	 * before completeness is written, so a path that reads cleanly but is not there
-	 * cannot leave a replacement looking complete. A replacement supersedes
-	 * whatever uncertainty preceded it, so it can restore completeness as well as
-	 * remove it, whereas an addition can only ever make the picture less complete.
+	 * A replacement supersedes whatever uncertainty preceded it, so it can restore
+	 * completeness as well as remove it, whereas an addition can only ever make the
+	 * picture less complete.
 	 */
 	private static int readSourceDirectories(Path root, Path descriptor, String content, String code, int end,
 			String identifier, Deque<String> blocks, Map<String, String> properties, Map<String, List<Path>> declared,
@@ -385,11 +377,11 @@ public final class ProjectSourcesFinder {
 		}
 		List<String> values = new ArrayList<>();
 		for (int[] span : splitTopLevel(code, tokensStart, tokensEnd)) {
-			String token = activeText(content, code, span[0], span[1]).trim();
-			if (token.isEmpty()) {
+			String operand = activeText(content, code, span[0], span[1]).trim();
+			if (operand.isEmpty()) {
 				continue;
 			}
-			Optional<String> value = resolveGradlePath(token, properties);
+			Optional<String> value = resolveGradlePath(operand, properties);
 			if (value.isPresent()) {
 				values.add(value.get());
 			} else {
@@ -788,22 +780,19 @@ public final class ProjectSourcesFinder {
 	}
 
 	/**
-	 * The directory a source-root token names, or empty when this reader cannot say
-	 * so statically.
+	 * The directory a source-root operand names, or empty when this reader cannot
+	 * say so statically.
 	 * <p>
-	 * Empty is not a neutral answer. The caller records it as an incomplete source
-	 * set, because a value that cannot be read is a root that may exist and has not
-	 * been found, which is a different thing from a source set that is genuinely
-	 * empty. Three bodies are unreadable: one carrying its own delimiter, which is
-	 * the wreckage of several literals rather than one, as {@code files('a', 'b')}
-	 * collapses to once its wrapper is stripped; a double-quoted string, which
-	 * interpolates in both Groovy and Kotlin, so taking it literally would name a
-	 * directory such as {@code $generatedRoot} that normally does not exist and is
-	 * rejected, yet would silently pass for a project that happens to contain one;
-	 * and an escape this reader does not decode.
+	 * Empty is not a neutral answer. For an operand inside a Java source set the
+	 * caller records that set as incomplete, because a value that cannot be read
+	 * may still name a root, not a set that declares none.
+	 * <p>
+	 * A double-quoted body is read only when it is static, because Groovy and
+	 * Kotlin both interpolate one, so a non-static body would be evaluated rather
+	 * than taken literally.
 	 */
-	private static Optional<String> resolveGradlePath(String token, Map<String, String> properties) {
-		String value = token.trim().replace("[", "").replace("]", "").replace("files(", "").trim();
+	private static Optional<String> resolveGradlePath(String operand, Map<String, String> properties) {
+		String value = operand.trim().replace("[", "").replace("]", "").replace("files(", "").trim();
 		while (value.endsWith(")")) {
 			value = value.substring(0, value.length() - 1).trim();
 		}

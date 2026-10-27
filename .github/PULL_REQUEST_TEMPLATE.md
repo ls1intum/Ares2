@@ -60,7 +60,7 @@
     external Phobos sandbox runs a submission with, checking that a submission has the
     classes, methods, fields and annotations it should (the structural check), the
     console input and output testing, the dynamic access API, the wording a student is
-    shown (localisation), how Ares hooks into JUnit or jqwik, or how it is plugged into
+    shown (localisation), how Ares hooks into JUnit, or how it is plugged into
     the build (Maven or Gradle). If the part you mean is not listed, name it in your own
     words. A reviewer of a security tool needs to know where to look, so name it even
     where the rest stays plain.
@@ -200,7 +200,7 @@
   from an exercise" under Steps and describe instead how a reviewer verifies the change,
   for example which workflow run to inspect.
 
-  Limit: 5000 characters, counted over the text left once every instruction comment such
+  Limit: 20000 characters, counted over the text left once every instruction comment such
   as this one is removed, so keeping the comment costs nothing.
 
   Simple words: write this so that an instructor who does not know the inside of Ares can
@@ -270,8 +270,8 @@
   table, even though the agent does instrument the ones under `de.tum.cit.ase.ares.api`.
 
   This section is always required. If this pull request changes no production Java code
-  (documentation, CI, build configuration or tests only), replace the table with "No
-  production Java code changed".
+  (documentation, CI, build configuration or tests only), replace the table with
+  "No production code changed".
 -->
 
 | Class | Instruction coverage | Branch coverage | Line coverage | Complexity coverage | Method coverage | Confirmation (meaningful assertions) |
@@ -322,7 +322,7 @@ No breaking changes or migration.
 - [ ] I have self-reviewed the diff of this pull request.
 - [ ] Tests were added or updated for the behaviour changed here.
 - [ ] Javadoc follows the [AGENTS.md](AGENTS.md#documenting-java) conventions.
-- [ ] Documentation (`docs/`, `README.adoc`, Javadoc) was updated where the change is user-facing.
+- [ ] Documentation (`documentation/`, `README.md`, Javadoc) was updated where the change is user-facing.
 - [ ] CI is green, or every remaining failure is explained above.
 - [ ] No secrets, tokens or absolute local paths are contained in the diff.
 

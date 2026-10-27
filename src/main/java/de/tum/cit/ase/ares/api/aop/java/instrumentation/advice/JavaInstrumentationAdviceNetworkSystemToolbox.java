@@ -1,9 +1,11 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.URI;
@@ -12,6 +14,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.UnixDomainSocketAddress;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.NetworkChannel;
 import java.nio.channels.SocketChannel;
 import java.util.BitSet;
 import java.util.Collections;
@@ -250,23 +253,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		if (value instanceof SocketAddress socketAddress) {
 			requireTrustedRuntimeType(value);
-			String socketAddressAsString = socketAddress.toString();
-			int delimiter = socketAddressAsString.lastIndexOf(':');
-			if (delimiter > 0 && delimiter + 1 < socketAddressAsString.length()) {
-				String host = socketAddressAsString.substring(0, delimiter).replace("/", "");
-				try {
-					int port = Integer.parseInt(socketAddressAsString.substring(delimiter + 1));
-					return new NetworkTarget(host, port);
-				} catch (NumberFormatException ignored) {
-					// Fall through to the unparsed-string backstop below.
-				}
-			}
-			// Fail closed (I-110): an unrecognised SocketAddress subtype (e.g. any future
-			// address family), or one whose toString() doesn't parse as host:port, must
-			// still produce a target so the allow-list can reject it - matching the
-			// established out-of-range-port pattern in portSuffixToTarget. Returning null
-			// here would fail open by skipping the check entirely for this operation.
-			return new NetworkTarget(socketAddressAsString, -1);
+			return socketAddressToTarget(socketAddress);
 		}
 		// HttpRequest is in the java.net.http module which may not be visible from
 		// the bootstrap class-loader. Use reflection to avoid a hard dependency.
@@ -293,7 +280,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		if (value instanceof URLConnection urlConnection) {
 			requireTrustedRuntimeType(value);
-			return variableToTarget(urlConnection.getURL());
+			return variableToTarget(urlOfConnection(urlConnection));
 		}
 		if (value instanceof DatagramPacket datagramPacket) {
 			requireTrustedRuntimeType(value);
@@ -343,6 +330,103 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			return stringToHostPortTarget(str);
 		}
 		return null;
+	}
+
+	/**
+	 * Resolves a socket address that is neither an internet nor a Unix domain
+	 * address.
+	 * <p>
+	 * Description: Reads a host and a port out of the address's own text. An
+	 * address that renders no endpoint still becomes a target, so the allow-list
+	 * rejects it, unless it renders nothing at all, in which case it is a marker
+	 * object rather than an address and yields none.
+	 *
+	 * @param socketAddress the address to resolve
+	 * @return the endpoint it names, or {@code null} when it names none
+	 * @since 2.1.5
+	 */
+	@Nullable
+	private static NetworkTarget socketAddressToTarget(@Nonnull SocketAddress socketAddress) {
+		String socketAddressAsString = socketAddress.toString();
+		int delimiter = socketAddressAsString.lastIndexOf(':');
+		if (delimiter > 0 && delimiter + 1 < socketAddressAsString.length()) {
+			String host = socketAddressAsString.substring(0, delimiter).replace("/", "");
+			try {
+				int port = Integer.parseInt(socketAddressAsString.substring(delimiter + 1));
+				return new NetworkTarget(host, port);
+			} catch (NumberFormatException ignored) {
+				return unparsedSocketAddressToTarget(socketAddress, socketAddressAsString);
+			}
+		}
+		return unparsedSocketAddressToTarget(socketAddress, socketAddressAsString);
+	}
+
+	/**
+	 * Decides what an address whose text is no {@code host:port} resolves to.
+	 * <p>
+	 * Description: A future address family still becomes a target, so the
+	 * allow-list rejects it (I-110); returning none would skip the check. A marker
+	 * object is different: it carries no endpoint, and {@link #carriesNoEndpoint}
+	 * recognises it, so it yields none rather than a target no policy could name.
+	 *
+	 * @param socketAddress         the address to resolve
+	 * @param socketAddressAsString its already computed text
+	 * @return a rejectable target, or {@code null} for a marker object
+	 * @since 2.1.5
+	 */
+	@Nullable
+	private static NetworkTarget unparsedSocketAddressToTarget(@Nonnull SocketAddress socketAddress,
+			@Nonnull String socketAddressAsString) {
+		if (carriesNoEndpoint(socketAddress, socketAddressAsString)) {
+			return null;
+		}
+		return new NetworkTarget(socketAddressAsString, -1);
+	}
+
+	/**
+	 * Decides whether an address is a marker object rather than an endpoint.
+	 * <p>
+	 * Description: An address renders its endpoint; a marker object renders the
+	 * default {@code Object} text, its class name and an identity hash.
+	 * {@code java.net.DatagramSocket.NO_DELEGATE}, which every
+	 * {@code MulticastSocket} constructor hands to this advice, is such a marker.
+	 * Making it a target denies the type outright instead of checking it, because
+	 * the hash differs per run and no policy can name it.
+	 *
+	 * @param socketAddress         the address to judge
+	 * @param socketAddressAsString its already computed text
+	 * @return {@code true} when the value names no endpoint
+	 * @since 2.1.5
+	 */
+	private static boolean carriesNoEndpoint(@Nonnull SocketAddress socketAddress,
+			@Nonnull String socketAddressAsString) {
+		String defaultText = socketAddress.getClass().getName() + "@"
+				+ Integer.toHexString(System.identityHashCode(socketAddress));
+		return defaultText.equals(socketAddressAsString);
+	}
+
+	/**
+	 * Reads the URL of a connection without letting its own failure escape.
+	 * <p>
+	 * Description: An HTTPS connection reads its URL through an inner connection
+	 * that exists only once the connection is set up, and raises a
+	 * {@link NullPointerException} before then. That exception would leave this
+	 * advice and surface in the code under test as a fault of that code. No
+	 * endpoint is skipped by returning none here: nothing has been sent or received
+	 * yet, and the operations that do perform input or output are intercepted
+	 * separately and resolve the URL then.
+	 *
+	 * @param urlConnection the connection to read
+	 * @return its URL, or {@code null} when it cannot be read yet
+	 * @since 2.1.5
+	 */
+	@Nullable
+	private static URL urlOfConnection(@Nonnull URLConnection urlConnection) {
+		try {
+			return urlConnection.getURL();
+		} catch (RuntimeException ignored) {
+			return null;
+		}
 	}
 
 	@Nullable
@@ -856,8 +940,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
 		@Nullable
-		String networkIllegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null
-				: checkIfVariableCriteriaIsViolated(attributes, allowedHosts, allowedPorts,
+		final Object[] peerAttributes = withoutOwnLocalEndpoint(instance, attributes);
+		@Nullable
+		String networkIllegallyInteractedThroughAttribute = (peerAttributes == null || peerAttributes.length == 0)
+				? null
+				: checkIfVariableCriteriaIsViolated(peerAttributes, allowedHosts, allowedPorts,
 						NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughAttribute != null) {
@@ -868,6 +955,109 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
+	}
+
+	/**
+	 * Removes the receiver's own local endpoint from the fields about to be
+	 * checked.
+	 * <p>
+	 * Description: The advice hands every declared field of the receiver to this
+	 * check, and one of them holds the address the socket is bound to locally, for
+	 * example {@code sun.nio.ch.DatagramChannelImpl.localAddress}. The allowlists
+	 * name peers, never local binds, and the local port is drawn afresh on every
+	 * run, so checking it denies the call under any policy. Only values that name
+	 * the receiver's own binding are dropped, and only from this scan: the
+	 * parameters and the remote address are checked before it and are untouched.
+	 *
+	 * @param instance   the receiver of the intercepted call, may be null
+	 * @param attributes its declared field values, may be null
+	 * @return the field values to check, without the local endpoint
+	 * @since 2.1.5
+	 */
+	@Nullable
+	private static Object[] withoutOwnLocalEndpoint(@Nullable Object instance, @Nullable Object[] attributes) {
+		if (instance == null || attributes == null || attributes.length == 0) {
+			return attributes;
+		}
+		SocketAddress localEndpoint = ownLocalEndpoint(instance);
+		if (!(localEndpoint instanceof InetSocketAddress localInetEndpoint)) {
+			return attributes;
+		}
+		Object[] remaining = attributes.clone();
+		for (int i = 0; i < remaining.length; i++) {
+			if (isOwnLocalBinding(localInetEndpoint, remaining[i])) {
+				remaining[i] = null;
+			}
+		}
+		return remaining;
+	}
+
+	/**
+	 * Decides whether a field value records the receiver's own local binding.
+	 * <p>
+	 * Description: A socket keeps more than one note of where it is bound. A
+	 * datagram channel keeps the address it is bound to now and the one it was
+	 * bound to before it connected, the unspecified address on the same port. A
+	 * value counts as the receiver's own binding when it sits on the receiver's
+	 * local port and is either that same endpoint or an unspecified address, which
+	 * names no peer at all. A concrete address on that port that is not the
+	 * receiver's own survives and is still checked, and so does an unspecified
+	 * address on any other port.
+	 *
+	 * @param localEndpoint where the receiver is bound
+	 * @param attribute     one field value of the receiver
+	 * @return {@code true} when the value is the receiver's own binding
+	 * @since 2.1.5
+	 */
+	private static boolean isOwnLocalBinding(@Nonnull InetSocketAddress localEndpoint, @Nullable Object attribute) {
+		if (!(attribute instanceof InetSocketAddress candidate)) {
+			return false;
+		}
+		if (candidate.getPort() != localEndpoint.getPort()) {
+			return false;
+		}
+		if (candidate.equals(localEndpoint)) {
+			return true;
+		}
+		InetAddress address = candidate.getAddress();
+		return address != null && address.isAnyLocalAddress();
+	}
+
+	/**
+	 * Reads the address a socket or channel is bound to locally.
+	 * <p>
+	 * Description: Asks the receiver where it is bound. A receiver of a type that
+	 * has no local address reports none without being touched. One that has such an
+	 * address has its runtime type verified before the accessor is called, because
+	 * these accessors can be overridden and the receiver may be a subclass; an
+	 * untrusted one is rejected rather than asked. A receiver that is not bound
+	 * reports none.
+	 *
+	 * @param instance the receiver of the intercepted call
+	 * @return its local address, or {@code null} when it has none
+	 * @since 2.1.5
+	 */
+	@Nullable
+	private static SocketAddress ownLocalEndpoint(@Nonnull Object instance) {
+		if (!(instance instanceof NetworkChannel || instance instanceof DatagramSocket || instance instanceof Socket
+				|| instance instanceof ServerSocket)) {
+			return null;
+		}
+		requireTrustedRuntimeType(instance);
+		try {
+			if (instance instanceof NetworkChannel networkChannel) {
+				return networkChannel.getLocalAddress();
+			}
+			if (instance instanceof DatagramSocket datagramSocket) {
+				return datagramSocket.getLocalSocketAddress();
+			}
+			if (instance instanceof Socket socket) {
+				return socket.getLocalSocketAddress();
+			}
+			return ((ServerSocket) instance).getLocalSocketAddress();
+		} catch (IOException | RuntimeException ignored) {
+			return null;
+		}
 	}
 
 	/**

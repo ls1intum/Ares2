@@ -53,7 +53,6 @@ def forbiddenPackageFolders = [ //(2)
                                 "$studentOutputDir/java/",
                                 "$studentOutputDir/javax/",
                                 "$studentOutputDir/jdk/",
-                                "$studentOutputDir/net/jqwik/",
                                 "$studentOutputDir/org/assertj/",
                                 "$studentOutputDir/org/apache/",
                                 "$studentOutputDir/org/eclipse/",

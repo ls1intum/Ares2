@@ -5,24 +5,18 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URI;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.jar.JarFile;
-import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import javax.activation.FileDataSource;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -320,75 +314,20 @@ public class CustomCallgraphBuilderTest {
 		return (Set<Path>) field.get(null);
 	}
 
-	@SuppressWarnings("unchecked")
-	private static Set<Path> optionalFrameworkCandidateCodeSources() throws Exception {
-		Field field = CustomCallgraphBuilder.class.getDeclaredField("OPTIONAL_FRAMEWORK_CANDIDATE_CODE_SOURCES");
-		field.setAccessible(true);
-		return (Set<Path>) field.get(null);
-	}
-
 	/**
-	 * Regression test for the defect that made the WALA backend unusable in every
-	 * consumer without a direct jqwik dependency: jqwik is {@code provided}-scope,
-	 * and referencing it through a class literal in a static initialiser turned its
-	 * absence into a permanent {@link NoClassDefFoundError} for the whole class.
-	 * <p>
-	 * Loading the class in an isolated loader whose classpath omits jqwik is the
-	 * only way to reproduce the consumer's situation from inside a build where
-	 * jqwik is always present.
-	 */
-	@Test
-	void testCallgraphBuilderInitialisesWithoutOptionalJqwikOnTheClasspath() throws Exception {
-		Set<Path> jqwikOrigins = optionalFrameworkCandidateCodeSources();
-		Assumptions.assumeFalse(jqwikOrigins.isEmpty(), "jqwik must be present to build a classpath without it");
-		List<Path> testClassPath = currentTestClassPath();
-		// Failing to derive the runner's classpath is a missing fixture, not a defect
-		// in the code under test, so skip rather than report a false failure.
-		Assumptions.assumeTrue(testClassPath.stream().anyMatch(jqwikOrigins::contains),
-				"the derived test classpath must still contain the jqwik origins to remove them");
-		List<URL> withoutJqwik = new ArrayList<>();
-		for (Path entry : testClassPath) {
-			if (!jqwikOrigins.contains(entry)) {
-				withoutJqwik.add(entry.toUri().toURL());
-			}
-		}
-		Assertions.assertNotEquals(withoutJqwik.size(), testClassPath.size(),
-				"the isolated classpath must actually be missing the jqwik entries");
-
-		try (URLClassLoader isolated = new URLClassLoader(withoutJqwik.toArray(URL[]::new),
-				ClassLoader.getPlatformClassLoader())) {
-			Class<?> isolatedBuilder = Class.forName(CustomCallgraphBuilder.class.getName(), true, isolated);
-
-			Assertions.assertNotSame(CustomCallgraphBuilder.class, isolatedBuilder);
-			Field required = isolatedBuilder.getDeclaredField("REQUIRED_TRUSTED_FRAMEWORK_CODE_SOURCES");
-			required.setAccessible(true);
-			Assertions.assertFalse(((Set<?>) required.get(null)).isEmpty(),
-					"required framework origins must still resolve without jqwik");
-			Field optional = isolatedBuilder.getDeclaredField("OPTIONAL_FRAMEWORK_CANDIDATE_CODE_SOURCES");
-			optional.setAccessible(true);
-			Assertions.assertTrue(((Set<?>) optional.get(null)).isEmpty(),
-					"absent optional frameworks must contribute no trusted origin");
-		}
-	}
-
-	/**
-	 * The API and the engine may ship in separate JARs, so a partially present
-	 * framework must contribute nothing rather than a lone origin. Admitting one
-	 * half would let a forged counterpart pass unnoticed.
+	 * A framework's API and engine may ship in separate JARs, so a partially
+	 * present framework must contribute nothing rather than a lone origin.
+	 * Admitting one half would let a forged counterpart pass unnoticed.
 	 */
 	@Test
 	void testOptionalFrameworkOriginsAreDiscardedWhenAnyClassIsAbsent() throws Exception {
-		// jqwik is provided-scope, so it is genuinely absent in the very consumers this
-		// change is for. Treat that as a missing fixture, not as a defect.
-		Assumptions.assumeFalse(optionalFrameworkCandidateCodeSources().isEmpty(),
-				"jqwik must be present for the all-or-nothing distinction to be observable");
 		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("optionalFrameworkCodeSource", String.class,
 				ClassLoader.class);
 		method.setAccessible(true);
 		ClassLoader loader = CustomCallgraphBuilder.class.getClassLoader();
 
-		Optional<?> present = (Optional<?>) method.invoke(null, "net.jqwik.api.Property", loader);
-		Optional<?> absent = (Optional<?>) method.invoke(null, "net.jqwik.api.NoSuchPropertyClass", loader);
+		Optional<?> present = (Optional<?>) method.invoke(null, "org.assertj.core.api.Assertions", loader);
+		Optional<?> absent = (Optional<?>) method.invoke(null, "org.assertj.core.api.NoSuchAssertionsClass", loader);
 
 		Assertions.assertTrue(present.isPresent());
 		Assertions.assertTrue(absent.isEmpty(), "an unresolvable optional framework class must not throw");
@@ -397,19 +336,18 @@ public class CustomCallgraphBuilderTest {
 		// discard the present one too, otherwise a partially present framework
 		// contributes a lone origin that a forged counterpart could sit beside.
 		Set<Path> bothPresent = CustomCallgraphBuilder.optionalFrameworkCandidateCodeSources(
-				List.of("net.jqwik.api.Property", "net.jqwik.engine.JqwikTestEngine"));
+				List.of("org.assertj.core.api.Assertions", "org.junit.jupiter.api.Test"));
 		Set<Path> oneAbsent = CustomCallgraphBuilder.optionalFrameworkCandidateCodeSources(
-				List.of("net.jqwik.api.Property", "net.jqwik.api.NoSuchPropertyClass"));
+				List.of("org.assertj.core.api.Assertions", "org.assertj.core.api.NoSuchAssertionsClass"));
 
-		Assertions.assertFalse(bothPresent.isEmpty(), "both jqwik artefacts are present in this build");
+		Assertions.assertFalse(bothPresent.isEmpty(), "both framework artefacts are present in this build");
 		Assertions.assertTrue(oneAbsent.isEmpty(),
 				"a single absent name must discard every optional origin, not just its own");
 	}
 
 	/**
-	 * A student who drops a forged {@code net.jqwik.api.Property} into the
-	 * project's own class output must not thereby have that output directory
-	 * removed from WALA's scope.
+	 * A student who drops a forged framework class into the project's own class
+	 * output must not thereby have that output directory removed from WALA's scope.
 	 */
 	@Test
 	void testOptionalFrameworkOriginInsideSupervisedProjectIsRejected() throws Exception {
@@ -428,7 +366,8 @@ public class CustomCallgraphBuilderTest {
 
 	/**
 	 * An optional origin outside the supervised project is admitted, so a genuine
-	 * jqwik dependency keeps being filtered out of WALA's scope exactly as before.
+	 * optional dependency keeps being filtered out of WALA's scope exactly as
+	 * before.
 	 */
 	@Test
 	void testOptionalFrameworkOriginOutsideSupervisedProjectIsAdmitted() throws Exception {
@@ -442,65 +381,6 @@ public class CustomCallgraphBuilderTest {
 
 		Assertions.assertTrue(effective.contains(outsideOrigin));
 		Assertions.assertTrue(effective.containsAll(requiredTrustedFrameworkCodeSources()));
-	}
-
-	/**
-	 * {@code dependencyFingerprint} has no analysis classpath and therefore no
-	 * supervised-project boundary to validate optional origins against, so it must
-	 * exclude only required framework origins. Excluding an unvalidated optional
-	 * origin could drop student bytecode from the cache key.
-	 */
-	@Test
-	void testRequiredTrustedOriginsExcludeOptionalFrameworkOrigins() throws Exception {
-		Set<Path> required = requiredTrustedFrameworkCodeSources();
-		Set<Path> optional = optionalFrameworkCandidateCodeSources();
-		Assumptions.assumeFalse(optional.isEmpty(), "jqwik must be present for this distinction to be observable");
-
-		Assertions.assertTrue(optional.stream().noneMatch(required::contains),
-				"optional origins must not leak into the required set used for cache fingerprinting");
-	}
-
-	private static List<Path> currentTestClassPath() throws Exception {
-		List<Path> entries = new ArrayList<>();
-		for (String entry : System.getProperty("java.class.path").split(Pattern.quote(File.pathSeparator))) {
-			if (entry.isBlank()) {
-				continue;
-			}
-			Path path = Path.of(entry);
-			if (Files.exists(path)) {
-				entries.add(path.toRealPath());
-			}
-		}
-		// Surefire may hand over a manifest-only booter JAR; expand its Class-Path so
-		// the isolated loader sees the real dependencies.
-		if (entries.size() == 1 && entries.get(0).toString().endsWith(".jar")) {
-			try (JarFile booter = new JarFile(entries.get(0).toFile())) {
-				// A single .jar entry does not prove this is Surefire's booter JAR, and a
-				// JAR need not carry a manifest at all, so do not dereference blindly.
-				Manifest manifest = booter.getManifest();
-				String classPathAttribute = manifest == null ? null
-						: manifest.getMainAttributes().getValue("Class-Path");
-				if (classPathAttribute != null) {
-					entries.clear();
-					for (String url : classPathAttribute.split(" ")) {
-						if (url.isBlank()) {
-							continue;
-						}
-						// Manifest Class-Path entries are relative URLs by specification;
-						// only Surefire's absolute file: URLs are usable here.
-						URI entryUri = URI.create(url);
-						if (!entryUri.isAbsolute() || !"file".equals(entryUri.getScheme())) {
-							continue;
-						}
-						Path path = Path.of(entryUri);
-						if (Files.exists(path)) {
-							entries.add(path.toRealPath());
-						}
-					}
-				}
-			}
-		}
-		return entries;
 	}
 
 	@Test

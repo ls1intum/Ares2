@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.securitytest.java.writer;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -18,6 +20,8 @@ import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.localization.Localisation;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
@@ -124,9 +128,8 @@ public class JavaWriter implements Writer {
 			@Nonnull String mainClassInPackageName, @Nonnull List<JavaAOPTestCase> javaAOPTestCases,
 			@Nonnull Path testFolderPath) {
 		@Nonnull
-		ArrayList<String> allowedClasses = Stream
-				.concat(Stream.concat(essentialPackages.stream(), essentialClasses.stream()), testClasses.stream())
-				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+		List<String> allowedClasses = Stream.concat(essentialClasses.stream(), testClasses.stream()).distinct()
+				.toList();
 		return Stream.concat(
 				Stream.concat(
 						FileTools
@@ -140,7 +143,8 @@ public class JavaWriter implements Writer {
 								aopMode.placeholderValues(),
 								aopMode.nonFSFormatValues(packageName, mainClassInPackageName)).stream()),
 				Stream.of(FileTools.createThreePartedFormatStringFile(aopMode.threePartedFileHeader(),
-						aopMode.threePartedFileBody(aopMode.toString(), packageName, allowedClasses, javaAOPTestCases),
+						aopMode.threePartedFileBody(
+								aopMode.toString(), packageName, essentialPackages, allowedClasses, javaAOPTestCases),
 						aopMode.threePartedFileFooter(),
 						confineToProject(aopMode
 								.targetToCopyTo(FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
@@ -148,23 +152,90 @@ public class JavaWriter implements Writer {
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 
+	/**
+	 * Resolves the resources directory sibling to a source root such as
+	 * {@code src/test/java}, replacing its final segment with {@code resources} -
+	 * the Maven/Gradle convention. A too-shallow path (e.g. a bare project root)
+	 * gets resources placed directly beneath it instead.
+	 *
+	 * @param testFolderPath the source root, or project root when too shallow; must
+	 *                       not be null.
+	 * @return the resolved resources directory.
+	 */
 	@Nonnull
-	private List<Path> createLocalisationFiles(@Nonnull Path testFolderPath) {
+	private Path resolveResourcesFolderPath(@Nonnull Path testFolderPath) {
 		int nameCount = testFolderPath.getNameCount();
-		Path resourcesFolderPath;
 		if (testFolderPath.toString().isEmpty() || nameCount < 3) {
-			// Too shallow to strip the trailing two segments (e.g. the project root in
-			// precompile mode): place the resources folder directly beneath it.
-			resourcesFolderPath = testFolderPath.resolve("resources");
-		} else {
-			Path parentPath = testFolderPath.subpath(0, nameCount - 2);
-			Path root = testFolderPath.getRoot();
-			resourcesFolderPath = (root == null) ? Paths.get(parentPath.toString(), "resources")
-					: Paths.get(root.toString(), parentPath.toString(), "resources");
+			return testFolderPath.resolve("resources");
 		}
+		Path parentPath = testFolderPath.subpath(0, nameCount - 1);
+		Path root = testFolderPath.getRoot();
+		return (root == null) ? Paths.get(parentPath.toString(), "resources")
+				: Paths.get(root.toString(), parentPath.toString(), "resources");
+	}
 
-		return FileTools.copyFiles(Localisation.filesToCopy(),
-				confineTargets(Localisation.targetsToCopyTo(resourcesFolderPath)));
+	/**
+	 * Copies the localisation files into the resources directory sibling to
+	 * {@code testFolderPath}.
+	 *
+	 * @param packageName    the namespace used by generated Messages, whose path
+	 *                       below the resources directory is where the bundles go;
+	 *                       {@link #writeTestCases} has already required it to be a
+	 *                       Java package name, so it cannot supply an absolute path
+	 *                       or a traversal segment.
+	 * @param testFolderPath the source root; must not be null.
+	 * @return the copied files' paths.
+	 */
+	@Nonnull
+	private List<Path> createLocalisationFiles(@Nonnull String packageName, @Nonnull Path testFolderPath) {
+		Path resourcesFolderPath = resolveResourcesFolderPath(testFolderPath);
+		return FileTools.copyFiles(Localisation.filesToCopy(), confineTargets(
+				Localisation.targetsToCopyTo(FileTools.resolveOnPath(resourcesFolderPath, packageName.split("\\.")))));
+	}
+
+	/**
+	 * Writes the generated, compiled settings class named by the released
+	 * {@code TestBehaviorConfiguration.GENERATED_CLASS_NAME}, with one literal
+	 * field per contributed category; writes nothing when no category has
+	 * contributed a field yet, so the class is only ever present on the classpath
+	 * once something is actually configured.
+	 *
+	 * @since 2.2.0
+	 * @author Luka Petrovic
+	 * @param testBehaviorConfiguration the configuration whose literal field
+	 *                                  assignments to write; must not be null.
+	 * @param testFolderPath            the project's source root; must not be null.
+	 * @return the written file's path, or an empty list if nothing was configured.
+	 */
+	@Nonnull
+	private List<Path> createTestBehaviorSettingsFiles(@Nonnull TestBehaviorConfiguration testBehaviorConfiguration,
+			@Nonnull Path testFolderPath) {
+		List<String> fieldAssignments = testBehaviorConfiguration.literalFieldAssignments();
+		if (fieldAssignments.isEmpty()) {
+			return List.of();
+		}
+		String fullyQualifiedName = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
+		int lastDot = fullyQualifiedName.lastIndexOf('.');
+		String settingsPackageName = fullyQualifiedName.substring(0, lastDot);
+		String simpleClassName = fullyQualifiedName.substring(lastDot + 1);
+		Path target = confineToProject(
+				testFolderPath.resolve(settingsPackageName.replace('.', '/')).resolve(simpleClassName + ".java"));
+		String content = "package " + settingsPackageName + ";" + System.lineSeparator() + System.lineSeparator()
+				+ "public final class " + simpleClassName + " {" + System.lineSeparator() + System.lineSeparator()
+				+ "\tprivate " + simpleClassName + "() {" + System.lineSeparator()
+				+ "\t\tthrow new SecurityException(\"" + simpleClassName
+				+ " is a generated settings holder and must not be instantiated\");" + System.lineSeparator() + "\t}"
+				+ System.lineSeparator() + System.lineSeparator()
+				+ String.join("", fieldAssignments.stream().map(assignment -> "\t" + assignment).toList()) + "}"
+				+ System.lineSeparator();
+		try {
+			Files.createDirectories(Objects.requireNonNull(target.getParent(),
+					"generated settings class target has no parent: " + target));
+			Files.writeString(target, content);
+		} catch (IOException failure) {
+			throw new SecurityException("Unable to write generated test-behaviour settings class: " + target, failure);
+		}
+		return List.of(target);
 	}
 
 	@Nonnull
@@ -201,31 +272,14 @@ public class JavaWriter implements Writer {
 	// <editor-fold desc="Write security test cases methods">
 
 	/**
-	 * Writes security test cases to files.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @param buildMode                 the Java build mode to use; must not be null
-	 * @param architectureMode          the Java architecture mode to use; must not
-	 *                                  be null
-	 * @param aopMode                   the Java AOP mode to use; must not be null
-	 * @param essentialPackages         the list of essential packages; must not be
-	 *                                  null
-	 * @param essentialClasses          the list of essential classes; must not be
-	 *                                  null
-	 * @param testClasses               the list of test classes; must not be null
-	 * @param packageName               the name of the package containing the main
-	 *                                  class; must not be null
-	 * @param mainClassInPackageName    the name of the main class; must not be null
-	 * @param javaArchitectureTestCases the list of architecture test cases; must
-	 *                                  not be null
-	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
-	 * @param javaPhobosTestCases       the list of Phobos test cases; must not be
-	 *                                  null
-	 * @param testFolderPath            the directory of the project; must not be
-	 *                                  null
-	 * @return a list of paths to the created files
+	 * {@inheritDoc}
+	 * <p>
+	 * Refuses a {@code packageName} that is not a Java package name before writing
+	 * anything. Subclasses built against this signature override it, and the
+	 * configuration-aware overload calls it virtually, so their override still
+	 * runs.
 	 */
+	@Override
 	@Nonnull
 	public List<Path> writeTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
 			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
@@ -245,14 +299,52 @@ public class JavaWriter implements Writer {
 		}
 		Path validatedTestFolderPath = confineToProject(
 				Objects.requireNonNull(testFolderPath, "testFolderPath must not be null"));
+		PolicyValueValidator.requireMatch("packageName", packageName, PolicyValueValidator.JAVA_PACKAGE_PATTERN);
 		return Stream
 				.of(createJavaArchitectureFiles(architectureMode, packageName, mainClassInPackageName,
 						javaArchitectureTestCases, validatedTestFolderPath).stream(),
 						createJavaAOPFiles(aopMode, essentialPackages, essentialClasses, testClasses, packageName,
 								mainClassInPackageName, javaAOPTestCases, validatedTestFolderPath).stream(),
-						createLocalisationFiles(validatedTestFolderPath).stream(),
+						createLocalisationFiles(packageName, validatedTestFolderPath).stream(),
 						createPhobosFiles(packageName, javaPhobosTestCases, validatedTestFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+	}
+
+	/**
+	 * Writes security test cases to files, then adds the generated test-behaviour
+	 * settings class. Calls the released overload virtually first, so a subclass
+	 * overriding only that one still has its customisation applied even though this
+	 * is the overload {@code JavaTestCaseFactoryAndBuilder} actually calls, before
+	 * adding behaviour-specific outputs on top.
+	 *
+	 * @since 2.2.0
+	 * @author Luka Petrovic
+	 * @param essentialClasses          the list of essential classes; must not be
+	 *                                  null
+	 * @param testClasses               the list of test classes; must not be null
+	 * @param javaArchitectureTestCases the list of architecture test cases; must
+	 *                                  not be null
+	 * @param javaAOPTestCases          the list of AOP test cases; must not be null
+	 * @param testBehaviorConfiguration the behavioural test-lifecycle configuration
+	 *                                  to carry forward for a precompile
+	 *                                  deployment; must not be null.
+	 * @param testFolderPath            the directory of the project; must not be
+	 *                                  null
+	 * @return a list of paths to the created files
+	 */
+	@Override
+	@Nonnull
+	public List<Path> writeTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
+			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
+			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
+			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
+			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
+			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath) {
+		List<Path> written = new ArrayList<>(writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+				essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+				javaAOPTestCases, javaPhobosTestCases, testFolderPath));
+		written.addAll(createTestBehaviorSettingsFiles(testBehaviorConfiguration, confineToProject(testFolderPath)));
+		return written;
 	}
 	// </editor-fold>
 }

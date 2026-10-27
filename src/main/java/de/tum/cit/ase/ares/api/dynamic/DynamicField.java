@@ -107,18 +107,45 @@ public class DynamicField<T> implements Checkable {
 				.findFirst();
 	}
 
+	/**
+	 * Lists the fields of the wanted type declared by {@code c}, its superclasses
+	 * and its interfaces. Those of {@code c} and its superclasses come first,
+	 * nearest first, and interface constants only after all of them, so a
+	 * superclass field wins over an interface constant of the same name.
+	 *
+	 * @param c the class or interface to search
+	 * @return the matching fields, in the order a lookup should prefer them
+	 */
 	private List<Field> fieldsOf(Class<?> c) {
-		ArrayList<Field> al = new ArrayList<>();
-		Class<?> current = c;
-		while (current != Object.class) {
-			for (Field ff : current.getDeclaredFields()) {
-				if (type.toClass().isAssignableFrom(ff.getType())) {
-					al.add(ff);
-				}
+		List<Field> al = new ArrayList<>();
+		Deque<Class<?>> interfaces = new ArrayDeque<>();
+		for (Class<?> current = c; current != null && current != Object.class; current = current.getSuperclass()) {
+			addFieldsOfWantedType(current, al);
+			interfaces.addAll(List.of(current.getInterfaces()));
+		}
+		Set<Class<?>> visited = new HashSet<>();
+		while (!interfaces.isEmpty()) {
+			Class<?> current = interfaces.poll();
+			if (visited.add(current)) {
+				addFieldsOfWantedType(current, al);
+				interfaces.addAll(List.of(current.getInterfaces()));
 			}
-			current = current.getSuperclass();
 		}
 		return al;
+	}
+
+	/**
+	 * Adds the fields {@code c} itself declares whose type fits the wanted type.
+	 *
+	 * @param c      the class or interface whose own fields are added
+	 * @param fields the list the fields are added to
+	 */
+	private void addFieldsOfWantedType(Class<?> c, List<Field> fields) {
+		for (Field ff : c.getDeclaredFields()) {
+			if (type.toClass().isAssignableFrom(ff.getType())) {
+				fields.add(ff);
+			}
+		}
 	}
 
 	@Override

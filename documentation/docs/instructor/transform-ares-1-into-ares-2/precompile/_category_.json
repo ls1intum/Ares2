@@ -1,0 +1,8 @@
+{
+    "label": "Precompile",
+    "position": 4,
+    "link": {
+        "type": "generated-index",
+        "description": "Migrating an Ares 1 exercise straight onto the generated-artefact mode."
+    }
+}
