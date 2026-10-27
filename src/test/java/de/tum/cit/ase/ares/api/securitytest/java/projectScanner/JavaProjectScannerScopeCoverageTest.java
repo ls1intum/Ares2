@@ -167,6 +167,35 @@ class JavaProjectScannerScopeCoverageTest {
 	}
 
 	/**
+	 * Version 3 restored the Ares 1 breadth, so a test-harness name is reserved
+	 * again. A class compiled into {@code org.junit.jupiter.api} would shadow the
+	 * assertions that judge the submission; the coverage check refuses it before
+	 * enforcement is armed, exactly as it does an Ares-api name.
+	 */
+	@Test
+	@DisplayName("Refuses a class that takes a restored test-harness package")
+	void refusesAClassInARestoredHarnessPackage() throws IOException {
+		Path outputRoot = compile("""
+				package de.tum.cit.aet;
+
+				public class Assignment {
+				}
+				""", "de/tum/cit/aet/Assignment.java");
+		compileInto(outputRoot, """
+				package org.junit.jupiter.api;
+
+				public class Assertions {
+				}
+				""", "org/junit/jupiter/api/Assertions.java");
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertTrue(refusal.getMessage().contains("org.junit"),
+				"the diagnostic must name the restored namespace the class took: " + refusal.getMessage());
+	}
+
+	/**
 	 * The reserved class is refused before coverage is even considered, so a
 	 * submission cannot use one to stop the check reaching a package the scope
 	 * leaves out. Either way the run refuses; what matters is that it never

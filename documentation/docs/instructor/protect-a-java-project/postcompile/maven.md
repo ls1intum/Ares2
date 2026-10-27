@@ -289,7 +289,7 @@ and live in the repository at
 - `MavenReservedPackages.xml`
 - `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
-Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
+Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
 
 ### Maven
 

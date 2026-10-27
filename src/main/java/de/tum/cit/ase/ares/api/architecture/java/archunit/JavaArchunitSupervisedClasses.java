@@ -58,8 +58,11 @@ public final class JavaArchunitSupervisedClasses {
 	 * this entry into the copied API's prefix and stop naming Ares itself.
 	 */
 	private static final List<String> RESERVED_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
-			"de.tum." + "cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.",
-			"com.tngtech.archunit.");
+			"de.tum." + "cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
+			"junit.", "org.junit.", "org.opentest4j.", "org.assertj.", "org.mockito.", "ch.qos.logback.", "org.slf4j.",
+			"com.github.javaparser.", "com.fasterxml.jackson.", "org.yaml.", "org.json.", "com.opencsv.",
+			"org.jgrapht.", "org.apiguardian.", "org.apache.", "org.eclipse.", "org.gradle.", "org.jacoco.",
+			"com.intellij.", "net.jqwik.", "worker.org.gradle.", "de.tum.in.test.api.");
 
 	/**
 	 * The prefix of the API copied beside this class, taken from where this class

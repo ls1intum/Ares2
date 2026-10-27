@@ -57,16 +57,19 @@ student classes beneath every prefix in
 deployment prerequisite, not an optional Ares runtime feature.
 
 Two versions are pinned, because the data and the contract that enforces it
-change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the
+change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the
 prefix list. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side
 contract. Templates and continuous integration (CI) must pin both.
 
+Version 3 restored the Ares 1 breadth: besides the platform, Ares' own
+`de.tum.cit.ase.ares.api` and the analysis and weaving libraries, the list
+reserves the test harness (JUnit, opentest4j, AssertJ, Mockito) and Ares' other
+non-shaded dependencies, so a submission cannot shadow a class that runs or
+judges it. The authoritative list is `WalaPathClassification.RESERVED_PACKAGE_PREFIXES`.
+
 Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
 `process-classes` that scans `${project.build.outputDirectory}` and fails for
-`java/**`, `javax/**`, `sun/**`, `jdk/**`, `com/sun/**`,
-`de/tum/cit/ase/ares/api/**`, `net/bytebuddy/**`, `org/aspectj/**`,
-`com/ibm/wala/**`, `com/tngtech/archunit/**`, `anonymous/toolclasses/**` and
-`metatest/**`. `process-classes` precedes `test`, so `mvn test` runs it.
+every reserved prefix. `process-classes` precedes `test`, so `mvn test` runs it.
 
 Canonical Gradle configuration registers a `verifyAresReservedPackagesV2` task
 over `sourceSets.main.output.classesDirs` with the same paths, and **both**

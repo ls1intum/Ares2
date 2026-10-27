@@ -3,6 +3,8 @@ package de.tum.cit.ase.ares.api.securitytest.java.creator;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,6 +75,48 @@ public class JavaCreatorTest {
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
 		javaCreator = new JavaCreator();
+	}
+
+	/**
+	 * The derived-permission path that turns a reserved namespace below a scope
+	 * into a refusal, exercised directly so the restored breadth is proven at the
+	 * creator and not only in the guard it calls.
+	 */
+	@Nested
+	@DisplayName("Reserved Package Tests")
+	class ReservedPackageTests {
+
+		/**
+		 * A derived scope whose descendant is a restored reserved namespace is refused
+		 * during permission creation, naming that namespace, so the restored breadth is
+		 * enforced at the creator and not only in the guard it calls.
+		 */
+		@Test
+		@DisplayName("Refuses a derived scope that carries a restored reserved namespace")
+		void refusesADerivedScopeCarryingAReservedNamespace() throws Exception {
+			Method method = JavaCreator.class.getDeclaredMethod("derivedAllowedPackage", String.class);
+			method.setAccessible(true);
+			InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
+					() -> method.invoke(null, "com.github"));
+			assertInstanceOf(SecurityException.class, thrown.getCause());
+			assertTrue(thrown.getCause().getMessage().contains("com.github.javaparser"),
+					"the refusal must name the reserved namespace the derived scope would carry: "
+							+ thrown.getCause().getMessage());
+		}
+
+		/**
+		 * An ordinary derived scope with no reserved namespace below it yields a plain
+		 * package permission, so the refusal above is specific to reserved descendants
+		 * rather than a blanket rejection.
+		 */
+		@Test
+		@DisplayName("Allows an ordinary derived scope")
+		void allowsAnOrdinaryDerivedScope() throws Exception {
+			Method method = JavaCreator.class.getDeclaredMethod("derivedAllowedPackage", String.class);
+			method.setAccessible(true);
+			Object permission = method.invoke(null, "de.tum.cit.aet");
+			assertInstanceOf(PackagePermission.class, permission);
+		}
 	}
 
 	@Nested
