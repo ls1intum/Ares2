@@ -31,7 +31,7 @@ const destinations: Destination[] = [
 
 const features: string[] = [
     'Policy-based sandboxing through static and dynamic analysis',
-    'Supports JUnit Jupiter and jqwik',
+    'Supports JUnit Jupiter',
     'More robust tests and builds through limits on time, threads and IO',
     'Public and hidden tests, where hidden tests obey a custom deadline',
     'Clearer feedback with multiline errors and fault locations',
@@ -91,11 +91,11 @@ export default function Home(): ReactNode {
                             {`<dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.1.5</version>
+    <version>2.2.1</version>
 </dependency>`}
                         </CodeBlock>
                         <CodeBlock language="groovy" title="build.gradle">
-                            {`implementation("de.tum.cit.ase:ares:2.1.5")`}
+                            {`implementation("de.tum.cit.ase:ares:2.2.1")`}
                         </CodeBlock>
                     </div>
                 </div>

@@ -52,6 +52,7 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
+import de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -95,17 +96,13 @@ public class CustomCallgraphBuilder {
 	 * Fully qualified names of the optional framework classes whose origins may be
 	 * trusted when they are present.
 	 * <p>
-	 * jqwik is a {@code provided}-scope dependency, so it is absent from every
-	 * consumer that does not depend on it directly. Referencing it through a class
-	 * literal in a static initialiser made the whole class unusable in those
-	 * consumers, because the resulting {@link NoClassDefFoundError} is raised while
-	 * the argument array is built and therefore escapes the defensive handling in
-	 * {@link #trustedFrameworkCodeSources(Class...)}. Resolving these by name keeps
-	 * the optionality explicit and confined to the frameworks that really are
-	 * optional.
+	 * No framework is optional today, so this list is empty. A framework added here
+	 * is resolved by name, never through a class literal, because a missing class
+	 * would raise a {@link NoClassDefFoundError} while the argument array is built
+	 * and escape the defensive handling in
+	 * {@link #trustedFrameworkCodeSources(Class...)}.
 	 */
-	private static final List<String> OPTIONAL_FRAMEWORK_CLASS_NAMES = List.of("net.jqwik.api.Property", //$NON-NLS-1$
-			"net.jqwik.engine.JqwikTestEngine"); //$NON-NLS-1$
+	private static final List<String> OPTIONAL_FRAMEWORK_CLASS_NAMES = List.of();
 
 	/**
 	 * Candidate code-source locations of the optional frameworks. These are
@@ -401,11 +398,11 @@ public class CustomCallgraphBuilder {
 	 * <p>
 	 * Required origins are always trusted. Optional origins are admitted only as a
 	 * complete set, and only once every candidate has been proven to lie outside
-	 * the supervised project. A student who places a forged {@code net.jqwik.api}
-	 * class in the project's own output tree therefore cannot have that output tree
-	 * dropped from WALA's scope. This cannot authenticate an unsigned artefact that
-	 * a student supplies from elsewhere on the classpath; that requires the
-	 * reserved-package boundary to cover every framework namespace.
+	 * the supervised project. A student who places a forged framework class in the
+	 * project's own output tree therefore cannot have that output tree dropped from
+	 * WALA's scope. This cannot authenticate an unsigned artefact that a student
+	 * supplies from elsewhere on the classpath; that requires the reserved-package
+	 * boundary to cover every framework namespace.
 	 *
 	 * @param rawClassPath the unfiltered classpath handed to this analysis
 	 * @return the effective trusted origins, never {@code null}
@@ -862,9 +859,23 @@ public class CustomCallgraphBuilder {
 					return null;
 				}
 			}
+			if (ForbiddenMethodMatcher.isStandardAllowed(site.getDeclaredTarget().getSignature())) {
+				return opaque(target);
+			}
 			if (!target.getDeclaringClass().getClassLoader().getReference().equals(ClassLoaderReference.Primordial)) {
 				return target;
 			}
+			return opaque(target);
+		}
+
+		/**
+		 * Returns a stand-in for a method that keeps its call-graph node but has no
+		 * body, so nothing inside it is analysed. Stand-ins are cached per method.
+		 *
+		 * @param target the method to stand in for
+		 * @return the bodiless stand-in
+		 */
+		private IMethod opaque(IMethod target) {
 			MethodReference ref = target.getReference();
 			SummarizedMethod cached = opaqueCache.get(ref);
 			if (cached != null) {

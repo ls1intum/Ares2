@@ -14,7 +14,7 @@ Everything else on this page follows from that one choice, so make it first.
 ## The two modes
 
 **Postcompile.** Ares is a dependency of the project under test and is activated by the test
-methods themselves, through `JupiterSecurityExtension` or `JqwikSecurityExtension`. Nothing is
+methods themselves, through `JupiterSecurityExtension`. Nothing is
 generated: when a test runs, Ares installs the policy into the already-running Java Virtual Machine (JVM) and checks
 each action as it is attempted, so it can report exactly which file or which address was asked
 for. Every test may carry its own `@Policy`. This assumes tests run sequentially, because the
@@ -101,7 +101,7 @@ trusts and be trusted along with it.
 | **`ProgrammingLanguageConfiguration`** | An enum encoding the combination of build tool, static analysis framework and runtime enforcement mechanism. |
 | **Classifier (`:agent`)** | A Maven/Gradle coordinate qualifier selecting a variant of an artefact. The `:agent` classifier selects the agent JAR, which carries the `Premain-Class` manifest entry and needs no repackaging. |
 | **Reserved package** | A package prefix that student code may not declare, because Ares trusts that identity by name. Enforced by the build, see the reserved-package step. |
-| **Phobos** | A test-case family covering the file-system, network and timeout domains. Ares 2.1.5 generates Phobos cases but does not yet dispatch them from the in-process execution path, so a policy timeout does not bound a test today. Use `@StrictTimeout` for a deadline. |
+| **Phobos** | A test-case family covering the file-system, network and timeout domains. Ares 2.2.1 generates Phobos cases but does not yet dispatch them from the in-process execution path, so a policy timeout does not bound a test today. Use `@StrictTimeout` for a deadline. |
 | **`@StrictTimeout`** | The annotation that bounds test execution. Applied to a test class or method, and unchanged from Ares 1 apart from its package. |
 | **Positive / negative control** | The paired checks of the two controls above: one permitted operation that must succeed, one forbidden operation that must be rejected. Neither alone demonstrates that enforcement works. |
 

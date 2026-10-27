@@ -18,6 +18,7 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.cha
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.characterReader.InputStreamReader;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.characterReader.Reader;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.copy.FilesCopyMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.directoryStream.FilesNewDirectoryStream;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.lineTokenReader.FilesLines;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.lineTokenReader.ScannerReader;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.mismatch.FilesMismatchMain;
@@ -32,6 +33,7 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	private static final String WHOLE_FILE_CONVENIENCE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/wholeFileConvenience";
 	private static final String MISMATCH_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/mismatch";
 	private static final String COPY_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/copy";
+	private static final String DIRECTORY_STREAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/directoryStream";
 
 	// <editor-fold desc="FileInputStream Tests">
 
@@ -737,6 +739,40 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
 				"forbidden", "subject", "fileSystem", "read", "copy", "copySource.txt");
 		assertAresSecurityExceptionRead(FilesCopyMain::accessFileSystemViaFilesCopy, FilesCopyMain.class, expectedPath);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="accessFileSystemViaFilesNewDirectoryStream (the directory,
+	// not the glob, must be checked for read)">
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = DIRECTORY_STREAM_WITHIN_PATH)
+	void test_accessFileSystemViaFilesNewDirectoryStreamMavenArchunitAspectJ() {
+		assertFilesNewDirectoryStreamReadDenied();
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = DIRECTORY_STREAM_WITHIN_PATH)
+	void test_accessFileSystemViaFilesNewDirectoryStreamMavenArchunitInstrumentation() {
+		assertFilesNewDirectoryStreamReadDenied();
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = DIRECTORY_STREAM_WITHIN_PATH)
+	void test_accessFileSystemViaFilesNewDirectoryStreamMavenWalaAspectJ() {
+		assertFilesNewDirectoryStreamReadDenied();
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = DIRECTORY_STREAM_WITHIN_PATH)
+	void test_accessFileSystemViaFilesNewDirectoryStreamMavenWalaInstrumentation() {
+		assertFilesNewDirectoryStreamReadDenied();
+	}
+
+	private void assertFilesNewDirectoryStreamReadDenied() {
+		Path expectedPath = Paths.get("src", "test", "java", "de", "tum", "cit", "ase", "ares", "integration", "aop",
+				"forbidden", "subject", "fileSystem", "read", "directoryStream");
+		assertAresSecurityExceptionRead(FilesNewDirectoryStream::accessFileSystemViaFilesNewDirectoryStream,
+				FilesNewDirectoryStream.class, expectedPath);
 	}
 	// </editor-fold>
 

@@ -10,9 +10,6 @@ import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import net.jqwik.api.lifecycle.AddLifecycleHook;
-
-import de.tum.cit.ase.ares.api.jqwik.JqwikLocaleExtension;
 import de.tum.cit.ase.ares.api.jupiter.JupiterLocaleExtension;
 
 /**
@@ -30,7 +27,6 @@ import de.tum.cit.ase.ares.api.jupiter.JupiterLocaleExtension;
 @Target({ TYPE, ANNOTATION_TYPE })
 @API(status = Status.STABLE)
 @ExtendWith(JupiterLocaleExtension.class)
-@AddLifecycleHook(JqwikLocaleExtension.class)
 public @interface UseLocale {
 	String value();
 }

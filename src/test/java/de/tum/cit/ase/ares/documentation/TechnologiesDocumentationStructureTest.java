@@ -43,9 +43,9 @@ class TechnologiesDocumentationStructureTest {
 	 * reference sites agreed for background reading. Anything else has to be added
 	 * here deliberately rather than slipped into a page.
 	 */
-	private static final List<String> ALLOWED_HOSTS = List.of("docs.junit.org", "jqwik.net", "www.archunit.org",
-			"github.com", "eclipse.dev", "bytebuddy.net", "javaparser.org", "man7.org", "www.baeldung.com",
-			"www.w3schools.com", "docs.oracle.com", "www.oracle.com", "medium.com");
+	private static final List<String> ALLOWED_HOSTS = List.of("docs.junit.org", "www.archunit.org", "github.com",
+			"eclipse.dev", "bytebuddy.net", "javaparser.org", "man7.org", "www.baeldung.com", "www.w3schools.com",
+			"docs.oracle.com", "www.oracle.com", "medium.com");
 
 	private static List<Path> technologyPages() {
 		return DocumentationPages.pagesBelow("contributor", "technologies");
@@ -61,7 +61,7 @@ class TechnologiesDocumentationStructureTest {
 	@Test
 	void theTechnologySectionIsFullyWritten() {
 		List<Path> pages = technologyPages();
-		assertEquals(26, pages.size(), "Every technology and concept needs exactly one page.");
+		assertEquals(25, pages.size(), "Every technology and concept needs exactly one page.");
 
 		List<Path> stubs = pages.stream().filter(page -> DocumentationPages.read(page).contains("This page is a stub"))
 				.toList();

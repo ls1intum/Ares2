@@ -24,12 +24,6 @@ enum SafeTypeThrowableSanitizer implements SpecificThrowableSanitizer {
 	static final Set<String> NON_DUPLICATABLE_SAFE_TYPES = Set.of( //
 			"java.io.OptionalDataException", //$NON-NLS-1$
 			"java.util.IllegalFormatException", //$NON-NLS-1$
-			"net.jqwik.api.configurators.ArbitraryConfigurationException", //$NON-NLS-1$
-			"net.jqwik.api.lifecycle.CannotFindStoreException", //$NON-NLS-1$
-			"net.jqwik.api.lifecycle.CannotResolveParameterException", //$NON-NLS-1$
-			"net.jqwik.engine.execution.pipeline.DuplicateExecutionTaskException", //$NON-NLS-1$
-			"net.jqwik.engine.execution.pipeline.PredecessorNotSubmittedException", //$NON-NLS-1$
-			"net.jqwik.engine.properties.arbitraries.NotAFunctionalTypeException", //$NON-NLS-1$
 			"org.junit.Test$None", //$NON-NLS-1$
 			"org.junit.internal.ArrayComparisonFailure", //$NON-NLS-1$
 			"org.junit.runner.FilterFactory$FilterNotCreatedException" //$NON-NLS-1$

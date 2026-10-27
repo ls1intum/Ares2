@@ -40,17 +40,16 @@ class JavaProjectScannerAstTest {
 				}
 				record RecordCases(int value) { @org.junit.jupiter.api.TestFactory Object factory() { return null; } }
 				interface InterfaceCases { @org.junit.jupiter.api.RepeatedTest(2) default void repeated() {} }
-				enum EnumCases { VALUE; @net.jqwik.api.Property boolean property() { return true; } }
+				enum EnumCases { VALUE; @org.junit.jupiter.api.Test void property() {} }
 				class JupiterTemplate { @org.junit.jupiter.api.TestTemplate void template() {} }
 				class JunitFour { @org.junit.Test void oldTest() {} }
-				class JqwikExample { @net.jqwik.api.Example void example() {} }
 				""");
 		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
 		assertEquals("alpha", scanner.scanForPackageName());
 		assertEquals("Application", scanner.scanForMainClassInPackage());
 		assertArrayEquals(
 				new String[] { "checks.Cases", "checks.Cases.Nested", "checks.EnumCases", "checks.InterfaceCases",
-						"checks.JqwikExample", "checks.JunitFour", "checks.JupiterTemplate", "checks.RecordCases" },
+						"checks.JunitFour", "checks.JupiterTemplate", "checks.RecordCases" },
 				scanner.scanForTestClasses());
 	}
 
@@ -81,6 +80,41 @@ class JavaProjectScannerAstTest {
 		IllegalStateException failure = assertThrows(IllegalStateException.class,
 				() -> new JavaProjectScanner(configuration(production, tests)).scanForPackageName());
 		assertEquals("Cannot parse Java source file: " + malformed.toRealPath(), failure.getMessage());
+	}
+
+	/**
+	 * Valid code written for a Java version newer than 17, here record patterns in
+	 * a switch, must be read like any other code rather than be rejected as
+	 * malformed.
+	 */
+	@Test
+	void parsesSyntaxNewerThanJavaSeventeen() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Main.java"), """
+				package modern;
+				record Point(int x, int y) {}
+				class Main {
+				  static int first(Object value) {
+				    return switch (value) { case Point(int x, int y) -> x; case null -> 0; default -> 1; };
+				  }
+				  public static void main(String[] args) {}
+				}
+				""");
+		Files.writeString(tests.resolve("MainTest.java"), """
+				package modern;
+				class MainTest {
+				  @org.junit.jupiter.api.Test
+				  void first() {
+				    Object value = new Point(1, 2);
+				    if (value instanceof Point(int x, int y) && x != 1) { throw new AssertionError(); }
+				  }
+				}
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertEquals("modern", scanner.scanForPackageName());
+		assertEquals("Main", scanner.scanForMainClassInPackage());
+		assertArrayEquals(new String[] { "modern.MainTest" }, scanner.scanForTestClasses());
 	}
 
 	@Test

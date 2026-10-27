@@ -28,7 +28,6 @@ final class ThrowableSets {
 
 	private static final String JUNIT4_CHECK_CLASS = "junit.framework.AssertionFailedError"; //$NON-NLS-1$
 	private static final String JUNIT5_CHECK_CLASS = "org.junit.platform.commons.JUnitException"; //$NON-NLS-1$
-	private static final String JQWIK_CHECK_CLASS = "net.jqwik.api.JqwikException"; //$NON-NLS-1$
 	private static final String ASSERTJ_CHECK_CLASS = "org.assertj.core.api.Assertions"; //$NON-NLS-1$
 	private static final String OPENTEST4J_CHECK_CLASS = "org.opentest4j.AssertionFailedError"; //$NON-NLS-1$
 
@@ -40,9 +39,6 @@ final class ThrowableSets {
 		}
 		if (classCanBeFound(JUNIT5_CHECK_CLASS)) {
 			join.addAll(JUnit5.SAFE_TYPES);
-		}
-		if (classCanBeFound(JQWIK_CHECK_CLASS)) {
-			join.addAll(Jqwik.SAFE_TYPES);
 		}
 		if (classCanBeFound(ASSERTJ_CHECK_CLASS)) {
 			join.addAll(AssertJ.SAFE_TYPES);
@@ -242,24 +238,6 @@ final class ThrowableSets {
 				org.junit.jupiter.api.extension.TestInstantiationException.class,
 				org.junit.platform.commons.JUnitException.class,
 				org.junit.platform.commons.PreconditionViolationException.class);
-	}
-
-	static final class Jqwik {
-
-		private Jqwik() {
-		}
-
-		static final Set<Class<? extends Throwable>> SAFE_TYPES = Set.of(net.jqwik.api.JqwikException.class,
-				net.jqwik.api.TooManyFilterMissesException.class,
-				net.jqwik.api.configurators.ArbitraryConfigurationException.class,
-				net.jqwik.api.lifecycle.CannotFindStoreException.class,
-				net.jqwik.api.lifecycle.CannotResolveParameterException.class,
-				net.jqwik.engine.execution.pipeline.DuplicateExecutionTaskException.class,
-				net.jqwik.engine.execution.pipeline.PredecessorNotSubmittedException.class,
-				net.jqwik.engine.properties.IncompatibleDataException.class,
-				net.jqwik.engine.properties.arbitraries.NotAFunctionalTypeException.class,
-				net.jqwik.engine.properties.FailOnFixedSeedException.class,
-				net.jqwik.engine.execution.lifecycle.OutsideJqwikException.class);
 	}
 
 	static final class AssertJ {

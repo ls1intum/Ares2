@@ -521,7 +521,7 @@ ArchRule rule = ArchRuleDefinition.noClasses()
 **Rule Components:**
 - **DescribedPredicate**: Tests if a method access is forbidden (prefix match on the target's full name)
 - **TransitivelyAccessesMethodsCondition**: Finds transitive access paths
-- **`.that(isNotAllowedClass(...))`**: Exempts classes on the `allowedClasses` allow-list (delegating to `JavaArchitectureTestCase.isAllowedClass`, which matches nested classes on the `$` boundary too)
+- **`.that(isNotAllowedClass(...))`**: Exempts classes on the `allowedClasses` allow-list (delegating to `ClassPermission.isAllowedClass`, which matches exact names; the allow-list already holds the classes each exempted class's own file lists as declared inside it)
 - **ArchRule**: Complete rule that can be checked against `JavaClasses`
 
 The pre-built constant `JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS` is the unfiltered variant (empty allow-list), used by the generated-template path. The runtime execution path instead obtains the rule via `allowAwareRuleFor(THREAD_CREATION, allowedClasses, allowedPackages)`.
@@ -611,7 +611,7 @@ All steps below are implemented in `CustomCallgraphBuilder`.
 
 **Step 1: Filter the Classpath and Create the Analysis Scope**
 
-Before WALA sees the classpath, `filterClassPath` drops entries matching `CLASSPATH_EXCLUDE_SUBSTRINGS`: compiled test outputs, JUnit/test-platform libraries, Mockito, AssertJ/Hamcrest/jqwik, JaCoCo, Gradle test-runner infrastructure, static-analysis tooling, Ares' own jar, the WALA runtime, and the AspectJ runtime. It widens the scope with the verified helper subdirectory (`anonymous/toolclasses`) so student superclasses can be resolved without pulling in every other category's classes.
+Before WALA sees the classpath, `filterClassPath` drops entries matching `CLASSPATH_EXCLUDE_SUBSTRINGS`: compiled test outputs, JUnit/test-platform libraries, Mockito, AssertJ/Hamcrest, JaCoCo, Gradle test-runner infrastructure, static-analysis tooling, Ares' own jar, the WALA runtime, and the AspectJ runtime. It widens the scope with the verified helper subdirectory (`anonymous/toolclasses`) so student superclasses can be resolved without pulling in every other category's classes.
 
 ```java
 AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
@@ -1093,7 +1093,7 @@ java.util.Collection.parallelStream()
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.1.5</version>
+        <version>2.2.1</version>
     </dependency>
 </dependencies>
 ```

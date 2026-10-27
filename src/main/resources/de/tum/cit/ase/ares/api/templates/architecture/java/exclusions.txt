@@ -158,7 +158,6 @@ info/debatty.*
 com/github/javaparser.*
 com/tngtech.*
 org/jgrapht.*
-net/jqwik.*
 org/apiguardian.*
 org/aspectj.*
 com/fasterxml/jackson.*

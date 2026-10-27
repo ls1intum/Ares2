@@ -621,13 +621,11 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	/**
-	 * Formats the CallGraph structure as a Java-literal expression that builds a
-	 * WALA CallGraph.
+	 * Builds a call graph with the class copied beside the generated WALA test.
 	 */
 	private String callGraphAsCode() {
 		String classPathExpr = "System.getProperty(\"java.class.path\")";
-		return "new de.tum.cit.ase.ares.api.architecture.java.wala.CustomCallgraphBuilder(" + classPathExpr + ")"
-				+ ".buildCallGraph(" + classPathExpr + ")";
+		return "new CustomCallgraphBuilder(" + classPathExpr + ")" + ".buildCallGraph(" + classPathExpr + ")";
 	}
 
 	/**
