@@ -46,8 +46,7 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 	 * @param importTheFollowingPackage the package name to allow, or {@code *} for
 	 *                                  every package; must not be null.
 	 * @return a new PackagePermission instance.
-	 * @throws NullPointerException     if the package name is null.
-	 * @throws IllegalArgumentException if the package name is not valid.
+	 * @throws NullPointerException if the package name is null.
 	 */
 	@Nonnull
 	public static PackagePermission allowPackage(@Nonnull String importTheFollowingPackage) {
@@ -93,8 +92,7 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param importTheFollowingPackage the package name; must not be null, and is
-		 *                                  validated for shape by {@link #build()}.
+		 * @param importTheFollowingPackage the package name; must not be null.
 		 * @return the updated Builder.
 		 * @throws NullPointerException if the package name is null.
 		 */
@@ -111,8 +109,7 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @return a new PackagePermission instance.
-		 * @throws NullPointerException     if no package name was set.
-		 * @throws IllegalArgumentException if the package name is not valid.
+		 * @throws NullPointerException if no package name was set.
 		 */
 		@Nonnull
 		public PackagePermission build() {

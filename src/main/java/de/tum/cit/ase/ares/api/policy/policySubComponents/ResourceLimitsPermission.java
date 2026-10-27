@@ -7,19 +7,17 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 /**
  * Permitted execution time.
  * <p>
- * Description: Specifies, in milliseconds, how long the supervised code may run
- * before it is terminated.
+ * Description: Declares, in milliseconds, how long the supervised code may run.
+ * It becomes a Phobos test case, which Postcompile does not dispatch yet, so
+ * there use {@code @StrictTimeout} for a deadline.
  * <p>
- * Design Rationale: Bounding the execution time keeps a submission that never
- * terminates, whether by mistake or deliberately, from occupying the grading
- * infrastructure indefinitely. Where a policy declares several of these
- * permissions, the smallest value wins, so adding one can only tighten the
- * limit and never relax it.
+ * Design Rationale: Where a policy declares several of these, the smallest
+ * value wins, so adding one can only tighten the limit.
  *
  * @since 2.0.0
  * @author Ajayvir Singh
- * @param timeout the permitted execution time in milliseconds; must be greater
- *                than zero.
+ * @param timeout the permitted execution time in milliseconds; greater than
+ *                zero.
  */
 public record ResourceLimitsPermission(long timeout) {
 
@@ -42,8 +40,8 @@ public record ResourceLimitsPermission(long timeout) {
 	 * <p>
 	 * Unlike the other restrictive factories in this package, this one cannot deny
 	 * everything: a policy without any execution limit would leave a
-	 * non-terminating submission running forever. It therefore grants three
-	 * seconds.
+	 * non-terminating submission running forever. It therefore declares three
+	 * seconds, which in Postcompile bounds nothing yet.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen

@@ -205,10 +205,10 @@ public class SecurityPolicyReaderAndDirector {
 	 * @since 2.1.0
 	 * @author Markus Paulsen
 	 * @deprecated inspect the pipeline through its own methods instead; this
-	 *             accessor is removed after 2.1.x.
+	 *             accessor is removed after 2.2.x.
 	 * @return the factory, never {@code null}
 	 */
-	@Deprecated(since = "2.1.5", forRemoval = true)
+	@Deprecated(since = "2.2.2", forRemoval = true)
 	@Nonnull
 	public TestCaseAbstractFactoryAndBuilder factoryAndBuilder() {
 		return Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
