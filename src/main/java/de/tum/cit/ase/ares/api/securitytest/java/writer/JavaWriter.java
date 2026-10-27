@@ -238,16 +238,24 @@ public class JavaWriter implements Writer {
 		return List.of(target);
 	}
 
+	/**
+	 * Writes the Phobos configuration and copies the helper that hands it to
+	 * Phobos. The configuration is written as it is, never run through a format
+	 * string, since a {@code %n} in a permitted path would otherwise become a line
+	 * break and name a second path.
+	 *
+	 * @param javaPhobosTestCases the cases whose permissions the file holds
+	 * @param testFolderPath      the test folder the targets are resolved from
+	 * @return the files written or copied
+	 */
 	@Nonnull
-	private List<Path> createPhobosFiles(@Nonnull String packageName,
-			@Nonnull List<JavaPhobosTestCase> javaPhobosTestCases, @Nonnull Path testFolderPath) {
+	private List<Path> createPhobosFiles(@Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
+			@Nonnull Path testFolderPath) {
 		List<Path> copyTargets = Phobos.targetsToCopyTo(testFolderPath).stream().map(this::confineToProject).toList();
 		Path editTarget = confineToProject(Phobos.targetToCopyTo(testFolderPath));
-		return Stream
-				.concat(FileTools.copyFiles(Phobos.filesToCopy(), copyTargets).stream(),
-						Stream.of(FileTools.createThreePartedFormatStringFile(Phobos.threePartedFileHeader(),
-								Phobos.threePartedFileBody(javaPhobosTestCases), Phobos.threePartedFileFooter(),
-								editTarget, Phobos.fileValue(packageName))))
+		return Stream.concat(FileTools.copyFiles(Phobos.filesToCopy(), copyTargets).stream(),
+				Stream.of(FileTools.createThreePartedFile(Phobos.threePartedFileHeader(),
+						Phobos.threePartedFileBody(javaPhobosTestCases), Phobos.threePartedFileFooter(), editTarget)))
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 
@@ -306,7 +314,7 @@ public class JavaWriter implements Writer {
 						createJavaAOPFiles(aopMode, essentialPackages, essentialClasses, testClasses, packageName,
 								mainClassInPackageName, javaAOPTestCases, validatedTestFolderPath).stream(),
 						createLocalisationFiles(packageName, validatedTestFolderPath).stream(),
-						createPhobosFiles(packageName, javaPhobosTestCases, validatedTestFolderPath).stream())
+						createPhobosFiles(javaPhobosTestCases, validatedTestFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 

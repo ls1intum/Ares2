@@ -22,6 +22,8 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
+import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
@@ -99,6 +101,28 @@ public class JavaWriterTest {
 						List.of(), List.of(), escaping, "Main", List.of(), List.of(), List.of(), sourceRoot));
 		assertFalse(Files.exists(tempDir.resolve("src/test/resources")));
 		assertFalse(Files.exists(tempDir.resolve("src/main")));
+	}
+
+	/**
+	 * Requires the Phobos configuration on disk to name each permitted path exactly
+	 * as the policy does. A path holding {@code %n}, {@code %%}, {@code %s} or a
+	 * lone {@code %} must reach the file unchanged, since a format string would
+	 * turn the first into a line break that names a second path.
+	 */
+	@Test
+	void writesPercentSignsIntoThePhobosConfigurationUnchanged() throws IOException {
+		Path sourceRoot = Files.createDirectories(tempDir.resolve("src/test/java"));
+		List<String> paths = List.of("/tmp/a%n/etc", "/tmp/b%%", "/tmp/c%s", "/tmp/d100%");
+		List<JavaPhobosTestCase> phobos = List
+				.of(JavaPhobosTestCase.builder()
+						.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+						.resourceAccessSupplier(() -> paths.stream()
+								.map(path -> new FilePermission(path, false, true, false, false, false)).toList())
+						.build());
+		javaWriter.writeTestCases(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, List.of(), List.of(),
+				List.of(), "exercise.security", "Main", List.of(), List.of(), phobos, sourceRoot);
+		String configuration = Files.readString(tempDir.resolve("SpecificExercise.cfg"));
+		assertTrue(configuration.contains("[write]\n/tmp/a%n/etc\n/tmp/b%%\n/tmp/c%s\n/tmp/d100%\n"), configuration);
 	}
 
 	@Nested
@@ -399,6 +423,8 @@ public class JavaWriterTest {
 		mockedFileTools.when(() -> FileTools.copyAndFormatNonFSFiles(any(), any(), any(), any())).thenReturn(List.of());
 		mockedFileTools.when(() -> FileTools.createThreePartedFormatStringFile(any(), any(), any(), any(), any()))
 				.thenReturn(tempDir.resolve("test.java"));
+		mockedFileTools.when(() -> FileTools.createThreePartedFile(any(), any(), any(), any()))
+				.thenReturn(tempDir.resolve("phobos-target.java"));
 		mockedFileTools.when(() -> FileTools.copyFiles(any(), any())).thenReturn(List.of());
 	}
 
@@ -409,6 +435,5 @@ public class JavaWriterTest {
 		mockedPhobos.when(() -> Phobos.threePartedFileBody(any())).thenReturn("phobos-body");
 		mockedPhobos.when(() -> Phobos.threePartedFileFooter()).thenReturn(tempDir.resolve("phobos-footer.java"));
 		mockedPhobos.when(() -> Phobos.targetToCopyTo(any())).thenReturn(tempDir.resolve("phobos-target.java"));
-		mockedPhobos.when(() -> Phobos.fileValue(any())).thenReturn(new String[] { "value" });
 	}
 }
