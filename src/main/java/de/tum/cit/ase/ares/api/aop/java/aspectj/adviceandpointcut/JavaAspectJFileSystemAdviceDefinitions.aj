@@ -136,8 +136,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	private static final String PREFERENCES_BACKING_STORE = "<java.util.prefs backing store>";
 
 	/**
-	 * Returns whether the intercepted call targets the Java Preferences API, whose
-	 * backing store is a disk location the student cannot name or scope.
+	 * Returns whether the intercepted call targets the Java Preferences API. Its
+	 * backing store sits where the operating system puts it, so the student passes
+	 * no path and the key and value arguments must not be checked as paths. No
+	 * policy can scope that store to a directory, so only an allow-list of all
+	 * paths ("*") permits it.
 	 *
 	 * @param declaringTypeName the fully qualified type the called method belongs to
 	 * @return true for any {@code java.util.prefs} type
@@ -1650,10 +1653,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				studentCalledMethod, fullMethodSignature, thisJoinPoint)) {
 			return;
 		}
-		// java.util.prefs.Preferences reads and writes a backing store whose location
-		// the OS fixes, so the student passes no path and the key/value arguments must
-		// not be checked as paths. The store is never inside a directory a policy scopes
-		// to, so it can only be permitted by allowing all paths ("*").
 		if (isPreferencesBackingStore(declaringTypeName)) {
 			@Nullable
 			final String[] allowedPreferencePaths = getValueFromSettings(switch (action) {

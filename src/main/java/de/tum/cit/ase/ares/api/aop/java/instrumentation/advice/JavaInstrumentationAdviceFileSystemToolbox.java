@@ -1548,12 +1548,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
-	 * Checks actual path parameters, receivers and attributes for one filesystem
-	 * action.
-	 */
-	/**
-	 * Returns whether the intercepted call targets the Java Preferences API, whose
-	 * backing store is a disk location the student cannot name or scope.
+	 * Returns whether the intercepted call targets the Java Preferences API. Its
+	 * backing store sits where the operating system puts it (on Linux
+	 * ~/.java/.userPrefs, on Windows the registry), so the student passes no path
+	 * and the key and value arguments must not be checked as paths. No policy can
+	 * scope that store to a directory, so only an allow-list of all paths ("*")
+	 * permits it.
 	 *
 	 * @param declaringTypeName the fully qualified type the called method belongs
 	 *                          to
@@ -1582,6 +1582,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		return false;
 	}
 
+	/**
+	 * Checks actual path parameters, receivers and attributes for one filesystem
+	 * action.
+	 */
 	private static void checkFileSystemInteractionForAction(@Nonnull String action,
 			boolean allowNonExistingPathsToBeConsidered, @Nonnull String declaringTypeName, @Nonnull String methodName,
 			@Nullable Object[] attributes, @Nullable Object[] parameters, @Nullable Object instance,
@@ -1597,11 +1601,6 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 		});
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
-		// java.util.prefs.Preferences reads and writes a backing store whose location
-		// the OS fixes (on Linux ~/.java/.userPrefs, on Windows the registry), so the
-		// student passes no path and the key/value arguments must not be checked as
-		// paths. The store is never inside a directory a policy scopes to, so it can
-		// only be permitted by allowing all paths ("*"); any narrower rule forbids it.
 		if (isPreferencesBackingStore(declaringTypeName) && !allowsAllPaths(allowedPaths)) {
 			throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
 					action, PREFERENCES_BACKING_STORE,

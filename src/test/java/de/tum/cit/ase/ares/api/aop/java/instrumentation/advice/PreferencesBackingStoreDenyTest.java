@@ -104,12 +104,17 @@ class PreferencesBackingStoreDenyTest {
 		}
 	}
 
+	/**
+	 * Opens overwrite fully but scopes delete to a directory: removeNode must still
+	 * be rejected, proving it is checked against the delete allow-list.
+	 *
+	 * @param tempDir the directory delete is scoped to
+	 * @throws Exception if the settings cannot be reset
+	 */
 	@Test
 	void testRemoveNodeChecksDeletePermissionNotOverwrite(@TempDir Path tempDir) throws Exception {
 		try {
 			configure();
-			// Overwrite is fully open, delete is only scoped: removeNode must still be
-			// rejected, proving it is checked against the delete allow-list.
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten", new String[] { "*" }, "ARCH",
 					"INSTRUMENTATION");
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeDeleted", new String[] { tempDir.toString() },
@@ -120,12 +125,17 @@ class PreferencesBackingStoreDenyTest {
 		}
 	}
 
+	/**
+	 * Opens read fully but scopes create to a directory: userNodeForPackage creates
+	 * the package node, so a read wildcard must not permit it.
+	 *
+	 * @param tempDir the directory create is scoped to
+	 * @throws Exception if the settings cannot be reset
+	 */
 	@Test
 	void testReadWildcardDoesNotAllowPackageNodeCreation(@TempDir Path tempDir) throws Exception {
 		try {
 			configure();
-			// Read is fully open, create is only scoped: userNodeForPackage creates the
-			// package node, so a read wildcard must not permit it.
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { "*" }, "ARCH",
 					"INSTRUMENTATION");
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { tempDir.toString() },
@@ -161,14 +171,19 @@ class PreferencesBackingStoreDenyTest {
 		}
 	}
 
+	/**
+	 * Uses a key equal to the allowed directory: it must not be taken for the path
+	 * being written, since the real store is elsewhere, so the put must still fail.
+	 *
+	 * @param tempDir the directory overwrite is scoped to, also used as the key
+	 * @throws Exception if the settings cannot be reset
+	 */
 	@Test
 	void testKeyMatchingAllowedDirIsNotMistakenForAnAllowedPath(@TempDir Path tempDir) throws Exception {
 		try {
 			configure();
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten",
 					new String[] { tempDir.toString() }, "ARCH", "INSTRUMENTATION");
-			// A crafted key equal to the allowed directory must not be treated as the
-			// path being written: the real store is elsewhere, so this must still fail.
 			assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkPreferencesPut(tempDir.toString(), "value"));
 		} finally {
