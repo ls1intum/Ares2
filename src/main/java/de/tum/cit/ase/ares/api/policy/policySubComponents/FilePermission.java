@@ -8,30 +8,19 @@ import javax.annotation.Nullable;
 import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 
 /**
- * Allowed file operations.
+ * Allowed file operations on a path and everything below it.
  * <p>
- * Description: Specifies whether reading, overwriting, creating, executing and
- * deleting files is permitted, for one path and everything beneath it. Each
- * operation is granted separately, so a permission that grants none of them
- * denies the path outright.
- * <p>
- * Design Rationale: Explicitly defining file operation permissions helps ensure
- * secure code execution. The path is validated on construction: it may name a
- * location, use one of the recognised placeholders such as
- * {@code ${PROJECT_ROOT}}, or be {@code *}, but it may never walk upwards
- * through {@code ..}, which would otherwise let a policy reach outside the
- * location it appears to describe.
+ * An entry granting nothing overrides no other entry, so a broader one such as
+ * {@code *} still applies. The path has no {@code ..} segment.
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param onThisPathAndAllPathsBelow the path where these permissions apply,
- *                                   together with everything beneath it, or
- *                                   {@code *} for every path; must not be null.
- * @param readAllFiles               whether reading is permitted there.
- * @param overwriteAllFiles          whether overwriting is permitted there.
- * @param createAllFiles             whether creating is permitted there.
- * @param executeAllFiles            whether executing is permitted there.
- * @param deleteAllFiles             whether deleting is permitted there.
+ * @param onThisPathAndAllPathsBelow the path, or {@code *}.
+ * @param readAllFiles               may read.
+ * @param overwriteAllFiles          may overwrite.
+ * @param createAllFiles             may create.
+ * @param executeAllFiles            may execute.
+ * @param deleteAllFiles             may delete.
  */
 public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean readAllFiles,
 		boolean overwriteAllFiles, boolean createAllFiles, boolean executeAllFiles, boolean deleteAllFiles) {

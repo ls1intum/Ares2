@@ -9,28 +9,19 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 
 /**
- * Allowed network operations.
+ * Allowed network operations on a host and port.
  * <p>
- * Description: Specifies permissions for opening connections, sending data and
- * receiving data on one host and port. Each operation is granted separately, so
- * a permission that grants none of them denies that endpoint outright.
- * <p>
- * Design Rationale: Clearly defining network permissions helps protect against
- * unauthorised network interactions. The host is validated on construction and
- * accepts a DNS name, an IPv4 or IPv6 address, {@code localhost}, or {@code *}
- * for every host.
+ * An entry granting nothing overrides no other entry. A DNS name also covers
+ * its subdomains: {@code example.com} permits {@code api.example.com} too.
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param onTheHost       the host where these operations are permitted, or
- *                        {@code *} for every host; must not be null.
- * @param onThePort       the port where these operations are permitted, from 0
- *                        to 65535. {@code 0} is not a literal port here but
- *                        permits every port.
- * @param openConnections whether opening network connections is permitted
- *                        there.
- * @param sendData        whether sending data is permitted there.
- * @param receiveData     whether receiving data is permitted there.
+ * @param onTheHost       a DNS name, an IP address, {@code localhost} or
+ *                        {@code *}.
+ * @param onThePort       the port; {@code 0} means every port.
+ * @param openConnections may open connections.
+ * @param sendData        may send data.
+ * @param receiveData     may receive data.
  */
 public record NetworkPermission(@Nonnull String onTheHost, int onThePort, boolean openConnections, boolean sendData,
 		boolean receiveData) {

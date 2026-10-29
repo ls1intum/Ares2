@@ -10,34 +10,17 @@ import javax.annotation.Nullable;
 /**
  * Resource accesses permitted for the supervised code.
  * <p>
- * Description: Specifies the file system interactions, network connections,
- * command executions, thread creations, package imports and execution limits
- * permitted. Every list is exhaustive: an access that no entry permits is
- * denied, so an empty list denies that kind of access entirely.
- * <p>
- * Design Rationale: Encapsulating allowed resource accesses in a separate
- * record facilitates granular control over code execution security. Each list
- * is copied defensively and exposed unmodifiable, so no caller can widen a
- * policy after it has been read.
+ * Each list is exhaustive, except that Ares adds its own, the supervised and
+ * the test-class packages to the imports, and timeouts declare limits.
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param regardingFileSystemInteractions permitted file system interactions;
- *                                        must not be null.
- * @param regardingNetworkConnections     permitted network connections; must
- *                                        not be null.
- * @param regardingCommandExecutions      permitted command executions; must not
- *                                        be null.
- * @param regardingThreadCreations        permitted thread creations; must not
- *                                        be null.
- * @param regardingPackageImports         permitted package imports; must not be
- *                                        null.
- * @param regardingTimeouts               permitted execution limits; must not
- *                                        be null. This list is the one
- *                                        exception to the rule above: it does
- *                                        not permit accesses but bounds them,
- *                                        and where it holds several entries the
- *                                        smallest value applies.
+ * @param regardingFileSystemInteractions files.
+ * @param regardingNetworkConnections     network.
+ * @param regardingCommandExecutions      commands.
+ * @param regardingThreadCreations        threads.
+ * @param regardingPackageImports         package imports.
+ * @param regardingTimeouts               time limits.
  */
 public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystemInteractions,
 		@Nonnull List<NetworkPermission> regardingNetworkConnections,
@@ -73,24 +56,19 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 	}
 
 	/**
-	 * Creates restrictive resource accesses with every access denied.
-	 * <p>
-	 * Every permission list is empty, with the sole exception of the execution
-	 * limit: see the comment in the method body and
-	 * {@link ResourceLimitsPermission#createRestrictive()} for why denying that one
-	 * outright would be the less restrictive choice.
+	 * Creates restrictive resource accesses: every permission list is empty, and
+	 * the timeouts hold the limit of
+	 * {@link ResourceLimitsPermission#createRestrictive()}, since an empty list
+	 * would declare no limit at all. The limit is recorded, not enforced in
+	 * Postcompile; use {@code @StrictTimeout} for a deadline.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @return a new ResourceAccesses instance that permits no access and bounds the
-	 *         execution time.
+	 * @return resource accesses that permit nothing and record the restrictive
+	 *         limit.
 	 */
 	@Nonnull
 	public static ResourceAccesses createRestrictive() {
-		// A restrictive policy denies every resource but must still enforce the
-		// anti-DoS execution timeout; an empty timeout list would leave the no-policy
-		// fallback with no time limit, contrary to ResourceLimitsPermission's own
-		// restrictive default.
 		return builder().regardingFileSystemInteractions(new ArrayList<>())
 				.regardingNetworkConnections(new ArrayList<>()).regardingCommandExecutions(new ArrayList<>())
 				.regardingThreadCreations(new ArrayList<>()).regardingPackageImports(new ArrayList<>())
@@ -155,13 +133,10 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 		/**
 		 * The execution limits.
 		 * <p>
-		 * This is the one field that does not default to empty. For the five permission
-		 * lists, empty means "permit nothing", which is the safe reading. For this one
-		 * it would mean "run without a time limit", so an unset field would relax the
-		 * policy rather than tighten it. It therefore starts at the same limit
-		 * {@link #createRestrictive()} grants. A caller who genuinely wants no limit
-		 * can still pass an empty list, which makes that an explicit choice rather than
-		 * an omission.
+		 * The one field that does not default to empty: an empty list would declare no
+		 * limit, so it starts at the limit {@link #createRestrictive()} records. A
+		 * caller who wants none passes an empty list explicitly. The limit is recorded,
+		 * not enforced in Postcompile.
 		 */
 		@Nullable
 		private List<ResourceLimitsPermission> regardingTimeouts = new ArrayList<>(

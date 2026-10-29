@@ -392,7 +392,7 @@ regardingFileSystemInteractions:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `onThisPathAndAllPathsBelow` | text | The path where permissions apply (can be file or folder; must not be blank) |
+| `onThisPathAndAllPathsBelow` | text | The path where permissions apply (file or folder), or `*` for every path. Must not be blank, contain a `..` segment, a `*` inside a path, a line break or other control character, or a `${...}` placeholder other than `${PROJECT_ROOT}`, `${java.home}`, `${user.home}` and `${java.io.tmpdir}` |
 | `readAllFiles` | true/false | Allow reading files |
 | `overwriteAllFiles` | true/false | Allow modifying existing files |
 | `createAllFiles` | true/false | Allow creating new files |
@@ -438,8 +438,8 @@ regardingNetworkConnections:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `onTheHost` | text | Hostname or IP address (must not be blank) |
-| `onThePort` | number (0–65535) | Port number (validated: must be between 0 and 65535) |
+| `onTheHost` | text | A DNS name, an IPv4 or IPv6 address, `localhost`, or `*` for every host. A DNS name also permits its subdomains: `example.com` covers `api.example.com` |
+| `onThePort` | number (0–65535) | Port number between 0 and 65535; `0` permits every port |
 | `openConnections` | true/false | Allow opening connections |
 | `sendData` | true/false | Allow sending data |
 | `receiveData` | true/false | Allow receiving data |
@@ -729,14 +729,16 @@ Ares 2 validates all policy fields when the YAML file is parsed. If validation f
 
 | Field | Validation Rule | Error on Violation |
 |-------|----------------|--------------------|
-| `onThisPathAndAllPathsBelow` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
-| `onTheHost` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
-| `onThePort` | Must be between 0 and 65535 | `IllegalArgumentException` with a localised message |
-| `executeTheCommand` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
-| `createTheFollowingNumberOfThreads` | Must be ≥ 0 | `IllegalArgumentException` with a localised message |
-| `ofThisClass` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
-| `importTheFollowingPackage` | Must not be `null` or blank | `IllegalArgumentException` with a localised message |
-| `timeout` | Must be **> 0** (the restrictive default is 3000 ms). Validated on load; does not yet take effect at run time, see [Section 8.6](#86-timeout-permissions) | `IllegalArgumentException` with a localised message |
+| `onThisPathAndAllPathsBelow` | `*`, or a path without a `..` segment, an embedded `*`, control characters or unknown `${...}` placeholders | See below |
+| `onTheHost` | A DNS name, an IPv4 or IPv6 address, `localhost` or `*` | See below |
+| `onThePort` | Must be between 0 and 65535 | See below |
+| `executeTheCommand` | `*`, or a command without control characters and without leading or trailing whitespace | See below |
+| `createTheFollowingNumberOfThreads` | Must be ≥ 0 | See below |
+| `ofThisClass` | A Java class name, optionally preceded by its package, `*`, `Lambda-Expression`, or an `<implicit-thread-op:...>` token | See below |
+| `importTheFollowingPackage` | A Java package name or `*` | See below |
+| `timeout` | Must be **> 0** (the restrictive default is 3000 ms). Validated on load; does not yet take effect at run time, see [Section 8.6](#86-timeout-permissions) | See below |
+
+A policy file that breaks one of these rules is refused while it is read, as a `SecurityException` naming the file. A file, network or command permission built directly in Java, without a policy file, refuses the value with an `IllegalArgumentException` carrying a localised message, as does a negative thread count. A thread class or package name built that way is checked only for `null`, because the record does not know the language; the rules above for those two fields apply on the policy-file path.
 
 When a student's code violates a policy at runtime, Ares throws a `SecurityException` with a descriptive single-line message such as:
 
