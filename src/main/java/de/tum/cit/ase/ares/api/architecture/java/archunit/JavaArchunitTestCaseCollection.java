@@ -290,9 +290,8 @@ public final class JavaArchunitTestCaseCollection {
 	 * Whether a permission covers a package. The match respects package boundaries,
 	 * so {@code com.foo} never covers {@code com.foobar}, and an exact permission
 	 * covers only its own package: {@code java.lang} as a subtree would re-admit
-	 * {@code java.lang.reflect} and {@code java.lang.invoke}. No permission reaches
-	 * a trusted namespace below it that it does not name; {@code *} covers every
-	 * package.
+	 * {@code java.lang.reflect}. No permission but {@code *} reaches a trusted
+	 * namespace below it that it does not name.
 	 *
 	 * @param allowedPackage the permission
 	 * @param packageName    the package of the dependency

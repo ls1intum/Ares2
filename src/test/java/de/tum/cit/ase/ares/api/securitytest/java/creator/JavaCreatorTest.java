@@ -258,8 +258,8 @@ public class JavaCreatorTest {
 
 		/**
 		 * Student code declared in {@code de.tum.cit.ase}, above Ares' own API, is not
-		 * refused. Its own package is not granted here as a subtree, which would cover
-		 * the API: the rule adds it as an exact permission when it runs.
+		 * refused. Its own package is not granted here; the rule adds it as an exact
+		 * permission when it runs.
 		 *
 		 * @throws IOException if the fixture cannot be copied
 		 */
@@ -282,8 +282,8 @@ public class JavaCreatorTest {
 					phobosTestCases, resourceAccesses, tempDir, false));
 
 			assertFalse(architectureTestCases.isEmpty());
-			assertFalse(
-					architectureTestCases.get(0).getAllowedPackages().contains(new PackagePermission(ancestorPackage)));
+			assertTrue(architectureTestCases.get(0).getAllowedPackages().stream()
+					.noneMatch(permission -> permission.importTheFollowingPackage().equals(ancestorPackage)));
 		}
 	}
 

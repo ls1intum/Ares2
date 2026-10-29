@@ -9,7 +9,7 @@ Pupils bring equipment into the room by importing libraries.
 
 Some of it is harmless and some of it is a way straight past the checklist. This list names
 what may be brought in. Naming a package covers everything inside it, so permitting
-`java.util` permits `java.util.concurrent` as well. The one exception is Ares itself and the
+`java.util` permits `java.util.concurrent` as well. One exception is Ares itself and the
 libraries it is built on: a package above them does not cover them, only naming them does.
 
 A little is on every desk without being listed: `java.lang` and `java.io` themselves, and the
@@ -81,7 +81,7 @@ Implemented by `PackagePermission` in
 
 Matching is by **prefix**. A permitted package `java.util` matches itself and every package below it, so `java.util.concurrent` and `java.util.stream` are covered by the single entry above. With `exactMatchOnly: true`, the same entry permits `java.util` alone, and `java.util.concurrent` needs an entry of its own.
 
-A reserved namespace is never covered by a package above it. The namespaces are `java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, `de.tum.cit.ase.ares.api.`, `net.bytebuddy.`, `org.aspectj.`, `com.ibm.wala.` and `com.tngtech.archunit.`. An exercise in the package `de.tum.cit.ase` therefore permits `de.tum.cit.ase.exercise`, but not `de.tum.cit.ase.ares.api.policy`, and `org` does not permit `org.aspectj.lang`. Name the one you need instead: `de.tum.cit.ase.ares.api.policy` permits that package and the ones beneath it. Ares itself needs `org.aspectj` and always permits it, so an import of AspectJ is not refused.
+A reserved namespace is never covered by a package above it. The namespaces are `java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, `de.tum.cit.ase.ares.api.`, `net.bytebuddy.`, `org.aspectj.`, `com.ibm.wala.` and `com.tngtech.archunit.`. A permission for `de.tum.cit.ase` therefore covers `de.tum.cit.ase.exercise`, but not `de.tum.cit.ase.ares.api.policy`, and `org` does not permit `org.aspectj.lang`. Name the one you need instead: `de.tum.cit.ase.ares.api.policy` permits that package and the ones beneath it. Ares itself needs `org.aspectj` and always permits it, so an import of AspectJ is not refused.
 
 `*` is accepted as a whole value by `matchesPackageImport`, which checks for it before falling through to the package pattern. It is not a general glob: `java.*` is not valid. Unlike a package name, it covers the reserved namespaces, because it states outright that every package is permitted.
 
