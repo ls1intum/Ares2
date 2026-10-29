@@ -37,12 +37,27 @@ public final class InstrumentationSecurityProbe {
 				"deleteIfExists", "(Ljava/nio/file/Path;)Z", null, new Object[] { path }, null);
 	}
 
+	/**
+	 * Passes a Preferences put of this key and value to the instrumentation
+	 * file-system check as an overwrite. From inside the student package, so the
+	 * check treats the call as student code.
+	 *
+	 * @param key   the preference key
+	 * @param value the preference value
+	 */
 	public static void checkPreferencesPut(String key, String value) {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("overwrite",
 				"java.util.prefs.AbstractPreferences", "put", "(Ljava/lang/String;Ljava/lang/String;)V", null,
 				new Object[] { key, value }, null);
 	}
 
+	/**
+	 * Passes a Preferences get of this key to the instrumentation file-system check
+	 * as a read. From inside the student package, so the check treats the call as
+	 * student code.
+	 *
+	 * @param key the preference key
+	 */
 	public static void checkPreferencesGet(String key) {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read",
 				"java.util.prefs.AbstractPreferences", "get",
@@ -50,17 +65,34 @@ public final class InstrumentationSecurityProbe {
 				null);
 	}
 
+	/**
+	 * Passes a Preferences node call with this path name to the instrumentation
+	 * file-system check as a create. From inside the student package, so the check
+	 * treats the call as student code.
+	 *
+	 * @param pathName the node path name
+	 */
 	public static void checkPreferencesNode(String pathName) {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create",
 				"java.util.prefs.AbstractPreferences", "node", "(Ljava/lang/String;)Ljava/util/prefs/Preferences;",
 				null, new Object[] { pathName }, null);
 	}
 
+	/**
+	 * Passes a Preferences removeNode call to the instrumentation file-system check
+	 * as a delete. From inside the student package, so the check treats the call as
+	 * student code.
+	 */
 	public static void checkPreferencesRemoveNode() {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("delete",
 				"java.util.prefs.AbstractPreferences", "removeNode", "()V", null, new Object[0], null);
 	}
 
+	/**
+	 * Passes a Preferences userNodeForPackage call to the instrumentation
+	 * file-system check as a create. From inside the student package, so the check
+	 * treats the call as student code.
+	 */
 	public static void checkPreferencesUserNodeForPackage() {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.util.prefs.Preferences",
 				"userNodeForPackage", "(Ljava/lang/Class;)Ljava/util/prefs/Preferences;", null,

@@ -19,8 +19,18 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.preferences.Prefere
  */
 class PreferencesAccessTest extends SystemAccessTest {
 
+	/**
+	 * The folder of compiled classes, below the build output, that holds the
+	 * student code under test.
+	 */
 	private static final String WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/preferences";
 
+	/**
+	 * Runs the call and expects a SecurityException whose message names
+	 * java.util.prefs.
+	 *
+	 * @param executable the student call to run
+	 */
 	private static void assertPreferencesDenied(Executable executable) {
 		SecurityException exception = assertThrows(SecurityException.class, executable);
 		assertTrue(exception.getMessage() != null && exception.getMessage().contains("java.util.prefs"),
@@ -28,24 +38,44 @@ class PreferencesAccessTest extends SystemAccessTest {
 	}
 
 	// <editor-fold desc="Preferences.userRoot (read)">
+	/**
+	 * Calls Preferences.userRoot() as student code under a policy that permits one
+	 * path only, in the ArchUnit and AspectJ combination, and expects Ares to
+	 * refuse it with a message naming java.util.prefs.
+	 */
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesUserRootMavenArchunitAspectJ() {
 		assertPreferencesDenied(PreferencesMain::accessFileSystemViaPreferencesUserRoot);
 	}
 
+	/**
+	 * Calls Preferences.userRoot() as student code under a policy that permits one
+	 * path only, in the ArchUnit and instrumentation combination, and expects Ares
+	 * to refuse it with a message naming java.util.prefs.
+	 */
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesUserRootMavenArchunitInstrumentation() {
 		assertPreferencesDenied(PreferencesMain::accessFileSystemViaPreferencesUserRoot);
 	}
 
+	/**
+	 * Calls Preferences.userRoot() as student code under a policy that permits one
+	 * path only, in the WALA and AspectJ combination, and expects Ares to refuse it
+	 * with a message naming java.util.prefs.
+	 */
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesUserRootMavenWalaAspectJ() {
 		assertPreferencesDenied(PreferencesMain::accessFileSystemViaPreferencesUserRoot);
 	}
 
+	/**
+	 * Calls Preferences.userRoot() as student code under a policy that permits one
+	 * path only, in the WALA and instrumentation combination, and expects Ares to
+	 * refuse it with a message naming java.util.prefs.
+	 */
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesUserRootMavenWalaInstrumentation() {
@@ -54,24 +84,44 @@ class PreferencesAccessTest extends SystemAccessTest {
 	// </editor-fold>
 
 	// <editor-fold desc="Preferences.userNodeForPackage (create)">
+	/**
+	 * Calls Preferences.userNodeForPackage as student code under a policy that
+	 * permits one path only, in the ArchUnit and AspectJ combination, and expects
+	 * Ares to refuse it with a message naming java.util.prefs.
+	 */
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesUserNodeForPackageMavenArchunitAspectJ() {
 		assertPreferencesDenied(PreferencesMain::accessFileSystemViaPreferencesUserNodeForPackage);
 	}
 
+	/**
+	 * Calls Preferences.userNodeForPackage as student code under a policy that
+	 * permits one path only, in the ArchUnit and instrumentation combination, and
+	 * expects Ares to refuse it with a message naming java.util.prefs.
+	 */
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesUserNodeForPackageMavenArchunitInstrumentation() {
 		assertPreferencesDenied(PreferencesMain::accessFileSystemViaPreferencesUserNodeForPackage);
 	}
 
+	/**
+	 * Calls Preferences.userNodeForPackage as student code under a policy that
+	 * permits one path only, in the WALA and AspectJ combination, and expects Ares
+	 * to refuse it with a message naming java.util.prefs.
+	 */
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesUserNodeForPackageMavenWalaAspectJ() {
 		assertPreferencesDenied(PreferencesMain::accessFileSystemViaPreferencesUserNodeForPackage);
 	}
 
+	/**
+	 * Calls Preferences.userNodeForPackage as student code under a policy that
+	 * permits one path only, in the WALA and instrumentation combination, and
+	 * expects Ares to refuse it with a message naming java.util.prefs.
+	 */
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesUserNodeForPackageMavenWalaInstrumentation() {

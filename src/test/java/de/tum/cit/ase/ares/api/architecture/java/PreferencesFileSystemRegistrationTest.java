@@ -24,8 +24,19 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut.JavaInstrumenta
  */
 class PreferencesFileSystemRegistrationTest {
 
+	/**
+	 * The fully qualified name of the Preferences class.
+	 */
 	private static final String PREFS = "java.util.prefs.Preferences";
 
+	/**
+	 * Tells whether a method signature matches any entry of a forbidden-methods
+	 * list.
+	 *
+	 * @param methodsFile     the forbidden-methods list to read
+	 * @param actualSignature the method signature to look for
+	 * @return true if one entry matches
+	 */
 	private static boolean anyForbiddenMatch(Path methodsFile, String actualSignature) {
 		Set<String> forbidden = ForbiddenMethodMatcher.effectiveMethods(methodsFile);
 		for (String entry : forbidden) {
@@ -36,6 +47,10 @@ class PreferencesFileSystemRegistrationTest {
 		return false;
 	}
 
+	/**
+	 * Checks that the ArchUnit file-system list forbids Preferences.put and
+	 * Preferences.flush.
+	 */
 	@Test
 	void testArchunitListForbidsPreferencesWrite() {
 		assertTrue(
@@ -46,6 +61,10 @@ class PreferencesFileSystemRegistrationTest {
 				"ArchUnit filesystem list must forbid Preferences.flush");
 	}
 
+	/**
+	 * Checks that the ArchUnit file-system list forbids Preferences.get and
+	 * Preferences.userRoot.
+	 */
 	@Test
 	void testArchunitListForbidsPreferencesRead() {
 		assertTrue(
@@ -56,6 +75,10 @@ class PreferencesFileSystemRegistrationTest {
 				"ArchUnit filesystem list must forbid Preferences.userRoot");
 	}
 
+	/**
+	 * Checks that the WALA file-system list forbids Preferences.put and
+	 * Preferences.get.
+	 */
 	@Test
 	void testWalaListForbidsPreferencesReadAndWrite() {
 		assertTrue(
@@ -68,6 +91,10 @@ class PreferencesFileSystemRegistrationTest {
 				"WALA filesystem list must forbid Preferences.get");
 	}
 
+	/**
+	 * Checks that the instrumentation overwrite list holds Preferences put and
+	 * flush, but not removeNode.
+	 */
 	@Test
 	void testInstrumentationWriteMapContainsPreferences() {
 		Map<String, List<String>> write = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES;
@@ -77,6 +104,11 @@ class PreferencesFileSystemRegistrationTest {
 		assertTrue(methods != null && !methods.contains("removeNode"), "removeNode is a delete, not an overwrite");
 	}
 
+	/**
+	 * Checks that the instrumentation create list holds Preferences node and both
+	 * package-node factories, and that the read list does not hold
+	 * userNodeForPackage.
+	 */
 	@Test
 	void testInstrumentationCreateMapContainsPreferencesNodeAndFactories() {
 		Map<String, List<String>> create = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES;
@@ -91,6 +123,9 @@ class PreferencesFileSystemRegistrationTest {
 				"the package-node factories create nodes, so they are not read-only");
 	}
 
+	/**
+	 * Checks that the instrumentation delete list holds Preferences removeNode.
+	 */
 	@Test
 	void testInstrumentationDeleteMapContainsPreferencesRemoveNode() {
 		Map<String, List<String>> delete = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES;
@@ -99,6 +134,9 @@ class PreferencesFileSystemRegistrationTest {
 				"removeNode removes a node, so the delete map must list it");
 	}
 
+	/**
+	 * Checks that the instrumentation read list holds Preferences get and userRoot.
+	 */
 	@Test
 	void testInstrumentationReadMapContainsPreferences() {
 		Map<String, List<String>> read = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES;
@@ -107,6 +145,12 @@ class PreferencesFileSystemRegistrationTest {
 				"Instrumentation read map must list Preferences read methods");
 	}
 
+	/**
+	 * Checks that the AspectJ pointcut source names Preferences put and get. It
+	 * reads the source file, so it must run from the repository root.
+	 *
+	 * @throws Exception if the source file cannot be read
+	 */
 	@Test
 	void testAspectJPointcutSourceContainsPreferences() throws Exception {
 		Path pointcuts = Path.of("src", "main", "java", "de", "tum", "cit", "ase", "ares", "api", "aop", "java",

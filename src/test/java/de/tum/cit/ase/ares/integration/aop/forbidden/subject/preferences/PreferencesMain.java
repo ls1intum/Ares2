@@ -11,15 +11,31 @@ import java.util.prefs.Preferences;
  */
 public final class PreferencesMain {
 
+	/**
+	 * Not to be called: this class only holds static methods.
+	 *
+	 * @throws SecurityException always
+	 */
 	private PreferencesMain() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
+	/**
+	 * Opens the root node of the current user's Preferences store.
+	 *
+	 * @return the user root node
+	 */
 	public static Preferences accessFileSystemViaPreferencesUserRoot() {
 		return Preferences.userRoot();
 	}
 
+	/**
+	 * Opens, and creates if missing, the user Preferences node of this class's
+	 * package.
+	 *
+	 * @return the package node
+	 */
 	public static Preferences accessFileSystemViaPreferencesUserNodeForPackage() {
 		return Preferences.userNodeForPackage(PreferencesMain.class);
 	}

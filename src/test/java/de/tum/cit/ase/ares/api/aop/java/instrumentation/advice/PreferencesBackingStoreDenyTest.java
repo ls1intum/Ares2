@@ -27,6 +27,12 @@ import example.student.InstrumentationSecurityProbe;
  */
 class PreferencesBackingStoreDenyTest {
 
+	/**
+	 * Resets the Ares advice settings, so no test leaves settings behind for the
+	 * next.
+	 *
+	 * @throws Exception if the reset method cannot be called
+	 */
 	private static void resetSettings() throws Exception {
 		Method reset = JavaAOPTestCaseSettings.class.getDeclaredMethod("reset");
 		reset.setAccessible(true);
@@ -34,6 +40,12 @@ class PreferencesBackingStoreDenyTest {
 		reset.setAccessible(false);
 	}
 
+	/**
+	 * Resets the settings, then turns on the instrumentation checks for the package
+	 * example.student, with an empty list of allowed classes.
+	 *
+	 * @throws Exception if the settings cannot be set or reset
+	 */
 	private static void configure() throws Exception {
 		resetSettings();
 		JavaAOPTestCase.setJavaAdviceSettingValue("aopMode", "INSTRUMENTATION", "ARCH", "INSTRUMENTATION");
@@ -41,6 +53,13 @@ class PreferencesBackingStoreDenyTest {
 		JavaAOPTestCase.setJavaAdviceSettingValue("allowedListedClasses", new String[0], "ARCH", "INSTRUMENTATION");
 	}
 
+	/**
+	 * Scopes overwrite to one directory: a Preferences put must still be refused,
+	 * with a message naming java.util.prefs.
+	 *
+	 * @param tempDir the directory overwrite is scoped to
+	 * @throws Exception if the settings cannot be set or reset
+	 */
 	@Test
 	void testScopedOverwritePolicyStillBlocksPreferencesPut(@TempDir Path tempDir) throws Exception {
 		try {
@@ -56,6 +75,12 @@ class PreferencesBackingStoreDenyTest {
 		}
 	}
 
+	/**
+	 * Scopes read to one directory: a Preferences get must still be refused.
+	 *
+	 * @param tempDir the directory read is scoped to
+	 * @throws Exception if the settings cannot be set or reset
+	 */
 	@Test
 	void testScopedReadPolicyStillBlocksPreferencesGet(@TempDir Path tempDir) throws Exception {
 		try {
@@ -68,6 +93,11 @@ class PreferencesBackingStoreDenyTest {
 		}
 	}
 
+	/**
+	 * Permits overwrite on all paths: a Preferences put must then pass.
+	 *
+	 * @throws Exception if the settings cannot be set or reset
+	 */
 	@Test
 	void testWildcardOverwritePolicyAllowsPreferencesPut() throws Exception {
 		try {
@@ -80,6 +110,13 @@ class PreferencesBackingStoreDenyTest {
 		}
 	}
 
+	/**
+	 * Scopes create to one directory: a Preferences node call must still be
+	 * refused.
+	 *
+	 * @param tempDir the directory create is scoped to
+	 * @throws Exception if the settings cannot be set or reset
+	 */
 	@Test
 	void testScopedCreatePolicyStillBlocksNodeCreation(@TempDir Path tempDir) throws Exception {
 		try {
@@ -92,6 +129,11 @@ class PreferencesBackingStoreDenyTest {
 		}
 	}
 
+	/**
+	 * Permits create on all paths: a Preferences node call must then pass.
+	 *
+	 * @throws Exception if the settings cannot be set or reset
+	 */
 	@Test
 	void testWildcardCreatePolicyAllowsNodeCreation() throws Exception {
 		try {
@@ -147,6 +189,12 @@ class PreferencesBackingStoreDenyTest {
 		}
 	}
 
+	/**
+	 * Permits create on all paths: a Preferences userNodeForPackage call must then
+	 * pass.
+	 *
+	 * @throws Exception if the settings cannot be set or reset
+	 */
 	@Test
 	void testWildcardCreatePolicyAllowsPackageNode() throws Exception {
 		try {
@@ -159,6 +207,11 @@ class PreferencesBackingStoreDenyTest {
 		}
 	}
 
+	/**
+	 * Permits delete on all paths: a Preferences removeNode call must then pass.
+	 *
+	 * @throws Exception if the settings cannot be set or reset
+	 */
 	@Test
 	void testWildcardDeletePolicyAllowsRemoveNode() throws Exception {
 		try {

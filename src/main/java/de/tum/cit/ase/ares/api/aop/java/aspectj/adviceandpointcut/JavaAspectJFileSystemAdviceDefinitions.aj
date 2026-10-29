@@ -133,6 +133,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * operation, which has no path to report because the OS fixes the store's
 	 * location.
 	 */
+	@Nonnull
 	private static final String PREFERENCES_BACKING_STORE = "<java.util.prefs backing store>";
 
 	/**
