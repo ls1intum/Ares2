@@ -30,6 +30,5 @@ org/eclipse/**
 org/gradle/**
 org/jacoco/**
 com/intellij/**
-net/jqwik/**
 worker/org/gradle/**
 de/tum/in/test/api/**

@@ -24,7 +24,7 @@ def aresReservedPackagePatterns = [
         'org/slf4j/**', 'com/github/javaparser/**', 'com/fasterxml/jackson/**',
         'org/yaml/**', 'org/json/**', 'com/opencsv/**', 'org/jgrapht/**',
         'org/apiguardian/**', 'org/apache/**', 'org/eclipse/**', 'org/gradle/**',
-        'org/jacoco/**', 'com/intellij/**', 'net/jqwik/**', 'worker/org/gradle/**',
+        'org/jacoco/**', 'com/intellij/**', 'worker/org/gradle/**',
         'de/tum/in/test/api/**'
 ]
 

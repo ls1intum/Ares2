@@ -71,7 +71,7 @@ public final class WalaPathClassification {
 			"junit.", "org.junit.", "org.opentest4j.", "org.assertj.", "org.mockito.", "ch.qos.logback.", "org.slf4j.",
 			"com.github.javaparser.", "com.fasterxml.jackson.", "org.yaml.", "org.json.", "com.opencsv.",
 			"org.jgrapht.", "org.apiguardian.", "org.apache.", "org.eclipse.", "org.gradle.", "org.jacoco.",
-			"com.intellij.", "net.jqwik.", "worker.org.gradle.", "de.tum.in.test.api.");
+			"com.intellij.", "worker.org.gradle.", "de.tum.in.test.api.");
 
 	/**
 	 * Version of the prefix data above. Version 3 restores the test harness and
