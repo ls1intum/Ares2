@@ -124,6 +124,21 @@ class PreferencesFileSystemRegistrationTest {
 	}
 
 	/**
+	 * Checks that the instrumentation overwrite and create lists both hold
+	 * Preferences importPreferences, since an import can create missing nodes as
+	 * well as change existing ones.
+	 */
+	@Test
+	void testInstrumentationListsImportPreferencesAsOverwriteAndCreate() {
+		List<String> overwrite = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_OVERWRITE_FILES.get(PREFS);
+		List<String> create = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES.get(PREFS);
+		assertTrue(overwrite != null && overwrite.contains("importPreferences"),
+				"importPreferences changes existing nodes, so the overwrite map must list it");
+		assertTrue(create != null && create.contains("importPreferences"),
+				"importPreferences creates missing nodes, so the create map must list it");
+	}
+
+	/**
 	 * Checks that the instrumentation delete list holds Preferences removeNode.
 	 */
 	@Test

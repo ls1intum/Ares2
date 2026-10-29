@@ -83,10 +83,13 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(java.io.RandomAccessFile+.new(..)) ||
                     // Preferences.node(path) and the userNodeForPackage/systemNodeForPackage
                     // factories create the node and any missing ancestors in the backing
-                    // store, like File.mkdir, so they are creates.
+                    // store, like File.mkdir, so they are creates. importPreferences creates
+                    // every missing node its XML names, so it is a create as well as the
+                    // overwrite it is registered as above.
                     call(* java.util.prefs.Preferences+.node(..)) ||
                     call(* java.util.prefs.Preferences+.userNodeForPackage(..)) ||
-                    call(* java.util.prefs.Preferences+.systemNodeForPackage(..)));
+                    call(* java.util.prefs.Preferences+.systemNodeForPackage(..)) ||
+                    call(* java.util.prefs.Preferences+.importPreferences(..)));
 
     // Note: ProcessBuilder.start, startPipeline, and Runtime.exec are handled by the Command System
     // in Byte Buddy mode, as they execute commands rather than individual files.
