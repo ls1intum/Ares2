@@ -301,13 +301,13 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		// verdict.
 		String dependencyFingerprint = supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT ? ""
 				: CustomCallgraphBuilder.dependencyFingerprint(javaClasses);
-		String allowedPackagesFingerprint = allowedPackages.stream().map(PackagePermission::importTheFollowingPackage)
-				.sorted().collect(Collectors.joining(","));
+		String allowedPackagesFingerprint = unambiguousSignature(
+				allowedPackages.stream().map(PackagePermission::importTheFollowingPackage));
 		// The allow-listed classes change which violations are exempt, so they must be
 		// part of the key or a run with exemptions could be served a no-exemption
 		// outcome.
-		String allowedClassesFingerprint = getAllowedClasses().stream().map(ClassPermission::className).sorted()
-				.collect(Collectors.joining(","));
+		String allowedClassesFingerprint = unambiguousSignature(
+				getAllowedClasses().stream().map(ClassPermission::className));
 		// Fold the blocklist content into the key: the Ares-jar mtime does not change
 		// when a *-methods.txt or the false-positive file is edited under an exploded
 		// classes directory, so without this a cached PASS could survive a tightening

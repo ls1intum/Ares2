@@ -16,28 +16,27 @@ public class JavaProgrammingExerciseProjectScanner extends JavaProjectScanner {
 	}
 
 	/**
-	 * Rebinds this TUM-specific scanner to the discovered build configuration,
-	 * preserving its concrete type. Overrides
-	 * {@link JavaProjectScanner#withBuildConfiguration(BuildToolConfiguration)} so
-	 * a framework-default {@code JavaProgrammingExerciseProjectScanner} is rebuilt
-	 * as one of its own kind rather than as a plain {@link JavaProjectScanner}. A
-	 * further subclass is returned unchanged.
+	 * Returns this TUM-specific scanner bound to the discovered build
+	 * configuration, keeping its concrete type: a framework-default one is rebuilt
+	 * as its own kind, and a further subclass is held to the rule of
+	 * {@link JavaProjectScanner#withBuildConfiguration(BuildToolConfiguration)}.
 	 *
 	 * @since 2.1.0
 	 * @author Markus Paulsen
-	 * @param buildConfiguration the discovered build configuration; must not be
-	 *                           null.
-	 * @return the scanner bound to the configuration, or this instance when it is a
-	 *         further subclass.
+	 * @param buildConfiguration the discovered configuration; must not be null.
+	 * @return the bound scanner.
+	 * @throws IllegalStateException if a subclass holds no or another
+	 *                               configuration.
 	 */
 	@Override
 	@Nonnull
 	public JavaProgrammingExerciseProjectScanner withBuildConfiguration(
 			@Nonnull BuildToolConfiguration buildConfiguration) {
 		Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
-		return getClass() == JavaProgrammingExerciseProjectScanner.class
-				? new JavaProgrammingExerciseProjectScanner(buildConfiguration)
-				: this;
+		if (getClass() == JavaProgrammingExerciseProjectScanner.class) {
+			return new JavaProgrammingExerciseProjectScanner(buildConfiguration);
+		}
+		return (JavaProgrammingExerciseProjectScanner) super.withBuildConfiguration(buildConfiguration);
 	}
 
 	// <editor-fold desc="TUM-specific scan defaults">

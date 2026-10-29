@@ -84,34 +84,30 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
-	 * Returns the scanner to use once the build configuration has been discovered.
-	 * <p>
-	 * A framework-default scanner is created without a build configuration and is
-	 * rebound here to the one discovered for the run. A caller-supplied subclass is
-	 * returned unchanged, so a custom scanner is never silently replaced; a
-	 * subclass that does want to be rebound overrides this method (as
-	 * {@link JavaProgrammingExerciseProjectScanner} does). This lets the director
-	 * ask each collaborator to configure itself, rather than inspecting its
-	 * concrete type.
-	 * <p>
-	 * Compatibility note: a custom scanner subclass that does not override this
-	 * method is now kept as injected rather than being replaced by a plain scanner
-	 * bound to the discovered configuration. It therefore keeps whatever
-	 * configuration it was built with (or the legacy source-discovery fallback of a
-	 * no-argument subclass); such a subclass should override this method if it
-	 * needs the discovered configuration.
+	 * Returns the scanner bound to the build configuration discovered for this run.
+	 * A framework-default scanner is rebuilt for it. A subclass is kept only if it
+	 * already holds an equal configuration and is refused otherwise, since an
+	 * unbound one would look at another project. A subclass that overrides this
+	 * must return an instance bound to the given configuration.
 	 *
 	 * @since 2.1.0
 	 * @author Markus Paulsen
-	 * @param buildConfiguration the discovered build configuration; must not be
-	 *                           null.
-	 * @return the scanner bound to the configuration, or this instance when it is a
-	 *         custom subclass.
+	 * @param buildConfiguration the discovered configuration; must not be null.
+	 * @return the bound scanner.
+	 * @throws IllegalStateException if a subclass holds no or another
+	 *                               configuration.
 	 */
 	@Nonnull
 	public JavaProjectScanner withBuildConfiguration(@Nonnull BuildToolConfiguration buildConfiguration) {
 		Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
-		return getClass() == JavaProjectScanner.class ? new JavaProjectScanner(buildConfiguration) : this;
+		if (getClass() == JavaProjectScanner.class) {
+			return new JavaProjectScanner(buildConfiguration);
+		}
+		if (!buildConfiguration.equals(this.buildConfiguration)) {
+			throw new IllegalStateException(
+					Messages.localized("security.policy.collaborator.unbound", getClass().getName()));
+		}
+		return this;
 	}
 
 	/**

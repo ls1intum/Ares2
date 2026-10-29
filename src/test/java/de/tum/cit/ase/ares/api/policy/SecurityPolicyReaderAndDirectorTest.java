@@ -159,31 +159,34 @@ public class SecurityPolicyReaderAndDirectorTest {
 			}
 		}
 
+		/**
+		 * Without a project folder, the policy's placeholders and the director both use
+		 * the working directory, so they cannot disagree about the project root.
+		 */
 		@Test
-		@DisplayName("Should handle null project folder path")
-		void shouldHandleNullProjectFolderPath() {
+		@DisplayName("Should give reader and director the working directory when no project folder is set")
+		void shouldResolveNullProjectFolderPathToTheWorkingDirectoryForBoth() {
+			Path workingDirectory = Path.of("").toAbsolutePath();
 			try (MockedStatic<SecurityPolicyReader> readerMock = mockStatic(SecurityPolicyReader.class);
 					MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
-				// Arrange
-				readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath, null))
+				readerMock.when(
+						() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath, workingDirectory))
 						.thenReturn(mockSecurityPolicyReader);
 				when(mockSecurityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath))
 						.thenReturn(mockSecurityPolicy);
 				directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(mockSecurityPolicy))
 						.thenReturn(mockSecurityPolicyDirector);
-				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, null, Path.of("")))
+				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, workingDirectory, Path.of("")))
 						.thenReturn(mockFactoryAndBuilder);
-
 				SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(securityPolicyFilePath,
 						null);
 
-				// Act
 				SecurityPolicyReaderAndDirector result = instance.createTestCases();
 
-				// Assert
-				assertNotNull(result);
 				assertSame(instance, result);
-				verify(mockSecurityPolicyDirector).createTestCases(mockSecurityPolicy, null, Path.of(""));
+				readerMock.verify(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath,
+						workingDirectory));
+				verify(mockSecurityPolicyDirector).createTestCases(mockSecurityPolicy, workingDirectory, Path.of(""));
 			}
 		}
 

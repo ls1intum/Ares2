@@ -285,6 +285,35 @@ class SecurityPolicyStrictSchemaTest {
 		assertTrue(path.endsWith("line\\nname"));
 	}
 
+	/**
+	 * A reader chosen without a project root expands {@code ${PROJECT_ROOT}} to the
+	 * folder the policy file sits in.
+	 */
+	@Test
+	void selectedReaderWithoutARootExpandsProjectRootToThePolicyFolder() throws IOException {
+		Path file = write(validYaml().replace("/tmp/data", "${PROJECT_ROOT}/data"));
+		SecurityPolicy policy = SecurityPolicyReader.selectSecurityPolicyReader(file, null)
+				.readSecurityPolicyFrom(file);
+		String path = policy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
+				.regardingFileSystemInteractions().get(0).onThisPathAndAllPathsBelow();
+		assertEquals(file.toAbsolutePath().normalize().getParent().resolve("data").toString(), path);
+	}
+
+	/**
+	 * A reader chosen with a project root expands {@code ${PROJECT_ROOT}} to that
+	 * root, wherever the policy file sits.
+	 */
+	@Test
+	void selectedReaderWithARootExpandsProjectRootToThatRoot() throws IOException {
+		Path root = Files.createDirectories(tempDirectory.resolve("elsewhere"));
+		Path file = write(validYaml().replace("/tmp/data", "${PROJECT_ROOT}/data"));
+		SecurityPolicy policy = SecurityPolicyReader.selectSecurityPolicyReader(file, root)
+				.readSecurityPolicyFrom(file);
+		String path = policy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
+				.regardingFileSystemInteractions().get(0).onThisPathAndAllPathsBelow();
+		assertEquals(root.resolve("data").toString(), path);
+	}
+
 	@Test
 	void rejectsControlCharacterInExpandedProjectRoot() throws IOException {
 		// A ${PROJECT_ROOT} that expands to a directory whose name carries a control

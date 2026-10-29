@@ -212,7 +212,7 @@ SecurityPolicyReaderAndDirector.builder()
 
 The builder accepts two optional paths (both are `@Nullable`, and `build()` performs no null checks):
 - `securityPolicyFilePath`: The file system path to the YAML security policy file (e.g., `SecurityConfiguration.yaml`) that the instructor has written. If this is `null`, no policy file is read and Ares falls back to the default most-restricted enforcement (see Section 7.3).
-- `projectFolderPath`: The file system path to the student's project folder, where the code to be verified lives. If this is `null`, the project-dependent steps operate without a project base path.
+- `projectFolderPath`: The file system path to the student's project folder, where the code to be verified lives. If this is `null`, the current working directory is used, both for `${PROJECT_ROOT}` in the policy and for the director's project discovery, so the two cannot name different projects. A reader chosen directly through `SecurityPolicyReader.selectSecurityPolicyReader(path, null)` still expands `${PROJECT_ROOT}` to the folder the policy file sits in.
 
 The resulting instance is immutable and ready to orchestrate the three-step workflow.
 

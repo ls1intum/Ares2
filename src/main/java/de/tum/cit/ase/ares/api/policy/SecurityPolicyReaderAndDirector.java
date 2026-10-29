@@ -76,8 +76,8 @@ public class SecurityPolicyReaderAndDirector {
 	/**
 	 * Constructs a SecurityPolicyReaderAndDirector with only a policy file.
 	 * <p>
-	 * The project folder defaults to null, which the director resolves to the
-	 * current working directory, and the within-path defaults to the empty path.
+	 * The project folder defaults to null, which resolves to the current working
+	 * directory, and the within-path defaults to the empty path.
 	 *
 	 * @since 2.1.0
 	 * @author Markus Paulsen
@@ -111,25 +111,29 @@ public class SecurityPolicyReaderAndDirector {
 
 	/**
 	 * Creates the security test cases.
+	 * <p>
+	 * Reading the policy and directing it use one project root: the project folder,
+	 * or the current working directory when none was given. So
+	 * {@code ${PROJECT_ROOT}} in the policy names the directory the tests are made
+	 * for, not the folder the policy file sits in.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
+	 * @return this instance.
 	 */
 	public SecurityPolicyReaderAndDirector createTestCases() {
+		Path projectRoot = projectFolderPath == null ? Path.of("").toAbsolutePath() : projectFolderPath;
 		@Nullable
 		SecurityPolicy securityPolicy = null;
 		if (securityPolicyFilePath != null && !securityPolicyFilePath.toString().isEmpty()) {
 			@Nonnull
 			Path nonNullPolicyPath = securityPolicyFilePath;
-			// selectSecurityPolicyReader either returns a reader or throws on an
-			// unsupported policy format, so there is no null case to handle here.
-			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath,
-					projectFolderPath);
+			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath, projectRoot);
 			securityPolicy = securityPolicyReader.readSecurityPolicyFrom(nonNullPolicyPath);
 		}
 		securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicy);
-		this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy,
-				projectFolderPath, withinPath);
+		this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy, projectRoot,
+				withinPath);
 		return this;
 	}
 	// </editor-fold>
