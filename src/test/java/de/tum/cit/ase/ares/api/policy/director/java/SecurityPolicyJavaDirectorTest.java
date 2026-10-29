@@ -136,16 +136,16 @@ public class SecurityPolicyJavaDirectorTest {
 		when(mockEssentialDataReader.readEssentialClassesFrom(any(Path.class))).thenReturn(mockEssentialClasses);
 	}
 
+	/**
+	 * Stubs the scanner with valid results and makes the creator, writer and
+	 * scanner mocks return themselves from withBuildConfiguration, as an injected
+	 * instance bound to the discovered configuration does. A bare mock would return
+	 * null.
+	 */
 	private void setupProjectScannerMocks() {
-		// Setup JavaProjectScanner to return valid values to prevent null pointer
-		// exceptions
 		when(mockProjectScanner.scanForTestClasses()).thenReturn(new String[] { "TestClass1", "TestClass2" });
 		when(mockProjectScanner.scanForPackageName()).thenReturn("com.example.package");
 		when(mockProjectScanner.scanForMainClassInPackage()).thenReturn("MainClass");
-		// The director now asks each collaborator to bind itself to the discovered
-		// build configuration through withBuildConfiguration. A real injected instance
-		// returns itself (or a rebound copy); a bare mock would return null, so make
-		// these mocks behave like an injected instance that keeps itself.
 		when(mockCreator.withBuildConfiguration(any())).thenReturn(mockCreator);
 		when(mockWriter.withBuildConfiguration(any())).thenReturn(mockWriter);
 		when(mockProjectScanner.withBuildConfiguration(any())).thenReturn(mockProjectScanner);
@@ -327,12 +327,15 @@ public class SecurityPolicyJavaDirectorTest {
 			assertEquals(name.contains("ASPECTJ") ? AOPMode.ASPECTJ : AOPMode.INSTRUMENTATION, result.aopMode());
 		}
 
+		/**
+		 * Checks that the Java director hands withinPath to the factory as its project
+		 * path, so the analysis covers only that subpath. The base three-argument
+		 * overload in SecurityPolicyDirector refuses any non-empty scope, so this
+		 * guards the Java director's own override.
+		 */
 		@Test
 		@DisplayName("Should forward withinPath to the factory as its projectPath")
 		void createTestCasesForwardsWithinPathAsProjectPath() throws Exception {
-			// Guards the fix that made the base three-argument overload abstract: the
-			// concrete director must thread withinPath through to the factory rather than
-			// drop it, so the analysis is scoped to the requested subpath.
 			SecurityPolicy securityPolicy = SecurityPolicy.builder()
 					.regardingTheSupervisedCode(supervisedCodeWithValidConfig).build();
 			Path withinPath = Path.of("classes", "student");
@@ -343,17 +346,16 @@ public class SecurityPolicyJavaDirectorTest {
 			assertEquals(withinPath, projectPathField.get(result));
 		}
 
+		/**
+		 * Checks that the director passes on what injected creator and writer
+		 * subclasses return from withBuildConfiguration, here themselves, as a bound
+		 * subclass does, rather than replacing them. The mocks stub that method.
+		 */
 		@Test
 		@DisplayName("Should preserve injected creator and writer subclasses instead of rebuilding them")
 		void createTestCasesPreservesInjectedCreatorAndWriterSubclasses() throws Exception {
-			// A named subclass (mocked so its createTestCases is a no-op) is not exactly
-			// JavaCreator.class/JavaWriter.class, so it exercises the subclass-preserving
-			// branch that a plain injected instance would rebuild.
 			JavaCreator customCreator = mock(CustomJavaCreator.class);
 			JavaWriter customWriter = mock(CustomJavaWriter.class);
-			// A real custom subclass keeps itself (returns this) from
-			// withBuildConfiguration;
-			// mock that same contract so the director preserves the injected instances.
 			when(customCreator.withBuildConfiguration(any())).thenReturn(customCreator);
 			when(customWriter.withBuildConfiguration(any())).thenReturn(customWriter);
 			SecurityPolicyJavaDirector customDirector = new SecurityPolicyJavaDirector(customCreator, customWriter,

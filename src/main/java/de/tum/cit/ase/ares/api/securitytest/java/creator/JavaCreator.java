@@ -97,15 +97,14 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
-	 * Returns the creator bound to the build configuration discovered for this run.
-	 * A framework-default creator is rebuilt for it. A subclass is kept only if it
-	 * already holds an equal configuration and is refused otherwise, since an
-	 * unbound one would look at another project. A subclass that overrides this
-	 * must return an instance bound to the given configuration.
+	 * Returns the creator bound to the build configuration found for this run. A
+	 * framework-default creator is rebuilt; a subclass is kept only if it holds an
+	 * equal configuration, as an unbound one would look at another project. An
+	 * override must return an instance bound to the given configuration.
 	 *
 	 * @since 2.1.0
 	 * @author Markus Paulsen
-	 * @param buildConfiguration the discovered configuration; must not be null.
+	 * @param buildConfiguration the discovered configuration; not null.
 	 * @return the bound creator.
 	 * @throws IllegalStateException if a subclass holds no or another
 	 *                               configuration.
@@ -220,10 +219,9 @@ public class JavaCreator implements Creator {
 	 * Validates a derived package name for Java and wraps it in a
 	 * {@link PackagePermission}.
 	 * <p>
-	 * The permission record itself only checks that the name is non-null; the
-	 * language-specific syntax check lives here, at the Java-specific site that
-	 * derives the permission, so an invalid scanned or essential package aborts
-	 * test-case creation exactly as the record constructor used to.
+	 * The permission record itself only checks that the name is non-null, so the
+	 * Java syntax check lives here, and an invalid scanned or essential package
+	 * aborts test-case creation.
 	 *
 	 * @param packageName the package name to validate; must be a valid Java
 	 *                    package.
@@ -236,25 +234,17 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
-	 * Wraps a package permission that was read out of the project rather than
-	 * declared by a policy, refusing one that would carry a trusted namespace with
-	 * it.
+	 * Wraps a package permission read from the project, refusing one above a
+	 * trusted namespace, which the reserved-package guard misses.
 	 * <p>
-	 * A permission matches on segment boundaries but still as a prefix, and a
-	 * package name is exactly what whoever adds files controls, so a derived
-	 * permission sitting above {@code de.tum.cit.ase.ares.api} would hand the
-	 * supervised code the framework's own namespace. The reserved-package guard
-	 * misses it: that one refuses a package <em>inside</em> a trusted prefix, not
-	 * one <em>containing</em> it.
-	 * <p>
-	 * Only derived permissions are held to this. What a policy names in
-	 * {@code theFollowingResourceAccessesArePermitted}, and Ares' own essential
-	 * packages, are declarations rather than readings and stay authoritative.
+	 * A permission matches as a prefix and the submitter controls package names, so
+	 * a derived {@code de.tum} would grant Ares' own namespace. Declared packages
+	 * are exempt.
 	 *
-	 * @param packageName the derived package name
-	 * @return the validated permission for it
+	 * @param packageName the derived package
+	 * @return its permission
 	 * @throws SecurityException        when a reserved namespace lies below it
-	 * @throws IllegalArgumentException when the name is not a valid Java package
+	 * @throws IllegalArgumentException when the name is invalid
 	 */
 	@Nonnull
 	private static PackagePermission derivedAllowedPackage(@Nonnull String packageName) {
@@ -268,17 +258,13 @@ public class JavaCreator implements Creator {
 	/**
 	 * The permission taken from the package of a declared or scanned test class.
 	 * <p>
-	 * Same question as {@link #derivedAllowedPackage(String)}, different answer. A
-	 * test class sits in the test tree, which the instructor controls and the
-	 * submitter does not, so it is not the submitter-steerable value a supervised
-	 * scope is; and refusing would break a convention this repository's own
-	 * fixtures rely on, nine of them naming
-	 * {@code de.tum.cit.ase.ares.testutilities} rather than a class. That makes
-	 * refusal the wrong instrument, not the finding wrong: the grant really is
-	 * wider than a test class needs, so it is reported rather than made fatal.
+	 * Unlike {@link #derivedAllowedPackage(String)}, a package above a trusted
+	 * namespace is only logged as a warning: the test tree is the instructor's, not
+	 * the submitter's, and fixtures here name a package such as
+	 * {@code de.tum.cit.ase.ares.testutilities} as a test class.
 	 *
 	 * @param packageName the package of a test class
-	 * @return the validated permission for it
+	 * @return its permission
 	 * @throws IllegalArgumentException when the name is not a valid Java package
 	 */
 	@Nonnull

@@ -124,6 +124,17 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 		return createTestCases(securityPolicy, projectRootPath, Path.of(""));
 	}
 
+	/**
+	 * Creates security test cases scoped to {@code withinPath}, where the empty
+	 * path means the whole project, for the build configuration found under the
+	 * project root, or under the working directory when that is null.
+	 * <p>
+	 * The scanner, creator and writer each bind themselves to that configuration
+	 * through their own {@code withBuildConfiguration}, rather than this director
+	 * checking their concrete types.
+	 *
+	 * @throws NullPointerException if one of them returns null from it.
+	 */
 	@Override
 	@Nonnull
 	public TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
@@ -131,11 +142,6 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 		Path root = projectRootPath == null ? Path.of("").toAbsolutePath() : projectRootPath;
 		BuildMode selectedMode = securityPolicy == null ? null : buildModeOf(securityPolicy);
 		BuildToolConfiguration configuration = ProjectSourcesFinder.discover(root, selectedMode);
-		// Ask each collaborator to bind itself to the discovered build configuration,
-		// rather than inspecting its concrete type here. A framework-default instance
-		// rebuilds itself for this run; a custom subclass injected through the builder
-		// decides for itself and is not silently replaced (see each type's
-		// withBuildConfiguration).
 		JavaProjectScanner configuredScanner = Objects.requireNonNull(
 				((JavaProjectScanner) projectScanner).withBuildConfiguration(configuration),
 				"projectScanner.withBuildConfiguration must not return null");

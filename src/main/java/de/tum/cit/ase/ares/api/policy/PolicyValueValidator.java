@@ -21,9 +21,19 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  */
 public final class PolicyValueValidator {
 
+	/** One decimal part of an IPv4 address, 0 to 255 without leading zeros. */
 	private static final String IPV4_COMPONENT = "(?:25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)";
+
+	/** A dotted IPv4 address made of four such parts. */
 	private static final String IPV4_ADDRESS = "(?:" + IPV4_COMPONENT + "\\.){3}" + IPV4_COMPONENT;
+
+	/** One group of an IPv6 address, one to four hexadecimal digits. */
 	private static final String IPV6_COMPONENT = "[0-9A-Fa-f]{1,4}";
+
+	/**
+	 * An IPv6 address in full or {@code ::}-compressed form, including the forms
+	 * that end in an embedded IPv4 address.
+	 */
 	private static final String IPV6_ADDRESS = "(?:" + "(?:" + IPV6_COMPONENT + ":){7}" + IPV6_COMPONENT + "|(?:"
 			+ IPV6_COMPONENT + ":){1,7}:" + "|(?:" + IPV6_COMPONENT + ":){1,6}:" + IPV6_COMPONENT + "|(?:"
 			+ IPV6_COMPONENT + ":){1,5}(?::" + IPV6_COMPONENT + "){1,2}" + "|(?:" + IPV6_COMPONENT + ":){1,4}(?::"
@@ -32,22 +42,35 @@ public final class PolicyValueValidator {
 			+ IPV6_COMPONENT + "){1,6})" + "|:(?:(?::" + IPV6_COMPONENT + "){1,7}|:)" + "|(?:" + IPV6_COMPONENT
 			+ ":){6}" + IPV4_ADDRESS + "|::(?:ffff(?::0{1,4})?:)?" + IPV4_ADDRESS + "|(?:" + IPV6_COMPONENT + ":){1,4}:"
 			+ IPV4_ADDRESS + ")";
+
+	/**
+	 * One label of a DNS name: letters, digits and inner hyphens, at most 63
+	 * characters.
+	 */
 	private static final String DNS_LABEL = "[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?";
+
+	/**
+	 * A DNS name of dot-separated labels, at most 253 characters before an optional
+	 * trailing dot. Four dot-separated groups of digits are excluded, so an
+	 * out-of-range IPv4 address is not accepted as a name.
+	 */
 	private static final String DNS_NAME = "(?!\\d+\\.\\d+\\.\\d+\\.\\d+\\.?$)(?=.{1,253}\\.?$)" + DNS_LABEL + "(?:\\."
 			+ DNS_LABEL + ")*\\.?";
+
+	/**
+	 * The placeholders a file path may contain: {@code ${PROJECT_ROOT}},
+	 * {@code ${java.home}}, {@code ${user.home}} and {@code ${java.io.tmpdir}}.
+	 */
 	private static final String RECOGNISED_PLACEHOLDER = "\\$\\{(?:PROJECT_ROOT|java\\.home|user\\.home|java\\.io\\.tmpdir)\\}";
 
 	/**
 	 * The characters that must never appear inside a value which ends up on a
 	 * single line of a generated artefact.
 	 * <p>
-	 * {@code \p{Cc}} is used rather than {@code \p{Cntrl}} on purpose: by default
-	 * Java's {@code \p{Cntrl}} matches only the ASCII controls
-	 * {@code [\x00-\x1F\x7F]}, so a value carrying U+0085 (NEL), U+2028 (line
-	 * separator) or U+2029 (paragraph separator) would slip through and still break
-	 * a line downstream. {@code \p{Cc}} covers the full Unicode control category
-	 * (including the C1 range with NEL), and {@code \p{Zl}}/{@code \p{Zp}} add the
-	 * two Unicode line and paragraph separators.
+	 * {@code \p{Cc}} is used rather than {@code \p{Cntrl}} on purpose: Java's
+	 * {@code \p{Cntrl}} matches only the ASCII controls, so U+0085 (NEL) would slip
+	 * through and still break a line downstream. {@code \p{Zl}} and {@code \p{Zp}}
+	 * add the Unicode line and paragraph separators U+2028 and U+2029.
 	 */
 	private static final String CONTROL_OR_LINE_SEPARATOR = "\\p{Cc}\\p{Zl}\\p{Zp}";
 
@@ -55,15 +78,11 @@ public final class PolicyValueValidator {
 	 * Matches a supported file path, recognised placeholder expression, or
 	 * wildcard.
 	 * <p>
-	 * Control characters are excluded for the same reason as in
-	 * {@link #COMMAND_PATTERN}: a path carrying a line break travels into generated
-	 * sources, settings and failure reports where a single line is assumed, so a
-	 * value such as {@code "/tmp/foo\nbar"} is rejected rather than silently
-	 * corrupting those artefacts. The exclusion is Unicode-aware (see
-	 * {@link #CONTROL_OR_LINE_SEPARATOR}), so U+0085, U+2028 and U+2029 are
-	 * rejected as well. Excluding them also makes the surrounding newline-free
-	 * {@code ..} check and anchoring unambiguous, which is why the pattern no
-	 * longer needs {@link Pattern#DOTALL}.
+	 * Control characters and line separators (see
+	 * {@link #CONTROL_OR_LINE_SEPARATOR}) are rejected, because a path travels into
+	 * generated sources, settings and failure reports that assume a single line.
+	 * Excluding them also keeps the {@code ..} check and the anchoring unambiguous,
+	 * which is why the pattern needs no {@link Pattern#DOTALL}.
 	 */
 	public static final Pattern FILE_PATH_PATTERN = Pattern
 			.compile("^(?:\\*|(?=.+$)(?=.*\\S)(?!(?:.*[\\\\/])?\\.\\.(?:[\\\\/]|$))(?:(?:" + RECOGNISED_PLACEHOLDER
@@ -76,17 +95,12 @@ public final class PolicyValueValidator {
 	/**
 	 * Matches an executable command, or the command wildcard.
 	 * <p>
-	 * A command is an executable name or a path to one, so the shape cannot be
-	 * pinned down further without rejecting legitimate policies: the fixtures alone
-	 * hold {@code echo} and {@code src/test/.../trustedExecute.sh}. Two things are
-	 * excluded. Control characters and Unicode line separators (see
-	 * {@link #CONTROL_OR_LINE_SEPARATOR}), because they never occur in a real
-	 * command and a value carrying a line break travels into generated sources,
-	 * settings and failure reports where a single line is assumed. And surrounding
-	 * whitespace of any kind, because {@code "echo "} is an authoring slip that
-	 * would otherwise be accepted and then silently match nothing; the boundary
-	 * therefore rejects every Unicode separator ({@code \p{Z}}) and control, so a
-	 * value fenced by a NUL, a BEL or an em space is rejected rather than accepted.
+	 * A command is an executable name or a path to one, so its shape cannot be
+	 * pinned down further. Rejected are control characters and line separators
+	 * anywhere, because the value travels into artefacts that assume a single line,
+	 * and a first or last character that is a control or any Unicode separator,
+	 * because {@code "echo "} would otherwise be accepted and then silently match
+	 * nothing.
 	 */
 	public static final Pattern COMMAND_PATTERN = Pattern
 			.compile("^(?:\\*|[^\\p{Cc}\\p{Z}](?:[^" + CONTROL_OR_LINE_SEPARATOR + "]*[^\\p{Cc}\\p{Z}])?)$");
@@ -101,6 +115,7 @@ public final class PolicyValueValidator {
 	 */
 	public static final Pattern COMMAND_ARGUMENT_PATTERN = Pattern.compile("^[^" + CONTROL_OR_LINE_SEPARATOR + "]*$");
 
+	/** Prevents instances of this utility. */
 	private PolicyValueValidator() {
 		throw new SecurityException(
 				Messages.localized("security.general.utility.initialization", "PolicyValueValidator"));

@@ -738,7 +738,7 @@ Ares 2 validates all policy fields when the YAML file is parsed. If validation f
 | `importTheFollowingPackage` | A Java package name or `*` | See below |
 | `timeout` | Must be **> 0** (the restrictive default is 3000 ms). Validated on load; does not yet take effect at run time, see [Section 8.6](#86-timeout-permissions) | See below |
 
-A policy file that breaks one of these rules is refused while it is read, as a `SecurityException` naming the file. A file, network or command permission built directly in Java, without a policy file, refuses the value with an `IllegalArgumentException` carrying a localised message, as does a negative thread count. A thread class or package name built that way is checked only for `null`, because the record does not know the language; the rules above for those two fields apply on the policy-file path.
+A policy file that breaks one of these rules is refused while it is read, as a `SecurityException` naming the file. A file, network or command permission built directly in Java, without a policy file, refuses the value with an `IllegalArgumentException` carrying a localised message, as does a negative thread count. A thread class or package name built that way is checked only for `null`, because the record does not know the language. Once package permissions are placed in a `SupervisedCode`, it checks their names against the rules above; a thread class name built in code is checked only on the policy-file path.
 
 When a student's code violates a policy at runtime, Ares throws a `SecurityException` with a descriptive single-line message such as:
 

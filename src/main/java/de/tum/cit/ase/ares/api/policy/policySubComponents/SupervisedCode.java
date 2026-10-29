@@ -47,29 +47,21 @@ public record SupervisedCode(
 		@Nullable TestBehaviorConfiguration theFollowingTestBehaviorIsConfigured) {
 
 	/**
-	 * Constructs a SupervisedCode instance with the provided details.
+	 * Constructs a SupervisedCode instance and checks its names.
 	 * <p>
-	 * The list of test classes is copied defensively, so a later change to the list
-	 * the caller passed in cannot alter which classes this record treats as tests.
+	 * Package imports are checked here, as only this record knows the language, so
+	 * code-built policies meet the package rules of a policy file; thread class
+	 * names are not. The test class list is copied.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @throws NullPointerException     if the programming language configuration,
-	 *                                  the list of test classes, one of its
-	 *                                  entries, or the permitted resource accesses
-	 *                                  is null.
-	 * @throws IllegalArgumentException if the package name, the main class name,
-	 *                                  one of the test class names or one of the
-	 *                                  permitted package imports does not have the
-	 *                                  shape the selected language requires of it.
-	 *                                  A package import may also be {@code *}.
+	 * @throws NullPointerException     if a non-null value or a list entry is null.
+	 * @throws IllegalArgumentException if a name or package import does not fit the
+	 *                                  language.
 	 */
 	public SupervisedCode {
 		Objects.requireNonNull(theFollowingProgrammingLanguageConfigurationIsUsed,
 				"ProgrammingLanguageConfiguration must not be null");
-		// SupervisedCode is the one record that carries the language, so it can and
-		// does validate its own names for that language rather than leaving it to the
-		// schema validator alone.
 		LanguageNameRules nameRules = theFollowingProgrammingLanguageConfigurationIsUsed.nameRules();
 		if (theSupervisedCodeUsesTheFollowingPackage != null) {
 			nameRules.requirePackage("theSupervisedCodeUsesTheFollowingPackage",
@@ -84,17 +76,6 @@ public record SupervisedCode(
 			nameRules.requireClassPath("theFollowingClassesAreTestClasses entry", testClass);
 		}
 		Objects.requireNonNull(theFollowingResourceAccessesArePermitted, "ResourceAccesses must not be null");
-		// Package imports are validated here rather than in PackagePermission, which is
-		// language-agnostic and so cannot know what a package looks like. This is the
-		// only place that holds both the language and the permissions, and until now
-		// nothing joined them: a policy read from a file was checked by the schema
-		// validator, and a policy built in code was not checked at all. An unchecked
-		// selector then reached two places that read it loosely. The ArchUnit matcher
-		// strips a trailing dot, so "com.foo." silently became the grant "com.foo"
-		// that the file gate refuses; and the generated test code interpolates the
-		// value into a Java string literal without escaping. Neither crosses a
-		// privilege boundary, because only an instructor writes a policy in code, but
-		// both mean the two ways of expressing one policy disagreed.
 		for (PackagePermission packagePermission : theFollowingResourceAccessesArePermitted.regardingPackageImports()) {
 			Objects.requireNonNull(packagePermission, "regardingPackageImports entries must not be null");
 			nameRules.requirePackageImport("regardingPackageImports entry",
@@ -138,8 +119,7 @@ public record SupervisedCode(
 	/**
 	 * Creates a restrictive supervised code configuration.
 	 * <p>
-	 * The result declares no package, no main class and no test classes, and
-	 * permits only the resource accesses of
+	 * No package, main class or test classes, and only the accesses of
 	 * {@link ResourceAccesses#createRestrictive()}.
 	 *
 	 * @since 2.0.0

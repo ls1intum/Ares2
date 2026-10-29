@@ -13,34 +13,19 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 /**
  * Immutable security policy for supervised code execution.
  * <p>
- * Description: This record encapsulates all necessary details regarding
- * supervised code, including its programming language configuration, permitted
- * resource accesses, and additional metadata. By using the immutable record
- * pattern, it guarantees thread-safety and reduces boilerplate. Validation
- * happens in the canonical constructor, so no instance can exist that violates
- * its invariants, regardless of whether it was created directly, through the
- * builder, or by deserialising a policy file.
- * <p>
- * Design Rationale: Leveraging modern Java features such as records and
- * nullability annotations enforces immutability and clarity. Placing the
- * validation in the canonical constructor rather than in the factory methods
- * makes it impossible to bypass. The supervised code itself is modelled as a
- * separate record in its own right, which keeps this record responsible only
- * for the policy envelope: the declared format version and the supervised code
- * it applies to.
+ * Description: Validation happens in the canonical constructor, so an instance
+ * created directly, through the builder or from a policy file meets the same
+ * invariants.
  *
  * @since 2.0.0
  * @version 2.1.0
  * @author Markus Paulsen
- * @param thisPolicyFileCompliesToThePolicyVersion the policy-format version the
- *                                                 policy declares; must be
- *                                                 between
- *                                                 {@value AresConstants#MINIMUM_POLICY_VERSION}
- *                                                 and
- *                                                 {@value AresConstants#MAXIMUM_POLICY_VERSION},
- *                                                 both inclusive.
- * @param regardingTheSupervisedCode               the details of the supervised
- *                                                 code; must not be null.
+ * @param thisPolicyFileCompliesToThePolicyVersion the declared policy-format
+ *                                                 version; must lie in the
+ *                                                 range set in
+ *                                                 {@link AresConstants}.
+ * @param regardingTheSupervisedCode               the supervised code; must not
+ *                                                 be null.
  */
 @SuppressWarnings("unused")
 public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
@@ -50,16 +35,12 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 	 * The policy-format version supported by this Ares release.
 	 *
 	 * @since 2.0.0
-	 * @deprecated Superseded by the supported range,
+	 * @deprecated Superseded by the supported range from
 	 *             {@link AresConstants#MINIMUM_POLICY_VERSION} to
-	 *             {@link AresConstants#MAXIMUM_POLICY_VERSION}, because one
-	 *             constant cannot express a set of versions whose two ends move
-	 *             independently. Retained as an alias of the maximum, which carries
-	 *             the value and the meaning this constant had, because it shipped
-	 *             in the released 2.1.0 API. Migrate to
-	 *             {@code AresConstants.MAXIMUM_POLICY_VERSION}, and note that a
-	 *             comparison for equality against it should become a range check,
-	 *             or it will reject a version 1 policy once version 2 exists.
+	 *             {@link AresConstants#MAXIMUM_POLICY_VERSION}. Kept as an alias of
+	 *             the maximum because it shipped in the released 2.1.0 API. An
+	 *             equality check against it should become a range check, or it will
+	 *             reject a version 1 policy once version 2 exists.
 	 */
 	@Deprecated(forRemoval = true)
 	public static final int CURRENT_POLICY_VERSION = AresConstants.MAXIMUM_POLICY_VERSION;
@@ -69,15 +50,12 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 	 * and validated supervised code.
 	 * <p>
 	 * The range check is shared with the builder's version setter through
-	 * {@link #requireSupportedPolicyVersion(int)}, so the two entry points cannot
-	 * drift apart. {@code PolicyValueContractTest} covers both.
+	 * {@link #requireSupportedPolicyVersion(int)}, so the two cannot drift apart.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @throws IllegalArgumentException if the declared policy-format version lies
-	 *                                  outside
-	 *                                  [{@value AresConstants#MINIMUM_POLICY_VERSION},
-	 *                                  {@value AresConstants#MAXIMUM_POLICY_VERSION}].
+	 *                                  outside the supported range.
 	 * @throws NullPointerException     if the supervised code is null.
 	 */
 	public SecurityPolicy {
@@ -87,10 +65,8 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 
 	/**
 	 * Validates that a declared policy-format version lies within the supported
-	 * range.
-	 * <p>
-	 * Shared by the canonical constructor and {@link Builder}, so the invariant is
-	 * expressed once rather than in two copies that must be kept in step by hand.
+	 * range. Shared by the canonical constructor and {@link Builder}, so the rule
+	 * is stated once.
 	 *
 	 * @since 2.1.0
 	 * @author Markus Paulsen

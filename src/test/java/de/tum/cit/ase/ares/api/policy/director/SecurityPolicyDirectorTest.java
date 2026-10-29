@@ -64,6 +64,10 @@ class SecurityPolicyDirectorTest {
 		assertFalse(director.forwarded);
 	}
 
+	/**
+	 * Checks that the inherited three-argument overload refuses a {@code null}
+	 * scope with a {@link NullPointerException}.
+	 */
 	@Test
 	void inheritedOverloadRejectsANullScope() {
 		LegacyDirector director = new LegacyDirector();
@@ -86,13 +90,16 @@ class SecurityPolicyDirectorTest {
 	 */
 	private static final class LegacyDirector extends SecurityPolicyDirector {
 
+		/** Whether the two-argument overload was called. */
 		private boolean forwarded;
 
+		/** Builds the director from the standard Java components. */
 		private LegacyDirector() {
 			super(new JavaCreator(), new JavaWriter(), new JavaExecuter(), new EssentialDataYAMLReader(),
 					new JavaProjectScanner(), Path.of("essential-packages.yaml"), Path.of("essential-classes.yaml"));
 		}
 
+		/** Records that it was called and returns a mock factory. */
 		@Override
 		public TestCaseAbstractFactoryAndBuilder createTestCases(SecurityPolicy securityPolicy, Path projectRootPath) {
 			forwarded = true;

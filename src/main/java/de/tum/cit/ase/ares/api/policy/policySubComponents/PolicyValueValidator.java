@@ -10,38 +10,16 @@ import javax.annotation.Nullable;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
- * Compatibility facade for the validator this package published up to 2.1.2.
- * <p>
- * Description: Republishes every public constant and method that
- * {@code de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator}
- * exposed in the 2.1.0, 2.1.1 and 2.1.2 releases, so code compiled or written
- * against those releases keeps compiling. Each member forwards to whichever
- * component now owns the rule; nothing is validated here.
- * <p>
- * Design Rationale: The validator was split in two. Values that do not depend
- * on the supervised code's programming language moved to
- * {@link de.tum.cit.ase.ares.api.policy.PolicyValueValidator}, and the names
- * that do (packages, types, classes and thread constructs) became the concern
- * of {@link LanguageNameRules}, with {@link JavaNameRules} supplying the Java
- * answers. That split is the point of the change: a second language now
- * contributes its own rules instead of editing shared constants. Deleting this
- * type outright would nonetheless have broken every downstream import for no
- * benefit beyond tidiness, so the released surface survives one deprecation
- * cycle here.
- * <p>
- * No expression is restated in this class. The Java patterns are read back from
- * {@link JavaNameRules} through package-private accessors and the neutral ones
- * from the relocated validator, because a facade that recompiled its own copy
- * of a regular expression would drift from the rule actually enforced and would
- * then advertise a contract Ares does not honour.
+ * Keeps the public members this validator had up to 2.1.2, so older code still
+ * compiles. Its methods only forward. The name and path patterns are read back
+ * from where they now live, never copied, so they cannot drift from what Ares
+ * enforces.
  *
  * @since 2.1.0
  * @author Markus Paulsen
  * @deprecated Use {@link de.tum.cit.ase.ares.api.policy.PolicyValueValidator}
- *             for file paths, hosts and the generic matching helpers, and
- *             {@link ProgrammingLanguageConfiguration#nameRules()} for package,
- *             type, class and thread names. Retained only because this type is
- *             part of the released 2.1.x API.
+ *             for paths, hosts and matching, and
+ *             {@link ProgrammingLanguageConfiguration#nameRules()} for names.
  */
 @Deprecated(forRemoval = true)
 public final class PolicyValueValidator {
@@ -147,13 +125,9 @@ public final class PolicyValueValidator {
 	 * @param field   the policy-field name used in the failure message
 	 * @param value   the value to validate; may be {@code null}
 	 * @param pattern the required validation pattern
-	 * @throws IllegalArgumentException if the value does not match the pattern. The
-	 *                                  exception type is the one this method always
-	 *                                  threw; the message is the relocated
-	 *                                  validator's localised wording rather than
-	 *                                  the released English sentence, because a
-	 *                                  facade that reproduced the old text would
-	 *                                  report a different reason than Ares itself.
+	 * @throws IllegalArgumentException if the value does not match the pattern, now
+	 *                                  with the relocated validator's localised
+	 *                                  message.
 	 * @deprecated Use
 	 *             {@link de.tum.cit.ase.ares.api.policy.PolicyValueValidator#requireMatch}.
 	 */
@@ -168,14 +142,11 @@ public final class PolicyValueValidator {
 	 * @since 2.1.0
 	 * @author Markus Paulsen
 	 * @param value the package import value; may be {@code null}
-	 * @throws IllegalArgumentException if the value is not a valid package import.
-	 *                                  As with {@link #requireMatch}, the exception
-	 *                                  type is the released one and only the
-	 *                                  message is now the localised wording.
-	 * @deprecated Use {@link LanguageNameRules#requirePackageImport} on the rules
-	 *             of the configured language, obtained from
+	 * @throws IllegalArgumentException if the value is not a valid package import,
+	 *                                  with a localised message.
+	 * @deprecated Use {@link LanguageNameRules#requirePackageImport} on
 	 *             {@link ProgrammingLanguageConfiguration#nameRules()}. This method
-	 *             validates against Java whatever language the policy selects.
+	 *             always applies the Java rules.
 	 */
 	@Deprecated(forRemoval = true)
 	public static void requirePackageImport(@Nullable String value) {

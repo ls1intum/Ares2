@@ -24,15 +24,14 @@ import org.junit.jupiter.params.provider.ValueSource;
  * Pins the public surface that {@code PolicyValueValidator} released in this
  * package up to 2.1.2.
  * <p>
- * Every member the facade republishes is exercised here, so removing or
- * renaming one fails a test rather than silently breaking a downstream
- * compilation that this repository never builds. The identity assertions
- * additionally prove the facade forwards to the component that now owns each
- * rule instead of holding a second copy of the expression, which is the failure
- * mode a facade invites.
+ * Every member the facade republishes is exercised, so removing or renaming one
+ * fails here instead of breaking downstream code this repository never
+ * compiles. Identity checks prove the facade forwards to the component that now
+ * owns each rule, not to a copy.
+ * <p>
+ * "removal" is suppressed beside "deprecation" because javac reports uses of a
+ * class deprecated for removal under that separate warning.
  */
-// "deprecation" alone is not enough: the facade is @Deprecated(forRemoval =
-// true), and javac reports those uses under the separate "removal" lint.
 @SuppressWarnings({ "deprecation", "removal" })
 class PolicyValueValidatorCompatibilityTest {
 
@@ -59,13 +58,18 @@ class PolicyValueValidatorCompatibilityTest {
 			"JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION", "JAVA_USING_GRADLE_WALA_AND_ASPECTJ",
 			"JAVA_USING_GRADLE_WALA_AND_INSTRUMENTATION");
 
+	/**
+	 * Checks that the class is still public and final, its seven pattern constants
+	 * are public static final patterns and its four methods are public and static
+	 * with the released return types. getField and getMethod find public members
+	 * only, so a member demoted to package-private fails here instead of compiling
+	 * quietly in this package.
+	 */
 	@Test
 	void publishesTheReleasedMembersWithTheReleasedAccessibility() throws NoSuchFieldException, NoSuchMethodException {
 		int classModifiers = PolicyValueValidator.class.getModifiers();
 		assertTrue(Modifier.isPublic(classModifiers), "the released type was public");
 		assertTrue(Modifier.isFinal(classModifiers), "the released type was final");
-		// getField and getMethod resolve public members only, so a member demoted to
-		// package-private throws here rather than compiling quietly in this package.
 		for (String name : RELEASED_PATTERN_FIELDS) {
 			Field field = PolicyValueValidator.class.getField(name);
 			assertTrue(Modifier.isStatic(field.getModifiers()), name);
@@ -85,6 +89,9 @@ class PolicyValueValidatorCompatibilityTest {
 		assertSame(void.class, released.get(3).getReturnType());
 	}
 
+	/**
+	 * Checks that every configuration name 2.1.2 accepted is still accepted.
+	 */
 	@Test
 	void acceptsEveryConfigurationTheReleaseRecognised() {
 		for (String configuration : RELEASED_CONFIGURATIONS) {
@@ -93,6 +100,10 @@ class PolicyValueValidatorCompatibilityTest {
 		}
 	}
 
+	/**
+	 * Checks that the Java name constants are the very same objects JavaNameRules
+	 * enforces, not copies.
+	 */
 	@Test
 	void javaPatternsAreTheVeryPatternsJavaNameRulesEnforces() {
 		assertSame(JavaNameRules.packagePattern(), PolicyValueValidator.JAVA_PACKAGE_PATTERN);
@@ -101,6 +112,10 @@ class PolicyValueValidatorCompatibilityTest {
 		assertSame(JavaNameRules.threadConstructPattern(), PolicyValueValidator.THREAD_CLASS_PATTERN);
 	}
 
+	/**
+	 * Checks that the file path and host constants are the very same objects the
+	 * relocated validator enforces, not copies.
+	 */
 	@Test
 	void neutralPatternsAreTheVeryPatternsTheRelocatedValidatorEnforces() {
 		assertSame(de.tum.cit.ase.ares.api.policy.PolicyValueValidator.FILE_PATH_PATTERN,
@@ -108,6 +123,9 @@ class PolicyValueValidatorCompatibilityTest {
 		assertSame(de.tum.cit.ase.ares.api.policy.PolicyValueValidator.HOST_PATTERN, PolicyValueValidator.HOST_PATTERN);
 	}
 
+	/**
+	 * Checks that every configuration the enum declares is accepted.
+	 */
 	@ParameterizedTest
 	@EnumSource(ProgrammingLanguageConfiguration.class)
 	void acceptsEveryConfigurationTheEnumDeclares(ProgrammingLanguageConfiguration configuration) {
@@ -115,6 +133,10 @@ class PolicyValueValidatorCompatibilityTest {
 				PolicyValueValidator.PROGRAMMING_LANGUAGE_CONFIGURATION_PATTERN));
 	}
 
+	/**
+	 * Checks that an empty, unknown, padded or other-language configuration name is
+	 * rejected.
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "", "JAVA_USING_ANT_ARCHUNIT_AND_ASPECTJ", "JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ ",
 			"PYTHON_USING_MAVEN_ARCHUNIT_AND_ASPECTJ" })
@@ -123,6 +145,10 @@ class PolicyValueValidatorCompatibilityTest {
 				PolicyValueValidator.matches(value, PolicyValueValidator.PROGRAMMING_LANGUAGE_CONFIGURATION_PATTERN));
 	}
 
+	/**
+	 * Checks that matches accepts a valid package, rejects an invalid one and
+	 * returns false for null.
+	 */
 	@Test
 	void matchesAnswersForAReleasedPatternAndToleratesNull() {
 		assertTrue(PolicyValueValidator.matches("de.tum.cit.ase", PolicyValueValidator.JAVA_PACKAGE_PATTERN));
@@ -130,6 +156,10 @@ class PolicyValueValidatorCompatibilityTest {
 		assertFalse(PolicyValueValidator.matches(null, PolicyValueValidator.JAVA_PACKAGE_PATTERN));
 	}
 
+	/**
+	 * Checks that requireMatch passes a valid host and throws an
+	 * IllegalArgumentException for an invalid one.
+	 */
 	@Test
 	void requireMatchStillThrowsIllegalArgumentExceptionOnAMismatch() {
 		assertDoesNotThrow(
@@ -138,6 +168,10 @@ class PolicyValueValidatorCompatibilityTest {
 				() -> PolicyValueValidator.requireMatch("onTheHost", "not a host", PolicyValueValidator.HOST_PATTERN));
 	}
 
+	/**
+	 * Checks that both package import methods accept the wildcard and plain package
+	 * names.
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "*", "java.util", "de.tum.cit.ase.ares" })
 	void acceptsAReleasedPackageImport(String value) {
@@ -145,6 +179,10 @@ class PolicyValueValidatorCompatibilityTest {
 		assertDoesNotThrow(() -> PolicyValueValidator.requirePackageImport(value));
 	}
 
+	/**
+	 * Checks that both package import methods reject an empty value, a doubled dot,
+	 * a trailing wildcard and a keyword.
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "", "de..tum", "de.tum.*", "int.foo" })
 	void rejectsAReleasedPackageImport(String value) {
@@ -152,6 +190,10 @@ class PolicyValueValidatorCompatibilityTest {
 		assertThrows(IllegalArgumentException.class, () -> PolicyValueValidator.requirePackageImport(value));
 	}
 
+	/**
+	 * Checks that the class still refuses instantiation, even through reflection,
+	 * with a SecurityException.
+	 */
 	@Test
 	void refusesInstantiationJustAsTheReleasedUtilityDid() throws NoSuchMethodException {
 		Constructor<PolicyValueValidator> constructor = PolicyValueValidator.class.getDeclaredConstructor();
@@ -160,6 +202,10 @@ class PolicyValueValidatorCompatibilityTest {
 		assertInstanceOf(SecurityException.class, thrown.getCause());
 	}
 
+	/**
+	 * Checks that the thread pattern still accepts the wildcard, the lambda token
+	 * and a class name.
+	 */
 	@Test
 	void keepsTheReleasedThreadTokensMatching() {
 		Pattern threadPattern = PolicyValueValidator.THREAD_CLASS_PATTERN;

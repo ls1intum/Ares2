@@ -382,11 +382,14 @@ public class SecurityPolicyYAMLReaderTest {
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(commentsOnlyFile));
 		}
 
+		/**
+		 * Checks that when the file parses and validates but turning it into a policy
+		 * object yields {@code null}, the reader throws a {@link SecurityException}
+		 * rather than returning {@code null}.
+		 */
 		@Test
 		@DisplayName("Should wrap a null binding result as a SecurityException")
 		void wrapsNullBindingResultAsSecurityException(@TempDir Path tempDir) throws Exception {
-			// The tree parses and validates, but binding yields null: the reader must fail
-			// closed with the documented SecurityException rather than return null.
 			Path policyFile = tempDir.resolve("policy.yaml");
 			Files.writeString(policyFile, minimalPolicy());
 			YAMLMapper spyMapper = spy(new YAMLMapper());
@@ -396,6 +399,10 @@ public class SecurityPolicyYAMLReaderTest {
 			assertThrows(SecurityException.class, () -> spyReader.readSecurityPolicyFrom(policyFile));
 		}
 
+		/**
+		 * Checks that an {@link UnsupportedOperationException} thrown while turning the
+		 * file into a policy object reaches the caller as a {@link SecurityException}.
+		 */
 		@Test
 		@DisplayName("Should wrap an UnsupportedOperationException as a SecurityException")
 		void wrapsUnsupportedOperationAsSecurityException(@TempDir Path tempDir) throws Exception {

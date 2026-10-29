@@ -20,12 +20,18 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 
 /**
- * The validator is fed literal addresses on purpose, valid and invalid ones
- * alike.
+ * Checks which paths, commands, command arguments and hosts
+ * {@link PolicyValueValidator} accepts and which it rejects. The validator is
+ * fed literal IP addresses on purpose, valid and invalid ones alike, which is
+ * why the PMD warning about hard-coded addresses is suppressed.
  */
 @SuppressWarnings("PMD.AvoidUsingHardCodedIP")
 class PolicyValueValidatorTest {
 
+	/**
+	 * Checks that the wildcard, absolute, relative, Windows and network paths and
+	 * the supported placeholders are accepted as file paths.
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "*", "/var/lib/ares", "src/main/java", "relative/path", "archive..bak", "path/.../file",
 			"path/..suffix", "C:\\Users\\Ares", "C:/Users/Ares", "\\\\server\\share\\file", "${PROJECT_ROOT}/target",
@@ -34,6 +40,10 @@ class PolicyValueValidatorTest {
 		assertTrue(PolicyValueValidator.matches(value, PolicyValueValidator.FILE_PATH_PATTERN));
 	}
 
+	/**
+	 * Checks that blank paths, unknown placeholders, wildcards inside a path and
+	 * every form of parent-directory step are rejected.
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "", " ", "${UNKNOWN}/target", "/tmp/*", "src/*/java", "..", "../relative/path",
 			"..\\relative\\path", "path/../file", "path\\..\\file", "path/..", "path\\..", "/../etc", "C:\\..\\Windows",
@@ -42,30 +52,44 @@ class PolicyValueValidatorTest {
 		assertFalse(PolicyValueValidator.matches(value, PolicyValueValidator.FILE_PATH_PATTERN));
 	}
 
+	/**
+	 * Checks that control characters and line separators inside a path are
+	 * rejected, including NEL (U+0085) and the line and paragraph separators
+	 * (U+2028, U+2029), which the default {@code \p{Cntrl}} would not catch.
+	 */
 	@Test
 	void rejectsControlCharactersInPaths() {
-		// 0x85 NEL, 0x2028 line separator and 0x2029 paragraph separator are Unicode
-		// controls and line separators that the default \p{Cntrl} would not catch.
 		for (int codePoint : new int[] { 0, 7, 9, 10, 11, 12, 13, 0x85, 0x2028, 0x2029 }) {
 			assertFalse(PolicyValueValidator.matches("/tmp/foo" + (char) codePoint + "bar",
 					PolicyValueValidator.FILE_PATH_PATTERN));
 		}
 	}
 
+	/**
+	 * Checks that the wildcard, a bare command, absolute and relative paths to one
+	 * and a name with an inner space are accepted as commands.
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "*", "echo", "/usr/bin/echo", "src/test/resources/trustedExecute.sh", "my program" })
 	void acceptsSupportedCommands(String value) {
 		assertTrue(PolicyValueValidator.matches(value, PolicyValueValidator.COMMAND_PATTERN));
 	}
 
-	// A leading or trailing em space (U+2003) is a Unicode space separator that
-	// plain \S does not treat as whitespace, so the boundary must exclude \p{Z}.
+	/**
+	 * Checks that a command with leading or trailing whitespace is rejected. The em
+	 * space (U+2003) is included because plain {@code \S} does not treat it as
+	 * whitespace, so the boundary must also exclude {@code \p{Z}}.
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "", " ", "echo ", " echo", "\techo", "echo\t", "\u2003echo", "echo\u2003" })
 	void rejectsCommandsWithSurroundingWhitespace(String value) {
 		assertFalse(PolicyValueValidator.matches(value, PolicyValueValidator.COMMAND_PATTERN));
 	}
 
+	/**
+	 * Checks that a control character or line separator is rejected at the start,
+	 * in the middle and at the end of a command.
+	 */
 	@Test
 	void rejectsControlAndLineSeparatorCharactersInCommands() {
 		for (int codePoint : new int[] { 0, 7, 10, 13, 0x85, 0x2028, 0x2029 }) {
@@ -76,15 +100,21 @@ class PolicyValueValidatorTest {
 		}
 	}
 
-	// An argument, unlike a command, may legitimately be or contain whitespace,
-	// including the em space \u2003; only controls and line separators are
-	// rejected.
+	/**
+	 * Checks that command arguments are accepted, including empty ones and ones
+	 * that are or contain whitespace such as the em space (U+2003). Unlike a
+	 * command, an argument may legitimately hold whitespace.
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "*", "", " ", "\u2003", "--flag", "with space", "value=1" })
 	void acceptsSupportedCommandArguments(String value) {
 		assertTrue(PolicyValueValidator.matches(value, PolicyValueValidator.COMMAND_ARGUMENT_PATTERN));
 	}
 
+	/**
+	 * Checks that a control character or line separator inside a command argument
+	 * is rejected.
+	 */
 	@Test
 	void rejectsControlAndLineSeparatorCharactersInCommandArguments() {
 		for (int codePoint : new int[] { 0, 7, 10, 13, 0x85, 0x2028, 0x2029 }) {
@@ -93,6 +123,10 @@ class PolicyValueValidatorTest {
 		}
 	}
 
+	/**
+	 * Checks that the wildcard, host names, a fully qualified name with a trailing
+	 * dot and IPv4 and IPv6 addresses are accepted as hosts.
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "*", "localhost", "example.org", "api.example.org.", "127.0.0.1", "255.255.255.255", "::1",
 			"2001:db8::1", "::ffff:192.0.2.128" })
@@ -100,12 +134,21 @@ class PolicyValueValidatorTest {
 		assertTrue(PolicyValueValidator.matches(value, PolicyValueValidator.HOST_PATTERN));
 	}
 
+	/**
+	 * Checks that empty, malformed and out-of-range host names and addresses are
+	 * rejected.
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "", "-example.org", "example..org", "256.1.1.1", "2001:db8:::1", "host name" })
 	void rejectsInvalidHosts(String value) {
 		assertFalse(PolicyValueValidator.matches(value, PolicyValueValidator.HOST_PATTERN));
 	}
 
+	/**
+	 * Checks that SupervisedCode applies the Java naming rules to its package, main
+	 * class and test classes, accepting non-ASCII names and rejecting a keyword, a
+	 * qualified main class and an incomplete test class.
+	 */
 	@Test
 	void appliesLanguageValidationToSupervisedCode() {
 		ResourceAccesses resources = ResourceAccesses.createRestrictive();
@@ -123,28 +166,40 @@ class PolicyValueValidatorTest {
 						"de.übung", "Main", List.of("de.übung."), resources));
 	}
 
+	/**
+	 * Checks that a null value never matches.
+	 */
 	@Test
 	void matchesReturnsFalseForANullValue() {
 		assertFalse(PolicyValueValidator.matches(null, PolicyValueValidator.FILE_PATH_PATTERN));
 	}
 
+	/**
+	 * Checks that requireMatch does not throw for a matching value.
+	 */
 	@Test
 	void requireMatchAcceptsAValueMatchingThePattern() {
 		assertDoesNotThrow(
 				() -> PolicyValueValidator.requireMatch("path", "/tmp/data", PolicyValueValidator.FILE_PATH_PATTERN));
 	}
 
+	/**
+	 * Checks that a mismatch on a known pattern names the rejected value and uses
+	 * the readable expectation for that pattern, not the raw pattern source that
+	 * the fallback for an unknown pattern would show.
+	 */
 	@Test
 	void requireMatchReportsTheFieldSpecificExpectationForAKnownPattern() {
 		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
 				() -> PolicyValueValidator.requireMatch("onTheHost", "not a host", PolicyValueValidator.HOST_PATTERN));
-		// The mapped, human-readable expectation is used, not the raw pattern source
-		// that
-		// the unmapped fallback would emit.
 		assertTrue(thrown.getMessage().contains("not a host"));
 		assertFalse(thrown.getMessage().contains(PolicyValueValidator.HOST_PATTERN.pattern()));
 	}
 
+	/**
+	 * Checks that a mismatch on a pattern without a readable expectation reports
+	 * the raw pattern source instead.
+	 */
 	@Test
 	void requireMatchFallsBackToThePatternSourceForAnUnmappedPattern() {
 		Pattern unmapped = Pattern.compile("^[a-z]+$");
@@ -153,6 +208,10 @@ class PolicyValueValidatorTest {
 		assertTrue(thrown.getMessage().contains(unmapped.pattern()));
 	}
 
+	/**
+	 * Checks that the utility class refuses instantiation, even through reflection,
+	 * with a SecurityException.
+	 */
 	@Test
 	void cannotBeInstantiatedReflectively() throws NoSuchMethodException {
 		Constructor<PolicyValueValidator> constructor = PolicyValueValidator.class.getDeclaredConstructor();

@@ -19,6 +19,11 @@ class SecurityPolicyPipelineIntegrationTest {
 	@TempDir
 	Path temporaryDirectory;
 
+	/**
+	 * Checks, for Maven and for Gradle, that the values of a fully filled-in policy
+	 * file reach the generated test-case factory, with {@code ${PROJECT_ROOT}}
+	 * expanded to the project folder.
+	 */
 	@Test
 	void carriesFullyPopulatedYamlThroughRealMavenAndGradlePipelines() throws Exception {
 		for (BuildMode mode : BuildMode.values()) {
@@ -48,6 +53,10 @@ class SecurityPolicyPipelineIntegrationTest {
 		}
 	}
 
+	/**
+	 * Checks that a policy whose port is {@code null} is refused with a
+	 * {@link SecurityException} and that no test-case factory is left behind.
+	 */
 	@Test
 	void invalidPolicyFailsBeforeAFactoryExists() throws Exception {
 		Path root = Files.createDirectory(temporaryDirectory.resolve("invalid"));

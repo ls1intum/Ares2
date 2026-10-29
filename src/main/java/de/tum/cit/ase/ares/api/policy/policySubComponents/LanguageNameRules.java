@@ -5,21 +5,13 @@ import javax.annotation.Nullable;
 /**
  * Language-specific validation of the names a policy refers to.
  * <p>
- * Description: A policy names packages, types, classes and thread constructs of
- * the supervised code. What shape those names may take depends on the
- * programming language the supervised code is written in, so this contract is
- * resolved per language from {@link ProgrammingLanguageConfiguration}. The
- * neutral policy core (the schema validator, the permission records) validates
- * such names only through this interface and never hard-codes one language's
- * rules.
+ * Description: How a package, type, class or thread name may look depends on
+ * the language of the supervised code, so the rules come from
+ * {@link ProgrammingLanguageConfiguration#nameRules()}.
  * <p>
- * Design Rationale: Keeping the language-specific name rules behind a small
- * interface lets a second language be added by supplying another implementation
- * and one more case in {@link ProgrammingLanguageConfiguration}, without
- * touching the neutral core. The {@code matches*} methods report a boolean so a
- * caller can raise its own error in its own style (a schema validator points at
- * a JSON path, a record throws), while the {@code require*} methods throw a
- * ready-made {@link IllegalArgumentException} where that is more convenient.
+ * Design Rationale: A new language adds an implementation and leaves the shared
+ * code alone. {@code matches*} returns a boolean for callers with their own
+ * error; {@code require*} throws one.
  *
  * @since 2.1.0
  * @author Markus Paulsen
@@ -81,9 +73,8 @@ public interface LanguageNameRules {
 	 * Requires a value to be a valid package import for this language, that is a
 	 * package name or the wildcard {@code *}.
 	 * <p>
-	 * The throwing counterpart of {@link #matchesPackageImport(String)}, and
-	 * distinct from {@link #requirePackage(String, String)} because the wildcard is
-	 * a legal package <em>import</em> and not a legal package <em>name</em>.
+	 * Unlike {@link #requirePackage(String, String)}, it accepts the wildcard,
+	 * which is a legal import but not a legal package name.
 	 *
 	 * @param field the policy-field name used in the failure message.
 	 * @param value the value to validate; may be {@code null}.

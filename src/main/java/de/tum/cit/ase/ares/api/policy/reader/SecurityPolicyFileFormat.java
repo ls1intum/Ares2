@@ -12,15 +12,11 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * The supported security-policy file formats, identified by file extension.
  * <p>
  * Description: Each constant names one format Ares can read and the file
- * extensions that select it. Resolving a path to a format, and the extension
- * extraction that used to live in {@link SecurityPolicyReader}, are owned here,
- * so the reader's selection is a single exhaustive switch over this enum.
+ * extensions that select it.
  * <p>
- * Design Rationale: Keeping the set of formats in one enum lets
+ * Design Rationale: Keeping the formats in one enum lets
  * {@link SecurityPolicyReader#selectSecurityPolicyReader(Path, Path)} switch
- * without a default branch: a new format is a new constant, and the compiler
- * then forces the switch to handle it, rather than a string {@code default}
- * that silently accepts the omission.
+ * without a default branch, so the compiler forces it to handle a new format.
  *
  * @since 2.1.0
  * @author Markus Paulsen
@@ -30,9 +26,15 @@ enum SecurityPolicyFileFormat {
 	/** YAML, recognised by the {@code .yaml} and {@code .yml} extensions. */
 	YAML(Set.of("yaml", "yml"));
 
+	/** The lower-case file extensions, without the dot, that select this format. */
 	@Nonnull
 	private final Set<String> extensions;
 
+	/**
+	 * Creates a format selected by the given extensions.
+	 *
+	 * @param extensions the lower-case extensions, without the dot.
+	 */
 	SecurityPolicyFileFormat(@Nonnull Set<String> extensions) {
 		this.extensions = extensions;
 	}

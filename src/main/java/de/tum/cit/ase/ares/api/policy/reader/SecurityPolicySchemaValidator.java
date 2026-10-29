@@ -20,26 +20,12 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageCon
 /**
  * Validates the parsed policy tree before Jackson binds it to records.
  * <p>
- * Description: Checks the shape of the tree, not the syntax of the file it came
- * from: the required and permitted fields, the type of each value, and the
- * format of each value. Language-independent values (paths, hosts, commands)
- * are matched against the patterns in {@link PolicyValueValidator}; names that
- * depend on the supervised code's language (packages, classes, thread
- * constructs) are matched against the {@link LanguageNameRules} the declared
- * {@link ProgrammingLanguageConfiguration} selects. Failures are reported as a
- * JSON path, so a policy author is pointed at the field rather than at the
- * parser.
+ * Description: Checks the fields and the type and format of each value.
+ * Language-specific names are checked with the {@link LanguageNameRules} of the
+ * declared {@link ProgrammingLanguageConfiguration}.
  * <p>
- * Design Rationale: This class is deliberately not tied to one file format. Its
- * input is a Jackson {@link JsonNode}, which is the same tree whether the file
- * was YAML, JSON or anything else Jackson can parse, and everything
- * format-specific lives in the reader that produces that tree, currently the
- * mapper configured by {@code SecurityPolicyYAMLReader}. It is likewise not
- * tied to one language: it identifies the language first and then validates
- * names with that language's rules.
- * <p>
- * It is public only so that the format-specific readers in the sub-packages can
- * reach it. Treat it as internal to the policy reader.
+ * Design Rationale: Taking a {@link JsonNode} keeps it independent of the file
+ * format. Public only for the readers in the sub-packages.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -69,6 +55,16 @@ public final class SecurityPolicySchemaValidator {
 		throw new UnsupportedOperationException("SecurityPolicySchemaValidator is a utility class");
 	}
 
+	/**
+	 * Validates a parsed policy tree.
+	 * <p>
+	 * The language configuration is identified first, so every language-specific
+	 * name is checked with that language's rules, and an unknown configuration is
+	 * rejected here rather than later during Jackson's enum binding.
+	 *
+	 * @param root the root of the parsed policy tree.
+	 * @throws MismatchedInputException if the tree breaks the schema.
+	 */
 	public static void validate(@Nonnull JsonNode root) throws MismatchedInputException {
 		requireObject(root, "$", ROOT_FIELDS, ROOT_FIELDS);
 		requireIntegral(root, "thisPolicyFileCompliesToThePolicyVersion", "$");
@@ -89,9 +85,6 @@ public final class SecurityPolicySchemaValidator {
 						"theFollowingResourceAccessesArePermitted"));
 		requireText(supervisedCode, "theFollowingProgrammingLanguageConfigurationIsUsed",
 				"$.regardingTheSupervisedCode");
-		// Identify the language first, then validate every language-specific name with
-		// that language's rules. A value that is not a known configuration is rejected
-		// here rather than only failing later during Jackson's enum binding.
 		LanguageNameRules nameRules = languageRulesFor(
 				supervisedCode.get("theFollowingProgrammingLanguageConfigurationIsUsed").textValue());
 		requireOptionalText(supervisedCode, "theSupervisedCodeUsesTheFollowingPackage", "$.regardingTheSupervisedCode");
@@ -163,6 +156,13 @@ public final class SecurityPolicySchemaValidator {
 		}
 	}
 
+	/**
+	 * Returns the name rules of the language configuration with the given name.
+	 *
+	 * @param configurationName the configuration name written in the policy.
+	 * @return that configuration's name rules.
+	 * @throws MismatchedInputException if no configuration has that name.
+	 */
 	private static LanguageNameRules languageRulesFor(String configurationName) throws MismatchedInputException {
 		for (ProgrammingLanguageConfiguration configuration : ProgrammingLanguageConfiguration.values()) {
 			if (configuration.name().equals(configurationName)) {
@@ -174,21 +174,22 @@ public final class SecurityPolicySchemaValidator {
 						+ " must be a known configuration");
 	}
 
+	/**
+	 * Validates the command permissions.
+	 * <p>
+	 * An entry may be a bare string, meaning that command with no arguments. The
+	 * form is deprecated on {@code CommandPermission} but part of policy format
+	 * version 1, so it is accepted and held to the same command pattern. A written
+	 * null is rejected by {@link #requireObject}. Arguments may be empty strings,
+	 * which the argument pattern accepts.
+	 *
+	 * @param commands the command permissions array.
+	 */
 	private static void validateCommandArray(JsonNode commands) throws MismatchedInputException {
 		if (commands == null || !commands.isArray()) {
 			fail("regardingCommandExecutions must be an array");
 		}
 		for (JsonNode command : commands) {
-			// A command permission should be written as the mapping. The bare scalar
-			// form means "this command with no arguments", which reads as the opposite
-			// to most authors, but it is part of policy-format version 1 and this
-			// release still supports only version 1, so rejecting it here would break
-			// policy files that load today. It is deprecated on CommandPermission and
-			// goes with the next format version; until then the command it carries is
-			// held to the same pattern as the mapping form. No null check: iterating a
-			// parsed array yields a NullNode for a written null, never a Java null, and
-			// requireObject below is what rejects a null entry, as in every sibling loop
-			// here.
 			if (command.isTextual()) {
 				if (!PolicyValueValidator.matches(command.textValue(), PolicyValueValidator.COMMAND_PATTERN)) {
 					fail("regardingCommandExecutions entry must match "
@@ -200,10 +201,6 @@ public final class SecurityPolicySchemaValidator {
 			requireText(command, "executeTheCommand", "regardingCommandExecutions entry");
 			requirePattern(command, "executeTheCommand", "regardingCommandExecutions entry",
 					PolicyValueValidator.COMMAND_PATTERN);
-			// An empty argument is a valid value that COMMAND_ARGUMENT_PATTERN and
-			// CommandPermission both accept, so the blank-rejecting requireTextArray must
-			// not gate it here; only the array-of-strings shape is required before the
-			// per-entry pattern check runs.
 			requireTextArrayAllowingBlankEntries(command.get("withTheseArguments"),
 					"regardingCommandExecutions entry.withTheseArguments");
 			for (JsonNode argument : command.get("withTheseArguments")) {
@@ -292,6 +289,14 @@ public final class SecurityPolicySchemaValidator {
 		}
 	}
 
+	/**
+	 * Requires an array whose entries are all strings, empty or blank ones
+	 * included.
+	 *
+	 * @param node the node to check.
+	 * @param path the field path used in the failure message.
+	 * @throws MismatchedInputException if the node is not such an array.
+	 */
 	private static void requireTextArrayAllowingBlankEntries(JsonNode node, String path)
 			throws MismatchedInputException {
 		if (node == null || !node.isArray()) {
@@ -304,6 +309,15 @@ public final class SecurityPolicySchemaValidator {
 		}
 	}
 
+	/**
+	 * Requires a field's text to fully match a validation pattern.
+	 *
+	 * @param parent  the object holding the field.
+	 * @param field   the field name.
+	 * @param path    the path used in the failure message.
+	 * @param pattern the required pattern.
+	 * @throws MismatchedInputException if the text does not match.
+	 */
 	private static void requirePattern(JsonNode parent, String field, String path, Pattern pattern)
 			throws MismatchedInputException {
 		if (!PolicyValueValidator.matches(parent.get(field).textValue(), pattern)) {

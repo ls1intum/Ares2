@@ -8,32 +8,17 @@ import javax.annotation.Nullable;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
- * Allowed thread creation operations.
+ * How many threads of one kind the supervised code may create.
  * <p>
- * Description: Specifies how many threads of one kind the supervised code may
- * create. A count of zero names the kind without permitting any of it, which is
- * how a restrictive policy denies it explicitly.
- * <p>
- * Design Rationale: Limiting thread creation is crucial to control concurrency
- * and resource usage. Not every concurrent construct is a named class, so
- * besides a fully qualified class name and {@code *} for every class, the kind
- * may also be one of the tokens Ares uses for concurrency that no class name
- * describes: {@code Lambda-Expression}, and the implicit thread operations
- * {@code <implicit-thread-op:parallelStream>},
- * {@code <implicit-thread-op:parallel>},
- * {@code <implicit-thread-op:Thread.sleep>},
- * {@code <implicit-thread-op:SubmissionPublisher.submit>} and
- * {@code <implicit-thread-op:SubmissionPublisher.offer>}.
+ * Zero names the kind but permits none. The kind is a qualified class name,
+ * {@code *}, {@code Lambda-Expression} or an {@code <implicit-thread-op:...>}
+ * token. Not knowing the language, this record does not check the kind; the
+ * schema validator does so for a policy file.
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param createTheFollowingNumberOfThreads the number of threads permitted to
- *                                          be created; must not be negative.
- * @param ofThisClass                       the kind of thread this permission
- *                                          covers, as a fully qualified class
- *                                          name, {@code *}, or one of the
- *                                          tokens listed above; must not be
- *                                          null.
+ * @param createTheFollowingNumberOfThreads the permitted count, not negative.
+ * @param ofThisClass                       the kind of thread covered.
  */
 public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull String ofThisClass) {
 
@@ -50,10 +35,6 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 		if (createTheFollowingNumberOfThreads < 0) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.thread.count.negative"));
 		}
-		// Only the universal invariants are checked here: this record does not carry
-		// the language, so whether ofThisClass is a valid thread construct for the
-		// supervised code's language is validated by the schema validator on the
-		// policy-file path.
 	}
 
 	/**
@@ -64,8 +45,7 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 	 * @param threadClass the kind of thread for which no threads are permitted;
 	 *                    must not be null.
 	 * @return a new ThreadPermission instance with zero threads allowed.
-	 * @throws NullPointerException     if the thread class is null.
-	 * @throws IllegalArgumentException if the thread class is not valid.
+	 * @throws NullPointerException if the thread class is null.
 	 */
 	@Nonnull
 	public static ThreadPermission createRestrictive(@Nonnull String threadClass) {
@@ -150,8 +130,7 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 		 * @author Markus Paulsen
 		 * @return a new ThreadPermission instance.
 		 * @throws NullPointerException     if no thread class was set.
-		 * @throws IllegalArgumentException if the thread count is negative or the
-		 *                                  thread class is not valid.
+		 * @throws IllegalArgumentException if the thread count is negative.
 		 */
 		@Nonnull
 		public ThreadPermission build() {

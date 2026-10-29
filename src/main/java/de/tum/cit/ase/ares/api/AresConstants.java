@@ -5,15 +5,13 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 /**
  * Constants shared across Ares.
  * <p>
- * Description: Holds values that more than one subsystem has to agree on, so
- * that agreement is expressed in one place rather than repeated. A value used
- * by a single subsystem belongs in that subsystem, not here.
+ * Description: Holds values that more than one subsystem has to agree on. A
+ * value used by a single subsystem belongs in that subsystem, not here.
  * <p>
- * Design Rationale: The supported policy-format range is read by the policy
- * record, by its builder and by the schema validator that runs before the
- * record exists. Those three sit in different packages and must not be able to
- * disagree, which is what a shared constant guarantees and what a constant
- * owned by any one of them does not.
+ * Design Rationale: The policy-format range is read by the policy record, its
+ * builder and the schema validator, in packages that must not disagree. Loading
+ * this class fails if the minimum exceeds the maximum, which would otherwise
+ * silently reject every policy version.
  *
  * @since 2.1.0
  * @author Markus Paulsen
@@ -39,15 +37,12 @@ public final class AresConstants {
 	public static final int MAXIMUM_POLICY_VERSION = 1;
 
 	static {
-		// Fail fast at class load if the range is ever edited into an inconsistent
-		// state: a minimum above the maximum would otherwise silently reject every
-		// policy version instead of surfacing a clear cause. The check folds away when
-		// the constants form a valid range, so it costs nothing at runtime.
 		if (MINIMUM_POLICY_VERSION > MAXIMUM_POLICY_VERSION) {
 			throw new ExceptionInInitializerError("MINIMUM_POLICY_VERSION must not exceed MAXIMUM_POLICY_VERSION");
 		}
 	}
 
+	/** Prevents instances of this utility. */
 	private AresConstants() {
 		throw new SecurityException(Messages.localized("security.general.utility.initialization", "AresConstants"));
 	}

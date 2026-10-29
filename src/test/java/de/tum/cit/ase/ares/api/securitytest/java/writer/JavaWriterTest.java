@@ -361,24 +361,28 @@ public class JavaWriterTest {
 		}
 	}
 
+	/** Checks that the writer refuses a null project root. */
 	@Test
 	void constructorRejectsANullProjectRoot() {
 		assertThrows(NullPointerException.class, () -> new JavaWriter((Path) null));
 	}
 
+	/** Checks that the writer refuses a project root that is a file. */
 	@Test
 	void constructorRejectsAProjectRootThatIsNotADirectory() throws IOException {
 		Path file = Files.createFile(tempDir.resolve("not-a-directory.txt"));
 		assertThrows(IllegalArgumentException.class, () -> new JavaWriter(file));
 	}
 
+	/**
+	 * Checks that a writer bound to a Maven configuration refuses a Gradle write
+	 * request with an IllegalStateException.
+	 */
 	@Test
 	void writeTestCasesRejectsABuildModeThatMismatchesTheConfiguration() {
 		BuildToolConfiguration configuration = new BuildToolConfiguration(BuildMode.MAVEN, tempDir, List.of(tempDir),
 				List.of(tempDir), tempDir.resolve("classes"), tempDir.resolve("test-classes"));
 		JavaWriter configured = new JavaWriter(configuration);
-		// A writer bound to a Maven configuration rejects a Gradle write request before
-		// touching the filesystem.
 		IllegalStateException failure = assertThrows(IllegalStateException.class,
 				() -> configured.writeTestCases(BuildMode.GRADLE, architectureMode, aopMode, essentialPackages,
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
@@ -386,6 +390,10 @@ public class JavaWriterTest {
 		assertEquals("Writer build mode does not match the discovered build configuration", failure.getMessage());
 	}
 
+	/**
+	 * Checks that a matching build mode passes the mismatch check, so the request
+	 * fails later, at the missing build descriptor, instead.
+	 */
 	@Test
 	void writeTestCasesWithAMatchingBuildModePassesTheConfigurationGuard() throws IOException {
 		Path emptyRoot = Files.createDirectories(tempDir.resolve("empty-root"));
@@ -393,8 +401,6 @@ public class JavaWriterTest {
 				List.of(emptyRoot), List.of(emptyRoot), emptyRoot.resolve("classes"),
 				emptyRoot.resolve("test-classes"));
 		JavaWriter configured = new JavaWriter(configuration);
-		// The build mode matches the configuration, so the mismatch guard passes; the
-		// request then fails at the missing build descriptor instead.
 		IllegalStateException failure = assertThrows(IllegalStateException.class,
 				() -> configured.writeTestCases(BuildMode.MAVEN, architectureMode, aopMode, essentialPackages,
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,

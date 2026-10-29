@@ -163,6 +163,9 @@ public class SecurityPolicyReaderAndDirector {
 
 	/**
 	 * Writes the security test cases to the project folder and continues.
+	 * <p>
+	 * Fails closed: called before {@link #createTestCases()}, it throws rather than
+	 * silently writing zero security tests.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -171,8 +174,6 @@ public class SecurityPolicyReaderAndDirector {
 	@Nonnull
 	public SecurityPolicyReaderAndDirector writeTestCasesAndContinue(Path testFolderPath) {
 		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
-		// Fail closed, symmetrically with writeTestCases and executeTestCases: an
-		// out-of-order call must not silently write zero security tests.
 		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
 				"createTestCases() must be called before writeTestCasesAndContinue()").writeTestCases(testFolderPath);
 		return this;
@@ -183,13 +184,14 @@ public class SecurityPolicyReaderAndDirector {
 
 	/**
 	 * Executes the security test cases.
+	 * <p>
+	 * Fails closed: called before {@link #createTestCases()}, it throws rather than
+	 * silently running zero security tests.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
 	public SecurityPolicyReaderAndDirector executeTestCases() {
-		// Fail closed: executing before createTestCases must not silently run zero
-		// security tests, which in a security boundary is the dangerous direction.
 		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
 				"createTestCases() must be called before executeTestCases()").executeTestCases();
 		return this;

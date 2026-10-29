@@ -16,13 +16,10 @@ import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
  * <p>
  * Description: This abstract class defines the contract for classes that parse
  * and produce a SecurityPolicy from a given file system path. Implementations
- * should perform any necessary validation and error handling, and must return a
- * valid SecurityPolicy instance.
+ * must return a valid SecurityPolicy instance.
  * <p>
- * Design Rationale: Declaring this as an abstract class lets each format share
- * the common object-mapper handling while supplying its own parsing. It cleanly
- * separates the concern of reading and parsing security policies from the rest
- * of the system.
+ * Design Rationale: As an abstract class, it lets each format share the
+ * object-mapper handling while supplying its own parsing.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -73,15 +70,24 @@ public abstract class SecurityPolicyReader {
 		return selectSecurityPolicyReader(securityPolicyFilePath, Path.of("").toAbsolutePath());
 	}
 
+	/**
+	 * Selects the reader for a policy file's format.
+	 * <p>
+	 * The switch has no default branch on purpose: an unsupported extension is
+	 * already rejected by {@link SecurityPolicyFileFormat#fromPath}, and a new
+	 * format then fails to compile here until it is handled.
+	 *
+	 * @param securityPolicyFilePath the policy file; must not be null.
+	 * @param projectRootPath        the project root, or null to use the policy
+	 *                               file's folder.
+	 * @return the reader for that format.
+	 */
 	public static SecurityPolicyReader selectSecurityPolicyReader(Path securityPolicyFilePath, Path projectRootPath) {
 		Objects.requireNonNull(securityPolicyFilePath, "securityPolicyFilePath must not be null");
 		Path absolutePolicy = securityPolicyFilePath.toAbsolutePath().normalize();
 		Path effectiveRoot = projectRootPath == null
 				? Objects.requireNonNullElse(absolutePolicy.getParent(), absolutePolicy)
 				: projectRootPath;
-		// SecurityPolicyFileFormat.fromPath rejects an unsupported extension, so the
-		// switch over the resolved format is exhaustive and needs no default branch: a
-		// new format is a new enum constant that the compiler forces us to handle here.
 		return switch (SecurityPolicyFileFormat.fromPath(securityPolicyFilePath)) {
 		case YAML -> SecurityPolicyYAMLReader.yamlBuilder().yamlMapper(new YAMLMapper()).projectRootPath(effectiveRoot)
 				.build();

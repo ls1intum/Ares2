@@ -8,22 +8,16 @@ import javax.annotation.Nullable;
 /**
  * Allowed package import.
  * <p>
- * Description: Names a package the supervised code may import, covering that
- * package and everything below it.
+ * Description: A package the supervised code may import, with everything below
+ * it.
  * <p>
- * Design Rationale: Explicitly declaring permitted package imports prevents
- * unauthorised dependencies. Only the universal invariant, that the name is not
- * null, is checked on construction. Whether it is a package name or {@code *}
- * for the supervised code's language is validated where the language is known:
- * the schema validator on the policy-file path, and the language-specific
- * component that scans the project (currently {@code JavaCreator}) on the
- * derived path.
+ * Design Rationale: Not knowing the language, the record only refuses null. The
+ * name is checked where the language is known: in {@link SupervisedCode}, the
+ * schema validator and {@code JavaCreator}.
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param importTheFollowingPackage the package that is permitted to be
- *                                  imported, or {@code *} for every package;
- *                                  must not be null.
+ * @param importTheFollowingPackage the package, or {@code *} for every package.
  */
 public record PackagePermission(@Nonnull String importTheFollowingPackage) {
 

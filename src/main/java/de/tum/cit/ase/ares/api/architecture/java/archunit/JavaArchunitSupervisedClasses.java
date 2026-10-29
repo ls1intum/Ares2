@@ -190,11 +190,9 @@ public final class JavaArchunitSupervisedClasses {
 	 * Refuses a compiled package name that is not a valid Java package before it is
 	 * turned into a permission.
 	 * <p>
-	 * The permission record no longer checks the shape, and this value comes from
+	 * The permission record does not check the shape, and this value comes from
 	 * student-controlled bytecode and is written into generated sources and
-	 * allowlists, where a control or zero-width character corrupts the artefact.
-	 * The check duplicates the shared package rule because the rules class is not
-	 * copied beside this one.
+	 * allowlists, which a control or zero-width character would corrupt.
 	 *
 	 * @param javaClass the compiled class the package was read from
 	 * @param declared  the package name to check

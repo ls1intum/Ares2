@@ -74,6 +74,10 @@ class JavaArchunitSupervisedClassesTest {
 		assertThat(reservedPrefixOf("de.tum.cit.ase.ares.api")).isEqualTo("de.tum.cit.ase.ares.api.");
 	}
 
+	/**
+	 * Checks that a malformed compiled package name is refused with a
+	 * SecurityException, while a valid one passes.
+	 */
 	@Test
 	@DisplayName("Refuses a compiled package name that is not a valid Java package")
 	void refusesAMalformedCompiledPackageName() throws Exception {

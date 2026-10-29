@@ -17,6 +17,12 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 class PolicyValueContractTest {
+	/**
+	 * Checks that a restrictive policy uses the newest supported policy version and
+	 * that versions just outside the supported range are rejected, both by the
+	 * constructor and by the builder, which shares the constructor's check. A
+	 * supported version set through the builder is kept.
+	 */
 	@Test
 	void requiresASupportedPolicyVersion() {
 		SecurityPolicy policy = SecurityPolicy
@@ -26,9 +32,6 @@ class PolicyValueContractTest {
 				policy.regardingTheSupervisedCode()));
 		assertThrows(IllegalArgumentException.class, () -> new SecurityPolicy(AresConstants.MAXIMUM_POLICY_VERSION + 1,
 				policy.regardingTheSupervisedCode()));
-		// Both rejected edges again through the builder. It delegates to the same
-		// requireSupportedPolicyVersion as the canonical constructor, so this covers
-		// the second entry point to the shared check rather than a separate copy.
 		assertThrows(IllegalArgumentException.class, () -> SecurityPolicy.builder()
 				.thisPolicyFileCompliesToThePolicyVersion(AresConstants.MAXIMUM_POLICY_VERSION + 1));
 		assertThrows(IllegalArgumentException.class, () -> SecurityPolicy.builder()
@@ -164,11 +167,14 @@ class PolicyValueContractTest {
 		assertThrows(IllegalArgumentException.class, () -> supervisedCode(List.of(" ")));
 	}
 
+	/**
+	 * Checks that the public ClassPermission builder, which nothing inside Ares
+	 * uses, builds the same record as the constructor and refuses a missing or
+	 * blank name. Also checks that a package name, a nested class and a simple name
+	 * are accepted as given, since the record checks no Java syntax.
+	 */
 	@Test
 	void classPermissionIsConstructableThroughItsBuilder() {
-		// The builder is public API that nothing inside Ares uses: production code
-		// constructs the record directly. Exercise it here so the published surface
-		// carries the same guarantees as the constructor it delegates to.
 		ClassPermission built = ClassPermission.builder().className("com.example.Trusted").build();
 		assertEquals("com.example.Trusted", built.className());
 		assertEquals(new ClassPermission("com.example.Trusted"), built);
@@ -176,34 +182,32 @@ class PolicyValueContractTest {
 		assertThrows(NullPointerException.class, () -> ClassPermission.builder().build());
 		assertThrows(IllegalArgumentException.class, () -> ClassPermission.builder().className(" ").build());
 
-		// A package prefix is a legitimate entry: elevation is matched by prefix, and
-		// the essential classes are declared that way.
 		assertEquals("de.tum.cit.ase.ares.api.internal",
 				new ClassPermission("de.tum.cit.ase.ares.api.internal").className());
 		assertEquals("com.example.Outer$Inner", new ClassPermission("com.example.Outer$Inner").className());
 		assertEquals("MainTest", new ClassPermission("MainTest").className());
 	}
 
+	/**
+	 * Checks the record's own guards, which the builder and the factories built on
+	 * it reach too. A command name, a path to one and the wildcard are accepted;
+	 * control characters and surrounding whitespace are not, as a line break
+	 * travels into generated sources and reports. allowWithoutArguments must be the
+	 * restrictive factory, the way round that is easy to get wrong.
+	 */
 	@Test
 	void commandPermissionAcceptsBothPolicyFormsAndRejectsEveryOtherShape() {
-		// The record's own guard, reached only by constructing it directly: every
-		// factory rejects a blank command before it gets this far.
 		assertThrows(NullPointerException.class, () -> new CommandPermission(null, List.of()));
 		assertThrows(IllegalArgumentException.class, () -> new CommandPermission(" ", List.of()));
 		assertThrows(NullPointerException.class, () -> new CommandPermission("git", null));
 		assertThrows(NullPointerException.class,
 				() -> new CommandPermission("git", java.util.Arrays.asList((String) null)));
 
-		// A command is an executable name or a path to one, so both shapes stand, as
-		// does the wildcard. Control characters do not: a policy value carrying a line
-		// break travels into generated sources, settings and failure reports.
 		assertEquals("echo", new CommandPermission("echo", List.of()).executeTheCommand());
 		assertEquals("src/test/resources/trustedExecute.sh",
 				new CommandPermission("src/test/resources/trustedExecute.sh", List.of()).executeTheCommand());
 		assertEquals("*", new CommandPermission("*", List.of("*")).executeTheCommand());
 
-		// The two argument factories are opposites, and the empty one is the
-		// restrictive one, which is the way round that is easy to get wrong.
 		assertEquals(List.of(), CommandPermission.allowWithoutArguments("git").withTheseArguments());
 		assertEquals(List.of(CommandPermission.ANY_ARGUMENTS),
 				CommandPermission.allowWithAnyArguments("git").withTheseArguments());
@@ -217,28 +221,31 @@ class PolicyValueContractTest {
 		assertThrows(IllegalArgumentException.class, () -> new CommandPermission("git", List.of("--ver\nsion")));
 	}
 
+	/**
+	 * Checks that a package import built in code is refused wherever a policy file
+	 * refuses it. A trailing dot mattered most: ArchUnit strips it, so "com.foo."
+	 * was enforced as the grant "com.foo". SupervisedCode holds this check because
+	 * PackagePermission is language-agnostic and does not know what a package looks
+	 * like.
+	 */
 	@Test
 	void aProgrammaticPackageImportIsHeldToTheSameRuleAsAWrittenOne() {
-		// PackagePermission cannot check this itself: it is language-agnostic, so it
-		// does not know what a package looks like. SupervisedCode is the only place
-		// that holds the language and the permissions together, which is why the check
-		// lives there. Without it a policy built in code accepted selectors the file
-		// gate refuses, and the two ways of writing one policy disagreed.
 		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport("com.foo."));
 		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport("com..foo"));
 		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport(".com.foo"));
 		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport("com.foo.*"));
 		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport(""));
-		// A trailing dot is the case that mattered: the ArchUnit matcher strips it, so
-		// "com.foo." reached enforcement as the grant "com.foo" rather than being
-		// refused as it is when the same value is written in a policy file.
 		assertThrows(IllegalArgumentException.class, () -> supervisedCodeAllowingImport("com.class"));
 	}
 
+	/**
+	 * Checks that a package import built in code still accepts the wildcard, a
+	 * dotted package and a single identifier. The wildcard is not a valid package
+	 * name, so the check must use the package import rule rather than the package
+	 * name rule.
+	 */
 	@Test
 	void aProgrammaticPackageImportStillAcceptsEveryValidSelector() {
-		// The wildcard is a valid package import and not a valid package name, which is
-		// why this goes through requirePackageImport rather than requirePackage.
 		assertEquals("*", supervisedCodeAllowingImport("*").theFollowingResourceAccessesArePermitted()
 				.regardingPackageImports().get(0).importTheFollowingPackage());
 		assertEquals("java.util", supervisedCodeAllowingImport("java.util").theFollowingResourceAccessesArePermitted()
@@ -253,6 +260,10 @@ class PolicyValueContractTest {
 				"Main", testClasses, ResourceAccesses.createRestrictive(), null);
 	}
 
+	/**
+	 * Builds Java supervised code whose only package import permission is the given
+	 * one, so building it runs the package import check.
+	 */
 	private SupervisedCode supervisedCodeAllowingImport(String packageImport) {
 		ResourceAccesses accesses = ResourceAccesses.builder().regardingFileSystemInteractions(List.of())
 				.regardingNetworkConnections(List.of()).regardingCommandExecutions(List.of())

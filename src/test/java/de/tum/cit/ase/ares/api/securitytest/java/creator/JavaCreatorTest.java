@@ -330,6 +330,10 @@ public class JavaCreatorTest {
 		}
 	}
 
+	/**
+	 * Checks that a malformed package name is refused whether it comes from the
+	 * pinned package name, the scanned packages or a test class name.
+	 */
 	@Test
 	void prepareAllowedPackagesRejectsMalformedNamesOnEveryDerivedPath() throws Exception {
 		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
@@ -344,6 +348,11 @@ public class JavaCreatorTest {
 				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of(), List.of("com..tests.BadTest")));
 	}
 
+	/**
+	 * Checks that a scanned package with a reserved namespace below it, such as
+	 * de.tum.cit, is refused with a SecurityException, while the same package of a
+	 * test class is still allowed.
+	 */
 	@Test
 	@SuppressWarnings("unchecked")
 	void prepareAllowedPackagesKeepsTheReservedNamespaceGuards() throws Exception {
@@ -358,6 +367,7 @@ public class JavaCreatorTest {
 		assertEquals(Set.of(new PackagePermission("de.tum.cit")), fromTestClass);
 	}
 
+	/** Checks that a wildcard package declared in the policy is kept unchanged. */
 	@Test
 	@SuppressWarnings("unchecked")
 	void prepareAllowedPackagesPassesAPolicyDeclaredWildcardThrough() throws Exception {

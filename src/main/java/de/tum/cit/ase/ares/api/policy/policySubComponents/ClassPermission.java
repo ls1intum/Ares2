@@ -11,23 +11,16 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 /**
  * Class with elevated privileges.
  * <p>
- * Description: Names a class that Ares 2 does not restrict. A call is judged by
- * the call stack that leads to it, so naming a class here exempts the frames it
- * contributes from the enforcement that applies to the supervised code.
+ * Description: Names a class Ares does not restrict. A call is judged by the
+ * call stack leading to it, so the frames of this class are exempted.
  * <p>
- * Unlike its siblings in this package, this permission is not read from a
- * policy file. The security policy schema has no field for it. Ares derives the
- * set itself from the classes that must stay reachable for the run to work at
- * all, namely the essential framework classes and the exercise's own test
- * classes, so an instructor can neither grant nor revoke it directly.
- * <p>
- * Design Rationale: Explicitly declaring elevated classes enables minimal and
- * restricted opening of the general protection.
+ * Design Rationale: A policy file has no field for this. Ares derives the set
+ * from its essential classes and the exercise's test classes, so an instructor
+ * can neither grant nor revoke it directly.
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param className the name of the class that receives elevated privileges;
- *                  must be neither null nor blank.
+ * @param className the elevated class; neither null nor blank.
  */
 public record ClassPermission(@Nonnull String className) {
 

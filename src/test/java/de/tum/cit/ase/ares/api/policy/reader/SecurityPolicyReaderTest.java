@@ -12,6 +12,9 @@ import org.junit.jupiter.api.io.TempDir;
 
 import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 
+/**
+ * Checks how {@link SecurityPolicyReader} picks a reader for a policy file.
+ */
 class SecurityPolicyReaderTest {
 
 	/**

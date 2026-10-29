@@ -52,12 +52,14 @@ class SecurityPolicyStrictSchemaTest {
 		assertEquals(0, resources.regardingNetworkConnections().get(0).onThePort());
 	}
 
+	/**
+	 * Checks that a command written as a bare name still loads as that command with
+	 * no arguments. The form is deprecated, not removed: version 1 is still the
+	 * only policy-format version, so a policy file written for 2.1.0 has to keep
+	 * loading with the meaning it had then.
+	 */
 	@Test
 	void stillLoadsTheDeprecatedBareScalarCommandForm() throws IOException {
-		// Policy-format version 1 accepted a command as a bare scalar meaning "this
-		// command with no arguments". The form is deprecated, not removed: version 1 is
-		// still the only supported version, so a policy file written against 2.1.0 has
-		// to keep loading with the meaning it had then.
 		SecurityPolicy policy = read(validYaml()
 				.replace("      - executeTheCommand: java\n        withTheseArguments: [--version]", "      - java"));
 		var commands = policy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
@@ -269,11 +271,13 @@ class SecurityPolicyStrictSchemaTest {
 				policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
 	}
 
+	/**
+	 * Checks that {@code ${PROJECT_ROOT}} is inserted as plain text after parsing,
+	 * not parsed again as YAML. The root therefore carries YAML-special characters,
+	 * quotes, a backslash and a non-ASCII letter, but no control characters.
+	 */
 	@Test
 	void expandsProjectRootAsScalarDataAfterParsing() throws IOException {
-		// The root deliberately carries YAML-special characters, quotes, a backslash
-		// and a non-ASCII letter (but no control characters) to prove ${PROJECT_ROOT}
-		// is expanded as opaque scalar data rather than re-parsed.
 		Path unusualRoot = tempDirectory.resolve("root: #quote '\" \\ ä end");
 		Files.createDirectories(unusualRoot);
 		Path file = write(validYaml().replace("/tmp/data", "${PROJECT_ROOT}/line\\nname"));
@@ -314,11 +318,13 @@ class SecurityPolicyStrictSchemaTest {
 		assertEquals(root.resolve("data").toString(), path);
 	}
 
+	/**
+	 * Checks that a {@code ${PROJECT_ROOT}} expanding to a folder whose name holds
+	 * a control character is refused, since the expanded path travels into
+	 * generated sources, settings and failure reports that assume a single line.
+	 */
 	@Test
 	void rejectsControlCharacterInExpandedProjectRoot() throws IOException {
-		// A ${PROJECT_ROOT} that expands to a directory whose name carries a control
-		// character must be rejected: the expanded path travels into generated sources,
-		// settings and failure reports where a single line is assumed.
 		Path controlCharacterRoot = tempDirectory.resolve("rootWith\u0001Control");
 		Path file = write(validYaml().replace("/tmp/data", "${PROJECT_ROOT}/data"));
 		assertThrows(SecurityException.class, () -> new SecurityPolicyYAMLReader(new YAMLMapper(), controlCharacterRoot)
@@ -332,6 +338,10 @@ class SecurityPolicyStrictSchemaTest {
 				() -> new SecurityPolicyYAMLReader(new YAMLMapper(), tempDirectory).readSecurityPolicyFrom(file));
 	}
 
+	/**
+	 * Checks that a policy naming any of the supported programming-language
+	 * configurations loads with that configuration.
+	 */
 	@ParameterizedTest
 	@EnumSource(ProgrammingLanguageConfiguration.class)
 	void acceptsEverySupportedConfiguration(ProgrammingLanguageConfiguration configuration) throws IOException {
@@ -341,14 +351,20 @@ class SecurityPolicyStrictSchemaTest {
 				policy.regardingTheSupervisedCode().theFollowingProgrammingLanguageConfigurationIsUsed());
 	}
 
+	/**
+	 * Values the reader must refuse. Version 4294967297 (2^32 + 1) is a whole
+	 * number that turns into 1 when cut down to an {@code int}, so it must never
+	 * pass as the supported version. The bare command form is held to the same
+	 * command pattern as the mapping form. A non-text command argument sits in
+	 * {@code invalidSchemaShapes}, because Jackson would turn 1 into "1" when
+	 * binding and only the schema check refuses it.
+	 */
 	static Stream<Arguments> invalidPolicyValues() {
 		return Stream.of(
 				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
 						"thisPolicyFileCompliesToThePolicyVersion: 0"),
 				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
 						"thisPolicyFileCompliesToThePolicyVersion: 2"),
-				// 2^32 + 1 is integral but truncates to 1 as an int, so it must never be
-				// mistaken for the supported version.
 				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
 						"thisPolicyFileCompliesToThePolicyVersion: 4294967297"),
 				Arguments.of("JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ", "JAVA_MAVEN_ARCHUNIT_ASPECTJ"),
@@ -363,11 +379,6 @@ class SecurityPolicyStrictSchemaTest {
 				Arguments.of("onTheHost: localhost", "onTheHost: 256.1.1.1"),
 				Arguments.of("ofThisClass: java.lang.Thread", "ofThisClass: java.lang."),
 				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: java.*"),
-				// The deprecated bare scalar form of a command permission is still held to
-				// COMMAND_PATTERN, so a scalar carrying a control character is refused on
-				// the same terms as the mapping form. A non-string argument is covered by
-				// invalidSchemaShapes, and matters because Jackson would coerce 1 to "1"
-				// when binding: the schema gate is what refuses it.
 				Arguments.of("      - executeTheCommand: java\n        withTheseArguments: [--version]",
 						"      - \"ja\\nva\""),
 				Arguments.of("      - executeTheCommand: java\n        withTheseArguments: [--version]",
@@ -445,6 +456,11 @@ class SecurityPolicyStrictSchemaTest {
 				""";
 	}
 
+	/**
+	 * Checks that calling the private constructor of
+	 * {@link SecurityPolicySchemaValidator} through reflection fails with an
+	 * {@link UnsupportedOperationException}.
+	 */
 	@Test
 	void schemaValidatorCannotBeInstantiatedReflectively() throws NoSuchMethodException {
 		Constructor<SecurityPolicySchemaValidator> constructor = SecurityPolicySchemaValidator.class
@@ -454,17 +470,26 @@ class SecurityPolicyStrictSchemaTest {
 		assertInstanceOf(UnsupportedOperationException.class, thrown.getCause());
 	}
 
+	/**
+	 * Checks that a policy file holding a single text value instead of a mapping is
+	 * refused.
+	 */
 	@Test
 	void rejectsARootThatIsNotAnObject() {
 		assertThrows(SecurityException.class, () -> read("a bare scalar policy\n"));
 	}
 
+	/** Checks that a policy without its policy-format version is refused. */
 	@Test
 	void rejectsAPolicyMissingARequiredRootField() {
 		String withoutVersion = validYaml().replace("thisPolicyFileCompliesToThePolicyVersion: 1\n", "");
 		assertThrows(SecurityException.class, () -> read(withoutVersion));
 	}
 
+	/**
+	 * Checks that a policy leaving out the package and the main class loads, with
+	 * both read as {@code null}.
+	 */
 	@Test
 	void acceptsAPolicyThatOmitsTheOptionalPackageAndMainClass() throws IOException {
 		String yaml = validYaml().replace("  theSupervisedCodeUsesTheFollowingPackage: com.example\n", "")
@@ -474,6 +499,10 @@ class SecurityPolicyStrictSchemaTest {
 		assertNull(policy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs());
 	}
 
+	/**
+	 * Checks that a policy setting the package and the main class to {@code null}
+	 * loads, with both read as {@code null}.
+	 */
 	@Test
 	void acceptsAPolicyWithTheOptionalPackageAndMainClassSetToNull() throws IOException {
 		String yaml = validYaml()
@@ -485,6 +514,13 @@ class SecurityPolicyStrictSchemaTest {
 		assertNull(policy.regardingTheSupervisedCode().theMainClassInsideThisPackageIs());
 	}
 
+	/**
+	 * Pairs of a line in the valid policy and a malformed replacement. Besides bad
+	 * versions, unknown fields, blank values and pattern mismatches, it covers
+	 * non-text values in text fields, a broken command argument list (not a list, a
+	 * non-text entry, a control character), a category that is not a list and a
+	 * list entry that is not a mapping.
+	 */
 	static Stream<Arguments> malformedPolicyCases() {
 		return Stream.of(
 				Arguments.of("thisPolicyFileCompliesToThePolicyVersion: 1",
@@ -523,8 +559,6 @@ class SecurityPolicyStrictSchemaTest {
 				Arguments.of("createTheFollowingNumberOfThreads: 1", "createTheFollowingNumberOfThreads: notAnInteger"),
 				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: \"1invalid\""),
 				Arguments.of("timeout: 30", "timeout: notAnInteger"),
-				// Non-textual values for text fields exercise the "is not a string" branch,
-				// distinct from the blank and pattern-mismatch branches above.
 				Arguments.of(
 						"theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ",
 						"theFollowingProgrammingLanguageConfigurationIsUsed: 5"),
@@ -535,13 +569,9 @@ class SecurityPolicyStrictSchemaTest {
 				Arguments.of("executeTheCommand: java", "executeTheCommand: 5"),
 				Arguments.of("ofThisClass: java.lang.Thread", "ofThisClass: 5"),
 				Arguments.of("importTheFollowingPackage: java.util", "importTheFollowingPackage: 5"),
-				// The command arguments array: non-array shape, a non-textual element, and a
-				// textual element carrying a control character (rejected per entry).
 				Arguments.of("withTheseArguments: [--version]", "withTheseArguments: notAnArray"),
 				Arguments.of("withTheseArguments: [--version]", "withTheseArguments: [5]"),
 				Arguments.of("withTheseArguments: [--version]", "withTheseArguments: [\"\\u0001\"]"),
-				// A resource category given a scalar rather than an array, and a list entry
-				// that is a scalar rather than an object.
 				Arguments.of("    regardingTimeouts:\n      - timeout: 30", "    regardingTimeouts: notAnArray"),
 				Arguments.of("      - timeout: 30", "      - aScalarInsteadOfAnObject"),
 				Arguments.of(
@@ -550,6 +580,7 @@ class SecurityPolicyStrictSchemaTest {
 						"    regardingCommandExecutions: notAnArray"));
 	}
 
+	/** Checks that every case from {@code malformedPolicyCases} is refused. */
 	@ParameterizedTest
 	@MethodSource("malformedPolicyCases")
 	void rejectsMalformedPolicies(String original, String replacement) {

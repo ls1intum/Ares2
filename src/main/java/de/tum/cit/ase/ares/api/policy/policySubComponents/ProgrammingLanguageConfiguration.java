@@ -5,28 +5,12 @@ import javax.annotation.Nonnull;
 /**
  * Enumerates the supported programming language configurations.
  * <p>
- * Description: Each constant fixes the three choices Ares needs before it can
- * supervise a submission, and its name spells them out in order:
- * {@code JAVA_USING_<build tool>_<architecture analyser>_AND_<enforcement
- * mechanism>}.
- * <ul>
- * <li>The build tool, Maven or Gradle, determines how the supervised code is
- * compiled and where its classpath comes from.</li>
- * <li>The architecture analyser, ArchUnit or WALA, determines how the code is
- * examined statically before it runs. ArchUnit inspects declared structure;
- * WALA builds a call graph and so reaches calls that structure alone does not
- * reveal.</li>
- * <li>The enforcement mechanism, AspectJ or instrumentation, determines how the
- * policy is enforced while the code runs. AspectJ weaves advice at compile
- * time; instrumentation attaches a Java agent at run time.</li>
- * </ul>
- * All eight combinations are supported, and a policy names exactly one of them.
+ * Description: Each name gives the build tool (Maven or Gradle), the analyser
+ * that checks the code before it runs (ArchUnit or WALA) and how it is checked
+ * while it runs (AspectJ or instrumentation). A policy file names one.
  * <p>
- * Design Rationale: Naming the whole combination in a single enumeration keeps
- * the three choices from being set independently, which would allow
- * combinations that were never built or tested. The names are also the literal
- * values a policy file carries, so the set of legal values is visible in one
- * place.
+ * Design Rationale: Naming the whole combination at once stops the three
+ * choices being set apart.
  *
  * @since 2.0.0
  * @author Markus Paulsen

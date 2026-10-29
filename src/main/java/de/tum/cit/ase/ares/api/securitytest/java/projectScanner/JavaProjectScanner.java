@@ -84,15 +84,14 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
-	 * Returns the scanner bound to the build configuration discovered for this run.
-	 * A framework-default scanner is rebuilt for it. A subclass is kept only if it
-	 * already holds an equal configuration and is refused otherwise, since an
-	 * unbound one would look at another project. A subclass that overrides this
-	 * must return an instance bound to the given configuration.
+	 * Returns the scanner bound to the build configuration found for this run. A
+	 * framework-default scanner is rebuilt; a subclass is kept only if it holds an
+	 * equal configuration, as an unbound one would look at another project. An
+	 * override must return an instance bound to the given configuration.
 	 *
 	 * @since 2.1.0
 	 * @author Markus Paulsen
-	 * @param buildConfiguration the discovered configuration; must not be null.
+	 * @param buildConfiguration the discovered configuration; not null.
 	 * @return the bound scanner.
 	 * @throws IllegalStateException if a subclass holds no or another
 	 *                               configuration.
