@@ -27,8 +27,8 @@ rather than assuming.
 ## What it generates
 
 Phobos test cases only. `JavaPhobosTestCase.writePhobosSecurityTestCaseFile` turns the map
-into the `limits` section of `SpecificExercise.cfg`, and `phobos-timeout.sh` reads
-`timeout.sec` from the resolved specification.
+into the `limits` section of `SpecificExercise.cfg`, as seconds with three decimals, for the
+Phobos runtime maintained in [ls1intum/phobos](https://github.com/ls1intum/phobos).
 
 ## Static enforcement
 
@@ -43,7 +43,8 @@ Out of process only. The Phobos timeout layer wraps the build command with coreu
 
 - `policy/policySubComponents/ResourceLimitsPermission.java`
 - `phobos/JavaPhobosTestCase.writePhobosSecurityTestCaseFile`, the `limits` section
-- `templates/phobos/phobos-timeout.sh`
+- `templates/phobos/PhobosCopyTool.sh`, copied into the exercise
+- the timeout layer itself, in [ls1intum/phobos](https://github.com/ls1intum/phobos)
 
 ## Known gaps
 

@@ -212,7 +212,7 @@ This package manages **internationalisation** for error messages and test output
 
 ## `phobos`: Container and Sandbox-Based Security
 
-Phobos provides an alternative security mechanism based on **external container sandboxing** (e.g. Docker/bwrap). Unlike the in-process AOP approach, Phobos generates configuration files (allowed lists, shell scripts) that are consumed by an external sandbox runtime.
+Phobos provides an alternative security mechanism based on **external sandboxing**. Unlike the in-process AOP approach, Phobos generates `SpecificExercise.cfg` for an external sandbox runtime, maintained in [ls1intum/phobos](https://github.com/ls1intum/phobos).
 
 | Class | Purpose |
 |---|---|
@@ -222,7 +222,7 @@ Phobos provides an alternative security mechanism based on **external container 
 | `PhobosTestCaseSupported` | Interface for supported Phobos test cases |
 | `JavaPhobosTestCaseSupported` | Enum: `FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, `TIMEOUT` |
 
-`JavaPhobosTestCase` transforms the abstract permission model into concrete shell-script and configuration-file content that an external sandbox runtime can enforce.
+`JavaPhobosTestCase` transforms the abstract permission model into concrete configuration-file content for an external sandbox runtime.
 
 **Key design patterns:** Builder (`JavaPhobosTestCase.Builder`), Strategy (extractors), Template Method.
 

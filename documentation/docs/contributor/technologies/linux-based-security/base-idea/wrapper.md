@@ -12,6 +12,12 @@ talk round anyone who is in there with them. They cannot talk round someone who 
 they did and is holding the door from the other side.
 :::
 
+:::note[Historical design]
+Where this page names a Phobos layer or script, it describes the scripts Ares used to bundle,
+which it no longer ships. Current Phobos works differently; see the
+[Phobos documentation](https://ls1intum.github.io/phobos/).
+:::
+
 ## What it is
 
 All three layers are wrappers: a process that configures its restriction and then executes the
