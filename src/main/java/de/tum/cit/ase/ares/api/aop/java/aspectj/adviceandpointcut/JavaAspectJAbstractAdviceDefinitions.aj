@@ -531,7 +531,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 					boolean allowed = startsWithAny(className, allowedPackages);
 						for (@Nonnull
 						String allowedClass : safeAllowedClasses) {
-							if (className.equals(allowedClass) || className.startsWith(allowedClass + "$")) {
+							if (className.equals(allowedClass)) {
 								allowed = true;
 								break;
 							}
@@ -554,9 +554,9 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 		}
 		for (String prefix : prefixes) {
 			// '.'-boundary match: an allowed package "com.foo" must not also match the
-			// unrelated sibling package "com.foobar" (I-105). Mirrors the '$'-boundary
-			// used for the allowed-class comparison above and the exact-or-'$'-boundary
-			// JavaArchitectureTestCase.isAllowedClass already uses on the static side.
+			// unrelated sibling package "com.foobar" (I-105). Allowed classes,
+			// by contrast, match by exact name only, as ClassPermission.isAllowedClass
+			// does against the trusted nest listing.
 			if (prefix != null && (className.equals(prefix) || className.startsWith(prefix + "."))) {
 				return true;
 			}
@@ -601,6 +601,16 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 		}
 		ADVICE_IN_PROGRESS.set(Boolean.TRUE);
 		return true;
+	}
+
+	/**
+	 * Tells whether an advice body is already executing on the current thread,
+	 * without entering one.
+	 *
+	 * @return {@code true} inside an advice body on this thread
+	 */
+	protected static boolean isAdviceInProgress() {
+		return Boolean.TRUE.equals(ADVICE_IN_PROGRESS.get());
 	}
 
 	/**
