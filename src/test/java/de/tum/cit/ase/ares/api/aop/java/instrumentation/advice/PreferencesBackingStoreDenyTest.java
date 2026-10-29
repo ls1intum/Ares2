@@ -19,11 +19,9 @@ import example.student.InstrumentationSecurityProbe;
  * Verifies the runtime rule for {@code java.util.prefs.Preferences}: because
  * the backing store is a disk location the student cannot name, a policy that
  * permits filesystem access only within a directory must still reject
- * Preferences, while a policy that permits all paths ("*") allows it. This is
- * the instrumentation counterpart of the AspectJ advice and guards against the
- * directory-scoped bypass. The call is routed through a probe in
- * {@code example.student} so a restricted-package frame is on the stack, as the
- * advice requires.
+ * Preferences, while a policy that permits all paths ("*") allows it. The call
+ * is routed through a probe in {@code example.student} so a restricted-package
+ * frame is on the stack, as the advice requires.
  */
 class PreferencesBackingStoreDenyTest {
 

@@ -1550,11 +1550,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Returns whether the intercepted call targets the Java Preferences API. Its
-	 * backing store sits where the operating system puts it (on Linux
-	 * ~/.java/.userPrefs, on Windows the registry), so the student passes no path
-	 * and the key and value arguments must not be checked as paths. No policy can
-	 * scope that store to a directory, so only an allow-list of all paths ("*")
-	 * permits it.
+	 * backing store sits where the operating system puts it, so the student passes
+	 * no path and the key and value arguments must not be checked as paths. No
+	 * policy can scope that store to a directory, so only an allow-list of all
+	 * paths ("*") permits it.
 	 *
 	 * @param declaringTypeName the fully qualified type the called method belongs
 	 *                          to
