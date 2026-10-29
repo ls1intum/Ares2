@@ -261,6 +261,9 @@ public final class JavaArchunitTestCaseCollection {
 			Set<ClassPermission> allowedClasses, Set<String> testClassNames) {
 		return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses)).should()
 				.dependOnClassesThat(new DescribedPredicate<>("imports a forbidden package package") {
+					/**
+					 * Whether the imported class is test code, or no permission covers its package.
+					 */
 					@Override
 					public boolean test(JavaClass javaClass) {
 						return isTestCode(javaClass.getName(), testClassNames) || allowedPackages.stream()
@@ -287,7 +290,9 @@ public final class JavaArchunitTestCaseCollection {
 	 * Whether a permission covers a package. The match respects package boundaries,
 	 * so {@code com.foo} never covers {@code com.foobar}, and an exact permission
 	 * covers only its own package: {@code java.lang} as a subtree would re-admit
-	 * {@code java.lang.reflect} and {@code java.lang.invoke}.
+	 * {@code java.lang.reflect} and {@code java.lang.invoke}. No permission reaches
+	 * a trusted namespace below it that it does not name; {@code *} covers every
+	 * package.
 	 *
 	 * @param allowedPackage the permission
 	 * @param packageName    the package of the dependency
@@ -299,8 +304,9 @@ public final class JavaArchunitTestCaseCollection {
 			return true;
 		}
 		String normalizedAllowed = allowed.endsWith(".") ? allowed.substring(0, allowed.length() - 1) : allowed;
-		return packageName.equals(normalizedAllowed)
-				|| !allowedPackage.exactMatchOnly() && packageName.startsWith(normalizedAllowed + ".");
+		return (packageName.equals(normalizedAllowed)
+				|| !allowedPackage.exactMatchOnly() && packageName.startsWith(normalizedAllowed + "."))
+				&& !JavaArchunitSupervisedClasses.isReservedBelow(normalizedAllowed, packageName);
 	}
 
 	/**
