@@ -98,7 +98,7 @@ body:
     id: version
     attributes:
       label: Which version of Ares are you seeing the problem on?
-      placeholder: e.g. 2.1.5
+      placeholder: e.g. 2.2.1
     validations:
       required: true
 

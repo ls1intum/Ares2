@@ -64,6 +64,43 @@ public class JavaWriterTest {
 		emptyTestBehaviorConfiguration = TestBehaviorConfiguration.builder().build();
 	}
 
+	/**
+	 * Writes resource bundles where the generated namespace can load both locales.
+	 */
+	@Test
+	void writesLocalisationIntoTheGeneratedNamespace() throws IOException {
+		Path sourceRoot = Files.createDirectories(tempDir.resolve("src/test/java"));
+		javaWriter.writeTestCases(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, List.of(), List.of(),
+				List.of(), "exercise.security", "Main", List.of(), List.of(), List.of(), sourceRoot);
+		Path bundles = tempDir.resolve("src/test/resources/exercise/security/ares/api/localization");
+		for (String name : List.of("messages.properties", "messages_de.properties")) {
+			var messages = new java.util.Properties();
+			try (var input = Files.newInputStream(bundles.resolve(name))) {
+				messages.load(input);
+			}
+			assertNotNull(messages.getProperty("security.advice.trusted.startup.missing"));
+			assertNotNull(messages.getProperty("security.advice.startup.properties.unavailable"));
+			assertNotNull(messages.getProperty("security.advice.temp.directory.holder.unreadable"));
+			assertNotNull(messages.getProperty("security.advice.denial.reason.not.in.allowlist"));
+		}
+	}
+
+	/**
+	 * A package name that is not a Java package, such as an absolute path inside
+	 * the project, is refused before anything is written, so it cannot steer the
+	 * generated files out of their directories.
+	 */
+	@Test
+	void refusesAPackageNameThatIsNotAJavaPackage() throws IOException {
+		Path sourceRoot = Files.createDirectories(tempDir.resolve("src/test/java"));
+		String escaping = tempDir.resolve("src/main/java").toString();
+		assertThrows(IllegalArgumentException.class,
+				() -> javaWriter.writeTestCases(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, List.of(),
+						List.of(), List.of(), escaping, "Main", List.of(), List.of(), List.of(), sourceRoot));
+		assertFalse(Files.exists(tempDir.resolve("src/test/resources")));
+		assertFalse(Files.exists(tempDir.resolve("src/main")));
+	}
+
 	@Nested
 	@DisplayName("writeTestCases() Tests")
 	class WriteTestCasesTests {
@@ -191,13 +228,13 @@ public class JavaWriterTest {
 				// Assert
 				assertNotNull(result);
 				verify(architectureMode).threePartedFileBody(emptyArchTestCases);
-				verify(aopMode).threePartedFileBody(eq("INSTRUMENTATION"), eq(packageName), any(),
+				verify(aopMode).threePartedFileBody(eq("INSTRUMENTATION"), eq(packageName), any(), any(),
 						eq(emptyAOPTestCases));
 			}
 		}
 
 		@Test
-		@DisplayName("Should merge essential classes and test classes correctly")
+		@DisplayName("Should keep essential packages apart and merge essential and test classes")
 		void shouldMergeEssentialClassesAndTestClassesCorrectly() {
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
 					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
@@ -211,13 +248,14 @@ public class JavaWriterTest {
 						testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases,
 						javaPhobosTestCases, emptyTestBehaviorConfiguration, tempDir);
 
-				// Assert - verify that merged list contains both essential and test classes
-				verify(aopMode).threePartedFileBody(eq("INSTRUMENTATION"), eq(packageName), argThat(list -> {
-					List<String> allowedClasses = (List<String>) list;
-					return allowedClasses.containsAll(essentialPackages) && allowedClasses.containsAll(essentialClasses)
-							&& allowedClasses.containsAll(testClasses) && allowedClasses
-									.size() == essentialPackages.size() + essentialClasses.size() + testClasses.size();
-				}), eq(javaAOPTestCases));
+				verify(aopMode).threePartedFileBody(eq("INSTRUMENTATION"), eq(packageName), eq(essentialPackages),
+						argThat(list -> {
+							List<String> allowedClasses = (List<String>) list;
+							return allowedClasses.containsAll(essentialClasses)
+									&& allowedClasses.containsAll(testClasses)
+									&& allowedClasses.stream().noneMatch(essentialPackages::contains)
+									&& allowedClasses.size() == essentialClasses.size() + testClasses.size();
+						}), eq(javaAOPTestCases));
 			}
 		}
 
@@ -349,7 +387,7 @@ public class JavaWriterTest {
 		when(aopMode.nonFSFormatValues(any(), any()))
 				.thenReturn(List.<String[]>of(new String[] { "pkg", "pkg", "Main" }));
 		when(aopMode.threePartedFileHeader()).thenReturn(tempDir.resolve("header.java"));
-		when(aopMode.threePartedFileBody(any(), any(), any(), any())).thenReturn("body");
+		when(aopMode.threePartedFileBody(any(), any(), any(), any(), any())).thenReturn("body");
 		when(aopMode.threePartedFileFooter()).thenReturn(tempDir.resolve("footer.java"));
 		when(aopMode.targetToCopyTo(any())).thenReturn(tempDir.resolve("aop.java"));
 		when(aopMode.formatValues(any())).thenReturn(new String[] { "pkg" });

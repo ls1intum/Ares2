@@ -13,7 +13,7 @@ can quietly take it off the desk.
 
 ## The path, in order
 
-1. **Add the dependency and the agent**, below.
+1. **Add the dependency**, and **the agent** if your configuration ends in `_INSTRUMENTATION`, below.
 2. **[Set up the public and hidden test model](../setup.md)**.
 3. **[Mark your tests](../test-annotations.md)** with `@PublicTest` or `@HiddenTest`, and give
    hidden tests a `@Deadline`.
@@ -30,6 +30,13 @@ Blockquoted tips (marked `>`) in the setup steps below describe optional configu
 skipped on a first setup. Everything not in a blockquote is required.
 :::
 
+**The agent is required only for configurations ending in `_INSTRUMENTATION`.** It enforces the
+policy by rewriting Java classes as they load. A configuration ending in `_ASPECTJ` enforces the
+same policy through aspects that `ajc` weaves in at compile time. Ares leaves the agent's checks
+idle in that mode, so there the agent only adds start-up time to every test run. For an
+`_ASPECTJ` configuration, leave out the copy of `ares-agent.jar` and the `-javaagent` argument.
+Keep everything else, including `-Xbootclasspath/a:` and the module access flags.
+
 There is no repository step for Maven: the super-POM already defines Central at `https://repo.maven.apache.org/maven2`, so re-declaring it adds nothing and can conflict with an organisational mirror.
 
 ### Declare the versions once
@@ -38,7 +45,7 @@ There is no repository step for Maven: the super-POM already defines Central at 
 <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <ares.version>2.1.5</ares.version>
+    <ares.version>2.2.1</ares.version>
     <aspectj.version>1.9.25.1</aspectj.version>
     <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
     <argLine></argLine>
@@ -289,7 +296,7 @@ and live in the repository at
 - `MavenReservedPackages.xml`
 - `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
-Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 1` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
+Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
 
 ### Maven
 
@@ -297,9 +304,8 @@ Apply the shipped `MavenReservedPackages.xml`, a `maven-antrun-plugin` execution
 
 ### About the forbidden package list
 
-The list above is the versioned reserved-package boundary, and it is deliberately a superset of
-the canonical Ares list. Besides the packages Ares trusts by name, it stops student code
-shadowing the test harness itself (JUnit, AssertJ, Logback, Gradle).
+The shipped snippets are the versioned reserved-package boundary. They reject exactly the
+package prefixes listed in `ReservedPackagePrefixes.txt`, which student code must not declare.
 
 Keep it aligned with `WalaPathClassification.RESERVED_PACKAGE_PREFIX_VERSION` (the prefix data)
 and `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION` (the build-side contract), and do not disable it.
@@ -383,7 +389,7 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <ares.version>2.1.5</ares.version>
+        <ares.version>2.2.1</ares.version>
         <aspectj.version>1.9.25.1</aspectj.version>
         <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
         <argLine></argLine>

@@ -10,7 +10,7 @@ import javax.annotation.Nonnull;
  * yet; a behavioural-feature policy field is added here as its own record
  * component, one per feature.
  *
- * @since 2.1.5
+ * @since 2.2.0
  * @author Luka Petrovic
  */
 public record TestBehaviorConfiguration() {
@@ -31,7 +31,7 @@ public record TestBehaviorConfiguration() {
 	 * public-static-final assignment helpers. Empty here, since no category is
 	 * configured yet; a category adds its own contribution once it exists.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @return the literal field assignments to write into the generated settings
 	 *         class; empty when nothing is configured.
@@ -44,7 +44,7 @@ public record TestBehaviorConfiguration() {
 	/**
 	 * Returns a builder for creating a TestBehaviorConfiguration instance.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 * @return a new Builder instance.
 	 */
@@ -56,7 +56,7 @@ public record TestBehaviorConfiguration() {
 	/**
 	 * Builder for TestBehaviorConfiguration.
 	 *
-	 * @since 2.1.5
+	 * @since 2.2.0
 	 * @author Luka Petrovic
 	 */
 	public static class Builder {
@@ -64,7 +64,7 @@ public record TestBehaviorConfiguration() {
 		/**
 		 * Builds a new TestBehaviorConfiguration instance.
 		 *
-		 * @since 2.1.5
+		 * @since 2.2.0
 		 * @author Luka Petrovic
 		 * @return a new TestBehaviorConfiguration instance.
 		 */
