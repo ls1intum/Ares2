@@ -157,6 +157,8 @@ class CommandPermission <<record>> {
     -- Factories --
     + {static} allowWithoutArguments(executeTheCommand: String): CommandPermission
     + {static} allowWithAnyArguments(executeTheCommand: String): CommandPermission
+    + {static} fromJson(node: JsonNode): CommandPermission
+    + {static} fromString(command: String): CommandPermission
     + {static} builder(): CommandPermission.Builder
 }
 

@@ -46,6 +46,7 @@ class SecurityPolicyReaderAndDirector {
     + writeTestCases(testFolderPath: Path): List<Path>
     + writeTestCasesAndContinue(testFolderPath: Path): SecurityPolicyReaderAndDirector
     + executeTestCases(): SecurityPolicyReaderAndDirector
+    + factoryAndBuilder(): TestCaseAbstractFactoryAndBuilder
     + {static} builder(): SecurityPolicyReaderAndDirector.Builder
 }
 
@@ -58,6 +59,7 @@ note left of SecurityPolicyReaderAndDirector
   - allowed: policy file path
   projectFolderPath: nullable
   - allowed: project folder path
+  - null resolves to the working directory
   withinPath: nonnull
   - allowed: Path.of("") (default)
   securityTestCaseFactoryAndBuilder: nullable

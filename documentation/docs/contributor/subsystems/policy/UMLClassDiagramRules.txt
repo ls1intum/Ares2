@@ -103,3 +103,15 @@ Requested class order
     the longest prefix of complete parameters that fits within 100 characters
     including the final ", ...", and replace all remaining parameters with
     "...". Never cut a parameter name or type midway.
+
+Recorded exceptions
+-------------------
+36. AOPClassDiagram.puml draws all 68 AOP types in one overview. Its natural
+    layout is 5962x10699 pixels, which the browser renderer rejects, so it
+    departs from rules 25, 26 and 28:
+    - nodesep 20 and ranksep 10, reducing the vertical separation as well,
+      because reducing the horizontal one alone does not get under the limit;
+    - "hide private methods", since the private helpers do not fit; the
+      source still lists them, and no rule above requires showing them;
+    - font size 5 for members and notes, smaller than rule 28 intends; the
+      output is vector graphics, read by zooming in.
