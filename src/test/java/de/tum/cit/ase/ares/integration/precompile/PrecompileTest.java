@@ -225,6 +225,7 @@ public class PrecompileTest {
 		assertTrue(rule.contains("Set.of(\"" + EXERCISE_PACKAGE + ".PenguinTest\")"), rule);
 		assertTrue(rule.contains("withOwnPackages(allowedPackages, javaClasses"), rule);
 		assertTrue(rule.contains("new PackagePermission(\"java.lang\", true)"), rule);
+		assertTrue(rule.contains("new PackagePermission(\"java.io\", true)"), rule);
 		assertTrue(rule.contains("new PackagePermission(\"" + EXERCISE_PACKAGE
 				+ ".ares.api.aop.java.aspectj.adviceandpointcut\", false)"), rule);
 		assertFalse(rule.contains("new PackagePermission(\"" + EXERCISE_PACKAGE + "\", false)"), rule);

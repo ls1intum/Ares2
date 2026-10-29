@@ -129,8 +129,8 @@ class PackageImportEnforcementTest {
 	@Test
 	@DisplayName("Collections, lambdas and streams are not permitted by default")
 	void baselineForbidsCollectionsAndLambdas() {
-		String violations = violationsFor(Set.of(JDK_BASELINE, FIXTURE_PACKAGE));
-		assertTrue(violations.contains("java.util"),
+		String violations = violationsOf(Set.of(JDK_BASELINE, JAVA_IO_BASELINE), Set.of(), UsesCollections.class);
+		assertTrue(violations.contains("java.util.ArrayList"),
 				"java.util must require an explicit grant rather than being allowed by default");
 	}
 
@@ -474,13 +474,16 @@ class PackageImportEnforcementTest {
 	void generatedRulesCarryTheTestClassesThroughTheConversion() {
 		JavaArchitectureTestCase testCase = JavaArchitectureTestCase.builder()
 				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
-				.allowedPackages(Set.of(JDK_BASELINE)).javaClasses(new ClassFileImporter().importPackages())
-				.testClassNames(Set.of(INSTRUCTOR_CHECK)).supervisedPackage("de.tum.cit.aet").callGraphSupplier(() -> {
+				.allowedPackages(Set.of(JDK_BASELINE, new PackagePermission("java.util", true)))
+				.javaClasses(new ClassFileImporter().importPackages()).testClassNames(Set.of(INSTRUCTOR_CHECK))
+				.supervisedPackage("de.tum.cit.aet").callGraphSupplier(() -> {
 					throw new AssertionError("writing must not build a call graph");
 				}).build();
 		for (ArchitectureMode mode : ArchitectureMode.values()) {
 			String written = mode.threePartedFileBody(List.of(testCase));
 			assertTrue(written.contains("Set.of(\"" + INSTRUCTOR_CHECK + "\")"), mode + " must name the test class");
+			assertTrue(written.contains("new PackagePermission(\"java.util\", true)"),
+					mode + " must keep an exact grant exact");
 			assertTrue(written.contains("JavaArchunitTestCaseCollection.withOwnPackages(allowedPackages, javaClasses"),
 					mode + " must read the own packages from the checked classes");
 		}
