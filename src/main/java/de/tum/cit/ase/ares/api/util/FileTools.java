@@ -666,74 +666,76 @@ public final class FileTools {
 	public static Path createThreePartedFile(Path sourceHeaderPath, String sourceBody, Path sourceFooterPath,
 			Path target) {
 		try {
-			String sourceHeaderContent = Files.readString(FileTools.readFile(sourceHeaderPath).toPath(),
-					StandardCharsets.UTF_8);
-			String sourceFooterContent = Files.readString(FileTools.readFile(sourceFooterPath).toPath(),
-					StandardCharsets.UTF_8);
-			String fileContent = String.join("\n", List.of(sourceHeaderContent, sourceBody, sourceFooterContent));
-			Path targetParent = target.getParent();
-			Path fullTargetPath = (targetParent == null) ? target : targetParent.resolve(target.getFileName());
-
-			if (targetParent != null && !Files.exists(targetParent)) {
-				try {
-					Files.createDirectories(targetParent);
-				} catch (IOException e) {
-					throw new SecurityException(localized("security.file-tools.create.target.directory.failed"), e);
-				}
-			}
-			return FileTools.writeFile(fullTargetPath, fileContent, StandardOpenOption.CREATE,
-					StandardOpenOption.TRUNCATE_EXISTING).toPath();
+			return writeThreePartedFile(readTemplate(sourceHeaderPath), sourceBody, readTemplate(sourceFooterPath),
+					target);
 		} catch (IOException e) {
 			throw new SecurityException(localized("security.file-tools.create.target.directory.failed"), e);
 		}
 	}
 
 	/**
-	 * Creates a new file by concatenating a header file, an in-memory body string,
-	 * and a footer file, then formats the resulting content using
-	 * {@link String#format(String, Object...)}.
-	 * <p>
-	 * The method performs two steps:
-	 * <ol>
-	 * <li>Creates the file at {@code target} by joining the content of
-	 * {@code sourceHeaderPath}, {@code sourceBody}, and {@code sourceFooterPath}
-	 * (in that order).</li>
-	 * <li>Reads the created file, applies {@link String#format(String, Object...)}
-	 * with the provided {@code formatValues}, and writes the formatted content back
-	 * to the same file.</li>
-	 * </ol>
+	 * Writes a file from a header and a footer template and a body between them.
+	 * Only the header and the footer are passed through
+	 * {@link String#format(String, Object...)} with {@code formatValues}. The body
+	 * is written as it stands, because it holds values from the security policy,
+	 * such as file paths, in which a percent sign must keep its plain meaning.
 	 *
-	 * @param sourceHeaderPath the path (within the classpath resources) of the
-	 *                         header file whose content will be placed at the
-	 *                         beginning of the created file.
-	 * @param sourceBody       the body text to be inserted between header and
-	 *                         footer.
-	 * @param sourceFooterPath the path (within the classpath resources) of the
-	 *                         footer file whose content will be placed at the end
-	 *                         of the created file.
-	 * @param target           the target path (on the filesystem) of the file to
-	 *                         create and format.
-	 * @param formatValues     the values to be injected into format specifiers
-	 *                         (e.g., {@code %s}) contained in the concatenated
-	 *                         content.
-	 * @return the path to the created and formatted file.
-	 * @throws SecurityException      if an I/O error occurs while reading or
-	 *                                writing the file content.
-	 * @throws IllegalFormatException if the format string contains an illegal
-	 *                                syntax for the provided values.
+	 * @param sourceHeaderPath the file holding the header template.
+	 * @param sourceBody       the body text, written unchanged.
+	 * @param sourceFooterPath the file holding the footer template.
+	 * @param target           the file to write.
+	 * @param formatValues     the values for the format specifiers of the header
+	 *                         and the footer.
+	 * @return the path of the written file.
+	 * @throws SecurityException if a template cannot be read or is not a valid
+	 *                           format string.
 	 */
 	public static Path createThreePartedFormatStringFile(Path sourceHeaderPath, String sourceBody,
 			Path sourceFooterPath, Path target, String[] formatValues) {
-		Path createdFile = null;
 		try {
-			createdFile = createThreePartedFile(sourceHeaderPath, sourceBody, sourceFooterPath, target);
-			String template = Files.readString(FileTools.readFile(createdFile).toPath(), StandardCharsets.UTF_8);
-			String formatted = formatTemplate(template, formatValues, createdFile);
-			writeFile(createdFile, formatted, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
-			return createdFile;
+			String header = formatTemplate(readTemplate(sourceHeaderPath), formatValues, sourceHeaderPath);
+			String footer = formatTemplate(readTemplate(sourceFooterPath), formatValues, sourceFooterPath);
+			return writeThreePartedFile(header, sourceBody, footer, target);
 		} catch (IOException e) {
-			throw new SecurityException(localized("file.tools.create.format.file.failed", createdFile), e);
+			throw new SecurityException(localized("file.tools.create.format.file.failed", target), e);
 		}
+	}
+
+	/**
+	 * Reads a template file as UTF-8 text.
+	 *
+	 * @param templatePath the template file, on the class path or the file system.
+	 * @return the text of the template.
+	 * @throws IOException if the file cannot be read.
+	 */
+	private static String readTemplate(Path templatePath) throws IOException {
+		return Files.readString(FileTools.readFile(templatePath).toPath(), StandardCharsets.UTF_8);
+	}
+
+	/**
+	 * Joins header, body and footer with line breaks and writes them to the target,
+	 * creating its folder first if needed.
+	 *
+	 * @param header the header text.
+	 * @param body   the body text.
+	 * @param footer the footer text.
+	 * @param target the file to write.
+	 * @return the path of the written file.
+	 */
+	private static Path writeThreePartedFile(String header, String body, String footer, Path target) {
+		String fileContent = String.join("\n", List.of(header, body, footer));
+		Path targetParent = target.getParent();
+		Path fullTargetPath = (targetParent == null) ? target : targetParent.resolve(target.getFileName());
+		if (targetParent != null && !Files.exists(targetParent)) {
+			try {
+				Files.createDirectories(targetParent);
+			} catch (IOException e) {
+				throw new SecurityException(localized("security.file-tools.create.target.directory.failed"), e);
+			}
+		}
+		return FileTools
+				.writeFile(fullTargetPath, fileContent, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+				.toPath();
 	}
 
 	/**
