@@ -13,7 +13,7 @@ what may be brought in. Naming a package covers everything inside it, so permitt
 
 A little is on every desk without being listed: `java.lang` and `java.io` themselves, and the
 pupils' own packages. The teacher's keys never are: no entry on the list lets a pupil pick up
-a test class. Without a checklist at all, every `java.*` package may come in.
+a test class. Without a checklist at all, Ares lets every `java.*` package in.
 :::
 
 ## Position in the example policy file
@@ -74,7 +74,7 @@ Implemented by `PackagePermission` in
 | Field | Datatype | Explanation | Example | Regex or Range |
 | --- | --- | --- | --- | --- |
 | `importTheFollowingPackage` | `String` | The package this entry permits, and every package beneath it unless `exactMatchOnly` is `true`. | `java.util` | Either the wildcard `*`, or `JAVA_PACKAGE_PATTERN`: a dot-separated Java package name, each segment a Java identifier that is not a reserved word (`\p{javaJavaIdentifierStart}\p{javaJavaIdentifierPart}*`). |
-| `exactMatchOnly` | `Boolean`, optional | Whether the entry permits only this package and none beneath it. Leaving it out means `false`. It changes nothing for `*`. | `true` | `true` or `false`; quoted values and `null` are refused. |
+| `exactMatchOnly` | `Boolean`, optional | Whether the entry permits only this package and none beneath it. Leaving it out means `false`. It changes nothing for `*`. | `true` | `true` or `false`; the reader refuses quoted values and `null`. |
 
 ## Notes
 
@@ -94,8 +94,8 @@ Every other `java.*` package, all of `javax`, `jdk`, `sun` and `com.sun`, and ev
 
 ### Test classes are never importable
 
-The supervised code may not depend on a class named in `theFollowingClassesAreTestClasses`, nor on a class whose name starts with that name followed by `$`, which covers the classes nested in it. No entry on this list changes that, not even one naming the test class's own package.
+The supervised code must not depend on a class named in `theFollowingClassesAreTestClasses`, nor on a class whose name starts with that name followed by `$`, which covers the classes nested in it. No entry on this list changes that, not even one naming the test class's own package.
 
 ### Without a policy
 
-A test without `@Policy` runs with a restrictive default. Every `java.*` package may be imported there, `java.lang.reflect` included. `javax`, `jdk`, `sun`, `com.sun` and third-party packages stay forbidden, and the other rules, such as the ones for reflection and file access, still apply.
+A test without `@Policy` runs with a restrictive default. There the supervised code can import every `java.*` package, `java.lang.reflect` included. `javax`, `jdk`, `sun`, `com.sun` and third-party packages stay forbidden, and the other rules, such as the ones for reflection and file access, still apply.

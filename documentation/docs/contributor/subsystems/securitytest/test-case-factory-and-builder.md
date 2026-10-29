@@ -300,7 +300,7 @@ Each invocation proceeds through two phases — extraction (reading class data f
    | Essential packages (from YAML) | `java.lang` and `java.io`, each matched as that package only, and Ares infrastructure such as `org.aspectj`, which must never be blocked |
    | Policy-permitted packages | Packages the instructor explicitly allows via `regardingPackageImports`; without a policy, `java` and every package below it |
 
-   The student's own packages are not part of this set. The `PACKAGE_IMPORT` rule adds them when it runs, each matched as that package only, from the classes it checks. A test class does not grant its package, and the supervised code may never depend on a test class or on a class named like one nested in it.
+   The student's own packages are not part of this set. The `PACKAGE_IMPORT` rule adds them when it runs, each matched as that package only, from the classes it checks. A test class does not grant its package, and the supervised code must never depend on a test class or on a class named like one nested in it.
 
 3. **Preparation — computing allowed classes:**
    Two sources are merged: `essentialClasses` ∪ `testClasses`, each wrapped in a `ClassPermission`. These classes are exempt from all restrictions.
@@ -669,7 +669,7 @@ class SecurityTest {
 3. `JavaCreator.createTestCases()` runs:
    - Computes the classpath: `build/classes/java/main`.
    - Imports `JavaClasses` and builds a WALA `CallGraph` (cached).
-   - Computes allowed packages: `{java.lang, java.io, org.aspectj, …}` (the student's own packages are added when the rule runs).
+   - Computes allowed packages: `{java.lang, java.io, org.aspectj, …}` (the rule adds the student's own packages when it runs).
    - **Priority test cases:** `NATIVE_CODE`, `AGENT_ATTACH`, `ENVIRONMENT_ACCESS`, and `MODULE_SYSTEM` architecture tests (always-on, generated first).
    - **Variable test cases:** Since all resource-access lists are empty, for each category (FS, Network, Command, Thread) both an `ArchitectureTestCase` **and** an `AOPTestCase` are created (automatic escalation).
    - **Fixed test cases:** `PACKAGE_IMPORT`, `TERMINATE_JVM`, `REFLECTION`, `SERIALIZATION`, `CLASS_LOADING`, and `JNDI_INJECTION` architecture tests (always-on).
