@@ -36,5 +36,8 @@ regardingTheSupervisedCode:
       # validated production output declares, so a helper outside the analysed
       # subtree has to be declared here, which is what this list is for.
       - importTheFollowingPackage: "de.tum.cit.ase.ares.integration.testuser.subject.architectureTests.thirdpartypackage"
+      - importTheFollowingPackage: "java.nio.channels"
+      - importTheFollowingPackage: "java.nio.file"
+      - importTheFollowingPackage: "java.nio.file.spi"
     regardingTimeouts:
       - timeout: 3000

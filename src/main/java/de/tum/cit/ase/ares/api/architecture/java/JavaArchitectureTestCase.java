@@ -67,6 +67,13 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	private final Set<ClassPermission> allowedClasses;
 
 	/**
+	 * The binary names of the test classes. The supervised code may not depend on
+	 * them or on classes named like ones nested in them. Never null.
+	 */
+	@Nonnull
+	private final Set<String> testClassNames;
+
+	/**
 	 * The supervised scope the generated test must analyse, and whether Ares
 	 * derived it rather than reading it from a policy. A generated test needs both:
 	 * the scope to ask for at runtime, and whether it must first be checked against
@@ -103,6 +110,15 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	@Nonnull
 	public Set<ClassPermission> getAllowedClasses() {
 		return allowedClasses;
+	}
+
+	/**
+	 * @return the binary names of the test classes the supervised code may not
+	 *         depend on
+	 */
+	@Nonnull
+	public Set<String> getTestClassNames() {
+		return testClassNames;
 	}
 
 	/** Checks exact and nested class names against the policy exemptions. */
@@ -179,9 +195,32 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 			@Nullable CallGraph callGraph, @Nullable Supplier<CallGraph> callGraphSupplier,
 			@Nonnull Set<ClassPermission> allowedClasses, @Nullable String supervisedPackage,
 			boolean supervisedScopeWasDerived) {
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, callGraphSupplier,
+				allowedClasses, Set.of(), supervisedPackage, supervisedScopeWasDerived);
+	}
+
+	/**
+	 * Constructs a test case that also knows the test classes.
+	 *
+	 * @param javaArchitectureTestCaseSupported the category
+	 * @param allowedPackages                   the permitted packages
+	 * @param javaClasses                       the classes to check
+	 * @param callGraph                         the call graph
+	 * @param callGraphSupplier                 the lazy call graph
+	 * @param allowedClasses                    the exempt classes
+	 * @param testClassNames                    the test class names
+	 * @param supervisedPackage                 the scope, or {@code null}
+	 * @param supervisedScopeWasDerived         whether it was derived
+	 */
+	public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nullable CallGraph callGraph, @Nullable Supplier<CallGraph> callGraphSupplier,
+			@Nonnull Set<ClassPermission> allowedClasses, @Nonnull Set<String> testClassNames,
+			@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
 		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph);
 		this.callGraphSupplier = callGraphSupplier;
 		this.allowedClasses = allowedClasses;
+		this.testClassNames = Set.copyOf(Objects.requireNonNull(testClassNames, "testClassNames must not be null"));
 		this.supervisedPackage = supervisedPackage;
 		this.supervisedScopeWasDerived = supervisedScopeWasDerived;
 	}
@@ -451,6 +490,62 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
 	// <editor-fold desc="Write architecture test case methods">
 
+	/** The namespace Ares's own classes live in before Precompile copies them. */
+	private static final String ARES_NAMESPACE = "de.tum.cit.ase";
+
+	/** The part of that namespace that Precompile copies below the scope. */
+	private static final String COPIED_API = ARES_NAMESPACE + ".ares.api";
+
+	/**
+	 * Formats the permitted packages as a Java literal
+	 * {@code Set.of(new PackagePermission(...), ...)} for a generated test.
+	 * <p>
+	 * Precompile copies Ares's api into {@code <scope>.ares.api}, and woven code
+	 * then refers to the copy, so each permission inside
+	 * {@code de.tum.cit.ase.ares.api} is written a second time for the copy. The
+	 * supervised code's own packages are not written: the generated rule reads them
+	 * when it runs.
+	 *
+	 * @return the literal
+	 */
+	@Nonnull
+	protected String allowedPackagesAsCopiedCode() {
+		return "Set.of(" + allowedPackages.stream().flatMap(this::withCopiedCounterpart).distinct()
+				.map(pp -> String.format("new %s(\"%s\", %s)", PackagePermission.class.getSimpleName(),
+						pp.importTheFollowingPackage(), pp.exactMatchOnly()))
+				.collect(java.util.stream.Collectors.joining(", ")) + ")";
+	}
+
+	/**
+	 * Returns a permission and, if it lies inside Ares's copied api and a scope is
+	 * known, the same permission for the copy below the scope.
+	 *
+	 * @param permission the permission
+	 * @return the permission, followed by its counterpart for the copy if any
+	 */
+	@Nonnull
+	private java.util.stream.Stream<PackagePermission> withCopiedCounterpart(@Nonnull PackagePermission permission) {
+		String packageName = permission.importTheFollowingPackage();
+		if (supervisedPackage == null || supervisedPackage.isBlank()
+				|| !(packageName.equals(COPIED_API) || packageName.startsWith(COPIED_API + "."))) {
+			return java.util.stream.Stream.of(permission);
+		}
+		return java.util.stream.Stream.of(permission, new PackagePermission(
+				supervisedPackage + packageName.substring(ARES_NAMESPACE.length()), permission.exactMatchOnly()));
+	}
+
+	/**
+	 * Formats the test class names as a Java literal {@code Set.of("a.B", ...)} for
+	 * a generated test.
+	 *
+	 * @return the literal
+	 */
+	@Nonnull
+	protected String testClassNamesAsCode() {
+		return "Set.of(" + testClassNames.stream().sorted().map(name -> "\"" + name + "\"")
+				.collect(java.util.stream.Collectors.joining(", ")) + ")";
+	}
+
 	/**
 	 * Generates the architecture test case code as a string based on the specified
 	 * architecture mode. Delegates to the appropriate implementation based on the
@@ -480,12 +575,13 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		case "ARCHUNIT" -> JavaArchunitTestCase.archunitBuilder()
 				.javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported)
 				.allowedPackages(allowedPackages).javaClasses(javaClasses).allowedClasses(allowedClasses)
-				.supervisedPackage(supervisedPackage).supervisedScopeWasDerived(supervisedScopeWasDerived).build()
+				.testClassNames(testClassNames).supervisedPackage(supervisedPackage)
+				.supervisedScopeWasDerived(supervisedScopeWasDerived).build()
 				.writeArchitectureTestCase(architectureMode, aopMode);
 		case "WALA" -> JavaWalaTestCase.walaBuilder()
 				.javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported)
 				.allowedPackages(allowedPackages).javaClasses(javaClasses).callGraph(callGraph)
-				.allowedClasses(allowedClasses).supervisedPackage(supervisedPackage)
+				.allowedClasses(allowedClasses).testClassNames(testClassNames).supervisedPackage(supervisedPackage)
 				.supervisedScopeWasDerived(supervisedScopeWasDerived).build()
 				.writeArchitectureTestCase(architectureMode, aopMode);
 		default -> throw new SecurityException(
@@ -525,7 +621,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		switch (architectureMode) {
 		case "ARCHUNIT" -> JavaArchunitTestCase.archunitBuilder()
 				.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
-				.allowedPackages(protectedAllowedPackages).allowedClasses(allowedClasses)
+				.allowedPackages(protectedAllowedPackages).allowedClasses(allowedClasses).testClassNames(testClassNames)
 				.javaClasses(protectedJavaClasses).build().executeArchitectureTestCase(architectureMode, aopMode);
 		case "WALA" -> {
 			// Use the lazy supplier path when present so the WALA outcome cache can
@@ -534,13 +630,13 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 			JavaWalaTestCase tc;
 			if (callGraphSupplier != null) {
 				tc = new JavaWalaTestCase(protectedJavaArchitectureTestCaseSupported, protectedAllowedPackages,
-						protectedJavaClasses, callGraphSupplier, allowedClasses, supervisedPackage,
+						protectedJavaClasses, callGraphSupplier, allowedClasses, testClassNames, supervisedPackage,
 						supervisedScopeWasDerived);
 			} else {
 				tc = JavaWalaTestCase.walaBuilder()
 						.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
 						.allowedPackages(protectedAllowedPackages).allowedClasses(allowedClasses)
-						.javaClasses(protectedJavaClasses).callGraph(callGraph).build();
+						.testClassNames(testClassNames).javaClasses(protectedJavaClasses).callGraph(callGraph).build();
 			}
 			tc.executeArchitectureTestCase(architectureMode, aopMode);
 		}
@@ -588,9 +684,24 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		private Set<PackagePermission> allowedPackages;
 		@Nonnull
 		private Set<ClassPermission> allowedClasses = java.util.Set.of();
+		/** The binary names of the test classes; empty unless set. */
+		@Nonnull
+		private Set<String> testClassNames = java.util.Set.of();
 		@Nullable
 		private String supervisedPackage;
 		private boolean supervisedScopeWasDerived;
+
+		/**
+		 * Records the test classes the supervised code may not depend on.
+		 *
+		 * @param testClassNames the binary names of the test classes
+		 * @return this builder
+		 */
+		@Nonnull
+		public Builder testClassNames(@Nonnull Set<String> testClassNames) {
+			this.testClassNames = Objects.requireNonNull(testClassNames, "testClassNames must not be null");
+			return this;
+		}
 
 		/**
 		 * Records the scope a generated test asks for at runtime.
@@ -720,7 +831,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
 					Objects.requireNonNull(javaClasses, "javaClasses must not be null"), callGraph, callGraphSupplier,
-					allowedClasses, supervisedPackage, supervisedScopeWasDerived);
+					allowedClasses, testClassNames, supervisedPackage, supervisedScopeWasDerived);
 		}
 	}
 	// </editor-fold>

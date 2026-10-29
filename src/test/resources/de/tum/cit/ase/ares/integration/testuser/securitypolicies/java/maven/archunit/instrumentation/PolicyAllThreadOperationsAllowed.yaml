@@ -46,6 +46,10 @@ regardingTheSupervisedCode:
         ofThisClass: "<implicit-thread-op:SubmissionPublisher.submit>"
       - createTheFollowingNumberOfThreads: 100
         ofThisClass: "<implicit-thread-op:SubmissionPublisher.offer>"
-    regardingPackageImports: []
+    regardingPackageImports:
+      - importTheFollowingPackage: "de.tum.cit.ase.ares.integration.aop.allowed.subject"
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "java.util.concurrent"
+      - importTheFollowingPackage: "java.util.stream"
     regardingTimeouts:
       - timeout: 3000

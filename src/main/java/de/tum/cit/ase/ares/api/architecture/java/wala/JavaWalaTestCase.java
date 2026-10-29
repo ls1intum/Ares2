@@ -312,6 +312,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		// outcome.
 		String allowedClassesFingerprint = getAllowedClasses().stream().map(ClassPermission::className).sorted()
 				.collect(Collectors.joining(","));
+		String testClassesFingerprint = getTestClassNames().stream().sorted().collect(Collectors.joining(","));
 		// Fold the blocklist content into the key: the Ares-jar mtime does not change
 		// when a *-methods.txt or the false-positive file is edited under an exploded
 		// classes directory, so without this a cached PASS could survive a tightening
@@ -321,8 +322,8 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		return CACHE_SCHEMA_VERSION + "|" + environmentFingerprint + "|" + IMPLEMENTATION_FINGERPRINT + "|"
 				+ supported.name() + "|"
 				+ sha256Hex(structuralFingerprint + "||" + bytecodeFingerprint + "||" + allowedPackagesFingerprint
-						+ "||" + allowedClassesFingerprint + "||" + blocklistFingerprint + "||"
-						+ dependencyFingerprint);
+						+ "||" + allowedClassesFingerprint + "||" + testClassesFingerprint + "||" + blocklistFingerprint
+						+ "||" + dependencyFingerprint);
 	}
 
 	@Nonnull
@@ -454,8 +455,30 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
 			@Nonnull CallGraph callGraph, @Nonnull Set<ClassPermission> allowedClasses,
 			@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
-		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, /* callGraphSupplier */ null,
-				allowedClasses, supervisedPackage, supervisedScopeWasDerived);
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, allowedClasses, Set.of(),
+				supervisedPackage, supervisedScopeWasDerived);
+	}
+
+	/**
+	 * Eager variant that also knows the test classes, which the package-import rule
+	 * keeps the supervised code away from.
+	 *
+	 * @param javaArchitectureTestCaseSupported the category
+	 * @param allowedPackages                   the permitted packages
+	 * @param javaClasses                       the classes to check
+	 * @param callGraph                         the call graph
+	 * @param allowedClasses                    the exempt classes
+	 * @param testClassNames                    the test class names
+	 * @param supervisedPackage                 the scope, or {@code null}
+	 * @param supervisedScopeWasDerived         whether it was derived
+	 */
+	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nonnull CallGraph callGraph, @Nonnull Set<ClassPermission> allowedClasses,
+			@Nonnull Set<String> testClassNames, @Nullable String supervisedPackage,
+			boolean supervisedScopeWasDerived) {
+		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, null, allowedClasses,
+				testClassNames, supervisedPackage, supervisedScopeWasDerived);
 		this.callGraphSupplier = () -> callGraph;
 	}
 
@@ -481,8 +504,29 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
 			@Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<ClassPermission> allowedClasses,
 			@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
-		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, /* callGraph */ null,
-				/* callGraphSupplier */ null, allowedClasses, supervisedPackage, supervisedScopeWasDerived);
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraphSupplier, allowedClasses,
+				Set.of(), supervisedPackage, supervisedScopeWasDerived);
+	}
+
+	/**
+	 * Lazy variant that also knows the test classes.
+	 *
+	 * @param javaArchitectureTestCaseSupported the category
+	 * @param allowedPackages                   the permitted packages
+	 * @param javaClasses                       the classes to check
+	 * @param callGraphSupplier                 the lazy call graph
+	 * @param allowedClasses                    the exempt classes
+	 * @param testClassNames                    the test class names
+	 * @param supervisedPackage                 the scope, or {@code null}
+	 * @param supervisedScopeWasDerived         whether it was derived
+	 */
+	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nonnull Supplier<CallGraph> callGraphSupplier, @Nonnull Set<ClassPermission> allowedClasses,
+			@Nonnull Set<String> testClassNames, @Nullable String supervisedPackage,
+			boolean supervisedScopeWasDerived) {
+		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, null, null, allowedClasses,
+				testClassNames, supervisedPackage, supervisedScopeWasDerived);
 		this.callGraphSupplier = callGraphSupplier;
 	}
 
@@ -583,27 +627,11 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	// <editor-fold desc="Write security test case methods">
 
 	/**
-	 * Formats the Set<PackagePermission> structure as a Java-literal
-	 * Set.of(PackagePermission(...), ...).
-	 * <p>
-	 * A pinned scope is written out as it stands: it is the instructor's own
-	 * statement of what may be imported. A derived one is not, because it is a
-	 * prefix, and a permission outlives the moment it was granted, so writing it
-	 * into the generated file left it holding a grant over a whole namespace even
-	 * after the coverage check was satisfied. The packages the compiled output
-	 * declares cannot be broader than that output, so the generated rule asks for
-	 * those at runtime and adds them to what the policy declared.
+	 * Formats the permitted packages for the generated test, as
+	 * {@link #allowedPackagesAsCopiedCode()} describes.
 	 */
 	private String allowedPackagesAsCode() {
-		String inner = allowedPackages.stream().map(pp -> String.format("new %s(\"%s\", %s)",
-				PackagePermission.class.getSimpleName(), pp.importTheFollowingPackage(), pp.exactMatchOnly()))
-				.collect(Collectors.joining(", "));
-		String declaredByPolicy = "Set.of(" + inner + ")";
-		if (!isSupervisedScopeWasDerived()) {
-			return declaredByPolicy;
-		}
-		return "JavaArchunitSupervisedClasses.allowedPackages(\"" + getSupervisedPackage() + "\", " + declaredByPolicy
-				+ ")";
+		return allowedPackagesAsCopiedCode();
 	}
 
 	/**
@@ -646,7 +674,8 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 							((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported).name() + ".txt")))
 					.stream().reduce("", (acc, line) -> acc + line + "\n");
 			return testWithPlaceholders.replace("${allowedPackages}", allowedPackagesAsCode())
-					.replace("${javaClasses}", javaClassesAsCode()).replace("${callGraph}", callGraphAsCode());
+					.replace("${testClassNames}", testClassNamesAsCode()).replace("${javaClasses}", javaClassesAsCode())
+					.replace("${callGraph}", callGraphAsCode());
 		} catch (AssertionError | IOException e) {
 			throw new SecurityException(Messages.localized("architecture.illegal.statement", e.getMessage()));
 		}
@@ -765,7 +794,11 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 			case THREAD_CREATION -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS, cg,
 					exemptClasses);
 			case PACKAGE_IMPORT -> JavaWalaTestCaseCollection
-					.noClassMustImportForbiddenPackages(allowedPackages, exemptClasses).check(javaClasses);
+					.noClassMustImportForbiddenPackages(
+							de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCaseCollection
+									.withOwnPackages(allowedPackages, javaClasses, exemptClasses),
+							exemptClasses, getTestClassNames())
+					.check(javaClasses);
 			case REFLECTION -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION, cg,
 					exemptClasses);
 			case TERMINATE_JVM -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM, cg,
@@ -783,7 +816,8 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 						.javaArchitectureTestCaseSupported(
 								(JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported)
 						.javaClasses(this.javaClasses).allowedPackages(this.allowedPackages)
-						.allowedClasses(exemptClasses).supervisedPackage(getSupervisedPackage())
+						.allowedClasses(exemptClasses).testClassNames(getTestClassNames())
+						.supervisedPackage(getSupervisedPackage())
 						.supervisedScopeWasDerived(isSupervisedScopeWasDerived()).build()
 						.executeArchitectureTestCase(architectureMode, aopMode);
 			default -> throw new SecurityException(
@@ -902,9 +936,24 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		private Set<PackagePermission> allowedPackages;
 		@Nonnull
 		private Set<ClassPermission> allowedClasses = Set.of();
+		/** The binary names of the test classes; empty unless set. */
+		@Nonnull
+		private Set<String> testClassNames = Set.of();
 		@Nullable
 		private String supervisedPackage;
 		private boolean supervisedScopeWasDerived;
+
+		/**
+		 * Records the test classes the supervised code may not depend on.
+		 *
+		 * @param testClassNames the binary names of the test classes
+		 * @return this builder
+		 */
+		@Nonnull
+		public JavaWalaTestCase.Builder testClassNames(@Nonnull Set<String> testClassNames) {
+			this.testClassNames = Objects.requireNonNull(testClassNames, "testClassNames must not be null");
+			return this;
+		}
 
 		/**
 		 * Records the scope the generated test asks for at runtime.
@@ -1022,8 +1071,8 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
 					Objects.requireNonNull(javaClasses, "javaClasses must not be null"),
-					Objects.requireNonNull(callGraph, "callGraph must not be null"), allowedClasses, supervisedPackage,
-					supervisedScopeWasDerived);
+					Objects.requireNonNull(callGraph, "callGraph must not be null"), allowedClasses, testClassNames,
+					supervisedPackage, supervisedScopeWasDerived);
 		}
 	}
 	// </editor-fold>

@@ -5,15 +5,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -30,7 +26,6 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
-import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
@@ -58,7 +53,6 @@ import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
  * @version 2.0.0
  */
 public class JavaCreator implements Creator {
-	private static final Logger LOG = LoggerFactory.getLogger(JavaCreator.class);
 
 	/**
 	 * The supervised scope of the run in progress, and whether Ares derived it.
@@ -84,6 +78,13 @@ public class JavaCreator implements Creator {
 	 * whose names a student could otherwise reuse in the supervised package.
 	 */
 	private List<String> testExemptedClassNames = List.of();
+
+	/**
+	 * The test classes of the run in progress, as declared or scanned. The
+	 * supervised code may not depend on them or on classes named like ones nested
+	 * in them.
+	 */
+	private Set<String> testClassNames = Set.of();
 	private final BuildToolConfiguration buildConfiguration;
 
 	public JavaCreator() {
@@ -130,154 +131,25 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
-	 * Prepares the set of allowed packages based on essential packages, security
-	 * policy, and test classes.
+	 * Prepares the packages the supervised code may import beyond its own.
+	 * <p>
+	 * Ares's essential packages and the policy's grants. A JDK essential covers
+	 * only its own package. The own packages are added when the rule runs; a test
+	 * class does not grant its package.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param resourceAccesses   the resource accesses permitted by the security
-	 *                           policy; must not be null
-	 * @param essentialPackages  the list of essential packages; must not be null
-	 * @param packageName        the name of the package containing the main class;
-	 *                           must not be null
-	 * @param supervisedPackages the packages actually declared by the validated
-	 *                           production output; must not be null
-	 * @param testClasses        the list of test classes whose packages should be
-	 *                           allowed; must not be null
-	 * @return a set of allowed package permissions; never null
-	 * @implNote The supervised code may use its own code, else a student could not
-	 *           call one of their own classes from another. SECURITY: this names
-	 *           the packages the validated output declares rather than the
-	 *           supervised prefix, because a permission matches as a prefix, so a
-	 *           scope of {@code de.tum.cit} would permit every import from
-	 *           {@code de.tum.cit.ase.ares.api} along with it.
-	 *           <p>
-	 *           Where nothing is compiled, which during generation is ordinary, a
-	 *           <em>derived</em> scope is deliberately not granted: the permission
-	 *           would be written into the generated file and outlive the moment it
-	 *           was granted, keeping a grant over a whole namespace even once the
-	 *           runtime coverage check is satisfied. The generated rule asks for
-	 *           the declared packages instead. A pinned scope is the instructor's
-	 *           own declaration and stands.
+	 * @param essentialPackages the essential packages
+	 * @param resourceAccesses  the policy's resource accesses
+	 * @return the permitted packages
 	 */
 	@Nonnull
-	private Set<PackagePermission> prepareAllowedPackages(@Nonnull List<String> essentialPackages,
-			@Nonnull ResourceAccesses resourceAccesses, @Nonnull String packageName,
-			@Nonnull Set<String> supervisedPackages, @Nonnull List<String> testClasses) {
-		return Stream.of(
-				/*
-				 * Essential packages are allowed to do anything. JDK-namespace entries are
-				 * pinned to an exact match: PACKAGE_IMPORT must stay able to forbid an
-				 * individual java.* package, and a subtree grant on the unavoidable java.lang
-				 * baseline would silently re-admit java.lang.reflect, java.lang.invoke,
-				 * java.lang.instrument, java.lang.management, java.lang.foreign and
-				 * java.lang.module. Non-JDK essentials (AspectJ, the instrumentation advice
-				 * package) legitimately span subpackages and keep subtree matching.
-				 */
+	private static Set<PackagePermission> prepareAllowedPackages(@Nonnull List<String> essentialPackages,
+			@Nonnull ResourceAccesses resourceAccesses) {
+		return Stream.concat(
 				essentialPackages.stream().filter(p -> p != null && !p.isBlank())
-						.map(p -> new PackagePermission(p, isJdkNamespace(p))),
-				// The permitted packages are allowed
-				resourceAccesses.regardingPackageImports().stream(),
-				supervisedPackages.isEmpty()
-						? (packageName != null && !packageName.isBlank()
-								? (supervisedScopeWasDerived ? Stream.<PackagePermission>empty()
-										: Stream.of(new PackagePermission(packageName)))
-								: Stream.<PackagePermission>empty())
-						: supervisedPackages.stream().map(JavaCreator::derivedAllowedPackage),
-				/*
-				 * The packages of the test classes are allowed (test infrastructure classes
-				 * like ProtectedResourceAccess need to be accessible from the supervised code)
-				 */
-				testClasses.stream().filter(java.util.Objects::nonNull).map(className -> {
-					int lastDot = className.lastIndexOf('.');
-					return lastDot > 0 ? className.substring(0, lastDot) : className;
-				}).filter(p -> !p.isBlank()).distinct().map(JavaCreator::testClassAllowedPackage)
-
-		).flatMap(Function.identity()).collect(Collectors.toSet());
-	}
-
-	/**
-	 * Roots of the JDK-controlled namespace. An essential package under one of
-	 * these roots is granted as an exact match rather than as a subtree.
-	 */
-	@Nonnull
-	private static final List<String> JDK_NAMESPACE_ROOTS = List.of("java", "javax", "jdk", "sun", "com.sun");
-
-	/**
-	 * Returns {@code true} if {@code packageName} lies in the JDK-controlled
-	 * namespace.
-	 * <p>
-	 * SECURITY: this is what keeps the essential list from being able to re-open
-	 * the JDK. Even if {@code essentialJavaPackages} were widened back to the bare
-	 * root {@code java}, it would be granted as an exact match on the literal
-	 * package {@code java}, which declares no classes, so no {@code java.*} package
-	 * becomes importable through it. Widening a JDK package therefore requires an
-	 * explicit, reviewable grant in the security policy.
-	 *
-	 * @since 2.0.0
-	 * @author Markus Paulsen
-	 * @param packageName the package name to classify; must not be null
-	 * @return true if the package is part of the JDK-controlled namespace
-	 */
-	private static boolean isJdkNamespace(@Nonnull String packageName) {
-		return JDK_NAMESPACE_ROOTS.stream()
-				.anyMatch(root -> packageName.equals(root) || packageName.startsWith(root + "."));
-	}
-
-	/**
-	 * Wraps a package permission that was read out of the project rather than
-	 * declared by a policy, refusing one that would carry a trusted namespace with
-	 * it.
-	 * <p>
-	 * A permission matches on segment boundaries but still as a prefix, and a
-	 * package name is exactly what whoever adds files controls, so a derived
-	 * permission sitting above {@code de.tum.cit.ase.ares.api} would hand the
-	 * supervised code the framework's own namespace. The reserved-package guard
-	 * misses it: that one refuses a package <em>inside</em> a trusted prefix, not
-	 * one <em>containing</em> it.
-	 * <p>
-	 * Only derived permissions are held to this. What a policy names in
-	 * {@code theFollowingResourceAccessesArePermitted}, and Ares' own essential
-	 * packages, are declarations rather than readings and stay authoritative.
-	 *
-	 * @param packageName the derived package name
-	 * @return the permission for it
-	 * @throws SecurityException when a reserved namespace lies below it
-	 */
-	@Nonnull
-	private static PackagePermission derivedAllowedPackage(@Nonnull String packageName) {
-		String reserved = ReservedPackageGuard.ancestorOfReservedPrefix(packageName);
-		if (reserved != null) {
-			throw new SecurityException(Messages.localized("security.policy.ancestor.package", packageName, reserved));
-		}
-		return new PackagePermission(packageName);
-	}
-
-	/**
-	 * The permission taken from the package of a declared or scanned test class.
-	 * <p>
-	 * Same question as {@link #derivedAllowedPackage(String)}, different answer. A
-	 * test class sits in the test tree, which the instructor controls and the
-	 * submitter does not, so it is not the submitter-steerable value a supervised
-	 * scope is; and refusing would break a convention this repository's own
-	 * fixtures rely on, nine of them naming
-	 * {@code de.tum.cit.ase.ares.testutilities} rather than a class. That makes
-	 * refusal the wrong instrument, not the finding wrong: the grant really is
-	 * wider than a test class needs, so it is reported rather than made fatal.
-	 *
-	 * @param packageName the package of a test class
-	 * @return the permission for it
-	 */
-	@Nonnull
-	private static PackagePermission testClassAllowedPackage(@Nonnull String packageName) {
-		String reserved = ReservedPackageGuard.ancestorOfReservedPrefix(packageName);
-		if (reserved != null) {
-			LOG.warn("A test class was declared in the package {}, which permits the supervised code to import "
-					+ "everything below it, including the trusted namespace {}. Name the test classes "
-					+ "themselves rather than their package, or declare what may be imported in "
-					+ "theFollowingResourceAccessesArePermitted.", packageName, reserved);
-		}
-		return new PackagePermission(packageName);
+						.map(p -> new PackagePermission(p, PackagePermission.isInJdkNamespace(p))),
+				resourceAccesses.regardingPackageImports().stream()).collect(Collectors.toSet());
 	}
 
 	/**
@@ -375,7 +247,7 @@ public class JavaCreator implements Creator {
 				// The following packages are allowed
 				.allowedPackages(allowedPackages)
 				// The following classes are exempt (essential + test infrastructure)
-				.allowedClasses(allowedClasses)
+				.allowedClasses(allowedClasses).testClassNames(testClassNames)
 				// Build the architecture test case
 				.build();
 	}
@@ -450,7 +322,7 @@ public class JavaCreator implements Creator {
 					// The following packages are allowed
 					.allowedPackages(allowedPackages)
 					// The following classes are exempt (essential + test infrastructure)
-					.allowedClasses(allowedClasses)
+					.allowedClasses(allowedClasses).testClassNames(testClassNames)
 					// Build the architecture test case
 					.build());
 		}
@@ -654,9 +526,6 @@ public class JavaCreator implements Creator {
 		JavaClasses supervisedClasses = new ClassFileImporter().importPath(Path.of(classPath));
 		ReservedPackageGuard.validateClassNames(supervisedClasses.stream().map(JavaClass::getName).toList());
 		@Nonnull
-		Set<String> supervisedPackages = supervisedClasses.stream().map(JavaClass::getPackageName)
-				.filter(name -> !name.isBlank()).collect(Collectors.toSet());
-		@Nonnull
 		JavaClasses javaClasses = cacheResult(projectPath + "_" + packageName + "_javaClasses",
 				() -> architectureMode.getJavaClasses(classPath)).get();
 		// Keep the call graph as a Supplier (no eager .get()) so downstream test cases
@@ -675,8 +544,8 @@ public class JavaCreator implements Creator {
 		this.supervisedPackage = packageName;
 		this.supervisedScopeWasDerived = supervisedScopeWasDerived;
 		@Nonnull
-		Set<PackagePermission> allowedPackages = prepareAllowedPackages(essentialPackages, resourceAccesses,
-				packageName, supervisedPackages, testClasses);
+		Set<PackagePermission> allowedPackages = prepareAllowedPackages(essentialPackages, resourceAccesses);
+		this.testClassNames = Set.copyOf(usableClassNames(testClasses));
 		this.testExemptedClassNames = ExemptedClassNests.expandFromTestOutput(usableClassNames(testClasses),
 				testOutputRoot(buildMode));
 		this.exemptedClassNames = Stream.concat(ExemptedClassNests

@@ -293,14 +293,14 @@ Each invocation proceeds through two phases — extraction (reading class data f
    - The results are memoised in an **instance-level** `ConcurrentHashMap` keyed by `projectPath_packageName_artifact`, so they are computed at most once per factory build (a `JavaCreator` lives for exactly one build — the cache is deliberately not static, so it cannot leak across runs in a long-lived JVM).
 
 2. **Preparation — computing allowed packages:**
-   Four sources are merged into a single `Set<PackagePermission>`:
+   Two sources are merged into a single `Set<PackagePermission>`:
 
    | Source | Rationale |
    |---|---|
-   | Essential packages (from YAML) | Framework packages like `java`, `org.aspectj` — Ares infrastructure must never be blocked |
-   | Policy-permitted packages | Packages the instructor explicitly allows via `regardingPackageImports` |
-   | Student's own package | The student must be able to use their own code |
-   | Test-class packages | Infrastructure classes like the test runner must remain accessible |
+   | Essential packages (from YAML) | `java.lang` and `java.io`, each matched as that package only, and Ares infrastructure such as `org.aspectj`, which must never be blocked |
+   | Policy-permitted packages | Packages the instructor explicitly allows via `regardingPackageImports`; without a policy, `java` and every package below it |
+
+   The student's own packages are not part of this set. The `PACKAGE_IMPORT` rule adds them when it runs, each matched as that package only, from the classes it checks. A test class does not grant its package, and the supervised code may never depend on a test class or on a class named like one nested in it.
 
 3. **Preparation — computing allowed classes:**
    Two sources are merged: `essentialClasses` ∪ `testClasses`, each wrapped in a `ClassPermission`. These classes are exempt from all restrictions.
@@ -329,7 +329,7 @@ Both are isomorphic Java Records with seven sub-lists:
 
 | Sub-list | Example content (`EssentialClasses.yaml`) | Example content (`EssentialPackages.yaml`) |
 |---|---|---|
-| `essentialJava*` | *(empty)* | `java` |
+| `essentialJava*` | *(empty)* | `java.lang`, `java.io` (each matched as that package only) |
 | `essentialArchunit*` | `de.tum.cit.ase.ares.api.architecture.java.archunit` | *(empty)* |
 | `essentialWala*` | `de.tum.cit.ase.ares.api.architecture.java.wala` | *(empty)* |
 | `essentialAspectJ*` | `de.tum.cit.ase.ares.api.aop.java.aspectj` | `org.aspectj` |
@@ -664,12 +664,12 @@ class SecurityTest {
 1. The `SecurityPolicyJavaDirector` calls `JavaTestCaseFactoryAndBuilder.builder()` with all 12 parameters.
 2. The `TestCaseAbstractFactoryAndBuilder` constructor begins:
    - **Mode Resolution:** `BuildMode.GRADLE`, `ArchitectureMode.WALA`, `AOPMode.INSTRUMENTATION`.
-   - **Essential Data:** `EssentialDataYAMLReader` reads `EssentialPackages.yaml` (→ `java`, `org.aspectj`, etc.) and `EssentialClasses.yaml` (→ 18 Ares classes).
+   - **Essential Data:** `EssentialDataYAMLReader` reads `EssentialPackages.yaml` (→ `java.lang`, `java.io`, `org.aspectj`, etc.) and `EssentialClasses.yaml` (→ 18 Ares classes).
    - **Policy Extraction:** `packageName = "com.student"`, `mainClass = "Main"`, `testClasses = ["com.student.test.SecurityTest"]`, `resourceAccesses` = all empty (fully restrictive).
 3. `JavaCreator.createTestCases()` runs:
    - Computes the classpath: `build/classes/java/main`.
    - Imports `JavaClasses` and builds a WALA `CallGraph` (cached).
-   - Computes allowed packages: `{java, org.aspectj, com.student, com.student.test}`.
+   - Computes allowed packages: `{java.lang, java.io, org.aspectj, …}` (the student's own packages are added when the rule runs).
    - **Priority test cases:** `NATIVE_CODE`, `AGENT_ATTACH`, `ENVIRONMENT_ACCESS`, and `MODULE_SYSTEM` architecture tests (always-on, generated first).
    - **Variable test cases:** Since all resource-access lists are empty, for each category (FS, Network, Command, Thread) both an `ArchitectureTestCase` **and** an `AOPTestCase` are created (automatic escalation).
    - **Fixed test cases:** `PACKAGE_IMPORT`, `TERMINATE_JVM`, `REFLECTION`, `SERIALIZATION`, `CLASS_LOADING`, and `JNDI_INJECTION` architecture tests (always-on).
