@@ -438,7 +438,7 @@ regardingNetworkConnections:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `onTheHost` | text | A DNS name, an IPv4 or IPv6 address, `localhost`, or `*` for every host. A DNS name also permits its subdomains: `example.com` covers `api.example.com` |
+| `onTheHost` | text | A DNS name, an IPv4 or IPv6 address, `localhost`, or `*` for every host. A DNS name permits its subdomains as well: `example.com` covers `api.example.com` |
 | `onThePort` | number (0–65535) | Port number between 0 and 65535; `0` permits every port |
 | `openConnections` | true/false | Allow opening connections |
 | `sendData` | true/false | Allow sending data |
@@ -738,7 +738,7 @@ Ares 2 validates all policy fields when the YAML file is parsed. If validation f
 | `importTheFollowingPackage` | A Java package name or `*` | See below |
 | `timeout` | Must be **> 0** (the restrictive default is 3000 ms). Validated on load; does not yet take effect at run time, see [Section 8.6](#86-timeout-permissions) | See below |
 
-A policy file that breaks one of these rules is refused while it is read, as a `SecurityException` naming the file. A file, network or command permission built directly in Java, without a policy file, refuses the value with an `IllegalArgumentException` carrying a localised message, as does a negative thread count. A thread class or package name built that way is checked only for `null`, because the record does not know the language. Once package permissions are placed in a `SupervisedCode`, it checks their names against the rules above; a thread class name built in code is checked only on the policy-file path.
+The reader refuses a policy file that breaks one of these rules with a `SecurityException` naming the file. A file, network or command permission built directly in Java, without a policy file, refuses the value with an `IllegalArgumentException` carrying a localised message, as does a negative thread count. For a thread class or package name built that way, the record checks only for `null`, because it does not know the language. A `SupervisedCode` that holds package permissions checks their names against the rules above; Ares checks a thread class name only on the policy-file path.
 
 When a student's code violates a policy at runtime, Ares throws a `SecurityException` with a descriptive single-line message such as:
 
