@@ -355,15 +355,11 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	}
 
 	/**
-	 * Reads the URL of a connection without letting its own failure escape.
+	 * Reads the URL of a connection, or none while it cannot report one yet.
 	 * <p>
-	 * Description: An HTTPS connection reads its URL through an inner connection
-	 * that exists only once the connection is set up, and raises a
-	 * {@link NullPointerException} before then. That exception would leave this
-	 * advice and surface in the code under test as a fault of that code. No
-	 * endpoint is skipped by returning none here: nothing has been sent or received
-	 * yet, and the operations that do perform input or output are intercepted
-	 * separately and resolve the URL then.
+	 * Description: An HTTPS connection fails to report its URL until it is set
+	 * up. That failure yields no URL, and sending or receiving reads it again. An
+	 * Ares denial is rethrown, since no URL would skip the receiver check.
 	 *
 	 * @param urlConnection the connection to read
 	 * @return its URL, or {@code null} when it cannot be read yet
@@ -373,6 +369,8 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	private static URL urlOfConnection(@Nonnull URLConnection urlConnection) {
 		try {
 			return urlConnection.getURL();
+		} catch (SecurityException denied) {
+			throw denied;
 		} catch (RuntimeException ignored) {
 			return null;
 		}

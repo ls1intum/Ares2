@@ -1,7 +1,9 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,6 +15,7 @@ import java.lang.reflect.Method;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -108,6 +111,73 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 					exception.getMessage().contains("No configured allow rule permits this access") || exception
 							.getMessage().contains("Keine konfigurierte Erlaubnisregel gestattet diesen Zugriff"),
 					() -> "Expected the not-permitted reason, but was:\n" + exception.getMessage());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * Allows sending to exactly one host and port.
+	 *
+	 * @param host the only host that may be sent to
+	 * @param port the only port that may be sent to
+	 */
+	private static void allowSendingTo(String host, int port) {
+		JavaAOPTestCase.setJavaAdviceSettingValue("hostsAllowedToBeSentTo", new String[] { host }, "ARCH",
+				"INSTRUMENTATION");
+		JavaAOPTestCase.setJavaAdviceSettingValue("portsAllowedToBeSentTo", new int[] { port }, "ARCH",
+				"INSTRUMENTATION");
+	}
+
+	/**
+	 * A receiver connected to a peer outside the allowlist is denied, and the
+	 * message names that peer.
+	 */
+	@Test
+	void checkNetworkSystemInteraction_deniesAConnectedReceiverOutsideTheAllowlist() throws Exception {
+		try (DatagramSocket socket = new DatagramSocket()) {
+			socket.connect(new InetSocketAddress("127.0.0.1", 12345));
+			resetSettings();
+			configureInstrumentationMode();
+			allowSendingTo("good.example.com", 443);
+
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkNetworkSendThroughReceiver(socket));
+			assertTrue(exception.getMessage().contains("127.0.0.1:12345"),
+					() -> "Expected the receiver's peer in the message, but was:\n" + exception.getMessage());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * A receiver connected to an allowed peer passes.
+	 */
+	@Test
+	void checkNetworkSystemInteraction_allowsAConnectedReceiverOnTheAllowlist() throws Exception {
+		try (DatagramSocket socket = new DatagramSocket()) {
+			socket.connect(new InetSocketAddress("127.0.0.1", 12345));
+			resetSettings();
+			configureInstrumentationMode();
+			allowSendingTo("127.0.0.1", 12345);
+
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkNetworkSendThroughReceiver(socket));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * A receiver that is not connected names no peer, so it alone causes no denial.
+	 */
+	@Test
+	void checkNetworkSystemInteraction_ignoresAReceiverThatNamesNoPeer() throws Exception {
+		try (DatagramSocket socket = new DatagramSocket()) {
+			resetSettings();
+			configureInstrumentationMode();
+			allowSendingTo("good.example.com", 443);
+
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkNetworkSendThroughReceiver(socket));
 		} finally {
 			resetSettings();
 		}
@@ -236,19 +306,13 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		assertEquals("some-future-address-family:-1", toDisplayString.invoke(target));
 	}
 
+	/**
+	 * A connection that cannot report its URL yet must yield no URL, rather than
+	 * letting its own failure surface as a fault of the code under test.
+	 */
 	@Test
 	void urlOfConnection_yieldsNoUrlWhenTheConnectionCannotReportOneYet() throws Exception {
-		URLConnection notReadyYet = new URLConnection(URI.create("https://example.org/path").toURL()) {
-			@Override
-			public void connect() {
-				// A connection that is never opened by this test.
-			}
-
-			@Override
-			public URL getURL() {
-				throw new NullPointerException("delegate is null");
-			}
-		};
+		URLConnection notReadyYet = new UrlConnectionThatFails(new NullPointerException("delegate is null"));
 
 		Method urlOfConnection = JavaInstrumentationAdviceNetworkSystemToolbox.class
 				.getDeclaredMethod("urlOfConnection", URLConnection.class);
@@ -257,6 +321,25 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		assertNull(urlOfConnection.invoke(null, notReadyYet),
 				"A connection that cannot report its URL yet must not let its own failure escape into"
 						+ " the code under test");
+	}
+
+	/**
+	 * A denial raised while the advice resolves the connection must reach the code
+	 * under test, instead of leaving no target and skipping the receiver check.
+	 */
+	@Test
+	void urlOfConnection_letsADenialThrough() throws Exception {
+		URLConnection denying = new UrlConnectionThatFails(new SecurityException("Ares denied this connection"));
+
+		Method urlOfConnection = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("urlOfConnection", URLConnection.class);
+		urlOfConnection.setAccessible(true);
+
+		InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
+				() -> urlOfConnection.invoke(null, denying));
+		assertInstanceOf(SecurityException.class, thrown.getCause(),
+				"A denial raised while resolving the connection must propagate, because swallowing it"
+						+ " would leave no target and skip the receiver check");
 	}
 
 	@Test
@@ -372,6 +455,69 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 			toDisplayString.setAccessible(true);
 			assertEquals("127.0.0.1:" + serverSocket.getLocalPort(), toDisplayString.invoke(target));
 		}
+	}
+
+	/**
+	 * A connected datagram socket resolves to the host and port it is connected to.
+	 */
+	@Test
+	void toTarget_extractsRemoteHostAndPortFromConnectedDatagramSocket() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		try (DatagramSocket socket = new DatagramSocket()) {
+			socket.connect(new InetSocketAddress("127.0.0.1", 12345));
+			Object target = toTarget.invoke(null, socket);
+			assertNotNull(target);
+
+			Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
+			toDisplayString.setAccessible(true);
+			assertEquals("127.0.0.1:12345", toDisplayString.invoke(target));
+		}
+	}
+
+	/**
+	 * A connected datagram channel resolves to the host and port it is connected
+	 * to.
+	 */
+	@Test
+	void toTarget_extractsRemoteHostAndPortFromConnectedDatagramChannel() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			channel.connect(new InetSocketAddress("127.0.0.1", 12345));
+			Object target = toTarget.invoke(null, channel);
+			assertNotNull(target);
+
+			Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
+			toDisplayString.setAccessible(true);
+			assertEquals("127.0.0.1:12345", toDisplayString.invoke(target));
+		}
+	}
+
+	/**
+	 * An HTTPS connection whose constructor has not run yet yields no target
+	 * instead of letting its own failure escape.
+	 */
+	@Test
+	void toTarget_returnsNullWhenUrlConnectionCannotExposeUrlDuringConstruction() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+		Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+		var unsafeField = unsafeClass.getDeclaredField("theUnsafe");
+		unsafeField.setAccessible(true);
+		Object unsafe = unsafeField.get(null);
+		Method allocateInstance = unsafeClass.getMethod("allocateInstance", Class.class);
+		Object connection = allocateInstance.invoke(unsafe,
+				Class.forName("sun.net.www.protocol.https.HttpsURLConnectionImpl"));
+
+		Object target = toTarget.invoke(null, connection);
+
+		assertNull(target);
 	}
 
 	@Test
@@ -578,5 +724,46 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 				.invoke(null, defaultAction, methodName, instance);
 		List<String> actualActions = actionsToValidate.stream().map(Map.Entry::getKey).toList();
 		assertEquals(List.of(expectedActions), actualActions);
+	}
+
+	/**
+	 * A connection whose URL lookup fails, as an HTTPS connection does before it is
+	 * set up, or as it would when Ares denies it.
+	 */
+	private static final class UrlConnectionThatFails extends URLConnection {
+
+		/**
+		 * What the URL lookup throws.
+		 */
+		private final RuntimeException failure;
+
+		/**
+		 * Creates a connection to a fixed address whose URL lookup throws the given
+		 * failure.
+		 *
+		 * @param failure what the URL lookup throws
+		 * @throws MalformedURLException never, since the address is fixed
+		 */
+		UrlConnectionThatFails(RuntimeException failure) throws MalformedURLException {
+			super(URI.create("https://example.org/path").toURL());
+			this.failure = failure;
+		}
+
+		/**
+		 * Opens nothing, since no test sends anything through this connection.
+		 */
+		@Override
+		public void connect() {
+		}
+
+		/**
+		 * Throws the given failure instead of reporting the URL.
+		 *
+		 * @return never
+		 */
+		@Override
+		public URL getURL() {
+			throw failure;
+		}
 	}
 }

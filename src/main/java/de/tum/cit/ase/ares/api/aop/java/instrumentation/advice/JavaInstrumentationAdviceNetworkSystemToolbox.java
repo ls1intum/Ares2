@@ -406,15 +406,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	}
 
 	/**
-	 * Reads the URL of a connection without letting its own failure escape.
+	 * Reads the URL of a connection, or none while it cannot report one yet.
 	 * <p>
-	 * Description: An HTTPS connection reads its URL through an inner connection
-	 * that exists only once the connection is set up, and raises a
-	 * {@link NullPointerException} before then. That exception would leave this
-	 * advice and surface in the code under test as a fault of that code. No
-	 * endpoint is skipped by returning none here: nothing has been sent or received
-	 * yet, and the operations that do perform input or output are intercepted
-	 * separately and resolve the URL then.
+	 * Description: An HTTPS connection fails to report its URL until it is set up.
+	 * That failure yields no URL, and sending or receiving reads it again. An Ares
+	 * denial is rethrown, since no URL would skip the receiver check.
 	 *
 	 * @param urlConnection the connection to read
 	 * @return its URL, or {@code null} when it cannot be read yet
@@ -424,6 +420,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	private static URL urlOfConnection(@Nonnull URLConnection urlConnection) {
 		try {
 			return urlConnection.getURL();
+		} catch (SecurityException denied) {
+			throw denied;
 		} catch (RuntimeException ignored) {
 			return null;
 		}
@@ -927,12 +925,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		// </editor-fold>
 		// <editor-fold desc="Check receiver instance">
 		@Nullable
-		String networkIllegallyInteractedThroughReceiver = instance == null ? null
-				: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedHosts, allowedPorts,
-						IgnoreValues.NONE);
-		if (networkIllegallyInteractedThroughReceiver != null) {
+		NetworkTarget targetFromReceiver = variableToTarget(instance);
+		if (targetFromReceiver != null && checkIfNetworkIsForbidden(targetFromReceiver, allowedHosts, allowedPorts)) {
 			throw new SecurityException(localize("security.advice.illegal.network.execution",
-					networkSystemMethodToCheck, action, networkIllegallyInteractedThroughReceiver,
+					networkSystemMethodToCheck, action, targetFromReceiver.toDisplayString(),
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));
