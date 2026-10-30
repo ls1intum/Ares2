@@ -88,7 +88,7 @@ regardingTheSupervisedCode:
 | `regardingNetworkConnections` | Hosts and ports the student program may connect to. |
 | `regardingCommandExecutions` | System commands the supervised program may execute. |
 | `regardingThreadCreations` | Thread creation limits and allowed thread classes. |
-| `regardingPackageImports` | External packages the supervised code may import. |
+| `regardingPackageImports` | External packages the supervised code may import, including the packages of its type annotations such as `@NonNull`. |
 | `regardingTimeouts` | The execution budget for supervised code, in milliseconds. Parsed and validated, but not dispatched from the in-process path today; see [Resource Limits](../policy-reference/resource-limits.md). |
 
 :::warning[Everything is default-deny]
