@@ -12,6 +12,12 @@ whoever is standing there first. Two of them hold a doorway, the kernel and the 
 third holds none at all: it watches the clock.
 :::
 
+:::note[Historical design]
+Where this page names a Phobos layer or script, it describes the scripts Ares used to bundle,
+which it no longer ships. Current Phobos works differently; see the
+[Phobos documentation](https://ls1intum.github.io/phobos/).
+:::
+
 ## What it is
 
 Every Linux-based layer works by putting itself between the supervised program and the resource
