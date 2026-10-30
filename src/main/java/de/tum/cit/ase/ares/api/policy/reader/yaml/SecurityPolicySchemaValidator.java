@@ -32,7 +32,12 @@ final class SecurityPolicySchemaValidator {
 			"receiveData");
 	private static final Set<String> COMMAND_FIELDS = Set.of("executeTheCommand", "withTheseArguments");
 	private static final Set<String> THREAD_FIELDS = Set.of("createTheFollowingNumberOfThreads", "ofThisClass");
-	private static final Set<String> PACKAGE_FIELDS = Set.of("importTheFollowingPackage");
+	private static final Set<String> PACKAGE_FIELDS = Set.of("importTheFollowingPackage", "exactMatchOnly");
+	/**
+	 * The package permission fields a policy must state; exactMatchOnly may be left
+	 * out.
+	 */
+	private static final Set<String> PACKAGE_REQUIRED_FIELDS = Set.of("importTheFollowingPackage");
 	private static final Set<String> TIMEOUT_FIELDS = Set.of("timeout");
 	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of();
 
@@ -93,9 +98,10 @@ final class SecurityPolicySchemaValidator {
 			requirePattern(permission, "ofThisClass", "thread permission", PolicyValueValidator.THREAD_CLASS_PATTERN);
 		}
 		validateObjectArray(resources.get("regardingPackageImports"), "regardingPackageImports", PACKAGE_FIELDS,
-				PACKAGE_FIELDS);
+				PACKAGE_REQUIRED_FIELDS);
 		for (JsonNode permission : resources.get("regardingPackageImports")) {
 			requireText(permission, "importTheFollowingPackage", "package permission");
+			requireOptionalBoolean(permission, "exactMatchOnly", "package permission");
 			if (!PolicyValueValidator.matchesPackageImport(permission.get("importTheFollowingPackage").textValue())) {
 				fail("package permission.importTheFollowingPackage must match "
 						+ PolicyValueValidator.JAVA_PACKAGE_PATTERN.pattern() + " or *");
@@ -193,6 +199,23 @@ final class SecurityPolicySchemaValidator {
 			if (!excluded.contains(field) && !parent.get(field).isBoolean()) {
 				fail(path + "." + field + " must be a boolean");
 			}
+		}
+	}
+
+	/**
+	 * Accepts a field that is absent or a boolean, and refuses anything else,
+	 * including null and a quoted {@code "true"}.
+	 *
+	 * @param parent the object holding the field
+	 * @param field  the field name
+	 * @param path   where the object sits, for the message
+	 * @throws MismatchedInputException if the field is present and not a boolean
+	 */
+	private static void requireOptionalBoolean(JsonNode parent, String field, String path)
+			throws MismatchedInputException {
+		JsonNode node = parent.get(field);
+		if (node != null && !node.isBoolean()) {
+			fail(path + "." + field + " must be a boolean when present");
 		}
 	}
 

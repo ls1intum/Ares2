@@ -14,6 +14,14 @@ regardingTheSupervisedCode:
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]
-    regardingPackageImports: [ ]
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.nio"
+      - importTheFollowingPackage: "java.nio.charset"
+      - importTheFollowingPackage: "java.nio.file"
+      - importTheFollowingPackage: "java.security"
+      - importTheFollowingPackage: "java.text"
+      - importTheFollowingPackage: "java.time"
+      - importTheFollowingPackage: "java.time.format"
+      - importTheFollowingPackage: "java.util"
     regardingTimeouts:
       - timeout: 3000

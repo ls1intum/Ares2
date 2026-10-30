@@ -12,6 +12,15 @@ regardingTheSupervisedCode:
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]
-    regardingPackageImports: [ ]
+    regardingPackageImports:
+      - importTheFollowingPackage: "de.tum.cit.ase.ares.integration.aop.forbidden.subject"
+      - importTheFollowingPackage: "java.nio"
+      - importTheFollowingPackage: "java.nio.channels"
+      - importTheFollowingPackage: "java.nio.charset"
+      - importTheFollowingPackage: "java.nio.file"
+      - importTheFollowingPackage: "java.nio.file.spi"
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "java.util.concurrent"
+      - importTheFollowingPackage: "java.util.stream"
     regardingTimeouts:
       - timeout: 3000

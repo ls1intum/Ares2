@@ -149,8 +149,8 @@ public class PrecompileTest {
 					|| member == example.nest.NestHostFixture.class, member.getName() + " in " + classes);
 		}
 		assertFalse(classes.contains("NestHostFixture$Evil"), classes);
-		assertTrue(packages.contains("\"java\""), packages);
-		assertFalse(classes.contains("\"java\""), classes);
+		assertTrue(packages.contains("\"java.lang\""), packages);
+		assertFalse(classes.contains("\"java.lang\""), classes);
 		int lastAllowList = Math.max(settings.indexOf(classes), settings.indexOf(packages));
 		assertTrue(settings.indexOf(declarationOf(settings, "aopMode")) > lastAllowList, settings);
 		assertTrue(settings.indexOf(declarationOf(settings, "restrictedPackage")) > lastAllowList, settings);
@@ -193,6 +193,55 @@ public class PrecompileTest {
 		assertTrue(Files.exists(file), () -> "precompile did not write " + file);
 		try (Stream<String> lines = Files.lines(file)) {
 			assertTrue(lines.anyMatch(line -> line.contains(expected)), () -> file + " does not contain " + expected);
+		}
+	}
+
+	/**
+	 * Precompile writes a package-import rule through the real reader and writer
+	 * that names the declared test class, permits Ares's api where it was copied
+	 * to, reads the supervised code's own packages when it runs, and never permits
+	 * the supervised package as a whole.
+	 */
+	@ParameterizedTest
+	@CsvSource({ "ARCHUNIT,INSTRUMENTATION", "ARCHUNIT,ASPECTJ", "WALA,INSTRUMENTATION", "WALA,ASPECTJ" })
+	void precompileWritesThePackageImportRule(String analysis, String aop, @TempDir Path tempDir) throws IOException {
+		Path projectFolderPath = Files.createDirectory(tempDir.resolve("project"));
+		Files.writeString(projectFolderPath.resolve("pom.xml"), "<project/>");
+		Files.createDirectories(projectFolderPath.resolve("src/main/java"));
+		Files.createDirectories(projectFolderPath.resolve("target/classes"));
+		Path writeTarget = Files.createDirectories(projectFolderPath.resolve("src/test/java"));
+		Path policy = Files.writeString(tempDir.resolve("policy.yaml"),
+				policyWithOneReadPath(analysis, aop).replace("theFollowingClassesAreTestClasses: [ ]",
+						"theFollowingClassesAreTestClasses: [ \"" + EXERCISE_PACKAGE + ".PenguinTest\" ]"));
+
+		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy).projectFolderPath(projectFolderPath)
+				.build().createTestCases().writeTestCases(writeTarget);
+
+		String rule;
+		try (var files = Files.walk(writeTarget)) {
+			rule = files.filter(Files::isRegularFile).map(PrecompileTest::read)
+					.filter(content -> content.contains("packageImportShouldNotBeAccessed")).findFirst().orElseThrow();
+		}
+		assertTrue(rule.contains("Set.of(\"" + EXERCISE_PACKAGE + ".PenguinTest\")"), rule);
+		assertTrue(rule.contains("withOwnPackages(allowedPackages, javaClasses"), rule);
+		assertTrue(rule.contains("new PackagePermission(\"java.lang\", true)"), rule);
+		assertTrue(rule.contains("new PackagePermission(\"java.io\", true)"), rule);
+		assertTrue(rule.contains("new PackagePermission(\"" + EXERCISE_PACKAGE
+				+ ".ares.api.aop.java.aspectj.adviceandpointcut\", false)"), rule);
+		assertFalse(rule.contains("new PackagePermission(\"" + EXERCISE_PACKAGE + "\", false)"), rule);
+	}
+
+	/**
+	 * Reads a generated file.
+	 *
+	 * @param file the file
+	 * @return its content
+	 */
+	private static String read(Path file) {
+		try {
+			return Files.readString(file);
+		} catch (IOException e) {
+			throw new java.io.UncheckedIOException(e);
 		}
 	}
 

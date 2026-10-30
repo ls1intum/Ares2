@@ -82,6 +82,27 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 	}
 
 	/**
+	 * Creates the resource accesses Ares applies when a test has no security
+	 * policy: everything of {@link #createRestrictive()}, except that every
+	 * {@code java.*} package may be imported. Whether a forbidden JDK operation is
+	 * actually used stays the business of the other rules.
+	 *
+	 * @since 2.3.0
+	 * @author Markus Paulsen
+	 * @return a new ResourceAccesses instance for a test without a policy
+	 */
+	@Nonnull
+	public static ResourceAccesses createRestrictiveWithoutPolicy() {
+		ResourceAccesses restrictive = createRestrictive();
+		return builder().regardingFileSystemInteractions(restrictive.regardingFileSystemInteractions())
+				.regardingNetworkConnections(restrictive.regardingNetworkConnections())
+				.regardingCommandExecutions(restrictive.regardingCommandExecutions())
+				.regardingThreadCreations(restrictive.regardingThreadCreations())
+				.regardingPackageImports(List.of(new PackagePermission("java")))
+				.regardingTimeouts(restrictive.regardingTimeouts()).build();
+	}
+
+	/**
 	 * Returns a builder for creating a ResourceAccesses instance.
 	 *
 	 * @since 2.0.0
