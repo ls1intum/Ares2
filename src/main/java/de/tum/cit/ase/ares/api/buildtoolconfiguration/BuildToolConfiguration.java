@@ -59,34 +59,17 @@ public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List
 	}
 
 	/**
-	 * Resolves instructor-controlled bytecode scope against this build's outputs.
+	 * Resolves a bytecode scope against this build's outputs within the project.
 	 *
 	 * @param withinPath  the optional bytecode-relative scope
 	 * @param packageName the fallback package name
 	 * @return the resolved classpath
+	 * @throws SecurityException if the scope, or the package path used without one,
+	 *                           starts at a root or a drive, or leaves the project
 	 */
 	public String classpath(Path withinPath, String packageName) {
-		Path base = productionOutputRoot;
-		String remainder;
-		if (withinPath == null || withinPath.toString().isEmpty()) {
-			remainder = packageName == null ? "" : packageName.replace('.', '/');
-		} else {
-			String configured = withinPath.toString();
-			if (configured.startsWith("classes/java/main/")) {
-				remainder = configured.substring("classes/java/main/".length());
-			} else if (configured.startsWith("classes/")) {
-				remainder = configured.substring("classes/".length());
-			} else if (configured.startsWith("test-classes/java/test/")) {
-				base = testOutputRoot;
-				remainder = configured.substring("test-classes/java/test/".length());
-			} else if (configured.startsWith("test-classes/")) {
-				base = testOutputRoot;
-				remainder = configured.substring("test-classes/".length());
-			} else {
-				remainder = configured;
-			}
-		}
-		String resolved = remainder.isEmpty() ? base.toString() : base.resolve(remainder).toString();
+		Path scope = BuildMode.resolveClasspath(withinPath, packageName, productionOutputRoot, testOutputRoot);
+		String resolved = validateContained(projectRoot, scope, "withinPath").toString();
 		LOG.info("Resolved Ares analysis/import path for {}: {}", buildMode, resolved);
 		return resolved;
 	}
