@@ -103,7 +103,18 @@
                                         <include name="jdk/**"/><include name="com/sun/**"/>
                                         <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
                                         <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-                                        <include name="com/tngtech/archunit/**"/>
+                                        <include name="com/tngtech/archunit/**"/><include name="junit/**"/>
+                                        <include name="org/junit/**"/><include name="org/opentest4j/**"/>
+                                        <include name="org/assertj/**"/><include name="org/mockito/**"/>
+                                        <include name="ch/qos/logback/**"/><include name="org/slf4j/**"/>
+                                        <include name="com/github/javaparser/**"/><include name="com/fasterxml/jackson/**"/>
+                                        <include name="org/yaml/**"/><include name="org/json/**"/>
+                                        <include name="com/opencsv/**"/><include name="org/jgrapht/**"/>
+                                        <include name="org/apiguardian/**"/><include name="org/apache/**"/>
+                                        <include name="org/eclipse/**"/><include name="org/gradle/**"/>
+                                        <include name="org/jacoco/**"/><include name="com/intellij/**"/>
+                                        <include name="worker/org/gradle/**"/>
+                                        <include name="de/tum/in/test/api/**"/>
                                     </fileset>
                                 </resourcecount>
                                 <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">

@@ -58,35 +58,31 @@ public final class WalaPathClassification {
 			"org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.", "anonymous.toolclasses.", "metatest.");
 
 	/**
-	 * Package prefixes that supervised code may not declare. This is broader than
-	 * {@link #INFRA_PREFIXES}: platform namespaces remain reserved against student
-	 * impersonation even though application-loaded third-party libraries in those
-	 * namespaces are analysed rather than trusted.
-	 * <p>
-	 * Every entry names either the platform or a library that performs the
-	 * supervision itself, so declaring code into one of them would have it mistaken
-	 * for the very machinery meant to inspect it. That is the whole membership
-	 * rule, and it is what {@code anonymous.toolclasses.} and {@code metatest.} did
-	 * not satisfy: those are the test helpers of one downstream consumer, the
-	 * reproducibility package, and reserving them here made every Ares user refuse
-	 * two ordinary package names on that consumer's behalf. They remain in
-	 * {@link #INFRA_PREFIXES}, which is a different question: not what supervised
-	 * code may be called, but which frames are the harness rather than the subject.
+	 * Package prefixes supervised code may not declare, so a student cannot land a
+	 * class in a namespace the grader trusts or relies on: the platform, the
+	 * supervision libraries (Byte Buddy, AspectJ, WALA, ArchUnit, Ares), the test
+	 * harness (JUnit, opentest4j, AssertJ, Mockito) and Ares' other non-shaded
+	 * dependencies. Shadowing any of them subverts the examination. Broader than
+	 * {@link #INFRA_PREFIXES}, where a real library in such a namespace is
+	 * analysed, not trusted.
 	 */
 	public static final List<String> RESERVED_PACKAGE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
-			"de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.");
+			"de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
+			"junit.", "org.junit.", "org.opentest4j.", "org.assertj.", "org.mockito.", "ch.qos.logback.", "org.slf4j.",
+			"com.github.javaparser.", "com.fasterxml.jackson.", "org.yaml.", "org.json.", "com.opencsv.",
+			"org.jgrapht.", "org.apiguardian.", "org.apache.", "org.eclipse.", "org.gradle.", "org.jacoco.",
+			"com.intellij.", "worker.org.gradle.", "de.tum.in.test.api.");
 
 	/**
-	 * Version of the prefix data above. Version 2 drops
-	 * {@code anonymous.toolclasses.} and {@code metatest.}.
+	 * Version of the prefix data above. Version 3 restores the test harness and
+	 * Ares' other non-shaded dependencies, matching the Ares 1 breadth.
 	 * <p>
-	 * A version 1 snippet still in an exercise reserves more than this version
-	 * does, so it refuses what is now allowed rather than allowing what is now
-	 * refused. It is over-strict rather than bypassable, which is why no migration
-	 * is urgent, but the identifier must still change: one version must not denote
-	 * two different lists.
+	 * A version 1 or 2 snippet now <em>under</em>-reserves and is bypassable, not
+	 * merely over-strict: a copied snippet must be refreshed, since upgrading the
+	 * Ares dependency alone does not update it. One version must not denote two
+	 * different lists.
 	 */
-	public static final String RESERVED_PACKAGE_PREFIX_VERSION = "2";
+	public static final String RESERVED_PACKAGE_PREFIX_VERSION = "3";
 
 	/**
 	 * Version of the build-side contract that enforces
