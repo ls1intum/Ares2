@@ -124,7 +124,8 @@ public class JavaArchitectureTestCaseTest {
 		// Compared against the localized message for the whole expected parse, so the
 		// assertion holds in any locale and pins every argument rather than a suffix.
 		String expected = Messages.localized("security.archunit.violation.error",
-				"com.example.Sender.sendWithDataOutputStream(java.lang.String)", "access the file system",
+				"com.example.Sender.sendWithDataOutputStream(java.lang.String)",
+				Messages.localized("security.archunit.action.file.system.access"),
 				"java.io.DataOutputStream.writeUTF(java.lang.String)", "com.example.Sender");
 		assertEquals(expected, thrown.getMessage(),
 				"The declaring type should be reported without cutting inside the parameter list");
@@ -142,7 +143,8 @@ public class JavaArchitectureTestCaseTest {
 				() -> JavaArchitectureTestCase.parseErrorMessage(error),
 				"parseErrorMessage should throw SecurityException for a network violation");
 		String expected = Messages.localized("security.archunit.violation.error", "com.example.Sender.send()",
-				"access the network", "java.net.Socket.connect()", "com.example.Sender");
+				Messages.localized("security.archunit.action.network.access"), "java.net.Socket.connect()",
+				"com.example.Sender");
 		assertEquals(expected, thrown.getMessage(), "The declaring type should be reported unchanged");
 	}
 

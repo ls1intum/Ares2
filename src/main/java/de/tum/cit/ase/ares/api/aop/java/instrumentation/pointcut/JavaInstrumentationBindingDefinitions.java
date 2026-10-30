@@ -61,8 +61,8 @@ public final class JavaInstrumentationBindingDefinitions {
 	 * This class is a utility class and should not be instantiated.
 	 */
 	private JavaInstrumentationBindingDefinitions() {
-		throw new SecurityException(
-				JavaInstrumentationAdviceAbstractToolbox.localize("security.general.utility.initialization"));
+		throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+				.localize("security.general.utility.initialization", "JavaInstrumentationBindingDefinitions"));
 	}
 	// </editor-fold>
 

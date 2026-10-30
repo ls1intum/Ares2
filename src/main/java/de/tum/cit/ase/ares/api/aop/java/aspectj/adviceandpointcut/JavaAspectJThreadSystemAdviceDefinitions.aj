@@ -740,6 +740,15 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		}
 	}
 
+	/**
+	 * Performs the thread check behind {@link #checkThreadSystemInteraction}, which calls it
+	 * only for the outermost advice on a thread. Throws a {@link SecurityException}
+	 * naming the blocked thread operation when the policy forbids it.
+	 *
+	 * @param action the raw action name, which drives every decision
+	 * @param thisJoinPoint the join point of the intercepted call
+	 * @param decrementQuota whether an allowed creation uses up one of the permitted threads
+	 */
 	private void checkThreadSystemInteractionImpl(
 			@Nonnull String action,
 			@Nonnull JoinPoint thisJoinPoint,
@@ -868,8 +877,8 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		for (String threadClassName : threadClassNames) {
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers, decrementQuota)) {
 				throw new SecurityException(localize(
-						"security.advice.illegal.thread.execution", systemMethodToCheck, action, threadClassName,
-						describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+						"security.advice.illegal.thread.execution", systemMethodToCheck, localizeAction(action), threadClassName,
+						describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
 			}
 		}

@@ -282,7 +282,7 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 
 			SecurityException exception = assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkFilesCopyReadLeg(source, tempDir.resolve("copy.txt")));
-			assertTrue(exception.getMessage().contains("read"),
+			assertTrue(exception.getMessage().contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("read")),
 					() -> "Expected the denial to name the 'read' action, but was:\n" + exception.getMessage());
 		} finally {
 			resetSettings();
@@ -328,13 +328,17 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 
 			SecurityException withoutReplace = assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkFilesCopyOverwriteLeg(source, destination));
-			assertTrue(withoutReplace.getMessage().contains("create"),
+			assertTrue(
+					withoutReplace.getMessage()
+							.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("create")),
 					() -> "Expected 'create' without REPLACE_EXISTING, but was:\n" + withoutReplace.getMessage());
 
 			SecurityException withReplace = assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkFilesCopyOverwriteLeg(source, destination,
 							java.nio.file.StandardCopyOption.REPLACE_EXISTING));
-			assertTrue(withReplace.getMessage().contains("overwrite"),
+			assertTrue(
+					withReplace.getMessage()
+							.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("overwrite")),
 					() -> "Expected 'overwrite' with REPLACE_EXISTING, but was:\n" + withReplace.getMessage());
 		} finally {
 			resetSettings();
@@ -358,7 +362,9 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 					FileChannel destinationChannel = FileChannel.open(destination, StandardOpenOption.WRITE)) {
 				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
 						.checkFileChannelTransferToReadLeg(sourceChannel, 0, 10, destinationChannel));
-				assertTrue(exception.getMessage().contains("read"),
+				assertTrue(
+						exception.getMessage()
+								.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("read")),
 						() -> "Expected the denial to name the 'read' action, but was:\n" + exception.getMessage());
 			}
 		} finally {
@@ -385,7 +391,9 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 					FileChannel destinationChannel = FileChannel.open(destination, StandardOpenOption.WRITE)) {
 				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
 						.checkFileChannelTransferFromOverwriteLeg(destinationChannel, sourceChannel, 0, 10));
-				assertTrue(exception.getMessage().contains("overwrite"),
+				assertTrue(
+						exception.getMessage()
+								.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("overwrite")),
 						() -> "Expected the denial to name the 'overwrite' action, but was:\n"
 								+ exception.getMessage());
 			}
@@ -444,7 +452,9 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 
 				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
 						.checkFileChannelTransferFromOverwriteLeg(destinationChannel, sourceChannel, 0, 10));
-				assertTrue(exception.getMessage().contains("receive"),
+				assertTrue(
+						exception.getMessage()
+								.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("receive")),
 						() -> "Expected the denial to name the 'receive' action, but was:\n" + exception.getMessage());
 			}
 		} finally {

@@ -770,6 +770,18 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		}
 	}
 
+	/**
+	 * Performs the command check behind {@link #checkCommandSystemInteraction} for
+	 * the outermost advice on a thread; throws a {@link SecurityException} if the
+	 * policy forbids it.
+	 *
+	 * @param action            the raw action
+	 * @param declaringTypeName the method's class
+	 * @param methodName        its name
+	 * @param methodSignature   its signature
+	 * @param attributes        receiver fields, or {@code null}
+	 * @param parameters        call arguments, or {@code null}
+	 */
 	private static void checkCommandSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters) {
@@ -826,9 +838,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughParameter != null) {
 			throw new SecurityException(localize("security.advice.illegal.command.execution",
-					commandSystemMethodToCheck, action, commandIllegallyExecutedThroughParameter,
-					fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+					commandSystemMethodToCheck, localizeAction(action), commandIllegallyExecutedThroughParameter,
+					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
@@ -844,9 +855,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
 			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
-					action, pathIllegallyExecutedThroughParameter,
-					fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+					localizeAction(action), pathIllegallyExecutedThroughParameter,
+					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
@@ -858,9 +868,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughAttribute != null) {
 			throw new SecurityException(localize("security.advice.illegal.command.execution",
-					commandSystemMethodToCheck, action, commandIllegallyExecutedThroughAttribute,
-					fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+					commandSystemMethodToCheck, localizeAction(action), commandIllegallyExecutedThroughAttribute,
+					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
@@ -876,9 +885,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
 			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
-					action, pathIllegallyExecutedThroughAttribute,
-					fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+					localizeAction(action), pathIllegallyExecutedThroughAttribute,
+					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
