@@ -8,21 +8,17 @@ import javax.annotation.Nullable;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
- * Allowed thread creation operations.
+ * How many threads of one kind the supervised code may create.
  * <p>
- * Description: Specifies the number of threads permitted to be created and the
- * thread class allowed.
- * <p>
- * Design Rationale: Limiting thread creation is crucial to control concurrency
- * and resource usage.
+ * Zero names the kind but permits none. The kind is a qualified class name,
+ * {@code *}, {@code Lambda-Expression} or an {@code <implicit-thread-op:...>}
+ * token. Not knowing the language, this record does not check the kind; the
+ * schema validator does so for a policy file.
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param createTheFollowingNumberOfThreads the number of threads permitted to
- *                                          be created.
- * @param ofThisClass                       the fully qualified name of the
- *                                          allowed thread class; must not be
- *                                          null.
+ * @param createTheFollowingNumberOfThreads the permitted count, not negative.
+ * @param ofThisClass                       the kind of thread covered.
  */
 public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull String ofThisClass) {
 
@@ -31,13 +27,14 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
+	 * @throws NullPointerException     if the thread class is null.
+	 * @throws IllegalArgumentException if the thread count is negative.
 	 */
 	public ThreadPermission {
 		Objects.requireNonNull(ofThisClass, "Thread class must not be null");
 		if (createTheFollowingNumberOfThreads < 0) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.thread.count.negative"));
 		}
-		PolicyValueValidator.requireMatch("ofThisClass", ofThisClass, PolicyValueValidator.THREAD_CLASS_PATTERN);
 	}
 
 	/**
@@ -45,8 +42,10 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param threadClass the thread class for which no threads are permitted.
+	 * @param threadClass the kind of thread for which no threads are permitted;
+	 *                    must not be null.
 	 * @return a new ThreadPermission instance with zero threads allowed.
+	 * @throws NullPointerException if the thread class is null.
 	 */
 	@Nonnull
 	public static ThreadPermission createRestrictive(@Nonnull String threadClass) {
@@ -80,12 +79,13 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 	public static class Builder {
 
 		/**
-		 * The number of threads permitted.
+		 * The number of threads permitted. Defaults to zero, which permits none.
 		 */
 		private int createTheFollowingNumberOfThreads;
 
 		/**
-		 * The thread class allowed.
+		 * The kind of thread this permission covers. Has no default, so
+		 * {@link #build()} rejects a builder on which it was never set.
 		 */
 		@Nullable
 		private String threadClass;
@@ -95,7 +95,9 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param createTheFollowingNumberOfThreads the number of threads.
+		 * @param createTheFollowingNumberOfThreads the number of threads; must not be
+		 *                                          negative, which {@link #build()}
+		 *                                          enforces.
 		 * @return the updated Builder.
 		 */
 		@Nonnull
@@ -109,8 +111,11 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param ofThisClass the fully qualified thread class name.
+		 * @param ofThisClass the kind of thread, as a fully qualified class name,
+		 *                    {@code *}, or one of the recognised tokens; must not be
+		 *                    null.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the thread class is null.
 		 */
 		@Nonnull
 		public Builder ofThisClass(@Nonnull String ofThisClass) {
@@ -124,6 +129,8 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @return a new ThreadPermission instance.
+		 * @throws NullPointerException     if no thread class was set.
+		 * @throws IllegalArgumentException if the thread count is negative.
 		 */
 		@Nonnull
 		public ThreadPermission build() {

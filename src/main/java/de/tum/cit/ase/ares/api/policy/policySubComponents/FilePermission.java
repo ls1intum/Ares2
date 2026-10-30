@@ -5,24 +5,22 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
+
 /**
- * Allowed file operations.
+ * Allowed file operations on a path and everything below it.
  * <p>
- * Description: Specifies whether reading, overwriting, executing, and deleting
- * files is permitted on a given path.
- * <p>
- * Design Rationale: Explicitly defining file operation permissions helps ensure
- * secure code execution.
+ * An entry granting nothing overrides no other entry, so a broader one such as
+ * {@code *} still applies. The path has no {@code ..} segment.
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param readAllFiles               whether reading all files is permitted.
- * @param overwriteAllFiles          whether overwriting all files is permitted.
- * @param createAllFiles             whether creating files is permitted.
- * @param executeAllFiles            whether executing all files is permitted.
- * @param deleteAllFiles             whether deleting all files is permitted.
- * @param onThisPathAndAllPathsBelow the path where these permissions apply, or
- *                                   {@code *} for every path; must not be null.
+ * @param onThisPathAndAllPathsBelow the path, or {@code *}.
+ * @param readAllFiles               may read.
+ * @param overwriteAllFiles          may overwrite.
+ * @param createAllFiles             may create.
+ * @param executeAllFiles            may execute.
+ * @param deleteAllFiles             may delete.
  */
 public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean readAllFiles,
 		boolean overwriteAllFiles, boolean createAllFiles, boolean executeAllFiles, boolean deleteAllFiles) {
@@ -32,6 +30,12 @@ public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
+	 * @throws NullPointerException     if the path is null.
+	 * @throws IllegalArgumentException if the path is blank, contains a wildcard
+	 *                                  other than a sole {@code *}, uses an
+	 *                                  unrecognised {@code ${...}} placeholder,
+	 *                                  walks upwards through {@code ..}, or
+	 *                                  contains a control character.
 	 */
 	public FilePermission {
 		Objects.requireNonNull(onThisPathAndAllPathsBelow, "onThisPathAndAllPathsBelow must not be null");
@@ -44,8 +48,10 @@ public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param path the path where the restrictions apply.
+	 * @param path the path where the restrictions apply; must not be null.
 	 * @return a new FilePermission instance with all operations denied.
+	 * @throws NullPointerException     if the path is null.
+	 * @throws IllegalArgumentException if the path is not a valid policy path.
 	 */
 	@Nonnull
 	public static FilePermission createRestrictive(String path) {
@@ -110,8 +116,10 @@ public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param onThisPathAndAllPathsBelow the file path.
+		 * @param onThisPathAndAllPathsBelow the file path; must not be null, and is
+		 *                                   validated for shape by {@link #build()}.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the path is null.
 		 */
 		@Nonnull
 		public Builder onThisPathAndAllPathsBelow(@Nonnull String onThisPathAndAllPathsBelow) {
@@ -195,11 +203,15 @@ public record FilePermission(@Nonnull String onThisPathAndAllPathsBelow, boolean
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @return a new FilePermission instance.
+		 * @return a new FilePermission instance. Every operation not set defaults to
+		 *         denied.
+		 * @throws NullPointerException     if no path was set.
+		 * @throws IllegalArgumentException if the path is not a valid policy path.
 		 */
 		@Nonnull
 		public FilePermission build() {
-			return new FilePermission(Objects.requireNonNull(onThisPathAndAllPathsBelow, "path must not be null"),
+			return new FilePermission(
+					Objects.requireNonNull(onThisPathAndAllPathsBelow, "onThisPathAndAllPathsBelow must not be null"),
 					readAllFiles, overwriteAllFiles, createAllFiles, executeAllFiles, deleteAllFiles);
 		}
 	}

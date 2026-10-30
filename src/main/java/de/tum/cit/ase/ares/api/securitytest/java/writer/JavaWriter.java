@@ -18,6 +18,7 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.localization.Localisation;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
@@ -61,6 +62,32 @@ public class JavaWriter implements Writer {
 	public JavaWriter(@Nonnull BuildToolConfiguration buildConfiguration) {
 		this.buildConfiguration = Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
 		this.projectRoot = buildConfiguration.projectRoot();
+	}
+
+	/**
+	 * Returns the writer bound to the build configuration found for this run. A
+	 * framework-default writer is rebuilt; a subclass is kept only if it holds an
+	 * equal configuration, as an unbound one would look at another project. An
+	 * override must return an instance bound to the given configuration.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param buildConfiguration the discovered configuration; not null.
+	 * @return the bound writer.
+	 * @throws IllegalStateException if a subclass holds no or another
+	 *                               configuration.
+	 */
+	@Nonnull
+	public JavaWriter withBuildConfiguration(@Nonnull BuildToolConfiguration buildConfiguration) {
+		Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
+		if (getClass() == JavaWriter.class) {
+			return new JavaWriter(buildConfiguration);
+		}
+		if (!buildConfiguration.equals(this.buildConfiguration)) {
+			throw new IllegalStateException(
+					Messages.localized("security.policy.collaborator.unbound", getClass().getName()));
+		}
+		return this;
 	}
 
 	// <editor-fold desc="Helper methods">

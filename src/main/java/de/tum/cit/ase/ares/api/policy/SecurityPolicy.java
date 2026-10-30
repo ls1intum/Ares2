@@ -5,64 +5,99 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import de.tum.cit.ase.ares.api.AresConstants;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 
 /**
  * Immutable security policy for supervised code execution.
  * <p>
- * Description: This record encapsulates all necessary details regarding
- * supervised code, including its programming language configuration, permitted
- * resource accesses, and additional metadata. By using the immutable record
- * pattern, it guarantees thread-safety and reduces boilerplate. Input
- * validation is performed in factory methods to ensure that every instance
- * meets its invariants.
- * <p>
- * Design Rationale: Leveraging modern Java features such as records and
- * nullability annotations enforces immutability and clarity. The use of a
- * factory method for construction and in‑constructor validation ensures that
- * only valid, consistent instances are created, aligning with best practices
- * for secure and maintainable design. The clear separation into nested records
- * reflects the Single Responsibility Principle.
+ * Description: Validation happens in the canonical constructor, so an instance
+ * created directly, through the builder or from a policy file meets the same
+ * invariants.
  *
  * @since 2.0.0
+ * @version 2.1.0
  * @author Markus Paulsen
- * @param thisPolicyFileCompliesToThePolicyVersion the policy format version;
- *                                                 must be exactly
- *                                                 {@value #CURRENT_POLICY_VERSION}.
- * @param regardingTheSupervisedCode               the details of the supervised
- *                                                 code; must not be null.
+ * @param thisPolicyFileCompliesToThePolicyVersion the declared policy-format
+ *                                                 version; must lie in the
+ *                                                 range set in
+ *                                                 {@link AresConstants}.
+ * @param regardingTheSupervisedCode               the supervised code; must not
+ *                                                 be null.
  */
 @SuppressWarnings("unused")
 public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		@Nonnull SupervisedCode regardingTheSupervisedCode) {
 
-	/** The policy-format version supported by this Ares release. */
-	public static final int CURRENT_POLICY_VERSION = 1;
+	/**
+	 * The policy-format version supported by this Ares release.
+	 *
+	 * @since 2.0.0
+	 * @deprecated Superseded by the supported range from
+	 *             {@link AresConstants#MINIMUM_POLICY_VERSION} to
+	 *             {@link AresConstants#MAXIMUM_POLICY_VERSION}. Kept as an alias of
+	 *             the maximum because it shipped in the released 2.1.0 API. An
+	 *             equality check against it should become a range check, or it will
+	 *             reject a version 1 policy once version 2 exists.
+	 */
+	@Deprecated(forRemoval = true)
+	public static final int CURRENT_POLICY_VERSION = AresConstants.MAXIMUM_POLICY_VERSION;
 
 	/**
-	 * Constructs a SecurityPolicy instance with validated supervised code.
+	 * Constructs a SecurityPolicy instance with a validated policy-format version
+	 * and validated supervised code.
+	 * <p>
+	 * The range check is shared with the builder's version setter through
+	 * {@link #requireSupportedPolicyVersion(int)}, so the two cannot drift apart.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
+	 * @throws IllegalArgumentException if the declared policy-format version lies
+	 *                                  outside the supported range.
+	 * @throws NullPointerException     if the supervised code is null.
 	 */
 	public SecurityPolicy {
-		if (thisPolicyFileCompliesToThePolicyVersion != CURRENT_POLICY_VERSION) {
-			throw new IllegalArgumentException(
-					"thisPolicyFileCompliesToThePolicyVersion must be exactly " + CURRENT_POLICY_VERSION);
-		}
+		requireSupportedPolicyVersion(thisPolicyFileCompliesToThePolicyVersion);
 		Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
 	}
 
 	/**
+	 * Validates that a declared policy-format version lies within the supported
+	 * range. Shared by the canonical constructor and {@link Builder}, so the rule
+	 * is stated once.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param version the declared policy-format version.
+	 * @return the same version, when it lies within the supported range.
+	 * @throws IllegalArgumentException if the version lies outside
+	 *                                  [{@value AresConstants#MINIMUM_POLICY_VERSION},
+	 *                                  {@value AresConstants#MAXIMUM_POLICY_VERSION}].
+	 */
+	private static int requireSupportedPolicyVersion(int version) {
+		if (version < AresConstants.MINIMUM_POLICY_VERSION || version > AresConstants.MAXIMUM_POLICY_VERSION) {
+			throw new IllegalArgumentException(Messages.localized("policy.version.range",
+					AresConstants.MINIMUM_POLICY_VERSION, AresConstants.MAXIMUM_POLICY_VERSION, version));
+		}
+		return version;
+	}
+
+	/**
 	 * Creates a restrictive security policy with all permissions denied by default.
+	 * <p>
+	 * The returned policy declares {@value AresConstants#MAXIMUM_POLICY_VERSION} as
+	 * its policy-format version.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param programmingLanguageConfiguration the programming language
 	 *                                         configuration for the restrictive
-	 *                                         policy.
+	 *                                         policy; must not be null.
 	 * @return a new SecurityPolicy instance.
+	 * @throws NullPointerException if the programming language configuration is
+	 *                              null.
 	 */
 	@Nonnull
 	public static SecurityPolicy createRestrictive(
@@ -90,15 +125,24 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 	 * Description: Provides a fluent API to construct a SecurityPolicy instance.
 	 * <p>
 	 * Design Rationale: The builder pattern here allows for step-by-step
-	 * configuration of a SecurityPolicy, ensuring immutability.
+	 * configuration of a SecurityPolicy, ensuring immutability. Each setter
+	 * validates its argument immediately, so an invalid value is reported at the
+	 * call that introduced it rather than at {@link #build()}.
 	 *
 	 * @since 2.0.0
+	 * @version 2.1.0
 	 * @author Markus Paulsen
-	 * @version 2.0.0
 	 */
 	public static class Builder {
 
-		private int thisPolicyFileCompliesToThePolicyVersion = CURRENT_POLICY_VERSION;
+		/**
+		 * The policy-format version declared by the policy under construction.
+		 * <p>
+		 * Defaults to {@value AresConstants#MAXIMUM_POLICY_VERSION}, because a policy
+		 * assembled in code rather than read from a file is by construction expressed
+		 * in the newest format this release understands.
+		 */
+		private int thisPolicyFileCompliesToThePolicyVersion = AresConstants.MAXIMUM_POLICY_VERSION;
 
 		/**
 		 * The supervised code for the SecurityPolicy.
@@ -109,15 +153,22 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		/**
 		 * Sets the policy-format version declared by the policy file.
 		 *
-		 * @param thisPolicyFileCompliesToThePolicyVersion the declared policy-format
-		 *                                                 version
-		 * @return this builder
 		 * @since 2.0.0
 		 * @author Markus Paulsen
+		 * @param thisPolicyFileCompliesToThePolicyVersion the declared policy-format
+		 *                                                 version; must be between
+		 *                                                 {@value AresConstants#MINIMUM_POLICY_VERSION}
+		 *                                                 and
+		 *                                                 {@value AresConstants#MAXIMUM_POLICY_VERSION},
+		 *                                                 both inclusive.
+		 * @return the updated Builder.
+		 * @throws IllegalArgumentException if the version lies outside the supported
+		 *                                  range.
 		 */
 		@Nonnull
 		public Builder thisPolicyFileCompliesToThePolicyVersion(int thisPolicyFileCompliesToThePolicyVersion) {
-			this.thisPolicyFileCompliesToThePolicyVersion = thisPolicyFileCompliesToThePolicyVersion;
+			this.thisPolicyFileCompliesToThePolicyVersion = requireSupportedPolicyVersion(
+					thisPolicyFileCompliesToThePolicyVersion);
 			return this;
 		}
 
@@ -126,8 +177,10 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param regardingTheSupervisedCode the supervised code instance.
+		 * @param regardingTheSupervisedCode the supervised code instance; must not be
+		 *                                   null.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the supervised code is null.
 		 */
 		@Nonnull
 		public Builder regardingTheSupervisedCode(@Nonnull SupervisedCode regardingTheSupervisedCode) {
@@ -142,6 +195,7 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @return a new SecurityPolicy instance.
+		 * @throws NullPointerException if no supervised code has been set.
 		 */
 		@Nonnull
 		public SecurityPolicy build() {

@@ -9,28 +9,35 @@ import javax.annotation.Nullable;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
- * Class with elevated Privileges.
+ * Class with elevated privileges.
  * <p>
- * Description: Specifies the class, which is not restricted by Ares 2.
+ * Description: Names a class Ares does not restrict. A call is judged by the
+ * call stack leading to it, so the frames of this class are exempted.
  * <p>
- * Design Rationale: Explicitly declaring elevated classes enables minimal and
- * restricted opening of the general protection.
+ * Design Rationale: A policy file has no field for this. Ares derives the set
+ * from its essential classes and the exercise's test classes, so an instructor
+ * can neither grant nor revoke it directly.
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param className the name of the class that receives elevated privileges;
- *                  must not be null.
+ * @param className the elevated class; neither null nor blank.
  */
 public record ClassPermission(@Nonnull String className) {
 
 	/**
-	 * Constructs a ClassPermission instance.
+	 * Constructs a ClassPermission, refusing only a null or blank name. The record
+	 * does not know the language, so {@code JavaCreator} checks the Java syntax
+	 * first. Elevation covers exactly the named class; a nested class is elevated
+	 * only because {@link ExemptedClassNests} lists it too.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
+	 * @param className the elevated class; neither null nor blank.
+	 * @throws NullPointerException     if the name is null.
+	 * @throws IllegalArgumentException if the name is blank.
 	 */
 	public ClassPermission {
-		Objects.requireNonNull(className, "className name must not be null");
+		Objects.requireNonNull(className, "className must not be null");
 		if (className.isBlank()) {
 			throw new IllegalArgumentException(Messages.localized("policy.permission.class.blank"));
 		}
@@ -95,8 +102,9 @@ public record ClassPermission(@Nonnull String className) {
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param className the class name.
+		 * @param className the class name; must not be null.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the class name is null.
 		 */
 		@Nonnull
 		public ClassPermission.Builder className(@Nonnull String className) {
@@ -110,6 +118,8 @@ public record ClassPermission(@Nonnull String className) {
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @return a new ClassPermission instance.
+		 * @throws NullPointerException     if no class name was set.
+		 * @throws IllegalArgumentException if the class name is blank.
 		 */
 		@Nonnull
 		public ClassPermission build() {
