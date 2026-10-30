@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.phobos;
 
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 
@@ -27,6 +28,13 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermissi
  * @since 2.0.1
  */
 public class JavaPhobosTestCase extends PhobosTestCase {
+
+	/**
+	 * The shape of a line the Phobos reader takes as a section header. Written with
+	 * {@link Pattern#DOTALL} so that it matches what the reader's own test matches,
+	 * which is any character between the brackets.
+	 */
+	private static final Pattern PARSER_SECTION_HEADER = Pattern.compile("\\[.+\\]", Pattern.DOTALL);
 
 	/**
 	 * The supplier for the resource accesses permitted as defined in the security
@@ -139,8 +147,76 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 		out.append('[').append(header).append("]\n");
 
 		List<String> sortedPaths = paths.stream().sorted().toList();
-		sortedPaths.forEach(p -> out.append(p).append('\n'));
+		sortedPaths.forEach(p -> out.append(requirePathSurvivesTheParser(header, p)).append('\n'));
 		out.append('\n');
+	}
+
+	/**
+	 * Returns a path, or refuses one the Phobos reader might read as another path,
+	 * would refuse for a carriage return, or would take for a section header, since
+	 * each changes what the policy means. Checking here also catches an expanded
+	 * {@code ${PROJECT_ROOT}}.
+	 *
+	 * @param header the section written, named in the failure
+	 * @param path   the path about to be written
+	 * @return the path, when the reader reads it back unchanged
+	 * @throws SecurityException if the reader might read something else
+	 */
+	private static String requirePathSurvivesTheParser(String header, String path) {
+		if (path.indexOf('\r') >= 0 || !path.equals(asTheParserWouldReadIt(path))) {
+			throw new SecurityException(Messages.localized("security.phobos.path.rewritten", header, path));
+		}
+		if (PARSER_SECTION_HEADER.matcher(path).matches()) {
+			throw new SecurityException(Messages.localized("security.phobos.path.section.header", header, path));
+		}
+		return path;
+	}
+
+	/**
+	 * Applies the rewrites the Phobos reader may perform on one configuration line,
+	 * so that the caller can compare the result against what it was about to write.
+	 * It may trim more than a given reader does, so a doubtful path is refused
+	 * rather than let through.
+	 *
+	 * @param path the path as the security policy holds it
+	 * @return the path with every rewrite the reader may apply
+	 */
+	private static String asTheParserWouldReadIt(String path) {
+		String firstRecord = path.split("\n", -1)[0];
+		int comment = firstRecord.indexOf('#');
+		return trimParserBlanks(comment < 0 ? firstRecord : firstRecord.substring(0, comment));
+	}
+
+	/**
+	 * Removes what the Phobos reader may trim off both ends of a line.
+	 *
+	 * @param value the line to trim
+	 * @return the line without its leading and trailing blank characters
+	 */
+	private static String trimParserBlanks(String value) {
+		int start = 0;
+		int end = value.length();
+		while (start < end && mayBeTrimmed(value.charAt(start))) {
+			start++;
+		}
+		while (end > start && mayBeTrimmed(value.charAt(end - 1))) {
+			end--;
+		}
+		return value.substring(start, end);
+	}
+
+	/**
+	 * Tells whether the Phobos reader may trim a character off the end of a line.
+	 * It trims what its locale calls a space and pins no locale, so under C.UTF-8
+	 * it also trims Unicode spaces such as U+2003. Java's whitespace and space
+	 * separators cover every one glibc 2.41 trims there, and the no-break spaces
+	 * too, so a rare path is refused rather than widened.
+	 *
+	 * @param character the character at the end of a line
+	 * @return whether the reader may remove it
+	 */
+	private static boolean mayBeTrimmed(char character) {
+		return Character.isWhitespace(character) || Character.isSpaceChar(character);
 	}
 
 	@Nonnull
