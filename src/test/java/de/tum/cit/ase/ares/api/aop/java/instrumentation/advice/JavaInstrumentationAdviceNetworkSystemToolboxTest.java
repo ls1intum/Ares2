@@ -24,11 +24,14 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.UnixDomainSocketAddress;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.nio.channels.DatagramChannel;
+import java.time.Duration;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -652,6 +655,22 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		assertEquals("example.org:443", toDisplayString.invoke(target));
 	}
 
+	/**
+	 * A request type written outside the JDK must be rejected, instead of leaving
+	 * no target and letting {@code HttpClient.send} through unchecked.
+	 */
+	@Test
+	void toTarget_failsClosedForUntrustedHttpRequestWithoutInvokingIt() throws Exception {
+		Method toTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class.getDeclaredMethod("toTarget",
+				Object.class);
+		toTarget.setAccessible(true);
+
+		InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
+				() -> toTarget.invoke(null, new HttpRequestThatMustNotBeAsked()));
+		assertInstanceOf(SecurityException.class, thrown.getCause(),
+				"A request Ares cannot trust must be rejected, because no target would skip the check");
+	}
+
 	@Test
 	void toTarget_failsClosedForUntrustedSocketAddressWithoutInvokingIt() throws Exception {
 		// I-110: before the fix, an unparseable SocketAddress (no colon in its
@@ -764,6 +783,84 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		@Override
 		public URL getURL() {
 			throw failure;
+		}
+	}
+
+	/**
+	 * A request type written outside the JDK, as a student could write it. Every
+	 * method fails, so a test notices if Ares asks it anything.
+	 */
+	private static final class HttpRequestThatMustNotBeAsked extends HttpRequest {
+
+		/**
+		 * Fails, since Ares must not ask an untrusted request for its body.
+		 *
+		 * @return never
+		 */
+		@Override
+		public Optional<BodyPublisher> bodyPublisher() {
+			throw new IllegalStateException("student code must never be asked");
+		}
+
+		/**
+		 * Fails, since Ares must not ask an untrusted request for its method.
+		 *
+		 * @return never
+		 */
+		@Override
+		public String method() {
+			throw new IllegalStateException("student code must never be asked");
+		}
+
+		/**
+		 * Fails, since Ares must not ask an untrusted request for its timeout.
+		 *
+		 * @return never
+		 */
+		@Override
+		public Optional<Duration> timeout() {
+			throw new IllegalStateException("student code must never be asked");
+		}
+
+		/**
+		 * Fails, since Ares must not ask an untrusted request whether it waits to
+		 * continue.
+		 *
+		 * @return never
+		 */
+		@Override
+		public boolean expectContinue() {
+			throw new IllegalStateException("student code must never be asked");
+		}
+
+		/**
+		 * Fails, since Ares must not ask an untrusted request for its address.
+		 *
+		 * @return never
+		 */
+		@Override
+		public URI uri() {
+			throw new IllegalStateException("student code must never be asked");
+		}
+
+		/**
+		 * Fails, since Ares must not ask an untrusted request for its version.
+		 *
+		 * @return never
+		 */
+		@Override
+		public Optional<HttpClient.Version> version() {
+			throw new IllegalStateException("student code must never be asked");
+		}
+
+		/**
+		 * Fails, since Ares must not ask an untrusted request for its headers.
+		 *
+		 * @return never
+		 */
+		@Override
+		public HttpHeaders headers() {
+			throw new IllegalStateException("student code must never be asked");
 		}
 	}
 }
