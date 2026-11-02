@@ -74,63 +74,53 @@ public enum BuildMode {
 	}
 
 	/**
-	 * Computes the classpath for class loading based on the project path and
-	 * package name.
-	 * <p>
-	 * The projectPath (from @Policy withinPath) can have different formats:
-	 * <ul>
-	 * <li>null or empty - uses packageName to construct the classpath</li>
-	 * <li>"classes/java/main/package/..." - Gradle-style bytecode path, converted
-	 * to actual build path</li>
-	 * <li>"classes/package/..." - Maven-style bytecode path, converted to actual
-	 * build path</li>
-	 * <li>"test-classes/..." - Test classes path (handled similarly)</li>
-	 * </ul>
+	 * Turns a withinPath into the folder of compiled classes it names, below this
+	 * build's production or test output. Without a withinPath the package name is
+	 * used instead.
 	 *
-	 * @param projectPath the path specified in @Policy withinPath (can be null or
-	 *                    empty)
-	 * @param packageName the package name from the security policy (e.g.,
-	 *                    "anonymous" or "de.tum.cit.ase")
-	 * @return the actual filesystem classpath for class loading
+	 * @param projectPath the withinPath of the policy, such as
+	 *                    "classes/java/main/org/example"; may be null or empty
+	 * @param packageName the supervised package, such as "de.tum.cit.ase"
+	 * @return the folder the static analysis reads
 	 */
 	public String getClasspath(Path projectPath, String packageName) {
-		// If projectPath is null or empty, use packageName to construct the classpath
 		if (projectPath == null || projectPath.toString().isEmpty()) {
 			if (packageName != null && !packageName.isEmpty()) {
-				// Convert package name to path: "anonymous" -> "anonymous", "de.tum.cit" ->
-				// "de/tum/cit"
 				String packagePath = packageName.replace(".", "/");
 				return reportClasspath(Paths.get(getBuildDirectory(), packagePath));
 			}
 			return reportClasspath(Path.of(getBuildDirectory()));
 		}
 
-		String projectPathStr = projectPath.toString();
+		String projectPathStr = withForwardSlashes(projectPath);
 
-		// Handle bytecode paths that start with "classes/" or "test-classes/"
-		// These need to be converted to actual build tool paths
 		if (projectPathStr.startsWith("classes/java/main/")) {
-			// Gradle-style path: classes/java/main/package/subpackage
-			// Extract package path and prepend actual build directory
 			String extractedPackagePath = projectPathStr.substring("classes/java/main/".length());
 			return reportClasspath(Paths.get(getBuildDirectory(), extractedPackagePath));
 		} else if (projectPathStr.startsWith("classes/")) {
-			// Maven-style path: classes/package/subpackage
-			// Extract package path and prepend actual build directory
 			String extractedPackagePath = projectPathStr.substring("classes/".length());
 			return reportClasspath(Paths.get(getBuildDirectory(), extractedPackagePath));
 		} else if (projectPathStr.startsWith("test-classes/java/test/")) {
-			// Gradle test classes
 			String extractedPackagePath = projectPathStr.substring("test-classes/java/test/".length());
 			return reportClasspath(Paths.get(getTestBuildDirectory(), extractedPackagePath));
 		} else if (projectPathStr.startsWith("test-classes/")) {
-			// Maven test classes
 			String extractedPackagePath = projectPathStr.substring("test-classes/".length());
 			return reportClasspath(Paths.get(getTestBuildDirectory(), extractedPackagePath));
 		}
 
-		// Otherwise, assume it's a package path and combine with build directory
 		return reportClasspath(Paths.get(getBuildDirectory(), projectPathStr));
+	}
+
+	/**
+	 * Writes a withinPath with "/" between its names, so the bytecode prefixes
+	 * match on Windows too. There toString() joins names with "\", no prefix
+	 * matched, and the analysis was pointed at a folder that does not exist.
+	 *
+	 * @param withinPath the instructor's bytecode-relative scope
+	 * @return the same path with "/" as its separator
+	 */
+	static String withForwardSlashes(Path withinPath) {
+		return withinPath.toString().replace(withinPath.getFileSystem().getSeparator(), "/");
 	}
 
 	private String reportClasspath(Path path) {

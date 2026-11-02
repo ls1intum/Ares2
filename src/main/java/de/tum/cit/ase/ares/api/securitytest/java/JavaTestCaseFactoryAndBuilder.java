@@ -151,6 +151,7 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	 */
 	@Override
 	public void executeTestCases() {
+		javaCreator.requireSupervisedClasses(buildMode);
 		if (supervisedScopeWasDerived) {
 			javaProjectScanner.requireDerivedScopeToCoverTheProject(packageName);
 		}
