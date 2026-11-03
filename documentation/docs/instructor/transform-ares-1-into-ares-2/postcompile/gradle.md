@@ -247,7 +247,9 @@ Ares 2 trusts a different set of identities by name, including its own `de.tum.c
 
 They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reservedPackages/`, and live in the Ares repository at `src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`. Both are reproduced in full below, so you can complete the migration without extracting them.
 
-Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+
+Prefix version 3 widened the list to the Ares 1 breadth. A version 1 or 2 snippet now reserves too little rather than too much: it omits the test harness (JUnit, AssertJ) and Ares' other dependencies. A submission that places a class in one of those shadows the code that grades it. Upgrading the Ares dependency does not rewrite a build guard you copied earlier, so refresh any snippet below prefix version 3 from the shipped files. Regenerate any previously generated helper sources too, since the upgrade does not replace their embedded reserved-package list either. This is a breaking change for an affected exercise: the build now rejects a submission that compiled before if it takes a reserved package.
 
 ### Gradle
 
@@ -275,7 +277,13 @@ def aresReservedPackageBoundaryVersion = '2'
 def aresReservedPackagePatterns = [
         'java/**', 'javax/**', 'sun/**', 'jdk/**', 'com/sun/**',
         'de/tum/cit/ase/ares/api/**', 'net/bytebuddy/**', 'org/aspectj/**',
-        'com/ibm/wala/**', 'com/tngtech/archunit/**'
+        'com/ibm/wala/**', 'com/tngtech/archunit/**', 'junit/**', 'org/junit/**',
+        'org/opentest4j/**', 'org/assertj/**', 'org/mockito/**', 'ch/qos/logback/**',
+        'org/slf4j/**', 'com/github/javaparser/**', 'com/fasterxml/jackson/**',
+        'org/yaml/**', 'org/json/**', 'com/opencsv/**', 'org/jgrapht/**',
+        'org/apiguardian/**', 'org/apache/**', 'org/eclipse/**', 'org/gradle/**',
+        'org/jacoco/**', 'com/intellij/**', 'worker/org/gradle/**',
+        'de/tum/in/test/api/**'
 ]
 
 tasks.register('verifyAresReservedPackagesV2') {
