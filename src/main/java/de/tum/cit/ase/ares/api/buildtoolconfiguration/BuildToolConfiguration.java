@@ -59,16 +59,20 @@ public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List
 	}
 
 	/**
-	 * Resolves a bytecode scope against this build's outputs within the project.
+	 * Resolves a bytecode scope against this build's outputs. An absolute scope is
+	 * taken as it is. Every scope must stay inside the project.
 	 *
-	 * @param withinPath  the optional bytecode-relative scope
+	 * @param withinPath  the optional scope, relative to the build output or
+	 *                    absolute
 	 * @param packageName the fallback package name
 	 * @return the resolved classpath
-	 * @throws SecurityException if the scope, or the package path used without one,
-	 *                           starts at a root or a drive, or leaves the project
+	 * @throws SecurityException if a relative scope, or the package path used
+	 *                           without one, starts at a root or a drive, or if the
+	 *                           scope leaves the project
 	 */
 	public String classpath(Path withinPath, String packageName) {
-		Path scope = BuildMode.resolveClasspath(withinPath, packageName, productionOutputRoot, testOutputRoot);
+		Path scope = withinPath != null && withinPath.isAbsolute() ? withinPath
+				: BuildMode.resolveClasspath(withinPath, packageName, productionOutputRoot, testOutputRoot);
 		String resolved = validateContained(projectRoot, scope, "withinPath").toString();
 		LOG.info("Resolved Ares analysis/import path for {}: {}", buildMode, resolved);
 		return resolved;

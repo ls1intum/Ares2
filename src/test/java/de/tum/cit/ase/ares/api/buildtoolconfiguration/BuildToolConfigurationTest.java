@@ -110,8 +110,9 @@ class BuildToolConfigurationTest {
 	}
 
 	/**
-	 * A scope starting at a root or a drive is refused by both APIs on any host,
-	 * including a backslash root that only normalisation turns into one.
+	 * A scope starting at a root or a drive outside the project is refused by both
+	 * APIs on any host, including a backslash root that only normalisation turns
+	 * into one.
 	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "/outside", "\\outside", "C:\\outside", "C:outside" })
@@ -123,13 +124,25 @@ class BuildToolConfigurationTest {
 		}
 	}
 
-	/** An absolute scope is refused by its form, even when it names the output. */
+	/**
+	 * An absolute scope inside the project is taken as it is, as builder callers
+	 * pass one. BuildMode cannot check that a scope stays inside the project, so it
+	 * still refuses an absolute one by its form.
+	 */
 	@Test
-	void rejectsAbsoluteScopeInsideProject() {
+	void acceptsAbsoluteScopeInsideProject() {
 		var configuration = configuration(BuildMode.GRADLE);
 		Path inside = configuration.productionOutputRoot().resolve("org/example");
-		assertThrows(SecurityException.class, () -> configuration.classpath(inside, "ignored"));
+		assertEquals(inside.toString(), configuration.classpath(inside, "ignored"));
 		assertThrows(SecurityException.class, () -> BuildMode.GRADLE.getClasspath(inside, "ignored"));
+	}
+
+	/** An absolute scope that names a folder outside the project is refused. */
+	@Test
+	void rejectsAbsoluteScopeOutsideProject() {
+		var configuration = configuration(BuildMode.GRADLE);
+		Path outside = projectRoot.toAbsolutePath().getParent().resolve("outside/org/example");
+		assertThrows(SecurityException.class, () -> configuration.classpath(outside, "ignored"));
 	}
 
 	/** One step beyond the project root is already refused. */
