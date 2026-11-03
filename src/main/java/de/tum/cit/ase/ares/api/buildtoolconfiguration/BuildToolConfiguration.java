@@ -71,7 +71,7 @@ public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List
 		if (withinPath == null || withinPath.toString().isEmpty()) {
 			remainder = packageName == null ? "" : packageName.replace('.', '/');
 		} else {
-			String configured = BuildMode.withForwardSlashes(withinPath);
+			String configured = withinPath.toString();
 			if (configured.startsWith("classes/java/main/")) {
 				remainder = configured.substring("classes/java/main/".length());
 			} else if (configured.startsWith("classes/")) {
