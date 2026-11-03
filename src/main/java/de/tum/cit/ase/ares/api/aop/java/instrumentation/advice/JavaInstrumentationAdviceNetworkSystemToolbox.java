@@ -211,22 +211,15 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	// <editor-fold desc="Conversion handling">
 
 	/**
-	 * Converts an arbitrary value to a {@link NetworkTarget} if possible.
+	 * Converts a value the advice sees into the host and port it names.
 	 * <p>
-	 * Description: Inspects the runtime type of {@code value} and delegates to the
-	 * appropriate extraction logic. Handles {@link InetSocketAddress},
-	 * {@link UnixDomainSocketAddress}, {@link SocketAddress},
-	 * {@code java.net.http.HttpRequest}, {@link URI}, {@link URL},
-	 * {@link URLConnection}, {@link Socket}, {@link DatagramSocket},
-	 * {@link SocketChannel}, {@link DatagramChannel}, and {@link String} values. A
-	 * recognised {@link SocketAddress} that cannot be resolved to a specific
-	 * host:port (any future address-family shape) still produces a target
-	 * (fail-closed, I-110) rather than {@code null}; only a value of an entirely
-	 * unrecognised type returns {@code null}.
+	 * Description: Handles addresses, URIs, URLs, HTTP requests, connections,
+	 * sockets, channels and strings. One from outside the JDK is rejected rather
+	 * than asked, never left without a target. Some yield none, such as a value of
+	 * an unrecognised type or an unconnected socket.
 	 *
-	 * @param value the object to convert; may be null
-	 * @return a {@link NetworkTarget} describing the endpoint, or {@code null} if
-	 *         conversion is not possible
+	 * @param value the value, or {@code null}
+	 * @return the endpoint, or {@code null} if none
 	 * @since 2.0.0
 	 * @author Kevin Fischer
 	 */
@@ -267,6 +260,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			}
 		} catch (ClassNotFoundException ignored) {
 			// java.net.http module not available — skip
+		} catch (SecurityException denied) {
+			throw denied;
 		} catch (Exception ignored) {
 			// reflection failure — skip
 		}
@@ -406,15 +401,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	}
 
 	/**
-	 * Reads the URL of a connection without letting its own failure escape.
+	 * Reads the URL of a connection, or none while it cannot report one yet.
 	 * <p>
-	 * Description: An HTTPS connection reads its URL through an inner connection
-	 * that exists only once the connection is set up, and raises a
-	 * {@link NullPointerException} before then. That exception would leave this
-	 * advice and surface in the code under test as a fault of that code. No
-	 * endpoint is skipped by returning none here: nothing has been sent or received
-	 * yet, and the operations that do perform input or output are intercepted
-	 * separately and resolve the URL then.
+	 * Description: An HTTPS connection fails to report its URL until it is set up.
+	 * That failure yields no URL, and sending or receiving reads it again. An Ares
+	 * denial is rethrown, since no URL would skip the receiver check.
 	 *
 	 * @param urlConnection the connection to read
 	 * @return its URL, or {@code null} when it cannot be read yet
@@ -424,6 +415,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	private static URL urlOfConnection(@Nonnull URLConnection urlConnection) {
 		try {
 			return urlConnection.getURL();
+		} catch (SecurityException denied) {
+			throw denied;
 		} catch (RuntimeException ignored) {
 			return null;
 		}
@@ -927,12 +920,10 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		// </editor-fold>
 		// <editor-fold desc="Check receiver instance">
 		@Nullable
-		String networkIllegallyInteractedThroughReceiver = instance == null ? null
-				: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedHosts, allowedPorts,
-						IgnoreValues.NONE);
-		if (networkIllegallyInteractedThroughReceiver != null) {
+		NetworkTarget targetFromReceiver = variableToTarget(instance);
+		if (targetFromReceiver != null && checkIfNetworkIsForbidden(targetFromReceiver, allowedHosts, allowedPorts)) {
 			throw new SecurityException(localize("security.advice.illegal.network.execution",
-					networkSystemMethodToCheck, action, networkIllegallyInteractedThroughReceiver,
+					networkSystemMethodToCheck, action, targetFromReceiver.toDisplayString(),
 					fullMethodSignature
 							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));
