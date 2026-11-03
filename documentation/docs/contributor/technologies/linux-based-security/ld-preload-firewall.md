@@ -12,6 +12,12 @@ are trying to reach, and either put the call through or refuse it. The pupil nev
 difference.
 :::
 
+:::note[Historical design]
+Where this page names a Phobos layer or script, it describes the scripts Ares used to bundle,
+which it no longer ships. Current Phobos works differently; see the
+[Phobos documentation](https://ls1intum.github.io/phobos/).
+:::
+
 ## What it is
 
 The dynamic linker resolves a symbol to the first library that provides it. `LD_PRELOAD`

@@ -12,6 +12,12 @@ because there is no way to write down everything a pupil might try. It says what
 and everything absent from it is refused by default.
 :::
 
+:::note[Historical design]
+Where this page names a Phobos layer or script, it describes the scripts Ares used to bundle,
+which it no longer ships. Current Phobos works differently; see the
+[Phobos documentation](https://ls1intum.github.io/phobos/).
+:::
+
 ## What it is
 
 Each layer is driven by a declarative rule set derived from the security policy, and each is

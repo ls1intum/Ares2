@@ -240,8 +240,26 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 			return;
 		}
 		out.append('[').append(header).append("]\n");
-		limits.forEach((k, v) -> out.append(k).append('=').append(v).append('\n'));
+		limits.forEach((k, v) -> out.append(k).append('=').append(serialiseLimitValue(k, v)).append('\n'));
 		out.append('\n');
+	}
+
+	/**
+	 * Writes one {@code [limits]} value. The policy holds the timeout in
+	 * milliseconds, but Phobos reads seconds, whole or with exactly three decimals,
+	 * so the timeout is written as {@code S.mmm}, for instance {@code 2.500}, and
+	 * keeps every millisecond. Phobos itself refuses more than 15 digits of
+	 * seconds. Every other limit is written unchanged.
+	 *
+	 * @param key   the limit, for instance {@code timeout}
+	 * @param value the value; for {@code timeout} in milliseconds
+	 * @return the text written after {@code key=}
+	 */
+	private static String serialiseLimitValue(String key, long value) {
+		if (!"timeout".equals(key)) {
+			return Long.toString(value);
+		}
+		return String.format(Locale.ROOT, "%d.%03d", value / 1000L, value % 1000L);
 	}
 
 	/**

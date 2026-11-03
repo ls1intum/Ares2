@@ -14,6 +14,12 @@ a pupil can talk a teacher round, but cannot unbuild a divider. In Postcompile A
 the room and never builds it, so nothing here runs today.
 :::
 
+:::note[Historical design]
+The three layers and `phobos.sh` below describe the scripts Ares used to bundle, which it no
+longer ships. Current Phobos works differently; see the
+[Phobos documentation](https://ls1intum.github.io/phobos/).
+:::
+
 ## What it does
 
 Phobos enforces from **outside** the Java Virtual Machine (JVM), using the operating system, rather than from inside
@@ -51,6 +57,9 @@ aspect-oriented programming (AOP) cases to the executer, and Postcompile reaches
 the test extensions, which call `executeTestCases` alone. This holds for all three layers, not
 only the timeout, and is a pending migration rather than a defect. See
 [Resource limits](/contributor/policy/resource-limits) for the same gap from the policy side.
+
+Ares still writes `[readonly]` and `[network]` sections, which current Phobos rejects;
+migrating the generated configuration format is separate work.
 
 ## Further reading
 

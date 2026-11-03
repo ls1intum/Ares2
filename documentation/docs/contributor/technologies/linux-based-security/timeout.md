@@ -12,6 +12,12 @@ pupil stuck in a loop cannot be trusted to time themselves. Ares reads this cloc
 checklist and does not yet wind it up, so `@StrictTimeout` is what bounds a test today.
 :::
 
+:::note[Historical design]
+Where this page names a Phobos layer or script, it describes the scripts Ares used to bundle,
+which it no longer ships. Current Phobos works differently; see the
+[Phobos documentation](https://ls1intum.github.io/phobos/).
+:::
+
 ## What it is
 
 `timeout` runs a command with a time limit and sends it a signal when the limit is
