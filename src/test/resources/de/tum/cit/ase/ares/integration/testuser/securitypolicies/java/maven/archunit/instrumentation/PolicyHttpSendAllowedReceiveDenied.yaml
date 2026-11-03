@@ -20,5 +20,10 @@ regardingTheSupervisedCode:
     regardingPackageImports:
       - importTheFollowingPackage: "javax.net.ssl"
       - importTheFollowingPackage: "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice"
+      - importTheFollowingPackage: "java.net"
+      - importTheFollowingPackage: "java.net.http"
+      - importTheFollowingPackage: "java.time"
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "java.util.concurrent"
     regardingTimeouts:
       - timeout: 3000

@@ -103,6 +103,22 @@ public final class JavaWalaTestCaseCollection {
 			Set<de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission> allowedClasses) {
 		return JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages, allowedClasses);
 	}
+
+	/**
+	 * Package-import rule that also keeps the supervised code away from the named
+	 * test classes; delegates to the ArchUnit collection.
+	 *
+	 * @param allowedPackages the packages that may be imported
+	 * @param allowedClasses  the classes the rule does not check
+	 * @param testClassNames  the binary names of the test classes
+	 * @return the rule
+	 */
+	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages,
+			Set<de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission> allowedClasses,
+			Set<String> testClassNames) {
+		return JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages, allowedClasses,
+				testClassNames);
+	}
 	// </editor-fold>
 	// </editor-fold>
 

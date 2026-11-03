@@ -10,6 +10,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.lang.ArchRule;
 
+import de.tum.cit.ase.AncestorPackageAresImport;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
@@ -67,5 +68,20 @@ public class JavaWalaTestCaseCollectionTest {
 		// Expect NPE during rule evaluation because allowed set is null inside
 		// predicate
 		Assertions.assertThrows(NullPointerException.class, () -> rule.check(classes));
+	}
+
+	/**
+	 * The WALA import rule keeps a permission above Ares' API out of it, and lets
+	 * one naming the API reach it.
+	 */
+	@Test
+	void noClassMustImportForbiddenPackages_AncestorPermissionDoesNotReachAresApi() {
+		JavaClasses classes = new ClassFileImporter().importClasses(AncestorPackageAresImport.class);
+		ArchRule ancestor = JavaWalaTestCaseCollection.noClassMustImportForbiddenPackages(
+				Set.of(new PackagePermission("java"), new PackagePermission("de.tum.cit.ase")));
+		ArchRule explicit = JavaWalaTestCaseCollection.noClassMustImportForbiddenPackages(
+				Set.of(new PackagePermission("java"), new PackagePermission("de.tum.cit.ase.ares.api")));
+		Assertions.assertThrows(AssertionError.class, () -> ancestor.check(classes));
+		Assertions.assertDoesNotThrow(() -> explicit.check(classes));
 	}
 }
