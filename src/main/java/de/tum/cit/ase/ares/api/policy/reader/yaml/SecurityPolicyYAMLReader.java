@@ -18,6 +18,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLParser;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
+import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicySchemaValidator;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
@@ -55,6 +56,19 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 		this(yamlMapper, null);
 	}
 
+	/**
+	 * Constructs a new SecurityPolicyYAMLReader.
+	 * <p>
+	 * The supplied {@code yamlMapper} is hardened in place with the strict parsing
+	 * features the reader relies on. It is used rather than copied, so a caller's
+	 * custom (de)serialisers keep working, at the cost of changing that mapper.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param yamlMapper      the non-null YAML mapper, changed in place.
+	 * @param projectRootPath the project root for {@code ${PROJECT_ROOT}}, or null
+	 *                        to use the policy file's folder at read time.
+	 */
 	public SecurityPolicyYAMLReader(@Nonnull YAMLMapper yamlMapper, @Nullable Path projectRootPath) {
 		super(yamlMapper);
 		yamlMapper.enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);

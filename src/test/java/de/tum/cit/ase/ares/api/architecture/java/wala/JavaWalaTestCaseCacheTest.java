@@ -1,18 +1,30 @@
 package de.tum.cit.ase.ares.api.architecture.java.wala;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mockito;
+
+import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
+
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 class JavaWalaTestCaseCacheTest {
 	@TempDir
@@ -133,5 +145,130 @@ class JavaWalaTestCaseCacheTest {
 
 	private static void assertOutcomes(Map<String, Optional<String>> expected, Map<String, Optional<String>> actual) {
 		Assertions.assertEquals(new HashMap<>(expected), new HashMap<>(actual));
+	}
+
+	/**
+	 * Returns the cache key of a WALA test case over the given classes and
+	 * permissions.
+	 *
+	 * @param packages the permitted package names
+	 * @param classes  the exempted class names
+	 * @return the cache key
+	 */
+	private static String cacheKeyFor(Set<String> packages, Set<String> classes) throws Exception {
+		Set<PackagePermission> allowedPackages = new HashSet<>();
+		packages.forEach(name -> allowedPackages.add(new PackagePermission(name)));
+		Set<ClassPermission> allowedClasses = new HashSet<>();
+		classes.forEach(name -> allowedClasses.add(new ClassPermission(name)));
+		JavaWalaTestCase testCase = JavaWalaTestCase.walaBuilder()
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
+				.allowedPackages(allowedPackages).allowedClasses(allowedClasses).javaClasses(SHARED_CLASSES)
+				.callGraph(Mockito.mock(CallGraph.class)).build();
+		Method cacheKey = JavaWalaTestCase.class.getDeclaredMethod("cacheKey");
+		cacheKey.setAccessible(true);
+		return (String) cacheKey.invoke(testCase);
+	}
+
+	/** The analysed classes shared by the cache-key tests. */
+	private static final JavaClasses SHARED_CLASSES = new ClassFileImporter()
+			.importClasses(JavaWalaTestCaseCacheTest.class);
+
+	/**
+	 * A permitted package named "a,b" does not share a key with packages a and b.
+	 */
+	@Test
+	void testCacheKeyTellsACommaJoinedPackageFromTheSplitOnes() throws Exception {
+		Assertions.assertNotEquals(cacheKeyFor(Set.of("a", "b"), Set.of()), cacheKeyFor(Set.of("a,b"), Set.of()));
+	}
+
+	/** An exempted class named "a,b" does not share a key with classes a and b. */
+	@Test
+	void testCacheKeyTellsACommaJoinedExemptionFromTheSplitOnes() throws Exception {
+		Assertions.assertNotEquals(cacheKeyFor(Set.of(), Set.of("x.A", "x.B")),
+				cacheKeyFor(Set.of(), Set.of("x.A,x.B")));
+	}
+
+	/** Equal permissions still share a key, so the cache keeps working. */
+	@Test
+	void testCacheKeyIsStableForEqualPermissions() throws Exception {
+		Assertions.assertEquals(cacheKeyFor(Set.of("a", "b"), Set.of("x.A")),
+				cacheKeyFor(Set.of("b", "a"), Set.of("x.A")));
+	}
+
+	/** Fixture analysed only by the package-pass-then-joined test. */
+	static final class PackageFirstFixture {
+	}
+
+	/** Fixture analysed only by the joined-then-package-pass test. */
+	static final class PackageSecondFixture {
+	}
+
+	/** Fixture analysed only by the exemption-pass-then-joined test. */
+	static final class ExemptionFirstFixture {
+	}
+
+	/** Fixture analysed only by the joined-then-exemption-pass test. */
+	static final class ExemptionSecondFixture {
+	}
+
+	/**
+	 * The package of the fixtures, which they depend on through their nest host.
+	 */
+	private static final String OWN_PACKAGE = "de.tum.cit.ase.ares.api.architecture.java.wala";
+
+	/**
+	 * Runs the WALA package-import rule over one fixture with the given
+	 * permissions.
+	 *
+	 * @param fixture  the only analysed class, a fresh one per test
+	 * @param packages the permitted package names
+	 * @param classes  the exempted class names
+	 */
+	private static void runPackageImport(Class<?> fixture, Set<String> packages, Set<String> classes) {
+		Set<PackagePermission> allowedPackages = new HashSet<>();
+		packages.forEach(name -> allowedPackages.add(new PackagePermission(name)));
+		Set<ClassPermission> allowedClasses = new HashSet<>();
+		classes.forEach(name -> allowedClasses.add(new ClassPermission(name)));
+		JavaWalaTestCase.walaBuilder()
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
+				.allowedPackages(allowedPackages).allowedClasses(allowedClasses)
+				.javaClasses(new ClassFileImporter().importClasses(fixture)).callGraph(Mockito.mock(CallGraph.class))
+				.build().executeArchitectureTestCase("WALA", "ASPECTJ");
+	}
+
+	/** A permitted package named "a,b" is not served the cached pass of a and b. */
+	@Test
+	void testCommaJoinedPackageAfterTheSplitOnesIsNotServedTheirCachedPass() {
+		runPackageImport(PackageFirstFixture.class, Set.of("java", OWN_PACKAGE), Set.of());
+		Assertions.assertThrows(SecurityException.class,
+				() -> runPackageImport(PackageFirstFixture.class, Set.of(OWN_PACKAGE + ",java"), Set.of()));
+	}
+
+	/** The packages a and b are not served the cached failure of "a,b". */
+	@Test
+	void testSplitPackagesAfterTheCommaJoinedOneAreNotServedItsCachedFailure() {
+		Assertions.assertThrows(SecurityException.class,
+				() -> runPackageImport(PackageSecondFixture.class, Set.of(OWN_PACKAGE + ",java"), Set.of()));
+		Assertions.assertDoesNotThrow(
+				() -> runPackageImport(PackageSecondFixture.class, Set.of("java", OWN_PACKAGE), Set.of()));
+	}
+
+	/** An exempted class named "a,b" is not served the cached pass of a and b. */
+	@Test
+	void testCommaJoinedExemptionAfterTheSplitOnesIsNotServedTheirCachedPass() {
+		String fixture = ExemptionFirstFixture.class.getName();
+		runPackageImport(ExemptionFirstFixture.class, Set.of(), Set.of(fixture, "x.Other"));
+		Assertions.assertThrows(SecurityException.class,
+				() -> runPackageImport(ExemptionFirstFixture.class, Set.of(), Set.of(fixture + ",x.Other")));
+	}
+
+	/** The exempted classes a and b are not served the cached failure of "a,b". */
+	@Test
+	void testSplitExemptionsAfterTheCommaJoinedOneAreNotServedItsCachedFailure() {
+		String fixture = ExemptionSecondFixture.class.getName();
+		Assertions.assertThrows(SecurityException.class,
+				() -> runPackageImport(ExemptionSecondFixture.class, Set.of(), Set.of(fixture + ",x.Other")));
+		Assertions.assertDoesNotThrow(
+				() -> runPackageImport(ExemptionSecondFixture.class, Set.of(), Set.of(fixture, "x.Other")));
 	}
 }

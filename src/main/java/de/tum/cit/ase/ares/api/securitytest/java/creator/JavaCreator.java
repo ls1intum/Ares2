@@ -36,6 +36,7 @@ import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ExemptedClassNests;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.JavaNameRules;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
@@ -93,6 +94,32 @@ public class JavaCreator implements Creator {
 	public JavaCreator(@Nonnull BuildToolConfiguration buildConfiguration) {
 		this.buildConfiguration = java.util.Objects.requireNonNull(buildConfiguration,
 				"buildConfiguration must not be null");
+	}
+
+	/**
+	 * Returns the creator bound to the build configuration found for this run. A
+	 * framework-default creator is rebuilt; a subclass is kept only if it holds an
+	 * equal configuration, as an unbound one would look at another project. An
+	 * override must return an instance bound to the given configuration.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param buildConfiguration the discovered configuration; not null.
+	 * @return the bound creator.
+	 * @throws IllegalStateException if a subclass holds no or another
+	 *                               configuration.
+	 */
+	@Nonnull
+	public JavaCreator withBuildConfiguration(@Nonnull BuildToolConfiguration buildConfiguration) {
+		java.util.Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
+		if (getClass() == JavaCreator.class) {
+			return new JavaCreator(buildConfiguration);
+		}
+		if (!buildConfiguration.equals(this.buildConfiguration)) {
+			throw new IllegalStateException(
+					Messages.localized("security.policy.collaborator.unbound", getClass().getName()));
+		}
+		return this;
 	}
 
 	// Within-run memoisation of the resolved classpath, imported JavaClasses and
@@ -166,13 +193,14 @@ public class JavaCreator implements Creator {
 			@Nonnull Set<String> supervisedPackages, @Nonnull List<String> testClasses) {
 		return Stream.of(
 				// Essential packages are allowed to do anything
-				essentialPackages.stream().filter(p -> p != null && !p.isBlank()).map(PackagePermission::new),
+				essentialPackages.stream().filter(p -> p != null && !p.isBlank())
+						.map(JavaCreator::validatedAllowedPackage),
 				// The permitted packages are allowed
 				resourceAccesses.regardingPackageImports().stream(),
 				supervisedPackages.isEmpty()
 						? (packageName != null && !packageName.isBlank()
 								? (supervisedScopeWasDerived ? Stream.<PackagePermission>empty()
-										: Stream.of(new PackagePermission(packageName)))
+										: Stream.of(validatedAllowedPackage(packageName)))
 								: Stream.<PackagePermission>empty())
 						: supervisedPackages.stream().map(JavaCreator::derivedAllowedPackage),
 				/*
@@ -188,24 +216,35 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
-	 * Wraps a package permission that was read out of the project rather than
-	 * declared by a policy, refusing one that would carry a trusted namespace with
-	 * it.
+	 * Validates a derived package name for Java and wraps it in a
+	 * {@link PackagePermission}.
 	 * <p>
-	 * A permission matches on segment boundaries but still as a prefix, and a
-	 * package name is exactly what whoever adds files controls, so a derived
-	 * permission sitting above {@code de.tum.cit.ase.ares.api} would hand the
-	 * supervised code the framework's own namespace. The reserved-package guard
-	 * misses it: that one refuses a package <em>inside</em> a trusted prefix, not
-	 * one <em>containing</em> it.
-	 * <p>
-	 * Only derived permissions are held to this. What a policy names in
-	 * {@code theFollowingResourceAccessesArePermitted}, and Ares' own essential
-	 * packages, are declarations rather than readings and stay authoritative.
+	 * The permission record itself only checks that the name is non-null, so the
+	 * Java syntax check lives here, and an invalid scanned or essential package
+	 * aborts test-case creation.
 	 *
-	 * @param packageName the derived package name
-	 * @return the permission for it
-	 * @throws SecurityException when a reserved namespace lies below it
+	 * @param packageName the package name to validate; must be a valid Java
+	 *                    package.
+	 * @return a package permission for the validated name.
+	 */
+	@Nonnull
+	private static PackagePermission validatedAllowedPackage(@Nonnull String packageName) {
+		JavaNameRules.INSTANCE.requirePackage("allowed package", packageName);
+		return new PackagePermission(packageName);
+	}
+
+	/**
+	 * Wraps a package permission read from the project, refusing one above a
+	 * trusted namespace, which the reserved-package guard misses.
+	 * <p>
+	 * A permission matches as a prefix and the submitter controls package names, so
+	 * a derived {@code de.tum} would grant Ares' own namespace. Declared packages
+	 * are exempt.
+	 *
+	 * @param packageName the derived package
+	 * @return its permission
+	 * @throws SecurityException        when a reserved namespace lies below it
+	 * @throws IllegalArgumentException when the name is invalid
 	 */
 	@Nonnull
 	private static PackagePermission derivedAllowedPackage(@Nonnull String packageName) {
@@ -213,23 +252,20 @@ public class JavaCreator implements Creator {
 		if (reserved != null) {
 			throw new SecurityException(Messages.localized("security.policy.ancestor.package", packageName, reserved));
 		}
-		return new PackagePermission(packageName);
+		return validatedAllowedPackage(packageName);
 	}
 
 	/**
 	 * The permission taken from the package of a declared or scanned test class.
 	 * <p>
-	 * Same question as {@link #derivedAllowedPackage(String)}, different answer. A
-	 * test class sits in the test tree, which the instructor controls and the
-	 * submitter does not, so it is not the submitter-steerable value a supervised
-	 * scope is; and refusing would break a convention this repository's own
-	 * fixtures rely on, nine of them naming
-	 * {@code de.tum.cit.ase.ares.testutilities} rather than a class. That makes
-	 * refusal the wrong instrument, not the finding wrong: the grant really is
-	 * wider than a test class needs, so it is reported rather than made fatal.
+	 * Unlike {@link #derivedAllowedPackage(String)}, a package above a trusted
+	 * namespace is only logged as a warning: the test tree is the instructor's, not
+	 * the submitter's, and fixtures here name a package such as
+	 * {@code de.tum.cit.ase.ares.testutilities} as a test class.
 	 *
 	 * @param packageName the package of a test class
-	 * @return the permission for it
+	 * @return its permission
+	 * @throws IllegalArgumentException when the name is not a valid Java package
 	 */
 	@Nonnull
 	private static PackagePermission testClassAllowedPackage(@Nonnull String packageName) {
@@ -240,19 +276,35 @@ public class JavaCreator implements Creator {
 					+ "themselves rather than their package, or declare what may be imported in "
 					+ "theFollowingResourceAccessesArePermitted.", packageName, reserved);
 		}
-		return new PackagePermission(packageName);
+		return validatedAllowedPackage(packageName);
 	}
 
 	/**
-	 * Returns the given class names without null or blank entries.
+	 * Returns the given class names without null or blank entries, each checked to
+	 * be a valid Java class name. {@link ClassPermission} only refuses null or
+	 * blank names, so the Java check happens here, before nested classes are added.
 	 *
 	 * @param classNames the class names; must not be null
 	 * @return the usable names
+	 * @throws IllegalArgumentException if a name is not a valid Java class name
 	 */
 	@Nonnull
 	private static List<String> usableClassNames(@Nonnull List<String> classNames) {
 		return classNames.stream().filter(java.util.Objects::nonNull).filter(className -> !className.isBlank())
-				.toList();
+				.map(JavaCreator::validatedClassName).toList();
+	}
+
+	/**
+	 * Returns a class name after checking that it is a valid Java class name.
+	 *
+	 * @param className the class name
+	 * @return the same name
+	 * @throws IllegalArgumentException if it is not a valid Java class name
+	 */
+	@Nonnull
+	private static String validatedClassName(@Nonnull String className) {
+		JavaNameRules.INSTANCE.requireClassPath("className", className);
+		return className;
 	}
 
 	/**

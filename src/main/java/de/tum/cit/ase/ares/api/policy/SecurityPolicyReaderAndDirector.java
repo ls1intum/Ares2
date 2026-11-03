@@ -74,6 +74,20 @@ public class SecurityPolicyReaderAndDirector {
 	// <editor-fold desc="Constructors">
 
 	/**
+	 * Constructs a SecurityPolicyReaderAndDirector with only a policy file.
+	 * <p>
+	 * The project folder defaults to null, which resolves to the current working
+	 * directory, and the within-path defaults to the empty path.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param securityPolicyFilePath the path to the security policy file.
+	 */
+	public SecurityPolicyReaderAndDirector(@Nullable Path securityPolicyFilePath) {
+		this(securityPolicyFilePath, null, Path.of(""));
+	}
+
+	/**
 	 * Constructs a SecurityPolicyReaderAndDirector instance.
 	 *
 	 * @since 2.0.0
@@ -97,25 +111,29 @@ public class SecurityPolicyReaderAndDirector {
 
 	/**
 	 * Creates the security test cases.
+	 * <p>
+	 * Reading the policy and directing it use one project root: the project folder,
+	 * or the current working directory when none was given. So
+	 * {@code ${PROJECT_ROOT}} in the policy names the directory the tests are made
+	 * for, not the folder the policy file sits in.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
+	 * @return this instance.
 	 */
 	public SecurityPolicyReaderAndDirector createTestCases() {
+		Path projectRoot = projectFolderPath == null ? Path.of("").toAbsolutePath() : projectFolderPath;
 		@Nullable
 		SecurityPolicy securityPolicy = null;
 		if (securityPolicyFilePath != null && !securityPolicyFilePath.toString().isEmpty()) {
 			@Nonnull
 			Path nonNullPolicyPath = securityPolicyFilePath;
-			// selectSecurityPolicyReader either returns a reader or throws on an
-			// unsupported policy format, so there is no null case to handle here.
-			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath,
-					projectFolderPath);
+			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath, projectRoot);
 			securityPolicy = securityPolicyReader.readSecurityPolicyFrom(nonNullPolicyPath);
 		}
 		securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicy);
-		this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy,
-				projectFolderPath, withinPath);
+		this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy, projectRoot,
+				withinPath);
 		return this;
 	}
 	// </editor-fold>
@@ -145,6 +163,9 @@ public class SecurityPolicyReaderAndDirector {
 
 	/**
 	 * Writes the security test cases to the project folder and continues.
+	 * <p>
+	 * Fails closed: called before {@link #createTestCases()}, it throws rather than
+	 * silently writing zero security tests.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -154,7 +175,7 @@ public class SecurityPolicyReaderAndDirector {
 	public SecurityPolicyReaderAndDirector writeTestCasesAndContinue(Path testFolderPath) {
 		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
 		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
-				"securityTestCaseFactoryAndBuilder must not be null").writeTestCases(testFolderPath);
+				"createTestCases() must be called before writeTestCasesAndContinue()").writeTestCases(testFolderPath);
 		return this;
 	}
 	// </editor-fold>
@@ -163,20 +184,40 @@ public class SecurityPolicyReaderAndDirector {
 
 	/**
 	 * Executes the security test cases.
+	 * <p>
+	 * Fails closed: called before {@link #createTestCases()}, it throws rather than
+	 * silently running zero security tests.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
 	public SecurityPolicyReaderAndDirector executeTestCases() {
 		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
-				"securityTestCaseFactoryAndBuilder must not be null").executeTestCases();
+				"createTestCases() must be called before executeTestCases()").executeTestCases();
 		return this;
 	}
+	// </editor-fold>
 
-	/** Returns the created factory for diagnostics and integration verification. */
+	// <editor-fold desc="Accessor">
+
+	/**
+	 * Returns the factory that createTestCases built, for a caller that inspects
+	 * the pipeline rather than running it.
+	 * <p>
+	 * Description: Published in 2.1.0 and kept for one release cycle, since
+	 * removing it would stop an exercise repository that calls it from compiling.
+	 * Nothing inside Ares needs it.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @deprecated inspect the pipeline through its own methods instead; this
+	 *             accessor is removed after 2.2.x.
+	 * @return the factory, never {@code null}
+	 */
+	@Deprecated(since = "2.2.2", forRemoval = true)
 	@Nonnull
 	public TestCaseAbstractFactoryAndBuilder factoryAndBuilder() {
-		return Objects.requireNonNull(securityTestCaseFactoryAndBuilder,
+		return Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
 				"createTestCases() must be called before factoryAndBuilder()");
 	}
 	// </editor-fold>

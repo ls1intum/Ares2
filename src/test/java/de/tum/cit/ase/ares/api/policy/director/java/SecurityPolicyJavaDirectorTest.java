@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.policy.director.java;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -21,6 +22,7 @@ import org.mockito.MockitoAnnotations;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
@@ -32,6 +34,7 @@ import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialClasses
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialPackages;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.yaml.EssentialDataYAMLReader;
 import de.tum.cit.ase.ares.api.securitytest.java.executer.JavaExecuter;
+import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProgrammingExerciseProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScanner;
 import de.tum.cit.ase.ares.api.securitytest.java.writer.JavaWriter;
 
@@ -133,12 +136,19 @@ public class SecurityPolicyJavaDirectorTest {
 		when(mockEssentialDataReader.readEssentialClassesFrom(any(Path.class))).thenReturn(mockEssentialClasses);
 	}
 
+	/**
+	 * Stubs the scanner with valid results and makes the creator, writer and
+	 * scanner mocks return themselves from withBuildConfiguration, as an injected
+	 * instance bound to the discovered configuration does. A bare mock would return
+	 * null.
+	 */
 	private void setupProjectScannerMocks() {
-		// Setup JavaProjectScanner to return valid values to prevent null pointer
-		// exceptions
 		when(mockProjectScanner.scanForTestClasses()).thenReturn(new String[] { "TestClass1", "TestClass2" });
 		when(mockProjectScanner.scanForPackageName()).thenReturn("com.example.package");
 		when(mockProjectScanner.scanForMainClassInPackage()).thenReturn("MainClass");
+		when(mockCreator.withBuildConfiguration(any())).thenReturn(mockCreator);
+		when(mockWriter.withBuildConfiguration(any())).thenReturn(mockWriter);
+		when(mockProjectScanner.withBuildConfiguration(any())).thenReturn(mockProjectScanner);
 	}
 
 	@Nested
@@ -315,6 +325,53 @@ public class SecurityPolicyJavaDirectorTest {
 			assertEquals(name.contains("ARCHUNIT") ? ArchitectureMode.ARCHUNIT : ArchitectureMode.WALA,
 					result.architectureMode());
 			assertEquals(name.contains("ASPECTJ") ? AOPMode.ASPECTJ : AOPMode.INSTRUMENTATION, result.aopMode());
+		}
+
+		/**
+		 * Checks that the Java director hands withinPath to the factory as its project
+		 * path, so the analysis covers only that subpath. The base three-argument
+		 * overload in SecurityPolicyDirector refuses any non-empty scope, so this
+		 * guards the Java director's own override.
+		 */
+		@Test
+		@DisplayName("Should forward withinPath to the factory as its projectPath")
+		void createTestCasesForwardsWithinPathAsProjectPath() throws Exception {
+			SecurityPolicy securityPolicy = SecurityPolicy.builder()
+					.regardingTheSupervisedCode(supervisedCodeWithValidConfig).build();
+			Path withinPath = Path.of("classes", "student");
+			TestCaseAbstractFactoryAndBuilder result = director.createTestCases(securityPolicy, projectPath,
+					withinPath);
+			Field projectPathField = TestCaseAbstractFactoryAndBuilder.class.getDeclaredField("projectPath");
+			projectPathField.setAccessible(true);
+			assertEquals(withinPath, projectPathField.get(result));
+		}
+
+		/**
+		 * Checks that the director passes on what injected creator and writer
+		 * subclasses return from withBuildConfiguration, here themselves, as a bound
+		 * subclass does, rather than replacing them. The mocks stub that method.
+		 */
+		@Test
+		@DisplayName("Should preserve injected creator and writer subclasses instead of rebuilding them")
+		void createTestCasesPreservesInjectedCreatorAndWriterSubclasses() throws Exception {
+			JavaCreator customCreator = mock(CustomJavaCreator.class);
+			JavaWriter customWriter = mock(CustomJavaWriter.class);
+			when(customCreator.withBuildConfiguration(any())).thenReturn(customCreator);
+			when(customWriter.withBuildConfiguration(any())).thenReturn(customWriter);
+			SecurityPolicyJavaDirector customDirector = new SecurityPolicyJavaDirector(customCreator, customWriter,
+					mockExecuter, mockEssentialDataReader, mockProjectScanner, essentialPackagesPath,
+					essentialClassesPath);
+			SecurityPolicy securityPolicy = SecurityPolicy.builder()
+					.regardingTheSupervisedCode(supervisedCodeWithValidConfig).build();
+
+			TestCaseAbstractFactoryAndBuilder result = customDirector.createTestCases(securityPolicy, projectPath);
+
+			Field creatorField = TestCaseAbstractFactoryAndBuilder.class.getDeclaredField("creator");
+			creatorField.setAccessible(true);
+			Field writerField = TestCaseAbstractFactoryAndBuilder.class.getDeclaredField("writer");
+			writerField.setAccessible(true);
+			assertSame(customCreator, creatorField.get(result));
+			assertSame(customWriter, writerField.get(result));
 		}
 
 		@Test
@@ -536,6 +593,299 @@ public class SecurityPolicyJavaDirectorTest {
 			assertFalse(new EssentialDataYAMLReader()
 					.readEssentialClassesFrom(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_CLASSES_PATH)
 					.getEssentialClasses().isEmpty());
+		}
+	}
+
+	/**
+	 * Named JavaCreator subclass so it is not exactly JavaCreator.class.
+	 */
+	static class CustomJavaCreator extends JavaCreator {
+
+		/** Creates an unbound custom creator. */
+		CustomJavaCreator() {
+			super();
+		}
+
+		/**
+		 * Creates a custom creator bound to a configuration.
+		 *
+		 * @param configuration the configuration it is bound to
+		 */
+		CustomJavaCreator(BuildToolConfiguration configuration) {
+			super(configuration);
+		}
+	}
+
+	/**
+	 * Named JavaWriter subclass so it is not exactly JavaWriter.class.
+	 */
+	static class CustomJavaWriter extends JavaWriter {
+
+		/** Creates an unbound custom writer. */
+		CustomJavaWriter() {
+			super();
+		}
+
+		/**
+		 * Creates a custom writer bound to a configuration.
+		 *
+		 * @param configuration the configuration it is bound to
+		 */
+		CustomJavaWriter(BuildToolConfiguration configuration) {
+			super(configuration);
+		}
+	}
+
+	/**
+	 * Named JavaProjectScanner subclass so it is not exactly
+	 * JavaProjectScanner.class.
+	 */
+	static class CustomJavaProjectScanner extends JavaProjectScanner {
+
+		/** Creates an unbound custom scanner. */
+		CustomJavaProjectScanner() {
+			super();
+		}
+
+		/**
+		 * Creates a custom scanner bound to a configuration.
+		 *
+		 * @param configuration the configuration it is bound to
+		 */
+		CustomJavaProjectScanner(BuildToolConfiguration configuration) {
+			super(configuration);
+		}
+	}
+
+	/**
+	 * Named JavaProgrammingExerciseProjectScanner subclass so it is not exactly
+	 * that class, exercising the further-subclass branch of the override.
+	 */
+	static class CustomExerciseScanner extends JavaProgrammingExerciseProjectScanner {
+
+		/** Creates an unbound custom exercise scanner. */
+		CustomExerciseScanner() {
+			super();
+		}
+
+		/**
+		 * Creates a custom exercise scanner bound to a configuration.
+		 *
+		 * @param configuration the configuration it is bound to
+		 */
+		CustomExerciseScanner(BuildToolConfiguration configuration) {
+			super(configuration);
+		}
+	}
+
+	/**
+	 * Custom scanner that binds itself by overriding withBuildConfiguration, as the
+	 * contract asks of a subclass that wants the discovered configuration.
+	 */
+	static class SelfBindingScanner extends JavaProjectScanner {
+
+		/** The configuration this scanner was bound to, or null when unbound. */
+		private final BuildToolConfiguration boundTo;
+
+		/** Creates an unbound self-binding scanner. */
+		SelfBindingScanner() {
+			super();
+			this.boundTo = null;
+		}
+
+		/**
+		 * Creates a self-binding scanner bound to a configuration.
+		 *
+		 * @param configuration the configuration it is bound to
+		 */
+		SelfBindingScanner(BuildToolConfiguration configuration) {
+			super(configuration);
+			this.boundTo = configuration;
+		}
+
+		/**
+		 * Returns a new instance of this type bound to the given configuration.
+		 *
+		 * @param buildConfiguration the discovered configuration
+		 * @return the bound scanner
+		 */
+		@Override
+		public JavaProjectScanner withBuildConfiguration(BuildToolConfiguration buildConfiguration) {
+			return new SelfBindingScanner(buildConfiguration);
+		}
+
+		/**
+		 * Returns the configuration this scanner was bound to.
+		 *
+		 * @return the configuration, or null when unbound
+		 */
+		BuildToolConfiguration boundTo() {
+			return boundTo;
+		}
+	}
+
+	/**
+	 * Checks that each collaborator is bound to the configuration the director
+	 * discovered, and that a custom subclass which is not bound to it is refused
+	 * rather than left to look at another project.
+	 */
+	@Nested
+	@DisplayName("withBuildConfiguration Tests")
+	class WithBuildConfigurationTests {
+
+		/** The configuration discovered for the run under test. */
+		private BuildToolConfiguration configuration;
+
+		/** Builds the discovered configuration for a project inside the temp dir. */
+		@BeforeEach
+		void setUp() {
+			configuration = configurationFor(tempDir.resolve("bound-project"), "target");
+		}
+
+		/**
+		 * Builds a Maven configuration for a project root with the given output
+		 * directory.
+		 *
+		 * @param root      the project root
+		 * @param outputDir the build output directory below the root
+		 * @return the configuration
+		 */
+		private BuildToolConfiguration configurationFor(Path root, String outputDir) {
+			return new BuildToolConfiguration(BuildMode.MAVEN, root, List.of(root.resolve("src/main/java")),
+					List.of(root.resolve("src/test/java")), root.resolve(outputDir + "/classes"),
+					root.resolve(outputDir + "/test-classes"));
+		}
+
+		/** An exact framework type is rebuilt as a fresh instance of its own type. */
+		@Test
+		@DisplayName("Should rebind an exact framework-default type to a fresh instance of the same type")
+		void rebindsExactFrameworkTypes() {
+			JavaCreator creator = new JavaCreator();
+			JavaWriter writer = new JavaWriter();
+			JavaProjectScanner scanner = new JavaProjectScanner();
+			JavaProgrammingExerciseProjectScanner exerciseScanner = new JavaProgrammingExerciseProjectScanner();
+
+			JavaCreator reboundCreator = creator.withBuildConfiguration(configuration);
+			JavaWriter reboundWriter = writer.withBuildConfiguration(configuration);
+			JavaProjectScanner reboundScanner = scanner.withBuildConfiguration(configuration);
+			JavaProjectScanner reboundExerciseScanner = exerciseScanner.withBuildConfiguration(configuration);
+
+			assertNotSame(creator, reboundCreator);
+			assertSame(JavaCreator.class, reboundCreator.getClass());
+			assertNotSame(writer, reboundWriter);
+			assertSame(JavaWriter.class, reboundWriter.getClass());
+			assertNotSame(scanner, reboundScanner);
+			assertSame(JavaProjectScanner.class, reboundScanner.getClass());
+			assertNotSame(exerciseScanner, reboundExerciseScanner);
+			assertSame(JavaProgrammingExerciseProjectScanner.class, reboundExerciseScanner.getClass());
+		}
+
+		/**
+		 * A subclass already bound to an equal, though distinct, configuration is kept
+		 * as injected.
+		 */
+		@Test
+		@DisplayName("Should keep a custom subclass already bound to an equal configuration")
+		void keepsSubclassesBoundToAnEqualConfiguration() {
+			BuildToolConfiguration equal = configurationFor(tempDir.resolve("bound-project"), "target");
+			assertNotSame(configuration, equal);
+			JavaCreator customCreator = new CustomJavaCreator(equal);
+			JavaWriter customWriter = new CustomJavaWriter(equal);
+			JavaProjectScanner customScanner = new CustomJavaProjectScanner(equal);
+			JavaProgrammingExerciseProjectScanner customExerciseScanner = new CustomExerciseScanner(equal);
+
+			assertSame(customCreator, customCreator.withBuildConfiguration(configuration));
+			assertSame(customWriter, customWriter.withBuildConfiguration(configuration));
+			assertSame(customScanner, customScanner.withBuildConfiguration(configuration));
+			assertSame(customExerciseScanner, customExerciseScanner.withBuildConfiguration(configuration));
+		}
+
+		/** A custom subclass without any configuration is refused. */
+		@Test
+		@DisplayName("Should refuse a custom subclass that is not bound to any configuration")
+		void refusesUnboundSubclasses() {
+			assertRefusesAll(new CustomJavaCreator(), new CustomJavaWriter(), new CustomJavaProjectScanner(),
+					new CustomExerciseScanner());
+		}
+
+		/** A custom subclass bound to another project root is refused. */
+		@Test
+		@DisplayName("Should refuse a custom subclass bound to another project root")
+		void refusesSubclassesBoundToAnotherRoot() {
+			BuildToolConfiguration other = configurationFor(tempDir.resolve("other-project"), "target");
+			assertRefusesAll(new CustomJavaCreator(other), new CustomJavaWriter(other),
+					new CustomJavaProjectScanner(other), new CustomExerciseScanner(other));
+		}
+
+		/** A custom subclass with the same root but other output roots is refused. */
+		@Test
+		@DisplayName("Should refuse a custom subclass bound to the same root with other output roots")
+		void refusesSubclassesWithOtherOutputRoots() {
+			BuildToolConfiguration other = configurationFor(tempDir.resolve("bound-project"), "build");
+			assertRefusesAll(new CustomJavaCreator(other), new CustomJavaWriter(other),
+					new CustomJavaProjectScanner(other), new CustomExerciseScanner(other));
+		}
+
+		/**
+		 * Asserts that each collaborator refuses to be used with the discovered
+		 * configuration.
+		 *
+		 * @param creator         the custom creator
+		 * @param writer          the custom writer
+		 * @param scanner         the custom scanner
+		 * @param exerciseScanner the custom exercise scanner
+		 */
+		private void assertRefusesAll(JavaCreator creator, JavaWriter writer, JavaProjectScanner scanner,
+				JavaProgrammingExerciseProjectScanner exerciseScanner) {
+			assertThrows(IllegalStateException.class, () -> creator.withBuildConfiguration(configuration));
+			assertThrows(IllegalStateException.class, () -> writer.withBuildConfiguration(configuration));
+			assertThrows(IllegalStateException.class, () -> scanner.withBuildConfiguration(configuration));
+			assertThrows(IllegalStateException.class, () -> exerciseScanner.withBuildConfiguration(configuration));
+		}
+
+		/** Every implementation refuses a null configuration. */
+		@Test
+		@DisplayName("Should reject a null configuration in every implementation")
+		void rejectsNullConfiguration() {
+			assertThrows(NullPointerException.class, () -> new JavaCreator().withBuildConfiguration(null));
+			assertThrows(NullPointerException.class, () -> new JavaWriter().withBuildConfiguration(null));
+			assertThrows(NullPointerException.class, () -> new JavaProjectScanner().withBuildConfiguration(null));
+			assertThrows(NullPointerException.class,
+					() -> new JavaProgrammingExerciseProjectScanner().withBuildConfiguration(null));
+		}
+
+		/**
+		 * The director refuses an injected custom scanner that is not bound to the
+		 * project it was asked to scan.
+		 */
+		@Test
+		@DisplayName("Should make the director refuse an unbound custom scanner")
+		void directorRefusesAnUnboundCustomScanner() {
+			SecurityPolicyJavaDirector customDirector = new SecurityPolicyJavaDirector(mockCreator, mockWriter,
+					mockExecuter, mockEssentialDataReader, new CustomJavaProjectScanner(), essentialPackagesPath,
+					essentialClassesPath);
+			assertThrows(IllegalStateException.class, () -> customDirector.createTestCases(null, projectPath));
+		}
+
+		/**
+		 * The director uses what an overriding custom scanner returns, bound to the
+		 * project it was asked to scan.
+		 */
+		@Test
+		@DisplayName("Should make the director honour a custom scanner that binds itself")
+		void directorHonoursASelfBindingCustomScanner() throws Exception {
+			SecurityPolicyJavaDirector customDirector = new SecurityPolicyJavaDirector(mockCreator, mockWriter,
+					mockExecuter, mockEssentialDataReader, new SelfBindingScanner(), essentialPackagesPath,
+					essentialClassesPath);
+			SecurityPolicy securityPolicy = SecurityPolicy.builder()
+					.regardingTheSupervisedCode(supervisedCodeWithValidConfig).build();
+
+			TestCaseAbstractFactoryAndBuilder result = customDirector.createTestCases(securityPolicy, projectPath);
+
+			Field scannerField = TestCaseAbstractFactoryAndBuilder.class.getDeclaredField("projectScanner");
+			scannerField.setAccessible(true);
+			SelfBindingScanner used = assertInstanceOf(SelfBindingScanner.class, scannerField.get(result));
+			assertEquals(projectPath.toRealPath(), used.boundTo().projectRoot());
 		}
 	}
 }

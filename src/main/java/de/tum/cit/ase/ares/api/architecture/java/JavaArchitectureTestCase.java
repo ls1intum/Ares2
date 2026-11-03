@@ -3,6 +3,8 @@ package de.tum.cit.ase.ares.api.architecture.java;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -236,6 +238,19 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	// </editor-fold>
 
 	// <editor-fold desc="Tool methods">
+
+	/**
+	 * Returns one string standing for a set of names, for use in a cache key. Each
+	 * name is prefixed with its length, so no name, whatever it contains, can make
+	 * two different sets produce the same string.
+	 *
+	 * @param names the names, in any order
+	 * @return the signature of the names
+	 */
+	@Nonnull
+	protected static String unambiguousSignature(@Nonnull Stream<String> names) {
+		return names.sorted().map(name -> name.length() + ":" + name).collect(Collectors.joining(","));
+	}
 	// TODO Markus: Move to better fitting class
 
 	/**

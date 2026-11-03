@@ -220,12 +220,12 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		// The allow-listed classes change which violations are exempt, so they MUST be
 		// part of the cache key; otherwise a run with exemptions could be served a
 		// no-exemption outcome (or vice versa).
-		String allowedClassesSignature = getAllowedClasses().stream().map(ClassPermission::className).sorted()
-				.collect(java.util.stream.Collectors.joining(","));
+		String allowedClassesSignature = unambiguousSignature(
+				getAllowedClasses().stream().map(ClassPermission::className));
 		java.util.concurrent.FutureTask<java.util.Optional<SecurityException>> task;
 		if (supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT) {
-			String allowedSignature = allowedPackages.stream().map(p -> p.importTheFollowingPackage()).sorted()
-					.collect(java.util.stream.Collectors.joining(","));
+			String allowedSignature = unambiguousSignature(
+					allowedPackages.stream().map(PackagePermission::importTheFollowingPackage));
 			String pkgKey = allowedSignature + "#" + allowedClassesSignature + "@" + javaClassesToken(javaClasses);
 			task = PACKAGE_OUTCOME_CACHE.computeIfAbsent(pkgKey,
 					unusedKey -> new java.util.concurrent.FutureTask<>(() -> runRuleAndCapture(supported)));

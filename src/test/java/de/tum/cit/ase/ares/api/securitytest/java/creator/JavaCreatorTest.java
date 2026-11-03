@@ -5,17 +5,22 @@ import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -323,6 +328,85 @@ public class JavaCreatorTest {
 							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
 							aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
+	}
+
+	/**
+	 * Checks that a malformed package name is refused whether it comes from the
+	 * pinned package name, the scanned packages or a test class name.
+	 */
+	@Test
+	void prepareAllowedPackagesRejectsMalformedNamesOnEveryDerivedPath() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class, String.class, Set.class, List.class);
+		prepare.setAccessible(true);
+		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "com..pinned", Set.of(), List.of()));
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of("com..student"), List.of()));
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of(), List.of("com..tests.BadTest")));
+	}
+
+	/**
+	 * Checks that a scanned package with a reserved namespace below it, such as
+	 * de.tum.cit, is refused with a SecurityException, while the same package of a
+	 * test class is still allowed.
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesKeepsTheReservedNamespaceGuards() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class, String.class, Set.class, List.class);
+		prepare.setAccessible(true);
+		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
+		assertInvocationCause(SecurityException.class,
+				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of("de.tum.cit"), List.of()));
+		Set<PackagePermission> fromTestClass = (Set<PackagePermission>) prepare.invoke(javaCreator, List.of(),
+				restrictive, "", Set.of(), List.of("de.tum.cit.Test"));
+		assertEquals(Set.of(new PackagePermission("de.tum.cit")), fromTestClass);
+	}
+
+	/** Checks that a wildcard package declared in the policy is kept unchanged. */
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesPassesAPolicyDeclaredWildcardThrough() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class, String.class, Set.class, List.class);
+		prepare.setAccessible(true);
+		when(resourceAccesses.regardingPackageImports()).thenReturn(List.of(new PackagePermission("*")));
+		Set<PackagePermission> result = (Set<PackagePermission>) prepare.invoke(javaCreator, List.of(),
+				resourceAccesses, "", Set.of(), List.of());
+		assertEquals(Set.of(new PackagePermission("*")), result);
+	}
+
+	/**
+	 * Checks that blank entries are dropped and a malformed class name is refused
+	 * before any class is exempted.
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	void usableClassNamesFiltersBlanksThenValidates() throws Exception {
+		Method usable = JavaCreator.class.getDeclaredMethod("usableClassNames", List.class);
+		usable.setAccessible(true);
+		List<String> result = (List<String>) usable.invoke(null,
+				Arrays.asList("com.example.Foo", "   ", null, "com.example.BarTest", ""));
+		assertEquals(List.of("com.example.Foo", "com.example.BarTest"), result);
+		assertInvocationCause(IllegalArgumentException.class, () -> usable.invoke(null, List.of("com..example.Foo")));
+	}
+
+	/**
+	 * Asserts a reflective call fails with the given cause, unwrapping the
+	 * {@link InvocationTargetException} that reflection wraps a thrown exception
+	 * in.
+	 *
+	 * @param expected   the exception type the underlying call should raise
+	 * @param invocation the reflective call under test
+	 * @return the unwrapped cause, for any further assertion
+	 */
+	private static <T extends Throwable> T assertInvocationCause(Class<T> expected, Executable invocation) {
+		InvocationTargetException wrapper = assertThrows(InvocationTargetException.class, invocation);
+		return assertInstanceOf(expected, wrapper.getCause());
 	}
 
 	/**
