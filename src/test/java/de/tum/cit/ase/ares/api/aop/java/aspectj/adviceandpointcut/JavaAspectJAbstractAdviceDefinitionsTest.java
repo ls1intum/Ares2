@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.net.SocketAddress;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.DatagramChannel;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -21,6 +22,10 @@ import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.reflect.ConstructorSignature;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import de.tum.cit.ase.ares.api.localization.AdviceActionWording;
 
 /**
  * Tests for the diagnostic normalisation that closes the reporting gap between
@@ -250,5 +255,58 @@ class JavaAspectJAbstractAdviceDefinitionsTest {
 		public void run() {
 			// Never invoked; only its declaring class loader matters.
 		}
+	}
+
+	/**
+	 * The runtime-declaration suffix follows the active language; it used to be
+	 * English in every locale.
+	 */
+	@Test
+	void describeDeniedCall_wordsTheSuffixInTheActiveLanguage() {
+		String staticPart = "javax.net.SocketFactory.createSocket(java.lang.String,int) ";
+		String english = AdviceActionWording.inLocale(Locale.ENGLISH, () -> describe(SocketFactory.getDefault(),
+				"javax.net.SocketFactory", "createSocket", String.class, int.class));
+		String german = AdviceActionWording.inLocale(Locale.GERMAN, () -> describe(SocketFactory.getDefault(),
+				"javax.net.SocketFactory", "createSocket", String.class, int.class));
+
+		assertTrue(english.startsWith(staticPart + "[resolved runtime declaration: javax.net.DefaultSocketFactory."),
+				english);
+		assertTrue(
+				german.startsWith(staticPart + "[zur Laufzeit aufgelöste Deklaration: javax.net.DefaultSocketFactory."),
+				german);
+	}
+
+	/**
+	 * Every action is translated for the message, and an unknown one is kept as it
+	 * is.
+	 *
+	 * @param action  the raw action name
+	 * @param english the expected English wording
+	 * @param german  the expected German wording
+	 */
+	@ParameterizedTest
+	@MethodSource("de.tum.cit.ase.ares.api.localization.AdviceActionWording#actions")
+	void localizeAction_wordsTheActionInTheActiveLanguage(String action, String english, String german) {
+		assertEquals(english, AdviceActionWording.inLocale(Locale.ENGLISH,
+				() -> JavaAspectJAbstractAdviceDefinitions.localizeAction(action)));
+		assertEquals(german, AdviceActionWording.inLocale(Locale.GERMAN,
+				() -> JavaAspectJAbstractAdviceDefinitions.localizeAction(action)));
+	}
+
+	/**
+	 * The caller note follows the active language and disappears when the caller is
+	 * unknown.
+	 *
+	 * @param caller  the calling student method, or {@code null}
+	 * @param english the expected English note
+	 * @param german  the expected German note
+	 */
+	@ParameterizedTest
+	@MethodSource("de.tum.cit.ase.ares.api.localization.AdviceActionWording#callers")
+	void describeCaller_wordsTheNoteInTheActiveLanguage(String caller, String english, String german) {
+		assertEquals(english, AdviceActionWording.inLocale(Locale.ENGLISH,
+				() -> JavaAspectJAbstractAdviceDefinitions.describeCaller(caller)));
+		assertEquals(german, AdviceActionWording.inLocale(Locale.GERMAN,
+				() -> JavaAspectJAbstractAdviceDefinitions.describeCaller(caller)));
 	}
 }

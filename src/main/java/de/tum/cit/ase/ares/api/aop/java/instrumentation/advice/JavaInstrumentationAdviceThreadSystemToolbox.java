@@ -691,6 +691,19 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		}
 	}
 
+	/**
+	 * Performs the thread check behind {@link #checkThreadSystemInteraction} for
+	 * the outermost advice on a thread; throws a {@link SecurityException} if the
+	 * policy forbids it.
+	 *
+	 * @param action            the raw action
+	 * @param declaringTypeName the method's class
+	 * @param methodName        its name
+	 * @param methodSignature   its signature
+	 * @param attributes        receiver fields, or {@code null}
+	 * @param parameters        call arguments, or {@code null}
+	 * @param instance          the receiver, or {@code null}
+	 */
 	private static void checkThreadSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {
@@ -796,10 +809,9 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), threadClassAllowedToBeCreated,
 					threadNumberAllowedToBeCreated, decrementQuota)) {
 				throw new SecurityException(localize("security.advice.illegal.thread.execution",
-						threadSystemMethodToCheck, action, threadClassName,
-						fullMethodSignature
-								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-								+ " | " + buildDenialReason(noAllowRuleConfigured)));
+						threadSystemMethodToCheck, localizeAction(action), threadClassName,
+						fullMethodSignature + describeCaller(studentCalledMethod) + " | "
+								+ buildDenialReason(noAllowRuleConfigured)));
 			}
 		}
 		if (decrementQuota && instance instanceof Thread) {

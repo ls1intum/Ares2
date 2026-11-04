@@ -273,31 +273,51 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 		private JavaPhobosTestCaseSupported javaPhobosTestCaseSupported;
 		private Supplier<List<?>> resourceAccessSupplier;
 
+		/**
+		 * Sets which kind of Phobos test case to build.
+		 *
+		 * @param javaPhobosTestCaseSupported the kind of test case, never {@code null}
+		 * @return this builder
+		 */
 		public JavaPhobosTestCase.Builder javaPhobosTestCaseSupported(
 				@Nonnull JavaPhobosTestCaseSupported javaPhobosTestCaseSupported) {
 			if (javaPhobosTestCaseSupported == null) {
-				throw new SecurityException(
-						Messages.localized("security.common.not.null", "javaPhobosTestCaseSupported"));
+				throw new SecurityException(Messages.localized("security.common.not.null",
+						"javaPhobosTestCaseSupported", "JavaPhobosTestCase.Builder"));
 			}
 			this.javaPhobosTestCaseSupported = javaPhobosTestCaseSupported;
 			return this;
 		}
 
+		/**
+		 * Sets where the permitted resource accesses come from.
+		 *
+		 * @param resourceAccessSupplier the source of permitted accesses, never
+		 *                               {@code null}
+		 * @return this builder
+		 */
 		public JavaPhobosTestCase.Builder resourceAccessSupplier(Supplier<List<?>> resourceAccessSupplier) {
 			if (resourceAccessSupplier == null) {
-				throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier"));
+				throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier",
+						"JavaPhobosTestCase.Builder"));
 			}
 			this.resourceAccessSupplier = resourceAccessSupplier;
 			return this;
 		}
 
+		/**
+		 * Builds the Phobos test case once both settings are given.
+		 *
+		 * @return the test case
+		 */
 		public JavaPhobosTestCase build() {
 			if (javaPhobosTestCaseSupported == null) {
-				throw new SecurityException(
-						Messages.localized("security.common.not.null", "javaPhobosTestCaseSupported"));
+				throw new SecurityException(Messages.localized("security.common.not.null",
+						"javaPhobosTestCaseSupported", "JavaPhobosTestCase.Builder"));
 			}
 			if (resourceAccessSupplier == null) {
-				throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier"));
+				throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier",
+						"JavaPhobosTestCase.Builder"));
 			}
 			return new JavaPhobosTestCase(javaPhobosTestCaseSupported, resourceAccessSupplier);
 		}
