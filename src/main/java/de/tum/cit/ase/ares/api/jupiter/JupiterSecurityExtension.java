@@ -72,10 +72,11 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	/**
 	 * Arms the guard while the constructor of a test class runs and closes it
 	 * afterwards. For a per-method instance the policy is that of the test method.
-	 * JUnit builds the instance before it decides to skip the test, so a failure to
-	 * arm the guard here is left for the test itself, unless the instrumentation
-	 * could not be installed at all. A shared instance is built under the class
-	 * context, so the guard is armed only for a class with a policy.
+	 * If the guard cannot be armed, the constructor does not run and the test
+	 * fails, even one JUnit would skip, as the constructor may call student code. A
+	 * failed installation of the instrumentation is reported first. A shared
+	 * instance is built under the class context, so the guard is armed only for a
+	 * class with a policy.
 	 */
 	@Override
 	public <T> T interceptTestClassConstructor(Invocation<T> invocation,
@@ -86,7 +87,7 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 				prepareSecurityOnce(extensionContext);
 			} catch (RuntimeException armingFailure) {
 				JavaInstrumentationAgent.throwIfActivationFailed();
-				return invocation.proceed();
+				throw armingFailure;
 			}
 		}
 		return interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
