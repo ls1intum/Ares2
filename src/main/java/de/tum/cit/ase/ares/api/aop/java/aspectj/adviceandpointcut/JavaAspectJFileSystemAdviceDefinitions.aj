@@ -1533,17 +1533,17 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Accepts only JDK archive classes. A subclass could override {@code size()}
-	 * and run student code while the advice guard is active.
+	 * Accepts archive receivers owned by {@code java.base}. A student subclass
+	 * could override {@code size()} and run code while the advice guard is active.
 	 *
 	 * @param instance          the receiver
 	 * @param declaringTypeName the intercepted method's owner
-	 * @return whether the owner and exact JDK class match
+	 * @return whether the owner and JDK module match
 	 */
-	private static boolean isExactJdkArchive(@Nullable Object instance, @Nonnull String declaringTypeName) {
-		return instance != null && ("java.util.jar.JarFile".equals(declaringTypeName)
-				&& instance.getClass() == JarFile.class || "java.util.zip.ZipFile".equals(declaringTypeName)
-						&& (instance.getClass() == ZipFile.class || instance.getClass() == JarFile.class));
+	private static boolean isJdkArchiveReceiver(@Nullable Object instance, @Nonnull String declaringTypeName) {
+		return instance instanceof ZipFile && instance.getClass().getModule() == ZipFile.class.getModule()
+				&& ("java.util.jar.JarFile".equals(declaringTypeName) && instance instanceof JarFile
+						|| "java.util.zip.ZipFile".equals(declaringTypeName));
 	}
 
 	/**
@@ -1561,7 +1561,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			@Nonnull JoinPoint thisJoinPoint) {
 		if (!"read".equals(action) || !(thisJoinPoint.getSignature() instanceof MethodSignature signature)
 				|| !(thisJoinPoint.getTarget() instanceof ZipFile archive)
-				|| !isExactJdkArchive(archive, declaringTypeName)) {
+				|| !isJdkArchiveReceiver(archive, declaringTypeName)) {
 			return false;
 		}
 		Object[] arguments = thisJoinPoint.getArgs();
@@ -1649,7 +1649,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 		if (("java.util.jar.JarFile".equals(declaringTypeName) || "java.util.zip.ZipFile".equals(declaringTypeName))
 				&& ("entries".equals(methodName) || "getInputStream".equals(methodName))
-				&& !isExactJdkArchive(instance, declaringTypeName)) {
+				&& !isJdkArchiveReceiver(instance, declaringTypeName)) {
 			throw new SecurityException(localize("security.advice.file.system.unknown.action", "archive receiver"));
 		}
 		@Nullable

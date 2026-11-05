@@ -1518,19 +1518,18 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
-	 * Accepts only JDK archive classes. A subclass could override {@code size()}
-	 * and run student code while the advice guard is active.
+	 * Accepts archive receivers owned by {@code java.base}. A student subclass
+	 * could override {@code size()} and run code while the advice guard is active.
 	 *
 	 * @param instance          the receiver
 	 * @param declaringTypeName the intercepted method's owner
-	 * @return whether the owner and exact JDK class match
+	 * @return whether the owner and JDK module match
 	 */
-	private static boolean isExactJdkArchive(@Nullable Object instance, @Nonnull String declaringTypeName) {
-		return instance != null && ("java.util.jar.JarFile".equals(declaringTypeName)
-				&& instance.getClass() == java.util.jar.JarFile.class
-				|| "java.util.zip.ZipFile".equals(declaringTypeName)
-						&& (instance.getClass() == java.util.zip.ZipFile.class
-								|| instance.getClass() == java.util.jar.JarFile.class));
+	private static boolean isJdkArchiveReceiver(@Nullable Object instance, @Nonnull String declaringTypeName) {
+		return instance instanceof java.util.zip.ZipFile
+				&& instance.getClass().getModule() == java.util.zip.ZipFile.class.getModule()
+				&& ("java.util.jar.JarFile".equals(declaringTypeName) && instance instanceof java.util.jar.JarFile
+						|| "java.util.zip.ZipFile".equals(declaringTypeName));
 	}
 
 	/**
@@ -1551,7 +1550,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			@Nullable String methodName, @Nullable String methodSignature, @Nullable Object[] parameters,
 			@Nullable Object instance) {
 		if (!"read".equals(action) || !(instance instanceof java.util.zip.ZipFile archive)
-				|| !isExactJdkArchive(archive, declaringTypeName) || parameters == null) {
+				|| !isJdkArchiveReceiver(archive, declaringTypeName) || parameters == null) {
 			return false;
 		}
 		boolean entryCall = "entries".equals(methodName)
@@ -1760,7 +1759,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			if (("java.util.jar.JarFile".equals(declaringTypeName) || "java.util.zip.ZipFile".equals(declaringTypeName))
 					&& ("entries".equals(methodName) || "getInputStream".equals(methodName))
-					&& !isExactJdkArchive(instance, declaringTypeName)) {
+					&& !isJdkArchiveReceiver(instance, declaringTypeName)) {
 				throw new SecurityException(localize("security.advice.file.system.unknown.action", "archive receiver"));
 			}
 			@Nullable
