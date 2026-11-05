@@ -1526,13 +1526,36 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @param action            the file-system action being checked
 	 * @param declaringTypeName the class of the intercepted method
 	 * @param methodName        the intercepted method
+	 * @param methodSignature   the intercepted method's signature
+	 * @param parameters        the call arguments
+	 * @param instance          the archive receiver
 	 * @return {@code true} for a read of an entry, never for opening the archive
 	 */
 	private static boolean isEntryReadOnOpenArchive(@Nonnull String action, @Nonnull String declaringTypeName,
-			@Nonnull String methodName) {
-		return "read".equals(action) && !"<init>".equals(methodName)
-				&& ("java.util.jar.JarFile".equals(declaringTypeName)
-						|| "java.util.zip.ZipFile".equals(declaringTypeName));
+			@Nullable String methodName, @Nullable String methodSignature, @Nullable Object[] parameters,
+			@Nullable Object instance) {
+		if (!"read".equals(action) || !(instance instanceof java.util.zip.ZipFile archive)
+				|| !("java.util.jar.JarFile".equals(declaringTypeName) && archive instanceof java.util.jar.JarFile
+						|| "java.util.zip.ZipFile".equals(declaringTypeName))
+				|| parameters == null) {
+			return false;
+		}
+		boolean entryCall = "entries".equals(methodName)
+				&& ("()Ljava/util/Enumeration;".equals(methodSignature) || "()".equals(methodSignature))
+				&& parameters.length == 0;
+		boolean streamCall = "getInputStream".equals(methodName)
+				&& ("(Ljava/util/zip/ZipEntry;)Ljava/io/InputStream;".equals(methodSignature)
+						|| "(java.util.zip.ZipEntry)".equals(methodSignature))
+				&& parameters.length == 1 && parameters[0] instanceof java.util.zip.ZipEntry;
+		if (!entryCall && !streamCall) {
+			return false;
+		}
+		try {
+			archive.size();
+			return true;
+		} catch (IllegalStateException closed) {
+			return false;
+		}
 	}
 
 	/**
@@ -1541,8 +1564,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 */
 	private static void checkFileSystemInteractionForAction(@Nonnull String action,
 			boolean allowNonExistingPathsToBeConsidered, @Nonnull String declaringTypeName, @Nonnull String methodName,
-			@Nullable Object[] attributes, @Nullable Object[] parameters, @Nullable Object instance,
-			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String methodSignature, @Nullable Object[] attributes, @Nullable Object[] parameters,
+			@Nullable Object instance, @Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature) {
 		@Nullable
 		final String[] allowedPaths = getValueFromSettings(switch (action) {
@@ -1567,7 +1590,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 						|| ("java.nio.file.Files".equals(declaringTypeName)
 								&& ("newBufferedWriter".equals(methodName) || "newOutputStream".equals(methodName))));
 		String messageAction = isWriteAliasedAsCreate ? "overwrite" : action;
-		boolean isJarResourceRead = isEntryReadOnOpenArchive(action, declaringTypeName, methodName);
+		boolean isJarResourceRead = isEntryReadOnOpenArchive(action, declaringTypeName, methodName, methodSignature,
+				parameters, instance);
 		if (pathIllegallyInteractedThroughParameter != null) {
 			boolean isClassLoaderAccess = pathIllegallyInteractedThroughParameter.endsWith(".class")
 					&& (isClassLoadingInProgress() || (studentCalledMethod != null
@@ -1720,6 +1744,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (fileSystemMethodToCheck == null) {
 				return;
 			}
+			if (("java.util.jar.JarFile".equals(declaringTypeName) || "java.util.zip.ZipFile".equals(declaringTypeName))
+					&& ("entries".equals(methodName) || "getInputStream".equals(methodName))
+					&& !(instance instanceof java.util.zip.ZipFile && ("java.util.zip.ZipFile".equals(declaringTypeName)
+							|| instance instanceof java.util.jar.JarFile))) {
+				throw new SecurityException(localize("security.advice.file.system.unknown.action", "archive receiver"));
+			}
 			@Nullable
 			String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 			// </editor-fold>
@@ -1736,8 +1766,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					parameters);
 			for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
 				checkFileSystemInteractionForAction(actionCheck.getKey(), Boolean.TRUE.equals(actionCheck.getValue()),
-						declaringTypeName, methodName, attributes, parameters, instance, fileSystemMethodToCheck,
-						studentCalledMethod, fullMethodSignature);
+						declaringTypeName, methodName, methodSignature, attributes, parameters, instance,
+						fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 			}
 		} finally {
 			exitAdvice();

@@ -249,6 +249,43 @@ class BaselineExemptionParityTest {
 	}
 
 	/**
+	 * A missing archive method name fails closed on both backends, even though the
+	 * synthetic AspectJ signature cannot format that name.
+	 *
+	 * @param directory a fresh test folder
+	 */
+	@Test
+	void nullArchiveMethodMetadataIsRefused(@TempDir Path directory) {
+		Call call = malformedArchiveEntryRead(directory, null);
+		try {
+			for (AOPMode mode : BACKENDS) {
+				configure(mode, new String[0]);
+				assertThatThrownBy(() -> BaselineAdviceProbe.check(mode, "read", call)).as(mode.name())
+						.isInstanceOf(SecurityException.class);
+			}
+		} finally {
+			close(call.instance());
+		}
+	}
+
+	/**
+	 * An archive entry method cannot be called without an open archive receiver.
+	 *
+	 * @param directory a fresh test folder
+	 */
+	@Test
+	void archiveEntryWithoutReceiverIsRefused(@TempDir Path directory) {
+		Call call = new Call(JarFile.class, "getInputStream", "(Ljava/util/zip/ZipEntry;)Ljava/io/InputStream;",
+				new Class<?>[] { ZipEntry.class },
+				new Object[] { new ZipEntry(file(directory, "forbidden.txt").toString()) }, null);
+		for (AOPMode mode : BACKENDS) {
+			configure(mode, new String[0]);
+			assertThatThrownBy(() -> BaselineAdviceProbe.check(mode, "read", call)).as(mode.name())
+					.isInstanceOf(SecurityException.class);
+		}
+	}
+
+	/**
 	 * Neither backend keeps a list of file names that are allowed wherever they
 	 * lie.
 	 */
@@ -331,9 +368,19 @@ class BaselineExemptionParityTest {
 						Verdict.ALLOW),
 				row("entry of an open unlisted zip", "read", none(), dir -> zipEntryRead(archive(dir)), Verdict.ALLOW,
 						Verdict.ALLOW),
+				row("entries of an open unlisted jar", "read", none(),
+						dir -> archiveEntries(jarEntryRead(archive(dir))), Verdict.ALLOW, Verdict.ALLOW),
+				row("entries of an open unlisted zip", "read", none(),
+						dir -> archiveEntries(zipEntryRead(archive(dir))), Verdict.ALLOW, Verdict.ALLOW),
 				row("entry of an open listed jar", "read",
 						dir -> new String[] { dir.resolve("archive.jar").toString() },
 						dir -> jarEntryRead(archive(dir)), Verdict.ALLOW, Verdict.ALLOW),
+				row("unknown archive method with a forbidden path", "read", none(),
+						dir -> malformedArchiveEntryRead(dir, "unknown"), Verdict.DENY, Verdict.DENY),
+				row("malformed archive entries call with a forbidden path", "read", none(),
+						dir -> malformedArchiveEntryRead(dir, "entries"), Verdict.DENY, Verdict.DENY),
+				row("malformed archive getInputStream call with a forbidden path", "read", none(),
+						dir -> malformedArchiveEntryRead(dir, "getInputStream"), Verdict.DENY, Verdict.DENY),
 				row("opening a listed archive", "read", dir -> new String[] { dir.resolve("archive.jar").toString() },
 						dir -> openArchive(archive(dir)), Verdict.ALLOW, Verdict.ALLOW),
 				row("missing allow-list", "read", dir -> null, dir -> read(file(dir, "plain.txt")), Verdict.DENY,
@@ -602,6 +649,32 @@ class BaselineExemptionParityTest {
 	private static Call entryRead(Class<?> owner, ZipFile archive, ZipEntry entry) {
 		return new Call(owner, "getInputStream", "(Ljava/util/zip/ZipEntry;)Ljava/io/InputStream;",
 				new Class<?>[] { ZipEntry.class }, new Object[] { entry }, archive);
+	}
+
+	/**
+	 * Describes the argument-free entry enumeration of an already-open archive.
+	 *
+	 * @param entryCall a call holding the open archive
+	 * @return an enumeration call on the same archive
+	 */
+	private static Call archiveEntries(Call entryCall) {
+		return new Call(entryCall.owner(), "entries", "()Ljava/util/Enumeration;", new Class<?>[0], new Object[0],
+				entryCall.instance());
+	}
+
+	/**
+	 * Describes an impossible archive-entry call that smuggles a file path through
+	 * its arguments. Both checkers must validate it as an ordinary file read.
+	 *
+	 * @param directory the test folder
+	 * @param method    an absent, unknown, or wrongly shaped method name
+	 * @return the malformed call
+	 */
+	private static Call malformedArchiveEntryRead(Path directory, String method) {
+		Call openCall = jarEntryRead(archive(directory));
+		Path forbidden = file(directory, "forbidden.txt");
+		return new Call(JarFile.class, method, "(Ljava/nio/file/Path;)V", new Class<?>[] { Path.class },
+				new Object[] { forbidden }, openCall.instance());
 	}
 
 	/**

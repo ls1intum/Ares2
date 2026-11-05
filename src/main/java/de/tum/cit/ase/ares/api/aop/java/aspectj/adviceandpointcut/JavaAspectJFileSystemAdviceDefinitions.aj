@@ -24,11 +24,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.jar.JarFile;
 
 import javax.annotation.Nullable;
 import javax.annotation.Nonnull;
 
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.reflect.MethodSignature;
 //</editor-fold>
 
 @SuppressWarnings("AopLanguageInspection")
@@ -1536,14 +1540,33 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 *
 	 * @param action            the file-system action being checked
 	 * @param declaringTypeName the class of the intercepted method
-	 * @param methodName        the intercepted method
+	 * @param thisJoinPoint     the intercepted call
 	 * @return {@code true} for a read of an entry, never for opening the archive
 	 */
 	private static boolean isEntryReadOnOpenArchive(@Nonnull String action, @Nonnull String declaringTypeName,
-			@Nonnull String methodName) {
-		return "read".equals(action) && !"<init>".equals(methodName)
-				&& ("java.util.jar.JarFile".equals(declaringTypeName)
-						|| "java.util.zip.ZipFile".equals(declaringTypeName));
+			@Nonnull JoinPoint thisJoinPoint) {
+		if (!"read".equals(action) || !(thisJoinPoint.getSignature() instanceof MethodSignature signature)
+				|| !(thisJoinPoint.getTarget() instanceof ZipFile archive)
+				|| !("java.util.jar.JarFile".equals(declaringTypeName) && archive instanceof JarFile
+						|| "java.util.zip.ZipFile".equals(declaringTypeName))) {
+			return false;
+		}
+		Object[] arguments = thisJoinPoint.getArgs();
+		Class<?>[] parameterTypes = signature.getParameterTypes();
+		boolean entryCall = "entries".equals(signature.getName())
+				&& parameterTypes != null && parameterTypes.length == 0 && arguments != null && arguments.length == 0;
+		boolean streamCall = "getInputStream".equals(signature.getName())
+				&& parameterTypes != null && parameterTypes.length == 1 && ZipEntry.class.equals(parameterTypes[0]) && arguments != null
+				&& arguments.length == 1 && arguments[0] instanceof ZipEntry;
+		if (!entryCall && !streamCall) {
+			return false;
+		}
+		try {
+			archive.size();
+			return true;
+		} catch (IllegalStateException closed) {
+			return false;
+		}
 	}
 
 	/**
@@ -1570,11 +1593,21 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		@Nullable
 		Object instance = thisJoinPoint.getTarget();
 		@Nonnull
-		final String fullMethodSignature = formatSignature(thisJoinPoint.getSignature());
+		String methodName;
 		@Nonnull
-		String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
+		String declaringTypeName;
 		@Nonnull
-		String methodName = thisJoinPoint.getSignature().getName();
+		String fullMethodSignature;
+		try {
+			methodName = thisJoinPoint.getSignature().getName();
+			declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
+			fullMethodSignature = formatSignature(thisJoinPoint.getSignature());
+		} catch (RuntimeException malformed) {
+			throw new SecurityException(localize("security.advice.file.system.unknown.action", "malformed method"), malformed);
+		}
+		if (methodName == null || methodName.isBlank() || declaringTypeName == null || declaringTypeName.isBlank()) {
+			throw new SecurityException(localize("security.advice.file.system.unknown.action", "malformed method"));
+		}
 		@Nonnull
 		Object[] attributes = new Object[0];
 		if (instance != null) {
@@ -1601,6 +1634,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		if (systemMethodToCheck == null) {
 			return;
 		}
+		if (("java.util.jar.JarFile".equals(declaringTypeName) || "java.util.zip.ZipFile".equals(declaringTypeName))
+				&& ("entries".equals(methodName) || "getInputStream".equals(methodName))
+				&& !(instance instanceof ZipFile && ("java.util.zip.ZipFile".equals(declaringTypeName)
+						|| instance instanceof JarFile))) {
+			throw new SecurityException(localize("security.advice.file.system.unknown.action", "archive receiver"));
+		}
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
@@ -1611,7 +1650,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				studentCalledMethod, fullMethodSignature, thisJoinPoint)) {
 			return;
 		}
-		if (isEntryReadOnOpenArchive(action, declaringTypeName, methodName)) {
+		if (isEntryReadOnOpenArchive(action, declaringTypeName, thisJoinPoint)) {
 			return;
 		}
 		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, parameters);

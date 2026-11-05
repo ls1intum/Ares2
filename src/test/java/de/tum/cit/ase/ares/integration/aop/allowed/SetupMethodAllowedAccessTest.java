@@ -2,6 +2,10 @@ package de.tum.cit.ase.ares.integration.aop.allowed;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.junit.jupiter.api.BeforeEach;
 
 import de.tum.cit.ase.ares.api.Policy;
@@ -18,6 +22,9 @@ class SetupMethodAllowedAccessTest {
 	private static final String WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/fileInputStream";
 	/** The folder that holds the policies of all four mode combinations. */
 	private static final String POLICIES = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/";
+	/** The read fixture, which an earlier allowed delete test may remove. */
+	private static final Path TRUSTED_FILE = Path
+			.of("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt");
 
 	/**
 	 * What the student code threw from the setup method, or null if it succeeded.
@@ -26,7 +33,10 @@ class SetupMethodAllowedAccessTest {
 
 	/** Runs student code that reads the allowed file, before every test. */
 	@BeforeEach
-	void runStudentCodeFromSetupMethod() {
+	void runStudentCodeFromSetupMethod() throws IOException {
+		if (Files.notExists(TRUSTED_FILE)) {
+			Files.createFile(TRUSTED_FILE);
+		}
 		try {
 			ReadFileInputStreamMain.accessFileSystemViaFileInputStream();
 		} catch (Throwable failure) {
