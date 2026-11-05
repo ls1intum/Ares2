@@ -12,7 +12,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.jar.JarFile;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.MemberSubstitution;
@@ -35,6 +38,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceNetworkSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationArchiveCallSite;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.NetworkTarget;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.ThreadTarget;
@@ -50,8 +54,10 @@ public final class JavaInstrumentationAgent {
 	/** The instrumentation handle supplied by JVM startup. */
 	private static volatile Instrumentation instrumentation;
 	private static volatile Factory classInjectorFactory;
-	private static final Set<String> INSTRUMENTED_THREAD_MONITOR_PACKAGES = ConcurrentHashMap.newKeySet();
-	private static final Object THREAD_MONITOR_PACKAGE_REGISTRATION_LOCK = new Object();
+	/** Packages whose application call sites are rewritten. */
+	private static final Set<String> INSTRUMENTED_CALL_SITE_PACKAGES = ConcurrentHashMap.newKeySet();
+	/** Serialises package registration before supervised classes load. */
+	private static final Object CALL_SITE_PACKAGE_REGISTRATION_LOCK = new Object();
 	private static final AtomicReference<TransformationFailure> TRANSFORMATION_FAILURE = new AtomicReference<>();
 	/**
 	 * The classes the pointcut transformers have rewritten, each as its name and
@@ -188,7 +194,7 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Installs the pointcut transformers and the thread call-site transformer
+	 * Installs the pointcut transformers and application call-site transformer
 	 * exactly once. A failed attempt, or a class it could not transform, is kept
 	 * and rethrown by every later one, so a half-finished installation is never
 	 * repeated and never ignored.
@@ -435,7 +441,8 @@ public final class JavaInstrumentationAgent {
 	private static void initializeToolboxes() {
 		for (Class<?> toolbox : List.of(JavaInstrumentationAdviceAbstractToolbox.class,
 				JavaInstrumentationAdviceFileSystemToolbox.class, JavaInstrumentationAdviceThreadSystemToolbox.class,
-				JavaInstrumentationThreadSystemCallSite.class, JavaInstrumentationAdviceNetworkSystemToolbox.class,
+				JavaInstrumentationThreadSystemCallSite.class, JavaInstrumentationArchiveCallSite.class,
+				JavaInstrumentationAdviceNetworkSystemToolbox.class,
 				JavaInstrumentationAdviceCommandSystemToolbox.class)) {
 			try {
 				Class.forName(toolbox.getName(), true, null);
@@ -485,12 +492,11 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Rewrites calls to Thread start and the monitor methods in the package the
-	 * current policy governs. Object's final native monitor methods cannot be
-	 * advised where they are declared, so their call sites are rewritten instead;
-	 * limiting this to the governed package leaves framework classes untouched.
-	 * Register the package before supervised classes are first used, so they pass
-	 * this transformer without a second retransformation.
+	 * Rewrites thread, monitor and archive calls in the package the current policy
+	 * governs. Their call sites are rewritten before a student receiver override
+	 * can run; limiting this to the governed package leaves framework classes
+	 * untouched. Register the package before supervised classes are first used, so
+	 * they pass this transformer without a second retransformation.
 	 *
 	 * @param restrictedPackage package prefix governed by the current policy
 	 */
@@ -501,8 +507,8 @@ public final class JavaInstrumentationAgent {
 				|| restrictedPackage.isBlank()) {
 			return;
 		}
-		synchronized (THREAD_MONITOR_PACKAGE_REGISTRATION_LOCK) {
-			if (!INSTRUMENTED_THREAD_MONITOR_PACKAGES.add(restrictedPackage)) {
+		synchronized (CALL_SITE_PACKAGE_REGISTRATION_LOCK) {
+			if (!INSTRUMENTED_CALL_SITE_PACKAGES.add(restrictedPackage)) {
 				return;
 			}
 			// The already-installed transformer observes this concurrent set for every
@@ -565,6 +571,8 @@ public final class JavaInstrumentationAgent {
 							Map.entry(JavaInstrumentationThreadSystemCallSite.class.getName(),
 									ClassFileLocator.ForClassLoader
 											.read(JavaInstrumentationThreadSystemCallSite.class)),
+							Map.entry(JavaInstrumentationArchiveCallSite.class.getName(),
+									ClassFileLocator.ForClassLoader.read(JavaInstrumentationArchiveCallSite.class)),
 							Map.entry(JavaInstrumentationAdviceNetworkSystemToolbox.class.getName(),
 									ClassFileLocator.ForClassLoader
 											.read(JavaInstrumentationAdviceNetworkSystemToolbox.class)),
@@ -701,10 +709,8 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Rewrites application-side invocations of {@link Thread#start()} and Object's
-	 * final monitor methods. The start wrapper retains the effective task class for
-	 * later monitor checks; the monitor wrappers preserve ordinary Object behaviour
-	 * and invoke the thread policy only when the runtime receiver is a Thread.
+	 * Rewrites application-side thread, monitor and archive calls. Archive wrappers
+	 * check a receiver before virtual dispatch can enter a student override.
 	 */
 	private static void installThreadCallSiteBuilder(Instrumentation inst,
 			ClassInjector.UsingUnsafe.Factory unsafeFactory) {
@@ -717,6 +723,12 @@ public final class JavaInstrumentationAgent {
 					long.class);
 			Method preciseWaitMethod = JavaInstrumentationThreadSystemCallSite.class.getMethod("wait", Object.class,
 					long.class, int.class);
+			Method zipEntriesMethod = JavaInstrumentationArchiveCallSite.class.getMethod("entries", ZipFile.class);
+			Method jarEntriesMethod = JavaInstrumentationArchiveCallSite.class.getMethod("entries", JarFile.class);
+			Method zipStreamMethod = JavaInstrumentationArchiveCallSite.class.getMethod("getInputStream", ZipFile.class,
+					ZipEntry.class);
+			Method jarStreamMethod = JavaInstrumentationArchiveCallSite.class.getMethod("getInputStream", JarFile.class,
+					ZipEntry.class);
 
 			new AgentBuilder.Default()
 					.ignore(ElementMatchers.nameStartsWith("net.bytebuddy.")
@@ -725,8 +737,8 @@ public final class JavaInstrumentationAgent {
 					.with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
 					.with(new AgentBuilder.InjectionStrategy.UsingUnsafe.OfFactory(unsafeFactory))
 					.disableClassFormatChanges()
-					.type(typeDescription -> !typeDescription.isInterface() && INSTRUMENTED_THREAD_MONITOR_PACKAGES
-							.stream().anyMatch(prefix -> typeDescription.getName().startsWith(prefix)),
+					.type(typeDescription -> !typeDescription.isInterface() && INSTRUMENTED_CALL_SITE_PACKAGES.stream()
+							.anyMatch(prefix -> typeDescription.getName().startsWith(prefix)),
 							ElementMatchers.not(ElementMatchers.isBootstrapClassLoader()))
 					.transform((builder, typeDescription, classLoader, javaModule, protectionDomain) -> builder
 							.visit(threadStartSubstitution(startMethod))
@@ -734,7 +746,11 @@ public final class JavaInstrumentationAgent {
 							.visit(monitorSubstitution("notifyAll", 0, notifyAllMethod))
 							.visit(monitorSubstitution("wait", 0, waitMethod))
 							.visit(monitorSubstitution("wait", 1, timedWaitMethod))
-							.visit(monitorSubstitution("wait", 2, preciseWaitMethod)))
+							.visit(monitorSubstitution("wait", 2, preciseWaitMethod))
+							.visit(archiveSubstitution(ZipFile.class, "entries", 0, zipEntriesMethod))
+							.visit(archiveSubstitution(JarFile.class, "entries", 0, jarEntriesMethod))
+							.visit(archiveSubstitution(ZipFile.class, "getInputStream", 1, zipStreamMethod))
+							.visit(archiveSubstitution(JarFile.class, "getInputStream", 1, jarStreamMethod)))
 					.installOn(inst);
 		} catch (ReflectiveOperationException e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -771,6 +787,23 @@ public final class JavaInstrumentationAgent {
 		net.bytebuddy.matcher.ElementMatcher.Junction<MethodDescription> matcher = ElementMatchers
 				.isDeclaredBy(Object.class).and(ElementMatchers.named(methodName))
 				.and(ElementMatchers.takesArguments(argumentCount));
+		return new net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods().invokable(ElementMatchers.any(),
+				new RecordMethodsPassThrough(MemberSubstitution.relaxed().method(matcher).replaceWith(replacement)));
+	}
+
+	/**
+	 * Rewrites a JDK archive call to a wrapper that checks its runtime receiver.
+	 *
+	 * @param owner         the JDK archive type named by the call
+	 * @param methodName    the archive entry method
+	 * @param argumentCount the method's argument count
+	 * @param replacement   the checked wrapper
+	 * @return the rewrite for application call sites
+	 */
+	static net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods archiveSubstitution(Class<?> owner, String methodName,
+			int argumentCount, Method replacement) {
+		net.bytebuddy.matcher.ElementMatcher.Junction<MethodDescription> matcher = ElementMatchers.isDeclaredBy(owner)
+				.and(ElementMatchers.named(methodName)).and(ElementMatchers.takesArguments(argumentCount));
 		return new net.bytebuddy.asm.AsmVisitorWrapper.ForDeclaredMethods().invokable(ElementMatchers.any(),
 				new RecordMethodsPassThrough(MemberSubstitution.relaxed().method(matcher).replaceWith(replacement)));
 	}
