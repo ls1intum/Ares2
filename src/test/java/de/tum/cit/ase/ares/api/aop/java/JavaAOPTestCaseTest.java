@@ -64,9 +64,10 @@ class JavaAOPTestCaseTest {
 		assertEquals("xyz", f.get(null));
 	}
 
+	/** AspectJ settings do not register a package for instrumentation rewrites. */
 	@Test
 	void testAspectJSettingsDoNotRegisterInstrumentationPackage() throws Exception {
-		Field packagesField = JavaInstrumentationAgent.class.getDeclaredField("INSTRUMENTED_THREAD_MONITOR_PACKAGES");
+		Field packagesField = JavaInstrumentationAgent.class.getDeclaredField("INSTRUMENTED_CALL_SITE_PACKAGES");
 		packagesField.setAccessible(true);
 		@SuppressWarnings("unchecked")
 		Set<String> packages = (Set<String>) packagesField.get(null);
