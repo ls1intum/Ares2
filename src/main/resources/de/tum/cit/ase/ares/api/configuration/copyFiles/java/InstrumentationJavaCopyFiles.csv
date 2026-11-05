@@ -34,3 +34,4 @@ aop/java/instrumentation/advice/JavaInstrumentationReceiveNetworkMethodAdvice.ja
 aop/java/instrumentation/advice/JavaInstrumentationSendNetworkConstructorAdvice.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationSendNetworkConstructorAdvice.java
 aop/java/instrumentation/advice/JavaInstrumentationSendNetworkMethodAdvice.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationSendNetworkMethodAdvice.java
 aop/java/instrumentation/advice/JavaInstrumentationThreadSystemCallSite.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationThreadSystemCallSite.java
+aop/java/instrumentation/advice/JavaInstrumentationArchiveCallSite.java,1,ares/api/aop/java/instrumentation/advice/JavaInstrumentationArchiveCallSite.java
