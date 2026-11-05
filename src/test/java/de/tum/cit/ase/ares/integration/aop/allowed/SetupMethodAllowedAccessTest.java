@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
 import de.tum.cit.ase.ares.api.Policy;
@@ -31,12 +32,17 @@ class SetupMethodAllowedAccessTest {
 	 */
 	private Throwable setupFailure;
 
-	/** Runs student code that reads the allowed file, before every test. */
-	@BeforeEach
-	void runStudentCodeFromSetupMethod() throws IOException {
+	/** Restores a read fixture removed by an earlier allowed delete test. */
+	@BeforeAll
+	static void restoreReadFixture() throws IOException {
 		if (Files.notExists(TRUSTED_FILE)) {
 			Files.createFile(TRUSTED_FILE);
 		}
+	}
+
+	/** Runs student code that reads the allowed file, before every test. */
+	@BeforeEach
+	void runStudentCodeFromSetupMethod() {
 		try {
 			ReadFileInputStreamMain.accessFileSystemViaFileInputStream();
 		} catch (Throwable failure) {
