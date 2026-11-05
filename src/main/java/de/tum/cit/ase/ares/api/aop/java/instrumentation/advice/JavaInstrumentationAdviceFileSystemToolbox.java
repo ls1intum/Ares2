@@ -1518,6 +1518,22 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
+	 * Accepts only JDK archive classes. A subclass could override {@code size()}
+	 * and run student code while the advice guard is active.
+	 *
+	 * @param instance          the receiver
+	 * @param declaringTypeName the intercepted method's owner
+	 * @return whether the owner and exact JDK class match
+	 */
+	private static boolean isExactJdkArchive(@Nullable Object instance, @Nonnull String declaringTypeName) {
+		return instance != null && ("java.util.jar.JarFile".equals(declaringTypeName)
+				&& instance.getClass() == java.util.jar.JarFile.class
+				|| "java.util.zip.ZipFile".equals(declaringTypeName)
+						&& (instance.getClass() == java.util.zip.ZipFile.class
+								|| instance.getClass() == java.util.jar.JarFile.class));
+	}
+
+	/**
 	 * Tells whether the call reads an entry of a {@code JarFile} or {@code ZipFile}
 	 * that is already open. Opening the archive is still checked against the
 	 * policy, and the entry call names no file of its own, so the entry read is
@@ -1535,9 +1551,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			@Nullable String methodName, @Nullable String methodSignature, @Nullable Object[] parameters,
 			@Nullable Object instance) {
 		if (!"read".equals(action) || !(instance instanceof java.util.zip.ZipFile archive)
-				|| !("java.util.jar.JarFile".equals(declaringTypeName) && archive instanceof java.util.jar.JarFile
-						|| "java.util.zip.ZipFile".equals(declaringTypeName))
-				|| parameters == null) {
+				|| !isExactJdkArchive(archive, declaringTypeName) || parameters == null) {
 			return false;
 		}
 		boolean entryCall = "entries".equals(methodName)
@@ -1746,8 +1760,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			if (("java.util.jar.JarFile".equals(declaringTypeName) || "java.util.zip.ZipFile".equals(declaringTypeName))
 					&& ("entries".equals(methodName) || "getInputStream".equals(methodName))
-					&& !(instance instanceof java.util.zip.ZipFile && ("java.util.zip.ZipFile".equals(declaringTypeName)
-							|| instance instanceof java.util.jar.JarFile))) {
+					&& !isExactJdkArchive(instance, declaringTypeName)) {
 				throw new SecurityException(localize("security.advice.file.system.unknown.action", "archive receiver"));
 			}
 			@Nullable

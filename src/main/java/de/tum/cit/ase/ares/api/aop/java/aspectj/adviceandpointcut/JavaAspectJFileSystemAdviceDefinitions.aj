@@ -1533,6 +1533,20 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
+	 * Accepts only JDK archive classes. A subclass could override {@code size()}
+	 * and run student code while the advice guard is active.
+	 *
+	 * @param instance          the receiver
+	 * @param declaringTypeName the intercepted method's owner
+	 * @return whether the owner and exact JDK class match
+	 */
+	private static boolean isExactJdkArchive(@Nullable Object instance, @Nonnull String declaringTypeName) {
+		return instance != null && ("java.util.jar.JarFile".equals(declaringTypeName)
+				&& instance.getClass() == JarFile.class || "java.util.zip.ZipFile".equals(declaringTypeName)
+						&& (instance.getClass() == ZipFile.class || instance.getClass() == JarFile.class));
+	}
+
+	/**
 	 * Tells whether the call reads an entry of a {@code JarFile} or
 	 * {@code ZipFile} that is already open. Opening the archive is still checked
 	 * against the policy, and the entry call names no file of its own, so the
@@ -1547,8 +1561,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			@Nonnull JoinPoint thisJoinPoint) {
 		if (!"read".equals(action) || !(thisJoinPoint.getSignature() instanceof MethodSignature signature)
 				|| !(thisJoinPoint.getTarget() instanceof ZipFile archive)
-				|| !("java.util.jar.JarFile".equals(declaringTypeName) && archive instanceof JarFile
-						|| "java.util.zip.ZipFile".equals(declaringTypeName))) {
+				|| !isExactJdkArchive(archive, declaringTypeName)) {
 			return false;
 		}
 		Object[] arguments = thisJoinPoint.getArgs();
@@ -1636,8 +1649,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 		if (("java.util.jar.JarFile".equals(declaringTypeName) || "java.util.zip.ZipFile".equals(declaringTypeName))
 				&& ("entries".equals(methodName) || "getInputStream".equals(methodName))
-				&& !(instance instanceof ZipFile && ("java.util.zip.ZipFile".equals(declaringTypeName)
-						|| instance instanceof JarFile))) {
+				&& !isExactJdkArchive(instance, declaringTypeName)) {
 			throw new SecurityException(localize("security.advice.file.system.unknown.action", "archive receiver"));
 		}
 		@Nullable

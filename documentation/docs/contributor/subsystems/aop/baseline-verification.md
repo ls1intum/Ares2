@@ -43,7 +43,7 @@ The same class compares the constants the backends duplicate:
 | Create, replace or delete under `java.home` | Refused | Refused | Parity test |
 | Load a Java Development Kit (JDK) native library by name or under `java.home` | Allowed | Allowed | Parity test |
 | Read a `.jar` in the start-up Maven repository | Allowed | Allowed | Parity test; `JceGeneratedExerciseTest` (start-up repository only) |
-| Read an entry of an already-open `JarFile`/`ZipFile` | Allowed for `entries` or `getInputStream` with a real open archive; Ares still checks opening it | Same | Parity test (including missing, unknown and malformed method details) |
+| Read an entry of an already-open `JarFile`/`ZipFile` | Allowed for `entries` or `getInputStream` on an exact JDK archive class; Ares still checks opening it | Same | Parity test (including malformed method details and an archive subclass) |
 | `SecureRandom`, `UUID.randomUUID()` | Allowed while the JDK's own seed class reads the device | Nothing to allow: the JDK's read is not woven | `BaselineStandardAllowTest`; `BaselineStillDeniedTest` (direct read, provider callback) |
 | System timezone | Nothing to allow: read natively or under `java.home` | Same | `BaselineStandardAllowTest`; `BaselineStillDeniedTest` (direct read) |
 | Temporary file without a directory | Allowed in the directory fixed at start-up | Allowed in the start-up directory | Parity test; `BaselineStandardAllowTest`; `BaselineStillDeniedTest` (named directories, links, a planting file attribute) |

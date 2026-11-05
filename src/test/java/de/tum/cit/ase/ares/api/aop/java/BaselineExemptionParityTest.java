@@ -108,6 +108,60 @@ class BaselineExemptionParityTest {
 		}
 	}
 
+	/** An archive subclass whose overridden method must never run inside advice. */
+	private static final class UntrustedZipFile extends ZipFile {
+		/** Whether advice called the student-controlled override. */
+		private boolean sizeCalled;
+
+		/**
+		 * Opens the test archive.
+		 *
+		 * @param path the archive path
+		 * @throws IOException if the archive cannot be opened
+		 */
+		private UntrustedZipFile(Path path) throws IOException {
+			super(path.toFile());
+		}
+
+		/**
+		 * Records a call that would run under the advice guard.
+		 *
+		 * @return the archive's entry count
+		 */
+		@Override
+		public int size() {
+			sizeCalled = true;
+			return super.size();
+		}
+	}
+
+	/** A jar subclass whose overridden method must never run inside advice. */
+	private static final class UntrustedJarFile extends JarFile {
+		/** Whether advice called the student-controlled override. */
+		private boolean sizeCalled;
+
+		/**
+		 * Opens the test jar.
+		 *
+		 * @param path the jar path
+		 * @throws IOException if the jar cannot be opened
+		 */
+		private UntrustedJarFile(Path path) throws IOException {
+			super(path.toFile());
+		}
+
+		/**
+		 * Records a call that would run under the advice guard.
+		 *
+		 * @return the jar's entry count
+		 */
+		@Override
+		public int size() {
+			sizeCalled = true;
+			return super.size();
+		}
+	}
+
 	/** Clears policy state before a row runs. */
 	@BeforeEach
 	void rememberLocale() {
@@ -282,6 +336,52 @@ class BaselineExemptionParityTest {
 			configure(mode, new String[0]);
 			assertThatThrownBy(() -> BaselineAdviceProbe.check(mode, "read", call)).as(mode.name())
 					.isInstanceOf(SecurityException.class);
+		}
+	}
+
+	/**
+	 * A student archive subclass cannot run its override inside the advice guard.
+	 *
+	 * @param directory a fresh test folder
+	 * @throws IOException if the test archive cannot be opened
+	 */
+	@Test
+	void untrustedArchiveOverrideIsNeverInvoked(@TempDir Path directory) throws IOException {
+		UntrustedZipFile archive = new UntrustedZipFile(archive(directory));
+		try {
+			Call call = new Call(ZipFile.class, "entries", "()Ljava/util/Enumeration;", new Class<?>[0], new Object[0],
+					archive);
+			for (AOPMode mode : BACKENDS) {
+				configure(mode, new String[0]);
+				assertThatThrownBy(() -> BaselineAdviceProbe.check(mode, "read", call)).as(mode.name())
+						.isInstanceOf(SecurityException.class);
+				assertThat(archive.sizeCalled).as(mode.name()).isFalse();
+			}
+		} finally {
+			archive.close();
+		}
+	}
+
+	/**
+	 * A student jar subclass cannot run its override inside the advice guard.
+	 *
+	 * @param directory a fresh test folder
+	 * @throws IOException if the test jar cannot be opened
+	 */
+	@Test
+	void untrustedJarOverrideIsNeverInvoked(@TempDir Path directory) throws IOException {
+		UntrustedJarFile jar = new UntrustedJarFile(archive(directory));
+		try {
+			Call call = new Call(JarFile.class, "entries", "()Ljava/util/Enumeration;", new Class<?>[0], new Object[0],
+					jar);
+			for (AOPMode mode : BACKENDS) {
+				configure(mode, new String[0]);
+				assertThatThrownBy(() -> BaselineAdviceProbe.check(mode, "read", call)).as(mode.name())
+						.isInstanceOf(SecurityException.class);
+				assertThat(jar.sizeCalled).as(mode.name()).isFalse();
+			}
+		} finally {
+			jar.close();
 		}
 	}
 
