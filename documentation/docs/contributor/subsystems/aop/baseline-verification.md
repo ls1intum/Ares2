@@ -71,8 +71,9 @@ Both backends dropped two exemptions that once matched a file by its name alone:
   ending for every action. Ares reads its own files itself, outside any student call. The
   re-entrancy guard skips file access made while a check runs.
 
-The parity test has a row for each, and `PrecompileTest` checks that a generated exercise's copy
-of the advice carries neither list.
+The parity test has denied rows for a `default_local.policy` outside `java.home` (read), a
+`messages.properties` (read, overwrite and delete) and an `EssentialClasses.yaml` (overwrite).
+`PrecompileTest` checks that a generated exercise's copy of the advice carries neither list.
 
 ## Running the evidence
 

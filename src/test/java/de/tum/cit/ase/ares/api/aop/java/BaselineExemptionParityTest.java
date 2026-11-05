@@ -23,11 +23,14 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -216,6 +219,36 @@ class BaselineExemptionParityTest {
 	}
 
 	/**
+	 * Both backends trust the same Maven repository for jar reads, so one fixture
+	 * jar stands for both.
+	 */
+	@Test
+	void bothBackendsTrustTheSameMavenRepository() {
+		assertThat(trustedMavenRepository()).isNotNull()
+				.isEqualTo(staticValue(JavaAspectJFileSystemAdviceDefinitions.class, "TRUSTED_MAVEN_REPOSITORY"));
+	}
+
+	/**
+	 * A refusal counts as a denial only when the file policy made it. A missing
+	 * start-up setting is a refusal too, and must fail the row instead.
+	 *
+	 * @param directory a fresh folder outside every allow-list
+	 * @throws IOException If the file cannot be written.
+	 */
+	@Test
+	void onlyAFilePolicyRefusalCountsAsADenial(@TempDir Path directory) throws IOException {
+		Path file = Files.writeString(directory.resolve("plain.txt"), "protected");
+		for (AOPMode mode : BACKENDS) {
+			configure(mode, new String[0]);
+			assertThat(isFilePolicyDenial(denial(mode, "read", read(file)))).as(mode.name()).isTrue();
+		}
+		assertThat(isFilePolicyDenial(
+				new SecurityException(Messages.localized("security.advice.startup.properties.unavailable")))).isFalse();
+		assertThat(isFilePolicyDenial(
+				new SecurityException(Messages.localized("security.advice.trusted.startup.missing")))).isFalse();
+	}
+
+	/**
 	 * Neither backend keeps a list of file names that are allowed wherever they
 	 * lie.
 	 */
@@ -246,7 +279,6 @@ class BaselineExemptionParityTest {
 		Path javaHome = Path.of(System.getProperty("java.home"));
 		Path javaHomeFile = javaHome.resolve("release");
 		Path nativeLibrary = javaHome.resolve("lib").resolve(System.mapLibraryName("net"));
-		Path repositoryJar = codeSourceOf(Test.class);
 		Path workingDirectory = Path.of(System.getProperty("user.dir"));
 		Path defaultTempDirectory = Path.of(System.getProperty("java.io.tmpdir"));
 		return Stream.of(row("java.home read", "read", none(), dir -> read(javaHomeFile), Verdict.ALLOW, Verdict.ALLOW),
@@ -262,11 +294,12 @@ class BaselineExemptionParityTest {
 				row("native library by file name", "execute", none(),
 						dir -> read(workingDirectory.resolve(System.mapLibraryName("net"))), Verdict.DENY,
 						Verdict.DENY),
-				row("repository jar read", "read", none(), dir -> read(repositoryJar), Verdict.ALLOW, Verdict.ALLOW),
-				row("repository jar overwrite", "overwrite", none(), dir -> read(repositoryJar), Verdict.DENY,
+				row("repository jar read", "read", none(), dir -> read(trustedRepositoryJar()), Verdict.ALLOW,
+						Verdict.ALLOW),
+				row("repository jar overwrite", "overwrite", none(), dir -> read(trustedRepositoryJar()), Verdict.DENY,
 						Verdict.DENY),
-				row("repository non-jar read", "read", none(), dir -> read(siblingWithExtension(repositoryJar, ".pom")),
-						Verdict.DENY, Verdict.DENY),
+				row("repository non-jar read", "read", none(),
+						dir -> read(siblingWithExtension(trustedRepositoryJar(), ".pom")), Verdict.DENY, Verdict.DENY),
 				row("jar outside the repository read", "read", none(), dir -> read(file(dir, "library.jar")),
 						Verdict.DENY, Verdict.DENY),
 				row("Ares message file name read", "read", none(), dir -> read(lookalikeMessages(dir)), Verdict.DENY,
@@ -277,6 +310,8 @@ class BaselineExemptionParityTest {
 						Verdict.DENY, Verdict.DENY),
 				row("Ares essential classes file name overwrite", "overwrite", none(),
 						dir -> read(lookalikeEssentialClasses(dir)), Verdict.DENY, Verdict.DENY),
+				row("JDK cryptography policy file name read", "read", none(),
+						dir -> read(file(dir, "default_local.policy")), Verdict.DENY, Verdict.DENY),
 				row("random seed device read by student code", "read", none(), dir -> read(Path.of("/dev/urandom")),
 						Verdict.DENY, Verdict.DENY),
 				row("Files temp file without a directory", "create", none(), dir -> filesTempFile(null), Verdict.ALLOW,
@@ -388,8 +423,37 @@ class BaselineExemptionParityTest {
 			BaselineAdviceProbe.check(mode, action, call);
 			return Verdict.ALLOW;
 		} catch (SecurityException denied) {
+			if (!isFilePolicyDenial(denied)) {
+				throw new AssertionError(mode + " refused the call for a reason other than the file policy", denied);
+			}
 			return Verdict.DENY;
 		}
+	}
+
+	/**
+	 * Tells whether a refusal is the file policy's own, rather than a failure such
+	 * as missing start-up settings, which also arrives as a
+	 * {@code SecurityException} but proves nothing about the policy.
+	 *
+	 * @param refusal the refusal
+	 * @return {@code true} if it has the shape of a file-policy denial
+	 */
+	private static boolean isFilePolicyDenial(SecurityException refusal) {
+		return refusal.getMessage() != null && filePolicyDenialShape().matcher(refusal.getMessage()).matches();
+	}
+
+	/**
+	 * The file-policy denial message in the current language, with each of its
+	 * values allowed to be any text.
+	 *
+	 * @return the pattern
+	 */
+	private static Pattern filePolicyDenialShape() {
+		String marker = "\0";
+		String template = Messages.localized("security.advice.illegal.file.execution", marker, marker, marker, marker);
+		return Pattern.compile(
+				Stream.of(template.split(marker, -1)).map(Pattern::quote).collect(Collectors.joining(".*")),
+				Pattern.DOTALL);
 	}
 
 	/**
@@ -611,7 +675,31 @@ class BaselineExemptionParityTest {
 	}
 
 	/**
-	 * The jar a class was loaded from, which Maven keeps in its local repository.
+	 * JUnit's jar, provided it lies in the Maven repository both backends trust.
+	 * Aborts the row otherwise, for example when the build used another
+	 * {@code maven.repo.local} than the test run can see.
+	 *
+	 * @return the jar
+	 */
+	private static Path trustedRepositoryJar() {
+		Path repository = Path.of(trustedMavenRepository()).toAbsolutePath().normalize();
+		Path jar = codeSourceOf(Test.class).toAbsolutePath().normalize();
+		Assumptions.assumeTrue(jar.startsWith(repository),
+				() -> "JUnit's jar " + jar + " lies outside the trusted Maven repository " + repository);
+		return jar;
+	}
+
+	/**
+	 * The Maven repository root instrumentation trusts for jar reads.
+	 *
+	 * @return the root
+	 */
+	private static String trustedMavenRepository() {
+		return (String) staticValue(JavaInstrumentationAdviceFileSystemToolbox.class, "TRUSTED_MAVEN_REPOSITORY");
+	}
+
+	/**
+	 * The jar a class was loaded from.
 	 *
 	 * @param type a class from a dependency
 	 * @return its jar
@@ -645,10 +733,21 @@ class BaselineExemptionParityTest {
 	 */
 	@SuppressWarnings("unchecked")
 	private static Collection<String> constant(Class<?> owner, String name) {
+		return (Collection<String>) staticValue(owner, name);
+	}
+
+	/**
+	 * Reads a private static field of a backend.
+	 *
+	 * @param owner the backend class
+	 * @param name  the field
+	 * @return its value
+	 */
+	private static Object staticValue(Class<?> owner, String name) {
 		try {
 			Field field = owner.getDeclaredField(name);
 			field.setAccessible(true);
-			return (Collection<String>) field.get(null);
+			return field.get(null);
 		} catch (ReflectiveOperationException exception) {
 			throw new AssertionError(owner.getName() + " has no readable " + name, exception);
 		}

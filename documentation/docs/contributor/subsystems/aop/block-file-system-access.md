@@ -1336,11 +1336,11 @@ Extract and validate all file paths from the object's internal state. This step 
 
 **1. Purpose**
 
-Let the JVM, the JDK and the libraries do the file work they need while a test runs, without letting student code borrow those exceptions. Ares's own files, such as its messages and its lists of essential classes, get no exception by name. Ares reads them itself, either before student code runs or inside a check whose nested file accesses the re-entrancy guard (`enterAdvice`) skips, and `Messages` guards its own bundle loading. An earlier allow-list matched six Ares file names by their ending, wherever the file lay and for every action, so student code could read, replace or delete a file with such a name. Both backends dropped it, and `BaselineExemptionParityTest` checks it stays gone.
+Let the JVM, the JDK and the libraries do the file work they need while a test runs. These exemptions match a path and an action, not a caller. Student code can therefore read any file under `java.home`, and any `.jar` there or in the Maven local repository. Only the `.class` exemption checks who reads. Ares's own files, such as its messages and its lists of essential classes, get no exception by name. Ares reads them itself, either before student code runs or inside a check whose nested file accesses the re-entrancy guard (`enterAdvice`) skips, and `Messages` guards its own bundle loading. An earlier allow-list matched six Ares file names by their ending, wherever the file lay and for every action, so student code could read, replace or delete a file with such a name. Both backends dropped it, and `BaselineExemptionParityTest` checks it stays gone.
 
 **2. How it works**
 
-A flagged path is allowed only when the access is JVM/library infrastructure rather than student file access. Both backends apply this exemption at **all three** check sites: parameter-based, receiver-based, and attribute-based violations.
+A flagged path is allowed when it matches one of the infrastructure exemptions below for that action. Only the `.class` exemption checks the caller. The others hold for student code as well. Both backends apply this exemption at **all three** check sites: parameter-based, receiver-based, and attribute-based violations.
 - `.class` reads performed by the class-loading machinery (a class-loader frame is on the stack, or the caller is `Class.forName`/`ClassLoader`)
 - `.jar` reads from system infrastructure, meaning the Maven local repository or the JDK installation under `java.home`
 - JDK-internal reads under `java.home` as the JVM started with it, and native-library loads (`.dylib`/`.jnilib`/`.so`/`.dll`)
