@@ -1518,18 +1518,22 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
-	 * Accepts archive receivers owned by {@code java.base}. A student subclass
-	 * could override {@code size()} and run code while the advice guard is active.
+	 * Accepts archive receivers loaded by the JDK. A student subclass could
+	 * override {@code size()} and run code while the advice guard is active.
 	 *
 	 * @param instance          the receiver
 	 * @param declaringTypeName the intercepted method's owner
-	 * @return whether the owner and JDK module match
+	 * @return whether the receiver fits the archive method's owner
+	 * @throws SecurityException if a student loader owns the receiver
 	 */
 	private static boolean isJdkArchiveReceiver(@Nullable Object instance, @Nonnull String declaringTypeName) {
-		return instance instanceof java.util.zip.ZipFile
-				&& instance.getClass().getModule() == java.util.zip.ZipFile.class.getModule()
-				&& ("java.util.jar.JarFile".equals(declaringTypeName) && instance instanceof java.util.jar.JarFile
-						|| "java.util.zip.ZipFile".equals(declaringTypeName));
+		if (!(instance instanceof java.util.zip.ZipFile)
+				|| !("java.util.jar.JarFile".equals(declaringTypeName) && instance instanceof java.util.jar.JarFile
+						|| "java.util.zip.ZipFile".equals(declaringTypeName))) {
+			return false;
+		}
+		requireTrustedRuntimeType(instance);
+		return true;
 	}
 
 	/**

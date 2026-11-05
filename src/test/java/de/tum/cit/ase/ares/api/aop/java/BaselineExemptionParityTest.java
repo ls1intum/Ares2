@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
+import java.net.JarURLConnection;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -382,6 +384,30 @@ class BaselineExemptionParityTest {
 			}
 		} finally {
 			jar.close();
+		}
+	}
+
+	/**
+	 * A JDK jar subclass obtained through a local URL can read entries on both
+	 * backends. Its loader is trusted even though its class differs from JarFile.
+	 *
+	 * @param directory a fresh test folder
+	 * @throws IOException if the jar URL cannot be opened
+	 */
+	@Test
+	void jdkJarUrlSubclassCanReadEntries(@TempDir Path directory) throws IOException {
+		JarURLConnection connection = (JarURLConnection) URI.create("jar:" + archive(directory).toUri() + "!/").toURL()
+				.openConnection();
+		connection.setUseCaches(false);
+		try (JarFile jar = connection.getJarFile()) {
+			assertThat(jar.getClass()).isNotEqualTo(JarFile.class);
+			Call entry = entryRead(JarFile.class, jar, jar.getEntry("entry.txt"));
+			Call entries = archiveEntries(entry);
+			for (AOPMode mode : BACKENDS) {
+				configure(mode, new String[0]);
+				assertThat(verdictOf(mode, "read", entry)).as(mode.name()).isEqualTo(Verdict.ALLOW);
+				assertThat(verdictOf(mode, "read", entries)).as(mode.name()).isEqualTo(Verdict.ALLOW);
+			}
 		}
 	}
 

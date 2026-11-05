@@ -1533,17 +1533,22 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Accepts archive receivers owned by {@code java.base}. A student subclass
-	 * could override {@code size()} and run code while the advice guard is active.
+	 * Accepts archives loaded by a trusted JDK loader. A student subclass could
+	 * override {@code size()} and run code while the advice guard is active.
 	 *
 	 * @param instance          the receiver
 	 * @param declaringTypeName the intercepted method's owner
-	 * @return whether the owner and JDK module match
+	 * @return whether the receiver fits the archive method's owner
+	 * @throws SecurityException if a student loader owns the receiver
 	 */
 	private static boolean isJdkArchiveReceiver(@Nullable Object instance, @Nonnull String declaringTypeName) {
-		return instance instanceof ZipFile && instance.getClass().getModule() == ZipFile.class.getModule()
-				&& ("java.util.jar.JarFile".equals(declaringTypeName) && instance instanceof JarFile
-						|| "java.util.zip.ZipFile".equals(declaringTypeName));
+		if (!(instance instanceof ZipFile)
+				|| !("java.util.jar.JarFile".equals(declaringTypeName) && instance instanceof JarFile
+						|| "java.util.zip.ZipFile".equals(declaringTypeName))) {
+			return false;
+		}
+		requireTrustedRuntimeType(instance);
+		return true;
 	}
 
 	/**
