@@ -26,7 +26,7 @@ public final class JavaInstrumentationArchiveCallSite {
 	 * @return its entries
 	 */
 	public static Enumeration<? extends ZipEntry> entries(ZipFile receiver) {
-		check(receiver, ZipFile.class.getName(), "entries", "()Ljava/util/Enumeration;", new Object[0]);
+		check(receiver, ZipFile.class.getName(), "entries", "()", new Object[0]);
 		return receiver.entries();
 	}
 
@@ -37,7 +37,7 @@ public final class JavaInstrumentationArchiveCallSite {
 	 * @return its entries
 	 */
 	public static Enumeration<JarEntry> entries(JarFile receiver) {
-		check(receiver, JarFile.class.getName(), "entries", "()Ljava/util/Enumeration;", new Object[0]);
+		check(receiver, JarFile.class.getName(), "entries", "()", new Object[0]);
 		return receiver.entries();
 	}
 
@@ -50,8 +50,7 @@ public final class JavaInstrumentationArchiveCallSite {
 	 * @throws IOException if the entry cannot be read
 	 */
 	public static InputStream getInputStream(ZipFile receiver, ZipEntry entry) throws IOException {
-		check(receiver, ZipFile.class.getName(), "getInputStream", "(Ljava/util/zip/ZipEntry;)Ljava/io/InputStream;",
-				new Object[] { entry });
+		check(receiver, ZipFile.class.getName(), "getInputStream", "(java.util.zip.ZipEntry)", new Object[] { entry });
 		return receiver.getInputStream(entry);
 	}
 
@@ -64,22 +63,22 @@ public final class JavaInstrumentationArchiveCallSite {
 	 * @throws IOException if the entry cannot be read
 	 */
 	public static InputStream getInputStream(JarFile receiver, ZipEntry entry) throws IOException {
-		check(receiver, JarFile.class.getName(), "getInputStream", "(Ljava/util/zip/ZipEntry;)Ljava/io/InputStream;",
-				new Object[] { entry });
+		check(receiver, JarFile.class.getName(), "getInputStream", "(java.util.zip.ZipEntry)", new Object[] { entry });
 		return receiver.getInputStream(entry);
 	}
 
 	/**
 	 * Applies the ordinary file policy before virtual archive dispatch.
 	 *
-	 * @param receiver   the open archive
-	 * @param owner      the JDK type named by the call site
-	 * @param method     the called method
-	 * @param descriptor the method descriptor
-	 * @param arguments  the call arguments
+	 * @param receiver  the open archive
+	 * @param owner     the JDK type named by the call site
+	 * @param method    the called method
+	 * @param signature its parameter list, written as the advice writes it, such as
+	 *                  {@code ()}
+	 * @param arguments the call arguments
 	 */
-	private static void check(ZipFile receiver, String owner, String method, String descriptor, Object[] arguments) {
-		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read", owner, method, descriptor,
+	private static void check(ZipFile receiver, String owner, String method, String signature, Object[] arguments) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read", owner, method, signature,
 				new Object[0], arguments, receiver);
 	}
 }

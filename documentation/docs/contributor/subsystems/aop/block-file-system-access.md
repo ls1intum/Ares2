@@ -611,18 +611,14 @@ File paths can appear in **different places** depending on how the method is use
 |-------------|------|-------------|
 | **declaringTypeName** | `String` | **Class name** where the method is defined. Example: `"java.io.FileInputStream"`. |
 | **methodName** | `String` | **Method name**. Example: `"read"` or `"<init>"` for constructors. |
-| **methodSignature** | `String` | **Method signature** with parameter types. Example: `"(Ljava/lang/String;)V"` for a constructor taking a String. **Reading signatures:** `(Ljava/lang/String;)V` means "takes a String parameter, returns void (nothing)" - like a function signature: `constructor(String fileName) → returns nothing`. |
+| **methodSignature** | `String` | **Parameter list** of the method, with full class names and without the return type. Example: `"(java.nio.file.Path)"` for `Files.readString(Path)`, `"()"` for a method without parameters. The constructor advice passes an empty string. |
 
-> 💡 **Method Signature Explained:** `(Ljava/lang/String;)V`
+> 💡 **Method Signature Explained:** `(java.nio.file.Path)`
 > - `(` = Parameter list begins
-> - `Ljava/lang/String;` = Parameter of type String
-> - `)` = Parameter list ends  
-> - `V` = "void" (no return value)
+> - `java.nio.file.Path` = Parameter of type `Path`, by its full class name
+> - `)` = Parameter list ends
 >
-> **More Examples:**
-> - `()V` = no parameters, void return
-> - `(II)I` = two int parameters, returns int
-> - `(Ljava/nio/file/Path;)Ljava/lang/String;` = Path parameter, returns String
+> Byte Buddy writes this form for `@Advice.Origin("#s")`. The return type is not part of it. The Java Virtual Machine (JVM) descriptor form, such as `(Ljava/nio/file/Path;)Ljava/lang/String;`, belongs to `#d`, which Ares does not use here.
 
 **2. How Do We Collect This Information:**
 
@@ -655,7 +651,7 @@ public void checkFileSystemInteraction(
 - Identify which file operation was attempted
 - Look up special handling rules for specific methods
 - Distinguish between different versions of the same method (overloading)
-- Example: `java.io.FileInputStream.<init>(Ljava/lang/String;)V` → Identifies a `FileInputStream` constructor taking a String parameter
+- Example: `java.nio.file.Files.readString(java.nio.file.Path)` → Identifies the `Files.readString` variant taking a `Path` parameter
 
 > 💡 **Why `formatSignature()`?** AspectJ's raw `Signature.toLongString()` prepends Java modifiers (e.g. `"public transient "`) and omits `.<init>` for constructors. The helper `formatSignature()` normalises the AspectJ join-point signature to the same `<init>`-style shape that the Byte Buddy (Instrumentation) side produces, so both backends report identical signatures.
 
@@ -778,7 +774,7 @@ After collecting this information, Ares passes it to the security validation com
 > ├─ action: "read"
 > ├─ declaringTypeName: "java.nio.file.Files"
 > ├─ methodName: "readString"
-> ├─ methodSignature: "(Ljava/nio/file/Path;)Ljava/lang/String;"
+> ├─ methodSignature: "(java.nio.file.Path)"
 > ├─ parameters: [Path.of("/etc/passwd")]
 > ├─ attributes: [] (not applicable for static method)
 > └─ instance: null (static method has no instance)

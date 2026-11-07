@@ -23,8 +23,8 @@ public final class BaselineAdviceProbe {
 	 *
 	 * @param owner          the class declaring the method
 	 * @param method         the method name, {@code <init>} for a constructor
-	 * @param descriptor     the method's JVM descriptor, as instrumentation reads
-	 *                       it
+	 * @param descriptor     the signature handed to instrumentation; archive rows
+	 *                       use the advice's form, such as {@code ()}
 	 * @param parameterTypes the declared parameter types, as AspectJ reads them
 	 * @param parameters     the arguments
 	 * @param instance       the receiver, or {@code null}
@@ -52,6 +52,20 @@ public final class BaselineAdviceProbe {
 		} else {
 			JavaAspectJFileSystemAdviceDefinitions.aspectOf().checkFileSystemInteraction(action, joinPointOf(call));
 		}
+	}
+
+	/**
+	 * Runs one call through the instrumentation check under the given class name,
+	 * which a {@link Call} cannot carry when it is blank or missing.
+	 *
+	 * @param owner  the class name handed to the check
+	 * @param action the file-system action the call performs
+	 * @param call   the call
+	 * @throws SecurityException if the check denies the call
+	 */
+	public static void checkInstrumentationAs(String owner, String action, Call call) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(action, owner, call.method(),
+				call.descriptor(), fieldsOf(call.instance()), call.parameters(), call.instance());
 	}
 
 	/**

@@ -1538,17 +1538,16 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Tells whether the call reads an entry of a {@code JarFile} or {@code ZipFile}
-	 * that is already open. Opening the archive is still checked against the
-	 * policy, and the entry call names no file of its own, so the entry read is
-	 * allowed, exactly as on the AspectJ backend.
+	 * that is already open. Opening it was checked against the policy, and an entry
+	 * names no file of its own.
 	 *
-	 * @param action            the file-system action being checked
-	 * @param declaringTypeName the class of the intercepted method
-	 * @param methodName        the intercepted method
-	 * @param methodSignature   the intercepted method's signature
+	 * @param action            the file-system action
+	 * @param declaringTypeName the called method's class
+	 * @param methodName        the called method
+	 * @param methodSignature   its parameter list, such as {@code ()}
 	 * @param parameters        the call arguments
-	 * @param instance          the archive receiver
-	 * @return {@code true} for a read of an entry, never for opening the archive
+	 * @param instance          the archive
+	 * @return whether the call is such an entry read
 	 */
 	private static boolean isEntryReadOnOpenArchive(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nullable String methodName, @Nullable String methodSignature, @Nullable Object[] parameters,
@@ -1557,12 +1556,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				|| !isJdkArchiveReceiver(archive, declaringTypeName) || parameters == null) {
 			return false;
 		}
-		boolean entryCall = "entries".equals(methodName)
-				&& ("()Ljava/util/Enumeration;".equals(methodSignature) || "()".equals(methodSignature))
-				&& parameters.length == 0;
-		boolean streamCall = "getInputStream".equals(methodName)
-				&& ("(Ljava/util/zip/ZipEntry;)Ljava/io/InputStream;".equals(methodSignature)
-						|| "(java.util.zip.ZipEntry)".equals(methodSignature))
+		boolean entryCall = "entries".equals(methodName) && "()".equals(methodSignature) && parameters.length == 0;
+		boolean streamCall = "getInputStream".equals(methodName) && "(java.util.zip.ZipEntry)".equals(methodSignature)
 				&& parameters.length == 1 && parameters[0] instanceof java.util.zip.ZipEntry;
 		if (!entryCall && !streamCall) {
 			return false;
@@ -1705,19 +1700,17 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
-	 * Validates a file system interaction against security policies.
-	 * <p>
-	 * Description: Verifies that the specified action (read, overwrite, create,
-	 * execute, delete) complies with allowed paths and call stack criteria. Throws
-	 * SecurityException if a policy violation is detected.
+	 * Checks one file-system call against the policy. A call without a method or
+	 * class name is refused.
 	 *
-	 * @param action            the file system action being performed
-	 * @param declaringTypeName the fully qualified class name of the caller
-	 * @param methodName        the name of the method invoked
-	 * @param methodSignature   the method signature descriptor
-	 * @param attributes        optional method attributes
-	 * @param parameters        optional method parameters
-	 * @throws SecurityException if unauthorised access is detected
+	 * @param action            the file-system action
+	 * @param declaringTypeName the method's class
+	 * @param methodName        the called method
+	 * @param methodSignature   its parameter list, such as {@code ()}
+	 * @param attributes        the receiver's fields
+	 * @param parameters        the call arguments
+	 * @param instance          the receiver, or {@code null}
+	 * @throws SecurityException if the call is forbidden
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
@@ -1745,6 +1738,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			if (isProjectSourcesFinderInProgress()) {
 				return;
+			}
+			if (methodName == null || methodName.isBlank() || declaringTypeName == null
+					|| declaringTypeName.isBlank()) {
+				throw new SecurityException(localize("security.advice.file.system.unknown.action", "malformed method"));
 			}
 			@Nullable
 			final String[] allowedClasses = getValueFromSettings("allowedListedClasses");

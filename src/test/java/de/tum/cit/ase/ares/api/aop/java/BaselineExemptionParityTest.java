@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
@@ -325,13 +326,57 @@ class BaselineExemptionParityTest {
 	}
 
 	/**
+	 * A blank or missing method name is refused on both backends, even when the
+	 * call names no path the policy forbids.
+	 *
+	 * @param method    the method name, blank or missing
+	 * @param directory a fresh test folder
+	 */
+	@ParameterizedTest
+	@NullAndEmptySource
+	@ValueSource(strings = { "  " })
+	void blankMethodNameIsRefused(String method, @TempDir Path directory) {
+		Call call = archiveCallWithoutPath(directory, method);
+		try {
+			for (AOPMode mode : BACKENDS) {
+				configure(mode, new String[] { directory.resolve("archive.jar").toString() });
+				assertThatThrownBy(() -> BaselineAdviceProbe.check(mode, "read", call)).as(mode.name())
+						.isInstanceOf(SecurityException.class).hasMessageContaining("malformed method");
+			}
+		} finally {
+			close(call.instance());
+		}
+	}
+
+	/**
+	 * A blank or missing class name is refused by instrumentation. AspectJ takes
+	 * the class from the call itself, so this case exists on instrumentation only.
+	 *
+	 * @param owner     the class name, blank or missing
+	 * @param directory a fresh test folder
+	 */
+	@ParameterizedTest
+	@NullAndEmptySource
+	@ValueSource(strings = { "  " })
+	void blankClassNameIsRefusedByInstrumentation(String owner, @TempDir Path directory) {
+		Call call = archiveCallWithoutPath(directory, "entries");
+		try {
+			configure(AOPMode.INSTRUMENTATION, new String[] { directory.resolve("archive.jar").toString() });
+			assertThatThrownBy(() -> BaselineAdviceProbe.checkInstrumentationAs(owner, "read", call))
+					.isInstanceOf(SecurityException.class).hasMessageContaining("malformed method");
+		} finally {
+			close(call.instance());
+		}
+	}
+
+	/**
 	 * An archive entry method cannot be called without an open archive receiver.
 	 *
 	 * @param directory a fresh test folder
 	 */
 	@Test
 	void archiveEntryWithoutReceiverIsRefused(@TempDir Path directory) {
-		Call call = new Call(JarFile.class, "getInputStream", "(Ljava/util/zip/ZipEntry;)Ljava/io/InputStream;",
+		Call call = new Call(JarFile.class, "getInputStream", "(java.util.zip.ZipEntry)",
 				new Class<?>[] { ZipEntry.class },
 				new Object[] { new ZipEntry(file(directory, "forbidden.txt").toString()) }, null);
 		for (AOPMode mode : BACKENDS) {
@@ -351,8 +396,7 @@ class BaselineExemptionParityTest {
 	void untrustedArchiveOverrideIsNeverInvoked(@TempDir Path directory) throws IOException {
 		UntrustedZipFile archive = new UntrustedZipFile(archive(directory));
 		try {
-			Call call = new Call(ZipFile.class, "entries", "()Ljava/util/Enumeration;", new Class<?>[0], new Object[0],
-					archive);
+			Call call = new Call(ZipFile.class, "entries", "()", new Class<?>[0], new Object[0], archive);
 			for (AOPMode mode : BACKENDS) {
 				configure(mode, new String[0]);
 				assertThatThrownBy(() -> BaselineAdviceProbe.check(mode, "read", call)).as(mode.name())
@@ -374,8 +418,7 @@ class BaselineExemptionParityTest {
 	void untrustedJarOverrideIsNeverInvoked(@TempDir Path directory) throws IOException {
 		UntrustedJarFile jar = new UntrustedJarFile(archive(directory));
 		try {
-			Call call = new Call(JarFile.class, "entries", "()Ljava/util/Enumeration;", new Class<?>[0], new Object[0],
-					jar);
+			Call call = new Call(JarFile.class, "entries", "()", new Class<?>[0], new Object[0], jar);
 			for (AOPMode mode : BACKENDS) {
 				configure(mode, new String[0]);
 				assertThatThrownBy(() -> BaselineAdviceProbe.check(mode, "read", call)).as(mode.name())
@@ -773,8 +816,21 @@ class BaselineExemptionParityTest {
 	 * @return the call
 	 */
 	private static Call entryRead(Class<?> owner, ZipFile archive, ZipEntry entry) {
-		return new Call(owner, "getInputStream", "(Ljava/util/zip/ZipEntry;)Ljava/io/InputStream;",
-				new Class<?>[] { ZipEntry.class }, new Object[] { entry }, archive);
+		return new Call(owner, "getInputStream", "(java.util.zip.ZipEntry)", new Class<?>[] { ZipEntry.class },
+				new Object[] { entry }, archive);
+	}
+
+	/**
+	 * A call with the given method name on a zip the test opened itself. It names
+	 * no path the policy forbids, so only the name can make a backend refuse it.
+	 *
+	 * @param directory the test folder
+	 * @param method    the method name
+	 * @return the call
+	 */
+	private static Call archiveCallWithoutPath(Path directory, String method) {
+		return new Call(ZipFile.class, method, "()", new Class<?>[0], new Object[0],
+				zipEntryRead(archive(directory)).instance());
 	}
 
 	/**
@@ -784,8 +840,7 @@ class BaselineExemptionParityTest {
 	 * @return an enumeration call on the same archive
 	 */
 	private static Call archiveEntries(Call entryCall) {
-		return new Call(entryCall.owner(), "entries", "()Ljava/util/Enumeration;", new Class<?>[0], new Object[0],
-				entryCall.instance());
+		return new Call(entryCall.owner(), "entries", "()", new Class<?>[0], new Object[0], entryCall.instance());
 	}
 
 	/**
