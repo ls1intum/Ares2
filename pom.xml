@@ -86,6 +86,8 @@
 		<jacoco-line-coverage-minimum>0.55</jacoco-line-coverage-minimum>
 		<jacoco-branch-coverage-minimum>0.35</jacoco-branch-coverage-minimum>
 		<jacoco-method-coverage-minimum>0.65</jacoco-method-coverage-minimum>
+		<pitest-version>1.30.2</pitest-version>
+		<pitest-junit5-plugin-version>1.2.3</pitest-junit5-plugin-version>
 		<!-- full certificate fingerprint: 23E62BB282A473EE4DDA2F8763EFD39363D21A8D -->
 		<gpg.key.id>23E62BB282A473EE4DDA2F8763EFD39363D21A8D</gpg.key.id>
 	</properties>
@@ -1298,6 +1300,128 @@
 								</configuration>
 							</execution>
 						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<!-- Mutation testing of Ares' own tests with PIT, run with `mvn test -Pmutation`. PIT
+			makes small changes to the main classes and reports which changes no test noticed.
+			It replaces the normal test run and only writes a report, so a low score fails
+			nothing. PIT takes the JVM arguments from Surefire, including the
+			Ares agent. Classes that agent loads at JVM start, such as Messages, LruCache and the
+			instrumentation toolboxes, load before PIT can record them and so show NO_COVERAGE. -->
+		<profile>
+			<id>mutation</id>
+			<properties>
+				<!-- What the first PIT run changes and which tests look for it. Both can be
+					narrowed on the command line with -D, as a run over everything takes a very
+					long time. The second PIT run has fixed lists and ignores these. -->
+				<pitest-target-classes>de.tum.cit.ase.ares.api.*</pitest-target-classes>
+				<pitest-target-tests>de.tum.cit.ase.ares.api.*Test</pitest-target-tests>
+			</properties>
+			<build>
+				<plugins>
+					<!-- Surefire alone is switched off here: PIT also obeys -DskipTests and would
+						then not run at all. -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<skip>true</skip>
+						</configuration>
+					</plugin>
+					<!-- Must list the same classes as putToolboxOnBootClassLoader in
+						JavaInstrumentationAgent, which is what the second PIT run stands in for. -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-resources-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>copy-classes-for-boot-class-path</id>
+								<phase>process-test-classes</phase>
+								<goals>
+									<goal>copy-resources</goal>
+								</goals>
+								<configuration>
+									<outputDirectory>${project.build.directory}/pit-boot-classes</outputDirectory>
+									<resources>
+										<resource>
+											<directory>${project.build.outputDirectory}</directory>
+											<includes>
+												<include>de/tum/cit/ase/ares/api/aop/java/JavaAOPTestCaseSettings.class</include>
+												<include>de/tum/cit/ase/ares/api/aop/java/instrumentation/advice/IgnoreValues.class</include>
+												<include>de/tum/cit/ase/ares/api/aop/java/instrumentation/advice/*Target.class</include>
+												<include>de/tum/cit/ase/ares/api/aop/java/instrumentation/advice/JavaInstrumentationAdvice*Toolbox.class</include>
+												<include>de/tum/cit/ase/ares/api/aop/java/instrumentation/advice/JavaInstrumentationThreadSystemCallSite.class</include>
+											</includes>
+										</resource>
+									</resources>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-maven</artifactId>
+						<version>${pitest-version}</version>
+						<dependencies>
+							<dependency>
+								<groupId>org.pitest</groupId>
+								<artifactId>pitest-junit5-plugin</artifactId>
+								<version>${pitest-junit5-plugin-version}</version>
+							</dependency>
+						</dependencies>
+						<executions>
+							<execution>
+								<id>mutation-report</id>
+								<phase>test</phase>
+								<goals>
+									<goal>mutationCoverage</goal>
+								</goals>
+							</execution>
+							<!-- Measures the classes the first run reports as NO_COVERAGE, in a report of
+								its own. It runs without the Ares agent and only with unit tests. The
+								classes the agent would put on the boot class path are placed there by the
+								copy step above. A few of these tests need the real agent, so any test that
+								fails here is skipped, whatever the cause. A separate run without this
+								profile checks the tests themselves. Neither PIT run can measure the agent
+								class itself. -->
+							<execution>
+								<id>mutation-report-without-agent</id>
+								<phase>test</phase>
+								<goals>
+									<goal>mutationCoverage</goal>
+								</goals>
+								<configuration>
+									<reportsDirectory>${project.build.directory}/pit-reports-without-agent</reportsDirectory>
+									<parseSurefireArgLine>false</parseSurefireArgLine>
+									<skipFailingTests>true</skipFailingTests>
+									<argLine>-Xmx${surefire-max-heap} -Xbootclasspath/a:${aspectj-path}${path.separator}${project.build.directory}/pit-boot-classes ${jvm.module.access.args}</argLine>
+									<targetClasses>
+										<param>de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings*</param>
+										<param>de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.*Toolbox*</param>
+										<param>de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.*Target</param>
+										<param>de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues*</param>
+										<param>de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite*</param>
+										<param>de.tum.cit.ase.ares.api.localization.Messages*</param>
+										<param>de.tum.cit.ase.ares.api.util.LruCache*</param>
+									</targetClasses>
+									<targetTests>
+										<param>de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettingsTest</param>
+										<param>de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.*Test</param>
+										<param>de.tum.cit.ase.ares.api.util.LruCacheTest</param>
+									</targetTests>
+								</configuration>
+							</execution>
+						</executions>
+						<configuration>
+							<targetClasses>
+								<param>${pitest-target-classes}</param>
+							</targetClasses>
+							<targetTests>
+								<param>${pitest-target-tests}</param>
+							</targetTests>
+						</configuration>
 					</plugin>
 				</plugins>
 			</build>
