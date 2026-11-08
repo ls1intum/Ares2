@@ -268,6 +268,15 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      # JceConsumerBuildTest runs real builds through the Gradle wrapper, which would otherwise
+      # fetch the distribution from services.gradle.org in a single attempt, so that an outage
+      # there fails this job. No restore-keys: only this exact distribution is of any use.
+      - name: Restore the Gradle wrapper distribution
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('examples/ares-exercise-gradle/gradle/wrapper/gradle-wrapper.properties') }}
+
       - name: Core integration tests
         run: mvn test -Pintegration-core-tests,coverage -f pom.xml
 
