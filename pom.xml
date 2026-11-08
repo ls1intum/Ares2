@@ -18,6 +18,7 @@
 		<assertj-version>3.27.7</assertj-version>
 		<!-- 1. Testing: 1.4 Mockito -->
 		<mockito-version>5.24.0</mockito-version>
+		<objenesis-version>3.6</objenesis-version>
 		<!-- 2. Architecture: 2.1 Archunit -->
 		<archunit-version>1.5.1</archunit-version>
 		<!-- 2. Architecture: 2.2 Wala -->
@@ -166,6 +167,15 @@
 			<artifactId>mockito-core</artifactId>
 			<version>${mockito-version}</version>
 			<!-- Multiple Cases -->
+		</dependency>
+		<!-- Reaches Ares through mockito-core, which brings objenesis 3.3, affected by
+			CVE-2026-116486 (fixed in 3.6). Declared directly so consumers resolve the fixed
+			version too, since they ignore Ares's dependencyManagement. -->
+		<dependency>
+			<groupId>org.objenesis</groupId>
+			<artifactId>objenesis</artifactId>
+			<version>${objenesis-version}</version>
+			<scope>runtime</scope>
 		</dependency>
 		<!-- 1. Testing: 1.4 AssertJ -->
 		<dependency>
