@@ -10,6 +10,7 @@ import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.completableFuture.CreateCompletableFutureMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.executorService.CreateExecutorServiceMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.forkJoinPool.CreateForkJoinPoolMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.record.CreateThreadFromRecordMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.scheduledExecutorService.CreateScheduledExecutorServiceMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.thread.CreateThreadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.threadFactory.CreateThreadFactoryMain;
@@ -21,6 +22,7 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 	private Thread preExistingLiveThread;
 
 	private static final String THREAD_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/thread";
+	private static final String RECORD_THREAD_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/record";
 	private static final String THREAD_MANIPULATION_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/manipulate/thread";
 	private static final String EXECUTOR_SERVICE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/executorService";
 	private static final String SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/scheduledExecutorService";
@@ -52,6 +54,69 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 			throw new AssertionError("Interrupted while stopping the pre-existing thread", e);
 		}
 	}
+
+	// <editor-fold desc="accessThreadSystemFromRecord">
+	/**
+	 * A record cannot start a thread its policy does not allow.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = RECORD_THREAD_WITHIN_PATH)
+	public void test_recordStartsThreadMavenArchunitAspectJ() {
+		assertAresSecurityExceptionThread(CreateThreadFromRecordMain::startThread, CreateThreadFromRecordMain.class);
+	}
+
+	/**
+	 * A record cannot start a thread its policy does not allow.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = RECORD_THREAD_WITHIN_PATH)
+	public void test_recordStartsThreadMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionThread(CreateThreadFromRecordMain::startThread, CreateThreadFromRecordMain.class);
+	}
+
+	/**
+	 * A record cannot start a thread its policy does not allow.
+	 */
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = RECORD_THREAD_WITHIN_PATH)
+	public void test_recordStartsThreadMavenWalaAspectJ() {
+		assertAresSecurityExceptionThread(CreateThreadFromRecordMain::startThread, CreateThreadFromRecordMain.class);
+	}
+
+	/**
+	 * A record cannot start a thread its policy does not allow.
+	 */
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = RECORD_THREAD_WITHIN_PATH)
+	public void test_recordStartsThreadMavenWalaInstrumentation() {
+		assertAresSecurityExceptionThread(CreateThreadFromRecordMain::startThread, CreateThreadFromRecordMain.class);
+	}
+
+	/**
+	 * A thread started through a method reference, from a class the JDK generates,
+	 * is still refused. Instrumentation only: AspectJ cannot check a call inside a
+	 * class the JDK generates, so it has no counterpart here.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = RECORD_THREAD_WITHIN_PATH)
+	public void test_methodReferenceStartsThreadMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionThread(CreateThreadFromRecordMain::startThreadThroughMethodReference,
+				CreateThreadFromRecordMain.class);
+	}
+
+	/**
+	 * A thread started through a method reference, from a class the JDK generates,
+	 * is still refused. Instrumentation only: AspectJ cannot check a call inside a
+	 * class the JDK generates, so it has no counterpart here.
+	 */
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = RECORD_THREAD_WITHIN_PATH)
+	public void test_methodReferenceStartsThreadMavenWalaInstrumentation() {
+		assertAresSecurityExceptionThread(CreateThreadFromRecordMain::startThreadThroughMethodReference,
+				CreateThreadFromRecordMain.class);
+	}
+
+	// </editor-fold>
 
 	// <editor-fold desc="accessThreadSystemViaStartThread">
 
