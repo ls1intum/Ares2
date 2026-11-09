@@ -1,30 +1,48 @@
-<!-- Ares reserved-package build boundary, version 2. Insert this plugin under build/plugins.
-     The Maven binding was already correct at boundary version 1: process-classes runs
-     under `mvn test`, so the validation was never skipped the way the Gradle version 1
-     snippet was. The version moves to 2 only so both build tools name the same boundary
-     contract. The build descriptor and the command used to invoke it are trusted
-     instructor configuration; this validates student code, not the build itself. -->
+<!-- Ares reserved-package build boundary, version 3. Insert this plugin under build/plugins.
+     Version 3 also rejects files that would let student code plug into the test run:
+     every META-INF/services file (JUnit and the JUnit Platform load the classes named
+     there by themselves), and junit-platform.properties and archunit.properties at the
+     root of the student output, which would reconfigure JUnit or the static analysis.
+     It also reserves de/tum/cit/ase/ares/generated, where precompile writes its own code.
+     Matching ignores letter case, because a case-insensitive file system (Windows, a
+     default macOS volume) also finds meta-inf/services/... for META-INF/services/...
+     Each name is a filename selector, not an include: Ant follows an include's fixed
+     leading folders in one spelling only, so it would miss meta-inf/ beside META-INF/.
+     Ant's default excludes are off, so a folder named CVS or .git is checked too.
+     The build descriptor and the command used to invoke it are trusted instructor
+     configuration; this validates student code, not the build itself. -->
 <plugin>
   <groupId>org.apache.maven.plugins</groupId>
   <artifactId>maven-antrun-plugin</artifactId>
   <version>3.2.0</version>
   <executions>
     <execution>
-      <id>verify-ares-reserved-packages-v2</id>
+      <id>verify-ares-reserved-packages-v3</id>
       <phase>process-classes</phase>
       <goals><goal>run</goal></goals>
       <configuration>
         <target>
-          <resourcecount property="ares.reserved.package.count">
-            <fileset dir="${project.build.outputDirectory}">
-              <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
-              <include name="jdk/**"/><include name="com/sun/**"/>
-              <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
-              <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-              <include name="com/tngtech/archunit/**"/>
-            </fileset>
-          </resourcecount>
-          <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">
+          <fileset id="ares.reserved.files" dir="${project.build.outputDirectory}" defaultexcludes="no">
+            <or>
+              <filename name="java/**" casesensitive="false"/>
+              <filename name="javax/**" casesensitive="false"/>
+              <filename name="sun/**" casesensitive="false"/>
+              <filename name="jdk/**" casesensitive="false"/>
+              <filename name="com/sun/**" casesensitive="false"/>
+              <filename name="de/tum/cit/ase/ares/api/**" casesensitive="false"/>
+              <filename name="de/tum/cit/ase/ares/generated/**" casesensitive="false"/>
+              <filename name="net/bytebuddy/**" casesensitive="false"/>
+              <filename name="org/aspectj/**" casesensitive="false"/>
+              <filename name="com/ibm/wala/**" casesensitive="false"/>
+              <filename name="com/tngtech/archunit/**" casesensitive="false"/>
+              <filename name="META-INF/services/**" casesensitive="false"/>
+              <filename name="junit-platform.properties" casesensitive="false"/>
+              <filename name="archunit.properties" casesensitive="false"/>
+            </or>
+          </fileset>
+          <resourcecount property="ares.reserved.package.count" refid="ares.reserved.files"/>
+          <pathconvert property="ares.reserved.package.files" refid="ares.reserved.files" pathsep=", "/>
+          <fail message="Ares reserved-package validation 3 rejected student output: ${ares.reserved.package.files}. No bypass flag is supported.">
             <condition><not><equals arg1="${ares.reserved.package.count}" arg2="0"/></not></condition>
           </fail>
         </target>

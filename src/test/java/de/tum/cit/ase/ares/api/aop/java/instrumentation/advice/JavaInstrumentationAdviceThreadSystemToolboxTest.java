@@ -9,17 +9,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.internal.TimeoutUtils;
+import de.tum.cit.ase.ares.testutilities.GeneratedStackFrames;
 
 import example.student.InstrumentationSecurityProbe;
 
@@ -205,5 +208,18 @@ class JavaInstrumentationAdviceThreadSystemToolboxTest {
 		// Supplies the annotation the mocked test context reports, so that
 		// performTimeoutExecution really goes through its worker rather than running
 		// the supplier inline.
+	}
+
+	/**
+	 * The generated precompile timeout's worker is exempt exactly as
+	 * {@code TimeoutUtils}'s is, and nothing else gains the exemption.
+	 *
+	 * @param tempDir where the stand-in classes are compiled.
+	 * @throws Exception if a call fails
+	 */
+	@Test
+	void theGeneratedTimeoutsExemptionIsExact(@TempDir Path tempDir) throws Exception {
+		GeneratedStackFrames.compile(tempDir).verifyTimeoutExemption(JavaInstrumentationAdviceThreadSystemToolbox.class
+				.getDeclaredMethod("isThreadCreationFromAresTimeout", String.class));
 	}
 }

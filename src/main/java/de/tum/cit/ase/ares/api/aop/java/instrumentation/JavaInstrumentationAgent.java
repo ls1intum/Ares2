@@ -30,6 +30,7 @@ import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.utility.JavaModule;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.AresSecurityViolation;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.CommandTarget;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.FileTarget;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.IgnoreValues;
@@ -538,12 +539,12 @@ public final class JavaInstrumentationAgent {
 			// Load classes in dependency order to ensure proper initialisation
 
 			// Step 1: Load fundamental classes
-			injectClassesSafely(classInjector,
-					Map.ofEntries(
-							Map.entry(IgnoreValues.class.getName(),
-									ClassFileLocator.ForClassLoader.read(IgnoreValues.class)),
-							Map.entry(JavaAOPTestCaseSettings.class.getName(),
-									ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class))));
+			injectClassesSafely(classInjector, Map.ofEntries(
+					Map.entry(IgnoreValues.class.getName(), ClassFileLocator.ForClassLoader.read(IgnoreValues.class)),
+					Map.entry(JavaAOPTestCaseSettings.class.getName(),
+							ClassFileLocator.ForClassLoader.read(JavaAOPTestCaseSettings.class)),
+					Map.entry(AresSecurityViolation.class.getName(),
+							ClassFileLocator.ForClassLoader.read(AresSecurityViolation.class))));
 
 			// Step 2: Load the abstract toolbox (depends on basic classes)
 			injectClassesSafely(classInjector,

@@ -2,6 +2,7 @@ Source,Value,Target
 aop/java/instrumentation/advice/IgnoreValues.java,1,ares/api/aop/java/instrumentation/advice/IgnoreValues.java
 aop/java/instrumentation/advice/JavaInstrumentationAdviceAbstractToolbox.java,12,ares/api/aop/java/instrumentation/advice/JavaInstrumentationAdviceAbstractToolbox.java
 aop/java/instrumentation/advice/FileTarget.java,2,ares/api/aop/java/instrumentation/advice/FileTarget.java
+aop/java/instrumentation/advice/AresSecurityViolation.java,1,ares/api/aop/java/instrumentation/advice/AresSecurityViolation.java
 aop/java/instrumentation/advice/NetworkTarget.java,2,ares/api/aop/java/instrumentation/advice/NetworkTarget.java
 aop/java/instrumentation/advice/ThreadTarget.java,2,ares/api/aop/java/instrumentation/advice/ThreadTarget.java
 aop/java/instrumentation/advice/CommandTarget.java,2,ares/api/aop/java/instrumentation/advice/CommandTarget.java

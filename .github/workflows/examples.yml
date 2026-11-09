@@ -190,7 +190,15 @@ jobs:
             ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test
           fi
 
-      - name: Confirm the reserved-package boundary rejects an impostor
+      # Student output may hold none of these. A class in a reserved package
+      # inherits Ares's trust by name, and JUnit and ArchUnit read the service
+      # and configuration files by themselves, in any letter case on a
+      # case-insensitive file system, so a student file there could
+      # plug code into the test run or reconfigure the static analysis. Each script
+      # collects every offending file before it fails, so one build checks them all,
+      # and each must be named on its own: a pattern that stopped matching would
+      # otherwise hide behind the others still failing the build.
+      - name: Confirm the reserved-package boundary rejects every reserved file
         env:
           TOOL: ${{ matrix.tool }}
         run: |
@@ -198,9 +206,22 @@ jobs:
           # Run in a copy, so the canonical example tree is never edited.
           work="${RUNNER_TEMP}/impostor"
           cp -R "examples/ares-exercise-${TOOL}" "${work}"
-          mkdir -p "${work}/src/main/java/de/tum/cit/ase/ares/api"
-          printf 'package de.tum.cit.ase.ares.api;\n\npublic class Impostor {\n    public static String hello() {\n        return "trusted";\n    }\n}\n' \
-            > "${work}/src/main/java/de/tum/cit/ase/ares/api/Impostor.java"
+          plant_class() {
+            mkdir -p "${work}/src/main/java/$1"
+            printf 'package %s;\n\npublic class Impostor {\n}\n' "$(echo "$1" | tr / .)" \
+              > "${work}/src/main/java/$1/Impostor.java"
+          }
+          plant_resource() {
+            mkdir -p "$(dirname "${work}/src/main/resources/$1")"
+            printf '%s\n' "$2" > "${work}/src/main/resources/$1"
+          }
+          plant_class de/tum/cit/ase/ares/api
+          plant_class de/tum/cit/ase/ares/generated
+          plant_resource META-INF/services/org.junit.jupiter.api.extension.Extension org.example.Spy
+          plant_resource meta-inf/services/org.junit.jupiter.api.extension.Extension org.example.Spy
+          plant_resource META-INF/services/org.junit.platform.engine.TestEngine org.example.Spy
+          plant_resource junit-platform.properties junit.jupiter.extensions.autodetection.enabled=false
+          plant_resource archunit.properties archRule.failOnEmptyShould=false
           cd "${work}"
           if [ "${TOOL}" = "maven" ]; then
             mvn -B -ntp -Dares.version="${ARES_VERSION}" test > output.log 2>&1 && status=0 || status=$?
@@ -208,18 +229,36 @@ jobs:
             ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test > output.log 2>&1 && status=0 || status=$?
           fi
           if [ "${status}" -eq 0 ]; then
-            echo "::error::A class in de.tum.cit.ase.ares.api survived the build. The reserved-package boundary is not active."
+            echo "::error::Reserved files in student output survived the build. The reserved-package boundary is not active."
             tail -50 output.log
             exit 1
           fi
           # A non-zero status alone is not enough: any compile error would produce
-          # one. Require the boundary's own diagnostic.
-          if ! grep -q 'Ares reserved-package validation 2 rejected student output' output.log; then
+          # one. Require the boundary's own diagnostic, naming each planted file.
+          if ! grep -q 'Ares reserved-package validation 3 rejected student output' output.log; then
             echo "::error::The build failed, but not with the reserved-package diagnostic, so something else broke."
             tail -50 output.log
             exit 1
           fi
-          echo "Reserved-package boundary rejected the impostor class, as required."
+          missing=0
+          for planted in \
+            de/tum/cit/ase/ares/api/Impostor.class \
+            de/tum/cit/ase/ares/generated/Impostor.class \
+            META-INF/services/org.junit.jupiter.api.extension.Extension \
+            meta-inf/services/org.junit.jupiter.api.extension.Extension \
+            META-INF/services/org.junit.platform.engine.TestEngine \
+            junit-platform.properties \
+            archunit.properties; do
+            if ! grep 'Ares reserved-package validation 3 rejected student output' output.log | grep -q "${planted}"; then
+              echo "::error::The reserved-package diagnostic does not name ${planted}."
+              missing=1
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then
+            tail -50 output.log
+            exit 1
+          fi
+          echo "Reserved-package boundary rejected every planted file, as required."
 
       - name: Confirm the Gradle setup is configuration-cache compatible
         if: matrix.tool == 'gradle'

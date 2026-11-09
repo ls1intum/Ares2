@@ -816,7 +816,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 		NetworkTarget targetFromParameters = hasParameters ? parametersToTarget(parameters, consumedParameterIndices)
 				: null;
 		if (targetFromParameters != null && checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
-			throw new SecurityException(localize(
+			throw AresSecurityViolation.create("network", action, targetFromParameters.toDisplayString(), localize(
 					"security.advice.illegal.network.execution",
 					networkSystemMethodToCheck,
 					action,
@@ -847,7 +847,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 								NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 										IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughParameter != null) {
-			throw new SecurityException(localize(
+			throw AresSecurityViolation.create("network", action, networkIllegallyInteractedThroughParameter, localize(
 					"security.advice.illegal.network.execution",
 					networkSystemMethodToCheck,
 					action,
@@ -864,7 +864,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 				: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedHosts, allowedPorts,
 						IgnoreValues.NONE);
 		if (networkIllegallyInteractedThroughReceiver != null) {
-			throw new SecurityException(localize(
+			throw AresSecurityViolation.create("network", action, networkIllegallyInteractedThroughReceiver, localize(
 					"security.advice.illegal.network.execution",
 					networkSystemMethodToCheck,
 					action,
@@ -885,7 +885,7 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 						NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughAttribute != null) {
-			throw new SecurityException(localize(
+			throw AresSecurityViolation.create("network", action, networkIllegallyInteractedThroughAttribute, localize(
 					"security.advice.illegal.network.execution",
 					networkSystemMethodToCheck,
 					action,

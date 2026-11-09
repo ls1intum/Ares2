@@ -847,7 +847,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		// Fail closed: a ProcessBuilder.start whose command field could not be read cannot
 		// be validated against the allow-list, so it must be denied rather than allowed.
 		if (criticalCommandFieldUnreadable) {
-			throw new SecurityException(localize(
+			throw AresSecurityViolation.create("command", action, "<unknown>", localize(
 					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action, "<unknown>",
 					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 							+ " | " + buildDenialReason(noAllowRuleConfigured)));
@@ -859,7 +859,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 						COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(
 								extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughParameter != null) {
-			throw new SecurityException(localize(
+			throw AresSecurityViolation.create("command", action, commandIllegallyExecutedThroughParameter, localize(
 					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
 					commandIllegallyExecutedThroughParameter,
 					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
@@ -875,7 +875,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			// passed, i.e. the command IS allow-listed; only its executable file path is not
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
-			throw new SecurityException(localize(
+			throw AresSecurityViolation.create("file", action, pathIllegallyExecutedThroughParameter, localize(
 					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
 					pathIllegallyExecutedThroughParameter,
 					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
@@ -889,7 +889,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 						COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(
 								extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughAttribute != null) {
-			throw new SecurityException(localize(
+			throw AresSecurityViolation.create("command", action, commandIllegallyExecutedThroughAttribute, localize(
 					"security.advice.illegal.command.execution", commandSystemMethodToCheck, action,
 					commandIllegallyExecutedThroughAttribute,
 					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
@@ -905,7 +905,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			// passed, i.e. the command IS allow-listed; only its executable file path is not
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
-			throw new SecurityException(localize(
+			throw AresSecurityViolation.create("file", action, pathIllegallyExecutedThroughAttribute, localize(
 					"security.advice.illegal.file.execution", commandSystemMethodToCheck, action,
 					pathIllegallyExecutedThroughAttribute,
 					describeDeniedCall(thisJoinPoint, fullMethodSignature) + (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")

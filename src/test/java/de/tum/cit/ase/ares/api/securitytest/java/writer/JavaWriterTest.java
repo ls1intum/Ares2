@@ -20,9 +20,14 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FailureFeedbackConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.OutputConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.StrictTimeoutConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.VisibilityAndScheduleConfiguration;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 @DisplayName("JavaWriter Tests")
@@ -40,6 +45,7 @@ public class JavaWriterTest {
 	private List<JavaArchitectureTestCase> javaArchitectureTestCases;
 	private List<JavaAOPTestCase> javaAOPTestCases;
 	private List<JavaPhobosTestCase> javaPhobosTestCases;
+	/** A behaviour configuration with nothing configured. */
 	private TestBehaviorConfiguration emptyTestBehaviorConfiguration;
 
 	@TempDir
@@ -279,6 +285,7 @@ public class JavaWriterTest {
 			}
 		}
 
+		/** With nothing configured, no settings class is written. */
 		@Test
 		@DisplayName("Should write nothing extra when no behavioural category is configured")
 		void shouldWriteNothingExtraWhenTestBehaviorEmpty() {
@@ -296,6 +303,166 @@ public class JavaWriterTest {
 				assertEquals(3, result.size());
 				assertFalse(Files.exists(generatedSettingsClassPath()));
 			}
+		}
+
+		/** The released signature still writes its outputs and no settings class. */
+		@Test
+		@DisplayName("Should write the settings class and the hidden-test hook when the category is configured")
+		void shouldWriteTheHiddenTestsHookWhenConfigured() throws IOException {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				List<Path> result = writeWith(hiddenTestsConfigured());
+
+				assertEquals(8, result.size(), "3 released outputs, the settings class, 2 sources, 2 registrations");
+				assertTrue(Files.readString(generatedSettingsClassPath())
+						.contains("REGARDING_THE_VISIBILITY_AND_SCHEDULE_THE_DEADLINE = 946684800000L;"));
+				assertTrue(Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedHiddenTests.java")));
+			}
+		}
+
+		@Test
+		@DisplayName("Should remove the hidden-test hook when regenerated without the category")
+		void shouldRemoveTheHiddenTestsHookWhenRegeneratedWithout() {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+				writeWith(hiddenTestsConfigured());
+
+				List<Path> result = writeWith(emptyTestBehaviorConfiguration);
+
+				assertEquals(3, result.size());
+				assertFalse(Files.exists(generatedSettingsClassPath()));
+				assertFalse(Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedHiddenTests.java")));
+			}
+		}
+
+		/**
+		 * Runs the configuration-aware {@code writeTestCases} into {@code tempDir} with
+		 * this class's fixed inputs.
+		 *
+		 * @param testBehaviorConfiguration the behaviour configuration to write.
+		 * @return the written files.
+		 */
+		private List<Path> writeWith(TestBehaviorConfiguration testBehaviorConfiguration) {
+			return javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+					testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases,
+					javaPhobosTestCases, testBehaviorConfiguration, tempDir);
+		}
+
+		/**
+		 * A configuration with a deadline at the start of 2000 and no hidden tests.
+		 *
+		 * @return the configuration.
+		 */
+		private TestBehaviorConfiguration hiddenTestsConfigured() {
+			return TestBehaviorConfiguration
+					.builder().regardingTheVisibilityAndScheduleOfTheTestCases(VisibilityAndScheduleConfiguration
+							.builder().theDeadlineIs("2000-01-01 00:00 UTC").testsNotListedHereAreHidden(false).build())
+					.build();
+		}
+
+		@Test
+		@DisplayName("Should write the settings class and the strict-timeout hooks when a strict timeout is configured")
+		void shouldWriteTheStrictTimeoutHooksWhenConfigured() throws IOException {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				List<Path> result = writeWith(strictTimeoutConfigured());
+
+				assertEquals(8, result.size(), "3 released outputs, the settings class, 2 sources, 2 registrations");
+				assertTrue(Files.readString(generatedSettingsClassPath())
+						.contains("REGARDING_THE_STRICT_TIMEOUT_THE_TIMEOUT_NANOS = 2000000000L;"));
+				assertTrue(Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedStrictTimeout.java")));
+			}
+		}
+
+		@Test
+		@DisplayName("Should remove the strict-timeout hooks when regenerated without the setting")
+		void shouldRemoveTheStrictTimeoutHooksWhenRegeneratedWithout() {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+				writeWith(strictTimeoutConfigured());
+
+				List<Path> result = writeWith(emptyTestBehaviorConfiguration);
+
+				assertEquals(3, result.size());
+				assertFalse(Files.exists(generatedSettingsClassPath()));
+				assertFalse(Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedStrictTimeout.java")));
+			}
+		}
+
+		/**
+		 * A configuration with a two-second strict timeout.
+		 *
+		 * @return the configuration.
+		 */
+		private TestBehaviorConfiguration strictTimeoutConfigured() {
+			return TestBehaviorConfiguration.builder().regardingTheStrictTimeoutForTheTestCases(
+					StrictTimeoutConfiguration.builder().theTimeoutIs("2s").build()).build();
+		}
+
+		@Test
+		@DisplayName("Should write the settings class and the output-mirroring hook when the category is configured")
+		void shouldWriteTheOutputMirroringHookWhenConfigured() throws IOException {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				List<Path> result = writeWith(outputMirroringConfigured());
+
+				assertEquals(8, result.size(), "3 released outputs, the settings class, 2 sources, 2 registrations");
+				assertTrue(Files.readString(generatedSettingsClassPath())
+						.contains("REGARDING_THE_OUTPUT_THE_MAXIMUM_NUMBER_OF_OUTPUT_CHARACTERS = 10L;"));
+				assertTrue(Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedOutputMirroring.java")));
+			}
+		}
+
+		@Test
+		@DisplayName("Should remove the output-mirroring hook when regenerated without the category")
+		void shouldRemoveTheOutputMirroringHookWhenRegeneratedWithout() {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+				writeWith(outputMirroringConfigured());
+
+				List<Path> result = writeWith(emptyTestBehaviorConfiguration);
+
+				assertEquals(3, result.size());
+				assertFalse(Files.exists(generatedSettingsClassPath()));
+				assertFalse(Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedOutputMirroring.java")));
+			}
+		}
+
+		/**
+		 * A configuration limiting output to 10 per stream.
+		 *
+		 * @return the configuration.
+		 */
+		private TestBehaviorConfiguration outputMirroringConfigured() {
+			return TestBehaviorConfiguration.builder().regardingTheOutputOfTheTestCases(
+					OutputConfiguration.builder().theMaximumNumberOfOutputCharactersIs(10L).build()).build();
 		}
 
 		@Test
@@ -317,6 +484,11 @@ public class JavaWriterTest {
 			}
 		}
 
+		/**
+		 * Where the generated settings class lands in {@code tempDir}.
+		 *
+		 * @return the path of the generated settings class.
+		 */
 		private Path generatedSettingsClassPath() {
 			String fullyQualifiedName = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
 			int lastDot = fullyQualifiedName.lastIndexOf('.');
@@ -325,6 +497,10 @@ public class JavaWriterTest {
 			return tempDir.resolve(settingsPackagePath).resolve(simpleClassName + ".java");
 		}
 
+		/**
+		 * A subclass overriding only the released overload is still called through the
+		 * configuration-aware one.
+		 */
 		@Test
 		@DisplayName("Should invoke a subclass override of the released overload before adding behaviour outputs")
 		void configurationAwareOverloadInvokesASubclassOverrideOfTheReleasedOneFirst() {
@@ -357,6 +533,107 @@ public class JavaWriterTest {
 
 			assertTrue(legacySubclassWriter.releasedOverloadInvoked);
 			assertEquals(List.of(), result);
+		}
+
+		/**
+		 * A configured category is written as literal constants into the generated
+		 * settings class.
+		 */
+		@Test
+		@DisplayName("Should write the generated test-behaviour settings class when configured")
+		void shouldWriteGeneratedSettingsClassWhenPrivilegedExceptionsConfigured() throws IOException {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				List<Path> result = writeWith(privilegedExceptionsConfigured());
+
+				assertEquals(8, result.size(), "3 released outputs, the settings class and 4 failure-reporting files");
+				assertTrue(result.stream().anyMatch(path -> path.endsWith("GeneratedFailureReporting.java")));
+				Path written = generatedSettingsClassPath();
+				assertTrue(Files.exists(written));
+				String content = Files.readString(written);
+				assertTrue(content.contains("public static final boolean "
+						+ TestBehaviorConfiguration.FAILURE_FEEDBACK_PRIVILEGED_ONLY_FIELD_NAME + " = true;"));
+				assertTrue(content.contains("public static final String "
+						+ TestBehaviorConfiguration.FAILURE_FEEDBACK_MESSAGE_FIELD_NAME + " = \"Custom message\";"));
+			}
+		}
+
+		/**
+		 * Regenerating after the setting was removed deletes the class the earlier run
+		 * wrote, so the removed setting does not stay in force.
+		 */
+		@Test
+		@DisplayName("Should delete an earlier generated settings class when regenerated without configuration")
+		void regeneratingWithoutConfigurationDeletesTheEarlierSettingsClass() {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+				writeWith(privilegedExceptionsConfigured());
+				assertTrue(Files.exists(generatedSettingsClassPath()));
+
+				List<Path> result = writeWith(emptyTestBehaviorConfiguration);
+
+				assertEquals(3, result.size());
+				assertFalse(Files.exists(generatedSettingsClassPath()));
+				assertFalse(
+						Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedFailureReporting.java")));
+			}
+		}
+
+		/**
+		 * With a known build layout, regenerating without configuration also deletes
+		 * the compiled settings class an earlier build left in the test output.
+		 */
+		@Test
+		@DisplayName("Should delete a stale compiled settings class from the test output when regenerated without configuration")
+		void regeneratingWithoutConfigurationDeletesTheStaleCompiledSettingsClass() throws IOException {
+			for (String directory : List.of("src/main/java", "src/test/java", "target/classes",
+					"target/test-classes")) {
+				Files.createDirectories(tempDir.resolve(directory));
+			}
+			BuildToolConfiguration mavenLayout = new BuildToolConfiguration(BuildMode.MAVEN, tempDir,
+					List.of(tempDir.resolve("src/main/java")), List.of(tempDir.resolve("src/test/java")),
+					tempDir.resolve("target/classes"), tempDir.resolve("target/test-classes"));
+			Path staleClass = tempDir.resolve("target/test-classes")
+					.resolve(TestBehaviorConfiguration.GENERATED_CLASS_NAME.replace('.', '/') + ".class");
+			Files.createDirectories(staleClass.getParent());
+			Files.write(staleClass, new byte[] { (byte) 0xCA, (byte) 0xFE });
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				new JavaWriter(mavenLayout).writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+						javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration,
+						tempDir.resolve("src/test/java"));
+
+				assertFalse(Files.exists(staleClass));
+			}
+		}
+
+		/**
+		 * A configuration enabling privileged-exceptions-only reporting with the
+		 * message {@code Custom message}.
+		 *
+		 * @return the configuration.
+		 */
+		private TestBehaviorConfiguration privilegedExceptionsConfigured() {
+			return TestBehaviorConfiguration.builder()
+					.regardingTheFailureFeedbackForTheTestCases(
+							FailureFeedbackConfiguration.builder().onlyPrivilegedExceptionsAreReported(true)
+									.theFailureMessageForOtherExceptionsIs("Custom message").build())
+					.build();
 		}
 	}
 
