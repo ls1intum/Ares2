@@ -35,6 +35,7 @@ after them cover the failures that show up as wrong behaviour rather than as a m
 | The reserved-package check never runs under `gradlew test` | A boundary version 1 snippet hooked `check` alone | Migrate to boundary version 2, which gates every `Test` task too (the Gradle step above) |
 | A Gradle file-system watcher (FSEvents) warning at build start | Gradle's native file watching could not start in this environment | A warning only; it does not affect compilation or tests. Pass `--no-watch-fs` to silence it |
 | Policy seems to have no effect | Wrong `withinPath` | Gradle: `classes/java/main/<package/path>`, Maven: `classes/<package/path>` |
+| `Ares found no compiled classes in <folder>` | The `withinPath` or the supervised package names a folder without compiled classes, while the project has compiled classes elsewhere. Ares refuses rather than pass every static check unchecked | Gradle: `classes/java/main/<package/path>`, Maven: `classes/<package/path>` |
 
 ## Symptom table: migrating from Ares 1
 
