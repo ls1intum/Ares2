@@ -1382,8 +1382,8 @@
 							<!-- Measures the classes the first run reports as NO_COVERAGE, in a report of
 								its own. It runs without the Ares agent and only with unit tests. The
 								classes the agent would put on the boot class path are placed there by the
-								copy step above. A few of these tests need the real agent, so any test that
-								fails here is skipped, whatever the cause. A separate run without this
+								copy step above. A few of these tests cannot pass with those classes there, so any
+								test that fails here is skipped, whatever the cause. A separate run without this
 								profile checks the tests themselves. Neither PIT run can measure the agent
 								class itself. -->
 							<execution>
