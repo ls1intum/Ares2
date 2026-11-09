@@ -121,6 +121,14 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	private static final Set<String> NATIVE_LIBRARY_SUFFIXES = Set.of(".dylib", ".jnilib", ".so", ".dll");
 
 	/**
+	 * Stand-in shown in the denial message for a
+	 * {@code java.util.prefs.Preferences} operation, which has no path to report
+	 * because the OS fixes the store's location.
+	 */
+	@Nonnull
+	private static final String PREFERENCES_BACKING_STORE = "<java.util.prefs backing store>";
+
+	/**
 	 * The devices the JDK reads random seed bytes from. A read of one is allowed
 	 * only while the JDK's own random-number code is doing it, never because of the
 	 * name alone.
@@ -1518,6 +1526,40 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
+	 * Returns whether the intercepted call targets the Java Preferences API. Its
+	 * backing store sits where the operating system puts it, so the student passes
+	 * no path and the key and value arguments must not be checked as paths. No
+	 * policy can scope that store to a directory, so only an allow-list of all
+	 * paths ("*") permits it.
+	 *
+	 * @param declaringTypeName the fully qualified type the called method belongs
+	 *                          to
+	 * @return true for any {@code java.util.prefs} type
+	 */
+	private static boolean isPreferencesBackingStore(@Nullable String declaringTypeName) {
+		return declaringTypeName != null && declaringTypeName.startsWith("java.util.prefs.");
+	}
+
+	/**
+	 * Returns whether the allow-list authorises every path, the only rule under
+	 * which the unscopable Preferences backing store may be touched.
+	 *
+	 * @param allowedPaths the configured allow-list for the action, may be null
+	 * @return true if the list contains the {@code "*"} wildcard
+	 */
+	private static boolean allowsAllPaths(@Nullable String[] allowedPaths) {
+		if (allowedPaths == null) {
+			return false;
+		}
+		for (String allowedPath : allowedPaths) {
+			if ("*".equals(allowedPath)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Accepts archive receivers loaded by the JDK. A student subclass could
 	 * override {@code size()} and run code while the advice guard is active.
 	 *
@@ -1589,6 +1631,16 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 		});
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
+		if (isPreferencesBackingStore(declaringTypeName) && !allowsAllPaths(allowedPaths)) {
+			throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
+					action, PREFERENCES_BACKING_STORE,
+					fullMethodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ buildDenialReason(noAllowRuleConfigured)));
+		}
+		if (isPreferencesBackingStore(declaringTypeName)) {
+			return;
+		}
 		@Nullable
 		String pathIllegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
 				: checkIfVariableCriteriaIsViolated(
