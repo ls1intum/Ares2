@@ -8,6 +8,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
@@ -26,16 +27,56 @@ import example.student.InstrumentationSecurityProbe;
 class PreferencesBackingStoreDenyTest {
 
 	/**
-	 * Resets the Ares advice settings, so no test leaves settings behind for the
-	 * next.
+	 * The name Ares reports for the Preferences store when it refuses a call.
+	 */
+	private static final String PREFERENCES_STORE = "<java.util.prefs backing store>";
+
+	/**
+	 * Resets both copies of the Ares advice settings, the one the bootstrap
+	 * classloader holds and the one the application classloader holds, so no test
+	 * leaves settings behind for the next.
 	 *
-	 * @throws Exception if the reset method cannot be called
+	 * @throws Exception if a reset method cannot be called
 	 */
 	private static void resetSettings() throws Exception {
-		Method reset = JavaAOPTestCaseSettings.class.getDeclaredMethod("reset");
+		resetSettingsOf(null);
+		resetSettingsOf(Thread.currentThread().getContextClassLoader());
+	}
+
+	/**
+	 * Resets the copy of the Ares advice settings that this classloader sees, and
+	 * does nothing when it has none.
+	 *
+	 * @param loader the classloader to ask, null for the bootstrap classloader
+	 * @throws Exception if the reset method cannot be called
+	 */
+	private static void resetSettingsOf(ClassLoader loader) throws Exception {
+		Class<?> settings;
+		try {
+			settings = Class.forName(JavaAOPTestCaseSettings.class.getName(), true, loader);
+		} catch (ClassNotFoundException noCopyInThisLoader) {
+			return;
+		}
+		Method reset = settings.getDeclaredMethod("reset");
 		reset.setAccessible(true);
 		reset.invoke(null);
 		reset.setAccessible(false);
+	}
+
+	/**
+	 * Runs the call and expects Ares to refuse this action on the Preferences
+	 * store, so a failure in the test setup cannot pass for a denial.
+	 *
+	 * @param action the action the denial must name
+	 * @param call   the call to run
+	 */
+	private static void assertDeniedAs(String action, Executable call) {
+		SecurityException exception = assertThrows(SecurityException.class, call);
+		assertTrue(
+				exception.getMessage().contains(" " + action + " ")
+						&& exception.getMessage().contains(PREFERENCES_STORE),
+				() -> "Denial should name the " + action + " action and the Preferences store, but was:\n"
+						+ exception.getMessage());
 	}
 
 	/**
@@ -64,10 +105,7 @@ class PreferencesBackingStoreDenyTest {
 			configure();
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten",
 					new String[] { tempDir.toString() }, "ARCH", "INSTRUMENTATION");
-			SecurityException exception = assertThrows(SecurityException.class,
-					() -> InstrumentationSecurityProbe.checkPreferencesPut("key", "value"));
-			assertTrue(exception.getMessage().contains("java.util.prefs"),
-					() -> "Denial should name the Preferences store, but was:\n" + exception.getMessage());
+			assertDeniedAs("overwrite", () -> InstrumentationSecurityProbe.checkPreferencesPut("key", "value"));
 		} finally {
 			resetSettings();
 		}
@@ -85,7 +123,7 @@ class PreferencesBackingStoreDenyTest {
 			configure();
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { tempDir.toString() },
 					"ARCH", "INSTRUMENTATION");
-			assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe.checkPreferencesGet("key"));
+			assertDeniedAs("read", () -> InstrumentationSecurityProbe.checkPreferencesGet("key"));
 		} finally {
 			resetSettings();
 		}
@@ -121,7 +159,7 @@ class PreferencesBackingStoreDenyTest {
 			configure();
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { tempDir.toString() },
 					"ARCH", "INSTRUMENTATION");
-			assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe.checkPreferencesNode("child"));
+			assertDeniedAs("create", () -> InstrumentationSecurityProbe.checkPreferencesNode("child"));
 		} finally {
 			resetSettings();
 		}
@@ -159,7 +197,7 @@ class PreferencesBackingStoreDenyTest {
 					"INSTRUMENTATION");
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeDeleted", new String[] { tempDir.toString() },
 					"ARCH", "INSTRUMENTATION");
-			assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe.checkPreferencesRemoveNode());
+			assertDeniedAs("delete", InstrumentationSecurityProbe::checkPreferencesRemoveNode);
 		} finally {
 			resetSettings();
 		}
@@ -180,8 +218,7 @@ class PreferencesBackingStoreDenyTest {
 					"INSTRUMENTATION");
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { tempDir.toString() },
 					"ARCH", "INSTRUMENTATION");
-			assertThrows(SecurityException.class,
-					() -> InstrumentationSecurityProbe.checkPreferencesUserNodeForPackage());
+			assertDeniedAs("create", InstrumentationSecurityProbe::checkPreferencesUserNodeForPackage);
 		} finally {
 			resetSettings();
 		}
@@ -200,6 +237,50 @@ class PreferencesBackingStoreDenyTest {
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { "*" }, "ARCH",
 					"INSTRUMENTATION");
 			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkPreferencesUserNodeForPackage());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * Opens read fully but scopes create to a directory: userRoot can create the
+	 * store on first access, so its create check must fail although its read check
+	 * passes.
+	 *
+	 * @param tempDir the directory create is scoped to
+	 * @throws Exception if the settings cannot be set or reset
+	 */
+	@Test
+	void testReadWildcardDoesNotAllowRootAccessWithoutCreate(@TempDir Path tempDir) throws Exception {
+		try {
+			configure();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { "*" }, "ARCH",
+					"INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { tempDir.toString() },
+					"ARCH", "INSTRUMENTATION");
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkPreferencesUserRoot("read"));
+			assertDeniedAs("create", () -> InstrumentationSecurityProbe.checkPreferencesUserRoot("create"));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * Permits read and create on all paths: both checks of a Preferences userRoot
+	 * call must then pass.
+	 *
+	 * @throws Exception if the settings cannot be set or reset
+	 */
+	@Test
+	void testReadAndCreateWildcardsAllowRootAccess() throws Exception {
+		try {
+			configure();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { "*" }, "ARCH",
+					"INSTRUMENTATION");
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { "*" }, "ARCH",
+					"INSTRUMENTATION");
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkPreferencesUserRoot("read"));
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkPreferencesUserRoot("create"));
 		} finally {
 			resetSettings();
 		}
@@ -235,7 +316,7 @@ class PreferencesBackingStoreDenyTest {
 			configure();
 			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten",
 					new String[] { tempDir.toString() }, "ARCH", "INSTRUMENTATION");
-			assertThrows(SecurityException.class,
+			assertDeniedAs("overwrite",
 					() -> InstrumentationSecurityProbe.checkPreferencesPut(tempDir.toString(), "value"));
 		} finally {
 			resetSettings();

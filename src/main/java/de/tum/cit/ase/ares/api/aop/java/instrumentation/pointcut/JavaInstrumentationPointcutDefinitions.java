@@ -689,8 +689,11 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// factories create the node and any missing ancestors in the backing store,
 			// like File.mkdir, so they are creates. importPreferences creates every
 			// missing node its XML names, so it is a create as well as an overwrite.
+			// userRoot and systemRoot can create the store's directory and its
+			// modification file on first access, so they are creates as well as reads.
 			Map.entry("java.util.prefs.Preferences",
-					List.of("node", "userNodeForPackage", "systemNodeForPackage", "importPreferences")),
+					List.of("node", "userNodeForPackage", "systemNodeForPackage", "importPreferences", "userRoot",
+							"systemRoot")),
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("createDirectory")));
 	// </editor-fold>
 

@@ -35,6 +35,15 @@ public final class PreferencesMain {
 	}
 
 	/**
+	 * Opens the root node of the system Preferences store.
+	 *
+	 * @return the system root node
+	 */
+	public static Preferences accessFileSystemViaPreferencesSystemRoot() {
+		return Preferences.systemRoot();
+	}
+
+	/**
 	 * Opens, and creates if missing, the user Preferences node of this class's
 	 * package.
 	 *

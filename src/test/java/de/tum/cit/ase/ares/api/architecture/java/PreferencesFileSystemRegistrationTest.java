@@ -139,6 +139,21 @@ class PreferencesFileSystemRegistrationTest {
 	}
 
 	/**
+	 * Checks that the instrumentation read and create lists both hold Preferences
+	 * userRoot and systemRoot, since first access to a root can create the store on
+	 * disk.
+	 */
+	@Test
+	void testInstrumentationListsRootAccessorsAsReadAndCreate() {
+		List<String> read = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_READ_FILES.get(PREFS);
+		List<String> create = JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_FILES.get(PREFS);
+		assertTrue(read != null && read.containsAll(List.of("userRoot", "systemRoot")),
+				"the root accessors reach the store, so the read map must list them");
+		assertTrue(create != null && create.containsAll(List.of("userRoot", "systemRoot")),
+				"the root accessors can create the store, so the create map must list them");
+	}
+
+	/**
 	 * Checks that the instrumentation delete list holds Preferences removeNode.
 	 */
 	@Test

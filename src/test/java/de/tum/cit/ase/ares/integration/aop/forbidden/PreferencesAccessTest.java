@@ -62,13 +62,13 @@ class PreferencesAccessTest extends SystemAccessTest {
 	}
 
 	/**
-	 * Runs the import and expects a SecurityException that names java.util.prefs
-	 * and the create action, so the refusal comes from the missing creation
-	 * permission rather than from overwrite, which the policy permits.
+	 * Runs the call and expects a SecurityException that names java.util.prefs and
+	 * the create action, so the refusal comes from the missing creation permission
+	 * rather than from read or overwrite, which the policy permits.
 	 *
-	 * @param executable the student import to run
+	 * @param executable the student call to run
 	 */
-	private static void assertPreferencesImportDeniedAsCreate(Executable executable) {
+	private static void assertPreferencesDeniedAsCreate(Executable executable) {
 		SecurityException exception = assertThrows(SecurityException.class, executable);
 		assertTrue(
 				exception.getMessage() != null && exception.getMessage().contains("java.util.prefs")
@@ -178,7 +178,7 @@ class PreferencesAccessTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesImportMavenArchunitAspectJ() {
-		assertPreferencesImportDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
 	}
 
 	/**
@@ -189,7 +189,7 @@ class PreferencesAccessTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesImportMavenArchunitInstrumentation() {
-		assertPreferencesImportDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
 	}
 
 	/**
@@ -200,7 +200,7 @@ class PreferencesAccessTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesImportMavenWalaAspectJ() {
-		assertPreferencesImportDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
 	}
 
 	/**
@@ -211,7 +211,97 @@ class PreferencesAccessTest extends SystemAccessTest {
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesImportMavenWalaInstrumentation() {
-		assertPreferencesImportDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="Preferences root accessors (read and create)">
+	/**
+	 * Calls Preferences.userRoot() as student code under a policy that permits read
+	 * and overwrite everywhere but no creation, in the ArchUnit and AspectJ
+	 * combination, and expects Ares to refuse it as a create.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
+	void test_createViaPreferencesUserRootMavenArchunitAspectJ() {
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesUserRoot);
+	}
+
+	/**
+	 * Calls Preferences.userRoot() as student code under a policy that permits read
+	 * and overwrite everywhere but no creation, in the ArchUnit and instrumentation
+	 * combination, and expects Ares to refuse it as a create.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
+	void test_createViaPreferencesUserRootMavenArchunitInstrumentation() {
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesUserRoot);
+	}
+
+	/**
+	 * Calls Preferences.userRoot() as student code under a policy that permits read
+	 * and overwrite everywhere but no creation, in the WALA and AspectJ
+	 * combination, and expects Ares to refuse it as a create.
+	 */
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
+	void test_createViaPreferencesUserRootMavenWalaAspectJ() {
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesUserRoot);
+	}
+
+	/**
+	 * Calls Preferences.userRoot() as student code under a policy that permits read
+	 * and overwrite everywhere but no creation, in the WALA and instrumentation
+	 * combination, and expects Ares to refuse it as a create.
+	 */
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
+	void test_createViaPreferencesUserRootMavenWalaInstrumentation() {
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesUserRoot);
+	}
+
+	/**
+	 * Calls Preferences.systemRoot() as student code under a policy that permits
+	 * read and overwrite everywhere but no creation, in the ArchUnit and AspectJ
+	 * combination, and expects Ares to refuse it as a create.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
+	void test_createViaPreferencesSystemRootMavenArchunitAspectJ() {
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesSystemRoot);
+	}
+
+	/**
+	 * Calls Preferences.systemRoot() as student code under a policy that permits
+	 * read and overwrite everywhere but no creation, in the ArchUnit and
+	 * instrumentation combination, and expects Ares to refuse it as a create.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
+	void test_createViaPreferencesSystemRootMavenArchunitInstrumentation() {
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesSystemRoot);
+	}
+
+	/**
+	 * Calls Preferences.systemRoot() as student code under a policy that permits
+	 * read and overwrite everywhere but no creation, in the WALA and AspectJ
+	 * combination, and expects Ares to refuse it as a create.
+	 */
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
+	void test_createViaPreferencesSystemRootMavenWalaAspectJ() {
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesSystemRoot);
+	}
+
+	/**
+	 * Calls Preferences.systemRoot() as student code under a policy that permits
+	 * read and overwrite everywhere but no creation, in the WALA and
+	 * instrumentation combination, and expects Ares to refuse it as a create.
+	 */
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
+	void test_createViaPreferencesSystemRootMavenWalaInstrumentation() {
+		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesSystemRoot);
 	}
 	// </editor-fold>
 }

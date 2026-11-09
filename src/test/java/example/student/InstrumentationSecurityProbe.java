@@ -100,6 +100,19 @@ public final class InstrumentationSecurityProbe {
 	}
 
 	/**
+	 * Passes a Preferences userRoot call to the instrumentation file-system check
+	 * as this action. The real call is checked once as a read and once as a create.
+	 * From inside the student package, so the check treats the call as student
+	 * code.
+	 *
+	 * @param action the action to check, read or create
+	 */
+	public static void checkPreferencesUserRoot(String action) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(action, "java.util.prefs.Preferences",
+				"userRoot", "()Ljava/util/prefs/Preferences;", null, new Object[0], null);
+	}
+
+	/**
 	 * Simulates a direct read of an OS entropy device (e.g.
 	 * {@code new FileInputStream("/dev/urandom")}), as student code might attempt
 	 * without going through {@link java.security.SecureRandom}
