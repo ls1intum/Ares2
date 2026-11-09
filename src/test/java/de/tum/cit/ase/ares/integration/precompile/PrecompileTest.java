@@ -97,12 +97,19 @@ public class PrecompileTest {
 					"captureTrustedStartupValues();");
 			assertDoesNotContain(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java"),
 					"JavaAspectJFileSystemAdviceDefinitions");
+			assertContains(generated.resolve("aop/java/instrumentation/RecordMethodsPassThrough.java"),
+					"java/lang/runtime/ObjectMethods");
+			assertDoesNotContain(
+					generated
+							.resolve("aop/java/instrumentation/advice/JavaInstrumentationAdviceFileSystemToolbox.java"),
+					"INTERNAL_PATH_SUFFIXES");
 		} else {
 			Path aspect = generated
 					.resolve("aop/java/aspectj/adviceandpointcut/JavaAspectJFileSystemAdviceDefinitions.aj");
 			assertContains(aspect, "getSavedProperties");
 			assertContains(aspect, "TRUSTED_DEFAULT_TEMP_DIRECTORY");
 			assertDoesNotContain(aspect, "JavaInstrumentationAgent");
+			assertDoesNotContain(aspect, "INTERNAL_PATH_SUFFIXES");
 			assertFalse(Files.exists(generated.resolve("aop/java/instrumentation/JavaInstrumentationAgent.java")),
 					"an AspectJ exercise was given the instrumentation agent");
 		}

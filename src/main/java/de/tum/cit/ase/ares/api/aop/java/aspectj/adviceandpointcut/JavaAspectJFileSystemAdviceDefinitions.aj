@@ -24,11 +24,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.jar.JarFile;
 
 import javax.annotation.Nullable;
 import javax.annotation.Nonnull;
 
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.reflect.MethodSignature;
 //</editor-fold>
 
 @SuppressWarnings("AopLanguageInspection")
@@ -115,18 +119,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			// PrintStream(OutputStream|File|String, [boolean], [String charset]) - keep
 			// only index 0 (the sink); a charset name like "UTF-8" is not a path.
 			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)));
-
-	/**
-	 * List of Ares internal file path suffixes that should always be allowed.
-	 * <p>
-	 * Description: These paths represent Ares framework files that must be
-	 * accessible for the security system to function properly.
-	 */
-	@Nonnull
-	private static final List<String> INTERNAL_PATH_SUFFIXES = List.of("ares/api/localization/Messages.class",
-			"ares/api/localization/messages.class", "ares/api/localization/messages.properties",
-			"ares/api/util/LruCache.class", "ares/api/configuration/essentialFiles/java/EssentialPackages.yaml",
-			"ares/api/configuration/essentialFiles/java/EssentialClasses.yaml");
 
 	/**
 	 * Stand-in shown in the denial message for a {@code java.util.prefs.Preferences}
@@ -231,24 +223,18 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	// <editor-fold desc="Forbidden handling">
 
 	/**
-	 * Checks if a Path is outside of the allowed paths whitelist.
-	 * <p>
-	 * Description: Returns true if allowedPathsAsStrings is null or if the given
-	 * actualPath does not match one of the allowed patterns. This method resolves
-	 * symlinks FIRST to prevent symlink-based sandbox escapes (TOCTOU attacks).
-	 * <p>
-	 * Security Note: Symlinks are resolved to their canonical form BEFORE checking
-	 * against allowed paths, preventing attacks where a path like
-	 * "/allowed/../../../etc/passwd" could bypass prefix checks.
+	 * Tells whether a path lies outside every allowed path. A missing or empty
+	 * allow-list allows nothing, so every path is forbidden; a {@code *} entry
+	 * allows everything. Links are resolved first, so a link cannot lead out of an
+	 * allowed folder.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param actualPath                          the Path to test
-	 * @param allowedPathsAsStrings               whitelist of allowed actualPath
-	 *                                            strings
-	 * @param allowNonExistingPathsToBeConsidered whether to allow paths that don't
-	 *                                            exist yet
-	 * @return true if actualPath is forbidden; false otherwise
+	 * @param target                              the path to test
+	 * @param allowedPathsAsStrings               the allowed paths, possibly null
+	 * @param allowNonExistingPathsToBeConsidered whether a path that does not exist
+	 *                                            yet is still checked
+	 * @return true if the path is forbidden
 	 */
 	private static boolean checkIfPathIsForbidden(@Nullable FileTarget target, @Nullable String[] allowedPathsAsStrings,
 			boolean allowNonExistingPathsToBeConsidered) {
@@ -479,8 +465,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param observedVariable the variable to analyse
-	 * @param allowedPaths     whitelist of allowed path strings; if null, all paths
-	 *                         are considered allowed
+	 * @param allowedPaths     the allowed paths; null or empty allows nothing
 	 * @return true if a violation is found, false otherwise
 	 */
 	private static boolean analyseViolation(@Nullable Object observedVariable, @Nullable String[] allowedPaths,
@@ -567,8 +552,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @param observedVariables array of values to validate
-	 * @param allowedPaths      whitelist of allowed path strings; if null, all
-	 *                          paths are considered allowed
+	 * @param allowedPaths      the allowed paths; null or empty allows nothing
 	 * @param ignoreVariables   criteria determining which observedVariables to skip
 	 * @return the first path (as String) that is not allowed, or null if none
 	 *         violate
@@ -781,11 +765,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Checks a single isolated parameter/receiver candidate array against one
-	 * specific allow-list, throwing {@code SecurityException} on violation.
-	 * Applies only the internal-path-suffix exemption (Ares's own framework
-	 * files) — the class-loading/system-JAR exemptions the generic path applies
-	 * are not relevant to a student-initiated file copy/transfer.
+	 * Checks one side of a student's file copy or transfer against one allow-list
+	 * and throws a {@code SecurityException} on a violation. No exemption applies:
+	 * the student names both paths, so neither is Ares or the JDK at work.
 	 */
 	private void checkSinglePathRole(@Nonnull String actionLabel, @Nonnull String allowedPathsSettingKey,
 			@Nonnull Object[] candidates, boolean allowNonExistingPaths, @Nonnull String systemMethodToCheck,
@@ -801,9 +783,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		String violation = checkIfVariableCriteriaIsViolated(candidates, allowedPaths, IgnoreValues.NONE,
 				allowNonExistingPaths);
 		if (violation == null) {
-			return;
-		}
-		if (INTERNAL_PATH_SUFFIXES.stream().anyMatch(violation::endsWith)) {
 			return;
 		}
 		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
@@ -1594,7 +1573,67 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 	}
 
-	/** Checks the selected policy against the caller and file-operation arguments. */
+	/**
+	 * Accepts archives loaded by a trusted JDK loader. A student subclass could
+	 * override {@code size()} and run code while the advice guard is active.
+	 *
+	 * @param instance          the receiver
+	 * @param declaringTypeName the intercepted method's owner
+	 * @return whether the receiver fits the archive method's owner
+	 * @throws SecurityException if a student loader owns the receiver
+	 */
+	private static boolean isJdkArchiveReceiver(@Nullable Object instance, @Nonnull String declaringTypeName) {
+		if (!(instance instanceof ZipFile)
+				|| !("java.util.jar.JarFile".equals(declaringTypeName) && instance instanceof JarFile
+						|| "java.util.zip.ZipFile".equals(declaringTypeName))) {
+			return false;
+		}
+		requireTrustedRuntimeType(instance);
+		return true;
+	}
+
+	/**
+	 * Tells whether the call reads an entry of a {@code JarFile} or
+	 * {@code ZipFile} that is already open. Opening the archive is still checked
+	 * against the policy, and the entry call names no file of its own, so the
+	 * entry read is allowed, exactly as on the instrumentation backend.
+	 *
+	 * @param action            the file-system action being checked
+	 * @param declaringTypeName the class of the intercepted method
+	 * @param thisJoinPoint     the intercepted call
+	 * @return {@code true} for a read of an entry, never for opening the archive
+	 */
+	private static boolean isEntryReadOnOpenArchive(@Nonnull String action, @Nonnull String declaringTypeName,
+			@Nonnull JoinPoint thisJoinPoint) {
+		if (!"read".equals(action) || !(thisJoinPoint.getSignature() instanceof MethodSignature signature)
+				|| !(thisJoinPoint.getTarget() instanceof ZipFile archive)
+				|| !isJdkArchiveReceiver(archive, declaringTypeName)) {
+			return false;
+		}
+		Object[] arguments = thisJoinPoint.getArgs();
+		Class<?>[] parameterTypes = signature.getParameterTypes();
+		boolean entryCall = "entries".equals(signature.getName())
+				&& parameterTypes != null && parameterTypes.length == 0 && arguments != null && arguments.length == 0;
+		boolean streamCall = "getInputStream".equals(signature.getName())
+				&& parameterTypes != null && parameterTypes.length == 1 && ZipEntry.class.equals(parameterTypes[0]) && arguments != null
+				&& arguments.length == 1 && arguments[0] instanceof ZipEntry;
+		if (!entryCall && !streamCall) {
+			return false;
+		}
+		try {
+			archive.size();
+			return true;
+		} catch (IllegalStateException closed) {
+			return false;
+		}
+	}
+
+	/**
+	 * Checks the selected policy against the caller and file-operation arguments.
+	 *
+	 * @param action        the file-system action being checked
+	 * @param thisJoinPoint the intercepted call
+	 */
 	private void checkFileSystemInteractionImpl(@Nonnull String action, @Nonnull JoinPoint thisJoinPoint) {
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
@@ -1613,11 +1652,21 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		@Nullable
 		Object instance = thisJoinPoint.getTarget();
 		@Nonnull
-		final String fullMethodSignature = formatSignature(thisJoinPoint.getSignature());
+		String methodName;
 		@Nonnull
-		String declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
+		String declaringTypeName;
 		@Nonnull
-		String methodName = thisJoinPoint.getSignature().getName();
+		String fullMethodSignature;
+		try {
+			methodName = thisJoinPoint.getSignature().getName();
+			declaringTypeName = thisJoinPoint.getSignature().getDeclaringTypeName();
+			fullMethodSignature = formatSignature(thisJoinPoint.getSignature());
+		} catch (RuntimeException malformed) {
+			throw new SecurityException(localize("security.advice.file.system.unknown.action", "malformed method"), malformed);
+		}
+		if (methodName == null || methodName.isBlank() || declaringTypeName == null || declaringTypeName.isBlank()) {
+			throw new SecurityException(localize("security.advice.file.system.unknown.action", "malformed method"));
+		}
 		@Nonnull
 		Object[] attributes = new Object[0];
 		if (instance != null) {
@@ -1643,6 +1692,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
 		if (systemMethodToCheck == null) {
 			return;
+		}
+		if (("java.util.jar.JarFile".equals(declaringTypeName) || "java.util.zip.ZipFile".equals(declaringTypeName))
+				&& ("entries".equals(methodName) || "getInputStream".equals(methodName))
+				&& !isJdkArchiveReceiver(instance, declaringTypeName)) {
+			throw new SecurityException(localize("security.advice.file.system.unknown.action", "archive receiver"));
 		}
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
@@ -1671,6 +1725,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
 								+ buildDenialReason(allowedPreferencePaths == null || allowedPreferencePaths.length == 0)));
 			}
+			return;
+		}
+		if (isEntryReadOnOpenArchive(action, declaringTypeName, thisJoinPoint)) {
 			return;
 		}
 		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, parameters);
@@ -1708,14 +1765,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 										&& (studentCalledMethod.startsWith("java.lang.Class.forName")
 												|| studentCalledMethod.startsWith("java.lang.ClassLoader")
 												|| studentCalledMethod.startsWith("jdk.internal.loader"))));
-				boolean isInternalAllowed = INTERNAL_PATH_SUFFIXES.stream()
-						.anyMatch(illegallyInteractedThroughParameter::endsWith);
-				boolean isAllowedWithoutStartUpValues = isClassLoaderAccess || isInternalAllowed;
-				boolean isSystemJarRead = !isAllowedWithoutStartUpValues && "read".equals(actionToCheck)
+				boolean isSystemJarRead = !isClassLoaderAccess && "read".equals(actionToCheck)
 						&& isSystemJarReadExempt(illegallyInteractedThroughParameter);
-				boolean isExemptSystemFileAccess = !isAllowedWithoutStartUpValues && !isSystemJarRead
+				boolean isExemptSystemFileAccess = !isClassLoaderAccess && !isSystemJarRead
 						&& isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughParameter);
-				if (!isAllowedWithoutStartUpValues && !isSystemJarRead && !isExemptSystemFileAccess) {
+				if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess) {
 					throw new SecurityException(localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughParameter,
@@ -1729,12 +1783,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 					: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedPaths, IgnoreValues.NONE,
 							allowNonExistingPaths);
 			if (illegallyInteractedThroughReceiver != null) {
-				boolean isInternalAllowed = INTERNAL_PATH_SUFFIXES.stream()
-						.anyMatch(illegallyInteractedThroughReceiver::endsWith);
-				if (!isInternalAllowed && illegallyInteractedThroughReceiver.endsWith(".class")
-						&& isClassLoadingInProgress()) {
-					isInternalAllowed = true;
-				}
+				boolean isInternalAllowed = illegallyInteractedThroughReceiver.endsWith(".class")
+						&& isClassLoadingInProgress();
 
 				if (!isInternalAllowed && "read".equals(actionToCheck)
 						&& isSystemJarReadExempt(illegallyInteractedThroughReceiver)) {
@@ -1767,11 +1817,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 										&& (studentCalledMethod.startsWith("java.lang.Class.forName")
 												|| studentCalledMethod.startsWith("java.lang.ClassLoader")
 												|| studentCalledMethod.startsWith("jdk.internal.loader"))))) {
-					isInternalAllowed = true;
-				}
-
-				if (!isInternalAllowed && INTERNAL_PATH_SUFFIXES.stream()
-						.anyMatch(illegallyInteractedThroughAttribute::endsWith)) {
 					isInternalAllowed = true;
 				}
 

@@ -44,7 +44,9 @@ class JceGeneratedExerciseTest {
 	/**
 	 * Generates and compiles actual advice, then tries poisoning its home before
 	 * first use. Instrumentation initialises its checks before the change; AspectJ
-	 * initialises its aspect after it and still trusts only the start-up home.
+	 * initialises its aspect after it and still trusts only the start-up home. The
+	 * control denial carries a reason from the generated copy of Ares's messages,
+	 * which it reads without any exemption for Ares's own file names.
 	 */
 	@ParameterizedTest
 	@EnumSource(ProgrammingLanguageConfiguration.class)
@@ -53,6 +55,10 @@ class JceGeneratedExerciseTest {
 		Path project = generate(configuration);
 		String control = launch(configuration, project, "control");
 		assertTrue(control.contains("GENERATED_READ_DENIED"), control);
+		assertTrue(
+				control.contains(Messages.localized("security.advice.denial.reason.no.allowlist"))
+						|| control.contains(Messages.localized("security.advice.denial.reason.not.in.allowlist")),
+				control);
 		String output = launch(configuration, project, "snapshot");
 		assertFalse(output.contains("GENERATED_READ_RETURNED"), output);
 		assertTrue(output.contains("GENERATED_READ_DENIED"), output);
