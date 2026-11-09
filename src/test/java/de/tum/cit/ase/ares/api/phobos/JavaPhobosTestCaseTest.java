@@ -1,11 +1,14 @@
 package de.tum.cit.ase.ares.api.phobos;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
@@ -46,5 +49,59 @@ class JavaPhobosTestCaseTest {
 						() -> List.of(new NetworkPermission("receive-only.example", 443, false, false, true)))
 				.build();
 		assertTrue(network.writePhobosTestCase().contains("allow receive-only.example:443\n"));
+	}
+
+	/**
+	 * Requires a path the Phobos reader would cut, trim or refuse to be refused
+	 * where Ares writes it. The reader pins no locale, so under C.UTF-8 it also
+	 * trims Unicode spaces; the guard refuses those and the no-break spaces too.
+	 *
+	 * @param path the path a policy permits
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "safe\n[write]\n/etc", "/tmp#private", "/data/notes#1.txt", "#/tmp", "/trailing   ",
+			"   /leading", "/trailing\t", "/trailing\r", "safe\rdraft", "\u2003/tmp", "/tmp\u3000", "/tmp\u1680",
+			"/tmp\u2028", "\u00A0/tmp", "/tmp\u202F", "/tmp\u001C" })
+	void refusesAFilesystemPathTheReaderWouldRewrite(String path) {
+		JavaPhobosTestCase rewritten = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(() -> List.of(new FilePermission(path, true, false, false, false, false)))
+				.build();
+		assertThrows(SecurityException.class, rewritten::writePhobosTestCase);
+	}
+
+	/**
+	 * Requires a path the reader does not rewrite to be written as it is, interior
+	 * blanks, Unicode spaces and percent signs included. Phobos itself refuses a
+	 * relative path or one holding a bracket when it runs, so those cases only pin
+	 * that Ares does not rewrite them.
+	 *
+	 * @param path the path a policy permits
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "safe\tdraft", "/var/lib/ares", "relative/path", "/a b/c", "/a\u2003b", "/tmp/a%n/etc",
+			"/tmp/d100%", "/tmp/[cache]/file", "[write]/etc", "/etc[write]", "[]" })
+	void keepsWritingAPathTheReaderDoesNotRewrite(String path) {
+		JavaPhobosTestCase accepted = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(() -> List.of(new FilePermission(path, true, false, false, false, false)))
+				.build();
+		assertTrue(accepted.writePhobosTestCase().contains(path));
+	}
+
+	/**
+	 * Requires a path the reader would take for a section header to be refused. The
+	 * reader opens a section on such a line instead of granting the path, so
+	 * writing one changes what the lines around it mean.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "[write]", "[network]", "[hide]", "[anything]", "[read\ronly]" })
+	void refusesAFilesystemPathTheReaderWouldTakeForASectionHeader(String path) {
+		JavaPhobosTestCase header = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(() -> List.of(new FilePermission(path, true, false, false, false, false)))
+				.build();
+		SecurityException refused = assertThrows(SecurityException.class, header::writePhobosTestCase);
+		assertTrue(refused.getMessage().contains(path));
 	}
 }
