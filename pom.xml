@@ -1431,6 +1431,12 @@
 							<targetTests>
 								<param>${pitest-target-tests}</param>
 							</targetTests>
+							<!-- The target pattern also matches classes nested in test classes. PIT
+								adds its own fields to those, so a test that compares every field of
+								such a class fails and PIT stops before it changes anything. -->
+							<excludedClasses>
+								<param>de.tum.cit.ase.ares.api.*Test$*</param>
+							</excludedClasses>
 						</configuration>
 					</plugin>
 				</plugins>
