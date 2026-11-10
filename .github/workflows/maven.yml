@@ -426,12 +426,12 @@ jobs:
     name: Windows Tests (ArchUnit + AspectJ)
     needs: build
     runs-on: windows-2025
-    timeout-minutes: 90
+    timeout-minutes: 45
     permissions:
       contents: read
     defaults:
       run:
-        shell: bash
+        shell: pwsh
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -446,11 +446,12 @@ jobs:
           cache: 'maven'
 
       # The selector is the one the ArchUnit + AspectJ entry of the `tests` job uses. Fork
-      # reuse is stated here because the POM's default differs from that entry.
+      # reuse is stated here because the POM's default differs from that entry. The whole
+      # `-Dtest` argument is quoted because PowerShell can split an unquoted one at a dot.
       - name: Test ArchUnit + AspectJ
         run: >-
           mvn test -f pom.xml
-          -Dtest='de.tum.cit.ase.ares.integration.aop.allowed.*Test#*MavenArchunitAspectJ+*_archunit_aspectj,de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest$*#*MavenArchunitAspectJ+*_archunit_aspectj,de.tum.cit.ase.ares.integration.aop.forbidden.*Test#*MavenArchunitAspectJ+*_archunit_aspectj,de.tum.cit.ase.ares.integration.architecture.forbidden.*Test#*MavenArchunitAspectJ_test'
+          '-Dtest=de.tum.cit.ase.ares.integration.aop.allowed.*Test#*MavenArchunitAspectJ+*_archunit_aspectj,de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest$*#*MavenArchunitAspectJ+*_archunit_aspectj,de.tum.cit.ase.ares.integration.aop.forbidden.*Test#*MavenArchunitAspectJ+*_archunit_aspectj,de.tum.cit.ase.ares.integration.architecture.forbidden.*Test#*MavenArchunitAspectJ_test'
           -Dsurefire-reuse-forks=true
 
       - name: Upload test results
