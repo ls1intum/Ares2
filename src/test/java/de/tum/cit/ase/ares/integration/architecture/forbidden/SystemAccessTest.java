@@ -375,7 +375,7 @@ public abstract class SystemAccessTest {
 	 * @return whether it reports student code
 	 */
 	private static boolean isStudentCodeViolation(Throwable throwable) {
-		if (!instanceOf(SecurityException.class).matches(throwable) || throwable.getMessage() == null) {
+		if (!(throwable instanceof SecurityException) || throwable.getMessage() == null) {
 			return false;
 		}
 		String message = throwable.getMessage().strip();
@@ -390,8 +390,8 @@ public abstract class SystemAccessTest {
 	 * @return whether it wraps such a violation
 	 */
 	private static boolean isInitialiserFailureFromStudentCode(Throwable throwable) {
-		return instanceOf(ExceptionInInitializerError.class).matches(throwable)
-				&& containsStudentCodeViolation(throwable.getCause());
+		return throwable instanceof ExceptionInInitializerError initialiserError
+				&& containsStudentCodeViolation(initialiserError.getCause());
 	}
 
 	private static boolean isCachedWalaInitialiserFailure(Throwable throwable) {
