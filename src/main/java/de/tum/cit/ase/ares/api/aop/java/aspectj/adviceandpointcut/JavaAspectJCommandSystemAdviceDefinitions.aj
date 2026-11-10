@@ -212,8 +212,7 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * Converts a variable value to a command string array.
 	 * <p>
 	 * Description: Converts various input types to a command array representation.
-	 * For String inputs, uses shell-like parsing that properly handles quoted
-	 * arguments.
+	 * For String inputs, splits the string as Runtime.exec(String) does.
 	 *
 	 * @param variableValue the value of the variable to convert
 	 * @return the command string array representation of the variable value
@@ -247,73 +246,27 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 	}
 
 	/**
-	 * Parses a command string into an array of arguments, handling quoted strings.
+	 * Splits a command string into its arguments exactly as Runtime.exec(String)
+	 * does.
 	 * <p>
-	 * Description: Implements shell-like parsing that properly handles
-	 * single-quoted, double-quoted, and unquoted arguments. This prevents command
-	 * injection attacks where malicious input could manipulate argument boundaries
-	 * through spaces in quoted strings.
+	 * Description: The JDK splits that string at whitespace with a
+	 * StringTokenizer and gives quotes and backslashes no meaning, so a check
+	 * reads the same arguments the process is started with. A backslash, the
+	 * path separator on Windows, stays part of its argument.
 	 *
-	 * @param command the command string to parse
-	 * @return array of parsed arguments
+	 * @param command the command string to split
+	 * @return the arguments the JDK starts the process with
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
 	@Nonnull
 	private static String[] parseCommandString(@Nonnull String command) {
-		List<String> args = new java.util.ArrayList<>();
-		StringBuilder current = new StringBuilder();
-		boolean inSingleQuote = false;
-		boolean inDoubleQuote = false;
-		boolean escaped = false;
-
-		for (int i = 0; i < command.length(); i++) {
-			char c = command.charAt(i);
-
-			if (escaped) {
-				// Handle escaped characters
-				current.append(c);
-				escaped = false;
-				continue;
-			}
-
-			if (c == '\\' && !inSingleQuote) {
-				// Backslash escapes next character (except in single quotes)
-				escaped = true;
-				continue;
-			}
-
-			if (c == '\'' && !inDoubleQuote) {
-				// Toggle single quote mode (single quotes don't interpret anything)
-				inSingleQuote = !inSingleQuote;
-				continue;
-			}
-
-			if (c == '"' && !inSingleQuote) {
-				// Toggle double quote mode
-				inDoubleQuote = !inDoubleQuote;
-				continue;
-			}
-
-			if (c == ' ' && !inSingleQuote && !inDoubleQuote) {
-				// Space outside quotes - argument boundary
-				if (!current.isEmpty()) {
-					args.add(current.toString());
-					current = new StringBuilder();
-				}
-				continue;
-			}
-
-			// Regular character - add to current argument
-			current.append(c);
+		java.util.StringTokenizer tokens = new java.util.StringTokenizer(command);
+		String[] args = new String[tokens.countTokens()];
+		for (int i = 0; i < args.length; i++) {
+			args[i] = tokens.nextToken();
 		}
-
-		// Add final argument if present
-		if (!current.isEmpty()) {
-			args.add(current.toString());
-		}
-
-		return args.toArray(new String[0]);
+		return args;
 	}
 	// </editor-fold>
 
@@ -818,6 +771,9 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			Field[] fields = instance.getClass().getDeclaredFields();
 			attributes = new Object[fields.length];
 			for (int i = 0; i < fields.length; i++) {
+				if (java.lang.reflect.Modifier.isStatic(fields[i].getModifiers())) {
+					continue;
+				}
 				try {
 					fields[i].setAccessible(true);
 					attributes[i] = fields[i].get(instance);
