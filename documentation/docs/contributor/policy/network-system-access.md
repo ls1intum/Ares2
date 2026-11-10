@@ -39,15 +39,16 @@ consulted.
 
 ## Runtime enforcement
 
-`JavaInstrumentationAdviceNetworkSystemToolbox` inside the Java Virtual Machine (JVM). Outside it, the Phobos
-`LD_PRELOAD` firewall (`libnetblocker.so`) applies the same allow-list to the whole process,
-including anything the JVM shells out to.
+`JavaInstrumentationAdviceNetworkSystemToolbox` inside the Java Virtual Machine (JVM). Outside it,
+Phobos is meant to apply the allow-list to the whole process, including anything the JVM shells
+out to; see [ls1intum/phobos](https://github.com/ls1intum/phobos).
 
 ## Where the code lives
 
 - `policy/policySubComponents/NetworkPermission.java`
 - `aop/java/instrumentation/advice/JavaInstrumentationAdviceNetworkSystemToolbox.java`
-- `templates/phobos/phobos-network.sh` and the `NETBLOCKER_CONF` contract
+- `templates/phobos/PhobosCopyTool.sh`, copied into the exercise
+- the network layer itself, in [ls1intum/phobos](https://github.com/ls1intum/phobos)
 
 ## Known gaps
 
