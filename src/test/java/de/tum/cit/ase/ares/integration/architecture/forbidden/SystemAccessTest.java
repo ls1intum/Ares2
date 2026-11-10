@@ -29,6 +29,15 @@ public abstract class SystemAccessTest {
 	protected static final String ERR_SECURITY_DE = "Ares Sicherheitsfehler";
 	protected static final String REASON_EN = "(Reason: Student-Code; Stage: Execution)";
 	protected static final String REASON_DE = "(Grund: Student-Code; Phase: Ausf�hrung)";
+	/**
+	 * What ArchUnit says when a rule looked at no classes. Ares reports that with
+	 * the student-code header too, although no student code was checked.
+	 */
+	private static final String EMPTY_RULE_MARKER = "failed to check any classes";
+	/** How an English message reporting student code begins. */
+	private static final String STUDENT_CODE_HEADER_EN = ERR_SECURITY_EN + " (Reason: Student-Code;";
+	/** How a German message reporting student code begins. */
+	private static final String STUDENT_CODE_HEADER_DE = ERR_SECURITY_DE + " (Grund: Student-Code;";
 	protected static final String TRIED_EN = "tried";
 	protected static final String TRIED_DE = "hat versucht,";
 	protected static final String BLOCKED_EN = "was blocked by Ares.";
@@ -331,41 +340,58 @@ public abstract class SystemAccessTest {
 				.selectors(selectMethod(clazz, methodName)).execute().testEvents();
 
 		testEvents.assertStatistics(stats -> stats.failed(1).aborted(0).succeeded(0));
-		testEvents.assertThatEvents().haveExactly(1,
-				event(test(methodName), finishedWithFailure(securityExceptionOrInitialiserFailure())));
+		testEvents.assertThatEvents().haveExactly(1, event(test(methodName), finishedWithFailure(expectedDenial())));
 	}
 
-	private static Condition<Throwable> securityExceptionOrInitialiserFailure() {
-		return new Condition<>(SystemAccessTest::isSecurityExceptionOrInitialiserFailure,
-				"SecurityException or WALA initialisation failure caused by SecurityException");
+	/**
+	 * Builds the condition a denied probe has to meet.
+	 *
+	 * @return the condition, described for the failure message
+	 */
+	private static Condition<Throwable> expectedDenial() {
+		return new Condition<>(SystemAccessTest::isExpectedDenial,
+				"SecurityException reporting student code, or a WALA initialisation failure");
 	}
 
-	private static boolean isSecurityExceptionOrInitialiserFailure(Throwable throwable) {
-		if (instanceOf(SecurityException.class).matches(throwable)) {
-			return true;
-		}
-		if (isSecurityAssertionFailure(throwable)) {
-			return true;
-		}
-		if (isCachedWalaInitialiserFailure(throwable)) {
-			return true;
-		}
-		if (containsSecurityException(throwable.getCause())) {
-			return true;
-		}
-		if (!instanceOf(ExceptionInInitializerError.class).matches(throwable)) {
+	/**
+	 * Says whether a probe failed because Ares reported the student code. A refusal
+	 * that blames Ares or its setup does not count, since a check that never looked
+	 * at the code must not pass as a denial. The cached WALA failure is still
+	 * accepted without a message to inspect.
+	 *
+	 * @param throwable what the probe failed with
+	 * @return whether this is the denial the test expects
+	 */
+	static boolean isExpectedDenial(Throwable throwable) {
+		return isStudentCodeViolation(throwable) || isCachedWalaInitialiserFailure(throwable)
+				|| isInitialiserFailureFromStudentCode(throwable);
+	}
+
+	/**
+	 * Says whether this is a security exception opening with the student-code
+	 * header, in English or in German, from a rule that did look at some classes.
+	 *
+	 * @param throwable the failure to look at
+	 * @return whether it reports student code
+	 */
+	private static boolean isStudentCodeViolation(Throwable throwable) {
+		if (!(throwable instanceof SecurityException) || throwable.getMessage() == null) {
 			return false;
 		}
-		return containsSecurityException(throwable.getCause());
+		String message = throwable.getMessage().strip();
+		return (message.startsWith(STUDENT_CODE_HEADER_EN) || message.startsWith(STUDENT_CODE_HEADER_DE))
+				&& !message.contains(EMPTY_RULE_MARKER);
 	}
 
-	private static boolean isSecurityAssertionFailure(Throwable throwable) {
-		if (!instanceOf(AssertionError.class).matches(throwable)) {
-			return false;
-		}
-		return throwable.getMessage() != null
-				&& (throwable.getMessage().contains("security.advice.illegal.file.execution")
-						|| throwable.getMessage().contains("Exception message should contain the path"));
+	/**
+	 * Says whether a static initialiser failed because of a student-code violation.
+	 *
+	 * @param throwable the failure to look at
+	 * @return whether it wraps such a violation
+	 */
+	private static boolean isInitialiserFailureFromStudentCode(Throwable throwable) {
+		return throwable instanceof ExceptionInInitializerError initialiserError
+				&& containsStudentCodeViolation(initialiserError.getCause());
 	}
 
 	private static boolean isCachedWalaInitialiserFailure(Throwable throwable) {
@@ -376,13 +402,16 @@ public abstract class SystemAccessTest {
 				&& throwable.getMessage().contains("de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase");
 	}
 
-	private static boolean containsSecurityException(Throwable throwable) {
+	/**
+	 * Searches a failure and its causes for a student-code violation.
+	 *
+	 * @param throwable the first failure to look at, or {@code null}
+	 * @return whether one of them reports student code
+	 */
+	private static boolean containsStudentCodeViolation(Throwable throwable) {
 		if (throwable == null) {
 			return false;
 		}
-		if (instanceOf(SecurityException.class).matches(throwable)) {
-			return true;
-		}
-		return containsSecurityException(throwable.getCause());
+		return isStudentCodeViolation(throwable) || containsStudentCodeViolation(throwable.getCause());
 	}
 }

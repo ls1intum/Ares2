@@ -2,39 +2,40 @@ package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.r
 
 import java.io.IOException;
 
+/**
+ * Test subject that starts a trusted script through {@link Runtime}. Ares
+ * analyses this class as if a student had written it.
+ */
 public class ExecuteRuntimeMain {
 
-	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
-
+	/**
+	 * Stops anyone from creating an instance, since this class only has static
+	 * methods.
+	 */
 	private ExecuteRuntimeMain() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
-	 * Access the file system using the {@link Runtime} class for execution.
+	 * Starts the script with {@link Runtime#exec(String)}.
+	 *
+	 * @param filePath the script to start, relative to the project folder
+	 * @return the started process, so that the caller can check what it did
+	 * @throws IOException if the script cannot be started
 	 */
-	public static void accessFileSystemViaRuntime(String filePath) throws IOException {
-		Runtime runtime = Runtime.getRuntime();
-		Process process = runtime.exec(filePath);
-		// We could also wait for the process to complete
-		// process.waitFor();
+	public static Process accessFileSystemViaRuntime(String filePath) throws IOException {
+		return Runtime.getRuntime().exec(filePath);
 	}
 
 	/**
-	 * Access the file system using the {@link Runtime} class for execution with
-	 * default command.
+	 * Starts the script with {@link Runtime#exec(String[])}.
+	 *
+	 * @param filePath the script to start, relative to the project folder
+	 * @return the started process, so that the caller can check what it did
+	 * @throws IOException if the script cannot be started
 	 */
-	public static void accessFileSystemViaRuntime() throws IOException {
-		accessFileSystemViaRuntime(TRUSTED_SCRIPT_PATH);
-	}
-
-	/**
-	 * Access the file system using the {@link Runtime} class for execution with
-	 * array parameter.
-	 */
-	public static Process accessFileSystemViaRuntimeArray() throws IOException {
-		Runtime runtime = Runtime.getRuntime();
-		return runtime.exec(new String[] { TRUSTED_SCRIPT_PATH });
+	public static Process accessFileSystemViaRuntimeArray(String filePath) throws IOException {
+		return Runtime.getRuntime().exec(new String[] { filePath });
 	}
 }

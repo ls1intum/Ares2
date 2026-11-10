@@ -1,10 +1,16 @@
 package de.tum.cit.ase.ares.integration.architecture.forbidden;
 
+import static org.junit.platform.engine.discovery.DiscoverySelectors.selectMethod;
+
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.platform.engine.TestExecutionResult;
+import org.junit.platform.testkit.engine.EngineTestKit;
+import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
@@ -21,6 +27,40 @@ class FileSystemAccessExecuteTest extends SystemAccessTest {
 	private static final String PROCESS_BUILDER_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/processBuilder";
 	private static final String DESKTOP_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/desktop";
 	private static final String THIRD_PARTY_PACKAGE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/execute/thirdPartyPackage";
+
+	/** Why the probe below never runs on its own. */
+	private static final String STATIC_PROBE_REASON = "Static probe: run only by test_staticRuntimeExecuteRejectedMavenArchunitAspectJ_test through EngineTestKit.";
+
+	/**
+	 * Fails if it is ever reached. The static check has to reject the analysed
+	 * folder before this method body runs, so nothing is started here.
+	 */
+	@Disabled(STATIC_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = RUNTIME_PATH)
+	void staticRuntimeExecuteProbeMavenArchunitAspectJ() {
+		Assertions.fail("The static check should have rejected the analysed code before this line.");
+	}
+
+	/**
+	 * Checks that ArchUnit really analysed the subject and named both the class and
+	 * the forbidden call. Any other failure, such as a setup refusal, fails here.
+	 */
+	@Test
+	void test_staticRuntimeExecuteRejectedMavenArchunitAspectJ_test() {
+		Events events = EngineTestKit.engine("junit-jupiter")
+				.configurationParameter("junit.jupiter.conditions.deactivate", "org.junit.*DisabledCondition")
+				.selectors(selectMethod(FileSystemAccessExecuteTest.class,
+						"staticRuntimeExecuteProbeMavenArchunitAspectJ"))
+				.execute().testEvents();
+		events.assertStatistics(stats -> stats.failed(1).aborted(0).succeeded(0));
+		Throwable failure = events.failed().stream().findFirst().orElseThrow()
+				.getRequiredPayload(TestExecutionResult.class).getThrowable().orElseThrow();
+		SecurityException denial = Assertions.assertInstanceOf(SecurityException.class, failure);
+		Assertions.assertTrue(SystemAccessTest.isExpectedDenial(denial), denial::getMessage);
+		Assertions.assertTrue(denial.getMessage().contains(RuntimeExecuteMain.class.getName()), denial::getMessage);
+		Assertions.assertTrue(denial.getMessage().contains("java.lang.Runtime.exec"), denial::getMessage);
+	}
 
 	// <editor-fold desc="accessFileSystemViaRuntime">
 	@Disabled(SUBJECT_PROBE_REASON)
