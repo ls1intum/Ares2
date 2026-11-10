@@ -1,5 +1,8 @@
 package de.tum.cit.ase.ares.api.securitytest.java.creator;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +87,14 @@ public class JavaCreator implements Creator {
 	 * whose names a student could otherwise reuse in the supervised package.
 	 */
 	private List<String> testExemptedClassNames = List.of();
+
+	/**
+	 * The folder the supervised classes were read from, named when it held none.
+	 */
+	private String supervisedClassPath = "";
+
+	/** Whether the classes the architecture rules analyse include any at all. */
+	private boolean supervisedClassesFound;
 	private final BuildToolConfiguration buildConfiguration;
 
 	public JavaCreator() {
@@ -307,6 +318,66 @@ public class JavaCreator implements Creator {
 	public void requireNoProductionClassNamedLikeAnExemptedOne(@Nonnull BuildMode buildMode) {
 		ExemptedClassNests.requireNoProductionClassNamedLikeAnExemptedOne(productionOutputRoot(buildMode),
 				supervisedPackage, testExemptedClassNames);
+	}
+
+	/**
+	 * Refuses a run whose architecture rules analyse no class while the outputs
+	 * checked hold some, as after a withinPath resolved to a missing folder on
+	 * Windows. Nothing compiled yet is an exercise still to be filled and passes.
+	 * Run before arming, not while writing test cases.
+	 *
+	 * @param buildMode the build mode used when no configuration was discovered
+	 * @throws SecurityException if the scope missed the compiled classes
+	 */
+	public void requireSupervisedClasses(@Nonnull BuildMode buildMode) {
+		if (supervisedClassesFound) {
+			return;
+		}
+		for (Path outputRoot : outputRootsToCheck(buildMode)) {
+			if (holdsCompiledClass(outputRoot)) {
+				throw new SecurityException(Messages.localized("security.policy.supervised.classes.missing",
+						supervisedClassPath, outputRoot));
+			}
+		}
+	}
+
+	/**
+	 * The outputs an empty scope is measured against: always the production output,
+	 * and the test output too when the scope lies in it. A production scope never
+	 * looks at the test output, which holds the instructor's tests even while the
+	 * student has written nothing.
+	 *
+	 * @param buildMode the build mode used when no configuration was discovered
+	 * @return the output roots to look in
+	 */
+	private List<Path> outputRootsToCheck(@Nonnull BuildMode buildMode) {
+		Path productionRoot = productionOutputRoot(buildMode);
+		Path testRoot = testOutputRoot(buildMode).normalize();
+		if (Path.of(supervisedClassPath).toAbsolutePath().normalize().startsWith(testRoot)) {
+			return List.of(productionRoot, testRoot);
+		}
+		return List.of(productionRoot);
+	}
+
+	/**
+	 * Whether a folder holds a compiled class other than a package or module
+	 * descriptor. A folder Ares cannot read counts as holding one, so that not
+	 * knowing leads to a refusal rather than to trust.
+	 *
+	 * @param outputRoot the folder to look in
+	 * @return whether a compiled class lies below it
+	 */
+	private static boolean holdsCompiledClass(@Nonnull Path outputRoot) {
+		if (!Files.exists(outputRoot)) {
+			return false;
+		}
+		try (Stream<Path> files = Files.walk(outputRoot)) {
+			return files.filter(Files::isRegularFile).map(file -> String.valueOf(file.getFileName()))
+					.anyMatch(name -> name.endsWith(".class") && !"module-info.class".equals(name)
+							&& !"package-info.class".equals(name));
+		} catch (IOException | UncheckedIOException unreadable) {
+			return true;
+		}
 	}
 
 	/**
@@ -622,6 +693,8 @@ public class JavaCreator implements Creator {
 		@Nonnull
 		JavaClasses javaClasses = cacheResult(projectPath + "_" + packageName + "_javaClasses",
 				() -> architectureMode.getJavaClasses(classPath)).get();
+		this.supervisedClassPath = classPath;
+		this.supervisedClassesFound = javaClasses.stream().findAny().isPresent();
 		// Keep the call graph as a Supplier (no eager .get()) so downstream test cases
 		// can defer construction. The disk-backed WALA outcome cache in
 		// JavaWalaTestCase

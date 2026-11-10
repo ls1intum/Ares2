@@ -76,6 +76,11 @@ layer AspectJ did not weave escapes enforcement:
   machinery is a JDK-internal call site and is not woven.
 - Any helper that the build does not run through the AspectJ weaver is a blind
   spot.
+- A method reference such as `thread::start` compiles to a dynamic call, and
+  the JDK generates the class that finally calls the referenced method at run
+  time, so AspectJ never weaves it. A thread started this way escapes the
+  thread check under ASPECTJ (`ThreadSystemAccessTest` proves the refusal for
+  instrumentation only).
 
 Instrumentation is unaffected because it rewrites the target, so the caller
 being unwoven, reflective or third-party does not matter.
@@ -92,7 +97,10 @@ the enumeration selects **call signatures** to weave at the call site, and the
 Consequence: keeping the two engines in parity requires deliberate, ongoing
 effort. New JDK APIs, renamed internal classes, or new dispatch paths can widen
 the AspectJ gap silently. A cross-engine parity test (run one policy through
-both engines and assert identical verdicts) is the recommended guard.
+both engines and assert identical verdicts) is the recommended guard. For the
+operations the secure baseline allows without a policy entry, that test is
+`BaselineExemptionParityTest`; the
+[baseline verification page](baseline-verification.md) describes it.
 
 ## 5. Net effect on the threat model
 
