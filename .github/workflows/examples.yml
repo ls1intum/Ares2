@@ -190,36 +190,52 @@ jobs:
             ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test
           fi
 
-      - name: Confirm the reserved-package boundary rejects an impostor
+      - name: Confirm the reserved-package boundary rejects impostors
         env:
           TOOL: ${{ matrix.tool }}
         run: |
           set -u
-          # Run in a copy, so the canonical example tree is never edited.
-          work="${RUNNER_TEMP}/impostor"
-          cp -R "examples/ares-exercise-${TOOL}" "${work}"
-          mkdir -p "${work}/src/main/java/de/tum/cit/ase/ares/api"
-          printf 'package de.tum.cit.ase.ares.api;\n\npublic class Impostor {\n    public static String hello() {\n        return "trusted";\n    }\n}\n' \
-            > "${work}/src/main/java/de/tum/cit/ase/ares/api/Impostor.java"
-          cd "${work}"
-          if [ "${TOOL}" = "maven" ]; then
-            mvn -B -ntp -Dares.version="${ARES_VERSION}" test > output.log 2>&1 && status=0 || status=$?
-          else
-            ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test > output.log 2>&1 && status=0 || status=$?
-          fi
-          if [ "${status}" -eq 0 ]; then
-            echo "::error::A class in de.tum.cit.ase.ares.api survived the build. The reserved-package boundary is not active."
-            tail -50 output.log
-            exit 1
-          fi
-          # A non-zero status alone is not enough: any compile error would produce
-          # one. Require the boundary's own diagnostic.
-          if ! grep -q 'Ares reserved-package validation 2 rejected student output' output.log; then
-            echo "::error::The build failed, but not with the reserved-package diagnostic, so something else broke."
-            tail -50 output.log
-            exit 1
-          fi
-          echo "Reserved-package boundary rejected the impostor class, as required."
+          # Each reserved namespace is planted on its own, in a fresh copy of the
+          # example, so a pass proves that that namespace in particular is rejected
+          # rather than that at least one of them is. The original Ares-api namespace
+          # is covered alongside two restored in prefix version 3: the test harness
+          # (org.junit), which a submission could otherwise shadow to pass every test,
+          # and the Gradle worker (worker.org.gradle).
+          reject_impostor() {
+            pkg_path="$1"
+            pkg_decl="$2"
+            work="${RUNNER_TEMP}/impostor-$(printf '%s' "${pkg_path}" | tr '/' '-')"
+            rm -rf "${work}"
+            # Run in a copy, so the canonical example tree is never edited.
+            cp -R "examples/ares-exercise-${TOOL}" "${work}"
+            mkdir -p "${work}/src/main/java/${pkg_path}"
+            printf 'package %s;\n\npublic class Impostor {\n    public static String hello() {\n        return "trusted";\n    }\n}\n' \
+              "${pkg_decl}" > "${work}/src/main/java/${pkg_path}/Impostor.java"
+            (
+              cd "${work}" || exit 1
+              if [ "${TOOL}" = "maven" ]; then
+                mvn -B -ntp -Dares.version="${ARES_VERSION}" test > output.log 2>&1 && status=0 || status=$?
+              else
+                ./gradlew --no-daemon --init-script "${RUNNER_TEMP}/local-repo.init.gradle" test > output.log 2>&1 && status=0 || status=$?
+              fi
+              if [ "${status}" -eq 0 ]; then
+                echo "::error::A class in ${pkg_decl} survived the build. The reserved-package boundary is not active."
+                tail -50 output.log
+                exit 1
+              fi
+              # A non-zero status alone is not enough: any compile error would produce
+              # one. Require the boundary's own diagnostic.
+              if ! grep -q 'Ares reserved-package validation 2 rejected student output' output.log; then
+                echo "::error::The ${pkg_decl} build failed, but not with the reserved-package diagnostic, so something else broke."
+                tail -50 output.log
+                exit 1
+              fi
+              echo "Reserved-package boundary rejected the impostor in ${pkg_decl}, as required."
+            )
+          }
+          reject_impostor "de/tum/cit/ase/ares/api" "de.tum.cit.ase.ares.api" || exit 1
+          reject_impostor "org/junit/jupiter/api" "org.junit.jupiter.api" || exit 1
+          reject_impostor "worker/org/gradle" "worker.org.gradle" || exit 1
 
       - name: Confirm the Gradle setup is configuration-cache compatible
         if: matrix.tool == 'gradle'
