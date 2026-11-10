@@ -1634,6 +1634,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				java.lang.reflect.Field[] fields = instance.getClass().getDeclaredFields();
 				attributes = new Object[fields.length];
 				for (int i = 0; i < fields.length; i++) {
+					if (java.lang.reflect.Modifier.isStatic(fields[i].getModifiers())) {
+						continue;
+					}
 					try {
 						fields[i].setAccessible(true);
 						attributes[i] = fields[i].get(instance);
