@@ -5,10 +5,12 @@ description: "Migrating an Ares 1 Maven exercise straight onto Ares 2 in Precomp
 ---
 
 :::tip[Simple Story]
-This would take an old-rules Maven exercise straight to the printed-in checks, skipping the
-dependency-based route.
+This page is meant to move an exercise from the old rules straight to the way where the head
+teacher prints the rules onto the grading instructions beforehand. Nobody has written it yet,
+so for now move the exercise to the way where the teacher picks up the rule sheet for each
+question, and switch afterwards.
 
-Nobody has written that path down yet, so this page says what it would have to cover.
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

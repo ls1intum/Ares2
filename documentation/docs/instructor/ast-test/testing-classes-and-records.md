@@ -5,11 +5,15 @@ description: "Ruling out classes and records declared inside a body of code with
 ---
 
 :::tip[Simple Story]
-The paper says "use the classes on the paper". The board of education wants the pupil to work
-with the existing penguin types, not to invent a small helper type halfway through an answer.
+The instructions on this page forbid inventing a new kind of thing halfway through an answer,
+such as a new kind of pair. The pupil has to work with the kinds of thing that already exist.
+While marking by the grading instructions, the teacher reads what the pupil wrote and looks for
+the two forms such an invention can take inside an answer.
 
-The mark scheme names the two kinds of helper type a pupil can write in the middle of an answer:
-a local class and a local record. The teacher looks for both on the answer sheet.
+An invention outside an answer, or one without a name, does not count, so the teacher lets it
+pass.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example test class

@@ -5,11 +5,15 @@ description: "How many threads of which class the supervised code may create."
 ---
 
 :::tip[Simple Story]
-A thread is a helper a pupil calls in to do two things at once.
+A side job is something a pupil starts alongside their answer. The rule sheet can allow side
+jobs of one kind and say how many the pupil can start. Without a limit, one pupil can start
+thousands of them and halt the whole examination.
 
-Left unbounded, one pupil can call in thousands of them and bring the whole examination to a halt,
-by accident as easily as on purpose. So the checklist says which kind of helper may be called
-in, and how many at most.
+Some side jobs start without the pupil naming them, for example when they split a task into
+parts that run side by side, or take a short rest. Each of those has its own line on the rule
+sheet.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example policy file

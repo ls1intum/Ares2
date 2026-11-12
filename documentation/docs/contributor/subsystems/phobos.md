@@ -5,13 +5,15 @@ description: "The out-of-process sandbox subsystem: bubblewrap, the LD_PRELOAD f
 ---
 
 :::tip[Simple Story]
-Everything else in Ares works inside the room. Phobos **is** the room.
+The special examination room works from outside. It hides the worksheets a pupil must not see,
+cuts the telephone lines they must not use, and ends the examination when time runs out. Its
+walls do not depend on the pupil behaving.
 
-The desk with its dividers, the door, and the clock out in the corridor, all put in place by
-the operating system before the pupil walked in. It hides papers they should not see, refuses
-calls they should not make, and stops them when they have run too long. Being outside matters:
-a pupil can talk a teacher round, but cannot unbuild a divider. In Postcompile Ares describes
-the room and never builds it, so nothing here runs today.
+This page describes an older plan of the room, which the school no longer follows. When the
+teacher picks up the rule sheet for each question, nobody uses the room at all. And some of the
+notes written for the room still use an old form, which today's room refuses.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[Historical design]

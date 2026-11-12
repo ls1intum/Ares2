@@ -5,14 +5,21 @@ description: "Where the trust boundary ends: what Ares 2 does not attempt, where
 ---
 
 :::tip[Simple Story]
-Every checklist has a last line, and it is safer to know where yours ends than to assume it
-covers the whole room.
+The rule sheet covers what a pupil does at the desk, and no more. It cannot tell whether a pupil
+copied an answer from someone else, and it cannot vouch for aids the head teacher put out.
+Whether an answer is right is a matter for the grading instructions.
 
-The checklist covers what a pupil does at the desk. It cannot tell whether the answer was the
-pupil's own idea, and it cannot vouch for equipment the board itself carried in. And one job cannot be
-done from a desk at all: nobody sitting there can confirm that the checklist in front of them
-is the one the board issued. Your build has to guarantee that, because Ares cannot guard the
-door it is standing behind.
+The teacher can miss things as well. They look for the things nobody is allowed to do when they
+clear the desks. While watching, they catch such an act only if it counts as something the rule
+sheet can allow. Once the rule sheet allows a single worksheet, telephone number, friend or side
+job, the desk clearing stops covering that kind, and only the watching remains. The two ways of
+watching do not catch exactly the same things. The clock of the special examination room bounds
+nothing yet, so only the teacher's stopwatch limits the time.
+
+Nobody inside the room can do one job: check that the rule sheet on the desk is the head
+teacher's. The school's office has to make sure of that.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What Ares 2 trusts

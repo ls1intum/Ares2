@@ -5,20 +5,20 @@ description: "What Ares 2 is, what it is for, and how this documentation is orga
 ---
 
 :::tip[Simple Story]
-When students submit programming homework, something has to run their code to see whether it
-works. Running a stranger's code on your machine is exactly as risky as it sounds.
+Picture a school on the day of an examination.
 
-So picture an examination. The methods the student wrote are the pupils. The instructor is the
-board of education: they set the paper and fill in the checklist. The test framework, JUnit
-Jupiter, is the teacher, putting the exercise's questions one at a time and marking each answer
-on the spot. The teacher decides none of the rules.
+The head teacher has written everything beforehand: the questions, the grading instructions,
+and a rule sheet that says what the pupils are allowed to do. Then they stay in their office.
 
-Ares is the checklist, and it has three parts. The room around the desks covers only files, the
-network and the clock, and in Postcompile Ares draws up its plan without anyone arranging it
-yet. The reach check looks for any route in the pupil's compiled work to something forbidden,
-and any such route fails outright. The use check, while the pupil works, compares each thing
-they reach for with what the checklist allows. The work still runs and still gets
-marked.
+In the room, the teacher hands out one question at a time and marks each answer by the grading
+instructions. They follow the rule sheet as well. Before the start, they clear every desk of
+anything that could lead somewhere forbidden. During the examination, they watch for pupils
+reaching for something the rule sheet does not allow, and stop those they see.
+
+The pupils still answer, and the teacher still marks their answers. The rest of this guide
+says what the teacher catches, and what they miss.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 Ares 2 is a framework for the easy and secure remote execution of student submissions on an

@@ -5,12 +5,16 @@ description: "Conceptual weaknesses of the AspectJ engine compared to the instru
 ---
 
 :::tip[Simple Story]
-The teacher has two ways of catching a pupil in the act, and they are not equally good.
+The teacher has two ways of watching during the examination. In the first, they watch the
+pupils' hands. In the second, they stand beside the forbidden things they guard, and see any
+hand that reaches for one of those.
 
-One covers every place in the room where the forbidden thing could be asked for. The other
-covers the thing itself. The second catches more, because there is only one of it and there may
-be a hundred places that ask, and you can only cover the ones you can see. This page is the honest
-list of what the first one misses.
+The first way misses whatever a permitted aid does on the pupil's behalf, because nobody
+watches the aid's hands. The second way catches most of what the first misses, though for a
+few moves of a side job it is the other way round. Keeping the two in step takes constant
+work. This page lists what the first way misses.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 Ares enforces a security policy on untrusted student code through two

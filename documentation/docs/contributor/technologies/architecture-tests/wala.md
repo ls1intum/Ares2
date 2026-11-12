@@ -5,16 +5,20 @@ description: "Inter-procedural call-graph analysis: reachability, sinks and fals
 ---
 
 :::tip[Simple Story]
-The T. J. Watson Libraries for Analysis (WALA) build the full map of which method can call
-which, then ask whether any route leads from the pupil's desk to something forbidden.
+This is one of the two ways the teacher clears the desks by the rule sheet before the start. They look at what
+the pupils' work turned into and work out every route that leads out of it, however many steps
+it takes. Then they ask whether any route ends at something forbidden.
 
-Where the simpler engine asks "does this class mention that one?", WALA asks "can I get there
-from here, however many steps it takes?"
+This takes far longer than the other way of clearing the desks. It counts some routes that the
+work never takes, so the teacher sorts some of those out again. Like all desk clearing, it sees
+that a route exists, not which worksheet waits at the end.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is
 
-WALA (T. J. Watson Libraries for Analysis) is a static analysis framework from IBM
+The T. J. Watson Libraries for Analysis (WALA) is a static analysis framework from IBM
 Research. It builds inter-procedural call graphs and supports data-flow analysis over them.
 
 ## How Ares 2 uses it

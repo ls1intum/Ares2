@@ -5,9 +5,15 @@ description: "How import restrictions are enforced, and why this domain is archi
 ---
 
 :::tip[Simple Story]
-This part of the checklist is about what equipment a pupil may bring into the room at all.
+The rule sheet lists the permitted aids. Only the desk clearing checks them, before the start,
+by looking at what the pupils' work turned into. Nobody watches for aids during the
+examination, so an aid the clearing misses stays on the desk.
 
-It is settled by reading the compiled answer, not by watching them work.
+Allowing one aid does not allow another whose name starts the same way. The two ways of
+clearing the desks look at the work differently, so this part depends most on which of them the
+teacher uses.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 For the fields an exercise author writes, see

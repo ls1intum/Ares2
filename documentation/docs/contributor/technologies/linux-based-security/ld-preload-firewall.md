@@ -5,11 +5,16 @@ description: "Blocking network access by interposing a shared library ahead of l
 ---
 
 :::tip[Simple Story]
-When a pupil wants to telephone out, they ask the system library to place the call.
+The special examination room has new features against cheating. One of them sits in the
+telephone. Each time a pupil rings out, it checks the number and either puts the call through or
+refuses it.
 
-Linux lets you slip your own library in front, so they ask *you* instead. You look at who they
-are trying to reach, and either put the call through or refuse it. The pupil never knows the
-difference.
+It only catches calls made the usual way, through that telephone. A pupil who reaches the line
+some other way goes round it, so this feature is one of several. Nobody uses this room yet when
+the teacher picks up the rule sheet for each question. This page tells how an earlier version of
+the room worked.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[Historical design]
