@@ -52,7 +52,10 @@ class SiteWideDocumentationStructureTest {
 	 */
 	private static final List<String> EXPECTED_INSTRUCTOR_PAGES = List.of(
 			"ares-2/what-does-ares-2-not-protect-against.md", "ares-2/what-does-ares-2-protect-against.md",
-			"ares-2/what-is-ares-2.md", "policy-cookbook/allowing-exactly-one-host.md", "policy-cookbook/index.md",
+			"ares-2/what-is-ares-2.md", "ast-test/testing-classes-and-records.md",
+			"ast-test/testing-for-conditionals.md", "ast-test/testing-for-exception-handling.md",
+			"ast-test/testing-for-loops.md", "ast-test/testing-for-recursion.md", "ast-test/what-is-an-ast-check.md",
+			"policy-cookbook/allowing-exactly-one-host.md", "policy-cookbook/index.md",
 			"policy-cookbook/reading-a-file-from-resources.md", "policy-cookbook/setting-time-and-memory-budgets.md",
 			"policy-cookbook/using-a-library-that-reflects.md", "policy-cookbook/using-threads.md",
 			"policy-cookbook/writing-an-output-file.md", "policy-reference/class-permission.md",
