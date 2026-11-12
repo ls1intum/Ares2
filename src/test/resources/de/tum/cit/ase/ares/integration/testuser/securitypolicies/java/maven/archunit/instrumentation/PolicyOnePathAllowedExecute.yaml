@@ -32,7 +32,7 @@ regardingTheSupervisedCode:
     regardingNetworkConnections: [ ]
     regardingCommandExecutions:
       - executeTheCommand: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.bat"
-        withTheseArguments: []
+        withTheseArguments: [ ]
       - executeTheCommand: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh"
         withTheseArguments: [ ]
     regardingThreadCreations: [ ]

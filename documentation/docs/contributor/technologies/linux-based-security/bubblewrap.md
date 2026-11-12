@@ -11,6 +11,12 @@ Papers you did not put on it simply are not there. Not forbidden, not protected:
 pupil cannot break a rule about a paper they cannot see.
 :::
 
+:::note[Historical design]
+Where this page names a Phobos layer or script, it describes the scripts Ares used to bundle,
+which it no longer ships. Current Phobos works differently; see the
+[Phobos documentation](https://ls1intum.github.io/phobos/).
+:::
+
 ## What it is
 
 Bubblewrap (`bwrap`) is an unprivileged sandboxing tool. It uses Linux namespaces to give a

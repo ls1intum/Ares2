@@ -281,7 +281,9 @@ Ares 2 trusts a different set of identities by name, including its own `de.tum.c
 
 They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reservedPackages/`, and live in the Ares repository at `src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`. Both are reproduced in full below, so you can complete the migration without extracting them.
 
-Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+
+Prefix version 3 widened the list to the Ares 1 breadth. A version 1 or 2 snippet now reserves too little rather than too much: it omits the test harness (JUnit, AssertJ) and Ares' other dependencies. A submission that places a class in one of those shadows the code that grades it. Upgrading the Ares dependency does not rewrite a build guard you copied earlier, so refresh any snippet below prefix version 3 from the shipped files. Regenerate any previously generated helper sources too, since the upgrade does not replace their embedded reserved-package list either. This is a breaking change for an affected exercise: the build now rejects a submission that compiled before if it takes a reserved package.
 
 ### Maven
 
@@ -305,7 +307,18 @@ Delete the `maven-enforcer-plugin` execution with the `requireFilesDontExist` ru
               <include name="jdk/**"/><include name="com/sun/**"/>
               <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
               <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-              <include name="com/tngtech/archunit/**"/>
+              <include name="com/tngtech/archunit/**"/><include name="junit/**"/>
+              <include name="org/junit/**"/><include name="org/opentest4j/**"/>
+              <include name="org/assertj/**"/><include name="org/mockito/**"/>
+              <include name="ch/qos/logback/**"/><include name="org/slf4j/**"/>
+              <include name="com/github/javaparser/**"/><include name="com/fasterxml/jackson/**"/>
+              <include name="org/yaml/**"/><include name="org/json/**"/>
+              <include name="com/opencsv/**"/><include name="org/jgrapht/**"/>
+              <include name="org/apiguardian/**"/><include name="org/apache/**"/>
+              <include name="org/eclipse/**"/><include name="org/gradle/**"/>
+              <include name="org/jacoco/**"/><include name="com/intellij/**"/>
+              <include name="worker/org/gradle/**"/>
+              <include name="de/tum/in/test/api/**"/>
             </fileset>
           </resourcecount>
           <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">
@@ -473,7 +486,18 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
                                         <include name="jdk/**"/><include name="com/sun/**"/>
                                         <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
                                         <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-                                        <include name="com/tngtech/archunit/**"/>
+                                        <include name="com/tngtech/archunit/**"/><include name="junit/**"/>
+                                        <include name="org/junit/**"/><include name="org/opentest4j/**"/>
+                                        <include name="org/assertj/**"/><include name="org/mockito/**"/>
+                                        <include name="ch/qos/logback/**"/><include name="org/slf4j/**"/>
+                                        <include name="com/github/javaparser/**"/><include name="com/fasterxml/jackson/**"/>
+                                        <include name="org/yaml/**"/><include name="org/json/**"/>
+                                        <include name="com/opencsv/**"/><include name="org/jgrapht/**"/>
+                                        <include name="org/apiguardian/**"/><include name="org/apache/**"/>
+                                        <include name="org/eclipse/**"/><include name="org/gradle/**"/>
+                                        <include name="org/jacoco/**"/><include name="com/intellij/**"/>
+                                        <include name="worker/org/gradle/**"/>
+                                        <include name="de/tum/in/test/api/**"/>
                                     </fileset>
                                 </resourcecount>
                                 <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">

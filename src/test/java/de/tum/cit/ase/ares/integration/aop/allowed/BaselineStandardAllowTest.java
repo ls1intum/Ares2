@@ -1,31 +1,49 @@
 package de.tum.cit.ase.ares.integration.aop.allowed;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.TestMethodOrder;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.baseline.BaselineRecordsMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.baseline.BaselineStandardAllowMain;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.baselineArchive.AllowedArchiveEntryCalls;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.baselineCertificates.TrustedCertificatesMain;
 
 /**
  * Runs student code that uses the secure baseline's standard-allowed operations
- * under a policy granting no file access, in all four mode combinations,
- * through the real static analysis and the real runtime checks.
+ * through the real static analysis and runtime checks. Most policies grant no
+ * file access; archive tests have one unrelated read entry so the static file
+ * rule admits their calls. Tests with a switched-off policy run last, after a
+ * supervised test registers the package with the agent.
  */
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class BaselineStandardAllowTest {
 
 	/**
 	 * Folder of the student code the static analysis inspects.
 	 */
 	private static final String WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/baseline";
+
+	/** Folder of the archive entry call sites. */
+	private static final String ARCHIVE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/baselineArchive";
 
 	/**
 	 * Folder of the student code loading the trusted certificates.
@@ -37,6 +55,9 @@ class BaselineStandardAllowTest {
 	 */
 	private static final String POLICY_ARCHUNITASPECTJ = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyBaselineStandardAllow.yaml";
 
+	/** Policy with an unrelated allowed read for an archive entry call. */
+	private static final String ARCHIVE_POLICY_ARCHUNITASPECTJ = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml";
+
 	/**
 	 * Policy with one network connection and no file access for
 	 * MavenArchunitAspectJ.
@@ -47,6 +68,9 @@ class BaselineStandardAllowTest {
 	 * Policy without file access for MavenArchunitInstrumentation.
 	 */
 	private static final String POLICY_ARCHUNITINSTRUMENTATION = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyBaselineStandardAllow.yaml";
+
+	/** Policy with an unrelated allowed read for an archive entry call. */
+	private static final String ARCHIVE_POLICY_ARCHUNITINSTRUMENTATION = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml";
 
 	/**
 	 * Policy with one network connection and no file access for
@@ -80,6 +104,46 @@ class BaselineStandardAllowTest {
 	 * any policy.
 	 */
 	private static final Queue<Path> CREATED_FILES = new ConcurrentLinkedQueue<>();
+
+	/** A JDK zip opened before policy enforcement. */
+	private static ZipFile openZip;
+
+	/** A JDK jar opened before policy enforcement. */
+	private static JarFile openJar;
+
+	/**
+	 * Opens the same archive as a zip and jar before any supervised call.
+	 *
+	 * @throws IOException if the fixture cannot be prepared
+	 */
+	@BeforeAll
+	static void prepareArchiveEntryFixture() throws IOException {
+		Path path = Files.createTempFile("ares-baseline-archive-", ".jar");
+		CREATED_FILES.add(path);
+		try (OutputStream out = Files.newOutputStream(path); ZipOutputStream zip = new ZipOutputStream(out)) {
+			zip.putNextEntry(new ZipEntry("entry.txt"));
+			zip.write(1);
+			zip.closeEntry();
+		}
+		openZip = new ZipFile(path.toFile());
+		openJar = new JarFile(path.toFile());
+	}
+
+	/** Already-open JDK archives remain readable through instrumentation. */
+	@PublicTest
+	@Order(1)
+	@Policy(value = ARCHIVE_POLICY_ARCHUNITINSTRUMENTATION, withinPath = ARCHIVE_WITHIN_PATH)
+	void test_openArchiveEntriesMavenArchunitInstrumentation() {
+		assertEquals(4, assertDoesNotThrow(() -> AllowedArchiveEntryCalls.read(openZip, openJar)));
+	}
+
+	/** Already-open JDK archives remain readable through AspectJ. */
+	@PublicTest
+	@Order(2)
+	@Policy(value = ARCHIVE_POLICY_ARCHUNITASPECTJ, withinPath = ARCHIVE_WITHIN_PATH)
+	void test_openArchiveEntriesMavenArchunitAspectJ() {
+		assertEquals(4, assertDoesNotThrow(() -> AllowedArchiveEntryCalls.read(openZip, openJar)));
+	}
 
 	// <editor-fold desc="createTempFileWithFileWithoutDirectory">
 	/**
@@ -359,6 +423,71 @@ class BaselineStandardAllowTest {
 	}
 	// </editor-fold>
 
+	// <editor-fold desc="useRecord">
+	/**
+	 * A student record works under ArchUnit and AspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void test_useRecordMavenArchunitAspectJ() {
+		assertEquals("ArchunitAspectJPoint[x=1, y=2] true true", BaselineRecordsMain.useArchunitAspectJRecord());
+	}
+
+	/**
+	 * A student record works under ArchUnit and instrumentation, whose agent
+	 * rewrites the record's thread and monitor calls.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void test_useRecordMavenArchunitInstrumentation() {
+		assertEquals("ArchunitInstrumentationPoint[x=1, y=2] true true",
+				BaselineRecordsMain.useArchunitInstrumentationRecord());
+	}
+
+	/**
+	 * A student record works under WALA and AspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void test_useRecordMavenWalaAspectJ() {
+		assertEquals("WalaAspectJPoint[x=1, y=2] true true", BaselineRecordsMain.useWalaAspectJRecord());
+	}
+
+	/**
+	 * A student record works under WALA and instrumentation, whose agent rewrites
+	 * the record's thread and monitor calls.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void test_useRecordMavenWalaInstrumentation() {
+		assertEquals("WalaInstrumentationPoint[x=1, y=2] true true",
+				BaselineRecordsMain.useWalaInstrumentationRecord());
+	}
+
+	/**
+	 * A record from a package the agent already rewrites works under a switched-off
+	 * ArchUnit and instrumentation policy.
+	 */
+	@PublicTest
+	@Order(Integer.MAX_VALUE)
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH, activated = false)
+	void test_recordUnderDeactivatedPolicyMavenArchunitInstrumentation() {
+		assertEquals("DeactivatedArchunitPoint[x=1, y=2] true true",
+				BaselineRecordsMain.useDeactivatedArchunitRecord());
+	}
+
+	/**
+	 * A record from a package the agent already rewrites works under a switched-off
+	 * WALA and instrumentation policy.
+	 */
+	@PublicTest
+	@Order(Integer.MAX_VALUE)
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH, activated = false)
+	void test_recordUnderDeactivatedPolicyMavenWalaInstrumentation() {
+		assertEquals("DeactivatedWalaPoint[x=1, y=2] true true", BaselineRecordsMain.useDeactivatedWalaRecord());
+	}
+	// </editor-fold>
+
 	/**
 	 * Deletes the temporary files the tests created.
 	 *
@@ -366,6 +495,8 @@ class BaselineStandardAllowTest {
 	 */
 	@AfterAll
 	static void deleteCreatedFiles() throws IOException {
+		openZip.close();
+		openJar.close();
 		for (Path created : CREATED_FILES) {
 			Files.deleteIfExists(created);
 		}

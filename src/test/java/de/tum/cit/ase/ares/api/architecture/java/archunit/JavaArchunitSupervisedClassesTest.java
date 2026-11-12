@@ -2,8 +2,13 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.lang.reflect.Field;
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import de.tum.cit.ase.ares.api.architecture.java.wala.WalaPathClassification;
 
 /**
  * Whether an import permission reaches into a trusted namespace below it.
@@ -25,7 +30,9 @@ class JavaArchunitSupervisedClassesTest {
 				.isTrue();
 		assertThat(JavaArchunitSupervisedClasses.isReservedBelow("de", "de.tum.cit.ase.ares.api")).isTrue();
 		assertThat(JavaArchunitSupervisedClasses.isReservedBelow("com", "com.sun.net.httpserver")).isTrue();
+		assertThat(JavaArchunitSupervisedClasses.isReservedBelow("com.github", "com.github.javaparser.ast")).isTrue();
 		assertThat(JavaArchunitSupervisedClasses.isReservedBelow("org", "org.aspectj.lang")).isTrue();
+		assertThat(JavaArchunitSupervisedClasses.isReservedBelow("org", "org.junit.jupiter.api")).isTrue();
 		assertThat(JavaArchunitSupervisedClasses.isReservedBelow("net", "net.bytebuddy")).isTrue();
 	}
 
@@ -40,7 +47,7 @@ class JavaArchunitSupervisedClassesTest {
 				.isFalse();
 		assertThat(JavaArchunitSupervisedClasses.isReservedBelow("de.tum.cit.ase", "de.tum.cit.ase.ares.integration"))
 				.isFalse();
-		assertThat(JavaArchunitSupervisedClasses.isReservedBelow("org", "org.apache.xyz")).isFalse();
+		assertThat(JavaArchunitSupervisedClasses.isReservedBelow("org", "org.example.xyz")).isFalse();
 	}
 
 	/**
@@ -88,6 +95,28 @@ class JavaArchunitSupervisedClassesTest {
 		assertThat(
 				JavaArchunitSupervisedClasses.isReservedBelow("org.example", "org.example.exercise", copiedApiPrefix))
 						.isFalse();
+	}
+
+	/**
+	 * The copied class cannot import the canonical list, so this holds the two in
+	 * step: a drift would let one layer reserve a namespace the other still trusts,
+	 * which is the shadowing hole the list exists to close.
+	 */
+	@Test
+	@DisplayName("Keeps the reserved list identical to the canonical WalaPathClassification list")
+	void keepsTheReservedListIdenticalToTheCanonicalList() throws Exception {
+		assertThat(reservedPrefixes()).isEqualTo(WalaPathClassification.RESERVED_PACKAGE_PREFIXES);
+	}
+
+	/**
+	 * Reads the copied class' private reserved-prefix list by reflection, so the
+	 * parity check can compare it without widening the production field's access.
+	 */
+	@SuppressWarnings("unchecked")
+	private static List<String> reservedPrefixes() throws Exception {
+		Field field = JavaArchunitSupervisedClasses.class.getDeclaredField("RESERVED_PREFIXES");
+		field.setAccessible(true);
+		return (List<String>) field.get(null);
 	}
 
 	/**

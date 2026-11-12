@@ -2,28 +2,29 @@ package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.p
 
 import java.io.IOException;
 
+/**
+ * Test subject that starts a trusted script through {@link ProcessBuilder}.
+ * Ares analyses this class as if a student had written it.
+ */
 public class ExecuteProcessBuilderMain {
 
-	private static final String TRUSTED_SCRIPT_PATH = "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
-
+	/**
+	 * Stops anyone from creating an instance, since this class only has static
+	 * methods.
+	 */
 	private ExecuteProcessBuilderMain() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Ares-Code; Stage: Test): Main is a utility class and should not be instantiated.");
 	}
 
 	/**
-	 * Access the file system using the {@link ProcessBuilder} class for execution.
+	 * Starts the script with {@link ProcessBuilder}.
+	 *
+	 * @param filePath the script to start, relative to the project folder
+	 * @return the started process, so that the caller can check what it did
+	 * @throws IOException if the script cannot be started
 	 */
-	public static void accessFileSystemViaProcessBuilder(String filePath) throws IOException {
-		ProcessBuilder processBuilder = new ProcessBuilder(filePath);
-		processBuilder.start();
-	}
-
-	/**
-	 * Access the file system using the {@link ProcessBuilder} class for execution
-	 * with default command.
-	 */
-	public static void accessFileSystemViaProcessBuilder() throws IOException {
-		accessFileSystemViaProcessBuilder(TRUSTED_SCRIPT_PATH);
+	public static Process accessFileSystemViaProcessBuilder(String filePath) throws IOException {
+		return new ProcessBuilder(filePath).start();
 	}
 }
