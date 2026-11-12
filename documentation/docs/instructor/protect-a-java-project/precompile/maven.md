@@ -5,7 +5,8 @@ description: "Protecting a Maven project with Ares 2 in Precompile mode. Not yet
 ---
 
 :::tip[Simple Story]
-This is the Maven counterpart to the Gradle Precompile walkthrough.
+This page is meant to hold the whole path for a Maven exercise that has its checks printed in
+beforehand.
 
 Nobody has written it yet, so this page says what it will cover rather than pretending
 otherwise.

@@ -8,9 +8,11 @@ description: "The pipeline selector and the identity of the supervised code: bui
 Before the checklist means anything, it has to say **which exercise it belongs to and who
 is working it**.
 
-Which room (the package), where the pupils come in (the main class), and which staff turn up:
-Maven or Gradle, ArchUnit or the T. J. Watson Libraries for Analysis (WALA), AspectJ or
-instrumentation. None of that forbids anything yet. It settles who is on duty, and where.
+Which pupils it covers (the package) and which of their classes is the main one. How the build
+hands the checklist over (Maven or Gradle). What checks the routes in the compiled work (ArchUnit
+or the T. J. Watson Libraries for Analysis (WALA)), and what checks each use while the pupils
+work (AspectJ or instrumentation). None of that forbids anything yet. It settles how Ares carries
+the checklist out, and where.
 :::
 
 ## Position in the example policy file

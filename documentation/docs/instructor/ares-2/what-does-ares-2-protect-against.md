@@ -9,8 +9,9 @@ The checklist carries two kinds of line. Some name a thing a pupil may do in one
 this paper, that telephone number, an errand with exactly these instructions. The rest name
 things nobody in the room may do at all, because no honest answer to the question needs them.
 
-It sets out the two moments at which the school can act: the checks printed into the
-examination beforehand, or the teacher carrying the checklist in while it runs. Ares does both.
+The page sets out the two ways the checks reach the desks. Either Ares prints them into
+the exercise before the build (Precompile), or it prepares them before each desk visit while the
+examination runs (Postcompile). Ares offers both, and an exercise uses one of them.
 :::
 
 Ares 2 sorts what student code might attempt into categories. For each one it asks the same

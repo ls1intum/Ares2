@@ -5,9 +5,9 @@ description: "How many threads of which class the supervised code may create."
 ---
 
 :::tip[Simple Story]
-A thread is a pupil doing two things at once.
+A thread is a helper a pupil calls in to do two things at once.
 
-Left unbounded, one pupil can call in thousands of helpers and bring the whole room to a halt,
+Left unbounded, one pupil can call in thousands of them and bring the whole examination to a halt,
 by accident as easily as on purpose. So the checklist says which kind of helper may be called
 in, and how many at most.
 :::

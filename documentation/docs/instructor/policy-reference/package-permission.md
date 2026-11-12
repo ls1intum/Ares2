@@ -5,10 +5,11 @@ description: "Which packages the supervised code may import, matched by prefix."
 ---
 
 :::tip[Simple Story]
-Pupils bring equipment into the room by importing libraries.
+Libraries are equipment the build puts on the shelf, and a pupil's compiled work can reach for
+any of it.
 
 Some of it is harmless and some of it is a way straight past the checklist. This list names
-what may be brought in. Naming a package covers everything inside it, so permitting
+the packages that work may depend on. Naming a package covers everything inside it, so permitting
 `java.util` permits `java.util.concurrent` as well.
 :::
 

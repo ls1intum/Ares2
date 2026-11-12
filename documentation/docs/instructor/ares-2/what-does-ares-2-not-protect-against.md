@@ -8,8 +8,8 @@ description: "Where the trust boundary ends: what Ares 2 does not attempt, where
 Every checklist has a last line, and it is safer to know where yours ends than to assume it
 covers the whole room.
 
-The teacher watches what a pupil does. They cannot tell whether the answer was the pupil's own
-idea, and they cannot vouch for equipment the board itself carried in. And one job cannot be
+The checklist covers what a pupil does at the desk. It cannot tell whether the answer was the
+pupil's own idea, and it cannot vouch for equipment the board itself carried in. And one job cannot be
 done from a desk at all: nobody sitting there can confirm that the checklist in front of them
 is the one the board issued. Your build has to guarantee that, because Ares cannot guard the
 door it is standing behind.
