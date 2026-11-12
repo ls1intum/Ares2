@@ -90,20 +90,37 @@ class JceConsumerBuildTest {
 
 	/**
 	 * Runs an exercise without a policy through each consumer tool, so Ares derives
-	 * the supervised package from the project and checks it against the compiled
-	 * output in the real test JVM. The assignment alone passes; two decoy classes
-	 * make the decoy package the derived one, and the run is refused before any
-	 * check is armed. No policy means the director's ArchUnit and AspectJ modes.
+	 * the supervised package and checks it against the compiled output in the real
+	 * test JVM, in the director's ArchUnit and AspectJ modes. The assignment alone
+	 * passes, so does it with a busier child package or, under a group covering
+	 * both, beside a busier unrelated package; two decoy classes are refused before
+	 * any check is armed. Only the grouped variant sets a group that fits.
 	 */
 	@ParameterizedTest
-	@CsvSource({ "MAVEN,false", "MAVEN,true", "GRADLE,false", "GRADLE,true" })
-	void policyFreePostcompileArmsOnlyWhatTheOutputConfirms(String tool, boolean decoy) throws Exception {
+	@CsvSource({ "MAVEN,PLAIN", "MAVEN,NESTED", "MAVEN,GROUPED", "MAVEN,DECOY", "GRADLE,PLAIN", "GRADLE,NESTED",
+			"GRADLE,GROUPED", "GRADLE,DECOY" })
+	void policyFreePostcompileArmsOnlyWhatTheOutputConfirms(String tool, String variant) throws Exception {
+		boolean decoy = "DECOY".equals(variant);
 		Path project = Files.createTempDirectory(Path.of("target").toAbsolutePath(), "policy-free-consumer-");
 		boolean gradle = "GRADLE".equals(tool);
 		Path main = Files.createDirectories(project.resolve("src/main/java/example"));
 		Files.createDirectories(main.resolve("policyfree"));
 		Files.writeString(main.resolve("policyfree/Assignment.java"),
 				"package example.policyfree; public class Assignment { public static int answer() { return 42; } }");
+		if ("NESTED".equals(variant)) {
+			Files.createDirectories(main.resolve("policyfree/util"));
+			for (String name : List.of("First", "Second")) {
+				Files.writeString(main.resolve("policyfree/util/" + name + ".java"),
+						"package example.policyfree.util; public class " + name + " { }");
+			}
+		}
+		if ("GROUPED".equals(variant)) {
+			Files.createDirectories(main.resolve("other"));
+			for (String name : List.of("First", "Second")) {
+				Files.writeString(main.resolve("other/" + name + ".java"),
+						"package example.other; public class " + name + " { }");
+			}
+		}
 		if (decoy) {
 			Files.createDirectories(main.resolve("decoy"));
 			for (String name : List.of("First", "Second")) {
@@ -134,12 +151,30 @@ class JceConsumerBuildTest {
 		if (gradle) {
 			Files.writeString(project.resolve("settings.gradle"), "rootProject.name = 'policy-free-consumer'");
 		}
+		if ("GROUPED".equals(variant)) {
+			groupTheConsumerAsExample(project, gradle);
+		}
 		String report = reportOfFinishedBuild(project, gradle, !decoy);
 		boolean passed = report.contains("failures=\"0\"") && report.contains("errors=\"0\"");
 		assertEquals(!decoy, passed, report);
 		if (decoy) {
 			assertTrue(report.contains("example.policyfree.Assignment"), report);
 			assertTrue(report.contains("theSupervisedCodeUsesTheFollowingPackage"), report);
+		}
+	}
+
+	/**
+	 * Gives the consumer the group {@code example}, which covers every package it
+	 * declares: through gradle.properties for Gradle, through the pom's own groupId
+	 * for Maven.
+	 */
+	private static void groupTheConsumerAsExample(Path project, boolean gradle) throws java.io.IOException {
+		if (gradle) {
+			Files.writeString(project.resolve("gradle.properties"), "group=example\n");
+		} else {
+			Path pom = project.resolve("pom.xml");
+			Files.writeString(pom, Files.readString(pom).replace("<groupId>fixture</groupId><artifactId>jce-consumer",
+					"<groupId>example</groupId><artifactId>jce-consumer"));
 		}
 	}
 

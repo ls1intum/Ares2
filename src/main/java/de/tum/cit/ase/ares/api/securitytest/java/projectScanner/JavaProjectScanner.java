@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -38,6 +39,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
 import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
@@ -435,33 +437,13 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
-	 * Derives the supervised package from what the project declares, and falls back
-	 * to a configured default only where it declares nothing.
+	 * Derives the supervised package when no policy pins one: the build
+	 * descriptor's group if it covers every declared package, else the topmost
+	 * declared package, the heaviest between disjoint ones, else
+	 * {@link #getDefaultPackage()}.
 	 * <p>
-	 * Resolution runs in three steps, and each falls through only when it finds
-	 * nothing at all:
-	 * <ol>
-	 * <li>the most frequent non-reserved package declared by the production
-	 * <em>sources</em>;</li>
-	 * <li>otherwise the most frequent non-reserved package declared by the compiled
-	 * production <em>output</em>. This covers a project whose build descriptor the
-	 * source-root discovery cannot parse, because the build tool writes its output
-	 * to the conventional location this scanner reads;</li>
-	 * <li>otherwise {@link #getDefaultPackage()}, with a warning naming the roots
-	 * that were searched. Reaching this step means nothing eligible was declared,
-	 * and a default the project does not contain mis-scopes enforcement silently,
-	 * so the warning is the only signal a reader gets.</li>
-	 * </ol>
-	 * <b>What the result is not.</b> A heuristic; the steps narrow how it goes
-	 * wrong rather than closing it. The vote is influenceable by whoever can add
-	 * files: reserved prefixes are filtered out, so a trusted namespace cannot win,
-	 * but no other is protected, and step 2 changes what is counted, not who
-	 * controls it. Step 2 also reads the conventional output directory rather than
-	 * one taken from the descriptor, so a build writing elsewhere is not followed.
-	 * And nothing here asserts that the result covers every production class, so a
-	 * scope omitting part of the project passes unremarked. An exercise needing a
-	 * scope it can rely on pins {@code theSupervisedCodeUsesTheFollowingPackage},
-	 * and this method is then not consulted at all.
+	 * Declarations come from the sources, or from the compiled output where the
+	 * sources are incomplete or declare nothing.
 	 *
 	 * @return the supervised package name, possibly empty; never null
 	 */
@@ -485,6 +467,10 @@ public class JavaProjectScanner implements ProjectScanner {
 		if (counts.isEmpty()) {
 			counts = compiledPackageCounts();
 		}
+		Optional<String> group = declaredGroupCovering(counts.keySet());
+		if (group.isPresent()) {
+			return group.get();
+		}
 		if (counts.isEmpty()) {
 			String defaultPackage = getDefaultPackage();
 			LOG.warn(
@@ -494,9 +480,83 @@ public class JavaProjectScanner implements ProjectScanner {
 					productionRoots(), productionOutputRoot(), defaultPackage);
 			return defaultPackage;
 		}
-		return counts.entrySet().stream().sorted(
+		return heaviestTopmostPackage(counts);
+	}
+
+	/**
+	 * The group the build descriptor declares, if it can be the supervised package:
+	 * a valid package name, neither inside nor above a reserved namespace, and
+	 * containing every declared package. Anything else is passed over, with the
+	 * reason logged, so that the next rule decides.
+	 *
+	 * @param declared the eligible declared packages
+	 * @return the group, or empty when it is absent or does not fit
+	 */
+	@Nonnull
+	private Optional<String> declaredGroupCovering(@Nonnull Set<String> declared) {
+		Optional<String> group = ProjectSourcesFinder.declaredGroup(projectRoot(), scanForBuildMode());
+		if (group.isEmpty()) {
+			return group;
+		}
+		String candidate = group.get();
+		String reason = whyTheGroupDoesNotFit(candidate, declared);
+		if (reason != null) {
+			LOG.info("The build descriptor declares the group \"{}\", which is not used as the supervised package "
+					+ "because {}.", candidate, reason);
+			return Optional.empty();
+		}
+		LOG.info("The supervised package is the build descriptor's group \"{}\".", candidate);
+		return group;
+	}
+
+	/**
+	 * Why the group cannot be the supervised package, or null if it can.
+	 *
+	 * @param group    the declared group
+	 * @param declared the eligible declared packages
+	 * @return the reason, or null
+	 */
+	private static String whyTheGroupDoesNotFit(@Nonnull String group, @Nonnull Set<String> declared) {
+		if (!PolicyValueValidator.JAVA_PACKAGE_PATTERN.matcher(group).matches()) {
+			return "it is not a Java package name";
+		}
+		if (ReservedPackageGuard.reservedPrefixOf(group) != null
+				|| ReservedPackageGuard.ancestorOfReservedPrefix(group) != null) {
+			return "it lies inside or above a reserved namespace";
+		}
+		return declared.stream().filter(name -> !isWithinScope(name, group)).sorted().findFirst()
+				.map(outside -> "the declared package " + outside + " lies outside it").orElse(null);
+	}
+
+	/**
+	 * The declared package nothing else declared lies above, weighed with
+	 * everything below it; between several such packages the heaviest wins, ties by
+	 * name. Nested packages therefore always yield their parent.
+	 *
+	 * @param counts the declarations per eligible package
+	 * @return the chosen package
+	 */
+	@Nonnull
+	private static String heaviestTopmostPackage(@Nonnull Map<String, Long> counts) {
+		Map<String, Long> weights = new HashMap<>();
+		for (String candidate : counts.keySet()) {
+			boolean nested = counts.keySet().stream()
+					.anyMatch(other -> !other.equals(candidate) && isWithinScope(candidate, other));
+			if (!nested) {
+				weights.put(candidate,
+						counts.entrySet().stream().filter(entry -> isWithinScope(entry.getKey(), candidate))
+								.mapToLong(Map.Entry::getValue).sum());
+			}
+		}
+		return weights.entrySet().stream().sorted(
 				Map.Entry.<String, Long>comparingByValue(Comparator.reverseOrder()).thenComparing(Map.Entry::getKey))
 				.map(Map.Entry::getKey).findFirst().orElseThrow();
+	}
+
+	/** The project root the build descriptor sits in. */
+	@Nonnull
+	private Path projectRoot() {
+		return buildConfiguration != null ? buildConfiguration.projectRoot() : Path.of("").toAbsolutePath();
 	}
 
 	/**
@@ -514,6 +574,11 @@ public class JavaProjectScanner implements ProjectScanner {
 		Path outputRoot = productionOutputRoot();
 		if (Files.exists(outputRoot) && !Files.isReadable(outputRoot)) {
 			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()));
+		}
+		String reservedBelow = ReservedPackageGuard.ancestorOfReservedPrefix(derivedPackage);
+		if (reservedBelow != null) {
+			throw new SecurityException(
+					Messages.localized("security.scope.contains.reserved", derivedPackage, reservedBelow));
 		}
 		List<Path> classFiles = compiledFilesIn(outputRoot);
 		if (classFiles.isEmpty()) {

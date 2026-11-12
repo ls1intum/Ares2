@@ -12,9 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nonnull;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -38,6 +40,13 @@ public final class ProjectSourcesFinder {
 	private static final String DEFAULT_TEST_SOURCE = "src/test/java";
 	private static final Pattern PROPERTY_ASSIGNMENT = Pattern
 			.compile("(?m)^\\s*(?:def|val|var)?\\s*([A-Za-z_][A-Za-z0-9_.-]*)\\s*=\\s*['\"]([^'\"]+)['\"]");
+	/**
+	 * A {@code group} or {@code project.group} being set: by assignment, by a
+	 * method call, or by a Groovy command call. Matched on masked code, so a
+	 * mention inside a comment or a string does not count.
+	 */
+	private static final Pattern GRADLE_GROUP = Pattern.compile(
+			"(?<![A-Za-z0-9_$.])(?:project\\s*\\.\\s*)?group(?![A-Za-z0-9_$])(?:\\s*=(?!=)|\\s*(\\()|[ \\t]+(?=['\"A-Za-z_$]))");
 	/**
 	 * The filler {@link #maskInactiveRegions} writes over a comment, its delimiters
 	 * included.
@@ -910,6 +919,195 @@ public final class ProjectSourcesFinder {
 			}
 		}
 		return allPresent;
+	}
+
+	/**
+	 * The group the build descriptor itself declares, or empty where none can be
+	 * taken literally.
+	 * <p>
+	 * Maven: the project's own {@code groupId}, never an inherited one. Gradle: the
+	 * last {@code group} set at the top level or in {@code allprojects}, else
+	 * {@code group} in {@code gradle.properties}. Computed values count as none.
+	 *
+	 * @param projectRoot the project root
+	 * @param buildMode   the build tool of the project
+	 * @return the declared group, possibly empty
+	 */
+	@Nonnull
+	public static Optional<String> declaredGroup(@Nonnull Path projectRoot, @Nonnull BuildMode buildMode) {
+		if (buildMode == BuildMode.MAVEN) {
+			return mavenGroupOf(projectRoot.resolve("pom.xml"));
+		}
+		Path kotlin = projectRoot.resolve("build.gradle.kts");
+		Path descriptor = Files.isRegularFile(kotlin) ? kotlin : projectRoot.resolve("build.gradle");
+		Optional<String> declared = gradleGroupOf(descriptor);
+		return declared.isPresent() ? declared : gradlePropertiesGroupOf(projectRoot.resolve("gradle.properties"));
+	}
+
+	/**
+	 * The {@code groupId} that is a direct child of the descriptor's document
+	 * element, read namespace-aware so that a prefixed element counts too.
+	 */
+	private static Optional<String> mavenGroupOf(Path descriptor) {
+		if (!Files.isRegularFile(descriptor)) {
+			return Optional.empty();
+		}
+		try {
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+			factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+			factory.setNamespaceAware(true);
+			NodeList children = factory.newDocumentBuilder().parse(descriptor.toFile()).getDocumentElement()
+					.getChildNodes();
+			for (int index = 0; index < children.getLength(); index++) {
+				Node child = children.item(index);
+				if (child.getNodeType() == Node.ELEMENT_NODE && "groupId".equals(child.getLocalName())) {
+					return literalGroup(child.getTextContent().trim());
+				}
+			}
+			return Optional.empty();
+		} catch (Exception exception) {
+			LOG.debug("Could not read a groupId from {}", descriptor, exception);
+			return Optional.empty();
+		}
+	}
+
+	/**
+	 * The last {@code group} or {@code project.group} assignment or method call in
+	 * a Gradle descriptor that applies to the root project, read from code only.
+	 */
+	private static Optional<String> gradleGroupOf(Path descriptor) {
+		if (!Files.isRegularFile(descriptor)) {
+			return Optional.empty();
+		}
+		String content;
+		try {
+			content = Files.readString(descriptor);
+		} catch (IOException exception) {
+			LOG.debug("Could not read a group from {}", descriptor, exception);
+			return Optional.empty();
+		}
+		String code = maskInactiveRegions(content, Objects.toString(descriptor.getFileName(), "").endsWith(".kts"));
+		Optional<String> group = Optional.empty();
+		Matcher matcher = GRADLE_GROUP.matcher(code);
+		while (matcher.find()) {
+			if (startsAStatement(code, matcher.start()) && appliesToTheRootProject(code, matcher.start())) {
+				group = literalRightHandSide(content, code, matcher.end(), matcher.group(1) != null)
+						.flatMap(ProjectSourcesFinder::literalGroup);
+			}
+		}
+		return group;
+	}
+
+	/**
+	 * Whether a statement begins at this offset, so that {@code group} there is set
+	 * rather than declared ({@code def group}, {@code String group}) or read
+	 * ({@code println group}).
+	 */
+	private static boolean startsAStatement(String code, int start) {
+		int index = start - 1;
+		while (index >= 0
+				&& (code.charAt(index) == ' ' || code.charAt(index) == '\t' || code.charAt(index) == COMMENT_MASK)) {
+			index--;
+		}
+		return index < 0 || "\n\r{};".indexOf(code.charAt(index)) >= 0;
+	}
+
+	/**
+	 * The literal that is the whole value being set, or empty when the value is
+	 * computed, so that a later computed setting overrides an earlier literal.
+	 *
+	 * @param content the descriptor as written
+	 * @param code    the masked descriptor
+	 * @param from    where the value begins
+	 * @param call    whether the value is a parenthesised argument
+	 * @return the literal, or empty
+	 */
+	private static Optional<String> literalRightHandSide(String content, String code, int from, boolean call) {
+		int open = from;
+		while (open < code.length() && (code.charAt(open) == ' ' || code.charAt(open) == '\t')) {
+			open++;
+		}
+		if (open >= code.length() || code.charAt(open) != '\'' && code.charAt(open) != '"') {
+			return Optional.empty();
+		}
+		int close = code.indexOf(code.charAt(open), open + 1);
+		int lineEnd = code.indexOf('\n', open);
+		if (close < 0 || lineEnd >= 0 && close > lineEnd) {
+			return Optional.empty();
+		}
+		int after = skipBlanks(code, close + 1);
+		if (call) {
+			if (after >= code.length() || code.charAt(after) != ')') {
+				return Optional.empty();
+			}
+			after = skipBlanks(code, after + 1);
+		}
+		boolean ends = after >= code.length() || "\n\r;}".indexOf(code.charAt(after)) >= 0;
+		return ends ? Optional.of(content.substring(open + 1, close)) : Optional.empty();
+	}
+
+	/** The first offset from here that is neither a blank nor a masked comment. */
+	private static int skipBlanks(String code, int from) {
+		int index = from;
+		while (index < code.length()
+				&& (code.charAt(index) == ' ' || code.charAt(index) == '\t' || code.charAt(index) == COMMENT_MASK)) {
+			index++;
+		}
+		return index;
+	}
+
+	/**
+	 * Whether code at this offset runs against the root project: at the top level,
+	 * or directly inside {@code allprojects}. Comments and strings are masked, so
+	 * every brace counted here is code.
+	 */
+	private static boolean appliesToTheRootProject(String code, int offset) {
+		Deque<String> blocks = new ArrayDeque<>();
+		for (int index = 0; index < offset; index++) {
+			if (code.charAt(index) == '{') {
+				blocks.push(lastSegmentOf(identifierBefore(code, index)));
+			} else if (code.charAt(index) == '}') {
+				blocks.poll();
+			}
+		}
+		return blocks.isEmpty() || blocks.size() == 1 && "allprojects".equals(blocks.peek());
+	}
+
+	/** The identifier chain ending just before an opening brace, or empty. */
+	private static String identifierBefore(String code, int brace) {
+		int end = brace;
+		while (end > 0 && Character.isWhitespace(code.charAt(end - 1))) {
+			end--;
+		}
+		int start = end;
+		while (start > 0 && (isIdentifierPart(code.charAt(start - 1)) || code.charAt(start - 1) == '.')) {
+			start--;
+		}
+		return code.substring(start, end);
+	}
+
+	/**
+	 * The {@code group} entry of {@code gradle.properties}, read as Gradle does.
+	 */
+	private static Optional<String> gradlePropertiesGroupOf(Path file) {
+		if (!Files.isRegularFile(file)) {
+			return Optional.empty();
+		}
+		Properties properties = new Properties();
+		try (var reader = Files.newBufferedReader(file)) {
+			properties.load(reader);
+		} catch (IOException | IllegalArgumentException exception) {
+			LOG.debug("Could not read a group from {}", file, exception);
+			return Optional.empty();
+		}
+		String group = properties.getProperty("group");
+		return group == null ? Optional.empty() : literalGroup(group.trim());
+	}
+
+	/** The value as a group, or empty when it is blank or would be evaluated. */
+	private static Optional<String> literalGroup(String value) {
+		return value.isBlank() || !isStaticLiteral(value) ? Optional.empty() : Optional.of(value);
 	}
 
 	public static Optional<Path> findProjectSourcesPath() {

@@ -73,6 +73,33 @@ class JavaTestCaseFactoryAndBuilderDerivedScopeTest {
 	}
 
 	/**
+	 * Nested packages yield their parent, whichever holds more files, and a group
+	 * in gradle.properties covering two disjoint children yields that group. Both
+	 * are armed with that package.
+	 */
+	@ParameterizedTest
+	@CsvSource({ "ARCHUNIT,ASPECTJ,false", "ARCHUNIT,INSTRUMENTATION,false", "WALA,ASPECTJ,false",
+			"WALA,INSTRUMENTATION,false", "ARCHUNIT,ASPECTJ,true", "ARCHUNIT,INSTRUMENTATION,true", "WALA,ASPECTJ,true",
+			"WALA,INSTRUMENTATION,true" })
+	void postcompileArmsTheParentOfNestedPackages(ArchitectureMode analysis, AOPMode aop, boolean group)
+			throws IOException {
+		if (group) {
+			Files.writeString(projectRoot.resolve("gradle.properties"), "group=de.tum.cit.aet\n");
+			write("de/tum/cit/aet/model/Model.java", "package de.tum.cit.aet.model; public class Model { }");
+			write("de/tum/cit/aet/view/View.java", "package de.tum.cit.aet.view; public class View { }");
+		} else {
+			write("de/tum/cit/aet/Assignment.java", "package de.tum.cit.aet; public class Assignment { }");
+			write("de/tum/cit/aet/util/First.java", "package de.tum.cit.aet.util; public class First { }");
+			write("de/tum/cit/aet/util/Second.java", "package de.tum.cit.aet.util; public class Second { }");
+		}
+
+		factory(analysis, aop, null).executeTestCases();
+
+		verify(executer).executeTestCases(eq(BuildMode.GRADLE), eq(analysis), eq(aop), anyList(), anyList(), anyList(),
+				eq("de.tum.cit.aet"), any(), anyList(), anyList());
+	}
+
+	/**
 	 * Nothing compiled, or only a package descriptor, leaves nothing to supervise.
 	 * That is accepted with a warning, as an exercise with an empty package to fill
 	 * is in exactly that state.
