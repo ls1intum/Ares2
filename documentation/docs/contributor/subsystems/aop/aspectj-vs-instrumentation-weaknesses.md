@@ -10,9 +10,8 @@ pupils' hands. In the second, they stand beside the forbidden things they guard,
 hand that reaches for one of those.
 
 The first way misses whatever a permitted aid does on the pupil's behalf, because nobody
-watches the aid's hands. The second way catches most of what the first misses, though for a
-few moves of a side job it is the other way round. Keeping the two in step takes constant
-work. This page lists what the first way misses.
+watches the aid's hands. The second way catches most of what the first misses. Keeping the two
+in step takes constant work. This page lists what the first way misses.
 
 [Who is who](/instructor/who-is-who)
 :::
@@ -123,17 +122,20 @@ possible),
 document that raw NIO and reflective/library-mediated forbidden operations are
 not guaranteed to be blocked, and constrain the policy accordingly.
 
-## 6. The one inversion: inherited `final` `Object` methods on `Thread`
+## 6. Inherited `final` `Object` methods on `Thread`: both engines work caller-side
 
-The general ordering above (Instrumentation strictly stronger) inverts for the
-thread-monitor methods `Object.notify()`, `Object.notifyAll()` and the
+These methods used to invert the general ordering above, because instrumentation could not
+reach them by rewriting their target. Both engines now check them at the application call sites they intercept, when the receiver
+is a `Thread`: AspectJ needs a woven caller, and instrumentation rewrites callers in the
+registered application packages. They are
+the thread-monitor methods `Object.notify()`, `Object.notifyAll()` and the
 `Object.wait(...)` overloads when the receiver is a `Thread`. The architecture
 engines, ArchUnit and the T. J. Watson Libraries for Analysis (WALA), list
 `java.lang.Thread.notify()` (WALA and ArchUnit) and
 `java.lang.Object.wait(long)` (ArchUnit) as forbidden thread-manipulation
 methods, so a policy that forbids thread manipulation expects these to be blocked.
 
-- **Instrumentation cannot enforce them.** These methods are `final` and declared
+- **Instrumentation cannot enforce them by rewriting the target.** These methods are `final` and declared
   by `java.lang.Object`; `Thread` neither declares nor can override them. Byte
   Buddy rewrites the *declaring* type, and the thread matcher is
   `named/hasSuperType(java.lang.Thread) and isDeclaredBy(that hierarchy)`, which

@@ -25,13 +25,13 @@ Research. It builds inter-procedural call graphs and supports data-flow analysis
 
 WALA is the second architecture engine, selected by the `WALA` half of the
 [programming language configuration](/contributor/policy/programming-language-configuration).
-It builds a [call graph](./base-idea/call-graph.md) from the entry point named in
-`theMainClassInsideThisPackageIs` and searches for [paths](./base-idea/dfs-path.md) from
-student code to forbidden sinks.
+It builds a [call graph](./base-idea/call-graph.md) whose entry points are all methods the
+student classes declare, and searches for [paths](./base-idea/dfs-path.md) from student code to forbidden sinks.
 
-This finds indirect access that dependency analysis misses: a student method that calls a
-helper that calls a library method that opens a file has no direct dependency on the file
-application programming interface (API), but there is a path.
+Both engines follow calls through any number of steps. They differ in how they resolve a call.
+ArchUnit follows each call to the method named at the call site. The WALA call graph works out
+which implementations a call can reach, so it follows a call through an interface or a
+superclass into the overriding method that does the forbidden thing.
 
 `WalaPathClassification` decides which parts of a discovered path are student code and
 which are trusted infrastructure. Its `RESERVED_PACKAGE_PREFIX_VERSION` is the versioned

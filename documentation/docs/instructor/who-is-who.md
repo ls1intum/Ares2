@@ -56,9 +56,10 @@ part of what a figure suggests, the right-hand column says so.
 | In the story | In Ares |
 | --- | --- |
 | The teacher says after each answer whether it was right or wrong | `@PublicTest`. |
-| The teacher says only after the whole examination whether it was right or wrong | `@HiddenTest`. |
+| The teacher holds a question back until the examination is over, and only then asks it and says whether the answer was right or wrong | `@HiddenTest`. Before the deadline the test fails at once without running, with the message that hidden tests run after the deadline, unless an `@ActivateHiddenBefore` date has not passed yet. After the deadline it runs like any other test. |
 | When the examination is over | `@Deadline`. |
 | Extra time | `@ExtendedDeadline`. |
+| The head teacher trying the held-back questions before any pupil | `@ActivateHiddenBefore`, which lets hidden tests run before the given date, so you can check them before release. |
 | The teacher tells the pupil off and names the rule they broke | The message Ares reports when a submission breaks the security policy. A wrong answer is a failing test, not this message. |
 
 ## What the rule sheet can allow
