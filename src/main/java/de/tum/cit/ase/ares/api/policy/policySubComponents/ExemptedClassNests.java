@@ -47,17 +47,63 @@ public final class ExemptedClassNests {
 
 	/**
 	 * Returns the exempted test classes plus the classes each one lists as declared
-	 * inside it, read by path from the trusted test output only. A class missing
-	 * there, or an unknown root, adds nothing; the exact name stays exempt.
+	 * inside it, read by path from the trusted test output only. Every test class
+	 * must be found there as a structurally valid class file declaring that name;
+	 * otherwise Ares refuses, since an exemption for a class nobody compiled could
+	 * be taken over by a student class of that name. The root itself is trusted as
+	 * given.
 	 *
 	 * @param classNames     the exempted test classes' binary names
 	 * @param testOutputRoot the trusted compiled test classes, or {@code null}
 	 * @return the exempted names and their nest members, without repeats
+	 * @throws SecurityException if a test class cannot be verified
 	 */
 	@Nonnull
 	public static List<String> expandFromTestOutput(@Nonnull Collection<String> classNames,
 			@Nullable Path testOutputRoot) {
-		return expand(classNames, className -> readFromOutput(className, testOutputRoot), true);
+		Set<String> exempted = new LinkedHashSet<>();
+		for (String className : classNames) {
+			exempted.add(className);
+			exempted.addAll(verifiedNestMembersOf(className, testOutputRoot));
+		}
+		return List.copyOf(exempted);
+	}
+
+	/**
+	 * Returns the nest members of a test class after verifying that the trusted
+	 * test output holds a class file for it that Ares' reader accepts. This is a
+	 * structural check of the file, not full verification by the JVM.
+	 *
+	 * @param className      the test class's binary name
+	 * @param testOutputRoot the trusted compiled test classes, or {@code null}
+	 * @return the listed nest members, possibly none
+	 * @throws SecurityException if the class file is missing, unreadable or not
+	 *                           usable
+	 */
+	@Nonnull
+	private static List<String> verifiedNestMembersOf(@Nonnull String className, @Nullable Path testOutputRoot) {
+		byte[] classFile = readFromOutput(className, testOutputRoot)
+				.orElseThrow(() -> unverifiedTestClass(className, testOutputRoot, null));
+		try {
+			return new ClassFileNest(classFile).membersOf(className);
+		} catch (IOException | IllegalArgumentException malformed) {
+			throw unverifiedTestClass(className, testOutputRoot, malformed);
+		}
+	}
+
+	/**
+	 * Builds the refusal for a test class Ares could not verify.
+	 *
+	 * @param className      the test class's binary name
+	 * @param testOutputRoot the folder it was looked for in, or {@code null}
+	 * @param cause          why its file was not usable, or {@code null}
+	 * @return the exception to throw
+	 */
+	@Nonnull
+	private static SecurityException unverifiedTestClass(@Nonnull String className, @Nullable Path testOutputRoot,
+			@Nullable Throwable cause) {
+		return new SecurityException(
+				Messages.localized("security.policy.exempted.test.class.unverified", className, testOutputRoot), cause);
 	}
 
 	/**
@@ -72,28 +118,27 @@ public final class ExemptedClassNests {
 	@Nonnull
 	public static List<String> expandThroughLoader(@Nonnull Collection<String> classNames,
 			@Nullable ClassLoader loader) {
-		return expand(classNames, className -> readThroughLoader(className, loader), false);
+		return expand(classNames, className -> readThroughLoader(className, loader));
 	}
 
 	/**
 	 * Returns the exempted classes plus their listed nest members, reading each
-	 * class file with the given reader.
+	 * class file with the given reader. A class without a readable file stays
+	 * exempted by its exact name only.
 	 *
-	 * @param classNames      the exempted binary class names
-	 * @param reader          reads one class file, or yields empty
-	 * @param warnWhenMissing whether a missing class is the instructor's to fix,
-	 *                        rather than an entry of Ares's own configuration
+	 * @param classNames the exempted binary class names
+	 * @param reader     reads one class file, or yields empty
 	 * @return the exempted names and their nest members, without repeats
 	 */
 	@Nonnull
 	private static List<String> expand(@Nonnull Collection<String> classNames,
-			@Nonnull Function<String, Optional<byte[]>> reader, boolean warnWhenMissing) {
+			@Nonnull Function<String, Optional<byte[]>> reader) {
 		Set<String> exempted = new LinkedHashSet<>();
 		for (String className : classNames) {
 			exempted.add(className);
 			Optional<byte[]> classFile = reader.apply(className);
 			if (classFile.isEmpty()) {
-				reportMissing(className, warnWhenMissing);
+				reportMissing(className);
 				continue;
 			}
 			exempted.addAll(nestMembersOf(className, classFile.get()));
@@ -102,21 +147,13 @@ public final class ExemptedClassNests {
 	}
 
 	/**
-	 * Reports a class whose file Ares could not read: as a warning for a test
-	 * class, which the instructor can compile, and quietly for an essential entry
-	 * of Ares's own configuration, some of which name packages.
+	 * Notes, quietly, an essential entry of Ares's own configuration that has no
+	 * class file; some of those entries name packages.
 	 *
-	 * @param className       the class that stays exempted by exact name only
-	 * @param warnWhenMissing whether the instructor can fix it
+	 * @param className the entry that stays exempted by exact name only
 	 */
-	private static void reportMissing(@Nonnull String className, boolean warnWhenMissing) {
-		if (warnWhenMissing) {
-			LOG.warn("Ares could not read the compiled class {} from its trusted location, so only that exact "
-					+ "class is exempted and the classes declared inside it are not. Compile the tests before "
-					+ "generating or running.", className);
-		} else {
-			LOG.debug("Ares found no class file for the essential entry {}, so it adds no nested classes.", className);
-		}
+	private static void reportMissing(@Nonnull String className) {
+		LOG.debug("Ares found no class file for the essential entry {}, so it adds no nested classes.", className);
 	}
 
 	/**

@@ -32,6 +32,10 @@ The generated artefacts have to be compiled and, for an `_ASPECTJ` configuration
 exercise's own build. The Maven equivalents of the Gradle steps therefore need to be written
 against a working example rather than inferred from the Gradle page.
 
+One prerequisite is already settled: the generator looks up every class in
+`theFollowingClassesAreTestClasses` in `target/test-classes` and stops with an error if one is
+missing, so compile the exercise's tests with `mvn test-compile` before running it.
+
 ## What already applies
 
 The reserved-package boundary is **not** generated in either mode, so the Maven snippet from the

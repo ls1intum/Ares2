@@ -172,6 +172,9 @@ public class JavaCreatorTest {
 	@DisplayName("CreateTestCases Tests")
 	class CreateTestCasesTests {
 
+		/** A compiled fixture without nested classes, standing in for a test class. */
+		private static final String TEST_CLASS = "example.nest.NestHostFixture$Evil";
+
 		private String packageName;
 		private String mainClassName;
 		private String classpath;
@@ -180,13 +183,19 @@ public class JavaCreatorTest {
 		private List<PhobosTestCase> phobosTestCases;
 
 		@BeforeEach
-		void arrangeCommonScenario() {
+		void arrangeCommonScenario() throws IOException {
 			packageName = "com.example";
 			mainClassName = "Main";
 			classpath = "/test/classpath";
 			architectureTestCases = new ArrayList<>();
 			aopTestCases = new ArrayList<>();
 			phobosTestCases = new ArrayList<>();
+			Path compiled = tempDir.resolve("test-classes/example/nest/NestHostFixture$Evil.class");
+			Files.createDirectories(compiled.getParent());
+			try (InputStream input = JavaCreatorTest.class.getClassLoader()
+					.getResourceAsStream("example/nest/NestHostFixture$Evil.class")) {
+				Files.write(compiled, Objects.requireNonNull(input, "the fixture is compiled").readAllBytes());
+			}
 		}
 
 		private void stubClasspathAndArchitecture() {
@@ -201,7 +210,7 @@ public class JavaCreatorTest {
 			// Arrange
 			List<String> essentialPackages = List.of("java.lang", "java.util");
 			List<String> essentialClasses = List.of("String", "Object");
-			List<String> testClasses = List.of("TestClass1", "TestClass2");
+			List<String> testClasses = List.of(TEST_CLASS);
 			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports())
 					.thenReturn(List.of(new PackagePermission("allowed.example")));
@@ -226,7 +235,7 @@ public class JavaCreatorTest {
 			// Arrange
 			List<String> essentialPackages = List.of();
 			List<String> essentialClasses = List.of("TestClass");
-			List<String> testClasses = List.of("TestClass");
+			List<String> testClasses = List.of(TEST_CLASS);
 			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
@@ -258,7 +267,7 @@ public class JavaCreatorTest {
 			// Arrange
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of("String");
-			List<String> testClasses = List.of("TestClass");
+			List<String> testClasses = List.of(TEST_CLASS);
 			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
@@ -285,7 +294,7 @@ public class JavaCreatorTest {
 			// Arrange
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of("String");
-			List<String> testClasses = List.of("TestClass");
+			List<String> testClasses = List.of(TEST_CLASS);
 			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
@@ -439,6 +448,21 @@ public class JavaCreatorTest {
 			createTestCases();
 			assertThrows(SecurityException.class,
 					() -> javaCreator.requireNoProductionClassNamedLikeAnExemptedOne(buildMode));
+		}
+
+		/**
+		 * A declared test class the test output does not hold is refused while the test
+		 * cases are created, so its bare name never becomes an exemption a student
+		 * class could take over.
+		 */
+		@Test
+		@DisplayName("Refuses a declared test class that was never compiled")
+		void refusesADeclaredTestClassThatWasNeverCompiled() {
+			SecurityException refused = assertThrows(SecurityException.class,
+					() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of(), List.of(),
+							List.of(HOST, "example.nest.GhostTest"), PACKAGE, "Main", new ArrayList<>(),
+							new ArrayList<>(), new ArrayList<>(), resourceAccesses, tempDir, true));
+			assertTrue(refused.getMessage().contains("example.nest.GhostTest"), refused.getMessage());
 		}
 	}
 

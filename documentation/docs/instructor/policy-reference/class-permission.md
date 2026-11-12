@@ -82,3 +82,5 @@ Implemented by `ClassPermission` in
 How that set is derived and how it reaches the two enforcement layers is described in the contributor guide under [Class permission](/contributor/policy/class-permission).
 
 Each entry in `theFollowingClassesAreTestClasses` is itself validated against `JAVA_CLASS_PATH_PATTERN`, a fully qualified Java class name.
+
+Before Ares creates any security test, it looks for each entry in the compiled test output. If it cannot find a usable class file of that name there, Ares stops with an error rather than exempting the bare name. Typical causes are a typo, a renamed or deleted test, or an entry that names a package. A student class could otherwise take that name and inherit the exemption. Compile the tests before running Ares, and list each test class by its exact name.

@@ -40,7 +40,8 @@ public interface ProjectScanner {
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @return an array of fully qualified test class names
+	 * @return an array of the test classes' binary names, as their class files are
+	 *         named
 	 */
 	@Nonnull
 	String[] scanForTestClasses();

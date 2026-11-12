@@ -17,7 +17,8 @@ like any other source.
 ## The path, in order
 
 1. **Define the policy**, below.
-2. **Run the generator**, below, from the Ares UI or from the command line.
+2. **Run the generator**, below, from the Ares UI or from the command line, once the exercise's
+   tests are compiled.
 3. **Check what was written into the project**, below.
 4. **Update `build.gradle`**, below.
 5. **Reject student classes in reserved packages**, below. Precompile does **not** generate this
@@ -93,6 +94,32 @@ exception.
 
 Once the policy is defined, the precompile phase can be run in one of two ways, described
 below.
+
+## Compile the tests before generating
+
+The generator looks up every class in `theFollowingClassesAreTestClasses` in the exercise's
+compiled test output, `build/classes/java/test` for Gradle, and stops with an error if one is
+missing. So compile the exercise's own tests, without running them, before either way of
+running the generator:
+
+```bash
+gradle testClasses
+```
+
+Regenerate after you change the tests, so the generated files list what the tests now
+declare.
+
+If the tests themselves use generated classes, they cannot compile before the first run. In
+that case bootstrap once:
+
+1. Generate with a temporary copy of the policy whose `theFollowingClassesAreTestClasses` is
+   empty (`[ ]`).
+2. Compile the tests.
+3. Generate again with the real policy. This run has to succeed.
+4. Compile the tests once more, so the final generated files are the ones built.
+
+The empty list is only a scaffold for the first compilation. Do not hand out an exercise
+generated from it.
 
 ## Run the generator from the Ares UI
 
