@@ -82,6 +82,7 @@ test.describe('the two guides', () => {
             'How to protect a Java project with Ares 2',
             'Policy Cookbook',
             'Policy Reference',
+            'AST Test',
             'Troubleshooting',
         ]) {
             await expect(sidebar.getByText(section, { exact: true }), `instructor sidebar shows ${section}`).toBeVisible();
