@@ -53,6 +53,7 @@
 		<jvm.module.access.args>--add-exports java.base/java.lang=ALL-UNNAMED --add-exports java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.nio.channels=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.util.concurrent.locks=ALL-UNNAMED --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/sun.net.www.protocol.http=ALL-UNNAMED --add-opens java.base/sun.net.www.protocol.https=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens jdk.unsupported/sun.misc=ALL-UNNAMED</jvm.module.access.args>
 		<!-- 4. AST: 4.1 JavaParser -->
 		<java-parser-version>3.28.2</java-parser-version>
+		<guava-version>33.7.2-jre</guava-version>
 		<!-- 5. Formats: YAML and XML (JSON handled via Jackson) -->
 		<jackson-version>2.23.0</jackson-version>
 		<!-- Declared directly so the version Ares resolves for consumers is fixed here
@@ -251,6 +252,15 @@
 			<!-- 1. Case:
 				src/main/java/de/tum/cit/ase/ares/api/ast/model/RecursionCheck.java
 			-->
+		</dependency>
+		<!-- Reaches Ares through javaparser, which brings guava 33.6.0, affected by
+			CVE-2026-102554 (fixed in 33.7.2), and through WALA, which brings 33.7.2. Declared
+			directly so the fixed version no longer depends on WALA being declared first, for
+			Ares and for its consumers, who ignore Ares's dependencyManagement. -->
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>${guava-version}</version>
 		</dependency>
 		<!-- Not Required
 
