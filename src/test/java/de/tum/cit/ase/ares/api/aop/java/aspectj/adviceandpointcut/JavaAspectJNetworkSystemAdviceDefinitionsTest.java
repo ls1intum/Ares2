@@ -3,11 +3,16 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.SocketAddress;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.UnixDomainSocketAddress;
 
 import org.junit.jupiter.api.Test;
@@ -51,5 +56,82 @@ class JavaAspectJNetworkSystemAdviceDefinitionsTest {
 		InvocationTargetException exception = assertThrows(InvocationTargetException.class,
 				() -> variableToTarget.invoke(null, unparseable));
 		assertInstanceOf(SecurityException.class, exception.getCause());
+	}
+
+	/**
+	 * A denial raised while the advice resolves the connection must reach the code
+	 * under test, instead of leaving no target and skipping the receiver check.
+	 */
+	@Test
+	void urlOfConnection_letsADenialThrough() throws Exception {
+		URLConnection denying = new UrlConnectionThatFails(new SecurityException("Ares denied this connection"));
+
+		Method urlOfConnection = JavaAspectJNetworkSystemAdviceDefinitions.class.getDeclaredMethod("urlOfConnection",
+				URLConnection.class);
+		urlOfConnection.setAccessible(true);
+
+		InvocationTargetException exception = assertThrows(InvocationTargetException.class,
+				() -> urlOfConnection.invoke(null, denying));
+		assertInstanceOf(SecurityException.class, exception.getCause(),
+				"A denial raised while resolving the connection must propagate, because swallowing it"
+						+ " would leave no target and skip the receiver check");
+	}
+
+	/**
+	 * A connection that cannot report its URL yet must yield no URL, rather than
+	 * letting its own failure surface as a fault of the code under test.
+	 */
+	@Test
+	void urlOfConnection_yieldsNoUrlWhenTheConnectionCannotReportOneYet() throws Exception {
+		URLConnection notReadyYet = new UrlConnectionThatFails(new NullPointerException("delegate is null"));
+
+		Method urlOfConnection = JavaAspectJNetworkSystemAdviceDefinitions.class.getDeclaredMethod("urlOfConnection",
+				URLConnection.class);
+		urlOfConnection.setAccessible(true);
+
+		assertNull(urlOfConnection.invoke(null, notReadyYet),
+				"A connection that cannot report its URL yet must not let its own failure escape into"
+						+ " the code under test");
+	}
+
+	/**
+	 * A connection whose URL lookup fails, as an HTTPS connection does before it is
+	 * set up, or as it would when Ares denies it.
+	 */
+	private static final class UrlConnectionThatFails extends URLConnection {
+
+		/**
+		 * What the URL lookup throws.
+		 */
+		private final RuntimeException failure;
+
+		/**
+		 * Creates a connection to a fixed address whose URL lookup throws the given
+		 * failure.
+		 *
+		 * @param failure what the URL lookup throws
+		 * @throws MalformedURLException never, since the address is fixed
+		 */
+		UrlConnectionThatFails(RuntimeException failure) throws MalformedURLException {
+			super(URI.create("https://example.org/path").toURL());
+			this.failure = failure;
+		}
+
+		/**
+		 * Opens nothing, since no test sends anything through this connection.
+		 */
+		@Override
+		public void connect() {
+		}
+
+		/**
+		 * Throws the given failure instead of reporting the URL.
+		 *
+		 * @return never
+		 */
+		@Override
+		public URL getURL() {
+			throw failure;
+		}
 	}
 }

@@ -168,6 +168,17 @@ public final class InstrumentationSecurityProbe {
 				"connect", "(Ljava/net/SocketAddress;I)V", null, new Object[] { host, port }, null);
 	}
 
+	/**
+	 * Simulates a woven {@code DatagramSocket.send(...)} on a socket that is
+	 * already connected, so the only peer to check is the receiver's own.
+	 *
+	 * @param receiver the socket the call is made on
+	 */
+	public static void checkNetworkSendThroughReceiver(Object receiver) {
+		JavaInstrumentationAdviceNetworkSystemToolbox.checkNetworkSystemInteraction("send", "java.net.DatagramSocket",
+				"send", "(Ljava/net/DatagramPacket;)V", null, new Object[0], receiver);
+	}
+
 	public static void checkNetworkConnectAddress(SocketAddress address) {
 		JavaInstrumentationAdviceNetworkSystemToolbox.checkNetworkSystemInteraction("connect",
 				"java.nio.channels.SocketChannel", "connect", "(Ljava/net/SocketAddress;)Z", null,
