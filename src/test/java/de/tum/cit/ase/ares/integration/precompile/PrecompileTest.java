@@ -226,8 +226,9 @@ public class PrecompileTest {
 
 		String rule;
 		try (var files = Files.walk(writeTarget)) {
-			rule = files.filter(Files::isRegularFile).map(PrecompileTest::read)
-					.filter(content -> content.contains("packageImportShouldNotBeAccessed")).findFirst().orElseThrow();
+			rule = files.filter(Files::isRegularFile).filter(file -> file.toString().endsWith(".java"))
+					.map(PrecompileTest::read).filter(content -> content.contains("packageImportShouldNotBeAccessed"))
+					.findFirst().orElseThrow();
 		}
 		assertTrue(rule.contains("Set.of(\"" + EXERCISE_PACKAGE + ".PenguinTest\")"), rule);
 		assertTrue(rule.contains("withOwnPackages(allowedPackages, javaClasses"), rule);
