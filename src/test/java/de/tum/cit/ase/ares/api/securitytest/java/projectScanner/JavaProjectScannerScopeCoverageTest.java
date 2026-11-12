@@ -519,6 +519,56 @@ class JavaProjectScannerScopeCoverageTest {
 	}
 
 	/**
+	 * The walk does not follow a symbolic link, so a linked directory would hide
+	 * the classes in it from the inventory while the JVM still loads them.
+	 */
+	@Test
+	@DisplayName("Refuses a linked directory in the output")
+	void refusesALinkedDirectory() throws IOException {
+		Path outputRoot = assignmentOutput();
+		Path elsewhere = Files.createDirectories(projectRoot.resolve("elsewhere"));
+		compileInto(elsewhere, "package decoy; public class Hidden { }", "decoy/Hidden.java");
+		link(outputRoot.resolve("decoy"), elsewhere.resolve("decoy"));
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertTrue(refusal.getMessage().contains("decoy"), refusal.getMessage());
+	}
+
+	/**
+	 * A linked class file under a versioned directory is refused for being a link,
+	 * before resolving it could make it look like an ordinary class file.
+	 */
+	@Test
+	@DisplayName("Refuses a linked versioned class file")
+	void refusesALinkedVersionedClassFile() throws IOException {
+		Path outputRoot = assignmentOutput();
+		Path versioned = Files.createDirectories(outputRoot.resolve("META-INF/versions/17/de/tum/cit/aet"));
+		link(versioned.resolve("Assignment.class"), outputRoot.resolve("de/tum/cit/aet/Assignment.class"));
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertTrue(refusal.getMessage().contains("META-INF"), refusal.getMessage());
+	}
+
+	/**
+	 * Creates a symbolic link, or skips the calling test where the file system or
+	 * its permissions cannot express one.
+	 *
+	 * @param link   the link to create
+	 * @param target what it points to
+	 */
+	private static void link(Path link, Path target) {
+		try {
+			Files.createSymbolicLink(link, target);
+		} catch (IOException | UnsupportedOperationException | SecurityException exception) {
+			assumeTrue(false, () -> "cannot create a symbolic link here: " + exception);
+		}
+	}
+
+	/**
 	 * Compiles the one assignment class every scope here is meant to cover.
 	 *
 	 * @return the production output root

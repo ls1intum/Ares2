@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -632,26 +633,38 @@ public class JavaProjectScanner implements ProjectScanner {
 	 * The class files the output root holds, sorted, without
 	 * {@code module-info.class}, which the importer never reads.
 	 * <p>
-	 * Listed on disk rather than taken from the import, because the importer skips
-	 * a file it cannot read with only a warning. A tree that cannot be walked is
-	 * reported as unreadable rather than as empty, since not knowing and knowing
-	 * there is nothing are the two states this check exists to tell apart.
+	 * Listed on disk, since the importer skips unreadable files silently. A
+	 * symbolic link anywhere in the tree is refused, as the walk does not follow
+	 * it. A tree that cannot be walked is unreadable, not empty.
 	 *
 	 * @param outputRoot the production output root
-	 * @return the class files found
+	 * @return the class files, unresolved
 	 */
 	private static List<Path> compiledFilesIn(Path outputRoot) {
-		if (!Files.isDirectory(outputRoot)) {
+		Path root = outputRoot.toAbsolutePath().normalize();
+		if (!Files.exists(root, LinkOption.NOFOLLOW_LINKS)) {
 			return List.of();
 		}
-		try (Stream<Path> tree = Files.walk(outputRoot)) {
-			return tree.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".class"))
-					.filter(path -> !"module-info.class".equals(String.valueOf(path.getFileName())))
-					.map(JavaProjectScanner::realPathOf).sorted().toList();
+		try (Stream<Path> tree = Files.walk(root)) {
+			return tree.map(path -> refuseSymbolicLink(path, outputRoot)).filter(Files::isRegularFile)
+					.filter(path -> path.toString().endsWith(".class"))
+					.filter(path -> !"module-info.class".equals(String.valueOf(path.getFileName()))).sorted().toList();
 		} catch (IOException | UncheckedIOException exception) {
 			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()),
 					exception);
 		}
+	}
+
+	/**
+	 * The path unchanged, or a refusal when it is a symbolic link, so that no link
+	 * can hide class files from the inventory or bring in files from elsewhere.
+	 */
+	private static Path refuseSymbolicLink(Path path, Path outputRoot) {
+		if (Files.isSymbolicLink(path)) {
+			throw new SecurityException(
+					Messages.localized("security.scope.output.link", path.toString(), outputRoot.toString()));
+		}
+		return path;
 	}
 
 	/**
@@ -668,7 +681,7 @@ public class JavaProjectScanner implements ProjectScanner {
 	private static void requireEveryClassFileToBeImported(List<Path> classFiles, List<JavaClass> imported,
 			Path outputRoot) {
 		try {
-			Path root = realPathOf(outputRoot);
+			Path root = outputRoot.toAbsolutePath().normalize();
 			for (Path classFile : classFiles) {
 				if (root.relativize(classFile).startsWith(Path.of("META-INF", "versions"))) {
 					throw new SecurityException(Messages.localized("security.scope.class.versioned",
@@ -679,9 +692,10 @@ public class JavaProjectScanner implements ProjectScanner {
 			Set<Path> importedFiles = new HashSet<>();
 			filesByClass.values().forEach(importedFiles::addAll);
 			for (Path classFile : classFiles) {
-				if (!importedFiles.contains(classFile)) {
+				Path real = realPathOf(classFile);
+				if (!importedFiles.contains(real)) {
 					filesByClass.computeIfAbsent(classNameIn(classFile, outputRoot), key -> new ArrayList<>())
-							.add(classFile);
+							.add(real);
 				}
 			}
 			requireOneFilePerClass(filesByClass, outputRoot);
