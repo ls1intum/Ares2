@@ -4,7 +4,6 @@ import static org.junit.platform.engine.discovery.DiscoverySelectors.selectMetho
 import static org.junit.platform.testkit.engine.EventConditions.event;
 import static org.junit.platform.testkit.engine.EventConditions.finishedWithFailure;
 import static org.junit.platform.testkit.engine.EventConditions.test;
-import static org.junit.platform.testkit.engine.TestExecutionResultConditions.instanceOf;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,6 +37,18 @@ public abstract class SystemAccessTest {
 	private static final String STUDENT_CODE_HEADER_EN = ERR_SECURITY_EN + " (Reason: Student-Code;";
 	/** How a German message reporting student code begins. */
 	private static final String STUDENT_CODE_HEADER_DE = ERR_SECURITY_DE + " (Grund: Student-Code;";
+	/**
+	 * How the JVM begins the message when a class that failed to initialise is used
+	 * again.
+	 */
+	private static final String CACHED_FAILURE_PREFIX = "Could not initialize class ";
+	/**
+	 * How the JVM begins its kept text of a first failure that was a plain security
+	 * exception.
+	 */
+	private static final String KEPT_SECURITY_EXCEPTION_PREFIX = "Exception java.lang.SecurityException: ";
+	/** The WALA test case whose failed initialisation a probe can end with. */
+	private static final String WALA_TEST_CASE_CLASS = "de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase";
 	protected static final String TRIED_EN = "tried";
 	protected static final String TRIED_DE = "hat versucht,";
 	protected static final String BLOCKED_EN = "was blocked by Ares.";
@@ -350,20 +361,22 @@ public abstract class SystemAccessTest {
 	 */
 	private static Condition<Throwable> expectedDenial() {
 		return new Condition<>(SystemAccessTest::isExpectedDenial,
-				"SecurityException reporting student code, or a WALA initialisation failure");
+				"SecurityException reporting student code, directly or from a failed static initialiser");
 	}
 
 	/**
 	 * Says whether a probe failed because Ares reported the student code. A refusal
 	 * that blames Ares or its setup does not count, since a check that never looked
-	 * at the code must not pass as a denial. The cached WALA failure is still
-	 * accepted without a message to inspect.
+	 * at the code must not pass as a denial. The report may also be the cause of a
+	 * failed static initialiser, or the text the JVM kept of it when the WALA test
+	 * case is used again.
 	 *
 	 * @param throwable what the probe failed with
 	 * @return whether this is the denial the test expects
 	 */
 	static boolean isExpectedDenial(Throwable throwable) {
-		return isStudentCodeViolation(throwable) || isCachedWalaInitialiserFailure(throwable)
+		return isStudentCodeViolation(throwable)
+				|| isCachedInitialiserFailureFromStudentCode(throwable, WALA_TEST_CASE_CLASS)
 				|| isInitialiserFailureFromStudentCode(throwable);
 	}
 
@@ -378,7 +391,17 @@ public abstract class SystemAccessTest {
 		if (!(throwable instanceof SecurityException) || throwable.getMessage() == null) {
 			return false;
 		}
-		String message = throwable.getMessage().strip();
+		return reportsStudentCode(throwable.getMessage().strip());
+	}
+
+	/**
+	 * Says whether a message opens with the student-code header, in English or in
+	 * German, and does not come from a rule that looked at no classes.
+	 *
+	 * @param message the message to look at
+	 * @return whether it reports student code
+	 */
+	private static boolean reportsStudentCode(String message) {
 		return (message.startsWith(STUDENT_CODE_HEADER_EN) || message.startsWith(STUDENT_CODE_HEADER_DE))
 				&& !message.contains(EMPTY_RULE_MARKER);
 	}
@@ -394,12 +417,34 @@ public abstract class SystemAccessTest {
 				&& containsStudentCodeViolation(initialiserError.getCause());
 	}
 
-	private static boolean isCachedWalaInitialiserFailure(Throwable throwable) {
-		if (!instanceOf(NoClassDefFoundError.class).matches(throwable)) {
-			return false;
-		}
-		return throwable.getMessage() != null
-				&& throwable.getMessage().contains("de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase");
+	/**
+	 * Says whether this is what the JVM throws when a class is used again after its
+	 * static initialiser failed with a plain {@link SecurityException} reporting
+	 * student code. Only that exception's class name and message survive, as the
+	 * cause's text, so that is read. A subclass is refused, as only its name
+	 * survives.
+	 *
+	 * @param throwable       the failure to look at
+	 * @param failedClassName the binary name of the failed class
+	 * @return whether it is such a failure
+	 */
+	static boolean isCachedInitialiserFailureFromStudentCode(Throwable throwable, String failedClassName) {
+		return throwable instanceof NoClassDefFoundError
+				&& (CACHED_FAILURE_PREFIX + failedClassName).equals(throwable.getMessage())
+				&& throwable.getCause() instanceof ExceptionInInitializerError keptFailure
+				&& isKeptStudentCodeSecurityException(keptFailure.getMessage());
+	}
+
+	/**
+	 * Says whether the text the JVM kept of a first failure names a plain security
+	 * exception whose message reports student code.
+	 *
+	 * @param keptText the message of the kept failure, or {@code null}
+	 * @return whether it records such a security exception
+	 */
+	private static boolean isKeptStudentCodeSecurityException(String keptText) {
+		return keptText != null && keptText.startsWith(KEPT_SECURITY_EXCEPTION_PREFIX)
+				&& reportsStudentCode(keptText.substring(KEPT_SECURITY_EXCEPTION_PREFIX.length()));
 	}
 
 	/**
