@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
@@ -87,22 +88,87 @@ class JceConsumerBuildTest {
 		runBuild(project, gradle);
 	}
 
+	/**
+	 * Runs an exercise without a policy through each consumer tool, so Ares derives
+	 * the supervised package from the project and checks it against the compiled
+	 * output in the real test JVM. The assignment alone passes; two decoy classes
+	 * make the decoy package the derived one, and the run is refused before any
+	 * check is armed. No policy means the director's ArchUnit and AspectJ modes.
+	 */
+	@ParameterizedTest
+	@CsvSource({ "MAVEN,false", "MAVEN,true", "GRADLE,false", "GRADLE,true" })
+	void policyFreePostcompileArmsOnlyWhatTheOutputConfirms(String tool, boolean decoy) throws Exception {
+		Path project = Files.createTempDirectory(Path.of("target").toAbsolutePath(), "policy-free-consumer-");
+		boolean gradle = "GRADLE".equals(tool);
+		Path main = Files.createDirectories(project.resolve("src/main/java/example"));
+		Files.createDirectories(main.resolve("policyfree"));
+		Files.writeString(main.resolve("policyfree/Assignment.java"),
+				"package example.policyfree; public class Assignment { public static int answer() { return 42; } }");
+		if (decoy) {
+			Files.createDirectories(main.resolve("decoy"));
+			for (String name : List.of("First", "Second")) {
+				Files.writeString(main.resolve("decoy/" + name + ".java"),
+						"package example.decoy; public class " + name + " { }");
+			}
+		}
+		Path test = Files.createDirectories(project.resolve("src/test/java/fixture")).resolve("JceConsumerTest.java");
+		Files.writeString(test, """
+				package fixture;
+				/** Calls the assignment under Ares with no policy. */
+				public class JceConsumerTest {
+				    /** Passes only if Ares armed and the assignment ran. */
+				    @de.tum.cit.ase.ares.api.jupiter.PublicTest
+				    void theAssignmentRuns() {
+				        org.junit.jupiter.api.Assertions.assertEquals(42, example.policyfree.Assignment.answer());
+				    }
+				}
+				""");
+		Files.createDirectories(project.resolve("tmp"));
+		Path agent = ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
+				.filter(value -> value.startsWith("-javaagent:") && value.endsWith("-agent.jar"))
+				.map(value -> Path.of(value.substring("-javaagent:".length()))).findFirst().orElseThrow();
+		Files.copy(agent.resolveSibling(agent.getFileName().toString().replace("-agent.jar", ".jar")),
+				project.resolve("ares.jar"));
+		Files.writeString(project.resolve(gradle ? "build.gradle" : "pom.xml"),
+				gradle ? gradleBuild(project, false, false) : mavenBuild(project, false, false));
+		if (gradle) {
+			Files.writeString(project.resolve("settings.gradle"), "rootProject.name = 'policy-free-consumer'");
+		}
+		String report = reportOfFinishedBuild(project, gradle, !decoy);
+		boolean passed = report.contains("failures=\"0\"") && report.contains("errors=\"0\"");
+		assertEquals(!decoy, passed, report);
+		if (decoy) {
+			assertTrue(report.contains("example.policyfree.Assignment"), report);
+			assertTrue(report.contains("theSupervisedCodeUsesTheFollowingPackage"), report);
+		}
+	}
+
+	/**
+	 * Requires a build that succeeded or failed as expected and whose one test ran,
+	 * and answers its report, so a build that failed before any test ran does not
+	 * count as a refusal.
+	 */
+	private static String reportOfFinishedBuild(Path project, boolean gradle, boolean succeeds) throws Exception {
+		Path log = project.resolve("consumer-build.log");
+		Process child = consumerBuild(project, gradle, log).start();
+		try {
+			assertTrue(child.waitFor(180, TimeUnit.SECONDS), "The consumer build timed out: " + log);
+			assertEquals(succeeds, child.exitValue() == 0, () -> readLog(log));
+			Path reports = project.resolve(gradle ? "build/test-results/test" : "target/surefire-reports");
+			Path report = reports.resolve("TEST-fixture.JceConsumerTest.xml");
+			assertTrue(Files.exists(report), () -> "no test ran, so nothing was refused: " + readLog(log));
+			String content = Files.readString(report);
+			assertTrue(content.contains("tests=\"1\""), content);
+			return content;
+		} finally {
+			child.destroyForcibly();
+		}
+	}
+
 	/** Requires an actual build and a successful, nonempty Jupiter report. */
 	private static void runBuild(Path project, boolean gradle) throws Exception {
-		List<String> command = new ArrayList<>();
-		if (gradle) {
-			command.add(Path.of("examples/ares-exercise-gradle/gradlew").toAbsolutePath().toString());
-			command.addAll(List.of("--no-daemon", "--console=plain", "-p", project.toString(), "test"));
-		} else {
-			command.add("mvn");
-			command.addAll(List.of("-B", "-f", project.resolve("pom.xml").toString(), "test"));
-		}
 		Path log = project.resolve("consumer-build.log");
-		ProcessBuilder builder = new ProcessBuilder(command).directory(project.toFile()).redirectErrorStream(true)
-				.redirectOutput(log.toFile());
-		builder.environment().put("JAVA_HOME",
-				Path.of(JceGeneratedExerciseTest.javaExecutable()).getParent().getParent().toString());
-		Process child = builder.start();
+		Process child = consumerBuild(project, gradle, log).start();
 		try {
 			assertTrue(child.waitFor(180, TimeUnit.SECONDS), "The consumer build timed out: " + log);
 			assertEquals(0, child.exitValue(), () -> readLog(log));
@@ -114,6 +180,26 @@ class JceConsumerBuildTest {
 		} finally {
 			child.destroyForcibly();
 		}
+	}
+
+	/**
+	 * The process running the selected build tool's test task on the project, its
+	 * output written to the log.
+	 */
+	private static ProcessBuilder consumerBuild(Path project, boolean gradle, Path log) {
+		List<String> command = new ArrayList<>();
+		if (gradle) {
+			command.add(Path.of("examples/ares-exercise-gradle/gradlew").toAbsolutePath().toString());
+			command.addAll(List.of("--no-daemon", "--console=plain", "-p", project.toString(), "test"));
+		} else {
+			command.add("mvn");
+			command.addAll(List.of("-B", "-f", project.resolve("pom.xml").toString(), "test"));
+		}
+		ProcessBuilder builder = new ProcessBuilder(command).directory(project.toFile()).redirectErrorStream(true)
+				.redirectOutput(log.toFile());
+		builder.environment().put("JAVA_HOME",
+				Path.of(JceGeneratedExerciseTest.javaExecutable()).getParent().getParent().toString());
+		return builder;
 	}
 
 	/**

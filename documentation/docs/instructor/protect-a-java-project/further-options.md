@@ -176,6 +176,8 @@ With a policy, the enforcement scope and the trusted test classes are **pinned b
 - **The supervised package** is chosen as the most frequent non-reserved package among the production sources. A submission whose file distribution differs from what you expect can therefore shift the scope away from the code you meant to supervise.
 - **The exempt test classes** are collected by scanning the discovered test source roots for annotated test classes. If students can add files beneath a test source root, they can obtain that exemption. A nested test class is covered only when its enclosing class is recognised too, because the scanner reports nested types in source notation (`Outer.Inner`) while the exemption check matches binary notation (`Outer$Inner`).
 
+Before Ares enforces anything, it checks the derived package against the classes in the conventional output folder (`target/classes` or `build/classes/java/main`) and refuses the run when one of them lies outside it. A decoy package then fails the build rather than moving the scope. That check reads only that folder, and an empty folder passes with a warning, so an exercise whose build writes its classes elsewhere is not covered. Precompile does not offer this configuration at all: without a policy it refuses to generate anything.
+
 Neither is a defect in the fallback; it is what a fallback with no instructor input can do. But both mean the policy-free path is only as trustworthy as your control over the source roots. With a policy present, `theFollowingClassesAreTestClasses` pins the exempt set and Ares never scans for it.
 
 ### When to use it

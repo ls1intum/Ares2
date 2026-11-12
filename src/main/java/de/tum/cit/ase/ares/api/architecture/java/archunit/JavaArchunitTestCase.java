@@ -142,10 +142,20 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 	/**
 	 * Returns the content of the architecture test case file in the Java
 	 * programming language.
+	 * <p>
+	 * A derived supervised package is refused before any template is read: a
+	 * generated file is only written in Precompile, which verifies nothing before
+	 * the generated runtime checks use the package.
+	 *
+	 * @throws SecurityException if the supervised package was derived
 	 */
 	@Override
 	@Nonnull
 	public String writeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
+		if (isSupervisedScopeWasDerived()) {
+			throw new SecurityException(
+					Messages.localized("security.precompile.scope.derived", getSupervisedPackage()));
+		}
 		try {
 			String testWithPlaceholders = FileTools
 					.readRuleFile(FileTools.readFile(FileTools.resolveFileOnSourceDirectory("templates", "architecture",

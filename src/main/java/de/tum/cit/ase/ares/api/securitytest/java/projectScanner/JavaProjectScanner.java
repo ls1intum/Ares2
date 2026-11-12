@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -8,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -498,61 +500,37 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
-	 * Refuses a derived supervised scope that the compiled project contradicts.
+	 * Refuses a derived supervised package the compiled output contradicts, before
+	 * enforcement is armed.
 	 * <p>
-	 * {@link #scanForPackageName()} answers a heuristic; this is what turns it into
-	 * a boundary. It is deliberately separate: derivation runs while test cases are
-	 * still being written and nothing is compiled, this runs immediately before
-	 * enforcement is armed, when the compiled output is the whole truth about what
-	 * will execute.
-	 * <p>
-	 * The invariant: every executable top-level class in the production output
-	 * declares a non-blank, non-reserved package that is the derived scope or lies
-	 * below it, compared on segment boundaries. Anything else is refused, each
-	 * being a way for supervised code to sit outside the boundary drawn around it:
-	 * a class the scope does not cover is simply unsupervised, which is what a
-	 * decoy package buys whoever adds it, and a class in the default package cannot
-	 * be covered by any scope at all. Refusing is the point, because a mis-scoped
-	 * run reports nothing, passes and enforces nothing, whereas a refusal names the
-	 * offending package and asks for a pinned
-	 * {@code theSupervisedCodeUsesTheFollowingPackage}, the one form of the scope
-	 * that cannot be steered from the submission.
-	 * <p>
-	 * Where the output holds nothing executable the check passes with a warning:
-	 * there is no supervisable code, so enforcement is vacuous rather than
-	 * mis-scoped, and an exercise handing the student an empty package to fill is
-	 * in exactly that state. An unreadable output is still refused, since not
-	 * knowing is not the same as knowing there is nothing.
-	 * <p>
-	 * Only the policy-free path calls this. A pinned policy may deliberately
-	 * supervise part of the output, which is the instructor's decision rather than
-	 * a heuristic's mistake.
+	 * Every class file in the output root must yield a class of its own, and every
+	 * executable class must declare a non-reserved package equal to the scope or
+	 * below it. Nothing executable passes with a warning. Only this root is read.
 	 *
-	 * @param derivedPackage the scope {@link #scanForPackageName()} answered
-	 * @throws SecurityException when the compiled project contradicts it
+	 * @param derivedPackage the derived scope
+	 * @throws SecurityException when the output contradicts it
 	 */
 	public void requireDerivedScopeToCoverTheProject(@Nonnull String derivedPackage) {
 		Path outputRoot = productionOutputRoot();
 		if (Files.exists(outputRoot) && !Files.isReadable(outputRoot)) {
 			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()));
 		}
-		long compiledFiles = countCompiledFiles(outputRoot);
-		if (compiledFiles == 0) {
+		List<Path> classFiles = compiledFilesIn(outputRoot);
+		if (classFiles.isEmpty()) {
 			LOG.warn("No compiled production class was found under {}, so the derived supervised scope \"{}\" has "
 					+ "nothing to cover and enforcement is vacuous rather than mis-scoped. This is expected "
 					+ "while the supervised package is still empty.", outputRoot, derivedPackage);
 			return;
 		}
 		List<JavaClass> imported = importedClassesIn(outputRoot);
-		if (imported.isEmpty()) {
-			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()));
-		}
+		requireEveryClassFileToBeImported(classFiles, imported, outputRoot);
 		List<JavaClass> executable = new ArrayList<>();
 		for (JavaClass javaClass : imported) {
-			if (javaClass.isTopLevelClass() && !isCompilationMetadata(javaClass)) {
+			if (!isCompilationMetadata(javaClass)) {
 				executable.add(javaClass);
 			}
 		}
+		executable.sort(Comparator.comparing(JavaClass::getName));
 		if (executable.isEmpty()) {
 			LOG.warn(
 					"Only package or module descriptors were found under {}, so the derived supervised scope \"{}\" "
@@ -586,27 +564,118 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
-	 * How many compiled class files the output root holds.
+	 * The class files the output root holds, sorted, without
+	 * {@code module-info.class}, which the importer never reads.
 	 * <p>
-	 * Counted on disk rather than taken from the import, because the two answer
-	 * different questions. A non-empty import proves that something was read, not
-	 * that everything was: files the importer skipped would otherwise leave the
-	 * inventory looking complete. Where the tree cannot be walked at all the count
-	 * is reported as unreadable rather than as zero, since not knowing and knowing
+	 * Listed on disk rather than taken from the import, because the importer skips
+	 * a file it cannot read with only a warning. A tree that cannot be walked is
+	 * reported as unreadable rather than as empty, since not knowing and knowing
 	 * there is nothing are the two states this check exists to tell apart.
 	 *
 	 * @param outputRoot the production output root
-	 * @return the number of class files found
+	 * @return the class files found
 	 */
-	private long countCompiledFiles(Path outputRoot) {
+	private static List<Path> compiledFilesIn(Path outputRoot) {
 		if (!Files.isDirectory(outputRoot)) {
-			return 0L;
+			return List.of();
 		}
 		try (Stream<Path> tree = Files.walk(outputRoot)) {
-			return tree.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".class")).count();
-		} catch (IOException exception) {
+			return tree.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".class"))
+					.filter(path -> !"module-info.class".equals(String.valueOf(path.getFileName())))
+					.map(JavaProjectScanner::realPathOf).sorted().toList();
+		} catch (IOException | UncheckedIOException exception) {
 			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()),
 					exception);
+		}
+	}
+
+	/**
+	 * Refuses a class file that yields no imported class of its own, or lies under
+	 * {@code META-INF/versions}.
+	 * <p>
+	 * The importer skips unreadable files and keeps one class per name, choosing
+	 * unstably, so each such file is read again alone to name the defect.
+	 *
+	 * @param classFiles the class files, sorted
+	 * @param imported   the imported classes
+	 * @param outputRoot the output root
+	 */
+	private static void requireEveryClassFileToBeImported(List<Path> classFiles, List<JavaClass> imported,
+			Path outputRoot) {
+		try {
+			Path root = realPathOf(outputRoot);
+			for (Path classFile : classFiles) {
+				if (root.relativize(classFile).startsWith(Path.of("META-INF", "versions"))) {
+					throw new SecurityException(Messages.localized("security.scope.class.versioned",
+							classFile.toString(), outputRoot.toString()));
+				}
+			}
+			Map<String, List<Path>> filesByClass = filesByClass(imported);
+			Set<Path> importedFiles = new HashSet<>();
+			filesByClass.values().forEach(importedFiles::addAll);
+			for (Path classFile : classFiles) {
+				if (!importedFiles.contains(classFile)) {
+					filesByClass.computeIfAbsent(classNameIn(classFile, outputRoot), key -> new ArrayList<>())
+							.add(classFile);
+				}
+			}
+			requireOneFilePerClass(filesByClass, outputRoot);
+		} catch (UncheckedIOException exception) {
+			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()),
+					exception);
+		}
+	}
+
+	/**
+	 * The files the imported classes were read from, with links resolved, keyed by
+	 * class name.
+	 */
+	private static Map<String, List<Path>> filesByClass(List<JavaClass> imported) {
+		Map<String, List<Path>> filesByClass = new HashMap<>();
+		for (JavaClass javaClass : imported) {
+			javaClass.getSource().map(source -> source.getUri()).filter(uri -> "file".equals(uri.getScheme()))
+					.map(uri -> realPathOf(Path.of(uri))).ifPresent(file -> filesByClass
+							.computeIfAbsent(javaClass.getName(), key -> new ArrayList<>()).add(file));
+		}
+		return filesByClass;
+	}
+
+	/**
+	 * The name of the one class a file defines, read from that file alone, or a
+	 * refusal when the importer cannot read it.
+	 */
+	private static String classNameIn(Path classFile, Path outputRoot) {
+		Iterator<JavaClass> classes = new ClassFileImporter().importPath(classFile).iterator();
+		if (!classes.hasNext()) {
+			throw new SecurityException(
+					Messages.localized("security.scope.class.unreadable", classFile.toString(), outputRoot.toString()));
+		}
+		return classes.next().getName();
+	}
+
+	/**
+	 * Refuses a class defined by more than one file, naming the alphabetically
+	 * first such class and its first two files, so the diagnostic does not depend
+	 * on which file the importer kept.
+	 */
+	private static void requireOneFilePerClass(Map<String, List<Path>> filesByClass, Path outputRoot) {
+		filesByClass.entrySet().stream().filter(entry -> entry.getValue().size() > 1).min(Map.Entry.comparingByKey())
+				.ifPresent(entry -> {
+					List<Path> files = entry.getValue().stream().sorted().toList();
+					throw new SecurityException(Messages.localized("security.scope.class.duplicate", entry.getKey(),
+							files.get(0).toString(), files.get(1).toString(), outputRoot.toString()));
+				});
+	}
+
+	/**
+	 * The path with links resolved, so that a file found by walking the tree and
+	 * the same file named by the importer compare equal.
+	 */
+	private static Path realPathOf(Path path) {
+		try {
+			return path.toRealPath();
+		} catch (IOException exception) {
+			throw new UncheckedIOException(exception);
 		}
 	}
 

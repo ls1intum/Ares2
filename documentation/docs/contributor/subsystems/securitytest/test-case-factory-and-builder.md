@@ -200,7 +200,7 @@ The constructor distinguishes **two modes**, depending on whether a `SecurityPol
 | `theFollowingClassesAreTestClasses` | Used as-is — test classes come **only** from the policy. Deriving the exempt set from the project would let a student add an `@Test` class to obtain a blanket exemption from every check |
 | `theFollowingResourceAccessesArePermitted` | Used as-is from the policy |
 
-**Mode 2 — No policy (legacy scan path):** Without a policy, the scanner auto-detects everything: `packageName` via `scanForPackageName()`, `mainClassInPackageName` via `scanForMainClassInPackage()`, `testClasses` via `scanForTestClasses()`, and `resourceAccesses` is set to the fully restrictive `ResourceAccesses.createRestrictive()`.
+**Mode 2 — No policy (legacy scan path):** Without a policy, the scanner auto-detects everything: `packageName` via `scanForPackageName()`, `mainClassInPackageName` via `scanForMainClassInPackage()`, `testClasses` via `scanForTestClasses()`, and `resourceAccesses` is set to the fully restrictive `ResourceAccesses.createRestrictive()`. This mode serves Postcompile only. Precompile writes the derived package into generated checks, and nothing verifies it against the compiled classes before those checks use it. `writeTestCases()` therefore refuses this mode (`security.precompile.scope.derived`) before it writes anything, and both architecture writers refuse it too.
 
 This design allows Ares to work **without** a policy file, while a present policy pins the enforcement scope instead of merely taking precedence over the scanner.
 
@@ -508,9 +508,18 @@ Step 1 is skipped entirely when the discovered source roots are not known to be 
 
 > **The derived package is a heuristic. What turns it into a boundary is the check that follows it.**
 >
-> Before enforcement is armed, `requireDerivedScopeToCoverTheProject()` reads the compiled production output and refuses the run unless **every** executable top-level class declares a non-blank, non-reserved package that is the derived scope or lies below it, compared on segment boundaries so that `de.tum.cit.aet` does not swallow `de.tum.cit.aetevil`. A class the scope leaves out, a class in the default package, a class in a reserved package, and an output root that exists but cannot be read are each refused by name. This runs on the policy-free path only: a pinned policy may deliberately supervise part of the output, and narrowing it is then the instructor's decision.
+> Before Ares arms enforcement, `requireDerivedScopeToCoverTheProject()` reads the compiled production output. It refuses the run unless every class file in it yields a class of its own. In addition, every executable class, nested ones included, must declare a non-blank, non-reserved package that is the derived scope or lies below it. The comparison respects segment boundaries, so `de.tum.cit.aet` does not swallow `de.tum.cit.aetevil`. The check refuses each of these by name:
 >
-> **An output root holding nothing passes, with a warning, and so does one holding only `package-info` or `module-info`.** There is then no supervisable class, so enforcement is vacuous rather than mis-scoped, and an exercise whose supervised package is still empty must not fail for being empty. The generated test does the same: `JavaArchunitSupervisedClasses` warns and analyses an empty set rather than refusing. In both places that log line is the only signal, and a suite that analyses nothing reports success.
+> - a class the scope leaves out;
+> - a class in the default package;
+> - a class in a reserved package;
+> - a class file the importer cannot read, or one that defines a class another file already defines;
+> - a class file under `META-INF/versions`;
+> - an output root that exists but cannot be read.
+>
+> The importer never reads `module-info.class`, so the check does not count it. This runs on the policy-free path only: a pinned policy may deliberately supervise part of the output, and narrowing it is then the instructor's decision.
+>
+> **An output root holding nothing passes, with a warning, and so does one holding only `package-info` or `module-info`.** There is then no supervisable class, so enforcement is vacuous rather than mis-scoped, and an exercise whose supervised package is still empty must not fail for being empty. That log line is the only signal, and a suite that analyses nothing reports success.
 >
 > That closes the case where a decoy package is voted the scope while the assignment runs beside it. Three things it still does not establish.
 >
@@ -518,7 +527,7 @@ Step 1 is skipped entirely when the discovered source roots are not known to be 
 >
 > The **output directory is assumed, not read**. Step 2 and the check both look in `target/classes` or `build/classes/java/main`, so a build that writes its output elsewhere is not followed there. Together with the vacuous pass above, that is the sharp edge of this section: a project whose output goes somewhere else looks exactly like a project that compiled nothing, and both pass with the same warning. An exercise configured with a custom output destination is therefore not enforced by the derived path at all, and nothing fails to say so. Such an exercise must declare its scope in a policy.
 >
-> **The last-resort default guarantees nothing by itself.** If the project does not contain it, the analysis path resolves to a directory that does not exist. Where anything at all is compiled, the check above catches it: those classes lie outside the default, so the run is refused by name. Where nothing is compiled it does not, and the warning is again all a reader gets. During generation, before anything is compiled, the same is true.
+> **The last-resort default guarantees nothing by itself.** If the project does not contain it, the analysis path resolves to a directory that does not exist. Where anything at all is compiled, the check above catches it: those classes lie outside the default, so the run is refused by name. Where nothing is compiled it does not, and the warning is again all a reader gets.
 >
 > An exercise that needs a scope it can rely on declares its package in the security policy. The scanner is then not consulted at all, which is the only version of this that cannot be steered from the submission.
 

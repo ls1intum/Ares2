@@ -21,6 +21,10 @@ import org.mockito.InOrder;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 import de.tum.cit.ase.ares.api.securitytest.java.creator.JavaCreator;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialClasses;
 import de.tum.cit.ase.ares.api.securitytest.java.essentialModel.EssentialDataReader;
@@ -49,6 +53,12 @@ class JavaTestCaseFactoryAndBuilderExemptionTest {
 	/** The executer that receives them in Postcompile. */
 	private JavaExecuter executer;
 
+	/** The scanner, which answers a fixed package as if derived. */
+	private JavaProjectScanner scanner;
+
+	/** The reader of the essential packages and classes. */
+	private EssentialDataReader reader;
+
 	/** The factory under test. */
 	private JavaTestCaseFactoryAndBuilder factory;
 
@@ -58,7 +68,7 @@ class JavaTestCaseFactoryAndBuilderExemptionTest {
 		creator = mock(JavaCreator.class);
 		writer = mock(JavaWriter.class);
 		executer = mock(JavaExecuter.class);
-		JavaProjectScanner scanner = mock(JavaProjectScanner.class);
+		scanner = mock(JavaProjectScanner.class);
 		when(scanner.scanForPackageName()).thenReturn("example.nest");
 		when(scanner.scanForMainClassInPackage()).thenReturn("Main");
 		when(scanner.scanForTestClasses()).thenReturn(new String[] { "example.nest.NestHostFixture" });
@@ -67,7 +77,7 @@ class JavaTestCaseFactoryAndBuilderExemptionTest {
 		when(packages.getEssentialPackages()).thenReturn(List.of());
 		EssentialClasses classes = mock(EssentialClasses.class);
 		when(classes.getEssentialClasses()).thenReturn(List.of());
-		EssentialDataReader reader = mock(EssentialDataReader.class);
+		reader = mock(EssentialDataReader.class);
 		when(reader.readEssentialPackagesFrom(any())).thenReturn(packages);
 		when(reader.readEssentialClassesFrom(any())).thenReturn(classes);
 		factory = new JavaTestCaseFactoryAndBuilder(creator, writer, executer, reader, scanner,
@@ -87,10 +97,20 @@ class JavaTestCaseFactoryAndBuilderExemptionTest {
 				anyList(), anyList(), eq(EXEMPTED), eq("example.nest"), eq("Main"), anyList(), anyList());
 	}
 
-	/** The writer gets the same exempted names. */
+	/**
+	 * The writer gets the same exempted names. Precompile refuses a derived scope,
+	 * so this factory pins the package in a policy.
+	 */
 	@Test
 	void theWriterGetsTheExemptedNames() {
-		factory.writeTestCases(Path.of("target/generated"));
+		SecurityPolicy pinned = new SecurityPolicy(SecurityPolicy.CURRENT_POLICY_VERSION,
+				new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ,
+						"example.nest", "Main", List.of("example.nest.NestHostFixture"),
+						ResourceAccesses.createRestrictive()));
+		JavaTestCaseFactoryAndBuilder pinnedFactory = new JavaTestCaseFactoryAndBuilder(creator, writer, executer,
+				reader, scanner, Path.of("packages.yaml"), Path.of("classes.yaml"), BuildMode.MAVEN,
+				ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, pinned, null);
+		pinnedFactory.writeTestCases(Path.of("target/generated"));
 		verify(writer).writeTestCases(eq(BuildMode.MAVEN), eq(ArchitectureMode.ARCHUNIT), eq(AOPMode.ASPECTJ),
 				anyList(), anyList(), eq(EXEMPTED), eq("example.nest"), eq("Main"), anyList(), anyList(), anyList(),
 				any(), any());
