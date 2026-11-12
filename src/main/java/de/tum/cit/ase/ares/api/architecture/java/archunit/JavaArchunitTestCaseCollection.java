@@ -230,15 +230,17 @@ public final class JavaArchunitTestCaseCollection {
 	}
 
 	/**
-	 * Package-import rule that also exempts the allow-listed classes (an empty
-	 * allow-list reproduces the original behaviour).
+	 * Package-import rule that also exempts the given classes; an empty set changes
+	 * nothing.
 	 * <p>
-	 * The allow-list is a union: a dependency is permitted as soon as <em>any</em>
-	 * entry matches. So if the same package is present both as an exact-match entry
-	 * and as a subpackage-inclusive one, the subpackage-inclusive entry wins
-	 * because it is the more permissive of the two. That is intentional: the JDK
-	 * baseline is exact-matched, and a policy author who additionally grants a JDK
-	 * package as a subtree is making an explicit, visible choice to widen it.
+	 * A dependency passes once any permission matches its package, so a package
+	 * granted both exactly and with its subpackages counts as granted with them.
+	 * That is intentional: a policy widening the exact JDK baseline this way does
+	 * so on purpose and visibly.
+	 *
+	 * @param allowedPackages the packages that may be imported
+	 * @param allowedClasses  the classes the rule does not check
+	 * @return the rule
 	 */
 	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages,
 			Set<ClassPermission> allowedClasses) {

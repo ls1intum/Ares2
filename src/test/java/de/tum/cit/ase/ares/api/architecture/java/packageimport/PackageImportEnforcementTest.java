@@ -60,6 +60,7 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
  */
 class PackageImportEnforcementTest {
 
+	/** The package of the fixtures whose imports the rule checks. */
 	private static final String FIXTURES = "de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures";
 
 	/**
@@ -86,16 +87,26 @@ class PackageImportEnforcementTest {
 	/** The fixture standing for a declared test class. */
 	private static final String INSTRUCTOR_CHECK = TEST_CODE + ".InstructorCheck";
 
+	/**
+	 * The fixtures' own package, granted with its subpackages, so that the
+	 * fixtures' uses of one another are not reported.
+	 */
 	private static final PackagePermission FIXTURE_PACKAGE = new PackagePermission(FIXTURES);
 
+	/** The shared fixtures, imported once before all tests. */
 	private static JavaClasses fixtures;
 
+	/** Imports the shared fixtures. */
 	@BeforeAll
 	static void importFixtures() {
 		fixtures = new ClassFileImporter().importClasses(UsesForbidden.class, UsesCollections.class,
 				UsesConcurrent.class, OnlyJavaLang.class);
 	}
 
+	/**
+	 * Returns the violations of the rule over the imported fixtures with only the
+	 * given packages permitted, or an empty string.
+	 */
 	private static String violationsFor(Set<PackagePermission> allowedPackages) {
 		ArchRule rule = JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages,
 				Set.<ClassPermission>of());
@@ -118,6 +129,7 @@ class PackageImportEnforcementTest {
 		assertFalse(violations.contains("java.io."), "java.io belongs to the shipped baseline");
 	}
 
+	/** An exact java.lang baseline does not admit java.lang.reflect. */
 	@Test
 	@DisplayName("An exact java.lang baseline does not admit java.lang.reflect")
 	void exactBaselineDoesNotLeakIntoSubpackages() {
@@ -126,6 +138,10 @@ class PackageImportEnforcementTest {
 				"java.lang.reflect is a subpackage of the baseline and must stay forbidden");
 	}
 
+	/**
+	 * Collections need a grant: the default baseline reports the fixture's use of
+	 * java.util.ArrayList.
+	 */
 	@Test
 	@DisplayName("Collections, lambdas and streams are not permitted by default")
 	void baselineForbidsCollectionsAndLambdas() {
@@ -134,6 +150,7 @@ class PackageImportEnforcementTest {
 				"java.util must require an explicit grant rather than being allowed by default");
 	}
 
+	/** Code using only java.lang passes under the default baseline. */
 	@Test
 	@DisplayName("Code using only java.lang passes under the default baseline")
 	void baselinePermitsUnavoidableJavaLangOnlyCode() {
@@ -149,12 +166,14 @@ class PackageImportEnforcementTest {
 
 	// <editor-fold desc="Defence in depth against a widened essential list">
 
+	/**
+	 * Re-adding the bare root {@code java} to the essential list cannot re-open the
+	 * JDK: JavaCreator grants every essential JDK package exactly, so {@code java}
+	 * covers only the package of that name, which declares no classes.
+	 */
 	@Test
 	@DisplayName("Re-adding the bare root 'java' to the essential list cannot re-open the JDK")
 	void bareJavaRootGrantedExactlyDoesNotReopenTheJdk() {
-		// JavaCreator pins every JDK-namespace essential entry to an exact match, so a
-		// bare "java" matches only the literal package "java", which declares no
-		// classes.
 		String violations = violationsFor(Set.of(new PackagePermission("java", true), FIXTURE_PACKAGE));
 		assertTrue(violations.contains("java.io"), "java.io must remain forbidden");
 		assertTrue(violations.contains("java.net"), "java.net must remain forbidden");
@@ -165,6 +184,7 @@ class PackageImportEnforcementTest {
 
 	// <editor-fold desc="Policy grants keep subpackage-inclusive semantics">
 
+	/** A policy grant of java.util also covers java.util.concurrent. */
 	@Test
 	@DisplayName("A policy grant of java.util also covers java.util.concurrent")
 	void policyGrantsRemainSubpackageInclusive() {
@@ -174,6 +194,7 @@ class PackageImportEnforcementTest {
 				"a subpackage-inclusive grant of java.util must cover java.util.concurrent");
 	}
 
+	/** An exact grant of java.util does not cover java.util.concurrent. */
 	@Test
 	@DisplayName("An exact grant of java.util does not cover java.util.concurrent")
 	void exactGrantsDoNotCoverSubpackages() {
@@ -183,10 +204,13 @@ class PackageImportEnforcementTest {
 				"an exact grant must not extend to java.util.concurrent");
 	}
 
+	/**
+	 * A grant is boundary-aware: {@code ...packageimport.fixture}, in the singular,
+	 * does not cover {@code ...packageimport.fixtures}.
+	 */
 	@Test
 	@DisplayName("A grant is boundary-aware and does not match a merely prefixed package")
 	void grantsDoNotMatchPrefixedSiblingPackages() {
-		// "…packageimport.fixture" (singular) must not cover "…packageimport.fixtures".
 		String violations = violationsFor(Set.of(JDK_BASELINE,
 				new PackagePermission("de.tum.cit.ase.ares.api.architecture.java.packageimport.fixture")));
 		assertTrue(violations.contains(FIXTURES), "a prefixed but distinct package must not be covered");
@@ -196,6 +220,9 @@ class PackageImportEnforcementTest {
 
 	// <editor-fold desc="Engine parity and permission model">
 
+	/**
+	 * WALA and ArchUnit reach the same verdict, since WALA delegates this category.
+	 */
 	@Test
 	@DisplayName("WALA and ArchUnit reach the same verdict, since WALA delegates this category")
 	void walaAndArchunitAgree() {
@@ -210,6 +237,7 @@ class PackageImportEnforcementTest {
 				"both engines must report identical package-import violations");
 	}
 
+	/** The single-argument constructor keeps the subpackage-inclusive default. */
 	@Test
 	@DisplayName("The single-argument constructor keeps the subpackage-inclusive default")
 	void singleArgumentConstructorDefaultsToSubtree() {
@@ -220,12 +248,20 @@ class PackageImportEnforcementTest {
 				.exactMatchOnly(), "the builder must carry the flag through");
 	}
 
+	/**
+	 * Exactness participates in equality, so both forms can coexist in the
+	 * allow-list.
+	 */
 	@Test
 	@DisplayName("Exactness participates in equality, so both forms can coexist in the allow-list")
 	void exactnessParticipatesInEquality() {
 		assertNotEquals(new PackagePermission("java.lang", true), new PackagePermission("java.lang", false));
 	}
 
+	/**
+	 * Policy YAML written before the flag existed still reads as
+	 * subpackage-inclusive.
+	 */
 	@Test
 	@DisplayName("Policy YAML written before the flag existed still deserialises as subpackage-inclusive")
 	void legacyPolicyYamlRemainsSubpackageInclusive() throws Exception {
