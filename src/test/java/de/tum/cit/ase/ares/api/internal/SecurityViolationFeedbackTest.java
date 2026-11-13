@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -8,9 +9,11 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +41,9 @@ class SecurityViolationFeedbackTest {
 
 	/** The MINIMIZED text, in English. */
 	private static final String MINIMIZED_TEXT = "Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.";
+
+	/** What a failure that could not be read completely is reported as. */
+	private static final String UNINSPECTABLE_TEXT = "Ares could not read this failure completely, so its details are not shown.";
 
 	/** The full message an Ares check gives a blocked file read. */
 	private static final String FULL = "Ares Security Error (Reason: Student-Code; Stage: Execution): Main.run tried to illegally read File /etc/passwd via FileInputStream.<init> but was blocked by Ares.";
@@ -241,6 +247,70 @@ class SecurityViolationFeedbackTest {
 				contextFor("privilegedOnlyPolicy"));
 		assertThat(reported).isExactlyInstanceOf(AssertionError.class).hasMessage("Policy message");
 		assertThat(SelfCausingException.asked).isFalse();
+	}
+
+	/**
+	 * A blocked action behind more failures than the search reads is not shown in
+	 * full: the report says only that the failure could not be read completely.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void aViolationPastTheSearchLimitIsRedacted() throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		RuntimeException failure = new RuntimeException("many failures");
+		for (int index = 0; index < 256; index++) {
+			failure.addSuppressed(new IllegalStateException("harmless " + index));
+		}
+		failure.addSuppressed(realViolation());
+		Throwable reported = ReportingUtils.processThrowable(failure, contextFor("minimizedPolicy"));
+		assertThat(reported).hasMessage(UNINSPECTABLE_TEXT).hasNoSuppressedExceptions();
+		assertThat(reported.getStackTrace()).isEmpty();
+	}
+
+	/**
+	 * A failure whose lock another thread holds cannot stop the report: Ares gives
+	 * up reading it and shows only that it could not be read.
+	 *
+	 * @throws Exception if the fixture cannot be set up
+	 */
+	@Test
+	void aLockedFailureDoesNotStopTheReport() throws Exception {
+		Locale.setDefault(Locale.ENGLISH);
+		RuntimeException failure = new RuntimeException("locked");
+		CountDownLatch locked = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		Thread holder = new Thread(() -> holdLock(failure, locked, release));
+		holder.setDaemon(true);
+		holder.start();
+		locked.await();
+		try {
+			Throwable reported = assertTimeoutPreemptively(Duration.ofSeconds(10),
+					() -> ReportingUtils.processThrowable(failure, contextFor("minimizedPolicy")));
+			assertThat(reported).hasMessage(UNINSPECTABLE_TEXT);
+			assertThat(reported.getStackTrace()).isEmpty();
+		} finally {
+			release.countDown();
+		}
+	}
+
+	/**
+	 * Holds a failure's lock until released, as student code on an allowed thread
+	 * could.
+	 *
+	 * @param failure the failure to lock.
+	 * @param locked  counted down once the lock is held.
+	 * @param release awaited while holding the lock.
+	 */
+	private static void holdLock(Throwable failure, CountDownLatch locked, CountDownLatch release) {
+		synchronized (failure) {
+			locked.countDown();
+			try {
+				release.await();
+			} catch (InterruptedException interrupted) {
+				Thread.currentThread().interrupt();
+			}
+		}
 	}
 
 	/**

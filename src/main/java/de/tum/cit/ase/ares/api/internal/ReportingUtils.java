@@ -2,7 +2,9 @@ package de.tum.cit.ase.ares.api.internal;
 
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.*;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
@@ -27,6 +29,12 @@ public final class ReportingUtils {
 
 	/** The most failures the search for a blocked action reads in one report. */
 	private static final int MAX_SCANNED_FAILURES = 256;
+
+	/**
+	 * How long the search for a blocked action may take. It runs on its own thread,
+	 * because reading a failure locks it, and student code may hold that lock.
+	 */
+	private static final Duration INSPECTION_TIMEOUT = Duration.ofSeconds(2);
 
 	static {
 		// Initialize
@@ -61,9 +69,13 @@ public final class ReportingUtils {
 		if (aresInternalError) {
 			return new AssertionError(localized("reporting.ares_internal_error")); //$NON-NLS-1$
 		}
-		Optional<SecurityViolationFeedback.Violation> violation = violationIn(t);
-		if (violation.isPresent()) {
-			return renderedViolation(t, violation.get(), ConfigurationUtils.getSecurityViolationFeedbackLevel(context));
+		Inspection inspection = inspect(t);
+		if (inspection.violation() != null) {
+			return renderedViolation(t, inspection.violation(),
+					ConfigurationUtils.getSecurityViolationFeedbackLevel(context));
+		}
+		if (!inspection.complete()) {
+			return uninspectable();
 		}
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
 		if (nonprivilegedFailureMessage.isPresent()) {
@@ -82,21 +94,71 @@ public final class ReportingUtils {
 	 * @return the failure to report.
 	 */
 	public static Throwable processBlockedAction(Throwable t, TestContext context) {
-		Optional<SecurityViolationFeedback.Violation> violation = violationIn(t);
-		if (violation.isEmpty()) {
+		Inspection inspection = inspect(t);
+		if (inspection.violation() == null && inspection.complete()) {
 			return t;
 		}
 		SecurityViolationFeedbackLevel level = ConfigurationUtils.getSecurityViolationFeedbackLevel(context);
-		return level == SecurityViolationFeedbackLevel.FULL ? t : renderedViolation(t, violation.get(), level);
+		if (level == SecurityViolationFeedbackLevel.FULL) {
+			return t;
+		}
+		return inspection.violation() == null ? uninspectable() : renderedViolation(t, inspection.violation(), level);
+	}
+
+	/**
+	 * What the search for a blocked action found: a violation, nothing, or, when it
+	 * could not finish, an unknown result.
+	 *
+	 * @param violation the blocked action found, or null.
+	 * @param complete  whether every carried failure was read.
+	 */
+	private record Inspection(SecurityViolationFeedback.Violation violation, boolean complete) {
+
+		/** Every failure was read and none was a blocked action. */
+		static final Inspection NONE = new Inspection(null, true);
+
+		/** The search stopped before reading every failure. */
+		static final Inspection INCOMPLETE = new Inspection(null, false);
+	}
+
+	/**
+	 * Searches a failure for a blocked action on a separate daemon thread, giving
+	 * up after {@link #INSPECTION_TIMEOUT}, so a lock student code holds on the
+	 * failure cannot stop the report.
+	 */
+	private static Inspection inspect(Throwable t) {
+		FutureTask<Inspection> search = new FutureTask<>(() -> violationIn(t));
+		Thread worker = new Thread(search, "ares-failure-inspection"); //$NON-NLS-1$
+		worker.setDaemon(true);
+		worker.start();
+		try {
+			return search.get(INSPECTION_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+		} catch (TimeoutException | ExecutionException unfinished) {
+			worker.interrupt();
+			return Inspection.INCOMPLETE;
+		} catch (InterruptedException interrupted) {
+			Thread.currentThread().interrupt();
+			return Inspection.INCOMPLETE;
+		}
+	}
+
+	/**
+	 * The report for a failure Ares could not read completely: a fixed text with no
+	 * stack, since it may still carry a blocked action.
+	 */
+	private static Throwable uninspectable() {
+		SecurityException redacted = new SecurityException(localized("reporting.failure.uninspectable")); //$NON-NLS-1$
+		redacted.setStackTrace(new StackTraceElement[0]);
+		return redacted;
 	}
 
 	/**
 	 * Finds a blocked action in a failure or in the failures it carries, so
 	 * wrapping, suppressing or collecting a violation does not bring its full text
 	 * back at a lower feedback level. Reads at most {@link #MAX_SCANNED_FAILURES}
-	 * failures.
+	 * failures, and says so when that was not enough.
 	 */
-	private static Optional<SecurityViolationFeedback.Violation> violationIn(Throwable t) {
+	private static Inspection violationIn(Throwable t) {
 		Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
 		Deque<Throwable> pending = new ArrayDeque<>(List.of(t));
 		while (!pending.isEmpty() && seen.size() < MAX_SCANNED_FAILURES) {
@@ -105,12 +167,12 @@ public final class ReportingUtils {
 				Optional<SecurityViolationFeedback.Violation> violation = SecurityViolationFeedback
 						.violationOf(current);
 				if (violation.isPresent()) {
-					return violation;
+					return new Inspection(violation.get(), true);
 				}
 				pending.addAll(carriedBy(current));
 			}
 		}
-		return Optional.empty();
+		return pending.isEmpty() ? Inspection.NONE : Inspection.INCOMPLETE;
 	}
 
 	/**
