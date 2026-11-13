@@ -4,26 +4,40 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.opentest4j.MultipleFailuresError;
+
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.AresSecurityViolation;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.context.TestType;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SecurityViolationFeedbackLevel;
+import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 
 /**
  * Checks that only Ares's own checks can create a blocked-action exception, and
  * how the report shows one at each feedback level.
  */
 class SecurityViolationFeedbackTest {
+
+	/** The MINIMIZED text, in English. */
+	private static final String MINIMIZED_TEXT = "Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.";
 
 	/** The full message an Ares check gives a blocked file read. */
 	private static final String FULL = "Ares Security Error (Reason: Student-Code; Stage: Execution): Main.run tried to illegally read File /etc/passwd via FileInputStream.<init> but was blocked by Ares.";
@@ -109,7 +123,8 @@ class SecurityViolationFeedbackTest {
 		Locale.setDefault(Locale.ENGLISH);
 		assertThat(SecurityViolationFeedback.render(fileRead(), SecurityViolationFeedbackLevel.DEBUG)).startsWith(FULL)
 				.endsWith("To allow this, add to regardingFileSystemInteractions: "
-						+ "{ onThisPathAndAllPathsBelow: \"/etc/passwd\", readAllFiles: true }");
+						+ "{ onThisPathAndAllPathsBelow: \"/etc/passwd\", readAllFiles: true, overwriteAllFiles: false, "
+						+ "createAllFiles: false, executeAllFiles: false, deleteAllFiles: false }");
 	}
 
 	/**
@@ -123,6 +138,7 @@ class SecurityViolationFeedbackTest {
 	@CsvSource({ "file, delete, regardingFileSystemInteractions", "network, connect, regardingNetworkConnections",
 			"command, execute, regardingCommandExecutions", "thread, create, regardingThreadCreations",
 			"architecture, access the file system, regardingFileSystemInteractions",
+			"architecture, import, regardingPackageImports",
 			"architecture, reach, theFollowingResourceAccessesArePermitted" })
 	void everyKindNamesItsCategory(String kind, String action, String category) {
 		assertThat(SecurityViolationFeedback
@@ -151,6 +167,116 @@ class SecurityViolationFeedbackTest {
 		assertThat(reported).hasMessage(FULL);
 	}
 
+	/**
+	 * The DEBUG file entry is one the policy reader accepts as written, and a
+	 * Windows path with a quote reads back unchanged.
+	 *
+	 * @param tempDir where the policy is written.
+	 * @throws IOException if the policy cannot be written
+	 */
+	@Test
+	void theDebugFileEntryIsReadBackByThePolicyReader(@TempDir Path tempDir) throws IOException {
+		String target = "C:\\temp\\new \"draft\".txt";
+		String entry = SecurityViolationFeedback
+				.entryOf(new SecurityViolationFeedback.Violation("file", "create", target, FULL));
+		Path policy = tempDir.resolve("Policy.yaml");
+		Files.writeString(policy, """
+				thisPolicyFileCompliesToThePolicyVersion: 1
+				regardingTheSupervisedCode:
+				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+				  theFollowingClassesAreTestClasses: []
+				  theFollowingResourceAccessesArePermitted:
+				    regardingFileSystemInteractions:
+				      - %s
+				    regardingNetworkConnections: []
+				    regardingCommandExecutions: []
+				    regardingThreadCreations: []
+				    regardingPackageImports: []
+				    regardingTimeouts: []
+				""".formatted(entry));
+		FilePermission read = new SecurityPolicyYAMLReader(new YAMLMapper(), tempDir).readSecurityPolicyFrom(policy)
+				.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
+				.regardingFileSystemInteractions().get(0);
+		assertThat(read.onThisPathAndAllPathsBelow()).isEqualTo(target);
+		assertThat(read.createAllFiles()).isTrue();
+		assertThat(read.readAllFiles() || read.overwriteAllFiles() || read.executeAllFiles() || read.deleteAllFiles())
+				.isFalse();
+	}
+
+	/**
+	 * A blocked action carried as a suppressed failure, inside a privileged
+	 * exception or inside a multiple-failures error is shortened at MINIMIZED.
+	 *
+	 * @param carrier how the blocked action is carried.
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "suppressed", "privileged", "multiple" })
+	void aCarriedViolationIsShortened(String carrier) throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		SecurityException violation = realViolation();
+		Throwable failure = switch (carrier) {
+		case "suppressed" -> {
+			IllegalStateException outer = new IllegalStateException("closing failed");
+			outer.addSuppressed(violation);
+			yield outer;
+		}
+		case "privileged" -> new PrivilegedException(violation);
+		default -> new MultipleFailuresError("two failures", List.of(new AssertionError("first"), violation));
+		};
+		Throwable reported = ReportingUtils.processThrowable(failure, contextFor("minimizedPolicy"));
+		assertThat(reported).hasMessage(MINIMIZED_TEXT).hasNoSuppressedExceptions();
+		assertThat(reported.getStackTrace()).isEmpty();
+	}
+
+	/**
+	 * With only privileged failures reported, a student exception whose own
+	 * getCause throws gets the policy's message, and its getCause never runs.
+	 *
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@Test
+	void aStudentGetCauseIsNeverCalled() throws NoSuchMethodException {
+		Throwable reported = ReportingUtils.processThrowable(new SelfCausingException(),
+				contextFor("privilegedOnlyPolicy"));
+		assertThat(reported).isExactlyInstanceOf(AssertionError.class).hasMessage("Policy message");
+		assertThat(SelfCausingException.asked).isFalse();
+	}
+
+	/**
+	 * Creates a violation the way Ares's checks do.
+	 *
+	 * @return the violation.
+	 * @throws ReflectiveOperationException if it cannot be created
+	 */
+	private static SecurityException realViolation() throws ReflectiveOperationException {
+		java.lang.reflect.Constructor<AresSecurityViolation> constructor = AresSecurityViolation.class
+				.getDeclaredConstructor(String.class, String.class, String.class, String.class);
+		constructor.setAccessible(true);
+		return constructor.newInstance("file", "read", "/etc/passwd", FULL);
+	}
+
+	/** A student exception whose getCause never returns normally. */
+	private static final class SelfCausingException extends RuntimeException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/** Whether anything asked for the cause. */
+		private static volatile boolean asked;
+
+		/**
+		 * Records the call and fails, as a hostile override could.
+		 *
+		 * @return never.
+		 */
+		@Override
+		public synchronized Throwable getCause() {
+			asked = true;
+			throw new AssertionError("student getCause");
+		}
+	}
+
 	/** A file read as an Ares check reports it. */
 	private static SecurityViolationFeedback.Violation fileRead() {
 		return new SecurityViolationFeedback.Violation("file", "read", "/etc/passwd", FULL);
@@ -165,6 +291,23 @@ class SecurityViolationFeedbackTest {
 		when(context.annotatedElement()).thenReturn(Optional.of(method));
 		when(context.findTestType()).thenReturn(Optional.of(TestType.PUBLIC));
 		return context;
+	}
+
+	/** Carries a policy at MINIMIZED; used only through the mocked context. */
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelMINIMIZED.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject")
+	private static void minimizedPolicy() {
+		// A policy only, no test behaviour of its own.
+	}
+
+	/**
+	 * Carries a privileged-only policy at MINIMIZED; used only through the mocked
+	 * context.
+	 */
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelPrivilegedMinimized.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject")
+	private static void privilegedOnlyPolicy() {
+		// A policy only, no test behaviour of its own.
 	}
 
 	/** Carries no policy; used only through the mocked context. */

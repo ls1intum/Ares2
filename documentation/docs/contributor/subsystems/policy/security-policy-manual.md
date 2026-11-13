@@ -395,7 +395,7 @@ The feedback level decides every action Ares blocks at run time:
 |---|---|
 | `FULL` | The full message, as before: `Ares Security Error (Reason: Student-Code; Stage: Execution): Main.run tried to illegally read File /etc/passwd via FileInputStream.<init> but was blocked by Ares.` |
 | `MINIMIZED` | `Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.` No action, target or caller, and no stack. |
-| `DEBUG` | The full message, followed by the policy entry that allows the action, such as `To allow this, add to regardingFileSystemInteractions: { onThisPathAndAllPathsBelow: "/etc/passwd", readAllFiles: true }`. For an action the architecture analysis blocks, the hint names only the category. |
+| `DEBUG` | The full message, followed by the policy entry that allows the action, such as `To allow this, add to regardingFileSystemInteractions: { onThisPathAndAllPathsBelow: "/etc/passwd", readAllFiles: true, overwriteAllFiles: false, createAllFiles: false, executeAllFiles: false, deleteAllFiles: false }`, which the policy reader accepts as written and which grants only that action. For an action the architecture analysis blocks, the hint names only the category. |
 
 Errors in Ares itself (`Reason: Ares-Code`) are never shortened and never get a hint. A student who creates an exception that looks like a blocked action gets no special treatment: only the exceptions Ares's own checks create follow the level.
 

@@ -89,6 +89,42 @@ public class JavaArchitectureTestCaseTest {
 				"Builder should throw NullPointerException if required fields are missing");
 	}
 
+	/**
+	 * A forbidden package import is reported as a blocked action, with the package
+	 * as its target, so the feedback level applies to it as to every other one.
+	 */
+	@Test
+	void aPackageImportDenialIsABlockedAction() {
+		AssertionError error = new AssertionError(
+				"Architecture Violation [Priority: MEDIUM] - Rule 'Imports forbidden packages' was violated (1 times):\n"
+						+ "Class <com.example.Test> depends on <java.io.File> in (Test.java:0)");
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error));
+		AresSecurityViolation violation = assertInstanceOf(AresSecurityViolation.class, thrown);
+		assertEquals("import", violation.action());
+		assertEquals("java.io", violation.target());
+	}
+
+	/**
+	 * A cached blocked action is rebuilt with its action and target, and a failure
+	 * that is not a blocked action has no cached form.
+	 */
+	@Test
+	void aCachedViolationKeepsItsActionAndTarget() {
+		AssertionError error = new AssertionError(
+				"Architecture Violation [Priority: MEDIUM] - Rule 'Imports forbidden packages' was violated (1 times):\n"
+						+ "Class <com.example.Test> depends on <java.io.File> in (Test.java:0)");
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error));
+		String cached = JavaArchitectureTestCase.cachedFormOf(thrown).orElseThrow();
+		AresSecurityViolation rebuilt = assertInstanceOf(AresSecurityViolation.class,
+				JavaArchitectureTestCase.violationFromMessage(cached));
+		assertEquals("import", rebuilt.action());
+		assertEquals("java.io", rebuilt.target());
+		assertEquals(thrown.getMessage(), rebuilt.getMessage());
+		assertTrue(JavaArchitectureTestCase.cachedFormOf(new SecurityException("call graph failed")).isEmpty());
+	}
+
 	@Test
 	void testParseErrorMessage_withPackageImportViolation_extractsForbiddenPackages() {
 		// Test that parseErrorMessage correctly extracts forbidden packages from

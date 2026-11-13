@@ -65,7 +65,10 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 * whose outcome was already computed.
 	 */
 	private static final class CachedOutcome {
-		/** Violation message, or {@code null} when the rule passed. */
+		/**
+		 * The violation as {@link JavaArchitectureTestCase#cachedFormOf} wrote it, or
+		 * {@code null} when the rule passed.
+		 */
 		@Nullable
 		final String violationMessage;
 
@@ -83,7 +86,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	@Nonnull
 	private static final ConcurrentHashMap<String, FutureTask<CachedOutcome>> RULE_EVALUATIONS = new ConcurrentHashMap<>();
 
-	static final String CACHE_SCHEMA_VERSION = "3";
+	static final String CACHE_SCHEMA_VERSION = "4";
 
 	/**
 	 * Per-user private cache directory (POSIX 0700) under the system temp dir, so a
@@ -726,8 +729,11 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	private CachedOutcome evaluateAndCache(@Nonnull String key, @Nonnull String architectureMode,
 			@Nonnull String aopMode) {
 		Optional<SecurityException> result = runRuleAndCapture(architectureMode, aopMode);
-		String message = result.map(e -> e.getMessage() == null ? "" : e.getMessage()).orElse(null);
-		CachedOutcome outcome = new CachedOutcome(message);
+		Optional<String> violation = result.flatMap(JavaArchitectureTestCase::cachedFormOf);
+		if (result.isPresent() && violation.isEmpty()) {
+			throw result.get();
+		}
+		CachedOutcome outcome = new CachedOutcome(violation.orElse(null));
 		RULE_OUTCOME_CACHE.put(key, outcome);
 		return outcome;
 	}

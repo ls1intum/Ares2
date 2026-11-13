@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture.java;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -251,10 +252,29 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 				&& caller.getClassLoader() == JavaArchitectureTestCase.class.getClassLoader();
 	}
 
+	/** Separates the action, the target and the message of a cached violation. */
+	private static final char CACHED_FIELD_SEPARATOR = '\u0000';
+
 	/**
-	 * Rebuilds a blocked-action exception from the message an architecture check
-	 * gave earlier, such as one WALA kept in its outcome cache, so the feedback
-	 * level still applies to it.
+	 * The form in which an architecture outcome cache keeps a blocked action, so
+	 * {@link #violationFromMessage} can rebuild it with its action and target, or
+	 * nothing when the failure is not one of this package's violations.
+	 *
+	 * @param failure the failure a check raised.
+	 * @return the action, target and message, or nothing.
+	 */
+	public static Optional<String> cachedFormOf(@Nonnull Throwable failure) {
+		if (!(failure instanceof AresSecurityViolation violation)) {
+			return Optional.empty();
+		}
+		return Optional.of(violation.action() + CACHED_FIELD_SEPARATOR + violation.target() + CACHED_FIELD_SEPARATOR
+				+ violation.getMessage());
+	}
+
+	/**
+	 * Rebuilds a blocked-action exception from what an architecture check gave
+	 * earlier, such as one WALA kept in its outcome cache, so the feedback level
+	 * still applies to it: the form {@link #cachedFormOf} wrote, or a bare message.
 	 *
 	 * @param message the message the check gave.
 	 * @return the exception to throw.
@@ -263,6 +283,12 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		if (!calledByArchitectureCheck(
 				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass())) {
 			return new SecurityException(message);
+		}
+		int first = message.indexOf(CACHED_FIELD_SEPARATOR);
+		int second = first < 0 ? -1 : message.indexOf(CACHED_FIELD_SEPARATOR, first + 1);
+		if (second > first) {
+			return AresSecurityViolation.create("architecture", message.substring(0, first),
+					message.substring(first + 1, second), message.substring(second + 1));
 		}
 		@Nonnull
 		String action = "reach";
@@ -362,12 +388,13 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
 			if (forbiddenPackages.isEmpty()) {
 				// Fallback if no packages could be extracted
-				throw new SecurityException(
+				throw AresSecurityViolation.create("architecture", "import", "unknown package",
 						Messages.localized("security.archunit.package.import.violation", "unknown package"));
 			}
 
 			String firstPackage = forbiddenPackages.iterator().next();
-			throw new SecurityException(Messages.localized("security.archunit.package.import.violation", firstPackage));
+			throw AresSecurityViolation.create("architecture", "import", firstPackage,
+					Messages.localized("security.archunit.package.import.violation", firstPackage));
 		}
 
 		// Parse the detail line to extract caller and target method info.

@@ -21,7 +21,7 @@ class ConfigurationUtilsTest {
 	private static final String POLICY_ENABLED = "src/test/resources/de/tum/cit/ase/ares/api/internal/configurationUtils/PolicyPrivilegedExceptionsEnabled.yaml";
 	/** A policy that disables the fixed failure message. */
 	private static final String POLICY_DISABLED = "src/test/resources/de/tum/cit/ase/ares/api/internal/configurationUtils/PolicyPrivilegedExceptionsDisabled.yaml";
-	/** A policy without a test-behavior category. */
+	/** A policy without a test-behaviour category. */
 	private static final String POLICY_WITHOUT_BEHAVIOR = "src/test/resources/de/tum/cit/ase/ares/api/internal/configurationUtils/PolicyWithoutTestBehavior.yaml";
 
 	/** A test class with no policy. */
@@ -47,7 +47,7 @@ class ConfigurationUtilsTest {
 		}
 	}
 
-	/** A test class with a policy that omits test behavior. */
+	/** A test class with a policy that omits test behaviour. */
 	@Policy(value = POLICY_WITHOUT_BEHAVIOR)
 	static class PolicyWithoutBehaviorFixture {
 		/** The method used to make a test context. */
@@ -85,7 +85,7 @@ class ConfigurationUtilsTest {
 				ConfigurationUtils.getNonprivilegedFailureMessage(context(PolicyDisabledFixture.class)).isPresent());
 	}
 
-	/** An omitted behavior category leaves the original failure visible. */
+	/** An omitted behaviour category leaves the original failure visible. */
 	@Test
 	void missingBehaviorReturnsEmpty() throws Exception {
 		assertFalse(ConfigurationUtils.getNonprivilegedFailureMessage(context(PolicyWithoutBehaviorFixture.class))

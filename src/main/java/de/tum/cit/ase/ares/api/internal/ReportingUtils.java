@@ -7,6 +7,7 @@ import java.util.*;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
+import org.opentest4j.MultipleFailuresError;
 import org.slf4j.*;
 
 import de.tum.cit.ase.ares.api.context.TestContext;
@@ -23,6 +24,9 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.SecurityViolationFeedb
 public final class ReportingUtils {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ReportingUtils.class);
+
+	/** The most failures the search for a blocked action reads in one report. */
+	private static final int MAX_SCANNED_FAILURES = 256;
 
 	static {
 		// Initialize
@@ -87,18 +91,77 @@ public final class ReportingUtils {
 	}
 
 	/**
-	 * Finds a blocked action in a failure or its causes, so wrapping a violation
-	 * does not bring its full text back at a lower feedback level.
+	 * Finds a blocked action in a failure or in the failures it carries, so
+	 * wrapping, suppressing or collecting a violation does not bring its full text
+	 * back at a lower feedback level. Reads at most {@link #MAX_SCANNED_FAILURES}
+	 * failures.
 	 */
 	private static Optional<SecurityViolationFeedback.Violation> violationIn(Throwable t) {
 		Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
-		for (Throwable current = t; current != null && seen.add(current); current = causeOf(current)) {
-			Optional<SecurityViolationFeedback.Violation> violation = SecurityViolationFeedback.violationOf(current);
-			if (violation.isPresent()) {
-				return violation;
+		Deque<Throwable> pending = new ArrayDeque<>(List.of(t));
+		while (!pending.isEmpty() && seen.size() < MAX_SCANNED_FAILURES) {
+			Throwable current = pending.removeFirst();
+			if (seen.add(current)) {
+				Optional<SecurityViolationFeedback.Violation> violation = SecurityViolationFeedback
+						.violationOf(current);
+				if (violation.isPresent()) {
+					return violation;
+				}
+				pending.addAll(carriedBy(current));
 			}
 		}
 		return Optional.empty();
+	}
+
+	/**
+	 * The failures a failure carries that can be read without running student code:
+	 * its cause, when a Java runtime class declares {@code getCause}, its
+	 * suppressed failures, and what an Ares privileged exception or an opentest4j
+	 * multiple-failures error holds.
+	 */
+	private static List<Throwable> carriedBy(Throwable t) {
+		List<Throwable> carried = new ArrayList<>(Arrays.asList(t.getSuppressed()));
+		if (declaredByTheRuntime(t, "getCause")) {
+			carried.add(t.getCause());
+		}
+		if (t instanceof PrivilegedException privileged) {
+			carried.add(privileged.getPriviledgedThrowable());
+		}
+		if (t instanceof MultipleFailuresError multiple && declaredBy(t, "getFailures", MultipleFailuresError.class)) {
+			carried.addAll(multiple.getFailures());
+		}
+		carried.removeIf(Objects::isNull);
+		return carried;
+	}
+
+	/**
+	 * Whether the Java runtime declares the named method a failure's class uses, so
+	 * calling it cannot run code a student wrote.
+	 */
+	private static boolean declaredByTheRuntime(Throwable t, String method) {
+		Class<?> declaring = declaringClass(t, method);
+		return declaring != null && (declaring.getClassLoader() == null
+				|| declaring.getClassLoader() == ClassLoader.getPlatformClassLoader());
+	}
+
+	/**
+	 * Whether the named method a failure's class uses is the one the given class
+	 * declares, not an override.
+	 */
+	private static boolean declaredBy(Throwable t, String method, Class<?> owner) {
+		return declaringClass(t, method) == owner;
+	}
+
+	/**
+	 * The class that declares the public no-argument method a failure's class uses,
+	 * or null when there is none.
+	 */
+	private static Class<?> declaringClass(Throwable t, String method) {
+		try {
+			return t.getClass().getMethod(method).getDeclaringClass();
+		} catch (NoSuchMethodException missing) {
+			return null;
+		}
 	}
 
 	/**
@@ -116,18 +179,6 @@ public final class ReportingUtils {
 			rendered.setStackTrace(new StackTraceElement[0]);
 		}
 		return rendered;
-	}
-
-	/**
-	 * Returns a failure's cause, or nothing when a student-defined {@code getCause}
-	 * throws, so reporting never fails on student code.
-	 */
-	private static Throwable causeOf(Throwable t) {
-		try {
-			return t.getCause();
-		} catch (RuntimeException | LinkageError faulty) {
-			return null;
-		}
 	}
 
 	private static boolean isAresInternalError(Throwable t) {
