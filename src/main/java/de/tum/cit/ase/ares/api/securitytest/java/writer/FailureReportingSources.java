@@ -484,7 +484,7 @@ final class FailureReportingSources {
 						return copyOf(throwable);
 					}
 					if (violation != null) {
-						return violation;
+						return fullViolation(violation);
 					}
 					if (throwable instanceof TestAbortedException) {
 						return new TestAbortedException();
@@ -493,6 +493,22 @@ final class FailureReportingSources {
 						return new AssertionError(@MESSAGES@.localized("generated.failure.reporting.timeout"));
 					}
 					return new AssertionError(@SETTINGS@.@MESSAGE@);
+				}
+
+				/**
+				 * A blocked action at FULL as a copy: its own text, read now on the bounded
+				 * worker, and copies of its cause and suppressed failures, so printing the
+				 * report later cannot run student code a student attached to it.
+				 */
+				private static Throwable fullViolation(Throwable violation) {
+					SecurityException copy = new SecurityException(
+							trustedAccessor(violation, "getMessage") ? violation.getMessage() : null);
+					copy.setStackTrace(trustedAccessor(violation, "getStackTrace") ? violation.getStackTrace()
+							: new StackTraceElement[0]);
+					java.util.Map<Throwable, Throwable> copies = new java.util.IdentityHashMap<>();
+					copies.put(violation, copy);
+					attachCopies(violation, copy, copies);
+					return copy;
 				}
 
 				/** The longest value of a blocked action the report shows. */

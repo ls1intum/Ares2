@@ -2,12 +2,15 @@ package de.tum.cit.ase.ares.integration.precompile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -234,6 +237,75 @@ class GeneratedArchitectureFeedbackLevelTest {
 	@Test
 	void aWrappedViolationIsReportedWithoutItsWrapper() throws Exception {
 		assertThat(messages(full, WRAPPED_TEST, Locale.ENGLISH)).containsExactly(VIOLATION);
+	}
+
+	/**
+	 * With privileged-only reporting at FULL, a blocked action carrying a student
+	 * failure whose {@code toString} never returns is reported as a copy with its
+	 * own text, so printing the report runs no student code, in a JVM of its own.
+	 *
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aFullViolationIsReportedAsACopy() throws Exception {
+		Path probe = compileProbe(Files.createDirectories(tempDir.resolve("probe")));
+		String classPath = String.join(File.pathSeparator, probe.toString(), full.toString(),
+				full.resolveSibling(full.getFileName() + "-resources").toString(),
+				System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
+		Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp",
+				classPath, "com.example.probe.FullViolationProbe", VIOLATION).redirectErrorStream(true).start();
+		try {
+			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
+			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			assertThat(output).as(output).contains("ares.probe.message=" + VIOLATION).contains("ares.probe.done");
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
+	/**
+	 * Compiles a probe that hands the FULL project's failure reporting a blocked
+	 * action with a looping student failure attached and prints the report.
+	 *
+	 * @param root the probe's folder.
+	 * @return the compiled probe's folder
+	 * @throws IOException if writing or compiling fails
+	 */
+	private static Path compileProbe(Path root) throws IOException {
+		Path sources = Files.createDirectories(root.resolve("sources/com/example/probe"));
+		Files.writeString(sources.resolve("FullViolationProbe.java"),
+				"""
+						package com.example.probe;
+
+						public final class FullViolationProbe {
+							public static void main(String[] arguments) throws Exception {
+								ClassLoader loader = FullViolationProbe.class.getClassLoader();
+								Throwable violation = (Throwable) loader
+										.loadClass("com.example.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation")
+										.getConstructor(String.class).newInstance(arguments[0]);
+								violation.addSuppressed(new RuntimeException("attached") {
+									@Override
+									public String toString() {
+										while (true) {
+											Thread.onSpinWait();
+										}
+									}
+								});
+								java.lang.reflect.Method replacement = loader
+										.loadClass("de.tum.cit.ase.ares.generated.GeneratedFailureReporting")
+										.getDeclaredMethod("replacementFor", Throwable.class);
+								replacement.setAccessible(true);
+								Throwable reported = (Throwable) replacement.invoke(null, violation);
+								reported.printStackTrace(new java.io.PrintWriter(new java.io.StringWriter()));
+								System.out.println("ares.probe.message=" + reported.getMessage());
+								System.out.println("ares.probe.done");
+								System.exit(0);
+							}
+						}
+						""");
+		Path classes = Files.createDirectories(root.resolve("classes"));
+		GeneratedCodeRuns.compile(classes, List.of(root.resolve("sources")));
+		return classes;
 	}
 
 	/**
