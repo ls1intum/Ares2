@@ -467,12 +467,89 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
+	 * At MINIMIZED, a student exception that overrides only a callback an inherited
+	 * runtime method calls, here the reason of a file-system failure, and adds a
+	 * blocked action from there, is redacted.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void anOverriddenRuntimeCallbackAddingAViolationIsRedactedAtMinimized() throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		Throwable reported = ReportingUtils.processThrowable(new ReasonAddingException(realViolation()),
+				contextFor("minimizedPolicy"));
+		assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(UNINSPECTABLE_TEXT)
+				.hasNoSuppressedExceptions();
+	}
+
+	/**
+	 * At MINIMIZED, an AssertJ multiple-assertions error whose member list is
+	 * student code, directly or wrapped in a runtime list, is redacted, since
+	 * reading the list could add a blocked action to the error.
+	 *
+	 * @param wrapped whether the student list is wrapped in an unmodifiable list.
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aStudentMemberListIsRedactedAtMinimized(boolean wrapped) throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		AddingList members = new AddingList(realViolation());
+		members.add(new AssertionError("soft"));
+		MultipleAssertionsError failure = new MultipleAssertionsError(
+				wrapped ? java.util.Collections.unmodifiableList(members) : members);
+		members.addTo(failure);
+		Throwable reported = ReportingUtils.processThrowable(failure, contextFor("minimizedPolicy"));
+		assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(UNINSPECTABLE_TEXT)
+				.hasNoSuppressedExceptions();
+	}
+
+	/**
+	 * At MINIMIZED, an AssertJ multiple-failures error carrying a member of a
+	 * student class is redacted, since formatting its message calls that class's
+	 * constructor.
+	 *
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@Test
+	void anAssertJErrorWithAStudentMemberIsRedactedAtMinimized() throws NoSuchMethodException {
+		Locale.setDefault(Locale.ENGLISH);
+		Throwable reported = ReportingUtils.processThrowable(
+				new AssertJMultipleFailuresError("soft", List.of(new StudentAssertion("first"))),
+				contextFor("minimizedPolicy"));
+		assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(UNINSPECTABLE_TEXT);
+	}
+
+	/**
+	 * A thread-local value whose copy for a new thread never returns does not stop
+	 * the report, since the report's worker does not inherit thread-local values.
+	 *
+	 * @throws Exception if the thread is interrupted or the context cannot be made
+	 */
+	@Test
+	void aBlockingThreadLocalCopyDoesNotStopTheReport() throws Exception {
+		TestContext context = contextFor("minimizedPolicy");
+		java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+		java.util.concurrent.atomic.AtomicReference<Throwable> reported = new java.util.concurrent.atomic.AtomicReference<>();
+		Thread caller = new Thread(null, () -> {
+			new BlockingCopy(release).set("student value");
+			reported.set(ReportingUtils.processThrowable(new IllegalStateException("plain failure"), context));
+		}, "student-caller", 0, false);
+		caller.setDaemon(true);
+		caller.start();
+		caller.join(TimeUnit.SECONDS.toMillis(10));
+		release.countDown();
+		assertThat(reported.get()).isInstanceOf(IllegalStateException.class).hasMessage("plain failure");
+	}
+
+	/**
 	 * At MINIMIZED, an ordinary failure, an opentest4j assertion failure and the
 	 * multiple-failure errors of opentest4j and AssertJ keep their report, since
 	 * the methods they override are not student code.
 	 *
 	 * @throws NoSuchMethodException if the fixture method is missing
 	 */
+
 	@Test
 	void failuresWithoutAStudentMessageKeepTheirReportAtMinimized() throws NoSuchMethodException {
 		Locale.setDefault(Locale.ENGLISH);
@@ -484,6 +561,9 @@ class SecurityViolationFeedbackTest {
 						.hasMessageNotContaining(UNINSPECTABLE_TEXT);
 		assertThat(ReportingUtils.processThrowable(new MultipleAssertionsError(List.of(new AssertionError("soft"))),
 				context)).hasMessageNotContaining(UNINSPECTABLE_TEXT);
+		assertThat(ReportingUtils.processThrowable(
+				new MultipleAssertionsError(new java.util.ArrayList<>(List.of(new AssertionError("soft")))), context))
+						.hasMessageNotContaining(UNINSPECTABLE_TEXT);
 		assertThat(
 				ReportingUtils.processThrowable(new AssertionFailedError("expected: <1> but was: <2>", 1, 2), context))
 						.hasMessage("expected: <1> but was: <2>");
@@ -827,6 +907,139 @@ class SecurityViolationFeedbackTest {
 		public String getLocalizedMessage() {
 			addCaught();
 			return super.getLocalizedMessage();
+		}
+	}
+
+	/**
+	 * A student file-system failure that adds a blocked action it caught from its
+	 * reason, which the runtime's own message calls.
+	 */
+	private static final class ReasonAddingException extends java.nio.file.FileSystemException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/** The blocked action to add. */
+		private final transient Throwable caught;
+
+		/**
+		 * Keeps a blocked action.
+		 *
+		 * @param caught the blocked action.
+		 */
+		ReasonAddingException(Throwable caught) {
+			super("student.txt");
+			this.caught = caught;
+		}
+
+		/**
+		 * Adds the blocked action first.
+		 *
+		 * @return the reason.
+		 */
+		@Override
+		public String getReason() {
+			if (getSuppressed().length == 0) {
+				addSuppressed(caught);
+			}
+			return "student reason";
+		}
+	}
+
+	/**
+	 * A student member list that adds a blocked action it caught to the error
+	 * holding it when the list is copied.
+	 */
+	private static final class AddingList extends java.util.ArrayList<AssertionError> {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/** The blocked action to add. */
+		private final transient Throwable caught;
+
+		/** The error to add it to, once known. */
+		private transient Throwable holder;
+
+		/**
+		 * Keeps a blocked action.
+		 *
+		 * @param caught the blocked action.
+		 */
+		AddingList(Throwable caught) {
+			this.caught = caught;
+		}
+
+		/**
+		 * Names the error to add the blocked action to.
+		 *
+		 * @param holder the error holding this list.
+		 */
+		void addTo(Throwable holder) {
+			this.holder = holder;
+		}
+
+		/**
+		 * Adds the blocked action to the holding error first.
+		 *
+		 * @return the members.
+		 */
+		@Override
+		public Object[] toArray() {
+			if (holder != null && holder.getSuppressed().length == 0) {
+				holder.addSuppressed(caught);
+			}
+			return super.toArray();
+		}
+	}
+
+	/** A student assertion class with nothing overridden. */
+	private static final class StudentAssertion extends AssertionError {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Creates the assertion.
+		 *
+		 * @param message its message.
+		 */
+		StudentAssertion(String message) {
+			super(message);
+		}
+	}
+
+	/**
+	 * A student thread-local whose copy for a new thread waits until released.
+	 */
+	private static final class BlockingCopy extends InheritableThreadLocal<String> {
+
+		/** Releases the waiting copy. */
+		private final java.util.concurrent.CountDownLatch release;
+
+		/**
+		 * Creates the thread-local.
+		 *
+		 * @param release releases the waiting copy.
+		 */
+		BlockingCopy(java.util.concurrent.CountDownLatch release) {
+			this.release = release;
+		}
+
+		/**
+		 * Waits until released, as a hostile copy could wait forever.
+		 *
+		 * @param parentValue the value of the creating thread.
+		 * @return that value.
+		 */
+		@Override
+		protected String childValue(String parentValue) {
+			try {
+				release.await();
+			} catch (InterruptedException interrupted) {
+				Thread.currentThread().interrupt();
+			}
+			return parentValue;
 		}
 	}
 

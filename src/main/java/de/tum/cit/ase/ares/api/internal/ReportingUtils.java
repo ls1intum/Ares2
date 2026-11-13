@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.internal;
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -43,12 +44,12 @@ public final class ReportingUtils {
 	private static final Duration INSPECTION_TIMEOUT = Duration.ofSeconds(2);
 
 	/**
-	 * The methods of a failure a report may call, directly or by printing it. An
-	 * override of any of them in student code may run code or add a blocked action
-	 * when the report reads it.
+	 * The Java runtime's own lists that keep their members themselves, so reading
+	 * them cannot call a list method student code wrote or wraps.
 	 */
-	private static final Set<String> READ_METHODS = Set.of("getMessage", "getLocalizedMessage", "getCause", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-			"getStackTrace", "toString", "printStackTrace", "fillInStackTrace"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+	private static final Set<Class<?>> SELF_CONTAINED_LISTS = Set.of(ArrayList.class, List.of().getClass(),
+			List.of(1).getClass(), Arrays.asList().getClass(), Collections.emptyList().getClass(),
+			Collections.singletonList(1).getClass());
 
 	/**
 	 * Library failures whose own versions of read methods are trusted, each with
@@ -246,13 +247,15 @@ public final class ReportingUtils {
 	}
 
 	/**
-	 * Creates the daemon worker thread for one bounded step of a report.
+	 * Creates the daemon worker thread for one bounded step of a report. It does
+	 * not inherit thread-local values, since copying one can run student code
+	 * before the bound starts.
 	 *
 	 * @param step what the worker runs.
 	 * @return the worker.
 	 */
 	private static Thread inspectionThread(Runnable step) {
-		Thread worker = new Thread(step, "ares-failure-inspection"); //$NON-NLS-1$
+		Thread worker = new Thread(null, step, "ares-failure-inspection", 0, false); //$NON-NLS-1$
 		worker.setDaemon(true);
 		return worker;
 	}
@@ -329,8 +332,7 @@ public final class ReportingUtils {
 		if (t instanceof MultipleFailuresError multiple && declaredBy(t, "getFailures", MultipleFailuresError.class)) { //$NON-NLS-1$
 			carried.addAll(multiple.getFailures());
 		}
-		if (t instanceof MultipleAssertionsError multiple
-				&& declaredBy(t, "getErrors", MultipleAssertionsError.class)) { //$NON-NLS-1$
+		if (t instanceof MultipleAssertionsError multiple && hasSelfContainedErrors(multiple)) {
 			carried.addAll(multiple.getErrors());
 		}
 		carried.removeIf(Objects::isNull);
@@ -338,26 +340,86 @@ public final class ReportingUtils {
 	}
 
 	/**
-	 * Whether the search left out part of this failure because student code
-	 * overrides it: any method the report reads ({@link #READ_METHODS}), or the
-	 * member list of a multiple-failures or multiple-assertions error. Such a
-	 * method may run code or add a blocked action when the report calls it.
+	 * Whether the search left out part of this failure because reading it may run
+	 * student code: a class of it overrides a failure method, which the runtime's
+	 * own methods may call back, its member list is not one the search can read
+	 * safely, or AssertJ would create a member of a student class while formatting.
+	 * Such code may add a blocked action when the report reads it.
 	 */
 	private static boolean hasSkippedGetter(Throwable t) {
-		return Arrays.stream(t.getClass().getMethods()).anyMatch(ReportingUtils::isUntrustedReadMethod)
+		return overridesAFailureMethod(t.getClass())
 				|| t instanceof MultipleFailuresError && !declaredBy(t, "getFailures", MultipleFailuresError.class) //$NON-NLS-1$
-				|| t instanceof MultipleAssertionsError && !declaredBy(t, "getErrors", MultipleAssertionsError.class); //$NON-NLS-1$
+				|| t instanceof MultipleAssertionsError multiple && !hasSelfContainedErrors(multiple)
+				|| t instanceof AssertJMultipleFailuresError assertj && hasAStudentMember(assertj);
 	}
 
 	/**
-	 * Whether a method is one the report reads and is declared neither by the Java
-	 * runtime nor, for that method, by a trusted library failure
-	 * ({@link #TRUSTED_LIBRARY_METHODS}).
+	 * Whether a class outside the Java runtime in a failure's hierarchy overrides a
+	 * method its failure superclasses declare, other than a trusted library
+	 * failure's own method ({@link #TRUSTED_LIBRARY_METHODS}).
 	 */
-	private static boolean isUntrustedReadMethod(Method method) {
-		Class<?> declaring = method.getDeclaringClass();
-		return READ_METHODS.contains(method.getName()) && !isRuntimeClass(declaring)
-				&& !TRUSTED_LIBRARY_METHODS.getOrDefault(declaring, Set.of()).contains(method.getName());
+	private static boolean overridesAFailureMethod(Class<?> type) {
+		for (Class<?> current = type; !isRuntimeClass(current); current = current.getSuperclass()) {
+			Set<String> trusted = TRUSTED_LIBRARY_METHODS.getOrDefault(current, Set.of());
+			Class<?> parent = current.getSuperclass();
+			if (Arrays.stream(current.getDeclaredMethods())
+					.anyMatch(method -> !trusted.contains(method.getName()) && overrides(method, parent))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Whether a method overrides one a failure class at or above the given class
+	 * declares, so code that calls that method would run it instead.
+	 */
+	private static boolean overrides(Method method, Class<?> from) {
+		if (Modifier.isStatic(method.getModifiers()) || Modifier.isPrivate(method.getModifiers())) {
+			return false;
+		}
+		for (Class<?> current = from; current != null
+				&& Throwable.class.isAssignableFrom(current); current = current.getSuperclass()) {
+			if (declaresOverridable(current, method)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Whether a class declares a method with the same name and parameters that a
+	 * subclass can override.
+	 */
+	private static boolean declaresOverridable(Class<?> type, Method method) {
+		try {
+			int modifiers = type.getDeclaredMethod(method.getName(), method.getParameterTypes()).getModifiers();
+			return !Modifier.isStatic(modifiers) && !Modifier.isPrivate(modifiers);
+		} catch (NoSuchMethodException missing) {
+			return false;
+		}
+	}
+
+	/**
+	 * Whether an AssertJ multiple-assertions error uses AssertJ's own member list
+	 * and that list is one of {@link #SELF_CONTAINED_LISTS}.
+	 */
+	private static boolean hasSelfContainedErrors(MultipleAssertionsError multiple) {
+		if (!declaredBy(multiple, "getErrors", MultipleAssertionsError.class)) { //$NON-NLS-1$
+			return false;
+		}
+		List<?> errors = multiple.getErrors();
+		return errors != null && SELF_CONTAINED_LISTS.contains(errors.getClass());
+	}
+
+	/**
+	 * Whether an AssertJ multiple-failures error carries a member whose class is
+	 * neither from the Java runtime nor a trusted library failure: formatting its
+	 * message calls such a member's constructor.
+	 */
+	private static boolean hasAStudentMember(AssertJMultipleFailuresError assertj) {
+		return assertj.getFailures().stream().anyMatch(member -> member != null && !isRuntimeClass(member.getClass())
+				&& !TRUSTED_LIBRARY_METHODS.containsKey(member.getClass()));
 	}
 
 	/**
