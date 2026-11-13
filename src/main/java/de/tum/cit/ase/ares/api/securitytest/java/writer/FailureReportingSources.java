@@ -499,11 +499,19 @@ final class FailureReportingSources {
 					return null;
 				}
 
-				/** A failure's cause, or none when a student-written getCause throws. */
+				/**
+				 * A failure's cause, read only through a {@code getCause} of {@code Throwable}
+				 * or of the Java runtime, so a student's own override, which may never return
+				 * or may throw, is never run here.
+				 */
 				private static Throwable causeOf(Throwable throwable) {
 					try {
+						ClassLoader owner = throwable.getClass().getMethod("getCause").getDeclaringClass().getClassLoader();
+						if (owner != null && owner != ClassLoader.getPlatformClassLoader()) {
+							return null;
+						}
 						return throwable.getCause();
-					} catch (RuntimeException | LinkageError faulty) {
+					} catch (NoSuchMethodException | RuntimeException | LinkageError faulty) {
 						return null;
 					}
 				}

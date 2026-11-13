@@ -47,6 +47,7 @@ final class StrictTimeoutSources {
 			import java.lang.reflect.Method;
 			import java.time.Duration;
 			import java.util.ArrayList;
+			import java.util.Iterator;
 			import java.util.List;
 			import java.util.concurrent.ExecutionException;
 			import java.util.concurrent.ExecutorService;
@@ -56,7 +57,10 @@ final class StrictTimeoutSources {
 			import java.util.concurrent.TimeUnit;
 			import java.util.concurrent.TimeoutException;
 			import java.util.concurrent.atomic.AtomicInteger;
+			import java.util.stream.Stream;
 
+			import org.junit.jupiter.api.DynamicContainer;
+			import org.junit.jupiter.api.DynamicNode;
 			import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
 			import org.junit.jupiter.api.extension.ExtensionContext;
 			import org.junit.jupiter.api.extension.InvocationInterceptor;
@@ -160,20 +164,70 @@ final class StrictTimeoutSources {
 				}
 
 				/**
-				 * Times a test factory.
+				 * Times a test factory, including reading the tests it produces, so a
+				 * supplier that never ends hits the timeout too.
 				 *
 				 * @param <T>               the factory's return type
 				 * @param invocation        runs the factory
 				 * @param invocationContext the factory call
 				 * @param extensionContext  the factory's context
-				 * @return the factory's tests
+				 * @return the factory's tests, read into a list
 				 * @throws Throwable whatever the factory threw, or the timeout
 				 */
 				@Override
 				public <T> T interceptTestFactoryMethod(Invocation<T> invocation,
 						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext extensionContext)
 						throws Throwable {
-					return executeWithTimeout(invocation::proceed, DEFAULT_GRACE, extensionContext);
+					return executeWithTimeout(() -> materialised(invocation.proceed()), DEFAULT_GRACE, extensionContext);
+				}
+
+				/**
+				 * A test factory's result read completely, nested containers included; any
+				 * other result is returned as it is.
+				 *
+				 * @param <T> the factory's result type
+				 * @param result the factory's result
+				 * @return the tests, read into a list
+				 */
+				@SuppressWarnings("unchecked")
+				static <T> T materialised(T result) {
+					List<Object> nodes = new ArrayList<>();
+					if (result instanceof DynamicNode node) {
+						return (T) materialisedNode(node);
+					} else if (result instanceof Stream<?> stream) {
+						try (stream) {
+							stream.forEach(item -> nodes.add(materialisedNode(item)));
+						}
+					} else if (result instanceof Iterable<?> iterable) {
+						iterable.forEach(item -> nodes.add(materialisedNode(item)));
+					} else if (result instanceof Iterator<?> iterator) {
+						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item)));
+					} else if (result instanceof Object[] array) {
+						for (Object item : array) {
+							nodes.add(materialisedNode(item));
+						}
+					} else {
+						return result;
+					}
+					return (T) nodes;
+				}
+
+				/**
+				 * One produced test, with a container's children read completely.
+				 *
+				 * @param item the produced test
+				 * @return the test, or the item unchanged when it is not a container
+				 */
+				private static Object materialisedNode(Object item) {
+					if (!(item instanceof DynamicContainer container)) {
+						return item;
+					}
+					List<DynamicNode> children = new ArrayList<>();
+					try (Stream<? extends DynamicNode> stream = container.getChildren()) {
+						stream.forEach(child -> children.add((DynamicNode) materialisedNode(child)));
+					}
+					return DynamicContainer.dynamicContainer(container.getDisplayName(),
+							container.getTestSourceUri().orElse(null), children.stream());
 				}
 
 				/**
@@ -240,8 +294,9 @@ final class StrictTimeoutSources {
 				 * waited for to the nanosecond and converted before the worker starts. A worker
 				 * that does not stop within the grace period halts the test process, since it
 				 * would otherwise keep running untrusted code. The thread-creation
-				 * check exempts exactly this method, by name; it is private, so only this
-				 * hook's interceptors reach it. A hidden test's timeout shows no text.
+				 * check exempts exactly this method of this class, and only when the class was
+				 * loaded from where the copied checks are; it is private, so only this hook's
+				 * interceptors reach it. A hidden test's timeout shows no text.
 				 *
 				 * @param <T>          the action's result
 				 * @param action       the action to bound
@@ -360,11 +415,29 @@ final class StrictTimeoutSources {
 				 * @return what the action threw
 				 */
 				private static Throwable unwrapped(ExecutionException failure) {
-					Throwable cause = failure.getCause();
-					if (cause instanceof ExecutionException wrapped && wrapped.getCause() != null) {
-						return wrapped.getCause();
+					Throwable cause = causeOf(failure);
+					Throwable inner = cause instanceof ExecutionException wrapped ? causeOf(wrapped) : null;
+					return inner != null ? inner : cause;
+				}
+
+				/**
+				 * A failure's cause, read only through a {@code getCause} of {@code Throwable}
+				 * or of the Java runtime, so a student's own override, which may never return,
+				 * is not run outside the timeout.
+				 *
+				 * @param failure the failure
+				 * @return its cause, or null when it has none or overrides {@code getCause}
+				 */
+				static Throwable causeOf(Throwable failure) {
+					try {
+						ClassLoader owner = failure.getClass().getMethod("getCause").getDeclaringClass().getClassLoader();
+						if (owner != null && owner != ClassLoader.getPlatformClassLoader()) {
+							return null;
+						}
+						return failure.getCause();
+					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
+						return null;
 					}
-					return cause;
 				}
 
 				/**

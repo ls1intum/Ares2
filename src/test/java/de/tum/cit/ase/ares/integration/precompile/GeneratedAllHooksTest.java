@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.integration.precompile;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -9,9 +10,13 @@ import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -47,6 +52,9 @@ class GeneratedAllHooksTest {
 	/** The include value the generator wrote. */
 	private static String include;
 
+	/** The generated resources with the hooks registered the other way round. */
+	private static Path reversedResources;
+
 	/**
 	 * Generates the precompile output for a policy setting all four categories and
 	 * compiles it with the fixtures.
@@ -57,32 +65,33 @@ class GeneratedAllHooksTest {
 	static void generateAndCompile() throws IOException {
 		Path project = Files.createDirectory(tempDir.resolve("project"));
 		Path policy = project.resolve("SecurityPolicy.yaml");
-		Files.writeString(policy, """
-				thisPolicyFileCompliesToThePolicyVersion: 1
-				regardingTheSupervisedCode:
-				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
-				  theSupervisedCodeUsesTheFollowingPackage: "com.example"
-				  theMainClassInsideThisPackageIs: "Main"
-				  theFollowingClassesAreTestClasses: []
-				  theFollowingResourceAccessesArePermitted:
-				    regardingFileSystemInteractions: []
-				    regardingNetworkConnections: []
-				    regardingCommandExecutions: []
-				    regardingThreadCreations: []
-				    regardingPackageImports: []
-				    regardingTimeouts: []
-				  theFollowingTestBehaviorIsConfigured:
-				    regardingTheStrictTimeoutForTheTestCases:
-				      theTimeoutIs: "5s"
-				    regardingTheOutputOfTheTestCases:
-				      theMaximumNumberOfOutputCharactersIs: 100000
-				    regardingTheFailureFeedbackForTheTestCases:
-				      theSecurityViolationFeedbackLevelIs: MINIMIZED
-				    regardingTheVisibilityAndScheduleOfTheTestCases:
-				      theDeadlineIs: "2000-01-01 00:00 UTC"
-				      testsNotListedHereAreHidden: false
-				      theFollowingTestsAreHidden: ["com.example.fixtures.HiddenFixture"]
-				""");
+		Files.writeString(policy,
+				"""
+						thisPolicyFileCompliesToThePolicyVersion: 1
+						regardingTheSupervisedCode:
+						  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+						  theSupervisedCodeUsesTheFollowingPackage: "com.example"
+						  theMainClassInsideThisPackageIs: "Main"
+						  theFollowingClassesAreTestClasses: []
+						  theFollowingResourceAccessesArePermitted:
+						    regardingFileSystemInteractions: []
+						    regardingNetworkConnections: []
+						    regardingCommandExecutions: []
+						    regardingThreadCreations: []
+						    regardingPackageImports: []
+						    regardingTimeouts: []
+						  theFollowingTestBehaviorIsConfigured:
+						    regardingTheStrictTimeoutForTheTestCases:
+						      theTimeoutIs: "2s"
+						    regardingTheOutputOfTheTestCases:
+						      theMaximumNumberOfOutputCharactersIs: 100000
+						    regardingTheFailureFeedbackForTheTestCases:
+						      theSecurityViolationFeedbackLevelIs: MINIMIZED
+						    regardingTheVisibilityAndScheduleOfTheTestCases:
+						      theDeadlineIs: "2000-01-01 00:00 UTC"
+						      testsNotListedHereAreHidden: false
+						      theFollowingTestsAreHidden: ["com.example.fixtures.HiddenFixture", "com.example.fixtures.HiddenTimeoutFixture", "com.example.fixtures.HiddenLoudFixture", "com.example.fixtures.HiddenFactoryFixture"]
+						""");
 		Files.writeString(project.resolve("pom.xml"), "<project/>");
 		Files.createDirectories(project.resolve("src/main/java"));
 		Files.createDirectories(project.resolve("target/classes"));
@@ -91,6 +100,17 @@ class GeneratedAllHooksTest {
 		fixture(fixtures, "PublicFixture", "@Test void fails() { throw new IllegalStateException(\"visible\"); }");
 		fixture(fixtures, "HiddenFixture", "@Test void fails() { System.out.print(\"SECRET_ALL_HOOKS\");"
 				+ " throw new IllegalStateException(\"SECRET_ALL_HOOKS\"); }");
+		fixture(fixtures, "HiddenTimeoutFixture", "@Test void loops() { System.out.print(\"SECRET_TIMEOUT\");"
+				+ " while (!Thread.currentThread().isInterrupted()) { Thread.onSpinWait(); } }");
+		fixture(fixtures, "HiddenLoudFixture", "@Test void loud() { System.out.print(\"A\".repeat(100001)); }"
+				+ " @Test void quiet() { System.out.print(\"A\".repeat(10)); }");
+		fixture(fixtures, "HiddenFactoryFixture",
+				"@TestFactory java.util.stream.Stream<DynamicTest> cases() { return java.util.stream.Stream.of(1)"
+						+ ".map(number -> { System.out.print(\"SECRET_FACTORY\");"
+						+ " return DynamicTest.dynamicTest(\"case\", () -> { }); }); }");
+		fixture(fixtures, "LoopingCauseFixture",
+				"@Test void fails() throws Exception { throw new java.util.concurrent.ExecutionException(\"looping\", null) {"
+						+ " @Override public synchronized Throwable getCause() { while (true) { Thread.onSpinWait(); } } }; }");
 		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy).projectFolderPath(project).build()
 				.createTestCases().writeTestCases(testSources);
 		compiled = Files.createDirectories(tempDir.resolve("compiled"));
@@ -102,6 +122,125 @@ class GeneratedAllHooksTest {
 		include = Files.readAllLines(resources.resolve("junit-platform.properties")).stream()
 				.filter(line -> line.startsWith("junit.jupiter.extensions.autodetection.include="))
 				.map(line -> line.substring(line.indexOf('=') + 1)).findFirst().orElseThrow();
+		reversedResources = reversedRegistration(resources, tempDir.resolve("reversed-resources"));
+	}
+
+	/**
+	 * A copy of the generated resources whose service file lists the hooks in the
+	 * opposite order, so JUnit registers them the other way round.
+	 *
+	 * @param from the generated resources.
+	 * @param to   the copy's folder.
+	 * @return the copy
+	 * @throws IOException if copying fails
+	 */
+	private static Path reversedRegistration(Path from, Path to) throws IOException {
+		try (var files = Files.walk(from)) {
+			for (Path file : files.filter(Files::isRegularFile).toList()) {
+				Path target = to.resolve(from.relativize(file).toString());
+				Files.createDirectories(target.getParent());
+				Files.copy(file, target);
+			}
+		}
+		Path services = to.resolve("META-INF/services/org.junit.jupiter.api.extension.Extension");
+		List<String> lines = new ArrayList<>(Files.readAllLines(services));
+		List<String> hooks = lines.stream().filter(line -> line.startsWith(GENERATED)).toList();
+		List<String> reversed = new ArrayList<>(hooks);
+		Collections.reverse(reversed);
+		for (int index = 0, next = 0; index < lines.size(); index++) {
+			if (lines.get(index).startsWith(GENERATED)) {
+				lines.set(index, reversed.get(next++));
+			}
+		}
+		Files.write(services, lines);
+		return to;
+	}
+
+	/**
+	 * A hidden test that runs too long is stopped and reports nothing, with the
+	 * real generated hooks registered in either order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenTimeoutStaysSilentInEitherOrder(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenTimeoutFixture", reversed));
+		assertThat(captured.results().testEvents().failed().count()).isEqualTo(1);
+		assertThat(messages(captured.results())).containsExactly("");
+		assertThat(captured.output()).doesNotContain("SECRET_TIMEOUT");
+	}
+
+	/**
+	 * A hidden test is held to the output limit like a public one, in either order,
+	 * while its output stays out of sight.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenTestIsHeldToTheOutputLimit(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenLoudFixture", reversed));
+		assertThat(captured.results().testEvents().failed().count()).isEqualTo(1);
+		assertThat(captured.results().testEvents().succeeded().count()).isEqualTo(1);
+		assertThat(captured.output()).doesNotContain("AAAAAAAAAA");
+	}
+
+	/**
+	 * A hidden test factory whose tests print while JUnit reads them shows nothing,
+	 * since the hooks read them while still guarding the factory.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenFactoryPrintsNothing(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenFactoryFixture", reversed));
+		assertThat(captured.output()).doesNotContain("SECRET_FACTORY");
+	}
+
+	/**
+	 * A failure whose own {@code getCause} never returns is still reported: the
+	 * timeout and failure hooks never call it.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aLoopingGetCauseIsNeverCalled() throws Exception {
+		EngineExecutionResults results = assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.LoopingCauseFixture", false));
+		assertThat(results.testEvents().failed().count()).isEqualTo(1);
+	}
+
+	/**
+	 * A run's results with what it printed to standard output.
+	 *
+	 * @param results the run's results.
+	 * @param output  what it printed.
+	 */
+	private record Captured(EngineExecutionResults results, String output) {
+	}
+
+	/**
+	 * Runs something while capturing standard output.
+	 *
+	 * @param run the run.
+	 * @return its results and output
+	 * @throws Exception if the run fails to start
+	 */
+	private static Captured captured(Callable<EngineExecutionResults> run) throws Exception {
+		PrintStream previousOut = System.out;
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+			System.setOut(capture);
+			EngineExecutionResults results = run.call();
+			return new Captured(results, output.toString(StandardCharsets.UTF_8));
+		} finally {
+			System.setOut(previousOut);
+		}
 	}
 
 	/** One registration names all four hooks. */
@@ -168,10 +307,25 @@ class GeneratedAllHooksTest {
 	 * @throws Exception if the run cannot be set up
 	 */
 	private static EngineExecutionResults run(String className) throws Exception {
-		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(compiled, resources)),
+		return run(className, false);
+	}
+
+	/**
+	 * Runs one class in a nested JUnit session on the generated output, with the
+	 * hooks registered in their generated or the reversed order.
+	 *
+	 * @param className the class to run.
+	 * @param reversed  whether the hooks are registered the other way round.
+	 * @return the results.
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static EngineExecutionResults run(String className, boolean reversed) throws Exception {
+		Path registration = reversed ? reversedResources : resources;
+		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(compiled, registration)),
 				Thread.currentThread().getContextClassLoader())) {
 			return GeneratedCodeRuns.runIn(loader, className, Locale.ENGLISH,
-					Map.of(GeneratedCodeRuns.AUTODETECTION, "true", GeneratedCodeRuns.AUTODETECTION_INCLUDE, include));
+					Map.of(GeneratedCodeRuns.AUTODETECTION, "true", GeneratedCodeRuns.AUTODETECTION_INCLUDE, include,
+							"junit.platform.stacktrace.pruning.enabled", "false"));
 		}
 	}
 

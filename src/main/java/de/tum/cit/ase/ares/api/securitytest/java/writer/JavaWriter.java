@@ -357,10 +357,11 @@ public class JavaWriter implements Writer {
 	/**
 	 * Writes security test cases to files, then adds the generated test-behaviour
 	 * settings class and the generated precompile hooks. A custom I/O manager, a
-	 * hidden or public entry naming no test, or JUnit settings that contradict the
-	 * registration are refused before anything is written. Calls the released
-	 * overload virtually first, so a subclass overriding only that one keeps its
-	 * customisation, although {@code JavaTestCaseFactoryAndBuilder} calls this one.
+	 * hidden or public entry naming no test, JUnit settings that contradict the
+	 * registration, or a build naming JUnit older than 5.12 are refused before
+	 * anything is written. Calls the released overload virtually first, so a
+	 * subclass overriding only that one keeps its customisation, although
+	 * {@code JavaTestCaseFactoryAndBuilder} calls this one.
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
@@ -396,6 +397,7 @@ public class JavaWriter implements Writer {
 				|| OutputMirroringWriter.contributes(testBehaviorConfiguration)
 				|| HiddenTestsWriter.contributes(testBehaviorConfiguration)) {
 			hookFiles.requireRegistrable(resolveResourcesFolderPath(validatedTestFolderPath));
+			ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot);
 		}
 		List<Path> written = new ArrayList<>(writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 				essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,

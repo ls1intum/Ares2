@@ -251,16 +251,16 @@ class VisibilityAndScheduleConfigurationTest {
 	}
 
 	/**
-	 * A class in the reserved generated package is public even when unlisted tests
-	 * are hidden, so the generated sentinels run; a same-named class elsewhere is
-	 * not.
+	 * A class named like a generated one gets no exemption: with unlisted tests
+	 * hidden, it is hidden like any other unlisted class, since student code could
+	 * choose that name.
 	 */
 	@Test
-	void aGeneratedClassIsAlwaysPublic() {
+	void aClassInTheGeneratedPackageGetsNoExemption() {
 		VisibilityAndScheduleConfiguration configuration = base().testsNotListedHereAreHidden(true).build();
 
 		assertThat(configuration.visibilityOf(classNamed("de.tum.cit.ase.ares.generated.SomeSentinelTest"),
-				Optional.of("check"))).contains(TestType.PUBLIC);
+				Optional.of("check"))).contains(TestType.HIDDEN);
 		assertThat(configuration.visibilityOf(classNamed("org.example.SomeSentinelTest"), Optional.of("check")))
 				.contains(TestType.HIDDEN);
 	}

@@ -64,10 +64,18 @@ final class HiddenTestsWriter {
 			return GeneratedHookFiles.Contribution.NONE;
 		}
 		requireMatches(configuration, testFolderPath);
+		VisibilityAndScheduleConfiguration hiddenTests = configuration
+				.regardingTheVisibilityAndScheduleOfTheTestCases();
 		String messagesClass = packageName + ".ares.api.localization.Messages";
 		List<Path> written = List.of(
 				hookFiles.writeSource(testFolderPath, HiddenTestsSources.JUPITER_HOOK,
-						HiddenTestsSources.jupiterHook(messagesClass, packageName)),
+						HiddenTestsSources.jupiterHook(messagesClass, packageName,
+								TestBehaviorConfiguration.listExpression(TestBehaviorConfiguration.GENERATED_CLASS_NAME,
+										TestBehaviorConfiguration.VISIBILITY_HIDDEN_LIST_FIELD_NAME,
+										hiddenTests.theFollowingTestsAreHidden()),
+								TestBehaviorConfiguration.listExpression(TestBehaviorConfiguration.GENERATED_CLASS_NAME,
+										TestBehaviorConfiguration.VISIBILITY_PUBLIC_LIST_FIELD_NAME,
+										hiddenTests.theFollowingTestsArePublic()))),
 				hookFiles.writeSource(testFolderPath, HiddenTestsSources.JUPITER_SENTINEL,
 						HiddenTestsSources.jupiterSentinel(messagesClass)));
 		return new GeneratedHookFiles.Contribution(written, List.of(HiddenTestsSources.JUPITER_HOOK));
@@ -98,8 +106,9 @@ final class HiddenTestsWriter {
 
 	/**
 	 * Fails unless an entry names a class declared in the test sources and, if it
-	 * names a method, one that class declares or inherits. A method of an enclosing
-	 * class does not count, since the generated hook would never match it.
+	 * names a method, a test method that class declares or inherits. A method of an
+	 * enclosing class does not count, since the generated hook would never match
+	 * it.
 	 *
 	 * @param field        the list the entry is in.
 	 * @param entry        the entry, {@code pkg.Class} or {@code pkg.Class#m}.
@@ -111,7 +120,7 @@ final class HiddenTestsWriter {
 		int hash = entry.indexOf('#');
 		Optional<TypeDeclaration<?>> testClass = declarations.findClass(hash < 0 ? entry : entry.substring(0, hash));
 		boolean matches = testClass.isPresent()
-				&& (hash < 0 || declarations.hasMethod(testClass.get(), entry.substring(hash + 1)));
+				&& (hash < 0 || declarations.hasTestMethod(testClass.get(), entry.substring(hash + 1)));
 		if (!matches) {
 			throw new SecurityException(Messages.localized("security.writer.hidden.tests.unmatched", field, entry));
 		}

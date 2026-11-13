@@ -261,8 +261,12 @@ class HiddenTestsWriterTest {
 				class PointTest {
 					record Point(int x, int y) {}
 
-					int sum(Object value) {
-						return value instanceof Point(int x, int y) ? x + y : 0;
+					@org.junit.jupiter.api.Test
+					void sum() {
+						Object value = new Point(1, 2);
+						if (!(value instanceof Point(int x, int y) && x + y == 3)) {
+							throw new AssertionError("wrong sum");
+						}
 					}
 				}
 				""");
@@ -270,6 +274,92 @@ class HiddenTestsWriterTest {
 		assertThat(ExerciseLanguageLevel.of(projectRoot)).isEqualTo(LanguageLevel.JAVA_21);
 		assertThat(writer(null).write(configured("com.example.PointTest#sum"), PACKAGE, testFolder).jupiterHooks())
 				.isNotEmpty();
+	}
+
+	/**
+	 * A method entry has to name a test: one naming a helper without a test
+	 * annotation is refused in both languages, naming the entry, while the test
+	 * beside it is accepted.
+	 *
+	 * @throws IOException if the source cannot be written
+	 */
+	@Test
+	void anEntryNamingAHelperMethodIsRefused() throws IOException {
+		Files.writeString(testFolder.resolve("com/example/HelperTest.java"), """
+				package com.example;
+
+				class HelperTest {
+					@org.junit.jupiter.api.Test
+					void real() {
+					}
+
+					int helper() {
+						return 1;
+					}
+				}
+				""");
+		Locale original = Locale.getDefault(Locale.Category.DISPLAY);
+		try {
+			Locale.setDefault(Locale.Category.DISPLAY, Locale.ENGLISH);
+			assertThatThrownBy(
+					() -> writer(null).write(configured("com.example.HelperTest#helper"), PACKAGE, testFolder))
+							.isInstanceOf(SecurityException.class).hasMessageStartingWith("Ares Security Error")
+							.hasMessageContaining("com.example.HelperTest#helper");
+			Locale.setDefault(Locale.Category.DISPLAY, Locale.GERMAN);
+			assertThatThrownBy(
+					() -> writer(null).write(configured("com.example.HelperTest#helper"), PACKAGE, testFolder))
+							.isInstanceOf(SecurityException.class).hasMessageStartingWith("Ares Sicherheitsfehler")
+							.hasMessageContaining("com.example.HelperTest#helper");
+		} finally {
+			Locale.setDefault(Locale.Category.DISPLAY, original);
+		}
+		assertThat(writer(null).write(configured("com.example.HelperTest#real"), PACKAGE, testFolder).jupiterHooks())
+				.isNotEmpty();
+	}
+
+	/**
+	 * A method carrying an annotation of the test sources that is marked as a JUnit
+	 * test, through another such annotation, is accepted; one carrying only an
+	 * unrelated annotation is refused.
+	 *
+	 * @throws IOException if a source cannot be written
+	 */
+	@Test
+	void aComposedTestAnnotationIsAccepted() throws IOException {
+		Files.writeString(testFolder.resolve("com/example/Fast.java"), """
+				package com.example;
+
+				@org.junit.jupiter.api.Test
+				@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+				public @interface Fast {
+				}
+				""");
+		Files.writeString(testFolder.resolve("com/example/VeryFast.java"), """
+				package com.example;
+
+				@Fast
+				@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+				public @interface VeryFast {
+				}
+				""");
+		Files.writeString(testFolder.resolve("com/example/ComposedTest.java"), """
+				package com.example;
+
+				class ComposedTest {
+					@VeryFast
+					void quick() {
+					}
+
+					@Deprecated
+					void old() {
+					}
+				}
+				""");
+
+		assertThat(writer(null).write(configured("com.example.ComposedTest#quick"), PACKAGE, testFolder).jupiterHooks())
+				.isNotEmpty();
+		assertThatThrownBy(() -> writer(null).write(configured("com.example.ComposedTest#old"), PACKAGE, testFolder))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("com.example.ComposedTest#old");
 	}
 
 	/**

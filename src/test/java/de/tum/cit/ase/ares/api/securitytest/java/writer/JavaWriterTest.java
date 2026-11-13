@@ -378,6 +378,36 @@ public class JavaWriterTest {
 		}
 
 		/**
+		 * A build naming JUnit older than 5.12, which ignores the include filter of the
+		 * generated registration, stops the generator before it changes anything.
+		 *
+		 * @throws IOException if a file cannot be read or written
+		 */
+		@Test
+		@DisplayName("Should change nothing when the build names JUnit older than 5.12")
+		void shouldChangeNothingWhenTheBuildNamesAnOldJUnit() throws IOException {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+				writeWith(hiddenTestsConfigured());
+				String before = Files.readString(generatedSettingsClassPath());
+				clearInvocations(architectureMode, aopMode);
+				Files.writeString(tempDir.resolve("pom.xml"),
+						"<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>5.11.4</version></dependency></dependencies></project>");
+
+				SecurityException refused = assertThrows(SecurityException.class,
+						() -> writeWith(hiddenTestsConfigured()));
+
+				assertTrue(refused.getMessage().contains("5.11.4"));
+				assertEquals(before, Files.readString(generatedSettingsClassPath()));
+				verifyNoInteractions(architectureMode, aopMode);
+			}
+		}
+
+		/**
 		 * JUnit settings of the instructor's that contradict the registration stop the
 		 * generator before it writes a new hook or settings class.
 		 *

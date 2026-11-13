@@ -23,8 +23,11 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.nodeTypes.NodeWithImplements;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
@@ -123,16 +126,21 @@ final class TestSourceDeclarations {
 		memberClasses(type).forEach(this::indexType);
 	}
 
+	/** The annotations that make a method a JUnit test, by simple name. */
+	private static final Set<String> TEST_ANNOTATIONS = Set.of("Test", "ParameterizedTest", "RepeatedTest",
+			"TestFactory", "TestTemplate", "PublicTest", "HiddenTest");
+
 	/**
-	 * Whether a class declares a method of that name or inherits one from a
-	 * superclass or interface declared in the test sources. Methods of an enclosing
-	 * class do not count.
+	 * Whether a class declares a test method of that name or inherits one from a
+	 * superclass or interface declared in the test sources. A test method carries a
+	 * JUnit or Ares test annotation, or an annotation of the test sources marked
+	 * with one. Methods of an enclosing class do not count.
 	 *
 	 * @param testClass  the class.
 	 * @param methodName the method's name.
 	 * @return true when it does
 	 */
-	boolean hasMethod(@Nonnull TypeDeclaration<?> testClass, @Nonnull String methodName) {
+	boolean hasTestMethod(@Nonnull TypeDeclaration<?> testClass, @Nonnull String methodName) {
 		Deque<TypeDeclaration<?>> pending = new ArrayDeque<>(List.of(testClass));
 		Set<TypeDeclaration<?>> visited = new HashSet<>();
 		while (!pending.isEmpty()) {
@@ -140,13 +148,48 @@ final class TestSourceDeclarations {
 			if (!visited.add(current)) {
 				continue;
 			}
-			if (!current.getMethodsByName(methodName).isEmpty()) {
+			TypeDeclaration<?> declaring = current;
+			if (current.getMethodsByName(methodName).stream().anyMatch(method -> isTest(method, declaring))) {
 				return true;
 			}
 			supertypes(current).stream().map(supertype -> resolve(supertype, current)).flatMap(Optional::stream)
 					.forEach(pending::push);
 		}
 		return false;
+	}
+
+	/**
+	 * Whether a method carries a test annotation, directly or through an annotation
+	 * of the test sources.
+	 *
+	 * @param method    the method.
+	 * @param declaring the class that declares it.
+	 * @return true when JUnit runs it as a test
+	 */
+	private boolean isTest(@Nonnull MethodDeclaration method, @Nonnull TypeDeclaration<?> declaring) {
+		return method.getAnnotations().stream()
+				.anyMatch(annotation -> marksATest(annotation, declaring, new HashSet<>()));
+	}
+
+	/**
+	 * Whether an annotation is a test annotation, or one declared in the test
+	 * sources that is itself marked with a test annotation, at any depth.
+	 *
+	 * @param annotation the annotation as written.
+	 * @param context    the declaration it is written on.
+	 * @param seen       the annotation declarations already followed.
+	 * @return true when it makes a method a test
+	 */
+	private boolean marksATest(@Nonnull AnnotationExpr annotation, @Nonnull TypeDeclaration<?> context,
+			@Nonnull Set<TypeDeclaration<?>> seen) {
+		String name = annotation.getNameAsString();
+		if (TEST_ANNOTATIONS.contains(name.substring(name.lastIndexOf('.') + 1))) {
+			return true;
+		}
+		return candidateNames(name, context).stream().map(this::findClass).flatMap(Optional::stream).findFirst()
+				.filter(AnnotationDeclaration.class::isInstance).filter(seen::add)
+				.map(declared -> declared.getAnnotations().stream().anyMatch(meta -> marksATest(meta, declared, seen)))
+				.orElse(Boolean.FALSE);
 	}
 
 	/**

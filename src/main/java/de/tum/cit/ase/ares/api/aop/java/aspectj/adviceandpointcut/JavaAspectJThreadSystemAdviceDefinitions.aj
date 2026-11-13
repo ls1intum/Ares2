@@ -184,7 +184,23 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 *         machinery, {@code false} otherwise
 	 */
 	private static boolean isThreadCreationFromAresTimeout(@Nullable String restrictedPackage) {
-		return java.lang.StackWalker.getInstance().walk(frames -> {
+		return isThreadCreationFromAresTimeout(restrictedPackage, copiedChecksPrefix());
+	}
+
+	/**
+	 * The same check, with the package prefix the copied checks live below given
+	 * explicitly, so the generated timeout counts only when it was loaded from
+	 * where those copies are.
+	 *
+	 * @param restrictedPackage  the configured restricted (student) package prefix
+	 * @param copiedChecksPrefix the prefix of this class's package, up to
+	 *                           {@code ares.api.}
+	 * @return {@code true} if the thread creation belongs to Ares' timeout
+	 *         machinery, {@code false} otherwise
+	 */
+	private static boolean isThreadCreationFromAresTimeout(@Nullable String restrictedPackage,
+			@Nonnull String copiedChecksPrefix) {
+		return java.lang.StackWalker.getInstance(java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE).walk(frames -> {
 			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
 				java.lang.StackWalker.StackFrame frame = iterator.next();
@@ -192,10 +208,13 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
 					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
 				}
-				if (GENERATED_STRICT_TIMEOUT.equals(className)) {
-					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
-				}
-				if (className.startsWith(GENERATED_STRICT_TIMEOUT + "$")) {
+				if (GENERATED_STRICT_TIMEOUT.equals(className) || className.startsWith(GENERATED_STRICT_TIMEOUT + "$")) {
+					if (!isBesideTheCopiedChecks(frame.getDeclaringClass(), copiedChecksPrefix)) {
+						return Boolean.FALSE;
+					}
+					if (GENERATED_STRICT_TIMEOUT.equals(className)) {
+						return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
+					}
 					continue;
 				}
 				// Ares's own infrastructure frames (this advice, internals) are never student
@@ -213,6 +232,42 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			}
 			return Boolean.FALSE;
 		});
+	}
+
+	/**
+	 * The package prefix this class lives below, up to {@code ares.api.}: Ares's
+	 * own in Ares itself, the exercise's in a copy a precompile run made.
+	 *
+	 * @return the prefix, ending in a dot
+	 */
+	@Nonnull
+	private static String copiedChecksPrefix() {
+		String name = JavaAspectJThreadSystemAdviceDefinitions.class.getName();
+		return name.substring(0, name.indexOf("ares.api."));
+	}
+
+	/**
+	 * Whether a class was loaded from the same place as the localisation class
+	 * copied beside these checks. A precompile run writes the generated timeout and
+	 * that copy into the same test sources; in Ares itself the class is Ares's own,
+	 * so no generated class qualifies, and a student's class with the same name,
+	 * loaded from the student's output, never does.
+	 *
+	 * @param type               the class on the stack.
+	 * @param copiedChecksPrefix the prefix of the copied checks' package.
+	 * @return true when both have the same known location
+	 */
+	private static boolean isBesideTheCopiedChecks(@Nonnull Class<?> type, @Nonnull String copiedChecksPrefix) {
+		try {
+			Class<?> messages = Class.forName(copiedChecksPrefix + "ares.api.localization.Messages", false,
+					type.getClassLoader());
+			java.security.CodeSource source = type.getProtectionDomain().getCodeSource();
+			java.security.CodeSource copied = messages.getProtectionDomain().getCodeSource();
+			return source != null && copied != null && source.getLocation() != null && copied.getLocation() != null
+					&& source.getLocation().toExternalForm().equals(copied.getLocation().toExternalForm());
+		} catch (ClassNotFoundException | LinkageError | RuntimeException unknown) {
+			return false;
+		}
 	}
 
 	/**

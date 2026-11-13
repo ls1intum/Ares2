@@ -416,14 +416,14 @@ theFollowingTestBehaviorIsConfigured:
 
 **Not `regardingTimeouts`:** the resource-access list `regardingTimeouts` (8.6) is a separate Phobos limit. This category is the one that bounds tests.
 
-**Precompile:** the generator writes the limit, in nanoseconds, as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`, and a JUnit extension that times every test, setup and teardown.
+**Precompile:** the generator writes the limit, in nanoseconds, as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`, and a JUnit extension that times every test, setup and teardown. The extension reads a test factory's tests inside that time, so a factory whose supplier never ends times out too. The extension reads a test factory's tests inside that time, so a factory whose supplier never ends times out too.
 
 #### 7.7.2 Output and I/O manager
 
 `regardingTheOutputOfTheTestCases` chooses the I/O manager, as `@WithIOManager` does, and the output settings that apply to it, as `@MirrorOutput` does. Every field is optional.
 
 - `theOutputIsMirrored` (boolean): `true` echoes what a test writes to `System.out` and `System.err` to the real console as well. Defaults to `false`.
-- `theMaximumNumberOfOutputCharactersIs` (whole number): the limit on what a test writes to each stream. A test that writes more fails with `too much standard output`. Above zero; defaults to 100000000.
+- `theMaximumNumberOfOutputCharactersIs` (whole number): the limit on what a test writes to each stream. Ares counts it in UTF-8 bytes, as the IO tester does, so a character outside ASCII such as `ä` uses two. A test that writes more fails with `too much standard output`. Above zero; defaults to 100000000.
 - `theInputAndOutputAreManagedBy` (`IO_TESTER`, `NONE` or `CUSTOM`): the manager. `IO_TESTER`, the default, records output and enforces the limit. `NONE` leaves output unrecorded, so the two output settings above do nothing, and Ares refuses them beside it. `CUSTOM` uses your own manager.
 - `theCustomInputAndOutputManagerIs` (class name): the custom manager, required with `CUSTOM` and refused otherwise.
 
@@ -434,7 +434,7 @@ theFollowingTestBehaviorIsConfigured:
     theMaximumNumberOfOutputCharactersIs: 10000
 ```
 
-**Precompile:** with `IO_TESTER`, the generator writes the two output settings as constants and a JUnit extension that applies the limit and echoes public output when asked. With `NONE` it writes no output extension. `CUSTOM` stops the generator, because a precompile exercise has no Ares dependency to run the manager with.
+**Precompile:** with `IO_TESTER`, the generator writes the two output settings as constants and a JUnit extension that applies the limit and echoes public output when asked. The extension shows nothing of a hidden test's output, but that output still counts toward the limit. With `NONE` it writes no output extension. `CUSTOM` stops the generator, because a precompile exercise has no Ares dependency to run the manager with.
 
 #### 7.7.3 Failure feedback
 
@@ -491,11 +491,11 @@ theFollowingTestBehaviorIsConfigured:
 
 Here every test is hidden, except the tests of `PenguinTest`, which are public, apart from its `secret` method.
 
-**Precompile:** a precompile exercise has no `@HiddenTest` or `@PublicTest`, so the policy is the only way to mark a test hidden or public. The generator writes the values as constants and a JUnit extension. Until the deadline, that extension holds back each hidden test method, every invocation of a parameterised or repeated test, and a test factory and its dynamic tests. Sometimes JUnit runs a constructor or setup before the deadline check; a failure there gives a failed result with no details instead of the scheduling message, and the method body still does not run. The tests Ares generates itself are never hidden. The generator stops when an entry names no class in the test sources, or a method that class neither declares nor inherits.
+**Precompile:** a precompile exercise has no `@HiddenTest` or `@PublicTest`, so the policy is the only way to mark a test hidden or public. The generator writes the values as constants and a JUnit extension. Until the deadline, that extension holds back each hidden test method, every invocation of a parameterised or repeated test, and a test factory and its dynamic tests. Sometimes JUnit runs a constructor or setup before the deadline check; a failure there gives a failed result with no details instead of the scheduling message, and the method body still does not run. The extension never hides the tests Ares generates beside it. The generator stops when an entry names no class in the test sources. It stops as well when an entry names a method that is not a test of that class, declared or inherited. A test carries `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@TestTemplate`, `@PublicTest` or `@HiddenTest`, or an annotation of the test sources marked with one of them.
 
 #### 7.7.6 Generated precompile output
 
-A precompile exercise has no Ares dependency at run time. For every category the policy sets, the generator writes its own code into the exercise's test sources, in `de.tum.cit.ase.ares.generated`. It writes the settings as constants of `GeneratedTestBehaviorSettings`, one JUnit extension per category, and one sentinel test per extension that fails when its extension did not run. JUnit loads all extensions through one marked block in `junit-platform.properties` and the service file, so no test needs an annotation. Regenerating without a category deletes its files again. Keep generated precompile output and the Ares dependency out of the same exercise, since both handle the same test.
+A precompile exercise has no Ares dependency at run time. For every category the policy sets, the generator writes its own code into the exercise's test sources, in `de.tum.cit.ase.ares.generated`. It writes the settings as constants of `GeneratedTestBehaviorSettings`, one JUnit extension per category, and one sentinel test per extension that fails when its extension did not run. JUnit loads all extensions through one marked block in `junit-platform.properties` and the service file, so no test needs an annotation. That block limits which extensions JUnit loads, and JUnit reads this limit from 5.12 on. The generator therefore stops when the build file names an older JUnit Jupiter or JUnit BOM version. It does not check a version that comes from a parent or a version catalogue. Regenerating without a category deletes its files again. Keep generated precompile output and the Ares dependency out of the same exercise, since both handle the same test.
 
 ---
 

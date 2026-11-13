@@ -45,12 +45,6 @@ public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
 		@Nullable Boolean testsNotListedHereAreHidden, @Nullable List<String> theFollowingTestsAreHidden,
 		@Nullable List<String> theFollowingTestsArePublic) {
 
-	/**
-	 * The package every generated class lives in. Its tests are never hidden, so
-	 * the generated sentinels run even when unlisted tests are.
-	 */
-	public static final String GENERATED_PACKAGE = "de.tum.cit.ase.ares.generated";
-
 	/** One Java identifier. */
 	private static final String IDENTIFIER = "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*";
 
@@ -145,7 +139,8 @@ public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
 	 * The visibility the policy gives a test. The nearest entry wins: the test's
 	 * own class with its method, then that class, then each enclosing class. A
 	 * method entry never reaches into a nested class. Without an entry,
-	 * {@code testsNotListedHereAreHidden} decides. A generated class is public.
+	 * {@code testsNotListedHereAreHidden} decides. A class is judged by its name
+	 * alone, wherever it lives.
 	 *
 	 * @param testClass  the test's class.
 	 * @param methodName the test's method, or empty.
@@ -153,9 +148,6 @@ public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
 	 */
 	@Nonnull
 	public Optional<TestType> visibilityOf(@Nonnull Class<?> testClass, @Nonnull Optional<String> methodName) {
-		if (testClass.getName().startsWith(GENERATED_PACKAGE + ".")) {
-			return Optional.of(TestType.PUBLIC);
-		}
 		Optional<String> ownClass = Optional.ofNullable(testClass.getCanonicalName());
 		Optional<TestType> byMethod = ownClass
 				.flatMap(name -> methodName.flatMap(method -> listed(name + "#" + method)));
