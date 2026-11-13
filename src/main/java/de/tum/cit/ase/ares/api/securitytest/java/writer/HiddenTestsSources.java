@@ -69,11 +69,15 @@ final class HiddenTestsSources {
 
 			import org.junit.jupiter.api.DynamicContainer;
 			import org.junit.jupiter.api.DynamicNode;
+			import org.junit.jupiter.api.TestTemplate;
+			import org.junit.jupiter.api.extension.ConditionEvaluationResult;
 			import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
 			import org.junit.jupiter.api.extension.BeforeAllCallback;
+			import org.junit.jupiter.api.extension.ExecutionCondition;
 			import org.junit.jupiter.api.extension.ExtensionContext;
 			import org.junit.jupiter.api.extension.InvocationInterceptor;
 			import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
+			import org.junit.platform.commons.support.AnnotationSupport;
 			import org.opentest4j.AssertionFailedError;
 			import org.opentest4j.TestAbortedException;
 
@@ -82,7 +86,7 @@ final class HiddenTestsSources {
 			 * deadline and hides why they failed, as {@code @HiddenTest} does. Do not
 			 * edit: regenerate instead.
 			 */
-			public final class GeneratedHiddenTests implements InvocationInterceptor, BeforeAllCallback {
+			public final class GeneratedHiddenTests implements InvocationInterceptor, BeforeAllCallback, ExecutionCondition {
 				/** Refuses concurrent tests before a hidden invocation can alter process streams. */
 				@Override
 				public void beforeAll(ExtensionContext context) {
@@ -90,6 +94,25 @@ final class HiddenTestsSources {
 							.map(Boolean::parseBoolean).orElse(false)) {
 						throw new IllegalStateException("Generated hidden tests require JUnit parallel execution to be disabled");
 					}
+				}
+
+				/**
+				 * Skips a hidden test template, such as a parameterised test, before the
+				 * deadline. JUnit asks this before it runs the template's argument sources,
+				 * so their student code cannot print or fail while the test is held back.
+				 *
+				 * @param context the test's or container's context
+				 * @return disabled with the deadline message for a held-back hidden template
+				 */
+				@Override
+				public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
+					Optional<Method> template = context.getTestMethod()
+							.filter(method -> AnnotationSupport.isAnnotated(method, TestTemplate.class));
+					if (template.isPresent() && context.getTestClass().isPresent()
+							&& isHidden(context.getTestClass().get(), Optional.of(template.get().getName())) && isHeldBack()) {
+						return ConditionEvaluationResult.disabled(@MESSAGES@.localized("test_guard.hidden_test_before_deadline_message"));
+					}
+					return ConditionEvaluationResult.enabled("");
 				}
 
 				/** The hidden tests, as {@code pkg.Class} or {@code pkg.Class#method}. */

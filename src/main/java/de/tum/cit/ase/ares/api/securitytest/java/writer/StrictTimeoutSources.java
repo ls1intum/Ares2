@@ -393,9 +393,9 @@ final class StrictTimeoutSources {
 					long timeoutNanos = timeout.toNanos();
 					long graceNanos = graceNanos(defaultGrace);
 					ExecutorService executor = Executors.newSingleThreadExecutor(new WorkerFactory());
-					Future<T> future = executor.submit(() -> call(action));
+					Future<Outcome<T>> future = executor.submit(() -> Outcome.of(action));
 					try {
-						return future.get(timeoutNanos, TimeUnit.NANOSECONDS);
+						return future.get(timeoutNanos, TimeUnit.NANOSECONDS).value();
 					} catch (ExecutionException failure) {
 						throw traversable(unwrapped(failure));
 					} catch (TimeoutException expired) {
@@ -472,21 +472,42 @@ final class StrictTimeoutSources {
 				}
 
 				/**
-				 * Runs the action, passing on what a worker may throw.
+				 * What a timed action produced: its result or its failure. The worker hands a
+				 * failure back as a value, since a failure the executor wraps has its text read
+				 * on the waiting thread, outside the timeout.
 				 *
-				 * @param <T>    the action's result
-				 * @param action the action
-				 * @return the action's result
-				 * @throws Exception whatever the action threw, wrapped if it is neither an
-				 *                   exception nor an error
+				 * @param <T>     the action's result
+				 * @param result  the result, or null after a failure
+				 * @param failure the failure, or null
 				 */
-				private static <T> T call(TimedAction<T> action) throws Exception {
-					try {
-						return action.run();
-					} catch (Exception | Error failure) {
-						throw failure;
-					} catch (Throwable other) {
-						throw new ExecutionException(other);
+				private record Outcome<T>(T result, Throwable failure) {
+
+					/**
+					 * Runs the action and keeps whatever it produced.
+					 *
+					 * @param <T>    the action's result
+					 * @param action the action
+					 * @return its outcome
+					 */
+					static <T> Outcome<T> of(TimedAction<T> action) {
+						try {
+							return new Outcome<>(action.run(), null);
+						} catch (Throwable failure) {
+							return new Outcome<>(null, failure);
+						}
+					}
+
+					/**
+					 * The action's result.
+					 *
+					 * @return the result
+					 * @throws Throwable the action's failure, in a form JUnit can walk
+					 */
+					T value() throws Throwable {
+						if (failure != null) {
+							throw traversable(failure);
+						}
+						return result;
 					}
 				}
 
@@ -549,7 +570,7 @@ final class StrictTimeoutSources {
 						if (!seen.add(current)) {
 							continue;
 						}
-						if (seen.size() > TRAVERSAL_LIMIT || !declaredByRuntime(current, "getCause")) {
+						if (seen.size() > TRAVERSAL_LIMIT || !declaredByRuntime(current, "getCause") || !reportsSafely(current)) {
 							return false;
 						}
 						Throwable cause = current.getCause();
@@ -561,6 +582,44 @@ final class StrictTimeoutSources {
 						}
 					}
 					return true;
+				}
+
+				/**
+				 * Whether JUnit and the build tool can read a failure's text and stack without
+				 * running student code: each method they read it through is the Java
+				 * runtime's own or opentest4j's, as for {@code assertAll}.
+				 */
+				private static boolean reportsSafely(Throwable failure) {
+					return trustedAccessor(failure, "getMessage") && trustedAccessor(failure, "getLocalizedMessage")
+							&& trustedAccessor(failure, "toString") && trustedAccessor(failure, "getStackTrace")
+							&& trustedAccessor(failure, "printStackTrace", java.io.PrintStream.class)
+							&& trustedAccessor(failure, "printStackTrace", java.io.PrintWriter.class);
+				}
+
+				/**
+				 * Whether a failure's public method is declared by the Java runtime or comes
+				 * from opentest4j's own library, never from a class elsewhere with its name.
+				 */
+				private static boolean trustedAccessor(Throwable failure, String method, Class<?>... parameters) {
+					try {
+						Class<?> owner = failure.getClass().getMethod(method, parameters).getDeclaringClass();
+						ClassLoader loader = owner.getClassLoader();
+						return loader == null || loader == ClassLoader.getPlatformClassLoader() || fromOpentest4j(owner);
+					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
+						return false;
+					}
+				}
+
+				/** Whether a class is one of opentest4j's own, loaded from the same place as its failures. */
+				private static boolean fromOpentest4j(Class<?> owner) {
+					if (!"org.opentest4j".equals(owner.getPackageName())) {
+						return false;
+					}
+					java.security.CodeSource source = owner.getProtectionDomain().getCodeSource();
+					java.security.CodeSource library = org.opentest4j.AssertionFailedError.class.getProtectionDomain()
+							.getCodeSource();
+					return source != null && library != null && source.getLocation() != null && library.getLocation() != null
+							&& source.getLocation().toExternalForm().equals(library.getLocation().toExternalForm());
 				}
 
 				/** Whether a failure's public no-argument method is declared by the Java runtime. */
@@ -576,7 +635,7 @@ final class StrictTimeoutSources {
 				/** A failure's text, as its type name and message, without running student code. */
 				private static String textOf(Throwable failure) {
 					String type = failure.getClass().getName();
-					if (!declaredByRuntime(failure, "getMessage") || !declaredByRuntime(failure, "getLocalizedMessage")) {
+					if (!trustedAccessor(failure, "getMessage") || !trustedAccessor(failure, "getLocalizedMessage")) {
 						return type;
 					}
 					String message = failure.getLocalizedMessage();
@@ -595,7 +654,7 @@ final class StrictTimeoutSources {
 					 */
 					DetachedFailure(Throwable original) {
 						super(textOf(original));
-						setStackTrace(declaredByRuntime(original, "getStackTrace") ? original.getStackTrace()
+						setStackTrace(trustedAccessor(original, "getStackTrace") ? original.getStackTrace()
 								: new StackTraceElement[0]);
 					}
 				}

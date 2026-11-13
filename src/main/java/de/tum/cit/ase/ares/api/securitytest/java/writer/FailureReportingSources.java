@@ -543,7 +543,7 @@ final class FailureReportingSources {
 						if (!seen.add(current)) {
 							continue;
 						}
-						if (seen.size() > TRAVERSAL_LIMIT || !declaredByRuntime(current, "getCause")) {
+						if (seen.size() > TRAVERSAL_LIMIT || !declaredByRuntime(current, "getCause") || !reportsSafely(current)) {
 							return false;
 						}
 						Throwable cause = current.getCause();
@@ -555,6 +555,44 @@ final class FailureReportingSources {
 						}
 					}
 					return true;
+				}
+
+				/**
+				 * Whether JUnit and the build tool can read a failure's text and stack without
+				 * running student code: each method they read it through is the Java
+				 * runtime's own or opentest4j's, as for {@code assertAll}.
+				 */
+				private static boolean reportsSafely(Throwable failure) {
+					return trustedAccessor(failure, "getMessage") && trustedAccessor(failure, "getLocalizedMessage")
+							&& trustedAccessor(failure, "toString") && trustedAccessor(failure, "getStackTrace")
+							&& trustedAccessor(failure, "printStackTrace", java.io.PrintStream.class)
+							&& trustedAccessor(failure, "printStackTrace", java.io.PrintWriter.class);
+				}
+
+				/**
+				 * Whether a failure's public method is declared by the Java runtime or comes
+				 * from opentest4j's own library, never from a class elsewhere with its name.
+				 */
+				private static boolean trustedAccessor(Throwable failure, String method, Class<?>... parameters) {
+					try {
+						Class<?> owner = failure.getClass().getMethod(method, parameters).getDeclaringClass();
+						ClassLoader loader = owner.getClassLoader();
+						return loader == null || loader == ClassLoader.getPlatformClassLoader() || fromOpentest4j(owner);
+					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
+						return false;
+					}
+				}
+
+				/** Whether a class is one of opentest4j's own, loaded from the same place as its failures. */
+				private static boolean fromOpentest4j(Class<?> owner) {
+					if (!"org.opentest4j".equals(owner.getPackageName())) {
+						return false;
+					}
+					java.security.CodeSource source = owner.getProtectionDomain().getCodeSource();
+					java.security.CodeSource library = org.opentest4j.AssertionFailedError.class.getProtectionDomain()
+							.getCodeSource();
+					return source != null && library != null && source.getLocation() != null && library.getLocation() != null
+							&& source.getLocation().toExternalForm().equals(library.getLocation().toExternalForm());
 				}
 
 				/** Whether a failure's public no-argument method is declared by the Java runtime. */
@@ -570,7 +608,7 @@ final class FailureReportingSources {
 				/** A failure's text, as its type name and message, without running student code. */
 				private static String textOf(Throwable failure) {
 					String type = failure.getClass().getName();
-					if (!declaredByRuntime(failure, "getMessage") || !declaredByRuntime(failure, "getLocalizedMessage")) {
+					if (!trustedAccessor(failure, "getMessage") || !trustedAccessor(failure, "getLocalizedMessage")) {
 						return type;
 					}
 					String message = failure.getLocalizedMessage();
@@ -589,7 +627,7 @@ final class FailureReportingSources {
 					 */
 					DetachedFailure(Throwable original) {
 						super(textOf(original));
-						setStackTrace(declaredByRuntime(original, "getStackTrace") ? original.getStackTrace()
+						setStackTrace(trustedAccessor(original, "getStackTrace") ? original.getStackTrace()
 								: new StackTraceElement[0]);
 					}
 				}
