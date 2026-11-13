@@ -385,7 +385,7 @@ Ares reads these settings once per policy file, before it supervises any test co
 
 `regardingTheFailureFeedbackForTheTestCases` says what a student sees when a public test fails. Every field is optional; the defaults are the behaviour without this category. There is no annotation for this any more: Ares 2.3.0 removed `@PrivilegedExceptionsOnly`.
 
-- `onlyPrivilegedExceptionsAreReported` (boolean): `true` replaces the text of every failure except a blocked action and a privileged one with a fixed message. Defaults to `false`.
+- `onlyPrivilegedExceptionsAreReported` (boolean): `true` replaces the text of every failure except a blocked action and a privileged one with a fixed message. This includes a failing constructor, setup or teardown method; a test skipped by an assumption stays skipped. Defaults to `false`.
 - `theFailureMessageForOtherExceptionsIs` (text): the fixed message. Defaults to `"Test failed."` when omitted or blank.
 - `theSecurityViolationFeedbackLevelIs` (`DEBUG`, `MINIMIZED` or `FULL`): how much a blocked action reveals. Defaults to `FULL`.
 
@@ -398,6 +398,8 @@ The feedback level decides every action Ares blocks at run time:
 | `DEBUG` | The full message, followed by the policy entry that allows the action, such as `To allow this, add to regardingFileSystemInteractions: { onThisPathAndAllPathsBelow: "/etc/passwd", readAllFiles: true, overwriteAllFiles: false, createAllFiles: false, executeAllFiles: false, deleteAllFiles: false }`, which the policy reader accepts as written and which grants only that action. For an action the architecture analysis blocks, the hint names only the category. |
 
 Errors in Ares itself (`Reason: Ares-Code`) are never shortened and never get a hint. A student who creates an exception that looks like a blocked action gets no special treatment: only the exceptions Ares's own checks create follow the level.
+
+Ares spends at most two seconds searching a failure for a blocked action, and at most two more preparing its report. When student code inside the failure takes longer, for example a message that never returns, the student sees only the blocked action Ares found, or else that the failure could not be read.
 
 ```yaml
 theFollowingTestBehaviorIsConfigured:
