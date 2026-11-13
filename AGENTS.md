@@ -193,6 +193,10 @@ entirely, so notes written from memory arrive in the wrong shape.
   `REPLACE_WITH_THIS_VERSION`). Replace them all before publishing.
 - Do not delete, rename or reorder the `##` headings. The check knows them by name, so a
   renamed heading fails it.
+- Add the release's row to `documentation/static/policy-compatibility.json` in the
+  version-bump commit, and regenerate the table on its documentation page.
+  `PolicyCompatibilityManifestTest` fails once `pom.xml` names a version newer than the
+  newest row.
 
 Check the notes before publishing, from the repository root:
 
