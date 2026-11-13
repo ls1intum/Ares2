@@ -13,8 +13,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.error.MultipleAssertionsError;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -403,35 +404,70 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
-	 * A failure whose lock another thread holds cannot stop the report: Ares gives
-	 * up reading it and shows only that it could not be read.
+	 * A failure whose reading ignores the interruption after the bound, a
+	 * getMessage that loops for ever or a lock student code keeps, ends the test
+	 * run with the strict timeout's exit code instead of running on into later
+	 * tests.
 	 *
-	 * @throws Exception if the fixture cannot be set up
+	 * @param kind what keeps the reading from ending, as the probe names it.
+	 * @throws Exception if the child JVM cannot be started
 	 */
-	@Test
-	void aLockedFailureDoesNotStopTheReport() throws Exception {
-		Locale.setDefault(Locale.ENGLISH);
-		RuntimeException failure = new RuntimeException("locked");
-		CountDownLatch locked = new CountDownLatch(1);
-		CountDownLatch release = new CountDownLatch(1);
-		Thread holder = new Thread(() -> holdLock(failure, locked, release));
-		holder.setDaemon(true);
-		holder.start();
-		locked.await();
+	@ParameterizedTest
+	@ValueSource(strings = { "message", "lock" })
+	void aReadingThatIgnoresTheInterruptionEndsTheRun(String kind) throws Exception {
+		String javaExecutable = Path.of(System.getProperty("java.home"), "bin", "java").toString(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+		String classPath = System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")); //$NON-NLS-1$ //$NON-NLS-2$
+		Process process = new ProcessBuilder(javaExecutable, "-cp", classPath, //$NON-NLS-1$
+				ReportingUtilsForkProbe.class.getName(), kind).redirectErrorStream(true).start();
 		try {
-			Throwable reported = assertTimeoutPreemptively(Duration.ofSeconds(10),
-					() -> ReportingUtils.processThrowable(failure, contextFor("minimizedPolicy")));
-			assertThat(reported).hasMessage(UNINSPECTABLE_TEXT);
-			assertThat(reported.getStackTrace()).isEmpty();
+			assertThat(process.waitFor(20, TimeUnit.SECONDS)).isTrue();
+			assertThat(process.exitValue()).isEqualTo(124);
 		} finally {
-			release.countDown();
+			process.destroyForcibly();
 		}
 	}
 
 	/**
-	 * A failure whose own getMessage never returns, carrying a suppressed blocked
-	 * action, cannot stop the report at FULL: after the bound, the blocked action
-	 * is reported by itself, also with only privileged failures reported.
+	 * At MINIMIZED, a student exception whose own getMessage adds a blocked action
+	 * it caught is redacted, so reading the message for the report cannot reveal
+	 * that blocked action.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void anOwnMessageAddingAViolationIsRedactedAtMinimized() throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		Throwable reported = ReportingUtils.processThrowable(new MessageAddingException(realViolation()),
+				contextFor("minimizedPolicy"));
+		assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(UNINSPECTABLE_TEXT)
+				.hasNoSuppressedExceptions();
+		assertThat(reported.getStackTrace()).isEmpty();
+	}
+
+	/**
+	 * At MINIMIZED, an ordinary failure and the multiple-failure errors of
+	 * opentest4j and AssertJ keep their report, since their getMessage is not
+	 * student code.
+	 *
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@Test
+	void failuresWithoutAStudentMessageKeepTheirReportAtMinimized() throws NoSuchMethodException {
+		Locale.setDefault(Locale.ENGLISH);
+		TestContext context = contextFor("minimizedPolicy");
+		assertThat(ReportingUtils.processThrowable(new IllegalStateException("plain failure"), context))
+				.isInstanceOf(IllegalStateException.class).hasMessage("plain failure");
+		assertThat(ReportingUtils.processThrowable(
+				new MultipleFailuresError("two failures", List.of(new AssertionError("first"))), context))
+						.hasMessageNotContaining(UNINSPECTABLE_TEXT);
+		assertThat(ReportingUtils.processThrowable(new MultipleAssertionsError(List.of(new AssertionError("soft"))),
+				context)).hasMessageNotContaining(UNINSPECTABLE_TEXT);
+	}
+
+	/**
+	 * A failure whose own getMessage runs until interrupted, carrying a suppressed
+	 * blocked action, cannot stop the report at FULL: after the bound, the blocked
+	 * action is reported by itself, also with only privileged failures reported.
 	 *
 	 * @param policy the method carrying the policy.
 	 * @throws ReflectiveOperationException if the violation cannot be created
@@ -455,8 +491,8 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
-	 * Without a blocked action in it, a failure whose own getMessage never returns
-	 * is reported at FULL as a failure that could not be read.
+	 * Without a blocked action in it, a failure whose own getMessage runs until
+	 * interrupted is reported at FULL as a failure that could not be read.
 	 *
 	 * @throws NoSuchMethodException if the fixture method is missing
 	 */
@@ -514,57 +550,6 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
-	 * Failures whose lock stays held cannot make Ares start ever more threads: once
-	 * every worker is taken, a report is redacted at once, and reports work again
-	 * when the workers are free.
-	 *
-	 * @throws Exception if the fixture cannot be set up
-	 */
-	@Test
-	void stalledWorkersAreBounded() throws Exception {
-		Locale.setDefault(Locale.ENGLISH);
-		TestContext context = contextFor("minimizedPolicy");
-		CountDownLatch release = new CountDownLatch(1);
-		List<Thread> reporters = new java.util.ArrayList<>();
-		try {
-			for (int index = 0; index < ReportingUtils.MAX_INSPECTION_THREADS; index++) {
-				RuntimeException failure = new RuntimeException("locked " + index);
-				CountDownLatch locked = new CountDownLatch(1);
-				Thread holder = new Thread(() -> holdLock(failure, locked, release));
-				holder.setDaemon(true);
-				holder.start();
-				locked.await();
-				Thread reporter = new Thread(() -> ReportingUtils.processThrowable(failure, context));
-				reporter.setDaemon(true);
-				reporter.start();
-				reporters.add(reporter);
-			}
-			for (Thread reporter : reporters) {
-				reporter.join(10_000);
-			}
-			Throwable reported = assertTimeoutPreemptively(Duration.ofSeconds(1),
-					() -> ReportingUtils.processThrowable(new IllegalStateException("free"), context));
-			assertThat(reported).hasMessage(UNINSPECTABLE_TEXT);
-		} finally {
-			release.countDown();
-		}
-		assertTimeoutPreemptively(Duration.ofSeconds(10), () -> awaitFreeWorkers(context));
-	}
-
-	/**
-	 * Waits until a report is no longer redacted for want of a free worker.
-	 *
-	 * @param context the test context.
-	 * @throws InterruptedException if interrupted while waiting
-	 */
-	private static void awaitFreeWorkers(TestContext context) throws InterruptedException {
-		while (UNINSPECTABLE_TEXT
-				.equals(ReportingUtils.processThrowable(new IllegalStateException("free"), context).getMessage())) {
-			Thread.sleep(50);
-		}
-	}
-
-	/**
 	 * An ordinary failure carrying more harmless failures than the search reads.
 	 *
 	 * @return the failure.
@@ -575,25 +560,6 @@ class SecurityViolationFeedbackTest {
 			failure.addSuppressed(new IllegalStateException("harmless " + index));
 		}
 		return failure;
-	}
-
-	/**
-	 * Holds a failure's lock until released, as student code on an allowed thread
-	 * could.
-	 *
-	 * @param failure the failure to lock.
-	 * @param locked  counted down once the lock is held.
-	 * @param release awaited while holding the lock.
-	 */
-	private static void holdLock(Throwable failure, CountDownLatch locked, CountDownLatch release) {
-		synchronized (failure) {
-			locked.countDown();
-			try {
-				release.await();
-			} catch (InterruptedException interrupted) {
-				Thread.currentThread().interrupt();
-			}
-		}
 	}
 
 	/**
@@ -656,7 +622,7 @@ class SecurityViolationFeedbackTest {
 
 	/**
 	 * A student exception that keeps the Java runtime's getCause but whose own
-	 * getMessage would never return.
+	 * getMessage runs until the test lets it end or its thread is interrupted.
 	 */
 	private static final class LoopingMessageException extends RuntimeException {
 
@@ -667,16 +633,46 @@ class SecurityViolationFeedbackTest {
 		private transient volatile boolean looping = true;
 
 		/**
-		 * Waits while looping, as a hostile override could.
+		 * Waits while looping and not interrupted, as a slow override could.
 		 *
-		 * @return a fixed text once the test lets it end.
+		 * @return a fixed text once it ends.
 		 */
 		@Override
 		public String getMessage() {
-			while (looping) {
+			while (looping && !Thread.currentThread().isInterrupted()) {
 				Thread.onSpinWait();
 			}
 			return "looped";
+		}
+	}
+
+	/** A student exception whose own getMessage adds a blocked action it caught. */
+	private static final class MessageAddingException extends RuntimeException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/** The blocked action this exception adds when its message is read. */
+		private final transient Throwable caught;
+
+		/**
+		 * Keeps a blocked action without adding it yet.
+		 *
+		 * @param caught the blocked action to add later.
+		 */
+		MessageAddingException(Throwable caught) {
+			this.caught = caught;
+		}
+
+		/**
+		 * Adds the blocked action, as a hostile override could.
+		 *
+		 * @return a harmless text.
+		 */
+		@Override
+		public String getMessage() {
+			addSuppressed(caught);
+			return "student message";
 		}
 	}
 

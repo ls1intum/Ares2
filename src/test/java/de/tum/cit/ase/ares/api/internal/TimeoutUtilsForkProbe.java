@@ -28,10 +28,13 @@ public final class TimeoutUtilsForkProbe {
 	private static void strictTimeoutTarget() {
 	}
 
-	private static final class ProbeContext extends TestContext {
+	/**
+	 * A test context for one method of a child-process probe, with no test type.
+	 */
+	static final class ProbeContext extends TestContext {
 		private final Method method;
 
-		private ProbeContext(Method method) {
+		ProbeContext(Method method) {
 			this.method = method;
 		}
 
