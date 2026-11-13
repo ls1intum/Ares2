@@ -15,6 +15,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.error.AssertJMultipleFailuresError;
 import org.assertj.core.error.MultipleAssertionsError;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.opentest4j.AssertionFailedError;
 import org.opentest4j.MultipleFailuresError;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
@@ -265,13 +267,14 @@ class SecurityViolationFeedbackTest {
 
 	/**
 	 * A blocked action carried as a suppressed failure, inside a privileged
-	 * exception or inside a multiple-failures error is shortened at MINIMIZED.
+	 * exception, inside a multiple-failures error or as the cause of a member of an
+	 * AssertJ multiple-assertions error is shortened at MINIMIZED.
 	 *
 	 * @param carrier how the blocked action is carried.
 	 * @throws ReflectiveOperationException if the violation cannot be created
 	 */
 	@ParameterizedTest
-	@ValueSource(strings = { "suppressed", "privileged", "multiple" })
+	@ValueSource(strings = { "suppressed", "privileged", "multiple", "assertj" })
 	void aCarriedViolationIsShortened(String carrier) throws ReflectiveOperationException {
 		Locale.setDefault(Locale.ENGLISH);
 		SecurityException violation = realViolation();
@@ -282,6 +285,7 @@ class SecurityViolationFeedbackTest {
 			yield outer;
 		}
 		case "privileged" -> new PrivilegedException(violation);
+		case "assertj" -> new MultipleAssertionsError(List.of(new AssertionError(violation)));
 		default -> new MultipleFailuresError("two failures", List.of(new AssertionError("first"), violation));
 		};
 		Throwable reported = ReportingUtils.processThrowable(failure, contextFor("minimizedPolicy"));
@@ -445,9 +449,27 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
-	 * At MINIMIZED, an ordinary failure and the multiple-failure errors of
-	 * opentest4j and AssertJ keep their report, since their getMessage is not
-	 * student code.
+	 * At MINIMIZED, a student exception that overrides any other method the report
+	 * reads, and adds a blocked action it caught from there, is redacted too.
+	 *
+	 * @param method the method the student exception overrides.
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "getStackTrace", "toString", "getLocalizedMessage" })
+	void anyOverriddenReadMethodAddingAViolationIsRedactedAtMinimized(String method)
+			throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		Throwable reported = ReportingUtils.processThrowable(AddingException.overriding(method, realViolation()),
+				contextFor("minimizedPolicy"));
+		assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(UNINSPECTABLE_TEXT)
+				.hasNoSuppressedExceptions();
+	}
+
+	/**
+	 * At MINIMIZED, an ordinary failure, an opentest4j assertion failure and the
+	 * multiple-failure errors of opentest4j and AssertJ keep their report, since
+	 * the methods they override are not student code.
 	 *
 	 * @throws NoSuchMethodException if the fixture method is missing
 	 */
@@ -462,6 +484,12 @@ class SecurityViolationFeedbackTest {
 						.hasMessageNotContaining(UNINSPECTABLE_TEXT);
 		assertThat(ReportingUtils.processThrowable(new MultipleAssertionsError(List.of(new AssertionError("soft"))),
 				context)).hasMessageNotContaining(UNINSPECTABLE_TEXT);
+		assertThat(
+				ReportingUtils.processThrowable(new AssertionFailedError("expected: <1> but was: <2>", 1, 2), context))
+						.hasMessage("expected: <1> but was: <2>");
+		assertThat(ReportingUtils.processThrowable(
+				new AssertJMultipleFailuresError("soft", List.of(new AssertionError("first"))), context))
+						.hasMessageNotContaining(UNINSPECTABLE_TEXT);
 	}
 
 	/**
@@ -673,6 +701,132 @@ class SecurityViolationFeedbackTest {
 		public String getMessage() {
 			addSuppressed(caught);
 			return "student message";
+		}
+	}
+
+	/**
+	 * A student exception that keeps a blocked action it caught, for a subclass to
+	 * add from the one method it overrides.
+	 */
+	private abstract static class AddingException extends RuntimeException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/** The blocked action to add. */
+		private final transient Throwable caught;
+
+		/**
+		 * Keeps a blocked action without adding it yet.
+		 *
+		 * @param caught the blocked action to add later.
+		 */
+		AddingException(Throwable caught) {
+			super("student failure");
+			this.caught = caught;
+		}
+
+		/** Adds the blocked action, as a hostile override could. */
+		final void addCaught() {
+			if (caught != null && getSuppressed().length == 0) {
+				addSuppressed(caught);
+			}
+		}
+
+		/**
+		 * Creates the exception overriding the named method.
+		 *
+		 * @param method the method to override.
+		 * @param caught the blocked action to add from it.
+		 * @return the exception.
+		 */
+		static AddingException overriding(String method, Throwable caught) {
+			return switch (method) {
+			case "getStackTrace" -> new StackAddingException(caught);
+			case "toString" -> new TextAddingException(caught);
+			default -> new LocalizedAddingException(caught);
+			};
+		}
+	}
+
+	/** Adds a caught blocked action from its own getStackTrace. */
+	private static final class StackAddingException extends AddingException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Keeps a blocked action.
+		 *
+		 * @param caught the blocked action.
+		 */
+		StackAddingException(Throwable caught) {
+			super(caught);
+		}
+
+		/**
+		 * Adds the blocked action first.
+		 *
+		 * @return the stack trace.
+		 */
+		@Override
+		public StackTraceElement[] getStackTrace() {
+			addCaught();
+			return super.getStackTrace();
+		}
+	}
+
+	/** Adds a caught blocked action from its own toString. */
+	private static final class TextAddingException extends AddingException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Keeps a blocked action.
+		 *
+		 * @param caught the blocked action.
+		 */
+		TextAddingException(Throwable caught) {
+			super(caught);
+		}
+
+		/**
+		 * Adds the blocked action first.
+		 *
+		 * @return the text.
+		 */
+		@Override
+		public String toString() {
+			addCaught();
+			return super.toString();
+		}
+	}
+
+	/** Adds a caught blocked action from its own getLocalizedMessage. */
+	private static final class LocalizedAddingException extends AddingException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Keeps a blocked action.
+		 *
+		 * @param caught the blocked action.
+		 */
+		LocalizedAddingException(Throwable caught) {
+			super(caught);
+		}
+
+		/**
+		 * Adds the blocked action first.
+		 *
+		 * @return the message.
+		 */
+		@Override
+		public String getLocalizedMessage() {
+			addCaught();
+			return super.getLocalizedMessage();
 		}
 	}
 
