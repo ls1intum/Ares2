@@ -1,0 +1,40 @@
+{
+  "description": "Which policy-format versions and test-behaviour keys each Ares release accepts. Generated pages and PolicyCompatibilityManifestTest read this file; add a row in the version-bump commit of every release.",
+  "releases": [
+    {
+      "version": "2.2.1",
+      "minimumPolicyFormat": 1,
+      "maximumPolicyFormat": 1,
+      "testBehaviorKeys": [
+        "theFollowingTestBehaviorIsConfigured"
+      ]
+    },
+    {
+      "version": "2.3.0",
+      "minimumPolicyFormat": 1,
+      "maximumPolicyFormat": 1,
+      "testBehaviorKeys": [
+        "theFollowingTestBehaviorIsConfigured",
+        "theFollowingTestBehaviorIsConfigured.regardingTheStrictTimeoutForTheTestCases",
+        "theFollowingTestBehaviorIsConfigured.regardingTheOutputOfTheTestCases",
+        "theFollowingTestBehaviorIsConfigured.regardingTheFailureFeedbackForTheTestCases",
+        "theFollowingTestBehaviorIsConfigured.regardingTheVisibilityAndScheduleOfTheTestCases",
+        "theFollowingTestBehaviorIsConfigured.regardingTheStrictTimeoutForTheTestCases.theTimeoutIs",
+        "theFollowingTestBehaviorIsConfigured.regardingTheStrictTimeoutForTheTestCases.theTerminationGraceIs",
+        "theFollowingTestBehaviorIsConfigured.regardingTheOutputOfTheTestCases.theOutputIsMirrored",
+        "theFollowingTestBehaviorIsConfigured.regardingTheOutputOfTheTestCases.theMaximumNumberOfOutputCharactersIs",
+        "theFollowingTestBehaviorIsConfigured.regardingTheOutputOfTheTestCases.theInputAndOutputAreManagedBy",
+        "theFollowingTestBehaviorIsConfigured.regardingTheOutputOfTheTestCases.theCustomInputAndOutputManagerIs",
+        "theFollowingTestBehaviorIsConfigured.regardingTheFailureFeedbackForTheTestCases.onlyPrivilegedExceptionsAreReported",
+        "theFollowingTestBehaviorIsConfigured.regardingTheFailureFeedbackForTheTestCases.theFailureMessageForOtherExceptionsIs",
+        "theFollowingTestBehaviorIsConfigured.regardingTheFailureFeedbackForTheTestCases.theSecurityViolationFeedbackLevelIs",
+        "theFollowingTestBehaviorIsConfigured.regardingTheVisibilityAndScheduleOfTheTestCases.theDeadlineIs",
+        "theFollowingTestBehaviorIsConfigured.regardingTheVisibilityAndScheduleOfTheTestCases.theDeadlineIsExtendedBy",
+        "theFollowingTestBehaviorIsConfigured.regardingTheVisibilityAndScheduleOfTheTestCases.theHiddenTestsAreRunBefore",
+        "theFollowingTestBehaviorIsConfigured.regardingTheVisibilityAndScheduleOfTheTestCases.testsNotListedHereAreHidden",
+        "theFollowingTestBehaviorIsConfigured.regardingTheVisibilityAndScheduleOfTheTestCases.theFollowingTestsAreHidden",
+        "theFollowingTestBehaviorIsConfigured.regardingTheVisibilityAndScheduleOfTheTestCases.theFollowingTestsArePublic"
+      ]
+    }
+  ]
+}

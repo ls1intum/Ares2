@@ -790,7 +790,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughParameter != null) {
-			throw new SecurityException(localize("security.advice.illegal.command.execution",
+			throw AresSecurityViolation.create("command", action, commandIllegallyExecutedThroughParameter, localize("security.advice.illegal.command.execution",
 					commandSystemMethodToCheck, localizeAction(action), commandIllegallyExecutedThroughParameter,
 					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));
@@ -807,7 +807,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// not
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
-			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
+			throw AresSecurityViolation.create("file", action, pathIllegallyExecutedThroughParameter, localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
 					localizeAction(action), pathIllegallyExecutedThroughParameter,
 					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
@@ -820,7 +820,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughAttribute != null) {
-			throw new SecurityException(localize("security.advice.illegal.command.execution",
+			throw AresSecurityViolation.create("command", action, commandIllegallyExecutedThroughAttribute, localize("security.advice.illegal.command.execution",
 					commandSystemMethodToCheck, localizeAction(action), commandIllegallyExecutedThroughAttribute,
 					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));
@@ -837,7 +837,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// not
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
-			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
+			throw AresSecurityViolation.create("file", action, pathIllegallyExecutedThroughAttribute, localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
 					localizeAction(action), pathIllegallyExecutedThroughAttribute,
 					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
