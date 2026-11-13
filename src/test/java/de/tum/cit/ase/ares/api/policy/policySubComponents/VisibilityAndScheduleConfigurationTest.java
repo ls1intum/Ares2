@@ -8,6 +8,8 @@ import java.time.ZonedDateTime;
 import java.util.Locale;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -27,6 +29,22 @@ class VisibilityAndScheduleConfigurationTest {
 
 	/** A valid deadline. */
 	private static final String DEADLINE = "2026-12-24 23:59 Europe/Berlin";
+
+	/** The display locale before the test, restored afterwards. */
+	private Locale displayLocale;
+
+	/** Shows messages in English, so the English assertions hold on any machine. */
+	@BeforeEach
+	void showMessagesInEnglish() {
+		displayLocale = Locale.getDefault(Locale.Category.DISPLAY);
+		Locale.setDefault(Locale.Category.DISPLAY, Locale.ENGLISH);
+	}
+
+	/** Restores the display locale the test found. */
+	@AfterEach
+	void restoreTheDisplayLocale() {
+		Locale.setDefault(Locale.Category.DISPLAY, displayLocale);
+	}
 
 	/**
 	 * The deadline and the switch alone give the deadline, no extension, no date

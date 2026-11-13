@@ -38,6 +38,17 @@ class GeneratedArchitectureFeedbackLevelTest {
 	/** What the architecture check reports, including a path a student chose. */
 	private static final String REPORT = "Architecture Violation: Student.read reads /secret/path";
 
+	/**
+	 * Ares's own configuration error, as a generated architecture test reports it.
+	 */
+	private static final String CONFIGURATION_ERROR = "Ares Security Error (Reason: Ares-Code; Stage: Creation): no class matches the scope";
+
+	/** A failure that wraps a blocked action, with a text of its own. */
+	private static final String WRAPPED_TEST = "com.example.fixtures.WrappedViolationTest";
+
+	/** The message of the wrapped blocked action. */
+	private static final String VIOLATION = "Ares Security Error (Reason: Student-Code; Stage: Execution): blocked read";
+
 	/** The message the policy sets for other failures. */
 	private static final String POLICY_MESSAGE = "Ask your tutor.";
 
@@ -75,7 +86,8 @@ class GeneratedArchitectureFeedbackLevelTest {
 	 */
 	@Test
 	void fullKeepsTheArchitectureReport() throws Exception {
-		assertThat(messages(full, ARCHUNIT_TEST, Locale.ENGLISH)).containsExactly(REPORT);
+		assertThat(messages(full, ARCHUNIT_TEST, Locale.ENGLISH)).containsExactlyInAnyOrder(REPORT,
+				CONFIGURATION_ERROR);
 		assertThat(messages(full, WALA_TEST, Locale.ENGLISH)).containsExactly(REPORT);
 		assertThat(messages(full, LOOKALIKE, Locale.ENGLISH)).containsExactly(POLICY_MESSAGE);
 	}
@@ -89,9 +101,11 @@ class GeneratedArchitectureFeedbackLevelTest {
 	@Test
 	void minimizedShowsOnlyTheFixedText() throws Exception {
 		for (String test : List.of(ARCHUNIT_TEST, WALA_TEST)) {
-			assertThat(messages(minimized, test, Locale.ENGLISH)).containsExactly(
-					"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
-			assertThat(messages(minimized, test, Locale.GERMAN)).singleElement().asString()
+			assertThat(messages(minimized, test, Locale.ENGLISH)).contains(
+					"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.")
+					.noneMatch(message -> message.contains("/secret/path"));
+			assertThat(messages(minimized, test, Locale.GERMAN))
+					.filteredOn(message -> !message.equals(CONFIGURATION_ERROR)).singleElement().asString()
 					.startsWith("Ares Sicherheitsfehler").doesNotContain("/secret/path");
 		}
 	}
@@ -105,9 +119,33 @@ class GeneratedArchitectureFeedbackLevelTest {
 	@Test
 	void debugAddsTheCategory() throws Exception {
 		for (String test : List.of(ARCHUNIT_TEST, WALA_TEST)) {
-			assertThat(messages(debug, test, Locale.ENGLISH)).singleElement().asString().startsWith(REPORT)
-					.contains("To allow this, add to regardingFileSystemInteractions");
+			assertThat(messages(debug, test, Locale.ENGLISH)).filteredOn(message -> message.startsWith(REPORT))
+					.singleElement().asString().contains("To allow this, add to regardingFileSystemInteractions");
 		}
+	}
+
+	/**
+	 * Ares's own configuration error in a generated architecture test keeps its
+	 * text at every level, so it is neither shortened nor given an allow hint.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aConfigurationErrorKeepsItsText() throws Exception {
+		for (Path project : List.of(minimized, debug)) {
+			assertThat(messages(project, ARCHUNIT_TEST, Locale.ENGLISH)).contains(CONFIGURATION_ERROR);
+		}
+	}
+
+	/**
+	 * With privileged-only reporting at FULL, a failure that wraps a blocked action
+	 * reports the blocked action, not the wrapper's own text.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aWrappedViolationIsReportedWithoutItsWrapper() throws Exception {
+		assertThat(messages(full, WRAPPED_TEST, Locale.ENGLISH)).containsExactly(VIOLATION);
 	}
 
 	/**
@@ -192,7 +230,9 @@ class GeneratedArchitectureFeedbackLevelTest {
 
 	/**
 	 * Writes the stand-ins: the two generated security tests and a lookalike, each
-	 * failing its file-system check with the same report.
+	 * failing its file-system check with the same report, the ArchUnit one also
+	 * with a configuration error, and a test wrapping a blocked action under the
+	 * generated violation's exact name.
 	 *
 	 * @param sources the folder to write them into.
 	 * @return the written files
@@ -201,12 +241,13 @@ class GeneratedArchitectureFeedbackLevelTest {
 	private static List<Path> writeStandIns(Path sources) throws IOException {
 		List<Path> files = new ArrayList<>();
 		for (String className : List.of(ARCHUNIT_TEST, WALA_TEST, LOOKALIKE)) {
-			int lastDot = className.lastIndexOf('.');
-			Path file = Files.createDirectories(sources.resolve(className.substring(0, lastDot).replace('.', '/')))
-					.resolve(className.substring(lastDot + 1) + ".java");
-			Files.writeString(file, """
-					package %s;
-
+			String configurationTest = className.equals(ARCHUNIT_TEST) ? """
+					@Test
+					public void networkSystemShouldNotBeAccessed() {
+						throw new SecurityException("%s");
+					}
+					""".formatted(CONFIGURATION_ERROR) : "";
+			files.add(writeClass(sources, className, """
 					import org.junit.jupiter.api.Test;
 
 					public class %s {
@@ -214,11 +255,61 @@ class GeneratedArchitectureFeedbackLevelTest {
 						public void filesystemsShouldNotBeAccessed() {
 							throw new AssertionError("%s");
 						}
+						%s
 					}
-					""".formatted(className.substring(0, lastDot), className.substring(lastDot + 1), REPORT));
-			files.add(file);
+					""".formatted(simpleName(className), REPORT, configurationTest)));
 		}
+		files.add(
+				writeClass(sources, "com.example.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation", """
+						public final class AresSecurityViolation extends SecurityException {
+							private static final long serialVersionUID = 1L;
+							public AresSecurityViolation(String message) { super(message); }
+							public String kind() { return "file"; }
+							public String action() { return "read"; }
+							public String target() { return "secret.txt"; }
+						}
+						"""));
+		files.add(writeClass(sources, WRAPPED_TEST,
+				"""
+						import org.junit.jupiter.api.Test;
+
+						public class WrappedViolationTest {
+							@Test
+							public void wraps() {
+								throw new AssertionError("secret expected value",
+										new com.example.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation("%s"));
+							}
+						}
+						"""
+						.formatted(VIOLATION)));
 		return files;
+	}
+
+	/**
+	 * Writes one source file under its package's folder.
+	 *
+	 * @param sources   the source root.
+	 * @param className the class's full name.
+	 * @param body      the source after the package declaration.
+	 * @return the written file
+	 * @throws IOException if writing fails
+	 */
+	private static Path writeClass(Path sources, String className, String body) throws IOException {
+		String packageName = className.substring(0, className.lastIndexOf('.'));
+		Path file = Files.createDirectories(sources.resolve(packageName.replace('.', '/')))
+				.resolve(simpleName(className) + ".java");
+		Files.writeString(file, "package " + packageName + ";\n\n" + body);
+		return file;
+	}
+
+	/**
+	 * The simple name of a class.
+	 *
+	 * @param className the class's full name.
+	 * @return the part after the last dot
+	 */
+	private static String simpleName(String className) {
+		return className.substring(className.lastIndexOf('.') + 1);
 	}
 
 	/**

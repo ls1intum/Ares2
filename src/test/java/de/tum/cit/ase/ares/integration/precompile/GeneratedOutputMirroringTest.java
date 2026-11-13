@@ -176,10 +176,12 @@ class GeneratedOutputMirroringTest {
 	@Test
 	void hiddenMirroringHookOrdersAreSilent() throws Exception {
 		Map<String, String> noAutodetection = Map.of("junit.jupiter.extensions.autodetection.enabled", "false");
-		assertThat(run(mirrored, "HiddenMirrorHiddenFirst", Locale.ENGLISH, noAutodetection).console())
-				.doesNotContain("HOUT", "HERR");
-		assertThat(run(mirrored, "HiddenMirrorMirrorFirst", Locale.ENGLISH, noAutodetection).console())
-				.doesNotContain("HOUT", "HERR");
+		for (String fixture : List.of("HiddenMirrorHiddenFirst", "HiddenMirrorMirrorFirst")) {
+			NestedRun run = run(mirrored, fixture, Locale.ENGLISH, noAutodetection);
+			assertThat(run.results().testEvents().succeeded().count()).as(fixture).isEqualTo(1);
+			assertThat(run.results().testEvents().failed().count()).as(fixture).isZero();
+			assertThat(run.console()).as(fixture).doesNotContain("HOUT", "HERR");
+		}
 	}
 
 	/**
@@ -221,7 +223,9 @@ class GeneratedOutputMirroringTest {
 
 	/**
 	 * Two tests running in parallel cannot both install the streams: the second is
-	 * refused with the localised message, and the console is intact afterwards.
+	 * refused with the localised message, and the console is intact afterwards. The
+	 * test that installed them stays inside its body until the other test's attempt
+	 * has finished, waiting at most ten seconds, so the two overlap.
 	 *
 	 * @throws Exception if the run cannot be set up
 	 */
@@ -559,8 +563,13 @@ class GeneratedOutputMirroringTest {
 				"@Test void writes() { System.out.write(new byte[] { (byte) 0xC3 }, 0, 1); System.out.flush(); }");
 		fixture(folder, "ClosedFixture", "",
 				"@Test void writes() { System.out.close(); System.out.print(\"x\"); Assertions.assertTrue(System.out.checkError()); }");
-		fixture(folder, "ParallelFixture", "",
-				"@Test void first() throws InterruptedException { Thread.sleep(1000); } @Test void second() throws InterruptedException { Thread.sleep(1000); }");
+		fixture(folder, "ParallelFixture",
+				"""
+						static final java.util.concurrent.CountDownLatch ATTEMPTED = new java.util.concurrent.CountDownLatch(1);
+						@org.junit.jupiter.api.extension.RegisterExtension
+						static final org.junit.jupiter.api.extension.AfterEachCallback ATTEMPT_DONE = context -> ATTEMPTED.countDown();""",
+				"@Test void first() throws InterruptedException { ATTEMPTED.await(10, java.util.concurrent.TimeUnit.SECONDS); }"
+						+ " @Test void second() throws InterruptedException { ATTEMPTED.await(10, java.util.concurrent.TimeUnit.SECONDS); }");
 		fixture(folder, "CaptureInBeforeEachFixture", """
 				private final java.io.ByteArrayOutputStream capture = new java.io.ByteArrayOutputStream();
 				@BeforeEach void capture() { System.setOut(new java.io.PrintStream(capture, true)); }""",

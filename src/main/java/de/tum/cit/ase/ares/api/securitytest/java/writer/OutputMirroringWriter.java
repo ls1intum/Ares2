@@ -47,8 +47,7 @@ final class OutputMirroringWriter {
 	GeneratedHookFiles.Contribution write(@Nonnull TestBehaviorConfiguration configuration, @Nonnull String packageName,
 			@Nonnull Path testFolderPath) {
 		requireSupported(configuration);
-		OutputConfiguration output = configuration.regardingTheOutputOfTheTestCases();
-		if (output == null || output.managerKind() == InputOutputManagerKind.NONE) {
+		if (!contributes(configuration)) {
 			hookFiles.deleteGenerated(testFolderPath, OutputMirroringSources.JUPITER_HOOK);
 			hookFiles.deleteGenerated(testFolderPath, OutputMirroringSources.JUPITER_SENTINEL);
 			return GeneratedHookFiles.Contribution.NONE;
@@ -74,5 +73,17 @@ final class OutputMirroringWriter {
 		if (output != null && output.managerKind() == InputOutputManagerKind.CUSTOM) {
 			throw new SecurityException(Messages.localized("security.writer.io.manager.custom.precompile"));
 		}
+	}
+
+	/**
+	 * Whether the policy needs the hook: it sets the output category with a manager
+	 * other than {@code NONE}.
+	 *
+	 * @param configuration the policy's behaviour configuration.
+	 * @return true when the hook is written
+	 */
+	static boolean contributes(@Nonnull TestBehaviorConfiguration configuration) {
+		OutputConfiguration output = configuration.regardingTheOutputOfTheTestCases();
+		return output != null && output.managerKind() != InputOutputManagerKind.NONE;
 	}
 }

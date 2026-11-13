@@ -141,18 +141,18 @@ final class HiddenTestsSources {
 					guardLifecycle(invocation, context);
 				}
 
-				/** Hides setup output for a hidden test. */
+				/** Holds a hidden test's setup back before the deadline and hides its output. */
 				@Override
 				public void interceptBeforeEachMethod(Invocation<Void> invocation,
 						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext context) throws Throwable {
-					guardLifecycle(invocation, context);
+					guardEachMethod(invocation, context);
 				}
 
-				/** Hides teardown output for a hidden test. */
+				/** Holds a hidden test's teardown back before the deadline and hides its output. */
 				@Override
 				public void interceptAfterEachMethod(Invocation<Void> invocation,
 						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext context) throws Throwable {
-					guardLifecycle(invocation, context);
+					guardEachMethod(invocation, context);
 				}
 
 				/** Hides class teardown output when the class contains a hidden test. */
@@ -259,8 +259,7 @@ final class HiddenTestsSources {
 					if (testClass.isEmpty() || !isHidden(testClass.get(), methodName)) {
 						return invocation.proceed();
 					}
-					long now = System.currentTimeMillis();
-					if (now <= @SETTINGS@.@DEADLINE@ && now >= @SETTINGS@.@ALWAYS_RUN_BEFORE@) {
+					if (isHeldBack()) {
 						invocation.skip();
 						throw new HiddenTestScheduled(@MESSAGES@.localized("test_guard.hidden_test_before_deadline_message"));
 					}
@@ -271,6 +270,28 @@ final class HiddenTestsSources {
 							throw opaque(failure);
 						}
 					}
+				}
+
+				/** Whether hidden tests are held back now: before the deadline, unless their early run has begun. */
+				private static boolean isHeldBack() {
+					long now = System.currentTimeMillis();
+					return now <= @SETTINGS@.@DEADLINE@ && now >= @SETTINGS@.@ALWAYS_RUN_BEFORE@;
+				}
+
+				/**
+				 * Skips a hidden test's own setup or teardown while the test is held back, so
+				 * no student code runs for it before the deadline; otherwise runs it without
+				 * visible output.
+				 */
+				private static void guardEachMethod(Invocation<Void> invocation, ExtensionContext context) throws Throwable {
+					Optional<Class<?>> testClass = nearest(context, ExtensionContext::getTestClass);
+					Optional<String> methodName = nearest(context, ExtensionContext::getTestMethod).map(Method::getName);
+					if (testClass.isPresent() && methodName.isPresent() && isHidden(testClass.get(), methodName)
+							&& isHeldBack()) {
+						invocation.skip();
+						return;
+					}
+					guardLifecycle(invocation, context);
 				}
 
 				/** Runs a hidden constructor or lifecycle method without visible output. */
@@ -318,7 +339,7 @@ final class HiddenTestsSources {
 
 				/** A failed result whose report text is empty. */
 				private static final class HiddenTestFailure extends AssertionError {
-					/** Serialization identifier for the generated marker. */
+					/** Serialisation identifier for the generated marker. */
 					private static final long serialVersionUID = 1L;
 
 					/** Removes the generated marker's stack. */
@@ -335,7 +356,7 @@ final class HiddenTestsSources {
 
 				/** A future hidden test's scheduling notice, preserved by reporting hooks. */
 				private static final class HiddenTestScheduled extends AssertionFailedError {
-					/** Serialization identifier for the generated marker. */
+					/** Serialisation identifier for the generated marker. */
 					private static final long serialVersionUID = 1L;
 
 					/** Carries only the public scheduling message. */
@@ -346,7 +367,7 @@ final class HiddenTestsSources {
 
 				/** An aborted result whose report text is empty. */
 				private static final class HiddenTestAbort extends TestAbortedException {
-					/** Serialization identifier for the generated marker. */
+					/** Serialisation identifier for the generated marker. */
 					private static final long serialVersionUID = 1L;
 
 					/** Removes the generated marker's stack. */

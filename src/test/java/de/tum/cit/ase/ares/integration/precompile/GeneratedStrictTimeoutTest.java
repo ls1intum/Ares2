@@ -90,10 +90,11 @@ class GeneratedStrictTimeoutTest {
 		shadowSettings = Files.createDirectories(tempDir.resolve("shadow"));
 		Path shadowSource = Files.createDirectories(tempDir.resolve("shadow-source/de/tum/cit/ase/ares/generated"))
 				.resolve("GeneratedTestBehaviorSettings.java");
-		Files.writeString(shadowSource,
-				Files.readString(
-						testSources.resolve("de/tum/cit/ase/ares/generated/GeneratedTestBehaviorSettings.java"))
-						.replace("\"MILLISECONDS\"", "\"HOURS\""));
+		String settings = Files
+				.readString(testSources.resolve("de/tum/cit/ase/ares/generated/GeneratedTestBehaviorSettings.java"));
+		String shadow = settings.replaceAll("THE_TIMEOUT_NANOS = \\d+L;", "THE_TIMEOUT_NANOS = 3600000000000L;");
+		assertThat(shadow).as("the shadow settings class must differ from the generated one").isNotEqualTo(settings);
+		Files.writeString(shadowSource, shadow);
 		compile(shadowSettings, List.of(), shadowSource);
 		classes = compiled;
 	}
@@ -445,11 +446,12 @@ class GeneratedStrictTimeoutTest {
 				import java.util.concurrent.CountDownLatch;
 				import de.tum.cit.ase.ares.generated.GeneratedStrictTimeout;
 				public final class InterruptedCallerProbe {
+				%s
 					public static void main(String[] args) throws Exception {
 						CountDownLatch started = new CountDownLatch(1);
 						Thread caller = new Thread(() -> {
 							try {
-								GeneratedStrictTimeout.executeWithTimeout(() -> {
+								run(() -> {
 									started.countDown();
 									while (true) Thread.onSpinWait();
 								}, Duration.ofSeconds(1));
@@ -464,16 +466,17 @@ class GeneratedStrictTimeoutTest {
 						System.exit(21);
 					}
 				}
-				""");
+				""".formatted(TIMEOUT_CALL));
 		Files.writeString(folder.resolve("InterruptStatusProbe.java"), """
 				package com.example.fixtures;
 				import java.time.Duration;
 				import de.tum.cit.ase.ares.generated.GeneratedStrictTimeout;
 				public final class InterruptStatusProbe {
+				%s
 					public static void main(String[] args) {
 						Thread.currentThread().interrupt();
 						try {
-							GeneratedStrictTimeout.executeWithTimeout(() -> {
+							run(() -> {
 								new java.util.concurrent.CountDownLatch(1).await();
 								return 1;
 							}, Duration.ofSeconds(1));
@@ -485,9 +488,26 @@ class GeneratedStrictTimeoutTest {
 						}
 					}
 				}
-				""");
+				""".formatted(TIMEOUT_CALL));
 		return root;
 	}
+
+	/**
+	 * Calls the timeout's private worker method, as only the generated interceptors
+	 * may, and rethrows what the action threw.
+	 */
+	private static final String TIMEOUT_CALL = """
+			static Object run(GeneratedStrictTimeout.TimedAction<Object> action, Duration grace) throws Throwable {
+				java.lang.reflect.Method method = GeneratedStrictTimeout.class.getDeclaredMethod("executeWithTimeout",
+						GeneratedStrictTimeout.TimedAction.class, Duration.class, org.junit.jupiter.api.extension.ExtensionContext.class);
+				method.setAccessible(true);
+				try {
+					return method.invoke(null, action, grace, null);
+				} catch (java.lang.reflect.InvocationTargetException failure) {
+					throw failure.getCause();
+				}
+			}
+					""";
 
 	/**
 	 * Writes one JUnit fixture class.

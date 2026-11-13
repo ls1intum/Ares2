@@ -148,14 +148,61 @@ public record TestBehaviorConfiguration(@Nullable StrictTimeoutConfiguration reg
 					visibility.effectiveDeadline().toInstant().toEpochMilli()));
 			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalLongAssignment(VISIBILITY_RUN_BEFORE_FIELD_NAME,
 					visibility.alwaysRunBefore().map(date -> date.toInstant().toEpochMilli()).orElse(Long.MIN_VALUE)));
-			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment(
-					VISIBILITY_HIDDEN_LIST_FIELD_NAME, String.join("\n", visibility.theFollowingTestsAreHidden())));
-			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment(
-					VISIBILITY_PUBLIC_LIST_FIELD_NAME, String.join("\n", visibility.theFollowingTestsArePublic())));
+			assignments.add(listAssignment(VISIBILITY_HIDDEN_LIST_FIELD_NAME, visibility.theFollowingTestsAreHidden()));
+			assignments.add(listAssignment(VISIBILITY_PUBLIC_LIST_FIELD_NAME, visibility.theFollowingTestsArePublic()));
 			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalBooleanAssignment(
 					VISIBILITY_UNLISTED_HIDDEN_FIELD_NAME, visibility.testsNotListedHereAreHidden()));
 		}
 		return List.copyOf(assignments);
+	}
+
+	/**
+	 * The most characters one generated string literal holds. A Java class stores a
+	 * literal in at most 65,535 bytes and a character takes up to three, so this
+	 * leaves room to spare.
+	 */
+	private static final int LITERAL_CHARACTER_LIMIT = 20_000;
+
+	/**
+	 * Writes a list of test entries as one line-separated text field. A list too
+	 * long for one literal is joined at run time from several, each within the
+	 * limit, so the generated class still compiles.
+	 *
+	 * @param fieldName the field to assign.
+	 * @param entries   the entries, in order.
+	 * @return the assignment, terminated with a newline
+	 */
+	@Nonnull
+	private static String listAssignment(@Nonnull String fieldName, @Nonnull List<String> entries) {
+		List<String> chunks = new ArrayList<>();
+		StringBuilder chunk = new StringBuilder();
+		for (String entry : entries) {
+			if (chunk.length() > 0 && chunk.length() + 1 + entry.length() > LITERAL_CHARACTER_LIMIT) {
+				chunks.add(chunk.toString());
+				chunk.setLength(0);
+			}
+			chunk.append(chunk.length() > 0 ? "\n" : "").append(entry);
+		}
+		chunks.add(chunk.toString());
+		if (chunks.size() == 1) {
+			return JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment(fieldName, chunks.get(0));
+		}
+		List<String> literals = chunks.stream().map(TestBehaviorConfiguration::literalOf).toList();
+		return "public static final String " + fieldName + " = String.join(\"\\n\", " + String.join(", ", literals)
+				+ ");" + System.lineSeparator();
+	}
+
+	/**
+	 * Escapes a text as a Java string literal, quotes included, the way the other
+	 * generated fields are escaped.
+	 *
+	 * @param text the text.
+	 * @return the literal
+	 */
+	@Nonnull
+	private static String literalOf(@Nonnull String text) {
+		String assignment = JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment("X", text).strip();
+		return assignment.substring(assignment.indexOf('"'), assignment.length() - 1);
 	}
 
 	/**

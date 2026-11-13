@@ -61,6 +61,23 @@ class GeneratedStrictTimeoutHaltTest {
 	}
 
 	/**
+	 * Calls the timeout's private worker method, as only the generated interceptors
+	 * may, and rethrows what the action threw.
+	 */
+	private static final String HELPER = """
+			static Object run(GeneratedStrictTimeout.TimedAction<Object> action, Duration grace) throws Throwable {
+				java.lang.reflect.Method method = GeneratedStrictTimeout.class.getDeclaredMethod("executeWithTimeout",
+						GeneratedStrictTimeout.TimedAction.class, Duration.class, org.junit.jupiter.api.extension.ExtensionContext.class);
+				method.setAccessible(true);
+				try {
+					return method.invoke(null, action, grace, null);
+				} catch (java.lang.reflect.InvocationTargetException failure) {
+					throw failure.getCause();
+				}
+			}
+					""";
+
+	/**
 	 * Writes the probe: it times a loop that ignores interruption.
 	 *
 	 * @param root the folder to write it into.
@@ -77,9 +94,10 @@ class GeneratedStrictTimeoutHaltTest {
 				import de.tum.cit.ase.ares.generated.GeneratedStrictTimeout;
 
 				public final class HaltProbe {
+				%s
 					public static void main(String[] arguments) throws Throwable {
 						try {
-							GeneratedStrictTimeout.executeWithTimeout(() -> {
+							run(() -> {
 								while (true) {
 									Thread.onSpinWait();
 								}
@@ -89,7 +107,7 @@ class GeneratedStrictTimeoutHaltTest {
 						}
 					}
 				}
-				""".formatted(SURVIVED));
+				""".formatted(HELPER, SURVIVED));
 		return root;
 	}
 }

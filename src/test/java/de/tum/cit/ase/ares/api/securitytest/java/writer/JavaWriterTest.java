@@ -378,6 +378,34 @@ public class JavaWriterTest {
 		}
 
 		/**
+		 * JUnit settings of the instructor's that contradict the registration stop the
+		 * generator before it writes a new hook or settings class.
+		 *
+		 * @throws IOException if a file cannot be read or written
+		 */
+		@Test
+		@DisplayName("Should change nothing when the instructor's JUnit settings conflict")
+		void shouldChangeNothingWhenJUnitSettingsConflict() throws IOException {
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+				Path properties = writeWith(hiddenTestsConfigured()).stream()
+						.filter(path -> path.endsWith("junit-platform.properties")).findFirst().orElseThrow();
+				Files.writeString(properties, "junit.jupiter.extensions.autodetection.exclude=com.example.Other"
+						+ System.lineSeparator() + Files.readString(properties));
+				String before = Files.readString(generatedSettingsClassPath());
+
+				assertThrows(SecurityException.class, () -> writeWith(strictTimeoutConfigured()));
+
+				assertEquals(before, Files.readString(generatedSettingsClassPath()));
+				assertFalse(Files.exists(generatedSettingsClassPath().resolveSibling("GeneratedStrictTimeout.java")));
+			}
+		}
+
+		/**
 		 * Settings the generator refuses: a hidden entry naming no test, and a custom
 		 * I/O manager.
 		 *

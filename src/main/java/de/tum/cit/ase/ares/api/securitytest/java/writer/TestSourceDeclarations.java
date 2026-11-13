@@ -183,7 +183,8 @@ final class TestSourceDeclarations {
 	 * Resolves a supertype name to its declaration in the test sources, the way
 	 * {@code javac} looks it up: classes nested in the declaring class and its
 	 * enclosing classes, single imports, the same package, the name as written,
-	 * then wildcard imports.
+	 * then wildcard imports. Static imports count too, since they can bring in a
+	 * nested class; a name that is not a type in the test sources matches nothing.
 	 *
 	 * @param supertype the name in the declaration.
 	 * @param declaring the class whose declaration names it.
@@ -216,14 +217,14 @@ final class TestSourceDeclarations {
 		Optional<CompilationUnit> unit = declaring.findCompilationUnit();
 		List<ImportDeclaration> imports = unit.<List<ImportDeclaration>>map(CompilationUnit::getImports)
 				.orElse(List.of());
-		imports.stream().filter(importDeclaration -> !importDeclaration.isAsterisk() && !importDeclaration.isStatic())
+		imports.stream().filter(importDeclaration -> !importDeclaration.isAsterisk())
 				.map(ImportDeclaration::getNameAsString)
 				.filter(name -> name.equals(firstSegment) || name.endsWith("." + firstSegment))
 				.forEach(name -> candidates.add(name + rest));
 		unit.flatMap(CompilationUnit::getPackageDeclaration)
 				.ifPresent(packageDeclaration -> candidates.add(packageDeclaration.getNameAsString() + "." + written));
 		candidates.add(written);
-		imports.stream().filter(importDeclaration -> importDeclaration.isAsterisk() && !importDeclaration.isStatic())
+		imports.stream().filter(ImportDeclaration::isAsterisk)
 				.forEach(importDeclaration -> candidates.add(importDeclaration.getNameAsString() + "." + written));
 		return candidates;
 	}
