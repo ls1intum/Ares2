@@ -20,8 +20,9 @@ import de.tum.cit.ase.ares.testutilities.UserTestResults;
 
 /**
  * Proves that a blocked action in a test's constructor or lifecycle method
- * follows the MINIMIZED feedback level like one in the test itself: the report
- * says only that something was blocked, with no path and no stack.
+ * follows the MINIMIZED feedback level like one in the test itself, and that a
+ * failing setup gets the policy's message when only privileged failures are
+ * reported.
  */
 @UserBased({ FeedbackLevelLifecycleUsers.ConstructorRead.class, FeedbackLevelLifecycleUsers.BeforeEachRead.class,
 		FeedbackLevelLifecycleUsers.AfterEachRead.class, FeedbackLevelLifecycleUsers.AfterAllRead.class })
@@ -49,10 +50,53 @@ class FeedbackLevelLifecycleTest {
 	 */
 	@TestTest
 	void test_classSetupShowsTheMinimizedText() {
-		Events classes = EngineTestKit.engine(JupiterEngineDescriptor.ENGINE_ID)
-				.selectors(DiscoverySelectors.selectClass(FeedbackLevelLifecycleUsers.BeforeAllRead.class)).execute()
-				.containerEvents();
-		assertMinimized(failuresIn(classes), 1);
+		assertMinimized(failuresIn(containerEventsOf(FeedbackLevelLifecycleUsers.BeforeAllRead.class)), 1);
+	}
+
+	/**
+	 * A failing class teardown fails the class after its test, so its own run is
+	 * read from the class's events too.
+	 */
+	@TestTest
+	void test_classTeardownShowsTheMinimizedText() {
+		assertMinimized(failuresIn(containerEventsOf(FeedbackLevelLifecycleUsers.AfterAllRead.class)), 1);
+	}
+
+	/**
+	 * With only privileged failures reported, a failing setup shows the policy's
+	 * message, not its own text.
+	 */
+	@TestTest
+	void test_aFailingSetupShowsThePolicyMessage() {
+		List<Throwable> failures = failuresIn(EngineTestKit.engine(JupiterEngineDescriptor.ENGINE_ID)
+				.selectors(DiscoverySelectors.selectClass(FeedbackLevelLifecycleUsers.PrivilegedOnlySetupFails.class))
+				.execute().testEvents());
+		assertThat(failures).singleElement().satisfies(
+				failure -> assertThat(failure).isExactlyInstanceOf(AssertionError.class).hasMessage("Policy message"));
+	}
+
+	/**
+	 * With only privileged failures reported, a setup stopped by an assumption
+	 * still skips its test rather than failing it.
+	 */
+	@TestTest
+	void test_anAbortedSetupStillSkipsTheTest() {
+		Events events = EngineTestKit.engine(JupiterEngineDescriptor.ENGINE_ID)
+				.selectors(DiscoverySelectors.selectClass(FeedbackLevelLifecycleUsers.PrivilegedOnlySetupAborts.class))
+				.execute().testEvents();
+		assertThat(events.aborted().count()).isEqualTo(1);
+		assertThat(events.failed().count()).isZero();
+	}
+
+	/**
+	 * Runs one fixture class and returns its container events.
+	 *
+	 * @param fixture the fixture class.
+	 * @return its container events.
+	 */
+	private static Events containerEventsOf(Class<?> fixture) {
+		return EngineTestKit.engine(JupiterEngineDescriptor.ENGINE_ID)
+				.selectors(DiscoverySelectors.selectClass(fixture)).execute().containerEvents();
 	}
 
 	/**

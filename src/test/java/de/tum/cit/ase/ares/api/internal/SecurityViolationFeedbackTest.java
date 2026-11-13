@@ -429,6 +429,155 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
+	 * A failure whose own getMessage never returns, carrying a suppressed blocked
+	 * action, cannot stop the report at FULL: after the bound, the blocked action
+	 * is reported by itself, also with only privileged failures reported.
+	 *
+	 * @param policy the method carrying the policy.
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "noPolicy", "privilegedFullPolicy" })
+	void aLoopingMessageOnAViolationCarrierReportsTheViolationAtFull(String policy)
+			throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		LoopingMessageException wrapper = new LoopingMessageException();
+		wrapper.addSuppressed(realViolation());
+		try {
+			Throwable reported = assertTimeoutPreemptively(Duration.ofSeconds(10),
+					() -> ReportingUtils.processThrowable(wrapper, contextFor(policy)));
+			assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(FULL)
+					.hasNoSuppressedExceptions();
+			assertThat(reported.getStackTrace()).isNotEmpty();
+		} finally {
+			wrapper.looping = false;
+		}
+	}
+
+	/**
+	 * Without a blocked action in it, a failure whose own getMessage never returns
+	 * is reported at FULL as a failure that could not be read.
+	 *
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@Test
+	void aLoopingMessageWithoutAViolationIsRedactedAtFull() throws NoSuchMethodException {
+		Locale.setDefault(Locale.ENGLISH);
+		TestContext context = contextFor("noPolicy");
+		LoopingMessageException failure = new LoopingMessageException();
+		try {
+			Throwable reported = assertTimeoutPreemptively(Duration.ofSeconds(10),
+					() -> ReportingUtils.processThrowable(failure, context));
+			assertThat(reported).hasMessage(UNINSPECTABLE_TEXT);
+		} finally {
+			failure.looping = false;
+		}
+	}
+
+	/**
+	 * An ordinary failure at FULL keeps its report.
+	 *
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@Test
+	void anOrdinaryFailureKeepsItsReportAtFull() throws NoSuchMethodException {
+		Throwable reported = ReportingUtils.processThrowable(new IllegalStateException("plain failure"),
+				contextFor("noPolicy"));
+		assertThat(reported).isInstanceOf(IllegalStateException.class).hasMessage("plain failure");
+	}
+
+	/**
+	 * With only privileged failures reported, an ordinary failure the search could
+	 * not finish still gets the policy's message, which reveals nothing of it.
+	 *
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@Test
+	void anIncompleteSearchOfAnOrdinaryFailureGetsThePolicyMessage() throws NoSuchMethodException {
+		Throwable reported = ReportingUtils.processThrowable(withMoreFailuresThanTheSearchReads(),
+				contextFor("privilegedOnlyPolicy"));
+		assertThat(reported).isExactlyInstanceOf(AssertionError.class).hasMessage("Policy message");
+	}
+
+	/**
+	 * With only privileged failures reported, a privileged failure the search could
+	 * not finish is still redacted, since its own report would be shown.
+	 *
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@Test
+	void anIncompleteSearchOfAPrivilegedFailureIsRedacted() throws NoSuchMethodException {
+		Locale.setDefault(Locale.ENGLISH);
+		Throwable reported = ReportingUtils.processThrowable(
+				new PrivilegedException(withMoreFailuresThanTheSearchReads()), contextFor("privilegedOnlyPolicy"));
+		assertThat(reported).hasMessage(UNINSPECTABLE_TEXT);
+	}
+
+	/**
+	 * Failures whose lock stays held cannot make Ares start ever more threads: once
+	 * every worker is taken, a report is redacted at once, and reports work again
+	 * when the workers are free.
+	 *
+	 * @throws Exception if the fixture cannot be set up
+	 */
+	@Test
+	void stalledWorkersAreBounded() throws Exception {
+		Locale.setDefault(Locale.ENGLISH);
+		TestContext context = contextFor("minimizedPolicy");
+		CountDownLatch release = new CountDownLatch(1);
+		List<Thread> reporters = new java.util.ArrayList<>();
+		try {
+			for (int index = 0; index < ReportingUtils.MAX_INSPECTION_THREADS; index++) {
+				RuntimeException failure = new RuntimeException("locked " + index);
+				CountDownLatch locked = new CountDownLatch(1);
+				Thread holder = new Thread(() -> holdLock(failure, locked, release));
+				holder.setDaemon(true);
+				holder.start();
+				locked.await();
+				Thread reporter = new Thread(() -> ReportingUtils.processThrowable(failure, context));
+				reporter.setDaemon(true);
+				reporter.start();
+				reporters.add(reporter);
+			}
+			for (Thread reporter : reporters) {
+				reporter.join(10_000);
+			}
+			Throwable reported = assertTimeoutPreemptively(Duration.ofSeconds(1),
+					() -> ReportingUtils.processThrowable(new IllegalStateException("free"), context));
+			assertThat(reported).hasMessage(UNINSPECTABLE_TEXT);
+		} finally {
+			release.countDown();
+		}
+		assertTimeoutPreemptively(Duration.ofSeconds(10), () -> awaitFreeWorkers(context));
+	}
+
+	/**
+	 * Waits until a report is no longer redacted for want of a free worker.
+	 *
+	 * @param context the test context.
+	 * @throws InterruptedException if interrupted while waiting
+	 */
+	private static void awaitFreeWorkers(TestContext context) throws InterruptedException {
+		while (UNINSPECTABLE_TEXT
+				.equals(ReportingUtils.processThrowable(new IllegalStateException("free"), context).getMessage())) {
+			Thread.sleep(50);
+		}
+	}
+
+	/**
+	 * An ordinary failure carrying more harmless failures than the search reads.
+	 *
+	 * @return the failure.
+	 */
+	private static RuntimeException withMoreFailuresThanTheSearchReads() {
+		RuntimeException failure = new RuntimeException("many failures");
+		for (int index = 0; index <= 256; index++) {
+			failure.addSuppressed(new IllegalStateException("harmless " + index));
+		}
+		return failure;
+	}
+
+	/**
 	 * Holds a failure's lock until released, as student code on an allowed thread
 	 * could.
 	 *
@@ -502,6 +651,32 @@ class SecurityViolationFeedbackTest {
 				Thread.onSpinWait();
 			}
 			return null;
+		}
+	}
+
+	/**
+	 * A student exception that keeps the Java runtime's getCause but whose own
+	 * getMessage would never return.
+	 */
+	private static final class LoopingMessageException extends RuntimeException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/** Whether getMessage keeps looping; a test sets it to false to let it end. */
+		private transient volatile boolean looping = true;
+
+		/**
+		 * Waits while looping, as a hostile override could.
+		 *
+		 * @return a fixed text once the test lets it end.
+		 */
+		@Override
+		public String getMessage() {
+			while (looping) {
+				Thread.onSpinWait();
+			}
+			return "looped";
 		}
 	}
 

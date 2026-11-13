@@ -9,6 +9,7 @@ import java.util.concurrent.*;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
+import org.opentest4j.IncompleteExecutionException;
 import org.opentest4j.MultipleFailuresError;
 import org.slf4j.*;
 
@@ -31,10 +32,21 @@ public final class ReportingUtils {
 	private static final int MAX_SCANNED_FAILURES = 256;
 
 	/**
-	 * How long the search for a blocked action may take. It runs on its own thread,
-	 * because reading a failure locks it, and student code may hold that lock.
+	 * How long the search for a blocked action, and the sanitising of the report,
+	 * may each take. Both run on a worker thread, because reading a failure locks
+	 * it or calls student code, which may hold that lock or never return.
 	 */
 	private static final Duration INSPECTION_TIMEOUT = Duration.ofSeconds(2);
+
+	/**
+	 * The most worker threads that may run at once. A step that never ends keeps
+	 * its thread, so once all are taken the report is redacted instead.
+	 */
+	static final int MAX_INSPECTION_THREADS = 4;
+
+	/** Runs the bounded steps of a report on daemon threads, reusing idle ones. */
+	private static final ExecutorService INSPECTIONS = new ThreadPoolExecutor(0, MAX_INSPECTION_THREADS, 1L,
+			TimeUnit.SECONDS, new SynchronousQueue<>(), ReportingUtils::inspectionThread);
 
 	static {
 		// Initialize
@@ -76,13 +88,13 @@ public final class ReportingUtils {
 		}
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
 		boolean sanitizedNext = nonprivilegedFailureMessage.isEmpty() || t instanceof PrivilegedException;
-		if (!inspection.complete() || inspection.mayHideAViolation(level) && sanitizedNext) {
+		if (inspection.mayHideAViolation(level) && sanitizedNext) {
 			return uninspectable();
 		}
 		if (nonprivilegedFailureMessage.isPresent()) {
-			return processThrowablePrivilegedOnly(t, nonprivilegedFailureMessage.get());
+			return processThrowablePrivilegedOnly(t, nonprivilegedFailureMessage.get(), inspection);
 		}
-		return processThrowableRegularly(t);
+		return sanitizedWithin(t, inspection);
 	}
 
 	/**
@@ -95,7 +107,36 @@ public final class ReportingUtils {
 	 * @return the failure to report.
 	 */
 	public static Throwable processBlockedAction(Throwable t, TestContext context) {
+		return blockedActionReport(t, inspect(t), context);
+	}
+
+	/**
+	 * Reports a failure of a test's constructor or lifecycle method like one of the
+	 * test: a blocked action at the policy's feedback level, and, when the policy
+	 * reports only privileged failures, any other failure as the policy's message.
+	 * A privileged failure and an aborted test keep their own report.
+	 *
+	 * @param t       the failure.
+	 * @param context the test context.
+	 * @return the failure to report.
+	 */
+	public static Throwable processLifecycleFailure(Throwable t, TestContext context) {
+		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
+		if (nonprivilegedFailureMessage.isEmpty() || t instanceof PrivilegedException
+				|| t instanceof IncompleteExecutionException) {
+			return processBlockedAction(t, context);
+		}
 		Inspection inspection = inspect(t);
+		return inspection.violation() == null ? new AssertionError(nonprivilegedFailureMessage.get())
+				: blockedActionReport(t, inspection, context);
+	}
+
+	/**
+	 * Applies the policy's feedback level to an inspected failure that fails
+	 * outside the test invocation; a failure with no blocked action in it is
+	 * returned unchanged.
+	 */
+	private static Throwable blockedActionReport(Throwable t, Inspection inspection, TestContext context) {
 		SecurityViolationFeedbackLevel level = ConfigurationUtils.getSecurityViolationFeedbackLevel(context);
 		if (level == SecurityViolationFeedbackLevel.FULL
 				|| inspection.violation() == null && !inspection.mayHideAViolation(level)) {
@@ -139,24 +180,67 @@ public final class ReportingUtils {
 	}
 
 	/**
-	 * Searches a failure for a blocked action on a separate daemon thread, giving
-	 * up after {@link #INSPECTION_TIMEOUT}, so a lock student code holds on the
-	 * failure cannot stop the report.
+	 * Searches a failure for a blocked action within the bound, so a lock student
+	 * code holds on the failure cannot stop the report.
 	 */
 	private static Inspection inspect(Throwable t) {
-		FutureTask<Inspection> search = new FutureTask<>(() -> violationIn(t));
-		Thread worker = new Thread(search, "ares-failure-inspection"); //$NON-NLS-1$
-		worker.setDaemon(true);
-		worker.start();
+		return withinTheBound(() -> violationIn(t)).orElse(Inspection.INCOMPLETE);
+	}
+
+	/**
+	 * Runs one step of a report on a worker thread and waits at most
+	 * {@link #INSPECTION_TIMEOUT}; empty when it fails, does not finish in time, or
+	 * no worker is free.
+	 */
+	private static <R> Optional<R> withinTheBound(Callable<R> step) {
+		Future<R> running;
 		try {
-			return search.get(INSPECTION_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-		} catch (TimeoutException | ExecutionException unfinished) {
-			worker.interrupt();
-			return Inspection.INCOMPLETE;
-		} catch (InterruptedException interrupted) {
-			Thread.currentThread().interrupt();
-			return Inspection.INCOMPLETE;
+			running = INSPECTIONS.submit(step);
+		} catch (RejectedExecutionException allWorkersTaken) {
+			return Optional.empty();
 		}
+		try {
+			return Optional.ofNullable(running.get(INSPECTION_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS));
+		} catch (TimeoutException | ExecutionException unfinished) {
+			running.cancel(true);
+			return Optional.empty();
+		} catch (InterruptedException interrupted) {
+			running.cancel(true);
+			Thread.currentThread().interrupt();
+			return Optional.empty();
+		}
+	}
+
+	/**
+	 * Creates a daemon worker thread for {@link #INSPECTIONS}.
+	 *
+	 * @param step what the worker runs.
+	 * @return the worker.
+	 */
+	private static Thread inspectionThread(Runnable step) {
+		Thread worker = new Thread(step, "ares-failure-inspection"); //$NON-NLS-1$
+		worker.setDaemon(true);
+		return worker;
+	}
+
+	/**
+	 * Sanitises the failure within the bound, since that reads its message and may
+	 * run student code. When that cannot finish, it reports the blocked action the
+	 * search found by itself, or else that the failure could not be read.
+	 */
+	private static Throwable sanitizedWithin(Throwable t, Inspection inspection) {
+		return withinTheBound(() -> processThrowableRegularly(t))
+				.orElseGet(() -> inspection.violation() == null ? uninspectable() : violationByItself(inspection));
+	}
+
+	/**
+	 * The blocked action the search found, with its own message and stack, and
+	 * nothing of the failures around it.
+	 */
+	private static Throwable violationByItself(Inspection inspection) {
+		SecurityException itself = new SecurityException(inspection.violation().message());
+		itself.setStackTrace(inspection.violationStack().toArray(StackTraceElement[]::new));
+		return itself;
 	}
 
 	/**
@@ -258,19 +342,17 @@ public final class ReportingUtils {
 	/**
 	 * Reports a blocked action at the policy's feedback level. {@code FULL} reports
 	 * the failure as before, unless reading it would call a getter student code
-	 * overrides; then it reports the blocked action itself. The other levels
-	 * replace it, without stack for {@code MINIMIZED}.
+	 * overrides or does not finish in time; then it reports the blocked action
+	 * itself. The other levels replace it, without stack for {@code MINIMIZED}.
 	 */
 	private static Throwable renderedViolation(Throwable t, Inspection inspection,
 			SecurityViolationFeedbackLevel level) {
 		SecurityViolationFeedback.Violation violation = inspection.violation();
 		if (level == SecurityViolationFeedbackLevel.FULL && !inspection.skipped()) {
-			return processThrowableRegularly(t);
+			return sanitizedWithin(t, inspection);
 		}
 		if (level == SecurityViolationFeedbackLevel.FULL) {
-			SecurityException itself = new SecurityException(violation.message());
-			itself.setStackTrace(inspection.violationStack().toArray(StackTraceElement[]::new));
-			return itself;
+			return violationByItself(inspection);
 		}
 		SecurityException rendered = new SecurityException(SecurityViolationFeedback.render(violation, level));
 		if (level == SecurityViolationFeedbackLevel.MINIMIZED) {
@@ -299,9 +381,10 @@ public final class ReportingUtils {
 		return trySanitizeThrowable(t, ReportingUtils::transformMessage);
 	}
 
-	private static Throwable processThrowablePrivilegedOnly(Throwable t, String nonprivilegedFailureMessage) {
+	private static Throwable processThrowablePrivilegedOnly(Throwable t, String nonprivilegedFailureMessage,
+			Inspection inspection) {
 		if (t instanceof PrivilegedException) {
-			return trySanitizeThrowable(t, ReportingUtils::transformMessage);
+			return sanitizedWithin(t, inspection);
 		}
 		return new AssertionError(nonprivilegedFailureMessage);
 	}

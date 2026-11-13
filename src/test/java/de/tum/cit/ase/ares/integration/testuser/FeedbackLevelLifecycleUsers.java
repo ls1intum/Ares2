@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,13 +19,23 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.old
 /**
  * Test classes whose constructor or one lifecycle method reads a file the
  * policy forbids, at MINIMIZED, so the report of a blocked action outside the
- * test method can be checked for every place it can happen.
+ * test method can be checked for every place it can happen; and two whose setup
+ * fails or aborts while only privileged failures are reported.
  */
 @SuppressWarnings({ "static-method", "PMD.TestClassWithoutTestCases" })
 public final class FeedbackLevelLifecycleUsers {
 
 	/** The MINIMIZED policy every class uses. */
 	static final String POLICY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelMINIMIZED.yaml";
+
+	/**
+	 * A policy reporting only privileged failures, with the message "Policy
+	 * message".
+	 */
+	static final String PRIVILEGED_ONLY_POLICY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelPrivilegedMinimized.yaml";
+
+	/** Student code that does nothing forbidden. */
+	static final String HARMLESS_WITHIN = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld";
 
 	/** The student code reading a file. */
 	static final String WITHIN = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/oldMethods/files";
@@ -151,6 +162,44 @@ public final class FeedbackLevelLifecycleUsers {
 		}
 
 		/** The test the teardown runs for. */
+		@Test
+		void runs() {
+		}
+	}
+
+	/** Fails its setup with a text the policy's message replaces. */
+	@Public
+	@UseLocale("en")
+	@MirrorOutput(MirrorOutputPolicy.DISABLED)
+	@Policy(value = PRIVILEGED_ONLY_POLICY, withinPath = HARMLESS_WITHIN)
+	public static final class PrivilegedOnlySetupFails {
+
+		/** Fails before each test. */
+		@BeforeEach
+		void setUp() {
+			throw new AssertionError("secret setup detail");
+		}
+
+		/** The test the setup runs for. */
+		@Test
+		void runs() {
+		}
+	}
+
+	/** Stops its setup with an assumption, which skips the test. */
+	@Public
+	@UseLocale("en")
+	@MirrorOutput(MirrorOutputPolicy.DISABLED)
+	@Policy(value = PRIVILEGED_ONLY_POLICY, withinPath = HARMLESS_WITHIN)
+	public static final class PrivilegedOnlySetupAborts {
+
+		/** Aborts before each test. */
+		@BeforeEach
+		void setUp() {
+			Assumptions.abort("not today");
+		}
+
+		/** The test the setup runs for. */
 		@Test
 		void runs() {
 		}
