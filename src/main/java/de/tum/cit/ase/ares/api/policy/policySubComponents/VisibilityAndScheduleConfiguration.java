@@ -195,9 +195,11 @@ public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
 		Set<Class<?>> seen = new HashSet<>();
 		while (!pending.isEmpty()) {
 			Class<?> current = pending.poll();
-			Optional<TestType> listed = seen.add(current)
-					? Optional.ofNullable(current.getCanonicalName()).flatMap(name -> listed(name + "#" + method))
-					: Optional.empty();
+			if (!seen.add(current)) {
+				continue;
+			}
+			Optional<TestType> listed = Optional.ofNullable(current.getCanonicalName())
+					.flatMap(name -> listed(name + "#" + method));
 			if (listed.isPresent()) {
 				return listed;
 			}
