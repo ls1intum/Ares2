@@ -180,14 +180,16 @@ class GeneratedStrictTimeoutTest {
 
 	/**
 	 * Every JUnit invocation kind the interceptor times stops at the limit with the
-	 * localised timeout message.
+	 * localised timeout message, also a factory whose tests are produced lazily, in
+	 * a nested container too.
 	 *
 	 * @param fixture the fixture whose one timed invocation loops.
 	 * @throws Exception if the run cannot be set up
 	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "ConstructorFixture", "BeforeAllFixture", "BeforeEachFixture", "TestMethodFixture",
-			"FactoryFixture", "TemplateFixture", "DynamicFixture", "AfterEachFixture", "AfterAllFixture" })
+			"FactoryFixture", "LazyFactoryFixture", "LazyContainerFixture", "TemplateFixture", "DynamicFixture",
+			"AfterEachFixture", "AfterAllFixture" })
 	void everyInvocationKindTimesOut(String fixture) throws Exception {
 		EngineExecutionResults results = runJupiter(fixture, Locale.ENGLISH);
 
@@ -431,6 +433,10 @@ class GeneratedStrictTimeoutTest {
 				"@org.junit.jupiter.api.extension.ExtendWith({ de.tum.cit.ase.ares.generated.GeneratedStrictTimeout.class, de.tum.cit.ase.ares.generated.GeneratedHiddenTests.class }) @Test void loops() { Loop.untilInterrupted(); }");
 		fixture(folder, "FactoryFixture", "",
 				"@TestFactory java.util.List<DynamicTest> cases() { Loop.untilInterrupted(); return java.util.List.of(); }");
+		fixture(folder, "LazyFactoryFixture", "",
+				"@TestFactory java.util.stream.Stream<DynamicTest> cases() { return java.util.stream.Stream.generate(() -> DynamicTest.dynamicTest(\"case\", () -> { })).peek(test -> Loop.untilInterrupted()).limit(1); }");
+		fixture(folder, "LazyContainerFixture", "",
+				"@TestFactory java.util.stream.Stream<DynamicNode> cases() { return java.util.stream.Stream.of(DynamicContainer.dynamicContainer(\"inner\", java.util.stream.Stream.generate(() -> DynamicTest.dynamicTest(\"case\", () -> { })).peek(test -> Loop.untilInterrupted()).limit(1))); }");
 		fixture(folder, "TemplateFixture", "",
 				"@org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(ints = { 1 }) void loops(int value) { Loop.untilInterrupted(); }");
 		fixture(folder, "DynamicFixture", "",

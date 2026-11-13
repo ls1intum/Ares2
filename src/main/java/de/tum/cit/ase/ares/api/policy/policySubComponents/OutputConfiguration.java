@@ -17,8 +17,10 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @author Luka Petrovic
  * @param theOutputIsMirrored                  whether output is echoed; null
  *                                             means off.
- * @param theMaximumNumberOfOutputCharactersIs the output limit per stream; null
- *                                             means the annotation's default.
+ * @param theMaximumNumberOfOutputCharactersIs the output limit per stream, in
+ *                                             UTF-8 bytes as the IO tester
+ *                                             counts them; null means the
+ *                                             annotation's default.
  * @param theInputAndOutputAreManagedBy        the manager; null means
  *                                             {@link InputOutputManagerKind#IO_TESTER}.
  * @param theCustomInputAndOutputManagerIs     the custom manager's class name;
@@ -70,7 +72,8 @@ public record OutputConfiguration(@Nullable Boolean theOutputIsMirrored,
 	}
 
 	/**
-	 * Returns the output limit, the annotation's default when not configured.
+	 * Returns the output limit in UTF-8 bytes, the annotation's default when not
+	 * configured. A character outside ASCII counts as two to four bytes.
 	 *
 	 * @since 2.3.0
 	 * @author Luka Petrovic
@@ -164,7 +167,8 @@ public record OutputConfiguration(@Nullable Boolean theOutputIsMirrored,
 		 *
 		 * @since 2.3.0
 		 * @author Luka Petrovic
-		 * @param theMaximumNumberOfOutputCharactersIs the limit; may be null.
+		 * @param theMaximumNumberOfOutputCharactersIs the limit in UTF-8 bytes; may be
+		 *                                             null.
 		 * @return the updated Builder.
 		 */
 		@Nonnull

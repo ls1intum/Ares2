@@ -33,10 +33,10 @@ final class HiddenTestsSources {
 	/** Placeholder for the always-run-before field of the settings class. */
 	private static final String ALWAYS_RUN_BEFORE = "@ALWAYS_RUN_BEFORE@";
 
-	/** Placeholder for the hidden-test list field of the settings class. */
+	/** Placeholder for the expression that reads the hidden-test list. */
 	private static final String HIDDEN = "@HIDDEN@";
 
-	/** Placeholder for the public-test list field of the settings class. */
+	/** Placeholder for the expression that reads the public-test list. */
 	private static final String PUBLIC = "@PUBLIC@";
 
 	/**
@@ -58,11 +58,17 @@ final class HiddenTestsSources {
 			import java.nio.charset.StandardCharsets;
 			import java.lang.reflect.Constructor;
 			import java.lang.reflect.Method;
+			import java.security.CodeSource;
+			import java.util.ArrayList;
+			import java.util.Iterator;
 			import java.util.List;
 			import java.util.Optional;
 			import java.util.Set;
 			import java.util.function.Function;
+			import java.util.stream.Stream;
 
+			import org.junit.jupiter.api.DynamicContainer;
+			import org.junit.jupiter.api.DynamicNode;
 			import org.junit.jupiter.api.extension.DynamicTestInvocationContext;
 			import org.junit.jupiter.api.extension.BeforeAllCallback;
 			import org.junit.jupiter.api.extension.ExtensionContext;
@@ -87,10 +93,10 @@ final class HiddenTestsSources {
 				}
 
 				/** The hidden tests, as {@code pkg.Class} or {@code pkg.Class#method}. */
-				private static final List<String> HIDDEN = List.of(@SETTINGS@.@HIDDEN@.split("\\n"));
+				private static final List<String> HIDDEN = List.of((@HIDDEN@).split("\\n"));
 
 				/** The public tests, as {@code pkg.Class} or {@code pkg.Class#method}. */
-				private static final List<String> PUBLIC = List.of(@SETTINGS@.@PUBLIC@.split("\\n"));
+				private static final List<String> PUBLIC = List.of((@PUBLIC@).split("\\n"));
 
 				/** The security tests Ares generated into the exercise; they always run and report. */
 				private static final Set<String> GENERATED_SECURITY_TESTS = Set.of(
@@ -203,7 +209,67 @@ final class HiddenTestsSources {
 				@Override
 				public <T> T interceptTestFactoryMethod(Invocation<T> invocation,
 						ReflectiveInvocationContext<Method> invocationContext, ExtensionContext context) throws Throwable {
-					return guard(invocation, context);
+					return guard(new Invocation<T>() {
+						@Override
+						public T proceed() throws Throwable {
+							return materialised(invocation.proceed());
+						}
+
+						@Override
+						public void skip() {
+							invocation.skip();
+						}
+					}, context);
+				}
+
+				/**
+				 * A test factory's result read completely, nested containers included, so the
+				 * student code that produces the tests runs while this hook still guards it;
+				 * any other result is returned as it is.
+				 *
+				 * @param <T> the factory's result type
+				 * @param result the factory's result
+				 * @return the tests, read into a list
+				 */
+				@SuppressWarnings("unchecked")
+				static <T> T materialised(T result) {
+					List<Object> nodes = new ArrayList<>();
+					if (result instanceof DynamicNode node) {
+						return (T) materialisedNode(node);
+					} else if (result instanceof Stream<?> stream) {
+						try (stream) {
+							stream.forEach(item -> nodes.add(materialisedNode(item)));
+						}
+					} else if (result instanceof Iterable<?> iterable) {
+						iterable.forEach(item -> nodes.add(materialisedNode(item)));
+					} else if (result instanceof Iterator<?> iterator) {
+						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item)));
+					} else if (result instanceof Object[] array) {
+						for (Object item : array) {
+							nodes.add(materialisedNode(item));
+						}
+					} else {
+						return result;
+					}
+					return (T) nodes;
+				}
+
+				/**
+				 * One produced test, with a container's children read completely.
+				 *
+				 * @param item the produced test
+				 * @return the test, or the item unchanged when it is not a container
+				 */
+				private static Object materialisedNode(Object item) {
+					if (!(item instanceof DynamicContainer container)) {
+						return item;
+					}
+					List<DynamicNode> children = new ArrayList<>();
+					try (Stream<? extends DynamicNode> stream = container.getChildren()) {
+						stream.forEach(child -> children.add((DynamicNode) materialisedNode(child)));
+					}
+					return DynamicContainer.dynamicContainer(container.getDisplayName(),
+							container.getTestSourceUri().orElse(null), children.stream());
 				}
 
 				/**
@@ -263,13 +329,52 @@ final class HiddenTestsSources {
 						invocation.skip();
 						throw new HiddenTestScheduled(@MESSAGES@.localized("test_guard.hidden_test_before_deadline_message"));
 					}
-					try (OutputCapture capture = new OutputCapture()) {
+					try (OutputCapture capture = new OutputCapture(!outputLimitGuards(testClass.get(), methodName))) {
 						try {
 							return invocation.proceed();
 						} catch (Throwable failure) {
 							throw opaque(failure);
 						}
 					}
+				}
+
+				/**
+				 * Whether the generated output limit guards this test now. Its streams already
+				 * show a hidden test nothing while still counting toward the limit, so the
+				 * capture keeps them; when this cannot be read, the capture discards output.
+				 *
+				 * @param testClass the test's class
+				 * @param methodName the test's method, if any
+				 * @return true when the output limit's streams are installed for this test
+				 */
+				private static boolean outputLimitGuards(Class<?> testClass, Optional<String> methodName) {
+					if (methodName.isEmpty()) {
+						return false;
+					}
+					try {
+						Class<?> limit = Class.forName("de.tum.cit.ase.ares.generated.GeneratedOutputMirroring", false,
+								GeneratedHiddenTests.class.getClassLoader());
+						return sameLocation(limit, GeneratedHiddenTests.class) && (Boolean) limit
+								.getMethod("isGuarding", String.class).invoke(null, testClass.getName() + "#" + methodName.get());
+					} catch (ReflectiveOperationException | LinkageError | ClassCastException | NullPointerException absent) {
+						return false;
+					}
+				}
+
+				/**
+				 * Whether two classes were loaded from the same place, so one generated class
+				 * can trust another and a student class with the same name does not count.
+				 *
+				 * @param type one class
+				 * @param other the other class
+				 * @return true when both have the same known location
+				 */
+				static boolean sameLocation(Class<?> type, Class<?> other) {
+					CodeSource source = type.getProtectionDomain().getCodeSource();
+					CodeSource otherSource = other.getProtectionDomain().getCodeSource();
+					return source != null && otherSource != null && source.getLocation() != null
+							&& source.getLocation().toExternalForm().equals(
+									otherSource.getLocation() == null ? null : otherSource.getLocation().toExternalForm());
 				}
 
 				/** Whether hidden tests are held back now: before the deadline, unless their early run has begun. */
@@ -302,7 +407,7 @@ final class HiddenTestsSources {
 							|| methodName.isEmpty() && containsHiddenMethod(testClass.get()))) {
 						return invocation.proceed();
 					}
-					try (OutputCapture capture = new OutputCapture()) {
+					try (OutputCapture capture = new OutputCapture(!outputLimitGuards(testClass.get(), methodName))) {
 						try {
 							return invocation.proceed();
 						} catch (Throwable failure) {
@@ -382,25 +487,36 @@ final class HiddenTestsSources {
 					}
 				}
 
-				/** Discards standard streams while a hidden invocation runs. */
+				/** Discards standard streams while a hidden invocation runs, unless told to keep them. */
 				private static final class OutputCapture implements AutoCloseable {
 					/** Streams to restore after the invocation. */
 					private final PrintStream previousOut = System.out;
 					private final PrintStream previousErr = System.err;
 					/** The sink installed for both standard streams. */
 					private final PrintStream sink = new PrintStream(OutputStream.nullOutputStream(), true, StandardCharsets.UTF_8);
+					/** Whether this capture replaced the streams. */
+					private final boolean installed;
 
-					/** Installs the sink for the current invocation. */
-					OutputCapture() {
-						System.setOut(sink);
-						System.setErr(sink);
+					/**
+					 * Installs the sink for the current invocation.
+					 *
+					 * @param install false when the streams in place already hide the output
+					 */
+					OutputCapture(boolean install) {
+						installed = install;
+						if (install) {
+							System.setOut(sink);
+							System.setErr(sink);
+						}
 					}
 
 					/** Restores the surrounding invocation's streams. */
 					@Override
 					public void close() {
-						System.setOut(previousOut);
-						System.setErr(previousErr);
+						if (installed) {
+							System.setOut(previousOut);
+							System.setErr(previousErr);
+						}
 						sink.close();
 					}
 				}
@@ -427,7 +543,8 @@ final class HiddenTestsSources {
 				}
 
 				/**
-				 * Whether the policy makes the test hidden. Generated classes never are.
+				 * Whether the policy makes the test hidden. Classes Ares generated beside this
+				 * hook never are; a class elsewhere with such a name is treated like any other.
 				 * Otherwise the nearest entry wins: the test's own class with its method,
 				 * then that class, then each enclosing class; without one, the policy's
 				 * setting for unlisted tests decides.
@@ -437,8 +554,9 @@ final class HiddenTestsSources {
 				 * @return true when the test is hidden
 				 */
 				private static boolean isHidden(Class<?> testClass, Optional<String> methodName) {
-					if (testClass.getName().startsWith("de.tum.cit.ase.ares.generated.")
-							|| GENERATED_SECURITY_TESTS.contains(testClass.getName())) {
+					if ((testClass.getName().startsWith("de.tum.cit.ase.ares.generated.")
+							|| GENERATED_SECURITY_TESTS.contains(testClass.getName()))
+							&& sameLocation(testClass, GeneratedHiddenTests.class)) {
 						return false;
 					}
 					Optional<Boolean> byMethod = Optional.ofNullable(testClass.getCanonicalName())
@@ -505,11 +623,15 @@ final class HiddenTestsSources {
 	 * @param messagesClass   fully qualified name of the copied {@code Messages}.
 	 * @param exercisePackage the exercise package Ares writes its generated
 	 *                        security tests below.
+	 * @param hidden          the expression that reads the hidden-test list.
+	 * @param shown           the expression that reads the public-test list.
 	 * @return the source text
 	 */
 	@Nonnull
-	static String jupiterHook(@Nonnull String messagesClass, @Nonnull String exercisePackage) {
-		return fill(JUPITER_HOOK_SOURCE, messagesClass).replace(EXERCISE_PACKAGE, exercisePackage);
+	static String jupiterHook(@Nonnull String messagesClass, @Nonnull String exercisePackage, @Nonnull String hidden,
+			@Nonnull String shown) {
+		return fill(JUPITER_HOOK_SOURCE.replace(HIDDEN, hidden).replace(PUBLIC, shown), messagesClass)
+				.replace(EXERCISE_PACKAGE, exercisePackage);
 	}
 
 	/**
@@ -535,8 +657,6 @@ final class HiddenTestsSources {
 		return source.replace(MESSAGES, messagesClass).replace(SETTINGS, TestBehaviorConfiguration.GENERATED_CLASS_NAME)
 				.replace(DEADLINE, TestBehaviorConfiguration.VISIBILITY_DEADLINE_FIELD_NAME)
 				.replace(ALWAYS_RUN_BEFORE, TestBehaviorConfiguration.VISIBILITY_RUN_BEFORE_FIELD_NAME)
-				.replace(HIDDEN, TestBehaviorConfiguration.VISIBILITY_HIDDEN_LIST_FIELD_NAME)
-				.replace(PUBLIC, TestBehaviorConfiguration.VISIBILITY_PUBLIC_LIST_FIELD_NAME)
 				.replace(UNLISTED, TestBehaviorConfiguration.VISIBILITY_UNLISTED_HIDDEN_FIELD_NAME)
 				.replace("\n", System.lineSeparator());
 	}

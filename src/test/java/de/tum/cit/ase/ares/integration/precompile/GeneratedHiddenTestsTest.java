@@ -87,6 +87,15 @@ class GeneratedHiddenTestsTest {
 	 */
 	private static Path shadowSettings;
 
+	/** A project whose hidden list is too long for one generated literal. */
+	private static Path longFuture;
+
+	/**
+	 * The long project's settings class, replaced with a passed deadline and empty
+	 * lists.
+	 */
+	private static Path longShadowSettings;
+
 	/**
 	 * Generated code and fixtures, from a policy hiding unlisted tests whose
 	 * deadline lies ahead.
@@ -145,6 +154,24 @@ class GeneratedHiddenTestsTest {
 		Files.writeString(shadowSource, settings.replaceAll("THE_DEADLINE = -?\\d+L;", "THE_DEADLINE = 0L;")
 				.replaceAll("THE_FOLLOWING_TESTS_ARE_HIDDEN = \"[^\"]*\";", "THE_FOLLOWING_TESTS_ARE_HIDDEN = \"\";"));
 		compile(shadowSettings, List.of(), shadowSource);
+		List<String> longHidden = new ArrayList<>(HIDDEN);
+		while (String.join("\n", longHidden).length() <= 45_000) {
+			longHidden.add(HIDDEN.get(0));
+		}
+		Path longSources = generate("long-future", policyText("2200-01-01 00:00 UTC", null, false, longHidden, PUBLIC));
+		longFuture = compileProject("long-future", longSources);
+		longShadowSettings = Files.createDirectories(tempDir.resolve("long-shadow"));
+		Path longShadowSource = Files
+				.createDirectories(tempDir.resolve("long-shadow-source/de/tum/cit/ase/ares/generated"))
+				.resolve("GeneratedTestBehaviorSettings.java");
+		String longSettings = Files
+				.readString(longSources.resolve("de/tum/cit/ase/ares/generated/GeneratedTestBehaviorSettings.java"));
+		assertThat(longSettings).as("the long list must be split into parts").contains("_PART_2 = ");
+		Files.writeString(longShadowSource,
+				longSettings.replaceAll("THE_DEADLINE = -?\\d+L;", "THE_DEADLINE = 0L;").replaceAll(
+						"THE_FOLLOWING_TESTS_ARE_HIDDEN(_PART_\\d+)? = (\"[^\"]*\"|String\\.join\\([^;]*\\));",
+						"THE_FOLLOWING_TESTS_ARE_HIDDEN$1 = \"\";"));
+		compile(longShadowSettings, List.of(), longShadowSource);
 		shadowVisibility = Files.createDirectories(tempDir.resolve("shadow-visibility"));
 		Path shadowVisibilitySource = Files
 				.createDirectories(tempDir.resolve("shadow-visibility-source/de/tum/cit/ase/ares/generated"))
@@ -526,6 +553,21 @@ class GeneratedHiddenTestsTest {
 	void aReplacedSettingsClassChangesNothing() throws Exception {
 		EngineExecutionResults results = run(List.of(shadowSettings, future), "com.example.fixtures.MethodFixture",
 				Locale.ENGLISH, Map.of());
+
+		assertThat(failureMessages(results)).hasSize(3).allMatch(beforeDeadline(Locale.ENGLISH)::equals);
+	}
+
+	/**
+	 * A hidden list too long for one literal is written in constant parts that the
+	 * extension inlines, so replacing the settings class with empty parts and a
+	 * passed deadline changes nothing either.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aReplacedSettingsClassChangesNothingForALongList() throws Exception {
+		EngineExecutionResults results = run(List.of(longShadowSettings, longFuture),
+				"com.example.fixtures.MethodFixture", Locale.ENGLISH, Map.of());
 
 		assertThat(failureMessages(results)).hasSize(3).allMatch(beforeDeadline(Locale.ENGLISH)::equals);
 	}

@@ -164,16 +164,80 @@ public record TestBehaviorConfiguration(@Nullable StrictTimeoutConfiguration reg
 	private static final int LITERAL_CHARACTER_LIMIT = 20_000;
 
 	/**
+	 * The suffix numbering the constant parts of a list too long for one literal.
+	 */
+	private static final String PART_SUFFIX = "_PART_";
+
+	/**
 	 * Writes a list of test entries as one line-separated text field. A list too
-	 * long for one literal is joined at run time from several, each within the
-	 * limit, so the generated class still compiles.
+	 * long for one literal is also written as numbered constant parts, each within
+	 * the limit, so the generated class still compiles and a generated hook can
+	 * join the parts it inlines.
 	 *
 	 * @param fieldName the field to assign.
 	 * @param entries   the entries, in order.
-	 * @return the assignment, terminated with a newline
+	 * @return the assignments, each terminated with a newline
 	 */
 	@Nonnull
 	private static String listAssignment(@Nonnull String fieldName, @Nonnull List<String> entries) {
+		List<String> chunks = chunks(entries);
+		if (chunks.size() == 1) {
+			return JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment(fieldName, chunks.get(0));
+		}
+		StringBuilder assignments = new StringBuilder();
+		for (int index = 0; index < chunks.size(); index++) {
+			assignments.append(JavaAOPTestCaseToolbox
+					.getPublicStaticFinalStringAssignment(fieldName + PART_SUFFIX + index, chunks.get(index)));
+		}
+		return assignments.append("public static final String ").append(fieldName).append(" = ")
+				.append(joinExpression(fieldName, chunks.size(), "")).append(';').append(System.lineSeparator())
+				.toString();
+	}
+
+	/**
+	 * The Java expression a generated hook reads a list field with. A short list is
+	 * the constant itself; a long one joins its constant parts, which the compiler
+	 * inlines into the hook, so replacing the settings class at run time changes
+	 * nothing.
+	 *
+	 * @param settingsClass the settings class's name.
+	 * @param fieldName     the list field.
+	 * @param entries       the entries the field holds.
+	 * @return the expression
+	 */
+	@Nonnull
+	public static String listExpression(@Nonnull String settingsClass, @Nonnull String fieldName,
+			@Nonnull List<String> entries) {
+		int parts = chunks(entries).size();
+		return parts == 1 ? settingsClass + "." + fieldName : joinExpression(fieldName, parts, settingsClass + ".");
+	}
+
+	/**
+	 * Joins numbered parts of a list field with line breaks.
+	 *
+	 * @param fieldName the list field.
+	 * @param parts     how many parts it has.
+	 * @param qualifier what precedes each part's name, possibly empty.
+	 * @return the expression
+	 */
+	@Nonnull
+	private static String joinExpression(@Nonnull String fieldName, int parts, @Nonnull String qualifier) {
+		List<String> names = new ArrayList<>();
+		for (int index = 0; index < parts; index++) {
+			names.add(qualifier + fieldName + PART_SUFFIX + index);
+		}
+		return "String.join(\"\\n\", " + String.join(", ", names) + ")";
+	}
+
+	/**
+	 * Splits a list's entries, joined with line breaks, into texts within the
+	 * literal limit; never splits an entry.
+	 *
+	 * @param entries the entries, in order.
+	 * @return at least one text
+	 */
+	@Nonnull
+	private static List<String> chunks(@Nonnull List<String> entries) {
 		List<String> chunks = new ArrayList<>();
 		StringBuilder chunk = new StringBuilder();
 		for (String entry : entries) {
@@ -184,25 +248,7 @@ public record TestBehaviorConfiguration(@Nullable StrictTimeoutConfiguration reg
 			chunk.append(chunk.length() > 0 ? "\n" : "").append(entry);
 		}
 		chunks.add(chunk.toString());
-		if (chunks.size() == 1) {
-			return JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment(fieldName, chunks.get(0));
-		}
-		List<String> literals = chunks.stream().map(TestBehaviorConfiguration::literalOf).toList();
-		return "public static final String " + fieldName + " = String.join(\"\\n\", " + String.join(", ", literals)
-				+ ");" + System.lineSeparator();
-	}
-
-	/**
-	 * Escapes a text as a Java string literal, quotes included, the way the other
-	 * generated fields are escaped.
-	 *
-	 * @param text the text.
-	 * @return the literal
-	 */
-	@Nonnull
-	private static String literalOf(@Nonnull String text) {
-		String assignment = JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment("X", text).strip();
-		return assignment.substring(assignment.indexOf('"'), assignment.length() - 1);
+		return chunks;
 	}
 
 	/**
