@@ -36,6 +36,9 @@ final class StrictTimeoutSources {
 	/** Placeholder for the grace field of the settings class, in nanoseconds. */
 	private static final String GRACE = "@GRACE@";
 
+	/** Placeholder for the package the Ares classes are copied into. */
+	private static final String PACKAGE = "@PACKAGE@";
+
 	/**
 	 * Source text of the JUnit Jupiter interceptor, before the placeholders are
 	 * filled.
@@ -597,6 +600,10 @@ final class StrictTimeoutSources {
 				 */
 				private static Throwable copyAlone(Throwable failure) {
 					String type = failure.getClass().getName();
+					Throwable violation = violationCopy(failure);
+					if (violation != null) {
+						return violation;
+					}
 					try {
 						StackTraceElement[] stack = trustedAccessor(failure, "getStackTrace") ? failure.getStackTrace()
 								: new StackTraceElement[0];
@@ -629,6 +636,38 @@ final class StrictTimeoutSources {
 						return abort;
 					}
 					return new DetachedFailure(text, stack);
+				}
+
+				/** The two blocked-action classes of the copied Ares checks. */
+				private static final java.util.Set<String> VIOLATION_TYPES = java.util.Set.of(
+						"@PACKAGE@.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation",
+						"@PACKAGE@.ares.api.aop.java.instrumentation.advice.AresSecurityViolation");
+
+				/**
+				 * A copy of a blocked action of the copied Ares checks that keeps its kind,
+				 * action and target, so the failure feedback still recognises it; null for any
+				 * other failure. Those classes are final and only Ares's checks create them.
+				 */
+				private static Throwable violationCopy(Throwable failure) {
+					Class<?> type = failure.getClass();
+					ClassLoader loader = type.getClassLoader();
+					if (!VIOLATION_TYPES.contains(type.getName()) || !java.lang.reflect.Modifier.isFinal(type.getModifiers())
+							|| loader != null && loader != GeneratedStrictTimeout.class.getClassLoader()) {
+						return null;
+					}
+					try {
+						Throwable copy = new DetachedViolation(type.getName(), fieldOf(failure, "kind"), fieldOf(failure, "action"),
+								fieldOf(failure, "target"), failure.getMessage());
+						copy.setStackTrace(failure.getStackTrace());
+						return copy;
+					} catch (ReflectiveOperationException | RuntimeException | LinkageError unreadable) {
+						return null;
+					}
+				}
+
+				/** Reads one field of a blocked action through its own public method. */
+				private static String fieldOf(Throwable violation, String method) throws ReflectiveOperationException {
+					return String.valueOf(violation.getClass().getMethod(method).invoke(violation));
 				}
 
 				/**
@@ -813,12 +852,24 @@ final class StrictTimeoutSources {
 							&& source.getLocation().toExternalForm().equals(library.getLocation().toExternalForm());
 				}
 
+				/** The generated hooks' own failure classes, the only ones in their package Ares trusts. */
+				private static final java.util.Set<String> GENERATED_FAILURES = java.util.Set.of(
+						"de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$HiddenTestFailure",
+						"de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$DetachedFailure",
+						"de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$DetachedViolation",
+						"de.tum.cit.ase.ares.generated.GeneratedFailureReporting$DetachedFailure",
+						"de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure",
+						"de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestScheduled",
+						"de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestAbort",
+						"de.tum.cit.ase.ares.generated.GeneratedOutputMirroring$HiddenOutputFailure");
+
 				/**
-				 * Whether a class is one of the generated hooks' own: in their package, loaded
-				 * by the same class loader from the same place as this hook.
+				 * Whether a class is one of the generated hooks' own failure classes: named as
+				 * one, loaded by the same class loader from the same place as this hook, so a
+				 * student class in the same package never counts.
 				 */
 				private static boolean fromGeneratedHooks(Class<?> owner) {
-					if (!GeneratedStrictTimeout.class.getPackageName().equals(owner.getPackageName())
+					if (!GENERATED_FAILURES.contains(owner.getName())
 							|| owner.getClassLoader() != GeneratedStrictTimeout.class.getClassLoader()) {
 						return false;
 					}
@@ -852,6 +903,82 @@ final class StrictTimeoutSources {
 					DetachedFailure(String text, StackTraceElement[] stack) {
 						super((Object) text);
 						setStackTrace(stack);
+					}
+				}
+
+				/**
+				 * A copy of a blocked action that keeps what the failure feedback reads: its
+				 * kind, action and target, under the same method names as the original.
+				 */
+				public static final class DetachedViolation extends SecurityException {
+					/** Serialisation identifier for the generated copy. */
+					private static final long serialVersionUID = 1L;
+
+					/** The original class's name, shown as the type of the copy. */
+					private final String type;
+
+					/** What was reached for, such as file. */
+					private final String kind;
+
+					/** What was attempted. */
+					private final String action;
+
+					/** What the action targeted. */
+					private final String target;
+
+					/**
+					 * A copy with these fields and this text.
+					 *
+					 * @param type    the original class's name
+					 * @param kind    what was reached for
+					 * @param action  what was attempted
+					 * @param target  what the action targeted
+					 * @param message the text, read already
+					 */
+					DetachedViolation(String type, String kind, String action, String target, String message) {
+						super(message);
+						this.type = type;
+						this.kind = kind;
+						this.action = action;
+						this.target = target;
+					}
+
+					/**
+					 * What was reached for.
+					 *
+					 * @return file, network, command, thread or architecture
+					 */
+					public String kind() {
+						return kind;
+					}
+
+					/**
+					 * What was attempted.
+					 *
+					 * @return the action
+					 */
+					public String action() {
+						return action;
+					}
+
+					/**
+					 * What the action targeted.
+					 *
+					 * @return the target
+					 */
+					public String target() {
+						return target;
+					}
+
+					/**
+					 * The original class's name and the text, as the original prints.
+					 *
+					 * @return the text
+					 */
+					@Override
+					public String toString() {
+						String message = getLocalizedMessage();
+						return message == null ? type : type + ": " + message;
 					}
 				}
 
@@ -1038,6 +1165,7 @@ final class StrictTimeoutSources {
 		return source.replace(MESSAGES, messagesClass).replace(SETTINGS, TestBehaviorConfiguration.GENERATED_CLASS_NAME)
 				.replace(GRACE, TestBehaviorConfiguration.STRICT_TIMEOUT_GRACE_FIELD_NAME)
 				.replace(TIMEOUT, TestBehaviorConfiguration.STRICT_TIMEOUT_TIMEOUT_FIELD_NAME)
+				.replace(PACKAGE, messagesClass.substring(0, messagesClass.indexOf(".ares.api.localization.Messages")))
 				.replace("\n", System.lineSeparator());
 	}
 }

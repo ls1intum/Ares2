@@ -455,12 +455,24 @@ final class FailureReportingSources {
 				 * policy's feedback level; with privileged-only reporting on, a blocked action
 				 * wrapped in another failure is reported on its own, a skipped test stays
 				 * skipped without its reason, a timeout shows the fixed text, and everything
-				 * else the policy's message.
+				 * else the policy's message. It runs within a time limit; past it the report
+				 * is the policy's message or the type.
 				 *
 				 * @param throwable the real failure
 				 * @return the failure to report
 				 */
 				static Throwable replacementFor(Throwable throwable) {
+					Throwable fallback = throwable instanceof TestAbortedException ? new TestAbortedException()
+							: @SETTINGS@.@ENABLED@ ? new AssertionError(@SETTINGS@.@MESSAGE@)
+									: new DetachedFailure(throwable.getClass().getName(), new StackTraceElement[0]);
+					return bounded(() -> replacementWithin(throwable), fallback);
+				}
+
+				/**
+				 * {@link #replacementFor} itself, run on the bounded worker, since even finding
+				 * a blocked action reads the failure, which another thread may hold locked.
+				 */
+				private static Throwable replacementWithin(Throwable throwable) {
 					if (isHiddenResult(throwable)) {
 						return throwable;
 					}
@@ -469,7 +481,7 @@ final class FailureReportingSources {
 						return renderedViolation(violation);
 					}
 					if (!@SETTINGS@.@ENABLED@) {
-						return boundedCopyOf(throwable);
+						return copyOf(throwable);
 					}
 					if (violation != null) {
 						return violation;
@@ -492,7 +504,9 @@ final class FailureReportingSources {
 					for (Throwable current = throwable; current != null && seen.add(current); current = causeOf(current)) {
 						String type = current.getClass().getName();
 						if (type.equals("@PACKAGE@.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation")
-								|| type.equals("@PACKAGE@.ares.api.aop.java.instrumentation.advice.AresSecurityViolation")) {
+								|| type.equals("@PACKAGE@.ares.api.aop.java.instrumentation.advice.AresSecurityViolation")
+								|| type.equals("de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$DetachedViolation")
+										&& fromGeneratedHooks(current.getClass())) {
 							return current;
 						}
 					}
@@ -526,16 +540,17 @@ final class FailureReportingSources {
 				private static final int UNRESPONSIVE_EXIT_CODE = 124;
 
 				/**
-				 * {@link #copyOf} on a worker of its own, bounded: a copy that does not finish in
-				 * time gives the failure's type alone, and a worker that then ignores its
+				 * Runs a step that reads a failure on a worker of its own, bounded: a step that
+				 * does not finish in time gives the fallback, and a worker that then ignores its
 				 * interruption ends the test run, as the strict timeout does.
 				 *
-				 * @param failure the real failure
-				 * @return the copy
+				 * @param step     the step
+				 * @param fallback the failure to report when the step does not finish
+				 * @return the step's result
 				 */
-				static Throwable boundedCopyOf(Throwable failure) {
+				static Throwable bounded(java.util.function.Supplier<Throwable> step, Throwable fallback) {
 					java.util.concurrent.atomic.AtomicReference<Throwable> copy = new java.util.concurrent.atomic.AtomicReference<>();
-					Thread worker = new Thread(null, () -> copy.set(copyOf(failure)), "ares-failure-copy", 0, false);
+					Thread worker = new Thread(null, () -> copy.set(step.get()), "ares-failure-copy", 0, false);
 					worker.setDaemon(true);
 					worker.start();
 					awaitCopy(worker, COPY_BOUND_MILLIS);
@@ -547,7 +562,7 @@ final class FailureReportingSources {
 						}
 					}
 					Throwable result = copy.get();
-					return result != null ? result : new DetachedFailure(failure.getClass().getName(), new StackTraceElement[0]);
+					return result != null ? result : fallback;
 				}
 
 				/** Waits for the copying worker, keeping an interruption of the waiting thread. */
@@ -839,12 +854,24 @@ final class FailureReportingSources {
 							&& source.getLocation().toExternalForm().equals(library.getLocation().toExternalForm());
 				}
 
+				/** The generated hooks' own failure classes, the only ones in their package Ares trusts. */
+				private static final java.util.Set<String> GENERATED_FAILURES = java.util.Set.of(
+						"de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$HiddenTestFailure",
+						"de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$DetachedFailure",
+						"de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$DetachedViolation",
+						"de.tum.cit.ase.ares.generated.GeneratedFailureReporting$DetachedFailure",
+						"de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure",
+						"de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestScheduled",
+						"de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestAbort",
+						"de.tum.cit.ase.ares.generated.GeneratedOutputMirroring$HiddenOutputFailure");
+
 				/**
-				 * Whether a class is one of the generated hooks' own: in their package, loaded
-				 * by the same class loader from the same place as this hook.
+				 * Whether a class is one of the generated hooks' own failure classes: named as
+				 * one, loaded by the same class loader from the same place as this hook, so a
+				 * student class in the same package never counts.
 				 */
 				private static boolean fromGeneratedHooks(Class<?> owner) {
-					if (!GeneratedFailureReporting.class.getPackageName().equals(owner.getPackageName())
+					if (!GENERATED_FAILURES.contains(owner.getName())
 							|| owner.getClassLoader() != GeneratedFailureReporting.class.getClassLoader()) {
 						return false;
 					}
