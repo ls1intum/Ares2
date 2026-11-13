@@ -38,6 +38,9 @@ class PolicyCompatibilityManifestTest {
 	private static final Path PAGE = REPOSITORY
 			.resolve("documentation/docs/contributor/subsystems/policy/policy-compatibility.md");
 
+	/** The start of a release row on the page, such as {@code | 2.3.0 |}. */
+	private static final Pattern RELEASE_ROW = Pattern.compile("\\| \\d+\\.\\d+\\.\\d+ \\|");
+
 	/** The project version in {@code pom.xml}. */
 	private static final Pattern POM_VERSION = Pattern
 			.compile("<artifactId>ares</artifactId>\\s*<version>([^<]+)</version>");
@@ -52,29 +55,38 @@ class PolicyCompatibilityManifestTest {
 		assertEquals(SecurityPolicy.CURRENT_POLICY_VERSION, newest.get("maximumPolicyFormat").intValue());
 	}
 
-	/** A release cannot be built without its row. */
+	/**
+	 * A release cannot be built without its own row; a row for a later release does
+	 * not stand in for it.
+	 */
 	@Test
-	void theNewestReleaseIsNotOlderThanThePom() throws IOException {
+	void theProjectVersionHasItsOwnRow() throws IOException {
 		Matcher matcher = POM_VERSION.matcher(Files.readString(REPOSITORY.resolve("pom.xml")));
 		assertTrue(matcher.find(), "no project version in pom.xml");
 		String pomVersion = matcher.group(1).replace("-SNAPSHOT", "");
-		String newest = newestRelease().get("version").textValue();
-		assertTrue(compare(newest, pomVersion) >= 0,
-				() -> "policy-compatibility.json has no row for " + pomVersion + "; newest is " + newest);
+		List<String> versions = new ArrayList<>();
+		manifest().get("releases").forEach(release -> versions.add(release.get("version").textValue()));
+		assertTrue(versions.contains(pomVersion),
+				() -> "policy-compatibility.json has no row for " + pomVersion + "; it lists " + versions);
 	}
 
-	/** The page shows the table the file holds. */
+	/**
+	 * The page shows exactly the table the file holds: every release row of the
+	 * file, and no release row the file lacks.
+	 */
 	@Test
 	void thePageShowsTheManifest() throws IOException {
-		String page = Files.readString(PAGE).replace("\r\n", "\n");
+		List<String> manifestRows = new ArrayList<>();
 		for (JsonNode release : manifest().get("releases")) {
 			List<String> keys = new ArrayList<>();
 			release.get("testBehaviorKeys").forEach(key -> keys.add("`" + key.textValue() + "`"));
-			String row = "| " + release.get("version").textValue() + " | "
+			manifestRows.add("| " + release.get("version").textValue() + " | "
 					+ release.get("minimumPolicyFormat").intValue() + " to "
-					+ release.get("maximumPolicyFormat").intValue() + " | " + String.join("<br/>", keys) + " |";
-			assertTrue(page.contains(row), () -> "the page lacks the row: " + row);
+					+ release.get("maximumPolicyFormat").intValue() + " | " + String.join("<br/>", keys) + " |");
 		}
+		List<String> pageRows = Files.readString(PAGE).replace("\r\n", "\n").lines()
+				.filter(line -> RELEASE_ROW.matcher(line).lookingAt()).toList();
+		assertEquals(new TreeSet<>(manifestRows), new TreeSet<>(pageRows));
 	}
 
 	/** Every key path the validator accepts below the test-behaviour wrapper. */
