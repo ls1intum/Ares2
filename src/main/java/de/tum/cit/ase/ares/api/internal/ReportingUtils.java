@@ -12,6 +12,7 @@ import org.slf4j.*;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.context.TestType;
 import de.tum.cit.ase.ares.api.internal.sanitization.*;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.SecurityViolationFeedbackLevel;
 
 /**
  * For handling and post processing Exceptions and Errors.
@@ -56,11 +57,77 @@ public final class ReportingUtils {
 		if (aresInternalError) {
 			return new AssertionError(localized("reporting.ares_internal_error")); //$NON-NLS-1$
 		}
+		Optional<SecurityViolationFeedback.Violation> violation = violationIn(t);
+		if (violation.isPresent()) {
+			return renderedViolation(t, violation.get(), ConfigurationUtils.getSecurityViolationFeedbackLevel(context));
+		}
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
 		if (nonprivilegedFailureMessage.isPresent()) {
 			return processThrowablePrivilegedOnly(t, nonprivilegedFailureMessage.get());
 		}
 		return processThrowableRegularly(t);
+	}
+
+	/**
+	 * Applies the policy's feedback level to a blocked action that fails outside
+	 * the test invocation, such as in a JUnit callback where Ares checks the
+	 * architecture; any other failure is returned unchanged.
+	 *
+	 * @param t       the failure.
+	 * @param context the test context.
+	 * @return the failure to report.
+	 */
+	public static Throwable processBlockedAction(Throwable t, TestContext context) {
+		Optional<SecurityViolationFeedback.Violation> violation = violationIn(t);
+		if (violation.isEmpty()) {
+			return t;
+		}
+		SecurityViolationFeedbackLevel level = ConfigurationUtils.getSecurityViolationFeedbackLevel(context);
+		return level == SecurityViolationFeedbackLevel.FULL ? t : renderedViolation(t, violation.get(), level);
+	}
+
+	/**
+	 * Finds a blocked action in a failure or its causes, so wrapping a violation
+	 * does not bring its full text back at a lower feedback level.
+	 */
+	private static Optional<SecurityViolationFeedback.Violation> violationIn(Throwable t) {
+		Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+		for (Throwable current = t; current != null && seen.add(current); current = causeOf(current)) {
+			Optional<SecurityViolationFeedback.Violation> violation = SecurityViolationFeedback.violationOf(current);
+			if (violation.isPresent()) {
+				return violation;
+			}
+		}
+		return Optional.empty();
+	}
+
+	/**
+	 * Reports a blocked action at the policy's feedback level. {@code FULL} reports
+	 * the failure as before; the other levels replace it, without stack for
+	 * {@code MINIMIZED}.
+	 */
+	private static Throwable renderedViolation(Throwable t, SecurityViolationFeedback.Violation violation,
+			SecurityViolationFeedbackLevel level) {
+		if (level == SecurityViolationFeedbackLevel.FULL) {
+			return processThrowableRegularly(t);
+		}
+		SecurityException rendered = new SecurityException(SecurityViolationFeedback.render(violation, level));
+		if (level == SecurityViolationFeedbackLevel.MINIMIZED) {
+			rendered.setStackTrace(new StackTraceElement[0]);
+		}
+		return rendered;
+	}
+
+	/**
+	 * Returns a failure's cause, or nothing when a student-defined {@code getCause}
+	 * throws, so reporting never fails on student code.
+	 */
+	private static Throwable causeOf(Throwable t) {
+		try {
+			return t.getCause();
+		} catch (RuntimeException | LinkageError faulty) {
+			return null;
+		}
 	}
 
 	private static boolean isAresInternalError(Throwable t) {

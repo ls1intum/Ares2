@@ -283,6 +283,13 @@ regardingTheSupervisedCode:
     # REQUIRED list: Timeouts (can be empty array)
     regardingTimeouts:
       - timeout: 10000                               # REQUIRED (milliseconds)
+
+  # OPTIONAL: Behaviour of the tests, see 7.7. Every category inside is optional.
+  theFollowingTestBehaviorIsConfigured:
+    regardingTheFailureFeedbackForTheTestCases:
+      onlyPrivilegedExceptionsAreReported: false     # OPTIONAL, defaults as shown
+      theFailureMessageForOtherExceptionsIs: "Test failed."  # OPTIONAL, defaults as shown
+      theSecurityViolationFeedbackLevelIs: FULL      # OPTIONAL: DEBUG, MINIMIZED or FULL
 ```
 
 ### 7.3 Configuration Options
@@ -363,6 +370,51 @@ theFollowingClassesAreTestClasses:
 **Matching:** an entry matches a class name **exactly** and covers the classes declared inside that class, as the class's own compiled file lists them in its `NestMembers` attribute. So `"com.instructor.ExerciseTest"` covers `com.instructor.ExerciseTest$Inner` and its anonymous and local classes. A separate class that a student names `com.instructor.ExerciseTest$Evil` gains nothing, and neither does `com.instructor.ExerciseTestOther`. In Postcompile, Ares refuses to run when the compiled supervised code contains a class carrying one of the covered names; Precompile has no such check. In Postcompile, the static architecture rules and the runtime advice compare the same names, so both layers behave alike; the architecture rules that Precompile generates do not receive this list. A nested entry such as `com.instructor.Outer$ExerciseTest` covers only that class, not the classes declared inside it. In Precompile the generator reads the compiled test classes, so compile them before generating and regenerate after changing them.
 
 > **Package names and package prefixes do not work here, and are not harmless.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package; it matches a class literally named `com.instructor`, which does not exist, so it exempts nothing. The likely symptom is that your own test classes are treated as supervised code and your assertions start tripping the policy, if they fall within the supervised scope. Worse, the entry is not inert: Ares derives a permitted package from every entry by stripping the last dotted component, so `"com.instructor"` permits imports from the whole `com` prefix. List each test class by its exact fully qualified name.
+
+---
+
+### 7.7 Test Behaviour Configuration
+
+The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before.
+
+The category and field names follow the proposal in issue #386, section C. They are not final until the advisor accepts them; [Policy Compatibility](./policy-compatibility.md) lists which release accepts which key.
+
+Ares reads these settings once per policy file, before it supervises any test code, and keeps them for the test class. A policy file changed while the tests run changes nothing. Any malformed value, unknown key or explicit `null` fails every test and names the field.
+
+#### 7.7.3 Failure feedback
+
+`regardingTheFailureFeedbackForTheTestCases` says what a student sees when a public test fails. Every field is optional; the defaults are the behaviour without this category. There is no annotation for this any more: Ares 2.3.0 removed `@PrivilegedExceptionsOnly`.
+
+- `onlyPrivilegedExceptionsAreReported` (boolean): `true` replaces the text of every failure except a blocked action and a privileged one with a fixed message. Defaults to `false`.
+- `theFailureMessageForOtherExceptionsIs` (text): the fixed message. Defaults to `"Test failed."` when omitted or blank.
+- `theSecurityViolationFeedbackLevelIs` (`DEBUG`, `MINIMIZED` or `FULL`): how much a blocked action reveals. Defaults to `FULL`.
+
+The feedback level decides every action Ares blocks at run time:
+
+| Level | What the student sees |
+|---|---|
+| `FULL` | The full message, as before: `Ares Security Error (Reason: Student-Code; Stage: Execution): Main.run tried to illegally read File /etc/passwd via FileInputStream.<init> but was blocked by Ares.` |
+| `MINIMIZED` | `Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.` No action, target or caller, and no stack. |
+| `DEBUG` | The full message, followed by the policy entry that allows the action, such as `To allow this, add to regardingFileSystemInteractions: { onThisPathAndAllPathsBelow: "/etc/passwd", readAllFiles: true }`. For an action the architecture analysis blocks, the hint names only the category. |
+
+Errors in Ares itself (`Reason: Ares-Code`) are never shortened and never get a hint. A student who creates an exception that looks like a blocked action gets no special treatment: only the exceptions Ares's own checks create follow the level.
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingTheFailureFeedbackForTheTestCases:
+    onlyPrivilegedExceptionsAreReported: true
+    theFailureMessageForOtherExceptionsIs: "Something went wrong."
+    theSecurityViolationFeedbackLevelIs: MINIMIZED
+```
+
+#### 7.7.5 Precedence
+
+| Setting | Decided by, first match wins |
+|---|---|
+| Failure feedback | The policy only. |
+| Policy deactivated, or no policy | No test behaviour from the policy; annotations still apply. |
+
+A policy read on a method-level `@Policy` gives that method its own file's settings.
 
 ---
 

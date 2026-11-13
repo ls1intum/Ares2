@@ -687,7 +687,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		CachedOutcome cached = RULE_OUTCOME_CACHE.get(key);
 		if (cached != null) {
 			if (cached.violationMessage != null) {
-				throw new SecurityException(cached.violationMessage);
+				throw JavaArchitectureTestCase.violationFromMessage(cached.violationMessage);
 			}
 			return;
 		}
@@ -701,7 +701,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		try {
 			CachedOutcome outcome = evaluation.get();
 			if (outcome.violationMessage != null) {
-				throw new SecurityException(outcome.violationMessage);
+				throw JavaArchitectureTestCase.violationFromMessage(outcome.violationMessage);
 			}
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
