@@ -375,20 +375,17 @@ final class StrictTimeoutSources {
 				}
 
 				/**
-				 * Runs an action on a worker thread and stops it after the policy's timeout,
-				 * waited for to the nanosecond and converted before the worker starts. A worker
-				 * that does not stop within the grace period halts the test process, since it
-				 * would otherwise keep running untrusted code. The thread-creation
-				 * check exempts exactly this method of this class, and only when the class was
-				 * loaded from where the copied checks are; it is private, so only this hook's
-				 * interceptors reach it. A hidden test's timeout shows no text.
+				 * Runs an action on a worker, stopped at the policy's timeout. A worker
+				 * ignoring the stop halts the test process, so untrusted code cannot run on.
+				 * The thread check exempts only this private method if its class comes
+				 * from the copied checks' place. A hidden test's timeout shows no text.
 				 *
-				 * @param <T>          the action's result
-				 * @param action       the action to bound
-				 * @param defaultGrace the grace period when the policy names none
-				 * @param context      the test's context, for its visibility
-				 * @return the action's result
-				 * @throws Throwable whatever the action threw, or a timeout naming the limit
+				 * @param <T>          the result
+				 * @param action       the action
+				 * @param defaultGrace the grace period if the policy has none
+				 * @param context      the test
+				 * @return the result
+				 * @throws Throwable its failure, or a timeout
 				 */
 				private static <T> T executeWithTimeout(TimedAction<T> action, Duration defaultGrace,
 						ExtensionContext context) throws Throwable {
