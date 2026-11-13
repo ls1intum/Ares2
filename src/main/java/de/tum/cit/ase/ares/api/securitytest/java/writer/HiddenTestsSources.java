@@ -231,28 +231,67 @@ final class HiddenTestsSources {
 				 * @param result the factory's result
 				 * @param closer turns a produced stream into its guarded close callback
 				 * @return the tests, read into a list; a stream stays open until JUnit closes the
-				 *         returned one, after its tests ran
+				 *         returned one, after its tests ran. When reading fails, every stream opened
+				 *         so far is closed before the failure is rethrown
+				 */
+				static <T> T materialised(T result, Function<Stream<?>, Runnable> closer) {
+					List<Stream<?>> opened = new ArrayList<>();
+					try {
+						return materialisedResult(result, closer, opened);
+					} catch (RuntimeException | Error failure) {
+						closeAll(opened, failure);
+						throw failure;
+					}
+				}
+
+				/**
+				 * Reads a factory's result, recording every stream it opens so a failed read
+				 * can close them.
+				 *
+				 * @param <T> the factory's result type
+				 * @param result the factory's result
+				 * @param closer turns a produced stream into its guarded close callback
+				 * @param opened the streams opened so far
+				 * @return the tests, read into a list
 				 */
 				@SuppressWarnings("unchecked")
-				static <T> T materialised(T result, Function<Stream<?>, Runnable> closer) {
+				private static <T> T materialisedResult(T result, Function<Stream<?>, Runnable> closer, List<Stream<?>> opened) {
 					List<Object> nodes = new ArrayList<>();
 					if (result instanceof DynamicNode node) {
-						return (T) materialisedNode(node, closer);
+						return (T) materialisedNode(node, closer, opened);
 					} else if (result instanceof Stream<?> stream) {
-						stream.sequential().iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer)));
+						opened.add(stream);
+						stream.sequential().iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
 						return (T) nodes.stream().onClose(closer.apply(stream));
 					} else if (result instanceof Iterable<?> iterable) {
-						iterable.iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer)));
+						iterable.iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
 					} else if (result instanceof Iterator<?> iterator) {
-						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item, closer)));
+						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
 					} else if (result instanceof Object[] array) {
 						for (Object item : array) {
-							nodes.add(materialisedNode(item, closer));
+							nodes.add(materialisedNode(item, closer, opened));
 						}
 					} else {
 						return result;
 					}
 					return (T) nodes;
+				}
+
+				/**
+				 * Closes the streams a failed read opened, newest first, still under this
+				 * hook's guard; a failure while closing is kept as suppressed.
+				 *
+				 * @param opened the streams opened so far
+				 * @param failure the failure that stopped the read
+				 */
+				private static void closeAll(List<Stream<?>> opened, Throwable failure) {
+					for (int index = opened.size() - 1; index >= 0; index--) {
+						try {
+							opened.get(index).close();
+						} catch (RuntimeException | Error closing) {
+							failure.addSuppressed(closing);
+						}
+					}
 				}
 
 				/**
@@ -262,15 +301,19 @@ final class HiddenTestsSources {
 				 *
 				 * @param item the produced test
 				 * @param closer turns a produced stream into its guarded close callback
+				 * @param opened the streams opened so far
 				 * @return the test, or the item unchanged when it is not a container
 				 */
-				private static Object materialisedNode(Object item, Function<Stream<?>, Runnable> closer) {
+				private static Object materialisedNode(Object item, Function<Stream<?>, Runnable> closer,
+						List<Stream<?>> opened) {
 					if (!(item instanceof DynamicContainer container)) {
 						return item;
 					}
 					List<DynamicNode> children = new ArrayList<>();
 					Stream<? extends DynamicNode> stream = container.getChildren();
-					stream.sequential().iterator().forEachRemaining(child -> children.add((DynamicNode) materialisedNode(child, closer)));
+					opened.add(stream);
+					stream.sequential().iterator()
+							.forEachRemaining(child -> children.add((DynamicNode) materialisedNode(child, closer, opened)));
 					return DynamicContainer.dynamicContainer(container.getDisplayName(),
 							container.getTestSourceUri().orElse(null), children.stream().onClose(closer.apply(stream)));
 				}
@@ -458,12 +501,15 @@ final class HiddenTestsSources {
 
 				/**
 				 * Finds a hidden test whose class lifecycle may reveal its output: a hidden
-				 * method of this class, or a hidden test in a nested class at any depth.
+				 * method of this class or of a supertype it inherits from, or a hidden test in
+				 * a nested class at any depth.
 				 */
 				private static boolean containsHiddenMethod(Class<?> testClass) {
-					String prefix = testClass.getCanonicalName() + "#";
-					if (HIDDEN.stream().anyMatch(entry -> entry.startsWith(prefix))) {
-						return true;
+					for (Class<?> type : typeHierarchy(testClass)) {
+						String prefix = type.getCanonicalName() + "#";
+						if (type.getCanonicalName() != null && HIDDEN.stream().anyMatch(entry -> entry.startsWith(prefix))) {
+							return true;
+						}
 					}
 					for (Class<?> nested : testClass.getDeclaredClasses()) {
 						if (nested.isAnnotationPresent(org.junit.jupiter.api.Nested.class)
@@ -585,9 +631,9 @@ final class HiddenTestsSources {
 				/**
 				 * Whether the policy makes the test hidden. Classes Ares generated beside this
 				 * hook never are; a class elsewhere with such a name is treated like any other.
-				 * Otherwise the nearest entry wins: the test's own class with its method,
-				 * then that class, then each enclosing class; without one, the policy's
-				 * setting for unlisted tests decides.
+				 * Otherwise the nearest entry wins: a method entry on the test's own class,
+				 * then on each supertype, then the class, then each enclosing class; without
+				 * one, the policy's setting for unlisted tests decides.
 				 *
 				 * @param testClass the test's class
 				 * @param methodName the test's method, if any
@@ -599,8 +645,7 @@ final class HiddenTestsSources {
 							&& sameLocation(testClass, GeneratedHiddenTests.class)) {
 						return false;
 					}
-					Optional<Boolean> byMethod = Optional.ofNullable(testClass.getCanonicalName())
-							.flatMap(name -> methodName.flatMap(method -> listedAsHidden(name + "#" + method)));
+					Optional<Boolean> byMethod = methodName.flatMap(method -> byMethodEntry(testClass, method));
 					if (byMethod.isPresent()) {
 						return byMethod.get();
 					}
@@ -612,6 +657,49 @@ final class HiddenTestsSources {
 						}
 					}
 					return @SETTINGS@.@UNLISTED@;
+				}
+
+				/**
+				 * The nearest method entry for a test: its own class first, then its
+				 * supertypes, so an entry naming the class that declares an inherited test
+				 * covers it too.
+				 *
+				 * @param testClass the test's class
+				 * @param method the test's method name
+				 * @return true for hidden, false for public, empty when no method entry names it
+				 */
+				private static Optional<Boolean> byMethodEntry(Class<?> testClass, String method) {
+					for (Class<?> type : typeHierarchy(testClass)) {
+						Optional<Boolean> listed = Optional.ofNullable(type.getCanonicalName())
+								.flatMap(name -> listedAsHidden(name + "#" + method));
+						if (listed.isPresent()) {
+							return listed;
+						}
+					}
+					return Optional.empty();
+				}
+
+				/**
+				 * A class and its supertypes, nearest first, superclasses before interfaces,
+				 * each once, in the order the policy model looks them up.
+				 *
+				 * @param testClass the test's class
+				 * @return the class and its supertypes
+				 */
+				private static List<Class<?>> typeHierarchy(Class<?> testClass) {
+					List<Class<?>> ordered = new ArrayList<>();
+					java.util.Deque<Class<?>> pending = new java.util.ArrayDeque<>(List.of(testClass));
+					while (!pending.isEmpty()) {
+						Class<?> current = pending.poll();
+						if (!ordered.contains(current)) {
+							ordered.add(current);
+							if (current.getSuperclass() != null) {
+								pending.add(current.getSuperclass());
+							}
+							pending.addAll(List.of(current.getInterfaces()));
+						}
+					}
+					return ordered;
 				}
 
 				/**

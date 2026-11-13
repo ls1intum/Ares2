@@ -43,7 +43,7 @@ class GeneratedHiddenTestsTest {
 			"com.example.fixtures.LifecycleFixture", "com.example.fixtures.ConstructorFixture",
 			"com.example.fixtures.ForgedFixture", "com.example.fixtures.Outer", "com.example.fixtures.Nesting.Inner",
 			"com.example.fixtures.Methods#listed", "com.example.fixtures.Shown", "com.example.fixtures.Inherits#glides",
-			"com.example.fixtures.MixedFixture#secret");
+			"com.example.fixtures.MixedFixture#secret", "com.example.fixtures.DivingBase#dives");
 
 	/** The public entries of the policies that do not hide unlisted tests. */
 	private static final List<String> PUBLIC = List.of("com.example.fixtures.Shown#shown");
@@ -493,6 +493,31 @@ class GeneratedHiddenTestsTest {
 	}
 
 	/**
+	 * A test inherited from a superclass and listed through the class that declares
+	 * it is held back before the deadline and reports nothing after it, its setup
+	 * output included.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void anInheritedTestListedThroughItsDeclaringClassIsHidden() throws Exception {
+		PrintStream previousOut = System.out;
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		List<String> before;
+		List<String> after;
+		try (PrintStream sink = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+			System.setOut(sink);
+			before = failureMessages(run(future, "Dives", Locale.ENGLISH));
+			after = failureMessages(run(past, "Dives", Locale.ENGLISH));
+		} finally {
+			System.setOut(previousOut);
+		}
+		assertThat(before).containsExactly(beforeDeadline(Locale.ENGLISH));
+		assertThat(after).containsExactly(hiddenFailure());
+		assertThat(output.toString(StandardCharsets.UTF_8)).doesNotContain("SECRET_DIVING_SETUP");
+	}
+
+	/**
 	 * The sentinel passes under a policy that hides unlisted tests, since a
 	 * generated class is never hidden.
 	 *
@@ -806,6 +831,30 @@ class GeneratedHiddenTestsTest {
 				package com.example.fixtures;
 
 				class Inherits implements GlidingTests {
+				}
+				""");
+		Files.writeString(folder.resolve("DivingBase.java"), """
+				package com.example.fixtures;
+
+				import org.junit.jupiter.api.BeforeEach;
+				import org.junit.jupiter.api.Test;
+
+				abstract class DivingBase {
+					@BeforeEach
+					void prepare() {
+						System.out.print("SECRET_DIVING_SETUP");
+					}
+
+					@Test
+					void dives() {
+						throw new IllegalStateException("secret");
+					}
+				}
+				""");
+		Files.writeString(folder.resolve("Dives.java"), """
+				package com.example.fixtures;
+
+				class Dives extends DivingBase {
 				}
 				""");
 	}
