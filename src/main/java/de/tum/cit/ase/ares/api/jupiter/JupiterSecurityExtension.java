@@ -98,13 +98,11 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	public <T> T interceptTestClassConstructor(Invocation<T> invocation,
 			ReflectiveInvocationContext<java.lang.reflect.Constructor<T>> invocationContext,
 			ExtensionContext extensionContext) throws Throwable {
-		if (extensionContext.getTestMethod().isPresent()) {
-			try {
-				prepareSecurityOnce(extensionContext);
-			} catch (RuntimeException armingFailure) {
-				JavaInstrumentationAgent.throwIfActivationFailed();
-				throw JupiterTestGuard.callbackFailure(extensionContext, armingFailure);
-			}
+		try {
+			prepareSecurityOnce(extensionContext);
+		} catch (RuntimeException armingFailure) {
+			JavaInstrumentationAgent.throwIfActivationFailed();
+			throw JupiterTestGuard.callbackFailure(extensionContext, armingFailure);
 		}
 		return interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
 	}
