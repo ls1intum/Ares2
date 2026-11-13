@@ -394,10 +394,11 @@ final class StrictTimeoutSources {
 					long graceNanos = graceNanos(defaultGrace);
 					ExecutorService executor = Executors.newSingleThreadExecutor(new WorkerFactory());
 					Future<Outcome<T>> future = executor.submit(() -> Outcome.of(action));
+					Outcome<T> outcome;
 					try {
-						return future.get(timeoutNanos, TimeUnit.NANOSECONDS).value();
+						outcome = future.get(timeoutNanos, TimeUnit.NANOSECONDS);
 					} catch (ExecutionException failure) {
-						throw traversable(unwrapped(failure));
+						throw traversable(causeOf(failure));
 					} catch (TimeoutException expired) {
 						terminate(future, executor, graceNanos);
 						if (isHiddenContext(context)) {
@@ -414,6 +415,7 @@ final class StrictTimeoutSources {
 					} finally {
 						executor.shutdownNow();
 					}
+					return outcome.value();
 				}
 
 				/** Reads generated hidden visibility when that hook is present. */
@@ -509,18 +511,6 @@ final class StrictTimeoutSources {
 						}
 						return result;
 					}
-				}
-
-				/**
-				 * The failure the action threw, without the worker's wrapping.
-				 *
-				 * @param failure the worker's failure
-				 * @return what the action threw
-				 */
-				private static Throwable unwrapped(ExecutionException failure) {
-					Throwable cause = causeOf(failure);
-					Throwable inner = cause instanceof ExecutionException wrapped ? causeOf(wrapped) : null;
-					return inner != null ? inner : cause;
 				}
 
 				/**
