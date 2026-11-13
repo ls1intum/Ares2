@@ -410,7 +410,7 @@ A public test reports "execution timed out after …", even when privileged-only
 `regardingTheOutputOfTheTestCases` chooses the I/O manager, as `@WithIOManager` does, and the output settings that apply to it, as `@MirrorOutput` does. Every field is optional.
 
 - `theOutputIsMirrored` (boolean): `true` echoes what a test writes to `System.out` and `System.err` to the real console as well. Defaults to `false`.
-- `theMaximumNumberOfOutputCharactersIs` (whole number): the limit on what a test writes to each stream. A test that writes more fails with `too much standard output`. Above zero; defaults to 100000000.
+- `theMaximumNumberOfOutputCharactersIs` (whole number): the limit on what a test writes to each stream. Ares counts it in UTF-8 bytes, as the IO tester does, so a character outside ASCII such as `ä` uses two. A test that writes more fails with `too much standard output`. Above zero; defaults to 100000000.
 - `theInputAndOutputAreManagedBy` (`IO_TESTER`, `NONE` or `CUSTOM`): the manager. `IO_TESTER`, the default, records output and enforces the limit. `NONE` leaves output unrecorded, so the two output settings above do nothing, and Ares refuses them beside it. `CUSTOM` uses your own manager.
 - `theCustomInputAndOutputManagerIs` (class name): the custom manager, required with `CUSTOM` and refused otherwise.
 
