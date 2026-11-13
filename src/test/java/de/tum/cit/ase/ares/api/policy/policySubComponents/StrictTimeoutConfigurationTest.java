@@ -14,13 +14,15 @@ import org.junit.jupiter.params.provider.ValueSource;
 /** Checks the strict-timeout record's durations and refusals. */
 class StrictTimeoutConfigurationTest {
 
-	/** The default locale before a test changed it. */
-	private final Locale previous = Locale.getDefault();
+	/** The display locale, which Ares's messages read, before a test changed it. */
+	private final Locale previous = Locale.getDefault(Locale.Category.DISPLAY);
 
-	/** Restores the default locale. */
+	/**
+	 * Restores the display locale only, leaving the other locale categories alone.
+	 */
 	@AfterEach
 	void restoreLocale() {
-		Locale.setDefault(previous);
+		Locale.setDefault(Locale.Category.DISPLAY, previous);
 	}
 
 	/** A timeout and a grace period read as durations. */
@@ -60,7 +62,7 @@ class StrictTimeoutConfigurationTest {
 	/** A grace period above one day is refused, naming the field. */
 	@Test
 	void aGraceAboveOneDayIsRefused() {
-		Locale.setDefault(Locale.ENGLISH);
+		Locale.setDefault(Locale.Category.DISPLAY, Locale.ENGLISH);
 		assertThatThrownBy(
 				() -> StrictTimeoutConfiguration.builder().theTimeoutIs("2s").theTerminationGraceIs("1d 1ms").build())
 						.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("theTerminationGraceIs")
@@ -70,7 +72,7 @@ class StrictTimeoutConfigurationTest {
 	/** The refusal is localised in German too. */
 	@Test
 	void theRefusalIsLocalisedInGerman() {
-		Locale.setDefault(Locale.GERMAN);
+		Locale.setDefault(Locale.Category.DISPLAY, Locale.GERMAN);
 		assertThatThrownBy(() -> StrictTimeoutConfiguration.builder().theTimeoutIs("0s").build())
 				.hasMessageContaining("Ares Sicherheitsfehler");
 	}

@@ -97,11 +97,18 @@ class TimeoutUtilsTest {
 		}
 	}
 
+	/**
+	 * A worker that stops after its interruption gets the grace period for its own
+	 * cleanup. The timeout is long enough that the worker has started before it
+	 * expires, even on a loaded machine.
+	 *
+	 * @throws Exception if the context cannot be built
+	 */
 	@Test
 	void interruptionAwareExecutionHasTimeForBoundedFrameworkCleanup() throws Exception {
 		AtomicBoolean workerFinished = new AtomicBoolean();
 		AtomicInteger requestedExitCode = new AtomicInteger(-1);
-		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
+		TestContext context = contextFor("cleanupTarget"); //$NON-NLS-1$
 
 		assertThrows(AssertionFailedError.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
 			try {
@@ -153,6 +160,22 @@ class TimeoutUtilsTest {
 
 		assertThat(Duration.ofNanos(System.nanoTime() - startedAt)).isGreaterThanOrEqualTo(Duration.ofNanos(500_000));
 		assertThat(TimeoutUtils.timeoutNanos(Duration.ofNanos(500_000))).isEqualTo(500_000);
+	}
+
+	/**
+	 * The wait hands the future exactly the nanosecond count, not a value rounded
+	 * to milliseconds.
+	 *
+	 * @throws Exception if the stubbed wait fails
+	 */
+	@Test
+	void theWaitReceivesTheTimeoutInNanoseconds() throws Exception {
+		@SuppressWarnings("unchecked")
+		Future<String> future = mock(Future.class);
+		when(future.get(anyLong(), any(TimeUnit.class))).thenReturn("done"); //$NON-NLS-1$
+
+		assertThat(TimeoutUtils.awaitResult(future, 500_000)).isEqualTo("done"); //$NON-NLS-1$
+		verify(future).get(500_000L, TimeUnit.NANOSECONDS);
 	}
 
 	/**
@@ -264,6 +287,12 @@ class TimeoutUtilsTest {
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void strictTimeoutTarget() {
 		// Provides the annotation consumed through the mocked test context.
+	}
+
+	/** Has a timeout long enough for the worker to start before it expires. */
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@StrictTimeout(value = 500, unit = TimeUnit.MILLISECONDS)
+	private static void cleanupTarget() {
 	}
 
 	@SuppressWarnings("PMD.UnusedPrivateMethod")
