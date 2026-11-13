@@ -27,6 +27,9 @@ class JupiterSecurityExtensionHiddenArmingTest {
 	/** Whether the fixture's constructor or test ran. */
 	private static volatile boolean reached;
 
+	/** Whether the fixture's arming threw its error. */
+	private static volatile boolean armingThrew;
+
 	/** The agent's failure of an earlier installation, restored afterwards. */
 	private Object savedFailure;
 
@@ -41,6 +44,7 @@ class JupiterSecurityExtensionHiddenArmingTest {
 		@Override
 		void prepareSecurity(ExtensionContext context) {
 			if (context.getTestMethod().isPresent()) {
+				armingThrew = true;
 				throw new LinkageError("SECRET_ARMING_ERROR");
 			}
 		}
@@ -74,6 +78,7 @@ class JupiterSecurityExtensionHiddenArmingTest {
 		savedFailure = activationFailure().get(null);
 		activationFailure().set(null, null);
 		reached = false;
+		armingThrew = false;
 	}
 
 	/**
@@ -94,6 +99,8 @@ class JupiterSecurityExtensionHiddenArmingTest {
 		assertThat(events.failed().count()).isEqualTo(1);
 		Throwable reported = events.failed().stream().findFirst().orElseThrow().getPayload(TestExecutionResult.class)
 				.orElseThrow().getThrowable().orElseThrow();
+		assertThat(armingThrew).isTrue();
+		assertThat(reported.getClass().getName()).isEqualTo("de.tum.cit.ase.ares.api.internal.HiddenTestFailure");
 		assertThat(String.valueOf(reported)).doesNotContain("SECRET_ARMING_ERROR");
 		assertThat(reported.getCause()).isNull();
 		assertThat(reached).isFalse();
