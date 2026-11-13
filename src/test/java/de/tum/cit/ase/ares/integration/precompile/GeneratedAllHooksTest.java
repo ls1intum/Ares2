@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URLClassLoader;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -141,6 +143,15 @@ class GeneratedAllHooksTest {
 				+ " @Override public String getMessage() { while (true) { Thread.onSpinWait(); } } }; }");
 		fixture(fixtures, "LoopingStackFixture", "@Test void fails() { throw new IllegalStateException(\"looping\") {"
 				+ " @Override public StackTraceElement[] getStackTrace() { while (true) { Thread.onSpinWait(); } } }; }");
+		fixture(fixtures, "LoopingReasonFixture",
+				"@Test void fails() throws Exception { throw new java.nio.file.FileSystemException(\"file\") {"
+						+ " @Override public synchronized Throwable getCause() { return null; }"
+						+ " @Override public String getReason() { while (true) { Thread.onSpinWait(); } } }; }");
+		fixture(fixtures, "LoopingReasonOnlyFixture",
+				"@Test void fails() throws Exception { throw new java.nio.file.FileSystemException(\"file\") {"
+						+ " @Override public String getReason() { while (true) { Thread.onSpinWait(); } } }; }");
+		fixture(fixtures, "PlainStudentFailureFixture",
+				"@Test void fails() { throw new IllegalStateException(\"plain\") { }; }");
 		fixture(fixtures, "SuppressedLoopingFixture",
 				"@Test void fails() { IllegalStateException outer = new IllegalStateException(\"outer\");"
 						+ " outer.addSuppressed(new IllegalStateException(\"inner\") { @Override public String toString() {"
@@ -341,7 +352,7 @@ class GeneratedAllHooksTest {
 	void aLoopingGetCauseIsNeverCalled(boolean reversed) throws Exception {
 		EngineExecutionResults results = assertTimeoutPreemptively(Duration.ofSeconds(30),
 				() -> run("com.example.fixtures.LoopingCauseFixture", reversed));
-		assertThat(messages(results)).containsExactly("com.example.fixtures.LoopingCauseFixture$1: looping");
+		assertThat(messages(results)).containsExactly("com.example.fixtures.LoopingCauseFixture$1");
 	}
 
 	/**
@@ -360,10 +371,41 @@ class GeneratedAllHooksTest {
 						.containsExactly("com.example.fixtures.LoopingMessageFixture$1");
 		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
 				() -> run("com.example.fixtures.LoopingStackFixture", reversed))))
-						.containsExactly("com.example.fixtures.LoopingStackFixture$1: looping");
+						.containsExactly("com.example.fixtures.LoopingStackFixture$1");
 		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
 				() -> run("com.example.fixtures.SuppressedLoopingFixture", reversed))))
 						.containsExactly("java.lang.IllegalStateException: outer");
+	}
+
+	/**
+	 * A student {@code FileSystemException} whose {@code getReason}, which the Java
+	 * runtime's own {@code getMessage} calls, never returns is reported by its type
+	 * alone, with or without its own {@code getCause}, in either registration
+	 * order, in a JVM of its own so a hang cannot take this run with it.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @param probe    where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aLoopingDelegatedReasonIsNeverCalled(boolean reversed, @TempDir Path probe) throws Exception {
+		Path probeClasses = compileProbe(probe);
+		assertThat(runInOwnJvm(probeClasses, "com.example.fixtures.LoopingReasonFixture", reversed))
+				.containsExactly("com.example.fixtures.LoopingReasonFixture$1");
+		assertThat(runInOwnJvm(probeClasses, "com.example.fixtures.LoopingReasonOnlyFixture", reversed))
+				.containsExactly("com.example.fixtures.LoopingReasonOnlyFixture$1");
+	}
+
+	/**
+	 * A student failure class that overrides nothing is handed to JUnit as it is
+	 * and keeps its text.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aPlainStudentFailureKeepsItsText() throws Exception {
+		assertThat(messages(run("com.example.fixtures.PlainStudentFailureFixture"))).containsExactly("plain");
 	}
 
 	/**
@@ -437,7 +479,7 @@ class GeneratedAllHooksTest {
 	void aForgedMarkerIsDetached() throws Exception {
 		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
 				() -> run("com.example.fixtures.ForgedMarkerFixture", false, forged))))
-						.containsExactly("de.tum.cit.ase.ares.generated.ForgedMarker: forged");
+						.containsExactly("de.tum.cit.ase.ares.generated.ForgedMarker");
 	}
 
 	/**
@@ -568,6 +610,77 @@ class GeneratedAllHooksTest {
 				Thread.currentThread().getContextClassLoader())) {
 			return GeneratedCodeRuns.runIn(loader, className, Locale.ENGLISH,
 					Map.of(GeneratedCodeRuns.AUTODETECTION, "true", GeneratedCodeRuns.AUTODETECTION_INCLUDE, include));
+		}
+	}
+
+	/** Printed by the probe before each failure message. */
+	private static final String PROBE_FAILURE = "ares.probe.failure=";
+
+	/** Printed by the probe once the run has finished. */
+	private static final String PROBE_DONE = "ares.probe.done";
+
+	/**
+	 * Compiles a probe that runs one fixture class through JUnit with the generated
+	 * hooks and prints each failure message.
+	 *
+	 * @param root the probe's folder.
+	 * @return the compiled probe's folder
+	 * @throws IOException if writing or compiling fails
+	 */
+	private static Path compileProbe(Path root) throws IOException {
+		Path sources = Files.createDirectories(root.resolve("sources/com/example/probe"));
+		Files.writeString(sources.resolve("HooksProbe.java"),
+				"""
+						package com.example.probe;
+
+						import org.junit.platform.engine.TestExecutionResult;
+						import org.junit.platform.engine.discovery.DiscoverySelectors;
+						import org.junit.platform.testkit.engine.EngineTestKit;
+
+						public final class HooksProbe {
+							public static void main(String[] arguments) {
+								EngineTestKit.engine("junit-jupiter").selectors(DiscoverySelectors.selectClass(arguments[0]))
+										.configurationParameter("%s", "true").configurationParameter("%s", arguments[1])
+										.execute().testEvents().failed().stream()
+										.map(event -> event.getPayload(TestExecutionResult.class)
+												.flatMap(TestExecutionResult::getThrowable).map(Throwable::getMessage).orElse(""))
+										.forEach(message -> System.out.println("%s" + message));
+								System.out.println("%s");
+								System.exit(0);
+							}
+						}
+						"""
+						.formatted(GeneratedCodeRuns.AUTODETECTION, GeneratedCodeRuns.AUTODETECTION_INCLUDE,
+								PROBE_FAILURE, PROBE_DONE));
+		Path classes = Files.createDirectories(root.resolve("classes"));
+		compile(classes, List.of(root.resolve("sources")));
+		return classes;
+	}
+
+	/**
+	 * Runs one fixture class in a JVM of its own and returns its failure messages,
+	 * failing if that JVM does not finish in time.
+	 *
+	 * @param probeClasses the compiled probe.
+	 * @param className    the fixture class.
+	 * @param reversed     whether the hooks are registered the other way round.
+	 * @return the failure messages
+	 * @throws Exception if the JVM cannot be started
+	 */
+	private static List<String> runInOwnJvm(Path probeClasses, String className, boolean reversed) throws Exception {
+		String classPath = String.join(File.pathSeparator, compiled.toString(),
+				(reversed ? reversedResources : resources).toString(), probeClasses.toString(),
+				System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
+		Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp",
+				classPath, "com.example.probe.HooksProbe", className, include).redirectErrorStream(true).start();
+		try {
+			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
+			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			assertThat(output).as(output).contains(PROBE_DONE);
+			return output.lines().filter(line -> line.startsWith(PROBE_FAILURE))
+					.map(line -> line.substring(PROBE_FAILURE.length())).toList();
+		} finally {
+			process.destroyForcibly();
 		}
 	}
 
