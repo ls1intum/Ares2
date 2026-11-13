@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
 
@@ -254,6 +255,37 @@ class GeneratedStrictTimeoutTest {
 		}
 	}
 
+	/**
+	 * A test that throws a timeout, an execution failure or an interruption of its
+	 * own fails with that exception's own message, not as a policy timeout.
+	 *
+	 * @param fixture the fixture whose test throws immediately.
+	 * @param message the message the test threw.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@CsvSource({ "OwnTimeoutFixture, client timeout", "OwnExecutionFixture, own failure",
+			"OwnInterruptedFixture, own interrupt" })
+	void aTestsOwnExceptionIsReportedAsItself(String fixture, String message) throws Exception {
+		assertThat(failureMessages(runJupiter(fixture, Locale.ENGLISH))).containsExactly(message);
+	}
+
+	/**
+	 * A test's own interruption does not mark the waiting thread as interrupted.
+	 */
+	@Test
+	void aTestsOwnInterruptionLeavesTheCallerUninterrupted() throws Exception {
+		String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
+		String classPath = compiled + File.pathSeparator + System.getProperty("java.class.path");
+		Process process = new ProcessBuilder(java, "-cp", classPath, "com.example.fixtures.OwnInterruptProbe").start();
+		try {
+			assertThat(process.waitFor(5, TimeUnit.SECONDS)).isTrue();
+			assertThat(process.exitValue()).isZero();
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
 	/** An interrupted caller keeps its interrupted flag after a worker stops. */
 	@Test
 	void interruptedCallerKeepsItsInterruptFlag() throws Exception {
@@ -446,6 +478,32 @@ class GeneratedStrictTimeoutTest {
 		fixture(folder, "AfterAllFixture", "@AfterAll static void tearDown() { Loop.untilInterrupted(); }",
 				"@Test void test() {}");
 		fixture(folder, "FastFixture", "", "@Test void fast() throws InterruptedException { Thread.sleep(10); }");
+		fixture(folder, "OwnTimeoutFixture", "",
+				"@Test void fails() throws Exception { throw new java.util.concurrent.TimeoutException(\"client timeout\"); }");
+		fixture(folder, "OwnExecutionFixture", "",
+				"@Test void fails() throws Exception { throw new java.util.concurrent.ExecutionException(\"own failure\", new IllegalStateException(\"inner\")); }");
+		fixture(folder, "OwnInterruptedFixture", "",
+				"@Test void fails() throws Exception { throw new InterruptedException(\"own interrupt\"); }");
+		Files.writeString(folder.resolve("OwnInterruptProbe.java"), """
+				package com.example.fixtures;
+				import java.time.Duration;
+				import de.tum.cit.ase.ares.generated.GeneratedStrictTimeout;
+				public final class OwnInterruptProbe {
+				%s
+					public static void main(String[] args) {
+						try {
+							run(() -> {
+								throw new InterruptedException("own interrupt");
+							}, Duration.ofSeconds(1));
+							System.exit(21);
+						} catch (InterruptedException expected) {
+							System.exit(Thread.currentThread().isInterrupted() ? 22 : 0);
+						} catch (Throwable failure) {
+							System.exit(23);
+						}
+					}
+				}
+				""".formatted(TIMEOUT_CALL));
 		Files.writeString(folder.resolve("InterruptedCallerProbe.java"), """
 				package com.example.fixtures;
 				import java.time.Duration;
