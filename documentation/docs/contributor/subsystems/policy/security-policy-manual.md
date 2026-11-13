@@ -393,7 +393,7 @@ Ares reads these settings once per policy file, before it supervises any test co
 - `theDeadlineIs` (text, **required**): the deadline, in the `@Deadline` format, ending in a time zone such as `Europe/Berlin` or `UTC`. Hidden tests run once it has passed.
 - `theDeadlineIsExtendedBy` (duration, optional): added to the deadline.
 - `theHiddenTestsAreRunBefore` (text, optional): a date in the same format, before which hidden tests run, as `@ActivateHiddenBefore` does.
-- `testsNotListedHereAreHidden` (boolean, **required**): whether a test no entry names is hidden (`true`) or left to its annotations (`false`).
+- `testsNotListedHereAreHidden` (boolean, **required**): whether a test no entry names is hidden (`true`) or left to its annotations (`false`). It reaches only tests under Ares. A plain JUnit `@Test` in a class without `@PublicTest`, `@HiddenTest`, `@Public` or `@Hidden` still runs before the deadline and shows its result. So give every test class one of these annotations.
 - `theFollowingTestsAreHidden` (list of text, optional): the hidden tests. A fully qualified class name (`org.example.PenguinTest`) covers every test in that class and in its nested classes. A class name followed by `#` and a method name (`org.example.PenguinTest#name`) covers every method of that name the class declares or inherits, but not one of a nested class. Write a nested class with dots (`org.example.PenguinTest.Inner`).
 - `theFollowingTestsArePublic` (list of text, optional): the public tests, written the same way.
 

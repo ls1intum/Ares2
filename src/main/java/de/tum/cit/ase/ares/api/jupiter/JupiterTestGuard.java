@@ -172,7 +172,12 @@ public final class JupiterTestGuard implements UnifiedInvocationInterceptor, Bef
 		return (RuntimeException) safe;
 	}
 
-	/** Finds a hidden method in a mixed test class for class lifecycle methods. */
+	/**
+	 * Finds a hidden method in a mixed test class for class lifecycle methods.
+	 * Annotations decide alone here: a test is under Ares only through an Ares
+	 * annotation on it or its class, that annotation wins over the policy's lists,
+	 * and a list entry naming a test without one fails every test.
+	 */
 	private static boolean containsHiddenTest(ExtensionContext context) {
 		return context.getTestClass().map(JupiterTestGuard::hasHiddenMethodInHierarchy).orElse(false);
 	}
