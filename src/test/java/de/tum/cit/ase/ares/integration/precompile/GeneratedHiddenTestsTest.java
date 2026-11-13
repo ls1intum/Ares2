@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.Callable;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,8 @@ class GeneratedHiddenTestsTest {
 			"com.example.fixtures.LifecycleFixture", "com.example.fixtures.ConstructorFixture",
 			"com.example.fixtures.ForgedFixture", "com.example.fixtures.Outer", "com.example.fixtures.Nesting.Inner",
 			"com.example.fixtures.Methods#listed", "com.example.fixtures.Shown", "com.example.fixtures.Inherits#glides",
-			"com.example.fixtures.MixedFixture#secret", "com.example.fixtures.DivingBase#dives");
+			"com.example.fixtures.MixedFixture#secret", "com.example.fixtures.DivingBase#dives",
+			"com.example.fixtures.SourcedFixture");
 
 	/** The public entries of the policies that do not hide unlisted tests. */
 	private static final List<String> PUBLIC = List.of("com.example.fixtures.Shown#shown");
@@ -207,14 +209,43 @@ class GeneratedHiddenTestsTest {
 	}
 
 	/**
-	 * Every invocation of a listed test template is held back.
+	 * A listed test template is skipped as a whole before the deadline, with the
+	 * localised message.
 	 *
 	 * @throws Exception if the run cannot be set up
 	 */
 	@Test
 	void aListedTemplateIsHeldBack() throws Exception {
-		assertThat(failureMessages(run(future, "TemplateFixture", Locale.ENGLISH))).hasSize(2)
-				.allMatch(beforeDeadline(Locale.ENGLISH)::equals);
+		EngineExecutionResults results = run(future, "TemplateFixture", Locale.ENGLISH);
+		assertThat(failureMessages(results)).isEmpty();
+		assertThat(skipReasons(results)).containsExactly(beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * Before the deadline, a listed parameterised test's argument source never
+	 * runs, so neither its output nor its failure reaches the report.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aHiddenTemplatesArgumentSourceDoesNotRunBeforeTheDeadline() throws Exception {
+		Captured captured = captured(() -> run(future, "SourcedFixture", Locale.ENGLISH));
+		assertThat(failureMessages(captured.results())).isEmpty();
+		assertThat(skipReasons(captured.results())).containsExactly(beforeDeadline(Locale.ENGLISH));
+		assertThat(captured.output()).doesNotContain("SECRET_GENERATED_SOURCE");
+	}
+
+	/**
+	 * After the deadline a listed parameterised test runs, its argument source
+	 * included.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aHiddenTemplatesArgumentSourceRunsAfterTheDeadline() throws Exception {
+		EngineExecutionResults results = run(past, "SourcedFixture", Locale.ENGLISH);
+		assertThat(skipReasons(results)).isEmpty();
+		assertThat(results.containerEvents().failed().count()).isEqualTo(1);
 	}
 
 	/**
@@ -425,8 +456,8 @@ class GeneratedHiddenTestsTest {
 				.containsExactly(beforeDeadline(Locale.ENGLISH));
 		assertThat(failureMessages(run(visibility, "MethodFixture", Locale.ENGLISH))).hasSize(3)
 				.allMatch(beforeDeadline(Locale.ENGLISH)::equals);
-		assertThat(failureMessages(run(visibility, "TemplateFixture", Locale.ENGLISH))).hasSize(2)
-				.allMatch(beforeDeadline(Locale.ENGLISH)::equals);
+		assertThat(skipReasons(run(visibility, "TemplateFixture", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
 		assertThat(failureMessages(run(visibility, "FactoryFixture", Locale.ENGLISH)))
 				.containsExactly(beforeDeadline(Locale.ENGLISH));
 	}
@@ -709,6 +740,49 @@ class GeneratedHiddenTestsTest {
 	}
 
 	/**
+	 * The reasons of every skipped test and container of a run.
+	 *
+	 * @param results the run's results.
+	 * @return the reasons
+	 */
+	private static List<String> skipReasons(EngineExecutionResults results) {
+		return results.allEvents().skipped().stream().map(event -> event.getPayload(String.class).orElse("")).toList();
+	}
+
+	/**
+	 * Runs an action while both standard streams are captured.
+	 *
+	 * @param action the run.
+	 * @return the run's results and what it printed
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static Captured captured(Callable<EngineExecutionResults> action) throws Exception {
+		PrintStream previousOut = System.out;
+		PrintStream previousErr = System.err;
+		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+		PrintStream sink = new PrintStream(bytes, true, StandardCharsets.UTF_8);
+		try {
+			System.setOut(sink);
+			System.setErr(sink);
+			EngineExecutionResults results = action.call();
+			return new Captured(results, bytes.toString(StandardCharsets.UTF_8));
+		} finally {
+			System.setOut(previousOut);
+			System.setErr(previousErr);
+			sink.close();
+		}
+	}
+
+	/**
+	 * A run's results and what it printed.
+	 *
+	 * @param results the run's results.
+	 * @param output  what it printed on both standard streams.
+	 */
+	private record Captured(EngineExecutionResults results, String output) {
+	}
+
+	/**
 	 * Writes the fixtures into a fresh project, then runs the real generator on it.
 	 *
 	 * @param folder     the project's folder name.
@@ -801,6 +875,10 @@ class GeneratedHiddenTestsTest {
 		fixture(folder, "TemplateFixture", "",
 				"@org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(ints = { 1, 2 }) void each(int value) { "
 						+ secret + " }");
+		fixture(folder, "SourcedFixture",
+				"static java.util.stream.Stream<Integer> values() { System.out.print(\"SECRET_GENERATED_SOURCE\");"
+						+ " throw new IllegalStateException(\"SECRET_GENERATED_SOURCE\"); }",
+				"@org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.MethodSource(\"values\") void each(int value) { }");
 		fixture(folder, "FactoryFixture", "",
 				"@TestFactory java.util.List<DynamicTest> cases() { return java.util.List.of(DynamicTest.dynamicTest(\"case\", () -> { "
 						+ secret + " })); }");

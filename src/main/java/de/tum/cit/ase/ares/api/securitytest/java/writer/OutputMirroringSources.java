@@ -83,6 +83,9 @@ final class OutputMirroringSources {
 				/** The bounded stream behind the replaced {@code System.err}, while installed. */
 				private static BoundedStream boundedErr;
 
+				/** Whether generated visibility hides the test the streams are installed for. */
+				private static boolean hiddenTest;
+
 				/** The test guarded now, inherited by a worker another hook starts. */
 				private static final InheritableThreadLocal<String> GUARDING = new InheritableThreadLocal<>();
 
@@ -109,6 +112,7 @@ final class OutputMirroringSources {
 							throw new IllegalStateException(@MESSAGES@.localized("io_tester.already_installed"));
 						}
 						boolean hidden = hiddenByGeneratedPolicy(context);
+						hiddenTest = hidden;
 						originalOut = System.out;
 						originalErr = System.err;
 						boundedOut = boundedOver(originalOut, hidden);
@@ -123,7 +127,8 @@ final class OutputMirroringSources {
 
 				/**
 				 * Restores the console streams this test's installation replaced, also when
-				 * the test failed, then fails the test if a character was left unfinished.
+				 * the test failed, then fails the test if a character was left unfinished; a
+				 * hidden test's failure then carries none of its output.
 				 *
 				 * @param context the test's context
 				 */
@@ -141,8 +146,50 @@ final class OutputMirroringSources {
 						BoundedStream err = boundedErr;
 						boundedOut = null;
 						boundedErr = null;
-						out.finish();
-						err.finish();
+						finishBoth(out, err, hiddenTest);
+					}
+				}
+
+				/**
+				 * Finishes both streams and throws the first failure, so neither stream is
+				 * left unchecked. This runs after the hidden-test hook has returned, so for
+				 * a hidden test the failure is replaced by one with no text.
+				 *
+				 * @param out the bounded standard output
+				 * @param err the bounded standard error
+				 * @param hidden whether generated visibility hides the test
+				 */
+				private static void finishBoth(BoundedStream out, BoundedStream err, boolean hidden) {
+					RuntimeException failure = null;
+					for (BoundedStream stream : new BoundedStream[] { out, err }) {
+						try {
+							stream.finish();
+						} catch (RuntimeException unfinished) {
+							failure = failure == null ? unfinished : failure;
+						}
+					}
+					if (failure != null && hidden) {
+						throw new HiddenOutputFailure();
+					}
+					if (failure != null) {
+						throw failure;
+					}
+				}
+
+				/** A hidden test's failed result whose report text is empty. */
+				private static final class HiddenOutputFailure extends AssertionError {
+					/** Serialisation identifier for the generated marker. */
+					private static final long serialVersionUID = 1L;
+
+					/** Removes the generated marker's stack. */
+					HiddenOutputFailure() {
+						setStackTrace(new StackTraceElement[0]);
+					}
+
+					/** Leaves no text for report renderers. */
+					@Override
+					public String toString() {
+						return "";
 					}
 				}
 

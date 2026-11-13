@@ -92,7 +92,7 @@ class GeneratedAllHooksTest {
 						    regardingTheVisibilityAndScheduleOfTheTestCases:
 						      theDeadlineIs: "2000-01-01 00:00 UTC"
 						      testsNotListedHereAreHidden: false
-						      theFollowingTestsAreHidden: ["com.example.fixtures.HiddenFixture", "com.example.fixtures.HiddenTimeoutFixture", "com.example.fixtures.HiddenLoudFixture", "com.example.fixtures.HiddenFactoryFixture"]
+						      theFollowingTestsAreHidden: ["com.example.fixtures.HiddenFixture", "com.example.fixtures.HiddenTimeoutFixture", "com.example.fixtures.HiddenLoudFixture", "com.example.fixtures.HiddenFactoryFixture", "com.example.fixtures.HiddenUnflushedFixture"]
 						""");
 		Files.writeString(project.resolve("pom.xml"), "<project/>");
 		Files.createDirectories(project.resolve("src/main/java"));
@@ -131,6 +131,19 @@ class GeneratedAllHooksTest {
 		fixture(fixtures, "LoopingCauseFixture",
 				"@Test void fails() throws Exception { throw new java.util.concurrent.ExecutionException(\"looping\", null) {"
 						+ " @Override public synchronized Throwable getCause() { while (true) { Thread.onSpinWait(); } } }; }");
+		fixture(fixtures, "LoopingMessageFixture", "@Test void fails() { throw new IllegalStateException(\"looping\") {"
+				+ " @Override public String getMessage() { while (true) { Thread.onSpinWait(); } } }; }");
+		fixture(fixtures, "LoopingStackFixture", "@Test void fails() { throw new IllegalStateException(\"looping\") {"
+				+ " @Override public StackTraceElement[] getStackTrace() { while (true) { Thread.onSpinWait(); } } }; }");
+		fixture(fixtures, "SuppressedLoopingFixture",
+				"@Test void fails() { IllegalStateException outer = new IllegalStateException(\"outer\");"
+						+ " outer.addSuppressed(new IllegalStateException(\"inner\") { @Override public String toString() {"
+						+ " while (true) { Thread.onSpinWait(); } } }); throw outer; }");
+		fixture(fixtures, "AssertAllFixture",
+				"@Test void fails() { Assertions.assertAll(() -> Assertions.fail(\"first\"), () -> Assertions.fail(\"second\")); }");
+		fixture(fixtures, "HiddenUnflushedFixture",
+				"@Test void writes() { for (byte part : \"SECRET_UNFLUSHED\".getBytes(java.nio.charset.StandardCharsets.UTF_8)) {"
+						+ " System.out.write(part); } System.out.write(0x80); }");
 		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy).projectFolderPath(project).build()
 				.createTestCases().writeTestCases(testSources);
 		compiled = Files.createDirectories(tempDir.resolve("compiled"));
@@ -287,6 +300,56 @@ class GeneratedAllHooksTest {
 		EngineExecutionResults results = assertTimeoutPreemptively(Duration.ofSeconds(30),
 				() -> run("com.example.fixtures.LoopingCauseFixture", reversed));
 		assertThat(messages(results)).containsExactly("com.example.fixtures.LoopingCauseFixture$1: looping");
+	}
+
+	/**
+	 * A failure whose own reporting methods never return is reported as a copy
+	 * JUnit reads without calling them, whether the override sits on the failure
+	 * itself or on a failure suppressed in it, in either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void loopingReportingMethodsAreNeverCalled(boolean reversed) throws Exception {
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.LoopingMessageFixture", reversed))))
+						.containsExactly("com.example.fixtures.LoopingMessageFixture$1");
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.LoopingStackFixture", reversed))))
+						.containsExactly("com.example.fixtures.LoopingStackFixture$1: looping");
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.SuppressedLoopingFixture", reversed))))
+						.containsExactly("java.lang.IllegalStateException: outer");
+	}
+
+	/**
+	 * A failure from JUnit's own {@code assertAll} keeps its full text, since its
+	 * reporting methods come from opentest4j itself.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void assertAllKeepsItsText() throws Exception {
+		assertThat(messages(run("com.example.fixtures.AssertAllFixture"))).singleElement().asString().contains("first")
+				.contains("second");
+	}
+
+	/**
+	 * Output a hidden test leaves unfinished fails the test without showing it, in
+	 * either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void unfinishedHiddenOutputFailsSilently(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenUnflushedFixture", reversed));
+		assertThat(captured.results().testEvents().failed().count()).isEqualTo(1);
+		assertThat(messages(captured.results())).containsExactly("");
+		assertThat(captured.output()).doesNotContain("SECRET_UNFLUSHED");
 	}
 
 	/**
