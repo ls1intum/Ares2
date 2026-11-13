@@ -28,6 +28,7 @@ import de.tum.cit.ase.ares.api.PrivilegedExceptionsOnly;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.context.TestContextUtils;
 import de.tum.cit.ase.ares.api.context.TestType;
+import de.tum.cit.ase.ares.api.jupiter.JupiterAresTest;
 import de.tum.cit.ase.ares.api.jupiter.JupiterContext;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 import de.tum.cit.ase.ares.api.localization.Messages;
@@ -312,16 +313,17 @@ public final class ConfigurationUtils {
 	}
 
 	/**
-	 * Requires a visibility entry to name a test: a method entry a JUnit test
-	 * method the class declares or inherits, a class entry a class that has one,
-	 * itself, in a supertype or in a {@code @Nested} class. An entry naming
-	 * anything else would never apply, so the intended test would silently keep its
-	 * other visibility.
+	 * Requires a visibility entry to name a test Ares supervises: a method entry a
+	 * JUnit test method the class declares or inherits, a class entry a class that
+	 * has one, itself, in a supertype or in a {@code @Nested} class, and every such
+	 * test under an Ares annotation. Any other entry would never apply, so the test
+	 * would silently keep its other visibility, or run unsupervised.
 	 *
 	 * @param field  the list the entry is in, for the message.
 	 * @param entry  the entry.
 	 * @param loader the loader of the test classes.
-	 * @throws IllegalArgumentException when the entry matches nothing, or no test.
+	 * @throws IllegalArgumentException when the entry matches nothing, no test, or
+	 *                                  an unsupervised test.
 	 */
 	private static void requireMatch(String field, String entry, ClassLoader loader) {
 		int hash = entry.indexOf('#');
@@ -339,6 +341,66 @@ public final class ConfigurationUtils {
 			throw new IllegalArgumentException(
 					Messages.localized("policy.behavior.hidden.tests.not.a.test", field, entry));
 		}
+		boolean supervised = hash < 0 ? holdsOnlySupervisedTests(testClass.get(), new HashSet<>())
+				: testMethods(testClass.get(), entry.substring(hash + 1))
+						.allMatch(method -> isSupervised(testClass.get(), method));
+		if (!supervised) {
+			throw new IllegalArgumentException(
+					Messages.localized("policy.behavior.hidden.tests.unsupervised", field, entry));
+		}
+	}
+
+	/**
+	 * The JUnit test methods of that name a class declares or inherits.
+	 *
+	 * @param type       the class.
+	 * @param methodName the method's name.
+	 * @return the test methods.
+	 */
+	private static Stream<Method> testMethods(Class<?> type, String methodName) {
+		return typeHierarchy(type).flatMap(current -> Stream.of(current.getDeclaredMethods()))
+				.filter(method -> method.getName().equals(methodName)).filter(ConfigurationUtils::isTestMethod);
+	}
+
+	/**
+	 * Whether every JUnit test a class entry covers runs under Ares: the tests of
+	 * the class, its supertypes and its {@code @Nested} classes.
+	 *
+	 * @param type    the class.
+	 * @param visited the classes already looked at.
+	 * @return whether no covered test runs unsupervised.
+	 */
+	private static boolean holdsOnlySupervisedTests(Class<?> type, Set<Class<?>> visited) {
+		if (!visited.add(type)) {
+			return true;
+		}
+		boolean own = typeHierarchy(type).flatMap(current -> Stream.of(current.getDeclaredMethods()))
+				.filter(ConfigurationUtils::isTestMethod).allMatch(method -> isSupervised(type, method));
+		return own && Stream.of(type.getDeclaredClasses())
+				.filter(nested -> AnnotationSupport.isAnnotated(nested, Nested.class))
+				.allMatch(nested -> holdsOnlySupervisedTests(nested, visited));
+	}
+
+	/**
+	 * Whether a test runs under Ares: the method, or the class running it or a
+	 * class it is nested in, carries {@code @PublicTest}, {@code @HiddenTest},
+	 * {@code @Public} or {@code @Hidden}. A list can only hide such a test, since
+	 * only these annotations register Ares for it.
+	 *
+	 * @param owner  the class running the test.
+	 * @param method the test method.
+	 * @return whether Ares supervises it.
+	 */
+	private static boolean isSupervised(Class<?> owner, Method method) {
+		if (AnnotationSupport.isAnnotated(method, JupiterAresTest.class)) {
+			return true;
+		}
+		for (Class<?> current = owner; current != null; current = current.getEnclosingClass()) {
+			if (AnnotationSupport.isAnnotated(current, JupiterAresTest.class)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

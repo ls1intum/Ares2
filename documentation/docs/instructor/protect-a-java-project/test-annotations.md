@@ -25,11 +25,12 @@ class therefore loses all enforcement without an error, which is the failure mod
 exists to prevent.
 :::
 
-In a precompile exercise, which has no Ares dependency at run time, the security policy marks
-tests hidden or public for the whole exercise instead, under
+The security policy can list tests as hidden or public, under
 [`regardingTheVisibilityAndScheduleOfTheTestCases`](/contributor/subsystems/policy/security-policy-manual#774-visibility-and-schedule).
-With the Ares dependency every test still needs one of these annotations, and an annotation
-always wins over the policy.
+Every test a list names still needs one of these annotations, on the method or on its class.
+That annotation always wins over the list, and an entry naming a test without one fails every
+test. A precompile exercise cannot use this category yet: generating one from a policy that
+sets it stops with an error.
 
 ## Combined annotations
 
