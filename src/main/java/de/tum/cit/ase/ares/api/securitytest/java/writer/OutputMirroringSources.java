@@ -210,13 +210,30 @@ final class OutputMirroringSources {
 				private static boolean hiddenByGeneratedPolicy(ExtensionContext context) {
 					try {
 						Class<?> visibility = Class.forName("de.tum.cit.ase.ares.generated.GeneratedHiddenTests", false,
-								context.getRequiredTestClass().getClassLoader());
+								GeneratedOutputMirroring.class.getClassLoader());
+						if (!fromThisOutput(visibility)) {
+							return true;
+						}
 						return (Boolean) visibility.getMethod("isHiddenContext", ExtensionContext.class).invoke(null, context);
 					} catch (ClassNotFoundException absent) {
 						return false;
 					} catch (ReflectiveOperationException | LinkageError | ClassCastException invalid) {
 						return true;
 					}
+				}
+
+				/**
+				 * Whether a class was loaded by this hook's class loader from the same place
+				 * as this hook, so a student class of the same name from other output never counts.
+				 */
+				private static boolean fromThisOutput(Class<?> owner) {
+					if (owner.getClassLoader() != GeneratedOutputMirroring.class.getClassLoader()) {
+						return false;
+					}
+					java.security.CodeSource source = owner.getProtectionDomain().getCodeSource();
+					java.security.CodeSource hooks = GeneratedOutputMirroring.class.getProtectionDomain().getCodeSource();
+					return source != null && hooks != null && source.getLocation() != null && hooks.getLocation() != null
+							&& source.getLocation().toExternalForm().equals(hooks.getLocation().toExternalForm());
 				}
 
 				/**

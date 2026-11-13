@@ -78,6 +78,12 @@ class GeneratedAllHooksTest {
 	private static Path forged;
 
 	/**
+	 * A student class named like the generated visibility hook, compiled outside
+	 * the generated output, whose visibility check never returns.
+	 */
+	private static Path lookalikeVisibility;
+
+	/**
 	 * Generates the precompile output for a policy setting all four categories and
 	 * compiles it with the fixtures.
 	 *
@@ -234,6 +240,7 @@ class GeneratedAllHooksTest {
 				.map(line -> line.substring(line.indexOf('=') + 1)).findFirst().orElseThrow();
 		reversedResources = reversedRegistration(resources, tempDir.resolve("reversed-resources"));
 		forged = forgedMarker(tempDir.resolve("forged-sources"), tempDir.resolve("forged"));
+		lookalikeVisibility = lookalikeVisibility(tempDir.resolve("lookalike-sources"), tempDir.resolve("lookalike"));
 	}
 
 	/**
@@ -268,6 +275,33 @@ class GeneratedAllHooksTest {
 				"@Test void fails() { throw new de.tum.cit.ase.ares.generated.ForgedMarker(); }");
 		fixture(fixtures, "LookalikeHiddenFixture",
 				"@Test void fails() { throw new de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure(); }");
+		compile(Files.createDirectories(output), List.of(sources));
+		return output;
+	}
+
+	/**
+	 * Compiles a student class named like the generated visibility hook whose
+	 * visibility check never returns, outside the generated output.
+	 *
+	 * @param sources the sources' folder.
+	 * @param output  the compiled classes' folder.
+	 * @return the compiled classes' folder
+	 * @throws IOException if writing or compiling fails
+	 */
+	private static Path lookalikeVisibility(Path sources, Path output) throws IOException {
+		Path hook = Files.createDirectories(sources.resolve("de/tum/cit/ase/ares/generated"));
+		Files.writeString(hook.resolve("GeneratedHiddenTests.java"), """
+				package de.tum.cit.ase.ares.generated;
+
+				import org.junit.jupiter.api.extension.Extension;
+				import org.junit.jupiter.api.extension.ExtensionContext;
+
+				public final class GeneratedHiddenTests implements Extension {
+					public static boolean isHiddenContext(ExtensionContext context) {
+						while (true) { Thread.onSpinWait(); }
+					}
+				}
+				""");
 		compile(Files.createDirectories(output), List.of(sources));
 		return output;
 	}
@@ -683,6 +717,52 @@ class GeneratedAllHooksTest {
 			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 			assertThat(output).as(output).contains(PROBE_DONE)
 					.contains(PROBE_FAILURE + "de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure");
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
+	/**
+	 * A student class named like the visibility hook, placed before the generated
+	 * output, is never called after a timeout: the strict timeout reports the
+	 * timeout instead of hanging on it.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aLookalikeVisibilityHookIsNotCalledAfterATimeout(@TempDir Path probe) throws Exception {
+		assertLookalikeIgnored(probe, "com.example.fixtures.HiddenTimeoutFixture",
+				GENERATED + "GeneratedStrictTimeout");
+	}
+
+	/**
+	 * A student class named like the visibility hook, placed before the generated
+	 * output, is never called before a test by the output hook.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aLookalikeVisibilityHookIsNotCalledBeforeATest(@TempDir Path probe) throws Exception {
+		assertLookalikeIgnored(probe, "com.example.fixtures.PublicFixture", GENERATED + "GeneratedOutputMirroring");
+	}
+
+	/**
+	 * Runs one fixture with one hook and the lookalike visibility hook first on the
+	 * class path, and checks that the run finished with one failure.
+	 *
+	 * @param probe     where the probe is compiled.
+	 * @param className the fixture class.
+	 * @param hooks     the hook to load.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	private static void assertLookalikeIgnored(Path probe, String className, String hooks) throws Exception {
+		Process process = startInOwnJvm(compileProbe(probe), className, false, hooks, lookalikeVisibility);
+		try {
+			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
+			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			assertThat(output).as(output).contains(PROBE_DONE).containsOnlyOnce(PROBE_FAILURE);
 		} finally {
 			process.destroyForcibly();
 		}
