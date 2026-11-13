@@ -2,14 +2,17 @@ package de.tum.cit.ase.ares.api.internal;
 
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
+import org.assertj.core.error.AssertJMultipleFailuresError;
 import org.assertj.core.error.MultipleAssertionsError;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
+import org.opentest4j.AssertionFailedError;
 import org.opentest4j.IncompleteExecutionException;
 import org.opentest4j.MultipleFailuresError;
 import org.slf4j.*;
@@ -38,6 +41,23 @@ public final class ReportingUtils {
 	 * it or calls student code, which may hold that lock or never return.
 	 */
 	private static final Duration INSPECTION_TIMEOUT = Duration.ofSeconds(2);
+
+	/**
+	 * The methods of a failure a report may call, directly or by printing it. An
+	 * override of any of them in student code may run code or add a blocked action
+	 * when the report reads it.
+	 */
+	private static final Set<String> READ_METHODS = Set.of("getMessage", "getLocalizedMessage", "getCause", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+			"getStackTrace", "toString", "printStackTrace", "fillInStackTrace"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+
+	/**
+	 * Library failures whose own versions of read methods are trusted, each with
+	 * those methods: they only join or format their members' messages, and
+	 * redacting them would hide ordinary failed assertions.
+	 */
+	private static final Map<Class<?>, Set<String>> TRUSTED_LIBRARY_METHODS = Map.of(MultipleFailuresError.class,
+			Set.of("getMessage"), AssertJMultipleFailuresError.class, Set.of("getMessage"), //$NON-NLS-1$ //$NON-NLS-2$
+			MultipleAssertionsError.class, Set.of("getMessage"), AssertionFailedError.class, Set.of("toString")); //$NON-NLS-1$ //$NON-NLS-2$
 
 	static {
 		// Initialize
@@ -142,10 +162,10 @@ public final class ReportingUtils {
 	 *
 	 * @param violation      the blocked action found, or null.
 	 * @param complete       whether every carried failure was read.
-	 * @param skipped        whether a failure's own {@code getCause} or
-	 *                       {@code getFailures} was skipped, since it may still
-	 *                       carry a blocked action the report would later reveal,
-	 *                       or run student code when read.
+	 * @param skipped        whether a failure overrides, in student code, a method
+	 *                       the report reads, since it may still carry a blocked
+	 *                       action the report would later reveal, or run student
+	 *                       code when read.
 	 * @param violationStack the stack of the blocked action found, empty when none.
 	 */
 	private record Inspection(SecurityViolationFeedback.Violation violation, boolean complete, boolean skipped,
@@ -295,44 +315,58 @@ public final class ReportingUtils {
 	/**
 	 * The failures a failure carries that can be read without running student code:
 	 * its cause, when a Java runtime class declares {@code getCause}, its
-	 * suppressed failures, and what an Ares privileged exception or an opentest4j
-	 * multiple-failures error holds.
+	 * suppressed failures, and what an Ares privileged exception, an opentest4j
+	 * multiple-failures error or an AssertJ multiple-assertions error holds.
 	 */
 	private static List<Throwable> carriedBy(Throwable t) {
 		List<Throwable> carried = new ArrayList<>(Arrays.asList(t.getSuppressed()));
-		if (declaredByTheRuntime(t, "getCause")) {
+		if (declaredByTheRuntime(t, "getCause")) { //$NON-NLS-1$
 			carried.add(t.getCause());
 		}
 		if (t instanceof PrivilegedException privileged) {
 			carried.add(privileged.getPriviledgedThrowable());
 		}
-		if (t instanceof MultipleFailuresError multiple && declaredBy(t, "getFailures", MultipleFailuresError.class)) {
+		if (t instanceof MultipleFailuresError multiple && declaredBy(t, "getFailures", MultipleFailuresError.class)) { //$NON-NLS-1$
 			carried.addAll(multiple.getFailures());
+		}
+		if (t instanceof MultipleAssertionsError multiple
+				&& declaredBy(t, "getErrors", MultipleAssertionsError.class)) { //$NON-NLS-1$
+			carried.addAll(multiple.getErrors());
 		}
 		carried.removeIf(Objects::isNull);
 		return carried;
 	}
 
 	/**
-	 * Whether the search left out a getter of this failure because student code
-	 * overrides it: {@code getCause}, {@code getMessage}, which the report reads
-	 * and which may add a blocked action to the failure, or {@code getFailures} of
-	 * a multiple-failures error. The messages of the opentest4j and AssertJ
-	 * multiple-failure errors only join their members' messages.
+	 * Whether the search left out part of this failure because student code
+	 * overrides it: any method the report reads ({@link #READ_METHODS}), or the
+	 * member list of a multiple-failures or multiple-assertions error. Such a
+	 * method may run code or add a blocked action when the report calls it.
 	 */
 	private static boolean hasSkippedGetter(Throwable t) {
-		return !declaredByTheRuntime(t, "getCause") || hasOwnMessage(t) //$NON-NLS-1$
-				|| t instanceof MultipleFailuresError && !declaredBy(t, "getFailures", MultipleFailuresError.class); //$NON-NLS-1$
+		return Arrays.stream(t.getClass().getMethods()).anyMatch(ReportingUtils::isUntrustedReadMethod)
+				|| t instanceof MultipleFailuresError && !declaredBy(t, "getFailures", MultipleFailuresError.class) //$NON-NLS-1$
+				|| t instanceof MultipleAssertionsError && !declaredBy(t, "getErrors", MultipleAssertionsError.class); //$NON-NLS-1$
 	}
 
 	/**
-	 * Whether a failure's {@code getMessage} is neither the Java runtime's nor the
-	 * one of the opentest4j or AssertJ multiple-failure errors.
+	 * Whether a method is one the report reads and is declared neither by the Java
+	 * runtime nor, for that method, by a trusted library failure
+	 * ({@link #TRUSTED_LIBRARY_METHODS}).
 	 */
-	private static boolean hasOwnMessage(Throwable t) {
-		return !declaredByTheRuntime(t, "getMessage") //$NON-NLS-1$
-				&& !declaredBy(t, "getMessage", MultipleFailuresError.class) //$NON-NLS-1$
-				&& !declaredBy(t, "getMessage", MultipleAssertionsError.class); //$NON-NLS-1$
+	private static boolean isUntrustedReadMethod(Method method) {
+		Class<?> declaring = method.getDeclaringClass();
+		return READ_METHODS.contains(method.getName()) && !isRuntimeClass(declaring)
+				&& !TRUSTED_LIBRARY_METHODS.getOrDefault(declaring, Set.of()).contains(method.getName());
+	}
+
+	/**
+	 * Whether a class comes from the Java runtime, so its methods cannot run code a
+	 * student wrote.
+	 */
+	private static boolean isRuntimeClass(Class<?> type) {
+		ClassLoader loader = type.getClassLoader();
+		return loader == null || loader == ClassLoader.getPlatformClassLoader();
 	}
 
 	/**
@@ -341,8 +375,7 @@ public final class ReportingUtils {
 	 */
 	private static boolean declaredByTheRuntime(Throwable t, String method) {
 		Class<?> declaring = declaringClass(t, method);
-		return declaring != null && (declaring.getClassLoader() == null
-				|| declaring.getClassLoader() == ClassLoader.getPlatformClassLoader());
+		return declaring != null && isRuntimeClass(declaring);
 	}
 
 	/**

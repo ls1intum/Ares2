@@ -399,7 +399,7 @@ The feedback level decides every action Ares blocks at run time:
 
 Errors in Ares itself (`Reason: Ares-Code`) are never shortened and never get a hint. A student who creates an exception that looks like a blocked action gets no special treatment: only the exceptions Ares's own checks create follow the level.
 
-Ares spends at most two seconds searching a failure for a blocked action, and at most two more preparing its report. When student code inside the failure takes longer, for example a message that never returns, the student sees only the blocked action Ares found, or else that the failure could not be read. If that code ignores Ares's request to stop, Ares ends the test run with exit code 124. It does the same for a test that ignores its strict timeout. At `MINIMIZED`, Ares shows that a failure could not be read when its own `getMessage` is student code.
+Ares spends at most two seconds searching a failure for a blocked action, and at most two more preparing its report. When student code inside the failure takes longer, for example a message that never returns, the student sees only the blocked action Ares found, or else that the failure could not be read. If that code ignores Ares's request to stop, Ares ends the test run with exit code 124. It does the same for a test that ignores its strict timeout. At `MINIMIZED`, Ares shows that a failure could not be read when student code changes any method the report reads, such as `getMessage`, `toString` or `getStackTrace`. JUnit's and AssertJ's own assertion failures keep their text.
 
 ```yaml
 theFollowingTestBehaviorIsConfigured:
