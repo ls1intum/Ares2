@@ -541,6 +541,19 @@ class GeneratedHiddenTestsTest {
 	}
 
 	/**
+	 * A class in the generated package, beside the hook, that is not one of the
+	 * tests Ares generates gets no exemption: under a policy that hides unlisted
+	 * tests it is held back like any other.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aStudentClassInTheGeneratedPackageIsHeldBack() throws Exception {
+		assertThat(failureMessages(run(visibility, "de.tum.cit.ase.ares.generated.StudentTest", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
 	 * The exercise's generated ArchUnit and WALA security tests run and report
 	 * their real failure under a policy that hides unlisted tests.
 	 *
@@ -815,6 +828,19 @@ class GeneratedHiddenTestsTest {
 				"@Nested class Inner { @Test void deep() { throw new IllegalStateException(\"visible\"); } }");
 		fixture(folder, "GeneratedHiddenTestsSentinelTest", "",
 				"@Test void hiddenTestsAreActive() { throw new IllegalStateException(\"visible\"); }");
+		Files.writeString(Files.createDirectories(testSources.resolve("de/tum/cit/ase/ares/generated"))
+				.resolve("StudentTest.java"), """
+						package de.tum.cit.ase.ares.generated;
+
+						import org.junit.jupiter.api.Test;
+
+						class StudentTest {
+							@Test
+							void fails() {
+								throw new IllegalStateException("visible");
+							}
+						}
+						""");
 		Files.writeString(folder.resolve("GlidingTests.java"), """
 				package com.example.fixtures;
 

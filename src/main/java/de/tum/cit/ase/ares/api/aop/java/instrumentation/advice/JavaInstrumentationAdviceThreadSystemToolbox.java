@@ -124,52 +124,13 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
-	 * Answers one question: who created this thread, Ares itself or student code?
-	 * <p>
-	 * {@code @StrictTimeout} runs each timed test on a worker thread of its own.
-	 * Under a policy forbidding thread creation that worker must not be attributed
-	 * to the student, so the timeout machinery needs an exemption, granted to Ares
-	 * and to nothing else.
-	 * <p>
-	 * The stack is walked from the most recent call downwards, and the first frame
-	 * that matches decides:
-	 * <ol>
-	 * <li>exactly {@code TimeoutUtils}: the method name settles it.
-	 * {@code executeWithTimeout} submits the timed invocation to the executor, so
-	 * the machinery owns the thread and the exemption is granted; every other
-	 * method of that class refuses it. {@code rethrowThrowableSafe} is the one that
-	 * makes refusing necessary, being where the student's test body runs on the
-	 * worker, while the rest are Ares-internal and have no worker to claim;</li>
-	 * <li>exactly {@code GeneratedStrictTimeout}, the timeout a precompile run
-	 * generates: the same rule by method name. Its nested classes, such as its
-	 * thread factory, are skipped;</li>
-	 * <li>any other Ares class ({@code de.tum.cit.ase.ares.api.}): skipped, because
-	 * Ares' own frames are never student code even when {@code restrictedPackage}
-	 * is broad enough to cover them, as {@code de.tum.cit.ase} is for Ares' own
-	 * self-tests;</li>
-	 * <li>a class in {@code restrictedPackage}: the student created it,
-	 * refused;</li>
-	 * <li>none of the above by the bottom of the stack: refused.</li>
-	 * </ol>
-	 * The order of the first two is load-bearing, because {@code TimeoutUtils} lies
-	 * inside the Ares prefix: testing the prefix first would skip the very frame
-	 * the exemption depends on, so it could never be granted.
-	 * <p>
-	 * {@code true} lets the creation through unchecked; {@code false} leaves it to
-	 * the ordinary policy check.
-	 * <p>
-	 * <b>Why the method name rather than the class.</b> Accepting any
-	 * {@code TimeoutUtils} frame held only while the student frame was always found
-	 * first. It is not: the student's body runs inside
-	 * {@code TimeoutUtils.rethrowThrowableSafe}, so that class sits below the
-	 * student's own frames rather than being absent. Once {@code restrictedPackage}
-	 * stopped matching, which is what a mis-scoped supervised package produces, the
-	 * walk fell past the student frames, reached {@code rethrowThrowableSafe} and
-	 * exempted every thread operation under a {@code @StrictTimeout}, silently.
+	 * Whether Ares's own timeout created this thread. The newest matching frame
+	 * decides: {@code TimeoutUtils} (checked before other Ares frames are skipped)
+	 * and the exact generated timeout grant it only in {@code executeWithTimeout};
+	 * a student frame or the end of the stack refuses it.
 	 *
-	 * @param restrictedPackage the configured restricted (student) package prefix
-	 * @return {@code true} if the thread creation belongs to Ares' timeout
-	 *         machinery, {@code false} otherwise
+	 * @param restrictedPackage the restricted (student) package prefix
+	 * @return {@code true} if Ares's timeout created the thread
 	 */
 	private static boolean isThreadCreationFromAresTimeout(@Nullable String restrictedPackage) {
 		return isThreadCreationFromAresTimeout(restrictedPackage, copiedChecksPrefix(), trustedLoader());
@@ -199,7 +160,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 				}
 				if (GENERATED_STRICT_TIMEOUT.equals(className)
 						|| className.startsWith(GENERATED_STRICT_TIMEOUT + "$")) {
-					if (!isBesideTheCopiedChecks(frame.getDeclaringClass(), copiedChecksPrefix, trustedLoader)) {
+					if (!isTheGeneratedTimeout(frame.getDeclaringClass(), copiedChecksPrefix, trustedLoader)) {
 						return Boolean.FALSE;
 					}
 					if (GENERATED_STRICT_TIMEOUT.equals(className)) {
@@ -250,17 +211,48 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
-	 * Whether a class was loaded by the copied checks' own loader, from the same
-	 * place as the localisation class copied beside them. A precompile run writes
-	 * the generated timeout and that copy into the same test sources; in Ares
-	 * itself no copy exists, so no generated class qualifies. The copy is looked up
-	 * through the trusted loader, never the candidate's, so a class loader a
-	 * student made cannot bring both classes from one place.
+	 * Whether a frame's class is, or is nested in, the very class the trusted
+	 * loader finds as the generated timeout, loaded beside the copied checks. A
+	 * same-named class elsewhere, or a failed lookup, gets nothing.
 	 *
 	 * @param type               the class on the stack.
-	 * @param copiedChecksPrefix the prefix of the copied checks' package.
-	 * @param trustedLoader      the loader the copied checks were loaded by.
-	 * @return true when both come from that loader and the same known location
+	 * @param copiedChecksPrefix the copied checks' package prefix.
+	 * @param trustedLoader      the copied checks' loader.
+	 * @return true only for the generated timeout
+	 */
+	private static boolean isTheGeneratedTimeout(@Nonnull Class<?> type, @Nonnull String copiedChecksPrefix,
+			@Nonnull ClassLoader trustedLoader) {
+		try {
+			return outermostOf(type) == Class.forName(GENERATED_STRICT_TIMEOUT, false, trustedLoader)
+					&& isBesideTheCopiedChecks(type, copiedChecksPrefix, trustedLoader);
+		} catch (ClassNotFoundException | LinkageError | RuntimeException unknown) {
+			return false;
+		}
+	}
+
+	/**
+	 * The top-level class a class is nested in, or the class itself.
+	 *
+	 * @param type the class.
+	 * @return its outermost enclosing class
+	 */
+	@Nonnull
+	private static Class<?> outermostOf(@Nonnull Class<?> type) {
+		Class<?> outermost = type;
+		while (outermost.getEnclosingClass() != null) {
+			outermost = outermost.getEnclosingClass();
+		}
+		return outermost;
+	}
+
+	/**
+	 * Whether a class shares the copied checks' loader and code source location,
+	 * the copy being found through the trusted loader, never the candidate's.
+	 *
+	 * @param type               the class on the stack.
+	 * @param copiedChecksPrefix the copied checks' package prefix.
+	 * @param trustedLoader      the copied checks' loader.
+	 * @return true when both share that loader and location
 	 */
 	private static boolean isBesideTheCopiedChecks(@Nonnull Class<?> type, @Nonnull String copiedChecksPrefix,
 			@Nonnull ClassLoader trustedLoader) {

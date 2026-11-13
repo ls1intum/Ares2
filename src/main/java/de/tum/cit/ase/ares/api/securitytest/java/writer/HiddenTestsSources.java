@@ -98,10 +98,14 @@ final class HiddenTestsSources {
 				/** The public tests, as {@code pkg.Class} or {@code pkg.Class#method}. */
 				private static final List<String> PUBLIC = List.of((@PUBLIC@).split("\\n"));
 
-				/** The security tests Ares generated into the exercise; they always run and report. */
-				private static final Set<String> GENERATED_SECURITY_TESTS = Set.of(
+				/** The tests Ares generates into the exercise; they always run and report. */
+				private static final Set<String> GENERATED_TESTS = Set.of(
 						"@EXERCISE_PACKAGE@.ares.api.architecture.java.archunit.JavaArchunitTestCase",
-						"@EXERCISE_PACKAGE@.ares.api.architecture.java.wala.JavaWalaTestCase");
+						"@EXERCISE_PACKAGE@.ares.api.architecture.java.wala.JavaWalaTestCase",
+						"de.tum.cit.ase.ares.generated.GeneratedFailureReportingSentinelTest",
+						"de.tum.cit.ase.ares.generated.GeneratedStrictTimeoutSentinelTest",
+						"de.tum.cit.ase.ares.generated.GeneratedOutputMirroringSentinelTest",
+						"de.tum.cit.ase.ares.generated.GeneratedHiddenTestsSentinelTest");
 
 				/**
 				 * The test this hook is guarding right now, as {@code class#method}. Set only
@@ -460,6 +464,24 @@ final class HiddenTestsSources {
 									otherSource.getLocation() == null ? null : otherSource.getLocation().toExternalForm());
 				}
 
+				/**
+				 * Whether a class is one of the tests Ares generated: an exact name, and the
+				 * very class this hook's loader finds under it, loaded beside this hook.
+				 *
+				 * @param testClass the test's class
+				 * @return true only for a generated test
+				 */
+				static boolean isGeneratedTest(Class<?> testClass) {
+					ClassLoader loader = GeneratedHiddenTests.class.getClassLoader();
+					try {
+						return GENERATED_TESTS.contains(testClass.getName()) && testClass.getClassLoader() == loader
+								&& Class.forName(testClass.getName(), false, loader) == testClass
+								&& sameLocation(testClass, GeneratedHiddenTests.class);
+					} catch (ClassNotFoundException | LinkageError | RuntimeException unknown) {
+						return false;
+					}
+				}
+
 				/** Whether hidden tests are held back now: before the deadline, unless their early run has begun. */
 				private static boolean isHeldBack() {
 					long now = System.currentTimeMillis();
@@ -629,8 +651,8 @@ final class HiddenTestsSources {
 				}
 
 				/**
-				 * Whether the policy makes the test hidden. Classes Ares generated beside this
-				 * hook never are; a class elsewhere with such a name is treated like any other.
+				 * Whether the policy makes the test hidden. Tests Ares generated beside this
+				 * hook never are; a class with such a name is treated like any other.
 				 * Otherwise the nearest entry wins: a method entry on the test's own class,
 				 * then on each supertype, then the class, then each enclosing class; without
 				 * one, the policy's setting for unlisted tests decides.
@@ -640,9 +662,7 @@ final class HiddenTestsSources {
 				 * @return true when the test is hidden
 				 */
 				private static boolean isHidden(Class<?> testClass, Optional<String> methodName) {
-					if ((testClass.getName().startsWith("de.tum.cit.ase.ares.generated.")
-							|| GENERATED_SECURITY_TESTS.contains(testClass.getName()))
-							&& sameLocation(testClass, GeneratedHiddenTests.class)) {
+					if (isGeneratedTest(testClass)) {
 						return false;
 					}
 					Optional<Boolean> byMethod = methodName.flatMap(method -> byMethodEntry(testClass, method));

@@ -118,16 +118,25 @@ public final class GeneratedStackFrames {
 	private final ClassLoader forgedLoader;
 
 	/**
+	 * A second loader on the very folder of the stand-ins: the same name and the
+	 * same code source as the generated timeout, but a different class.
+	 */
+	private final ClassLoader siblingLoader;
+
+	/**
 	 * Holds the loaders of the compiled stand-ins.
 	 *
 	 * @param loader        the loader of the stand-ins beside the copied checks.
 	 * @param plantedLoader the loader that finds a planted copy first.
 	 * @param forgedLoader  the loader that brings its own copy of both classes.
+	 * @param siblingLoader another loader on the stand-ins' own folder.
 	 */
-	private GeneratedStackFrames(ClassLoader loader, ClassLoader plantedLoader, ClassLoader forgedLoader) {
+	private GeneratedStackFrames(ClassLoader loader, ClassLoader plantedLoader, ClassLoader forgedLoader,
+			ClassLoader siblingLoader) {
 		this.loader = loader;
 		this.plantedLoader = plantedLoader;
 		this.forgedLoader = forgedLoader;
+		this.siblingLoader = siblingLoader;
 	}
 
 	/**
@@ -149,7 +158,8 @@ public final class GeneratedStackFrames {
 		ClassLoader parent = GeneratedStackFrames.class.getClassLoader();
 		return new GeneratedStackFrames(new URLClassLoader(new URL[] { trustedUrl }, parent),
 				new URLClassLoader(new URL[] { planted.toUri().toURL(), trustedUrl }, parent),
-				new URLClassLoader(new URL[] { forged.toUri().toURL() }, parent));
+				new URLClassLoader(new URL[] { forged.toUri().toURL() }, parent),
+				new URLClassLoader(new URL[] { trustedUrl }, parent));
 	}
 
 	/**
@@ -225,6 +235,8 @@ public final class GeneratedStackFrames {
 				"a planted copy loaded from the student's output must not be exempt");
 		Assertions.assertFalse(exempted(copied, forgedLoader, nothing, GENERATED_HOOK, "executeWithTimeout"),
 				"a loader that brings its own copy of both classes must not be exempt");
+		Assertions.assertFalse(exempted(copied, siblingLoader, nothing, GENERATED_HOOK, "executeWithTimeout"),
+				"a same-named class from the same place but another loader must not be exempt");
 		Assertions.assertFalse(exempted(own, loader, nothing, GENERATED_HOOK, "executeWithTimeout"),
 				"Ares's own check must never exempt a generated class");
 		Assertions.assertFalse(
