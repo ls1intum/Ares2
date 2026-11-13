@@ -188,6 +188,19 @@ class GeneratedAllHooksTest {
 						+ " Thread holder = new Thread(() -> { synchronized (failure) { held.countDown();"
 						+ " while (true) { Thread.onSpinWait(); } } }); holder.setDaemon(true); holder.start(); held.await();"
 						+ " throw failure; }");
+		fixture(fixtures, "InterruptedFailureFixture",
+				"@Test void fails() throws Exception { IllegalStateException failure = new IllegalStateException(\"briefly locked\");"
+						+ " java.util.concurrent.CountDownLatch held = new java.util.concurrent.CountDownLatch(1);"
+						+ " Thread holder = new Thread(() -> { synchronized (failure) { held.countDown();"
+						+ " try { Thread.sleep(500); } catch (InterruptedException stop) { Thread.currentThread().interrupt(); } } });"
+						+ " holder.setDaemon(true); holder.start(); held.await(); Thread.currentThread().interrupt(); throw failure; }");
+		fixture(fixtures, "ManySuppressedFixture",
+				"@Test void fails() { IllegalStateException outer = new IllegalStateException(\"outer\");"
+						+ " for (int i = 0; i < 300; i++) { outer.addSuppressed(new IllegalStateException(\"inner \" + i)); }"
+						+ " throw outer; }");
+		fixture(fixtures, "CompletionViolationFixture",
+				"@Test void reads() { throw new java.util.concurrent.CompletionException(" + VIOLATION_PACKAGE
+						+ ".ViolationSource.blocked()); }");
 		Path violationSources = Files
 				.createDirectories(tempDir.resolve("violation-sources").resolve(VIOLATION_PACKAGE.replace('.', '/')));
 		Files.writeString(violationSources.resolve("ViolationSource.java"), """
@@ -567,6 +580,52 @@ class GeneratedAllHooksTest {
 	void aLockedFailureEndsTheRun(@TempDir Path probe) throws Exception {
 		assertThat(exitCodeInOwnJvm(compileProbe(probe), "com.example.fixtures.LockedFailureFixture",
 				GENERATED + "GeneratedFailureReporting")).isEqualTo(124);
+	}
+
+	/**
+	 * With failure reporting alone, a test that interrupts itself and then fails is
+	 * still reported once its failure can be read, instead of ending the run, in a
+	 * JVM of its own.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void anInterruptedFailureIsStillReported(@TempDir Path probe) throws Exception {
+		assertThat(runInOwnJvm(compileProbe(probe), "com.example.fixtures.InterruptedFailureFixture", false,
+				GENERATED + "GeneratedFailureReporting")).containsExactly("briefly locked");
+	}
+
+	/**
+	 * A failure with more suppressed failures than the copy budget is reported with
+	 * at most that many, in either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aCopyKeepsWithinItsBudget(boolean reversed) throws Exception {
+		List<Throwable> failures = run("com.example.fixtures.ManySuppressedFixture", reversed).testEvents().failed()
+				.stream().map(event -> event.getPayload(TestExecutionResult.class)
+						.flatMap(TestExecutionResult::getThrowable).orElseThrow())
+				.toList();
+		assertThat(failures).singleElement()
+				.satisfies(failure -> assertThat(failure.getSuppressed()).hasSizeLessThan(256));
+	}
+
+	/**
+	 * A blocked action wrapped in a {@code CompletionException} still follows the
+	 * feedback level, since its copy keeps the blocked action as its cause.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aWrappedBlockedActionFollowsTheFeedbackLevel(boolean reversed) throws Exception {
+		assertThat(messages(run("com.example.fixtures.CompletionViolationFixture", reversed))).containsExactly(
+				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
 	}
 
 	/**
