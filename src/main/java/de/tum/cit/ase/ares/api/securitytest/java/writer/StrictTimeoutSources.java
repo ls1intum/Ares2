@@ -191,28 +191,67 @@ final class StrictTimeoutSources {
 				 * @param result the factory's result
 				 * @param closer turns a produced stream into its guarded close callback
 				 * @return the tests, read into a list; a stream stays open until JUnit closes the
-				 *         returned one, after its tests ran
+				 *         returned one, after its tests ran. When reading fails, every stream opened
+				 *         so far is closed before the failure is rethrown
+				 */
+				static <T> T materialised(T result, Function<Stream<?>, Runnable> closer) {
+					List<Stream<?>> opened = new ArrayList<>();
+					try {
+						return materialisedResult(result, closer, opened);
+					} catch (RuntimeException | Error failure) {
+						closeAll(opened, failure);
+						throw failure;
+					}
+				}
+
+				/**
+				 * Reads a factory's result, recording every stream it opens so a failed read
+				 * can close them.
+				 *
+				 * @param <T> the factory's result type
+				 * @param result the factory's result
+				 * @param closer turns a produced stream into its guarded close callback
+				 * @param opened the streams opened so far
+				 * @return the tests, read into a list
 				 */
 				@SuppressWarnings("unchecked")
-				static <T> T materialised(T result, Function<Stream<?>, Runnable> closer) {
+				private static <T> T materialisedResult(T result, Function<Stream<?>, Runnable> closer, List<Stream<?>> opened) {
 					List<Object> nodes = new ArrayList<>();
 					if (result instanceof DynamicNode node) {
-						return (T) materialisedNode(node, closer);
+						return (T) materialisedNode(node, closer, opened);
 					} else if (result instanceof Stream<?> stream) {
-						stream.sequential().iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer)));
+						opened.add(stream);
+						stream.sequential().iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
 						return (T) nodes.stream().onClose(closer.apply(stream));
 					} else if (result instanceof Iterable<?> iterable) {
-						iterable.iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer)));
+						iterable.iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
 					} else if (result instanceof Iterator<?> iterator) {
-						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item, closer)));
+						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
 					} else if (result instanceof Object[] array) {
 						for (Object item : array) {
-							nodes.add(materialisedNode(item, closer));
+							nodes.add(materialisedNode(item, closer, opened));
 						}
 					} else {
 						return result;
 					}
 					return (T) nodes;
+				}
+
+				/**
+				 * Closes the streams a failed read opened, newest first, still under this
+				 * hook's guard; a failure while closing is kept as suppressed.
+				 *
+				 * @param opened the streams opened so far
+				 * @param failure the failure that stopped the read
+				 */
+				private static void closeAll(List<Stream<?>> opened, Throwable failure) {
+					for (int index = opened.size() - 1; index >= 0; index--) {
+						try {
+							opened.get(index).close();
+						} catch (RuntimeException | Error closing) {
+							failure.addSuppressed(closing);
+						}
+					}
 				}
 
 				/**
@@ -222,15 +261,19 @@ final class StrictTimeoutSources {
 				 *
 				 * @param item the produced test
 				 * @param closer turns a produced stream into its guarded close callback
+				 * @param opened the streams opened so far
 				 * @return the test, or the item unchanged when it is not a container
 				 */
-				private static Object materialisedNode(Object item, Function<Stream<?>, Runnable> closer) {
+				private static Object materialisedNode(Object item, Function<Stream<?>, Runnable> closer,
+						List<Stream<?>> opened) {
 					if (!(item instanceof DynamicContainer container)) {
 						return item;
 					}
 					List<DynamicNode> children = new ArrayList<>();
 					Stream<? extends DynamicNode> stream = container.getChildren();
-					stream.sequential().iterator().forEachRemaining(child -> children.add((DynamicNode) materialisedNode(child, closer)));
+					opened.add(stream);
+					stream.sequential().iterator()
+							.forEachRemaining(child -> children.add((DynamicNode) materialisedNode(child, closer, opened)));
 					return DynamicContainer.dynamicContainer(container.getDisplayName(),
 							container.getTestSourceUri().orElse(null), children.stream().onClose(closer.apply(stream)));
 				}

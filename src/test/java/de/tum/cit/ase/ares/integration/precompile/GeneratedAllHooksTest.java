@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
 import org.junit.platform.testkit.engine.Event;
 
@@ -116,6 +118,13 @@ class GeneratedAllHooksTest {
 						+ " DynamicContainer.dynamicContainer(\"box\", java.util.stream.Stream.of(DynamicTest.dynamicTest(\"inner\","
 						+ " () -> Assertions.assertFalse(INNER.get(), \"inner closed early\"))).onClose(() -> INNER.set(true))))"
 						+ ".onClose(() -> OUTER.set(true)); }");
+		fixture(fixtures, "FailingFactoryFixture",
+				"@TestFactory java.util.stream.Stream<DynamicNode> cases() { return java.util.stream.Stream.<DynamicNode>of("
+						+ "DynamicContainer.dynamicContainer(\"box\", java.util.stream.Stream.<DynamicNode>of("
+						+ "DynamicTest.dynamicTest(\"inner\", () -> { })).map(node -> { if (node != null) {"
+						+ " throw new IllegalStateException(\"broken read\"); } return node; })"
+						+ ".onClose(() -> { throw new IllegalStateException(\"CLOSED_INNER\"); })))"
+						+ ".onClose(() -> { throw new IllegalStateException(\"CLOSED_OUTER\"); }); }");
 		fixture(fixtures, "ParallelFactoryFixture",
 				"@TestFactory java.util.stream.Stream<DynamicTest> cases() { return java.util.stream.IntStream.range(0, 500)"
 						+ ".parallel().mapToObj(number -> DynamicTest.dynamicTest(\"case\" + number, () -> { })); }");
@@ -226,6 +235,24 @@ class GeneratedAllHooksTest {
 		EngineExecutionResults results = run("com.example.fixtures.ResourceFactoryFixture", reversed);
 		assertThat(results.testEvents().failed().count()).isZero();
 		assertThat(results.testEvents().succeeded().count()).isEqualTo(2);
+	}
+
+	/**
+	 * When reading a factory's tests fails, the streams opened so far are closed
+	 * anyway, nested ones included, since JUnit never receives them to close. Each
+	 * close throws a marker, kept as suppressed on the reported failure.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aFailedFactoryReadClosesItsStreams(boolean reversed) throws Exception {
+		List<String> closed = run("com.example.fixtures.FailingFactoryFixture", reversed).allEvents().failed().stream()
+				.flatMap(event -> event.getPayload(TestExecutionResult.class).flatMap(TestExecutionResult::getThrowable)
+						.stream())
+				.flatMap(failure -> Arrays.stream(failure.getSuppressed())).map(Throwable::getMessage).toList();
+		assertThat(closed).contains("CLOSED_INNER", "CLOSED_OUTER");
 	}
 
 	/**
