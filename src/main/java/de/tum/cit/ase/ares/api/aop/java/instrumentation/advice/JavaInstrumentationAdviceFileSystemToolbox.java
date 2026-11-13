@@ -826,8 +826,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		if (!isFilesMethod && count == 3 && (parameters[2] == null || parameters[2] instanceof File)) {
 			return parameters[2];
 		}
-		throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
-				fileSystemMethodToCheck, fullMethodSignature));
+		throw AresSecurityViolation.create(UNINSPECTABLE, "create", fullMethodSignature,
+				localize("security.advice.file.system.malformed.temp.file.creation", fileSystemMethodToCheck,
+						fullMethodSignature));
 	}
 
 	/**

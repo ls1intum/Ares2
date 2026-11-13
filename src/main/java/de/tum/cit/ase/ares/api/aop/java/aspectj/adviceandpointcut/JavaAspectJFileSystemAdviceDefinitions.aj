@@ -864,8 +864,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		if (!isFilesMethod && count == 3 && (parameters[2] == null || parameters[2] instanceof File)) {
 			return parameters[2];
 		}
-		throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
-				systemMethodToCheck, fullMethodSignature));
+		throw AresSecurityViolation.create(UNINSPECTABLE, "create", fullMethodSignature,
+				localize("security.advice.file.system.malformed.temp.file.creation", systemMethodToCheck,
+						fullMethodSignature));
 	}
 
 	/**
