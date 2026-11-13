@@ -438,13 +438,19 @@ final class StrictTimeoutSources {
 				}
 
 				/** A timed-out hidden result with no student-facing details. */
-				private static final class HiddenTestFailure extends AssertionError {
+				private static final class HiddenTestFailure extends AssertionError implements java.util.function.Supplier<Throwable> {
 					/** Serialisation identifier for the generated marker. */
 					private static final long serialVersionUID = 1L;
 
 					/** Removes the generated marker's stack. */
 					HiddenTestFailure() {
 						setStackTrace(new StackTraceElement[0]);
+					}
+
+					/** A new marker of this kind, carrying nothing attached to this one. */
+					@Override
+					public Throwable get() {
+						return new HiddenTestFailure();
 					}
 
 					/** Leaves no text for report renderers. */
@@ -545,8 +551,8 @@ final class StrictTimeoutSources {
 				/**
 				 * The failure JUnit gets instead of the real one: a copy whose text, stack, causes
 				 * and suppressed failures are read now, never later, so JUnit and the build tool
-				 * cannot run student code when they print it. A generated hook's own marker
-				 * without causes is kept, since Ares made it.
+				 * cannot run student code when they print it. A generated hook's own marker is
+				 * made anew by its own class, so nothing attached to the original comes along.
 				 *
 				 * @param failure the real failure
 				 * @return the copy, or null for none
@@ -561,18 +567,31 @@ final class StrictTimeoutSources {
 					if (known != null) {
 						return known;
 					}
-					Throwable copy = isOwnMarker(failure) ? failure : copyAlone(failure);
+					boolean marker = fromGeneratedHooks(failure.getClass());
+					Throwable copy = marker ? freshMarker(failure) : copyAlone(failure);
 					copies.put(failure, copy);
-					if (copy != failure && copies.size() <= TRAVERSAL_LIMIT) {
+					if (!(marker && carriesNothing(failure)) && copies.size() <= TRAVERSAL_LIMIT) {
 						attachCopies(failure, copy, copies);
 					}
 					return copy;
 				}
 
-				/** Whether a failure is a generated hook's own marker with no cause and nothing suppressed. */
-				private static boolean isOwnMarker(Throwable failure) {
-					return fromGeneratedHooks(failure.getClass()) && failure.getCause() == null
-							&& failure.getSuppressed().length == 0;
+				/**
+				 * A new marker made by the generated class itself, so a cause or suppressed failure
+				 * a student attached to the original never comes along; a plain copy if it makes none.
+				 */
+				private static Throwable freshMarker(Throwable marker) {
+					if (marker instanceof java.util.function.Supplier<?> maker && maker.get() instanceof Throwable fresh) {
+						return fresh;
+					}
+					return copyAlone(marker);
+				}
+
+				/** Whether a generated marker is a hidden or scheduled result, which carries nothing at all. */
+				private static boolean carriesNothing(Throwable marker) {
+					String type = marker.getClass().getName();
+					return type.endsWith("$HiddenTestFailure") || type.endsWith("$HiddenTestAbort")
+							|| type.endsWith("$HiddenTestScheduled") || type.endsWith("$HiddenOutputFailure");
 				}
 
 				/** Hangs copies of the failure's cause and suppressed failures on its copy. */
@@ -897,7 +916,7 @@ final class StrictTimeoutSources {
 				}
 
 				/** A copy of a failure that runs no student code when read. */
-				private static final class DetachedFailure extends AssertionError {
+				private static final class DetachedFailure extends AssertionError implements java.util.function.Supplier<Throwable> {
 					/** Serialisation identifier for the generated copy. */
 					private static final long serialVersionUID = 1L;
 
@@ -911,13 +930,20 @@ final class StrictTimeoutSources {
 						super((Object) text);
 						setStackTrace(stack);
 					}
+
+					/** A new copy with the same text and stack, carrying nothing attached to this one. */
+					@Override
+					public Throwable get() {
+						return new DetachedFailure(getMessage(), getStackTrace());
+					}
 				}
 
 				/**
 				 * A copy of a blocked action that keeps what the failure feedback reads: its
 				 * kind, action and target, under the same method names as the original.
 				 */
-				public static final class DetachedViolation extends SecurityException {
+				public static final class DetachedViolation extends SecurityException
+						implements java.util.function.Supplier<Throwable> {
 					/** Serialisation identifier for the generated copy. */
 					private static final long serialVersionUID = 1L;
 
@@ -986,6 +1012,14 @@ final class StrictTimeoutSources {
 					public String toString() {
 						String message = getLocalizedMessage();
 						return message == null ? type : type + ": " + message;
+					}
+
+					/** A new copy with the same fields, text and stack, carrying nothing attached to this one. */
+					@Override
+					public Throwable get() {
+						DetachedViolation fresh = new DetachedViolation(type, kind, action, target, getMessage());
+						fresh.setStackTrace(getStackTrace());
+						return fresh;
 					}
 				}
 

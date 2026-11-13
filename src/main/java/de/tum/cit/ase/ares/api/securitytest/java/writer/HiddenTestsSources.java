@@ -565,22 +565,28 @@ final class HiddenTestsSources {
 					return false;
 				}
 
-				/** Keeps abort status or failed status without a message, cause, or stack. */
+				/** Keeps abort status, failed status or a scheduling notice, as a new marker with no cause or attachments. */
 				private static Throwable opaque(Throwable failure) {
-					if (failure instanceof HiddenTestScheduled) {
-						return failure;
+					if (failure instanceof HiddenTestScheduled scheduled) {
+						return scheduled.get();
 					}
 					return failure instanceof TestAbortedException ? new HiddenTestAbort() : new HiddenTestFailure();
 				}
 
 				/** A failed result whose report text is empty. */
-				private static final class HiddenTestFailure extends AssertionError {
+				private static final class HiddenTestFailure extends AssertionError implements java.util.function.Supplier<Throwable> {
 					/** Serialisation identifier for the generated marker. */
 					private static final long serialVersionUID = 1L;
 
 					/** Removes the generated marker's stack. */
 					HiddenTestFailure() {
 						setStackTrace(new StackTraceElement[0]);
+					}
+
+					/** A new marker of this kind, carrying nothing attached to this one. */
+					@Override
+					public Throwable get() {
+						return new HiddenTestFailure();
 					}
 
 					/** Leaves no text for report renderers. */
@@ -591,7 +597,8 @@ final class HiddenTestsSources {
 				}
 
 				/** A future hidden test's scheduling notice, preserved by reporting hooks. */
-				private static final class HiddenTestScheduled extends AssertionFailedError {
+				private static final class HiddenTestScheduled extends AssertionFailedError
+						implements java.util.function.Supplier<Throwable> {
 					/** Serialisation identifier for the generated marker. */
 					private static final long serialVersionUID = 1L;
 
@@ -599,16 +606,28 @@ final class HiddenTestsSources {
 					HiddenTestScheduled(String message) {
 						super(message);
 					}
+
+					/** A new notice with the same message, carrying nothing attached to this one. */
+					@Override
+					public Throwable get() {
+						return new HiddenTestScheduled(getMessage());
+					}
 				}
 
 				/** An aborted result whose report text is empty. */
-				private static final class HiddenTestAbort extends TestAbortedException {
+				private static final class HiddenTestAbort extends TestAbortedException implements java.util.function.Supplier<Throwable> {
 					/** Serialisation identifier for the generated marker. */
 					private static final long serialVersionUID = 1L;
 
 					/** Removes the generated marker's stack. */
 					HiddenTestAbort() {
 						setStackTrace(new StackTraceElement[0]);
+					}
+
+					/** A new marker of this kind, carrying nothing attached to this one. */
+					@Override
+					public Throwable get() {
+						return new HiddenTestAbort();
 					}
 
 					/** Leaves no text for report renderers. */

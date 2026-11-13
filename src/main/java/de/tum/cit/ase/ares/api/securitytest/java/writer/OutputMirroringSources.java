@@ -177,13 +177,19 @@ final class OutputMirroringSources {
 				}
 
 				/** A hidden test's failed result whose report text is empty. */
-				private static final class HiddenOutputFailure extends AssertionError {
+				private static final class HiddenOutputFailure extends AssertionError implements java.util.function.Supplier<Throwable> {
 					/** Serialisation identifier for the generated marker. */
 					private static final long serialVersionUID = 1L;
 
 					/** Removes the generated marker's stack. */
 					HiddenOutputFailure() {
 						setStackTrace(new StackTraceElement[0]);
+					}
+
+					/** A new marker of this kind, carrying nothing attached to this one. */
+					@Override
+					public Throwable get() {
+						return new HiddenOutputFailure();
 					}
 
 					/** Leaves no text for report renderers. */
