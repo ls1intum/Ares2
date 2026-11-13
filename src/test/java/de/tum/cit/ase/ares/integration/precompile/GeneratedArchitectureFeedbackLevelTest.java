@@ -141,13 +141,33 @@ class GeneratedArchitectureFeedbackLevelTest {
 	}
 
 	/**
-	 * Renders a blocked action as the DEBUG project's failure reporting does.
+	 * Renders a blocked action as the DEBUG project's failure reporting does, with
+	 * English as the display language, so the expected English text does not depend
+	 * on the machine's language.
 	 *
 	 * @param violation the blocked action.
 	 * @return the rendered text
 	 * @throws Exception if the generated hook cannot be loaded
 	 */
 	private static String renderedAtDebug(Throwable violation) throws Exception {
+		Locale originalLocale = Locale.getDefault(Locale.Category.DISPLAY);
+		try {
+			Locale.setDefault(Locale.Category.DISPLAY, Locale.ENGLISH);
+			return renderedByTheDebugHook(violation);
+		} finally {
+			Locale.setDefault(Locale.Category.DISPLAY, originalLocale);
+		}
+	}
+
+	/**
+	 * Loads the DEBUG project's failure reporting and renders a blocked action with
+	 * it.
+	 *
+	 * @param violation the blocked action.
+	 * @return the rendered text
+	 * @throws Exception if the generated hook cannot be loaded
+	 */
+	private static String renderedByTheDebugHook(Throwable violation) throws Exception {
 		try (java.net.URLClassLoader loader = new java.net.URLClassLoader(
 				new java.net.URL[] { debug.toUri().toURL(),
 						debug.resolveSibling("debug-compiled-resources").toUri().toURL() },
