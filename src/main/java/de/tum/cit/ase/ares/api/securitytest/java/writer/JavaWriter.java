@@ -18,6 +18,7 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.localization.Localisation;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
@@ -312,10 +313,11 @@ public class JavaWriter implements Writer {
 
 	/**
 	 * Writes security test cases to files, then adds the generated test-behaviour
-	 * settings class. Calls the released overload virtually first, so a subclass
-	 * overriding only that one still has its customisation applied even though this
-	 * is the overload {@code JavaTestCaseFactoryAndBuilder} actually calls, before
-	 * adding behaviour-specific outputs on top.
+	 * settings class. A strict timeout or output category is refused before
+	 * anything is written, since no generated code applies it here. Calls the
+	 * released overload virtually first, so a subclass overriding only that one
+	 * keeps its customisation, although {@code JavaTestCaseFactoryAndBuilder} calls
+	 * this one.
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
@@ -340,11 +342,33 @@ public class JavaWriter implements Writer {
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
 			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath) {
+		refuseUnappliedCategories(testBehaviorConfiguration);
 		List<Path> written = new ArrayList<>(writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 				essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 				javaAOPTestCases, javaPhobosTestCases, testFolderPath));
 		written.addAll(createTestBehaviorSettingsFiles(testBehaviorConfiguration, confineToProject(testFolderPath)));
 		return written;
+	}
+
+	/**
+	 * Refuses the test-behaviour categories a precompile exercise cannot apply yet,
+	 * naming them, so a generated exercise never silently drops them.
+	 *
+	 * @param testBehaviorConfiguration the policy's behaviour configuration.
+	 * @throws SecurityException when a strict timeout or output category is set
+	 */
+	private static void refuseUnappliedCategories(@Nonnull TestBehaviorConfiguration testBehaviorConfiguration) {
+		List<String> unapplied = new ArrayList<>();
+		if (testBehaviorConfiguration.regardingTheStrictTimeoutForTheTestCases() != null) {
+			unapplied.add("regardingTheStrictTimeoutForTheTestCases"); //$NON-NLS-1$
+		}
+		if (testBehaviorConfiguration.regardingTheOutputOfTheTestCases() != null) {
+			unapplied.add("regardingTheOutputOfTheTestCases"); //$NON-NLS-1$
+		}
+		if (!unapplied.isEmpty()) {
+			throw new SecurityException(Messages.localized("security.writer.test.behavior.precompile.unsupported", //$NON-NLS-1$
+					String.join(", ", unapplied))); //$NON-NLS-1$
+		}
 	}
 	// </editor-fold>
 }

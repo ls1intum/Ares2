@@ -3,11 +3,23 @@ package de.tum.cit.ase.ares.api.internal;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
+
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import de.tum.cit.ase.ares.api.io.AresIOContext;
 import de.tum.cit.ase.ares.api.io.IOManager;
@@ -29,11 +41,6 @@ class IOManagerReferenceTest {
 	 * class there as its main class.
 	 */
 	private static final String STUDENT_PACKAGE = "de.tum.cit.ase.ares.api.policy.policySubComponents";
-
-	/**
-	 * A package that only the main output holds, so a scan finds student code only.
-	 */
-	private static final String MAIN_ONLY_PACKAGE = "de.tum.cit.ase.ares.api.context";
 
 	/** The default locale before a test changed it. */
 	private final Locale previous = Locale.getDefault();
@@ -89,11 +96,17 @@ class IOManagerReferenceTest {
 	/**
 	 * Without a main class, the classes of the supervised package are where the
 	 * student code is, so a manager from the test output is accepted.
+	 *
+	 * @param folder a folder for the compiled student class.
+	 * @throws IOException if the class cannot be written
 	 */
 	@Test
-	void aPackageScanWithoutAMainClassAcceptsATestOutputManager() {
-		assertThat(IOManagerReference.resolve(THIS + ".RecordingManager",
-				policy(List.of(THIS), MAIN_ONLY_PACKAGE, null), loader())).isEqualTo(RecordingManager.class);
+	void aPackageScanWithoutAMainClassAcceptsATestOutputManager(@TempDir Path folder) throws IOException {
+		try (URLClassLoader student = compiled(folder, "studentpkg/Penguin",
+				"package studentpkg; public class Penguin { }")) {
+			assertThat(IOManagerReference.resolve(THIS + ".RecordingManager", policy(List.of(THIS), "studentpkg", null),
+					student)).isEqualTo(RecordingManager.class);
+		}
 	}
 
 	/**
@@ -104,8 +117,83 @@ class IOManagerReferenceTest {
 	void aPackageScanCountsUnlistedTestOutputClassesAsStudentCode() {
 		Locale.setDefault(Locale.ENGLISH);
 		assertThatThrownBy(() -> IOManagerReference.resolve(THIS + ".RecordingManager",
-				policy(List.of(THIS), "de.tum.cit.ase.ares.api.internal", null), loader()))
+				policy(List.of(THIS), "de.tum.cit.ase.ares.testutilities", null), loader()))
 						.isInstanceOf(SecurityException.class).hasMessageContaining("where the student code is");
+	}
+
+	/**
+	 * Without a main class, student classes in subpackages count, so a package
+	 * whose classes all sit in subpackages still gives a reference.
+	 *
+	 * @param folder a folder for the compiled student class.
+	 * @throws IOException if the class cannot be written
+	 */
+	@Test
+	void aPackageScanIncludesSubpackages(@TempDir Path folder) throws IOException {
+		try (URLClassLoader student = compiled(folder, "subpkg/solution/Penguin",
+				"package subpkg.solution; public class Penguin { }")) {
+			assertThat(IOManagerReference.resolve(THIS + ".RecordingManager", policy(List.of(THIS), "subpkg", null),
+					student)).isEqualTo(RecordingManager.class);
+		}
+	}
+
+	/**
+	 * A top-level student class with a dollar sign in its name is found, so it
+	 * gives a reference rather than being taken for a nested class.
+	 *
+	 * @param folder a folder for the compiled student class.
+	 * @throws IOException if the class cannot be written
+	 */
+	@Test
+	void aTopLevelClassWithADollarSignIsFound(@TempDir Path folder) throws IOException {
+		try (URLClassLoader student = compiled(folder, "dollarpkg/Payload$Hidden",
+				"package dollarpkg; public class Payload$Hidden { }")) {
+			assertThat(IOManagerReference.resolve(THIS + ".RecordingManager", policy(List.of(THIS), "dollarpkg", null),
+					student)).isEqualTo(RecordingManager.class);
+		}
+	}
+
+	/**
+	 * A student class that cannot be loaded refuses the manager, since its origin
+	 * is unknown.
+	 *
+	 * @param folder a folder for the unreadable class file.
+	 * @throws IOException if the file cannot be written
+	 */
+	@Test
+	void anUnloadableStudentClassRefusesTheManager(@TempDir Path folder) throws IOException {
+		Locale.setDefault(Locale.ENGLISH);
+		Files.write(Files.createDirectories(folder.resolve("brokenpkg")).resolve("Broken.class"), new byte[] { 1, 2 });
+		try (URLClassLoader student = new URLClassLoader(new URL[] { folder.toUri().toURL() }, loader())) {
+			assertThatThrownBy(() -> IOManagerReference.resolve(THIS + ".RecordingManager",
+					policy(List.of(THIS), "brokenpkg", null), student)).isInstanceOf(SecurityException.class)
+							.hasMessageContaining("brokenpkg.Broken").hasMessageContaining("cannot be determined");
+		}
+	}
+
+	/**
+	 * A supervised package served from somewhere other than a folder, here a jar,
+	 * refuses the manager in both languages.
+	 *
+	 * @param folder a folder for the jar.
+	 * @throws IOException if the jar cannot be written
+	 */
+	@Test
+	void aPackageOutsideAFolderRefusesTheManager(@TempDir Path folder) throws IOException {
+		Path jar = folder.resolve("student.jar");
+		try (OutputStream out = Files.newOutputStream(jar); JarOutputStream entries = new JarOutputStream(out)) {
+			entries.putNextEntry(new JarEntry("jarpkg/"));
+			entries.closeEntry();
+		}
+		try (URLClassLoader student = new URLClassLoader(new URL[] { jar.toUri().toURL() }, loader())) {
+			for (Locale locale : List.of(Locale.ENGLISH, Locale.GERMAN)) {
+				Locale.setDefault(locale);
+				assertThatThrownBy(() -> IOManagerReference.resolve(THIS + ".RecordingManager",
+						policy(List.of(THIS), "jarpkg", null), student)).isInstanceOf(SecurityException.class)
+								.hasMessageContaining(
+										locale == Locale.GERMAN ? "nicht bestimmen" : "cannot be determined");
+			}
+		}
 	}
 
 	/** A package scan that finds no class at all refuses, in German too. */
@@ -152,6 +240,26 @@ class IOManagerReferenceTest {
 				.regardingThreadCreations(List.of()).regardingPackageImports(List.of()).build();
 		return new SupervisedCode(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, packageName,
 				mainClass, testClasses, none, null);
+	}
+
+	/**
+	 * Compiles one student class into a folder and returns a loader serving it on
+	 * top of the test classes.
+	 *
+	 * @param folder the folder.
+	 * @param path   the class's path without extension, such as {@code pkg/Name}.
+	 * @param code   the class's source.
+	 * @return the loader.
+	 * @throws IOException if the class cannot be written
+	 */
+	private static URLClassLoader compiled(Path folder, String path, String code) throws IOException {
+		Path source = folder.resolve("src").resolve(path + ".java");
+		Files.createDirectories(source.getParent());
+		Files.writeString(source, code);
+		Path classes = Files.createDirectories(folder.resolve("classes"));
+		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+		assertThat(compiler.run(null, null, null, "-d", classes.toString(), source.toString())).isZero();
+		return new URLClassLoader(new URL[] { classes.toUri().toURL() }, loader());
 	}
 
 	/** The loader of the test classes. */

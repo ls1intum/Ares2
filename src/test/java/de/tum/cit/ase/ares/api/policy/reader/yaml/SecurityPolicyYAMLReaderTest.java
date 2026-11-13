@@ -394,6 +394,13 @@ public class SecurityPolicyYAMLReaderTest {
 	@DisplayName("theFollowingTestBehaviorIsConfigured Tests")
 	class TestBehaviorConfigurationTests {
 
+		/**
+		 * A policy without {@code theFollowingTestBehaviorIsConfigured} has no
+		 * behaviour configuration.
+		 *
+		 * @param tempDir the folder for the policy file.
+		 * @throws IOException if the policy file cannot be written
+		 */
 		@Test
 		@DisplayName("Should parse a policy without the behavioural wrapper exactly as before")
 		void wrapperAbsentParsesAsBefore(@TempDir Path tempDir) throws IOException {
@@ -401,6 +408,12 @@ public class SecurityPolicyYAMLReaderTest {
 					read(tempDir, minimalPolicy()).regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured());
 		}
 
+		/**
+		 * An empty wrapper, as 2.2.1 accepted it, sets neither category.
+		 *
+		 * @param tempDir the folder for the policy file.
+		 * @throws IOException if the policy file cannot be written
+		 */
 		@Test
 		@DisplayName("Should parse the wrapper with no category, as released in 2.2.1")
 		void emptyWrapperParses(@TempDir Path tempDir) throws IOException {
@@ -409,6 +422,12 @@ public class SecurityPolicyYAMLReaderTest {
 			assertNull(behavior.regardingTheOutputOfTheTestCases());
 		}
 
+		/**
+		 * Both categories are read with every field.
+		 *
+		 * @param tempDir the folder for the policy file.
+		 * @throws IOException if the policy file cannot be written
+		 */
 		@Test
 		@DisplayName("Should parse its categories with every field")
 		void ownCategoriesParse(@TempDir Path tempDir) throws IOException {
@@ -430,6 +449,13 @@ public class SecurityPolicyYAMLReaderTest {
 			assertEquals(InputOutputManagerKind.IO_TESTER, behavior.regardingTheOutputOfTheTestCases().managerKind());
 		}
 
+		/**
+		 * An empty output category gives the defaults: no mirroring, the IO tester's
+		 * limit and the IO tester.
+		 *
+		 * @param tempDir the folder for the policy file.
+		 * @throws IOException if the policy file cannot be written
+		 */
 		@Test
 		@DisplayName("Should default every optional field to today's behaviour")
 		void emptyOptionalCategoriesDefault(@TempDir Path tempDir) throws IOException {
@@ -443,6 +469,15 @@ public class SecurityPolicyYAMLReaderTest {
 			assertEquals(InputOutputManagerKind.IO_TESTER, behavior.regardingTheOutputOfTheTestCases().managerKind());
 		}
 
+		/**
+		 * Every malformed section is refused when the policy is read, including the
+		 * categories this branch does not handle.
+		 *
+		 * @param description what is wrong with the section.
+		 * @param section     the section's YAML.
+		 * @param tempDir     the folder for the policy file.
+		 * @throws IOException if the policy file cannot be written
+		 */
 		@ParameterizedTest(name = "[{index}] {0}")
 		@DisplayName("Should reject every malformed test-behaviour section")
 		@CsvSource(delimiter = '|', value = { "wrapper not an object | []", "wrapper explicit null | null",
@@ -473,6 +508,14 @@ public class SecurityPolicyYAMLReaderTest {
 			assertThrows(RuntimeException.class, () -> reader.readSecurityPolicyFrom(policyFile), description);
 		}
 
+		/**
+		 * Category names that were never released are refused.
+		 *
+		 * @param category the old category name.
+		 * @param body     the category's YAML.
+		 * @param tempDir  the folder for the policy file.
+		 * @throws IOException if the policy file cannot be written
+		 */
 		@ParameterizedTest(name = "[{index}] {0}")
 		@DisplayName("Should reject the unreleased keys the separate pull requests used")
 		@CsvSource(delimiter = '|', value = { "regardingStrictTimeouts | { theTimeoutIs: '1s' }",
@@ -484,6 +527,14 @@ public class SecurityPolicyYAMLReaderTest {
 			assertThrows(RuntimeException.class, () -> reader.readSecurityPolicyFrom(policyFile), category);
 		}
 
+		/**
+		 * Field names that were never released are refused inside the new categories.
+		 *
+		 * @param field   the old field name.
+		 * @param section the section's YAML.
+		 * @param tempDir the folder for the policy file.
+		 * @throws IOException if the policy file cannot be written
+		 */
 		@ParameterizedTest(name = "[{index}] {0}")
 		@DisplayName("Should reject the unreleased field names inside the new categories")
 		@CsvSource(delimiter = '|', value = {

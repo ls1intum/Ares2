@@ -385,6 +385,8 @@ The category and field names follow the proposal in issue #386, section C. They 
 
 Ares reads these settings once per policy file, before it supervises any test code, and keeps them for the test class. A policy file changed while the tests run changes nothing. Any malformed value, unknown key or explicit `null` fails every test and names the field.
 
+These categories apply to postcompile exercises. Generating a precompile exercise from a policy that sets `regardingTheStrictTimeoutForTheTestCases` or `regardingTheOutputOfTheTestCases` stops with an error that names the category, so the generated exercise never drops it silently.
+
 **Durations** such as `theTimeoutIs`, `theTerminationGraceIs` and `theDeadlineIsExtendedBy` are text: days `d`, hours `h`, minutes `m`, seconds `s` and milliseconds `ms`, each at most once, largest first, in any letter case. `"2s"`, `"500ms"` and `"1d 12h"` are durations; `"1s 1m"` (wrong order), `"1s 2s"` (repeated unit) and `"2"` (no unit) are not. `"5M"` is five minutes, and `"5MS"` five milliseconds.
 
 #### 7.7.1 Strict timeout
