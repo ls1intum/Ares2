@@ -148,6 +148,28 @@ public class FeedbackLevelPolicyUser {
 	}
 
 	/**
+	 * Privileged-only reporting on, with a file permission so the runtime check
+	 * denies the read inside the test: it still follows the level, AspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICIES
+			+ "archunit/aspectj/PolicyFeedbackLevelPrivilegedMinimizedRuntime.yaml", withinPath = WITHIN)
+	void runtimeDenialKeepsTheLevelWhenPrivilegedOnlyAspectj() throws Exception {
+		FilesReadMain.accessFileSystemViaFilesRead();
+	}
+
+	/**
+	 * Privileged-only reporting on, a runtime denial inside the test,
+	 * instrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICIES
+			+ "archunit/instrumentation/PolicyFeedbackLevelPrivilegedMinimizedRuntime.yaml", withinPath = WITHIN)
+	void runtimeDenialKeepsTheLevelWhenPrivilegedOnlyInstrumentation() throws Exception {
+		FilesReadMain.accessFileSystemViaFilesRead();
+	}
+
+	/**
 	 * Privileged-only reporting on: a student's own SecurityException gets the
 	 * policy's message.
 	 */

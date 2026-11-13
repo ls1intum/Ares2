@@ -87,6 +87,18 @@ class FeedbackLevelPolicyTest {
 				testFailedWith("privilegedOnlyKeepsTheLevel", SecurityException.class, MINIMIZED));
 	}
 
+	/**
+	 * A runtime denial inside the test, with privileged-only reporting on, keeps
+	 * the short text instead of the policy's message, in both backends.
+	 */
+	@TestTest
+	void test_runtimeDenialKeepsTheLevelWhenPrivilegedOnly() {
+		tests.assertThatEvents().haveExactly(1, testFailedWith("runtimeDenialKeepsTheLevelWhenPrivilegedOnlyAspectj",
+				SecurityException.class, MINIMIZED));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(
+				"runtimeDenialKeepsTheLevelWhenPrivilegedOnlyInstrumentation", SecurityException.class, MINIMIZED));
+	}
+
 	/** A student's own Ares-looking exception gets the policy's message. */
 	@TestTest
 	void test_privilegedOnlyHidesAForgedViolation() {
