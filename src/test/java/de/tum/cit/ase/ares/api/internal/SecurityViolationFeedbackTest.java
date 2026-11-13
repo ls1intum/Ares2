@@ -134,6 +134,59 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
+	 * An argument Ares refused to inspect cannot be allowed, so DEBUG shows the
+	 * report without a hint and MINIMIZED shows only the fixed text.
+	 */
+	@Test
+	void anUninspectableArgumentGetsNoHint() {
+		Locale.setDefault(Locale.ENGLISH);
+		SecurityViolationFeedback.Violation untrusted = new SecurityViolationFeedback.Violation("uninspectable",
+				"inspect", "org.example.StudentFile", FULL);
+		assertThat(SecurityViolationFeedback.render(untrusted, SecurityViolationFeedbackLevel.DEBUG)).isEqualTo(FULL);
+		assertThat(SecurityViolationFeedback.render(untrusted, SecurityViolationFeedbackLevel.MINIMIZED))
+				.doesNotContain("org.example.StudentFile").contains("An operation was blocked by Ares.");
+	}
+
+	/**
+	 * The runtime-type guard of each backend throws a real violation, which the
+	 * report recognises, while the same text thrown by a student is not one.
+	 *
+	 * @throws ReflectiveOperationException if a guard cannot be reached
+	 */
+	@Test
+	void theRuntimeTypeGuardsThrowRealViolations() throws ReflectiveOperationException {
+		Object studentValue = new SelfCausingException();
+		for (Class<?> owner : List.of(Class.forName(
+				"de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox"),
+				Class.forName(
+						"de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJAbstractAdviceDefinitions"))) {
+			Method guard = owner.getDeclaredMethod("requireTrustedRuntimeType", Object.class);
+			guard.setAccessible(true);
+			Throwable thrown = invocationFailure(guard, studentValue);
+			assertThat(SecurityViolationFeedback.violationOf(thrown)).get()
+					.extracting(SecurityViolationFeedback.Violation::kind).isEqualTo("uninspectable");
+		}
+		assertThat(SecurityViolationFeedback.violationOf(new SecurityException(FULL))).isEmpty();
+	}
+
+	/**
+	 * Calls a static guard and returns what it threw.
+	 *
+	 * @param guard the guard.
+	 * @param value the value it checks.
+	 * @return the thrown failure.
+	 * @throws IllegalAccessException if the guard cannot be called
+	 */
+	private static Throwable invocationFailure(Method guard, Object value) throws IllegalAccessException {
+		try {
+			guard.invoke(null, value);
+		} catch (java.lang.reflect.InvocationTargetException thrown) {
+			return thrown.getCause();
+		}
+		throw new AssertionError("the guard accepted a student type: " + guard.getDeclaringClass());
+	}
+
+	/**
 	 * Every kind maps to its policy category.
 	 *
 	 * @param kind     the kind.
