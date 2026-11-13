@@ -152,6 +152,23 @@ class GeneratedAllHooksTest {
 						+ " @Override public String getReason() { while (true) { Thread.onSpinWait(); } } }; }");
 		fixture(fixtures, "PlainStudentFailureFixture",
 				"@Test void fails() { throw new IllegalStateException(\"plain\") { }; }");
+		fixture(fixtures, "LoopingNameFixture",
+				"@Test void fails() throws Exception { javax.naming.NamingException failure = new javax.naming.NamingException(\"naming\");"
+						+ " failure.setRemainingName(new javax.naming.CompositeName() { @Override public Object clone() { return this; }"
+						+ " @Override public String toString() { while (true) { Thread.onSpinWait(); } } }); throw failure; }");
+		fixture(fixtures, "AssertEqualsFixture", "@Test void fails() { Assertions.assertEquals(\"a\", \"b\"); }");
+		fixture(fixtures, "AbortFixture", "@Test void aborts() { Assumptions.abort(\"skipped\"); }");
+		fixture(fixtures, "AbortWithStudentCauseFixture",
+				"@Test void aborts() { throw new org.opentest4j.TestAbortedException(\"skip\", new IllegalStateException(\"cause\")"
+						+ " { @Override public String getMessage() { return \"student\"; } }); }");
+		fixture(fixtures, "RepeatedGroupFixture",
+				"@Test void fails() { org.opentest4j.MultipleFailuresError group = new org.opentest4j.MultipleFailuresError(\"g\","
+						+ " java.util.List.of(new AssertionError(\"x\"))); for (int i = 0; i < 40; i++) { group ="
+						+ " new org.opentest4j.MultipleFailuresError(\"g\", java.util.List.of(group, group)); } throw group; }");
+		fixture(fixtures, "WrappedLoopingCauseFixture",
+				"@Test void fails() throws Exception { throw new java.rmi.RemoteException(\"outer\","
+						+ " new IllegalStateException(\"cause\") { @Override public String toString() {"
+						+ " while (true) { Thread.onSpinWait(); } } }); }");
 		fixture(fixtures, "SuppressedLoopingFixture",
 				"@Test void fails() { IllegalStateException outer = new IllegalStateException(\"outer\");"
 						+ " outer.addSuppressed(new IllegalStateException(\"inner\") { @Override public String toString() {"
@@ -373,8 +390,7 @@ class GeneratedAllHooksTest {
 				() -> run("com.example.fixtures.LoopingStackFixture", reversed))))
 						.containsExactly("com.example.fixtures.LoopingStackFixture$1");
 		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
-				() -> run("com.example.fixtures.SuppressedLoopingFixture", reversed))))
-						.containsExactly("java.lang.IllegalStateException: outer");
+				() -> run("com.example.fixtures.SuppressedLoopingFixture", reversed)))).containsExactly("outer");
 	}
 
 	/**
@@ -398,14 +414,109 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
-	 * A student failure class that overrides nothing is handed to JUnit as it is
-	 * and keeps its text.
+	 * A student failure class that overrides nothing keeps its text in the copy
+	 * JUnit gets, after its type.
 	 *
 	 * @throws Exception if the run cannot be set up
 	 */
 	@Test
 	void aPlainStudentFailureKeepsItsText() throws Exception {
-		assertThat(messages(run("com.example.fixtures.PlainStudentFailureFixture"))).containsExactly("plain");
+		assertThat(messages(run("com.example.fixtures.PlainStudentFailureFixture")))
+				.containsExactly("com.example.fixtures.PlainStudentFailureFixture$1: plain");
+	}
+
+	/**
+	 * A runtime {@code NamingException} holding a student name whose
+	 * {@code toString} never returns is reported with its text, and printing the
+	 * report runs no student code, with all hooks in either order and with failure
+	 * reporting alone, each in a JVM of its own.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @param probe    where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aLoopingNameInARuntimeFailureIsNeverCalled(boolean reversed, @TempDir Path probe) throws Exception {
+		Path probeClasses = compileProbe(probe);
+		assertThat(runInOwnJvm(probeClasses, "com.example.fixtures.LoopingNameFixture", reversed, include))
+				.containsExactly("javax.naming.NamingException: naming");
+		assertThat(runInOwnJvm(probeClasses, "com.example.fixtures.LoopingNameFixture", reversed,
+				GENERATED + "GeneratedFailureReporting")).containsExactly("javax.naming.NamingException: naming");
+	}
+
+	/**
+	 * A failed {@code assertEquals} keeps its exact text, since the copy rebuilds
+	 * the same opentest4j failure.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void anAssertEqualsFailureKeepsItsText() throws Exception {
+		assertThat(messages(run("com.example.fixtures.AssertEqualsFixture")))
+				.containsExactly("expected: <a> but was: <b>");
+	}
+
+	/**
+	 * An abort whose cause is a student failure stays an abort with its reason, in
+	 * either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void anAbortWithAStudentCauseStaysAnAbort(boolean reversed) throws Exception {
+		EngineExecutionResults results = run("com.example.fixtures.AbortWithStudentCauseFixture", reversed);
+		assertThat(results.testEvents().failed().count()).isZero();
+		assertThat(results.testEvents().aborted().stream().map(GeneratedAllHooksTest::messageOf))
+				.containsExactly("skip");
+	}
+
+	/**
+	 * A group listing the same group many times is reported by its type alone and
+	 * quickly, since reading its text would repeat each shared member.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aRepeatedGroupIsReportedByItsType(boolean reversed) throws Exception {
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.RepeatedGroupFixture", reversed))))
+						.containsExactly("org.opentest4j.MultipleFailuresError");
+	}
+
+	/**
+	 * A runtime failure whose text is built from a student cause that never returns
+	 * is reported by its type alone, without reading that text.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aWrapperOfALoopingCauseIsReportedByItsType(boolean reversed) throws Exception {
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.WrappedLoopingCauseFixture", reversed))))
+						.containsExactly("java.rmi.RemoteException");
+	}
+
+	/**
+	 * A test that aborts stays aborted with its reason, in either registration
+	 * order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void anAbortStaysAnAbort(boolean reversed) throws Exception {
+		EngineExecutionResults results = run("com.example.fixtures.AbortFixture", reversed);
+		assertThat(results.testEvents().failed().count()).isZero();
+		assertThat(results.testEvents().aborted().stream().map(GeneratedAllHooksTest::messageOf))
+				.containsExactly("skipped");
 	}
 
 	/**
@@ -643,10 +754,15 @@ class GeneratedAllHooksTest {
 										.configurationParameter("%s", "true").configurationParameter("%s", arguments[1])
 										.execute().testEvents().failed().stream()
 										.map(event -> event.getPayload(TestExecutionResult.class)
-												.flatMap(TestExecutionResult::getThrowable).map(Throwable::getMessage).orElse(""))
+												.flatMap(TestExecutionResult::getThrowable).map(HooksProbe::rendered).orElse(""))
 										.forEach(message -> System.out.println("%s" + message));
 								System.out.println("%s");
 								System.exit(0);
+							}
+
+							private static String rendered(Throwable failure) {
+								failure.printStackTrace(new java.io.PrintWriter(new java.io.StringWriter()));
+								return failure.getMessage();
 							}
 						}
 						"""
@@ -668,11 +784,28 @@ class GeneratedAllHooksTest {
 	 * @throws Exception if the JVM cannot be started
 	 */
 	private static List<String> runInOwnJvm(Path probeClasses, String className, boolean reversed) throws Exception {
+		return runInOwnJvm(probeClasses, className, reversed, include);
+	}
+
+	/**
+	 * Runs one fixture class in a JVM of its own with only the hooks a pattern
+	 * names, printing each failure as a build tool would, and returns its failure
+	 * messages.
+	 *
+	 * @param probeClasses the compiled probe.
+	 * @param className    the fixture class.
+	 * @param reversed     whether the hooks are registered the other way round.
+	 * @param hooks        the hooks to load, as JUnit's autodetection pattern.
+	 * @return the failure messages
+	 * @throws Exception if the JVM cannot be started
+	 */
+	private static List<String> runInOwnJvm(Path probeClasses, String className, boolean reversed, String hooks)
+			throws Exception {
 		String classPath = String.join(File.pathSeparator, compiled.toString(),
 				(reversed ? reversedResources : resources).toString(), probeClasses.toString(),
 				System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
 		Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp",
-				classPath, "com.example.probe.HooksProbe", className, include).redirectErrorStream(true).start();
+				classPath, "com.example.probe.HooksProbe", className, hooks).redirectErrorStream(true).start();
 		try {
 			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
 			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);

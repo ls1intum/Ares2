@@ -30,10 +30,12 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * @param theDeadlineIs               the deadline, with a zone.
  * @param theDeadlineIsExtendedBy     the extension, or null.
  * @param theHiddenTestsAreRunBefore  the early-run date, or null.
- * @param testsNotListedHereAreHidden whether unlisted tests are hidden; only a
- *                                    test class with an Ares annotation is
- *                                    under Ares, so a plain JUnit test stays
- *                                    visible.
+ * @param testsNotListedHereAreHidden whether unlisted tests are hidden; in
+ *                                    postcompile only a test class with an Ares
+ *                                    annotation is under Ares, so a plain JUnit
+ *                                    test stays visible there, while in
+ *                                    precompile the generated hooks apply it to
+ *                                    every test.
  * @param theFollowingTestsAreHidden  hidden entries, or null.
  * @param theFollowingTestsArePublic  public entries, or null.
  */

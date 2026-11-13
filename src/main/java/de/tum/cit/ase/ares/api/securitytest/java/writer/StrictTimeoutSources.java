@@ -398,7 +398,7 @@ final class StrictTimeoutSources {
 					try {
 						outcome = future.get(timeoutNanos, TimeUnit.NANOSECONDS);
 					} catch (ExecutionException failure) {
-						throw traversable(causeOf(failure));
+						throw new DetachedFailure(failure.getClass().getName(), new StackTraceElement[0]);
 					} catch (TimeoutException expired) {
 						terminate(future, executor, graceNanos);
 						if (isHiddenContext(context)) {
@@ -474,13 +474,13 @@ final class StrictTimeoutSources {
 				}
 
 				/**
-				 * What a timed action produced: its result or its failure. The worker hands a
-				 * failure back as a value, since a failure the executor wraps has its text read
-				 * on the waiting thread, outside the timeout.
+				 * What a timed action produced: its result or a copy of its failure. The worker
+				 * copies a failure before handing it back, so its text is read inside the
+				 * timeout and never later on the waiting thread.
 				 *
 				 * @param <T>     the action's result
 				 * @param result  the result, or null after a failure
-				 * @param failure the failure, or null
+				 * @param failure the copy of the failure, or null
 				 */
 				private record Outcome<T>(T result, Throwable failure) {
 
@@ -495,7 +495,7 @@ final class StrictTimeoutSources {
 						try {
 							return new Outcome<>(action.run(), null);
 						} catch (Throwable failure) {
-							return new Outcome<>(null, failure);
+							return new Outcome<>(null, copyOf(failure));
 						}
 					}
 
@@ -503,11 +503,11 @@ final class StrictTimeoutSources {
 					 * The action's result.
 					 *
 					 * @return the result
-					 * @throws Throwable the action's failure, in a form JUnit can walk
+					 * @throws Throwable a copy of the action's failure, made on the worker
 					 */
 					T value() throws Throwable {
 						if (failure != null) {
-							throw traversable(failure);
+							throw failure;
 						}
 						return result;
 					}
@@ -533,51 +533,173 @@ final class StrictTimeoutSources {
 					}
 				}
 
-				/** The most failures {@link #traversable} looks at before giving up. */
+				/** The most failures a copy takes over before it stops at the ones it has. */
 				private static final int TRAVERSAL_LIMIT = 256;
 
+				/** The deepest nesting of assertAll groups whose text a copy still reads. */
+				private static final int GROUP_DEPTH_LIMIT = 8;
+
 				/**
-				 * The failure itself when JUnit can walk its causes and suppressed failures
-				 * without running student code, otherwise a detached copy with the same text
-				 * and stack, read only through methods the Java runtime declares.
+				 * The failure JUnit gets instead of the real one: a copy whose text, stack, causes
+				 * and suppressed failures are read now, never later, so JUnit and the build tool
+				 * cannot run student code when they print it. A generated hook's own marker
+				 * without causes is kept, since Ares made it.
 				 *
-				 * @param failure the failure to report
-				 * @return a failure JUnit can traverse
+				 * @param failure the real failure
+				 * @return the copy, or null for none
 				 */
-				static Throwable traversable(Throwable failure) {
-					if (failure == null || isTraversable(failure)) {
-						return failure;
-					}
-					return new DetachedFailure(failure);
+				static Throwable copyOf(Throwable failure) {
+					return failure == null ? null : copyOf(failure, new java.util.IdentityHashMap<>());
 				}
 
-				/** Whether every failure reachable from this one keeps the runtime's own accessors. */
-				private static boolean isTraversable(Throwable failure) {
-					java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-					java.util.Deque<Throwable> pending = new java.util.ArrayDeque<>(java.util.List.of(failure));
-					while (!pending.isEmpty()) {
-						Throwable current = pending.pop();
-						if (!seen.add(current)) {
-							continue;
-						}
-						if (seen.size() > TRAVERSAL_LIMIT || !declaredByRuntime(current, "getCause") || !reportsSafely(current)
-							|| overridesTrustedMethod(current)) {
-							return false;
-						}
-						Throwable cause = current.getCause();
-						if (cause != null) {
-							pending.push(cause);
-						}
-						for (Throwable suppressed : current.getSuppressed()) {
-							pending.push(suppressed);
-						}
-						java.util.List<Throwable> members = aggregateMembers(current);
-						if (members == null) {
-							return false;
-						}
-						members.stream().filter(java.util.Objects::nonNull).forEach(pending::push);
+				/** Copies one failure and what hangs on it, reusing a copy already made for it. */
+				private static Throwable copyOf(Throwable failure, java.util.Map<Throwable, Throwable> copies) {
+					Throwable known = copies.get(failure);
+					if (known != null) {
+						return known;
 					}
-					return true;
+					Throwable copy = isOwnMarker(failure) ? failure : copyAlone(failure);
+					copies.put(failure, copy);
+					if (copy != failure && copies.size() <= TRAVERSAL_LIMIT) {
+						attachCopies(failure, copy, copies);
+					}
+					return copy;
+				}
+
+				/** Whether a failure is a generated hook's own marker with no cause and nothing suppressed. */
+				private static boolean isOwnMarker(Throwable failure) {
+					return fromGeneratedHooks(failure.getClass()) && failure.getCause() == null
+							&& failure.getSuppressed().length == 0;
+				}
+
+				/** Hangs copies of the failure's cause and suppressed failures on its copy. */
+				private static void attachCopies(Throwable failure, Throwable copy, java.util.Map<Throwable, Throwable> copies) {
+					Throwable cause = causeOf(failure);
+					if (cause != null && copy.getCause() == null) {
+						try {
+							copy.initCause(copyOf(cause, copies));
+						} catch (IllegalStateException | IllegalArgumentException alreadySet) {
+							copies.putIfAbsent(cause, copy);
+						}
+					}
+					for (Throwable suppressed : failure.getSuppressed()) {
+						Throwable suppressedCopy = copyOf(suppressed, copies);
+						if (suppressedCopy != copy) {
+							copy.addSuppressed(suppressedCopy);
+						}
+					}
+				}
+
+				/**
+				 * A copy of one failure without its cause: its own type and text when the Java
+				 * runtime or opentest4j can rebuild it, its type and text in a plain copy
+				 * otherwise, and its type alone when reading its text could run student code.
+				 */
+				private static Throwable copyAlone(Throwable failure) {
+					String type = failure.getClass().getName();
+					try {
+						StackTraceElement[] stack = trustedAccessor(failure, "getStackTrace") ? failure.getStackTrace()
+								: new StackTraceElement[0];
+						if (!readable(failure, 0, new int[] { TRAVERSAL_LIMIT })) {
+							return detached(failure, type, stack);
+						}
+						String message = failure.getLocalizedMessage();
+						Throwable rebuilt = rebuilt(failure, message);
+						if (rebuilt != null) {
+							rebuilt.setStackTrace(stack);
+							return rebuilt;
+						}
+						if (message == null) {
+							return detached(failure, type, stack);
+						}
+						return detached(failure, fromGeneratedHooks(failure.getClass()) ? message : type + ": " + message, stack);
+					} catch (RuntimeException | LinkageError | StackOverflowError unreadable) {
+						return detached(failure, type, new StackTraceElement[0]);
+					}
+				}
+
+				/**
+				 * A copy without cause that keeps an aborted test aborted: opentest4j's own abort
+				 * for an abort, otherwise a plain detached failure.
+				 */
+				private static Throwable detached(Throwable failure, String text, StackTraceElement[] stack) {
+					if (failure instanceof org.opentest4j.TestAbortedException) {
+						Throwable abort = new org.opentest4j.TestAbortedException(text);
+						abort.setStackTrace(stack);
+						return abort;
+					}
+					return new DetachedFailure(text, stack);
+				}
+
+				/**
+				 * Whether a failure's text can be read without running student code: its cause,
+				 * text and stack methods are the trusted ones, no student class of it replaces a
+				 * method a trusted class declares, and, where its class shapes its own text, its
+				 * cause too; for assertAll, each member. Every visit, repeats included, spends the
+				 * budget, so a group listing one group many times is not read.
+				 */
+				private static boolean readable(Throwable failure, int depth, int[] budget) {
+					if (--budget[0] < 0 || !declaredByRuntime(failure, "getCause") || !reportsSafely(failure)
+							|| overridesTrustedMethod(failure)) {
+						return false;
+					}
+					Throwable cause = causeOf(failure);
+					if (cause != null && cause != failure && !textShapedByThrowable(failure.getClass())
+							&& (depth >= GROUP_DEPTH_LIMIT || !readable(cause, depth + 1, budget))) {
+						return false;
+					}
+					java.util.List<Throwable> members = aggregateMembers(failure);
+					if (members == null || !members.isEmpty() && depth >= GROUP_DEPTH_LIMIT) {
+						return false;
+					}
+					return members.stream().allMatch(member -> member == null || readable(member, depth + 1, budget));
+				}
+
+				/**
+				 * The same failure built anew by the Java runtime or opentest4j from its text
+				 * alone, keeping an opentest4j failure's expected and actual values as text; null
+				 * when its class shapes its own text or offers no such constructor.
+				 */
+				private static Throwable rebuilt(Throwable failure, String message) {
+					Class<?> type = failure.getClass();
+					if (type == org.opentest4j.AssertionFailedError.class) {
+						org.opentest4j.AssertionFailedError original = (org.opentest4j.AssertionFailedError) failure;
+						return original.isExpectedDefined() || original.isActualDefined()
+								? new org.opentest4j.AssertionFailedError(message, textOf(original.getExpected()),
+										textOf(original.getActual()))
+								: new org.opentest4j.AssertionFailedError(message);
+					}
+					if (type == AssertionError.class) {
+						return message == null ? new AssertionError() : new AssertionError((Object) message);
+					}
+					if (!trustedClass(type) || fromGeneratedHooks(type) || !textShapedByThrowable(type)) {
+						return null;
+					}
+					try {
+						return (Throwable) type.getConstructor(String.class).newInstance(message);
+					} catch (ReflectiveOperationException | ClassCastException noTextConstructor) {
+						try {
+							return (Throwable) type.getConstructor(String.class, Throwable.class).newInstance(message, null);
+						} catch (ReflectiveOperationException | ClassCastException noConstructor) {
+							return null;
+						}
+					}
+				}
+
+				/** The text an opentest4j value was shown as when the assertion failed, or null. */
+				private static String textOf(org.opentest4j.ValueWrapper value) {
+					return value == null ? null : value.getStringRepresentation();
+				}
+
+				/** Whether a class leaves its text to {@code Throwable}, so a copy from its message reads the same. */
+				private static boolean textShapedByThrowable(Class<?> type) {
+					try {
+						return type.getMethod("getMessage").getDeclaringClass() == Throwable.class
+								&& type.getMethod("getLocalizedMessage").getDeclaringClass() == Throwable.class
+								&& type.getMethod("toString").getDeclaringClass() == Throwable.class;
+					} catch (NoSuchMethodException absent) {
+						return false;
+					}
 				}
 
 				/**
@@ -716,34 +838,20 @@ final class StrictTimeoutSources {
 					}
 				}
 
-				/**
-				 * A failure's text without running student code: its type name, followed by its
-				 * message only when its class is trusted. An opentest4j aggregate gives only its
-				 * type, since its message reads its members.
-				 */
-				private static String textOf(Throwable failure) {
-					String type = failure.getClass().getName();
-					if (failure instanceof org.opentest4j.MultipleFailuresError || !trustedClass(failure.getClass())) {
-						return type;
-					}
-					String message = failure.getLocalizedMessage();
-					return message == null ? type : type + ": " + message;
-				}
-
-				/** A copy of a failure that has no cause and runs no student code when read. */
+				/** A copy of a failure that runs no student code when read. */
 				private static final class DetachedFailure extends AssertionError {
 					/** Serialisation identifier for the generated copy. */
 					private static final long serialVersionUID = 1L;
 
 					/**
-					 * Copies the failure's text and, when readable, its stack.
+					 * A copy with this text and stack.
 					 *
-					 * @param original the failure
+					 * @param text  the text, read already
+					 * @param stack the stack, read already
 					 */
-					DetachedFailure(Throwable original) {
-						super(textOf(original));
-						setStackTrace(trustedAccessor(original, "getStackTrace") ? original.getStackTrace()
-								: new StackTraceElement[0]);
+					DetachedFailure(String text, StackTraceElement[] stack) {
+						super((Object) text);
+						setStackTrace(stack);
 					}
 				}
 
