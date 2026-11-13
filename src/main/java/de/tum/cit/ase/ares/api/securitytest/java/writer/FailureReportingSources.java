@@ -558,7 +558,10 @@ final class FailureReportingSources {
 					};
 				}
 
-				/** The entry that would allow a blocked action. */
+				/**
+				 * The entry that would allow a blocked action: for a file, a complete entry the
+				 * policy reader accepts, granting only that action.
+				 */
 				private static String entryOf(String kind, String action, String target) {
 					if (!"file".equals(kind)) {
 						return "an entry that allows " + action + " for " + target;
@@ -568,7 +571,21 @@ final class FailureReportingSources {
 							: lower.contains("execute") ? "executeAllFiles"
 									: lower.contains("create") ? "createAllFiles"
 											: lower.contains("write") ? "overwriteAllFiles" : "readAllFiles";
-					return "{ onThisPathAndAllPathsBelow: \\"" + target + "\\", " + flag + ": true }";
+					StringBuilder entry = new StringBuilder("{ onThisPathAndAllPathsBelow: ").append(yamlString(target));
+					for (String each : new String[] { "readAllFiles", "overwriteAllFiles", "createAllFiles", "executeAllFiles",
+							"deleteAllFiles" }) {
+						entry.append(", ").append(each).append(": ").append(each.equals(flag));
+					}
+					return entry.append(" }").toString();
+				}
+
+				/** Quotes a value as a double-quoted YAML scalar, so a Windows path reads back unchanged. */
+				private static String yamlString(String value) {
+					StringBuilder quoted = new StringBuilder("\\"");
+					value.codePoints().forEach(c -> quoted.append(c == '\\\\' || c == '"' ? "\\\\" + (char) c
+							: c < 0x20 || c == 0x7f ? String.format(java.util.Locale.ROOT, "\\\\x%02x", c)
+									: Character.toString(c)));
+					return quoted.append('"').toString();
 				}
 
 				/** Keeps a generated hidden result or scheduling notice unchanged. */
