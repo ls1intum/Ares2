@@ -997,13 +997,18 @@ final class FailureReportingSources {
 					return quoted.append('"').toString();
 				}
 
-				/** Keeps a generated hidden result or scheduling notice unchanged. */
+				/**
+				 * Keeps a generated hidden result or scheduling notice unchanged, but only the
+				 * hooks' own class: a student class of the same name, from another place, is
+				 * copied like any other failure.
+				 */
 				private static boolean isHiddenResult(Throwable throwable) {
 					String type = throwable.getClass().getName();
-					return type.equals("de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure")
+					return (type.equals("de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure")
 							|| type.equals("de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestAbort")
 							|| type.equals("de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestScheduled")
-							|| type.equals("de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$HiddenTestFailure");
+							|| type.equals("de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$HiddenTestFailure"))
+							&& fromGeneratedHooks(throwable.getClass());
 				}
 			}
 			""";
