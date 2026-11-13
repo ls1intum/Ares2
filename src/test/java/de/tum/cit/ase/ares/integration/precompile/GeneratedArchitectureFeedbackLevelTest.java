@@ -125,6 +125,94 @@ class GeneratedArchitectureFeedbackLevelTest {
 	}
 
 	/**
+	 * At DEBUG, a blocked argument Ares could not inspect gets no allow hint, since
+	 * no policy entry can allow it, while a blocked file action still gets one.
+	 *
+	 * @throws Exception if the generated hook cannot be loaded
+	 */
+	@Test
+	void debugGivesNoHintForAnUninspectableArgument() throws Exception {
+		assertThat(renderedAtDebug(new Blocked("uninspectable", "inspect", "a student Path")))
+				.contains("a student Path").doesNotContain("To allow this");
+		assertThat(renderedAtDebug(new Blocked("file", "read", "/secret/path"))).contains("To allow this");
+	}
+
+	/**
+	 * Renders a blocked action as the DEBUG project's failure reporting does.
+	 *
+	 * @param violation the blocked action.
+	 * @return the rendered text
+	 * @throws Exception if the generated hook cannot be loaded
+	 */
+	private static String renderedAtDebug(Throwable violation) throws Exception {
+		try (java.net.URLClassLoader loader = new java.net.URLClassLoader(
+				new java.net.URL[] { debug.toUri().toURL(),
+						debug.resolveSibling("debug-compiled-resources").toUri().toURL() },
+				GeneratedArchitectureFeedbackLevelTest.class.getClassLoader())) {
+			java.lang.reflect.Method rendered = loader
+					.loadClass("de.tum.cit.ase.ares.generated.GeneratedFailureReporting")
+					.getDeclaredMethod("renderedViolation", Throwable.class);
+			rendered.setAccessible(true);
+			return ((Throwable) rendered.invoke(null, violation)).getMessage();
+		}
+	}
+
+	/** A blocked action with the fields the failure reporting reads. */
+	public static final class Blocked extends RuntimeException {
+		/** Serialisation identifier. */
+		private static final long serialVersionUID = 1L;
+
+		/** The kind of action. */
+		private final String kind;
+
+		/** The action. */
+		private final String action;
+
+		/** What it was aimed at. */
+		private final String target;
+
+		/**
+		 * A blocked action.
+		 *
+		 * @param kind   the kind of action.
+		 * @param action the action.
+		 * @param target what it was aimed at.
+		 */
+		Blocked(String kind, String action, String target) {
+			this.kind = kind;
+			this.action = action;
+			this.target = target;
+		}
+
+		/**
+		 * The kind of action.
+		 *
+		 * @return the kind
+		 */
+		public String kind() {
+			return kind;
+		}
+
+		/**
+		 * The action.
+		 *
+		 * @return the action
+		 */
+		public String action() {
+			return action;
+		}
+
+		/**
+		 * What it was aimed at.
+		 *
+		 * @return the target
+		 */
+		public String target() {
+			return target;
+		}
+	}
+
+	/**
 	 * Ares's own configuration error in a generated architecture test keeps its
 	 * text at every level, so it is neither shortened nor given an allow hint.
 	 *
