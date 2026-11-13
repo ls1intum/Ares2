@@ -426,6 +426,9 @@ final class StrictTimeoutSources {
 					try {
 						Class<?> visibility = Class.forName("de.tum.cit.ase.ares.generated.GeneratedHiddenTests", false,
 								GeneratedStrictTimeout.class.getClassLoader());
+						if (!fromThisOutput(visibility)) {
+							return true;
+						}
 						return (Boolean) visibility.getMethod("isHiddenContext", ExtensionContext.class).invoke(null, context);
 					} catch (ClassNotFoundException absent) {
 						return false;
@@ -866,8 +869,15 @@ final class StrictTimeoutSources {
 				 * student class in the same package never counts.
 				 */
 				private static boolean fromGeneratedHooks(Class<?> owner) {
-					if (!GENERATED_FAILURES.contains(owner.getName())
-							|| owner.getClassLoader() != GeneratedStrictTimeout.class.getClassLoader()) {
+					return GENERATED_FAILURES.contains(owner.getName()) && fromThisOutput(owner);
+				}
+
+				/**
+				 * Whether a class was loaded by this hook's class loader from the same place
+				 * as this hook, so a student class of the same name from other output never counts.
+				 */
+				private static boolean fromThisOutput(Class<?> owner) {
+					if (owner.getClassLoader() != GeneratedStrictTimeout.class.getClassLoader()) {
 						return false;
 					}
 					java.security.CodeSource source = owner.getProtectionDomain().getCodeSource();
