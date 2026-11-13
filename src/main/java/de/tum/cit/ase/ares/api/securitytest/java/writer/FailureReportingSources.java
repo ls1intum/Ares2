@@ -572,25 +572,42 @@ final class FailureReportingSources {
 					Thread worker = new Thread(null, () -> copy.set(step.get()), "ares-failure-copy", 0, false);
 					worker.setDaemon(true);
 					worker.start();
-					awaitCopy(worker, COPY_BOUND_MILLIS);
+					boolean interrupted = awaitCopy(worker, COPY_BOUND_MILLIS);
 					if (worker.isAlive()) {
 						worker.interrupt();
-						awaitCopy(worker, COPY_GRACE_MILLIS);
+						interrupted |= awaitCopy(worker, COPY_GRACE_MILLIS);
 						if (worker.isAlive()) {
 							Runtime.getRuntime().halt(UNRESPONSIVE_EXIT_CODE);
 						}
+					}
+					if (interrupted) {
+						Thread.currentThread().interrupt();
 					}
 					Throwable result = copy.get();
 					return result != null ? result : fallback;
 				}
 
-				/** Waits for the copying worker, keeping an interruption of the waiting thread. */
-				private static void awaitCopy(Thread worker, long millis) {
-					try {
-						worker.join(millis);
-					} catch (InterruptedException interrupted) {
-						Thread.currentThread().interrupt();
+				/**
+				 * Waits the full time for the copying worker even when the waiting thread is
+				 * interrupted, clearing the interruption meanwhile; the caller restores it.
+				 *
+				 * @param worker the copying worker
+				 * @param millis the longest wait
+				 * @return whether the waiting thread was interrupted
+				 */
+				private static boolean awaitCopy(Thread worker, long millis) {
+					long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(millis);
+					boolean interrupted = Thread.interrupted();
+					long remaining = deadline - System.nanoTime();
+					while (worker.isAlive() && remaining > 0) {
+						try {
+							java.util.concurrent.TimeUnit.NANOSECONDS.timedJoin(worker, remaining);
+						} catch (InterruptedException again) {
+							interrupted = true;
+						}
+						remaining = deadline - System.nanoTime();
 					}
+					return interrupted;
 				}
 
 				/** The most failures a copy takes over before it stops at the ones it has. */
@@ -612,16 +629,35 @@ final class FailureReportingSources {
 					return failure == null ? null : copyOf(failure, new java.util.IdentityHashMap<>());
 				}
 
-				/** Copies one failure and what hangs on it, reusing a copy already made for it. */
+				/** A copy of the failure's cause, or null for none or once the budget is spent. */
+				private static Throwable causeCopyOf(Throwable failure, java.util.Map<Throwable, Throwable> copies) {
+					Throwable cause = causeOf(failure);
+					return cause == null ? null : copyOf(cause, copies);
+				}
+
+				/** Stands in for a failure still being copied, so a cause pointing back at it gets no copy. */
+				private static final Throwable PENDING = new Throwable();
+
+				/**
+				 * Copies one failure and what hangs on it, reusing a copy already made for it;
+				 * null once the budget is spent, or for a failure still being copied.
+				 */
 				private static Throwable copyOf(Throwable failure, java.util.Map<Throwable, Throwable> copies) {
 					Throwable known = copies.get(failure);
+					if (known == PENDING) {
+						return null;
+					}
 					if (known != null) {
 						return known;
 					}
+					if (copies.size() >= TRAVERSAL_LIMIT) {
+						return null;
+					}
 					boolean marker = fromGeneratedHooks(failure.getClass());
-					Throwable copy = marker ? freshMarker(failure) : copyAlone(failure);
+					copies.put(failure, PENDING);
+					Throwable copy = marker ? freshMarker(failure) : copyAlone(failure, () -> causeCopyOf(failure, copies));
 					copies.put(failure, copy);
-					if (!(marker && carriesNothing(failure)) && copies.size() <= TRAVERSAL_LIMIT) {
+					if (!(marker && carriesNothing(failure))) {
 						attachCopies(failure, copy, copies);
 					}
 					return copy;
@@ -635,7 +671,7 @@ final class FailureReportingSources {
 					if (marker instanceof java.util.function.Supplier<?> maker && maker.get() instanceof Throwable fresh) {
 						return fresh;
 					}
-					return copyAlone(marker);
+					return copyAlone(marker, () -> null);
 				}
 
 				/** Whether a generated marker is a hidden or scheduled result, which carries nothing at all. */
@@ -645,19 +681,28 @@ final class FailureReportingSources {
 							|| type.endsWith("$HiddenTestScheduled") || type.endsWith("$HiddenOutputFailure");
 				}
 
-				/** Hangs copies of the failure's cause and suppressed failures on its copy. */
+				/**
+				 * Hangs copies of the failure's cause and suppressed failures on its copy,
+				 * stopping once the budget is spent.
+				 */
 				private static void attachCopies(Throwable failure, Throwable copy, java.util.Map<Throwable, Throwable> copies) {
 					Throwable cause = causeOf(failure);
 					if (cause != null && copy.getCause() == null) {
+						Throwable causeCopy = copyOf(cause, copies);
 						try {
-							copy.initCause(copyOf(cause, copies));
+							if (causeCopy != null) {
+								copy.initCause(causeCopy);
+							}
 						} catch (IllegalStateException | IllegalArgumentException alreadySet) {
 							copies.putIfAbsent(cause, copy);
 						}
 					}
 					for (Throwable suppressed : failure.getSuppressed()) {
+						if (copies.size() >= TRAVERSAL_LIMIT) {
+							return;
+						}
 						Throwable suppressedCopy = copyOf(suppressed, copies);
-						if (suppressedCopy != copy) {
+						if (suppressedCopy != null && suppressedCopy != copy) {
 							copy.addSuppressed(suppressedCopy);
 						}
 					}
@@ -666,9 +711,10 @@ final class FailureReportingSources {
 				/**
 				 * A copy of one failure without its cause: its own type and text when the Java
 				 * runtime or opentest4j can rebuild it, its type and text in a plain copy
-				 * otherwise, and its type alone when reading its text could run student code.
+				 * otherwise, and its type alone when reading its text could run student code. A
+				 * class taking its cause only when built gets the copied cause then.
 				 */
-				private static Throwable copyAlone(Throwable failure) {
+				private static Throwable copyAlone(Throwable failure, java.util.function.Supplier<Throwable> cause) {
 					String type = failure.getClass().getName();
 					try {
 						StackTraceElement[] stack = trustedAccessor(failure, "getStackTrace") ? failure.getStackTrace()
@@ -677,7 +723,7 @@ final class FailureReportingSources {
 							return detached(failure, type, stack);
 						}
 						String message = failure.getLocalizedMessage();
-						Throwable rebuilt = rebuilt(failure, message);
+						Throwable rebuilt = rebuilt(failure, message, cause);
 						if (rebuilt != null) {
 							rebuilt.setStackTrace(stack);
 							return rebuilt;
@@ -731,9 +777,10 @@ final class FailureReportingSources {
 				/**
 				 * The same failure built anew by the Java runtime or opentest4j from its text
 				 * alone, keeping an opentest4j failure's expected and actual values as text; null
-				 * when its class shapes its own text or offers no such constructor.
+				 * when its class shapes its own text or offers no such constructor. One taking a
+				 * cause too is built around the copied cause, which it fixes for good.
 				 */
-				private static Throwable rebuilt(Throwable failure, String message) {
+				private static Throwable rebuilt(Throwable failure, String message, java.util.function.Supplier<Throwable> cause) {
 					Class<?> type = failure.getClass();
 					if (type == org.opentest4j.AssertionFailedError.class) {
 						org.opentest4j.AssertionFailedError original = (org.opentest4j.AssertionFailedError) failure;
@@ -751,11 +798,16 @@ final class FailureReportingSources {
 					try {
 						return (Throwable) type.getConstructor(String.class).newInstance(message);
 					} catch (ReflectiveOperationException | ClassCastException noTextConstructor) {
-						try {
-							return (Throwable) type.getConstructor(String.class, Throwable.class).newInstance(message, null);
-						} catch (ReflectiveOperationException | ClassCastException noConstructor) {
-							return null;
-						}
+						return withCause(type, message, cause.get());
+					}
+				}
+
+				/** The failure built from its text and its copied cause, for a class offering only that; null otherwise. */
+				private static Throwable withCause(Class<?> type, String message, Throwable cause) {
+					try {
+						return (Throwable) type.getConstructor(String.class, Throwable.class).newInstance(message, cause);
+					} catch (ReflectiveOperationException | ClassCastException noConstructor) {
+						return null;
 					}
 				}
 
