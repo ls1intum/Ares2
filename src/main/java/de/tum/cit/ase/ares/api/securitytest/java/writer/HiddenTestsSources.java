@@ -212,7 +212,7 @@ final class HiddenTestsSources {
 					return guard(new Invocation<T>() {
 						@Override
 						public T proceed() throws Throwable {
-							return materialised(invocation.proceed());
+							return materialised(invocation.proceed(), stream -> guardedClose(stream, context));
 						}
 
 						@Override
@@ -229,24 +229,25 @@ final class HiddenTestsSources {
 				 *
 				 * @param <T> the factory's result type
 				 * @param result the factory's result
-				 * @return the tests, read into a list
+				 * @param closer turns a produced stream into its guarded close callback
+				 * @return the tests, read into a list; a stream stays open until JUnit closes the
+				 *         returned one, after its tests ran
 				 */
 				@SuppressWarnings("unchecked")
-				static <T> T materialised(T result) {
+				static <T> T materialised(T result, Function<Stream<?>, Runnable> closer) {
 					List<Object> nodes = new ArrayList<>();
 					if (result instanceof DynamicNode node) {
-						return (T) materialisedNode(node);
+						return (T) materialisedNode(node, closer);
 					} else if (result instanceof Stream<?> stream) {
-						try (stream) {
-							stream.forEach(item -> nodes.add(materialisedNode(item)));
-						}
+						stream.sequential().iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer)));
+						return (T) nodes.stream().onClose(closer.apply(stream));
 					} else if (result instanceof Iterable<?> iterable) {
-						iterable.forEach(item -> nodes.add(materialisedNode(item)));
+						iterable.iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer)));
 					} else if (result instanceof Iterator<?> iterator) {
-						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item)));
+						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item, closer)));
 					} else if (result instanceof Object[] array) {
 						for (Object item : array) {
-							nodes.add(materialisedNode(item));
+							nodes.add(materialisedNode(item, closer));
 						}
 					} else {
 						return result;
@@ -255,21 +256,60 @@ final class HiddenTestsSources {
 				}
 
 				/**
-				 * One produced test, with a container's children read completely.
+				 * One produced test, with a container's children read completely, one after the
+				 * other in their order; the children's stream is closed when JUnit closes the
+				 * container's, after its tests ran.
 				 *
 				 * @param item the produced test
+				 * @param closer turns a produced stream into its guarded close callback
 				 * @return the test, or the item unchanged when it is not a container
 				 */
-				private static Object materialisedNode(Object item) {
+				private static Object materialisedNode(Object item, Function<Stream<?>, Runnable> closer) {
 					if (!(item instanceof DynamicContainer container)) {
 						return item;
 					}
 					List<DynamicNode> children = new ArrayList<>();
-					try (Stream<? extends DynamicNode> stream = container.getChildren()) {
-						stream.forEach(child -> children.add((DynamicNode) materialisedNode(child)));
-					}
+					Stream<? extends DynamicNode> stream = container.getChildren();
+					stream.sequential().iterator().forEachRemaining(child -> children.add((DynamicNode) materialisedNode(child, closer)));
 					return DynamicContainer.dynamicContainer(container.getDisplayName(),
-							container.getTestSourceUri().orElse(null), children.stream());
+							container.getTestSourceUri().orElse(null), children.stream().onClose(closer.apply(stream)));
+				}
+
+				/**
+				 * A stream's close callback that this hook guards like the factory itself, since
+				 * closing can run student code that prints or fails.
+				 *
+				 * @param stream the produced stream
+				 * @param context the factory's context
+				 * @return the guarded close callback
+				 */
+				private static Runnable guardedClose(Stream<?> stream, ExtensionContext context) {
+					return () -> {
+						try {
+							guard(new Invocation<Void>() {
+								@Override
+								public Void proceed() {
+									stream.close();
+									return null;
+								}
+							}, context);
+						} catch (Throwable failure) {
+							rethrow(failure);
+						}
+					};
+				}
+
+				/**
+				 * Rethrows a failure without declaring it, so a close callback reports exactly
+				 * what the guard reported.
+				 *
+				 * @param <E> the type the compiler sees
+				 * @param failure the failure
+				 * @throws E always
+				 */
+				@SuppressWarnings("unchecked")
+				private static <E extends Throwable> void rethrow(Throwable failure) throws E {
+					throw (E) failure;
 				}
 
 				/**

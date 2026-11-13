@@ -108,6 +108,17 @@ class GeneratedAllHooksTest {
 				"@TestFactory java.util.stream.Stream<DynamicTest> cases() { return java.util.stream.Stream.of(1)"
 						+ ".map(number -> { System.out.print(\"SECRET_FACTORY\");"
 						+ " return DynamicTest.dynamicTest(\"case\", () -> { }); }); }");
+		fixture(fixtures, "ResourceFactoryFixture",
+				"static final java.util.concurrent.atomic.AtomicBoolean OUTER = new java.util.concurrent.atomic.AtomicBoolean();"
+						+ " static final java.util.concurrent.atomic.AtomicBoolean INNER = new java.util.concurrent.atomic.AtomicBoolean();"
+						+ " @TestFactory java.util.stream.Stream<DynamicNode> cases() { return java.util.stream.Stream.<DynamicNode>of("
+						+ "DynamicTest.dynamicTest(\"outer\", () -> Assertions.assertFalse(OUTER.get(), \"outer closed early\")),"
+						+ " DynamicContainer.dynamicContainer(\"box\", java.util.stream.Stream.of(DynamicTest.dynamicTest(\"inner\","
+						+ " () -> Assertions.assertFalse(INNER.get(), \"inner closed early\"))).onClose(() -> INNER.set(true))))"
+						+ ".onClose(() -> OUTER.set(true)); }");
+		fixture(fixtures, "ParallelFactoryFixture",
+				"@TestFactory java.util.stream.Stream<DynamicTest> cases() { return java.util.stream.IntStream.range(0, 500)"
+						+ ".parallel().mapToObj(number -> DynamicTest.dynamicTest(\"case\" + number, () -> { })); }");
 		fixture(fixtures, "LoopingCauseFixture",
 				"@Test void fails() throws Exception { throw new java.util.concurrent.ExecutionException(\"looping\", null) {"
 						+ " @Override public synchronized Throwable getCause() { while (true) { Thread.onSpinWait(); } } }; }");
@@ -200,6 +211,39 @@ class GeneratedAllHooksTest {
 	void aHiddenFactoryPrintsNothing(boolean reversed) throws Exception {
 		Captured captured = captured(() -> run("com.example.fixtures.HiddenFactoryFixture", reversed));
 		assertThat(captured.output()).doesNotContain("SECRET_FACTORY");
+	}
+
+	/**
+	 * A factory's tests run before the streams that produced them are closed, so a
+	 * resource the factory releases on close is still open while its tests use it.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aFactorysStreamsCloseAfterItsTestsRan(boolean reversed) throws Exception {
+		EngineExecutionResults results = run("com.example.fixtures.ResourceFactoryFixture", reversed);
+		assertThat(results.testEvents().failed().count()).isZero();
+		assertThat(results.testEvents().succeeded().count()).isEqualTo(2);
+	}
+
+	/**
+	 * A factory returning a parallel stream keeps every test, in its order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aParallelFactoryKeepsEveryTestInOrder(boolean reversed) throws Exception {
+		EngineExecutionResults results = run("com.example.fixtures.ParallelFactoryFixture", reversed);
+		List<String> expected = new ArrayList<>();
+		for (int number = 0; number < 500; number++) {
+			expected.add("case" + number);
+		}
+		assertThat(results.testEvents().started().stream().map(event -> event.getTestDescriptor().getDisplayName()))
+				.containsExactlyElementsOf(expected);
 	}
 
 	/**
