@@ -178,6 +178,34 @@ class GeneratedFailureReportingTest {
 				""";
 	}
 
+	/**
+	 * The DEBUG entry for a blocked file action is complete and quoted, so the
+	 * policy reader accepts it as written and a Windows path reads back unchanged.
+	 *
+	 * @throws Exception if the generated hook cannot be loaded
+	 */
+	@Test
+	void theDebugFileEntryIsACompletePolicyEntry() throws Exception {
+		String target = "C:\\temp\\new \"draft\".txt";
+		try (URLClassLoader loader = new URLClassLoader(new URL[] { compiled.toUri().toURL() },
+				GeneratedFailureReportingTest.class.getClassLoader())) {
+			java.lang.reflect.Method entryOf = loader
+					.loadClass("de.tum.cit.ase.ares.generated.GeneratedFailureReporting")
+					.getDeclaredMethod("entryOf", String.class, String.class, String.class);
+			entryOf.setAccessible(true);
+			String entry = (String) entryOf.invoke(null, "file", "create", target);
+			java.util.Map<String, Object> read = new com.fasterxml.jackson.dataformat.yaml.YAMLMapper().readValue(entry,
+					new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {
+					});
+			assertThat(read)
+					.containsOnlyKeys("onThisPathAndAllPathsBelow", "readAllFiles", "overwriteAllFiles",
+							"createAllFiles", "executeAllFiles", "deleteAllFiles")
+					.containsEntry("onThisPathAndAllPathsBelow", target).containsEntry("createAllFiles", true)
+					.containsEntry("readAllFiles", false).containsEntry("overwriteAllFiles", false)
+					.containsEntry("executeAllFiles", false).containsEntry("deleteAllFiles", false);
+		}
+	}
+
 	/** An ordinary failure shows the policy's message instead of its own. */
 	@Test
 	void anOrdinaryFailureShowsThePolicyMessage() throws Exception {
