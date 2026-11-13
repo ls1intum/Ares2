@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.internal;
 
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -109,16 +110,40 @@ public final class ConfigurationUtils {
 	 * @return the configuration; empty when no policy is active.
 	 */
 	private static PolicyBehavior policyBehavior(TestContext context) {
-		Optional<Path> policyPath = TestContextUtils.findAnnotationIn(context, Policy.class)
-				.flatMap(ConfigurationUtils::activePolicyPath);
-		if (policyPath.isEmpty()) {
-			return PolicyBehavior.NONE;
-		}
+		Optional<Policy> policy = TestContextUtils.findAnnotationIn(context, Policy.class);
 		ClassLoader loader = loaderOf(context.testClass());
-		if (context instanceof JupiterContext jupiter) {
-			return cached(classContextOf(jupiter.getExtensionContext()), policyPath.get(), loader);
+		if (context instanceof JupiterContext jupiter && policy.isPresent()) {
+			ExtensionContext classContext = classContextOf(jupiter.getExtensionContext());
+			Optional<PolicyBehavior> earlier = earlierReading(classContext, policy.get());
+			if (earlier.isPresent()) {
+				return earlier.get();
+			}
+			return policy.flatMap(ConfigurationUtils::activePolicyPath).map(path -> cached(classContext, path, loader))
+					.orElse(PolicyBehavior.NONE);
 		}
-		return read(policyPath.get(), loader);
+		return policy.flatMap(ConfigurationUtils::activePolicyPath).map(path -> read(path, loader))
+				.orElse(PolicyBehavior.NONE);
+	}
+
+	/**
+	 * Returns what an active policy's file configured when the class already read
+	 * it, without checking that the file still exists, so a test that moves its
+	 * policy afterwards keeps the reading it started with.
+	 *
+	 * @param classContext the class context whose store holds the cache.
+	 * @param policy       the annotation.
+	 * @return the earlier reading; empty when there is none or it failed.
+	 */
+	private static Optional<PolicyBehavior> earlierReading(ExtensionContext classContext, Policy policy) {
+		if (!policy.activated() || policy.value().isBlank()) {
+			return Optional.empty();
+		}
+		try {
+			String key = Path.of(policy.value()).toAbsolutePath().normalize().toString();
+			return Optional.ofNullable(classContext.getStore(NAMESPACE).get(key, Reading.class)).map(Reading::behavior);
+		} catch (InvalidPathException invalid) {
+			return Optional.empty();
+		}
 	}
 
 	/**
