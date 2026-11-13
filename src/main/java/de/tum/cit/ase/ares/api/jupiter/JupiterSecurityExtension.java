@@ -110,11 +110,12 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	/**
 	 * Arms the guard, runs the invocation and leaves the guard armed for the test
 	 * that follows. It closes the guard only when the invocation throws, because
-	 * the callback that usually closes it is not reached then.
+	 * the callback that usually closes it is not reached then; the failure is then
+	 * reported as {@link JupiterTestGuard#invocationFailure} allows.
 	 */
 	private <T> T proceedArmedUntilTestEnds(Invocation<T> invocation, ExtensionContext extensionContext)
 			throws Throwable {
-		prepareSecurityOnce(extensionContext);
+		armForInvocation(extensionContext);
 		try {
 			return invocation.proceed();
 		} catch (Throwable failure) {
@@ -123,7 +124,7 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 			} catch (Throwable closeFailure) {
 				failure.addSuppressed(closeFailure);
 			}
-			throw failure;
+			throw JupiterTestGuard.invocationFailure(extensionContext, failure);
 		}
 	}
 
@@ -268,10 +269,30 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 
 	// </editor-fold>
 
+	/**
+	 * Arms the guard before an invocation. The architecture check runs here, so a
+	 * blocked action it finds is reported as
+	 * {@link JupiterTestGuard#invocationFailure} allows, like one the invocation
+	 * itself raises.
+	 */
+	private void armForInvocation(ExtensionContext extensionContext) throws Throwable {
+		try {
+			prepareSecurityOnce(extensionContext);
+		} catch (RuntimeException | Error armingFailure) {
+			throw JupiterTestGuard.invocationFailure(extensionContext, armingFailure);
+		}
+	}
+
+	/**
+	 * Arms the guard for one invocation, such as a constructor, a lifecycle method
+	 * or a test, and closes it afterwards. A failure is reported as
+	 * {@link JupiterTestGuard#invocationFailure} allows, so setup code follows the
+	 * same rules as the test.
+	 */
 	@Override
 	public <T> T interceptGenericInvocation(Invocation<T> invocation, ExtensionContext extensionContext,
 			Optional<ReflectiveInvocationContext<?>> invocationContext) throws Throwable {
-		prepareSecurityOnce(extensionContext);
+		armForInvocation(extensionContext);
 		T result = null;
 		Throwable failure = null;
 		try {
@@ -289,7 +310,7 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 			}
 		}
 		if (failure != null) {
-			throw failure;
+			throw JupiterTestGuard.invocationFailure(extensionContext, failure);
 		}
 		return result;
 	}
