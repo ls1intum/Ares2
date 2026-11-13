@@ -151,6 +151,18 @@ public final class JupiterTestGuard implements UnifiedInvocationInterceptor, Bef
 		return JupiterContext.of(context).findTestType().orElse(null) == TestType.HIDDEN;
 	}
 
+	/**
+	 * Redacts a failure of a hidden test's constructor or lifecycle method before
+	 * Jupiter receives it; any other failure is returned unchanged.
+	 *
+	 * @param context the invocation's context.
+	 * @param failure the failure.
+	 * @return the failure to throw instead.
+	 */
+	static Throwable invocationFailure(ExtensionContext context, Throwable failure) {
+		return isHidden(context) ? redactHiddenLifecycleFailure(failure) : failure;
+	}
+
 	/** Redacts a hidden callback failure before Jupiter receives it. */
 	static RuntimeException callbackFailure(ExtensionContext context, Throwable failure) {
 		Throwable safe = isHidden(context) ? redactHiddenLifecycleFailure(failure) : failure;
