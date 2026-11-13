@@ -255,8 +255,19 @@ class GeneratedAllHooksTest {
 					@Override public String toString() { while (true) { Thread.onSpinWait(); } }
 				}
 				""");
-		fixture(Files.createDirectories(sources.resolve("com/example/fixtures")), "ForgedMarkerFixture",
+		Files.writeString(marker.resolve("GeneratedHiddenTests$HiddenTestFailure.java"), """
+				package de.tum.cit.ase.ares.generated;
+
+				public class GeneratedHiddenTests$HiddenTestFailure extends AssertionError {
+					public GeneratedHiddenTests$HiddenTestFailure() { super("lookalike"); }
+					@Override public String toString() { while (true) { Thread.onSpinWait(); } }
+				}
+				""");
+		Path fixtures = Files.createDirectories(sources.resolve("com/example/fixtures"));
+		fixture(fixtures, "ForgedMarkerFixture",
 				"@Test void fails() { throw new de.tum.cit.ase.ares.generated.ForgedMarker(); }");
+		fixture(fixtures, "LookalikeHiddenFixture",
+				"@Test void fails() { throw new de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure(); }");
 		compile(Files.createDirectories(output), List.of(sources));
 		return output;
 	}
@@ -656,6 +667,28 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
+	 * With failure reporting alone, a student class named like a hidden-test marker
+	 * but loaded from the student's own output is copied like any other failure, so
+	 * its looping {@code toString} never runs when the build tool prints it.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aLookalikeHiddenMarkerIsCopied(@TempDir Path probe) throws Exception {
+		Process process = startInOwnJvm(compileProbe(probe), "com.example.fixtures.LookalikeHiddenFixture", false,
+				GENERATED + "GeneratedFailureReporting", forged);
+		try {
+			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
+			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			assertThat(output).as(output).contains(PROBE_DONE)
+					.contains(PROBE_FAILURE + "de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure");
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
+	/**
 	 * Output a hidden test leaves unfinished fails the test without showing it, in
 	 * either registration order.
 	 *
@@ -902,14 +935,17 @@ class GeneratedAllHooksTest {
 	 * @param className    the fixture class.
 	 * @param reversed     whether the hooks are registered the other way round.
 	 * @param hooks        the hooks to load, as JUnit's autodetection pattern.
+	 * @param first        class folders placed before the generated output.
 	 * @return the started process
 	 * @throws IOException if the JVM cannot be started
 	 */
-	private static Process startInOwnJvm(Path probeClasses, String className, boolean reversed, String hooks)
-			throws IOException {
-		String classPath = String.join(File.pathSeparator, compiled.toString(),
-				(reversed ? reversedResources : resources).toString(), probeClasses.toString(),
-				System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
+	private static Process startInOwnJvm(Path probeClasses, String className, boolean reversed, String hooks,
+			Path... first) throws IOException {
+		List<String> entries = new ArrayList<>(Arrays.stream(first).map(Path::toString).toList());
+		entries.addAll(List.of(compiled.toString(), (reversed ? reversedResources : resources).toString(),
+				probeClasses.toString(),
+				System.getProperty("surefire.test.class.path", System.getProperty("java.class.path"))));
+		String classPath = String.join(File.pathSeparator, entries);
 		return new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", classPath,
 				"com.example.probe.HooksProbe", className, hooks).redirectErrorStream(true).start();
 	}
