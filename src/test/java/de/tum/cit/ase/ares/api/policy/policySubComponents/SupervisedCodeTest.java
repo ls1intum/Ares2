@@ -47,6 +47,7 @@ class SupervisedCodeTest {
 		assertEquals("com.example", supervisedCode.theSupervisedCodeUsesTheFollowingPackage());
 	}
 
+	/** The behaviour configuration is null when the builder is not given one. */
 	@Test
 	void theFollowingTestBehaviorIsConfiguredDefaultsToNull() {
 		SupervisedCode supervisedCode = SupervisedCode
@@ -55,6 +56,10 @@ class SupervisedCodeTest {
 		assertNull(supervisedCode.theFollowingTestBehaviorIsConfigured());
 	}
 
+	/**
+	 * Without a behaviour configuration, the accessor returns an empty one instead
+	 * of null.
+	 */
 	@Test
 	void theFollowingTestBehaviorIsConfiguredOrEmptyReturnsAFreshEmptyConfigurationWhenAbsent() {
 		SupervisedCode supervisedCode = SupervisedCode
@@ -65,6 +70,7 @@ class SupervisedCodeTest {
 		assertNotNull(configuration);
 	}
 
+	/** With a behaviour configuration, the accessor returns that same one. */
 	@Test
 	void theFollowingTestBehaviorIsConfiguredOrEmptyReturnsTheConfiguredValueWhenPresent() {
 		TestBehaviorConfiguration configured = TestBehaviorConfiguration.builder().build();

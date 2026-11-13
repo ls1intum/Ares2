@@ -1,0 +1,22 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.testuser.StrictTimeoutPolicyUser"
+    - "de.tum.cit.ase.ares.integration.StrictTimeoutPolicyTest"
+    - "de.tum.cit.ase.ares.testutilities"
+  # No thread creation is allowed, so the timeout's own worker relies on the
+  # exemption of Ares's timeout machinery, and a student thread stays blocked.
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts: []
+  theFollowingTestBehaviorIsConfigured:
+    regardingTheStrictTimeoutForTheTestCases:
+      theTimeoutIs: "200ms"
+      theTerminationGraceIs: "1s"

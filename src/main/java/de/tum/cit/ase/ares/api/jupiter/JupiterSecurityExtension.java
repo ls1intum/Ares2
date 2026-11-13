@@ -16,6 +16,7 @@ import org.junit.platform.commons.function.Try;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
 import de.tum.cit.ase.ares.api.context.TestContextUtils;
+import de.tum.cit.ase.ares.api.internal.ConfigurationUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
 /**
@@ -63,11 +64,13 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 
 	/**
 	 * Refuses enabled parallel execution before a test instance is built, whether
-	 * by its constructor or by a test instance factory.
+	 * by its constructor or by a test instance factory, and reads the class's
+	 * test-behaviour settings before any test code runs.
 	 */
 	@Override
 	public void preConstructTestInstance(TestInstanceFactoryContext factoryContext, ExtensionContext extensionContext) {
 		refuseParallelExecution(extensionContext);
+		ConfigurationUtils.prepareTestBehavior(JupiterContext.of(extensionContext));
 	}
 
 	/**
@@ -147,6 +150,7 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 */
 	private void prepareSecurityOnce(ExtensionContext extensionContext) {
 		refuseParallelExecution(extensionContext);
+		ConfigurationUtils.prepareTestBehavior(JupiterContext.of(extensionContext));
 		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
 		String stateKey = stateKey(extensionContext);
 		synchronized (store) {

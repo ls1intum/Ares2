@@ -14,6 +14,8 @@ import org.apiguardian.api.API.Status;
 import de.tum.cit.ase.ares.api.WithIOManager;
 import de.tum.cit.ase.ares.api.context.*;
 import de.tum.cit.ase.ares.api.io.*;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.InputOutputManagerKind;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.OutputConfiguration;
 
 @API(status = Status.INTERNAL)
 public final class IOExtensionUtils {
@@ -57,10 +59,27 @@ public final class IOExtensionUtils {
 		return providesController() && Objects.class != targetType && targetType.isAssignableFrom(controllerClass);
 	}
 
+	/**
+	 * Picks the manager: the nearest {@code @WithIOManager}, else the policy's
+	 * choice, else the I/O tester.
+	 */
 	private static IOManager<?> createIOManagerFor(TestContext testContext) {
 		var ioManagerClass = TestContextUtils.findAnnotationIn(testContext, WithIOManager.class)
-				.<Class<? extends IOManager<?>>>map(WithIOManager::value).orElse(DEFAULT_IO_MANAGER);
+				.<Class<? extends IOManager<?>>>map(WithIOManager::value).orElseGet(() -> policyIOManager(testContext));
 		return IO_MANAGER_CACHE.computeIfAbsent(ioManagerClass, IOExtensionUtils::generateIOManagerSupplier).get();
+	}
+
+	/**
+	 * Returns the manager the active policy chooses, the I/O tester without one.
+	 */
+	private static Class<? extends IOManager<?>> policyIOManager(TestContext testContext) {
+		InputOutputManagerKind kind = ConfigurationUtils.findPolicyOutput(testContext)
+				.map(OutputConfiguration::managerKind).orElse(InputOutputManagerKind.IO_TESTER);
+		return switch (kind) {
+		case IO_TESTER -> DEFAULT_IO_MANAGER;
+		case NONE -> WithIOManager.None.class;
+		case CUSTOM -> ConfigurationUtils.findPolicyCustomIOManager(testContext).orElseThrow();
+		};
 	}
 
 	private static Supplier<IOManager<?>> generateIOManagerSupplier(Class<? extends IOManager<?>> ioManagerClass) {
