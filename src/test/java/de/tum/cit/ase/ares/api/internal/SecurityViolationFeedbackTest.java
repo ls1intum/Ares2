@@ -270,14 +270,15 @@ class SecurityViolationFeedbackTest {
 
 	/**
 	 * A blocked action carried as a suppressed failure, inside a privileged
-	 * exception, inside a multiple-failures error or as the cause of a member of an
-	 * AssertJ multiple-assertions error is shortened at MINIMIZED.
+	 * exception, inside a multiple-failures error, as the cause of a member of an
+	 * AssertJ multiple-assertions error or of JUnit 4's array comparison failure is
+	 * shortened at MINIMIZED.
 	 *
 	 * @param carrier how the blocked action is carried.
 	 * @throws ReflectiveOperationException if the violation cannot be created
 	 */
 	@ParameterizedTest
-	@ValueSource(strings = { "suppressed", "privileged", "multiple", "assertj" })
+	@ValueSource(strings = { "suppressed", "privileged", "multiple", "assertj", "array" })
 	void aCarriedViolationIsShortened(String carrier) throws ReflectiveOperationException {
 		Locale.setDefault(Locale.ENGLISH);
 		SecurityException violation = realViolation();
@@ -289,6 +290,7 @@ class SecurityViolationFeedbackTest {
 		}
 		case "privileged" -> new PrivilegedException(violation);
 		case "assertj" -> new MultipleAssertionsError(List.of(new AssertionError(violation)));
+		case "array" -> new org.junit.internal.ArrayComparisonFailure("array", new AssertionError(violation), 0);
 		default -> new MultipleFailuresError("two failures", List.of(new AssertionError("first"), violation));
 		};
 		Throwable reported = ReportingUtils.processThrowable(failure, contextFor("minimizedPolicy"));
@@ -621,6 +623,9 @@ class SecurityViolationFeedbackTest {
 		AssertionError comparison = assertThrows(AssertionError.class, () -> org.junit.Assert.assertEquals("a", "b"));
 		assertThat(ReportingUtils.processThrowable(comparison, context)).isInstanceOf(org.junit.ComparisonFailure.class)
 				.hasMessageContaining("expected:<[a]>").hasMessageContaining("but was:<[b]>");
+		AssertionError arrays = assertThrows(AssertionError.class,
+				() -> org.junit.Assert.assertArrayEquals(new int[] { 1 }, new int[] { 2 }));
+		assertThat(ReportingUtils.processThrowable(arrays, context)).hasMessageContaining("arrays first differed");
 		assertThat(ReportingUtils.processThrowable(new StudentComparisonFailure(realViolation()), context))
 				.hasMessage(UNINSPECTABLE_TEXT).hasNoSuppressedExceptions();
 	}

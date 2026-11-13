@@ -327,13 +327,14 @@ public final class ReportingUtils {
 
 	/**
 	 * The failures a failure carries that can be read without running student code:
-	 * its cause, when a Java runtime class declares {@code getCause}, its
-	 * suppressed failures, and what an Ares privileged exception, an opentest4j
-	 * multiple-failures error or an AssertJ multiple-assertions error holds.
+	 * its cause, when a Java runtime class or a known safe type such as JUnit's
+	 * array comparison failure declares {@code getCause}, its suppressed failures,
+	 * and what an Ares privileged exception, an opentest4j multiple-failures error
+	 * or an AssertJ multiple-assertions error holds.
 	 */
 	private static List<Throwable> carriedBy(Throwable t) {
 		List<Throwable> carried = new ArrayList<>(Arrays.asList(t.getSuppressed()));
-		if (declaredByTheRuntime(t, "getCause")) { //$NON-NLS-1$
+		if (declaredByTheRuntimeOrASafeType(t, "getCause")) { //$NON-NLS-1$
 			carried.add(t.getCause());
 		}
 		if (t instanceof PrivilegedException privileged) {
@@ -460,12 +461,13 @@ public final class ReportingUtils {
 	}
 
 	/**
-	 * Whether the Java runtime declares the named method a failure's class uses, so
-	 * calling it cannot run code a student wrote.
+	 * Whether the Java runtime or a failure class Ares copies as a known safe type
+	 * declares the named method a failure's class uses, so calling it runs library
+	 * code only.
 	 */
-	private static boolean declaredByTheRuntime(Throwable t, String method) {
+	private static boolean declaredByTheRuntimeOrASafeType(Throwable t, String method) {
 		Class<?> declaring = declaringClass(t, method);
-		return declaring != null && isRuntimeClass(declaring);
+		return declaring != null && (isRuntimeClass(declaring) || ThrowableSanitizer.isSafeType(declaring));
 	}
 
 	/**
