@@ -297,6 +297,34 @@ class JavaProjectScannerPackageFallbackTest {
 		assertNotEquals("somewhere.other.entirely", packageName);
 	}
 
+	/**
+	 * Precompile writes its own classes into a reserved package of the test output.
+	 * The scanner reads only the production output, so it never rejects them.
+	 *
+	 * @throws IOException if a fixture cannot be compiled
+	 */
+	@Test
+	@DisplayName("Ignores the generated classes precompile writes into the test output")
+	void ignoresGeneratedClassesInTheTestOutput() throws IOException {
+		Path outputRoot = compile("""
+				package de.tum.cit.aet;
+
+				public class Calculator {
+				}
+				""", "de/tum/cit/aet/Calculator.java");
+		BuildToolConfiguration configuration = configurationWithoutSourceRoots(outputRoot);
+		compileInto(configuration.testOutputRoot(), """
+				package de.tum.cit.ase.ares.generated;
+
+				public final class GeneratedFailureReporting {
+				}
+				""", "de/tum/cit/ase/ares/generated/GeneratedFailureReporting.java");
+
+		String packageName = new JavaProjectScanner(configuration).scanForPackageName();
+
+		assertEquals("de.tum.cit.aet", packageName);
+	}
+
 	private BuildToolConfiguration configurationWithoutSourceRoots(Path outputRoot) throws IOException {
 		return ScannerFixtures.gradleConfigurationWithoutSourceRoots(projectRoot, outputRoot);
 	}

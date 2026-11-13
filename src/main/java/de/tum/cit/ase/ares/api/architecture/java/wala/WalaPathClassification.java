@@ -60,47 +60,36 @@ public final class WalaPathClassification {
 	/**
 	 * Package prefixes supervised code may not declare, so a student cannot land a
 	 * class in a namespace the grader trusts or relies on: the platform, the
-	 * supervision libraries (Byte Buddy, AspectJ, WALA, ArchUnit, Ares), the test
+	 * supervision libraries (Byte Buddy, AspectJ, WALA, ArchUnit, Ares), the code
+	 * precompile generates ({@code de.tum.cit.ase.ares.generated.}), the test
 	 * harness (JUnit, opentest4j, AssertJ, Mockito) and Ares' other non-shaded
-	 * dependencies. Shadowing any of them subverts the examination. Broader than
-	 * {@link #INFRA_PREFIXES}, where a real library in such a namespace is
-	 * analysed, not trusted.
+	 * dependencies. Broader than {@link #INFRA_PREFIXES}, where a real library in
+	 * such a namespace is analysed, not trusted.
 	 */
 	public static final List<String> RESERVED_PACKAGE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
-			"de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
-			"junit.", "org.junit.", "org.opentest4j.", "org.assertj.", "org.mockito.", "ch.qos.logback.", "org.slf4j.",
-			"com.github.javaparser.", "com.fasterxml.jackson.", "org.yaml.", "org.json.", "com.opencsv.",
-			"org.jgrapht.", "org.apiguardian.", "org.apache.", "org.eclipse.", "org.gradle.", "org.jacoco.",
-			"com.intellij.", "worker.org.gradle.", "de.tum.in.test.api.");
+			"de.tum.cit.ase.ares.api.", "de.tum.cit.ase.ares.generated.", "net.bytebuddy.", "org.aspectj.",
+			"com.ibm.wala.", "com.tngtech.archunit.", "junit.", "org.junit.", "org.opentest4j.", "org.assertj.",
+			"org.mockito.", "ch.qos.logback.", "org.slf4j.", "com.github.javaparser.", "com.fasterxml.jackson.",
+			"org.yaml.", "org.json.", "com.opencsv.", "org.jgrapht.", "org.apiguardian.", "org.apache.", "org.eclipse.",
+			"org.gradle.", "org.jacoco.", "com.intellij.", "worker.org.gradle.", "de.tum.in.test.api.");
 
 	/**
-	 * Version of the prefix data above. Version 3 restores the test harness and
-	 * Ares' other non-shaded dependencies, matching the Ares 1 breadth.
-	 * <p>
-	 * A version 1 or 2 snippet now <em>under</em>-reserves and is bypassable, not
-	 * merely over-strict: a copied snippet must be refreshed, since upgrading the
-	 * Ares dependency alone does not update it. One version must not denote two
-	 * different lists.
+	 * Version of the prefix data above. Version 3 restored the test harness and
+	 * Ares' other non-shaded dependencies; version 4 adds
+	 * {@code de.tum.cit.ase.ares.generated.}. An older snippet under-reserves and
+	 * must be refreshed, since upgrading Ares alone does not update it. One version
+	 * must not denote two different lists.
 	 */
-	public static final String RESERVED_PACKAGE_PREFIX_VERSION = "3";
+	public static final String RESERVED_PACKAGE_PREFIX_VERSION = "4";
 
 	/**
-	 * Version of the build-side contract that enforces
-	 * {@link #RESERVED_PACKAGE_PREFIXES}, which is versioned separately from the
-	 * prefix data because the two change for different reasons.
-	 * <p>
-	 * Version 2 gates every Gradle {@code Test} task, not only {@code check}.
-	 * Version 1 attached the validation to {@code check} alone, and Gradle's Java
-	 * plugin defines {@code check.dependsOn test} rather than the reverse, so
-	 * {@code gradlew test} never ran it: a grading run that invoked only
-	 * {@code test} accepted student classes under a reserved package. An exercise
-	 * carrying a version 1 snippet is bypassable and must be migrated, which is why
-	 * it must not keep the same identifier. The prefix data is versioned separately
-	 * by {@link #RESERVED_PACKAGE_PREFIX_VERSION} and moved to 2 for its own,
-	 * unrelated reason.
-	 * </p>
+	 * Version of the build-side contract that enforces the prefixes, versioned
+	 * separately because it changes for other reasons. Version 2 gated every Gradle
+	 * {@code Test} task, not only {@code check}. Version 3 scans the whole student
+	 * output, resources included, and also rejects service files and framework
+	 * configuration files that would plug student code into the run.
 	 */
-	public static final String RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = "2";
+	public static final String RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = "3";
 
 	/**
 	 * Application-loaded subset of {@link #INFRA_PREFIXES} that genuinely indicates

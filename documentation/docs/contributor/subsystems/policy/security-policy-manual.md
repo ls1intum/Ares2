@@ -110,7 +110,7 @@ This policy forbids all file, network, command and thread operations.
 
 > **`thisPolicyFileCompliesToThePolicyVersion` is required** and must be exactly `1`. A policy file that omits it, or that declares any other value, is rejected on load.
 
-> **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.2.1. Use [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
+> **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.2.1. Use [`regardingTheStrictTimeoutForTheTestCases`](#77-test-behaviour-configuration) or [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
 
 ### 5.2 Step 2: Apply the Policy to Your Test
 
@@ -283,6 +283,17 @@ regardingTheSupervisedCode:
     # REQUIRED list: Timeouts (can be empty array)
     regardingTimeouts:
       - timeout: 10000                               # REQUIRED (milliseconds)
+
+  # OPTIONAL: Behaviour of the tests, see 7.7. Every category inside is optional.
+  theFollowingTestBehaviorIsConfigured:
+    regardingTheStrictTimeoutForTheTestCases:
+      theTimeoutIs: "2s"                             # REQUIRED within this category
+      theTerminationGraceIs: "200ms"                 # OPTIONAL
+
+    regardingTheOutputOfTheTestCases:
+      theOutputIsMirrored: false                     # OPTIONAL, defaults as shown
+      theMaximumNumberOfOutputCharactersIs: 100000000  # OPTIONAL, defaults as shown
+      theInputAndOutputAreManagedBy: IO_TESTER       # OPTIONAL: IO_TESTER, NONE or CUSTOM
 ```
 
 ### 7.3 Configuration Options
@@ -363,6 +374,65 @@ theFollowingClassesAreTestClasses:
 **Matching:** an entry matches a class name **exactly** and covers the classes declared inside that class, as the class's own compiled file lists them in its `NestMembers` attribute. So `"com.instructor.ExerciseTest"` covers `com.instructor.ExerciseTest$Inner` and its anonymous and local classes. A separate class that a student names `com.instructor.ExerciseTest$Evil` gains nothing, and neither does `com.instructor.ExerciseTestOther`. In Postcompile, Ares refuses to run when the compiled supervised code contains a class carrying one of the covered names; Precompile has no such check. In Postcompile, the static architecture rules and the runtime advice compare the same names, so both layers behave alike; the architecture rules that Precompile generates do not receive this list. A nested entry such as `com.instructor.Outer$ExerciseTest` covers only that class, not the classes declared inside it. In Precompile the generator reads the compiled test classes, so compile them before generating and regenerate after changing them.
 
 > **Package names and package prefixes do not work here, and are not harmless.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package; it matches a class literally named `com.instructor`, which does not exist, so it exempts nothing. The likely symptom is that your own test classes are treated as supervised code and your assertions start tripping the policy, if they fall within the supervised scope. Worse, the entry is not inert: Ares derives a permitted package from every entry by stripping the last dotted component, so `"com.instructor"` permits imports from the whole `com` prefix. List each test class by its exact fully qualified name.
+
+---
+
+### 7.7 Test Behaviour Configuration
+
+The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before.
+
+The category and field names follow the proposal in issue #386, section C. They are not final until the advisor accepts them; [Policy Compatibility](./policy-compatibility.md) lists which release accepts which key.
+
+Ares reads these settings once per policy file, before it supervises any test code, and keeps them for the test class. A policy file changed while the tests run changes nothing. Any malformed value, unknown key or explicit `null` fails every test and names the field.
+
+**Durations** such as `theTimeoutIs`, `theTerminationGraceIs` and `theDeadlineIsExtendedBy` are text: days `d`, hours `h`, minutes `m`, seconds `s` and milliseconds `ms`, each at most once, largest first, in any letter case. `"2s"`, `"500ms"` and `"1d 12h"` are durations; `"1s 1m"` (wrong order), `"1s 2s"` (repeated unit) and `"2"` (no unit) are not. `"5M"` is five minutes, and `"5MS"` five milliseconds.
+
+#### 7.7.1 Strict timeout
+
+`regardingTheStrictTimeoutForTheTestCases` gives every supervised test a time limit, as `@StrictTimeout` does per test. Ares stops a test that runs longer.
+
+- `theTimeoutIs` (duration, **required** once the category is present): the time limit, above zero.
+- `theTerminationGraceIs` (duration, optional): the time a stopped test gets to finish before Ares halts the test process with exit code 124. At most one day; zero means at once. Without it, a test gets 50 ms.
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingTheStrictTimeoutForTheTestCases:
+    theTimeoutIs: "2s"
+    theTerminationGraceIs: "200ms"
+```
+
+A public test reports "execution timed out after …", even when privileged-only reporting is on.
+
+**Not `regardingTimeouts`:** the resource-access list `regardingTimeouts` (8.6) is a separate Phobos limit. This category is the one that bounds tests.
+
+#### 7.7.2 Output and I/O manager
+
+`regardingTheOutputOfTheTestCases` chooses the I/O manager, as `@WithIOManager` does, and the output settings that apply to it, as `@MirrorOutput` does. Every field is optional.
+
+- `theOutputIsMirrored` (boolean): `true` echoes what a test writes to `System.out` and `System.err` to the real console as well. Defaults to `false`.
+- `theMaximumNumberOfOutputCharactersIs` (whole number): the limit on what a test writes to each stream. A test that writes more fails with `too much standard output`. Above zero; defaults to 100000000.
+- `theInputAndOutputAreManagedBy` (`IO_TESTER`, `NONE` or `CUSTOM`): the manager. `IO_TESTER`, the default, records output and enforces the limit. `NONE` leaves output unrecorded, so the two output settings above do nothing, and Ares refuses them beside it. `CUSTOM` uses your own manager.
+- `theCustomInputAndOutputManagerIs` (class name): the custom manager, required with `CUSTOM` and refused otherwise.
+
+A custom manager must be one of your test classes, listed in `theFollowingClassesAreTestClasses` or nested in a listed class. Ares must load it from somewhere other than the student code, and it must be a concrete class implementing `IOManager` with a public constructor without parameters. Ares checks this when it reads the policy and fails every test otherwise, naming the reason.
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingTheOutputOfTheTestCases:
+    theOutputIsMirrored: true
+    theMaximumNumberOfOutputCharactersIs: 10000
+```
+
+#### 7.7.5 Precedence
+
+| Setting | Decided by, first match wins |
+|---|---|
+| Strict timeout and grace | Per field: `@StrictTimeout` on the method, then on the class, then the policy, then the default. |
+| Output mirroring and limit | The nearest `@MirrorOutput` replaces the whole category, then the policy. |
+| I/O manager | The nearest `@WithIOManager`, then the policy, then `IO_TESTER`. |
+| Policy deactivated, or no policy | No test behaviour from the policy; annotations still apply. |
+
+A policy read on a method-level `@Policy` gives that method its own file's settings.
 
 ---
 
@@ -586,7 +656,7 @@ regardingTimeouts:
   - timeout: 60000
 ```
 
-> **Not in effect yet.** `regardingTimeouts` is parsed and validated into the policy model, but the resulting limit becomes a **Phobos** test case. Phobos is the test-case family covering the file-system, network and timeout domains, and in Ares 2.2.1 it is a generation-only stage: Ares writes those cases out, but the in-process execution path used by the JUnit extension does not dispatch them yet. That migration is still in progress. A timeout expressed here therefore does not bound test execution today, whether the list is populated or empty. Use `@StrictTimeout` on the test class or method wherever a deadline is required. The list must still be present in the file, because all six resource-access lists are structurally required; `regardingTimeouts: []` is the clearest form unless you want to record an intended value for a later release.
+> **Not in effect yet.** `regardingTimeouts` is parsed and validated into the policy model, but the resulting limit becomes a **Phobos** test case. Phobos is the test-case family covering the file-system, network and timeout domains, and in Ares 2.2.1 it is a generation-only stage: Ares writes those cases out, but the in-process execution path used by the JUnit extension does not dispatch them yet. That migration is still in progress. A timeout expressed here therefore does not bound test execution today, whether the list is populated or empty. Use [`regardingTheStrictTimeoutForTheTestCases`](#77-test-behaviour-configuration) in the policy, or `@StrictTimeout` on the test class or method, wherever a deadline is required. The list must still be present in the file, because all six resource-access lists are structurally required; `regardingTimeouts: []` is the clearest form unless you want to record an intended value for a later release.
 
 ### 8.7 Internal Record: `ClassPermission`
 
