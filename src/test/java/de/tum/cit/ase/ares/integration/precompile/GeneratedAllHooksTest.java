@@ -43,6 +43,18 @@ class GeneratedAllHooksTest {
 	/** The generated package. */
 	private static final String GENERATED = "de.tum.cit.ase.ares.generated.";
 
+	/**
+	 * The package the generated output copies the AspectJ blocked-action class
+	 * into.
+	 */
+	private static final String VIOLATION_PACKAGE = "com.example.ares.api.aop.java.aspectj.adviceandpointcut";
+
+	/**
+	 * The path the blocked-action fixture names, which a MINIMIZED report must not
+	 * show.
+	 */
+	private static final String BLOCKED_PATH = "/secret/solution.txt";
+
 	/** The project shared by every test of this class. */
 	@TempDir
 	static Path tempDir;
@@ -157,6 +169,25 @@ class GeneratedAllHooksTest {
 						+ " failure.setRemainingName(new javax.naming.CompositeName() { @Override public Object clone() { return this; }"
 						+ " @Override public String toString() { while (true) { Thread.onSpinWait(); } } }); throw failure; }");
 		fixture(fixtures, "AssertEqualsFixture", "@Test void fails() { Assertions.assertEquals(\"a\", \"b\"); }");
+		fixture(fixtures, "BlockedActionFixture",
+				"@Test void reads() { throw " + VIOLATION_PACKAGE + ".ViolationSource.blocked(); }");
+		fixture(fixtures, "LockedFailureFixture",
+				"@Test void fails() throws Exception { IllegalStateException failure = new IllegalStateException(\"locked\");"
+						+ " java.util.concurrent.CountDownLatch held = new java.util.concurrent.CountDownLatch(1);"
+						+ " Thread holder = new Thread(() -> { synchronized (failure) { held.countDown();"
+						+ " while (true) { Thread.onSpinWait(); } } }); holder.setDaemon(true); holder.start(); held.await();"
+						+ " throw failure; }");
+		Path violationSources = Files
+				.createDirectories(tempDir.resolve("violation-sources").resolve(VIOLATION_PACKAGE.replace('.', '/')));
+		Files.writeString(violationSources.resolve("ViolationSource.java"), """
+				package %s;
+
+				public final class ViolationSource {
+					public static SecurityException blocked() {
+						return AresSecurityViolation.create("file", "read", "%s", "Ares blocked reading %s");
+					}
+				}
+				""".formatted(VIOLATION_PACKAGE, BLOCKED_PATH, BLOCKED_PATH));
 		fixture(fixtures, "AbortFixture", "@Test void aborts() { Assumptions.abort(\"skipped\"); }");
 		fixture(fixtures, "AbortWithStudentCauseFixture",
 				"@Test void aborts() { throw new org.opentest4j.TestAbortedException(\"skip\", new IllegalStateException(\"cause\")"
@@ -193,8 +224,10 @@ class GeneratedAllHooksTest {
 		compiled = Files.createDirectories(tempDir.resolve("compiled"));
 		compile(compiled,
 				List.of(testSources.resolve("de/tum/cit/ase/ares/generated"),
-						testSources.resolve("com/example/ares/api/localization"), fixtures),
-				testSources.resolve("com/example/ares/api/util/LruCache.java"));
+						testSources.resolve("com/example/ares/api/localization"), fixtures,
+						tempDir.resolve("violation-sources")),
+				testSources.resolve("com/example/ares/api/util/LruCache.java"),
+				testSources.resolve(VIOLATION_PACKAGE.replace('.', '/')).resolve("AresSecurityViolation.java"));
 		resources = testSources.resolveSibling("resources");
 		include = Files.readAllLines(resources.resolve("junit-platform.properties")).stream()
 				.filter(line -> line.startsWith("junit.jupiter.extensions.autodetection.include="))
@@ -455,6 +488,35 @@ class GeneratedAllHooksTest {
 	void anAssertEqualsFailureKeepsItsText() throws Exception {
 		assertThat(messages(run("com.example.fixtures.AssertEqualsFixture")))
 				.containsExactly("expected: <a> but was: <b>");
+	}
+
+	/**
+	 * A blocked action thrown in a timed test still follows the feedback level, so
+	 * at MINIMIZED the report shows the fixed text and never the blocked path, with
+	 * the hooks in either order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aBlockedActionInATimedTestFollowsTheFeedbackLevel(boolean reversed) throws Exception {
+		assertThat(messages(run("com.example.fixtures.BlockedActionFixture", reversed))).containsExactly(
+				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
+	}
+
+	/**
+	 * With failure reporting alone, a failure another thread keeps locked ends the
+	 * test run once the time limit passes, instead of hanging it, in a JVM of its
+	 * own.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aLockedFailureEndsTheRun(@TempDir Path probe) throws Exception {
+		assertThat(exitCodeInOwnJvm(compileProbe(probe), "com.example.fixtures.LockedFailureFixture",
+				GENERATED + "GeneratedFailureReporting")).isEqualTo(124);
 	}
 
 	/**
@@ -801,11 +863,7 @@ class GeneratedAllHooksTest {
 	 */
 	private static List<String> runInOwnJvm(Path probeClasses, String className, boolean reversed, String hooks)
 			throws Exception {
-		String classPath = String.join(File.pathSeparator, compiled.toString(),
-				(reversed ? reversedResources : resources).toString(), probeClasses.toString(),
-				System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
-		Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp",
-				classPath, "com.example.probe.HooksProbe", className, hooks).redirectErrorStream(true).start();
+		Process process = startInOwnJvm(probeClasses, className, reversed, hooks);
 		try {
 			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
 			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
@@ -815,6 +873,45 @@ class GeneratedAllHooksTest {
 		} finally {
 			process.destroyForcibly();
 		}
+	}
+
+	/**
+	 * Runs one fixture class in a JVM of its own with only the hooks a pattern
+	 * names and returns that JVM's exit code, failing if it does not end in time.
+	 *
+	 * @param probeClasses the compiled probe.
+	 * @param className    the fixture class.
+	 * @param hooks        the hooks to load, as JUnit's autodetection pattern.
+	 * @return the exit code
+	 * @throws Exception if the JVM cannot be started
+	 */
+	private static int exitCodeInOwnJvm(Path probeClasses, String className, String hooks) throws Exception {
+		Process process = startInOwnJvm(probeClasses, className, false, hooks);
+		try {
+			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe ended").isTrue();
+			return process.exitValue();
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
+	/**
+	 * Starts the probe on one fixture class in a JVM of its own.
+	 *
+	 * @param probeClasses the compiled probe.
+	 * @param className    the fixture class.
+	 * @param reversed     whether the hooks are registered the other way round.
+	 * @param hooks        the hooks to load, as JUnit's autodetection pattern.
+	 * @return the started process
+	 * @throws IOException if the JVM cannot be started
+	 */
+	private static Process startInOwnJvm(Path probeClasses, String className, boolean reversed, String hooks)
+			throws IOException {
+		String classPath = String.join(File.pathSeparator, compiled.toString(),
+				(reversed ? reversedResources : resources).toString(), probeClasses.toString(),
+				System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
+		return new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", classPath,
+				"com.example.probe.HooksProbe", className, hooks).redirectErrorStream(true).start();
 	}
 
 	/**
