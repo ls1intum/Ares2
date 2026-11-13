@@ -62,6 +62,14 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	private static final String GENERATED_STRICT_TIMEOUT = "de.tum.cit." + "ase.ares.generated.GeneratedStrictTimeout";
 
 	/**
+	 * The generated precompile failure reporting, whose bounded copying worker is
+	 * exempt like the generated timeout's. Split for the same reason.
+	 */
+	@Nonnull
+	private static final String GENERATED_FAILURE_REPORTING = "de.tum.cit."
+			+ "ase.ares.generated.GeneratedFailureReporting";
+
+	/**
 	 * Prefix for synthetic allow-list entries representing operations which create
 	 * or use threads without exposing a task object to the intercepted method.
 	 */
@@ -124,10 +132,11 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
-	 * Whether Ares's own timeout created this thread. The newest matching frame
-	 * decides: {@code TimeoutUtils} (checked before other Ares frames are skipped)
-	 * and the exact generated timeout grant it only in {@code executeWithTimeout};
-	 * a student frame or the end of the stack refuses it.
+	 * Whether Ares's own timeout or failure reporting created this thread. The
+	 * newest matching frame decides: {@code TimeoutUtils} (checked before other
+	 * Ares frames are skipped) and the exact generated timeout grant it only in
+	 * {@code executeWithTimeout}, the exact generated failure reporting only in
+	 * {@code bounded}; a student frame or the end of the stack refuses it.
 	 *
 	 * @param restrictedPackage the restricted (student) package prefix
 	 * @return {@code true} if Ares's timeout created the thread
@@ -138,8 +147,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 
 	/**
 	 * The same check, with the package prefix the copied checks live below given
-	 * explicitly, so the generated timeout counts only when it was loaded from
-	 * where those copies are.
+	 * explicitly, so a generated hook counts only when it was loaded from where
+	 * those copies are.
 	 *
 	 * @param restrictedPackage  the configured restricted (student) package prefix
 	 * @param copiedChecksPrefix the prefix of this class's package, up to
@@ -158,13 +167,13 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 				if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
 					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
 				}
-				if (GENERATED_STRICT_TIMEOUT.equals(className)
-						|| className.startsWith(GENERATED_STRICT_TIMEOUT + "$")) {
-					if (!isTheGeneratedTimeout(frame.getDeclaringClass(), copiedChecksPrefix, trustedLoader)) {
+				String hook = generatedHookOf(className);
+				if (hook != null) {
+					if (!isTheGeneratedHook(frame.getDeclaringClass(), hook, copiedChecksPrefix, trustedLoader)) {
 						return Boolean.FALSE;
 					}
-					if (GENERATED_STRICT_TIMEOUT.equals(className)) {
-						return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
+					if (hook.equals(className)) {
+						return Boolean.valueOf(workerMethodOf(hook).equals(frame.getMethodName()));
 					}
 					continue;
 				}
@@ -211,19 +220,48 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
+	 * The generated hook a class is, or is nested in, by name: the timeout or the
+	 * failure reporting, the only two whose worker threads are exempt.
+	 *
+	 * @param className the class on the stack.
+	 * @return the hook's name, or null for any other class
+	 */
+	@Nullable
+	private static String generatedHookOf(@Nonnull String className) {
+		for (String hook : new String[] { GENERATED_STRICT_TIMEOUT, GENERATED_FAILURE_REPORTING }) {
+			if (hook.equals(className) || className.startsWith(hook + "$")) {
+				return hook;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * The one method of a generated hook that starts its worker thread.
+	 *
+	 * @param hook the hook's name.
+	 * @return the method's name
+	 */
+	@Nonnull
+	private static String workerMethodOf(@Nonnull String hook) {
+		return GENERATED_STRICT_TIMEOUT.equals(hook) ? "executeWithTimeout" : "bounded";
+	}
+
+	/**
 	 * Whether a frame's class is, or is nested in, the very class the trusted
-	 * loader finds as the generated timeout, loaded beside the copied checks. A
+	 * loader finds under the hook's name, loaded beside the copied checks. A
 	 * same-named class elsewhere, or a failed lookup, gets nothing.
 	 *
 	 * @param type               the class on the stack.
+	 * @param hook               the generated hook's name.
 	 * @param copiedChecksPrefix the copied checks' package prefix.
 	 * @param trustedLoader      the copied checks' loader.
-	 * @return true only for the generated timeout
+	 * @return true only for that generated hook
 	 */
-	private static boolean isTheGeneratedTimeout(@Nonnull Class<?> type, @Nonnull String copiedChecksPrefix,
-			@Nonnull ClassLoader trustedLoader) {
+	private static boolean isTheGeneratedHook(@Nonnull Class<?> type, @Nonnull String hook,
+			@Nonnull String copiedChecksPrefix, @Nonnull ClassLoader trustedLoader) {
 		try {
-			return outermostOf(type) == Class.forName(GENERATED_STRICT_TIMEOUT, false, trustedLoader)
+			return outermostOf(type) == Class.forName(hook, false, trustedLoader)
 					&& isBesideTheCopiedChecks(type, copiedChecksPrefix, trustedLoader);
 		} catch (ClassNotFoundException | LinkageError | RuntimeException unknown) {
 			return false;
