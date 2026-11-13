@@ -22,6 +22,7 @@ import de.tum.cit.ase.ares.api.ExtendedDeadline;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.context.TestType;
+import de.tum.cit.ase.ares.api.jupiter.HiddenTest;
 import de.tum.cit.ase.ares.api.jupiter.JupiterContext;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
@@ -104,7 +105,12 @@ class ConfigurationUtilsHiddenTestsTest {
 				.isEmpty();
 	}
 
-	/** A listed class makes its unannotated tests hidden. */
+	/**
+	 * A listed class's tests are hidden. They carry {@code @HiddenTest}, as every
+	 * test a list names must, so the list and the annotation agree.
+	 *
+	 * @throws Exception if the fixture cannot be read
+	 */
 	@Test
 	void aListedClassMakesItsTestsHidden() throws Exception {
 		assertThat(jupiterContext(ListedClass.class, "test").findTestType()).contains(TestType.HIDDEN);
@@ -116,7 +122,12 @@ class ConfigurationUtilsHiddenTestsTest {
 		assertThat(jupiterContext(ListedClass.Inner.class, "test").findTestType()).contains(TestType.HIDDEN);
 	}
 
-	/** A listed method is hidden; another method of its class is not. */
+	/**
+	 * A listed method is hidden; another, unannotated and unlisted method of its
+	 * class has no type.
+	 *
+	 * @throws Exception if the fixture cannot be read
+	 */
 	@Test
 	void onlyTheListedMethodIsHidden() throws Exception {
 		assertThat(jupiterContext(Methods.class, "listedMethod").findTestType()).contains(TestType.HIDDEN);
@@ -232,6 +243,41 @@ class ConfigurationUtilsHiddenTestsTest {
 		Method inherited = DefaultTests.class.getDeclaredMethod("interfaceDefault");
 
 		assertThat(jupiterContext(InheritsInterfaceDefaults.class, inherited).findTestType()).contains(TestType.HIDDEN);
+	}
+
+	/**
+	 * An entry naming a test Ares does not supervise fails every test, naming the
+	 * entry: a method entry for an unannotated test, and a class entry for a class
+	 * whose tests carry no Ares annotation, since a list cannot hide such a test.
+	 *
+	 * @throws Exception if the fixture cannot be read
+	 */
+	@Test
+	void anEntryNamingAnUnsupervisedTestFailsEveryTest() throws Exception {
+		for (Class<?> fixture : java.util.List.of(UnsupervisedMethod.class, UnsupervisedClass.class)) {
+			for (TestType type : TestType.values()) {
+				TestContext context = context(fixture, "test");
+				when(context.findTestType()).thenReturn(Optional.of(type));
+
+				assertThatThrownBy(() -> TestGuardUtils.checkForHidden(context))
+						.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Unsupervised")
+						.hasMessageContaining("does not supervise");
+			}
+		}
+	}
+
+	/**
+	 * An entry naming an unannotated test of a class marked {@code @Public} is
+	 * accepted, since the class annotation puts the test under Ares.
+	 *
+	 * @throws Exception if the fixture cannot be read
+	 */
+	@Test
+	void anEntryNamingATestSupervisedThroughItsClassIsAccepted() throws Exception {
+		TestContext context = context(SupervisedByClass.class, "test");
+		when(context.findTestType()).thenReturn(Optional.of(TestType.PUBLIC));
+
+		assertThatCode(() -> TestGuardUtils.checkForHidden(context)).doesNotThrowAnyException();
 	}
 
 	/**
@@ -360,7 +406,7 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FULL)
 	static class ListedClass {
 		/** Read reflectively. */
-		@Testable
+		@HiddenTest
 		void test() {
 		}
 
@@ -372,7 +418,7 @@ class ConfigurationUtilsHiddenTestsTest {
 		/** A nested class inside the listed one. */
 		class Inner {
 			/** Read reflectively. */
-			@Testable
+			@HiddenTest
 			void test() {
 			}
 		}
@@ -382,7 +428,7 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FULL)
 	static class Methods {
 		/** Read reflectively. */
-		@Testable
+		@HiddenTest
 		void listedMethod() {
 		}
 
@@ -447,7 +493,7 @@ class ConfigurationUtilsHiddenTestsTest {
 	/** An interface whose default method is inherited through another one. */
 	interface GrandparentTests {
 		/** Read reflectively. */
-		@Testable
+		@HiddenTest
 		default void grandparentDefault() {
 		}
 	}
@@ -455,7 +501,7 @@ class ConfigurationUtilsHiddenTestsTest {
 	/** An interface with a default test method, as JUnit runs it. */
 	interface DefaultTests extends GrandparentTests {
 		/** Read reflectively. */
-		@Testable
+		@HiddenTest
 		default void interfaceDefault() {
 		}
 	}
@@ -480,7 +526,7 @@ class ConfigurationUtilsHiddenTestsTest {
 		}
 
 		/** Read reflectively. */
-		@Testable
+		@PublicTest
 		void publicMethod() {
 		}
 	}
@@ -499,6 +545,38 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FIXTURES + "PolicyHiddenTestsUnmatchedPublic.yaml")
 	static class UnmatchedPublic {
 		/** Read reflectively. */
+		@Testable
+		void test() {
+		}
+	}
+
+	/** A class under a policy whose hidden list names its unannotated test. */
+	@Policy(FIXTURES + "PolicyHiddenTestsUnsupervisedMethod.yaml")
+	static class UnsupervisedMethod {
+		/** Read reflectively; no Ares annotation puts it under Ares. */
+		@Testable
+		void test() {
+		}
+	}
+
+	/**
+	 * A class under a policy whose hidden list names it, without Ares annotations.
+	 */
+	@Policy(FIXTURES + "PolicyHiddenTestsUnsupervisedClass.yaml")
+	static class UnsupervisedClass {
+		/** Read reflectively; no Ares annotation puts it under Ares. */
+		@Testable
+		void test() {
+		}
+	}
+
+	/**
+	 * A public class under a policy whose hidden list names its unannotated test.
+	 */
+	@Policy(FIXTURES + "PolicyHiddenTestsSupervisedByClass.yaml")
+	@Public
+	static class SupervisedByClass {
+		/** Read reflectively; the class annotation puts it under Ares. */
 		@Testable
 		void test() {
 		}
