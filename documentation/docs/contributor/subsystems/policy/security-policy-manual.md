@@ -416,7 +416,7 @@ theFollowingTestBehaviorIsConfigured:
 
 **Not `regardingTimeouts`:** the resource-access list `regardingTimeouts` (8.6) is a separate Phobos limit. This category is the one that bounds tests.
 
-**Precompile:** the generator writes the limit, in nanoseconds, as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`, and a JUnit extension that times every test, setup and teardown. The extension reads a test factory's tests inside that time, so a factory whose supplier never ends times out too. Each of those methods runs on a worker thread of its own, as with `@StrictTimeout`, so a `ThreadLocal` value set in a setup method is not visible in the test.
+**Precompile:** the generator writes the limit, in nanoseconds, as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`. Beside them it writes a JUnit extension that times every test, setup and teardown method, the test class's constructor and each dynamic test. Callbacks of other extensions, such as an instructor's `BeforeEachCallback`, run outside that time, so student code they call is not bounded by it. The extension reads a test factory's tests inside that time, so a factory whose supplier never ends times out too. Each of those methods runs on a worker thread of its own, as with `@StrictTimeout`, so a `ThreadLocal` value set in a setup method is not visible in the test.
 
 #### 7.7.2 Output and I/O manager
 
