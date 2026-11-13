@@ -385,7 +385,7 @@ Ares reads these settings once per policy file, before it supervises any test co
 
 `regardingTheFailureFeedbackForTheTestCases` says what a student sees when a public test fails. Every field is optional; the defaults are the behaviour without this category. There is no annotation for this any more: Ares 2.3.0 removed `@PrivilegedExceptionsOnly`.
 
-- `onlyPrivilegedExceptionsAreReported` (boolean): `true` replaces the text of every failure except a blocked action and a privileged one with a fixed message. This includes a failing constructor, setup or teardown method; a test skipped by an assumption stays skipped. Defaults to `false`.
+- `onlyPrivilegedExceptionsAreReported` (boolean): `true` replaces the text of every failure except a blocked action and a privileged one with a fixed message. This includes a failing constructor, setup or teardown method; a test skipped by an assumption stays skipped. A privileged failure there keeps its own text, as in the test. Defaults to `false`.
 - `theFailureMessageForOtherExceptionsIs` (text): the fixed message. Defaults to `"Test failed."` when omitted or blank.
 - `theSecurityViolationFeedbackLevelIs` (`DEBUG`, `MINIMIZED` or `FULL`): how much a blocked action reveals. Defaults to `FULL`.
 
@@ -399,7 +399,7 @@ The feedback level decides every action Ares blocks at run time:
 
 Errors in Ares itself (`Reason: Ares-Code`) are never shortened and never get a hint. A student who creates an exception that looks like a blocked action gets no special treatment: only the exceptions Ares's own checks create follow the level.
 
-Ares spends at most two seconds searching a failure for a blocked action, and at most two more preparing its report. When student code inside the failure takes longer, for example a message that never returns, the student sees only the blocked action Ares found, or else that the failure could not be read. If that code ignores Ares's request to stop, Ares ends the test run with exit code 124. It does the same for a test that ignores its strict timeout. At `MINIMIZED`, Ares shows that a failure could not be read when student code changes any method of the failure, such as `getMessage`, `toString` or the reason of a file-system failure. The same holds when a group of AssertJ failures holds a list or a member written by the student. JUnit's and AssertJ's own assertion failures keep their text.
+Ares spends at most two seconds searching a failure for a blocked action, and at most two more preparing its report. When student code inside the failure takes longer, for example a message that never returns, the student sees only the blocked action Ares found, or else that the failure could not be read. If that code ignores Ares's request to stop, Ares ends the test run with exit code 124. It does the same for a test that ignores its strict timeout. At `MINIMIZED`, Ares shows that a failure could not be read when student code changes any method of the failure, such as `getMessage`, `toString` or the reason of a file-system failure. The same holds when a group of AssertJ failures holds a list or a member written by the student. JUnit's and AssertJ's own assertion failures keep their text, JUnit 4's `assertEquals` included.
 
 ```yaml
 theFollowingTestBehaviorIsConfigured:
