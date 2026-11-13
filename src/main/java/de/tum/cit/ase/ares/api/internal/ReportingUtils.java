@@ -70,14 +70,14 @@ public final class ReportingUtils {
 			return new AssertionError(localized("reporting.ares_internal_error")); //$NON-NLS-1$
 		}
 		Inspection inspection = inspect(t);
+		SecurityViolationFeedbackLevel level = ConfigurationUtils.getSecurityViolationFeedbackLevel(context);
 		if (inspection.violation() != null) {
-			return renderedViolation(t, inspection.violation(),
-					ConfigurationUtils.getSecurityViolationFeedbackLevel(context));
-		}
-		if (!inspection.complete()) {
-			return uninspectable();
+			return renderedViolation(t, inspection.violation(), level);
 		}
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
+		if (!inspection.complete() || inspection.mayHideAViolation(level) && nonprivilegedFailureMessage.isEmpty()) {
+			return uninspectable();
+		}
 		if (nonprivilegedFailureMessage.isPresent()) {
 			return processThrowablePrivilegedOnly(t, nonprivilegedFailureMessage.get());
 		}
@@ -95,11 +95,9 @@ public final class ReportingUtils {
 	 */
 	public static Throwable processBlockedAction(Throwable t, TestContext context) {
 		Inspection inspection = inspect(t);
-		if (inspection.violation() == null && inspection.complete()) {
-			return t;
-		}
 		SecurityViolationFeedbackLevel level = ConfigurationUtils.getSecurityViolationFeedbackLevel(context);
-		if (level == SecurityViolationFeedbackLevel.FULL) {
+		if (level == SecurityViolationFeedbackLevel.FULL
+				|| inspection.violation() == null && !inspection.mayHideAViolation(level)) {
 			return t;
 		}
 		return inspection.violation() == null ? uninspectable() : renderedViolation(t, inspection.violation(), level);
@@ -111,14 +109,29 @@ public final class ReportingUtils {
 	 *
 	 * @param violation the blocked action found, or null.
 	 * @param complete  whether every carried failure was read.
+	 * @param skipped   whether a failure's own {@code getCause} or
+	 *                  {@code getFailures} was skipped, since it may still carry a
+	 *                  blocked action the report would later reveal.
 	 */
-	private record Inspection(SecurityViolationFeedback.Violation violation, boolean complete) {
+	private record Inspection(SecurityViolationFeedback.Violation violation, boolean complete, boolean skipped) {
 
 		/** Every failure was read and none was a blocked action. */
-		static final Inspection NONE = new Inspection(null, true);
+		static final Inspection NONE = new Inspection(null, true, false);
 
 		/** The search stopped before reading every failure. */
-		static final Inspection INCOMPLETE = new Inspection(null, false);
+		static final Inspection INCOMPLETE = new Inspection(null, false, false);
+
+		/**
+		 * Whether a failure with no blocked action found may still carry one: the
+		 * search did not finish, or, at {@code MINIMIZED}, it skipped a getter that the
+		 * regular report would later call.
+		 *
+		 * @param level the policy's feedback level.
+		 * @return true when the report has to be redacted
+		 */
+		boolean mayHideAViolation(SecurityViolationFeedbackLevel level) {
+			return !complete || skipped && level == SecurityViolationFeedbackLevel.MINIMIZED;
+		}
 	}
 
 	/**
@@ -161,18 +174,20 @@ public final class ReportingUtils {
 	private static Inspection violationIn(Throwable t) {
 		Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
 		Deque<Throwable> pending = new ArrayDeque<>(List.of(t));
+		boolean skipped = false;
 		while (!pending.isEmpty() && seen.size() < MAX_SCANNED_FAILURES) {
 			Throwable current = pending.removeFirst();
 			if (seen.add(current)) {
 				Optional<SecurityViolationFeedback.Violation> violation = SecurityViolationFeedback
 						.violationOf(current);
 				if (violation.isPresent()) {
-					return new Inspection(violation.get(), true);
+					return new Inspection(violation.get(), true, false);
 				}
+				skipped |= hasSkippedGetter(current);
 				pending.addAll(carriedBy(current));
 			}
 		}
-		return pending.isEmpty() ? Inspection.NONE : Inspection.INCOMPLETE;
+		return pending.isEmpty() ? new Inspection(null, true, skipped) : Inspection.INCOMPLETE;
 	}
 
 	/**
@@ -194,6 +209,16 @@ public final class ReportingUtils {
 		}
 		carried.removeIf(Objects::isNull);
 		return carried;
+	}
+
+	/**
+	 * Whether the search left out a getter of this failure because student code
+	 * overrides it: {@code getCause}, or {@code getFailures} of a multiple-failures
+	 * error.
+	 */
+	private static boolean hasSkippedGetter(Throwable t) {
+		return !declaredByTheRuntime(t, "getCause") //$NON-NLS-1$
+				|| t instanceof MultipleFailuresError && !declaredBy(t, "getFailures", MultipleFailuresError.class); //$NON-NLS-1$
 	}
 
 	/**

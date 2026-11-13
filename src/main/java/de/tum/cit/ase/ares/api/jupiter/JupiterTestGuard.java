@@ -62,6 +62,19 @@ public final class JupiterTestGuard implements UnifiedInvocationInterceptor {
 	}
 
 	/**
+	 * Applies the policy's feedback level to a blocked action that fails a test's
+	 * constructor or lifecycle method, before Jupiter receives it; any other
+	 * failure is returned unchanged.
+	 *
+	 * @param context the invocation's context.
+	 * @param failure the failure.
+	 * @return the failure to throw instead.
+	 */
+	static Throwable invocationFailure(ExtensionContext context, Throwable failure) {
+		return ReportingUtils.processBlockedAction(failure, JupiterContext.of(context));
+	}
+
+	/**
 	 * Applies the policy's feedback level to a blocked action that fails a JUnit
 	 * callback, before Jupiter receives it.
 	 *
