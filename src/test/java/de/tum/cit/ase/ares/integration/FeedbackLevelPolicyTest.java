@@ -2,6 +2,8 @@ package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.testFailedWith;
 
+import java.util.List;
+
 import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.integration.testuser.FeedbackLevelPolicyUser;
@@ -97,6 +99,20 @@ class FeedbackLevelPolicyTest {
 				SecurityException.class, MINIMIZED));
 		tests.assertThatEvents().haveExactly(1, testFailedWith(
 				"runtimeDenialKeepsTheLevelWhenPrivilegedOnlyInstrumentation", SecurityException.class, MINIMIZED));
+	}
+
+	/**
+	 * A student {@code File} subclass Ares refuses to inspect is a blocked action:
+	 * MINIMIZED shows only the fixed text, with privileged-only reporting off and
+	 * on, in both backends.
+	 */
+	@TestTest
+	void test_untrustedArgumentFollowsTheLevel() {
+		for (String name : List.of("untrustedArgumentIsShortenedAspectj", "untrustedArgumentIsShortenedInstrumentation",
+				"untrustedArgumentKeepsTheLevelWhenPrivilegedOnlyAspectj",
+				"untrustedArgumentKeepsTheLevelWhenPrivilegedOnlyInstrumentation")) {
+			tests.assertThatEvents().haveExactly(1, testFailedWith(name, SecurityException.class, MINIMIZED));
+		}
 	}
 
 	/** A student's own Ares-looking exception gets the policy's message. */

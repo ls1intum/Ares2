@@ -72,10 +72,27 @@ public final class SecurityViolationFeedback {
 		return switch (level) {
 		case FULL -> violation.message();
 		case MINIMIZED -> localized("reporting.security.violation.minimized", STAGE);
-		case DEBUG -> violation.message() + System.lineSeparator()
-				+ localized("reporting.security.violation.hint", categoryOf(violation), entryOf(violation));
+		case DEBUG -> isAllowable(violation)
+				? violation.message() + System.lineSeparator()
+						+ localized("reporting.security.violation.hint", categoryOf(violation), entryOf(violation))
+				: violation.message();
 		};
 	}
+
+	/**
+	 * Whether a policy entry could allow the action. An argument Ares refused to
+	 * inspect, a student type it cannot read without running student code, cannot
+	 * be allowed, so it gets no hint.
+	 *
+	 * @param violation the violation.
+	 * @return true when a hint can name an entry
+	 */
+	static boolean isAllowable(Violation violation) {
+		return !UNINSPECTABLE.equals(violation.kind());
+	}
+
+	/** The kind Ares's checks give an argument they refused to inspect. */
+	private static final String UNINSPECTABLE = "uninspectable";
 
 	/**
 	 * Returns the policy category that would allow the action.

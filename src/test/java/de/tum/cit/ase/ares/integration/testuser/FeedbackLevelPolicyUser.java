@@ -11,6 +11,7 @@ import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.execute.processBuilder.ProcessBuilderExecuteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.oldMethods.files.FilesReadMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.untrustedFile.UntrustedFileReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.networkSystem.connect.socket.SocketConnectMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.thread.CreateThreadMain;
 
@@ -167,6 +168,53 @@ public class FeedbackLevelPolicyUser {
 			+ "archunit/instrumentation/PolicyFeedbackLevelPrivilegedMinimizedRuntime.yaml", withinPath = WITHIN)
 	void runtimeDenialKeepsTheLevelWhenPrivilegedOnlyInstrumentation() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
+	}
+
+	/** Where the student code with its own {@code File} subclass lives. */
+	private static final String UNTRUSTED_WITHIN = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/untrustedFile";
+
+	/**
+	 * A student {@code File} subclass Ares refuses to inspect follows MINIMIZED,
+	 * AspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICIES
+			+ "archunit/aspectj/PolicyFeedbackLevelMinimizedRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
+	void untrustedArgumentIsShortenedAspectj() throws Exception {
+		UntrustedFileReadMain.readThroughAStudentFile();
+	}
+
+	/**
+	 * A student {@code File} subclass Ares refuses to inspect follows MINIMIZED,
+	 * instrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICIES
+			+ "archunit/instrumentation/PolicyFeedbackLevelMinimizedRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
+	void untrustedArgumentIsShortenedInstrumentation() throws Exception {
+		UntrustedFileReadMain.readThroughAStudentFile();
+	}
+
+	/**
+	 * With privileged-only reporting on, the refused argument still follows the
+	 * level, AspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICIES
+			+ "archunit/aspectj/PolicyFeedbackLevelPrivilegedMinimizedRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
+	void untrustedArgumentKeepsTheLevelWhenPrivilegedOnlyAspectj() throws Exception {
+		UntrustedFileReadMain.readThroughAStudentFile();
+	}
+
+	/**
+	 * With privileged-only reporting on, the refused argument still follows the
+	 * level, instrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICIES
+			+ "archunit/instrumentation/PolicyFeedbackLevelPrivilegedMinimizedRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
+	void untrustedArgumentKeepsTheLevelWhenPrivilegedOnlyInstrumentation() throws Exception {
+		UntrustedFileReadMain.readThroughAStudentFile();
 	}
 
 	/**
