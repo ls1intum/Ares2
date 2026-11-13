@@ -205,7 +205,10 @@ class GeneratedOutputMirroringTest {
 	 */
 	@Test
 	void aCharacterSplitAcrossFlushesIsValid() throws Exception {
-		assertThat(failureMessages(run(silent, "SplitUtf8Fixture", Locale.ENGLISH).results())).isEmpty();
+		EngineExecutionResults results = run(silent, "SplitUtf8Fixture", Locale.ENGLISH).results();
+
+		assertThat(results.testEvents().succeeded().count()).isEqualTo(1);
+		assertThat(results.allEvents().failed().count()).isZero();
 	}
 
 	/**
@@ -220,7 +223,10 @@ class GeneratedOutputMirroringTest {
 
 		assertThat(failureMessages(run(silent, "UnfinishedUtf8Fixture", Locale.ENGLISH).results())).singleElement()
 				.asString().startsWith(prefix);
-		assertThat(failureMessages(run(silent, "UnflushedTextFixture", Locale.ENGLISH).results())).isEmpty();
+		EngineExecutionResults unflushed = run(silent, "UnflushedTextFixture", Locale.ENGLISH).results();
+
+		assertThat(unflushed.testEvents().succeeded().count()).isEqualTo(1);
+		assertThat(unflushed.allEvents().failed().count()).isZero();
 	}
 
 	/**
