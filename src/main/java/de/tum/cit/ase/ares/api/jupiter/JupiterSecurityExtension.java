@@ -100,7 +100,7 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 			ExtensionContext extensionContext) throws Throwable {
 		try {
 			prepareSecurityOnce(extensionContext);
-		} catch (RuntimeException armingFailure) {
+		} catch (RuntimeException | Error armingFailure) {
 			JavaInstrumentationAgent.throwIfActivationFailed();
 			throw JupiterTestGuard.callbackFailure(extensionContext, armingFailure);
 		}

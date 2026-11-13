@@ -5,7 +5,9 @@ import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -20,25 +22,17 @@ import de.tum.cit.ase.ares.api.internal.TestGuardUtils;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
- * The policy-wide hidden-test schedule and test visibility: the deadline after
- * which hidden tests run, its extension, a date before which they always run,
- * which tests are hidden or public, and what an unlisted test is. It mirrors
- * the deadline annotations and {@code @Hidden}/{@code @Public}, which still
- * win.
+ * When hidden tests run and which tests are hidden, policy-wide. Annotations
+ * still win.
  *
  * @since 2.3.0
  * @author Luka Petrovic
- * @param theDeadlineIs               the deadline, with a time zone; required.
- * @param theDeadlineIsExtendedBy     how long the deadline is extended, or
- *                                    null.
- * @param theHiddenTestsAreRunBefore  a date before which hidden tests always
- *                                    run, with a time zone, or null.
- * @param testsNotListedHereAreHidden whether a test no entry covers is hidden;
- *                                    required.
- * @param theFollowingTestsAreHidden  the hidden tests, as {@code pkg.Class} or
- *                                    {@code pkg.Class#method}; null means none.
- * @param theFollowingTestsArePublic  the public tests, in the same form; null
- *                                    means none.
+ * @param theDeadlineIs               the deadline, with a zone.
+ * @param theDeadlineIsExtendedBy     the extension, or null.
+ * @param theHiddenTestsAreRunBefore  the early-run date, or null.
+ * @param testsNotListedHereAreHidden whether unlisted tests are hidden.
+ * @param theFollowingTestsAreHidden  hidden entries, or null.
+ * @param theFollowingTestsArePublic  public entries, or null.
  */
 public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
 		@Nullable String theDeadlineIsExtendedBy, @Nullable String theHiddenTestsAreRunBefore,
@@ -63,9 +57,9 @@ public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
 		if (theDeadlineIs == null || theDeadlineIs.isBlank()) {
 			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.deadline.missing"));
 		}
-		parseDate("theDeadlineIs", theDeadlineIs);
+		ZonedDateTime deadline = parseDate("theDeadlineIs", theDeadlineIs);
 		if (theDeadlineIsExtendedBy != null) {
-			parseExtension(theDeadlineIsExtendedBy);
+			requireReachable(deadline, theDeadlineIsExtendedBy);
 		}
 		if (theHiddenTestsAreRunBefore != null) {
 			parseDate("theHiddenTestsAreRunBefore", theHiddenTestsAreRunBefore);
@@ -80,6 +74,28 @@ public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
 		if (!inBoth.isEmpty()) {
 			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.entry.conflict",
 					inBoth.stream().sorted().findFirst().orElseThrow()));
+		}
+	}
+
+	/**
+	 * Fails unless the deadline plus its extension is a date after the deadline, so
+	 * a policy that passes validation cannot fail later while a test is scheduled.
+	 *
+	 * @param deadline  the parsed deadline.
+	 * @param extension the extension text.
+	 * @throws IllegalArgumentException naming {@code theDeadlineIsExtendedBy}
+	 */
+	private static void requireReachable(@Nonnull ZonedDateTime deadline, @Nonnull String extension) {
+		boolean later;
+		try {
+			later = deadline.plus(parseExtension(extension)).isAfter(deadline);
+		} catch (DateTimeException | ArithmeticException unreachable) {
+			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.value.invalid",
+					"theDeadlineIsExtendedBy", extension), unreachable);
+		}
+		if (!later) {
+			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.value.invalid",
+					"theDeadlineIsExtendedBy", extension));
 		}
 	}
 
@@ -137,10 +153,10 @@ public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
 
 	/**
 	 * The visibility the policy gives a test. The nearest entry wins: the test's
-	 * own class with its method, then that class, then each enclosing class. A
-	 * method entry never reaches into a nested class. Without an entry,
-	 * {@code testsNotListedHereAreHidden} decides. A class is judged by its name
-	 * alone, wherever it lives.
+	 * own class with its method, then each supertype with that method, nearest
+	 * first, then the test's class, then each enclosing class. A method entry never
+	 * reaches into a nested class. Without an entry,
+	 * {@code testsNotListedHereAreHidden} decides.
 	 *
 	 * @param testClass  the test's class.
 	 * @param methodName the test's method, or empty.
@@ -148,9 +164,7 @@ public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
 	 */
 	@Nonnull
 	public Optional<TestType> visibilityOf(@Nonnull Class<?> testClass, @Nonnull Optional<String> methodName) {
-		Optional<String> ownClass = Optional.ofNullable(testClass.getCanonicalName());
-		Optional<TestType> byMethod = ownClass
-				.flatMap(name -> methodName.flatMap(method -> listed(name + "#" + method)));
+		Optional<TestType> byMethod = methodName.flatMap(method -> byMethodEntry(testClass, method));
 		if (byMethod.isPresent()) {
 			return byMethod;
 		}
@@ -161,6 +175,33 @@ public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
 			}
 		}
 		return Boolean.TRUE.equals(testsNotListedHereAreHidden) ? Optional.of(TestType.HIDDEN) : Optional.empty();
+	}
+
+	/**
+	 * The nearest method entry for a test: its own class first, then its
+	 * supertypes, superclasses before interfaces, so an entry naming the class that
+	 * declares an inherited test covers it too.
+	 *
+	 * @param testClass the test's class.
+	 * @param method    the test's method name.
+	 * @return hidden or public, or empty when no method entry names it
+	 */
+	@Nonnull
+	private Optional<TestType> byMethodEntry(@Nonnull Class<?> testClass, @Nonnull String method) {
+		Deque<Class<?>> pending = new ArrayDeque<>(List.of(testClass));
+		Set<Class<?>> seen = new HashSet<>();
+		while (!pending.isEmpty()) {
+			Class<?> current = pending.poll();
+			Optional<TestType> listed = seen.add(current)
+					? Optional.ofNullable(current.getCanonicalName()).flatMap(name -> listed(name + "#" + method))
+					: Optional.empty();
+			if (listed.isPresent()) {
+				return listed;
+			}
+			Optional.ofNullable(current.getSuperclass()).filter(type -> !seen.contains(type)).ifPresent(pending::add);
+			List.of(current.getInterfaces()).stream().filter(type -> !seen.contains(type)).forEach(pending::add);
+		}
+		return Optional.empty();
 	}
 
 	/**

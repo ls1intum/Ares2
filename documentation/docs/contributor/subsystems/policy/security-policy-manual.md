@@ -413,13 +413,13 @@ theFollowingTestBehaviorIsConfigured:
 
 Here every test is hidden, except the tests of `PenguinTest`, which are public, apart from its `secret` method.
 
-Before the deadline a hidden test does not run and reports the scheduling message. After it, a failed hidden test keeps its failed status and name, but shows no message, cause, stack or console output, at any feedback level and whatever the output settings say. An aborted hidden test stays aborted without its reason. A shared `@BeforeAll`, `@AfterAll` or constructor counts as hidden when any test below it, `@Nested` classes included, is hidden. Ares refuses to run while JUnit's parallel execution is on, because two hidden classes running at once could restore each other's console.
+Before the deadline a hidden test does not run and reports the scheduling message. After it, a failed hidden test keeps its failed status and name, but shows no message, cause, stack or console output, at any feedback level and whatever the output settings say. An aborted hidden test stays aborted without its reason. A shared `@BeforeAll`, `@AfterAll` or constructor counts as hidden when any test below it, `@Nested` classes included, is hidden. Ares sees these class-level phases only when the class itself carries `@Public` or `@Hidden`. JUnit applies an extension declared on a method to that method alone. Ares refuses to run while JUnit's parallel execution is on, because two hidden classes running at once could restore each other's console.
 
 #### 7.7.5 Precedence
 
 | Setting | Decided by, first match wins |
 |---|---|
-| Deadline, extension, early run | The method, then the class, then the policy. An extension adds to the deadline of its own level. |
+| Deadline, extension, early run | The nearest `@Deadline` decides: the method's, else the class's, else the policy's own, its extension included. A method `@ExtendedDeadline` always adds to it; a class `@ExtendedDeadline` adds only when the method has no `@Deadline`. The early-run date follows the same order. |
 | Hidden or public | `@HiddenTest`, `@Hidden`, `@PublicTest` and `@Public`, then the policy's lists, then `testsNotListedHereAreHidden`. In postcompile those same annotations put a test under Ares, so the lists do not change a supervised test's type yet; they are still checked. |
 | Policy deactivated, or no policy | No test behaviour from the policy; annotations still apply. |
 

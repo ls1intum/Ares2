@@ -386,7 +386,7 @@ A hidden test can fail for grading after its deadline without giving students it
 apply from: 'gradle/AresHiddenReports.gradle'
 ```
 
-The script removes hidden failure text from Gradle's XML report and prevents Gradle from printing exception stacks in its console log. The HTML report keeps the test name and failed status; public failure details remain in its report page.
+The script removes hidden failure text from the XML report of the `test` task and prevents that task from printing exception stacks in Gradle's console log. It configures the `test` task only. Another test task, such as `integrationTest`, is not covered. The HTML report keeps the test name and failed status; public failure details remain in its report page.
 
 ## Verify your setup
 

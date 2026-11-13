@@ -45,7 +45,7 @@ is written against the framework-agnostic `TestContext` rather than against JUni
 
 The deadline check runs in the guard **before** the test body executes. Before that deadline,
 Ares skips the body and shows the scheduling message. After the deadline, a hidden failure
-keeps its grading status, but Ares withholds its failure reason, stack and console output.
+keeps its grading status, but Ares withholds its failure reason, stack and console output. This covers failures that reach Ares. A failure in a callback of an instructor's own JUnit extension goes to JUnit directly and keeps its text. Class-level `@BeforeAll` and `@AfterAll` reach Ares only when the class carries `@Public` or `@Hidden`. JUnit applies an extension declared on a method to that method alone.
 
 Sometimes JUnit constructs a test and runs setup before Ares checks its method deadline. Ares hides
 output from these phases. A failure in either phase produces a failed result with no details instead

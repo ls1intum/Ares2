@@ -159,19 +159,16 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 
 		/** Uses the class policy. */
 		void classPolicyTest() {
-			// Read through the mocked context only.
 		}
 
 		/** Uses its own policy. */
 		@Policy(METHOD_POLICY)
 		void methodPolicyTest() {
-			// Read through the mocked context only.
 		}
 
 		/** Uses a deactivated policy. */
 		@Policy(value = CLASS_POLICY, activated = false)
 		void deactivatedPolicyTest() {
-			// Read through the mocked context only.
 		}
 	}
 }

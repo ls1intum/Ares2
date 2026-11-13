@@ -327,7 +327,7 @@ class HiddenFeedbackContractTest {
 		}
 	}
 
-	/** Checks a hidden failure's result and sanitized throwable. */
+	/** Checks a hidden failure's result and sanitised throwable. */
 	private static void assertHiddenFailure(String methodName) {
 		TestExecutionResult result = result(methodName);
 		assertEquals(TestExecutionResult.Status.FAILED, result.getStatus());

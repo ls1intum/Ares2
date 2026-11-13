@@ -11,8 +11,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +31,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.VisibilityAndScheduleConfiguration;
 
 @DisplayName("SecurityPolicyYAMLReader Tests")
 public class SecurityPolicyYAMLReaderTest {
@@ -397,6 +401,12 @@ public class SecurityPolicyYAMLReaderTest {
 					read(tempDir, minimalPolicy()).regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured());
 		}
 
+		/**
+		 * An empty wrapper is read without a category, as 2.2.1 wrote it.
+		 *
+		 * @param tempDir where the policy is written.
+		 * @throws IOException if the policy cannot be written.
+		 */
 		@Test
 		@DisplayName("Should parse the wrapper with no category, as released in 2.2.1")
 		void emptyWrapperParses(@TempDir Path tempDir) throws IOException {
@@ -404,6 +414,12 @@ public class SecurityPolicyYAMLReaderTest {
 			assertNull(behavior.regardingTheVisibilityAndScheduleOfTheTestCases());
 		}
 
+		/**
+		 * Every field of the category is read into the record.
+		 *
+		 * @param tempDir where the policy is written.
+		 * @throws IOException if the policy cannot be written.
+		 */
 		@Test
 		@DisplayName("Should parse its category with every field")
 		void ownCategoriesParse(@TempDir Path tempDir) throws IOException {
@@ -417,31 +433,55 @@ public class SecurityPolicyYAMLReaderTest {
 					      theFollowingTestsAreHidden: ["org.example.A#m"]
 					      theFollowingTestsArePublic: ["org.example.B"]
 					""");
-			assertEquals(List.of("org.example.A#m"),
-					behavior.regardingTheVisibilityAndScheduleOfTheTestCases().theFollowingTestsAreHidden());
+			VisibilityAndScheduleConfiguration visibility = behavior.regardingTheVisibilityAndScheduleOfTheTestCases();
+			assertEquals(ZonedDateTime.parse("2000-01-02T12:00Z[UTC]"), visibility.effectiveDeadline());
+			assertEquals(Optional.of(Duration.ofHours(36)), visibility.extension());
+			assertEquals(Optional.of(ZonedDateTime.parse("1990-01-01T00:00Z[UTC]")), visibility.alwaysRunBefore());
+			assertEquals(Boolean.FALSE, visibility.testsNotListedHereAreHidden());
+			assertEquals(List.of("org.example.A#m"), visibility.theFollowingTestsAreHidden());
+			assertEquals(List.of("org.example.B"), visibility.theFollowingTestsArePublic());
 		}
 
+		/**
+		 * Every malformed section is refused when the policy is read, naming the
+		 * offending field or key.
+		 *
+		 * @param description the case.
+		 * @param section     the section text.
+		 * @param named       the field or key the refusal names.
+		 * @param tempDir     where the policy is written.
+		 * @throws IOException if the policy cannot be written.
+		 */
 		@ParameterizedTest(name = "[{index}] {0}")
 		@DisplayName("Should reject every malformed test-behaviour section")
-		@CsvSource(delimiter = '|', value = { "wrapper not an object | []", "wrapper explicit null | null",
-				"unknown category | { regardingSomethingElse: {} }",
-				"category explicit null | { regardingTheVisibilityAndScheduleOfTheTestCases: null }",
-				"field explicit null | { regardingTheVisibilityAndScheduleOfTheTestCases: { theDeadlineIs: '2000-01-01 00:00 UTC', testsNotListedHereAreHidden: null } }",
-				"visibility without deadline | { regardingTheVisibilityAndScheduleOfTheTestCases: { testsNotListedHereAreHidden: false } }",
-				"visibility without switch | { regardingTheVisibilityAndScheduleOfTheTestCases: { theDeadlineIs: '2000-01-01 00:00 UTC' } }",
-				"extension not a duration | { regardingTheVisibilityAndScheduleOfTheTestCases: { theDeadlineIs: '2000-01-01 00:00 UTC', testsNotListedHereAreHidden: false, theDeadlineIsExtendedBy: 'later' } }",
-				"hidden list not a list | { regardingTheVisibilityAndScheduleOfTheTestCases: { theDeadlineIs: '2000-01-01 00:00 UTC', testsNotListedHereAreHidden: false, theFollowingTestsAreHidden: 'org.example.A' } }",
-				"strict timeout not handled here | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s' } }",
-				"output not handled here | { regardingTheOutputOfTheTestCases: { theOutputIsMirrored: true } }",
-				"failure feedback not handled here | { regardingTheFailureFeedbackForTheTestCases: { onlyPrivilegedExceptionsAreReported: true } }" })
-		void malformedSectionsAreRejected(String description, String section, @TempDir Path tempDir)
+		@CsvSource(delimiter = '|', value = { "wrapper not an object | [] | theFollowingTestBehaviorIsConfigured",
+				"wrapper explicit null | null | theFollowingTestBehaviorIsConfigured",
+				"unknown category | { regardingSomethingElse: {} } | regardingSomethingElse",
+				"category explicit null | { regardingTheVisibilityAndScheduleOfTheTestCases: null } | regardingTheVisibilityAndScheduleOfTheTestCases",
+				"field explicit null | { regardingTheVisibilityAndScheduleOfTheTestCases: { theDeadlineIs: '2000-01-01 00:00 UTC', testsNotListedHereAreHidden: null } } | testsNotListedHereAreHidden",
+				"visibility without deadline | { regardingTheVisibilityAndScheduleOfTheTestCases: { testsNotListedHereAreHidden: false } } | theDeadlineIs",
+				"visibility without switch | { regardingTheVisibilityAndScheduleOfTheTestCases: { theDeadlineIs: '2000-01-01 00:00 UTC' } } | testsNotListedHereAreHidden",
+				"extension not a duration | { regardingTheVisibilityAndScheduleOfTheTestCases: { theDeadlineIs: '2000-01-01 00:00 UTC', testsNotListedHereAreHidden: false, theDeadlineIsExtendedBy: 'later' } } | theDeadlineIsExtendedBy",
+				"hidden list not a list | { regardingTheVisibilityAndScheduleOfTheTestCases: { theDeadlineIs: '2000-01-01 00:00 UTC', testsNotListedHereAreHidden: false, theFollowingTestsAreHidden: 'org.example.A' } } | theFollowingTestsAreHidden",
+				"strict timeout not handled here | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s' } } | regardingTheStrictTimeoutForTheTestCases",
+				"output not handled here | { regardingTheOutputOfTheTestCases: { theOutputIsMirrored: true } } | regardingTheOutputOfTheTestCases",
+				"failure feedback not handled here | { regardingTheFailureFeedbackForTheTestCases: { onlyPrivilegedExceptionsAreReported: true } } | regardingTheFailureFeedbackForTheTestCases" })
+		void malformedSectionsAreRejected(String description, String section, String named, @TempDir Path tempDir)
 				throws IOException {
 			Path policyFile = tempDir.resolve("malformed.yaml");
 			Files.writeString(policyFile,
 					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n");
-			assertThrows(RuntimeException.class, () -> reader.readSecurityPolicyFrom(policyFile), description);
+			assertRefusalNames(policyFile, named);
 		}
 
+		/**
+		 * A category key from an earlier draft of the format is refused, naming it.
+		 *
+		 * @param category the old key.
+		 * @param body     its body.
+		 * @param tempDir  where the policy is written.
+		 * @throws IOException if the policy cannot be written.
+		 */
 		@ParameterizedTest(name = "[{index}] {0}")
 		@DisplayName("Should reject the unreleased keys the separate pull requests used")
 		@CsvSource(delimiter = '|', value = {
@@ -450,9 +490,17 @@ public class SecurityPolicyYAMLReaderTest {
 			Path policyFile = tempDir.resolve("old.yaml");
 			Files.writeString(policyFile, minimalPolicy().stripTrailing()
 					+ "\n  theFollowingTestBehaviorIsConfigured: { " + category + ": " + body + " }\n");
-			assertThrows(RuntimeException.class, () -> reader.readSecurityPolicyFrom(policyFile), category);
+			assertRefusalNames(policyFile, category);
 		}
 
+		/**
+		 * A field name from an earlier draft of the format is refused, naming it.
+		 *
+		 * @param field   the old field name.
+		 * @param section the section using it.
+		 * @param tempDir where the policy is written.
+		 * @throws IOException if the policy cannot be written.
+		 */
 		@ParameterizedTest(name = "[{index}] {0}")
 		@DisplayName("Should reject the unreleased field names inside the new categories")
 		@CsvSource(delimiter = '|', value = {
@@ -462,7 +510,23 @@ public class SecurityPolicyYAMLReaderTest {
 			Path policyFile = tempDir.resolve("old-field.yaml");
 			Files.writeString(policyFile,
 					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n");
-			assertThrows(RuntimeException.class, () -> reader.readSecurityPolicyFrom(policyFile), field);
+			assertRefusalNames(policyFile, field);
+		}
+
+		/**
+		 * Asserts that reading a policy is refused as a policy error and that the
+		 * refusal, or one of its causes, names the field or key.
+		 *
+		 * @param policyFile the policy.
+		 * @param named      the field or key.
+		 */
+		private void assertRefusalNames(Path policyFile, String named) {
+			SecurityException refused = assertThrows(SecurityException.class,
+					() -> reader.readSecurityPolicyFrom(policyFile));
+			assertTrue(
+					Stream.iterate((Throwable) refused, java.util.Objects::nonNull, Throwable::getCause)
+							.map(Throwable::getMessage).anyMatch(text -> text != null && text.contains(named)),
+					() -> "no cause names " + named + ": " + refused);
 		}
 
 		/** Reads a policy text from a temporary file. */
