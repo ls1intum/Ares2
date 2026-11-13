@@ -20,7 +20,7 @@ enum AresSecurityViolationSanitizer implements SpecificThrowableSanitizer {
 	 * Says whether the failure is one of Ares's own blocked-action exceptions.
 	 *
 	 * @param t the failure.
-	 * @return whether this sanitizer handles it.
+	 * @return whether this sanitiser handles it.
 	 */
 	@Override
 	public boolean canSanitize(Throwable t) {
@@ -31,7 +31,7 @@ enum AresSecurityViolationSanitizer implements SpecificThrowableSanitizer {
 
 	/**
 	 * Returns a plain {@link SecurityException} with the failure's message, cause
-	 * and stack, each sanitized.
+	 * and stack, each sanitised.
 	 *
 	 * @param t                  the failure.
 	 * @param messageTransformer what to do with the message.

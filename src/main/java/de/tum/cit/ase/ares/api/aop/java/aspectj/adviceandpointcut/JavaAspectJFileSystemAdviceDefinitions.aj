@@ -1770,7 +1770,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				boolean isExemptSystemFileAccess = !isClassLoaderAccess && !isSystemJarRead
 						&& isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughParameter);
 				if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess) {
-					throw AresSecurityViolation.create("file", messageAction, illegallyInteractedThroughParameter, localize(
+					throw AresSecurityViolation.create("file", actionToCheck, illegallyInteractedThroughParameter, localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
 							illegallyInteractedThroughParameter,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)
@@ -1795,7 +1795,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				}
 
 				if (!isInternalAllowed) {
-					throw AresSecurityViolation.create("file", messageAction, illegallyInteractedThroughReceiver, localize(
+					throw AresSecurityViolation.create("file", actionToCheck, illegallyInteractedThroughReceiver, localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
 							illegallyInteractedThroughReceiver,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)
@@ -1829,7 +1829,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				}
 
 				if (!isInternalAllowed) {
-					throw AresSecurityViolation.create("file", messageAction, illegallyInteractedThroughAttribute, localize(
+					throw AresSecurityViolation.create("file", actionToCheck, illegallyInteractedThroughAttribute, localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
 							illegallyInteractedThroughAttribute,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)
