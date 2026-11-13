@@ -136,16 +136,19 @@ class GeneratedFailureReportingTest {
 									org.junit.jupiter.api.extension.ExtensionContext context) throws Throwable {
 								try { invocation.proceed(); } catch (Throwable failure) { throw new HiddenTestFailure(); }
 							}
-							public static final class HiddenTestFailure extends AssertionError {
+							public static final class HiddenTestFailure extends AssertionError implements java.util.function.Supplier<Throwable> {
 								public HiddenTestFailure() { setStackTrace(new StackTraceElement[0]); }
+								@Override public Throwable get() { return new HiddenTestFailure(); }
 								@Override public String toString() { return ""; }
 							}
-							public static final class HiddenTestAbort extends org.opentest4j.TestAbortedException {
+							public static final class HiddenTestAbort extends org.opentest4j.TestAbortedException implements java.util.function.Supplier<Throwable> {
 								public HiddenTestAbort() { setStackTrace(new StackTraceElement[0]); }
+								@Override public Throwable get() { return new HiddenTestAbort(); }
 								@Override public String toString() { return ""; }
 							}
-							public static final class HiddenTestScheduled extends org.opentest4j.AssertionFailedError {
+							public static final class HiddenTestScheduled extends org.opentest4j.AssertionFailedError implements java.util.function.Supplier<Throwable> {
 								public HiddenTestScheduled() { super("hidden tests will be executed after the deadline."); }
+								@Override public Throwable get() { return new HiddenTestScheduled(); }
 							}
 						}
 						""");

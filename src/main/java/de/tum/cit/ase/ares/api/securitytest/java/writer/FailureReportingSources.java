@@ -165,7 +165,10 @@ final class FailureReportingSources {
 				 * @return the failure to report
 				 */
 				static Throwable architectureReplacementFor(Throwable throwable, String category) {
-					if (isHiddenResult(throwable) || "FULL".equals(@SETTINGS@.@LEVEL@) || isAresConfigurationError(throwable)) {
+					if (isHiddenResult(throwable)) {
+						return freshMarker(throwable);
+					}
+					if ("FULL".equals(@SETTINGS@.@LEVEL@) || isAresConfigurationError(throwable)) {
 						return throwable;
 					}
 					SecurityException rendered;
@@ -474,7 +477,7 @@ final class FailureReportingSources {
 				 */
 				private static Throwable replacementWithin(Throwable throwable) {
 					if (isHiddenResult(throwable)) {
-						return throwable;
+						return freshMarker(throwable);
 					}
 					Throwable violation = violationIn(throwable);
 					if (violation != null && !"FULL".equals(@SETTINGS@.@LEVEL@)) {
@@ -599,8 +602,8 @@ final class FailureReportingSources {
 				/**
 				 * The failure JUnit gets instead of the real one: a copy whose text, stack, causes
 				 * and suppressed failures are read now, never later, so JUnit and the build tool
-				 * cannot run student code when they print it. A generated hook's own marker
-				 * without causes is kept, since Ares made it.
+				 * cannot run student code when they print it. A generated hook's own marker is
+				 * made anew by its own class, so nothing attached to the original comes along.
 				 *
 				 * @param failure the real failure
 				 * @return the copy, or null for none
@@ -615,18 +618,31 @@ final class FailureReportingSources {
 					if (known != null) {
 						return known;
 					}
-					Throwable copy = isOwnMarker(failure) ? failure : copyAlone(failure);
+					boolean marker = fromGeneratedHooks(failure.getClass());
+					Throwable copy = marker ? freshMarker(failure) : copyAlone(failure);
 					copies.put(failure, copy);
-					if (copy != failure && copies.size() <= TRAVERSAL_LIMIT) {
+					if (!(marker && carriesNothing(failure)) && copies.size() <= TRAVERSAL_LIMIT) {
 						attachCopies(failure, copy, copies);
 					}
 					return copy;
 				}
 
-				/** Whether a failure is a generated hook's own marker with no cause and nothing suppressed. */
-				private static boolean isOwnMarker(Throwable failure) {
-					return fromGeneratedHooks(failure.getClass()) && failure.getCause() == null
-							&& failure.getSuppressed().length == 0;
+				/**
+				 * A new marker made by the generated class itself, so a cause or suppressed failure
+				 * a student attached to the original never comes along; a plain copy if it makes none.
+				 */
+				private static Throwable freshMarker(Throwable marker) {
+					if (marker instanceof java.util.function.Supplier<?> maker && maker.get() instanceof Throwable fresh) {
+						return fresh;
+					}
+					return copyAlone(marker);
+				}
+
+				/** Whether a generated marker is a hidden or scheduled result, which carries nothing at all. */
+				private static boolean carriesNothing(Throwable marker) {
+					String type = marker.getClass().getName();
+					return type.endsWith("$HiddenTestFailure") || type.endsWith("$HiddenTestAbort")
+							|| type.endsWith("$HiddenTestScheduled") || type.endsWith("$HiddenOutputFailure");
 				}
 
 				/** Hangs copies of the failure's cause and suppressed failures on its copy. */
@@ -908,7 +924,7 @@ final class FailureReportingSources {
 				}
 
 				/** A copy of a failure that runs no student code when read. */
-				private static final class DetachedFailure extends AssertionError {
+				private static final class DetachedFailure extends AssertionError implements java.util.function.Supplier<Throwable> {
 					/** Serialisation identifier for the generated copy. */
 					private static final long serialVersionUID = 1L;
 
@@ -921,6 +937,12 @@ final class FailureReportingSources {
 					DetachedFailure(String text, StackTraceElement[] stack) {
 						super((Object) text);
 						setStackTrace(stack);
+					}
+
+					/** A new copy with the same text and stack, carrying nothing attached to this one. */
+					@Override
+					public Throwable get() {
+						return new DetachedFailure(getMessage(), getStackTrace());
 					}
 				}
 
@@ -998,9 +1020,9 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * Keeps a generated hidden result or scheduling notice unchanged, but only the
-				 * hooks' own class: a student class of the same name, from another place, is
-				 * copied like any other failure.
+				 * Whether a failure is a generated hidden result or scheduling notice, which is
+				 * reported as a new marker of its kind; only the hooks' own class counts, so a
+				 * student class of the same name, from another place, is copied like any other.
 				 */
 				private static boolean isHiddenResult(Throwable throwable) {
 					String type = throwable.getClass().getName();

@@ -174,6 +174,11 @@ class GeneratedAllHooksTest {
 				"@Test void fails() throws Exception { javax.naming.NamingException failure = new javax.naming.NamingException(\"naming\");"
 						+ " failure.setRemainingName(new javax.naming.CompositeName() { @Override public Object clone() { return this; }"
 						+ " @Override public String toString() { while (true) { Thread.onSpinWait(); } } }); throw failure; }");
+		fixture(fixtures, "RedactedMarkerFixture",
+				"@Test void fails() { Throwable marker = de.tum.cit.ase.ares.generated.GeneratedHiddenTests"
+						+ ".redactFailure(new AssertionError(\"x\")); marker.addSuppressed(new IllegalStateException(\"inner\") {"
+						+ " @Override public String toString() { while (true) { Thread.onSpinWait(); } } });"
+						+ " throw (AssertionError) marker; }");
 		fixture(fixtures, "AssertEqualsFixture", "@Test void fails() { Assertions.assertEquals(\"a\", \"b\"); }");
 		fixture(fixtures, "BlockedActionFixture",
 				"@Test void reads() { throw " + VIOLATION_PACKAGE + ".ViolationSource.blocked(); }");
@@ -720,6 +725,22 @@ class GeneratedAllHooksTest {
 		} finally {
 			process.destroyForcibly();
 		}
+	}
+
+	/**
+	 * With failure reporting and visibility but no strict timeout, a genuine hidden
+	 * marker a public test obtained and attached a looping failure to is reported
+	 * as a new marker, so printing it the way a build tool does never runs that
+	 * failure.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aHiddenMarkerWithAttachmentsIsReportedAnew(@TempDir Path probe) throws Exception {
+		List<String> failures = runInOwnJvm(compileProbe(probe), "com.example.fixtures.RedactedMarkerFixture", false,
+				GENERATED + "GeneratedFailureReporting," + GENERATED + "GeneratedHiddenTests");
+		assertThat(failures).containsExactly("");
 	}
 
 	/**
