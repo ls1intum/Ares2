@@ -237,15 +237,18 @@ class GeneratedHiddenTestsTest {
 
 	/**
 	 * After the deadline a listed parameterised test runs, its argument source
-	 * included.
+	 * included. The source runs before the extension can watch it, so its output
+	 * and failure text reach the report, as the manual states.
 	 *
 	 * @throws Exception if the run cannot be set up
 	 */
 	@Test
 	void aHiddenTemplatesArgumentSourceRunsAfterTheDeadline() throws Exception {
-		EngineExecutionResults results = run(past, "SourcedFixture", Locale.ENGLISH);
-		assertThat(skipReasons(results)).isEmpty();
-		assertThat(results.containerEvents().failed().count()).isEqualTo(1);
+		Captured captured = captured(() -> run(past, "SourcedFixture", Locale.ENGLISH));
+		assertThat(skipReasons(captured.results())).isEmpty();
+		assertThat(captured.results().containerEvents().failed().count()).isEqualTo(1);
+		assertThat(failureMessages(captured.results())).containsExactly("SECRET_GENERATED_SOURCE");
+		assertThat(captured.output()).contains("SECRET_GENERATED_SOURCE");
 	}
 
 	/**
