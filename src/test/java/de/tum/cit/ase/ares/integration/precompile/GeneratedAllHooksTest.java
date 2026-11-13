@@ -274,16 +274,19 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
-	 * A failure whose own {@code getCause} never returns is still reported: the
-	 * timeout and failure hooks never call it.
+	 * A failure whose own {@code getCause} never returns is still reported with its
+	 * text, under JUnit's default stack-trace pruning: the hooks never call it and
+	 * hand JUnit a copy it can walk, in either registration order.
 	 *
+	 * @param reversed whether the hooks are registered the other way round.
 	 * @throws Exception if the run cannot be set up
 	 */
-	@Test
-	void aLoopingGetCauseIsNeverCalled() throws Exception {
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aLoopingGetCauseIsNeverCalled(boolean reversed) throws Exception {
 		EngineExecutionResults results = assertTimeoutPreemptively(Duration.ofSeconds(30),
-				() -> run("com.example.fixtures.LoopingCauseFixture", false));
-		assertThat(results.testEvents().failed().count()).isEqualTo(1);
+				() -> run("com.example.fixtures.LoopingCauseFixture", reversed));
+		assertThat(messages(results)).containsExactly("com.example.fixtures.LoopingCauseFixture$1: looping");
 	}
 
 	/**
@@ -395,8 +398,7 @@ class GeneratedAllHooksTest {
 		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(compiled, registration)),
 				Thread.currentThread().getContextClassLoader())) {
 			return GeneratedCodeRuns.runIn(loader, className, Locale.ENGLISH,
-					Map.of(GeneratedCodeRuns.AUTODETECTION, "true", GeneratedCodeRuns.AUTODETECTION_INCLUDE, include,
-							"junit.platform.stacktrace.pruning.enabled", "false"));
+					Map.of(GeneratedCodeRuns.AUTODETECTION, "true", GeneratedCodeRuns.AUTODETECTION_INCLUDE, include));
 		}
 	}
 

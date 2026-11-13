@@ -77,6 +77,12 @@ final class OutputMirroringSources {
 				/** Whether this hook's streams are installed right now. */
 				private static boolean installed;
 
+				/** The bounded stream behind the replaced {@code System.out}, while installed. */
+				private static BoundedStream boundedOut;
+
+				/** The bounded stream behind the replaced {@code System.err}, while installed. */
+				private static BoundedStream boundedErr;
+
 				/** The test guarded now, inherited by a worker another hook starts. */
 				private static final InheritableThreadLocal<String> GUARDING = new InheritableThreadLocal<>();
 
@@ -105,8 +111,10 @@ final class OutputMirroringSources {
 						boolean hidden = hiddenByGeneratedPolicy(context);
 						originalOut = System.out;
 						originalErr = System.err;
-						System.setOut(boundedOver(originalOut, hidden));
-						System.setErr(boundedOver(originalErr, hidden));
+						boundedOut = boundedOver(originalOut, hidden);
+						boundedErr = boundedOver(originalErr, hidden);
+						System.setOut(new PrintStream(boundedOut, true, StandardCharsets.UTF_8));
+						System.setErr(new PrintStream(boundedErr, true, StandardCharsets.UTF_8));
 						installed = true;
 						context.getStore(NAMESPACE).put(GeneratedOutputMirroring.class, Boolean.TRUE);
 					}
@@ -115,7 +123,7 @@ final class OutputMirroringSources {
 
 				/**
 				 * Restores the console streams this test's installation replaced, also when
-				 * the test failed.
+				 * the test failed, then fails the test if a character was left unfinished.
 				 *
 				 * @param context the test's context
 				 */
@@ -129,20 +137,26 @@ final class OutputMirroringSources {
 						System.setOut(originalOut);
 						System.setErr(originalErr);
 						installed = false;
+						BoundedStream out = boundedOut;
+						BoundedStream err = boundedErr;
+						boundedOut = null;
+						boundedErr = null;
+						out.finish();
+						err.finish();
 					}
 				}
 
 				/**
-				 * A UTF-8 print stream over a bounded stream that echoes to the given stream
-				 * when the policy mirrors output.
+				 * A bounded stream that echoes to the given stream when the policy mirrors
+				 * output.
 				 *
 				 * @param original the stream in place before the test
 				 * @param hidden whether generated visibility hides this test
-				 * @return the replacement
+				 * @return the bounded stream
 				 */
-				private static PrintStream boundedOver(PrintStream original, boolean hidden) {
+				private static BoundedStream boundedOver(PrintStream original, boolean hidden) {
 					OutputStream mirror = @SETTINGS@.@MIRRORED@ && !hidden ? original : null;
-					return new PrintStream(new BoundedStream(mirror, @SETTINGS@.@LIMIT@), true, StandardCharsets.UTF_8);
+					return new BoundedStream(mirror, @SETTINGS@.@LIMIT@);
 				}
 
 				/** Reads generated visibility when that hook is present in the exercise. */
@@ -224,14 +238,18 @@ final class OutputMirroringSources {
 					}
 
 					/**
-					 * Checks that the bytes since the last flush are valid UTF-8.
+					 * Checks that the bytes since the last flush are valid UTF-8. A character
+					 * whose bytes arrive in separate writes is kept until the rest arrives.
 					 *
 					 * @throws IllegalArgumentException if they are not
 					 */
 					@Override
 					public synchronized void flush() {
-						byte[] bytes = pending.toByteArray();
+						byte[] buffered = pending.toByteArray();
+						int complete = completeLength(buffered);
 						pending.reset();
+						pending.write(buffered, complete, buffered.length - complete);
+						byte[] bytes = java.util.Arrays.copyOf(buffered, complete);
 						CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder()
 								.onMalformedInput(CodingErrorAction.REPORT)
 								.onUnmappableCharacter(CodingErrorAction.REPORT);
@@ -241,6 +259,43 @@ final class OutputMirroringSources {
 							throw new IllegalArgumentException(@MESSAGES@.localized("output_tester.output_is_invalid_utf8",
 									new String(bytes, StandardCharsets.UTF_8)), invalid);
 						}
+					}
+
+					/**
+					 * The length of the bytes that end on a whole UTF-8 character: a trailing
+					 * lead byte whose continuation bytes have not arrived yet is left out.
+					 *
+					 * @param bytes the buffered bytes
+					 * @return how many of them to check now
+					 */
+					private static int completeLength(byte[] bytes) {
+						int start = bytes.length;
+						while (start > 0 && bytes.length - start < 3 && (bytes[start - 1] & 0xC0) == 0x80) {
+							start--;
+						}
+						if (start == 0) {
+							return bytes.length;
+						}
+						int lead = bytes[start - 1] & 0xFF;
+						int needed = lead >= 0xF0 ? 4 : lead >= 0xE0 ? 3 : lead >= 0xC0 ? 2 : 1;
+						return bytes.length - (start - 1) < needed ? start - 1 : bytes.length;
+					}
+
+					/**
+					 * Checks what is still unflushed, then fails when the bytes of an unfinished
+					 * character are still waiting at the end of the test.
+					 *
+					 * @throws IllegalArgumentException if such bytes remain
+					 */
+					synchronized void finish() {
+						flush();
+						if (pending.size() == 0) {
+							return;
+						}
+						byte[] rest = pending.toByteArray();
+						pending.reset();
+						throw new IllegalArgumentException(@MESSAGES@.localized("output_tester.output_is_invalid_utf8",
+								new String(rest, StandardCharsets.UTF_8)));
 					}
 
 					/**

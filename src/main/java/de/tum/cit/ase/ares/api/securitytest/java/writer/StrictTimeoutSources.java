@@ -397,7 +397,7 @@ final class StrictTimeoutSources {
 					try {
 						return future.get(timeoutNanos, TimeUnit.NANOSECONDS);
 					} catch (ExecutionException failure) {
-						throw unwrapped(failure);
+						throw traversable(unwrapped(failure));
 					} catch (TimeoutException expired) {
 						terminate(future, executor, graceNanos);
 						if (isHiddenContext(context)) {
@@ -519,6 +519,84 @@ final class StrictTimeoutSources {
 						return failure.getCause();
 					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
 						return null;
+					}
+				}
+
+				/** The most failures {@link #traversable} looks at before giving up. */
+				private static final int TRAVERSAL_LIMIT = 256;
+
+				/**
+				 * The failure itself when JUnit can walk its causes and suppressed failures
+				 * without running student code, otherwise a detached copy with the same text
+				 * and stack, read only through methods the Java runtime declares.
+				 *
+				 * @param failure the failure to report
+				 * @return a failure JUnit can traverse
+				 */
+				static Throwable traversable(Throwable failure) {
+					if (failure == null || isTraversable(failure)) {
+						return failure;
+					}
+					return new DetachedFailure(failure);
+				}
+
+				/** Whether every failure reachable from this one keeps the runtime's own accessors. */
+				private static boolean isTraversable(Throwable failure) {
+					java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+					java.util.Deque<Throwable> pending = new java.util.ArrayDeque<>(java.util.List.of(failure));
+					while (!pending.isEmpty()) {
+						Throwable current = pending.pop();
+						if (!seen.add(current)) {
+							continue;
+						}
+						if (seen.size() > TRAVERSAL_LIMIT || !declaredByRuntime(current, "getCause")) {
+							return false;
+						}
+						Throwable cause = current.getCause();
+						if (cause != null) {
+							pending.push(cause);
+						}
+						for (Throwable suppressed : current.getSuppressed()) {
+							pending.push(suppressed);
+						}
+					}
+					return true;
+				}
+
+				/** Whether a failure's public no-argument method is declared by the Java runtime. */
+				private static boolean declaredByRuntime(Throwable failure, String method) {
+					try {
+						ClassLoader owner = failure.getClass().getMethod(method).getDeclaringClass().getClassLoader();
+						return owner == null || owner == ClassLoader.getPlatformClassLoader();
+					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
+						return false;
+					}
+				}
+
+				/** A failure's text, as its type name and message, without running student code. */
+				private static String textOf(Throwable failure) {
+					String type = failure.getClass().getName();
+					if (!declaredByRuntime(failure, "getMessage") || !declaredByRuntime(failure, "getLocalizedMessage")) {
+						return type;
+					}
+					String message = failure.getLocalizedMessage();
+					return message == null ? type : type + ": " + message;
+				}
+
+				/** A copy of a failure that has no cause and runs no student code when read. */
+				private static final class DetachedFailure extends AssertionError {
+					/** Serialisation identifier for the generated copy. */
+					private static final long serialVersionUID = 1L;
+
+					/**
+					 * Copies the failure's text and, when readable, its stack.
+					 *
+					 * @param original the failure
+					 */
+					DetachedFailure(Throwable original) {
+						super(textOf(original));
+						setStackTrace(declaredByRuntime(original, "getStackTrace") ? original.getStackTrace()
+								: new StackTraceElement[0]);
 					}
 				}
 
