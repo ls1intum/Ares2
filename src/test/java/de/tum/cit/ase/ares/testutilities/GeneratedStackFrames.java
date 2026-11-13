@@ -32,6 +32,15 @@ public final class GeneratedStackFrames {
 	/** The generated timeout's thread factory, a nested class the check skips. */
 	public static final String GENERATED_HOOK_FACTORY = GENERATED_HOOK + "$WorkerFactory";
 
+	/** The generated failure reporting's name, whose copying worker is exempt. */
+	public static final String GENERATED_REPORTING = "de.tum.cit.ase.ares.generated.GeneratedFailureReporting";
+
+	/** The generated hooks' package, as a student package covering it. */
+	public static final String GENERATED_PACKAGE = "de.tum.cit.ase.ares.generated";
+
+	/** A student class with a method named like the reporting's exempt one. */
+	public static final String STUDENT_REPORTING_LOOKALIKE = "com.example.student.StudentReporting";
+
 	/** Another class in the reserved package, which the check does not exempt. */
 	public static final String OTHER_GENERATED_CLASS = "de.tum.cit.ase.ares.generated.OtherHook";
 
@@ -66,6 +75,10 @@ public final class GeneratedStackFrames {
 					return body.call();
 				}
 
+				public static Object bounded(java.util.concurrent.Callable<?> body) throws Exception {
+					return body.call();
+				}
+
 				public static Object call(java.util.concurrent.Callable<?> body) throws Exception {
 					return body.call();
 				}
@@ -74,6 +87,26 @@ public final class GeneratedStackFrames {
 					public static Object newThread(java.util.concurrent.Callable<?> body) throws Exception {
 						return body.call();
 					}
+				}
+			}
+			""", GENERATED_REPORTING, """
+			package de.tum.cit.ase.ares.generated;
+
+			public final class GeneratedFailureReporting {
+				public static Object bounded(java.util.concurrent.Callable<?> body) throws Exception {
+					return body.call();
+				}
+
+				public static Object call(java.util.concurrent.Callable<?> body) throws Exception {
+					return body.call();
+				}
+			}
+			""", STUDENT_REPORTING_LOOKALIKE, """
+			package com.example.student;
+
+			public final class StudentReporting {
+				public static Object bounded(java.util.concurrent.Callable<?> body) throws Exception {
+					return body.call();
 				}
 			}
 			""", OTHER_GENERATED_CLASS, """
@@ -152,7 +185,8 @@ public final class GeneratedStackFrames {
 		Path planted = Files.createDirectories(folder.resolve("planted"));
 		Path forged = Files.createDirectories(folder.resolve("forged"));
 		compileInto(trusted, SOURCES);
-		compileInto(planted, Map.of(GENERATED_HOOK, SOURCES.get(GENERATED_HOOK)));
+		compileInto(planted, Map.of(GENERATED_HOOK, SOURCES.get(GENERATED_HOOK), GENERATED_REPORTING,
+				SOURCES.get(GENERATED_REPORTING)));
 		compileInto(forged, SOURCES);
 		URL trustedUrl = trusted.toUri().toURL();
 		ClassLoader parent = GeneratedStackFrames.class.getClassLoader();
@@ -251,6 +285,48 @@ public final class GeneratedStackFrames {
 		Assertions.assertFalse(
 				exempted(copied, loader, STUDENT_PACKAGE, GENERATED_HOOK, "executeWithTimeout", STUDENT_CODE, "run"),
 				"student code above the generated timeout must not be exempt");
+	}
+
+	/**
+	 * Checks the generated failure reporting's thread exemption against one
+	 * backend's check: its bounded copying worker is exempt only when loaded beside
+	 * the copied checks, also when the student package covers the generated
+	 * package; a planted, forged or sibling copy, its other methods, student code
+	 * above it and a student look-alike are not.
+	 *
+	 * @param backend the class holding the backend's check.
+	 * @throws Exception if a call fails
+	 */
+	public void verifyReportingExemption(Class<?> backend) throws Exception {
+		Method copied = backend.getDeclaredMethod("isThreadCreationFromAresTimeout", String.class, String.class,
+				ClassLoader.class);
+		Method own = backend.getDeclaredMethod("isThreadCreationFromAresTimeout", String.class);
+		copied.setAccessible(true);
+		own.setAccessible(true);
+		String nothing = "de.tum.cit.matches.nothing";
+		Assertions.assertTrue(exempted(copied, loader, nothing, GENERATED_REPORTING, "bounded"),
+				"the generated failure reporting's copying worker must be exempt");
+		Assertions.assertTrue(exempted(copied, loader, GENERATED_PACKAGE, GENERATED_REPORTING, "bounded"),
+				"it must stay exempt when the student package covers the generated package");
+		Assertions.assertFalse(exempted(copied, plantedLoader, nothing, GENERATED_REPORTING, "bounded"),
+				"a planted copy loaded from the student's output must not be exempt");
+		Assertions.assertFalse(exempted(copied, forgedLoader, nothing, GENERATED_REPORTING, "bounded"),
+				"a loader that brings its own copy of both classes must not be exempt");
+		Assertions.assertFalse(exempted(copied, siblingLoader, nothing, GENERATED_REPORTING, "bounded"),
+				"a same-named class from the same place but another loader must not be exempt");
+		Assertions.assertFalse(exempted(own, loader, nothing, GENERATED_REPORTING, "bounded"),
+				"Ares's own check must never exempt a generated class");
+		Assertions.assertFalse(exempted(copied, loader, nothing, GENERATED_REPORTING, "call"),
+				"another method of the failure reporting must not be exempt");
+		Assertions.assertFalse(exempted(copied, loader, nothing, GENERATED_HOOK, "bounded"),
+				"the timeout's frame must not gain the reporting's method");
+		Assertions.assertFalse(exempted(copied, loader, STUDENT_PACKAGE, STUDENT_REPORTING_LOOKALIKE, "bounded"),
+				"a student class with that method name must not be exempt");
+		Assertions.assertFalse(
+				exempted(copied, loader, STUDENT_PACKAGE, GENERATED_REPORTING, "bounded", STUDENT_CODE, "run"),
+				"student code above the failure reporting must not be exempt");
+		Assertions.assertFalse(exempted(copied, loader, GENERATED_PACKAGE, OTHER_GENERATED_CLASS, "executeWithTimeout"),
+				"another class in the covered package must stay denied");
 	}
 
 	/**

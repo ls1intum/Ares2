@@ -80,4 +80,17 @@ class JavaAspectJThreadSystemAdviceDefinitionsTest {
 	void theGeneratedTimeoutsExemptionIsExact(@TempDir Path tempDir) throws Exception {
 		GeneratedStackFrames.compile(tempDir).verifyTimeoutExemption(JavaAspectJThreadSystemAdviceDefinitions.class);
 	}
+
+	/**
+	 * The generated failure reporting's copying worker is exempt only when it was
+	 * loaded beside the copied checks, also under a student package covering the
+	 * generated one, and nothing else gains the exemption.
+	 *
+	 * @param tempDir where the stand-in classes are compiled.
+	 * @throws Exception if a call fails
+	 */
+	@Test
+	void theGeneratedReportingsExemptionIsExact(@TempDir Path tempDir) throws Exception {
+		GeneratedStackFrames.compile(tempDir).verifyReportingExemption(JavaAspectJThreadSystemAdviceDefinitions.class);
+	}
 }

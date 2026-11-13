@@ -40,6 +40,8 @@ class StrictTimeoutCopiedAdviceTest {
 
 		assertThat(copied).contains("\"de.tum.cit.\" + \"ase.ares.generated.GeneratedStrictTimeout\"")
 				.contains("\"com.example.ares.api.internal.TimeoutUtils\"")
-				.doesNotContain("com.example.ares.generated.GeneratedStrictTimeout");
+				.contains("+ \"ase.ares.generated.GeneratedFailureReporting\"")
+				.doesNotContain("com.example.ares.generated.GeneratedStrictTimeout")
+				.doesNotContain("com.example.ares.generated.GeneratedFailureReporting");
 	}
 }
