@@ -499,19 +499,50 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * A blocked action at FULL as a copy: its own text, read now on the bounded
-				 * worker, and copies of its cause and suppressed failures, so printing the
-				 * report later cannot run student code a student attached to it.
+				 * A blocked action at FULL with privileged-only reporting on, as a copy: its own
+				 * text, read now on the bounded worker, with each attached cause or suppressed
+				 * failure redacted unless it is itself a blocked action, so neither their text
+				 * nor student code reaches the report.
 				 */
 				private static Throwable fullViolation(Throwable violation) {
+					return fullViolation(violation, new java.util.IdentityHashMap<>());
+				}
+
+				/** {@link #fullViolation(Throwable)} sharing one budget across the attached failures. */
+				private static Throwable fullViolation(Throwable violation, java.util.Map<Throwable, Throwable> copies) {
 					SecurityException copy = new SecurityException(
 							trustedAccessor(violation, "getMessage") ? violation.getMessage() : null);
 					copy.setStackTrace(trustedAccessor(violation, "getStackTrace") ? violation.getStackTrace()
 							: new StackTraceElement[0]);
-					java.util.Map<Throwable, Throwable> copies = new java.util.IdentityHashMap<>();
 					copies.put(violation, copy);
-					attachCopies(violation, copy, copies);
+					Throwable cause = causeOf(violation);
+					if (cause != null && !copies.containsKey(cause) && copies.size() < TRAVERSAL_LIMIT) {
+						copy.initCause(redactedAttachment(cause, copies));
+					}
+					for (Throwable suppressed : violation.getSuppressed()) {
+						if (copies.size() >= TRAVERSAL_LIMIT) {
+							break;
+						}
+						if (!copies.containsKey(suppressed)) {
+							copy.addSuppressed(redactedAttachment(suppressed, copies));
+						}
+					}
 					return copy;
+				}
+
+				/**
+				 * What a failure attached to a blocked action becomes at FULL with
+				 * privileged-only reporting on: another blocked action keeps its own text, and
+				 * anything else shows only the policy's message.
+				 */
+				private static Throwable redactedAttachment(Throwable attached, java.util.Map<Throwable, Throwable> copies) {
+					if (isViolation(attached)) {
+						return fullViolation(attached, copies);
+					}
+					Throwable redacted = new AssertionError(@SETTINGS@.@MESSAGE@);
+					redacted.setStackTrace(new StackTraceElement[0]);
+					copies.put(attached, redacted);
+					return redacted;
 				}
 
 				/** The longest value of a blocked action the report shows. */
@@ -521,15 +552,20 @@ final class FailureReportingSources {
 				private static Throwable violationIn(Throwable throwable) {
 					java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
 					for (Throwable current = throwable; current != null && seen.add(current); current = causeOf(current)) {
-						String type = current.getClass().getName();
-						if (type.equals("@PACKAGE@.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation")
-								|| type.equals("@PACKAGE@.ares.api.aop.java.instrumentation.advice.AresSecurityViolation")
-								|| type.equals("de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$DetachedViolation")
-										&& fromGeneratedHooks(current.getClass())) {
+						if (isViolation(current)) {
 							return current;
 						}
 					}
 					return null;
+				}
+
+				/** Whether a failure is itself a blocked action of the copied Ares checks. */
+				private static boolean isViolation(Throwable failure) {
+					String type = failure.getClass().getName();
+					return type.equals("@PACKAGE@.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation")
+							|| type.equals("@PACKAGE@.ares.api.aop.java.instrumentation.advice.AresSecurityViolation")
+							|| type.equals("de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$DetachedViolation")
+									&& fromGeneratedHooks(failure.getClass());
 				}
 
 				/**

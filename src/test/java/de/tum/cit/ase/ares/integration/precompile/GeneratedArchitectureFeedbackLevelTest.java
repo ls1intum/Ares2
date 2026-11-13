@@ -268,16 +268,41 @@ class GeneratedArchitectureFeedbackLevelTest {
 	 */
 	@Test
 	void aFullViolationIsReportedAsACopy() throws Exception {
-		Path probe = compileProbe(Files.createDirectories(tempDir.resolve("probe")));
+		String output = runProbe("loop");
+		assertThat(output).as(output).contains("ares.probe.message=" + VIOLATION).contains("ares.probe.done");
+	}
+
+	/**
+	 * With privileged-only reporting at FULL, an ordinary assertion attached to a
+	 * blocked action as its cause or suppressed failure shows only the policy's
+	 * message, while the blocked action keeps its own text.
+	 *
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aFullViolationRedactsWhatIsAttachedToIt() throws Exception {
+		String output = runProbe("assertion");
+		assertThat(output).as(output).contains("ares.probe.message=" + VIOLATION).contains(POLICY_MESSAGE)
+				.doesNotContain("expected=42").doesNotContain("cause=7").contains("ares.probe.done");
+	}
+
+	/**
+	 * Runs the compiled probe in a JVM of its own and returns what it printed.
+	 *
+	 * @param mode what the probe attaches to the blocked action.
+	 * @return the probe's output
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	private String runProbe(String mode) throws Exception {
+		Path probe = compileProbe(Files.createDirectories(tempDir.resolve("probe-" + mode)));
 		String classPath = String.join(File.pathSeparator, probe.toString(), full.toString(),
 				full.resolveSibling(full.getFileName() + "-resources").toString(),
 				System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
 		Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp",
-				classPath, "com.example.probe.FullViolationProbe", VIOLATION).redirectErrorStream(true).start();
+				classPath, "com.example.probe.FullViolationProbe", VIOLATION, mode).redirectErrorStream(true).start();
 		try {
 			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
-			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-			assertThat(output).as(output).contains("ares.probe.message=" + VIOLATION).contains("ares.probe.done");
+			return new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 		} finally {
 			process.destroyForcibly();
 		}
@@ -285,7 +310,8 @@ class GeneratedArchitectureFeedbackLevelTest {
 
 	/**
 	 * Compiles a probe that hands the FULL project's failure reporting a blocked
-	 * action with a looping student failure attached and prints the report.
+	 * action with a looping student failure, or ordinary assertions, attached and
+	 * prints the report.
 	 *
 	 * @param root the probe's folder.
 	 * @return the compiled probe's folder
@@ -303,21 +329,28 @@ class GeneratedArchitectureFeedbackLevelTest {
 								Throwable violation = (Throwable) loader
 										.loadClass("com.example.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation")
 										.getConstructor(String.class).newInstance(arguments[0]);
-								violation.addSuppressed(new RuntimeException("attached") {
-									@Override
-									public String toString() {
-										while (true) {
-											Thread.onSpinWait();
+								if ("assertion".equals(arguments[1])) {
+									violation.initCause(new AssertionError("cause=7"));
+									violation.addSuppressed(new AssertionError("expected=42"));
+								} else {
+									violation.addSuppressed(new RuntimeException("attached") {
+										@Override
+										public String toString() {
+											while (true) {
+												Thread.onSpinWait();
+											}
 										}
-									}
-								});
+									});
+								}
 								java.lang.reflect.Method replacement = loader
 										.loadClass("de.tum.cit.ase.ares.generated.GeneratedFailureReporting")
 										.getDeclaredMethod("replacementFor", Throwable.class);
 								replacement.setAccessible(true);
 								Throwable reported = (Throwable) replacement.invoke(null, violation);
-								reported.printStackTrace(new java.io.PrintWriter(new java.io.StringWriter()));
+								java.io.StringWriter trace = new java.io.StringWriter();
+								reported.printStackTrace(new java.io.PrintWriter(trace));
 								System.out.println("ares.probe.message=" + reported.getMessage());
+								System.out.println("ares.probe.trace=" + trace);
 								System.out.println("ares.probe.done");
 								System.exit(0);
 							}
