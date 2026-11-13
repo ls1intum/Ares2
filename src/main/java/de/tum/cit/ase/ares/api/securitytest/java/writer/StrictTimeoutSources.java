@@ -580,8 +580,25 @@ final class StrictTimeoutSources {
 						for (Throwable suppressed : current.getSuppressed()) {
 							pending.push(suppressed);
 						}
+						java.util.List<Throwable> members = aggregateMembers(current);
+						if (members == null) {
+							return false;
+						}
+						members.stream().filter(java.util.Objects::nonNull).forEach(pending::push);
 					}
 					return true;
+				}
+
+				/**
+				 * The failures an opentest4j {@code MultipleFailuresError} reads for its own
+				 * message, as from {@code assertAll}: none for any other failure, and null when
+				 * the list comes from somewhere other than opentest4j's own method.
+				 */
+				private static java.util.List<Throwable> aggregateMembers(Throwable failure) {
+					if (!(failure instanceof org.opentest4j.MultipleFailuresError aggregate)) {
+						return java.util.List.of();
+					}
+					return trustedAccessor(failure, "getFailures") ? aggregate.getFailures() : null;
 				}
 
 				/**
@@ -597,14 +614,16 @@ final class StrictTimeoutSources {
 				}
 
 				/**
-				 * Whether a failure's public method is declared by the Java runtime or comes
-				 * from opentest4j's own library, never from a class elsewhere with its name.
+				 * Whether a failure's public method is declared by the Java runtime, comes
+				 * from opentest4j's own library or from a generated hook, such as a hidden
+				 * test's silent marker, never from a class elsewhere with its name.
 				 */
 				private static boolean trustedAccessor(Throwable failure, String method, Class<?>... parameters) {
 					try {
 						Class<?> owner = failure.getClass().getMethod(method, parameters).getDeclaringClass();
 						ClassLoader loader = owner.getClassLoader();
-						return loader == null || loader == ClassLoader.getPlatformClassLoader() || fromOpentest4j(owner);
+						return loader == null || loader == ClassLoader.getPlatformClassLoader() || fromOpentest4j(owner)
+								|| fromGeneratedHooks(owner);
 					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
 						return false;
 					}
@@ -622,6 +641,21 @@ final class StrictTimeoutSources {
 							&& source.getLocation().toExternalForm().equals(library.getLocation().toExternalForm());
 				}
 
+				/**
+				 * Whether a class is one of the generated hooks' own: in their package, loaded
+				 * by the same class loader from the same place as this hook.
+				 */
+				private static boolean fromGeneratedHooks(Class<?> owner) {
+					if (!GeneratedStrictTimeout.class.getPackageName().equals(owner.getPackageName())
+							|| owner.getClassLoader() != GeneratedStrictTimeout.class.getClassLoader()) {
+						return false;
+					}
+					java.security.CodeSource source = owner.getProtectionDomain().getCodeSource();
+					java.security.CodeSource hooks = GeneratedStrictTimeout.class.getProtectionDomain().getCodeSource();
+					return source != null && hooks != null && source.getLocation() != null && hooks.getLocation() != null
+							&& source.getLocation().toExternalForm().equals(hooks.getLocation().toExternalForm());
+				}
+
 				/** Whether a failure's public no-argument method is declared by the Java runtime. */
 				private static boolean declaredByRuntime(Throwable failure, String method) {
 					try {
@@ -632,10 +666,14 @@ final class StrictTimeoutSources {
 					}
 				}
 
-				/** A failure's text, as its type name and message, without running student code. */
+				/**
+				 * A failure's text, as its type name and message, without running student code.
+				 * An opentest4j aggregate gives only its type, since its message reads its members.
+				 */
 				private static String textOf(Throwable failure) {
 					String type = failure.getClass().getName();
-					if (!trustedAccessor(failure, "getMessage") || !trustedAccessor(failure, "getLocalizedMessage")) {
+					if (failure instanceof org.opentest4j.MultipleFailuresError || !trustedAccessor(failure, "getMessage")
+							|| !trustedAccessor(failure, "getLocalizedMessage")) {
 						return type;
 					}
 					String message = failure.getLocalizedMessage();

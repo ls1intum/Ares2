@@ -58,6 +58,12 @@ class GeneratedAllHooksTest {
 	private static Path reversedResources;
 
 	/**
+	 * A class in the generated package compiled somewhere else, with a fixture
+	 * throwing it.
+	 */
+	private static Path forged;
+
+	/**
 	 * Generates the precompile output for a policy setting all four categories and
 	 * compiles it with the fixtures.
 	 *
@@ -92,7 +98,7 @@ class GeneratedAllHooksTest {
 						    regardingTheVisibilityAndScheduleOfTheTestCases:
 						      theDeadlineIs: "2000-01-01 00:00 UTC"
 						      testsNotListedHereAreHidden: false
-						      theFollowingTestsAreHidden: ["com.example.fixtures.HiddenFixture", "com.example.fixtures.HiddenTimeoutFixture", "com.example.fixtures.HiddenLoudFixture", "com.example.fixtures.HiddenFactoryFixture", "com.example.fixtures.HiddenUnflushedFixture"]
+						      theFollowingTestsAreHidden: ["com.example.fixtures.HiddenFixture", "com.example.fixtures.HiddenTimeoutFixture", "com.example.fixtures.HiddenLoudFixture", "com.example.fixtures.HiddenFactoryFixture", "com.example.fixtures.HiddenUnflushedFixture", "com.example.fixtures.HiddenAbortFixture"]
 						""");
 		Files.writeString(project.resolve("pom.xml"), "<project/>");
 		Files.createDirectories(project.resolve("src/main/java"));
@@ -144,6 +150,16 @@ class GeneratedAllHooksTest {
 		fixture(fixtures, "HiddenUnflushedFixture",
 				"@Test void writes() { for (byte part : \"SECRET_UNFLUSHED\".getBytes(java.nio.charset.StandardCharsets.UTF_8)) {"
 						+ " System.out.write(part); } System.out.write(0x80); }");
+		fixture(fixtures, "HiddenAbortFixture",
+				"@Test void aborts() { System.out.print(\"SECRET_ABORT\"); Assumptions.abort(\"SECRET_ABORT\"); }");
+		fixture(fixtures, "AssertAllLoopingFixture",
+				"@Test void fails() { Assertions.assertAll(() -> Assertions.fail(\"first\"),"
+						+ " () -> { throw new IllegalStateException(\"looping\") { @Override public String getMessage() {"
+						+ " while (true) { Thread.onSpinWait(); } } }; }); }");
+		fixture(fixtures, "AggregateLoopingFixture",
+				"@Test void fails() { throw new org.opentest4j.MultipleFailuresError(\"heading\","
+						+ " java.util.List.of(new IllegalStateException(\"looping\") { @Override public String getMessage() {"
+						+ " while (true) { Thread.onSpinWait(); } } })); }");
 		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy).projectFolderPath(project).build()
 				.createTestCases().writeTestCases(testSources);
 		compiled = Files.createDirectories(tempDir.resolve("compiled"));
@@ -156,6 +172,32 @@ class GeneratedAllHooksTest {
 				.filter(line -> line.startsWith("junit.jupiter.extensions.autodetection.include="))
 				.map(line -> line.substring(line.indexOf('=') + 1)).findFirst().orElseThrow();
 		reversedResources = reversedRegistration(resources, tempDir.resolve("reversed-resources"));
+		forged = forgedMarker(tempDir.resolve("forged-sources"), tempDir.resolve("forged"));
+	}
+
+	/**
+	 * Compiles a failure class in the generated package whose {@code toString}
+	 * never returns, outside the generated output, and a fixture throwing it.
+	 *
+	 * @param sources the sources' folder.
+	 * @param output  the compiled classes' folder.
+	 * @return the compiled classes' folder
+	 * @throws IOException if writing or compiling fails
+	 */
+	private static Path forgedMarker(Path sources, Path output) throws IOException {
+		Path marker = Files.createDirectories(sources.resolve("de/tum/cit/ase/ares/generated"));
+		Files.writeString(marker.resolve("ForgedMarker.java"), """
+				package de.tum.cit.ase.ares.generated;
+
+				public class ForgedMarker extends AssertionError {
+					public ForgedMarker() { super("forged"); }
+					@Override public String toString() { while (true) { Thread.onSpinWait(); } }
+				}
+				""");
+		fixture(Files.createDirectories(sources.resolve("com/example/fixtures")), "ForgedMarkerFixture",
+				"@Test void fails() { throw new de.tum.cit.ase.ares.generated.ForgedMarker(); }");
+		compile(Files.createDirectories(output), List.of(sources));
+		return output;
 	}
 
 	/**
@@ -337,6 +379,68 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
+	 * A failure from {@code assertAll} whose member's message never returns is
+	 * reported by its type alone, whether the member is also suppressed in it or
+	 * only listed, in either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aLoopingAggregateMemberIsNeverCalled(boolean reversed) throws Exception {
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.AssertAllLoopingFixture", reversed))))
+						.containsExactly("org.opentest4j.MultipleFailuresError");
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.AggregateLoopingFixture", reversed))))
+						.containsExactly("org.opentest4j.MultipleFailuresError");
+	}
+
+	/**
+	 * A hidden test that aborts stays aborted, not failed, with no text or output,
+	 * in either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenAbortStaysAnAbort(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenAbortFixture", reversed));
+		assertThat(captured.results().testEvents().failed().count()).isZero();
+		assertThat(captured.results().testEvents().aborted().stream().map(GeneratedAllHooksTest::messageOf))
+				.containsExactly("");
+		assertThat(captured.output()).doesNotContain("SECRET_ABORT");
+	}
+
+	/**
+	 * A hidden failure has no text at all, in either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenFailureHasNoText(boolean reversed) throws Exception {
+		assertThat(messages(run("com.example.fixtures.HiddenFixture", reversed))).containsExactly("");
+	}
+
+	/**
+	 * A failure class in the generated package that does not come from the
+	 * generated output is not trusted as a hook's marker, so its own
+	 * {@code toString} is never handed to JUnit.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aForgedMarkerIsDetached() throws Exception {
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.ForgedMarkerFixture", false, forged))))
+						.containsExactly("de.tum.cit.ase.ares.generated.ForgedMarker: forged");
+	}
+
+	/**
 	 * Output a hidden test leaves unfinished fails the test without showing it, in
 	 * either registration order.
 	 *
@@ -453,12 +557,14 @@ class GeneratedAllHooksTest {
 	 *
 	 * @param className the class to run.
 	 * @param reversed  whether the hooks are registered the other way round.
+	 * @param extra     further class folders to load from.
 	 * @return the results.
 	 * @throws Exception if the run cannot be set up
 	 */
-	private static EngineExecutionResults run(String className, boolean reversed) throws Exception {
-		Path registration = reversed ? reversedResources : resources;
-		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(compiled, registration)),
+	private static EngineExecutionResults run(String className, boolean reversed, Path... extra) throws Exception {
+		List<Path> roots = new ArrayList<>(List.of(compiled, reversed ? reversedResources : resources));
+		roots.addAll(Arrays.asList(extra));
+		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(roots),
 				Thread.currentThread().getContextClassLoader())) {
 			return GeneratedCodeRuns.runIn(loader, className, Locale.ENGLISH,
 					Map.of(GeneratedCodeRuns.AUTODETECTION, "true", GeneratedCodeRuns.AUTODETECTION_INCLUDE, include));
