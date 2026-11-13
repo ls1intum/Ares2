@@ -560,7 +560,8 @@ final class StrictTimeoutSources {
 						if (!seen.add(current)) {
 							continue;
 						}
-						if (seen.size() > TRAVERSAL_LIMIT || !declaredByRuntime(current, "getCause") || !reportsSafely(current)) {
+						if (seen.size() > TRAVERSAL_LIMIT || !declaredByRuntime(current, "getCause") || !reportsSafely(current)
+							|| overridesTrustedMethod(current)) {
 							return false;
 						}
 						Throwable cause = current.getCause();
@@ -610,11 +611,70 @@ final class StrictTimeoutSources {
 				 */
 				private static boolean trustedAccessor(Throwable failure, String method, Class<?>... parameters) {
 					try {
-						Class<?> owner = failure.getClass().getMethod(method, parameters).getDeclaringClass();
+						return trustedClass(failure.getClass().getMethod(method, parameters).getDeclaringClass());
+					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
+						return false;
+					}
+				}
+
+				/** Whether a class is the Java runtime's own, opentest4j's or a generated hook's. */
+				private static boolean trustedClass(Class<?> owner) {
+					try {
 						ClassLoader loader = owner.getClassLoader();
 						return loader == null || loader == ClassLoader.getPlatformClassLoader() || fromOpentest4j(owner)
 								|| fromGeneratedHooks(owner);
-					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
+					} catch (RuntimeException | LinkageError unreadable) {
+						return false;
+					}
+				}
+
+				/**
+				 * Whether a class of the failure outside the trusted ones overrides a method a
+				 * trusted class above it declares, such as {@code FileSystemException.getReason},
+				 * which the runtime's own text methods call; an unreadable class counts as one.
+				 */
+				private static boolean overridesTrustedMethod(Throwable failure) {
+					try {
+						for (Class<?> current = failure.getClass(); current != null && !trustedClass(current); current = current
+								.getSuperclass()) {
+							if (overridesAbove(current)) {
+								return true;
+							}
+						}
+						return false;
+					} catch (RuntimeException | LinkageError unreadable) {
+						return true;
+					}
+				}
+
+				/** Whether one of the class's own instance methods is declared by a trusted class above it. */
+				private static boolean overridesAbove(Class<?> type) {
+					for (Method method : type.getDeclaredMethods()) {
+						int modifiers = method.getModifiers();
+						if (!java.lang.reflect.Modifier.isStatic(modifiers) && !java.lang.reflect.Modifier.isPrivate(modifiers)
+								&& declaredByTrustedAbove(type.getSuperclass(), method)) {
+							return true;
+						}
+					}
+					return false;
+				}
+
+				/** Whether a trusted class from this one upwards declares a method with that name and parameters. */
+				private static boolean declaredByTrustedAbove(Class<?> start, Method method) {
+					for (Class<?> owner = start; owner != null; owner = owner.getSuperclass()) {
+						if (trustedClass(owner) && declares(owner, method)) {
+							return true;
+						}
+					}
+					return false;
+				}
+
+				/** Whether a class itself declares a method with that name and parameters. */
+				private static boolean declares(Class<?> owner, Method method) {
+					try {
+						owner.getDeclaredMethod(method.getName(), method.getParameterTypes());
+						return true;
+					} catch (NoSuchMethodException absent) {
 						return false;
 					}
 				}
@@ -657,13 +717,13 @@ final class StrictTimeoutSources {
 				}
 
 				/**
-				 * A failure's text, as its type name and message, without running student code.
-				 * An opentest4j aggregate gives only its type, since its message reads its members.
+				 * A failure's text without running student code: its type name, followed by its
+				 * message only when its class is trusted. An opentest4j aggregate gives only its
+				 * type, since its message reads its members.
 				 */
 				private static String textOf(Throwable failure) {
 					String type = failure.getClass().getName();
-					if (failure instanceof org.opentest4j.MultipleFailuresError || !trustedAccessor(failure, "getMessage")
-							|| !trustedAccessor(failure, "getLocalizedMessage")) {
+					if (failure instanceof org.opentest4j.MultipleFailuresError || !trustedClass(failure.getClass())) {
 						return type;
 					}
 					String message = failure.getLocalizedMessage();
