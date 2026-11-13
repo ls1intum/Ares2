@@ -5,6 +5,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -13,7 +14,9 @@ import java.util.stream.Stream;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.platform.commons.annotation.Testable;
 import org.junit.platform.commons.support.AnnotationSupport;
 import org.junit.platform.commons.support.HierarchyTraversalMode;
 import org.junit.platform.commons.support.ReflectionSupport;
@@ -309,12 +312,16 @@ public final class ConfigurationUtils {
 	}
 
 	/**
-	 * Requires a visibility entry to name a real test class, or a method of it.
+	 * Requires a visibility entry to name a test: a method entry a JUnit test
+	 * method the class declares or inherits, a class entry a class that has one,
+	 * itself, in a supertype or in a {@code @Nested} class. An entry naming
+	 * anything else would never apply, so the intended test would silently keep its
+	 * other visibility.
 	 *
 	 * @param field  the list the entry is in, for the message.
 	 * @param entry  the entry.
 	 * @param loader the loader of the test classes.
-	 * @throws IllegalArgumentException when the entry matches nothing.
+	 * @throws IllegalArgumentException when the entry matches nothing, or no test.
 	 */
 	private static void requireMatch(String field, String entry, ClassLoader loader) {
 		int hash = entry.indexOf('#');
@@ -326,6 +333,55 @@ public final class ConfigurationUtils {
 			throw new IllegalArgumentException(
 					Messages.localized("policy.behavior.hidden.tests.unmatched", field, entry));
 		}
+		boolean namesATest = hash < 0 ? holdsTest(testClass.get(), new HashSet<>())
+				: hasTestMethod(testClass.get(), entry.substring(hash + 1));
+		if (!namesATest) {
+			throw new IllegalArgumentException(
+					Messages.localized("policy.behavior.hidden.tests.not.a.test", field, entry));
+		}
+	}
+
+	/**
+	 * Whether a class declares or inherits a JUnit test method of that name.
+	 *
+	 * @param type       the class.
+	 * @param methodName the method's name.
+	 * @return whether such a test exists.
+	 */
+	private static boolean hasTestMethod(Class<?> type, String methodName) {
+		return typeHierarchy(type).flatMap(current -> Stream.of(current.getDeclaredMethods()))
+				.filter(method -> method.getName().equals(methodName)).anyMatch(ConfigurationUtils::isTestMethod);
+	}
+
+	/**
+	 * Whether a class, its supertypes or its {@code @Nested} classes have a JUnit
+	 * test method.
+	 *
+	 * @param type    the class.
+	 * @param visited the classes already looked at.
+	 * @return whether such a test exists.
+	 */
+	private static boolean holdsTest(Class<?> type, Set<Class<?>> visited) {
+		if (!visited.add(type)) {
+			return false;
+		}
+		boolean own = typeHierarchy(type).flatMap(current -> Stream.of(current.getDeclaredMethods()))
+				.anyMatch(ConfigurationUtils::isTestMethod);
+		return own || Stream.of(type.getDeclaredClasses())
+				.filter(nested -> AnnotationSupport.isAnnotated(nested, Nested.class))
+				.anyMatch(nested -> holdsTest(nested, visited));
+	}
+
+	/**
+	 * Whether JUnit treats a method as a test: it carries {@code @Testable}, which
+	 * {@code @Test}, {@code @TestFactory}, {@code @TestTemplate} and the
+	 * annotations built on them carry.
+	 *
+	 * @param method the method.
+	 * @return whether it is a test method.
+	 */
+	private static boolean isTestMethod(Method method) {
+		return AnnotationSupport.isAnnotated(method, Testable.class);
 	}
 
 	/**

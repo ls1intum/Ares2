@@ -32,85 +32,104 @@ public class HiddenTestsPolicyUser {
 	/** The benign subject the policies analyse. */
 	private static final String SUBJECT = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld";
 
-	/** A hidden test without its own deadline, after the policy's deadline. */
+	/**
+	 * A hidden test without its own deadline, after the policy's deadline. Runs,
+	 * because the policy's deadline has passed.
+	 */
 	@HiddenTest
 	@Policy(value = POLICIES + "PolicyHiddenTestsPastUser.yaml", withinPath = SUBJECT)
 	void policyPastDeadlineRuns() {
-		// Runs, because the policy's deadline has passed.
 	}
 
-	/** A hidden test without its own deadline, before the policy's deadline. */
+	/**
+	 * A hidden test without its own deadline, before the policy's deadline. Never
+	 * runs before the policy's deadline.
+	 */
 	@HiddenTest
 	@Policy(value = POLICIES + "PolicyHiddenTestsFutureUser.yaml", withinPath = SUBJECT)
 	void policyFutureDeadlineBlocks() {
-		// Never runs before the policy's deadline.
 	}
 
-	/** A passed policy deadline, extended by an annotation into the future. */
+	/**
+	 * A passed policy deadline, extended by an annotation into the future. Never
+	 * runs before the extended deadline.
+	 */
 	@HiddenTest
 	@ExtendedDeadline("365000d")
 	@Policy(value = POLICIES + "PolicyHiddenTestsPastUser.yaml", withinPath = SUBJECT)
 	void annotationExtensionAddsToThePolicy() {
-		// Never runs before the extended deadline.
 	}
 
-	/** A passed method deadline wins over a future policy deadline. */
+	/**
+	 * A passed method deadline wins over a future policy deadline. Runs, because
+	 * the method's own deadline has passed.
+	 */
 	@HiddenTest
 	@Deadline("2000-01-01 00:00 UTC")
 	@Policy(value = POLICIES + "PolicyHiddenTestsFutureUser.yaml", withinPath = SUBJECT)
 	void methodDeadlineWinsOverThePolicy() {
-		// Runs, because the method's own deadline has passed.
 	}
 
-	/** A future deadline, but before the policy's always-run-before date. */
+	/**
+	 * A future deadline, but before the policy's always-run-before date. Runs,
+	 * because the always-run-before date lies ahead.
+	 */
 	@HiddenTest
 	@Policy(value = POLICIES + "PolicyHiddenTestsActiveUser.yaml", withinPath = SUBJECT)
 	void policyAlwaysRunBeforeRuns() {
-		// Runs, because the always-run-before date lies ahead.
 	}
 
-	/** A public test is not held back by the policy's deadline. */
+	/**
+	 * A public test is not held back by the policy's deadline. Runs: public tests
+	 * have no deadline.
+	 */
 	@PublicTest
 	@Policy(value = POLICIES + "PolicyHiddenTestsFutureUser.yaml", withinPath = SUBJECT)
 	void publicTestIgnoresThePolicyDeadline() {
-		// Runs: public tests have no deadline.
 	}
 
-	/** A public test in a class the policy lists stays public. */
+	/**
+	 * A public test in a class the policy lists stays public. Runs: the annotation
+	 * wins over the policy's list.
+	 */
 	@PublicTest
 	@Policy(value = POLICIES + "PolicyHiddenTestsListedUser.yaml", withinPath = SUBJECT)
 	void annotationWinsOverTheList() {
-		// Runs: the annotation wins over the policy's list.
 	}
 
-	/** A public test under a policy whose list names nothing that exists. */
+	/**
+	 * A public test under a policy whose list names nothing that exists. Never
+	 * runs: the policy fails every test.
+	 */
 	@PublicTest
 	@Policy(value = POLICIES + "PolicyHiddenTestsUnmatchedUser.yaml", withinPath = SUBJECT)
 	void unmatchedEntryFailsAPublicTest() {
-		// Never runs: the policy fails every test.
 	}
 
-	/** A public test under a policy that hides unlisted tests stays public. */
+	/**
+	 * A public test under a policy that hides unlisted tests stays public. Runs:
+	 * the annotation wins over the policy's setting for unlisted tests.
+	 */
 	@PublicTest
 	@Policy(value = POLICIES + "PolicyHiddenTestsUnlistedHiddenUser.yaml", withinPath = SUBJECT)
 	void annotationWinsWhenUnlistedTestsAreHidden() {
-		// Runs: the annotation wins over the policy's setting for unlisted tests.
 	}
 
-	/** A public test under a policy whose public list names nothing that exists. */
+	/**
+	 * A public test under a policy whose public list names nothing that exists.
+	 * Never runs: the policy fails every test.
+	 */
 	@PublicTest
 	@Policy(value = POLICIES + "PolicyHiddenTestsUnmatchedPublicUser.yaml", withinPath = SUBJECT)
 	void unmatchedPublicEntryFailsAPublicTest() {
-		// Never runs: the policy fails every test.
 	}
 
 	/**
 	 * A public test under a policy that does not say whether unlisted tests are
-	 * hidden.
+	 * hidden. Never runs: the policy cannot be read.
 	 */
 	@PublicTest
 	@Policy(value = INVALID_POLICIES + "PolicyHiddenTestsWithoutSwitchUser.yaml", withinPath = SUBJECT)
 	void aPolicyWithoutTheUnlistedSwitchFailsATest() {
-		// Never runs: the policy cannot be read.
 	}
 }

@@ -17,7 +17,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-/** Checks the actual Gradle and Maven artifacts for an opaque failed result. */
+/** Checks the actual Gradle and Maven artefacts for an opaque failed result. */
 class HiddenFeedbackReportArtifactsTest {
 
 	/** JUnit release used by the exercise report probes. */

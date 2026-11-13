@@ -14,6 +14,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.platform.commons.annotation.Testable;
 
 import de.tum.cit.ase.ares.api.ActivateHiddenBefore;
 import de.tum.cit.ase.ares.api.Deadline;
@@ -155,6 +156,25 @@ class ConfigurationUtilsHiddenTestsTest {
 	}
 
 	/**
+	 * A method entry naming a helper that is not a test, and a class entry naming a
+	 * class without tests, fail every test, naming the entry, because neither could
+	 * ever apply to a test.
+	 *
+	 * @throws Exception if the fixture cannot be read
+	 */
+	@Test
+	void anEntryNamingNoTestFailsEveryTest() throws Exception {
+		for (TestType type : TestType.values()) {
+			TestContext context = context(Helpers.class, "test");
+			when(context.findTestType()).thenReturn(Optional.of(type));
+
+			assertThatThrownBy(() -> TestGuardUtils.checkForHidden(context))
+					.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Helpers#helper")
+					.hasMessageContaining("names no test");
+		}
+	}
+
+	/**
 	 * Under a policy that hides unlisted tests, an unannotated, unlisted test is
 	 * hidden, a public entry makes its test public, and a class annotation still
 	 * wins over both.
@@ -268,8 +288,8 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FULL)
 	static class PolicyOnly {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 	}
 
@@ -278,9 +298,9 @@ class ConfigurationUtilsHiddenTestsTest {
 	@ExtendedDeadline("1d")
 	static class ClassExtension {
 		/** Read reflectively. */
+		@Testable
 		@ExtendedDeadline("1d")
 		void test() {
-			// Fixture only.
 		}
 	}
 
@@ -289,14 +309,14 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Deadline("2010-01-01 00:00 UTC")
 	static class ClassDeadline {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 
 		/** Read reflectively. */
+		@Testable
 		@Deadline("2020-01-01 00:00 UTC")
 		void methodDeadline() {
-			// Fixture only.
 		}
 	}
 
@@ -305,16 +325,16 @@ class ConfigurationUtilsHiddenTestsTest {
 	@ActivateHiddenBefore("1995-01-01 00:00 UTC")
 	static class ClassActivation {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 	}
 
 	/** A class without a policy. */
 	static class NoPolicy {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 	}
 
@@ -322,8 +342,8 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(value = FULL, activated = false)
 	static class DeactivatedPolicy {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 	}
 
@@ -331,8 +351,8 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FIXTURES + "PolicyWithoutTestBehavior.yaml")
 	static class WithoutCategory {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 	}
 
@@ -340,21 +360,20 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FULL)
 	static class ListedClass {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 
 		/** Read reflectively. */
 		@PublicTest
 		void publicTest() {
-			// Fixture only.
 		}
 
 		/** A nested class inside the listed one. */
 		class Inner {
 			/** Read reflectively. */
+			@Testable
 			void test() {
-				// Fixture only.
 			}
 		}
 	}
@@ -363,13 +382,13 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FULL)
 	static class Methods {
 		/** Read reflectively. */
+		@Testable
 		void listedMethod() {
-			// Fixture only.
 		}
 
 		/** Read reflectively. */
+		@Testable
 		void otherMethod() {
-			// Fixture only.
 		}
 	}
 
@@ -378,8 +397,8 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Public
 	static class PublicClass {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 	}
 
@@ -387,8 +406,8 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FIXTURES + "PolicyHiddenTestsUnmatchedClass.yaml")
 	static class UnmatchedClass {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 	}
 
@@ -396,24 +415,48 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FIXTURES + "PolicyHiddenTestsUnmatchedMethod.yaml")
 	static class UnmatchedMethod {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
+	}
+
+	/**
+	 * A class under a policy listing its helper method and a class without tests.
+	 */
+	@Policy(FIXTURES + "PolicyHiddenTestsNotATest.yaml")
+	static class Helpers {
+		/** Read reflectively. */
+		@Testable
+		void test() {
+		}
+
+		/**
+		 * A helper the policy lists, which JUnit never runs as a test.
+		 *
+		 * @return a value
+		 */
+		int helper() {
+			return 1;
+		}
+	}
+
+	/** A class the policy lists, which has no tests. */
+	static class NoTests {
 	}
 
 	/** An interface whose default method is inherited through another one. */
 	interface GrandparentTests {
 		/** Read reflectively. */
+		@Testable
 		default void grandparentDefault() {
-			// Fixture only.
 		}
 	}
 
 	/** An interface with a default test method, as JUnit runs it. */
 	interface DefaultTests extends GrandparentTests {
 		/** Read reflectively. */
+		@Testable
 		default void interfaceDefault() {
-			// Fixture only.
 		}
 	}
 
@@ -421,8 +464,8 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FIXTURES + "PolicyHiddenTestsInheritedInterface.yaml")
 	static class InheritsInterfaceDefaults implements DefaultTests {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 	}
 
@@ -432,13 +475,13 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FIXTURES + "PolicyHiddenTestsUnlistedHidden.yaml")
 	static class UnlistedHidden {
 		/** Read reflectively. */
+		@Testable
 		void unlistedMethod() {
-			// Fixture only.
 		}
 
 		/** Read reflectively. */
+		@Testable
 		void publicMethod() {
-			// Fixture only.
 		}
 	}
 
@@ -447,8 +490,8 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Public
 	static class UnlistedHiddenButPublicClass {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 	}
 
@@ -456,8 +499,8 @@ class ConfigurationUtilsHiddenTestsTest {
 	@Policy(FIXTURES + "PolicyHiddenTestsUnmatchedPublic.yaml")
 	static class UnmatchedPublic {
 		/** Read reflectively. */
+		@Testable
 		void test() {
-			// Fixture only.
 		}
 	}
 }
