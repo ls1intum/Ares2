@@ -16,6 +16,7 @@ import org.junit.platform.commons.function.Try;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
 import de.tum.cit.ase.ares.api.context.TestContextUtils;
+import de.tum.cit.ase.ares.api.internal.ConfigurationUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
 /**
@@ -63,11 +64,13 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 
 	/**
 	 * Refuses enabled parallel execution before a test instance is built, whether
-	 * by its constructor or by a test instance factory.
+	 * by its constructor or by a test instance factory, and reads the class's
+	 * test-behaviour settings before any test code runs.
 	 */
 	@Override
 	public void preConstructTestInstance(TestInstanceFactoryContext factoryContext, ExtensionContext extensionContext) {
 		refuseParallelExecution(extensionContext);
+		ConfigurationUtils.prepareTestBehavior(JupiterContext.of(extensionContext));
 	}
 
 	/**
@@ -85,10 +88,11 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 * Arms the guard while the constructor of a test class runs and closes it
 	 * afterwards. For a per-method instance the policy is that of the test method.
 	 * If the guard cannot be armed, the constructor does not run and the test
-	 * fails, even one JUnit would skip, as the constructor may call student code. A
-	 * failed installation of the instrumentation is reported first. A shared
-	 * instance is built under the class context, so the guard is armed only for a
-	 * class with a policy.
+	 * fails, even one JUnit would skip, as the constructor may call student code,
+	 * and its failure is shown as the policy's feedback settings allow. A failed
+	 * installation of the instrumentation is reported first. A shared instance is
+	 * built under the class context, so the guard is armed only for a class with a
+	 * policy.
 	 */
 	@Override
 	public <T> T interceptTestClassConstructor(Invocation<T> invocation,
@@ -99,7 +103,7 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 				prepareSecurityOnce(extensionContext);
 			} catch (RuntimeException armingFailure) {
 				JavaInstrumentationAgent.throwIfActivationFailed();
-				throw armingFailure;
+				throw JupiterTestGuard.callbackFailure(extensionContext, armingFailure);
 			}
 		}
 		return interceptGenericInvocation(invocation, extensionContext, Optional.of(invocationContext));
@@ -137,7 +141,11 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 */
 	@Override
 	public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
-		prepareSecurityOnce(extensionContext);
+		try {
+			prepareSecurityOnce(extensionContext);
+		} catch (RuntimeException | Error failure) {
+			throw JupiterTestGuard.callbackFailure(extensionContext, failure);
+		}
 	}
 
 	/**
@@ -147,6 +155,7 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 */
 	private void prepareSecurityOnce(ExtensionContext extensionContext) {
 		refuseParallelExecution(extensionContext);
+		ConfigurationUtils.prepareTestBehavior(JupiterContext.of(extensionContext));
 		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
 		String stateKey = stateKey(extensionContext);
 		synchronized (store) {
@@ -196,7 +205,11 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 */
 	@Override
 	public void afterTestExecution(ExtensionContext extensionContext) throws Exception {
-		closeSecurityOnce(extensionContext);
+		try {
+			closeSecurityOnce(extensionContext);
+		} catch (RuntimeException | Error failure) {
+			throw JupiterTestGuard.callbackFailure(extensionContext, failure);
+		}
 	}
 
 	/**
@@ -206,7 +219,11 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 */
 	@Override
 	public void afterEach(ExtensionContext extensionContext) throws Exception {
-		closeSecurityOnce(extensionContext);
+		try {
+			closeSecurityOnce(extensionContext);
+		} catch (RuntimeException | Error failure) {
+			throw JupiterTestGuard.callbackFailure(extensionContext, failure);
+		}
 	}
 
 	/**

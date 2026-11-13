@@ -884,7 +884,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 				: null;
 		if (targetFromParameters != null
 				&& checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
-			throw new SecurityException(localize("security.advice.illegal.network.execution",
+			throw AresSecurityViolation.create("network", action, targetFromParameters.toDisplayString(), localize("security.advice.illegal.network.execution",
 					networkSystemMethodToCheck, localizeAction(action), targetFromParameters.toDisplayString(),
 					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));
@@ -910,7 +910,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 								NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT
 										.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughParameter != null) {
-			throw new SecurityException(localize("security.advice.illegal.network.execution",
+			throw AresSecurityViolation.create("network", action, networkIllegallyInteractedThroughParameter, localize("security.advice.illegal.network.execution",
 					networkSystemMethodToCheck, localizeAction(action), networkIllegallyInteractedThroughParameter,
 					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));
@@ -920,7 +920,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		@Nullable
 		NetworkTarget targetFromReceiver = variableToTarget(instance);
 		if (targetFromReceiver != null && checkIfNetworkIsForbidden(targetFromReceiver, allowedHosts, allowedPorts)) {
-			throw new SecurityException(localize("security.advice.illegal.network.execution",
+			throw AresSecurityViolation.create("network", action, targetFromReceiver.toDisplayString(), localize("security.advice.illegal.network.execution",
 					networkSystemMethodToCheck, localizeAction(action), targetFromReceiver.toDisplayString(),
 					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));
@@ -936,7 +936,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 						NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughAttribute != null) {
-			throw new SecurityException(localize("security.advice.illegal.network.execution",
+			throw AresSecurityViolation.create("network", action, networkIllegallyInteractedThroughAttribute, localize("security.advice.illegal.network.execution",
 					networkSystemMethodToCheck, localizeAction(action), networkIllegallyInteractedThroughAttribute,
 					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));

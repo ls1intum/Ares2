@@ -14,7 +14,6 @@ import de.tum.cit.ase.ares.api.localization.UseLocale;
 import de.tum.cit.ase.ares.integration.testuser.subject.PrivilegedExceptionPenguin;
 
 @UseLocale("en")
-@PrivilegedExceptionsOnly("ABC")
 @MirrorOutput(MirrorOutputPolicy.DISABLED)
 @StrictTimeout(value = 300, unit = TimeUnit.MILLISECONDS)
 @TestMethodOrder(MethodName.class)
@@ -29,19 +28,16 @@ public class PrivilegedExceptionUser {
 		PrivilegedExceptionPenguin.throwNullPointerException();
 	}
 
-	@PrivilegedExceptionsOnly("ABC")
 	@PublicTest
 	void nonprivilegedExceptionIntern() {
 		throw new NullPointerException("xy");
 	}
 
-	@PrivilegedExceptionsOnly("ABC")
 	@PublicTest
 	void nonprivilegedExceptionTry() {
 		PrivilegedExceptionPenguin.throwPrivilegedNullPointerException();
 	}
 
-	@PrivilegedExceptionsOnly("ABC")
 	@PublicTest
 	void privilegedExceptionFail() {
 		TestUtils.privilegedThrow(() -> {
@@ -49,7 +45,6 @@ public class PrivilegedExceptionUser {
 		});
 	}
 
-	@PrivilegedExceptionsOnly("ABC")
 	@PublicTest
 	void privilegedExceptionNormal() throws Exception {
 		TestUtils.privilegedThrow(() -> {
@@ -57,7 +52,6 @@ public class PrivilegedExceptionUser {
 		});
 	}
 
-	@PrivilegedExceptionsOnly("ABC")
 	@PublicTest
 	void privilegedTimeout() throws InterruptedException {
 		Thread.sleep(1000);

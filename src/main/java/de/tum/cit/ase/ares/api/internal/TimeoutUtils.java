@@ -133,7 +133,7 @@ public final class TimeoutUtils {
 
 	private static AssertionFailedError generateTimeoutFailure(Duration timeout, TestContext context) {
 		var failure = localizedFailure("timeout.failure_message", formatDuration(timeout)); //$NON-NLS-1$
-		if (TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class).isPresent()) {
+		if (ConfigurationUtils.getNonprivilegedFailureMessage(context).isPresent()) {
 			throw new PrivilegedException(failure);
 		}
 		return failure;
