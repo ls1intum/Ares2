@@ -94,19 +94,24 @@ public final class ReportingUtils {
 			return new AssertionError(localized("reporting.ares_internal_error")); //$NON-NLS-1$
 		}
 		Inspection inspection = inspect(t);
-		SecurityViolationFeedbackLevel level = ConfigurationUtils.getSecurityViolationFeedbackLevel(context);
+		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
+		if (inspection.violation() == null && nonprivilegedFailureMessage.isPresent()
+				&& !(t instanceof PrivilegedException)) {
+			return new AssertionError(nonprivilegedFailureMessage.get());
+		}
+		return inspectedReport(t, inspection, ConfigurationUtils.getSecurityViolationFeedbackLevel(context));
+	}
+
+	/**
+	 * The report of a failure whose own report may be shown: a blocked action at
+	 * the feedback level, the fixed text when the failure may hide one, and
+	 * otherwise the failure sanitised within the bound.
+	 */
+	private static Throwable inspectedReport(Throwable t, Inspection inspection, SecurityViolationFeedbackLevel level) {
 		if (inspection.violation() != null) {
 			return renderedViolation(t, inspection, level);
 		}
-		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
-		boolean sanitizedNext = nonprivilegedFailureMessage.isEmpty() || t instanceof PrivilegedException;
-		if (inspection.mayHideAViolation(level) && sanitizedNext) {
-			return uninspectable();
-		}
-		if (nonprivilegedFailureMessage.isPresent()) {
-			return processThrowablePrivilegedOnly(t, nonprivilegedFailureMessage.get(), inspection);
-		}
-		return sanitizedWithin(t, inspection);
+		return inspection.mayHideAViolation(level) ? uninspectable() : sanitizedWithin(t, inspection);
 	}
 
 	/**
@@ -126,16 +131,19 @@ public final class ReportingUtils {
 	 * Reports a failure of a test's constructor or lifecycle method like one of the
 	 * test: a blocked action at the policy's feedback level, and, when the policy
 	 * reports only privileged failures, any other failure as the policy's message.
-	 * A privileged failure and an aborted test keep their own report.
+	 * A privileged failure is reported as in a test, and an aborted test keeps its
+	 * own report.
 	 *
 	 * @param t       the failure.
 	 * @param context the test context.
 	 * @return the failure to report.
 	 */
 	public static Throwable processLifecycleFailure(Throwable t, TestContext context) {
+		if (t instanceof PrivilegedException) {
+			return inspectedReport(t, inspect(t), ConfigurationUtils.getSecurityViolationFeedbackLevel(context));
+		}
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
-		if (nonprivilegedFailureMessage.isEmpty() || t instanceof PrivilegedException
-				|| t instanceof IncompleteExecutionException) {
+		if (nonprivilegedFailureMessage.isEmpty() || t instanceof IncompleteExecutionException) {
 			return processBlockedAction(t, context);
 		}
 		Inspection inspection = inspect(t);
@@ -356,10 +364,14 @@ public final class ReportingUtils {
 	/**
 	 * Whether a class outside the Java runtime in a failure's hierarchy overrides a
 	 * method its failure superclasses declare, other than a trusted library
-	 * failure's own method ({@link #TRUSTED_LIBRARY_METHODS}).
+	 * failure's own method ({@link #TRUSTED_LIBRARY_METHODS}) or a method of a
+	 * failure Ares copies as a known safe type, such as JUnit's comparison failure.
 	 */
 	private static boolean overridesAFailureMethod(Class<?> type) {
 		for (Class<?> current = type; !isRuntimeClass(current); current = current.getSuperclass()) {
+			if (ThrowableSanitizer.isSafeType(current)) {
+				continue;
+			}
 			Set<String> trusted = TRUSTED_LIBRARY_METHODS.getOrDefault(current, Set.of());
 			Class<?> parent = current.getSuperclass();
 			if (Arrays.stream(current.getDeclaredMethods())
@@ -418,8 +430,10 @@ public final class ReportingUtils {
 	 * message calls such a member's constructor.
 	 */
 	private static boolean hasAStudentMember(AssertJMultipleFailuresError assertj) {
-		return assertj.getFailures().stream().anyMatch(member -> member != null && !isRuntimeClass(member.getClass())
-				&& !TRUSTED_LIBRARY_METHODS.containsKey(member.getClass()));
+		return assertj.getFailures().stream()
+				.anyMatch(member -> member != null && !isRuntimeClass(member.getClass())
+						&& !TRUSTED_LIBRARY_METHODS.containsKey(member.getClass())
+						&& !ThrowableSanitizer.isSafeType(member.getClass()));
 	}
 
 	/**
@@ -482,32 +496,23 @@ public final class ReportingUtils {
 		return rendered;
 	}
 
+	/**
+	 * Whether a failure is Ares failing to set itself up: a security exception
+	 * whose message carries both the Ares-Code reason and the settings class name.
+	 * Its message is read only when no class of it overrides a failure method, so
+	 * this check runs no student code before the bound starts.
+	 */
 	private static boolean isAresInternalError(Throwable t) {
-		if (!(t instanceof SecurityException)) {
+		if (!(t instanceof SecurityException) || overridesAFailureMethod(t.getClass())) {
 			return false;
 		}
 		String message = BlacklistedInvoker.invokeOrElse(t::getMessage, () -> null);
-		if (message == null) {
-			return false;
-		}
-		// Only suppress genuine framework setup failures: the message must carry the
-		// Ares-Code reason marker AND name the settings class. Requiring both markers
-		// avoids misclassifying a student-thrown SecurityException that merely mentions
-		// the class name (e.g. an assertion on "JavaAOPTestCaseSettings").
-		return message.contains("Reason: Ares-Code") //$NON-NLS-1$
+		return message != null && message.contains("Reason: Ares-Code") //$NON-NLS-1$
 				&& message.contains("JavaAOPTestCaseSettings"); //$NON-NLS-1$
 	}
 
 	private static Throwable processThrowableRegularly(Throwable t) {
 		return trySanitizeThrowable(t, ReportingUtils::transformMessage);
-	}
-
-	private static Throwable processThrowablePrivilegedOnly(Throwable t, String nonprivilegedFailureMessage,
-			Inspection inspection) {
-		if (t instanceof PrivilegedException) {
-			return sanitizedWithin(t, inspection);
-		}
-		return new AssertionError(nonprivilegedFailureMessage);
 	}
 
 	private static Throwable trySanitizeThrowable(Throwable t, MessageTransformer messageTransformer) {

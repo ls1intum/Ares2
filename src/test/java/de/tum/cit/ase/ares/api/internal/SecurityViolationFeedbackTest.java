@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -29,6 +30,7 @@ import org.opentest4j.MultipleFailuresError;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import de.tum.cit.ase.ares.api.Policy;
+import de.tum.cit.ase.ares.api.TestUtils;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.AresSecurityViolation;
 import de.tum.cit.ase.ares.api.context.TestContext;
 import de.tum.cit.ase.ares.api.context.TestType;
@@ -573,6 +575,61 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
+	 * At MINIMIZED, JUnit 4's comparison failure keeps its expected and actual
+	 * values, since Ares copies it as a known safe type, while a student subclass
+	 * whose own message adds a blocked action is still redacted.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void aJUnit4ComparisonKeepsItsValuesAtMinimized() throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		TestContext context = contextFor("minimizedPolicy");
+		AssertionError comparison = assertThrows(AssertionError.class, () -> org.junit.Assert.assertEquals("a", "b"));
+		assertThat(ReportingUtils.processThrowable(comparison, context)).isInstanceOf(org.junit.ComparisonFailure.class)
+				.hasMessageContaining("expected:<[a]>").hasMessageContaining("but was:<[b]>");
+		assertThat(ReportingUtils.processThrowable(new StudentComparisonFailure(realViolation()), context))
+				.hasMessage(UNINSPECTABLE_TEXT).hasNoSuppressedExceptions();
+	}
+
+	/**
+	 * A privileged failure of a setup method keeps its explanation, as it does in
+	 * the test itself, whichever failures the policy reports.
+	 *
+	 * @param policy the method carrying the policy.
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "privilegedOnlyPolicy", "privilegedFullPolicy", "minimizedPolicy", "noPolicy" })
+	void aPrivilegedLifecycleFailureKeepsItsExplanation(String policy) throws NoSuchMethodException {
+		PrivilegedException failure = assertThrows(PrivilegedException.class,
+				() -> TestUtils.privilegedFail("explanation"));
+		assertThat(ReportingUtils.processLifecycleFailure(failure, contextFor(policy)))
+				.isNotInstanceOf(PrivilegedException.class).hasMessage("explanation");
+	}
+
+	/**
+	 * A student security exception whose own getMessage runs until interrupted
+	 * cannot stop the report through the check for Ares's own setup failures, which
+	 * runs before the bound.
+	 *
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@Test
+	void aLoopingStudentSecurityExceptionCannotStopTheReport() throws NoSuchMethodException {
+		Locale.setDefault(Locale.ENGLISH);
+		TestContext context = contextFor("minimizedPolicy");
+		LoopingSecurityException failure = new LoopingSecurityException();
+		try {
+			Throwable reported = assertTimeoutPreemptively(Duration.ofSeconds(10),
+					() -> ReportingUtils.processThrowable(failure, context));
+			assertThat(reported).hasMessage(UNINSPECTABLE_TEXT);
+		} finally {
+			failure.looping = false;
+		}
+	}
+
+	/**
 	 * A failure whose own getMessage runs until interrupted, carrying a suppressed
 	 * blocked action, cannot stop the report at FULL: after the bound, the blocked
 	 * action is reported by itself, also with only privileged failures reported.
@@ -751,6 +808,64 @@ class SecurityViolationFeedbackTest {
 				Thread.onSpinWait();
 			}
 			return "looped";
+		}
+	}
+
+	/** A student security exception whose getMessage loops until interrupted. */
+	private static final class LoopingSecurityException extends SecurityException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/** Whether getMessage keeps looping; a test sets it to false to let it end. */
+		private transient volatile boolean looping = true;
+
+		/**
+		 * Waits while looping and not interrupted, as a slow override could.
+		 *
+		 * @return a text naming Ares's setup failure once it ends.
+		 */
+		@Override
+		public String getMessage() {
+			while (looping && !Thread.currentThread().isInterrupted()) {
+				Thread.onSpinWait();
+			}
+			return "Reason: Ares-Code JavaAOPTestCaseSettings";
+		}
+	}
+
+	/**
+	 * A student comparison failure whose message adds a blocked action it caught.
+	 */
+	private static final class StudentComparisonFailure extends org.junit.ComparisonFailure {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/** The blocked action this failure adds when its message is read. */
+		private final transient Throwable caught;
+
+		/**
+		 * Keeps a blocked action without adding it yet.
+		 *
+		 * @param caught the blocked action to add later.
+		 */
+		StudentComparisonFailure(Throwable caught) {
+			super("student", "a", "b");
+			this.caught = caught;
+		}
+
+		/**
+		 * Adds the blocked action, then returns JUnit's message.
+		 *
+		 * @return JUnit's message.
+		 */
+		@Override
+		public String getMessage() {
+			if (getSuppressed().length == 0) {
+				addSuppressed(caught);
+			}
+			return super.getMessage();
 		}
 	}
 
