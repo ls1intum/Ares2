@@ -250,6 +250,35 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
+	 * A student exception whose own getCause hands back a real blocked action is
+	 * not shown in full at MINIMIZED: the search skips that getter, so the report
+	 * says only that the failure could not be read completely.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void aWrapperWithItsOwnGetCauseIsRedactedAtMinimized() throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		Throwable reported = ReportingUtils.processThrowable(new WrappingException(realViolation()),
+				contextFor("minimizedPolicy"));
+		assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(UNINSPECTABLE_TEXT);
+		assertThat(reported.getStackTrace()).isEmpty();
+	}
+
+	/**
+	 * Without a feedback level below FULL, the same wrapper is reported as before.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void aWrapperWithItsOwnGetCauseKeepsItsReportAtFull() throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		Throwable reported = ReportingUtils.processThrowable(new WrappingException(realViolation()),
+				contextFor("noPolicy"));
+		assertThat(reported).hasMessageNotContaining(UNINSPECTABLE_TEXT);
+	}
+
+	/**
 	 * A blocked action behind more failures than the search reads is not shown in
 	 * full: the report says only that the failure could not be read completely.
 	 *
@@ -344,6 +373,36 @@ class SecurityViolationFeedbackTest {
 		public synchronized Throwable getCause() {
 			asked = true;
 			throw new AssertionError("student getCause");
+		}
+	}
+
+	/** A student exception whose own getCause returns a failure it was given. */
+	private static final class WrappingException extends RuntimeException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/** The failure this exception claims as its cause. */
+		private final transient Throwable wrapped;
+
+		/**
+		 * Wraps a failure without handing it to the superclass.
+		 *
+		 * @param wrapped the failure to return as the cause.
+		 */
+		WrappingException(Throwable wrapped) {
+			super("wrapped");
+			this.wrapped = wrapped;
+		}
+
+		/**
+		 * Returns the wrapped failure, as an override student code writes could.
+		 *
+		 * @return the wrapped failure.
+		 */
+		@Override
+		public synchronized Throwable getCause() {
+			return wrapped;
 		}
 	}
 
