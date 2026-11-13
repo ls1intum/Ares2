@@ -16,6 +16,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.api.SoftAssertionError;
 import org.assertj.core.error.AssertJMultipleFailuresError;
 import org.assertj.core.error.MultipleAssertionsError;
 import org.junit.jupiter.api.AfterEach;
@@ -496,7 +497,7 @@ class SecurityViolationFeedbackTest {
 	@ValueSource(booleans = { false, true })
 	void aStudentMemberListIsRedactedAtMinimized(boolean wrapped) throws ReflectiveOperationException {
 		Locale.setDefault(Locale.ENGLISH);
-		AddingList members = new AddingList(realViolation());
+		AddingList<AssertionError> members = new AddingList<>(realViolation());
 		members.add(new AssertionError("soft"));
 		MultipleAssertionsError failure = new MultipleAssertionsError(
 				wrapped ? java.util.Collections.unmodifiableList(members) : members);
@@ -504,6 +505,38 @@ class SecurityViolationFeedbackTest {
 		Throwable reported = ReportingUtils.processThrowable(failure, contextFor("minimizedPolicy"));
 		assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(UNINSPECTABLE_TEXT)
 				.hasNoSuppressedExceptions();
+	}
+
+	/**
+	 * At MINIMIZED, an AssertJ soft-assertion error whose error list is student
+	 * code is redacted, since copying the list could add a blocked action to it.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void aStudentSoftAssertionListIsRedactedAtMinimized() throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		AddingList<String> errors = new AddingList<>(realViolation());
+		errors.add("soft");
+		SoftAssertionError failure = new SoftAssertionError(errors);
+		errors.addTo(failure);
+		Throwable reported = ReportingUtils.processThrowable(failure, contextFor("minimizedPolicy"));
+		assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(UNINSPECTABLE_TEXT)
+				.hasNoSuppressedExceptions();
+	}
+
+	/**
+	 * At MINIMIZED, an AssertJ soft-assertion error with a plain list keeps its
+	 * report.
+	 *
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@Test
+	void aSoftAssertionErrorWithAPlainListKeepsItsReportAtMinimized() throws NoSuchMethodException {
+		Locale.setDefault(Locale.ENGLISH);
+		Throwable reported = ReportingUtils.processThrowable(
+				new SoftAssertionError(new java.util.ArrayList<>(List.of("soft"))), contextFor("minimizedPolicy"));
+		assertThat(reported).isInstanceOf(SoftAssertionError.class).hasMessageContaining("soft");
 	}
 
 	/**
@@ -1065,7 +1098,7 @@ class SecurityViolationFeedbackTest {
 	 * A student member list that adds a blocked action it caught to the error
 	 * holding it when the list is copied.
 	 */
-	private static final class AddingList extends java.util.ArrayList<AssertionError> {
+	private static final class AddingList<E> extends java.util.ArrayList<E> {
 
 		/** Serialisation version. */
 		private static final long serialVersionUID = 1L;

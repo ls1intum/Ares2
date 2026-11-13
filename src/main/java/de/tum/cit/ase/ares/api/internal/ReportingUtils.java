@@ -7,9 +7,11 @@ import java.lang.reflect.Modifier;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.Supplier;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
+import org.assertj.core.api.SoftAssertionError;
 import org.assertj.core.error.AssertJMultipleFailuresError;
 import org.assertj.core.error.MultipleAssertionsError;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
@@ -358,6 +360,8 @@ public final class ReportingUtils {
 		return overridesAFailureMethod(t.getClass())
 				|| t instanceof MultipleFailuresError && !declaredBy(t, "getFailures", MultipleFailuresError.class) //$NON-NLS-1$
 				|| t instanceof MultipleAssertionsError multiple && !hasSelfContainedErrors(multiple)
+				|| t instanceof SoftAssertionError soft
+						&& !holdsASelfContainedList(soft, SoftAssertionError.class, soft::getErrors)
 				|| t instanceof AssertJMultipleFailuresError assertj && hasAStudentMember(assertj);
 	}
 
@@ -417,11 +421,21 @@ public final class ReportingUtils {
 	 * and that list is one of {@link #SELF_CONTAINED_LISTS}.
 	 */
 	private static boolean hasSelfContainedErrors(MultipleAssertionsError multiple) {
-		if (!declaredBy(multiple, "getErrors", MultipleAssertionsError.class)) { //$NON-NLS-1$
+		return holdsASelfContainedList(multiple, MultipleAssertionsError.class, multiple::getErrors);
+	}
+
+	/**
+	 * Whether an AssertJ error uses the given AssertJ class's own {@code getErrors}
+	 * and that list is one of {@link #SELF_CONTAINED_LISTS}, so copying it cannot
+	 * run code a student wrote. Also used for AssertJ's soft-assertion error, whose
+	 * list the report copies.
+	 */
+	private static boolean holdsASelfContainedList(Throwable t, Class<?> owner, Supplier<List<?>> errors) {
+		if (!declaredBy(t, "getErrors", owner)) { //$NON-NLS-1$
 			return false;
 		}
-		List<?> errors = multiple.getErrors();
-		return errors != null && SELF_CONTAINED_LISTS.contains(errors.getClass());
+		List<?> list = errors.get();
+		return list != null && SELF_CONTAINED_LISTS.contains(list.getClass());
 	}
 
 	/**
