@@ -279,6 +279,58 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
+	 * At FULL with only privileged failures reported, a blocked action suppressed
+	 * on a student exception whose own getCause never returns is reported by
+	 * itself, and that getCause is never called.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void aViolationOnAWrapperWithItsOwnGetCauseIsReportedByItselfAtFull() throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		HangingCauseException wrapper = new HangingCauseException();
+		wrapper.addSuppressed(realViolation());
+		try {
+			Throwable reported = assertTimeoutPreemptively(Duration.ofSeconds(10),
+					() -> ReportingUtils.processThrowable(wrapper, contextFor("privilegedFullPolicy")));
+			assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(FULL);
+			assertThat(reported.getStackTrace()).isNotEmpty();
+			assertThat(HangingCauseException.asked).isFalse();
+		} finally {
+			HangingCauseException.asked = false;
+		}
+	}
+
+	/**
+	 * At MINIMIZED with only privileged failures reported, a privileged exception
+	 * carrying a student exception whose own getCause hands back a blocked action
+	 * is not shown in full.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void aPrivilegedCarrierWithItsOwnGetCauseIsRedactedAtMinimized() throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		Throwable reported = ReportingUtils.processThrowable(
+				new PrivilegedException(new WrappingException(realViolation())), contextFor("privilegedOnlyPolicy"));
+		assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(UNINSPECTABLE_TEXT);
+		assertThat(reported.getStackTrace()).isEmpty();
+	}
+
+	/**
+	 * With only privileged failures reported, an ordinary student wrapper whose own
+	 * getCause hands back a blocked action still gets the policy's message.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void anOrdinaryWrapperWithItsOwnGetCauseGetsThePolicyMessage() throws ReflectiveOperationException {
+		Throwable reported = ReportingUtils.processThrowable(new WrappingException(realViolation()),
+				contextFor("privilegedOnlyPolicy"));
+		assertThat(reported).isExactlyInstanceOf(AssertionError.class).hasMessage("Policy message");
+	}
+
+	/**
 	 * A blocked action behind more failures than the search reads is not shown in
 	 * full: the report says only that the failure could not be read completely.
 	 *
@@ -376,6 +428,30 @@ class SecurityViolationFeedbackTest {
 		}
 	}
 
+	/** A student exception whose own getCause would never return. */
+	private static final class HangingCauseException extends RuntimeException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/** Whether anything asked for the cause. */
+		private static volatile boolean asked;
+
+		/**
+		 * Records the call and then waits for ever, as a hostile override could.
+		 *
+		 * @return never.
+		 */
+		@Override
+		public synchronized Throwable getCause() {
+			asked = true;
+			while (asked) {
+				Thread.onSpinWait();
+			}
+			return null;
+		}
+	}
+
 	/** A student exception whose own getCause returns a failure it was given. */
 	private static final class WrappingException extends RuntimeException {
 
@@ -436,6 +512,16 @@ class SecurityViolationFeedbackTest {
 	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelPrivilegedMinimized.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject")
 	private static void privilegedOnlyPolicy() {
+		// A policy only, no test behaviour of its own.
+	}
+
+	/**
+	 * Carries a privileged-only policy at the default FULL level; used only through
+	 * the mocked context.
+	 */
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyPrivilegedExceptionUser.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject")
+	private static void privilegedFullPolicy() {
 		// A policy only, no test behaviour of its own.
 	}
 
