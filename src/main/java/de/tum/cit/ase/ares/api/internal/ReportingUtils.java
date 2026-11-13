@@ -8,6 +8,7 @@ import java.util.concurrent.*;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
+import org.assertj.core.error.MultipleAssertionsError;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
 import org.opentest4j.IncompleteExecutionException;
 import org.opentest4j.MultipleFailuresError;
@@ -37,16 +38,6 @@ public final class ReportingUtils {
 	 * it or calls student code, which may hold that lock or never return.
 	 */
 	private static final Duration INSPECTION_TIMEOUT = Duration.ofSeconds(2);
-
-	/**
-	 * The most worker threads that may run at once. A step that never ends keeps
-	 * its thread, so once all are taken the report is redacted instead.
-	 */
-	static final int MAX_INSPECTION_THREADS = 4;
-
-	/** Runs the bounded steps of a report on daemon threads, reusing idle ones. */
-	private static final ExecutorService INSPECTIONS = new ThreadPoolExecutor(0, MAX_INSPECTION_THREADS, 1L,
-			TimeUnit.SECONDS, new SynchronousQueue<>(), ReportingUtils::inspectionThread);
 
 	static {
 		// Initialize
@@ -188,31 +179,54 @@ public final class ReportingUtils {
 	}
 
 	/**
-	 * Runs one step of a report on a worker thread and waits at most
-	 * {@link #INSPECTION_TIMEOUT}; empty when it fails, does not finish in time, or
-	 * no worker is free.
+	 * Runs one step of a report on its own worker thread and waits at most
+	 * {@link #INSPECTION_TIMEOUT}; empty when it fails or does not finish in time.
+	 * A worker that still runs then is stopped as a timed-out strict timeout is: if
+	 * it ignores the interruption, the test run ends, so student code cannot
+	 * outlive the report and reach later tests.
 	 */
 	private static <R> Optional<R> withinTheBound(Callable<R> step) {
-		Future<R> running;
+		ExecutorService worker = Executors.newSingleThreadExecutor(ReportingUtils::inspectionThread);
+		Future<Optional<R>> running = worker.submit(() -> attempted(step));
 		try {
-			running = INSPECTIONS.submit(step);
-		} catch (RejectedExecutionException allWorkersTaken) {
-			return Optional.empty();
-		}
-		try {
-			return Optional.ofNullable(running.get(INSPECTION_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS));
+			return running.get(INSPECTION_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
 		} catch (TimeoutException | ExecutionException unfinished) {
-			running.cancel(true);
+			stop(running, worker);
 			return Optional.empty();
 		} catch (InterruptedException interrupted) {
-			running.cancel(true);
+			stop(running, worker);
 			Thread.currentThread().interrupt();
+			return Optional.empty();
+		} finally {
+			worker.shutdown();
+		}
+	}
+
+	/**
+	 * Runs a step on the worker and turns its failure into an empty result, so the
+	 * waiting thread never builds a message from a failure student code may have
+	 * thrown.
+	 */
+	@SuppressWarnings("PMD.AvoidCatchingThrowable")
+	private static <R> Optional<R> attempted(Callable<R> step) {
+		try {
+			return Optional.ofNullable(step.call());
+		} catch (Throwable failed) {
 			return Optional.empty();
 		}
 	}
 
 	/**
-	 * Creates a daemon worker thread for {@link #INSPECTIONS}.
+	 * Stops a worker that did not finish in time, ending the test run when it
+	 * ignores the interruption, as {@link TimeoutUtils} does for a strict timeout.
+	 */
+	private static void stop(Future<?> running, ExecutorService worker) {
+		TimeoutUtils.terminateTimedOutExecution(running, worker, TimeoutUtils.DEFAULT_TERMINATION_GRACE_PERIOD,
+				TimeoutUtils::terminateTheFork);
+	}
+
+	/**
+	 * Creates the daemon worker thread for one bounded step of a report.
 	 *
 	 * @param step what the worker runs.
 	 * @return the worker.
@@ -301,12 +315,24 @@ public final class ReportingUtils {
 
 	/**
 	 * Whether the search left out a getter of this failure because student code
-	 * overrides it: {@code getCause}, or {@code getFailures} of a multiple-failures
-	 * error.
+	 * overrides it: {@code getCause}, {@code getMessage}, which the report reads
+	 * and which may add a blocked action to the failure, or {@code getFailures} of
+	 * a multiple-failures error. The messages of the opentest4j and AssertJ
+	 * multiple-failure errors only join their members' messages.
 	 */
 	private static boolean hasSkippedGetter(Throwable t) {
-		return !declaredByTheRuntime(t, "getCause") //$NON-NLS-1$
+		return !declaredByTheRuntime(t, "getCause") || hasOwnMessage(t) //$NON-NLS-1$
 				|| t instanceof MultipleFailuresError && !declaredBy(t, "getFailures", MultipleFailuresError.class); //$NON-NLS-1$
+	}
+
+	/**
+	 * Whether a failure's {@code getMessage} is neither the Java runtime's nor the
+	 * one of the opentest4j or AssertJ multiple-failure errors.
+	 */
+	private static boolean hasOwnMessage(Throwable t) {
+		return !declaredByTheRuntime(t, "getMessage") //$NON-NLS-1$
+				&& !declaredBy(t, "getMessage", MultipleFailuresError.class) //$NON-NLS-1$
+				&& !declaredBy(t, "getMessage", MultipleAssertionsError.class); //$NON-NLS-1$
 	}
 
 	/**
