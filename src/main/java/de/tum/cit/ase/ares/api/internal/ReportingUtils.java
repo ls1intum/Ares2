@@ -72,10 +72,11 @@ public final class ReportingUtils {
 		Inspection inspection = inspect(t);
 		SecurityViolationFeedbackLevel level = ConfigurationUtils.getSecurityViolationFeedbackLevel(context);
 		if (inspection.violation() != null) {
-			return renderedViolation(t, inspection.violation(), level);
+			return renderedViolation(t, inspection, level);
 		}
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
-		if (!inspection.complete() || inspection.mayHideAViolation(level) && nonprivilegedFailureMessage.isEmpty()) {
+		boolean sanitizedNext = nonprivilegedFailureMessage.isEmpty() || t instanceof PrivilegedException;
+		if (!inspection.complete() || inspection.mayHideAViolation(level) && sanitizedNext) {
 			return uninspectable();
 		}
 		if (nonprivilegedFailureMessage.isPresent()) {
@@ -100,26 +101,29 @@ public final class ReportingUtils {
 				|| inspection.violation() == null && !inspection.mayHideAViolation(level)) {
 			return t;
 		}
-		return inspection.violation() == null ? uninspectable() : renderedViolation(t, inspection.violation(), level);
+		return inspection.violation() == null ? uninspectable() : renderedViolation(t, inspection, level);
 	}
 
 	/**
 	 * What the search for a blocked action found: a violation, nothing, or, when it
 	 * could not finish, an unknown result.
 	 *
-	 * @param violation the blocked action found, or null.
-	 * @param complete  whether every carried failure was read.
-	 * @param skipped   whether a failure's own {@code getCause} or
-	 *                  {@code getFailures} was skipped, since it may still carry a
-	 *                  blocked action the report would later reveal.
+	 * @param violation      the blocked action found, or null.
+	 * @param complete       whether every carried failure was read.
+	 * @param skipped        whether a failure's own {@code getCause} or
+	 *                       {@code getFailures} was skipped, since it may still
+	 *                       carry a blocked action the report would later reveal,
+	 *                       or run student code when read.
+	 * @param violationStack the stack of the blocked action found, empty when none.
 	 */
-	private record Inspection(SecurityViolationFeedback.Violation violation, boolean complete, boolean skipped) {
+	private record Inspection(SecurityViolationFeedback.Violation violation, boolean complete, boolean skipped,
+			List<StackTraceElement> violationStack) {
 
 		/** Every failure was read and none was a blocked action. */
-		static final Inspection NONE = new Inspection(null, true, false);
+		static final Inspection NONE = new Inspection(null, true, false, List.of());
 
 		/** The search stopped before reading every failure. */
-		static final Inspection INCOMPLETE = new Inspection(null, false, false);
+		static final Inspection INCOMPLETE = new Inspection(null, false, false, List.of());
 
 		/**
 		 * Whether a failure with no blocked action found may still carry one: the
@@ -181,13 +185,13 @@ public final class ReportingUtils {
 				Optional<SecurityViolationFeedback.Violation> violation = SecurityViolationFeedback
 						.violationOf(current);
 				if (violation.isPresent()) {
-					return new Inspection(violation.get(), true, false);
+					return new Inspection(violation.get(), true, skipped, List.of(current.getStackTrace()));
 				}
 				skipped |= hasSkippedGetter(current);
 				pending.addAll(carriedBy(current));
 			}
 		}
-		return pending.isEmpty() ? new Inspection(null, true, skipped) : Inspection.INCOMPLETE;
+		return pending.isEmpty() ? new Inspection(null, true, skipped, List.of()) : Inspection.INCOMPLETE;
 	}
 
 	/**
@@ -253,13 +257,20 @@ public final class ReportingUtils {
 
 	/**
 	 * Reports a blocked action at the policy's feedback level. {@code FULL} reports
-	 * the failure as before; the other levels replace it, without stack for
-	 * {@code MINIMIZED}.
+	 * the failure as before, unless reading it would call a getter student code
+	 * overrides; then it reports the blocked action itself. The other levels
+	 * replace it, without stack for {@code MINIMIZED}.
 	 */
-	private static Throwable renderedViolation(Throwable t, SecurityViolationFeedback.Violation violation,
+	private static Throwable renderedViolation(Throwable t, Inspection inspection,
 			SecurityViolationFeedbackLevel level) {
-		if (level == SecurityViolationFeedbackLevel.FULL) {
+		SecurityViolationFeedback.Violation violation = inspection.violation();
+		if (level == SecurityViolationFeedbackLevel.FULL && !inspection.skipped()) {
 			return processThrowableRegularly(t);
+		}
+		if (level == SecurityViolationFeedbackLevel.FULL) {
+			SecurityException itself = new SecurityException(violation.message());
+			itself.setStackTrace(inspection.violationStack().toArray(StackTraceElement[]::new));
+			return itself;
 		}
 		SecurityException rendered = new SecurityException(SecurityViolationFeedback.render(violation, level));
 		if (level == SecurityViolationFeedbackLevel.MINIMIZED) {
