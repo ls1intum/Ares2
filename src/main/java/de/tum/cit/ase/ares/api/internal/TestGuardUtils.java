@@ -9,7 +9,6 @@ import java.time.*;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
@@ -17,6 +16,8 @@ import org.slf4j.*;
 
 import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.context.*;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyDuration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.VisibilityAndScheduleConfiguration;
 
 /**
  * This class handles public/hidden tests and deadline evaluation.
@@ -33,13 +34,13 @@ public final class TestGuardUtils {
 	 * the ones in {@link ZoneId#SHORT_IDS} do as well.
 	 */
 	private static final String ZONE_ID_START_PATTERN = "[-+A-Za-z].*"; //$NON-NLS-1$
-	private static final Pattern DURATION_PATTERN = Pattern
-			.compile("(?:(?<d>\\d++)d)?\\s*+(?:\\b(?<h>\\d++)h)?\\s*+(?:\\b(?<m>\\d++)m)?", Pattern.CASE_INSENSITIVE); //$NON-NLS-1$
 
 	private TestGuardUtils() {
 	}
 
 	public static void checkForHidden(TestContext context) {
+		Optional<VisibilityAndScheduleConfiguration> policy = ConfigurationUtils
+				.findPolicyVisibilityAndSchedule(context);
 		if (hasAnnotationType(context, TestType.HIDDEN)) {
 			// check if there are both, that would be a mistake
 			if (hasAnnotationType(context, TestType.PUBLIC)) {
@@ -47,13 +48,13 @@ public final class TestGuardUtils {
 						localized("test_guard.test_cannot_be_public_and_hidden", context.displayName())); //$NON-NLS-1$
 			}
 			var now = ZonedDateTime.now();
-			var finalDeadline = extractDeadline(context);
+			var finalDeadline = extractDeadline(context, policy);
 			// check if now is after the deadline including extensions
 			if (now.isAfter(finalDeadline)) {
 				return;
 			}
 			// check if now is in the activate hidden tests period
-			Optional<ZonedDateTime> activationBefore = extractActivationBefore(context);
+			Optional<ZonedDateTime> activationBefore = extractActivationBefore(context, policy);
 			if (activationBefore.map(now::isBefore).orElse(false)) {
 				return;
 			}
@@ -76,6 +77,22 @@ public final class TestGuardUtils {
 
 	public static ResolvedDeadlineAnnotations resolveDeadlineAnnotations(Optional<Class<?>> testClass,
 			Optional<Method> testMethod) {
+		return resolveDeadlineAnnotations(testClass, testMethod, Optional.empty());
+	}
+
+	/**
+	 * Resolves the effective deadline with the policy as the outermost level: a
+	 * method {@code @Deadline} first, then a class one, then the policy's, each
+	 * with the extensions that apply to it. The flags report annotations only, so
+	 * the policy never counts as a deadline annotation on a public test.
+	 *
+	 * @param testClass  the test's class.
+	 * @param testMethod the test's method.
+	 * @param policy     the active policy's hidden-test schedule, if any.
+	 * @return the effective deadline and which annotations were found
+	 */
+	public static ResolvedDeadlineAnnotations resolveDeadlineAnnotations(Optional<Class<?>> testClass,
+			Optional<Method> testMethod, Optional<VisibilityAndScheduleConfiguration> policy) {
 		Optional<ZonedDateTime> methodDeadline = getDeadlineOf(testMethod);
 		Optional<Duration> methodExtension = getExtensionDurationOf(testMethod);
 		Optional<ZonedDateTime> classDeadline = getDeadlineOf(testClass);
@@ -84,7 +101,9 @@ public final class TestGuardUtils {
 		if (methodDeadline.isPresent()) {
 			effectiveDeadline = methodDeadline.map(value -> value.plus(methodExtension.orElse(Duration.ZERO)));
 		} else {
-			effectiveDeadline = classDeadline.map(value -> value.plus(classExtension.orElse(Duration.ZERO)))
+			effectiveDeadline = classDeadline
+					.or(() -> policy.map(VisibilityAndScheduleConfiguration::effectiveDeadline))
+					.map(value -> value.plus(classExtension.orElse(Duration.ZERO)))
 					.map(value -> value.plus(methodExtension.orElse(Duration.ZERO)));
 		}
 		return new ResolvedDeadlineAnnotations(effectiveDeadline, methodDeadline.isPresent(), classDeadline.isPresent(),
@@ -96,7 +115,22 @@ public final class TestGuardUtils {
 	}
 
 	public static ZonedDateTime extractDeadline(TestContext context) {
-		var deadline = extractDeadline(context.testClass(), context.testMethod());
+		return extractDeadline(context, ConfigurationUtils.findPolicyVisibilityAndSchedule(context));
+	}
+
+	/**
+	 * The effective deadline of a hidden test, with the policy as the outermost
+	 * level.
+	 *
+	 * @param context the test's context.
+	 * @param policy  the active policy's hidden-test schedule, if any.
+	 * @return the deadline
+	 * @throws AnnotationFormatError when no annotation and no policy sets one
+	 */
+	public static ZonedDateTime extractDeadline(TestContext context,
+			Optional<VisibilityAndScheduleConfiguration> policy) {
+		var deadline = resolveDeadlineAnnotations(context.testClass(), context.testMethod(), policy)
+				.effectiveDeadline();
 		if (deadline.isPresent()) {
 			return deadline.get();
 		}
@@ -119,8 +153,22 @@ public final class TestGuardUtils {
 	}
 
 	public static Optional<ZonedDateTime> extractActivationBefore(TestContext context) {
+		return extractActivationBefore(context, ConfigurationUtils.findPolicyVisibilityAndSchedule(context));
+	}
+
+	/**
+	 * The date before which a hidden test always runs: a method
+	 * {@code @ActivateHiddenBefore} first, then a class one, then the policy's.
+	 *
+	 * @param context the test's context.
+	 * @param policy  the active policy's hidden-test schedule, if any.
+	 * @return the date, if any level sets one
+	 */
+	public static Optional<ZonedDateTime> extractActivationBefore(TestContext context,
+			Optional<VisibilityAndScheduleConfiguration> policy) {
 		var methodLevel = getActivationBeforeOf(context.testMethod());
-		return methodLevel.or(() -> getActivationBeforeOf(context.testClass()));
+		return methodLevel.or(() -> getActivationBeforeOf(context.testClass()))
+				.or(() -> policy.flatMap(VisibilityAndScheduleConfiguration::alwaysRunBefore));
 	}
 
 	public static Optional<ZonedDateTime> getDeadlineOf(Optional<? extends AnnotatedElement> element) {
@@ -201,14 +249,8 @@ public final class TestGuardUtils {
 	 */
 	@API(status = Status.INTERNAL)
 	public static Duration parseDuration(String durationString) {
-		var matcher = DURATION_PATTERN.matcher(durationString);
-		if (!matcher.matches()) {
-			throw new AnnotationFormatError(localized("test_guard.invalid_extended_deadline_format", durationString)); //$NON-NLS-1$
-		}
-		int d = Optional.ofNullable(matcher.group("d")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
-		int h = Optional.ofNullable(matcher.group("h")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
-		int m = Optional.ofNullable(matcher.group("m")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
-		var duration = Duration.ofDays(d).plusHours(h).plusMinutes(m);
+		var duration = PolicyDuration.tryParse(durationString).orElseThrow(() -> new AnnotationFormatError(
+				localized("test_guard.invalid_extended_deadline_format", durationString))); //$NON-NLS-1$
 		if (duration.isZero() || duration.isNegative()) {
 			throw new AnnotationFormatError(localized("test_guard.extended_deadline_zero_or_negative", durationString)); //$NON-NLS-1$
 		}
