@@ -9,10 +9,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.JupiterContext;
+import de.tum.cit.ase.ares.testutilities.MockStores;
 
 /**
  * Checks that a policy's test behaviour is read once per file and test class,
@@ -49,6 +47,22 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 
 		ConfigurationUtils.prepareTestBehavior(context);
 		write(CLASS_POLICY, "9s");
+
+		assertThat(ConfigurationUtils.findPolicyFailureFeedback(context).orElseThrow()
+				.theFailureMessageForOtherExceptionsIs()).isEqualTo("2s");
+	}
+
+	/**
+	 * A policy file removed after the first read keeps its settings for the same
+	 * class, since the earlier reading is used before the file is looked for.
+	 */
+	@Test
+	void aRemovedPolicyKeepsItsFirstReading() throws Exception {
+		ExtensionContext classContext = classContext();
+		JupiterContext context = JupiterContext.of(methodContext(classContext, "classPolicyTest"));
+
+		ConfigurationUtils.prepareTestBehavior(context);
+		Files.delete(Path.of(CLASS_POLICY));
 
 		assertThat(ConfigurationUtils.findPolicyFailureFeedback(context).orElseThrow()
 				.theFailureMessageForOtherExceptionsIs()).isEqualTo("2s");
@@ -119,12 +133,7 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 	 */
 	private static ExtensionContext classContext() {
 		ExtensionContext classContext = mock(ExtensionContext.class);
-		Map<Object, Object> values = new HashMap<>();
-		ExtensionContext.Store store = mock(ExtensionContext.Store.class);
-		when(store.getOrComputeIfAbsent(any(), any(), any())).thenAnswer(call -> {
-			Function<Object, Object> creator = call.getArgument(1);
-			return values.computeIfAbsent(call.getArgument(0), creator);
-		});
+		ExtensionContext.Store store = MockStores.workingStore();
 		when(classContext.getStore(any())).thenReturn(store);
 		when(classContext.getTestClass()).thenReturn(Optional.of(CacheFixture.class));
 		when(classContext.getTestMethod()).thenReturn(Optional.empty());
@@ -157,19 +166,16 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 
 		/** Uses the class policy. */
 		void classPolicyTest() {
-			// Read through the mocked context only.
 		}
 
 		/** Uses its own policy. */
 		@Policy(METHOD_POLICY)
 		void methodPolicyTest() {
-			// Read through the mocked context only.
 		}
 
 		/** Uses a deactivated policy. */
 		@Policy(value = CLASS_POLICY, activated = false)
 		void deactivatedPolicyTest() {
-			// Read through the mocked context only.
 		}
 	}
 }

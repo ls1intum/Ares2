@@ -25,13 +25,16 @@ class FeedbackLevelPolicyTest {
 	/** The MINIMIZED text, in English. */
 	private static final String MINIMIZED = "Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.";
 
-	/** FULL keeps the detailed message, in every mode. */
+	/**
+	 * FULL keeps the detailed message, in every mode: the action is named, which
+	 * the MINIMIZED text never does.
+	 */
 	@TestTest
 	void test_full() {
 		for (String test : new String[] { "fullArchunitAspectj", "fullArchunitInstrumentation", "fullWalaAspectj",
 				"fullWalaInstrumentation" }) {
 			tests.assertThatEvents().haveExactly(1,
-					testFailedWith(test, SecurityException.class, "was blocked by Ares", Option.MESSAGE_CONTAINS));
+					testFailedWith(test, SecurityException.class, "tried to illegally", Option.MESSAGE_CONTAINS));
 		}
 	}
 

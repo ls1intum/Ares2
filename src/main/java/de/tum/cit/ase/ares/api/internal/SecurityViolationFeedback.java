@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.internal;
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -26,6 +27,10 @@ public final class SecurityViolationFeedback {
 			"de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation",
 			"de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.AresSecurityViolation",
 			"de.tum.cit.ase.ares.api.architecture.java.AresSecurityViolation");
+
+	/** The permission flags of a file entry, in the order the manual lists them. */
+	private static final List<String> FILE_FLAGS = List.of("readAllFiles", "overwriteAllFiles", "createAllFiles",
+			"executeAllFiles", "deleteAllFiles");
 
 	/** The stage every blocked action reports. */
 	private static final String STAGE = "Execution";
@@ -85,13 +90,15 @@ public final class SecurityViolationFeedback {
 		case "network" -> "regardingNetworkConnections";
 		case "command" -> "regardingCommandExecutions";
 		case "thread" -> "regardingThreadCreations";
+		case "import" -> "regardingPackageImports";
 		default -> "theFollowingResourceAccessesArePermitted";
 		};
 	}
 
 	/**
-	 * Returns the entry that would allow the action: exact for a file, a
-	 * description otherwise, and the category alone for the architecture stage.
+	 * Returns the entry that would allow the action: a complete file entry the
+	 * policy reader accepts, with every other permission off, a description
+	 * otherwise, and the category alone for the architecture stage.
 	 *
 	 * @param violation the violation.
 	 * @return the entry, as YAML or as words.
@@ -101,10 +108,51 @@ public final class SecurityViolationFeedback {
 			return "an entry for " + violation.action();
 		}
 		if ("file".equals(violation.kind())) {
-			return "{ onThisPathAndAllPathsBelow: \"" + violation.target() + "\", " + fileFlagOf(violation.action())
-					+ ": true }";
+			return fileEntryOf(violation);
 		}
 		return "an entry that allows " + violation.action() + " for " + violation.target();
+	}
+
+	/**
+	 * Builds a file entry granting only the flag for the violation's action.
+	 *
+	 * @param violation the file violation.
+	 * @return the entry, as a YAML flow mapping.
+	 */
+	private static String fileEntryOf(Violation violation) {
+		String granted = fileFlagOf(violation.action());
+		StringBuilder entry = new StringBuilder("{ onThisPathAndAllPathsBelow: ")
+				.append(yamlString(violation.target()));
+		for (String flag : FILE_FLAGS) {
+			entry.append(", ").append(flag).append(": ").append(flag.equals(granted));
+		}
+		return entry.append(" }").toString();
+	}
+
+	/**
+	 * Quotes a value as a double-quoted YAML scalar, escaping backslashes, quotes
+	 * and control characters, so a Windows path reads back unchanged.
+	 *
+	 * @param value the value.
+	 * @return the quoted value.
+	 */
+	static String yamlString(String value) {
+		StringBuilder quoted = new StringBuilder("\"");
+		value.codePoints().forEach(c -> quoted.append(yamlEscape(c)));
+		return quoted.append('"').toString();
+	}
+
+	/**
+	 * Escapes one code point for a double-quoted YAML scalar.
+	 *
+	 * @param c the code point.
+	 * @return the code point, escaped where YAML requires it.
+	 */
+	private static String yamlEscape(int c) {
+		if (c == '\\' || c == '"') {
+			return "\\" + (char) c;
+		}
+		return c < 0x20 || c == 0x7f ? String.format(java.util.Locale.ROOT, "\\x%02x", c) : Character.toString(c);
 	}
 
 	/**
@@ -134,7 +182,7 @@ public final class SecurityViolationFeedback {
 	 * Guesses the resource kind of an architecture-stage action from its words.
 	 *
 	 * @param action the action.
-	 * @return file, network, command, thread or other.
+	 * @return file, network, command, thread, import or other.
 	 */
 	private static String kindFromAction(String action) {
 		String lower = action.toLowerCase(java.util.Locale.ROOT);
@@ -149,6 +197,9 @@ public final class SecurityViolationFeedback {
 		}
 		if (lower.contains("thread")) {
 			return "thread";
+		}
+		if (lower.contains("import")) {
+			return "import";
 		}
 		return "other";
 	}
