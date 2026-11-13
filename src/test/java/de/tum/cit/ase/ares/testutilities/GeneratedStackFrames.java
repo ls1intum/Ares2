@@ -112,14 +112,22 @@ public final class GeneratedStackFrames {
 	private final ClassLoader plantedLoader;
 
 	/**
+	 * A loader a student made, which defines both the generated timeout and a copy
+	 * of the localisation class from one place of its own.
+	 */
+	private final ClassLoader forgedLoader;
+
+	/**
 	 * Holds the loaders of the compiled stand-ins.
 	 *
 	 * @param loader        the loader of the stand-ins beside the copied checks.
 	 * @param plantedLoader the loader that finds a planted copy first.
+	 * @param forgedLoader  the loader that brings its own copy of both classes.
 	 */
-	private GeneratedStackFrames(ClassLoader loader, ClassLoader plantedLoader) {
+	private GeneratedStackFrames(ClassLoader loader, ClassLoader plantedLoader, ClassLoader forgedLoader) {
 		this.loader = loader;
 		this.plantedLoader = plantedLoader;
+		this.forgedLoader = forgedLoader;
 	}
 
 	/**
@@ -133,12 +141,15 @@ public final class GeneratedStackFrames {
 	public static GeneratedStackFrames compile(Path folder) throws IOException {
 		Path trusted = Files.createDirectories(folder.resolve("trusted"));
 		Path planted = Files.createDirectories(folder.resolve("planted"));
+		Path forged = Files.createDirectories(folder.resolve("forged"));
 		compileInto(trusted, SOURCES);
 		compileInto(planted, Map.of(GENERATED_HOOK, SOURCES.get(GENERATED_HOOK)));
+		compileInto(forged, SOURCES);
 		URL trustedUrl = trusted.toUri().toURL();
 		ClassLoader parent = GeneratedStackFrames.class.getClassLoader();
 		return new GeneratedStackFrames(new URLClassLoader(new URL[] { trustedUrl }, parent),
-				new URLClassLoader(new URL[] { planted.toUri().toURL(), trustedUrl }, parent));
+				new URLClassLoader(new URL[] { planted.toUri().toURL(), trustedUrl }, parent),
+				new URLClassLoader(new URL[] { forged.toUri().toURL() }, parent));
 	}
 
 	/**
@@ -200,7 +211,8 @@ public final class GeneratedStackFrames {
 	 * @throws Exception if a call fails
 	 */
 	public void verifyTimeoutExemption(Class<?> backend) throws Exception {
-		Method copied = backend.getDeclaredMethod("isThreadCreationFromAresTimeout", String.class, String.class);
+		Method copied = backend.getDeclaredMethod("isThreadCreationFromAresTimeout", String.class, String.class,
+				ClassLoader.class);
 		Method own = backend.getDeclaredMethod("isThreadCreationFromAresTimeout", String.class);
 		copied.setAccessible(true);
 		own.setAccessible(true);
@@ -211,6 +223,8 @@ public final class GeneratedStackFrames {
 				GENERATED_HOOK_FACTORY, "newThread"), "its thread factory's frame must be skipped");
 		Assertions.assertFalse(exempted(copied, plantedLoader, nothing, GENERATED_HOOK, "executeWithTimeout"),
 				"a planted copy loaded from the student's output must not be exempt");
+		Assertions.assertFalse(exempted(copied, forgedLoader, nothing, GENERATED_HOOK, "executeWithTimeout"),
+				"a loader that brings its own copy of both classes must not be exempt");
 		Assertions.assertFalse(exempted(own, loader, nothing, GENERATED_HOOK, "executeWithTimeout"),
 				"Ares's own check must never exempt a generated class");
 		Assertions.assertFalse(
@@ -230,7 +244,7 @@ public final class GeneratedStackFrames {
 	/**
 	 * The check's verdict when called from inside the given stand-in frames.
 	 *
-	 * @param classifier        the backend's check, with one or two parameters.
+	 * @param classifier        the backend's check, with one or three parameters.
 	 * @param from              the loader the stand-ins come from.
 	 * @param restrictedPackage the student package the check is given.
 	 * @param path              the stand-in methods to nest, outermost first, as
@@ -238,10 +252,10 @@ public final class GeneratedStackFrames {
 	 * @return whether the check exempts the thread creation
 	 * @throws Exception if a call fails
 	 */
-	private static boolean exempted(Method classifier, ClassLoader from, String restrictedPackage, String... path)
+	private boolean exempted(Method classifier, ClassLoader from, String restrictedPackage, String... path)
 			throws Exception {
-		Object[] arguments = classifier.getParameterCount() == 2
-				? new Object[] { restrictedPackage, COPIED_CHECKS_PREFIX }
+		Object[] arguments = classifier.getParameterCount() == 3
+				? new Object[] { restrictedPackage, COPIED_CHECKS_PREFIX, loader }
 				: new Object[] { restrictedPackage };
 		Callable<?> body = () -> classifier.invoke(null, arguments);
 		for (int index = path.length - 2; index >= 0; index -= 2) {

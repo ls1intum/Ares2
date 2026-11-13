@@ -172,7 +172,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 *         machinery, {@code false} otherwise
 	 */
 	private static boolean isThreadCreationFromAresTimeout(@Nullable String restrictedPackage) {
-		return isThreadCreationFromAresTimeout(restrictedPackage, copiedChecksPrefix());
+		return isThreadCreationFromAresTimeout(restrictedPackage, copiedChecksPrefix(), trustedLoader());
 	}
 
 	/**
@@ -183,11 +183,12 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * @param restrictedPackage  the configured restricted (student) package prefix
 	 * @param copiedChecksPrefix the prefix of this class's package, up to
 	 *                           {@code ares.api.}
+	 * @param trustedLoader      the loader the copied checks were loaded by
 	 * @return {@code true} if the thread creation belongs to Ares' timeout
 	 *         machinery, {@code false} otherwise
 	 */
 	private static boolean isThreadCreationFromAresTimeout(@Nullable String restrictedPackage,
-			@Nonnull String copiedChecksPrefix) {
+			@Nonnull String copiedChecksPrefix, @Nonnull ClassLoader trustedLoader) {
 		return java.lang.StackWalker.getInstance(java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE).walk(frames -> {
 			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
@@ -198,7 +199,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 				}
 				if (GENERATED_STRICT_TIMEOUT.equals(className)
 						|| className.startsWith(GENERATED_STRICT_TIMEOUT + "$")) {
-					if (!isBesideTheCopiedChecks(frame.getDeclaringClass(), copiedChecksPrefix)) {
+					if (!isBesideTheCopiedChecks(frame.getDeclaringClass(), copiedChecksPrefix, trustedLoader)) {
 						return Boolean.FALSE;
 					}
 					if (GENERATED_STRICT_TIMEOUT.equals(className)) {
@@ -236,20 +237,39 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
-	 * Whether a class was loaded from the same place as the localisation class
-	 * copied beside these checks. A precompile run writes the generated timeout and
-	 * that copy into the same test sources; in Ares itself the class is Ares's own,
-	 * so no generated class qualifies, and a student's class with the same name,
-	 * loaded from the student's output, never does.
+	 * The loader these checks were loaded by, or the application loader when they
+	 * sit on the boot class path, where a precompile exercise's own classes are
+	 * not.
+	 *
+	 * @return the loader the copied checks and the generated hooks share
+	 */
+	@Nonnull
+	private static ClassLoader trustedLoader() {
+		ClassLoader own = JavaInstrumentationAdviceThreadSystemToolbox.class.getClassLoader();
+		return own != null ? own : ClassLoader.getSystemClassLoader();
+	}
+
+	/**
+	 * Whether a class was loaded by the copied checks' own loader, from the same
+	 * place as the localisation class copied beside them. A precompile run writes
+	 * the generated timeout and that copy into the same test sources; in Ares
+	 * itself no copy exists, so no generated class qualifies. The copy is looked up
+	 * through the trusted loader, never the candidate's, so a class loader a
+	 * student made cannot bring both classes from one place.
 	 *
 	 * @param type               the class on the stack.
 	 * @param copiedChecksPrefix the prefix of the copied checks' package.
-	 * @return true when both have the same known location
+	 * @param trustedLoader      the loader the copied checks were loaded by.
+	 * @return true when both come from that loader and the same known location
 	 */
-	private static boolean isBesideTheCopiedChecks(@Nonnull Class<?> type, @Nonnull String copiedChecksPrefix) {
+	private static boolean isBesideTheCopiedChecks(@Nonnull Class<?> type, @Nonnull String copiedChecksPrefix,
+			@Nonnull ClassLoader trustedLoader) {
 		try {
 			Class<?> messages = Class.forName(copiedChecksPrefix + "ares.api.localization.Messages", false,
-					type.getClassLoader());
+					trustedLoader);
+			if (type.getClassLoader() != messages.getClassLoader()) {
+				return false;
+			}
 			java.security.CodeSource source = type.getProtectionDomain().getCodeSource();
 			java.security.CodeSource copied = messages.getProtectionDomain().getCodeSource();
 			return source != null && copied != null && source.getLocation() != null && copied.getLocation() != null

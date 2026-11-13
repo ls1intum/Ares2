@@ -198,6 +198,32 @@ class GeneratedOutputMirroringTest {
 	}
 
 	/**
+	 * A character whose two UTF-8 bytes arrive in separate flushed writes is valid,
+	 * since the first byte is kept until the second arrives.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aCharacterSplitAcrossFlushesIsValid() throws Exception {
+		assertThat(failureMessages(run(silent, "SplitUtf8Fixture", Locale.ENGLISH).results())).isEmpty();
+	}
+
+	/**
+	 * A character still unfinished when the test ends fails the test with the
+	 * localised message, while text printed without a final flush passes.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aCharacterUnfinishedAtTheEndFails() throws Exception {
+		String prefix = bundle(Locale.ENGLISH).getString("output_tester.output_is_invalid_utf8").split("%s")[0];
+
+		assertThat(failureMessages(run(silent, "UnfinishedUtf8Fixture", Locale.ENGLISH).results())).singleElement()
+				.asString().startsWith(prefix);
+		assertThat(failureMessages(run(silent, "UnflushedTextFixture", Locale.ENGLISH).results())).isEmpty();
+	}
+
+	/**
 	 * A test closing {@code System.out} sees its later writes fail, while the real
 	 * console stays open.
 	 *
@@ -560,7 +586,13 @@ class GeneratedOutputMirroringTest {
 		fixture(folder, "HiddenMirrorMirrorFirst", "",
 				"@org.junit.jupiter.api.extension.ExtendWith({ de.tum.cit.ase.ares.generated.GeneratedOutputMirroring.class, de.tum.cit.ase.ares.generated.GeneratedHiddenTests.class }) @Test void writes() { System.out.print(\"HOUT\"); System.err.print(\"HERR\"); }");
 		fixture(folder, "InvalidUtf8Fixture", "",
+				"@Test void writes() { System.out.write(new byte[] { (byte) 0xC3, (byte) 0x28 }, 0, 2); System.out.flush(); }");
+		fixture(folder, "UnfinishedUtf8Fixture", "",
 				"@Test void writes() { System.out.write(new byte[] { (byte) 0xC3 }, 0, 1); System.out.flush(); }");
+		fixture(folder, "UnflushedTextFixture", "", "@Test void writes() { System.out.print(\"\u00e4 done\"); }");
+		fixture(folder, "SplitUtf8Fixture", "",
+				"@Test void writes() { System.out.write(new byte[] { (byte) 0xC3 }, 0, 1); System.out.flush();"
+						+ " System.out.write(new byte[] { (byte) 0xA4 }, 0, 1); System.out.flush(); }");
 		fixture(folder, "ClosedFixture", "",
 				"@Test void writes() { System.out.close(); System.out.print(\"x\"); Assertions.assertTrue(System.out.checkError()); }");
 		fixture(folder, "ParallelFixture",
