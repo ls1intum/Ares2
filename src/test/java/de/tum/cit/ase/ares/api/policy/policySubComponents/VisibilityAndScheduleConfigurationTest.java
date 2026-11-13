@@ -90,6 +90,17 @@ class VisibilityAndScheduleConfigurationTest {
 				.isEqualTo(ZonedDateTime.parse("2026-12-26T11:59+01:00[Europe/Berlin]"));
 	}
 
+	/**
+	 * An extension that would carry the deadline past the last representable date
+	 * is refused when the policy is read, naming the field, not later while a test
+	 * is scheduled.
+	 */
+	@Test
+	void anExtensionPastTheLastDateIsRefused() {
+		assertThatThrownBy(() -> base().theDeadlineIsExtendedBy("9223372036854775807s").build())
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("theDeadlineIsExtendedBy");
+	}
+
 	/** A missing or blank deadline is refused. */
 	@Test
 	void aMissingDeadlineIsRefused() {
@@ -228,6 +239,22 @@ class VisibilityAndScheduleConfigurationTest {
 		assertThat(hiddenMethod.visibilityOf(Other.class, Optional.of("rest"))).contains(TestType.PUBLIC);
 	}
 
+	/**
+	 * A method entry naming the class that declares an inherited test covers the
+	 * subclass's run of it, and the subclass's own method entry wins over it.
+	 */
+	@Test
+	void aMethodEntryOnTheDeclaringClassCoversAnInheritedTest() {
+		String base = Base.class.getCanonicalName();
+		VisibilityAndScheduleConfiguration inherited = base().hiddenTests(base + "#check").build();
+		VisibilityAndScheduleConfiguration nearer = base().hiddenTests(base + "#check")
+				.publicTests(Derived.class.getCanonicalName() + "#check").build();
+
+		assertThat(inherited.visibilityOf(Derived.class, Optional.of("check"))).contains(TestType.HIDDEN);
+		assertThat(inherited.visibilityOf(Derived.class, Optional.of("other"))).isEmpty();
+		assertThat(nearer.visibilityOf(Derived.class, Optional.of("check"))).contains(TestType.PUBLIC);
+	}
+
 	/** A nested class entry wins over its enclosing class entry. */
 	@Test
 	void aNestedClassEntryWinsOverItsEnclosingClass() {
@@ -296,5 +323,13 @@ class VisibilityAndScheduleConfigurationTest {
 
 	/** A fixture class one of whose methods is listed. */
 	static class Other {
+	}
+
+	/** A fixture class that declares a test its subclass inherits. */
+	static class Base {
+	}
+
+	/** A fixture class inheriting the tests of {@link Base}. */
+	static class Derived extends Base {
 	}
 }
