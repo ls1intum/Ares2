@@ -10,9 +10,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * Checks both runtime-check copies of Ares's blocked-action exception: code
- * outside the copy's own checking package cannot create a real one, directly or
- * through reflection, so a student cannot forge the short or hinted report.
+ * Checks both runtime-check copies of Ares's blocked-action exception: their
+ * factory, called directly or reflectively, gives code outside the copy's own
+ * checking package only a plain exception, and no constructor is public.
+ * Forcing a private constructor open with {@code setAccessible} is not covered.
  */
 class AresSecurityViolationTest {
 

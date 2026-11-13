@@ -58,9 +58,7 @@ final class HiddenTestsWriter {
 	@Nonnull
 	GeneratedHookFiles.Contribution write(@Nonnull TestBehaviorConfiguration configuration, @Nonnull String packageName,
 			@Nonnull Path testFolderPath) {
-		VisibilityAndScheduleConfiguration hiddenTests = configuration
-				.regardingTheVisibilityAndScheduleOfTheTestCases();
-		if (hiddenTests == null) {
+		if (!contributes(configuration)) {
 			hookFiles.deleteGenerated(testFolderPath, HiddenTestsSources.JUPITER_HOOK);
 			hookFiles.deleteGenerated(testFolderPath, HiddenTestsSources.JUPITER_SENTINEL);
 			return GeneratedHookFiles.Contribution.NONE;
@@ -117,5 +115,16 @@ final class HiddenTestsWriter {
 		if (!matches) {
 			throw new SecurityException(Messages.localized("security.writer.hidden.tests.unmatched", field, entry));
 		}
+	}
+
+	/**
+	 * Whether the policy needs the hook: it sets the visibility and schedule
+	 * category.
+	 *
+	 * @param configuration the policy's behaviour configuration.
+	 * @return true when the category is present
+	 */
+	static boolean contributes(@Nonnull TestBehaviorConfiguration configuration) {
+		return configuration.regardingTheVisibilityAndScheduleOfTheTestCases() != null;
 	}
 }

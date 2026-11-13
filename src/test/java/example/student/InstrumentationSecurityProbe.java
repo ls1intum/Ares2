@@ -32,6 +32,18 @@ public final class InstrumentationSecurityProbe {
 				"()Ljava/io/InputStream;", null, new Object[0], fileUrl);
 	}
 
+	/**
+	 * Simulates {@code Files.newOutputStream(path)} creating a file, as student
+	 * code might call it.
+	 *
+	 * @param path the file to create.
+	 */
+	public static void checkFilesNewOutputStreamCreate(Path path) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.nio.file.Files",
+				"newOutputStream", "(Ljava/nio/file/Path;[Ljava/nio/file/OpenOption;)Ljava/io/OutputStream;", null,
+				new Object[] { path, new java.nio.file.OpenOption[0] }, null);
+	}
+
 	public static void checkDeleteIfExists(Path path) {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("delete", "java.nio.file.Files",
 				"deleteIfExists", "(Ljava/nio/file/Path;)Z", null, new Object[] { path }, null);

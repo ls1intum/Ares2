@@ -47,7 +47,7 @@ final class FailureReportingWriter {
 	@Nonnull
 	GeneratedHookFiles.Contribution write(@Nonnull TestBehaviorConfiguration configuration, @Nonnull String packageName,
 			@Nonnull Path testFolderPath) {
-		if (!isEnabled(configuration)) {
+		if (!contributes(configuration)) {
 			hookFiles.deleteGenerated(testFolderPath, FailureReportingSources.JUPITER_HOOK);
 			hookFiles.deleteGenerated(testFolderPath, FailureReportingSources.JUPITER_SENTINEL);
 			return GeneratedHookFiles.Contribution.NONE;
@@ -68,7 +68,7 @@ final class FailureReportingWriter {
 	 * @param configuration the policy's behaviour configuration.
 	 * @return true when either setting differs from its default
 	 */
-	private static boolean isEnabled(@Nonnull TestBehaviorConfiguration configuration) {
+	static boolean contributes(@Nonnull TestBehaviorConfiguration configuration) {
 		FailureFeedbackConfiguration category = configuration.regardingTheFailureFeedbackForTheTestCases();
 		return category != null
 				&& (category.privilegedOnly() || category.feedbackLevel() != SecurityViolationFeedbackLevel.FULL);

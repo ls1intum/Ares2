@@ -43,7 +43,7 @@ class StrictTimeoutWriterTest extends GeneratedHookWriterProject {
 		assertThat(generated.jupiterHooks()).containsExactly(StrictTimeoutSources.JUPITER_HOOK);
 		assertThat(source(StrictTimeoutSources.JUPITER_HOOK)).content()
 				.contains("public final class GeneratedStrictTimeout implements InvocationInterceptor")
-				.contains("public static <T> T executeWithTimeout(")
+				.contains("private static <T> T executeWithTimeout(")
 				.contains("future.get(timeoutNanos, TimeUnit.NANOSECONDS)")
 				.contains("com.example.ares.api.localization.Messages.localized(\"timeout.failure_message\"").contains(
 						"de.tum.cit.ase.ares.generated.GeneratedTestBehaviorSettings.REGARDING_THE_STRICT_TIMEOUT_THE_TIMEOUT_NANOS");

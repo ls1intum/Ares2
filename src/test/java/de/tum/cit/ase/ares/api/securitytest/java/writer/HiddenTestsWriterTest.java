@@ -97,6 +97,39 @@ class HiddenTestsWriterTest {
 				public interface Flying extends Gliding {
 				}
 				""");
+		Files.writeString(base.resolve("Containers.java"), """
+				package com.example.base;
+
+				public final class Containers {
+					public abstract static class Base {
+						@org.junit.jupiter.api.Test
+						void checks() {
+						}
+					}
+
+					public abstract static class Other {
+						@org.junit.jupiter.api.Test
+						void swims() {
+						}
+					}
+				}
+				""");
+		Files.writeString(folder.resolve("ChecksTest.java"), """
+				package com.example;
+
+				import static com.example.base.Containers.Base;
+
+				class ChecksTest extends Base {
+				}
+				""");
+		Files.writeString(folder.resolve("SwimsTest.java"), """
+				package com.example;
+
+				import static com.example.base.Containers.*;
+
+				class SwimsTest extends Other {
+				}
+				""");
 		Files.writeString(folder.resolve("ParrotTest.java"), """
 				package com.example;
 
@@ -140,14 +173,16 @@ class HiddenTestsWriterTest {
 
 	/**
 	 * Entries naming a class, a method, a nested class, a method in a nested class,
-	 * a method inherited from a superclass in another package and one inherited
-	 * from an interface through another interface all match.
+	 * a method inherited from a superclass in another package, one inherited from
+	 * an interface through another interface, and one inherited from a nested class
+	 * brought in by a static single or wildcard import all match.
 	 *
 	 * @param entry the entry.
 	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "com.example.PenguinTest", "com.example.PenguinTest#name", "com.example.PenguinTest.Inner",
-			"com.example.PenguinTest.Inner#deep", "com.example.ParrotTest#flies", "com.example.ParrotTest#glides" })
+			"com.example.PenguinTest.Inner#deep", "com.example.ParrotTest#flies", "com.example.ParrotTest#glides",
+			"com.example.ChecksTest#checks", "com.example.SwimsTest#swims" })
 	void matchingEntriesAreAccepted(String entry) {
 		assertThat(writer(null).write(configured(entry), PACKAGE, testFolder).jupiterHooks()).isNotEmpty();
 	}

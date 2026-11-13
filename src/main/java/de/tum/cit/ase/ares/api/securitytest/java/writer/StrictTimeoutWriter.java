@@ -45,7 +45,7 @@ final class StrictTimeoutWriter {
 	@Nonnull
 	GeneratedHookFiles.Contribution write(@Nonnull TestBehaviorConfiguration configuration, @Nonnull String packageName,
 			@Nonnull Path testFolderPath) {
-		if (configuration.regardingTheStrictTimeoutForTheTestCases() == null) {
+		if (!contributes(configuration)) {
 			removeAll(testFolderPath);
 			return GeneratedHookFiles.Contribution.NONE;
 		}
@@ -66,5 +66,15 @@ final class StrictTimeoutWriter {
 	private void removeAll(@Nonnull Path testFolderPath) {
 		hookFiles.deleteGenerated(testFolderPath, StrictTimeoutSources.JUPITER_HOOK);
 		hookFiles.deleteGenerated(testFolderPath, StrictTimeoutSources.JUPITER_SENTINEL);
+	}
+
+	/**
+	 * Whether the policy needs the hook: it sets a strict timeout.
+	 *
+	 * @param configuration the policy's behaviour configuration.
+	 * @return true when the category is present
+	 */
+	static boolean contributes(@Nonnull TestBehaviorConfiguration configuration) {
+		return configuration.regardingTheStrictTimeoutForTheTestCases() != null;
 	}
 }

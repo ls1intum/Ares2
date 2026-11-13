@@ -165,7 +165,7 @@ final class FailureReportingSources {
 				 * @return the failure to report
 				 */
 				static Throwable architectureReplacementFor(Throwable throwable, String category) {
-					if (isHiddenResult(throwable) || "FULL".equals(@SETTINGS@.@LEVEL@)) {
+					if (isHiddenResult(throwable) || "FULL".equals(@SETTINGS@.@LEVEL@) || isAresConfigurationError(throwable)) {
 						return throwable;
 					}
 					SecurityException rendered;
@@ -179,6 +179,19 @@ final class FailureReportingSources {
 						rendered.setStackTrace(new StackTraceElement[0]);
 					}
 					return rendered;
+				}
+
+				/**
+				 * Whether a failure is Ares's own configuration error, such as a scope that
+				 * matches no compiled class, rather than a blocked access. Its text is kept, so
+				 * the instructor sees the problem instead of a blocked-access message.
+				 *
+				 * @param throwable the real failure
+				 * @return true when its reason names Ares's own code
+				 */
+				static boolean isAresConfigurationError(Throwable throwable) {
+					String message = String.valueOf(throwable.getMessage());
+					return message.contains("(Reason: Ares-Code;") || message.contains("(Grund: Ares-Code;");
 				}
 
 				/**
@@ -439,9 +452,10 @@ final class FailureReportingSources {
 
 				/**
 				 * The failure to report instead of the real one. A blocked action follows the
-				 * policy's feedback level; with privileged-only reporting on, a skipped test
-				 * stays skipped without its reason, a timeout shows the fixed text, and
-				 * everything else the policy's message.
+				 * policy's feedback level; with privileged-only reporting on, a blocked action
+				 * wrapped in another failure is reported on its own, a skipped test stays
+				 * skipped without its reason, a timeout shows the fixed text, and everything
+				 * else the policy's message.
 				 *
 				 * @param throwable the real failure
 				 * @return the failure to report
@@ -454,8 +468,11 @@ final class FailureReportingSources {
 					if (violation != null && !"FULL".equals(@SETTINGS@.@LEVEL@)) {
 						return renderedViolation(violation);
 					}
-					if (!@SETTINGS@.@ENABLED@ || violation != null) {
+					if (!@SETTINGS@.@ENABLED@) {
 						return throwable;
+					}
+					if (violation != null) {
+						return violation;
 					}
 					if (throwable instanceof TestAbortedException) {
 						return new TestAbortedException();
@@ -472,7 +489,7 @@ final class FailureReportingSources {
 				/** Finds a blocked action of the copied Ares checks in a failure or its causes. */
 				private static Throwable violationIn(Throwable throwable) {
 					java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-					for (Throwable current = throwable; current != null && seen.add(current); current = current.getCause()) {
+					for (Throwable current = throwable; current != null && seen.add(current); current = causeOf(current)) {
 						String type = current.getClass().getName();
 						if (type.equals("@PACKAGE@.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation")
 								|| type.equals("@PACKAGE@.ares.api.aop.java.instrumentation.advice.AresSecurityViolation")) {
@@ -480,6 +497,15 @@ final class FailureReportingSources {
 						}
 					}
 					return null;
+				}
+
+				/** A failure's cause, or none when a student-written getCause throws. */
+				private static Throwable causeOf(Throwable throwable) {
+					try {
+						return throwable.getCause();
+					} catch (RuntimeException | LinkageError faulty) {
+						return null;
+					}
 				}
 
 				/**

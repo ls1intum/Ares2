@@ -2,10 +2,16 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Checks the behavioural wrapper and the literal constants a precompile run
@@ -106,6 +112,50 @@ class TestBehaviorConfigurationTest {
 				.contains("THE_FOLLOWING_TESTS_ARE_HIDDEN = \"org.example.A\\norg.example.B#m\";")
 				.contains("THE_FOLLOWING_TESTS_ARE_PUBLIC = \"org.example.C\";")
 				.contains("TESTS_NOT_LISTED_HERE_ARE_HIDDEN = true;");
+	}
+
+	/**
+	 * A hidden list too long for one Java string literal still compiles, and the
+	 * generated field holds every entry in order.
+	 *
+	 * @param folder where the generated class is written and compiled.
+	 * @throws Exception if writing, compiling or loading fails
+	 */
+	@Test
+	void aLongHiddenListStillCompiles(@TempDir Path folder) throws Exception {
+		List<String> hidden = IntStream.range(0, 4000)
+				.mapToObj(i -> "org.example.longlist.SomeRatherLongTestClassName" + i + "#method").toList();
+		String written = assignments(
+				TestBehaviorConfiguration.builder()
+						.regardingTheVisibilityAndScheduleOfTheTestCases(VisibilityAndScheduleConfiguration.builder()
+								.theDeadlineIs("2000-01-01 00:00 UTC").testsNotListedHereAreHidden(false)
+								.hiddenTests(hidden.toArray(String[]::new)).build())
+						.build());
+		assertThat(written).contains("THE_FOLLOWING_TESTS_ARE_HIDDEN = String.join(");
+		assertThat(String.join("\n", hidden)).hasSizeGreaterThan(65_535);
+		Object field = compileAndRead(folder, written,
+				"REGARDING_THE_VISIBILITY_AND_SCHEDULE_THE_FOLLOWING_TESTS_ARE_HIDDEN");
+		assertThat(List.of(((String) field).split("\n"))).containsExactlyElementsOf(hidden);
+	}
+
+	/**
+	 * Compiles the assignments into a class and reads one of its fields.
+	 *
+	 * @param folder      where the class is written and compiled.
+	 * @param assignments the field assignments.
+	 * @param fieldName   the field to read.
+	 * @return the field's value
+	 * @throws Exception if writing, compiling or loading fails
+	 */
+	private static Object compileAndRead(Path folder, String assignments, String fieldName) throws Exception {
+		Path source = Files.writeString(folder.resolve("LongSettings.java"),
+				"public final class LongSettings {" + System.lineSeparator() + assignments + "}");
+		Path output = Files.createDirectories(folder.resolve("classes"));
+		de.tum.cit.ase.ares.testutilities.GeneratedCodeRuns.compile(output, List.of(), source);
+		try (URLClassLoader loader = new URLClassLoader(
+				de.tum.cit.ase.ares.testutilities.GeneratedCodeRuns.classPath(List.of(output)), null)) {
+			return loader.loadClass("LongSettings").getField(fieldName).get(null);
+		}
 	}
 
 	/** All four categories together write every field once. */

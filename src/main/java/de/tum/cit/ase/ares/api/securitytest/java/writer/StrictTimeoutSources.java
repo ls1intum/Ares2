@@ -240,19 +240,16 @@ final class StrictTimeoutSources {
 				 * waited for to the nanosecond and converted before the worker starts. A worker
 				 * that does not stop within the grace period halts the test process, since it
 				 * would otherwise keep running untrusted code. The thread-creation
-				 * check exempts exactly this method, by name.
+				 * check exempts exactly this method, by name; it is private, so only this
+				 * hook's interceptors reach it. A hidden test's timeout shows no text.
 				 *
 				 * @param <T>          the action's result
 				 * @param action       the action to bound
 				 * @param defaultGrace the grace period when the policy names none
+				 * @param context      the test's context, for its visibility
 				 * @return the action's result
 				 * @throws Throwable whatever the action threw, or a timeout naming the limit
 				 */
-				public static <T> T executeWithTimeout(TimedAction<T> action, Duration defaultGrace) throws Throwable {
-					return executeWithTimeout(action, defaultGrace, null);
-				}
-
-				/** Runs a bounded action and hides its timeout when visibility is hidden. */
 				private static <T> T executeWithTimeout(TimedAction<T> action, Duration defaultGrace,
 						ExtensionContext context) throws Throwable {
 					Duration timeout = timeout();
@@ -300,7 +297,7 @@ final class StrictTimeoutSources {
 
 				/** A timed-out hidden result with no student-facing details. */
 				private static final class HiddenTestFailure extends AssertionError {
-					/** Serialization identifier for the generated marker. */
+					/** Serialisation identifier for the generated marker. */
 					private static final long serialVersionUID = 1L;
 
 					/** Removes the generated marker's stack. */

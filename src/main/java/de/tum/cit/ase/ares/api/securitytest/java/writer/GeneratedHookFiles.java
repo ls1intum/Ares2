@@ -147,6 +147,20 @@ final class GeneratedHookFiles {
 	}
 
 	/**
+	 * Fails, before anything is written, when the instructor's JUnit settings would
+	 * contradict registering a hook, so a refused run leaves the exercise
+	 * unchanged.
+	 *
+	 * @param resourcesPath the test resources root.
+	 * @throws SecurityException naming file and key when the settings contradict
+	 *                           the registration
+	 */
+	void requireRegistrable(@Nonnull Path resourcesPath) {
+		requireNoConflictingSetting(confine.apply(resourcesPath.resolve(PLATFORM_PROPERTIES)));
+		requireNoAutodetectionSettingInBuildFiles();
+	}
+
+	/**
 	 * Writes one generated source file into the reserved package.
 	 *
 	 * @param testFolderPath the test source root.

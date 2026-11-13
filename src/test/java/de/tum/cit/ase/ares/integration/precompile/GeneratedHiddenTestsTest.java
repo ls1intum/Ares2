@@ -293,10 +293,21 @@ class GeneratedHiddenTestsTest {
 	 */
 	@Test
 	void hiddenLifecycleAndConstructorsAreOpaque() throws Exception {
-		assertThat(failureMessages(run(future, "LifecycleFixture", Locale.ENGLISH))).containsExactly("");
 		assertThat(failureMessages(run(future, "ConstructorFixture", Locale.ENGLISH))).containsExactly("");
 		assertThat(failureMessages(run(past, "LifecycleFixture", Locale.ENGLISH))).containsExactly("");
 		assertThat(failureMessages(run(past, "ConstructorFixture", Locale.ENGLISH))).containsExactly("");
+	}
+
+	/**
+	 * Before the deadline, a hidden test's own setup does not run either: the test
+	 * reports only that it is held back, not the setup's failure.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aHiddenTestsSetupIsHeldBackBeforeTheDeadline() throws Exception {
+		assertThat(failureMessages(run(future, "LifecycleFixture", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
 	}
 
 	/**
