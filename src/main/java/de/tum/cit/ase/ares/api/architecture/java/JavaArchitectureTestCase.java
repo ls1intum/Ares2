@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.architecture.java;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -239,6 +240,67 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	// TODO Markus: Move to better fitting class
 
 	/**
+	 * Tells whether a caller is one of Ares's own architecture checks, a class in
+	 * an Ares architecture package loaded by Ares's own loader, which student code
+	 * cannot be. Only then may a blocked-action exception be built from text.
+	 *
+	 * @param caller the calling class.
+	 * @return whether the caller is an Ares architecture check.
+	 */
+	private static boolean calledByArchitectureCheck(@Nonnull Class<?> caller) {
+		return caller.getPackageName().startsWith("de.tum.cit.ase.ares.api.architecture.")
+				&& caller.getClassLoader() == JavaArchitectureTestCase.class.getClassLoader();
+	}
+
+	/** Separates the action, the target and the message of a cached violation. */
+	private static final char CACHED_FIELD_SEPARATOR = '\u0000';
+
+	/**
+	 * The form in which an architecture outcome cache keeps a blocked action, so
+	 * {@link #violationFromMessage} can rebuild it with its action and target, or
+	 * nothing when the failure is not one of this package's violations.
+	 *
+	 * @param failure the failure a check raised.
+	 * @return the action, target and message, or nothing.
+	 */
+	public static Optional<String> cachedFormOf(@Nonnull Throwable failure) {
+		if (!(failure instanceof AresSecurityViolation violation)) {
+			return Optional.empty();
+		}
+		return Optional.of(violation.action() + CACHED_FIELD_SEPARATOR + violation.target() + CACHED_FIELD_SEPARATOR
+				+ violation.getMessage());
+	}
+
+	/**
+	 * Rebuilds a blocked-action exception from what an architecture check gave
+	 * earlier, such as one WALA kept in its outcome cache, so the feedback level
+	 * still applies to it: the form {@link #cachedFormOf} wrote, or a bare message.
+	 *
+	 * @param message the message the check gave.
+	 * @return the exception to throw.
+	 */
+	public static SecurityException violationFromMessage(@Nonnull String message) {
+		if (!calledByArchitectureCheck(
+				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass())) {
+			return new SecurityException(message);
+		}
+		int first = message.indexOf(CACHED_FIELD_SEPARATOR);
+		int second = first < 0 ? -1 : message.indexOf(CACHED_FIELD_SEPARATOR, first + 1);
+		if (second > first) {
+			return AresSecurityViolation.create("architecture", message.substring(0, first),
+					message.substring(first + 1, second), message.substring(second + 1));
+		}
+		@Nonnull
+		String action = "reach";
+		int start = message.indexOf(" tried to illegally ");
+		int end = start < 0 ? -1 : message.indexOf(" via ", start);
+		if (start >= 0 && end > start) {
+			action = message.substring(start + " tried to illegally ".length(), end);
+		}
+		return AresSecurityViolation.create("architecture", action, "unknown", message);
+	}
+
+	/**
 	 * Parses the error message of an assertion error to provide more descriptive
 	 * security violation messages. Extracts relevant information from Archunit's
 	 * error messages and creates a standardized security exception.
@@ -250,6 +312,10 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 *                           security violation
 	 */
 	public static void parseErrorMessage(@Nonnull AssertionError e) {
+		if (!calledByArchitectureCheck(
+				StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass())) {
+			throw new SecurityException(Messages.localized("security.archunit.illegal.execution", e.getMessage()));
+		}
 		Objects.requireNonNull(e, "error must not be null");
 		@Nullable
 		String message = e.getMessage();
@@ -258,7 +324,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		String[] messageParts = e.getMessage().split("\n");
 		Objects.requireNonNull(messageParts, "messageParts must not be null");
 		if (messageParts.length < 2) {
-			throw new SecurityException(Messages.localized("security.archunit.illegal.execution", e.getMessage()));
+			throw AresSecurityViolation.create("architecture", "reach", "unknown",
+					Messages.localized("security.archunit.illegal.execution", e.getMessage()));
 		}
 
 		// Extract the rule name (e.g., "Accesses file system") from first line
@@ -321,12 +388,13 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
 			if (forbiddenPackages.isEmpty()) {
 				// Fallback if no packages could be extracted
-				throw new SecurityException(
+				throw AresSecurityViolation.create("architecture", "import", "unknown package",
 						Messages.localized("security.archunit.package.import.violation", "unknown package"));
 			}
 
 			String firstPackage = forbiddenPackages.iterator().next();
-			throw new SecurityException(Messages.localized("security.archunit.package.import.violation", firstPackage));
+			throw AresSecurityViolation.create("architecture", "import", firstPackage,
+					Messages.localized("security.archunit.package.import.violation", firstPackage));
 		}
 
 		// Parse the detail line to extract caller and target method info.
@@ -389,8 +457,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nonnull
 		String action = mapRuleNameToAction(ruleName);
 
-		throw new SecurityException(Messages.localized("security.archunit.violation.error", callerResolved, action,
-				targetResolved, parentCaller));
+		throw AresSecurityViolation.create("architecture", action, targetResolved, Messages
+				.localized("security.archunit.violation.error", callerResolved, action, targetResolved, parentCaller));
 	}
 
 	/**

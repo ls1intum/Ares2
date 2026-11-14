@@ -826,8 +826,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		if (!isFilesMethod && count == 3 && (parameters[2] == null || parameters[2] instanceof File)) {
 			return parameters[2];
 		}
-		throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
-				fileSystemMethodToCheck, fullMethodSignature));
+		throw AresSecurityViolation.create(UNINSPECTABLE, "create", fullMethodSignature,
+				localize("security.advice.file.system.malformed.temp.file.creation", fileSystemMethodToCheck,
+						fullMethodSignature));
 	}
 
 	/**
@@ -864,7 +865,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			return;
 		}
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
-		throw new SecurityException(
+		throw AresSecurityViolation.create("file", "create", violation,
 				localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, "create", violation,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
@@ -928,7 +929,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		if (violation == null) {
 			return;
 		}
-		throw new SecurityException(
+		throw AresSecurityViolation.create("file", actionLabel, violation,
 				localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, actionLabel, violation,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
@@ -1619,8 +1620,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					pathIllegallyInteractedThroughParameter);
 			if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess && !isJarResourceRead
 					&& !isEntropySourceRead && !isJdkTempFileCreation) {
-				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
-						messageAction, pathIllegallyInteractedThroughParameter,
+				throw AresSecurityViolation.create("file", action, pathIllegallyInteractedThroughParameter, localize(
+						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
+						pathIllegallyInteractedThroughParameter,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
@@ -1650,8 +1652,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 
 			if (!isInternalAllowed) {
-				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
-						messageAction, pathIllegallyInteractedThroughReceiver,
+				throw AresSecurityViolation.create("file", action, pathIllegallyInteractedThroughReceiver, localize(
+						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
+						pathIllegallyInteractedThroughReceiver,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));
@@ -1690,8 +1693,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 
 			if (!isInternalAllowed) {
-				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
-						messageAction, pathIllegallyInteractedThroughAttribute,
+				throw AresSecurityViolation.create("file", action, pathIllegallyInteractedThroughAttribute, localize(
+						"security.advice.illegal.file.execution", fileSystemMethodToCheck, messageAction,
+						pathIllegallyInteractedThroughAttribute,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));

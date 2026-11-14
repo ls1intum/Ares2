@@ -795,8 +795,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		for (String threadClassName : threadClassNames) {
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), threadClassAllowedToBeCreated,
 					threadNumberAllowedToBeCreated, decrementQuota)) {
-				throw new SecurityException(localize("security.advice.illegal.thread.execution",
-						threadSystemMethodToCheck, action, threadClassName,
+				throw AresSecurityViolation.create("thread", action, threadClassName, localize(
+						"security.advice.illegal.thread.execution", threadSystemMethodToCheck, action, threadClassName,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));

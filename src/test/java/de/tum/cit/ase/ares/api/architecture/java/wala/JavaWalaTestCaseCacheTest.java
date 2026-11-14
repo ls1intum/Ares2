@@ -122,7 +122,7 @@ class JavaWalaTestCaseCacheTest {
 			Locale.setDefault(Locale.JAPANESE);
 			String changedLocale = JavaWalaTestCase.environmentFingerprint();
 
-			Assertions.assertEquals("3", JavaWalaTestCase.CACHE_SCHEMA_VERSION);
+			Assertions.assertEquals("4", JavaWalaTestCase.CACHE_SCHEMA_VERSION);
 			Assertions.assertNotEquals(original, changedJdk);
 			Assertions.assertNotEquals(changedJdk, changedLocale);
 		} finally {
