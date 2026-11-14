@@ -374,7 +374,7 @@ Notes on the rows that need them:
 
 **`@AllowThreads`.** Ares 1 capped the number of *concurrently active* threads. Ares 2 counts threads per thread class through `createTheFollowingNumberOfThreads` and `ofThisClass`. The accounting differs, so a translated limit is an approximation, not a rename. Re-derive the number the exercise needs rather than copying `maxActiveCount`.
 
-**`@BlacklistPackage`.** No negative package rule exists. Note that the `java` prefix is always permitted as an essential package, so an Ares 1 blacklist that forbade a specific `java.*` package cannot be reproduced at all.
+**`@BlacklistPackage`.** No negative package rule exists, so you reproduce a blacklist by granting less. That works for every package except the few Ares always permits: `java.lang`, `java.io`, the student code's own packages and the packages Ares weaves in. With a policy, Ares permits no other `java.*` package unless the policy grants it: to forbid `java.time`, leave it out. A grant covers the packages below it, apart from reserved namespaces such as `com.sun` below `com`, so to keep `java.util` while forbidding `java.util.concurrent`, grant `java.util` with `exactMatchOnly: true` and add each subpackage you do need. Without `@Policy` every `java.*` package is permitted, so a blacklist needs a policy.
 
 **`@WhitelistClass`.** Map it to `theFollowingClassesAreTestClasses` **only** when the class is instructor-owned test infrastructure that students cannot modify. An entry in that list is exempt from both the static and the runtime checks, so it is considerably stronger than an Ares 1 whitelist entry. The Ares 1 warning applies with more force here: never list a class that students can edit.
 
