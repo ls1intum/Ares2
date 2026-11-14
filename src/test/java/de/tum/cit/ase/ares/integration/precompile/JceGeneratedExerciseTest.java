@@ -591,7 +591,10 @@ class JceGeneratedExerciseTest {
 				package fixture;
 				/** Changes a property before entering the woven student fixture. */
 				public final class GeneratedCaptureLauncher {
-				    /** Tries the first student read against a fake JDK home, or creates temporary files. */
+				    /**
+				     * Opens the whole class path first, then tries the first student read against a fake JDK home,
+				     * or creates temporary files.
+				     */
 				    public static void main(String[] arguments) throws Exception {
 				        openClassPath();
 				        java.nio.file.Path file = java.nio.file.Path.of(arguments[0]);
@@ -652,7 +655,8 @@ class JceGeneratedExerciseTest {
 				    /**
 				     * Looks up the JUnit engine list in every class-path entry before student code runs, as a real
 				     * JUnit run does first. Without it the JDK opens a late jar, such as the trace agent's, inside a
-				     * student call, where Ares refuses it, and Java 24 and newer no longer skip that refusal.
+				     * student call, where Ares refuses it. Java 17 and 21 then skip that jar; Java 25 lets the refusal
+				     * fail the JDK's own work, such as setting up a cipher.
 				     */
 				    private static void openClassPath() throws Exception {
 				        java.util.Enumeration<java.net.URL> engines = ClassLoader.getSystemClassLoader()
