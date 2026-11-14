@@ -29,14 +29,20 @@ concurrency:
 
 jobs:
   examples:
-    name: Run the ${{ matrix.tool }} exercise
-    runs-on: ubuntu-26.04
+    name: Run the ${{ matrix.tool }} exercise on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     permissions:
       contents: read
+    # Every step is written for a POSIX shell. Bash is named so that the Windows
+    # entries run them in Git Bash instead of PowerShell.
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
+        os: [ ubuntu-26.04, windows-2025 ]
         tool: [ maven, gradle ]
     steps:
       - name: Checkout Repository
