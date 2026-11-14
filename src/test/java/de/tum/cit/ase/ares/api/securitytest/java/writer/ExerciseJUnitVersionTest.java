@@ -7,7 +7,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.Locale;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -70,6 +72,61 @@ class ExerciseJUnitVersionTest {
 	void aVersionFromElsewhereIsAccepted(String buildFile, String text) throws IOException {
 		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
 		write(buildFile, text);
+		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
+	}
+
+	/**
+	 * A version the exercise sets in its own pom properties, Gradle variables,
+	 * {@code gradle.properties} or catalogue is looked up: below 5.12 it is refused
+	 * in English and German, at 5.12 it is accepted.
+	 *
+	 * @param firstFile  the first file's path.
+	 * @param firstText  its text, with {@code %s} for the version.
+	 * @param secondFile the second file's path, or {@code -} for none.
+	 * @param secondText its text, with {@code %s} for the version.
+	 * @throws IOException if a file cannot be written
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+			"pom.xml|<project><properties><junit.version>%s</junit.version></properties><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>${junit.version}</version></dependency></dependencies></project>|-|-",
+			"pom.xml|<project><properties><junit.version>${junit.base}</junit.version><junit.base>%s</junit.base></properties><dependencies><dependency><artifactId>junit-bom</artifactId><version>${junit.version}</version></dependency></dependencies></project>|-|-",
+			"build.gradle|dependencies { testImplementation \"org.junit.jupiter:junit-jupiter:$junitVersion\" }|gradle.properties|junitVersion=%s",
+			"build.gradle|ext.junitVersion = '%s'\\ndependencies { testImplementation \"org.junit.jupiter:junit-jupiter:${junitVersion}\" }|-|-",
+			"build.gradle.kts|val junitVersion = \"%s\"\\ndependencies { testImplementation(\"org.junit.jupiter:junit-jupiter:$junitVersion\") }|-|-",
+			"build.gradle|dependencies { testImplementation libs.junit.jupiter }|gradle/libs.versions.toml|[versions]\\njunit = \"%s\"\\n[libraries]\\njunit-jupiter = { module = \"org.junit.jupiter:junit-jupiter\", version.ref = \"junit\" }",
+			"build.gradle.kts|dependencies { testImplementation(\"org.junit.jupiter:junit-jupiter:${libs.versions.junit.get()}\") }|gradle/libs.versions.toml|[versions]\\njunit = \"%s\"",
+			"build.gradle|dependencies { testImplementation platform(libs.junit.bom) }|gradle/libs.versions.toml|[libraries]\\njunit-bom = { group = \"org.junit\", name = \"junit-bom\", version = \"%s\" }" })
+	void aVersionTheExerciseSetsIsLookedUp(String firstFile, String firstText, String secondFile, String secondText)
+			throws IOException {
+		writeFiles(firstFile, firstText.formatted("5.11.4"), secondFile, secondText.formatted("5.11.4"));
+		assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.isInstanceOf(SecurityException.class).hasMessageStartingWith("Ares Security Error")
+				.hasMessageContaining("5.11.4");
+		inGerman(() -> assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.hasMessageStartingWith("Ares Sicherheitsfehler").hasMessageContaining("5.11.4"));
+		writeFiles(firstFile, firstText.formatted("5.12.0"), secondFile, secondText.formatted("5.12.0"));
+		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
+	}
+
+	/**
+	 * A reference the exercise's own files do not define, or one that loops, is
+	 * accepted, since Ares cannot tell the version.
+	 *
+	 * @param firstFile  the first file's path.
+	 * @param firstText  its text.
+	 * @param secondFile the second file's path, or {@code -} for none.
+	 * @param secondText its text.
+	 * @throws IOException if a file cannot be written
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+			"pom.xml|<project><properties><a>${b}</a><b>${a}</b></properties><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>${a}</version></dependency></dependencies></project>|-|-",
+			"pom.xml|<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>${project.parent.version}</version></dependency></dependencies></project>|-|-",
+			"build.gradle|ext.a = \"$b\"\\next.b = \"$a\"\\ndependencies { testImplementation \"org.junit.jupiter:junit-jupiter:$a\" }|-|-",
+			"build.gradle|dependencies { testImplementation libs.junit.jupiter }|gradle/libs.versions.toml|[libraries]\\njunit-jupiter = { module = \"org.junit.jupiter:junit-jupiter\", version.ref = \"missing\" }" })
+	void aReferenceAresCannotLookUpIsAccepted(String firstFile, String firstText, String secondFile, String secondText)
+			throws IOException {
+		writeFiles(firstFile, firstText, secondFile, secondText);
 		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
 	}
 
@@ -195,6 +252,44 @@ class ExerciseJUnitVersionTest {
 		} finally {
 			Locale.setDefault(Locale.Category.DISPLAY, original);
 		}
+	}
+
+	/**
+	 * Empties the project folder, then writes up to two files, turning each written
+	 * {@code \\n} into a line break.
+	 *
+	 * @param firstFile  the first file's path.
+	 * @param firstText  its text.
+	 * @param secondFile the second file's path, or {@code -} for none.
+	 * @param secondText its text.
+	 * @throws IOException if a file cannot be written or deleted
+	 */
+	private void writeFiles(String firstFile, String firstText, String secondFile, String secondText)
+			throws IOException {
+		try (Stream<Path> existing = Files.walk(projectRoot)) {
+			for (Path path : existing.sorted(Comparator.reverseOrder()).toList()) {
+				if (!path.equals(projectRoot)) {
+					Files.delete(path);
+				}
+			}
+		}
+		writeOne(firstFile, firstText);
+		if (!"-".equals(secondFile)) {
+			writeOne(secondFile, secondText);
+		}
+	}
+
+	/**
+	 * Writes one file below the project folder, creating its folders.
+	 *
+	 * @param file the file's path.
+	 * @param text its text, with {@code \\n} for a line break.
+	 * @throws IOException if the file cannot be written
+	 */
+	private void writeOne(String file, String text) throws IOException {
+		Path path = projectRoot.resolve(file);
+		Files.createDirectories(path.getParent());
+		Files.writeString(path, text.replace("\\n", "\n"));
 	}
 
 	/**
