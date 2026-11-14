@@ -27,14 +27,26 @@ Remote Execution (SCORE) framework, and the first to support Java 25 and later.
 
 Its main features are:
 
-- policy-based sandboxing (static and dynamic analysis) to prevent unsafe operations, to
-  reduce cheating, to protect academic integrity and fairness, and to protect the learning
-  goal the exercise was set for
-- more robust tests and builds, through limits on time, threads and IO
-- support for public and hidden tests, where hidden ones obey a custom deadline
-- utilities for improved feedback in Artemis, such as processing multiline error messages or
-  pointing at a likely location that caused an exception
-- utilities for comfortably testing exercises that use `System.out` and `System.in`
+1. **Allowable resource access:** your policy file names what a submission can use, such as a
+   file path, a host and port, a command with fixed arguments, or the packages it can import.
+   Ares 2 checks the submission against what you named, within the limits set out in
+   [What does Ares 2 not protect against](what-does-ares-2-not-protect-against.md).
+2. **Not-allowable resource access:** beyond a small built-in allowance, Ares 2 refuses
+   whatever your policy does not name. Some categories, such as reflection, native code or
+   `System.exit`, have no policy field at all, and Ares 2 rejects a submission whose compiled
+   code contains a route to them. This prevents unsafe operations, reduces cheating, and
+   protects academic integrity, fairness and the learning goal the exercise was set for.
+3. **Runtime limitation:** `@StrictTimeout` stops a test that runs too long, and your policy
+   caps how many threads a submission can start, which makes tests and builds more robust.
+4. **I/O limitation:** utilities for comfortably testing exercises that use `System.out` and
+   `System.in`. A test provides the console input up front, and reading past it fails with a
+   clear message. Output beyond a set amount fails the test, and
+   `@MirrorOutput(maxCharCount = ...)` changes that amount.
+5. **Test case result visibility limitation:** public tests run and report straight away.
+   Hidden tests do not run before the deadline you set with `@Deadline` and count as failed
+   until then. Once they run, a failing hidden test tells the student only that it failed.
+6. **Better feedback for students:** utilities for improved feedback in Artemis, such as
+   processing multiline error messages.
 
 :::warning[Read the basics before using Ares 2 in production]
 Ares 2 provides a high level of security, and that comes with a small downgrade in
@@ -53,15 +65,11 @@ through the guide from top to bottom.
 | --- | --- |
 | Know what a submission is stopped from doing | [What does Ares 2 protect against](what-does-ares-2-protect-against.md) |
 | Know where the boundary ends, and what your build still has to do | [What does Ares 2 not protect against](what-does-ares-2-not-protect-against.md) |
-| Decide how Ares 2 enters your build, before touching anything else | [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md) |
-| Add Ares 2 to a project | [Installation](../protect-a-java-project/installation.md) |
-| Understand the public and hidden test model | [Setup](../protect-a-java-project/setup.md) and [Test Annotations](../protect-a-java-project/test-annotations.md) |
-| Write a policy file | [Policy Configuration](../protect-a-java-project/policy-configuration.md), with every detail in the [Security Policy Manual](/contributor/subsystems/policy/security-policy-manual) |
-| Migrate an Ares 1 exercise | [Converting an Ares 1 Exercise](../transform-ares-1-into-ares-2/index.md) |
+| Add Ares 2 to an exercise, for Maven and for Gradle | [How to protect a Java project with Ares 2](/instructor/category/how-to-protect-a-java-project-with-ares-2) |
+| Migrate an Ares 1 exercise | [How to transform an Ares 1 protected project into an Ares 2 protected project](../transform-ares-1-into-ares-2/index.md) |
 | Write a policy for one concrete situation | [Policy Cookbook](/instructor/policy-cookbook/) |
 | Look up a single policy field | [Policy Reference](/instructor/policy-reference/) |
 | Work out what an error message is telling you | [Troubleshooting](../troubleshooting.md) |
-| Understand how Ares 2 works internally | The [Contributor Guide](/contributor/subsystems/package-overview) |
 
 ## Licence
 
