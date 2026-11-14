@@ -166,8 +166,8 @@ jobs:
           path: target/surefire-reports/
           if-no-files-found: warn
 
-  tests:
-    name: Integration Tests (${{ matrix.name }})
+  enforcement-integration-tests:
+    name: Enforcement Integration Tests (${{ matrix.name }})
     needs: build
     runs-on: ubuntu-26.04
     timeout-minutes: 45
@@ -314,7 +314,7 @@ jobs:
   # makes the gate binding.
   coverage-report:
     name: Coverage Report
-    needs: [ unit-tests, tests, core-integration-tests ]
+    needs: [ unit-tests, enforcement-integration-tests, core-integration-tests ]
     # A failed slice still produced usable execution data, and the report is more useful in
     # that case, not less, so this waits for the test jobs rather than requiring them to pass.
     # `cancelled()` is a status check function, so naming it already suppresses the implicit
@@ -422,8 +422,8 @@ jobs:
   # Windows has its own paths, line endings and script launchers, so a green Linux run says
   # nothing about it. This job runs one mode combination only and collects no coverage, so
   # the report above stays a Linux figure.
-  windows-tests:
-    name: Windows Tests (ArchUnit + AspectJ)
+  windows-enforcement-integration-tests:
+    name: Windows Enforcement Integration Tests (ArchUnit + AspectJ)
     needs: build
     runs-on: windows-2025
     timeout-minutes: 45
@@ -445,9 +445,10 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # The selector is the one the ArchUnit + AspectJ entry of the `tests` job uses. Fork
-      # reuse is stated here because the POM's default differs from that entry. The whole
-      # `-Dtest` argument is quoted because PowerShell can split an unquoted one at a dot.
+      # The selector is the one the ArchUnit + AspectJ entry of the
+      # `enforcement-integration-tests` job uses. Fork reuse is stated here because the POM's
+      # default differs from that entry. The whole `-Dtest` argument is quoted because
+      # PowerShell can split an unquoted one at a dot.
       - name: Test ArchUnit + AspectJ
         run: >-
           mvn test -f pom.xml
