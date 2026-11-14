@@ -419,12 +419,41 @@ jobs:
             target/jacoco.exec
           if-no-files-found: warn
 
+  # A gate for the Windows test jobs: packaging, including the agent JAR, can go differently
+  # on Windows, so a broken Windows build costs one job rather than every Windows test job.
+  # Nothing is handed on; each Windows test job builds again for itself.
+  windows-build:
+    name: Windows Build
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          java-version: '25.0.5+8.0.LTS'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build
+        run: mvn clean package -DskipTests -Pwithout-quality-gates
+
   # Windows has its own paths, line endings and script launchers, so a green Linux run says
   # nothing about it. This job runs one mode combination only and collects no coverage, so
   # the report above stays a Linux figure.
   windows-enforcement-integration-tests:
     name: Windows Enforcement Integration Tests (ArchUnit + AspectJ)
-    needs: build
+    needs: windows-build
     runs-on: windows-2025
     timeout-minutes: 45
     permissions:
