@@ -511,6 +511,9 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// java.awt
 			Map.entry("java.awt.Toolkit", List.of("createImage", "getImage")),
 			Map.entry("java.awt.Font", List.of("createFont", "createFonts")),
+			// javax.swing.filechooser: checked at the call, against the directory it is
+			// given, as the AspectJ backend does
+			Map.entry("javax.swing.filechooser.FileSystemView", List.of("getFiles", "getChild", "isParent")),
 			// javax.imageio
 			Map.entry("javax.imageio.ImageIO", List.of("createImageInputStream", "getImageReaders", "read")),
 			Map.entry("javax.imageio.stream.FileCacheImageInputStream", List.of("<init>")),
@@ -656,6 +659,7 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.io.FileOutputStream", List.of("<init>")),
 			Map.entry("java.io.FileWriter", List.of("<init>")), Map.entry("java.io.PrintWriter", List.of("<init>")),
 			Map.entry("java.io.RandomAccessFile", List.of("<init>")),
+			Map.entry("javax.swing.filechooser.FileSystemView", List.of("createNewFolder")),
 			// Note: FileChannel.open, AsynchronousFileChannel.open, and
 			// Files.newByteChannel are
 			// intentionally NOT included here. These methods are in

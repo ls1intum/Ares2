@@ -297,6 +297,9 @@ Read APIs listed below access file contents or metadata without modifying them.
 | java.nio.file.Files | walk | ✅ | ✅ | ❌ |
 | java.nio.file.Files | walkFileTree | ✅ | ✅ | ❌ |
 | java.nio.file.spi.FileSystemProvider | newDirectoryStream | ✅ | ✅ | ❌ |
+| javax.swing.filechooser.FileSystemView | getFiles | ✅ | ✅ | ❌ |
+| javax.swing.filechooser.FileSystemView | getChild | ✅ | ✅ | ❌ |
+| javax.swing.filechooser.FileSystemView | isParent | ✅ | ✅ | ❌ |
 
 ---
 
@@ -444,6 +447,7 @@ Link creation APIs and conditional creates (e.g., `FileChannel.open` with create
 | java.nio.file.Files | createSymbolicLink | ✅ | ✅ | ✅ |
 | java.io.BufferedOutputStream | `<new>` | ✅ | ❌ (via OVERWRITE pointcut) | ✅ |
 | java.io.BufferedWriter | `<new>` | ❌ (via `Writer.<new>` OVERWRITE pointcut) | ❌ (via `Writer.<new>` OVERWRITE pointcut) | ✅ |
+| javax.swing.filechooser.FileSystemView | createNewFolder | ✅ | ✅ | ❌ |
 | java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
 | java.io.FileWriter | `<new>` | ✅ | ✅ | ✅ |
 | java.io.PrintWriter | `<new>` | ✅ | ✅ | ✅ |

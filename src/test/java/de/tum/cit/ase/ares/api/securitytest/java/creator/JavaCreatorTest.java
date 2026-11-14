@@ -585,4 +585,93 @@ public class JavaCreatorTest {
 			assertDoesNotThrow(() -> javaCreator.requireSupervisedClasses(buildMode));
 		}
 	}
+
+	/**
+	 * Checks that an AspectJ run is refused when a supervised class was built
+	 * without the Ares aspects, while instrumentation, which needs no weaving, is
+	 * not.
+	 */
+	@Nested
+	@DisplayName("Weaving tests")
+	class WeavingTests {
+
+		/** The package supervised in these tests. */
+		private static final String PACKAGE = "example.nest";
+
+		/** The folder the supervised classes are compiled into. */
+		private Path scope;
+
+		/** Compiles a class with plain javac, so it carries no Ares aspect. */
+		private void compileUnwovenClass() throws IOException {
+			Path source = Files.createDirectories(tempDir.resolve("src/example/nest")).resolve("Plain.java");
+			Files.writeString(source, "package example.nest; public class Plain { }");
+			Path classes = Files.createDirectories(tempDir.resolve("classes"));
+			assertEquals(0, javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d",
+					classes.toString(), source.toString()));
+		}
+
+		/** Copies the fixture this build wove with the Ares aspects into the scope. */
+		private void copyWovenFixture() throws IOException {
+			Files.createDirectories(scope);
+			try (InputStream input = JavaCreatorTest.class.getClassLoader()
+					.getResourceAsStream("example/nest/NestHostFixture.class")) {
+				Files.copy(Objects.requireNonNull(input, "the fixture is compiled"),
+						scope.resolve("NestHostFixture.class"));
+			}
+		}
+
+		/** Creates the test cases over the scope, with no test classes exempted. */
+		private void createTestCases() {
+			String classPath = scope.toString();
+			when(buildMode.getClasspath(tempDir, PACKAGE)).thenReturn(classPath);
+			when(architectureMode.getJavaClasses(classPath)).thenReturn(new ClassFileImporter().importPath(scope));
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+			javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of(), List.of(), List.of(), PACKAGE,
+					"Main", new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), resourceAccesses, tempDir, true);
+		}
+
+		/** Resolves the scope below the temporary project. */
+		@BeforeEach
+		void resolveScope() {
+			scope = tempDir.resolve("classes/example/nest");
+		}
+
+		/** An AspectJ run over a class built without the aspects is refused. */
+		@Test
+		@DisplayName("Refuses an unwoven class under AspectJ")
+		void refusesAnUnwovenClassUnderAspectJ() throws IOException {
+			compileUnwovenClass();
+			createTestCases();
+			SecurityException refusal = assertThrows(SecurityException.class,
+					() -> javaCreator.requireWovenSupervisedClasses(AOPMode.ASPECTJ));
+			assertTrue(refusal.getMessage().contains("example.nest.Plain"), refusal.getMessage());
+		}
+
+		/**
+		 * The same class is not refused under instrumentation, which needs no weaving.
+		 */
+		@Test
+		@DisplayName("Accepts an unwoven class under instrumentation")
+		void acceptsAnUnwovenClassUnderInstrumentation() throws IOException {
+			compileUnwovenClass();
+			createTestCases();
+			assertDoesNotThrow(() -> javaCreator.requireWovenSupervisedClasses(AOPMode.INSTRUMENTATION));
+		}
+
+		/** A class this build wove with the Ares aspects passes under AspectJ. */
+		@Test
+		@DisplayName("Accepts a woven class under AspectJ")
+		void acceptsAWovenClassUnderAspectJ() throws IOException {
+			copyWovenFixture();
+			createTestCases();
+			assertDoesNotThrow(() -> javaCreator.requireWovenSupervisedClasses(AOPMode.ASPECTJ));
+		}
+
+		/** A creator that has read no classes yet has nothing to refuse. */
+		@Test
+		@DisplayName("Accepts a creator that has read no classes")
+		void acceptsACreatorThatHasReadNoClasses() {
+			assertDoesNotThrow(() -> javaCreator.requireWovenSupervisedClasses(AOPMode.ASPECTJ));
+		}
+	}
 }
