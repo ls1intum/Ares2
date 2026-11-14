@@ -35,7 +35,7 @@ For general background on contributing to open source, see the
 
 ## Prerequisites
 
-- **JDK 21** (Temurin) to build, matching CI. Note that Ares 2 *targets* Java 17
+- **JDK 25** (Temurin) to build, matching CI. Note that Ares 2 *targets* Java 17
   (`maven.compiler.source` / `maven.compiler.target` in `pom.xml`), so it stays consumable
   by exercises running on Java 17.
 - **Maven 3.9+**.
