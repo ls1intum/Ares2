@@ -44,12 +44,13 @@ jobs:
         with:
           persist-credentials: false
 
-      # The examples target Java 17, the minimum Ares supports, so that they stay
-      # valid for the oldest exercise still in use.
-      - name: Set up JDK 17
+      # Ares is built the way contributors build it, on Java 25, and run the way the
+      # oldest supported exercise runs it, on Java 17. This first JDK builds and
+      # installs Ares. The second one, further down, runs the exercise.
+      - name: Set up JDK 25 to build Ares
         uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
-          java-version: '17.0.21+9'
+          java-version: '25.0.5+8.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -96,12 +97,38 @@ jobs:
       # Installing is what this step is for. The quality gate bound to package is the
       # static analysis job's business, so it is turned off here.
       - name: Install Ares from this commit
-        run: mvn -B -ntp install -DskipTests -Pwithout-quality-gates
+        run: |
+          mvn -v
+          mvn -B -ntp install -DskipTests -Pwithout-quality-gates
 
       # Asserted rather than assumed: everything downstream reads the local
       # repository, and an absent classifier there fails as a resolution error in an
       # example, which reads like a broken example rather than a broken packaging.
       - name: Confirm the local repository holds the JARs this build produced
+        run: |
+          repository="${HOME}/.m2/repository/de/tum/cit/ase/ares/${ARES_VERSION}"
+          for classifier in "" "-agent"; do
+            built="target/ares-${ARES_VERSION}${classifier}.jar"
+            installed="${repository}/ares-${ARES_VERSION}${classifier}.jar"
+            if ! cmp -s "${built}" "${installed}"; then
+              echo "::error::${installed} is absent or differs from ${built}"
+              exit 1
+            fi
+            echo "${installed} is the JAR this build produced"
+          done
+
+      # No cache input here, on purpose. A second Maven cache restore would
+      # overwrite the JARs just installed, and the cache key does not include the
+      # JDK, so it would not restore anything useful for 17 anyway.
+      - name: Set up JDK 17 for the exercise
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          java-version: '17.0.21+9'
+          distribution: 'temurin'
+
+      # The same check as above, repeated after the switch of JDK, so that the
+      # exercise is known to run against the JARs built on Java 25.
+      - name: Confirm the JARs are still the ones this build produced on JDK 17
         run: |
           repository="${HOME}/.m2/repository/de/tum/cit/ase/ares/${ARES_VERSION}"
           for classifier in "" "-agent"; do
@@ -178,6 +205,17 @@ jobs:
           }
           EOF
           cat "${RUNNER_TEMP}/local-repo.init.gradle"
+
+      - name: Print the runtime the exercise uses
+        working-directory: examples/ares-exercise-${{ matrix.tool }}
+        env:
+          TOOL: ${{ matrix.tool }}
+        run: |
+          if [ "${TOOL}" = "maven" ]; then
+            mvn -v
+          else
+            ./gradlew --version
+          fi
 
       - name: Run the exercise
         working-directory: examples/ares-exercise-${{ matrix.tool }}
