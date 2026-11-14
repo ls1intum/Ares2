@@ -28,7 +28,7 @@ class JavaAOPTestCaseTest {
 	@Test
 	void testGenerateAdviceSettingValueNull() {
 		String result = invokeGenerate("String", "foo", null);
-		assertEquals("private static String foo = null;\n", result);
+		assertEquals("private static String foo = null;" + System.lineSeparator(), result);
 	}
 
 	@Test
