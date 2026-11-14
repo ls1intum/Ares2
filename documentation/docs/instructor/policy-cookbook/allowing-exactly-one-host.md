@@ -5,7 +5,13 @@ description: "Permitting one host and port, and why a wildcard host is almost ne
 ---
 
 :::tip[Simple Story]
-The exercise requires one telephone call. Exactly that number should be reachable, and no other.
+The exercise needs one telephone call. The rule sheet must name that one number and that
+one line, and no other. A rule sheet that lets the pupil ring any number turns one call into
+a free telephone.
+
+Nobody has written this recipe yet.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

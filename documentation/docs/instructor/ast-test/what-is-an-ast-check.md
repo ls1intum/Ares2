@@ -5,13 +5,17 @@ description: "What an abstract syntax tree check reads, what it needs before it 
 ---
 
 :::tip[Simple Story]
-The board of education writes more than the questions. Next to "sort the penguins by height",
-the mark scheme says "without a loop", and the teacher has to check that while marking.
+Next to a question, the head teacher can write instructions forbidding certain words and ways
+of answering, such as "solve it without a loop". The teacher keeps to them while marking by the
+grading instructions.
 
-Watching the pupil work cannot settle it. A pupil who loops and a pupil who recurses hand in the
-same answer. So the teacher reads the answer sheet itself and looks for the forbidden kind of
-sentence. That reading is an abstract syntax tree (AST) check. It belongs to the paper and the mark scheme, never to the
-checklist, and it guards nothing.
+The finished answer cannot settle this, because two pupils can reach the same answer in
+different ways. So the teacher reads what the pupil wrote and looks for the forbidden words.
+
+These instructions guard nothing. A pupil can reach the same result with words the instructions
+do not name, so the head teacher still needs questions that check the answer itself.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What an AST check is

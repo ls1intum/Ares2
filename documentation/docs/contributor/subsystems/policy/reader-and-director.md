@@ -5,11 +5,16 @@ description: "How a security policy file is read and turned into the test cases 
 ---
 
 :::tip[Simple Story]
-Somebody has to read the filled-in checklist and turn it into actual checks.
+Before the teacher checks anything, someone has to read the head teacher's rule sheet and work
+out which checks it calls for. This page covers the two parts that do that. One reads the rule
+sheet. The other picks the kind of school, the way of clearing the desks and the way of
+watching, and hands the job on.
 
-That is these two parts. One reads the checklist and understands it. The other decides which
-checks have to be built from what it read. This page explains how they work and why they are
-separate.
+No rule sheet does not mean no rules. Without one, the teacher uses the strictest rule sheet
+there is: no worksheets, no telephone, no friend and no side jobs. If it cannot tell what kind
+of school this is, nothing starts at all.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 > **Audience:** IT-Education experts with no security background.

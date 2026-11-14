@@ -5,13 +5,14 @@ description: "The traversal pattern used to walk the syntax tree and collect fin
 ---
 
 :::tip[Simple Story]
-You want to do something at every node of a big tree, but only care about a few kinds
-of node.
+While marking, the teacher checks instructions such as "solve it without a loop". They want to
+stop at every loop in the answer and nowhere else.
 
-Rather than writing the walking logic yourself and getting it wrong, you hand over an object
-that says "when you reach a loop, call me". The tree walks itself and calls you back at the
-parts you asked about. That is how the mark scheme checks a pupil used a loop without reading
-every twig itself.
+So the way through the answer stays the same every time, and only what the teacher checks at
+each stop changes. They ask to be told at every loop, and the walk through the answer does the
+rest. These instructions stop nobody from doing anything forbidden.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

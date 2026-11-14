@@ -5,12 +5,15 @@ description: "One annotated test method, followed from JUnit discovery through p
 ---
 
 :::tip[Simple Story]
-Follow one desk visit from beginning to end. The teacher arrives, the checklist is prepared for
-that visit, the question is put, it is answered, and the desk is cleared before the teacher
-moves on.
+Follow one question from start to finish. The teacher picks up the rule sheet, clears the
+desks, hands out the question and watches while the pupil answers it. Afterwards they put the
+rule sheet away again, even when something went wrong.
 
-Most questions about Ares turn out to be questions about *when* something happens. This page is
-the timeline everything else hangs off.
+Most questions about how this school works turn out to be questions about when each of these
+things happens. This page is meant to tell that story in order. So far it only lists the
+steps.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

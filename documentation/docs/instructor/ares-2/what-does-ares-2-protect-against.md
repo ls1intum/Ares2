@@ -5,12 +5,19 @@ description: "The resources Ares 2 guards, and the two compile modes through whi
 ---
 
 :::tip[Simple Story]
-The checklist carries two kinds of line. Some name a thing a pupil may do in one specific way:
-this paper, that telephone number, an errand with exactly these instructions. The rest name
-things nobody in the room may do at all, because no honest answer to the question needs them.
+The rule sheet has two kinds of line. Some say what a pupil can be allowed to do, and exactly
+how: this worksheet, that telephone number, these words to the friend outside the room. The
+rest list the things nobody is allowed to do, such as pulling the fire alarm.
 
-It sets out the two moments at which the school can act: the checks printed into the
-examination beforehand, or the teacher carrying the checklist in while it runs. Ares does both.
+The teacher looks for any way to those forbidden things when they clear the desks. A way they
+cannot see gets past them. Once the rule sheet allows a single worksheet, telephone number,
+friend or side job, the desk clearing stops covering that kind, and only the watching remains.
+
+The rules reach the room in one of two ways. Either the head teacher prints them onto the
+grading instructions beforehand, or the teacher picks up the rule sheet for each question and
+puts it away afterwards.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 Ares 2 sorts what student code might attempt into categories. For each one it asks the same
@@ -79,7 +86,7 @@ granting it would buy nothing.
 For several it is stronger than that. Reflection reaches any method regardless of what the
 policy says about it, a class loader introduces code the analysis never saw, and agent attach
 lets the submission rewrite the very classes doing the checking. These are general-purpose
-routes around the rest of the checklist, so a narrow grant would not stay narrow.
+routes around the rest of the policy, so a narrow grant would not stay narrow.
 
 If an exercise genuinely needs one of these capabilities, change the exercise. Do not reach for
 `theFollowingClassesAreTestClasses`: that field exempts a class from the policy completely, and

@@ -5,11 +5,17 @@ description: "How the AOP layer intercepts and evaluates file system operations.
 ---
 
 :::tip[Simple Story]
-This page follows one paper being picked up, the whole way through.
+This page follows one worksheet from start to finish while the teacher watches.
 
-The pupil reaches for it, the teacher gets there first, looks at which paper it is and what is
-about to be done with it, checks that against the permitted list, and then either allows it or
-takes it away. Every step of that is written down here.
+The pupil reaches for it. The teacher steps in first and checks that the hand belongs to a
+pupil and not to the grading instructions. They look at which worksheet it is and what the
+pupil wants to do with it: read, change, make, use or throw it away. They compare that with the
+rule sheet, and let through the few worksheets the permitted aids need. Then they let it
+happen, or stop the pupil and name the rule they broke.
+
+Both ways of watching follow these steps, though they do not catch exactly the same acts.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 <a id="file-system-security-mechanism"></a>

@@ -5,11 +5,15 @@ description: "How connect, send and receive permissions are enforced in the JVM 
 ---
 
 :::tip[Simple Story]
-Three layers watch the telephone: one reads the compiled answer before any call, one stands
-inside the room, and one sits beneath it.
+Three things look after the telephone. The teacher clears the desks before any call, the
+teacher watches during the examination, and the special examination room is meant to cover
+every line out of the room. Each sees different things, which is why all three exist. When the
+teacher picks up the rule sheet for each question, nobody uses the room.
 
-They see different things, which is why all three exist. In Postcompile the one beneath the
-room never runs.
+Grading instructions that test the telephone must not put their own telephone in the room,
+because the rule sheet covers that telephone too. They ring a number outside the room instead.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 For the fields an exercise author writes, see

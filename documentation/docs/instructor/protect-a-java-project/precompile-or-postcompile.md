@@ -5,10 +5,15 @@ description: "The two ways Ares 2 secures an exercise, how they differ, and whic
 ---
 
 :::tip[Simple Story]
-The checks can be printed into your exercise before it is built, or the teacher can carry them
-in while the examination is already running.
+The rules can reach the room in two ways. The head teacher can print them onto the grading
+instructions beforehand, one set for every question, and has to print again after any change.
+Or the teacher picks up the rule sheet for each question and puts it away afterwards, so each
+question can have its own.
 
-Everything else on this page follows from that one choice, so make it first.
+Make this choice first, because the rest of this page follows from it. Either way, the school's
+office has to make sure that the rule sheet on the desk is the head teacher's.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## The two modes

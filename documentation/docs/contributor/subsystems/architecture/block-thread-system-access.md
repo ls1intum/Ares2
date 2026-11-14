@@ -5,11 +5,14 @@ description: "How the architecture layer detects thread manipulation statically,
 ---
 
 :::tip[Simple Story]
-The same forbidden thing the aspect-oriented programming (AOP) layer watches for while a pupil
-works, found by reading rather than by watching.
+Before the start, the teacher clears the desks by the rule sheet. They look through what each
+pupil's work turned into for any route to starting a side job, and report the route they found.
 
-This layer looks through the compiled answer for any route to the part of Java that calls in
-helpers, and reports the route it found.
+The clearing cannot count side jobs or tell one kind from another. So it covers side jobs only
+while the rule sheet allows none. Once it allows one, the clearing leaves side jobs alone, and
+only the watching checks the kind and the number.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## 1. High-Level Overview
@@ -21,7 +24,7 @@ domain-wide deny rule only when no thread allowance exists. With any thread
 allowance, AspectJ or instrumentation is authoritative for matching the permitted
 class and quota and rejecting other creation; see `docs/policy/EnforcementModel.md`.
 
-**Key Difference from AOP Approach:**
+**Key Difference from the aspect-oriented programming (AOP) Approach:**
 - **Aspect-oriented programming (AOP), at runtime**: Monitors thread creation during program execution and enforces thread quotas in real-time
 - **Architecture (Static)**: Analyses compiled bytecode before execution to detect potential thread creation violations in the code structure
 

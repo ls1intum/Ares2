@@ -5,12 +5,16 @@ description: "Depth-first traversal of the call graph, used to find a route from
 ---
 
 :::tip[Simple Story]
-You want to know whether any route leads from a pupil's desk to something the checklist
-forbids.
+While clearing the desks, the teacher wants to know whether any route leads from a pupil's work
+to something forbidden.
 
-Depth-first search means: always take the next unexplored corridor, keep going until you hit a
-dead end, then back up to the last junction and try the next one. If a route exists, this finds
-it. And the trail you followed *is* the answer: it shows exactly how you got there.
+They follow one route as far as it goes. At a dead end, they go back to the last fork and try
+the next way. They remember every stop they have seen, because some routes go round in circles.
+When they find a forbidden route, they name every step of it, so the pupil knows where to look.
+Some routes they find are ones the work never takes when it runs, so this can fail an honest
+pupil.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

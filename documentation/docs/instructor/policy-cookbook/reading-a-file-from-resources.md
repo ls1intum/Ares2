@@ -5,7 +5,13 @@ description: "Permitting one read-only classpath resource without opening the wo
 ---
 
 :::tip[Simple Story]
-The exercise hands out one data sheet and the pupil has to read it. Nothing else in the room should become readable.
+The pupil has to read one worksheet that comes with the exercise. The rule sheet must let
+them read that one worksheet, and nothing else. Letting them read the whole pile opens every
+other sheet of the exercise as well.
+
+Nobody has written this recipe yet.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

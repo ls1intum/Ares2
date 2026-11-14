@@ -5,11 +5,15 @@ description: "Ruling out for, the enhanced for, while and do-while with LoopType
 ---
 
 :::tip[Simple Story]
-The paper says "add up the weights of all penguins, without a loop". The board of education wants
-to see recursion or a formula, not the pupil walking the list one penguin at a time.
+The instructions on this page forbid answering with a loop. The pupil has to add up a
+list of weights without going through the list one by one in any of the four usual ways.
+While marking by the grading instructions, the teacher reads what the pupil wrote and looks for
+those four ways.
 
-The mark scheme names the four ways of walking: `for`, the enhanced `for` over a collection,
-`while` and `do`-`while`. The teacher looks for each of them on the answer sheet.
+The teacher finds only the four ways the instructions name. A pupil who walks the list in some
+other way, or who solves a smaller version of the question again and again, passes.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example test class

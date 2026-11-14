@@ -5,11 +5,14 @@ description: "Which hosts and ports the supervised code may connect to, and what
 ---
 
 :::tip[Simple Story]
-This is the short list of numbers a pupil may telephone from the room.
+Sometimes a pupil is allowed to use the telephone. The rule sheet then names the number they
+can ring and the line, and says whether they can dial, whether they can talk and whether they
+can listen.
 
-Each entry names who may be rung and on which line, then says whether the pupil may dial at
-all, whether they may speak, and whether they may listen. Being allowed to place the call is
-not permission to say anything once it connects.
+Each of those three has to be on the rule sheet, even when the answer is no. The teacher does
+not accept a rule sheet that leaves one out, and does not read the gap as a no.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example policy file

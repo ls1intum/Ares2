@@ -5,12 +5,15 @@ description: "A cross-cutting concern captured in one place instead of scattered
 ---
 
 :::tip[Simple Story]
-Some rules do not belong to any one pupil. "Check the checklist before picking up a paper"
-applies wherever a paper is picked up.
+Some tasks of the teacher belong to no single pupil. "Check the rule sheet whenever someone
+reaches for a worksheet" holds for every pupil in the room.
 
-Writing that into every desk would be hopeless: you would miss some, and a pupil's work is not
-yours to edit anyway. An aspect is that rule written down **once**, in one place, and then
-applied everywhere it is needed.
+Writing that task out again for every pupil is hopeless, because somebody always misses one.
+This page is about such a task, set down once, in one place, and carried out everywhere it is needed. The
+teacher keeps tasks like this for the worksheets, the telephone, the friend outside the room and
+the side jobs.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

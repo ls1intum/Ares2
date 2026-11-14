@@ -5,9 +5,11 @@ description: "Protecting a Gradle project with Ares 2 in Precompile mode, from p
 ---
 
 :::tip[Simple Story]
-This is the whole path for a Gradle exercise that has its checks printed in beforehand.
+This page sets up, step by step, an examination for which the head teacher prints the rules onto
+the grading instructions beforehand. The printing leaves out one step. The head teacher has to
+make the school's office check that the rule sheet on the desk is theirs.
 
-Fill in the checklist, run the generator, then wire the generated files into the build.
+[Who is who](/instructor/who-is-who)
 :::
 
 Precompile generates the enforcement artefacts before the exercise is built. The generator is run

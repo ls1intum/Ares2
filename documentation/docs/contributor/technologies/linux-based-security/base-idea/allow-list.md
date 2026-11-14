@@ -5,11 +5,15 @@ description: "The declarative, fail-closed rule set each layer reads."
 ---
 
 :::tip[Simple Story]
-Each layer carries a short list of what is permitted, and nothing else gets through.
+The special examination room works only from what the rule sheet allows: which worksheets are
+there, and which numbers the telephone can ring.
 
-The important half of that sentence is the second one. The list does not say what is forbidden,
-because there is no way to write down everything a pupil might try. It says what is allowed,
-and everything absent from it is refused by default.
+Nothing in it names what is forbidden, because nobody can think of everything a pupil might
+try. The room refuses anything the rule sheet does not allow. Without any settings at all, the
+room does not open. Nobody uses this room yet when the teacher picks up the rule sheet for each
+question. This page tells how an earlier version of the room worked.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[Historical design]
