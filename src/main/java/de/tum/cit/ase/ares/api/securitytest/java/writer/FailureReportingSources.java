@@ -548,15 +548,39 @@ final class FailureReportingSources {
 				/** The longest value of a blocked action the report shows. */
 				private static final int FIELD_LIMIT = 200;
 
-				/** Finds a blocked action of the copied Ares checks in a failure or its causes. */
+				/**
+				 * Finds a blocked action of the copied Ares checks anywhere in a failure: its
+				 * causes, suppressed failures and the members of an {@code assertAll} group,
+				 * visiting at most the traversal budget.
+				 */
 				private static Throwable violationIn(Throwable throwable) {
 					java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-					for (Throwable current = throwable; current != null && seen.add(current); current = causeOf(current)) {
+					java.util.ArrayDeque<Throwable> pending = new java.util.ArrayDeque<>();
+					pending.add(throwable);
+					while (!pending.isEmpty() && seen.size() < TRAVERSAL_LIMIT) {
+						Throwable current = pending.poll();
+						if (!seen.add(current)) {
+							continue;
+						}
 						if (isViolation(current)) {
 							return current;
 						}
+						queueAttached(current, pending);
 					}
 					return null;
+				}
+
+				/** Queues a failure's cause, suppressed failures and group members for the search. */
+				private static void queueAttached(Throwable failure, java.util.ArrayDeque<Throwable> pending) {
+					Throwable cause = causeOf(failure);
+					if (cause != null) {
+						pending.add(cause);
+					}
+					java.util.Collections.addAll(pending, failure.getSuppressed());
+					java.util.List<Throwable> members = aggregateMembers(failure);
+					if (members != null) {
+						members.stream().filter(java.util.Objects::nonNull).forEach(pending::add);
+					}
 				}
 
 				/** Whether a failure is itself a blocked action of the copied Ares checks. */
