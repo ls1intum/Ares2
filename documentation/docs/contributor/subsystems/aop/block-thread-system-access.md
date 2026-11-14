@@ -5,10 +5,17 @@ description: "How the AOP layer intercepts and evaluates thread creation and man
 ---
 
 :::tip[Simple Story]
-A pupil can ask for help, and left alone can ask for thousands of helpers.
+A pupil can start side jobs, and left alone can start thousands of them.
 
-This page follows one such request: the pupil calls a helper in, the teacher intercepts, checks
-what kind of helper it is and how many are already in the room, and decides.
+This page follows one request. The pupil starts a side job. The teacher steps in first and
+checks that the request comes from a pupil and not from the grading instructions. They look at
+what kind of side job it is and how many of that kind the pupil has already started, and
+compare both with the rule sheet. Then they let it start, or stop the pupil and name the rule
+they broke.
+
+Both ways of watching follow these steps, though they do not catch exactly the same requests.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## 1. High-Level Overview

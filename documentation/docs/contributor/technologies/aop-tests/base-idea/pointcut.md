@@ -5,10 +5,14 @@ description: "The predicate that selects which join points an aspect applies to.
 ---
 
 :::tip[Simple Story]
-There are millions of moments where the teacher *could* step in. You care about a handful.
+There are countless moments in the examination where the teacher could step in. Only a few of
+them matter.
 
-A pointcut is the filter that picks them out: "every call to a method that opens a file". It
-says **where**. It does not say what to do once you are there.
+The teacher's choice of moments picks those out, for example every time someone reaches for a worksheet. It says
+where the teacher watches, not what they do there. A moment it does not pick goes unwatched,
+even when a pupil reaches for something forbidden in it.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

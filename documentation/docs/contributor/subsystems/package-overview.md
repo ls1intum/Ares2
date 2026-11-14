@@ -5,10 +5,15 @@ description: "Conceptual overview of every package under de.tum.cit.ase.ares.api
 ---
 
 :::tip[Simple Story]
-This is the map of the school.
+This page walks through the whole school one part at a time. Many parts have a place in the
+story: the rule sheet, the teacher clearing the desks and watching, and the instructions
+forbidding certain words. So do the special examination room, the pupils answering out loud and
+the teacher telling a pupil off for a broken rule. The remaining parts are tools the rest
+share, and have no place in the story.
 
-Ares is made of a dozen or so parts and each one has a job. This page names every part and says
-in a sentence or two what it is for, so you can find the right room before opening any doors.
+Each part gets a sentence or two, so you know where to look before you read further.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 This document provides a high-level conceptual overview of each package in `src/main/java/de/tum/cit/ase/ares/api/`.

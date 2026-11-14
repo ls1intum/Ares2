@@ -5,11 +5,14 @@ description: "Compile-time weaving with AspectJ, and the consequences of interce
 ---
 
 :::tip[Simple Story]
-AspectJ covers every place in the room where a forbidden request could be written down, so the
-teacher is already standing there when it is.
+This is one of the two ways the teacher watches by the rule sheet during the examination. Here the teacher
+watches the pupils' hands, in the places of the pupils' work where they know to look.
 
-That works for the parts of the room you set out yourself. It cannot help where the request is
-written somewhere you never set out, such as deep inside Java itself.
+They miss a reach that starts inside one of the permitted aids, or inside an aid the head
+teacher put out. When such an aid reaches for something forbidden for the pupil, this way of
+watching does not see it. Some roundabout reaches by the pupil escape it too.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

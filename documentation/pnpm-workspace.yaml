@@ -12,6 +12,19 @@ overrides:
   serialize-javascript: '7.1.4'
   # GHSA-w5hq-g745-h8pq
   uuid: '14.0.3'
+  # GHSA-5gmw-xhrv-c9v3 and GHSA-85c8-ppgw-ccpr (prototype pollution can lead to code
+  # execution). @docusaurus/core 3.10.2 asks for ^1.0.2, but no 1.x release carries the fix;
+  # the options its SSG executor passes are unchanged in 2.x. @rspack/core 1.7.12 bundles its
+  # own copy of 1.1.1, which no override reaches. Rspack loads that copy only when
+  # experiments.parallelLoader is on, which it is not by default, and neither Docusaurus nor
+  # this site's configuration turns it on.
+  # Rspack 2 bundles 2.2.0, but @docusaurus/faster 3.10.2 asks for ^1.7.10.
+  tinypool: '2.2.0'
+  # GHSA-g3hv-75wg-m249
+  'minimatch@10': '11.0.5'
+  # GHSA-gcqx-w48m-w2h4 has no fixed release. @svgr/plugin-svgo 8.1.0 declares deepmerge but
+  # never loads it, so it is removed rather than replaced.
+  '@svgr/plugin-svgo>deepmerge': '-'
 
 # Build scripts are blocked by default in pnpm 11 as a supply-chain safeguard. These three
 # are native/codegen steps that Docusaurus genuinely needs: @swc/core and esbuild back the

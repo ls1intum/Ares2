@@ -1,14 +1,17 @@
 ---
 title: "Troubleshooting"
-sidebar_position: 6
+sidebar_position: 7
 description: "The failures instructors hit when protecting or migrating an exercise, and what each one means."
 ---
 
 :::tip[Simple Story]
-When something goes wrong, the report names the mechanism rather than the cause. It tells you
-which part of the checklist objected, not what you did.
+When something goes wrong, look first at where it shows. Sometimes the teacher tells a pupil off
+and names the rule they broke. Sometimes the school refuses to hold the examination at all. This
+page matches each sign with what the head teacher has to change.
 
-This page translates the reports back into what you have to change.
+One case shows nothing: every answer passes, and nobody notices that the watching never started.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 The two tables below are the fastest route: find the message you saw. The sections

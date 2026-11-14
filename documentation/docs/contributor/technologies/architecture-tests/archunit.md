@@ -5,11 +5,15 @@ description: "Static dependency analysis over imported bytecode: what ArchUnit s
 ---
 
 :::tip[Simple Story]
-ArchUnit reads the pupil's compiled answer and checks statements about how its parts refer to one
-another, without running any of it.
+This is one of the two ways the teacher clears the desks before the start. They look at what
+the pupils' work turned into, not at what the pupils wrote, and follow where each part leads.
+None of it runs while they do this.
 
-It is very good at "does this class mention that class at all?" and it cannot answer "which
-file does this call open?", because that value only exists once the pupil is working.
+They can see that a pupil's work leads to the worksheets. They cannot see which worksheet,
+because that only shows once the pupil is working. So once the rule sheet allows anything with
+worksheets, the desk clearing stops covering them and only the watching remains.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

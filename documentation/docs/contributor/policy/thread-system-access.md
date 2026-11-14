@@ -5,9 +5,15 @@ description: "How thread creation is enforced, and why Object monitor methods ne
 ---
 
 :::tip[Simple Story]
-Helpers are the part where enforcement has to touch code Ares does not own.
+A pupil can be allowed side jobs: one kind, and only so many of them. The rule sheet always
+sets that number, because without one a pupil could start side jobs until the whole school
+stops.
 
-That is why one piece of it is switched on after everything else.
+A few moves of a side job can only be caught at the pupil's own desk. The teacher starts
+watching for those last, once the whole rule sheet is in place, and only between the privacy
+screens. A permitted aid that makes such a move for the pupil goes unseen.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 For the fields an exercise author writes, see
