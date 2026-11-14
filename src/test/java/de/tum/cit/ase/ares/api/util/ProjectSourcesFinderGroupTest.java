@@ -162,6 +162,38 @@ class ProjectSourcesFinderGroupTest {
 		assertEquals(Optional.empty(), ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
 	}
 
+	/**
+	 * After a local variable named {@code group} is declared, a plain {@code group}
+	 * in that block is the variable, so the project keeps the group of
+	 * gradle.properties; {@code project.group} and code outside the block still set
+	 * it. Each expectation was measured with Gradle 9.9.1.
+	 *
+	 * @param descriptor the build.gradle content
+	 * @param expected   the group Gradle applies
+	 */
+	@ParameterizedTest
+	@MethodSource("localVariableDescriptors")
+	void tellsALocalGroupVariableFromTheProjectGroup(String descriptor, String expected) throws IOException {
+		Files.writeString(projectRoot.resolve("build.gradle"), descriptor + "\n");
+		Files.writeString(projectRoot.resolve("gradle.properties"), "group=org.example\n");
+
+		assertEquals(Optional.of(expected), ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
+	}
+
+	/**
+	 * Descriptors with a local {@code group} variable and the group Gradle 9.9.1
+	 * applies for each.
+	 *
+	 * @return the cases
+	 */
+	static Stream<Arguments> localVariableDescriptors() {
+		return Stream.of(Arguments.of("def group = 'local'\ngroup = 'org.other'", "org.example"),
+				Arguments.of("String group = 'local'\ngroup = 'org.other'", "org.example"),
+				Arguments.of("def group = 'local'\nproject.group = 'org.other'", "org.other"),
+				Arguments.of("allprojects { def group = 'local' }\ngroup = 'org.other'", "org.other"),
+				Arguments.of("if (true) { def group = 'local'; group = 'x' }\ngroup = 'org.other'", "org.other"));
+	}
+
 	/** The descriptor wins over gradle.properties, as it does in Gradle. */
 	@Test
 	void prefersTheDescriptorOverGradleProperties() throws IOException {

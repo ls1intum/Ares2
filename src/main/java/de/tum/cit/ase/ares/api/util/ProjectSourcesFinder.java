@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,7 +47,14 @@ public final class ProjectSourcesFinder {
 	 * mention inside a comment or a string does not count.
 	 */
 	private static final Pattern GRADLE_GROUP = Pattern.compile(
-			"(?<![A-Za-z0-9_$.])(?:project\\s*\\.\\s*)?group(?![A-Za-z0-9_$])(?:\\s*=(?!=)|\\s*(\\()|[ \\t]+(?=['\"A-Za-z_$]))");
+			"(?<![A-Za-z0-9_$.])(?<project>project\\s*\\.\\s*)?group(?![A-Za-z0-9_$])(?:\\s*=(?!=)|\\s*(?<call>\\()|[ \\t]+(?=['\"A-Za-z_$]))");
+	/**
+	 * A local variable named {@code group} being declared: after {@code def},
+	 * {@code var}, {@code val}, {@code final} or a capitalised type. Gradle then
+	 * reads a plain {@code group} in that block as the variable, not the project.
+	 */
+	private static final Pattern LOCAL_GROUP = Pattern.compile(
+			"(?<![A-Za-z0-9_$.])(?:def|var|val|final|[A-Z][A-Za-z0-9_$]*(?:<[^=;{}()]*>)?(?:\\[\\])*)\\s+group(?![A-Za-z0-9_$])");
 	/**
 	 * The filler {@link #maskInactiveRegions} writes over a comment, its delimiters
 	 * included.
@@ -1002,13 +1010,46 @@ public final class ProjectSourcesFinder {
 		Optional<GroupSetting> setting = Optional.empty();
 		Matcher matcher = GRADLE_GROUP.matcher(code);
 		while (matcher.find()) {
-			if (startsAStatement(code, matcher.start()) && appliesToTheRootProject(code, matcher.start())) {
-				setting = Optional.of(
-						new GroupSetting(literalRightHandSide(content, code, matcher.end(), matcher.group(1) != null)
+			boolean qualified = matcher.group("project") != null;
+			if (startsAStatement(code, matcher.start()) && appliesToTheRootProject(code, matcher.start())
+					&& (qualified || !shadowedByALocal(code, matcher.start()))) {
+				setting = Optional.of(new GroupSetting(
+						literalRightHandSide(content, code, matcher.end(), matcher.group("call") != null)
 								.flatMap(ProjectSourcesFinder::literalGroup)));
 			}
 		}
 		return setting;
+	}
+
+	/**
+	 * Whether a local variable named {@code group} declared earlier in this block,
+	 * or in a block around it, is what a plain {@code group} here refers to.
+	 */
+	private static boolean shadowedByALocal(String code, int offset) {
+		List<Integer> blocks = openBlocksAt(code, offset);
+		Matcher declaration = LOCAL_GROUP.matcher(code);
+		while (declaration.find() && declaration.start() < offset) {
+			List<Integer> declaredIn = openBlocksAt(code, declaration.start());
+			if (blocks.size() >= declaredIn.size() && blocks.subList(0, declaredIn.size()).equals(declaredIn)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** The offsets of the braces still open at this offset, outermost first. */
+	private static List<Integer> openBlocksAt(String code, int offset) {
+		Deque<Integer> open = new ArrayDeque<>();
+		for (int index = 0; index < offset; index++) {
+			if (code.charAt(index) == '{') {
+				open.push(index);
+			} else if (code.charAt(index) == '}') {
+				open.poll();
+			}
+		}
+		List<Integer> outermostFirst = new ArrayList<>(open);
+		Collections.reverse(outermostFirst);
+		return outermostFirst;
 	}
 
 	/**
