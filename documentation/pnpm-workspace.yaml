@@ -21,7 +21,7 @@ overrides:
   # Rspack 2 bundles 2.2.0, but @docusaurus/faster 3.10.2 asks for ^1.7.10.
   tinypool: '2.2.0'
   # GHSA-g3hv-75wg-m249
-  'minimatch@10': '11.0.5'
+  'minimatch@10': '11.0.8'
   # GHSA-gcqx-w48m-w2h4 has no fixed release. @svgr/plugin-svgo 8.1.0 declares deepmerge but
   # never loads it, so it is removed rather than replaced.
   '@svgr/plugin-svgo>deepmerge': '-'
