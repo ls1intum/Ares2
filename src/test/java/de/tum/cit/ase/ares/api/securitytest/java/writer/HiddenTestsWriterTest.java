@@ -167,7 +167,8 @@ class HiddenTestsWriterTest {
 		assertThat(source(HiddenTestsSources.JUPITER_HOOK)).content().contains("implements InvocationInterceptor")
 				.contains(
 						"com.example.ares.api.localization.Messages.localized(\"test_guard.hidden_test_before_deadline_message\")")
-				.contains("REGARDING_THE_VISIBILITY_AND_SCHEDULE_THE_FOLLOWING_TESTS_ARE_HIDDEN");
+				.contains(
+						"private static final List<String> HIDDEN = List.of((\"com.example.PenguinTest#name\").split(");
 		assertThat(source(HiddenTestsSources.JUPITER_SENTINEL)).exists();
 	}
 
@@ -428,8 +429,8 @@ class HiddenTestsWriterTest {
 	}
 
 	/**
-	 * The generated hook reads the public list and the switch, and names the
-	 * exercise's own generated security tests by their exact names.
+	 * The generated hook holds the public list itself, reads the switch, and names
+	 * the exercise's own generated security tests by their exact names.
 	 *
 	 * @throws IOException if the written hook cannot be read
 	 */
@@ -438,7 +439,7 @@ class HiddenTestsWriterTest {
 		writer(null).write(configuredPublic(), PACKAGE, testFolder);
 
 		assertThat(source(HiddenTestsSources.JUPITER_HOOK)).content()
-				.contains("REGARDING_THE_VISIBILITY_AND_SCHEDULE_THE_FOLLOWING_TESTS_ARE_PUBLIC")
+				.contains("private static final List<String> PUBLIC = List.of((\"\").split(")
 				.contains("REGARDING_THE_VISIBILITY_AND_SCHEDULE_TESTS_NOT_LISTED_HERE_ARE_HIDDEN")
 				.contains("\"com.example.ares.api.architecture.java.archunit.JavaArchunitTestCase\"")
 				.contains("\"com.example.ares.api.architecture.java.wala.JavaWalaTestCase\"")

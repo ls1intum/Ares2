@@ -93,8 +93,9 @@ class TestBehaviorConfigurationTest {
 	}
 
 	/**
-	 * The extension is folded into the deadline, each list is one line per entry,
-	 * and the switch is written as given.
+	 * The extension is folded into the deadline and the switch is written as given;
+	 * the test-name lists stay out of the settings class, whose fields any test can
+	 * read.
 	 */
 	@Test
 	void theVisibilityCategoryWritesItsValues() {
@@ -109,14 +110,13 @@ class TestBehaviorConfigurationTest {
 						+ ZonedDateTime.parse("2000-01-02T00:00Z").toInstant().toEpochMilli() + "L;")
 				.contains("REGARDING_THE_VISIBILITY_AND_SCHEDULE_THE_HIDDEN_TESTS_ARE_RUN_BEFORE = "
 						+ ZonedDateTime.parse("1990-01-01T00:00Z").toInstant().toEpochMilli() + "L;")
-				.contains("THE_FOLLOWING_TESTS_ARE_HIDDEN = \"org.example.A\\norg.example.B#m\";")
-				.contains("THE_FOLLOWING_TESTS_ARE_PUBLIC = \"org.example.C\";")
-				.contains("TESTS_NOT_LISTED_HERE_ARE_HIDDEN = true;");
+				.contains("TESTS_NOT_LISTED_HERE_ARE_HIDDEN = true;").doesNotContain("THE_FOLLOWING_TESTS_ARE")
+				.doesNotContain("org.example.A").doesNotContain("org.example.C");
 	}
 
 	/**
 	 * A hidden list too long for one Java string literal still compiles, and the
-	 * generated field holds every entry in order.
+	 * expression holds every entry in order.
 	 *
 	 * @param folder where the generated class is written and compiled.
 	 * @throws Exception if writing, compiling or loading fails
@@ -125,16 +125,10 @@ class TestBehaviorConfigurationTest {
 	void aLongHiddenListStillCompiles(@TempDir Path folder) throws Exception {
 		List<String> hidden = IntStream.range(0, 4000)
 				.mapToObj(i -> "org.example.longlist.SomeRatherLongTestClassName" + i + "#method").toList();
-		String written = assignments(
-				TestBehaviorConfiguration.builder()
-						.regardingTheVisibilityAndScheduleOfTheTestCases(VisibilityAndScheduleConfiguration.builder()
-								.theDeadlineIs("2000-01-01 00:00 UTC").testsNotListedHereAreHidden(false)
-								.hiddenTests(hidden.toArray(String[]::new)).build())
-						.build());
-		assertThat(written).contains("THE_FOLLOWING_TESTS_ARE_HIDDEN = String.join(");
+		String literal = TestBehaviorConfiguration.listLiteral(hidden);
+		assertThat(literal).startsWith("String.join(");
 		assertThat(String.join("\n", hidden)).hasSizeGreaterThan(65_535);
-		Object field = compileAndRead(folder, written,
-				"REGARDING_THE_VISIBILITY_AND_SCHEDULE_THE_FOLLOWING_TESTS_ARE_HIDDEN");
+		Object field = compileAndRead(folder, "public static final String LIST = " + literal + ";", "LIST");
 		assertThat(List.of(((String) field).split("\n"))).containsExactlyElementsOf(hidden);
 	}
 
@@ -169,7 +163,7 @@ class TestBehaviorConfigurationTest {
 				.regardingTheVisibilityAndScheduleOfTheTestCases(VisibilityAndScheduleConfiguration.builder()
 						.theDeadlineIs("2000-01-01 00:00 UTC").testsNotListedHereAreHidden(false).build())
 				.build();
-		assertThat(configuration.literalFieldAssignments()).hasSize(2 + 2 + 3 + 5);
+		assertThat(configuration.literalFieldAssignments()).hasSize(2 + 2 + 3 + 3);
 	}
 
 	/**

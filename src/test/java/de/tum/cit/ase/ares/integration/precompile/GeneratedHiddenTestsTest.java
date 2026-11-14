@@ -168,7 +168,8 @@ class GeneratedHiddenTestsTest {
 				.resolve("GeneratedTestBehaviorSettings.java");
 		String longSettings = Files
 				.readString(longSources.resolve("de/tum/cit/ase/ares/generated/GeneratedTestBehaviorSettings.java"));
-		assertThat(longSettings).as("the long list must be split into parts").contains("_PART_2 = ");
+		assertThat(Files.readString(longSources.resolve("de/tum/cit/ase/ares/generated/GeneratedHiddenTests.java")))
+				.as("the long list must be joined from several literals").contains("HIDDEN = List.of((String.join(");
 		Files.writeString(longShadowSource,
 				longSettings.replaceAll("THE_DEADLINE = -?\\d+L;", "THE_DEADLINE = 0L;").replaceAll(
 						"THE_FOLLOWING_TESTS_ARE_HIDDEN(_PART_\\d+)? = (\"[^\"]*\"|String\\.join\\([^;]*\\));",
@@ -630,9 +631,8 @@ class GeneratedHiddenTestsTest {
 	}
 
 	/**
-	 * A hidden list too long for one literal is written in constant parts that the
-	 * extension inlines, so replacing the settings class with empty parts and a
-	 * passed deadline changes nothing either.
+	 * A hidden list too long for one literal is joined inside the extension, so
+	 * replacing the settings class with a passed deadline changes nothing either.
 	 *
 	 * @throws Exception if the run cannot be set up
 	 */

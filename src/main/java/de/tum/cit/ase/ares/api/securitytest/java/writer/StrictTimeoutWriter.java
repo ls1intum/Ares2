@@ -52,7 +52,7 @@ final class StrictTimeoutWriter {
 		String messagesClass = packageName + ".ares.api.localization.Messages";
 		List<Path> written = new ArrayList<>();
 		written.add(hookFiles.writeSource(testFolderPath, StrictTimeoutSources.JUPITER_HOOK,
-				StrictTimeoutSources.jupiterHook(messagesClass)));
+				StrictTimeoutSources.jupiterHook(messagesClass, HiddenTestsWriter.contributes(configuration))));
 		written.add(hookFiles.writeSource(testFolderPath, StrictTimeoutSources.JUPITER_SENTINEL,
 				StrictTimeoutSources.jupiterSentinel(messagesClass)));
 		return new GeneratedHookFiles.Contribution(written, List.of(StrictTimeoutSources.JUPITER_HOOK));
