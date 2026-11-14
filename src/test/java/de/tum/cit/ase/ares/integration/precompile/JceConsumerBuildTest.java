@@ -91,10 +91,11 @@ class JceConsumerBuildTest {
 	private static void runBuild(Path project, boolean gradle) throws Exception {
 		List<String> command = new ArrayList<>();
 		if (gradle) {
-			command.add(Path.of("examples/ares-exercise-gradle/gradlew").toAbsolutePath().toString());
+			command.add(Path.of("examples/ares-exercise-gradle", launcher("gradlew", "gradlew.bat")).toAbsolutePath()
+					.toString());
 			command.addAll(List.of("--no-daemon", "--console=plain", "-p", project.toString(), "test"));
 		} else {
-			command.add("mvn");
+			command.add(launcher("mvn", "mvn.cmd"));
 			command.addAll(List.of("-B", "-f", project.resolve("pom.xml").toString(), "test"));
 		}
 		Path log = project.resolve("consumer-build.log");
@@ -114,6 +115,15 @@ class JceConsumerBuildTest {
 		} finally {
 			child.destroyForcibly();
 		}
+	}
+
+	/**
+	 * Picks the name of a build tool's start script for this operating system.
+	 * Windows cannot start the shell script, so it gets the batch file named second
+	 * instead.
+	 */
+	private static String launcher(String unixName, String windowsName) {
+		return System.getProperty("os.name").startsWith("Windows") ? windowsName : unixName;
 	}
 
 	/**

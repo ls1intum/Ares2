@@ -448,6 +448,91 @@ jobs:
       - name: Build
         run: mvn clean package -DskipTests -Pwithout-quality-gates
 
+  # The `unit-tests` job on Windows, without the coverage profile, so the coverage report
+  # stays a Linux figure.
+  windows-unit-tests:
+    name: Windows Unit Tests
+    needs: windows-build
+    runs-on: windows-2025
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          java-version: '25.0.5+8.0.LTS'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Unit tests
+        run: mvn test -Punit-core-tests -f pom.xml
+
+      - name: Architecture unit tests
+        run: mvn test -Punit-architecture-tests -f pom.xml
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          retention-days: 7
+          name: test-results-windows-unit-tests
+          path: target/surefire-reports/
+          if-no-files-found: warn
+
+  # The `core-integration-tests` job on Windows, without the coverage profile, so the
+  # coverage report stays a Linux figure.
+  windows-core-integration-tests:
+    name: Windows Core Integration Tests
+    needs: windows-build
+    runs-on: windows-2025
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          java-version: '25.0.5+8.0.LTS'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # As in the `core-integration-tests` job: JceConsumerBuildTest runs real builds through
+      # the Gradle wrapper, which would otherwise fetch its distribution in a single attempt.
+      - name: Restore the Gradle wrapper distribution
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('examples/ares-exercise-gradle/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Core integration tests
+        run: mvn test -Pintegration-core-tests -f pom.xml
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          retention-days: 7
+          name: test-results-windows-core-integration-tests
+          path: target/surefire-reports/
+          if-no-files-found: warn
+
   # Windows has its own paths, line endings and script launchers, so a green Linux run says
   # nothing about it. This job runs two of the four mode combinations, so each analysis
   # technique (ArchUnit, WALA) and each enforcement technique (AspectJ, instrumentation) runs
