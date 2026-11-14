@@ -173,6 +173,19 @@ class JavaProjectScannerHierarchyTest {
 	}
 
 	/**
+	 * A group set through the setter overrides gradle.properties in Gradle, so the
+	 * property is not taken, and the scope comes from the sources.
+	 */
+	@Test
+	void doesNotTakeGradlePropertiesOverASetterCall() throws IOException {
+		gradle("project.setGroup('org.example.exercise')\n");
+		Files.writeString(projectRoot.resolve("gradle.properties"), "group=org.example\n");
+		source("org/example/exercise/Main.java", "package org.example.exercise; public class Main { }");
+
+		assertEquals("org.example.exercise", scanner().scanForPackageName());
+	}
+
+	/**
 	 * A group that does not fit the code is passed over, and the decoy that then
 	 * wins is still refused before anything is armed.
 	 */

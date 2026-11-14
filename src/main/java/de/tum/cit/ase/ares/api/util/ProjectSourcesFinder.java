@@ -47,6 +47,13 @@ public final class ProjectSourcesFinder {
 	 */
 	private static final Pattern GROUP_MENTION = Pattern.compile("(?<![A-Za-z0-9_$])group(?![A-Za-z0-9_$])");
 	/**
+	 * The other ways Gradle code reaches the group: its accessors, and the name as
+	 * a string, as in {@code setProperty('group', ...)} or {@code project."group"}.
+	 * Matched on the original text; the mask decides whether a match is code.
+	 */
+	private static final Pattern GROUP_BY_OTHER_MEANS = Pattern
+			.compile("(?<![A-Za-z0-9_$])[sg]etGroup(?![A-Za-z0-9_$])|(['\"])group\\1");
+	/**
 	 * The filler {@link #maskInactiveRegions} writes over a comment, its delimiters
 	 * included.
 	 * <p>
@@ -1003,6 +1010,9 @@ public final class ProjectSourcesFinder {
 			return Optional.of(new GroupSetting(Optional.empty()));
 		}
 		String code = maskInactiveRegions(content, Objects.toString(descriptor.getFileName(), "").endsWith(".kts"));
+		if (reachesTheGroupByOtherMeans(content, code)) {
+			return Optional.of(new GroupSetting(Optional.empty()));
+		}
 		Optional<GroupSetting> setting = Optional.empty();
 		Matcher mention = GROUP_MENTION.matcher(code);
 		while (mention.find()) {
@@ -1104,6 +1114,24 @@ public final class ProjectSourcesFinder {
 	/** Whether the character is a space, a tab or part of a masked comment. */
 	private static boolean isBlankOrComment(char character) {
 		return character == ' ' || character == '\t' || character == COMMENT_MASK;
+	}
+
+	/**
+	 * Whether the code reaches the group through its accessors or by its name as a
+	 * string literal of its own. An accessor name counts only as code, the string
+	 * only where its opening quote is code, so text in comments or other strings
+	 * does not count.
+	 */
+	private static boolean reachesTheGroupByOtherMeans(String content, String code) {
+		Matcher other = GROUP_BY_OTHER_MEANS.matcher(content);
+		while (other.find()) {
+			char masked = code.charAt(other.start());
+			boolean literal = other.group(1) != null;
+			if (literal ? masked == other.group(1).charAt(0) : masked != COMMENT_MASK && masked != STRING_MASK) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
