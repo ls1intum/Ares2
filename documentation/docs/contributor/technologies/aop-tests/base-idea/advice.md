@@ -5,11 +5,13 @@ description: "The code that runs at a matched join point, and when it runs relat
 ---
 
 :::tip[Simple Story]
-Advice is what the teacher does at the moment they step in.
+This page is about what the teacher does at the moment they step in during the examination.
 
-You can act just before, just after, or wrap yourself around the moment so that you decide
-whether the thing happens at all. For a checklist, that last one is the power that matters:
-you can refuse.
+They look at what the pupil is reaching for and compare it with the rule sheet. They step in
+before anything happens, so they can still say no. Then they either let the pupil carry on, or
+stop them, tell them off and name the rule they broke.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

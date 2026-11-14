@@ -5,9 +5,16 @@ description: "How permitted executables and arguments are enforced, and why this
 ---
 
 :::tip[Simple Story]
-This part of the checklist governs sending a pupil out of the room on an errand.
+Sometimes a pupil is allowed to ask a friend outside the room for help. The rule sheet names
+the friend and the exact words the pupil can say to them. Being allowed to ask the friend does
+not make any words fine.
 
-It is the smallest surface there is, and the one with the widest blast radius when it is wrong.
+This is the smallest part of the rule sheet, and the one that does the most harm when the head
+teacher gets it wrong, because a friend can fetch almost anything. Once the friend is helping,
+the rule sheet no longer follows them. Even the special examination room, when the school uses
+it, limits only the friend's worksheets and telephone.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 For the fields an exercise author writes, see

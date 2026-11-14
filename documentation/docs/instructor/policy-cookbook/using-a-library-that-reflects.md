@@ -5,7 +5,13 @@ description: "Keeping a reflective dependency working without disabling the refl
 ---
 
 :::tip[Simple Story]
-A piece of equipment the exercise depends on inspects its own internals, and the checklist refuses it.
+The head teacher put out an aid that looks inside the teacher's desk while it works, and
+nobody is allowed to do that. The exercise still has to work, without letting the pupils look
+inside the desk themselves. The tempting mistake excuses the pupils together with the aid.
+
+Nobody has written this recipe yet.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

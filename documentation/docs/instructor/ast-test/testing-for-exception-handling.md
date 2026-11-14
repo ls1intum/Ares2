@@ -5,11 +5,15 @@ description: "Ruling out assert, throw and catch with ExceptionHandlingType."
 ---
 
 :::tip[Simple Story]
-The paper says "check the input yourself". A negative weight has to lead to a clear answer, and
-the pupil has to give it without raising an alarm or catching one.
+The instructions on this page forbid three ways of dealing with trouble: raising an objection,
+catching one and insisting that something has to hold. A negative weight has to lead to a clear
+answer without any of them. While marking by the grading instructions, the teacher reads what
+the pupil wrote and looks for all three.
 
-The mark scheme lists the three forms of alarm handling: `assert`, `throw` and `catch`. The
-teacher looks for each of them on the answer sheet.
+Forbidding the words does not stop objections. Something the pupil uses can still raise one,
+and the pupil can let it travel back to whoever asked.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example test class

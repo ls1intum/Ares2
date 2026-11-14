@@ -5,12 +5,18 @@ description: "The rules a test in this repository must follow, and why a securit
 ---
 
 :::tip[Simple Story]
-Here the checklist is the thing being examined. Ares supervises the room and is itself what is
-under test, and that is exactly where these tests go wrong.
+Here the teacher's own work is under test, so these tests go wrong in their own ways.
 
-Anything you start inside the examination is itself a pupil, subject to the same checklist, so
-when it fails you cannot tell whether the pupil failed or your own scaffolding did. These are
-the rules that keep a test measuring the pupil rather than the furniture.
+The teacher watches anything a test sets up inside the examination as closely as a pupil. When
+it fails, you cannot tell who failed. A test that needs someone to answer the telephone rings a
+telephone that is not part of the examination. When nobody answers there, the test counts as
+skipped, not failed. When the teacher stops a call the rule sheet allows, that is always a
+failure.
+
+Each test of a rule has two halves: an allowed thing still works, and the teacher still stops a
+forbidden thing.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Every change is verified against all four combinations
@@ -89,7 +95,8 @@ in the ordinary Maven build without Node:
 
 - every page of both guides is enumerated by an expected path set, so a page cannot be added,
   removed, renamed or filed under the wrong audience unnoticed;
-- every page declares its front matter, opens with a Simple Story box and carries no `h1`;
+- every page declares its front matter, opens with a Simple Story box and carries no `h1`, and
+  every box except the one on the Who-is-who page ends with the link to that page;
 - every `_category_.json` is valid and collision-free against its siblings;
 - the policy pages share one shape and together walk the example policy top to bottom.
 

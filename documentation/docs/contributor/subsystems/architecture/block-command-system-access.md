@@ -5,11 +5,15 @@ description: "How the architecture layer detects command execution statically, w
 ---
 
 :::tip[Simple Story]
-The same forbidden thing the aspect-oriented programming (AOP) layer watches for while a pupil
-works, looked for before the pupil is asked anything.
+Before the start, the teacher clears the desks by the rule sheet. They look at what each
+pupil's work turned into and ask whether any route leads from it to a friend outside the room.
+Any route fails, even one the pupil never takes.
 
-Rather than waiting for the errand to be requested, this layer reads the compiled answer and
-asks whether any route at all leads from their desk to the part of Java that runs commands.
+The clearing cannot hear which words a pupil says. So it covers friends only while the rule
+sheet allows none. Once the rule sheet allows one friend, the clearing leaves friends alone,
+and only the watching tells the allowed words from the rest.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## 1. High-Level Overview
@@ -22,7 +26,7 @@ command allowance, AspectJ or instrumentation is authoritative for permitting th
 exact allowance and rejecting non-matching commands and arguments; see
 `docs/policy/EnforcementModel.md`.
 
-**Key Difference from AOP Approach:**
+**Key Difference from the aspect-oriented programming (AOP) Approach:**
 - **Aspect-oriented programming (AOP), at runtime**: Monitors command execution during program execution and blocks forbidden commands in real-time
 - **Architecture (Static)**: Analyses compiled bytecode before execution to detect potential command execution violations in the code structure
 

@@ -5,13 +5,15 @@ description: "How to get involved with Ares 2: the workflow, the build, and what
 ---
 
 :::tip[Simple Story]
-Ares is the checklist. Change it carelessly and one of two things happens: a pupil gets away
-with something, or an honest pupil is failed for nothing.
+Anyone who changes how the teacher clears the desks or watches the pupils can go wrong in two
+ways. A pupil gets away with something forbidden, or an honest pupil fails for nothing.
 
-Neither is a cosmetic bug, which is why the rules for changing Ares are stricter than for an
-ordinary library. Every change to enforcement has to prove both halves: the permitted thing
-still permitted,
-the forbidden thing still refused. This page is the short version of those rules.
+So every such change shows both halves: what the rule sheet allows still works, and the teacher
+still stops what it forbids. There are two ways of clearing the desks and two ways of watching.
+A change has to hold in every pairing it touches. This page gives the short version of these
+rules.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 Ares 2 is developed in the open at [ls1intum/Ares2](https://github.com/ls1intum/Ares2).

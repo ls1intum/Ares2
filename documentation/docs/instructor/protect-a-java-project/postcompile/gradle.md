@@ -5,10 +5,11 @@ description: "Protecting a Gradle project with Ares 2 in Postcompile mode, from 
 ---
 
 :::tip[Simple Story]
-This is the whole path for a Gradle exercise, in the order you have to do it.
+This page sets up, step by step, an examination in which the teacher picks up the rule sheet for
+each question and puts it away afterwards. One step is not optional: the school's office has to
+make sure that the rule sheet on the desk is the head teacher's.
 
-Add Ares, label your tests, fill in the checklist, and wire the check into the build so nobody
-can quietly take it off the desk.
+[Who is who](/instructor/who-is-who)
 :::
 
 ## The path, in order

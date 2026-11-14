@@ -5,11 +5,14 @@ description: "A condition asserted over the analysed program, and what it means 
 ---
 
 :::tip[Simple Story]
-A rule is one line of the checklist turned into a sentence that must be true, such as "nothing
-in the pupil's compiled answer may reach the code that deletes files".
+A rule is one line of the rule sheet turned into a sentence that has to hold when the teacher
+clears the desks. For example: no pupil's work leads to throwing a worksheet away.
 
-The tool checks the sentence against the map. If the sentence is false, it tells you which part
-made it false.
+If the sentence does not hold, the teacher names the part that broke it. Once the rule sheet
+allows anything at all with worksheets, the teacher drops this sentence. Desk clearing cannot
+tell one worksheet from another, so from then on only the watching covers worksheets.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

@@ -5,11 +5,15 @@ description: "Why enforcement lives in a process that wraps the supervised comma
 ---
 
 :::tip[Simple Story]
-Whoever is holding the door stands outside the room, not inside it.
+The features of the special examination room sit in its walls and its door, out of the pupil's
+reach.
 
-That sounds like a detail and it is the whole point. A pupil who has taken the room over can
-talk round anyone who is in there with them. They cannot talk round someone who arrived before
-they did and is holding the door from the other side.
+That is the whole point. The teacher's checks work inside the room, beside the pupils. The
+room's features work from outside, so even a pupil who gains control over everything inside
+cannot switch them off. Nobody uses this room yet when the teacher picks up the rule sheet for
+each question. This page tells how an earlier version of the room worked.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[Historical design]

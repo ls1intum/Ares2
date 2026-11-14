@@ -5,11 +5,14 @@ description: "Short, complete recipes for the policy situations that come up mos
 ---
 
 :::tip[Simple Story]
-The [Policy Reference](/instructor/policy-reference/) tells you what every line of the
-checklist means.
+The reference pages explain each line of the rule sheet. These recipes start from an
+exercise instead: one thing a pupil has to be allowed to do, and the least the head teacher
+can write on the rule sheet to allow it.
 
-This section tells you what to write on it when you have a real exercise in front of you
-and one concrete thing a pupil has to be allowed to do.
+Allowing more than the exercise needs is a mistake, even when the teacher marks every answer
+right. Nobody has written the recipes yet.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## How a recipe is built

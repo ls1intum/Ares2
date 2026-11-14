@@ -5,12 +5,17 @@ description: "Requiring or ruling out recursive calls with UnwantedRecursionAsse
 ---
 
 :::tip[Simple Story]
-The paper says "solve it recursively". The board of education wants the pupil to answer the
-question by asking themself a smaller version of it.
+The instructions on this page are about one way of answering. A pupil solves the question by
+asking themselves a smaller version of it, or by asking another pupil who asks them back.
 
-No single sentence on the answer sheet shows that. So the teacher draws a map of who asks whom,
-one arrow for every call, and looks for a path of arrows that leads back to where it started. The
-mark scheme says whether such a path has to be there or must not be.
+No single word shows that. So while marking by the grading instructions, the teacher reads what
+the pupils wrote, follows who asks whom, and looks for a chain that leads back to where it
+started. The instructions say whether such a chain has to be there or must not be.
+
+When a chain has to be there, any chain counts, even one in a pupil the question does not
+concern. The head teacher can name the pupil it has to start from.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example test class

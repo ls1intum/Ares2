@@ -5,12 +5,15 @@ description: "Ruling out if, the conditional operator and switch with Conditiona
 ---
 
 :::tip[Simple Story]
-The paper says "decide without asking". The pupil has to sort the penguins by a rule that needs
-no "if this, then that", perhaps through a table or a formula.
+The instructions on this page forbid deciding by asking "if this, then that". The pupil has to
+sort the items by a rule that needs no such question, perhaps a table or a formula. While
+marking by the grading instructions, the teacher reads what the pupil wrote and looks for the
+three forbidden ways of asking: the plain question, the short one and the long list of cases.
 
-The mark scheme lists the forms of asking that cost the marks: an `if`, the short question
-`?:` and the long list of cases called `switch`. While marking, the teacher looks for each of
-them on the answer sheet.
+The teacher finds only those three. A pupil who decides in any other way passes, whether or not
+the head teacher meant to allow that way.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example test class
