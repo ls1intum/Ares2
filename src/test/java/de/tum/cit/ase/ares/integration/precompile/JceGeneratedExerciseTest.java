@@ -559,13 +559,13 @@ class JceGeneratedExerciseTest {
 				        createAllFiles: false
 				        executeAllFiles: false
 				        deleteAllFiles: false
-				        onThisPathAndAllPathsBelow: "%s"
+				        onThisPathAndAllPathsBelow: %s
 				      - readAllFiles: false
 				        overwriteAllFiles: false
 				        createAllFiles: true
 				        executeAllFiles: false
 				        deleteAllFiles: false
-				        onThisPathAndAllPathsBelow: "%s"
+				        onThisPathAndAllPathsBelow: %s
 				    regardingNetworkConnections:
 				              - onTheHost: "localhost"
 				                onThePort: 1
@@ -578,8 +578,20 @@ class JceGeneratedExerciseTest {
 				              - importTheFollowingPackage: "javax.crypto"
 				              - importTheFollowingPackage: "javax.net.ssl"
 				    regardingTimeouts: []
-				""".formatted(configuration, project.resolve("allowed.txt").toString(),
-				project.resolve("allowed-temp").toString());
+				""".formatted(configuration, singleQuoted(project.resolve("allowed.txt")),
+				singleQuoted(project.resolve("allowed-temp")));
+	}
+
+	/**
+	 * Writes a path as a single-quoted YAML string, where a backslash is an
+	 * ordinary character, so a Windows path is read back unchanged. A single quote
+	 * inside is doubled, the only escape such a string has.
+	 *
+	 * @param path the path to write
+	 * @return the quoted path
+	 */
+	private static String singleQuoted(Path path) {
+		return "'" + path.toString().replace("'", "''") + "'";
 	}
 
 	/**
