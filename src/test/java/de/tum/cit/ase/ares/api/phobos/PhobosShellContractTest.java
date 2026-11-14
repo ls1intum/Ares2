@@ -20,6 +20,15 @@ import de.tum.cit.ase.ares.api.util.FileTools;
 class PhobosShellContractTest {
 	private static final Path TEMPLATES = FileTools.resolveFileOnSourceDirectory("templates", "phobos");
 
+	/**
+	 * Where bash is looked for, in order: /bin/bash on Linux and macOS, and the
+	 * bash of Git for Windows in its default folder. Windows has no /bin/bash, and
+	 * a search of the path could find the Windows Subsystem for Linux launcher,
+	 * also named bash, before it.
+	 */
+	private static final List<Path> BASH_LOCATIONS = List.of(Path.of("/bin/bash"),
+			Path.of(System.getenv().getOrDefault("ProgramFiles", "C:\\Program Files"), "Git", "bin", "bash.exe"));
+
 	@Test
 	void copyToolAssignsTargetDirectoryWithAsciiQuotes() throws Exception {
 		Path copyTool = TEMPLATES.resolve("PhobosCopyTool.sh");
@@ -54,19 +63,30 @@ class PhobosShellContractTest {
 	/**
 	 * Checks that a script parses, by handing its text to bash on standard input
 	 * rather than naming the file, so its path never reaches a shell and nothing in
-	 * it runs. Bash is named by absolute path, so the environment cannot choose the
-	 * interpreter; the test needs bash at /bin/bash.
+	 * it runs. Bash is named by absolute path rather than looked up on the search
+	 * path; see {@link #BASH_LOCATIONS}.
 	 *
 	 * @param scriptContent the script text to parse
 	 * @return what bash printed, and whether it accepted the script
 	 */
 	private ProcessResult runBashSyntaxCheck(String scriptContent) throws IOException, InterruptedException {
-		Process process = new ProcessBuilder("/bin/bash", "-n").redirectErrorStream(true).start();
+		Process process = new ProcessBuilder(bash().toString(), "-n").redirectErrorStream(true).start();
 		try (OutputStream stdin = process.getOutputStream()) {
 			stdin.write(scriptContent.getBytes(StandardCharsets.UTF_8));
 		}
 		String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 		return new ProcessResult(process.waitFor(), output);
+	}
+
+	/**
+	 * Finds bash at the first of its fixed locations that holds a program.
+	 *
+	 * @return the absolute path of bash
+	 * @throws AssertionError if none of the locations holds one
+	 */
+	private static Path bash() {
+		return BASH_LOCATIONS.stream().filter(Files::isExecutable).findFirst()
+				.orElseThrow(() -> new AssertionError("bash is at none of " + BASH_LOCATIONS));
 	}
 
 	private record ProcessResult(int exitCode, String output) {
