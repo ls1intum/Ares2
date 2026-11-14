@@ -204,6 +204,9 @@ class GeneratedAllHooksTest {
 						+ ".ViolationSource.blocked()); }");
 		fixture(fixtures, "GroupedViolationFixture", "@Test void reads() { Assertions.assertAll(() -> { throw "
 				+ VIOLATION_PACKAGE + ".ViolationSource.blocked(); }); }");
+		fixture(fixtures, "MemberOnlyViolationFixture",
+				"@Test void reads() { throw new org.opentest4j.MultipleFailuresError(\"group\", java.util.List.of("
+						+ VIOLATION_PACKAGE + ".ViolationSource.blocked())); }");
 		fixture(fixtures, "SuppressedViolationFixture",
 				"@Test void reads() { IllegalStateException outer = new IllegalStateException(\"outer\");"
 						+ " outer.addSuppressed(" + VIOLATION_PACKAGE + ".ViolationSource.blocked()); throw outer; }");
@@ -635,9 +638,9 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
-	 * A blocked action inside an {@code assertAll} group, or attached as a
-	 * suppressed failure, still follows the feedback level, so its path never
-	 * reaches the report.
+	 * A blocked action inside an {@code assertAll} group, inside a group built
+	 * directly, or attached as a suppressed failure, still follows the feedback
+	 * level, so its path never reaches the report.
 	 *
 	 * @param reversed whether the hooks are registered the other way round.
 	 * @param fixture  the fixture carrying the blocked action
@@ -645,7 +648,8 @@ class GeneratedAllHooksTest {
 	 */
 	@ParameterizedTest
 	@CsvSource({ "false, GroupedViolationFixture", "true, GroupedViolationFixture", "false, SuppressedViolationFixture",
-			"true, SuppressedViolationFixture" })
+			"true, SuppressedViolationFixture", "false, MemberOnlyViolationFixture",
+			"true, MemberOnlyViolationFixture" })
 	void anAttachedBlockedActionFollowsTheFeedbackLevel(boolean reversed, String fixture) throws Exception {
 		assertThat(messages(run("com.example.fixtures." + fixture, reversed))).containsExactly(
 				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
