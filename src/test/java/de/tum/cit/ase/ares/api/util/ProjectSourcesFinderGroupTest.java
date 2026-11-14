@@ -71,11 +71,11 @@ class ProjectSourcesFinderGroupTest {
 	/**
 	 * What the narrow reader takes from a Groovy descriptor: a plain top-level
 	 * literal assignment, and nothing where the descriptor uses the name in any
-	 * other way at the top level or in allprojects. A null expectation means no
-	 * group, which also keeps gradle.properties from being read.
-	 *
-	 * @param descriptor the build.gradle content
-	 * @param expected   the group read, or null
+	 * other way, anywhere. A null expectation means no group, which also keeps
+	 * gradle.properties from being read.
+	 * 
+	 * @param descriptor the build.gradle content @param expected the group read, or
+	 *                   null
 	 */
 	@ParameterizedTest
 	@MethodSource("groovyDescriptors")
@@ -98,8 +98,10 @@ class ProjectSourcesFinderGroupTest {
 				Arguments.of("group = 'first.one'\ngroup = 'de.tum.cit.aet'", group),
 				Arguments.of("group = 'de.tum.cit.aet'; version = '1'", group),
 				Arguments.of("group = 'de.tum.cit.aet' // the exercise", group),
-				Arguments.of("tasks.register('x') { group = 'verification' }", "from.properties"),
-				Arguments.of("subprojects { group = 'de.tum.cit.aet' }", "from.properties"),
+				Arguments.of("tasks.register('x') { group = 'verification' }", null),
+				Arguments.of("subprojects { group = 'de.tum.cit.aet' }", null),
+				Arguments.of("group = 'org.example'\nif (true) { project.group = 'org.example.exercise' }", null),
+				Arguments.of("if (true) { group = 'org.example.exercise' }", null),
 				Arguments.of("// group = 'de.tum.cit.aet'", "from.properties"),
 				Arguments.of("println \"group = 'de.tum.cit.aet'\"", "from.properties"),
 				Arguments.of("groupId = 'de.tum.cit.aet'", "from.properties"),

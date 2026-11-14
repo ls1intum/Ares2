@@ -160,6 +160,19 @@ class JavaProjectScannerHierarchyTest {
 	}
 
 	/**
+	 * A write to the project's group inside a condition may override the top-level
+	 * literal, so neither that literal nor gradle.properties is taken, and the
+	 * scope comes from the sources.
+	 */
+	@Test
+	void doesNotKeepALiteralThatANestedWriteMayOverride() throws IOException {
+		gradle("group = 'org.example'\nif (true) { project.group = 'org.example.exercise' }\n");
+		source("org/example/exercise/Main.java", "package org.example.exercise; public class Main { }");
+
+		assertEquals("org.example.exercise", scanner().scanForPackageName());
+	}
+
+	/**
 	 * A group that does not fit the code is passed over, and the decoy that then
 	 * wins is still refused before anything is armed.
 	 */

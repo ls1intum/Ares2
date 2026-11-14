@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -988,10 +987,9 @@ public final class ProjectSourcesFinder {
 	 * The root project's group as a Gradle descriptor sets it, read narrowly.
 	 * <p>
 	 * Only a top-level {@code group = '...'} or {@code project.group = '...'}
-	 * counts. Any other top-level use of the name, or one directly inside
-	 * {@code allprojects}, makes the answer unknown, because a local variable, a
-	 * parameter or a computed value would need a Groovy or Kotlin interpreter. Uses
-	 * inside other blocks, such as a task's group, are not the project's.
+	 * counts. Any other use of the name anywhere, a task's group or a write inside
+	 * a condition included, makes the answer unknown: telling which of them reach
+	 * the root project would need a Groovy or Kotlin interpreter.
 	 */
 	private static Optional<GroupSetting> gradleGroupOf(Path descriptor) {
 		if (!Files.isRegularFile(descriptor)) {
@@ -1008,17 +1006,13 @@ public final class ProjectSourcesFinder {
 		Optional<GroupSetting> setting = Optional.empty();
 		Matcher mention = GROUP_MENTION.matcher(code);
 		while (mention.find()) {
-			List<String> blocks = blockNamesAt(code, mention.start());
-			if (blocks.size() == 1 && "allprojects".equals(blocks.get(0))) {
+			Optional<String> literal = atTopLevel(code, mention.start())
+					? plainLiteralAssignment(content, code, mention.start(), mention.end())
+					: Optional.empty();
+			if (literal.isEmpty()) {
 				return Optional.of(new GroupSetting(Optional.empty()));
 			}
-			if (blocks.isEmpty()) {
-				Optional<String> literal = plainLiteralAssignment(content, code, mention.start(), mention.end());
-				if (literal.isEmpty()) {
-					return Optional.of(new GroupSetting(Optional.empty()));
-				}
-				setting = Optional.of(new GroupSetting(literal));
-			}
+			setting = Optional.of(new GroupSetting(literal));
 		}
 		return setting;
 	}
@@ -1113,34 +1107,19 @@ public final class ProjectSourcesFinder {
 	}
 
 	/**
-	 * The names of the blocks open at this offset, outermost first; a block with no
-	 * name before its brace, such as a closure, is named by the empty string.
+	 * Whether no block is open at this offset. Comments and strings are masked, so
+	 * every brace counted here is code.
 	 */
-	private static List<String> blockNamesAt(String code, int offset) {
-		Deque<String> blocks = new ArrayDeque<>();
+	private static boolean atTopLevel(String code, int offset) {
+		int depth = 0;
 		for (int index = 0; index < offset; index++) {
 			if (code.charAt(index) == '{') {
-				blocks.push(lastSegmentOf(identifierBefore(code, index)));
-			} else if (code.charAt(index) == '}') {
-				blocks.poll();
+				depth++;
+			} else if (code.charAt(index) == '}' && depth > 0) {
+				depth--;
 			}
 		}
-		List<String> outermostFirst = new ArrayList<>(blocks);
-		Collections.reverse(outermostFirst);
-		return outermostFirst;
-	}
-
-	/** The identifier chain ending just before an opening brace, or empty. */
-	private static String identifierBefore(String code, int brace) {
-		int end = brace;
-		while (end > 0 && Character.isWhitespace(code.charAt(end - 1))) {
-			end--;
-		}
-		int start = end;
-		while (start > 0 && (isIdentifierPart(code.charAt(start - 1)) || code.charAt(start - 1) == '.')) {
-			start--;
-		}
-		return code.substring(start, end);
+		return depth == 0;
 	}
 
 	/**
