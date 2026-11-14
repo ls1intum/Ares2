@@ -69,43 +69,51 @@ class ProjectSourcesFinderGroupTest {
 	}
 
 	/**
-	 * The forms Gradle itself applies to the root project, and the forms it does
-	 * not. A null expectation means none is read.
+	 * What the narrow reader takes from a Groovy descriptor: a plain top-level
+	 * literal assignment, and nothing where the descriptor uses the name in any
+	 * other way at the top level or in allprojects. A null expectation means no
+	 * group, which also keeps gradle.properties from being read.
 	 *
 	 * @param descriptor the build.gradle content
 	 * @param expected   the group read, or null
 	 */
 	@ParameterizedTest
 	@MethodSource("groovyDescriptors")
-	void readsTheGroupGradleApplies(String descriptor, String expected) throws IOException {
+	void readsOnlyAPlainLiteralAssignment(String descriptor, String expected) throws IOException {
 		Files.writeString(projectRoot.resolve("build.gradle"), descriptor + "\n");
+		Files.writeString(projectRoot.resolve("gradle.properties"), "group=from.properties\n");
 
 		assertEquals(Optional.ofNullable(expected), ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
 	}
 
 	/**
-	 * Groovy descriptors and the group Gradle 9.9.1 applies for each.
+	 * Groovy descriptors and the group the narrow reader takes from each.
 	 *
 	 * @return the cases
 	 */
 	static Stream<Arguments> groovyDescriptors() {
 		String group = "de.tum.cit.aet";
-		return Stream.of(Arguments.of("group = 'de.tum.cit.aet'", group), Arguments.of("group 'de.tum.cit.aet'", group),
-				Arguments.of("group(\"de.tum.cit.aet\")", group),
+		return Stream.of(Arguments.of("group = 'de.tum.cit.aet'", group),
 				Arguments.of("project.group = \"de.tum.cit.aet\"", group),
-				Arguments.of("allprojects { group = 'de.tum.cit.aet' }", group),
 				Arguments.of("group = 'first.one'\ngroup = 'de.tum.cit.aet'", group),
+				Arguments.of("group = 'de.tum.cit.aet'; version = '1'", group),
+				Arguments.of("group = 'de.tum.cit.aet' // the exercise", group),
+				Arguments.of("tasks.register('x') { group = 'verification' }", "from.properties"),
+				Arguments.of("subprojects { group = 'de.tum.cit.aet' }", "from.properties"),
+				Arguments.of("// group = 'de.tum.cit.aet'", "from.properties"),
+				Arguments.of("println \"group = 'de.tum.cit.aet'\"", "from.properties"),
+				Arguments.of("groupId = 'de.tum.cit.aet'", "from.properties"),
+				Arguments.of("group 'de.tum.cit.aet'", null), Arguments.of("group(\"de.tum.cit.aet\")", null),
+				Arguments.of("allprojects { group = 'de.tum.cit.aet' }", null),
 				Arguments.of("def group = 'de.tum.cit.aet'", null),
-				Arguments.of("subprojects { group = 'de.tum.cit.aet' }", null),
-				Arguments.of("// group = 'de.tum.cit.aet'", null),
-				Arguments.of("println \"group = 'de.tum.cit.aet'\"", null),
-				Arguments.of("group = \"${base}.aet\"", null), Arguments.of("groupId = 'de.tum.cit.aet'", null),
 				Arguments.of("String group = 'de.tum.cit.aet'", null),
+				Arguments.of("def group = 'local'\ngroup = 'org.other'", null),
+				Arguments.of("def label(String group) { return group }\ngroup = 'org.other'", null),
+				Arguments.of("rootProject.group = 'de.tum.cit.aet'", null),
+				Arguments.of("myproject.group = 'de.tum.cit.aet'", null), Arguments.of("group = \"${base}.aet\"", null),
 				Arguments.of("group = 'de.tum' + '.cit.aet'", null),
 				Arguments.of("group = 'de.tum.cit.aet'\ngroup = computeGroup()", null),
-				Arguments.of("group = 'de.tum.cit.aet'\nprintln group", group),
-				Arguments.of("group = 'de.tum.cit.aet'; version = '1'", group),
-				Arguments.of("group = 'de.tum.cit.aet' // the exercise", group));
+				Arguments.of("group = 'de.tum.cit.aet'\nprintln group", null), Arguments.of("group = ''", null));
 	}
 
 	/**
@@ -144,57 +152,6 @@ class ProjectSourcesFinderGroupTest {
 		Files.writeString(projectRoot.resolve("gradle.properties"), line + "\n");
 
 		assertEquals(Optional.of("de.tum.cit.aet"), ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
-	}
-
-	/**
-	 * A computed or blank setting in the descriptor still overrides the group of
-	 * gradle.properties, as in Gradle, so no group is read rather than the
-	 * overridden one.
-	 *
-	 * @param setting the descriptor line
-	 */
-	@ParameterizedTest
-	@ValueSource(strings = { "group = 'org.example.' + 'exercise'", "group = computeGroup()", "group = ''" })
-	void letsAComputedSettingOverrideGradleProperties(String setting) throws IOException {
-		Files.writeString(projectRoot.resolve("build.gradle"), setting + "\n");
-		Files.writeString(projectRoot.resolve("gradle.properties"), "group=org.example\n");
-
-		assertEquals(Optional.empty(), ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
-	}
-
-	/**
-	 * After a local variable named {@code group} is declared, a plain {@code group}
-	 * in that block is the variable, so the project keeps the group of
-	 * gradle.properties; {@code project.group} and code outside the block still set
-	 * it. Each expectation was measured with Gradle 9.9.1.
-	 *
-	 * @param descriptor the build.gradle content
-	 * @param expected   the group Gradle applies
-	 */
-	@ParameterizedTest
-	@MethodSource("localVariableDescriptors")
-	void tellsALocalGroupVariableFromTheProjectGroup(String descriptor, String expected) throws IOException {
-		Files.writeString(projectRoot.resolve("build.gradle"), descriptor + "\n");
-		Files.writeString(projectRoot.resolve("gradle.properties"), "group=org.example\n");
-
-		assertEquals(Optional.of(expected), ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
-	}
-
-	/**
-	 * Descriptors with a local {@code group} variable and the group Gradle 9.9.1
-	 * applies for each.
-	 *
-	 * @return the cases
-	 */
-	static Stream<Arguments> localVariableDescriptors() {
-		return Stream.of(Arguments.of("def group = 'local'\ngroup = 'org.other'", "org.example"),
-				Arguments.of("String group = 'local'\ngroup = 'org.other'", "org.example"),
-				Arguments.of("def group = 'local'\nproject.group = 'org.other'", "org.other"),
-				Arguments.of("allprojects { def group = 'local' }\ngroup = 'org.other'", "org.other"),
-				Arguments.of("if (true) { def group = 'local'; group = 'x' }\ngroup = 'org.other'", "org.other"),
-				Arguments.of("def label(String group) { return group }\ngroup = 'org.other'", "org.other"),
-				Arguments.of("def f = { String group -> group }\ngroup = 'org.other'", "org.other"),
-				Arguments.of("for (String group : ['a']) { }\ngroup = 'org.other'", "org.other"));
 	}
 
 	/** The descriptor wins over gradle.properties, as it does in Gradle. */

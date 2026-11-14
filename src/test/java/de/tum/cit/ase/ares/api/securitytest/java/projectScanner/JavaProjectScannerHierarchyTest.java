@@ -145,15 +145,16 @@ class JavaProjectScannerHierarchyTest {
 	}
 
 	/**
-	 * Assigning a local variable named {@code group} leaves the project's group
-	 * alone, so the group of gradle.properties still covers both children.
+	 * A descriptor that uses {@code group} in a way the reader does not take
+	 * literally yields no group, not the one of gradle.properties, so the topmost
+	 * package decides.
 	 */
 	@Test
-	void ignoresAnAssignmentToALocalGroupVariable() throws IOException {
+	void fallsBackWhereTheDescriptorUsesTheGroupOtherwise() throws IOException {
 		gradle("def group = 'local'\ngroup = 'org.other'\n");
 		Files.writeString(projectRoot.resolve("gradle.properties"), "group=org.example\n");
+		source("org/example/Main.java", "package org.example; public class Main { }");
 		source("org/example/model/Model.java", "package org.example.model; public class Model { }");
-		source("org/example/view/View.java", "package org.example.view; public class View { }");
 
 		assertEquals("org.example", scanner().scanForPackageName());
 	}

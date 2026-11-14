@@ -42,19 +42,11 @@ public final class ProjectSourcesFinder {
 	private static final Pattern PROPERTY_ASSIGNMENT = Pattern
 			.compile("(?m)^\\s*(?:def|val|var)?\\s*([A-Za-z_][A-Za-z0-9_.-]*)\\s*=\\s*['\"]([^'\"]+)['\"]");
 	/**
-	 * A {@code group} or {@code project.group} being set: by assignment, by a
-	 * method call, or by a Groovy command call. Matched on masked code, so a
-	 * mention inside a comment or a string does not count.
+	 * Any mention of {@code group} as a name in Gradle code, qualified or not.
+	 * Matched on masked code, so a mention inside a comment or a string does not
+	 * count, and {@code groupId} is a different name.
 	 */
-	private static final Pattern GRADLE_GROUP = Pattern.compile(
-			"(?<![A-Za-z0-9_$.])(?<project>project\\s*\\.\\s*)?group(?![A-Za-z0-9_$])(?:\\s*=(?!=)|\\s*(?<call>\\()|[ \\t]+(?=['\"A-Za-z_$]))");
-	/**
-	 * A local variable named {@code group} being declared: after {@code def},
-	 * {@code var}, {@code val}, {@code final} or a capitalised type. Gradle then
-	 * reads a plain {@code group} in that block as the variable, not the project.
-	 */
-	private static final Pattern LOCAL_GROUP = Pattern.compile(
-			"(?<![A-Za-z0-9_$.])(?:def|var|val|final|[A-Z][A-Za-z0-9_$]*(?:<[^=;{}()]*>)?(?:\\[\\])*)\\s+group(?![A-Za-z0-9_$])");
+	private static final Pattern GROUP_MENTION = Pattern.compile("(?<![A-Za-z0-9_$])group(?![A-Za-z0-9_$])");
 	/**
 	 * The filler {@link #maskInactiveRegions} writes over a comment, its delimiters
 	 * included.
@@ -933,9 +925,10 @@ public final class ProjectSourcesFinder {
 	 * The group the build descriptor itself declares, or empty where none can be
 	 * taken literally.
 	 * <p>
-	 * Maven: the project's own {@code groupId}, never an inherited one. Gradle: the
-	 * last {@code group} set at the top level or in {@code allprojects}, else
-	 * {@code group} in {@code gradle.properties}. Computed values count as none.
+	 * Maven: the project's own {@code groupId}, never an inherited one. Gradle: a
+	 * plain {@code group = '...'} at the top level, else {@code group} in
+	 * {@code gradle.properties}; any other top-level use of {@code group} yields
+	 * none rather than a guess.
 	 *
 	 * @param projectRoot the project root
 	 * @param buildMode   the build tool of the project
@@ -954,11 +947,11 @@ public final class ProjectSourcesFinder {
 	}
 
 	/**
-	 * A {@code group} the Gradle descriptor sets for the root project. Its literal
-	 * is empty where the value is computed or unreadable: the setting still
-	 * overrides {@code gradle.properties}, as it does in Gradle.
+	 * What the Gradle descriptor says about the root project's group. Its literal
+	 * is empty where the descriptor touches the group in any way this reader does
+	 * not take literally; that still overrides {@code gradle.properties}.
 	 *
-	 * @param literal the value set, or empty when it is not a literal
+	 * @param literal the group set, or empty when it cannot be read literally
 	 */
 	private record GroupSetting(@Nonnull Optional<String> literal) {
 	}
@@ -992,8 +985,13 @@ public final class ProjectSourcesFinder {
 	}
 
 	/**
-	 * The last {@code group} or {@code project.group} assignment or method call in
-	 * a Gradle descriptor that applies to the root project, read from code only.
+	 * The root project's group as a Gradle descriptor sets it, read narrowly.
+	 * <p>
+	 * Only a top-level {@code group = '...'} or {@code project.group = '...'}
+	 * counts. Any other top-level use of the name, or one directly inside
+	 * {@code allprojects}, makes the answer unknown, because a local variable, a
+	 * parameter or a computed value would need a Groovy or Kotlin interpreter. Uses
+	 * inside other blocks, such as a task's group, are not the project's.
 	 */
 	private static Optional<GroupSetting> gradleGroupOf(Path descriptor) {
 		if (!Files.isRegularFile(descriptor)) {
@@ -1008,68 +1006,53 @@ public final class ProjectSourcesFinder {
 		}
 		String code = maskInactiveRegions(content, Objects.toString(descriptor.getFileName(), "").endsWith(".kts"));
 		Optional<GroupSetting> setting = Optional.empty();
-		Matcher matcher = GRADLE_GROUP.matcher(code);
-		while (matcher.find()) {
-			boolean qualified = matcher.group("project") != null;
-			if (startsAStatement(code, matcher.start()) && appliesToTheRootProject(code, matcher.start())
-					&& (qualified || !shadowedByALocal(code, matcher.start()))) {
-				setting = Optional.of(new GroupSetting(
-						literalRightHandSide(content, code, matcher.end(), matcher.group("call") != null)
-								.flatMap(ProjectSourcesFinder::literalGroup)));
+		Matcher mention = GROUP_MENTION.matcher(code);
+		while (mention.find()) {
+			List<String> blocks = blockNamesAt(code, mention.start());
+			if (blocks.size() == 1 && "allprojects".equals(blocks.get(0))) {
+				return Optional.of(new GroupSetting(Optional.empty()));
+			}
+			if (blocks.isEmpty()) {
+				Optional<String> literal = plainLiteralAssignment(content, code, mention.start(), mention.end());
+				if (literal.isEmpty()) {
+					return Optional.of(new GroupSetting(Optional.empty()));
+				}
+				setting = Optional.of(new GroupSetting(literal));
 			}
 		}
 		return setting;
 	}
 
 	/**
-	 * Whether a local variable named {@code group} declared earlier in this block,
-	 * or in a block around it, is what a plain {@code group} here refers to.
+	 * The literal a statement {@code group = '...'} or
+	 * {@code project.group = '...'} sets, or empty for any other use of the name.
+	 *
+	 * @param content the descriptor as written
+	 * @param code    the masked descriptor
+	 * @param start   where the name begins
+	 * @param end     where the name ends
+	 * @return the literal group, or empty
 	 */
-	private static boolean shadowedByALocal(String code, int offset) {
-		List<Integer> blocks = openBlocksAt(code, offset);
-		Matcher declaration = LOCAL_GROUP.matcher(code);
-		while (declaration.find() && declaration.start() < offset) {
-			if (insideParentheses(code, declaration.start())) {
-				continue;
-			}
-			List<Integer> declaredIn = openBlocksAt(code, declaration.start());
-			if (blocks.size() >= declaredIn.size() && blocks.subList(0, declaredIn.size()).equals(declaredIn)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Whether this offset lies inside parentheses, as a method, closure or loop
-	 * parameter does: its scope is that method, closure or loop, never the script
-	 * around it.
-	 */
-	private static boolean insideParentheses(String code, int offset) {
-		int depth = 0;
-		for (int index = 0; index < offset; index++) {
-			if (code.charAt(index) == '(') {
-				depth++;
-			} else if (code.charAt(index) == ')' && depth > 0) {
-				depth--;
+	private static Optional<String> plainLiteralAssignment(String content, String code, int start, int end) {
+		int statement = start;
+		int before = skipBlanksBackwards(code, start - 1);
+		if (before >= 0 && code.charAt(before) == '.') {
+			int qualifier = skipBlanksBackwards(code, before - 1);
+			statement = qualifier - "project".length() + 1;
+			boolean namedProject = statement >= 0 && "project".equals(code.substring(statement, qualifier + 1))
+					&& (statement == 0
+							|| !isIdentifierPart(code.charAt(statement - 1)) && code.charAt(statement - 1) != '.');
+			if (!namedProject) {
+				return Optional.empty();
 			}
 		}
-		return depth > 0;
-	}
-
-	/** The offsets of the braces still open at this offset, outermost first. */
-	private static List<Integer> openBlocksAt(String code, int offset) {
-		Deque<Integer> open = new ArrayDeque<>();
-		for (int index = 0; index < offset; index++) {
-			if (code.charAt(index) == '{') {
-				open.push(index);
-			} else if (code.charAt(index) == '}') {
-				open.poll();
-			}
+		int equals = skipBlanks(code, end);
+		boolean assigns = equals < code.length() && code.charAt(equals) == '='
+				&& (equals + 1 >= code.length() || code.charAt(equals + 1) != '=');
+		if (!assigns || !startsAStatement(code, statement)) {
+			return Optional.empty();
 		}
-		List<Integer> outermostFirst = new ArrayList<>(open);
-		Collections.reverse(outermostFirst);
-		return outermostFirst;
+		return literalRightHandSide(content, code, equals + 1).flatMap(ProjectSourcesFinder::literalGroup);
 	}
 
 	/**
@@ -1078,29 +1061,21 @@ public final class ProjectSourcesFinder {
 	 * ({@code println group}).
 	 */
 	private static boolean startsAStatement(String code, int start) {
-		int index = start - 1;
-		while (index >= 0
-				&& (code.charAt(index) == ' ' || code.charAt(index) == '\t' || code.charAt(index) == COMMENT_MASK)) {
-			index--;
-		}
+		int index = skipBlanksBackwards(code, start - 1);
 		return index < 0 || "\n\r{};".indexOf(code.charAt(index)) >= 0;
 	}
 
 	/**
-	 * The literal that is the whole value being set, or empty when the value is
-	 * computed, so that a later computed setting overrides an earlier literal.
+	 * The literal that is the whole right-hand side, or empty when the value is
+	 * computed.
 	 *
 	 * @param content the descriptor as written
 	 * @param code    the masked descriptor
 	 * @param from    where the value begins
-	 * @param call    whether the value is a parenthesised argument
 	 * @return the literal, or empty
 	 */
-	private static Optional<String> literalRightHandSide(String content, String code, int from, boolean call) {
-		int open = from;
-		while (open < code.length() && (code.charAt(open) == ' ' || code.charAt(open) == '\t')) {
-			open++;
-		}
+	private static Optional<String> literalRightHandSide(String content, String code, int from) {
+		int open = skipBlanks(code, from);
 		if (open >= code.length() || code.charAt(open) != '\'' && code.charAt(open) != '"') {
 			return Optional.empty();
 		}
@@ -1110,12 +1085,6 @@ public final class ProjectSourcesFinder {
 			return Optional.empty();
 		}
 		int after = skipBlanks(code, close + 1);
-		if (call) {
-			if (after >= code.length() || code.charAt(after) != ')') {
-				return Optional.empty();
-			}
-			after = skipBlanks(code, after + 1);
-		}
 		boolean ends = after >= code.length() || "\n\r;}".indexOf(code.charAt(after)) >= 0;
 		return ends ? Optional.of(content.substring(open + 1, close)) : Optional.empty();
 	}
@@ -1123,19 +1092,31 @@ public final class ProjectSourcesFinder {
 	/** The first offset from here that is neither a blank nor a masked comment. */
 	private static int skipBlanks(String code, int from) {
 		int index = from;
-		while (index < code.length()
-				&& (code.charAt(index) == ' ' || code.charAt(index) == '\t' || code.charAt(index) == COMMENT_MASK)) {
+		while (index < code.length() && isBlankOrComment(code.charAt(index))) {
 			index++;
 		}
 		return index;
 	}
 
+	/** The last offset up to here that is neither a blank nor a masked comment. */
+	private static int skipBlanksBackwards(String code, int from) {
+		int index = from;
+		while (index >= 0 && isBlankOrComment(code.charAt(index))) {
+			index--;
+		}
+		return index;
+	}
+
+	/** Whether the character is a space, a tab or part of a masked comment. */
+	private static boolean isBlankOrComment(char character) {
+		return character == ' ' || character == '\t' || character == COMMENT_MASK;
+	}
+
 	/**
-	 * Whether code at this offset runs against the root project: at the top level,
-	 * or directly inside {@code allprojects}. Comments and strings are masked, so
-	 * every brace counted here is code.
+	 * The names of the blocks open at this offset, outermost first; a block with no
+	 * name before its brace, such as a closure, is named by the empty string.
 	 */
-	private static boolean appliesToTheRootProject(String code, int offset) {
+	private static List<String> blockNamesAt(String code, int offset) {
 		Deque<String> blocks = new ArrayDeque<>();
 		for (int index = 0; index < offset; index++) {
 			if (code.charAt(index) == '{') {
@@ -1144,7 +1125,9 @@ public final class ProjectSourcesFinder {
 				blocks.poll();
 			}
 		}
-		return blocks.isEmpty() || blocks.size() == 1 && "allprojects".equals(blocks.peek());
+		List<String> outermostFirst = new ArrayList<>(blocks);
+		Collections.reverse(outermostFirst);
+		return outermostFirst;
 	}
 
 	/** The identifier chain ending just before an opening brace, or empty. */
