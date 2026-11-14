@@ -36,6 +36,15 @@ import org.junit.jupiter.params.provider.MethodSource;
  */
 class SiteWideDocumentationStructureTest {
 
+	/** The paragraph every Simple Story box ends with, linking to the cast. */
+	private static final String WHO_IS_WHO_LINK = "[Who is who](/instructor/who-is-who)";
+
+	/**
+	 * The cast page itself, whose box is the link's target and so does not carry
+	 * it.
+	 */
+	private static final Path WHO_IS_WHO_PAGE = DocumentationPages.DOCS.resolve("instructor").resolve("who-is-who.md");
+
 	/** Every page of both guides. */
 	private static List<Path> allPages() {
 		return DocumentationPages.pagesBelow();
@@ -52,7 +61,10 @@ class SiteWideDocumentationStructureTest {
 	 */
 	private static final List<String> EXPECTED_INSTRUCTOR_PAGES = List.of(
 			"ares-2/what-does-ares-2-not-protect-against.md", "ares-2/what-does-ares-2-protect-against.md",
-			"ares-2/what-is-ares-2.md", "policy-cookbook/allowing-exactly-one-host.md", "policy-cookbook/index.md",
+			"ares-2/what-is-ares-2.md", "ast-test/testing-classes-and-records.md",
+			"ast-test/testing-for-conditionals.md", "ast-test/testing-for-exception-handling.md",
+			"ast-test/testing-for-loops.md", "ast-test/testing-for-recursion.md", "ast-test/what-is-an-ast-check.md",
+			"policy-cookbook/allowing-exactly-one-host.md", "policy-cookbook/index.md",
 			"policy-cookbook/reading-a-file-from-resources.md", "policy-cookbook/setting-time-and-memory-budgets.md",
 			"policy-cookbook/using-a-library-that-reflects.md", "policy-cookbook/using-threads.md",
 			"policy-cookbook/writing-an-output-file.md", "policy-reference/class-permission.md",
@@ -69,7 +81,7 @@ class SiteWideDocumentationStructureTest {
 			"transform-ares-1-into-ares-2/postcompile/gradle.md", "transform-ares-1-into-ares-2/postcompile/maven.md",
 			"transform-ares-1-into-ares-2/postcompile-or-precompile.md",
 			"transform-ares-1-into-ares-2/precompile/gradle.md", "transform-ares-1-into-ares-2/precompile/maven.md",
-			"troubleshooting.md");
+			"troubleshooting.md", "who-is-who.md");
 
 	/** Every page of the contributor guide, as a guide-relative path. */
 	private static final List<String> EXPECTED_CONTRIBUTOR_PAGES = List.of("extending-ares-2/index.md",
@@ -161,6 +173,24 @@ class SiteWideDocumentationStructureTest {
 		assertTrue(DocumentationPages.opensWithSimpleStory(DocumentationPages.read(page)), page
 				+ " must open with a Simple Story box written as ':::tip[Simple Story]'. Carrying one further down "
 				+ "the page does not count: it is meant to be the first thing a new reader sees.");
+	}
+
+	/**
+	 * Every Simple Story box ends with a paragraph linking to the Who-is-who page.
+	 * A box speaks only through its figures, so a reader who arrives from a search
+	 * needs the way to what they stand for. The cast page is the link's target, so
+	 * its own box is the one exception.
+	 */
+	@ParameterizedTest(name = "{0} ends its Simple Story with the link to the cast")
+	@MethodSource("allPages")
+	void everySimpleStoryEndsWithTheLinkToTheCast(Path page) {
+		String[] paragraphs = DocumentationPages.simpleStoryOf(DocumentationPages.read(page)).strip()
+				.split("\\n\\s*\\n");
+		boolean endsWithLink = WHO_IS_WHO_LINK.equals(paragraphs[paragraphs.length - 1].strip());
+		boolean isCastPage = page.equals(WHO_IS_WHO_PAGE);
+		assertTrue(endsWithLink != isCastPage,
+				page + (isCastPage ? " is the link's target, so its Simple Story box must not link to itself."
+						: " must end its Simple Story box with the paragraph " + WHO_IS_WHO_LINK + "."));
 	}
 
 	@ParameterizedTest(name = "{0} is divided into sections")

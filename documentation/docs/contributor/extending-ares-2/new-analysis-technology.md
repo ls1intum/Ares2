@@ -5,10 +5,15 @@ description: "Adding a static analyser alongside ArchUnit and WALA."
 ---
 
 :::tip[Simple Story]
-The reach check reads the pupil's compiled answer, without running any of it, looking for routes to
-forbidden things.
+Before the start, the teacher clears the desks by the rule sheet. Today they know two ways of
+doing it. Both look at what the pupils' work turned into, not at what they wrote. This page is
+about a third way.
 
-Two libraries do that today. This is how a third would join them.
+A new way has to decide the same as the two old ones on the same desks. When it disagrees, that
+is a mistake to find, not a setting to adjust. This page is still an outline; nobody has
+written it out.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

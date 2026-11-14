@@ -5,11 +5,14 @@ description: "Bounding wall-clock execution time from outside the supervised pro
 ---
 
 :::tip[Simple Story]
-A pupil who never stops never finishes and never fails. They simply sit there.
+A pupil who never stops never finishes and never fails. They sit there forever.
 
-So the clock hangs outside the room, and when the time is up it stops them. Outside matters: a
-pupil stuck in a loop cannot be trusted to time themselves. Ares reads this clock from the
-checklist and does not yet wind it up, so `@StrictTimeout` is what bounds a test today.
+The special examination room has a clock out of the pupil's reach. When the time is up, it stops
+them, even when they are stuck and cannot stop themselves. Today that clock stops nobody. The
+teacher's stopwatch for one question is what limits each question now. This page tells how an
+earlier version of the room worked.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[Historical design]

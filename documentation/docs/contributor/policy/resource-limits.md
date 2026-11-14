@@ -5,9 +5,13 @@ description: "How time and memory budgets are generated, which mechanism enforce
 ---
 
 :::tip[Simple Story]
-This is the clearest case of a line on the checklist that is read and then not acted upon.
+The rule sheet can set a time limit. Only the clock of the special examination room is meant to
+keep it, and nobody else in the school looks at it.
 
-Read the gaps section before relying on it.
+The trap: when the teacher picks up the rule sheet for each question, nobody uses the room, so
+the time limit bounds nothing. The teacher's stopwatch is what limits a question today.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 For the fields an exercise author writes, see

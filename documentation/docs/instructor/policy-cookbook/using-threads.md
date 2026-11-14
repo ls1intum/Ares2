@@ -5,7 +5,13 @@ description: "Permitting a bounded number of threads, and what the bound does an
 ---
 
 :::tip[Simple Story]
-The exercise is about doing two things at once, so helpers have to be allowed, but not without limit.
+The exercise is about doing two things at once, so the pupil needs side jobs. The rule sheet
+must say which side jobs they can start and how many. A pupil who starts too many then
+fails their own question instead of halting the whole examination.
+
+Nobody has written this recipe yet.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

@@ -5,16 +5,16 @@ description: "Which packages the supervised code may import, matched by prefix."
 ---
 
 :::tip[Simple Story]
-Pupils bring equipment into the room by importing libraries.
+The permitted aids are the things a pupil's work is allowed to lean on. The rule sheet lists
+them. Only a few aids are always allowed, whatever it says, such as the pupils' own things and
+the two simplest aids every pupil needs to write and to print. No line on the rule sheet lets a
+pupil lean on the grading instructions.
 
-Some of it is harmless and some of it is a way straight past the checklist. This list names
-what may be brought in. Naming a package covers everything inside it, so permitting
-`java.util` permits `java.util.concurrent` as well. One exception is Ares itself and the
-libraries it is built on: a package above them does not cover them, only naming them does.
+Allowing an aid allows every part that belongs to it, unless the line says that one aid only.
+One short line can therefore let in far more than it seems to. Some parts with names of their
+own still need a line of their own.
 
-A little is on every desk without being listed: `java.lang` and `java.io` themselves, and the
-pupils' own packages. The teacher's keys never are: no entry on the list lets a pupil pick up
-a test class. Without a checklist at all, Ares lets every `java.*` package in.
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example policy file
@@ -81,7 +81,14 @@ Implemented by `PackagePermission` in
 
 Matching is by **prefix**. A permitted package `java.util` matches itself and every package below it, so `java.util.concurrent` and `java.util.stream` are covered by the single entry above. With `exactMatchOnly: true`, the same entry permits `java.util` alone, and `java.util.concurrent` needs an entry of its own.
 
-A reserved namespace is never covered by a package above it. The namespaces are `java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, `de.tum.cit.ase.ares.api.`, `net.bytebuddy.`, `org.aspectj.`, `com.ibm.wala.` and `com.tngtech.archunit.`. A permission for `de.tum.cit.ase` therefore covers `de.tum.cit.ase.exercise`, but not `de.tum.cit.ase.ares.api.policy`, and `org` does not permit `org.aspectj.lang`. Name the one you need instead: `de.tum.cit.ase.ares.api.policy` permits that package and the ones beneath it. Ares itself needs `org.aspectj` and always permits it, so an import of AspectJ is not refused.
+A reserved namespace is never covered by a package above it. The reserved namespaces are:
+
+- the five of the Java Development Kit (JDK): `java.`, `javax.`, `sun.`, `jdk.` and `com.sun.`;
+- Ares's own `de.tum.cit.ase.ares.api.` and Ares 1's `de.tum.in.test.api.`;
+- those of the libraries and tools Ares and its tests run with, under `org.`: `org.aspectj.`, `org.junit.`, `org.opentest4j.`, `org.assertj.`, `org.mockito.`, `org.slf4j.`, `org.yaml.`, `org.json.`, `org.jgrapht.`, `org.apiguardian.`, `org.apache.`, `org.eclipse.`, `org.gradle.` and `org.jacoco.`;
+- and the others of that kind: `net.bytebuddy.`, `com.ibm.wala.`, `com.tngtech.archunit.`, `junit.`, `ch.qos.logback.`, `com.github.javaparser.`, `com.fasterxml.jackson.`, `com.opencsv.`, `com.intellij.` and `worker.org.gradle.`.
+
+A permission for `de.tum.cit.ase` therefore covers `de.tum.cit.ase.exercise`, but not `de.tum.cit.ase.ares.api.policy`, and `org` does not permit `org.aspectj.lang`. Name the one you need instead: `de.tum.cit.ase.ares.api.policy` permits that package and the ones beneath it. Ares itself needs `org.aspectj` and always permits it, so an import of AspectJ is not refused.
 
 `*` is accepted as a whole value by `matchesPackageImport`, which checks for it before falling through to the package pattern. It is not a general glob: `java.*` is not valid. Unlike a package name, it covers the reserved namespaces, because it states outright that every package is permitted.
 

@@ -5,11 +5,17 @@ description: "The abstract factory and builder that turn a security policy into 
 ---
 
 :::tip[Simple Story]
-A filled-in checklist is a wish list. Something has to turn it into checks the teacher can
-work through.
+Once someone has read the rule sheet, something has to turn it into checks. This part makes
+every check the rule sheet calls for. Then the head teacher can print them onto the grading
+instructions beforehand. Or the teacher picks up the rule sheet for each question, and this
+part prepares that question's checks then.
 
-This is that something: it reads the finished checklist and builds the exact set of security
-test cases it calls for.
+It makes checks for the special examination room too, but it never hands those on when the
+teacher picks up the rule sheet for each question. And once a rule sheet exists, only the rule
+sheet says which grading instructions the teacher trusts. Otherwise a pupil could call their
+own work grading instructions and escape every check.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 > **Audience:** IT-Education experts with no security background.

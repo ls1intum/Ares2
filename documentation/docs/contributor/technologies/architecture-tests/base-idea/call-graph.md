@@ -5,11 +5,16 @@ description: "The directed graph of which method may call which, and why it is t
 ---
 
 :::tip[Simple Story]
-The call graph is the map of arrows: "this method can call that one".
+While clearing the desks, the teacher works out where each pupil's work can lead: this part can
+call on that part, which can call on another. They look at what the work turned into, not at
+what the pupil wrote, and nothing runs while they do it.
 
-It matters because a forbidden route is rarely written in the open. A pupil does not call
-`delete` themselves; they call something, which calls something else, which calls `delete`.
-Following the arrows is how you find that out without anything running.
+A forbidden route is seldom one step long. A pupil rarely throws a worksheet away themselves.
+They call on a part that calls on another, and that one throws it away. Where the teacher cannot
+tell whether a step exists, counting it can fail an honest pupil. Missing it lets a forbidden
+route through.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

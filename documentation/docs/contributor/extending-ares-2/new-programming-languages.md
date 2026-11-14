@@ -5,9 +5,14 @@ description: "Adding a language beyond Java: the reader, the director, the name 
 ---
 
 :::tip[Simple Story]
-Ares 2 only speaks Java today, but nothing in its core is Java-specific.
+Today every pupil answers in one language. This page is about pupils who answer in another one.
 
-This page is what it would take to examine pupils who answer in a second language.
+The rule sheet stays the same, and so does the reading of it. What changes is everything that
+looks at the pupils' work: turning the rule sheet into checks, clearing the desks and watching.
+A language that reaches only some of them gives a rule sheet that promises more than anyone
+keeps. This page is still an outline; nobody has written it out.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

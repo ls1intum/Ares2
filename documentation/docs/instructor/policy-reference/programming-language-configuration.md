@@ -5,12 +5,16 @@ description: "The pipeline selector and the identity of the supervised code: bui
 ---
 
 :::tip[Simple Story]
-Before the checklist means anything, it has to say **which exercise it belongs to and who
-is working it**.
+The top of the rule sheet says how this examination runs. It names the space between the
+privacy screens, where the pupils' work sits. It says which kind of school holds the
+examination, which of two ways the teacher clears the desks, and which of two ways they
+watch.
 
-Which room (the package), where the pupils come in (the main class), and which staff turn up:
-Maven or Gradle, ArchUnit or the T. J. Watson Libraries for Analysis (WALA), AspectJ or
-instrumentation. None of that forbids anything yet. It settles who is on duty, and where.
+None of this forbids anything yet. If the head teacher leaves out the space between the
+privacy screens, the examination does not start. The teacher never guesses where the pupils
+sit.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example policy file

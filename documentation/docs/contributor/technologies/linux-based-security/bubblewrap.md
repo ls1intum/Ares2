@@ -5,10 +5,14 @@ description: "Filesystem isolation through mount namespaces, without requiring r
 ---
 
 :::tip[Simple Story]
-Bubblewrap sets the desk out before the pupil is let in.
+The special examination room has new features against cheating. One of them sets out the
+worksheets before the pupil comes in.
 
-Papers you did not put on it simply are not there. Not forbidden, not protected: absent. A
-pupil cannot break a rule about a paper they cannot see.
+Some worksheets are there to read but not to change. Worksheets not meant for the pupil are not
+in the room at all: not forbidden, but absent. Nobody uses this room yet when the teacher picks
+up the rule sheet for each question. This page tells how an earlier version of the room worked.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[Historical design]

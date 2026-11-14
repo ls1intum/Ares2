@@ -5,10 +5,15 @@ description: "Adding a weaving or sandboxing mechanism alongside AspectJ, instru
 ---
 
 :::tip[Simple Story]
-Once the checklist says a thing is forbidden, somebody has to stop it while the pupil
-is working.
+Today the teacher has two ways of watching during the examination, and the school has a special
+examination room. Nobody uses that room when the teacher picks up the rule sheet for each
+question. This page is about a fourth way to stop a pupil.
 
-Ares has three ways of doing that. This is what a fourth would have to provide.
+It has to say which things it covers, and it must not leave any of them half done. A way of
+watching that a pupil can switch off from their own desk stops nobody. This page is still an
+outline; nobody has written it out.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]
