@@ -150,7 +150,7 @@ Two further points apply whether or not a policy is present:
 
 The policy-free path **fixes the analysis and enforcement modes**: it always uses ArchUnit for static analysis and AspectJ for the runtime layer, and it discovers the build tool from the project itself. Two consequences follow:
 
-1. The ByteBuddy agent is not the enforcing mechanism here. The AspectJ weaving configured in [the Gradle walkthrough](./postcompile/gradle.md) or [the Maven walkthrough](./postcompile/maven.md) is what enforces at runtime. A project that is not woven gets the static ArchUnit checks only.
+1. The ByteBuddy agent is not the enforcing mechanism here. The AspectJ weaving configured in [the Gradle walkthrough](./postcompile/gradle.md) or [the Maven walkthrough](./postcompile/maven.md) is what enforces at runtime. Without the weaving, Ares refuses the project, as it refuses an instrumentation exercise whose agent is missing. Every test then fails with a message naming a class that lacks the Ares aspects.
 2. Discovery has to succeed first, and it can fail. With no policy there is no explicitly selected build tool, so a project containing both a `pom.xml` and a `build.gradle` is rejected as ambiguous, and one containing neither is rejected as unsupported. Either failure happens **before** any enforcement is configured, so the restrictive configuration described above never takes effect in those cases; the build fails instead. See the [troubleshooting table](../troubleshooting.md).
 
 A minimal test that runs under this configuration:

@@ -118,7 +118,62 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			Map.entry("java.io.DataOutputStream.writeBytes", IgnoreValues.ALL),
 			// PrintStream(OutputStream|File|String, [boolean], [String charset]) - keep
 			// only index 0 (the sink); a charset name like "UTF-8" is not a path.
-			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)));
+			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)),
+			// FileSystemView.getChild(File dir, String name) and isParent(File dir, File
+			// file) list dir; only dir is checked, the name is not a path and the file is
+			// not listed.
+			Map.entry("javax.swing.filechooser.FileSystemView.getChild", IgnoreValues.allExcept(0)),
+			Map.entry("javax.swing.filechooser.FileSystemView.isParent", IgnoreValues.allExcept(0)));
+
+	/**
+	 * The JDK class whose subclasses share its argument rules. A call on a
+	 * subclass of it, a student's own included, that has no rule of its own is
+	 * read with the rule of the method it inherits, so a child name is never taken
+	 * for a path.
+	 */
+	@Nonnull
+	private static final String FILE_SYSTEM_VIEW = "javax.swing.filechooser.FileSystemView";
+
+	/**
+	 * Returns which arguments of a call are checked as paths. The exact rule wins;
+	 * a receiver whose class extends FileSystemView falls back to that class's
+	 * rule, found by comparing class names, so no desktop class is loaded.
+	 *
+	 * @param methodKey  the called method as declaring type and name
+	 * @param methodName the called method's name
+	 * @param instance   the receiver, or {@code null} for a static call
+	 * @return the rule for the call's arguments
+	 */
+	@Nonnull
+	private static IgnoreValues parameterIgnoreValues(@Nonnull String methodKey, @Nonnull String methodName,
+			@Nullable Object instance) {
+		@Nullable
+		IgnoreValues exact = FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.get(methodKey);
+		if (exact != null) {
+			return exact;
+		}
+		if (instance == null || !extendsFileSystemView(instance.getClass())) {
+			return IgnoreValues.NONE;
+		}
+		return FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(FILE_SYSTEM_VIEW + "." + methodName,
+				IgnoreValues.NONE);
+	}
+
+	/**
+	 * Tells whether a class is FileSystemView or extends it, by name, walking up
+	 * the superclasses.
+	 *
+	 * @param type the receiver's class
+	 * @return whether FileSystemView is among its classes
+	 */
+	private static boolean extendsFileSystemView(@Nonnull Class<?> type) {
+		for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+			if (FILE_SYSTEM_VIEW.equals(current.getName())) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	/**
 	 * Native-library file suffixes whose loads under {@code java.home} are JVM
@@ -1698,8 +1753,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			@Nullable
 			String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
 					: checkIfVariableCriteriaIsViolated(parameters, allowedPaths,
-							FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(
-									extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE),
+							parameterIgnoreValues(extractMethodNameWithoutModifiers(fullMethodSignature), methodName,
+									instance),
 							allowNonExistingPaths);
 			if (illegallyInteractedThroughParameter != null) {
 				boolean isClassLoaderAccess = illegallyInteractedThroughParameter.endsWith(".class")

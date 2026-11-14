@@ -353,7 +353,7 @@ What it restricts:
 - **Package imports: restricted, not eliminated.** Ares always permits an implicit allowlist made of the essential packages it ships, the supervised package itself, and the packages of the recognised test classes. The essential list includes the `java` prefix, so all of `java.*` stays importable.
 - **No default execution timeout yet.** A 10,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.2.1 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
 
-It fixes the modes: always ArchUnit for static analysis and AspectJ for the runtime layer, with the build tool discovered from the project. So the AspectJ weaving of the step named in section 4 of this guide is what enforces at runtime here, and a project that is not woven falls back to the static checks alone.
+It fixes the modes: always ArchUnit for static analysis and AspectJ for the runtime layer, with the build tool discovered from the project. So the AspectJ weaving of the step named in section 4 of this guide is what enforces at runtime here, and without the weaving Ares refuses the project. Every test then fails with a message naming a class that lacks the Ares aspects.
 
 That discovery step has to succeed before any of this applies. Without a policy there is no explicitly selected build tool, so a project containing both a `pom.xml` and a `build.gradle` is rejected as ambiguous, and one containing neither is rejected as unsupported. Both fail the build outright rather than falling back to the restrictive configuration.
 
@@ -376,7 +376,7 @@ A migration is verified when enforcement can be shown to fail for the right reas
 Two details decide whether this proves anything:
 
 1. **The forbidden operation must happen in supervised code, not in the test.** A class named in `theFollowingClassesAreTestClasses` is exempt, so an operation performed by the test itself is *supposed* to succeed. Put it in the student-facing class and let the test assert the exception.
-2. **The domain must permit exactly one thing, not nothing.** Ares adds a static deny-all rule only while a domain has **no** allowance. Under a fully restrictive file policy, the static analysis rejects the operation before the runtime layer is consulted, so the negative control passes even with the agent detached and the weaving switched off, and it proves nothing. One allowance makes the runtime layer authoritative for that domain.
+2. **The domain must permit exactly one thing, not nothing.** Ares adds a static deny-all rule only while a domain has **no** allowance. Under a fully restrictive file policy, the static analysis rejects the operation before the runtime layer is consulted, so the negative control passes even when the agent or the woven aspects check nothing, and it proves nothing. One allowance makes the runtime layer authoritative for that domain.
 
 A correct run is therefore **green** and contains an asserted rejection. Then break the setup deliberately and confirm each break is detected:
 
