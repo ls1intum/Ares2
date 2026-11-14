@@ -593,6 +593,7 @@ class JceGeneratedExerciseTest {
 				public final class GeneratedCaptureLauncher {
 				    /** Tries the first student read against a fake JDK home, or creates temporary files. */
 				    public static void main(String[] arguments) throws Exception {
+				        openClassPath();
 				        java.nio.file.Path file = java.nio.file.Path.of(arguments[0]);
 				        long agents = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
 				                .filter(argument -> argument.startsWith("-javaagent:")).count();
@@ -646,6 +647,18 @@ class JceGeneratedExerciseTest {
 				            System.out.println("GENERATED_READ_DENIED: " + denied.getMessage());
 				        } finally {
 				            System.setProperty("java.home", original);
+				        }
+				    }
+				    /**
+				     * Looks up the JUnit engine list in every class-path entry before student code runs, as a real
+				     * JUnit run does first. Without it the JDK opens a late jar, such as the trace agent's, inside a
+				     * student call, where Ares refuses it, and Java 24 and newer no longer skip that refusal.
+				     */
+				    private static void openClassPath() throws Exception {
+				        java.util.Enumeration<java.net.URL> engines = ClassLoader.getSystemClassLoader()
+				                .getResources("META-INF/services/org.junit.platform.engine.TestEngine");
+				        while (engines.hasMoreElements()) {
+				            engines.nextElement();
 				        }
 				    }
 				    /** Names a later Maven repository and home, then reads a jar from each and from the start-up one. */
