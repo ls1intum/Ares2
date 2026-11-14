@@ -325,7 +325,7 @@ class ProjectSourcesFinderEdgeCaseTest {
 	void acceptsAbsoluteSourceRootInsideTheProject() throws IOException {
 		Path absolute = Files.createDirectories(temporaryDirectory.resolve("assignment"));
 		Files.writeString(temporaryDirectory.resolve("build.gradle"),
-				"sourceSets { main { java { srcDir '" + absolute + "' } } }");
+				"sourceSets { main { java { srcDir '" + withForwardSlashes(absolute) + "' } } }");
 
 		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
 
@@ -429,6 +429,17 @@ class ProjectSourcesFinderEdgeCaseTest {
 	}
 
 	// </editor-fold>
+
+	/**
+	 * Spells a path the way a Gradle build script names one on every platform, with
+	 * forward slashes, because a backslash starts an escape in a Groovy string.
+	 *
+	 * @param path the path to spell
+	 * @return the path with each separator written as a forward slash
+	 */
+	private static String withForwardSlashes(Path path) {
+		return path.toString().replace(path.getFileSystem().getSeparator(), "/");
+	}
 
 	private static String conventionalProductionSource() {
 		return "src/main/java";
