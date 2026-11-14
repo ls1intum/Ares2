@@ -16,8 +16,9 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * Checks that the generated hooks are refused for an exercise whose build file
- * names a JUnit older than 5.12, under Maven and Gradle, and accepted at 5.12,
- * above it, and when the build names no version.
+ * names a JUnit older than 5.12 or a version that is not a number, or cannot be
+ * read, under Maven and Gradle, and accepted at 5.12, above it, and when the
+ * version comes from elsewhere.
  */
 class ExerciseJUnitVersionTest {
 
@@ -50,18 +51,69 @@ class ExerciseJUnitVersionTest {
 	}
 
 	/**
-	 * A build without a version it names directly, such as one taken from a
-	 * property or a catalogue, and a project without a build file, are accepted.
+	 * A version taken from a property, a range, a catalogue or a parent, and a
+	 * project without a build file, are accepted.
 	 *
+	 * @param buildFile the build file's name.
+	 * @param text      the build file's text.
 	 * @throws IOException if a build file cannot be written
 	 */
-	@Test
-	void anUnreadableVersionIsAccepted() throws IOException {
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+			"pom.xml|<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>${junit.version}</version></dependency></dependencies></project>",
+			"pom.xml|<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>[5.12,6)</version></dependency></dependencies></project>",
+			"pom.xml|<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency></dependencies></project>",
+			"build.gradle|dependencies { testImplementation libs.junit.jupiter }",
+			"build.gradle|dependencies { testImplementation \"org.junit.jupiter:junit-jupiter:$junitVersion\" }",
+			"build.gradle.kts|dependencies { testImplementation(\"org.junit.jupiter:junit-jupiter:${junitVersion}\") }" })
+	void aVersionFromElsewhereIsAccepted(String buildFile, String text) throws IOException {
 		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
-		write("pom.xml",
-				"<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>${junit.version}</version></dependency></dependencies></project>");
-		write("build.gradle", "dependencies { testImplementation libs.junit.jupiter }");
+		write(buildFile, text);
 		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
+	}
+
+	/**
+	 * A Maven or Gradle build naming a JUnit version that is not a number is
+	 * refused, naming the build file and the value, in English and German.
+	 *
+	 * @param buildFile the build file's name.
+	 * @param text      the build file's text.
+	 * @param value     the value it names.
+	 * @throws IOException if the build file cannot be written
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+			"pom.xml|<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>five</version></dependency></dependencies></project>|five",
+			"pom.xml|<project><dependencies><dependency><artifactId>junit-bom</artifactId><version>99999999999.1</version></dependency></dependencies></project>|99999999999.1",
+			"build.gradle|dependencies { testImplementation 'org.junit.jupiter:junit-jupiter:latest.release' }|latest.release",
+			"build.gradle.kts|dependencies { testImplementation(platform(\"org.junit:junit-bom:5.x\")) }|5.x" })
+	void aVersionThatIsNotANumberIsRefused(String buildFile, String text, String value) throws IOException {
+		write(buildFile, text);
+		assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.isInstanceOf(SecurityException.class).hasMessageStartingWith("Ares Security Error")
+				.hasMessageContaining(buildFile).hasMessageContaining("\"" + value + "\"");
+		inGerman(() -> assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.hasMessageStartingWith("Ares Sicherheitsfehler").hasMessageContaining(buildFile)
+				.hasMessageContaining("\"" + value + "\""));
+	}
+
+	/**
+	 * A Maven or Gradle build file that exists but is not a readable file is
+	 * refused, naming it, in English and German.
+	 *
+	 * @param buildFile the build file's name.
+	 * @throws IOException if the folder cannot be created
+	 */
+	@ParameterizedTest
+	@CsvSource({ "pom.xml", "build.gradle", "build.gradle.kts" })
+	void aBuildFileThatCannotBeReadIsRefused(String buildFile) throws IOException {
+		Files.createDirectory(projectRoot.resolve(buildFile));
+		assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.isInstanceOf(SecurityException.class).hasMessageStartingWith("Ares Security Error")
+				.hasMessageContaining(buildFile).hasMessageContaining("cannot be read");
+		inGerman(() -> assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.hasMessageStartingWith("Ares Sicherheitsfehler").hasMessageContaining(buildFile)
+				.hasMessageContaining("nicht gelesen"));
 	}
 
 	/**
@@ -72,19 +124,13 @@ class ExerciseJUnitVersionTest {
 	@Test
 	void theRefusalIsLocalisedInGerman() throws IOException {
 		write("build.gradle", "dependencies { testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2' }");
-		Locale original = Locale.getDefault(Locale.Category.DISPLAY);
-		try {
-			Locale.setDefault(Locale.Category.DISPLAY, Locale.GERMAN);
-			assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
-					.hasMessageStartingWith("Ares Sicherheitsfehler").hasMessageContaining("5.10.2");
-		} finally {
-			Locale.setDefault(Locale.Category.DISPLAY, original);
-		}
+		inGerman(() -> assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.hasMessageStartingWith("Ares Sicherheitsfehler").hasMessageContaining("5.10.2"));
 	}
 
 	/**
-	 * Version numbers compare by major and minor; one too long to read is not
-	 * refused.
+	 * Version numbers compare by major and minor, a qualifier does not count, and
+	 * one too long to read is refused.
 	 */
 	@Test
 	void versionsCompareByMajorAndMinor() {
@@ -92,7 +138,25 @@ class ExerciseJUnitVersionTest {
 		assertThat(ExerciseJUnitVersion.isTooOld("5.9.3")).isTrue();
 		assertThat(ExerciseJUnitVersion.isTooOld("5.12")).isFalse();
 		assertThat(ExerciseJUnitVersion.isTooOld("5.13.0")).isFalse();
-		assertThat(ExerciseJUnitVersion.isTooOld("99999999999999999999.1")).isFalse();
+		assertThat(ExerciseJUnitVersion.isTooOld("5.12.0-M1")).isFalse();
+		assertThat(ExerciseJUnitVersion.isTooOld("5.11-RC1")).isTrue();
+		assertThat(ExerciseJUnitVersion.isTooOld("99999999999999999999.1")).isTrue();
+	}
+
+	/**
+	 * Runs a check with German as the display language, then restores the one
+	 * before.
+	 *
+	 * @param check the check to run.
+	 */
+	private static void inGerman(Runnable check) {
+		Locale original = Locale.getDefault(Locale.Category.DISPLAY);
+		try {
+			Locale.setDefault(Locale.Category.DISPLAY, Locale.GERMAN);
+			check.run();
+		} finally {
+			Locale.setDefault(Locale.Category.DISPLAY, original);
+		}
 	}
 
 	/**
@@ -104,7 +168,10 @@ class ExerciseJUnitVersionTest {
 	 */
 	private void write(String buildFile, String text) throws IOException {
 		for (String other : new String[] { "pom.xml", "build.gradle", "build.gradle.kts" }) {
-			Files.deleteIfExists(projectRoot.resolve(other));
+			Path existing = projectRoot.resolve(other);
+			if (!Files.isDirectory(existing)) {
+				Files.deleteIfExists(existing);
+			}
 		}
 		Files.writeString(projectRoot.resolve(buildFile), text);
 	}
