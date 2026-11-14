@@ -146,6 +146,22 @@ class ProjectSourcesFinderGroupTest {
 		assertEquals(Optional.of("de.tum.cit.aet"), ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
 	}
 
+	/**
+	 * A computed or blank setting in the descriptor still overrides the group of
+	 * gradle.properties, as in Gradle, so no group is read rather than the
+	 * overridden one.
+	 *
+	 * @param setting the descriptor line
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "group = 'org.example.' + 'exercise'", "group = computeGroup()", "group = ''" })
+	void letsAComputedSettingOverrideGradleProperties(String setting) throws IOException {
+		Files.writeString(projectRoot.resolve("build.gradle"), setting + "\n");
+		Files.writeString(projectRoot.resolve("gradle.properties"), "group=org.example\n");
+
+		assertEquals(Optional.empty(), ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
+	}
+
 	/** The descriptor wins over gradle.properties, as it does in Gradle. */
 	@Test
 	void prefersTheDescriptorOverGradleProperties() throws IOException {

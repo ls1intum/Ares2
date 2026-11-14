@@ -131,6 +131,20 @@ class JavaProjectScannerHierarchyTest {
 	}
 
 	/**
+	 * A computed group in the descriptor overrides the one in gradle.properties, as
+	 * in Gradle, so the wider overridden group is not revived and the package comes
+	 * from the sources.
+	 */
+	@Test
+	void doesNotReviveAGroupTheDescriptorOverrides() throws IOException {
+		gradle("group = 'org.example.' + 'exercise'\n");
+		Files.writeString(projectRoot.resolve("gradle.properties"), "group=org.example\n");
+		source("org/example/exercise/Main.java", "package org.example.exercise; public class Main { }");
+
+		assertEquals("org.example.exercise", scanner().scanForPackageName());
+	}
+
+	/**
 	 * A group that does not fit the code is passed over, and the decoy that then
 	 * wins is still refused before anything is armed.
 	 */

@@ -940,8 +940,19 @@ public final class ProjectSourcesFinder {
 		}
 		Path kotlin = projectRoot.resolve("build.gradle.kts");
 		Path descriptor = Files.isRegularFile(kotlin) ? kotlin : projectRoot.resolve("build.gradle");
-		Optional<String> declared = gradleGroupOf(descriptor);
-		return declared.isPresent() ? declared : gradlePropertiesGroupOf(projectRoot.resolve("gradle.properties"));
+		Optional<GroupSetting> setting = gradleGroupOf(descriptor);
+		return setting.isPresent() ? setting.get().literal()
+				: gradlePropertiesGroupOf(projectRoot.resolve("gradle.properties"));
+	}
+
+	/**
+	 * A {@code group} the Gradle descriptor sets for the root project. Its literal
+	 * is empty where the value is computed or unreadable: the setting still
+	 * overrides {@code gradle.properties}, as it does in Gradle.
+	 *
+	 * @param literal the value set, or empty when it is not a literal
+	 */
+	private record GroupSetting(@Nonnull Optional<String> literal) {
 	}
 
 	/**
@@ -976,7 +987,7 @@ public final class ProjectSourcesFinder {
 	 * The last {@code group} or {@code project.group} assignment or method call in
 	 * a Gradle descriptor that applies to the root project, read from code only.
 	 */
-	private static Optional<String> gradleGroupOf(Path descriptor) {
+	private static Optional<GroupSetting> gradleGroupOf(Path descriptor) {
 		if (!Files.isRegularFile(descriptor)) {
 			return Optional.empty();
 		}
@@ -985,18 +996,19 @@ public final class ProjectSourcesFinder {
 			content = Files.readString(descriptor);
 		} catch (IOException exception) {
 			LOG.debug("Could not read a group from {}", descriptor, exception);
-			return Optional.empty();
+			return Optional.of(new GroupSetting(Optional.empty()));
 		}
 		String code = maskInactiveRegions(content, Objects.toString(descriptor.getFileName(), "").endsWith(".kts"));
-		Optional<String> group = Optional.empty();
+		Optional<GroupSetting> setting = Optional.empty();
 		Matcher matcher = GRADLE_GROUP.matcher(code);
 		while (matcher.find()) {
 			if (startsAStatement(code, matcher.start()) && appliesToTheRootProject(code, matcher.start())) {
-				group = literalRightHandSide(content, code, matcher.end(), matcher.group(1) != null)
-						.flatMap(ProjectSourcesFinder::literalGroup);
+				setting = Optional.of(
+						new GroupSetting(literalRightHandSide(content, code, matcher.end(), matcher.group(1) != null)
+								.flatMap(ProjectSourcesFinder::literalGroup)));
 			}
 		}
-		return group;
+		return setting;
 	}
 
 	/**
