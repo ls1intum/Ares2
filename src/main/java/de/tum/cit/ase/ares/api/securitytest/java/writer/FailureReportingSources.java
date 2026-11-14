@@ -762,8 +762,8 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * Hangs copies of the failure's cause and suppressed failures on its copy,
-				 * stopping once the budget is spent.
+				 * Hangs copies of the failure's cause, suppressed failures and assertAll members
+				 * on its copy, a member as a suppressed failure, stopping once the budget is spent.
 				 */
 				private static void attachCopies(Throwable failure, Throwable copy, java.util.Map<Throwable, Throwable> copies) {
 					Throwable cause = causeOf(failure);
@@ -777,15 +777,30 @@ final class FailureReportingSources {
 							copies.putIfAbsent(cause, copy);
 						}
 					}
-					for (Throwable suppressed : failure.getSuppressed()) {
+					java.util.List<Throwable> attached = new java.util.ArrayList<>(java.util.Arrays.asList(failure.getSuppressed()));
+					java.util.List<Throwable> members = aggregateMembers(failure);
+					if (members != null) {
+						attached.addAll(members);
+					}
+					for (Throwable suppressed : attached) {
 						if (copies.size() >= TRAVERSAL_LIMIT) {
 							return;
 						}
-						Throwable suppressedCopy = copyOf(suppressed, copies);
-						if (suppressedCopy != null && suppressedCopy != copy) {
+						Throwable suppressedCopy = suppressed == null ? null : copyOf(suppressed, copies);
+						if (suppressedCopy != null && suppressedCopy != copy && !attachedTo(copy, suppressedCopy)) {
 							copy.addSuppressed(suppressedCopy);
 						}
 					}
+				}
+
+				/** Whether a copy already carries this suppressed copy, as when assertAll lists a member it also suppressed. */
+				private static boolean attachedTo(Throwable copy, Throwable suppressedCopy) {
+					for (Throwable present : copy.getSuppressed()) {
+						if (present == suppressedCopy) {
+							return true;
+						}
+					}
+					return false;
 				}
 
 				/**
