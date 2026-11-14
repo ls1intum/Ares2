@@ -161,11 +161,11 @@ public class JavaArchitectureTestCaseTest {
 		JavaArchitectureTestCase instance = JavaArchitectureTestCase.builder()
 				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
 				.allowedPackages(Collections.emptySet()).javaClasses(mockJavaClasses)
-				.supervisedPackage("de.tum.cit.aet").supervisedScopeWasDerived(true).build();
+				.supervisedPackage("de.tum.cit.aet").supervisedScopeWasDerived(false).build();
 
 		String written = instance.writeArchitectureTestCase("ARCHUNIT", "");
 
-		assertTrue(written.contains("JavaArchunitSupervisedClasses.validated(\"de.tum.cit.aet\")"),
+		assertTrue(written.contains("JavaArchunitSupervisedClasses.pinned(\"de.tum.cit.aet\")"),
 				"the delegate must be given the scope, or the generated file analyses nothing: " + written);
 	}
 

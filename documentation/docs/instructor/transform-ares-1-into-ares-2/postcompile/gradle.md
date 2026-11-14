@@ -373,7 +373,7 @@ That discovery step has to succeed before any of this applies. Without a policy 
 
 The second reason for caution is that without a policy, Ares derives from the project what a policy would have pinned:
 
-- **The supervised package** is chosen as the most frequent non-reserved package among the production sources, so a submission with an unexpected file distribution can shift the enforcement scope.
+- **The supervised package** is the build file's own group where it contains every declared package. Otherwise it is the topmost package the production sources declare, or the compiled classes where the sources cannot be read. Where the project declares no package and the build file no usable group, a configured default applies. Between unrelated packages the one whose package tree holds the most files wins. A submission with an unexpected file distribution can therefore still shift the enforcement scope. A wide scope can fail correct tests too, because Ares compares class names with it as a plain prefix.
 - **The exempt test classes** are found by scanning the discovered test source roots for annotated test classes. If students can add files beneath a test source root, they can obtain that exemption. Note that a nested test class is covered only when its enclosing class is recognised too: the scanner reports nested types in source notation (`Outer.Inner`), whereas the exemption check matches binary notation (`Outer$Inner`), so an independently detected nested class is not exempt on its own.
 
 For a graded exercise, prefer a policy with six empty lists over no policy at all. It is equally strict and pins the scope, the exempt set and the mode.

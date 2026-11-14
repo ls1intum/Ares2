@@ -206,7 +206,7 @@ The constructor distinguishes **two modes**, depending on whether a `SecurityPol
 | `theFollowingClassesAreTestClasses` | Used as-is — test classes come **only** from the policy. Deriving the exempt set from the project would let a student add an `@Test` class to obtain a blanket exemption from every check |
 | `theFollowingResourceAccessesArePermitted` | Used as-is from the policy |
 
-**Mode 2 — No policy (legacy scan path):** Without a policy, the scanner auto-detects everything: `packageName` via `scanForPackageName()`, `mainClassInPackageName` via `scanForMainClassInPackage()`, `testClasses` via `scanForTestClasses()`, and `resourceAccesses` is set to the fully restrictive `ResourceAccesses.createRestrictive()`.
+**Mode 2 — No policy (legacy scan path):** Without a policy, the scanner auto-detects everything: `packageName` via `scanForPackageName()`, `mainClassInPackageName` via `scanForMainClassInPackage()`, `testClasses` via `scanForTestClasses()`, and `resourceAccesses` is set to the fully restrictive `ResourceAccesses.createRestrictive()`. This mode serves Postcompile only. Precompile writes the derived package into generated checks, and nothing verifies it against the compiled classes before those checks use it. `writeTestCases()` therefore refuses this mode (`security.precompile.scope.derived`) before it writes anything, and both architecture writers refuse it too.
 
 This design allows Ares to work **without** a policy file, while a present policy pins the enforcement scope instead of merely taking precedence over the scanner.
 
@@ -465,7 +465,7 @@ Defines five scanning methods that auto-detect project metadata:
 |---|---|---|
 | `scanForBuildMode()` | `BuildMode` | Whether the project uses Maven (`pom.xml`) or Gradle (`build.gradle`) |
 | `scanForTestClasses()` | `String[]` | Fully qualified names of all classes in the **test source directory** containing a test annotation (`@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@TestTemplate`, JUnit 4's `@Test`, or Ares's `@PublicTest` and `@HiddenTest`), or extending JUnit 3's `TestCase` |
-| `scanForPackageName()` | `String` | The most frequently used non-reserved package: taken from the production sources, otherwise from the compiled production output, otherwise the configured default |
+| `scanForPackageName()` | `String` | The build descriptor's group if it contains every declared package, otherwise the topmost declared non-reserved package (the heaviest between unrelated ones), otherwise the configured default |
 | `scanForMainClassInPackage()` | `String` | The class containing `public static void main(String[])` |
 | `scanForTestPath()` | `Path` | The file system path to the test source directory |
 
@@ -504,19 +504,35 @@ predate `BuildToolConfiguration`, and differs in kind: it returns the
 descriptor's own string, relative and unvalidated, where `discover(...)`
 canonicalises every root and refuses one that escapes the project.
 
-**`scanForPackageName()` algorithm:** Resolution runs in three steps, each reached only when the previous one finds nothing at all.
+**`scanForPackageName()` algorithm:** The scanner first collects the declared packages, then picks one.
 
-1. **Production sources.** Reserved infrastructure prefixes are filtered out first (via `ReservedPackageGuard.reservedPrefixOf(...)`), so a package inside a trusted namespace cannot become the derived enforcement scope. The frequency of every remaining `package` declaration is counted and the most common one wins. This heuristic works because in a typical student project the main source package appears in the majority of files.
+The declared packages come from one of two sources, the second read only when the first yields nothing:
+
+1. **Production sources.** Reserved infrastructure prefixes are filtered out first (via `ReservedPackageGuard.reservedPrefixOf(...)`), so a package inside a trusted namespace cannot become the derived enforcement scope. Every remaining `package` declaration counts once per file.
 2. **Compiled production output.** Only top-level classes are counted, so a package is not weighted by how many nested or anonymous classes it happens to contain; nesting is read from the class file rather than from the `$` in the binary name, which is a legal identifier character. This step covers a project whose build descriptor the source-root discovery cannot parse, because the build tool writes its output to the conventional directory the scanner reads.
-3. **The configured default** (see [Section 10.3](#103-javaprogrammingexerciseprojectscanner)), with a warning naming the roots that were searched.
+
+The pick then follows this order:
+
+1. **The build descriptor's own group** (`ProjectSourcesFinder.declaredGroup`). For Maven that is the project's `groupId` in `pom.xml`, never one inherited from `<parent>`. For Gradle it is a plain `group = '...'` or `project.group = '...'` at the top level of the descriptor, else `group` in `gradle.properties`. Any other use of `group` anywhere in the descriptor yields no group, and so do `setGroup`, `getGroup` and the name `group` as a string. A local variable, a parameter or a computed value can only be read by a Groovy or Kotlin interpreter. It counts only where it is a literal Java package name that lies neither inside nor above a reserved namespace and contains every declared package. Otherwise the scanner logs why and goes on.
+2. **The topmost declared package.** A declared package with another declared package above it drops out, so nested packages always yield their parent. Between unrelated packages each weighs with everything below it, the heaviest wins, and ties go by name. A broad answer is not a gap but can be a false positive. Both runtime backends match a frame's class name against the package as a plain prefix, so a wide scope takes in unrelated classes whose names start the same way. The check before enforcement refuses a derived package that contains a reserved namespace, which keeps the framework and the test runtime outside.
+3. **The configured default** (see [Section 10.3](#103-javaprogrammingexerciseprojectscanner)), where the project declares nothing at all, with a warning naming the roots that were searched.
 
 Step 1 is skipped entirely when the discovered source roots are not known to be the whole of the main source set. Two things lead there: a descriptor can declare a root this reader cannot resolve, such as a computed list, and it can declare one that resolves cleanly but names a directory the project does not contain, which is passed over. Either way `BuildToolConfiguration.productionRootsComplete()` reports it, for Maven as well as for Gradle. Counting declarations across part of a project produces an answer indistinguishable from one taken across all of it, so a partial set is not counted at all and the compiled output is read instead.
 
 > **The derived package is a heuristic. What turns it into a boundary is the check that follows it.**
 >
-> Before enforcement is armed, `requireDerivedScopeToCoverTheProject()` reads the compiled production output and refuses the run unless **every** executable top-level class declares a non-blank, non-reserved package that is the derived scope or lies below it, compared on segment boundaries so that `de.tum.cit.aet` does not swallow `de.tum.cit.aetevil`. A class the scope leaves out, a class in the default package, a class in a reserved package, and an output root that exists but cannot be read are each refused by name. This runs on the policy-free path only: a pinned policy may deliberately supervise part of the output, and narrowing it is then the instructor's decision.
+> Before Ares arms enforcement, `requireDerivedScopeToCoverTheProject()` reads the compiled production output. It refuses the run unless every class file in it yields a class of its own. In addition, every executable class, nested ones included, must declare a non-blank, non-reserved package that is the derived scope or lies below it. The comparison respects segment boundaries, so `de.tum.cit.aet` does not swallow `de.tum.cit.aetevil`. The check refuses each of these by name:
 >
-> **An output root holding nothing passes, with a warning, and so does one holding only `package-info` or `module-info`.** There is then no supervisable class, so enforcement is vacuous rather than mis-scoped, and an exercise whose supervised package is still empty must not fail for being empty. The generated test does the same: `JavaArchunitSupervisedClasses` warns and analyses an empty set rather than refusing. In both places that log line is the only signal, and a suite that analyses nothing reports success.
+> - a class the scope leaves out;
+> - a class in the default package;
+> - a class in a reserved package;
+> - a class file the importer cannot read, or one that defines a class another file already defines;
+> - a class file under `META-INF/versions`;
+> - an output root that exists but cannot be read.
+>
+> The importer never reads `module-info.class`, so the check does not count it. This runs on the policy-free path only: a pinned policy may deliberately supervise part of the output, and narrowing it is then the instructor's decision.
+>
+> **An output root holding nothing passes, with a warning, and so does one holding only `package-info` or `module-info`.** There is then no supervisable class, so enforcement is vacuous rather than mis-scoped, and an exercise whose supervised package is still empty must not fail for being empty. That log line is the only signal, and a suite that analyses nothing reports success.
 >
 > That closes the case where a decoy package is voted the scope while the assignment runs beside it. Three things it still does not establish.
 >
@@ -524,7 +540,7 @@ Step 1 is skipped entirely when the discovered source roots are not known to be 
 >
 > The **output directory is assumed, not read**. Step 2 and the check both look in `target/classes` or `build/classes/java/main`, so a build that writes its output elsewhere is not followed there. Together with the vacuous pass above, that is the sharp edge of this section: a project whose output goes somewhere else looks exactly like a project that compiled nothing, and both pass with the same warning. An exercise configured with a custom output destination is therefore not enforced by the derived path at all, and nothing fails to say so. Such an exercise must declare its scope in a policy.
 >
-> **The last-resort default guarantees nothing by itself.** If the project does not contain it, the analysis path resolves to a directory that does not exist. Where anything at all is compiled, the check above catches it: those classes lie outside the default, so the run is refused by name. Where nothing is compiled it does not, and the warning is again all a reader gets. During generation, before anything is compiled, the same is true.
+> **The last-resort default guarantees nothing by itself.** If the project does not contain it, the analysis path resolves to a directory that does not exist. Where anything at all is compiled, the check above catches it: those classes lie outside the default, so the run is refused by name. Where nothing is compiled it does not, and the warning is again all a reader gets.
 >
 > An exercise that needs a scope it can rely on declares its package in the security policy. The scanner is then not consulted at all, which is the only version of this that cannot be steered from the submission.
 

@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -11,9 +12,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 
+import javax.tools.ToolProvider;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 /**
  * Covers the check that turns the derived supervised package into a boundary.
@@ -301,6 +309,278 @@ class JavaProjectScannerScopeCoverageTest {
 				""", "de/tum/cit/aet/package-info.java");
 
 		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+	}
+
+	/**
+	 * The importer skips a file it cannot read with only a warning, so the check
+	 * would otherwise inspect a smaller inventory than the one on disk and report
+	 * it complete.
+	 */
+	@Test
+	@DisplayName("Refuses a class file the importer cannot read")
+	void refusesAClassFileTheImporterCannotRead() throws IOException {
+		Path outputRoot = assignmentOutput();
+		Path unreadable = Files.createDirectories(outputRoot.resolve("decoy")).resolve("Hidden.class");
+		Files.writeString(unreadable, "not a class file");
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertTrue(refusal.getMessage().contains("Hidden.class"), refusal.getMessage());
+	}
+
+	/**
+	 * The importer keeps one class per name, so a second file defining the same
+	 * class is dropped from the inventory, and what it holds is never checked.
+	 */
+	@Test
+	@DisplayName("Refuses two class files that define the same class")
+	void refusesTwoFilesDefiningOneClass() throws IOException {
+		Path outputRoot = assignmentOutput();
+		Path copy = Files.createDirectories(outputRoot.resolve("decoy")).resolve("Assignment.class");
+		Files.copy(outputRoot.resolve("de/tum/cit/aet/Assignment.class"), copy);
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		String message = refusal.getMessage().replace('\\', '/');
+		assertTrue(message.contains("de/tum/cit/aet/Assignment.class") && message.contains("decoy/Assignment.class"),
+				"the diagnostic must name both files, whichever one the importer kept: " + message);
+	}
+
+	/**
+	 * Where several classes break the rule, the one named is the first by name, so
+	 * the same output always produces the same diagnostic.
+	 */
+	@Test
+	@DisplayName("Names the alphabetically first class outside the scope")
+	void namesTheFirstOffenderByName() throws IOException {
+		Path outputRoot = assignmentOutput();
+		compileInto(outputRoot, "package decoy; public class Zulu { }", "decoy/Zulu.java");
+		compileInto(outputRoot, "package decoy; public class Alpha { }", "decoy/Alpha.java");
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertTrue(refusal.getMessage().contains("decoy.Alpha"), refusal.getMessage());
+	}
+
+	/**
+	 * A package descriptor alone is nothing that can run, so the output is treated
+	 * as empty and accepted with a warning, like an empty package.
+	 */
+	@Test
+	@DisplayName("Accepts an output holding only a package descriptor")
+	void acceptsAnOutputHoldingOnlyAPackageDescriptor() throws IOException {
+		Path outputRoot = compile("""
+				@Deprecated
+				package de.tum.cit.aet;
+				""", "de/tum/cit/aet/package-info.java");
+
+		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("decoy"));
+	}
+
+	/**
+	 * The scope derived through real discovery of an Artemis layout, whose sources
+	 * sit in an assignment folder the descriptor names, is checked like any other.
+	 */
+	@ParameterizedTest
+	@CsvSource({ "MAVEN,false", "MAVEN,true", "GRADLE,false", "GRADLE,true" })
+	void checksAScopeDerivedFromAnArtemisLayout(BuildMode buildMode, boolean decoy) throws IOException {
+		Path sources = Files.createDirectories(projectRoot.resolve("assignment/src"));
+		if (buildMode == BuildMode.MAVEN) {
+			Files.writeString(projectRoot.resolve("pom.xml"),
+					"""
+							<project><build><sourceDirectory>${project.basedir}/assignment/src</sourceDirectory></build></project>
+							""");
+		} else {
+			Files.writeString(projectRoot.resolve("build.gradle"), """
+					def assignmentSrcDir = "assignment/src"
+					sourceSets { main { java { srcDirs = [assignmentSrcDir] } } }
+					""");
+		}
+		Path outputRoot = Files.createDirectories(
+				projectRoot.resolve(buildMode == BuildMode.MAVEN ? "target/classes" : "build/classes/java/main"));
+		compileSource(sources, outputRoot, "de/tum/cit/aet/Assignment.java",
+				"package de.tum.cit.aet; public class Assignment { }");
+		if (decoy) {
+			compileSource(sources, outputRoot, "decoy/First.java", "package decoy; public class First { }");
+			compileSource(sources, outputRoot, "decoy/Second.java", "package decoy; public class Second { }");
+		}
+		JavaProjectScanner scanner = new JavaProjectScanner(ProjectSourcesFinder.discover(projectRoot));
+		String derived = scanner.scanForPackageName();
+
+		if (decoy) {
+			assertEquals("decoy", derived);
+			assertThrows(SecurityException.class, () -> scanner.requireDerivedScopeToCoverTheProject(derived));
+		} else {
+			assertEquals("de.tum.cit.aet", derived);
+			assertDoesNotThrow(() -> scanner.requireDerivedScopeToCoverTheProject(derived));
+		}
+	}
+
+	/**
+	 * Writes a source below a source root and compiles it into the output root.
+	 *
+	 * @param sources      the source root
+	 * @param outputRoot   the output root
+	 * @param relativePath the source path below the root
+	 * @param source       the Java source
+	 * @throws IOException if the fixture cannot be written
+	 */
+	private static void compileSource(Path sources, Path outputRoot, String relativePath, String source)
+			throws IOException {
+		Path file = sources.resolve(relativePath);
+		Files.createDirectories(file.getParent());
+		Files.writeString(file, source);
+		assertEquals(0, ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d", outputRoot.toString(),
+				file.toString()), "the fixture did not compile: " + relativePath);
+	}
+
+	/**
+	 * A versioned class is refused even when it defines a class of its own, since
+	 * the check does not model which version the JVM picks.
+	 */
+	@Test
+	@DisplayName("Refuses a class file in a versioned directory")
+	void refusesAVersionedClassFile() throws IOException {
+		Path outputRoot = assignmentOutput();
+		Path versioned = Files.createDirectories(outputRoot.resolve("META-INF/versions/17"));
+		compileInto(versioned, """
+				package de.tum.cit.aet;
+
+				public class OnlyHere {
+				}
+				""", "versioned/de/tum/cit/aet/OnlyHere.java");
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertTrue(refusal.getMessage().contains("OnlyHere.class"), refusal.getMessage());
+	}
+
+	/**
+	 * A nested class is code that runs like any other. Its enclosing class being
+	 * absent, or elsewhere, is no reason to leave its own package unchecked.
+	 */
+	@Test
+	@DisplayName("Refuses a nested class outside the scope whose enclosing class is gone")
+	void refusesAnUncoveredOrphanNestedClass() throws IOException {
+		Path outputRoot = assignmentOutput();
+		compileInto(outputRoot, """
+				package decoy;
+
+				public class Outer {
+					public static class Inner {
+					}
+				}
+				""", "decoy/Outer.java");
+		Files.delete(outputRoot.resolve("decoy/Outer.class"));
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertTrue(refusal.getMessage().contains("decoy"), refusal.getMessage());
+	}
+
+	/**
+	 * What an ordinary build writes beside a class: its nested classes, an
+	 * annotated package-info and a module-info. None of it may be mistaken for an
+	 * unreadable or duplicate file.
+	 */
+	@Test
+	@DisplayName("Accepts nested classes, package-info and module-info")
+	void acceptsNestedClassesAndDescriptors() throws IOException {
+		Path outputRoot = Files.createDirectories(projectRoot.resolve("build/classes/java/main"));
+		Path sources = Files.createDirectories(projectRoot.resolve("module-sources/de/tum/cit/aet"));
+		Files.writeString(sources.resolve("Assignment.java"), """
+				package de.tum.cit.aet;
+
+				public class Assignment {
+					class Step {
+					}
+
+					Runnable task = () -> new Object() {
+					};
+				}
+				""");
+		Files.writeString(sources.resolve("package-info.java"), """
+				@Deprecated
+				package de.tum.cit.aet;
+				""");
+		Path moduleInfo = Files.writeString(projectRoot.resolve("module-sources/module-info.java"),
+				"module assignment { exports de.tum.cit.aet; }");
+		int status = ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d", outputRoot.toString(),
+				moduleInfo.toString(), sources.resolve("Assignment.java").toString(),
+				sources.resolve("package-info.java").toString());
+		assertTrue(status == 0, "the fixture did not compile");
+
+		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+	}
+
+	/**
+	 * The walk does not follow a symbolic link, so a linked directory would hide
+	 * the classes in it from the inventory while the JVM still loads them.
+	 */
+	@Test
+	@DisplayName("Refuses a linked directory in the output")
+	void refusesALinkedDirectory() throws IOException {
+		Path outputRoot = assignmentOutput();
+		Path elsewhere = Files.createDirectories(projectRoot.resolve("elsewhere"));
+		compileInto(elsewhere, "package decoy; public class Hidden { }", "decoy/Hidden.java");
+		link(outputRoot.resolve("decoy"), elsewhere.resolve("decoy"));
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertTrue(refusal.getMessage().contains("decoy"), refusal.getMessage());
+	}
+
+	/**
+	 * A linked class file under a versioned directory is refused for being a link,
+	 * before resolving it could make it look like an ordinary class file.
+	 */
+	@Test
+	@DisplayName("Refuses a linked versioned class file")
+	void refusesALinkedVersionedClassFile() throws IOException {
+		Path outputRoot = assignmentOutput();
+		Path versioned = Files.createDirectories(outputRoot.resolve("META-INF/versions/17/de/tum/cit/aet"));
+		link(versioned.resolve("Assignment.class"), outputRoot.resolve("de/tum/cit/aet/Assignment.class"));
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertTrue(refusal.getMessage().contains("META-INF"), refusal.getMessage());
+	}
+
+	/**
+	 * Creates a symbolic link, or skips the calling test where the file system or
+	 * its permissions cannot express one.
+	 *
+	 * @param link   the link to create
+	 * @param target what it points to
+	 */
+	private static void link(Path link, Path target) {
+		try {
+			Files.createSymbolicLink(link, target);
+		} catch (IOException | UnsupportedOperationException | SecurityException exception) {
+			assumeTrue(false, () -> "cannot create a symbolic link here: " + exception);
+		}
+	}
+
+	/**
+	 * Compiles the one assignment class every scope here is meant to cover.
+	 *
+	 * @return the production output root
+	 * @throws IOException if the fixture cannot be written
+	 */
+	private Path assignmentOutput() throws IOException {
+		return compile("""
+				package de.tum.cit.aet;
+
+				public class Assignment {
+				}
+				""", "de/tum/cit/aet/Assignment.java");
 	}
 
 	private JavaProjectScanner scanner(Path outputRoot) throws IOException {

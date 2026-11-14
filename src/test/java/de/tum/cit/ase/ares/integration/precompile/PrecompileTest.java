@@ -1,12 +1,18 @@
 package de.tum.cit.ase.ares.integration.precompile;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -29,27 +35,43 @@ public class PrecompileTest {
 	private static final String EXERCISE_PACKAGE = "de.tum.cit.aet.exercise";
 
 	/**
-	 * Exercises the precompile flow ({@code writeTestCases}) which generates the
-	 * security-test scaffold (architecture/AOP helper classes, localisation
-	 * resources and the Phobos files).
+	 * Precompile without a policy is refused before anything is written. Ares would
+	 * derive the decoy package here, which holds most classes.
 	 * <p>
-	 * The scaffold is written into a JUnit-managed temporary directory rather than
-	 * the current working directory, so the repository is never polluted. The write
-	 * target is nested several levels deep on purpose: the localisation step places
-	 * its {@code resources} folder as a sibling two levels up, and the Phobos step
-	 * climbs three levels up, so a deep target keeps every generated artefact
-	 * inside {@code tempDir}, which {@link TempDir} removes afterwards.
+	 * The project is compared byte by byte before and after, with files already
+	 * where generated files would go, so an overwrite is caught too.
 	 */
 	@Test
-	void testPrecompileJavaMavenArchunitInstrumentation(@TempDir Path tempDir) throws IOException {
+	void precompileWithoutAPolicyIsRefusedAndChangesNothing(@TempDir Path tempDir) throws IOException {
 		Path projectFolderPath = Files.createDirectory(tempDir.resolve("project"));
 		Files.writeString(projectFolderPath.resolve("pom.xml"), "<project/>");
-		Files.createDirectories(projectFolderPath.resolve("src/main/java"));
-		Files.createDirectories(projectFolderPath.resolve("src/test/java"));
+		Path sources = Files.createDirectories(projectFolderPath.resolve("src/main/java"));
+		Files.createDirectories(sources.resolve("de/tum/cit/aet/exercise"));
+		Files.writeString(sources.resolve("de/tum/cit/aet/exercise/Main.java"),
+				"package de.tum.cit.aet.exercise; public class Main { }");
+		Files.createDirectories(sources.resolve("decoy"));
+		for (String name : List.of("First", "Second")) {
+			Files.writeString(sources.resolve("decoy/" + name + ".java"),
+					"package decoy; public class " + name + " { }");
+		}
 		Files.createDirectories(projectFolderPath.resolve("target/classes"));
-		Path writeTarget = projectFolderPath.resolve("src/test/java");
-		SecurityPolicyReaderAndDirector.builder().projectFolderPath(projectFolderPath).build().createTestCases()
-				.writeTestCases(writeTarget);
+		Path writeTarget = Files.createDirectories(projectFolderPath.resolve("src/test/java"));
+		Files.writeString(
+				Files.createDirectories(writeTarget.resolve("decoy/ares/api/aop/java"))
+						.resolve("JavaAOPTestCaseSettings.java"),
+				"package decoy.ares.api.aop.java; class JavaAOPTestCaseSettings { }");
+		Files.writeString(
+				Files.createDirectories(projectFolderPath.resolve("src/test/resources")).resolve("sentinel.properties"),
+				"sentinel resources");
+		Files.writeString(projectFolderPath.resolve("PhobosCopyTool.sh"), "sentinel phobos");
+		Map<Path, String> before = contentsOf(tempDir);
+
+		SecurityException refusal = assertThrows(SecurityException.class, () -> SecurityPolicyReaderAndDirector
+				.builder().projectFolderPath(projectFolderPath).build().createTestCases().writeTestCases(writeTarget));
+
+		assertTrue(refusal.getMessage().contains("\"decoy\""), refusal.getMessage());
+		assertTrue(refusal.getMessage().contains("theSupervisedCodeUsesTheFollowingPackage"), refusal.getMessage());
+		assertEquals(before, contentsOf(tempDir), "a refused precompile changed the project");
 	}
 
 	/**
@@ -74,6 +96,13 @@ public class PrecompileTest {
 				.build().createTestCases().writeTestCases(writeTarget);
 
 		Path generated = writeTarget.resolve(EXERCISE_PACKAGE.replace('.', '/')).resolve("ares/api");
+		assertContains(generated.resolve("aop/java/JavaAOPTestCaseSettings.java"),
+				"restrictedPackage = \"" + EXERCISE_PACKAGE + "\"");
+		String everyGeneratedSource = contentsOf(generated).values().stream().collect(Collectors.joining("\n"));
+		assertTrue(everyGeneratedSource.contains("JavaArchunitSupervisedClasses.pinned(\"" + EXERCISE_PACKAGE + "\")"),
+				"the generated architecture tests do not analyse the pinned package");
+		assertFalse(everyGeneratedSource.contains("JavaArchunitSupervisedClasses.validated("),
+				"a pinned package was generated as though it had been derived");
 		String denyList = Files.readString(generated.resolve(
 				"templates/architecture/java/" + analysis.toLowerCase() + "/methods/file-system-access-methods.txt"));
 		for (String withDirectory : List.of("java.io.File.createTempFile(", "java.nio.file.Files.createTempFile(")) {
@@ -161,6 +190,23 @@ public class PrecompileTest {
 		int lastAllowList = Math.max(settings.indexOf(classes), settings.indexOf(packages));
 		assertTrue(settings.indexOf(declarationOf(settings, "aopMode")) > lastAllowList, settings);
 		assertTrue(settings.indexOf(declarationOf(settings, "restrictedPackage")) > lastAllowList, settings);
+	}
+
+	/**
+	 * Reads every file below a directory, keyed by its path relative to it.
+	 *
+	 * @param root the directory
+	 * @return the contents of every file, keyed by relative path
+	 * @throws IOException if a file cannot be read
+	 */
+	private static Map<Path, String> contentsOf(Path root) throws IOException {
+		Map<Path, String> contents = new TreeMap<>();
+		try (Stream<Path> files = Files.walk(root)) {
+			for (Path file : files.filter(Files::isRegularFile).toList()) {
+				contents.put(root.relativize(file), Files.readString(file, StandardCharsets.ISO_8859_1));
+			}
+		}
+		return contents;
 	}
 
 	/**
