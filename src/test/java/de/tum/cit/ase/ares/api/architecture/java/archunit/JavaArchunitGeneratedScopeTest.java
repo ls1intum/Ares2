@@ -48,26 +48,25 @@ class JavaArchunitGeneratedScopeTest {
 	}
 
 	@Test
-	@DisplayName("Reads the self-import permissions from the output when the scope was derived")
-	void readsSelfImportPermissionsFromTheOutputWhenDerived() {
+	@DisplayName("Reads the own-package permissions from the checked classes when the scope was derived")
+	void readsOwnPackagesFromTheCheckedClassesWhenDerived() {
 		String written = generated(true).writeArchitectureTestCase("ARCHUNIT", "");
 
-		// A permission is matched as a prefix, so writing the derived scope itself into
-		// the generated file left it holding a grant over that whole namespace, which
-		// outlives the coverage check that ran beside it.
-		assertTrue(written.contains("JavaArchunitSupervisedClasses.allowedPackages(\"de.tum.cit.aet\""),
-				"a derived scope must ask for the packages the output declares: " + written);
+		assertTrue(written.contains("JavaArchunitTestCaseCollection.withOwnPackages(allowedPackages, javaClasses"),
+				"a derived scope must read the packages the checked classes declare: " + written);
+		assertFalse(written.contains("JavaArchunitSupervisedClasses.allowedPackages("),
+				"what was compiled while generating must not become a permission: " + written);
 	}
 
 	@Test
-	@DisplayName("Leaves a pinned scope stated as the instructor wrote it")
-	void leavesAPinnedScopeAlone() {
+	@DisplayName("Writes a pinned scope's permissions as declared and reads its own packages at runtime")
+	void writesAPinnedScopeAsDeclared() {
 		String written = generated(false).writeArchitectureTestCase("ARCHUNIT", "");
 
-		// A pinned policy may deliberately supervise part of the output and declare
-		// exactly what may be imported, so neither is second-guessed at runtime.
 		assertTrue(written.contains("JavaArchunitSupervisedClasses.pinned(\"de.tum.cit.aet\")"), written);
-		assertFalse(written.contains("JavaArchunitSupervisedClasses.allowedPackages("),
-				"a pinned scope's permissions are a declaration, not a reading: " + written);
+		assertTrue(written.contains("new PackagePermission(\"de.tum.cit.aet\", false)"),
+				"a pinned scope's permissions are a declaration and are written as such: " + written);
+		assertTrue(written.contains("JavaArchunitTestCaseCollection.withOwnPackages(allowedPackages, javaClasses"),
+				"the supervised code's own packages are read from the checked classes: " + written);
 	}
 }

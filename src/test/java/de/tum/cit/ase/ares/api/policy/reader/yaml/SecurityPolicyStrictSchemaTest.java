@@ -65,6 +65,37 @@ class SecurityPolicyStrictSchemaTest {
 		assertTrue(failure.getCause() != null);
 	}
 
+	/** Values of exactMatchOnly the reader accepts, with what each binds to. */
+	static Stream<Arguments> exactMatchOnlyValues() {
+		return Stream.of(Arguments.of("", false), Arguments.of("\n        exactMatchOnly: true", true),
+				Arguments.of("\n        exactMatchOnly: false", false));
+	}
+
+	/**
+	 * Binds exactMatchOnly through the real policy reader, a missing key as false.
+	 */
+	@ParameterizedTest
+	@MethodSource("exactMatchOnlyValues")
+	void bindsExactMatchOnlyThroughTheRealReader(String field, boolean expected) throws IOException {
+		SecurityPolicy policy = read(validYaml().replace("importTheFollowingPackage: java.util",
+				"importTheFollowingPackage: java.util" + field));
+		assertEquals(expected, policy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
+				.regardingPackageImports().get(0).exactMatchOnly());
+	}
+
+	/** Refuses an exactMatchOnly that is not a boolean. */
+	@ParameterizedTest
+	@MethodSource("invalidExactMatchOnlyValues")
+	void rejectsExactMatchOnlyThatIsNotABoolean(String value) {
+		assertThrows(SecurityException.class, () -> read(validYaml().replace("importTheFollowingPackage: java.util",
+				"importTheFollowingPackage: java.util\n        exactMatchOnly: " + value)));
+	}
+
+	/** Values of exactMatchOnly the reader refuses. */
+	static Stream<String> invalidExactMatchOnlyValues() {
+		return Stream.of("null", "\"true\"", "1", "yes");
+	}
+
 	@ParameterizedTest
 	@MethodSource("invalidPorts")
 	void validatesPortBoundaries(int port, boolean valid) {

@@ -71,7 +71,7 @@ part of what a figure suggests, the right-hand column says so.
 | The telephone: the number, the line, dialling, talking and listening | A network connection: host and port, and separately connecting, sending and receiving, in `regardingNetworkConnections`. |
 | A friend outside the room who helps, and the exact words the pupil is allowed to say to them | A command the code starts, with exactly the arguments it is allowed to pass, in `regardingCommandExecutions`. |
 | Side jobs a pupil starts during the examination, and how many they can start | Threads, by class and by the number that can be created in total, in `regardingThreadCreations`. The limit counts threads created, not threads running at the same time. |
-| The permitted aids | Packages the student code is allowed to depend on, in `regardingPackageImports`. Ares always permits some of them, such as the Java standard library. |
+| The permitted aids | Packages the student code is allowed to depend on, in `regardingPackageImports`. With a policy, Ares always permits a few of them, such as `java.lang`, `java.io` and the student code's own packages; without one, it permits every `java.*` package. |
 | Aids the head teacher put out | Libraries you add to the exercise. Ares cannot vouch for what they do. |
 
 ## What nobody is allowed to do, and what Ares cannot see

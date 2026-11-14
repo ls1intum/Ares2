@@ -5,8 +5,6 @@ import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -26,6 +24,7 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
+import de.tum.cit.ase.AncestorPackageExercise;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
@@ -82,48 +81,6 @@ public class JavaCreatorTest {
 		when(buildMode.getTestBuildDirectory()).thenReturn(tempDir.resolve("test-classes").toString());
 		when(buildMode.getBuildDirectory()).thenReturn(tempDir.resolve("classes").toString());
 		javaCreator = new JavaCreator();
-	}
-
-	/**
-	 * The derived-permission path that turns a reserved namespace below a scope
-	 * into a refusal, exercised directly so the restored breadth is proven at the
-	 * creator and not only in the guard it calls.
-	 */
-	@Nested
-	@DisplayName("Reserved Package Tests")
-	class ReservedPackageTests {
-
-		/**
-		 * A derived scope whose descendant is a restored reserved namespace is refused
-		 * during permission creation, naming that namespace, so the restored breadth is
-		 * enforced at the creator and not only in the guard it calls.
-		 */
-		@Test
-		@DisplayName("Refuses a derived scope that carries a restored reserved namespace")
-		void refusesADerivedScopeCarryingAReservedNamespace() throws Exception {
-			Method method = JavaCreator.class.getDeclaredMethod("derivedAllowedPackage", String.class);
-			method.setAccessible(true);
-			InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
-					() -> method.invoke(null, "com.github"));
-			assertInstanceOf(SecurityException.class, thrown.getCause());
-			assertTrue(thrown.getCause().getMessage().contains("com.github.javaparser"),
-					"the refusal must name the reserved namespace the derived scope would carry: "
-							+ thrown.getCause().getMessage());
-		}
-
-		/**
-		 * An ordinary derived scope with no reserved namespace below it yields a plain
-		 * package permission, so the refusal above is specific to reserved descendants
-		 * rather than a blanket rejection.
-		 */
-		@Test
-		@DisplayName("Allows an ordinary derived scope")
-		void allowsAnOrdinaryDerivedScope() throws Exception {
-			Method method = JavaCreator.class.getDeclaredMethod("derivedAllowedPackage", String.class);
-			method.setAccessible(true);
-			Object permission = method.invoke(null, "de.tum.cit.aet");
-			assertInstanceOf(PackagePermission.class, permission);
-		}
 	}
 
 	@Nested
@@ -298,6 +255,36 @@ public class JavaCreatorTest {
 			// implementation details)
 			// We verify that the method completed successfully and the parameters were used
 			verify(resourceAccesses).regardingPackageImports();
+		}
+
+		/**
+		 * Student code declared in {@code de.tum.cit.ase}, above Ares' own API, is not
+		 * refused. Its own package is not granted here; the rule adds it as an exact
+		 * permission when it runs.
+		 *
+		 * @throws IOException if the fixture cannot be copied
+		 */
+		@Test
+		@DisplayName("Should permit a supervised package that lies above a trusted namespace")
+		void shouldPermitASupervisedPackageAboveATrustedNamespace() throws IOException {
+			Path output = Files.createDirectories(tempDir.resolve("classes/de/tum/cit/ase"));
+			try (InputStream bytecode = AncestorPackageExercise.class
+					.getResourceAsStream(AncestorPackageExercise.class.getSimpleName() + ".class")) {
+				Files.copy(bytecode, output.resolve(AncestorPackageExercise.class.getSimpleName() + ".class"));
+			}
+			String ancestorPackage = AncestorPackageExercise.class.getPackageName();
+			String ancestorClasspath = tempDir.resolve("classes").toString();
+			when(buildMode.getClasspath(tempDir, ancestorPackage)).thenReturn(ancestorClasspath);
+			when(architectureMode.getJavaClasses(ancestorClasspath)).thenReturn(javaClasses);
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+
+			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of("java"),
+					List.of(), List.of(), ancestorPackage, mainClassName, architectureTestCases, aopTestCases,
+					phobosTestCases, resourceAccesses, tempDir, false));
+
+			assertFalse(architectureTestCases.isEmpty());
+			assertTrue(architectureTestCases.get(0).getAllowedPackages().stream()
+					.noneMatch(permission -> permission.importTheFollowingPackage().equals(ancestorPackage)));
 		}
 	}
 

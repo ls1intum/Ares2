@@ -17,6 +17,8 @@ regardingTheSupervisedCode:
         receiveData: false
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]
-    regardingPackageImports: [ ]
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.net"
+      - importTheFollowingPackage: "java.nio.channels"
     regardingTimeouts:
       - timeout: 3000
