@@ -1,6 +1,8 @@
 package de.tum.cit.ase.ares.integration.precompile;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
@@ -118,27 +121,15 @@ public class PrecompileTest {
 	/**
 	 * Precompile writes the exempted names into the generated settings: the test
 	 * classes plus the classes their own compiled files list as declared inside
-	 * them in the project's own test output, never a class merely named like one,
-	 * and nothing beyond the exact name when the test output lacks the class.
+	 * them in the project's own test output, never a class merely named like one.
 	 * Essential packages go into their own setting, and the settings that switch
 	 * enforcement on come after every allow-list.
 	 */
 	@ParameterizedTest
-	@CsvSource({ "ASPECTJ,true", "INSTRUMENTATION,true", "ASPECTJ,false" })
-	void precompileWritesTheTrustedNestAndKeepsPackagesApart(String aop, boolean compiled, @TempDir Path tempDir)
-			throws IOException {
-		Path projectFolderPath = Files.createDirectory(tempDir.resolve("project"));
-		Files.writeString(projectFolderPath.resolve("pom.xml"), "<project/>");
-		Files.createDirectories(projectFolderPath.resolve("src/main/java"));
-		Files.createDirectories(projectFolderPath.resolve("target/classes"));
-		Path testClassFile = Files.createDirectories(projectFolderPath.resolve("target/test-classes/example/nest"))
-				.resolve("NestHostFixture.class");
-		if (compiled) {
-			try (var input = PrecompileTest.class.getResourceAsStream("/example/nest/NestHostFixture.class")) {
-				Files.write(testClassFile, input.readAllBytes());
-			}
-		}
-		Path writeTarget = Files.createDirectories(projectFolderPath.resolve("src/test/java"));
+	@ValueSource(strings = { "ASPECTJ", "INSTRUMENTATION" })
+	void precompileWritesTheTrustedNestAndKeepsPackagesApart(String aop, @TempDir Path tempDir) throws IOException {
+		Path projectFolderPath = projectWithCompiledNestHost(tempDir);
+		Path writeTarget = projectFolderPath.resolve("src/test/java");
 		Path policy = Files.writeString(tempDir.resolve("policy.yaml"),
 				policyWithOneReadPath("ARCHUNIT", aop).replace("theFollowingClassesAreTestClasses: [ ]",
 						"theFollowingClassesAreTestClasses: [ \"example.nest.NestHostFixture\" ]"));
@@ -152,8 +143,7 @@ public class PrecompileTest {
 		String packages = declarationOf(settings, "allowedListedPackages");
 		assertTrue(classes.contains("\"example.nest.NestHostFixture\""), classes);
 		for (Class<?> member : example.nest.NestHostFixture.class.getNestMembers()) {
-			assertTrue(classes.contains("\"" + member.getName() + "\"") == compiled
-					|| member == example.nest.NestHostFixture.class, member.getName() + " in " + classes);
+			assertTrue(classes.contains("\"" + member.getName() + "\""), member.getName() + " in " + classes);
 		}
 		assertFalse(classes.contains("NestHostFixture$Evil"), classes);
 		assertTrue(packages.contains("\"java\""), packages);
@@ -161,6 +151,98 @@ public class PrecompileTest {
 		int lastAllowList = Math.max(settings.indexOf(classes), settings.indexOf(packages));
 		assertTrue(settings.indexOf(declarationOf(settings, "aopMode")) > lastAllowList, settings);
 		assertTrue(settings.indexOf(declarationOf(settings, "restrictedPackage")) > lastAllowList, settings);
+	}
+
+	/**
+	 * A declared test class the project's test output does not hold stops
+	 * precompile before anything is written, so its bare name never reaches the
+	 * generated settings where a student class of that name could take it over.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "ASPECTJ", "INSTRUMENTATION" })
+	void precompileRefusesATestClassThatWasNeverCompiled(String aop, @TempDir Path tempDir) throws IOException {
+		Path projectFolderPath = projectWithCompiledNestHost(tempDir);
+		Path writeTarget = projectFolderPath.resolve("src/test/java");
+		Path policy = Files.writeString(tempDir.resolve("policy.yaml"), policyWithOneReadPath("ARCHUNIT", aop).replace(
+				"theFollowingClassesAreTestClasses: [ ]",
+				"theFollowingClassesAreTestClasses: [ \"example.nest.NestHostFixture\", \"example.nest.GhostTest\" ]"));
+
+		SecurityException refused = assertThrows(SecurityException.class,
+				() -> SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy)
+						.projectFolderPath(projectFolderPath).build().createTestCases().writeTestCases(writeTarget));
+		assertTrue(refused.getMessage().contains("example.nest.GhostTest"), refused.getMessage());
+		try (Stream<Path> written = Files.list(writeTarget)) {
+			assertEquals(0, written.count(), "precompile wrote files despite the refusal");
+		}
+	}
+
+	/**
+	 * Without a policy, precompile finds a nested test class whose enclosing class
+	 * is not a test, verifies it under the name its class file carries, and writes
+	 * that name into the generated settings.
+	 */
+	@Test
+	void precompileWithoutAPolicyExemptsANestedTestClassByItsClassFileName(@TempDir Path tempDir) throws IOException {
+		Path projectFolderPath = Files.createDirectory(tempDir.resolve("project"));
+		Files.writeString(projectFolderPath.resolve("pom.xml"), "<project/>");
+		Files.createDirectories(projectFolderPath.resolve("src/main/java"));
+		Files.createDirectories(projectFolderPath.resolve("target/classes"));
+		Files.writeString(Files.createDirectories(projectFolderPath.resolve("src/test/java/example/nest"))
+				.resolve("NestedTestFixture.java"), """
+						package example.nest;
+						import org.junit.jupiter.api.Nested;
+						import org.junit.jupiter.api.Test;
+						public final class NestedTestFixture {
+						  @Nested final class Inner { @Test void runs() {} }
+						}
+						""");
+		copyCompiledTestClass(projectFolderPath, "example/nest/NestedTestFixture$Inner.class");
+		Path writeTarget = projectFolderPath.resolve("src/test/java");
+
+		SecurityPolicyReaderAndDirector.builder().projectFolderPath(projectFolderPath).build().createTestCases()
+				.writeTestCases(writeTarget);
+
+		Path settingsFile;
+		try (Stream<Path> written = Files.walk(writeTarget)) {
+			settingsFile = written.filter(path -> path.endsWith("JavaAOPTestCaseSettings.java")).findFirst()
+					.orElseThrow();
+		}
+		String settings = Files.readString(settingsFile);
+		assertTrue(declarationOf(settings, "allowedListedClasses").contains("\"example.nest.NestedTestFixture$Inner\""),
+				settings);
+	}
+
+	/**
+	 * Lays out a Maven project whose test output holds the compiled nest host
+	 * fixture, with empty production output and an empty test source folder.
+	 *
+	 * @param tempDir the folder to create the project in
+	 * @return the project root
+	 * @throws IOException if the layout cannot be written
+	 */
+	private static Path projectWithCompiledNestHost(Path tempDir) throws IOException {
+		Path projectFolderPath = Files.createDirectory(tempDir.resolve("project"));
+		Files.writeString(projectFolderPath.resolve("pom.xml"), "<project/>");
+		Files.createDirectories(projectFolderPath.resolve("src/main/java"));
+		Files.createDirectories(projectFolderPath.resolve("target/classes"));
+		Files.createDirectories(projectFolderPath.resolve("src/test/java"));
+		copyCompiledTestClass(projectFolderPath, "example/nest/NestHostFixture.class");
+		return projectFolderPath;
+	}
+
+	/**
+	 * Copies a compiled test fixture into the project's Maven test output.
+	 *
+	 * @param projectFolderPath the project root
+	 * @param classFile         the fixture's class file path below the output
+	 * @throws IOException if the copy fails
+	 */
+	private static void copyCompiledTestClass(Path projectFolderPath, String classFile) throws IOException {
+		Path target = projectFolderPath.resolve("target/test-classes").resolve(classFile);
+		Files.createDirectories(target.getParent());
+		try (var input = PrecompileTest.class.getResourceAsStream("/" + classFile)) {
+			Files.write(target, java.util.Objects.requireNonNull(input, "the fixture is compiled").readAllBytes());
+		}
 	}
 
 	/**

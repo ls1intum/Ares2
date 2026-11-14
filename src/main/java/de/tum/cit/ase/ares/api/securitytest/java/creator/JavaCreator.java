@@ -233,11 +233,9 @@ public class JavaCreator implements Creator {
 	 * Same question as {@link #derivedAllowedPackage(String)}, different answer. A
 	 * test class sits in the test tree, which the instructor controls and the
 	 * submitter does not, so it is not the submitter-steerable value a supervised
-	 * scope is; and refusing would break a convention this repository's own
-	 * fixtures rely on, nine of them naming
-	 * {@code de.tum.cit.ase.ares.testutilities} rather than a class. That makes
-	 * refusal the wrong instrument, not the finding wrong: the grant really is
-	 * wider than a test class needs, so it is reported rather than made fatal.
+	 * scope is. A package listed in place of a class is refused later, when the
+	 * test classes are verified; a real test class in such a package is only
+	 * reported, since the grant is wider than it needs but not forged.
 	 *
 	 * @param packageName the package of a test class
 	 * @return the permission for it

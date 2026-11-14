@@ -11,6 +11,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -25,6 +26,7 @@ import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
@@ -190,7 +192,7 @@ public class JavaProjectScanner implements ProjectScanner {
 				boolean annotatedTest = resolver.marksATest(unit, type.getAnnotations()) || type.getMethods().stream()
 						.anyMatch(method -> resolver.marksATest(unit, method.getAnnotations()));
 				if (junitThree || annotatedTest) {
-					classes.add(qualifiedTypeName(packageName, type));
+					binaryTypeName(packageName, type).ifPresent(classes::add);
 				}
 			}
 		}
@@ -418,6 +420,31 @@ public class JavaProjectScanner implements ProjectScanner {
 	private static String simpleNameOf(String name) {
 		int separator = name.lastIndexOf('.');
 		return separator < 0 ? name : name.substring(separator + 1);
+	}
+
+	/**
+	 * Returns the binary name the compiler gives a top-level or member type, with
+	 * {@code $} between enclosing types, as its class file is named. A local type,
+	 * or one declared inside an anonymous class, has a compiler-numbered name that
+	 * the source does not tell, and yields empty; JUnit cannot discover such a type
+	 * anyway.
+	 *
+	 * @param packageName the package of the compilation unit, or empty
+	 * @param type        the type declaration
+	 * @return the binary name, or empty for a local or anonymous-body type
+	 */
+	private static Optional<String> binaryTypeName(String packageName, TypeDeclaration<?> type) {
+		List<String> names = new ArrayList<>();
+		Node current = type;
+		while (current instanceof TypeDeclaration<?> declaration) {
+			names.add(0, declaration.getNameAsString());
+			current = declaration.getParentNode().orElse(null);
+		}
+		if (!(current instanceof CompilationUnit)) {
+			return Optional.empty();
+		}
+		String nestedName = String.join("$", names);
+		return Optional.of(packageName.isEmpty() ? nestedName : packageName + "." + nestedName);
 	}
 
 	private static String qualifiedTypeName(String packageName, TypeDeclaration<?> type) {

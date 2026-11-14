@@ -6,7 +6,6 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.ExceptionFailureUser"
     - "de.tum.cit.ase.ares.integration.ExceptionFailureTest"
-    - "de.tum.cit.ase.ares.testutilities"
   # Captures the former @WhitelistPath(value = "target/**") and @AllowThreads(maxActiveCount = 100)
   # of ExceptionFailureUser. The former @BlacklistPath has no allow-list equivalent: the
   # Ares 2 model is allow-list based, so a path that is not permitted is forbidden by default.

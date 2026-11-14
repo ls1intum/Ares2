@@ -5,8 +5,6 @@ regardingTheSupervisedCode:
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.InputOutputUser"
-    - "de.tum.cit.ase.ares.integration.InputOutputTest"
-    - "de.tum.cit.ase.ares.testutilities"
   # Captures the former @WhitelistPath(value = "target/**") of InputOutputUser.
   # The former @BlacklistPath has no allow-list equivalent (Ares 2 forbids by default).
   theFollowingResourceAccessesArePermitted:

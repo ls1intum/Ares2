@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -65,23 +66,77 @@ class ExemptedClassNestsTest {
 	}
 
 	/**
-	 * A test class missing from the trusted test output keeps only its exact name,
-	 * even though a loader could find a class of that name elsewhere, for example
-	 * in the student's output.
+	 * A test class missing from the trusted test output is refused, even though a
+	 * loader could find a class of that name elsewhere, for example in the
+	 * student's output, and so is any test class when the root is unknown.
 	 */
 	@Test
-	void aTestClassMissingFromTheTestOutputAddsNothing(@TempDir Path testOutput) {
-		assertEquals(List.of(HOST), ExemptedClassNests.expandFromTestOutput(List.of(HOST), testOutput));
-		assertEquals(List.of(HOST), ExemptedClassNests.expandFromTestOutput(List.of(HOST), null));
+	void aTestClassMissingFromTheTestOutputIsRefused(@TempDir Path testOutput) {
+		SecurityException missing = assertThrows(SecurityException.class,
+				() -> ExemptedClassNests.expandFromTestOutput(List.of(HOST), testOutput));
+		assertTrue(missing.getMessage().contains(HOST), missing.getMessage());
+		assertTrue(missing.getMessage().contains(testOutput.toString()), missing.getMessage());
+		SecurityException unknownRoot = assertThrows(SecurityException.class,
+				() -> ExemptedClassNests.expandFromTestOutput(List.of(HOST), null));
+		assertTrue(unknownRoot.getMessage().contains(HOST), unknownRoot.getMessage());
+	}
+
+	/** An empty list verifies nothing, so it passes without any test output. */
+	@Test
+	void anEmptyListNeedsNoTestOutput() {
+		assertEquals(List.of(), ExemptedClassNests.expandFromTestOutput(List.of(), null));
+	}
+
+	/**
+	 * A class file that declares another class, is cut short or carries trailing
+	 * bytes is refused, with the reader's complaint kept as the cause.
+	 */
+	@Test
+	void anUnusableTestClassFileIsRefused(@TempDir Path testOutput) throws Exception {
+		byte[] valid = classFile(HOST);
+		for (byte[] unusable : List.of(classFile("example.nest.NestHostFixture$Evil"),
+				Arrays.copyOf(valid, valid.length - 1), Arrays.copyOf(valid, valid.length + 1))) {
+			write(testOutput, HOST, unusable);
+			SecurityException refused = assertThrows(SecurityException.class,
+					() -> ExemptedClassNests.expandFromTestOutput(List.of(HOST), testOutput));
+			assertNotNull(refused.getCause(), refused.getMessage());
+		}
+	}
+
+	/**
+	 * An ordinary test class without nested classes, and an explicitly listed
+	 * nested test class, pass and stay exempted by their exact names.
+	 */
+	@Test
+	void classesWithoutNestMembersPass(@TempDir Path testOutput) throws Exception {
+		String ordinary = "example.nest.NestHostFixture$Evil";
+		String member = NestHostFixture.Member.class.getName();
+		write(testOutput, ordinary, classFile(ordinary));
+		write(testOutput, member, classFile(member));
+		assertEquals(List.of(ordinary, member),
+				ExemptedClassNests.expandFromTestOutput(List.of(ordinary, member), testOutput));
+	}
+
+	/** The refusal reads in both English and German. */
+	@Test
+	void theRefusalIsLocalised(@TempDir Path testOutput) {
+		Locale previous = Locale.getDefault();
+		try {
+			Locale.setDefault(Locale.ENGLISH);
+			assertTrue(refusalFor(testOutput).startsWith("Ares Security Error"));
+			Locale.setDefault(Locale.GERMAN);
+			assertTrue(refusalFor(testOutput).startsWith("Ares Sicherheitsfehler"));
+		} finally {
+			Locale.setDefault(previous);
+		}
 	}
 
 	/**
 	 * A test class reached through a linked package directory or a linked class
-	 * file keeps only its exact name, since the link may lead outside the trusted
-	 * test output.
+	 * file is refused, since the link may lead outside the trusted test output.
 	 */
 	@Test
-	void aLinkInTheTestOutputAddsNothing(@TempDir Path testOutput, @TempDir Path elsewhere) throws Exception {
+	void aLinkInTheTestOutputIsRefused(@TempDir Path testOutput, @TempDir Path elsewhere) throws Exception {
 		Path real = elsewhere.resolve("nest/NestHostFixture.class");
 		Files.createDirectories(real.getParent());
 		Files.write(real, classFile(HOST));
@@ -95,8 +150,10 @@ class ExemptedClassNestsTest {
 		} catch (UnsupportedOperationException | IOException unsupported) {
 			org.junit.jupiter.api.Assumptions.abort("Symbolic links are unavailable here: " + unsupported);
 		}
-		assertEquals(List.of(HOST), ExemptedClassNests.expandFromTestOutput(List.of(HOST), linkedDirectory));
-		assertEquals(List.of(HOST), ExemptedClassNests.expandFromTestOutput(List.of(HOST), testOutput.resolve("file")));
+		assertThrows(SecurityException.class,
+				() -> ExemptedClassNests.expandFromTestOutput(List.of(HOST), linkedDirectory));
+		assertThrows(SecurityException.class,
+				() -> ExemptedClassNests.expandFromTestOutput(List.of(HOST), testOutput.resolve("file")));
 	}
 
 	/**
@@ -229,6 +286,19 @@ class ExemptedClassNestsTest {
 		try (InputStream input = LOADER.getResourceAsStream(className.replace('.', '/') + ".class")) {
 			return input.readAllBytes();
 		}
+	}
+
+	/** Writes class file bytes where the test output keeps the named class. */
+	private static void write(Path testOutput, String className, byte[] bytes) throws IOException {
+		Path file = testOutput.resolve(className.replace('.', '/') + ".class");
+		Files.createDirectories(file.getParent());
+		Files.write(file, bytes);
+	}
+
+	/** Returns the refusal message for the host missing from the given output. */
+	private static String refusalFor(Path testOutput) {
+		return assertThrows(SecurityException.class,
+				() -> ExemptedClassNests.expandFromTestOutput(List.of(HOST), testOutput)).getMessage();
 	}
 
 	/** The defects a hand-built class file can carry. */

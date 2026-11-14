@@ -48,8 +48,42 @@ class JavaProjectScannerAstTest {
 		assertEquals("alpha", scanner.scanForPackageName());
 		assertEquals("Application", scanner.scanForMainClassInPackage());
 		assertArrayEquals(
-				new String[] { "checks.Cases", "checks.Cases.Nested", "checks.EnumCases", "checks.InterfaceCases",
+				new String[] { "checks.Cases", "checks.Cases$Nested", "checks.EnumCases", "checks.InterfaceCases",
 						"checks.JunitFour", "checks.JupiterTemplate", "checks.RecordCases" },
+				scanner.scanForTestClasses());
+	}
+
+	/**
+	 * Test classes are named as their class files are, with {@code $} between
+	 * enclosing types at any depth, including a member of an interface, and local
+	 * types and types inside an anonymous class or an enum constant's body are left
+	 * out, since the compiler numbers their names.
+	 */
+	@Test
+	void namesNestedTestClassesAsTheirClassFilesAndSkipsLocalOnes() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.writeString(tests.resolve("Outer.java"), """
+				package checks;
+				import org.junit.jupiter.api.Nested;
+				import org.junit.jupiter.api.Test;
+				class Outer {
+				  @Nested class Middle {
+				    @Nested class Inner { @Test void deep() {} }
+				  }
+				  void helper() {
+				    class Local { @Test void local() {} }
+				    Object anonymous = new Object() {
+				      class InsideAnonymous { @Test void hidden() {} }
+				    };
+				  }
+				}
+				interface Contract { class Member { @Test void inInterface() {} } }
+				enum Choice { ONE { class InConstantBody { @Test void inBody() {} } } }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "checks.Contract$Member", "checks.Outer$Middle$Inner" },
 				scanner.scanForTestClasses());
 	}
 

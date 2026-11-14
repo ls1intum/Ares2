@@ -3,9 +3,12 @@ package de.tum.cit.ase.ares.api.policy.director.java;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -58,6 +61,9 @@ public class SecurityPolicyJavaDirectorTest {
 	private Path essentialClassesPath;
 	private Path projectPath;
 
+	/** A compiled fixture without nested classes, standing in for a test class. */
+	private static final String TEST_CLASS = "example.nest.NestHostFixture$Evil";
+
 	// Real SupervisedCode instance for testing
 	private SupervisedCode supervisedCodeWithValidConfig;
 
@@ -73,6 +79,8 @@ public class SecurityPolicyJavaDirectorTest {
 		Files.createDirectories(projectPath);
 		Files.writeString(projectPath.resolve("pom.xml"), "<project/>");
 		Files.writeString(projectPath.resolve("build.gradle"), "plugins { id 'java' }");
+		compileFixtureInto(projectPath.resolve("target/test-classes"));
+		compileFixtureInto(projectPath.resolve("build/classes/java/test"));
 
 		// Setup mock for EssentialDataYAMLReader to return valid mock objects
 		setupEssentialDataMocks();
@@ -84,6 +92,19 @@ public class SecurityPolicyJavaDirectorTest {
 		setupSupervisedCodeInstances();
 	}
 
+	/**
+	 * Places the compiled test-class fixture where a build tool keeps compiled
+	 * tests.
+	 */
+	private static void compileFixtureInto(Path testOutput) throws IOException {
+		Path file = testOutput.resolve("example/nest/NestHostFixture$Evil.class");
+		Files.createDirectories(file.getParent());
+		try (InputStream input = SecurityPolicyJavaDirectorTest.class.getClassLoader()
+				.getResourceAsStream("example/nest/NestHostFixture$Evil.class")) {
+			Files.write(file, Objects.requireNonNull(input, "the fixture is compiled").readAllBytes());
+		}
+	}
+
 	private void setupSupervisedCodeInstances() {
 		// Create a SupervisedCode instance with valid configuration
 		ResourceAccesses validResourceAccesses = ResourceAccesses.builder().regardingFileSystemInteractions(List.of())
@@ -92,7 +113,7 @@ public class SecurityPolicyJavaDirectorTest {
 
 		supervisedCodeWithValidConfig = new SupervisedCode(
 				ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, "de.example.test", "MainClass",
-				List.of("TestClass1", "TestClass2"), validResourceAccesses, null);
+				List.of(TEST_CLASS), validResourceAccesses, null);
 
 		// Note: We cannot create a SupervisedCode with null config directly
 		// because the Record constructor validates parameters.
@@ -104,8 +125,7 @@ public class SecurityPolicyJavaDirectorTest {
 				.regardingNetworkConnections(List.of()).regardingCommandExecutions(List.of())
 				.regardingThreadCreations(List.of()).regardingPackageImports(List.of()).build();
 
-		return new SupervisedCode(config, "de.example.test", "MainClass", List.of("TestClass1", "TestClass2"),
-				resourceAccesses, null);
+		return new SupervisedCode(config, "de.example.test", "MainClass", List.of(TEST_CLASS), resourceAccesses, null);
 	}
 
 	private void setupEssentialDataMocks() {
