@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
@@ -251,7 +252,7 @@ class SecurityPolicyStrictSchemaTest {
 
 	@Test
 	void expandsProjectRootAsScalarDataAfterParsing() throws IOException {
-		Path unusualRoot = tempDirectory.resolve("root: #quote '\" \\ ä\nline\u0001");
+		Path unusualRoot = tempDirectory.resolve(unusualRootName());
 		Files.createDirectories(unusualRoot);
 		Path file = write(validYaml().replace("/tmp/data", "${PROJECT_ROOT}/line\\nname"));
 		SecurityPolicy policy = new SecurityPolicyYAMLReader(new YAMLMapper(), unusualRoot)
@@ -321,6 +322,25 @@ class SecurityPolicyStrictSchemaTest {
 		Path file = tempDirectory.resolve("policy-" + Integer.toUnsignedString(yaml.hashCode()) + ".yaml");
 		Files.writeString(file, yaml);
 		return file;
+	}
+
+	/**
+	 * A folder name full of characters that mean something in YAML, so a root
+	 * pasted into the document as text would change it. It is the whole set where
+	 * the file system takes it, and otherwise the part a Windows name may hold:
+	 * Windows refuses a colon, a double quote, an asterisk and a control character
+	 * in a name, and reads a backslash as a separator.
+	 *
+	 * @return the folder name
+	 */
+	private String unusualRootName() {
+		String everyCharacter = "root: #quote '\" \\ ä\nline\u0001";
+		try {
+			tempDirectory.resolve(everyCharacter);
+			return everyCharacter;
+		} catch (InvalidPathException refused) {
+			return "root #quote ' ä [list], {map} &anchor !tag %directive @at `tick";
+		}
 	}
 
 	private static String validYaml() {
