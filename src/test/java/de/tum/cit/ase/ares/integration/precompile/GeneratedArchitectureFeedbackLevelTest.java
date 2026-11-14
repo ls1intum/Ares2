@@ -287,6 +287,20 @@ class GeneratedArchitectureFeedbackLevelTest {
 	}
 
 	/**
+	 * With privileged-only reporting at FULL, a class named like the copied blocked
+	 * action but loaded by another class loader is not treated as one, so its own
+	 * text is never shown.
+	 *
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aLookalikeViolationFromAnotherLoaderIsNotKept() throws Exception {
+		String output = runProbe("lookalike");
+		assertThat(output).as(output).contains("ares.probe.message=" + POLICY_MESSAGE)
+				.doesNotContain("lookalike-secret").contains("ares.probe.done");
+	}
+
+	/**
 	 * Runs the compiled probe in a JVM of its own and returns what it printed.
 	 *
 	 * @param mode what the probe attaches to the blocked action.
@@ -299,7 +313,8 @@ class GeneratedArchitectureFeedbackLevelTest {
 				full.resolveSibling(full.getFileName() + "-resources").toString(),
 				System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
 		Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp",
-				classPath, "com.example.probe.FullViolationProbe", VIOLATION, mode).redirectErrorStream(true).start();
+				classPath, "com.example.probe.FullViolationProbe", VIOLATION, mode, full.toUri().toString())
+						.redirectErrorStream(true).start();
 		try {
 			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
 			return new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
@@ -326,9 +341,13 @@ class GeneratedArchitectureFeedbackLevelTest {
 						public final class FullViolationProbe {
 							public static void main(String[] arguments) throws Exception {
 								ClassLoader loader = FullViolationProbe.class.getClassLoader();
-								Throwable violation = (Throwable) loader
+								ClassLoader origin = "lookalike".equals(arguments[1])
+										? new java.net.URLClassLoader(new java.net.URL[] { java.net.URI.create(arguments[2]).toURL() }, null)
+										: loader;
+								Throwable violation = (Throwable) origin
 										.loadClass("com.example.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation")
-										.getConstructor(String.class).newInstance(arguments[0]);
+										.getConstructor(String.class)
+										.newInstance("lookalike".equals(arguments[1]) ? "lookalike-secret" : arguments[0]);
 								if ("assertion".equals(arguments[1])) {
 									violation.initCause(new AssertionError("cause=7"));
 									violation.addSuppressed(new AssertionError("expected=42"));
