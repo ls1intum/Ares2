@@ -98,59 +98,11 @@ cross-reference fails the build, so run `pnpm run build` before pushing document
 changes. Rendered PlantUML SVGs are committed next to their `.puml` sources (mirroring the
 `.drawio` / `.drawio.png` convention) and CI fails if they have drifted.
 
-### The Simple Story storyline
+### The Simple Story boxes
 
-Every documentation page opens with a `:::tip[Simple Story]` box, and all of them share one story. A
-page should lean on the cast below rather than inventing a metaphor of its own.
-
-- **Pupils**: the methods the student wrote.
-- **The board of education**: the instructor who set the exercise. Writes the paper, the mark
-  scheme and the checklist. The teacher decides none of it.
-- **The paper and the mark scheme**: the test methods, including the AST structural
-  requirements ("solve it without a loop"). AST is explicitly not a security boundary, so it
-  belongs here and never on the checklist.
-- **The teacher**: JUnit Jupiter. Asks the prepared questions one at a time. There is no
-  second teacher who invents questions on the spot and shrinks them; jqwik was removed, and
-  an instructor who wants generated questions writes them into the paper, for example with a
-  seeded `java.util.Random`.
-- **The checklist**: Ares, as configured by `security-policy.yaml`. One document in three
-  parts, matching the three lists the director produces:
-  1. **The room**, arranged before anyone is let in: Phobos. A desk with dividers, so forbidden
-     paths are absent rather than merely refused; someone outside the door vetting every
-     message that leaves; a clock in the corridor. None of it reachable from the chair, which
-     is the point.
-  2. **Reach**, at each desk before the question is put: the architecture layer. It establishes
-     that a route exists but cannot see what waits at the end of it, so any route fails
-     outright. There is no permitted version of this one. It reads **compiled bytecode, not
-     source**, so it sees what the compiler produced, including methods nobody typed. Only the
-     mark scheme (AST) reads what the pupil actually wrote; never describe the reach check as
-     reading what they wrote.
-  3. **Use**, while the pupil works: the AOP layer. It sees the actual thing being reached for,
-     so the verdict is conditional on what the checklist allows.
-- **A desk visit**: one run of one test method. **In Postcompile** the question and the
-  checklist arrive together, because Ares prepares that visit's checks beforehand and clears
-  the active settings away afterwards, on the failure path too. Never state one mechanism as
-  though it were universal: Jupiter arms them before the setup methods and in `BeforeTestExecutionCallback` and clears them in `afterTestExecution`,
-  and Precompile generates one project-wide set outside the run altogether, so there is
-  nothing to prepare per visit. A visit is also not one pupil: a test method may exercise several student methods. What Ares
-  generates is a **security test case**; what the instructor wrote is a **test method**. Keep
-  those two apart.
-- **The examination**: the whole round of desk visits, that is, the test run.
-- **The teacher's keys**: the test classes named in `theFollowingClassesAreTestClasses`. Ares
-  combines them with its own essential classes and turns the result into the derived
-  `ClassPermission` exemptions. There is no `classPermission` field to write.
-- **Marks read out now, or kept back**: `@PublicTest` and `@HiddenTest`.
-- **Vouching for the checklist itself**: the build. Ares cannot guard the door it stands
-  behind.
-
-Keep the honest limits inside the story instead of papering over them. Phobos covers filesystem,
-network and timeout only, and in Postcompile its cases are generated and never dispatched.
-
-Write "they", never "he/she". Every box belongs to the frame, but the weight varies: the
-conceptual pages get a full scene, while the procedural walkthroughs (`installation.md`, the
-build-tool paths, `github-packages.md`, the migration pages) get one framing sentence and then
-get on with the steps. No box may depend on another having been read: search drops readers on
-arbitrary pages, so each has to stand alone.
+Every documentation page opens with a `:::tip[Simple Story]` box. The rules for writing one
+are in `AGENTS.md` under "Writing a Simple Story", and the cast is on the
+[Who is who](documentation/docs/instructor/who-is-who.md) page.
 
 ## Project Structure
 

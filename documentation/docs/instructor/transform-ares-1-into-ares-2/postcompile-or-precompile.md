@@ -5,10 +5,12 @@ description: "Which mode to migrate an Ares 1 exercise onto, and what the choice
 ---
 
 :::tip[Simple Story]
-The old rules worked one way only. The new ones give you two, and you have to pick before
-touching the build.
+Before the move, the head teacher chooses how the rule sheet reaches the teacher: the teacher
+picks it up for each question, or the head teacher prints the rules onto the grading
+instructions beforehand. An exercise moving across from the old rules almost always takes the
+first way.
 
-For a migration the answer is almost always Postcompile.
+[Who is who](/instructor/who-is-who)
 :::
 
 ## The short answer for a migration

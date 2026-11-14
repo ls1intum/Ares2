@@ -5,11 +5,14 @@ description: "The problem Ares 2 solves, using a worked example with a public an
 ---
 
 :::tip[Simple Story]
-Some marks are read out as soon as the pupil has answered. Others stay sealed until the
-deadline has passed.
+After some questions, the teacher says at once whether the answer was right. For others, they
+say so only after the whole examination.
 
-Simply keeping the sealed ones quiet is not enough, because a question that was asked can leave
-traces behind. This page shows the problem with a small worked example before fixing it.
+Keeping quiet is not enough, because a question the teacher has put can leave traces behind for
+a pupil to find. So the teacher must not put such a question before the examination is over.
+This page shows the problem with a small example.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 This page introduces the problem Ares 2 solves, using a small worked example. The

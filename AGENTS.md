@@ -250,3 +250,54 @@ line of code.
 
 The same applies to any code an agent writes here, not only to Java: `.github/scripts` and
 the workflows are held to the same standard, in whatever comment syntax they have.
+
+## Writing a Simple Story
+
+Every authored page under the instructor and contributor guides opens with a
+`:::tip[Simple Story]` box. The box explains the page through one shared picture, an
+examination at a school. The cast of that picture lives on one page,
+[Who is who](documentation/docs/instructor/who-is-who.md), and nowhere else; this section
+holds the rules.
+
+**Why:** search drops readers on arbitrary pages, so each box has to stand alone, and a
+picture only helps when it means the same thing on every page. Ares is a security
+boundary, so a picture that promises more than Ares keeps is a defect, not a
+simplification.
+
+**Rule:**
+
+- Use only the cast on the Who-is-who page and keep its mappings and activities. The
+  teacher has several activities, and every act names the sheet it follows: the grading
+  instructions when they mark an answer, the rule sheet when they clear the desks or
+  watch. A figure never gets a second meaning, and a box never invents a figure. When no
+  existing figure can carry a page, add the new one to the Who-is-who page first, in the
+  same pull request.
+- Name no element of the test run in the box: not Ares, JUnit, Maven, Gradle, ArchUnit,
+  WALA, AspectJ, instrumentation, Phobos, Precompile or Postcompile, and no annotation,
+  policy field, class, package, file or command name. Those belong in the page body,
+  which says the precise thing.
+- Write at primary-school level, so that a child can follow it: short sentences, everyday
+  words, no abbreviations and no code formatting.
+- Use one picture per box, and keep each image to one meaning across the site. Printing
+  the rules onto the grading instructions is always Precompile, and the special
+  examination room is always Phobos.
+- Claim only what Ares does, in both modes. Where the picture would promise more, put the
+  limit into the picture or narrow the claim; never leave a limit to the link. The limits
+  a box most often has to keep: granting anything in a category ends the desk clearing
+  for it; the two ways of watching do not catch exactly the same things; the things
+  nobody may do are checked when the desks are cleared, though an act that also counts as
+  something the rule sheet can allow may be stopped while watching; the stopwatch works,
+  while the special examination room is not used in Postcompile; the instructions
+  forbidding certain words are not a security boundary.
+- The box must not contradict the body of its own page.
+- End every box except the one on the Who-is-who page with the paragraph
+  `[Who is who](/instructor/who-is-who)`. `SiteWideDocumentationStructureTest` checks
+  this.
+- Weigh the box by page type: a short scene on a conceptual page, one framing sentence on
+  a procedural, build-tool or migration page, the one need on a cookbook page, and the
+  figure with its main trap on a reference page.
+- Write "they", never "he/she", in British English. The prose lint in
+  `documentation/scripts/prose` applies to the box like any other text.
+
+Check every new or changed box four ways before committing it: on its own, beside the
+body of its page, against the Who-is-who page, and against the code.

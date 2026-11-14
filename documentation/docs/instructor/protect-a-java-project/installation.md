@@ -5,10 +5,10 @@ description: "Adding the Ares 2 dependency to a Maven or Gradle project."
 ---
 
 :::tip[Simple Story]
-One dependency line, and the checklist is available in your project.
+Before the first examination, the head teacher needs a pad of blank rule sheets in the staff
+room cupboard. This page puts one there. Nobody has written on it yet, so it stops nobody.
 
-That is all this page is. Nothing is enforced yet; this only puts the pad of blank checklists
-on the shelf.
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[Requirements]

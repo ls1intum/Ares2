@@ -5,10 +5,13 @@ description: "Field-by-field reference for every domain a security policy can ex
 ---
 
 :::tip[Simple Story]
-This is the dictionary for the checklist itself, `security-policy.yaml`, the file the board
-fills in.
+These pages walk through the rule sheet one line at a time: what each line says, what it
+accepts, and where it sits.
 
-Every field, what type it takes, what it accepts, and where it sits in the file.
+A line the teacher accepts is not always a line the teacher acts on. The time limit is the
+example: the rule sheet takes it, and today it stops nobody.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## How this section is organised

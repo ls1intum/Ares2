@@ -5,10 +5,11 @@ description: "Migrating an Ares 1 Gradle exercise onto Ares 2 in Postcompile mod
 ---
 
 :::tip[Simple Story]
-This is the build-side half of the migration for a Gradle exercise.
+This page does the school office's part of the move, for the way where the teacher picks up
+the rule sheet for each question. The part that every office shares is on
+[the common page](../index.md); do it before or alongside this one.
 
-The parts that do not depend on your build tool are on [the common page](../index.md); do those
-first, or alongside these.
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Before this page

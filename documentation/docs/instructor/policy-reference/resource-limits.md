@@ -5,12 +5,14 @@ description: "The execution budget a policy can express, the unit it is expresse
 ---
 
 :::tip[Simple Story]
-A pupil who never stops writing never finishes and never fails. They simply keep going, and
-the examination never ends.
+A pupil who never stops writing holds up the whole examination. The rule sheet has a line for
+a time limit, but that limit belongs to the clock of the special examination room, and that
+clock stops nobody yet.
 
-So the checklist has a line for the clock. Mind this one, though: the time is written onto the
-checklist, but nothing yet winds the clock up. What stops a runaway pupil today is the
-`@StrictTimeout` annotation.
+What stops a pupil today is the teacher's stopwatch, which the head teacher sets for a
+question.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example policy file

@@ -5,11 +5,14 @@ description: "Which external commands the supervised code may execute, and with 
 ---
 
 :::tip[Simple Story]
-Sometimes a pupil legitimately has to send somebody out of the room on an errand.
+Sometimes a pupil is allowed to ask a friend outside the room for help. The rule sheet then
+names the friend and the exact words the pupil can say to them. Any other friend, and any
+other words, are not allowed.
 
-Left open that is the largest hole there is, because an errand can fetch anything at all. So
-the checklist names exactly which errands may be run, and exactly which instructions they may
-be given. Nothing else leaves the room.
+Write the friend and the words as two separate things. Written together on one line, the
+whole line counts as the friend's name, and the friend you meant is not allowed at all.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example policy file

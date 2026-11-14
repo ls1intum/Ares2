@@ -5,11 +5,15 @@ description: "Which paths the supervised code may read, overwrite, create, execu
 ---
 
 :::tip[Simple Story]
-This is the list of papers a pupil may pick up, and what they may do with each one.
+A worksheet is a sheet of paper a pupil can be allowed to use. For each worksheet, the rule
+sheet says separately whether the pupil can read it, change it, make it, use it or throw it
+away.
 
-Anything not on the list stays out of reach. And being allowed to pick something up is not
-permission to do as you like with it: reading, replacing, creating, running and destroying are
-five separate permissions, each granted on its own.
+All five have to be on the rule sheet, even when the answer is no. The teacher does not
+accept a rule sheet that leaves one out. A worksheet the rule sheet does not mention is not
+allowed.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example policy file
