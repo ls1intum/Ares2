@@ -449,13 +449,28 @@ jobs:
         run: mvn clean package -DskipTests -Pwithout-quality-gates
 
   # Windows has its own paths, line endings and script launchers, so a green Linux run says
-  # nothing about it. This job runs one mode combination only and collects no coverage, so
-  # the report above stays a Linux figure.
+  # nothing about it. This job runs two of the four mode combinations, so each analysis
+  # technique (ArchUnit, WALA) and each enforcement technique (AspectJ, instrumentation) runs
+  # once on Windows. It collects no coverage, so the report above stays a Linux figure.
   windows-enforcement-integration-tests:
-    name: Windows Enforcement Integration Tests (ArchUnit + AspectJ)
+    name: Windows Enforcement Integration Tests (${{ matrix.name }})
     needs: windows-build
     runs-on: windows-2025
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ArchUnit + AspectJ
+            slug: archunit-aspectj
+            method-suffixes: '*MavenArchunitAspectJ+*_archunit_aspectj'
+            architecture-method-suffixes: '*MavenArchunitAspectJ_test'
+            reuse-forks: 'true'
+          - name: WALA + instrumentation
+            slug: wala-instrumentation
+            method-suffixes: '*MavenWalaInstrumentation+*_wala_instrumentation'
+            architecture-method-suffixes: '*MavenWalaInstrumentation_test'
+            reuse-forks: 'true'
     permissions:
       contents: read
     defaults:
@@ -474,21 +489,21 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # The selector is the one the ArchUnit + AspectJ entry of the
-      # `enforcement-integration-tests` job uses. Fork reuse is stated here because the POM's
-      # default differs from that entry. The whole `-Dtest` argument is quoted because
+      # The matrix entries and the selector are those of the matching entries of the
+      # `enforcement-integration-tests` job. Fork reuse is stated here because the POM's
+      # default differs from those entries. The whole `-Dtest` argument is quoted because
       # PowerShell can split an unquoted one at a dot.
-      - name: Test ArchUnit + AspectJ
+      - name: Test mode combination
         run: >-
           mvn test -f pom.xml
-          '-Dtest=de.tum.cit.ase.ares.integration.aop.allowed.*Test#*MavenArchunitAspectJ+*_archunit_aspectj,de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest$*#*MavenArchunitAspectJ+*_archunit_aspectj,de.tum.cit.ase.ares.integration.aop.forbidden.*Test#*MavenArchunitAspectJ+*_archunit_aspectj,de.tum.cit.ase.ares.integration.architecture.forbidden.*Test#*MavenArchunitAspectJ_test'
-          -Dsurefire-reuse-forks=true
+          '-Dtest=de.tum.cit.ase.ares.integration.aop.allowed.*Test#${{ matrix.method-suffixes }},de.tum.cit.ase.ares.integration.aop.allowed.FileSystemAccessTest$*#${{ matrix.method-suffixes }},de.tum.cit.ase.ares.integration.aop.forbidden.*Test#${{ matrix.method-suffixes }},de.tum.cit.ase.ares.integration.architecture.forbidden.*Test#${{ matrix.architecture-method-suffixes }}'
+          -Dsurefire-reuse-forks=${{ matrix.reuse-forks }}
 
       - name: Upload test results
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           retention-days: 7
-          name: test-results-windows-archunit-aspectj
+          name: test-results-windows-${{ matrix.slug }}
           path: target/surefire-reports/
           if-no-files-found: warn
