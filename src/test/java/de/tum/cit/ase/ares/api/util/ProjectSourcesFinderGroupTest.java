@@ -191,7 +191,10 @@ class ProjectSourcesFinderGroupTest {
 				Arguments.of("String group = 'local'\ngroup = 'org.other'", "org.example"),
 				Arguments.of("def group = 'local'\nproject.group = 'org.other'", "org.other"),
 				Arguments.of("allprojects { def group = 'local' }\ngroup = 'org.other'", "org.other"),
-				Arguments.of("if (true) { def group = 'local'; group = 'x' }\ngroup = 'org.other'", "org.other"));
+				Arguments.of("if (true) { def group = 'local'; group = 'x' }\ngroup = 'org.other'", "org.other"),
+				Arguments.of("def label(String group) { return group }\ngroup = 'org.other'", "org.other"),
+				Arguments.of("def f = { String group -> group }\ngroup = 'org.other'", "org.other"),
+				Arguments.of("for (String group : ['a']) { }\ngroup = 'org.other'", "org.other"));
 	}
 
 	/** The descriptor wins over gradle.properties, as it does in Gradle. */

@@ -1029,12 +1029,32 @@ public final class ProjectSourcesFinder {
 		List<Integer> blocks = openBlocksAt(code, offset);
 		Matcher declaration = LOCAL_GROUP.matcher(code);
 		while (declaration.find() && declaration.start() < offset) {
+			if (insideParentheses(code, declaration.start())) {
+				continue;
+			}
 			List<Integer> declaredIn = openBlocksAt(code, declaration.start());
 			if (blocks.size() >= declaredIn.size() && blocks.subList(0, declaredIn.size()).equals(declaredIn)) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Whether this offset lies inside parentheses, as a method, closure or loop
+	 * parameter does: its scope is that method, closure or loop, never the script
+	 * around it.
+	 */
+	private static boolean insideParentheses(String code, int offset) {
+		int depth = 0;
+		for (int index = 0; index < offset; index++) {
+			if (code.charAt(index) == '(') {
+				depth++;
+			} else if (code.charAt(index) == ')' && depth > 0) {
+				depth--;
+			}
+		}
+		return depth > 0;
 	}
 
 	/** The offsets of the braces still open at this offset, outermost first. */
