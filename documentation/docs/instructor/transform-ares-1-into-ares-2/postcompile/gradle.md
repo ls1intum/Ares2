@@ -276,7 +276,8 @@ import org.gradle.api.tasks.testing.Test
 def aresReservedPackageBoundaryVersion = '2'
 def aresReservedPackagePatterns = [
         'java/**', 'javax/**', 'sun/**', 'jdk/**', 'com/sun/**',
-        'de/tum/cit/ase/ares/api/**', 'net/bytebuddy/**', 'org/aspectj/**',
+        'de/tum/cit/ase/ares/api/**', 'de/tum/cit/ase/ares/generated/**',
+        'net/bytebuddy/**', 'org/aspectj/**',
         'com/ibm/wala/**', 'com/tngtech/archunit/**', 'junit/**', 'org/junit/**',
         'org/opentest4j/**', 'org/assertj/**', 'org/mockito/**', 'ch/qos/logback/**',
         'org/slf4j/**', 'com/github/javaparser/**', 'com/fasterxml/jackson/**',

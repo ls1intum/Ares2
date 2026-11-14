@@ -48,6 +48,17 @@ final class ExerciseJUnitVersion {
 	 */
 	private static final Pattern VERSION_NUMBER = Pattern.compile("\\d{1,9}(?:\\.\\d{1,9})*(?:[-+][\\w.\\-+]*)?");
 
+	/** A comment in a Maven build file, which names no dependency. */
+	private static final Pattern XML_COMMENT = Pattern.compile("<!--.*?-->", Pattern.DOTALL);
+
+	/**
+	 * A comment in a Gradle build file. It must start a line or follow a space, so
+	 * the slashes of a URL or of a pattern such as {@code **}{@code /*.java} are
+	 * kept rather than read as a comment that hides a dependency.
+	 */
+	private static final Pattern GRADLE_COMMENT = Pattern.compile("(?<=^|\\s)(?:/\\*.*?\\*/|//[^\\n]*)",
+			Pattern.DOTALL | Pattern.MULTILINE);
+
 	/** Prevents instantiation: this class only reads build files. */
 	private ExerciseJUnitVersion() {
 		throw new IllegalStateException("ExerciseJUnitVersion is a utility class and should not be instantiated");
@@ -63,7 +74,7 @@ final class ExerciseJUnitVersion {
 	static void requireIncludeFilterSupport(@Nonnull Path projectRoot) {
 		for (String buildFile : BUILD_FILES) {
 			Path path = projectRoot.resolve(buildFile);
-			String text = read(path);
+			String text = withoutComments(buildFile, read(path));
 			for (Pattern setting : VERSION_SETTINGS) {
 				Matcher matcher = setting.matcher(text);
 				while (matcher.find()) {
@@ -94,14 +105,29 @@ final class ExerciseJUnitVersion {
 	}
 
 	/**
-	 * Whether a version value points elsewhere: a property such as
-	 * {@code ${junit.version}} or {@code $junitVersion}, or a Maven version range.
+	 * Whether a version value points elsewhere: a property anywhere in it, such as
+	 * {@code ${junit.version}}, {@code 5.${junit.minor}.0} or
+	 * {@code $junitVersion}, or a Maven version range.
 	 *
 	 * @param version the value as written.
 	 * @return true when the build file does not name the number itself
 	 */
 	private static boolean isTakenFromElsewhere(@Nonnull String version) {
-		return version.startsWith("$") || version.startsWith("[") || version.startsWith("(");
+		return version.contains("$") || version.startsWith("[") || version.startsWith("(");
+	}
+
+	/**
+	 * A build file's text without its comments, so a commented-out example names no
+	 * version.
+	 *
+	 * @param buildFile the build file's name, which tells Maven from Gradle.
+	 * @param text      the build file's text.
+	 * @return the text with every comment removed
+	 */
+	@Nonnull
+	private static String withoutComments(@Nonnull String buildFile, @Nonnull String text) {
+		Pattern comment = "pom.xml".equals(buildFile) ? XML_COMMENT : GRADLE_COMMENT;
+		return comment.matcher(text).replaceAll(" ");
 	}
 
 	/**

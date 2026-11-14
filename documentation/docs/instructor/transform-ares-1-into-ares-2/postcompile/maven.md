@@ -305,7 +305,8 @@ Delete the `maven-enforcer-plugin` execution with the `requireFilesDontExist` ru
             <fileset dir="${project.build.outputDirectory}">
               <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
               <include name="jdk/**"/><include name="com/sun/**"/>
-              <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
+              <include name="de/tum/cit/ase/ares/api/**"/><include name="de/tum/cit/ase/ares/generated/**"/>
+              <include name="net/bytebuddy/**"/>
               <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
               <include name="com/tngtech/archunit/**"/><include name="junit/**"/>
               <include name="org/junit/**"/><include name="org/opentest4j/**"/>
@@ -484,7 +485,8 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
                                     <fileset dir="${project.build.outputDirectory}">
                                         <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
                                         <include name="jdk/**"/><include name="com/sun/**"/>
-                                        <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
+                                        <include name="de/tum/cit/ase/ares/api/**"/><include name="de/tum/cit/ase/ares/generated/**"/>
+                                        <include name="net/bytebuddy/**"/>
                                         <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
                                         <include name="com/tngtech/archunit/**"/><include name="junit/**"/>
                                         <include name="org/junit/**"/><include name="org/opentest4j/**"/>

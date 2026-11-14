@@ -62,6 +62,7 @@ class ExerciseJUnitVersionTest {
 	@CsvSource(delimiter = '|', value = {
 			"pom.xml|<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>${junit.version}</version></dependency></dependencies></project>",
 			"pom.xml|<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>[5.12,6)</version></dependency></dependencies></project>",
+			"pom.xml|<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>5.${junit.minor}.0</version></dependency></dependencies></project>",
 			"pom.xml|<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency></dependencies></project>",
 			"build.gradle|dependencies { testImplementation libs.junit.jupiter }",
 			"build.gradle|dependencies { testImplementation \"org.junit.jupiter:junit-jupiter:$junitVersion\" }",
@@ -70,6 +71,43 @@ class ExerciseJUnitVersionTest {
 		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
 		write(buildFile, text);
 		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
+	}
+
+	/**
+	 * A commented-out example naming a placeholder is ignored, while the active
+	 * dependency still decides.
+	 *
+	 * @param buildFile the build file's name.
+	 * @param text      the build file's text, with the active version as a slot.
+	 * @throws IOException if the build file cannot be written
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+			"pom.xml|<project><!-- <dependency><artifactId>junit-jupiter</artifactId><version>VERSION</version></dependency> --><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>%s</version></dependency></dependencies></project>",
+			"build.gradle|dependencies { testImplementation 'org.junit.jupiter:junit-jupiter:%s' } // testImplementation 'org.junit.jupiter:junit-jupiter:VERSION'",
+			"build.gradle.kts|/* testImplementation(\"org.junit.jupiter:junit-jupiter:VERSION\") */ dependencies { testImplementation(\"org.junit.jupiter:junit-jupiter:%s\") }" })
+	void aCommentedOutExampleIsIgnored(String buildFile, String text) throws IOException {
+		write(buildFile, text.formatted("5.12.2"));
+		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
+		write(buildFile, text.formatted("5.10.0"));
+		assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("5.10.0");
+	}
+
+	/**
+	 * The slashes of a URL or a file pattern do not start a comment, so a version
+	 * after them on the same line is still read.
+	 *
+	 * @throws IOException if the build file cannot be written
+	 */
+	@Test
+	void slashesOutsideACommentHideNothing() throws IOException {
+		write("build.gradle",
+				"repositories { maven { url 'https://repo.example/m2' } } "
+						+ "sourceSets { test { java { include '**/*.java' } } } "
+						+ "dependencies { testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0' } // */");
+		assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("5.10.0");
 	}
 
 	/**
