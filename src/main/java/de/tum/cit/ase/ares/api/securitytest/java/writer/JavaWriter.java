@@ -18,6 +18,7 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.localization.Localisation;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
@@ -312,10 +313,10 @@ public class JavaWriter implements Writer {
 
 	/**
 	 * Writes security test cases to files, then adds the generated test-behaviour
-	 * settings class. Calls the released overload virtually first, so a subclass
-	 * overriding only that one still has its customisation applied even though this
-	 * is the overload {@code JavaTestCaseFactoryAndBuilder} actually calls, before
-	 * adding behaviour-specific outputs on top.
+	 * settings class. A visibility and schedule category is refused before anything
+	 * is written, since no generated code applies it here. Calls the released
+	 * overload virtually first, so a subclass overriding only that one keeps its
+	 * customisation, although {@code JavaTestCaseFactoryAndBuilder} calls this one.
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
@@ -340,6 +341,9 @@ public class JavaWriter implements Writer {
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
 			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath) {
+		if (testBehaviorConfiguration.regardingTheVisibilityAndScheduleOfTheTestCases() != null) {
+			throw new SecurityException(Messages.localized("security.writer.hidden.tests.precompile.unsupported"));
+		}
 		List<Path> written = new ArrayList<>(writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 				essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 				javaAOPTestCases, javaPhobosTestCases, testFolderPath));

@@ -7,6 +7,7 @@ import java.util.*;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
+import org.opentest4j.TestAbortedException;
 import org.slf4j.*;
 
 import de.tum.cit.ase.ares.api.context.TestContext;
@@ -39,19 +40,21 @@ public final class ReportingUtils {
 		}
 	}
 
+	/**
+	 * Replaces a hidden result before logging or reporting its original throwable.
+	 * An abort keeps its status, while any other hidden failure stays failed.
+	 *
+	 * @param t       the test's throwable
+	 * @param context the test context
+	 * @return the throwable safe for the result listener
+	 */
 	public static Throwable processThrowable(Throwable t, TestContext context) {
+		if (context.findTestType().orElse(null) == TestType.HIDDEN) {
+			return hiddenResult(t);
+		}
 		boolean aresInternalError = isAresInternalError(t);
-		// Always surface genuine framework faults to instructors via the server log,
-		// even when the failure occurs inside a hidden test.
 		if (aresInternalError) {
 			LOG.error("Ares internal error during test execution", t); //$NON-NLS-1$
-			// Hidden tests must never reveal why they failed, so their uniform message
-			// takes
-			// precedence over the more specific internal-error message for the student
-			// view.
-		}
-		if (context.findTestType().orElse(null) == TestType.HIDDEN) {
-			return new AssertionError(localized("test_guard.hidden_test_failed")); //$NON-NLS-1$
 		}
 		if (aresInternalError) {
 			return new AssertionError(localized("reporting.ares_internal_error")); //$NON-NLS-1$
@@ -61,6 +64,16 @@ public final class ReportingUtils {
 			return processThrowablePrivilegedOnly(t, nonprivilegedFailureMessage.get());
 		}
 		return processThrowableRegularly(t);
+	}
+
+	/** Returns a status-preserving throwable with no hidden detail or stack. */
+	private static Throwable hiddenResult(Throwable original) {
+		return original instanceof TestAbortedException ? new HiddenTestAbort() : new HiddenTestFailure();
+	}
+
+	/** Redacts a class lifecycle failure shared with at least one hidden test. */
+	public static Throwable redactHiddenLifecycleFailure(Throwable original) {
+		return hiddenResult(original);
 	}
 
 	private static boolean isAresInternalError(Throwable t) {

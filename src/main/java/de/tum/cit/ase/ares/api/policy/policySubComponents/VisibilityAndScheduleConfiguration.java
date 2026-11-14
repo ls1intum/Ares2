@@ -1,0 +1,435 @@
+package de.tum.cit.ase.ares.api.policy.policySubComponents;
+
+import java.lang.annotation.AnnotationFormatError;
+import java.time.DateTimeException;
+import java.time.Duration;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import de.tum.cit.ase.ares.api.context.TestType;
+import de.tum.cit.ase.ares.api.internal.TestGuardUtils;
+import de.tum.cit.ase.ares.api.localization.Messages;
+
+/**
+ * When hidden tests run and which tests are hidden, policy-wide. Annotations
+ * still win.
+ *
+ * @since 2.3.0
+ * @author Luka Petrovic
+ * @param theDeadlineIs               the deadline, with a zone.
+ * @param theDeadlineIsExtendedBy     the extension, or null.
+ * @param theHiddenTestsAreRunBefore  the early-run date, or null.
+ * @param testsNotListedHereAreHidden whether unlisted tests are hidden; only a
+ *                                    test class with an Ares annotation is
+ *                                    under Ares, so a plain JUnit test stays
+ *                                    visible.
+ * @param theFollowingTestsAreHidden  hidden entries, or null.
+ * @param theFollowingTestsArePublic  public entries, or null.
+ */
+public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
+		@Nullable String theDeadlineIsExtendedBy, @Nullable String theHiddenTestsAreRunBefore,
+		@Nullable Boolean testsNotListedHereAreHidden, @Nullable List<String> theFollowingTestsAreHidden,
+		@Nullable List<String> theFollowingTestsArePublic) {
+
+	/** One Java identifier. */
+	private static final String IDENTIFIER = "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*";
+
+	/** A class name with dots, optionally followed by {@code #method}. */
+	private static final Pattern ENTRY = Pattern
+			.compile(IDENTIFIER + "(?:\\." + IDENTIFIER + ")*(?:#" + IDENTIFIER + ")?");
+
+	/**
+	 * Constructs a VisibilityAndScheduleConfiguration, rejecting a missing deadline
+	 * or visibility switch, a date without a time zone, a malformed value, a
+	 * malformed list entry and an entry in both lists.
+	 *
+	 * @throws IllegalArgumentException naming the field or entry
+	 */
+	public VisibilityAndScheduleConfiguration {
+		if (theDeadlineIs == null || theDeadlineIs.isBlank()) {
+			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.deadline.missing"));
+		}
+		ZonedDateTime deadline = parseDate("theDeadlineIs", theDeadlineIs);
+		if (theDeadlineIsExtendedBy != null) {
+			requireReachable(deadline, theDeadlineIsExtendedBy);
+		}
+		if (theHiddenTestsAreRunBefore != null) {
+			parseDate("theHiddenTestsAreRunBefore", theHiddenTestsAreRunBefore);
+		}
+		if (testsNotListedHereAreHidden == null) {
+			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.unlisted.missing"));
+		}
+		theFollowingTestsAreHidden = checkedEntries("theFollowingTestsAreHidden", theFollowingTestsAreHidden);
+		theFollowingTestsArePublic = checkedEntries("theFollowingTestsArePublic", theFollowingTestsArePublic);
+		Set<String> inBoth = new HashSet<>(theFollowingTestsAreHidden);
+		inBoth.retainAll(theFollowingTestsArePublic);
+		if (!inBoth.isEmpty()) {
+			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.entry.conflict",
+					inBoth.stream().sorted().findFirst().orElseThrow()));
+		}
+	}
+
+	/**
+	 * Fails unless the deadline plus its extension is a date after the deadline, so
+	 * a policy that passes validation cannot fail later while a test is scheduled.
+	 *
+	 * @param deadline  the parsed deadline.
+	 * @param extension the extension text.
+	 * @throws IllegalArgumentException naming {@code theDeadlineIsExtendedBy}
+	 */
+	private static void requireReachable(@Nonnull ZonedDateTime deadline, @Nonnull String extension) {
+		boolean later;
+		try {
+			later = deadline.plus(parseExtension(extension)).isAfter(deadline);
+		} catch (DateTimeException | ArithmeticException unreachable) {
+			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.value.invalid",
+					"theDeadlineIsExtendedBy", extension), unreachable);
+		}
+		if (!later) {
+			throw new IllegalArgumentException(Messages.localized("policy.behavior.hidden.tests.value.invalid",
+					"theDeadlineIsExtendedBy", extension));
+		}
+	}
+
+	/**
+	 * An entry list as an unmodifiable copy, empty for null, each entry checked.
+	 *
+	 * @param field   the list's field name.
+	 * @param entries the entries, or null.
+	 * @return the checked entries
+	 * @throws IllegalArgumentException naming the field and the malformed entry
+	 */
+	@Nonnull
+	private static List<String> checkedEntries(@Nonnull String field, @Nullable List<String> entries) {
+		List<String> given = entries == null ? List.of() : entries;
+		for (String entry : given) {
+			if (entry == null || !ENTRY.matcher(entry).matches()) {
+				throw new IllegalArgumentException(
+						Messages.localized("policy.behavior.hidden.tests.entry.invalid", field, entry));
+			}
+		}
+		return List.copyOf(given);
+	}
+
+	/**
+	 * The deadline plus its extension: hidden tests run once now is past it.
+	 *
+	 * @return the effective deadline
+	 */
+	@Nonnull
+	public ZonedDateTime effectiveDeadline() {
+		ZonedDateTime deadline = parseDate("theDeadlineIs", theDeadlineIs);
+		return extension().map(deadline::plus).orElse(deadline);
+	}
+
+	/**
+	 * How long the policy extends its own deadline.
+	 *
+	 * @return the extension, if configured
+	 */
+	@Nonnull
+	public Optional<Duration> extension() {
+		return Optional.ofNullable(theDeadlineIsExtendedBy).map(VisibilityAndScheduleConfiguration::parseExtension);
+	}
+
+	/**
+	 * The date before which hidden tests always run.
+	 *
+	 * @return the date, if configured
+	 */
+	@Nonnull
+	public Optional<ZonedDateTime> alwaysRunBefore() {
+		return Optional.ofNullable(theHiddenTestsAreRunBefore)
+				.map(value -> parseDate("theHiddenTestsAreRunBefore", value));
+	}
+
+	/**
+	 * The visibility the policy gives a test. The nearest entry wins: the test's
+	 * own class with its method, then each supertype with that method, nearest
+	 * first, then the test's class, then each enclosing class. A method entry never
+	 * reaches into a nested class. Without an entry,
+	 * {@code testsNotListedHereAreHidden} decides.
+	 *
+	 * @param testClass  the test's class.
+	 * @param methodName the test's method, or empty.
+	 * @return hidden or public, or empty when the policy leaves the test untyped
+	 */
+	@Nonnull
+	public Optional<TestType> visibilityOf(@Nonnull Class<?> testClass, @Nonnull Optional<String> methodName) {
+		Optional<TestType> byMethod = methodName.flatMap(method -> byMethodEntry(testClass, method));
+		if (byMethod.isPresent()) {
+			return byMethod;
+		}
+		for (Class<?> current = testClass; current != null; current = current.getEnclosingClass()) {
+			Optional<TestType> byClass = Optional.ofNullable(current.getCanonicalName()).flatMap(this::listed);
+			if (byClass.isPresent()) {
+				return byClass;
+			}
+		}
+		return Boolean.TRUE.equals(testsNotListedHereAreHidden) ? Optional.of(TestType.HIDDEN) : Optional.empty();
+	}
+
+	/**
+	 * The nearest method entry for a test: its own class first, then its
+	 * supertypes, superclasses before interfaces, so an entry naming the class that
+	 * declares an inherited test covers it too.
+	 *
+	 * @param testClass the test's class.
+	 * @param method    the test's method name.
+	 * @return hidden or public, or empty when no method entry names it
+	 */
+	@Nonnull
+	private Optional<TestType> byMethodEntry(@Nonnull Class<?> testClass, @Nonnull String method) {
+		Deque<Class<?>> pending = new ArrayDeque<>(List.of(testClass));
+		Set<Class<?>> seen = new HashSet<>();
+		while (!pending.isEmpty()) {
+			Class<?> current = pending.poll();
+			if (!seen.add(current)) {
+				continue;
+			}
+			Optional<TestType> listed = Optional.ofNullable(current.getCanonicalName())
+					.flatMap(name -> listed(name + "#" + method));
+			if (listed.isPresent()) {
+				return listed;
+			}
+			Optional.ofNullable(current.getSuperclass()).filter(type -> !seen.contains(type)).ifPresent(pending::add);
+			List.of(current.getInterfaces()).stream().filter(type -> !seen.contains(type)).forEach(pending::add);
+		}
+		return Optional.empty();
+	}
+
+	/**
+	 * Which list names an entry exactly.
+	 *
+	 * @param entry the entry.
+	 * @return hidden or public, or empty when neither list names it
+	 */
+	@Nonnull
+	private Optional<TestType> listed(@Nonnull String entry) {
+		if (theFollowingTestsAreHidden.contains(entry)) {
+			return Optional.of(TestType.HIDDEN);
+		}
+		return theFollowingTestsArePublic.contains(entry) ? Optional.of(TestType.PUBLIC) : Optional.empty();
+	}
+
+	/**
+	 * Parses a date in the {@code @Deadline} format, requiring a time zone.
+	 *
+	 * @param field the field the value comes from.
+	 * @param value the value.
+	 * @return the date
+	 * @throws IllegalArgumentException naming the field
+	 */
+	@Nonnull
+	private static ZonedDateTime parseDate(@Nonnull String field, @Nonnull String value) {
+		if (!hasZone(value)) {
+			throw new IllegalArgumentException(
+					Messages.localized("policy.behavior.hidden.tests.zone.missing", field, value));
+		}
+		try {
+			return TestGuardUtils.parseDeadline(value.strip());
+		} catch (AnnotationFormatError | DateTimeException malformed) {
+			throw new IllegalArgumentException(
+					Messages.localized("policy.behavior.hidden.tests.value.invalid", field, value), malformed);
+		}
+	}
+
+	/**
+	 * Parses a duration in the {@code @ExtendedDeadline} format.
+	 *
+	 * @param value the value.
+	 * @return the positive duration
+	 * @throws IllegalArgumentException naming the field
+	 */
+	@Nonnull
+	private static Duration parseExtension(@Nonnull String value) {
+		Duration extension = PolicyDuration.parse("theDeadlineIsExtendedBy", value);
+		if (extension.isZero()) {
+			throw new IllegalArgumentException(
+					Messages.localized("policy.behavior.hidden.tests.value.invalid", "theDeadlineIsExtendedBy", value));
+		}
+		return extension;
+	}
+
+	/**
+	 * Whether a date ends in a time zone, as its last space-separated part.
+	 *
+	 * @param value the date.
+	 * @return true when the last part is a zone or offset
+	 */
+	private static boolean hasZone(@Nonnull String value) {
+		String stripped = value.strip();
+		int lastSpace = stripped.lastIndexOf(' ');
+		if (lastSpace < 0) {
+			return false;
+		}
+		try {
+			ZoneId.of(stripped.substring(lastSpace + 1), ZoneId.SHORT_IDS);
+			return true;
+		} catch (DateTimeException notAZone) {
+			return false;
+		}
+	}
+
+	/**
+	 * Returns a builder for creating a VisibilityAndScheduleConfiguration instance.
+	 *
+	 * @since 2.3.0
+	 * @author Luka Petrovic
+	 * @return a new Builder instance.
+	 */
+	@Nonnull
+	public static Builder builder() {
+		return new Builder();
+	}
+
+	/**
+	 * Builder for VisibilityAndScheduleConfiguration.
+	 *
+	 * @since 2.3.0
+	 * @author Luka Petrovic
+	 */
+	public static final class Builder {
+
+		/** The deadline, or null when not set. */
+		@Nullable
+		private String theDeadlineIs;
+
+		/** The extension, or null when not set. */
+		@Nullable
+		private String theDeadlineIsExtendedBy;
+
+		/** The always-run-before date, or null when not set. */
+		@Nullable
+		private String theHiddenTestsAreRunBefore;
+
+		/** Whether unlisted tests are hidden, or null when not set. */
+		@Nullable
+		private Boolean testsNotListedHereAreHidden;
+
+		/** The hidden tests collected so far. */
+		@Nonnull
+		private final List<String> theFollowingTestsAreHidden = new ArrayList<>();
+
+		/** The public tests collected so far. */
+		@Nonnull
+		private final List<String> theFollowingTestsArePublic = new ArrayList<>();
+
+		/**
+		 * Creates an empty builder; use
+		 * {@link VisibilityAndScheduleConfiguration#builder()}.
+		 */
+		private Builder() {
+		}
+
+		/**
+		 * Sets the deadline.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param theDeadlineIs the deadline, with a time zone.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder theDeadlineIs(@Nullable String theDeadlineIs) {
+			this.theDeadlineIs = theDeadlineIs;
+			return this;
+		}
+
+		/**
+		 * Sets how long the deadline is extended.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param theDeadlineIsExtendedBy the extension, such as {@code 1d 12h}.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder theDeadlineIsExtendedBy(@Nullable String theDeadlineIsExtendedBy) {
+			this.theDeadlineIsExtendedBy = theDeadlineIsExtendedBy;
+			return this;
+		}
+
+		/**
+		 * Sets the date before which hidden tests always run.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param theHiddenTestsAreRunBefore the date, with a time zone.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder theHiddenTestsAreRunBefore(@Nullable String theHiddenTestsAreRunBefore) {
+			this.theHiddenTestsAreRunBefore = theHiddenTestsAreRunBefore;
+			return this;
+		}
+
+		/**
+		 * Sets whether a test no entry covers is hidden.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param testsNotListedHereAreHidden true to hide unlisted tests.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder testsNotListedHereAreHidden(@Nullable Boolean testsNotListedHereAreHidden) {
+			this.testsNotListedHereAreHidden = testsNotListedHereAreHidden;
+			return this;
+		}
+
+		/**
+		 * Adds public tests.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param entries entries such as {@code pkg.Class} or {@code pkg.Class#m}.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder publicTests(@Nonnull String... entries) {
+			theFollowingTestsArePublic.addAll(List.of(entries));
+			return this;
+		}
+
+		/**
+		 * Adds hidden tests.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param entries entries such as {@code pkg.Class} or {@code pkg.Class#m}.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder hiddenTests(@Nonnull String... entries) {
+			theFollowingTestsAreHidden.addAll(List.of(entries));
+			return this;
+		}
+
+		/**
+		 * Builds a new VisibilityAndScheduleConfiguration instance.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @return a new VisibilityAndScheduleConfiguration instance.
+		 * @throws IllegalArgumentException if a value is missing or malformed
+		 */
+		@Nonnull
+		public VisibilityAndScheduleConfiguration build() {
+			return new VisibilityAndScheduleConfiguration(theDeadlineIs, theDeadlineIsExtendedBy,
+					theHiddenTestsAreRunBefore, testsNotListedHereAreHidden, theFollowingTestsAreHidden,
+					theFollowingTestsArePublic);
+		}
+	}
+}

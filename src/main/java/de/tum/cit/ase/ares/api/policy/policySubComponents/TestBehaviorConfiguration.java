@@ -3,17 +3,28 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Wraps the behavioural test-lifecycle settings a policy configures, parallel
- * to {@link ResourceAccesses} on {@link SupervisedCode}. Carries no category
- * yet; a behavioural-feature policy field is added here as its own record
- * component, one per feature.
+ * to {@link ResourceAccesses} on {@link SupervisedCode}. Every category is
+ * optional, and omitting one means that feature was never configured.
  *
  * @since 2.2.0
  * @author Luka Petrovic
+ * @param regardingTheVisibilityAndScheduleOfTheTestCases hidden tests and their
+ *                                                        deadline; null when
+ *                                                        not configured.
  */
-public record TestBehaviorConfiguration() {
+public record TestBehaviorConfiguration(
+		@Nullable VisibilityAndScheduleConfiguration regardingTheVisibilityAndScheduleOfTheTestCases) {
+
+	/**
+	 * Preserves the public empty configuration constructor for existing callers.
+	 */
+	public TestBehaviorConfiguration() {
+		this(null);
+	}
 
 	/**
 	 * Fully-qualified name of the generated, compiled class that carries this
@@ -28,8 +39,8 @@ public record TestBehaviorConfiguration() {
 	/**
 	 * Literal field assignments every configured category contributes, one entry
 	 * per field, each already formatted by {@code JavaAOPTestCaseToolbox}'s
-	 * public-static-final assignment helpers. Empty here, since no category is
-	 * configured yet; a category adds its own contribution once it exists.
+	 * public-static-final assignment helpers. Empty here, since no category
+	 * contributes generated fields yet.
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
@@ -61,6 +72,25 @@ public record TestBehaviorConfiguration() {
 	 */
 	public static class Builder {
 
+		/** The visibility-and-schedule category, or null for none. */
+		@Nullable
+		private VisibilityAndScheduleConfiguration regardingTheVisibilityAndScheduleOfTheTestCases;
+
+		/**
+		 * Sets the visibility-and-schedule category.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param category the category; may be null.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder regardingTheVisibilityAndScheduleOfTheTestCases(
+				@Nullable VisibilityAndScheduleConfiguration category) {
+			this.regardingTheVisibilityAndScheduleOfTheTestCases = category;
+			return this;
+		}
+
 		/**
 		 * Builds a new TestBehaviorConfiguration instance.
 		 *
@@ -70,7 +100,7 @@ public record TestBehaviorConfiguration() {
 		 */
 		@Nonnull
 		public TestBehaviorConfiguration build() {
-			return new TestBehaviorConfiguration();
+			return new TestBehaviorConfiguration(regardingTheVisibilityAndScheduleOfTheTestCases);
 		}
 	}
 }

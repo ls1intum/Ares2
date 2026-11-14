@@ -29,6 +29,13 @@ class therefore loses all enforcement without an error, which is the failure mod
 exists to prevent.
 :::
 
+The security policy can list tests as hidden or public, under
+[`regardingTheVisibilityAndScheduleOfTheTestCases`](/contributor/subsystems/policy/security-policy-manual#774-visibility-and-schedule).
+Every test a list names still needs one of these annotations, on the method or on its class.
+That annotation always wins over the list, and an entry naming a test without one fails every
+test. A precompile exercise cannot use this category yet: generating one from a policy that
+sets it stops with an error.
+
 ## Combined annotations
 
 Besides using `@Public` and `@Hidden` together with JUnit's `@Test`, Ares 2 provides two
@@ -83,6 +90,9 @@ public class PenguinTest {
 
 Like most Ares 2 annotations, `@Deadline` can be placed on the test method too (and on
 nested classes). When several are present, the one closest to the test method wins.
+
+The security policy can set one deadline for the whole exercise instead, under
+[`regardingTheVisibilityAndScheduleOfTheTestCases`](/contributor/subsystems/policy/security-policy-manual#774-visibility-and-schedule). A `@Deadline` on a class or method still wins over it.
 
 That is enough to make the example work. Try varying the deadline: if the given
 `LocalDateTime` lies in the past, the test method is executed and, together with the student
