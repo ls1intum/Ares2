@@ -3,17 +3,30 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Wraps the behavioural test-lifecycle settings a policy configures, parallel
- * to {@link ResourceAccesses} on {@link SupervisedCode}. Carries no category
- * yet; a behavioural-feature policy field is added here as its own record
- * component, one per feature.
+ * to {@link ResourceAccesses} on {@link SupervisedCode}. Every category is
+ * optional, and omitting one means that feature was never configured.
  *
  * @since 2.2.0
  * @author Luka Petrovic
+ * @param regardingTheStrictTimeoutForTheTestCases the strict timeout; null when
+ *                                                 not configured.
+ * @param regardingTheOutputOfTheTestCases         the I/O manager and output
+ *                                                 settings; null when not
+ *                                                 configured.
  */
-public record TestBehaviorConfiguration() {
+public record TestBehaviorConfiguration(@Nullable StrictTimeoutConfiguration regardingTheStrictTimeoutForTheTestCases,
+		@Nullable OutputConfiguration regardingTheOutputOfTheTestCases) {
+
+	/**
+	 * Preserves the public empty configuration constructor for existing callers.
+	 */
+	public TestBehaviorConfiguration() {
+		this(null, null);
+	}
 
 	/**
 	 * Fully-qualified name of the generated, compiled class that carries this
@@ -28,8 +41,8 @@ public record TestBehaviorConfiguration() {
 	/**
 	 * Literal field assignments every configured category contributes, one entry
 	 * per field, each already formatted by {@code JavaAOPTestCaseToolbox}'s
-	 * public-static-final assignment helpers. Empty here, since no category is
-	 * configured yet; a category adds its own contribution once it exists.
+	 * public-static-final assignment helpers. Empty here, since no category
+	 * contributes generated fields yet.
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
@@ -61,6 +74,42 @@ public record TestBehaviorConfiguration() {
 	 */
 	public static class Builder {
 
+		/** The strict-timeout category, or null for none. */
+		@Nullable
+		private StrictTimeoutConfiguration regardingTheStrictTimeoutForTheTestCases;
+
+		/** The output category, or null for none. */
+		@Nullable
+		private OutputConfiguration regardingTheOutputOfTheTestCases;
+
+		/**
+		 * Sets the strict-timeout category.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param category the category; may be null.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder regardingTheStrictTimeoutForTheTestCases(@Nullable StrictTimeoutConfiguration category) {
+			this.regardingTheStrictTimeoutForTheTestCases = category;
+			return this;
+		}
+
+		/**
+		 * Sets the output category.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param category the category; may be null.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder regardingTheOutputOfTheTestCases(@Nullable OutputConfiguration category) {
+			this.regardingTheOutputOfTheTestCases = category;
+			return this;
+		}
+
 		/**
 		 * Builds a new TestBehaviorConfiguration instance.
 		 *
@@ -70,7 +119,8 @@ public record TestBehaviorConfiguration() {
 		 */
 		@Nonnull
 		public TestBehaviorConfiguration build() {
-			return new TestBehaviorConfiguration();
+			return new TestBehaviorConfiguration(regardingTheStrictTimeoutForTheTestCases,
+					regardingTheOutputOfTheTestCases);
 		}
 	}
 }

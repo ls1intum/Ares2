@@ -75,6 +75,19 @@ class WalaPathClassificationTest {
 				.isTrue();
 	}
 
+	/**
+	 * The package precompile writes its hooks into is reserved, so student output
+	 * cannot claim it, but it is not Ares infrastructure: a call from there is
+	 * still analysed like any other application frame.
+	 */
+	@Test
+	void generatedPackageIsReservedButNotInfra() {
+		assertThat(WalaPathClassification.RESERVED_PACKAGE_PREFIXES).contains("de.tum.cit.ase.ares.generated.");
+		assertThat(WalaPathClassification.INFRA_PREFIXES).doesNotContain("de.tum.cit.ase.ares.generated.");
+		assertThat(WalaPathClassification
+				.isInfraFrame(applicationNode("Lde/tum/cit/ase/ares/generated/GeneratedFailureReporting;"))).isFalse();
+	}
+
 	@Test
 	void applicationLoadedJavaxLibraryIsNotMistakenForPlatformCode() {
 		assertThat(WalaPathClassification.isInfraFrame(applicationNode("Ljavax/activation/FileDataSource;"))).isFalse();

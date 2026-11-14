@@ -1,8 +1,12 @@
 package de.tum.cit.ase.ares.api.policy.reader.yaml;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
@@ -12,7 +16,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.InputOutputManagerKind;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyDuration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorFieldNames;
 
 /** Validates the security-policy YAML tree before Jackson record binding. */
 final class SecurityPolicySchemaValidator {
@@ -34,7 +41,8 @@ final class SecurityPolicySchemaValidator {
 	private static final Set<String> THREAD_FIELDS = Set.of("createTheFollowingNumberOfThreads", "ofThisClass");
 	private static final Set<String> PACKAGE_FIELDS = Set.of("importTheFollowingPackage");
 	private static final Set<String> TIMEOUT_FIELDS = Set.of("timeout");
-	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of();
+	/** The path of the test-behaviour wrapper, for messages. */
+	private static final String TEST_BEHAVIOR_PATH = "$.regardingTheSupervisedCode." + TestBehaviorFieldNames.WRAPPER;
 
 	private SecurityPolicySchemaValidator() {
 		throw new UnsupportedOperationException("SecurityPolicySchemaValidator is a utility class");
@@ -106,10 +114,130 @@ final class SecurityPolicySchemaValidator {
 			requireIntegral(permission, "timeout", "timeout permission");
 		}
 
-		JsonNode testBehavior = supervisedCode.get("theFollowingTestBehaviorIsConfigured");
+		JsonNode testBehavior = supervisedCode.get(TestBehaviorFieldNames.WRAPPER);
 		if (testBehavior != null) {
-			requireObject(testBehavior, "$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured",
-					TEST_BEHAVIOR_FIELDS, Set.of());
+			validateTestBehavior(testBehavior);
+		}
+	}
+
+	/**
+	 * Checks the test-behaviour wrapper and each category in it: only known keys,
+	 * every required key present, no explicit null anywhere, and each value of the
+	 * right kind. Ranges and combinations are checked when the records are built.
+	 *
+	 * @param testBehavior the wrapper's node.
+	 * @throws MismatchedInputException naming the offending field.
+	 */
+	private static void validateTestBehavior(JsonNode testBehavior) throws MismatchedInputException {
+		Map<String, List<String>> fieldsByCategory = TestBehaviorFieldNames.FIELDS_BY_CATEGORY;
+		requireObject(testBehavior, TEST_BEHAVIOR_PATH, fieldsByCategory.keySet(), Set.of());
+		for (Map.Entry<String, List<String>> category : fieldsByCategory.entrySet()) {
+			JsonNode node = testBehavior.get(category.getKey());
+			if (node == null) {
+				continue;
+			}
+			String path = TEST_BEHAVIOR_PATH + "." + category.getKey();
+			requireObject(node, path, Set.copyOf(category.getValue()),
+					TestBehaviorFieldNames.REQUIRED_BY_CATEGORY.get(category.getKey()));
+			for (String field : category.getValue()) {
+				if (node.has(field) && node.get(field).isNull()) {
+					fail(path + "." + field + " must not be null");
+				}
+			}
+		}
+		validateStrictTimeout(testBehavior.get(TestBehaviorFieldNames.STRICT_TIMEOUT));
+		validateOutput(testBehavior.get(TestBehaviorFieldNames.OUTPUT));
+	}
+
+	/**
+	 * Checks the strict-timeout category's values: both are durations.
+	 *
+	 * @param node the category's node, or null when absent.
+	 * @throws MismatchedInputException naming the offending field.
+	 */
+	private static void validateStrictTimeout(JsonNode node) throws MismatchedInputException {
+		if (node == null) {
+			return;
+		}
+		String path = TEST_BEHAVIOR_PATH + "." + TestBehaviorFieldNames.STRICT_TIMEOUT;
+		requireDuration(node, TestBehaviorFieldNames.THE_TIMEOUT_IS, path);
+		if (node.has(TestBehaviorFieldNames.THE_TERMINATION_GRACE_IS)) {
+			requireDuration(node, TestBehaviorFieldNames.THE_TERMINATION_GRACE_IS, path);
+		}
+	}
+
+	/**
+	 * Checks the output category's values: a boolean, a whole number, a manager
+	 * name and a class name.
+	 *
+	 * @param node the category's node, or null when absent.
+	 * @throws MismatchedInputException naming the offending field.
+	 */
+	private static void validateOutput(JsonNode node) throws MismatchedInputException {
+		if (node == null) {
+			return;
+		}
+		String path = TEST_BEHAVIOR_PATH + "." + TestBehaviorFieldNames.OUTPUT;
+		requireOptionalBoolean(node, TestBehaviorFieldNames.THE_OUTPUT_IS_MIRRORED, path);
+		if (node.has(TestBehaviorFieldNames.THE_MAXIMUM_NUMBER_OF_OUTPUT_CHARACTERS_IS)) {
+			requireIntegral(node, TestBehaviorFieldNames.THE_MAXIMUM_NUMBER_OF_OUTPUT_CHARACTERS_IS, path);
+			if (!node.get(TestBehaviorFieldNames.THE_MAXIMUM_NUMBER_OF_OUTPUT_CHARACTERS_IS).canConvertToLong()) {
+				fail(path + "." + TestBehaviorFieldNames.THE_MAXIMUM_NUMBER_OF_OUTPUT_CHARACTERS_IS
+						+ " must fit in a long");
+			}
+		}
+		requireOptionalEnum(node, TestBehaviorFieldNames.THE_INPUT_AND_OUTPUT_ARE_MANAGED_BY, path,
+				InputOutputManagerKind.values());
+		if (node.has(TestBehaviorFieldNames.THE_CUSTOM_INPUT_AND_OUTPUT_MANAGER_IS)) {
+			requireText(node, TestBehaviorFieldNames.THE_CUSTOM_INPUT_AND_OUTPUT_MANAGER_IS, path);
+		}
+	}
+
+	/**
+	 * Requires a field to be a duration such as {@code "2s"}.
+	 *
+	 * @param parent the node holding the field.
+	 * @param field  the field's name.
+	 * @param path   the parent's path, for the message.
+	 * @throws MismatchedInputException when the field is not a duration.
+	 */
+	private static void requireDuration(JsonNode parent, String field, String path) throws MismatchedInputException {
+		requireText(parent, field, path);
+		if (PolicyDuration.tryParse(parent.get(field).textValue()).isEmpty()) {
+			fail(path + "." + field + " must be a duration such as \"2s\", \"500ms\" or \"1d 12h\"");
+		}
+	}
+
+	/**
+	 * Requires a field, when present, to be a boolean.
+	 *
+	 * @param parent the node holding the field.
+	 * @param field  the field's name.
+	 * @param path   the parent's path, for the message.
+	 * @throws MismatchedInputException when the field is not a boolean.
+	 */
+	private static void requireOptionalBoolean(JsonNode parent, String field, String path)
+			throws MismatchedInputException {
+		if (parent.has(field) && !parent.get(field).isBoolean()) {
+			fail(path + "." + field + " must be a boolean");
+		}
+	}
+
+	/**
+	 * Requires a field, when present, to name one of the given constants.
+	 *
+	 * @param parent    the node holding the field.
+	 * @param field     the field's name.
+	 * @param path      the parent's path, for the message.
+	 * @param constants the allowed constants.
+	 * @throws MismatchedInputException when the field names none of them.
+	 */
+	private static void requireOptionalEnum(JsonNode parent, String field, String path, Enum<?>[] constants)
+			throws MismatchedInputException {
+		JsonNode node = parent.get(field);
+		Set<String> names = new TreeSet<>(Arrays.stream(constants).map(Enum::name).toList());
+		if (node != null && (!node.isTextual() || !names.contains(node.textValue()))) {
+			fail(path + "." + field + " must be one of " + names);
 		}
 	}
 

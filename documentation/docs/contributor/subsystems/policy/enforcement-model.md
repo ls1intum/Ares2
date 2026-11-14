@@ -64,8 +64,8 @@ student classes beneath every prefix in
 deployment prerequisite, not an optional Ares runtime feature.
 
 Two versions are pinned, because the data and the contract that enforces it
-change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the
-prefix list. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side
+change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 4` is the
+prefix list. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side
 contract. Templates and continuous integration (CI) must pin both.
 
 Version 3 restored the Ares 1 breadth. Besides the platform, Ares' own
@@ -73,14 +73,21 @@ Version 3 restored the Ares 1 breadth. Besides the platform, Ares' own
 reserves the test harness (JUnit, opentest4j, AssertJ, Mockito) and Ares' other
 non-shaded dependencies. A submission therefore cannot shadow a class that runs
 or judges it. The authoritative list is `WalaPathClassification.RESERVED_PACKAGE_PREFIXES`.
+Version 4 adds `de.tum.cit.ase.ares.generated`, where Precompile writes its
+generated code.
 
 Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
 `process-classes` that scans `${project.build.outputDirectory}` and fails for
-every pattern in `ReservedPackagePrefixes.txt`. `process-classes` precedes
-`test`, so `mvn test` runs it.
+every pattern in `ReservedPackagePrefixes.txt`. It fails for every `META-INF/services/**` file as
+well, and for `junit-platform.properties` and `archunit.properties` at the
+root of the output, in any letter case. JUnit and ArchUnit read these files by
+themselves, and a case-insensitive file system finds them under any spelling.
+A student file there can plug code into the test run or reconfigure the static
+analysis. `process-classes` precedes `test`, so `mvn test` runs it.
 
-Canonical Gradle configuration registers a `verifyAresReservedPackagesV2` task
-over `sourceSets.main.output.classesDirs` with the same paths, and **both**
+Canonical Gradle configuration registers a `verifyAresReservedPackagesV3` task
+over the whole `sourceSets.main.output`, classes and resources alike, with the
+same paths and files, and **both**
 makes `check` depend on it and gates every `Test` task with
 `tasks.withType(Test).configureEach`. Both hooks are required. Boundary
 version 1 hung the validation off `check` alone, and Gradle's Java plugin
@@ -111,7 +118,7 @@ The build descriptor and the command used to invoke it are **trusted instructor
 configuration**, on the same footing as `Policy.withinPath` above. "No bypass
 flag is supported" means the shipped snippets offer no opt-out of their own; it
 does not mean the check survives an adversary who controls the build. Whoever
-can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV2`
+can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV3`
 or `-Dmaven.antrun.skip`, can remove the boundary outright. The threat this
 boundary addresses is student *code* that declares a reserved package, not
 student control over the build. Exercise templates and their CI must therefore
