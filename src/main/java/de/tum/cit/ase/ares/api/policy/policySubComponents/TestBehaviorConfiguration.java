@@ -89,18 +89,6 @@ public record TestBehaviorConfiguration(@Nullable StrictTimeoutConfiguration reg
 	 */
 	public static final String VISIBILITY_RUN_BEFORE_FIELD_NAME = "REGARDING_THE_VISIBILITY_AND_SCHEDULE_THE_HIDDEN_TESTS_ARE_RUN_BEFORE";
 
-	/**
-	 * Name of the generated field holding the hidden tests, one entry per line. A
-	 * single string, because only a constant is copied into the generated hook.
-	 */
-	public static final String VISIBILITY_HIDDEN_LIST_FIELD_NAME = "REGARDING_THE_VISIBILITY_AND_SCHEDULE_THE_FOLLOWING_TESTS_ARE_HIDDEN";
-
-	/**
-	 * Name of the generated field holding the public tests, one entry per line, a
-	 * single string for the same reason as the hidden tests.
-	 */
-	public static final String VISIBILITY_PUBLIC_LIST_FIELD_NAME = "REGARDING_THE_VISIBILITY_AND_SCHEDULE_THE_FOLLOWING_TESTS_ARE_PUBLIC";
-
 	/** Name of the generated field saying whether unlisted tests are hidden. */
 	public static final String VISIBILITY_UNLISTED_HIDDEN_FIELD_NAME = "REGARDING_THE_VISIBILITY_AND_SCHEDULE_TESTS_NOT_LISTED_HERE_ARE_HIDDEN";
 
@@ -148,8 +136,6 @@ public record TestBehaviorConfiguration(@Nullable StrictTimeoutConfiguration reg
 					visibility.effectiveDeadline().toInstant().toEpochMilli()));
 			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalLongAssignment(VISIBILITY_RUN_BEFORE_FIELD_NAME,
 					visibility.alwaysRunBefore().map(date -> date.toInstant().toEpochMilli()).orElse(Long.MIN_VALUE)));
-			assignments.add(listAssignment(VISIBILITY_HIDDEN_LIST_FIELD_NAME, visibility.theFollowingTestsAreHidden()));
-			assignments.add(listAssignment(VISIBILITY_PUBLIC_LIST_FIELD_NAME, visibility.theFollowingTestsArePublic()));
 			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalBooleanAssignment(
 					VISIBILITY_UNLISTED_HIDDEN_FIELD_NAME, visibility.testsNotListedHereAreHidden()));
 		}
@@ -164,69 +150,21 @@ public record TestBehaviorConfiguration(@Nullable StrictTimeoutConfiguration reg
 	private static final int LITERAL_CHARACTER_LIMIT = 20_000;
 
 	/**
-	 * The suffix numbering the constant parts of a list too long for one literal.
-	 */
-	private static final String PART_SUFFIX = "_PART_";
-
-	/**
-	 * Writes a list of test entries as one line-separated text field. A list too
-	 * long for one literal is also written as numbered constant parts, each within
-	 * the limit, so the generated class still compiles and a generated hook can
-	 * join the parts it inlines.
+	 * The Java expression the hidden-test hook keeps a list of test entries in, one
+	 * entry per line. A list too long for one literal is joined from several, each
+	 * within the limit. The list lives only inside that hook, never in a public
+	 * field student code could read.
 	 *
-	 * @param fieldName the field to assign.
-	 * @param entries   the entries, in order.
-	 * @return the assignments, each terminated with a newline
-	 */
-	@Nonnull
-	private static String listAssignment(@Nonnull String fieldName, @Nonnull List<String> entries) {
-		List<String> chunks = chunks(entries);
-		if (chunks.size() == 1) {
-			return JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment(fieldName, chunks.get(0));
-		}
-		StringBuilder assignments = new StringBuilder();
-		for (int index = 0; index < chunks.size(); index++) {
-			assignments.append(JavaAOPTestCaseToolbox
-					.getPublicStaticFinalStringAssignment(fieldName + PART_SUFFIX + index, chunks.get(index)));
-		}
-		return assignments.append("public static final String ").append(fieldName).append(" = ")
-				.append(joinExpression(fieldName, chunks.size(), "")).append(';').append(System.lineSeparator())
-				.toString();
-	}
-
-	/**
-	 * The Java expression a generated hook reads a list field with. A short list is
-	 * the constant itself; a long one joins its constant parts, which the compiler
-	 * inlines into the hook, so replacing the settings class at run time changes
-	 * nothing.
-	 *
-	 * @param settingsClass the settings class's name.
-	 * @param fieldName     the list field.
-	 * @param entries       the entries the field holds.
+	 * @param entries the entries, in order.
 	 * @return the expression
 	 */
 	@Nonnull
-	public static String listExpression(@Nonnull String settingsClass, @Nonnull String fieldName,
-			@Nonnull List<String> entries) {
-		int parts = chunks(entries).size();
-		return parts == 1 ? settingsClass + "." + fieldName : joinExpression(fieldName, parts, settingsClass + ".");
-	}
-
-	/**
-	 * Joins numbered parts of a list field with line breaks.
-	 *
-	 * @param fieldName the list field.
-	 * @param parts     how many parts it has.
-	 * @param qualifier what precedes each part's name, possibly empty.
-	 * @return the expression
-	 */
-	@Nonnull
-	private static String joinExpression(@Nonnull String fieldName, int parts, @Nonnull String qualifier) {
-		List<String> names = new ArrayList<>();
-		for (int index = 0; index < parts; index++) {
-			names.add(qualifier + fieldName + PART_SUFFIX + index);
+	public static String listLiteral(@Nonnull List<String> entries) {
+		List<String> literals = new ArrayList<>();
+		for (String chunk : chunks(entries)) {
+			literals.add(JavaAOPTestCaseToolbox.getStringLiteral(chunk));
 		}
-		return "String.join(\"\\n\", " + String.join(", ", names) + ")";
+		return literals.size() == 1 ? literals.get(0) : "String.join(\"\\n\", " + String.join(", ", literals) + ")";
 	}
 
 	/**

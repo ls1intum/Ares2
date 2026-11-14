@@ -70,12 +70,8 @@ final class HiddenTestsWriter {
 		List<Path> written = List.of(
 				hookFiles.writeSource(testFolderPath, HiddenTestsSources.JUPITER_HOOK,
 						HiddenTestsSources.jupiterHook(messagesClass, packageName,
-								TestBehaviorConfiguration.listExpression(TestBehaviorConfiguration.GENERATED_CLASS_NAME,
-										TestBehaviorConfiguration.VISIBILITY_HIDDEN_LIST_FIELD_NAME,
-										hiddenTests.theFollowingTestsAreHidden()),
-								TestBehaviorConfiguration.listExpression(TestBehaviorConfiguration.GENERATED_CLASS_NAME,
-										TestBehaviorConfiguration.VISIBILITY_PUBLIC_LIST_FIELD_NAME,
-										hiddenTests.theFollowingTestsArePublic()))),
+								TestBehaviorConfiguration.listLiteral(hiddenTests.theFollowingTestsAreHidden()),
+								TestBehaviorConfiguration.listLiteral(hiddenTests.theFollowingTestsArePublic()))),
 				hookFiles.writeSource(testFolderPath, HiddenTestsSources.JUPITER_SENTINEL,
 						HiddenTestsSources.jupiterSentinel(messagesClass)));
 		return new GeneratedHookFiles.Contribution(written, List.of(HiddenTestsSources.JUPITER_HOOK));

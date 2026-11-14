@@ -881,6 +881,101 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
+	 * With the visibility hook generated but its classes missing, the output hook
+	 * treats a test as hidden: unfinished output fails it without any text.
+	 *
+	 * @param withoutVisibility where the output without the visibility hook goes.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aMissingVisibilityHookHidesOutput(@TempDir Path withoutVisibility) throws Exception {
+		Captured captured = captured(() -> runWithout(withoutVisibility, "com.example.fixtures.HiddenUnflushedFixture",
+				GENERATED + "GeneratedOutputMirroring"));
+		assertThat(captured.results().testEvents().failed().count()).isEqualTo(1);
+		assertThat(messages(captured.results())).containsExactly("");
+		assertThat(captured.output()).doesNotContain("SECRET_UNFLUSHED");
+	}
+
+	/**
+	 * With the visibility hook generated but its classes missing, the timeout hook
+	 * treats a test as hidden and its timeout carries no text.
+	 *
+	 * @param withoutVisibility where the output without the visibility hook goes.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aMissingVisibilityHookHidesATimeout(@TempDir Path withoutVisibility) throws Exception {
+		EngineExecutionResults results = runWithout(withoutVisibility, "com.example.fixtures.HiddenTimeoutFixture",
+				GENERATED + "GeneratedStrictTimeout");
+		assertThat(results.testEvents().failed().count()).isEqualTo(1);
+		assertThat(messages(results)).containsExactly("");
+	}
+
+	/**
+	 * No public field of the generated settings or visibility classes holds a test
+	 * name, so student code cannot read which tests are hidden.
+	 *
+	 * @throws Exception if the classes cannot be loaded
+	 */
+	@Test
+	void noPublicFieldNamesAHiddenTest() throws Exception {
+		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(compiled)),
+				Thread.currentThread().getContextClassLoader())) {
+			for (String name : List.of("GeneratedTestBehaviorSettings", "GeneratedHiddenTests")) {
+				for (java.lang.reflect.Field field : Class.forName(GENERATED + name, true, loader).getFields()) {
+					Object value = java.lang.reflect.Modifier.isStatic(field.getModifiers()) ? field.get(null) : null;
+					assertThat(String.valueOf(value)).as(name + "." + field.getName())
+							.doesNotContain("com.example.fixtures.HiddenFixture");
+				}
+			}
+		}
+	}
+
+	/**
+	 * Runs one class with only one hook registered, on a copy of the generated
+	 * output and its registration without the visibility hook.
+	 *
+	 * @param target    where the copy goes.
+	 * @param className the class to run.
+	 * @param hook      the one hook to register.
+	 * @return the results
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static EngineExecutionResults runWithout(Path target, String className, String hook) throws Exception {
+		Path classes = target.resolve("classes");
+		Path registration = target.resolve("resources");
+		copyWithoutVisibility(compiled, classes);
+		copyWithoutVisibility(resources, registration);
+		Path services = registration.resolve("META-INF/services/org.junit.jupiter.api.extension.Extension");
+		Files.write(services, Files.readAllLines(services).stream()
+				.filter(line -> !line.startsWith(GENERATED) || line.equals(hook)).toList());
+		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(classes, registration)),
+				Thread.currentThread().getContextClassLoader())) {
+			return GeneratedCodeRuns.runIn(loader, className, Locale.ENGLISH,
+					Map.of(GeneratedCodeRuns.AUTODETECTION, "true", GeneratedCodeRuns.AUTODETECTION_INCLUDE, hook));
+		}
+	}
+
+	/**
+	 * Copies a folder, leaving out every file of the visibility hook.
+	 *
+	 * @param from the folder to copy.
+	 * @param to   where the copy goes.
+	 * @throws IOException if copying fails
+	 */
+	private static void copyWithoutVisibility(Path from, Path to) throws IOException {
+		try (java.util.stream.Stream<Path> files = Files.walk(from)) {
+			for (Path file : files.filter(Files::isRegularFile).toList()) {
+				if (!file.getFileName().toString().startsWith("GeneratedHiddenTests")) {
+					Path copy = to.resolve(from.relativize(file).toString());
+					Files.createDirectories(copy.getParent());
+					Files.copy(file, copy);
+				}
+			}
+		}
+	}
+
+	/**
 	 * Runs one fixture with one hook and the lookalike visibility hook first on the
 	 * class path, and checks that the run finished with one failure.
 	 *

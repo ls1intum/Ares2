@@ -55,7 +55,8 @@ final class OutputMirroringWriter {
 		String messagesClass = packageName + ".ares.api.localization.Messages";
 		List<Path> written = List.of(
 				hookFiles.writeSource(testFolderPath, OutputMirroringSources.JUPITER_HOOK,
-						OutputMirroringSources.jupiterHook(messagesClass)),
+						OutputMirroringSources.jupiterHook(messagesClass,
+								HiddenTestsWriter.contributes(configuration))),
 				hookFiles.writeSource(testFolderPath, OutputMirroringSources.JUPITER_SENTINEL,
 						OutputMirroringSources.jupiterSentinel(messagesClass)));
 		return new GeneratedHookFiles.Contribution(written, List.of(OutputMirroringSources.JUPITER_HOOK));

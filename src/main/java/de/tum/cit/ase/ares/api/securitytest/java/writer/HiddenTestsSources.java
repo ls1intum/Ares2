@@ -813,8 +813,8 @@ final class HiddenTestsSources {
 	 * @param messagesClass   fully qualified name of the copied {@code Messages}.
 	 * @param exercisePackage the exercise package Ares writes its generated
 	 *                        security tests below.
-	 * @param hidden          the expression that reads the hidden-test list.
-	 * @param shown           the expression that reads the public-test list.
+	 * @param hidden          the expression holding the hidden-test list.
+	 * @param shown           the expression holding the public-test list.
 	 * @return the source text
 	 */
 	@Nonnull

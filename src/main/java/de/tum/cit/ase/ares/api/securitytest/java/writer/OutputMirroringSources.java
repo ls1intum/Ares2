@@ -36,6 +36,11 @@ final class OutputMirroringSources {
 	/** Placeholder for the limit field of the settings class. */
 	private static final String LIMIT = "@LIMIT@";
 
+	/**
+	 * Placeholder for whether the hidden-test hook was generated beside this one.
+	 */
+	private static final String HIDDEN_TESTS_GENERATED = "@HIDDEN_TESTS_GENERATED@";
+
 	/** Source text of the JUnit extension, before the placeholders are filled. */
 	private static final String JUPITER_HOOK_SOURCE = """
 			package de.tum.cit.ase.ares.generated;
@@ -212,7 +217,10 @@ final class OutputMirroringSources {
 					return new BoundedStream(mirror, @SETTINGS@.@LIMIT@);
 				}
 
-				/** Reads generated visibility when that hook is present in the exercise. */
+				/**
+				 * Reads generated visibility. When the hidden-test hook was generated but its
+				 * class is missing, the test counts as hidden, so a removed helper hides output.
+				 */
 				private static boolean hiddenByGeneratedPolicy(ExtensionContext context) {
 					try {
 						Class<?> visibility = Class.forName("de.tum.cit.ase.ares.generated.GeneratedHiddenTests", false,
@@ -222,7 +230,7 @@ final class OutputMirroringSources {
 						}
 						return (Boolean) visibility.getMethod("isHiddenContext", ExtensionContext.class).invoke(null, context);
 					} catch (ClassNotFoundException absent) {
-						return false;
+						return @HIDDEN_TESTS_GENERATED@;
 					} catch (ReflectiveOperationException | LinkageError | ClassCastException invalid) {
 						return true;
 					}
@@ -430,12 +438,15 @@ final class OutputMirroringSources {
 	/**
 	 * The JUnit extension's source.
 	 *
-	 * @param messagesClass fully qualified name of the copied {@code Messages}.
+	 * @param messagesClass        fully qualified name of the copied
+	 *                             {@code Messages}.
+	 * @param hiddenTestsGenerated whether the hidden-test hook is generated too.
 	 * @return the source text
 	 */
 	@Nonnull
-	static String jupiterHook(@Nonnull String messagesClass) {
-		return fill(JUPITER_HOOK_SOURCE, messagesClass);
+	static String jupiterHook(@Nonnull String messagesClass, boolean hiddenTestsGenerated) {
+		return fill(JUPITER_HOOK_SOURCE, messagesClass).replace(HIDDEN_TESTS_GENERATED,
+				Boolean.toString(hiddenTestsGenerated));
 	}
 
 	/**
