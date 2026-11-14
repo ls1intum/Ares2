@@ -207,6 +207,14 @@ class GeneratedAllHooksTest {
 		fixture(fixtures, "MemberOnlyViolationFixture",
 				"@Test void reads() { throw new org.opentest4j.MultipleFailuresError(\"group\", java.util.List.of("
 						+ VIOLATION_PACKAGE + ".ViolationSource.blocked())); }");
+		fixture(fixtures, "ClassNotFoundViolationFixture",
+				"@Test void reads() throws Exception { SecurityException violation = " + VIOLATION_PACKAGE
+						+ ".ViolationSource.blocked(); throw new ClassNotFoundException(violation.toString(), violation); }");
+		fixture(fixtures, "DeepViolationFixture", "@Test void reads() { SecurityException violation = "
+				+ VIOLATION_PACKAGE + ".ViolationSource.blocked();"
+				+ " RuntimeException outer = new RuntimeException(violation.toString());"
+				+ " for (int i = 0; i < 255; i++) { outer.addSuppressed(new IllegalStateException(\"inner \" + i)); }"
+				+ " outer.addSuppressed(new RuntimeException(violation)); throw outer; }");
 		fixture(fixtures, "SuppressedViolationFixture",
 				"@Test void reads() { IllegalStateException outer = new IllegalStateException(\"outer\");"
 						+ " outer.addSuppressed(" + VIOLATION_PACKAGE + ".ViolationSource.blocked()); throw outer; }");
@@ -639,8 +647,9 @@ class GeneratedAllHooksTest {
 
 	/**
 	 * A blocked action inside an {@code assertAll} group, inside a group built
-	 * directly, or attached as a suppressed failure, still follows the feedback
-	 * level, so its path never reaches the report.
+	 * directly, attached as a suppressed failure, or the cause of a failure whose
+	 * class fixes its cause when built, still follows the feedback level, so its
+	 * path never reaches the report.
 	 *
 	 * @param reversed whether the hooks are registered the other way round.
 	 * @param fixture  the fixture carrying the blocked action
@@ -648,11 +657,27 @@ class GeneratedAllHooksTest {
 	 */
 	@ParameterizedTest
 	@CsvSource({ "false, GroupedViolationFixture", "true, GroupedViolationFixture", "false, SuppressedViolationFixture",
-			"true, SuppressedViolationFixture", "false, MemberOnlyViolationFixture",
-			"true, MemberOnlyViolationFixture" })
+			"true, SuppressedViolationFixture", "false, MemberOnlyViolationFixture", "true, MemberOnlyViolationFixture",
+			"false, ClassNotFoundViolationFixture", "true, ClassNotFoundViolationFixture" })
 	void anAttachedBlockedActionFollowsTheFeedbackLevel(boolean reversed, String fixture) throws Exception {
 		assertThat(messages(run("com.example.fixtures." + fixture, reversed))).containsExactly(
 				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
+	}
+
+	/**
+	 * A failure too large to search to the end shows no text of its own, in either
+	 * registration order, since the blocked action it holds may lie past the
+	 * budget.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aFailureTooLargeToSearchShowsNoText(boolean reversed) throws Exception {
+		List<String> messages = messages(run("com.example.fixtures.DeepViolationFixture", reversed));
+		assertThat(messages).hasSize(1);
+		assertThat(messages.get(0)).doesNotContain(BLOCKED_PATH);
 	}
 
 	/**

@@ -480,6 +480,12 @@ final class FailureReportingSources {
 						return freshMarker(throwable);
 					}
 					Throwable violation = violationIn(throwable);
+					if (violation == UNSEARCHED) {
+						if (!"FULL".equals(@SETTINGS@.@LEVEL@)) {
+							return unsearchedReplacement(throwable);
+						}
+						violation = null;
+					}
 					if (violation != null && !"FULL".equals(@SETTINGS@.@LEVEL@)) {
 						return renderedViolation(violation);
 					}
@@ -496,6 +502,18 @@ final class FailureReportingSources {
 						return new AssertionError(@MESSAGES@.localized("generated.failure.reporting.timeout"));
 					}
 					return new AssertionError(@SETTINGS@.@MESSAGE@);
+				}
+
+				/**
+				 * The report below FULL for a failure too large to search to the end: it may hide a
+				 * blocked action, so it shows no text of its own. An abort stays an abort.
+				 */
+				private static Throwable unsearchedReplacement(Throwable throwable) {
+					if (throwable instanceof TestAbortedException) {
+						return new TestAbortedException();
+					}
+					return @SETTINGS@.@ENABLED@ ? new AssertionError(@SETTINGS@.@MESSAGE@)
+							: new DetachedFailure(throwable.getClass().getName(), new StackTraceElement[0]);
 				}
 
 				/**
@@ -551,7 +569,7 @@ final class FailureReportingSources {
 				/**
 				 * Finds a blocked action of the copied Ares checks anywhere in a failure: its
 				 * causes, suppressed failures and the members of an {@code assertAll} group,
-				 * visiting at most the traversal budget.
+				 * visiting at most the traversal budget; {@link #UNSEARCHED} when the budget ran out first.
 				 */
 				private static Throwable violationIn(Throwable throwable) {
 					java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
@@ -567,8 +585,11 @@ final class FailureReportingSources {
 						}
 						queueAttached(current, pending);
 					}
-					return null;
+					return pending.isEmpty() ? null : UNSEARCHED;
 				}
+
+				/** What the search returns when its budget ran out before it saw every attached failure. */
+				private static final Throwable UNSEARCHED = new Throwable();
 
 				/** Queues a failure's cause, suppressed failures and group members for the search. */
 				private static void queueAttached(Throwable failure, java.util.ArrayDeque<Throwable> pending) {
@@ -706,7 +727,24 @@ final class FailureReportingSources {
 				 * @return the copy, or null for none
 				 */
 				static Throwable copyOf(Throwable failure) {
-					return failure == null ? null : copyOf(failure, new java.util.IdentityHashMap<>());
+					if (failure == null) {
+						return null;
+					}
+					java.util.Map<Throwable, Throwable> copies = new java.util.IdentityHashMap<>();
+					Throwable copy = copyOf(failure, copies);
+					return copies.containsKey(TRUNCATED) ? truncated(failure, copy) : copy;
+				}
+
+				/** Marks a copy that stopped at the budget with failures left, since one of them may be a blocked action. */
+				private static final Throwable TRUNCATED = new Throwable();
+
+				/**
+				 * A failure too large to copy whole, by its type alone, so a blocked action past the
+				 * budget cannot leave its text in the copied top. An abort stays an abort.
+				 */
+				private static Throwable truncated(Throwable failure, Throwable copy) {
+					return detached(failure, failure.getClass().getName(),
+							copy == null ? new StackTraceElement[0] : copy.getStackTrace());
 				}
 
 				/** A copy of the failure's cause, or null for none or once the budget is spent. */
@@ -731,6 +769,7 @@ final class FailureReportingSources {
 						return known;
 					}
 					if (copies.size() >= TRAVERSAL_LIMIT) {
+						copies.put(TRUNCATED, TRUNCATED);
 						return null;
 					}
 					boolean marker = fromGeneratedHooks(failure.getClass());
@@ -773,8 +812,8 @@ final class FailureReportingSources {
 							if (causeCopy != null) {
 								copy.initCause(causeCopy);
 							}
-						} catch (IllegalStateException | IllegalArgumentException alreadySet) {
-							copies.putIfAbsent(cause, copy);
+						} catch (IllegalStateException | IllegalArgumentException causeFixedWhenBuilt) {
+							keepAsSuppressed(copy, causeCopy);
 						}
 					}
 					java.util.List<Throwable> attached = new java.util.ArrayList<>(java.util.Arrays.asList(failure.getSuppressed()));
@@ -784,6 +823,7 @@ final class FailureReportingSources {
 					}
 					for (Throwable suppressed : attached) {
 						if (copies.size() >= TRAVERSAL_LIMIT) {
+							copies.put(TRUNCATED, TRUNCATED);
 							return;
 						}
 						Throwable suppressedCopy = suppressed == null ? null : copyOf(suppressed, copies);
@@ -872,8 +912,8 @@ final class FailureReportingSources {
 				/**
 				 * The same failure built anew by the Java runtime or opentest4j from its text
 				 * alone, keeping an opentest4j failure's expected and actual values as text; null
-				 * when its class shapes its own text or offers no such constructor. One taking a
-				 * cause too is built around the copied cause, which it fixes for good.
+				 * when its class shapes its own text or offers no such constructor. A failure with a
+				 * cause is built around the copied cause where its class takes one, since it fixes it for good.
 				 */
 				private static Throwable rebuilt(Throwable failure, String message, java.util.function.Supplier<Throwable> cause) {
 					Class<?> type = failure.getClass();
@@ -890,10 +930,24 @@ final class FailureReportingSources {
 					if (!trustedClass(type) || fromGeneratedHooks(type) || !textShapedByThrowable(type)) {
 						return null;
 					}
+					Throwable builtWithCause = causeOf(failure) == null ? null : withCause(type, message, cause.get());
+					if (builtWithCause != null) {
+						return builtWithCause;
+					}
 					try {
 						return (Throwable) type.getConstructor(String.class).newInstance(message);
 					} catch (ReflectiveOperationException | ClassCastException noTextConstructor) {
 						return withCause(type, message, cause.get());
+					}
+				}
+
+				/**
+				 * Keeps a cause copy as a suppressed failure of a copy whose class fixed its cause
+				 * when built, so the blocked action it may hold is still found and reported.
+				 */
+				private static void keepAsSuppressed(Throwable copy, Throwable causeCopy) {
+					if (causeCopy != copy && !attachedTo(copy, causeCopy)) {
+						copy.addSuppressed(causeCopy);
 					}
 				}
 
