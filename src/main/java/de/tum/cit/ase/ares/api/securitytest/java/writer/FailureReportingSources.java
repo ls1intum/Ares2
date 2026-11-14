@@ -561,11 +561,31 @@ final class FailureReportingSources {
 
 				/** Whether a failure is itself a blocked action of the copied Ares checks. */
 				private static boolean isViolation(Throwable failure) {
-					String type = failure.getClass().getName();
-					return type.equals("@PACKAGE@.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation")
-							|| type.equals("@PACKAGE@.ares.api.aop.java.instrumentation.advice.AresSecurityViolation")
-							|| type.equals("de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$DetachedViolation")
-									&& fromGeneratedHooks(failure.getClass());
+					Class<?> type = failure.getClass();
+					return copiedViolationClass(type)
+							|| type.getName().equals("de.tum.cit.ase.ares.generated.GeneratedStrictTimeout$DetachedViolation")
+									&& fromGeneratedHooks(type);
+				}
+
+				/** The two blocked-action classes of the copied Ares checks. */
+				private static final java.util.Set<String> VIOLATION_TYPES = java.util.Set.of(
+						"@PACKAGE@.ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation",
+						"@PACKAGE@.ares.api.aop.java.instrumentation.advice.AresSecurityViolation");
+
+				/**
+				 * Whether a class is a blocked-action class of the copied Ares checks: named as
+				 * one, final, and exactly the class this hook's class loader finds under that
+				 * name, so a same-named class from another loader never counts.
+				 */
+				private static boolean copiedViolationClass(Class<?> type) {
+					if (!VIOLATION_TYPES.contains(type.getName()) || !java.lang.reflect.Modifier.isFinal(type.getModifiers())) {
+						return false;
+					}
+					try {
+						return Class.forName(type.getName(), false, GeneratedFailureReporting.class.getClassLoader()) == type;
+					} catch (ClassNotFoundException | RuntimeException | LinkageError unresolvable) {
+						return false;
+					}
 				}
 
 				/**
