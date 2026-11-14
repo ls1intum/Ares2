@@ -9,6 +9,7 @@
 		<!-- 0. General Project Settings -->
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
+		<maven.compiler.release>17</maven.compiler.release>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<!-- 1. Testing: 1.1 JUnit -->
@@ -490,14 +491,15 @@
 				<dependencies>
 					<dependency>
 						<groupId>org.aspectj</groupId>
-						<!-- Kept in sync with the aspectjrt runtime via the shared property;
-							see the aspectj-version note for why this is pinned to 1.9.24. -->
+						<!-- Uses the shared aspectj-version property, so ajc and the aspectjrt
+							runtime always have the same version. -->
 						<artifactId>aspectjtools</artifactId>
 						<version>${aspectj-version}</version>
 					</dependency>
 				</dependencies>
 				<configuration>
 					<forceAjcCompile>true</forceAjcCompile>
+					<release>${maven.compiler.release}</release>
 					<complianceLevel>17</complianceLevel>
 					<source>17</source>
 					<target>17</target>
