@@ -6,6 +6,8 @@ description: "Which Ares release accepts which policy-format version and which t
 
 :::tip[Simple Story]
 The checklist changes from one release to the next. Before the board of education hands a checklist to a school, it checks that the school's edition of the rules knows every line on it.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What the table answers
