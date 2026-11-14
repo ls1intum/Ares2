@@ -153,11 +153,16 @@ example_project/
 │   │           └── Penguin.java
 │   ├── resources/
 │   ├── test/
-│   │   └── java/
-│   │       └── org/example/
-│   │           ├── PenguinTest.java
-│   │           ├── ares/api/
-│   │           └── META-INF/
+│   │   ├── java/
+│   │   │   ├── de/tum/cit/ase/ares/generated/
+│   │   │   └── org/example/
+│   │   │       ├── PenguinTest.java
+│   │   │       ├── ares/api/
+│   │   │       └── META-INF/
+│   │   └── resources/
+│   │       ├── META-INF/services/
+│   │       ├── junit-platform.properties
+│   │       └── org/example/ares/api/localization/
 ├── build.gradle
 ├── pom.xml
 ├── secret.txt
@@ -166,7 +171,21 @@ example_project/
 ```
 
 The generated directory contains Ares 2 specific helper code, instrumentation logic and
-metadata required during test execution.
+metadata required during test execution, and the message bundles below
+`src/test/resources/org/example`. When the policy sets test behaviour under
+`theFollowingTestBehaviorIsConfigured`, the generator writes `de/tum/cit/ase/ares/generated`:
+the settings, one JUnit extension per setting, and a sentinel test for each. The extension for
+`regardingTheStrictTimeoutForTheTestCases` times every test. The one for
+`regardingTheOutputOfTheTestCases` limits and, if asked, echoes each test's console output. With `theInputAndOutputAreManagedBy: NONE` the generator writes none. `CUSTOM` stops the generator, because a
+precompile exercise has no Ares dependency to run a custom manager with. The one for
+`regardingTheFailureFeedbackForTheTestCases` replaces failure text and shortens blocked actions, and the generator writes it only when privileged-only reporting is on or the feedback level is not `FULL`. The one
+for `regardingTheVisibilityAndScheduleOfTheTestCases` holds back the tests the policy makes hidden
+until the deadline and hides why they failed. JUnit loads the extensions through the file under
+`META-INF/services`, and `junit-platform.properties` switches JUnit's automatic loading on for
+these hooks only. An existing `junit-platform.properties` or service file keeps its own lines;
+the generator adds one marked block for all hooks. A setting there that contradicts the block
+stops the generator, which then names the file. So does any
+`junit.jupiter.extensions.autodetection` setting in `build.gradle`, since it overrides the block.
 
 :::danger[Do not edit the generated files]
 They are produced automatically by the precompile phase and must not be modified by hand.

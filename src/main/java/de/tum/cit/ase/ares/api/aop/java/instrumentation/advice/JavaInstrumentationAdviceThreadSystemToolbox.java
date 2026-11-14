@@ -54,6 +54,22 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	private static final String UNRESOLVED_THREAD_CLASS = "<unresolved-thread-class>";
 
 	/**
+	 * The generated precompile timeout, whose worker thread is exempt like
+	 * {@code TimeoutUtils}'s. Split so precompile copying, which rewrites every
+	 * "de.tum.cit.ase" in this file to the exercise package, leaves it intact.
+	 */
+	@Nonnull
+	private static final String GENERATED_STRICT_TIMEOUT = "de.tum.cit." + "ase.ares.generated.GeneratedStrictTimeout";
+
+	/**
+	 * The generated precompile failure reporting, whose bounded copying worker is
+	 * exempt like the generated timeout's. Split for the same reason.
+	 */
+	@Nonnull
+	private static final String GENERATED_FAILURE_REPORTING = "de.tum.cit."
+			+ "ase.ares.generated.GeneratedFailureReporting";
+
+	/**
 	 * Prefix for synthetic allow-list entries representing operations which create
 	 * or use threads without exposing a task object to the intercepted method.
 	 */
@@ -116,58 +132,50 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
-	 * Answers one question: who created this thread, Ares itself or student code?
-	 * <p>
-	 * {@code @StrictTimeout} runs each timed test on a worker thread of its own.
-	 * Under a policy forbidding thread creation that worker must not be attributed
-	 * to the student, so the timeout machinery needs an exemption, granted to Ares
-	 * and to nothing else.
-	 * <p>
-	 * The stack is walked from the most recent call downwards, and the first frame
-	 * that matches decides:
-	 * <ol>
-	 * <li>exactly {@code TimeoutUtils}: the method name settles it.
-	 * {@code executeWithTimeout} submits the timed invocation to the executor, so
-	 * the machinery owns the thread and the exemption is granted; every other
-	 * method of that class refuses it. {@code rethrowThrowableSafe} is the one that
-	 * makes refusing necessary, being where the student's test body runs on the
-	 * worker, while the rest are Ares-internal and have no worker to claim;</li>
-	 * <li>any other Ares class ({@code de.tum.cit.ase.ares.api.}): skipped, because
-	 * Ares' own frames are never student code even when {@code restrictedPackage}
-	 * is broad enough to cover them, as {@code de.tum.cit.ase} is for Ares' own
-	 * self-tests;</li>
-	 * <li>a class in {@code restrictedPackage}: the student created it,
-	 * refused;</li>
-	 * <li>none of the above by the bottom of the stack: refused.</li>
-	 * </ol>
-	 * The order of the first two is load-bearing, because {@code TimeoutUtils} lies
-	 * inside the Ares prefix: testing the prefix first would skip the very frame
-	 * the exemption depends on, so it could never be granted.
-	 * <p>
-	 * {@code true} lets the creation through unchecked; {@code false} leaves it to
-	 * the ordinary policy check.
-	 * <p>
-	 * <b>Why the method name rather than the class.</b> Accepting any
-	 * {@code TimeoutUtils} frame held only while the student frame was always found
-	 * first. It is not: the student's body runs inside
-	 * {@code TimeoutUtils.rethrowThrowableSafe}, so that class sits below the
-	 * student's own frames rather than being absent. Once {@code restrictedPackage}
-	 * stopped matching, which is what a mis-scoped supervised package produces, the
-	 * walk fell past the student frames, reached {@code rethrowThrowableSafe} and
-	 * exempted every thread operation under a {@code @StrictTimeout}, silently.
+	 * Whether Ares's own timeout or failure reporting created this thread. The
+	 * newest matching frame decides: {@code TimeoutUtils} (checked before other
+	 * Ares frames are skipped) and the exact generated timeout grant it only in
+	 * {@code executeWithTimeout}, the exact generated failure reporting only in
+	 * {@code bounded}; a student frame or the end of the stack refuses it.
 	 *
-	 * @param restrictedPackage the configured restricted (student) package prefix
+	 * @param restrictedPackage the restricted (student) package prefix
+	 * @return {@code true} if Ares's timeout created the thread
+	 */
+	private static boolean isThreadCreationFromAresTimeout(@Nullable String restrictedPackage) {
+		return isThreadCreationFromAresTimeout(restrictedPackage, copiedChecksPrefix(), trustedLoader());
+	}
+
+	/**
+	 * The same check, with the package prefix the copied checks live below given
+	 * explicitly, so a generated hook counts only when it was loaded from where
+	 * those copies are.
+	 *
+	 * @param restrictedPackage  the configured restricted (student) package prefix
+	 * @param copiedChecksPrefix the prefix of this class's package, up to
+	 *                           {@code ares.api.}
+	 * @param trustedLoader      the loader the copied checks were loaded by
 	 * @return {@code true} if the thread creation belongs to Ares' timeout
 	 *         machinery, {@code false} otherwise
 	 */
-	private static boolean isThreadCreationFromAresTimeout(@Nullable String restrictedPackage) {
-		return java.lang.StackWalker.getInstance().walk(frames -> {
+	private static boolean isThreadCreationFromAresTimeout(@Nullable String restrictedPackage,
+			@Nonnull String copiedChecksPrefix, @Nonnull ClassLoader trustedLoader) {
+		return java.lang.StackWalker.getInstance(java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE).walk(frames -> {
 			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
 			while (iterator.hasNext()) {
 				java.lang.StackWalker.StackFrame frame = iterator.next();
 				String className = frame.getClassName();
 				if ("de.tum.cit.ase.ares.api.internal.TimeoutUtils".equals(className)) {
 					return Boolean.valueOf("executeWithTimeout".equals(frame.getMethodName()));
+				}
+				String hook = generatedHookOf(className);
+				if (hook != null) {
+					if (!isTheGeneratedHook(frame.getDeclaringClass(), hook, copiedChecksPrefix, trustedLoader)) {
+						return Boolean.FALSE;
+					}
+					if (hook.equals(className)) {
+						return Boolean.valueOf(workerMethodOf(hook).equals(frame.getMethodName()));
+					}
+					continue;
 				}
 				// Ares's own infrastructure frames (this advice, internals) are never student
 				// code, even when restrictedPackage is a broad prefix that nominally covers
@@ -184,6 +192,121 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			}
 			return Boolean.FALSE;
 		});
+	}
+
+	/**
+	 * The package prefix this class lives below, up to {@code ares.api.}: Ares's
+	 * own in Ares itself, the exercise's in a copy a precompile run made.
+	 *
+	 * @return the prefix, ending in a dot
+	 */
+	@Nonnull
+	private static String copiedChecksPrefix() {
+		String name = JavaInstrumentationAdviceThreadSystemToolbox.class.getName();
+		return name.substring(0, name.indexOf("ares.api."));
+	}
+
+	/**
+	 * The loader these checks were loaded by, or the application loader when they
+	 * sit on the boot class path, where a precompile exercise's own classes are
+	 * not.
+	 *
+	 * @return the loader the copied checks and the generated hooks share
+	 */
+	@Nonnull
+	private static ClassLoader trustedLoader() {
+		ClassLoader own = JavaInstrumentationAdviceThreadSystemToolbox.class.getClassLoader();
+		return own != null ? own : ClassLoader.getSystemClassLoader();
+	}
+
+	/**
+	 * The generated hook a class is, or is nested in, by name: the timeout or the
+	 * failure reporting, the only two whose worker threads are exempt.
+	 *
+	 * @param className the class on the stack.
+	 * @return the hook's name, or null for any other class
+	 */
+	@Nullable
+	private static String generatedHookOf(@Nonnull String className) {
+		for (String hook : new String[] { GENERATED_STRICT_TIMEOUT, GENERATED_FAILURE_REPORTING }) {
+			if (hook.equals(className) || className.startsWith(hook + "$")) {
+				return hook;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * The one method of a generated hook that starts its worker thread.
+	 *
+	 * @param hook the hook's name.
+	 * @return the method's name
+	 */
+	@Nonnull
+	private static String workerMethodOf(@Nonnull String hook) {
+		return GENERATED_STRICT_TIMEOUT.equals(hook) ? "executeWithTimeout" : "bounded";
+	}
+
+	/**
+	 * Whether a frame's class is, or is nested in, the very class the trusted
+	 * loader finds under the hook's name, loaded beside the copied checks. A
+	 * same-named class elsewhere, or a failed lookup, gets nothing.
+	 *
+	 * @param type               the class on the stack.
+	 * @param hook               the generated hook's name.
+	 * @param copiedChecksPrefix the copied checks' package prefix.
+	 * @param trustedLoader      the copied checks' loader.
+	 * @return true only for that generated hook
+	 */
+	private static boolean isTheGeneratedHook(@Nonnull Class<?> type, @Nonnull String hook,
+			@Nonnull String copiedChecksPrefix, @Nonnull ClassLoader trustedLoader) {
+		try {
+			return outermostOf(type) == Class.forName(hook, false, trustedLoader)
+					&& isBesideTheCopiedChecks(type, copiedChecksPrefix, trustedLoader);
+		} catch (ClassNotFoundException | LinkageError | RuntimeException unknown) {
+			return false;
+		}
+	}
+
+	/**
+	 * The top-level class a class is nested in, or the class itself.
+	 *
+	 * @param type the class.
+	 * @return its outermost enclosing class
+	 */
+	@Nonnull
+	private static Class<?> outermostOf(@Nonnull Class<?> type) {
+		Class<?> outermost = type;
+		while (outermost.getEnclosingClass() != null) {
+			outermost = outermost.getEnclosingClass();
+		}
+		return outermost;
+	}
+
+	/**
+	 * Whether a class shares the copied checks' loader and code source location,
+	 * the copy being found through the trusted loader, never the candidate's.
+	 *
+	 * @param type               the class on the stack.
+	 * @param copiedChecksPrefix the copied checks' package prefix.
+	 * @param trustedLoader      the copied checks' loader.
+	 * @return true when both share that loader and location
+	 */
+	private static boolean isBesideTheCopiedChecks(@Nonnull Class<?> type, @Nonnull String copiedChecksPrefix,
+			@Nonnull ClassLoader trustedLoader) {
+		try {
+			Class<?> messages = Class.forName(copiedChecksPrefix + "ares.api.localization.Messages", false,
+					trustedLoader);
+			if (type.getClassLoader() != messages.getClassLoader()) {
+				return false;
+			}
+			java.security.CodeSource source = type.getProtectionDomain().getCodeSource();
+			java.security.CodeSource copied = messages.getProtectionDomain().getCodeSource();
+			return source != null && copied != null && source.getLocation() != null && copied.getLocation() != null
+					&& source.getLocation().toExternalForm().equals(copied.getLocation().toExternalForm());
+		} catch (ClassNotFoundException | LinkageError | RuntimeException unknown) {
+			return false;
+		}
 	}
 
 	@Nullable
@@ -795,8 +918,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		for (String threadClassName : threadClassNames) {
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), threadClassAllowedToBeCreated,
 					threadNumberAllowedToBeCreated, decrementQuota)) {
-				throw new SecurityException(localize("security.advice.illegal.thread.execution",
-						threadSystemMethodToCheck, action, threadClassName,
+				throw AresSecurityViolation.create("thread", action, threadClassName, localize(
+						"security.advice.illegal.thread.execution", threadSystemMethodToCheck, action, threadClassName,
 						fullMethodSignature
 								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));

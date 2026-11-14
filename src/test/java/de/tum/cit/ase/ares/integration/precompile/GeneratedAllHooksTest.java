@@ -1,0 +1,1311 @@
+package de.tum.cit.ase.ares.integration.precompile;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.platform.engine.TestExecutionResult;
+import org.junit.platform.testkit.engine.EngineExecutionResults;
+import org.junit.platform.testkit.engine.Event;
+
+import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
+import de.tum.cit.ase.ares.testutilities.GeneratedCodeRuns;
+
+/**
+ * Runs all four hooks a precompile run generates together, from one policy that
+ * sets every category: one registration loads them all, every sentinel passes,
+ * hidden results stay silent, and public failures keep their text.
+ */
+class GeneratedAllHooksTest {
+
+	/** The generated package. */
+	private static final String GENERATED = "de.tum.cit.ase.ares.generated.";
+
+	/**
+	 * The package the generated output copies the AspectJ blocked-action class
+	 * into.
+	 */
+	private static final String VIOLATION_PACKAGE = "com.example.ares.api.aop.java.aspectj.adviceandpointcut";
+
+	/**
+	 * The path the blocked-action fixture names, which a MINIMIZED report must not
+	 * show.
+	 */
+	private static final String BLOCKED_PATH = "/secret/solution.txt";
+
+	/** The project shared by every test of this class. */
+	@TempDir
+	static Path tempDir;
+
+	/** The compiled generated code and fixtures. */
+	private static Path compiled;
+
+	/** The generated resources, holding the bundles and the registration. */
+	private static Path resources;
+
+	/** The include value the generator wrote. */
+	private static String include;
+
+	/** The generated resources with the hooks registered the other way round. */
+	private static Path reversedResources;
+
+	/**
+	 * A class in the generated package compiled somewhere else, with a fixture
+	 * throwing it.
+	 */
+	private static Path forged;
+
+	/**
+	 * A student class named like the generated visibility hook, compiled outside
+	 * the generated output, whose visibility check never returns.
+	 */
+	private static Path lookalikeVisibility;
+
+	/**
+	 * Generates the precompile output for a policy setting all four categories and
+	 * compiles it with the fixtures.
+	 *
+	 * @throws IOException if writing or compiling fails
+	 */
+	@BeforeAll
+	static void generateAndCompile() throws IOException {
+		Path project = Files.createDirectory(tempDir.resolve("project"));
+		Path policy = project.resolve("SecurityPolicy.yaml");
+		Files.writeString(policy,
+				"""
+						thisPolicyFileCompliesToThePolicyVersion: 1
+						regardingTheSupervisedCode:
+						  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+						  theSupervisedCodeUsesTheFollowingPackage: "com.example"
+						  theMainClassInsideThisPackageIs: "Main"
+						  theFollowingClassesAreTestClasses: []
+						  theFollowingResourceAccessesArePermitted:
+						    regardingFileSystemInteractions: []
+						    regardingNetworkConnections: []
+						    regardingCommandExecutions: []
+						    regardingThreadCreations: []
+						    regardingPackageImports: []
+						    regardingTimeouts: []
+						  theFollowingTestBehaviorIsConfigured:
+						    regardingTheStrictTimeoutForTheTestCases:
+						      theTimeoutIs: "2s"
+						    regardingTheOutputOfTheTestCases:
+						      theMaximumNumberOfOutputCharactersIs: 100000
+						    regardingTheFailureFeedbackForTheTestCases:
+						      theSecurityViolationFeedbackLevelIs: MINIMIZED
+						    regardingTheVisibilityAndScheduleOfTheTestCases:
+						      theDeadlineIs: "2000-01-01 00:00 UTC"
+						      testsNotListedHereAreHidden: false
+						      theFollowingTestsAreHidden: ["com.example.fixtures.HiddenFixture", "com.example.fixtures.HiddenTimeoutFixture", "com.example.fixtures.HiddenLoudFixture", "com.example.fixtures.HiddenFactoryFixture", "com.example.fixtures.HiddenUnflushedFixture", "com.example.fixtures.HiddenAbortFixture"]
+						""");
+		Files.writeString(project.resolve("pom.xml"), "<project/>");
+		Files.createDirectories(project.resolve("src/main/java"));
+		Files.createDirectories(project.resolve("target/classes"));
+		Path testSources = Files.createDirectories(project.resolve("src/test/java"));
+		Path fixtures = Files.createDirectories(testSources.resolve("com/example/fixtures"));
+		fixture(fixtures, "PublicFixture", "@Test void fails() { throw new IllegalStateException(\"visible\"); }");
+		fixture(fixtures, "HiddenFixture", "@Test void fails() { System.out.print(\"SECRET_ALL_HOOKS\");"
+				+ " throw new IllegalStateException(\"SECRET_ALL_HOOKS\"); }");
+		fixture(fixtures, "HiddenTimeoutFixture", "@Test void loops() { System.out.print(\"SECRET_TIMEOUT\");"
+				+ " while (!Thread.currentThread().isInterrupted()) { Thread.onSpinWait(); } }");
+		fixture(fixtures, "HiddenLoudFixture", "@Test void loud() { System.out.print(\"A\".repeat(100001)); }"
+				+ " @Test void quiet() { System.out.print(\"A\".repeat(10)); }");
+		fixture(fixtures, "HiddenFactoryFixture",
+				"@TestFactory java.util.stream.Stream<DynamicTest> cases() { return java.util.stream.Stream.of(1)"
+						+ ".map(number -> { System.out.print(\"SECRET_FACTORY\");"
+						+ " return DynamicTest.dynamicTest(\"case\", () -> { }); }); }");
+		fixture(fixtures, "ResourceFactoryFixture",
+				"static final java.util.concurrent.atomic.AtomicBoolean OUTER = new java.util.concurrent.atomic.AtomicBoolean();"
+						+ " static final java.util.concurrent.atomic.AtomicBoolean INNER = new java.util.concurrent.atomic.AtomicBoolean();"
+						+ " @TestFactory java.util.stream.Stream<DynamicNode> cases() { return java.util.stream.Stream.<DynamicNode>of("
+						+ "DynamicTest.dynamicTest(\"outer\", () -> Assertions.assertFalse(OUTER.get(), \"outer closed early\")),"
+						+ " DynamicContainer.dynamicContainer(\"box\", java.util.stream.Stream.of(DynamicTest.dynamicTest(\"inner\","
+						+ " () -> Assertions.assertFalse(INNER.get(), \"inner closed early\"))).onClose(() -> INNER.set(true))))"
+						+ ".onClose(() -> OUTER.set(true)); }");
+		fixture(fixtures, "FailingFactoryFixture",
+				"@TestFactory java.util.stream.Stream<DynamicNode> cases() { return java.util.stream.Stream.<DynamicNode>of("
+						+ "DynamicContainer.dynamicContainer(\"box\", java.util.stream.Stream.<DynamicNode>of("
+						+ "DynamicTest.dynamicTest(\"inner\", () -> { })).map(node -> { if (node != null) {"
+						+ " throw new IllegalStateException(\"broken read\"); } return node; })"
+						+ ".onClose(() -> { throw new IllegalStateException(\"CLOSED_INNER\"); })))"
+						+ ".onClose(() -> { throw new IllegalStateException(\"CLOSED_OUTER\"); }); }");
+		fixture(fixtures, "ParallelFactoryFixture",
+				"@TestFactory java.util.stream.Stream<DynamicTest> cases() { return java.util.stream.IntStream.range(0, 500)"
+						+ ".parallel().mapToObj(number -> DynamicTest.dynamicTest(\"case\" + number, () -> { })); }");
+		fixture(fixtures, "LoopingCauseFixture",
+				"@Test void fails() throws Exception { throw new java.util.concurrent.ExecutionException(\"looping\", null) {"
+						+ " @Override public synchronized Throwable getCause() { while (true) { Thread.onSpinWait(); } } }; }");
+		fixture(fixtures, "LoopingMessageFixture", "@Test void fails() { throw new IllegalStateException(\"looping\") {"
+				+ " @Override public String getMessage() { while (true) { Thread.onSpinWait(); } } }; }");
+		fixture(fixtures, "LoopingStackFixture", "@Test void fails() { throw new IllegalStateException(\"looping\") {"
+				+ " @Override public StackTraceElement[] getStackTrace() { while (true) { Thread.onSpinWait(); } } }; }");
+		fixture(fixtures, "LoopingReasonFixture",
+				"@Test void fails() throws Exception { throw new java.nio.file.FileSystemException(\"file\") {"
+						+ " @Override public synchronized Throwable getCause() { return null; }"
+						+ " @Override public String getReason() { while (true) { Thread.onSpinWait(); } } }; }");
+		fixture(fixtures, "LoopingReasonOnlyFixture",
+				"@Test void fails() throws Exception { throw new java.nio.file.FileSystemException(\"file\") {"
+						+ " @Override public String getReason() { while (true) { Thread.onSpinWait(); } } }; }");
+		fixture(fixtures, "PlainStudentFailureFixture",
+				"@Test void fails() { throw new IllegalStateException(\"plain\") { }; }");
+		fixture(fixtures, "LoopingNameFixture",
+				"@Test void fails() throws Exception { javax.naming.NamingException failure = new javax.naming.NamingException(\"naming\");"
+						+ " failure.setRemainingName(new javax.naming.CompositeName() { @Override public Object clone() { return this; }"
+						+ " @Override public String toString() { while (true) { Thread.onSpinWait(); } } }); throw failure; }");
+		fixture(fixtures, "RedactedMarkerFixture",
+				"@Test void fails() { Throwable marker = de.tum.cit.ase.ares.generated.GeneratedHiddenTests"
+						+ ".redactFailure(new AssertionError(\"x\")); marker.addSuppressed(new IllegalStateException(\"inner\") {"
+						+ " @Override public String toString() { while (true) { Thread.onSpinWait(); } } });"
+						+ " throw (AssertionError) marker; }");
+		fixture(fixtures, "AssertEqualsFixture", "@Test void fails() { Assertions.assertEquals(\"a\", \"b\"); }");
+		fixture(fixtures, "BlockedActionFixture",
+				"@Test void reads() { throw " + VIOLATION_PACKAGE + ".ViolationSource.blocked(); }");
+		fixture(fixtures, "LockedFailureFixture",
+				"@Test void fails() throws Exception { IllegalStateException failure = new IllegalStateException(\"locked\");"
+						+ " java.util.concurrent.CountDownLatch held = new java.util.concurrent.CountDownLatch(1);"
+						+ " Thread holder = new Thread(() -> { synchronized (failure) { held.countDown();"
+						+ " while (true) { Thread.onSpinWait(); } } }); holder.setDaemon(true); holder.start(); held.await();"
+						+ " throw failure; }");
+		fixture(fixtures, "InterruptedFailureFixture",
+				"@Test void fails() throws Exception { IllegalStateException failure = new IllegalStateException(\"briefly locked\");"
+						+ " java.util.concurrent.CountDownLatch held = new java.util.concurrent.CountDownLatch(1);"
+						+ " Thread holder = new Thread(() -> { synchronized (failure) { held.countDown();"
+						+ " try { Thread.sleep(500); } catch (InterruptedException stop) { Thread.currentThread().interrupt(); } } });"
+						+ " holder.setDaemon(true); holder.start(); held.await(); Thread.currentThread().interrupt(); throw failure; }");
+		fixture(fixtures, "ManySuppressedFixture",
+				"@Test void fails() { IllegalStateException outer = new IllegalStateException(\"outer\");"
+						+ " for (int i = 0; i < 300; i++) { outer.addSuppressed(new IllegalStateException(\"inner \" + i)); }"
+						+ " throw outer; }");
+		fixture(fixtures, "CompletionViolationFixture",
+				"@Test void reads() { throw new java.util.concurrent.CompletionException(" + VIOLATION_PACKAGE
+						+ ".ViolationSource.blocked()); }");
+		fixture(fixtures, "GroupedViolationFixture", "@Test void reads() { Assertions.assertAll(() -> { throw "
+				+ VIOLATION_PACKAGE + ".ViolationSource.blocked(); }); }");
+		fixture(fixtures, "MemberOnlyViolationFixture",
+				"@Test void reads() { throw new org.opentest4j.MultipleFailuresError(\"group\", java.util.List.of("
+						+ VIOLATION_PACKAGE + ".ViolationSource.blocked())); }");
+		fixture(fixtures, "ClassNotFoundViolationFixture",
+				"@Test void reads() throws Exception { SecurityException violation = " + VIOLATION_PACKAGE
+						+ ".ViolationSource.blocked(); throw new ClassNotFoundException(violation.toString(), violation); }");
+		fixture(fixtures, "DeepViolationFixture", "@Test void reads() { SecurityException violation = "
+				+ VIOLATION_PACKAGE + ".ViolationSource.blocked();"
+				+ " RuntimeException outer = new RuntimeException(violation.toString());"
+				+ " for (int i = 0; i < 255; i++) { outer.addSuppressed(new IllegalStateException(\"inner \" + i)); }"
+				+ " outer.addSuppressed(new RuntimeException(violation)); throw outer; }");
+		fixture(fixtures, "SuppressedViolationFixture",
+				"@Test void reads() { IllegalStateException outer = new IllegalStateException(\"outer\");"
+						+ " outer.addSuppressed(" + VIOLATION_PACKAGE + ".ViolationSource.blocked()); throw outer; }");
+		Path violationSources = Files
+				.createDirectories(tempDir.resolve("violation-sources").resolve(VIOLATION_PACKAGE.replace('.', '/')));
+		Files.writeString(violationSources.resolve("ViolationSource.java"), """
+				package %s;
+
+				public final class ViolationSource {
+					public static SecurityException blocked() {
+						return AresSecurityViolation.create("file", "read", "%s", "Ares blocked reading %s");
+					}
+				}
+				""".formatted(VIOLATION_PACKAGE, BLOCKED_PATH, BLOCKED_PATH));
+		fixture(fixtures, "AbortFixture", "@Test void aborts() { Assumptions.abort(\"skipped\"); }");
+		fixture(fixtures, "AbortWithStudentCauseFixture",
+				"@Test void aborts() { throw new org.opentest4j.TestAbortedException(\"skip\", new IllegalStateException(\"cause\")"
+						+ " { @Override public String getMessage() { return \"student\"; } }); }");
+		fixture(fixtures, "RepeatedGroupFixture",
+				"@Test void fails() { org.opentest4j.MultipleFailuresError group = new org.opentest4j.MultipleFailuresError(\"g\","
+						+ " java.util.List.of(new AssertionError(\"x\"))); for (int i = 0; i < 40; i++) { group ="
+						+ " new org.opentest4j.MultipleFailuresError(\"g\", java.util.List.of(group, group)); } throw group; }");
+		fixture(fixtures, "WrappedLoopingCauseFixture",
+				"@Test void fails() throws Exception { throw new java.rmi.RemoteException(\"outer\","
+						+ " new IllegalStateException(\"cause\") { @Override public String toString() {"
+						+ " while (true) { Thread.onSpinWait(); } } }); }");
+		fixture(fixtures, "SuppressedLoopingFixture",
+				"@Test void fails() { IllegalStateException outer = new IllegalStateException(\"outer\");"
+						+ " outer.addSuppressed(new IllegalStateException(\"inner\") { @Override public String toString() {"
+						+ " while (true) { Thread.onSpinWait(); } } }); throw outer; }");
+		fixture(fixtures, "AssertAllFixture",
+				"@Test void fails() { Assertions.assertAll(() -> Assertions.fail(\"first\"), () -> Assertions.fail(\"second\")); }");
+		fixture(fixtures, "HiddenUnflushedFixture",
+				"@Test void writes() { for (byte part : \"SECRET_UNFLUSHED\".getBytes(java.nio.charset.StandardCharsets.UTF_8)) {"
+						+ " System.out.write(part); } System.out.write(0x80); }");
+		fixture(fixtures, "HiddenAbortFixture",
+				"@Test void aborts() { System.out.print(\"SECRET_ABORT\"); Assumptions.abort(\"SECRET_ABORT\"); }");
+		fixture(fixtures, "AssertAllLoopingFixture",
+				"@Test void fails() { Assertions.assertAll(() -> Assertions.fail(\"first\"),"
+						+ " () -> { throw new IllegalStateException(\"looping\") { @Override public String getMessage() {"
+						+ " while (true) { Thread.onSpinWait(); } } }; }); }");
+		fixture(fixtures, "AggregateLoopingFixture",
+				"@Test void fails() { throw new org.opentest4j.MultipleFailuresError(\"heading\","
+						+ " java.util.List.of(new IllegalStateException(\"looping\") { @Override public String getMessage() {"
+						+ " while (true) { Thread.onSpinWait(); } } })); }");
+		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy).projectFolderPath(project).build()
+				.createTestCases().writeTestCases(testSources);
+		compiled = Files.createDirectories(tempDir.resolve("compiled"));
+		compile(compiled,
+				List.of(testSources.resolve("de/tum/cit/ase/ares/generated"),
+						testSources.resolve("com/example/ares/api/localization"), fixtures,
+						tempDir.resolve("violation-sources")),
+				testSources.resolve("com/example/ares/api/util/LruCache.java"),
+				testSources.resolve(VIOLATION_PACKAGE.replace('.', '/')).resolve("AresSecurityViolation.java"));
+		resources = testSources.resolveSibling("resources");
+		include = Files.readAllLines(resources.resolve("junit-platform.properties")).stream()
+				.filter(line -> line.startsWith("junit.jupiter.extensions.autodetection.include="))
+				.map(line -> line.substring(line.indexOf('=') + 1)).findFirst().orElseThrow();
+		reversedResources = reversedRegistration(resources, tempDir.resolve("reversed-resources"));
+		forged = forgedMarker(tempDir.resolve("forged-sources"), tempDir.resolve("forged"));
+		lookalikeVisibility = lookalikeVisibility(tempDir.resolve("lookalike-sources"), tempDir.resolve("lookalike"));
+	}
+
+	/**
+	 * Compiles a failure class in the generated package whose {@code toString}
+	 * never returns, outside the generated output, and a fixture throwing it.
+	 *
+	 * @param sources the sources' folder.
+	 * @param output  the compiled classes' folder.
+	 * @return the compiled classes' folder
+	 * @throws IOException if writing or compiling fails
+	 */
+	private static Path forgedMarker(Path sources, Path output) throws IOException {
+		Path marker = Files.createDirectories(sources.resolve("de/tum/cit/ase/ares/generated"));
+		Files.writeString(marker.resolve("ForgedMarker.java"), """
+				package de.tum.cit.ase.ares.generated;
+
+				public class ForgedMarker extends AssertionError {
+					public ForgedMarker() { super("forged"); }
+					@Override public String toString() { while (true) { Thread.onSpinWait(); } }
+				}
+				""");
+		Files.writeString(marker.resolve("GeneratedHiddenTests$HiddenTestFailure.java"), """
+				package de.tum.cit.ase.ares.generated;
+
+				public class GeneratedHiddenTests$HiddenTestFailure extends AssertionError {
+					public GeneratedHiddenTests$HiddenTestFailure() { super("lookalike"); }
+					@Override public String toString() { while (true) { Thread.onSpinWait(); } }
+				}
+				""");
+		Path fixtures = Files.createDirectories(sources.resolve("com/example/fixtures"));
+		fixture(fixtures, "ForgedMarkerFixture",
+				"@Test void fails() { throw new de.tum.cit.ase.ares.generated.ForgedMarker(); }");
+		fixture(fixtures, "LookalikeHiddenFixture",
+				"@Test void fails() { throw new de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure(); }");
+		compile(Files.createDirectories(output), List.of(sources));
+		return output;
+	}
+
+	/**
+	 * Compiles a student class named like the generated visibility hook whose
+	 * visibility check never returns, outside the generated output.
+	 *
+	 * @param sources the sources' folder.
+	 * @param output  the compiled classes' folder.
+	 * @return the compiled classes' folder
+	 * @throws IOException if writing or compiling fails
+	 */
+	private static Path lookalikeVisibility(Path sources, Path output) throws IOException {
+		Path hook = Files.createDirectories(sources.resolve("de/tum/cit/ase/ares/generated"));
+		Files.writeString(hook.resolve("GeneratedHiddenTests.java"), """
+				package de.tum.cit.ase.ares.generated;
+
+				import org.junit.jupiter.api.extension.Extension;
+				import org.junit.jupiter.api.extension.ExtensionContext;
+
+				public final class GeneratedHiddenTests implements Extension {
+					public static boolean isHiddenContext(ExtensionContext context) {
+						while (true) { Thread.onSpinWait(); }
+					}
+				}
+				""");
+		compile(Files.createDirectories(output), List.of(sources));
+		return output;
+	}
+
+	/**
+	 * A copy of the generated resources whose service file lists the hooks in the
+	 * opposite order, so JUnit registers them the other way round.
+	 *
+	 * @param from the generated resources.
+	 * @param to   the copy's folder.
+	 * @return the copy
+	 * @throws IOException if copying fails
+	 */
+	private static Path reversedRegistration(Path from, Path to) throws IOException {
+		try (var files = Files.walk(from)) {
+			for (Path file : files.filter(Files::isRegularFile).toList()) {
+				Path target = to.resolve(from.relativize(file).toString());
+				Files.createDirectories(target.getParent());
+				Files.copy(file, target);
+			}
+		}
+		Path services = to.resolve("META-INF/services/org.junit.jupiter.api.extension.Extension");
+		List<String> lines = new ArrayList<>(Files.readAllLines(services));
+		List<String> hooks = lines.stream().filter(line -> line.startsWith(GENERATED)).toList();
+		List<String> reversed = new ArrayList<>(hooks);
+		Collections.reverse(reversed);
+		for (int index = 0, next = 0; index < lines.size(); index++) {
+			if (lines.get(index).startsWith(GENERATED)) {
+				lines.set(index, reversed.get(next++));
+			}
+		}
+		Files.write(services, lines);
+		return to;
+	}
+
+	/**
+	 * A hidden test that runs too long is stopped and reports nothing, with the
+	 * real generated hooks registered in either order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenTimeoutStaysSilentInEitherOrder(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenTimeoutFixture", reversed));
+		assertThat(captured.results().testEvents().failed().count()).isEqualTo(1);
+		assertThat(messages(captured.results())).containsExactly("");
+		assertThat(captured.output()).doesNotContain("SECRET_TIMEOUT");
+	}
+
+	/**
+	 * A hidden test is held to the output limit like a public one, in either order,
+	 * while its output stays out of sight.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenTestIsHeldToTheOutputLimit(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenLoudFixture", reversed));
+		assertThat(captured.results().testEvents().failed().count()).isEqualTo(1);
+		assertThat(captured.results().testEvents().succeeded().count()).isEqualTo(1);
+		assertThat(captured.output()).doesNotContain("AAAAAAAAAA");
+	}
+
+	/**
+	 * A hidden test factory whose tests print while JUnit reads them shows nothing,
+	 * since the hooks read them while still guarding the factory.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenFactoryPrintsNothing(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenFactoryFixture", reversed));
+		assertThat(captured.output()).doesNotContain("SECRET_FACTORY");
+	}
+
+	/**
+	 * A factory's tests run before the streams that produced them are closed, so a
+	 * resource the factory releases on close is still open while its tests use it.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aFactorysStreamsCloseAfterItsTestsRan(boolean reversed) throws Exception {
+		EngineExecutionResults results = run("com.example.fixtures.ResourceFactoryFixture", reversed);
+		assertThat(results.testEvents().failed().count()).isZero();
+		assertThat(results.testEvents().succeeded().count()).isEqualTo(2);
+	}
+
+	/**
+	 * When reading a factory's tests fails, the streams opened so far are closed
+	 * anyway, nested ones included, since JUnit never receives them to close. Each
+	 * close throws a marker, kept as suppressed on the reported failure.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aFailedFactoryReadClosesItsStreams(boolean reversed) throws Exception {
+		List<String> closed = run("com.example.fixtures.FailingFactoryFixture", reversed).allEvents().failed().stream()
+				.flatMap(event -> event.getPayload(TestExecutionResult.class).flatMap(TestExecutionResult::getThrowable)
+						.stream())
+				.flatMap(failure -> Arrays.stream(failure.getSuppressed())).map(Throwable::getMessage).toList();
+		assertThat(closed).contains("CLOSED_INNER", "CLOSED_OUTER");
+	}
+
+	/**
+	 * A factory returning a parallel stream keeps every test, in its order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aParallelFactoryKeepsEveryTestInOrder(boolean reversed) throws Exception {
+		EngineExecutionResults results = run("com.example.fixtures.ParallelFactoryFixture", reversed);
+		List<String> expected = new ArrayList<>();
+		for (int number = 0; number < 500; number++) {
+			expected.add("case" + number);
+		}
+		assertThat(results.testEvents().started().stream().map(event -> event.getTestDescriptor().getDisplayName()))
+				.containsExactlyElementsOf(expected);
+	}
+
+	/**
+	 * A failure whose own {@code getCause} never returns is still reported with its
+	 * text, under JUnit's default stack-trace pruning: the hooks never call it and
+	 * hand JUnit a copy it can walk, in either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aLoopingGetCauseIsNeverCalled(boolean reversed) throws Exception {
+		EngineExecutionResults results = assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.LoopingCauseFixture", reversed));
+		assertThat(messages(results)).containsExactly("com.example.fixtures.LoopingCauseFixture$1");
+	}
+
+	/**
+	 * A failure whose own reporting methods never return is reported as a copy
+	 * JUnit reads without calling them, whether the override sits on the failure
+	 * itself or on a failure suppressed in it, in either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void loopingReportingMethodsAreNeverCalled(boolean reversed) throws Exception {
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.LoopingMessageFixture", reversed))))
+						.containsExactly("com.example.fixtures.LoopingMessageFixture$1");
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.LoopingStackFixture", reversed))))
+						.containsExactly("com.example.fixtures.LoopingStackFixture$1");
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.SuppressedLoopingFixture", reversed)))).containsExactly("outer");
+	}
+
+	/**
+	 * A student {@code FileSystemException} whose {@code getReason}, which the Java
+	 * runtime's own {@code getMessage} calls, never returns is reported by its type
+	 * alone, with or without its own {@code getCause}, in either registration
+	 * order, in a JVM of its own so a hang cannot take this run with it.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @param probe    where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aLoopingDelegatedReasonIsNeverCalled(boolean reversed, @TempDir Path probe) throws Exception {
+		Path probeClasses = compileProbe(probe);
+		assertThat(runInOwnJvm(probeClasses, "com.example.fixtures.LoopingReasonFixture", reversed))
+				.containsExactly("com.example.fixtures.LoopingReasonFixture$1");
+		assertThat(runInOwnJvm(probeClasses, "com.example.fixtures.LoopingReasonOnlyFixture", reversed))
+				.containsExactly("com.example.fixtures.LoopingReasonOnlyFixture$1");
+	}
+
+	/**
+	 * A student failure class that overrides nothing keeps its text in the copy
+	 * JUnit gets, after its type.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aPlainStudentFailureKeepsItsText() throws Exception {
+		assertThat(messages(run("com.example.fixtures.PlainStudentFailureFixture")))
+				.containsExactly("com.example.fixtures.PlainStudentFailureFixture$1: plain");
+	}
+
+	/**
+	 * A runtime {@code NamingException} holding a student name whose
+	 * {@code toString} never returns is reported with its text, and printing the
+	 * report runs no student code, with all hooks in either order and with failure
+	 * reporting alone, each in a JVM of its own.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @param probe    where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aLoopingNameInARuntimeFailureIsNeverCalled(boolean reversed, @TempDir Path probe) throws Exception {
+		Path probeClasses = compileProbe(probe);
+		assertThat(runInOwnJvm(probeClasses, "com.example.fixtures.LoopingNameFixture", reversed, include))
+				.containsExactly("javax.naming.NamingException: naming");
+		assertThat(runInOwnJvm(probeClasses, "com.example.fixtures.LoopingNameFixture", reversed,
+				GENERATED + "GeneratedFailureReporting")).containsExactly("javax.naming.NamingException: naming");
+	}
+
+	/**
+	 * A failed {@code assertEquals} keeps its exact text, since the copy rebuilds
+	 * the same opentest4j failure.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void anAssertEqualsFailureKeepsItsText() throws Exception {
+		assertThat(messages(run("com.example.fixtures.AssertEqualsFixture")))
+				.containsExactly("expected: <a> but was: <b>");
+	}
+
+	/**
+	 * A blocked action thrown in a timed test still follows the feedback level, so
+	 * at MINIMIZED the report shows the fixed text and never the blocked path, with
+	 * the hooks in either order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aBlockedActionInATimedTestFollowsTheFeedbackLevel(boolean reversed) throws Exception {
+		assertThat(messages(run("com.example.fixtures.BlockedActionFixture", reversed))).containsExactly(
+				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
+	}
+
+	/**
+	 * With failure reporting alone, a failure another thread keeps locked ends the
+	 * test run once the time limit passes, instead of hanging it, in a JVM of its
+	 * own.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aLockedFailureEndsTheRun(@TempDir Path probe) throws Exception {
+		assertThat(exitCodeInOwnJvm(compileProbe(probe), "com.example.fixtures.LockedFailureFixture",
+				GENERATED + "GeneratedFailureReporting")).isEqualTo(124);
+	}
+
+	/**
+	 * With failure reporting alone, a test that interrupts itself and then fails is
+	 * still reported once its failure can be read, instead of ending the run, in a
+	 * JVM of its own.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void anInterruptedFailureIsStillReported(@TempDir Path probe) throws Exception {
+		assertThat(runInOwnJvm(compileProbe(probe), "com.example.fixtures.InterruptedFailureFixture", false,
+				GENERATED + "GeneratedFailureReporting")).containsExactly("briefly locked");
+	}
+
+	/**
+	 * A failure with more suppressed failures than the copy budget is reported with
+	 * at most that many, in either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aCopyKeepsWithinItsBudget(boolean reversed) throws Exception {
+		List<Throwable> failures = run("com.example.fixtures.ManySuppressedFixture", reversed).testEvents().failed()
+				.stream().map(event -> event.getPayload(TestExecutionResult.class)
+						.flatMap(TestExecutionResult::getThrowable).orElseThrow())
+				.toList();
+		assertThat(failures).singleElement()
+				.satisfies(failure -> assertThat(failure.getSuppressed()).hasSizeLessThan(256));
+	}
+
+	/**
+	 * A blocked action wrapped in a {@code CompletionException} still follows the
+	 * feedback level, since its copy keeps the blocked action as its cause.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aWrappedBlockedActionFollowsTheFeedbackLevel(boolean reversed) throws Exception {
+		assertThat(messages(run("com.example.fixtures.CompletionViolationFixture", reversed))).containsExactly(
+				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
+	}
+
+	/**
+	 * A blocked action inside an {@code assertAll} group, inside a group built
+	 * directly, attached as a suppressed failure, or the cause of a failure whose
+	 * class fixes its cause when built, still follows the feedback level, so its
+	 * path never reaches the report.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @param fixture  the fixture carrying the blocked action
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@CsvSource({ "false, GroupedViolationFixture", "true, GroupedViolationFixture", "false, SuppressedViolationFixture",
+			"true, SuppressedViolationFixture", "false, MemberOnlyViolationFixture", "true, MemberOnlyViolationFixture",
+			"false, ClassNotFoundViolationFixture", "true, ClassNotFoundViolationFixture" })
+	void anAttachedBlockedActionFollowsTheFeedbackLevel(boolean reversed, String fixture) throws Exception {
+		assertThat(messages(run("com.example.fixtures." + fixture, reversed))).containsExactly(
+				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
+	}
+
+	/**
+	 * A failure too large to search to the end shows no text of its own, in either
+	 * registration order, since the blocked action it holds may lie past the
+	 * budget.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aFailureTooLargeToSearchShowsNoText(boolean reversed) throws Exception {
+		List<String> messages = messages(run("com.example.fixtures.DeepViolationFixture", reversed));
+		assertThat(messages).hasSize(1);
+		assertThat(messages.get(0)).doesNotContain(BLOCKED_PATH);
+	}
+
+	/**
+	 * An abort whose cause is a student failure stays an abort with its reason, in
+	 * either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void anAbortWithAStudentCauseStaysAnAbort(boolean reversed) throws Exception {
+		EngineExecutionResults results = run("com.example.fixtures.AbortWithStudentCauseFixture", reversed);
+		assertThat(results.testEvents().failed().count()).isZero();
+		assertThat(results.testEvents().aborted().stream().map(GeneratedAllHooksTest::messageOf))
+				.containsExactly("skip");
+	}
+
+	/**
+	 * A group listing the same group many times is reported by its type alone and
+	 * quickly, since reading its text would repeat each shared member.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aRepeatedGroupIsReportedByItsType(boolean reversed) throws Exception {
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.RepeatedGroupFixture", reversed))))
+						.containsExactly("org.opentest4j.MultipleFailuresError");
+	}
+
+	/**
+	 * A runtime failure whose text is built from a student cause that never returns
+	 * is reported by its type alone, without reading that text.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aWrapperOfALoopingCauseIsReportedByItsType(boolean reversed) throws Exception {
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.WrappedLoopingCauseFixture", reversed))))
+						.containsExactly("java.rmi.RemoteException");
+	}
+
+	/**
+	 * A test that aborts stays aborted with its reason, in either registration
+	 * order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void anAbortStaysAnAbort(boolean reversed) throws Exception {
+		EngineExecutionResults results = run("com.example.fixtures.AbortFixture", reversed);
+		assertThat(results.testEvents().failed().count()).isZero();
+		assertThat(results.testEvents().aborted().stream().map(GeneratedAllHooksTest::messageOf))
+				.containsExactly("skipped");
+	}
+
+	/**
+	 * A failure from JUnit's own {@code assertAll} keeps its full text, since its
+	 * reporting methods come from opentest4j itself.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void assertAllKeepsItsText() throws Exception {
+		assertThat(messages(run("com.example.fixtures.AssertAllFixture"))).singleElement().asString().contains("first")
+				.contains("second");
+	}
+
+	/**
+	 * A failure from {@code assertAll} whose member's message never returns is
+	 * reported by its type alone, whether the member is also suppressed in it or
+	 * only listed, in either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aLoopingAggregateMemberIsNeverCalled(boolean reversed) throws Exception {
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.AssertAllLoopingFixture", reversed))))
+						.containsExactly("org.opentest4j.MultipleFailuresError");
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.AggregateLoopingFixture", reversed))))
+						.containsExactly("org.opentest4j.MultipleFailuresError");
+	}
+
+	/**
+	 * A hidden test that aborts stays aborted, not failed, with no text or output,
+	 * in either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenAbortStaysAnAbort(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenAbortFixture", reversed));
+		assertThat(captured.results().testEvents().failed().count()).isZero();
+		assertThat(captured.results().testEvents().aborted().stream().map(GeneratedAllHooksTest::messageOf))
+				.containsExactly("");
+		assertThat(captured.output()).doesNotContain("SECRET_ABORT");
+	}
+
+	/**
+	 * A hidden failure has no text at all, in either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenFailureHasNoText(boolean reversed) throws Exception {
+		assertThat(messages(run("com.example.fixtures.HiddenFixture", reversed))).containsExactly("");
+	}
+
+	/**
+	 * A failure class in the generated package that does not come from the
+	 * generated output is not trusted as a hook's marker, so its own
+	 * {@code toString} is never handed to JUnit.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aForgedMarkerIsDetached() throws Exception {
+		assertThat(messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.ForgedMarkerFixture", false, forged))))
+						.containsExactly("de.tum.cit.ase.ares.generated.ForgedMarker");
+	}
+
+	/**
+	 * With failure reporting alone, a student class named like a hidden-test marker
+	 * but loaded from the student's own output is copied like any other failure, so
+	 * its looping {@code toString} never runs when the build tool prints it.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aLookalikeHiddenMarkerIsCopied(@TempDir Path probe) throws Exception {
+		Process process = startInOwnJvm(compileProbe(probe), "com.example.fixtures.LookalikeHiddenFixture", false,
+				GENERATED + "GeneratedFailureReporting", forged);
+		try {
+			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
+			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			assertThat(output).as(output).contains(PROBE_DONE)
+					.contains(PROBE_FAILURE + "de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure");
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
+	/**
+	 * With failure reporting and visibility but no strict timeout, a genuine hidden
+	 * marker a public test obtained and attached a looping failure to is reported
+	 * as a new marker, so printing it the way a build tool does never runs that
+	 * failure.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aHiddenMarkerWithAttachmentsIsReportedAnew(@TempDir Path probe) throws Exception {
+		List<String> failures = runInOwnJvm(compileProbe(probe), "com.example.fixtures.RedactedMarkerFixture", false,
+				GENERATED + "GeneratedFailureReporting," + GENERATED + "GeneratedHiddenTests");
+		assertThat(failures).containsExactly("");
+	}
+
+	/**
+	 * A student class named like the visibility hook, placed before the generated
+	 * output, is never called after a timeout: the strict timeout reports the
+	 * timeout instead of hanging on it.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aLookalikeVisibilityHookIsNotCalledAfterATimeout(@TempDir Path probe) throws Exception {
+		assertLookalikeIgnored(probe, "com.example.fixtures.HiddenTimeoutFixture",
+				GENERATED + "GeneratedStrictTimeout");
+	}
+
+	/**
+	 * A student class named like the visibility hook, placed before the generated
+	 * output, is never called before a test by the output hook.
+	 *
+	 * @param probe where the probe is compiled.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	@Test
+	void aLookalikeVisibilityHookIsNotCalledBeforeATest(@TempDir Path probe) throws Exception {
+		assertLookalikeIgnored(probe, "com.example.fixtures.PublicFixture", GENERATED + "GeneratedOutputMirroring");
+	}
+
+	/**
+	 * With the visibility hook generated but its classes missing, the output hook
+	 * treats a test as hidden: unfinished output fails it without any text.
+	 *
+	 * @param withoutVisibility where the output without the visibility hook goes.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aMissingVisibilityHookHidesOutput(@TempDir Path withoutVisibility) throws Exception {
+		Captured captured = captured(() -> runWithout(withoutVisibility, "com.example.fixtures.HiddenUnflushedFixture",
+				GENERATED + "GeneratedOutputMirroring"));
+		assertThat(captured.results().testEvents().failed().count()).isEqualTo(1);
+		assertThat(messages(captured.results())).containsExactly("");
+		assertThat(captured.output()).doesNotContain("SECRET_UNFLUSHED");
+	}
+
+	/**
+	 * With the visibility hook generated but its classes missing, the timeout hook
+	 * treats a test as hidden and its timeout carries no text.
+	 *
+	 * @param withoutVisibility where the output without the visibility hook goes.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aMissingVisibilityHookHidesATimeout(@TempDir Path withoutVisibility) throws Exception {
+		EngineExecutionResults results = runWithout(withoutVisibility, "com.example.fixtures.HiddenTimeoutFixture",
+				GENERATED + "GeneratedStrictTimeout");
+		assertThat(results.testEvents().failed().count()).isEqualTo(1);
+		assertThat(messages(results)).containsExactly("");
+	}
+
+	/**
+	 * No public field of the generated settings or visibility classes holds a test
+	 * name, so student code cannot read which tests are hidden.
+	 *
+	 * @throws Exception if the classes cannot be loaded
+	 */
+	@Test
+	void noPublicFieldNamesAHiddenTest() throws Exception {
+		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(compiled)),
+				Thread.currentThread().getContextClassLoader())) {
+			for (String name : List.of("GeneratedTestBehaviorSettings", "GeneratedHiddenTests")) {
+				for (java.lang.reflect.Field field : Class.forName(GENERATED + name, true, loader).getFields()) {
+					Object value = java.lang.reflect.Modifier.isStatic(field.getModifiers()) ? field.get(null) : null;
+					assertThat(String.valueOf(value)).as(name + "." + field.getName())
+							.doesNotContain("com.example.fixtures.HiddenFixture");
+				}
+			}
+		}
+	}
+
+	/**
+	 * Runs one class with only one hook registered, on a copy of the generated
+	 * output and its registration without the visibility hook.
+	 *
+	 * @param target    where the copy goes.
+	 * @param className the class to run.
+	 * @param hook      the one hook to register.
+	 * @return the results
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static EngineExecutionResults runWithout(Path target, String className, String hook) throws Exception {
+		Path classes = target.resolve("classes");
+		Path registration = target.resolve("resources");
+		copyWithoutVisibility(compiled, classes);
+		copyWithoutVisibility(resources, registration);
+		Path services = registration.resolve("META-INF/services/org.junit.jupiter.api.extension.Extension");
+		Files.write(services, Files.readAllLines(services).stream()
+				.filter(line -> !line.startsWith(GENERATED) || line.equals(hook)).toList());
+		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(classes, registration)),
+				Thread.currentThread().getContextClassLoader())) {
+			return GeneratedCodeRuns.runIn(loader, className, Locale.ENGLISH,
+					Map.of(GeneratedCodeRuns.AUTODETECTION, "true", GeneratedCodeRuns.AUTODETECTION_INCLUDE, hook));
+		}
+	}
+
+	/**
+	 * Copies a folder, leaving out every file of the visibility hook.
+	 *
+	 * @param from the folder to copy.
+	 * @param to   where the copy goes.
+	 * @throws IOException if copying fails
+	 */
+	private static void copyWithoutVisibility(Path from, Path to) throws IOException {
+		try (java.util.stream.Stream<Path> files = Files.walk(from)) {
+			for (Path file : files.filter(Files::isRegularFile).toList()) {
+				if (!file.getFileName().toString().startsWith("GeneratedHiddenTests")) {
+					Path copy = to.resolve(from.relativize(file).toString());
+					Files.createDirectories(copy.getParent());
+					Files.copy(file, copy);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Runs one fixture with one hook and the lookalike visibility hook first on the
+	 * class path, and checks that the run finished with one failure.
+	 *
+	 * @param probe     where the probe is compiled.
+	 * @param className the fixture class.
+	 * @param hooks     the hook to load.
+	 * @throws Exception if compiling or starting the JVM fails
+	 */
+	private static void assertLookalikeIgnored(Path probe, String className, String hooks) throws Exception {
+		Process process = startInOwnJvm(compileProbe(probe), className, false, hooks, lookalikeVisibility);
+		try {
+			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
+			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			assertThat(output).as(output).contains(PROBE_DONE).containsOnlyOnce(PROBE_FAILURE);
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
+	/**
+	 * Output a hidden test leaves unfinished fails the test without showing it, in
+	 * either registration order.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void unfinishedHiddenOutputFailsSilently(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenUnflushedFixture", reversed));
+		assertThat(captured.results().testEvents().failed().count()).isEqualTo(1);
+		assertThat(messages(captured.results())).containsExactly("");
+		assertThat(captured.output()).doesNotContain("SECRET_UNFLUSHED");
+	}
+
+	/**
+	 * A run's results with what it printed to standard output.
+	 *
+	 * @param results the run's results.
+	 * @param output  what it printed.
+	 */
+	private record Captured(EngineExecutionResults results, String output) {
+	}
+
+	/**
+	 * Runs something while capturing standard output.
+	 *
+	 * @param run the run.
+	 * @return its results and output
+	 * @throws Exception if the run fails to start
+	 */
+	private static Captured captured(Callable<EngineExecutionResults> run) throws Exception {
+		PrintStream previousOut = System.out;
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+			System.setOut(capture);
+			EngineExecutionResults results = run.call();
+			return new Captured(results, output.toString(StandardCharsets.UTF_8));
+		} finally {
+			System.setOut(previousOut);
+		}
+	}
+
+	/** One registration names all four hooks. */
+	@Test
+	void oneRegistrationLoadsAllFourHooks() {
+		assertThat(include).contains(GENERATED + "GeneratedStrictTimeout")
+				.contains(GENERATED + "GeneratedOutputMirroring").contains(GENERATED + "GeneratedFailureReporting")
+				.contains(GENERATED + "GeneratedHiddenTests");
+	}
+
+	/**
+	 * Every sentinel passes, so every hook ran.
+	 *
+	 * @param sentinel the sentinel's simple name.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "GeneratedStrictTimeoutSentinelTest", "GeneratedOutputMirroringSentinelTest",
+			"GeneratedFailureReportingSentinelTest", "GeneratedHiddenTestsSentinelTest" })
+	void everySentinelPasses(String sentinel) throws Exception {
+		EngineExecutionResults results = run(GENERATED + sentinel);
+		assertThat(results.testEvents().failed().count()).isZero();
+		assertThat(results.testEvents().succeeded().count()).isPositive();
+	}
+
+	/**
+	 * A hidden failure stays failed with no text or output, although every other
+	 * hook also handles it.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aHiddenFailureStaysSilent() throws Exception {
+		PrintStream previousOut = System.out;
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		EngineExecutionResults results;
+		try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+			System.setOut(capture);
+			results = run("com.example.fixtures.HiddenFixture");
+		} finally {
+			System.setOut(previousOut);
+		}
+		assertThat(results.testEvents().failed().count()).isEqualTo(1);
+		assertThat(messages(results)).allMatch(message -> !message.contains("SECRET_ALL_HOOKS"));
+		assertThat(output.toString(StandardCharsets.UTF_8)).doesNotContain("SECRET_ALL_HOOKS");
+	}
+
+	/**
+	 * A public failure that is not a blocked action keeps its text: the feedback
+	 * level touches only blocked actions.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aPublicFailureKeepsItsText() throws Exception {
+		assertThat(messages(run("com.example.fixtures.PublicFixture"))).containsExactly("visible");
+	}
+
+	/**
+	 * Runs one class in a nested JUnit session on the generated output.
+	 *
+	 * @param className the class to run.
+	 * @return the results.
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static EngineExecutionResults run(String className) throws Exception {
+		return run(className, false);
+	}
+
+	/**
+	 * Runs one class in a nested JUnit session on the generated output, with the
+	 * hooks registered in their generated or the reversed order.
+	 *
+	 * @param className the class to run.
+	 * @param reversed  whether the hooks are registered the other way round.
+	 * @param extra     further class folders to load from.
+	 * @return the results.
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static EngineExecutionResults run(String className, boolean reversed, Path... extra) throws Exception {
+		List<Path> roots = new ArrayList<>(List.of(compiled, reversed ? reversedResources : resources));
+		roots.addAll(Arrays.asList(extra));
+		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(roots),
+				Thread.currentThread().getContextClassLoader())) {
+			return GeneratedCodeRuns.runIn(loader, className, Locale.ENGLISH,
+					Map.of(GeneratedCodeRuns.AUTODETECTION, "true", GeneratedCodeRuns.AUTODETECTION_INCLUDE, include));
+		}
+	}
+
+	/** Printed by the probe before each failure message. */
+	private static final String PROBE_FAILURE = "ares.probe.failure=";
+
+	/** Printed by the probe once the run has finished. */
+	private static final String PROBE_DONE = "ares.probe.done";
+
+	/**
+	 * Compiles a probe that runs one fixture class through JUnit with the generated
+	 * hooks and prints each failure message.
+	 *
+	 * @param root the probe's folder.
+	 * @return the compiled probe's folder
+	 * @throws IOException if writing or compiling fails
+	 */
+	private static Path compileProbe(Path root) throws IOException {
+		Path sources = Files.createDirectories(root.resolve("sources/com/example/probe"));
+		Files.writeString(sources.resolve("HooksProbe.java"),
+				"""
+						package com.example.probe;
+
+						import org.junit.platform.engine.TestExecutionResult;
+						import org.junit.platform.engine.discovery.DiscoverySelectors;
+						import org.junit.platform.testkit.engine.EngineTestKit;
+
+						public final class HooksProbe {
+							public static void main(String[] arguments) {
+								EngineTestKit.engine("junit-jupiter").selectors(DiscoverySelectors.selectClass(arguments[0]))
+										.configurationParameter("%s", "true").configurationParameter("%s", arguments[1])
+										.execute().testEvents().failed().stream()
+										.map(event -> event.getPayload(TestExecutionResult.class)
+												.flatMap(TestExecutionResult::getThrowable).map(HooksProbe::rendered).orElse(""))
+										.forEach(message -> System.out.println("%s" + message));
+								System.out.println("%s");
+								System.exit(0);
+							}
+
+							private static String rendered(Throwable failure) {
+								failure.printStackTrace(new java.io.PrintWriter(new java.io.StringWriter()));
+								return failure.getMessage();
+							}
+						}
+						"""
+						.formatted(GeneratedCodeRuns.AUTODETECTION, GeneratedCodeRuns.AUTODETECTION_INCLUDE,
+								PROBE_FAILURE, PROBE_DONE));
+		Path classes = Files.createDirectories(root.resolve("classes"));
+		compile(classes, List.of(root.resolve("sources")));
+		return classes;
+	}
+
+	/**
+	 * Runs one fixture class in a JVM of its own and returns its failure messages,
+	 * failing if that JVM does not finish in time.
+	 *
+	 * @param probeClasses the compiled probe.
+	 * @param className    the fixture class.
+	 * @param reversed     whether the hooks are registered the other way round.
+	 * @return the failure messages
+	 * @throws Exception if the JVM cannot be started
+	 */
+	private static List<String> runInOwnJvm(Path probeClasses, String className, boolean reversed) throws Exception {
+		return runInOwnJvm(probeClasses, className, reversed, include);
+	}
+
+	/**
+	 * Runs one fixture class in a JVM of its own with only the hooks a pattern
+	 * names, printing each failure as a build tool would, and returns its failure
+	 * messages.
+	 *
+	 * @param probeClasses the compiled probe.
+	 * @param className    the fixture class.
+	 * @param reversed     whether the hooks are registered the other way round.
+	 * @param hooks        the hooks to load, as JUnit's autodetection pattern.
+	 * @return the failure messages
+	 * @throws Exception if the JVM cannot be started
+	 */
+	private static List<String> runInOwnJvm(Path probeClasses, String className, boolean reversed, String hooks)
+			throws Exception {
+		Process process = startInOwnJvm(probeClasses, className, reversed, hooks);
+		try {
+			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
+			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			assertThat(output).as(output).contains(PROBE_DONE);
+			return output.lines().filter(line -> line.startsWith(PROBE_FAILURE))
+					.map(line -> line.substring(PROBE_FAILURE.length())).toList();
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
+	/**
+	 * Runs one fixture class in a JVM of its own with only the hooks a pattern
+	 * names and returns that JVM's exit code, failing if it does not end in time.
+	 *
+	 * @param probeClasses the compiled probe.
+	 * @param className    the fixture class.
+	 * @param hooks        the hooks to load, as JUnit's autodetection pattern.
+	 * @return the exit code
+	 * @throws Exception if the JVM cannot be started
+	 */
+	private static int exitCodeInOwnJvm(Path probeClasses, String className, String hooks) throws Exception {
+		Process process = startInOwnJvm(probeClasses, className, false, hooks);
+		try {
+			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe ended").isTrue();
+			return process.exitValue();
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
+	/**
+	 * Starts the probe on one fixture class in a JVM of its own.
+	 *
+	 * @param probeClasses the compiled probe.
+	 * @param className    the fixture class.
+	 * @param reversed     whether the hooks are registered the other way round.
+	 * @param hooks        the hooks to load, as JUnit's autodetection pattern.
+	 * @param first        class folders placed before the generated output.
+	 * @return the started process
+	 * @throws IOException if the JVM cannot be started
+	 */
+	private static Process startInOwnJvm(Path probeClasses, String className, boolean reversed, String hooks,
+			Path... first) throws IOException {
+		List<String> entries = new ArrayList<>(Arrays.stream(first).map(Path::toString).toList());
+		entries.addAll(List.of(compiled.toString(), (reversed ? reversedResources : resources).toString(),
+				probeClasses.toString(),
+				System.getProperty("surefire.test.class.path", System.getProperty("java.class.path"))));
+		String classPath = String.join(File.pathSeparator, entries);
+		return new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", classPath,
+				"com.example.probe.HooksProbe", className, hooks).redirectErrorStream(true).start();
+	}
+
+	/**
+	 * The failure messages of a run.
+	 *
+	 * @param results the run's results.
+	 * @return the messages, empty text for none.
+	 */
+	private static List<String> messages(EngineExecutionResults results) {
+		return results.testEvents().failed().stream().map(GeneratedAllHooksTest::messageOf).toList();
+	}
+
+	/**
+	 * The failure message of an event.
+	 *
+	 * @param event the event.
+	 * @return the message, empty text for none.
+	 */
+	private static String messageOf(Event event) {
+		return GeneratedCodeRuns.messageOf(event);
+	}
+
+	/**
+	 * Writes a fixture test class.
+	 *
+	 * @param folder the fixture folder.
+	 * @param name   the class name.
+	 * @param body   the class body.
+	 * @throws IOException if writing fails
+	 */
+	private static void fixture(Path folder, String name, String body) throws IOException {
+		Files.writeString(folder.resolve(name + ".java"), """
+				package com.example.fixtures;
+
+				import org.junit.jupiter.api.*;
+
+				class %s {
+					%s
+				}
+				""".formatted(name, body));
+	}
+
+	/**
+	 * Compiles source folders and single files.
+	 *
+	 * @param output      the class output.
+	 * @param folders     the folders to compile.
+	 * @param singleFiles further files.
+	 * @throws IOException if compiling fails
+	 */
+	private static void compile(Path output, List<Path> folders, Path... singleFiles) throws IOException {
+		GeneratedCodeRuns.compile(output, folders, singleFiles);
+	}
+}

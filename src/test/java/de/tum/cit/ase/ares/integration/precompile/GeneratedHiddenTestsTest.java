@@ -1,0 +1,1036 @@
+package de.tum.cit.ase.ares.integration.precompile;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.concurrent.Callable;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.platform.testkit.engine.EngineExecutionResults;
+
+import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
+import de.tum.cit.ase.ares.testutilities.GeneratedCodeRuns;
+
+/**
+ * Runs the hidden-test hook a precompile run generates, end to end: the real
+ * generator writes it into projects whose policies put the deadline in the
+ * past, in the future, or ahead of an always-run-before date, some hiding
+ * unlisted tests, the output is compiled with fixture tests, and nested JUnit
+ * runs show hidden tests held back and their failures hidden on every path
+ * {@code @HiddenTest} covers, and public tests left alone.
+ */
+class GeneratedHiddenTestsTest {
+
+	/** The generated extension's sentinel test. */
+	private static final String SENTINEL = "de.tum.cit.ase.ares.generated.GeneratedHiddenTestsSentinelTest";
+
+	/** The entries every policy of this class lists. */
+	private static final List<String> HIDDEN = List.of("com.example.fixtures.MethodFixture",
+			"com.example.fixtures.TemplateFixture", "com.example.fixtures.FactoryFixture",
+			"com.example.fixtures.LifecycleFixture", "com.example.fixtures.ConstructorFixture",
+			"com.example.fixtures.ForgedFixture", "com.example.fixtures.Outer", "com.example.fixtures.Nesting.Inner",
+			"com.example.fixtures.Methods#listed", "com.example.fixtures.Shown", "com.example.fixtures.Inherits#glides",
+			"com.example.fixtures.MixedFixture#secret", "com.example.fixtures.DivingBase#dives",
+			"com.example.fixtures.SourcedFixture");
+
+	/** The public entries of the policies that do not hide unlisted tests. */
+	private static final List<String> PUBLIC = List.of("com.example.fixtures.Shown#shown");
+
+	/** The hidden entries of the policies that hide unlisted tests. */
+	private static final List<String> VISIBILITY_HIDDEN = List.of("com.example.fixtures.Shown#secret");
+
+	/** The public entries of the policies that hide unlisted tests. */
+	private static final List<String> VISIBILITY_PUBLIC = List.of("com.example.fixtures.Shown",
+			"com.example.fixtures.Layered.Inner");
+
+	/**
+	 * The generated ArchUnit security test class of the {@code com.example}
+	 * exercise.
+	 */
+	private static final String ARCHUNIT_TEST = "com.example.ares.api.architecture.java.archunit.JavaArchunitTestCase";
+
+	/**
+	 * The generated WALA security test class of the {@code com.example} exercise.
+	 */
+	private static final String WALA_TEST = "com.example.ares.api.architecture.java.wala.JavaWalaTestCase";
+
+	/** The projects shared by every test of this class. */
+	@TempDir
+	static Path tempDir;
+
+	/** Generated code and fixtures, from a policy whose deadline has passed. */
+	private static Path past;
+
+	/** Generated code and fixtures, from a policy whose deadline lies ahead. */
+	private static Path future;
+
+	/**
+	 * Generated code and fixtures, from a policy still before its always-run date.
+	 */
+	private static Path active;
+
+	/**
+	 * A settings class with a passed deadline and no list, as a student could
+	 * replace it.
+	 */
+	private static Path shadowSettings;
+
+	/** A project whose hidden list is too long for one generated literal. */
+	private static Path longFuture;
+
+	/**
+	 * The long project's settings class, replaced with a passed deadline and empty
+	 * lists.
+	 */
+	private static Path longShadowSettings;
+
+	/**
+	 * Generated code and fixtures, from a policy hiding unlisted tests whose
+	 * deadline lies ahead.
+	 */
+	private static Path visibility;
+
+	/**
+	 * Generated code and fixtures, from a policy hiding unlisted tests whose
+	 * deadline has passed.
+	 */
+	private static Path visibilityPast;
+
+	/**
+	 * A settings class saying unlisted tests are not hidden, as a student could
+	 * replace it.
+	 */
+	private static Path shadowVisibility;
+
+	/** The resources of the future project, holding the bundles. */
+	private static Path resources;
+
+	/**
+	 * The include value the generator wrote into {@code junit-platform.properties}.
+	 */
+	private static String include;
+
+	/**
+	 * Generates the precompile output for three policies and compiles each with the
+	 * fixtures.
+	 *
+	 * @throws IOException if writing or compiling fails
+	 */
+	@BeforeAll
+	static void generateAndCompile() throws IOException {
+		past = compileProject("past",
+				generate("past", policyText("2000-01-01 00:00 UTC", null, false, HIDDEN, PUBLIC)));
+		Path futureSources = generate("future", policyText("2200-01-01 00:00 UTC", null, false, HIDDEN, PUBLIC));
+		future = compileProject("future", futureSources);
+		active = compileProject("active",
+				generate("active", policyText("2200-01-01 00:00 UTC", "2199-01-01 00:00 UTC", false, HIDDEN, PUBLIC)));
+		Path visibilitySources = generate("visibility",
+				policyText("2200-01-01 00:00 UTC", null, true, VISIBILITY_HIDDEN, VISIBILITY_PUBLIC));
+		visibility = compileProject("visibility", visibilitySources);
+		visibilityPast = compileProject("visibility-past", generate("visibility-past",
+				policyText("2000-01-01 00:00 UTC", null, true, VISIBILITY_HIDDEN, VISIBILITY_PUBLIC)));
+		compileArchitectureStandIns(visibility);
+		resources = futureSources.resolveSibling("resources");
+		include = Files.readAllLines(resources.resolve("junit-platform.properties")).stream()
+				.filter(line -> line.startsWith("junit.jupiter.extensions.autodetection.include="))
+				.map(line -> line.substring(line.indexOf('=') + 1)).findFirst().orElseThrow();
+		shadowSettings = Files.createDirectories(tempDir.resolve("shadow"));
+		Path shadowSource = Files.createDirectories(tempDir.resolve("shadow-source/de/tum/cit/ase/ares/generated"))
+				.resolve("GeneratedTestBehaviorSettings.java");
+		String settings = Files
+				.readString(futureSources.resolve("de/tum/cit/ase/ares/generated/GeneratedTestBehaviorSettings.java"));
+		Files.writeString(shadowSource, settings.replaceAll("THE_DEADLINE = -?\\d+L;", "THE_DEADLINE = 0L;")
+				.replaceAll("THE_FOLLOWING_TESTS_ARE_HIDDEN = \"[^\"]*\";", "THE_FOLLOWING_TESTS_ARE_HIDDEN = \"\";"));
+		compile(shadowSettings, List.of(), shadowSource);
+		List<String> longHidden = new ArrayList<>(HIDDEN);
+		while (String.join("\n", longHidden).length() <= 45_000) {
+			longHidden.add(HIDDEN.get(0));
+		}
+		Path longSources = generate("long-future", policyText("2200-01-01 00:00 UTC", null, false, longHidden, PUBLIC));
+		longFuture = compileProject("long-future", longSources);
+		longShadowSettings = Files.createDirectories(tempDir.resolve("long-shadow"));
+		Path longShadowSource = Files
+				.createDirectories(tempDir.resolve("long-shadow-source/de/tum/cit/ase/ares/generated"))
+				.resolve("GeneratedTestBehaviorSettings.java");
+		String longSettings = Files
+				.readString(longSources.resolve("de/tum/cit/ase/ares/generated/GeneratedTestBehaviorSettings.java"));
+		assertThat(Files.readString(longSources.resolve("de/tum/cit/ase/ares/generated/GeneratedHiddenTests.java")))
+				.as("the long list must be joined from several literals").contains("HIDDEN = List.of((String.join(");
+		Files.writeString(longShadowSource,
+				longSettings.replaceAll("THE_DEADLINE = -?\\d+L;", "THE_DEADLINE = 0L;").replaceAll(
+						"THE_FOLLOWING_TESTS_ARE_HIDDEN(_PART_\\d+)? = (\"[^\"]*\"|String\\.join\\([^;]*\\));",
+						"THE_FOLLOWING_TESTS_ARE_HIDDEN$1 = \"\";"));
+		compile(longShadowSettings, List.of(), longShadowSource);
+		shadowVisibility = Files.createDirectories(tempDir.resolve("shadow-visibility"));
+		Path shadowVisibilitySource = Files
+				.createDirectories(tempDir.resolve("shadow-visibility-source/de/tum/cit/ase/ares/generated"))
+				.resolve("GeneratedTestBehaviorSettings.java");
+		String visibilitySettings = Files.readString(
+				visibilitySources.resolve("de/tum/cit/ase/ares/generated/GeneratedTestBehaviorSettings.java"));
+		Files.writeString(shadowVisibilitySource, visibilitySettings.replace("TESTS_NOT_LISTED_HERE_ARE_HIDDEN = true;",
+				"TESTS_NOT_LISTED_HERE_ARE_HIDDEN = false;"));
+		compile(shadowVisibility, List.of(), shadowVisibilitySource);
+	}
+
+	/**
+	 * Before the deadline, a listed test method fails with the localised message
+	 * and does not run.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aListedTestIsHeldBackBeforeTheDeadline() throws Exception {
+		assertThat(failureMessages(run(future, "MethodFixture", Locale.ENGLISH))).hasSize(3)
+				.allMatch(beforeDeadline(Locale.ENGLISH)::equals);
+	}
+
+	/**
+	 * The before-deadline message is localised.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void theBeforeDeadlineMessageIsLocalised() throws Exception {
+		assertThat(failureMessages(run(future, "MethodFixture", Locale.GERMAN))).hasSize(3)
+				.allMatch(beforeDeadline(Locale.GERMAN)::equals);
+	}
+
+	/**
+	 * A listed test template is skipped as a whole before the deadline, with the
+	 * localised message.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aListedTemplateIsHeldBack() throws Exception {
+		EngineExecutionResults results = run(future, "TemplateFixture", Locale.ENGLISH);
+		assertThat(failureMessages(results)).isEmpty();
+		assertThat(skipReasons(results)).containsExactly(beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * Before the deadline, a listed parameterised test's argument source never
+	 * runs, so neither its output nor its failure reaches the report.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aHiddenTemplatesArgumentSourceDoesNotRunBeforeTheDeadline() throws Exception {
+		Captured captured = captured(() -> run(future, "SourcedFixture", Locale.ENGLISH));
+		assertThat(failureMessages(captured.results())).isEmpty();
+		assertThat(skipReasons(captured.results())).containsExactly(beforeDeadline(Locale.ENGLISH));
+		assertThat(captured.output()).doesNotContain("SECRET_GENERATED_SOURCE");
+	}
+
+	/**
+	 * After the deadline a listed parameterised test runs, its argument source
+	 * included. The source runs before the extension can watch it, so its output
+	 * and failure text reach the report, as the manual states.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aHiddenTemplatesArgumentSourceRunsAfterTheDeadline() throws Exception {
+		Captured captured = captured(() -> run(past, "SourcedFixture", Locale.ENGLISH));
+		assertThat(skipReasons(captured.results())).isEmpty();
+		assertThat(captured.results().containerEvents().failed().count()).isEqualTo(1);
+		assertThat(failureMessages(captured.results())).containsExactly("SECRET_GENERATED_SOURCE");
+		assertThat(captured.output()).contains("SECRET_GENERATED_SOURCE");
+	}
+
+	/**
+	 * A listed test factory is held back before it produces any dynamic test.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aListedFactoryIsHeldBack() throws Exception {
+		assertThat(failureMessages(run(future, "FactoryFixture", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * A class entry covers the listed class's nested classes, and a canonical
+	 * nested entry covers that nested class only.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void nestedClassesFollowTheirEntries() throws Exception {
+		assertThat(failureMessages(run(future, "Outer", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
+		EngineExecutionResults nesting = run(future, "Nesting", Locale.ENGLISH);
+		assertThat(failureMessages(nesting)).containsExactly(beforeDeadline(Locale.ENGLISH));
+		assertThat(nesting.testEvents().succeeded().count()).isEqualTo(1);
+	}
+
+	/**
+	 * Only the listed method of a class is held back.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void onlyTheListedMethodIsHeldBack() throws Exception {
+		assertThat(failureMessages(run(future, "Methods", Locale.ENGLISH)))
+				.containsExactlyInAnyOrder(beforeDeadline(Locale.ENGLISH), "visible");
+	}
+
+	/**
+	 * After the deadline ordinary hidden failures stay failed without details,
+	 * while a hidden abort keeps its aborted status.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void afterTheDeadlineFailuresAreHidden() throws Exception {
+		EngineExecutionResults results = run(past, "MethodFixture", Locale.ENGLISH);
+
+		assertThat(results.testEvents().succeeded().count()).isEqualTo(1);
+		assertThat(results.testEvents().aborted().count()).isEqualTo(1);
+		assertThat(failureMessages(results)).containsExactly("");
+	}
+
+	/**
+	 * After the deadline, template invocations and dynamic tests hide their
+	 * failures too.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void templatesAndDynamicTestsHideTheirFailures() throws Exception {
+		assertThat(failureMessages(run(past, "TemplateFixture", Locale.ENGLISH))).hasSize(2)
+				.allMatch(hiddenFailure()::equals);
+		assertThat(failureMessages(run(past, "FactoryFixture", Locale.ENGLISH))).containsExactly(hiddenFailure());
+	}
+
+	/**
+	 * A student error that imitates an Ares message is hidden all the same.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aForgedAresMessageIsHidden() throws Exception {
+		assertThat(failureMessages(run(past, "ForgedFixture", Locale.ENGLISH))).containsExactly(hiddenFailure());
+	}
+
+	/**
+	 * Before the always-run-before date a listed test runs despite a future
+	 * deadline.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void theAlwaysRunBeforeDateReleasesListedTests() throws Exception {
+		assertThat(run(active, "MethodFixture", Locale.ENGLISH).testEvents().succeeded().count()).isEqualTo(1);
+	}
+
+	/**
+	 * An unlisted test is neither held back nor hidden.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void anUnlistedTestIsLeftAlone() throws Exception {
+		assertThat(failureMessages(run(future, "UnlistedFixture", Locale.ENGLISH))).containsExactly("visible");
+	}
+
+	/**
+	 * Constructor and lifecycle failures of a hidden class expose no message.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void hiddenLifecycleAndConstructorsAreOpaque() throws Exception {
+		assertThat(failureMessages(run(future, "ConstructorFixture", Locale.ENGLISH))).containsExactly("");
+		assertThat(failureMessages(run(past, "LifecycleFixture", Locale.ENGLISH))).containsExactly("");
+		assertThat(failureMessages(run(past, "ConstructorFixture", Locale.ENGLISH))).containsExactly("");
+	}
+
+	/**
+	 * Before the deadline, a hidden test's own setup does not run either: the test
+	 * reports only that it is held back, not the setup's failure.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aHiddenTestsSetupIsHeldBackBeforeTheDeadline() throws Exception {
+		assertThat(failureMessages(run(future, "LifecycleFixture", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * Hidden test, constructor, and lifecycle output is absent from both streams.
+	 */
+	@Test
+	void hiddenStreamsAreAbsentAcrossPaths() throws Exception {
+		PrintStream previousOut = System.out;
+		PrintStream previousErr = System.err;
+		ByteArrayOutputStream captured = new ByteArrayOutputStream();
+		PrintStream sink = new PrintStream(captured, true, StandardCharsets.UTF_8);
+		try {
+			System.setOut(sink);
+			System.setErr(sink);
+			run(past, "MethodFixture", Locale.ENGLISH);
+			run(past, "LifecycleFixture", Locale.ENGLISH);
+			run(past, "ConstructorFixture", Locale.ENGLISH);
+			run(past, "MixedFixture", Locale.ENGLISH);
+		} finally {
+			System.setOut(previousOut);
+			System.setErr(previousErr);
+			sink.close();
+		}
+		assertThat(captured.toString(StandardCharsets.UTF_8)).contains("VISIBLE_GENERATED_MIXED")
+				.doesNotContain("SECRET_GENERATED_");
+	}
+
+	/**
+	 * The sentinel passes when the extension intercepted it.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void theSentinelPassesWithTheExtension() throws Exception {
+		assertThat(run(future, SENTINEL, Locale.ENGLISH).testEvents().succeeded().count()).isEqualTo(1);
+	}
+
+	/**
+	 * The sentinel fails when JUnit does not load the extension.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void theSentinelFailsWithoutTheExtension() throws Exception {
+		EngineExecutionResults results = run(List.of(future), SENTINEL, Locale.ENGLISH,
+				Map.of("junit.jupiter.extensions.autodetection.enabled", "false"));
+
+		assertThat(failureMessages(results)).singleElement().asString().contains("not active");
+	}
+
+	/**
+	 * A sentinel that passed once does not pass again in the same class loader once
+	 * the extension is gone, since it needs evidence from its own run.
+	 *
+	 * @throws Exception if the runs cannot be set up
+	 */
+	@Test
+	void theSentinelNeedsEvidenceFromItsOwnRun() throws Exception {
+		ClassLoader originalLoader = Thread.currentThread().getContextClassLoader();
+		try (URLClassLoader loader = new URLClassLoader(classPath(List.of(future)), originalLoader)) {
+			assertThat(runIn(loader, SENTINEL, Locale.ENGLISH, Map.of()).testEvents().succeeded().count()).isEqualTo(1);
+
+			EngineExecutionResults withoutExtension = runIn(loader, SENTINEL, Locale.ENGLISH,
+					Map.of("junit.jupiter.extensions.autodetection.enabled", "false"));
+
+			assertThat(failureMessages(withoutExtension)).singleElement().asString().contains("not active");
+		}
+	}
+
+	/** A parallel configuration fails before any hidden test body can run. */
+	@Test
+	void parallelExecutionIsRejectedBeforeHiddenTestsRun() throws Exception {
+		EngineExecutionResults results = run(List.of(past), "com.example.fixtures.MethodFixture", Locale.ENGLISH,
+				Map.of("junit.jupiter.execution.parallel.enabled", "true"));
+		assertThat(results.testEvents().started().count()).isZero();
+		assertThat(results.containerEvents().failed().count()).isPositive();
+	}
+
+	/**
+	 * Under a policy that hides unlisted tests, an unlisted test is held back
+	 * before the deadline on the method, template and factory paths.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void underUnlistedHiddenAnUnlistedTestIsHeldBack() throws Exception {
+		assertThat(failureMessages(run(visibility, "UnlistedFixture", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
+		assertThat(failureMessages(run(visibility, "MethodFixture", Locale.ENGLISH))).hasSize(3)
+				.allMatch(beforeDeadline(Locale.ENGLISH)::equals);
+		assertThat(skipReasons(run(visibility, "TemplateFixture", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
+		assertThat(failureMessages(run(visibility, "FactoryFixture", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * Under a policy that hides unlisted tests, after the deadline an unlisted
+	 * test's failures are hidden, dynamic tests and aborted tests included.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void underUnlistedHiddenAnUnlistedTestsFailuresAreHidden() throws Exception {
+		assertThat(failureMessages(run(visibilityPast, "MethodFixture", Locale.ENGLISH))).containsExactly("");
+		assertThat(failureMessages(run(visibilityPast, "FactoryFixture", Locale.ENGLISH)))
+				.containsExactly(hiddenFailure());
+	}
+
+	/**
+	 * A test on the public list runs and shows its real failure, while a method
+	 * entry on the hidden list wins over its class's public entry.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aPublicTestRunsAndShowsItsFailure() throws Exception {
+		assertThat(failureMessages(run(visibility, "Shown", Locale.ENGLISH))).containsExactlyInAnyOrder("visible",
+				beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * A public nested class wins over its enclosing class, which unlisted is
+	 * hidden.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aPublicNestedClassWinsOverItsHiddenEnclosingClass() throws Exception {
+		assertThat(failureMessages(run(visibility, "Layered", Locale.ENGLISH))).containsExactlyInAnyOrder("visible",
+				beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * Under a policy that does not hide unlisted tests, a public method entry wins
+	 * over its class's hidden entry.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aPublicMethodWinsOverItsHiddenClass() throws Exception {
+		assertThat(failureMessages(run(future, "Shown", Locale.ENGLISH))).containsExactlyInAnyOrder("visible",
+				beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * An interface default test method listed through the class inheriting it is
+	 * held back.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void anInheritedInterfaceDefaultMethodIsHeldBack() throws Exception {
+		assertThat(failureMessages(run(future, "Inherits", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * A test inherited from a superclass and listed through the class that declares
+	 * it is held back before the deadline and reports nothing after it, its setup
+	 * output included.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void anInheritedTestListedThroughItsDeclaringClassIsHidden() throws Exception {
+		PrintStream previousOut = System.out;
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		List<String> before;
+		List<String> after;
+		try (PrintStream sink = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+			System.setOut(sink);
+			before = failureMessages(run(future, "Dives", Locale.ENGLISH));
+			after = failureMessages(run(past, "Dives", Locale.ENGLISH));
+		} finally {
+			System.setOut(previousOut);
+		}
+		assertThat(before).containsExactly(beforeDeadline(Locale.ENGLISH));
+		assertThat(after).containsExactly(hiddenFailure());
+		assertThat(output.toString(StandardCharsets.UTF_8)).doesNotContain("SECRET_DIVING_SETUP");
+	}
+
+	/**
+	 * The sentinel passes under a policy that hides unlisted tests, since a
+	 * generated class is never hidden.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void theSentinelPassesWhenUnlistedTestsAreHidden() throws Exception {
+		assertThat(run(visibility, SENTINEL, Locale.ENGLISH).testEvents().succeeded().count()).isEqualTo(1);
+	}
+
+	/**
+	 * A class outside the reserved package named like the sentinel gets no
+	 * exemption: under a policy that hides unlisted tests it is held back.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aSentinelLookalikeOutsideTheReservedPackageIsHeldBack() throws Exception {
+		assertThat(failureMessages(run(visibility, "GeneratedHiddenTestsSentinelTest", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * A class in the generated package, beside the hook, that is not one of the
+	 * tests Ares generates gets no exemption: under a policy that hides unlisted
+	 * tests it is held back like any other.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aStudentClassInTheGeneratedPackageIsHeldBack() throws Exception {
+		assertThat(failureMessages(run(visibility, "de.tum.cit.ase.ares.generated.StudentTest", Locale.ENGLISH)))
+				.containsExactly(beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * The exercise's generated ArchUnit and WALA security tests run and report
+	 * their real failure under a policy that hides unlisted tests.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void theGeneratedArchitectureTestsAreNeverHidden() throws Exception {
+		assertThat(failureMessages(run(visibility, ARCHUNIT_TEST, Locale.ENGLISH)))
+				.containsExactly("architecture violation");
+		assertThat(failureMessages(run(visibility, WALA_TEST, Locale.ENGLISH)))
+				.containsExactly("architecture violation");
+	}
+
+	/**
+	 * Replacing the generated settings class so unlisted tests are not hidden
+	 * changes nothing: the extension carries the switch as a constant.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aReplacedSettingsClassCannotRevealUnlistedTests() throws Exception {
+		EngineExecutionResults results = run(List.of(shadowVisibility, visibility),
+				"com.example.fixtures.UnlistedFixture", Locale.ENGLISH, Map.of());
+
+		assertThat(failureMessages(results)).containsExactly(beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * Replacing the generated settings class with a passed deadline and an empty
+	 * list changes nothing: the extension carries the settings as constants.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aReplacedSettingsClassChangesNothing() throws Exception {
+		EngineExecutionResults results = run(List.of(shadowSettings, future), "com.example.fixtures.MethodFixture",
+				Locale.ENGLISH, Map.of());
+
+		assertThat(failureMessages(results)).hasSize(3).allMatch(beforeDeadline(Locale.ENGLISH)::equals);
+	}
+
+	/**
+	 * A hidden list too long for one literal is joined inside the extension, so
+	 * replacing the settings class with a passed deadline changes nothing either.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aReplacedSettingsClassChangesNothingForALongList() throws Exception {
+		EngineExecutionResults results = run(List.of(longShadowSettings, longFuture),
+				"com.example.fixtures.MethodFixture", Locale.ENGLISH, Map.of());
+
+		assertThat(failureMessages(results)).hasSize(3).allMatch(beforeDeadline(Locale.ENGLISH)::equals);
+	}
+
+	/**
+	 * Runs one fixture through a nested JUnit session.
+	 *
+	 * @param project the compiled project.
+	 * @param fixture the fixture's simple name, or a fully qualified class.
+	 * @param locale  the locale messages are shown in.
+	 * @return the session's results
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static EngineExecutionResults run(Path project, String fixture, Locale locale) throws Exception {
+		String className = fixture.contains(".") ? fixture : "com.example.fixtures." + fixture;
+		return run(List.of(project), className, locale, Map.of());
+	}
+
+	/**
+	 * Runs a class through a nested JUnit session with a fresh class loader.
+	 *
+	 * @param roots      the compiled class roots, first wins.
+	 * @param className  the class to run.
+	 * @param locale     the locale messages are shown in.
+	 * @param parameters further JUnit configuration parameters.
+	 * @return the session's results
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static EngineExecutionResults run(List<Path> roots, String className, Locale locale,
+			Map<String, String> parameters) throws Exception {
+		try (URLClassLoader loader = new URLClassLoader(classPath(roots),
+				Thread.currentThread().getContextClassLoader())) {
+			return runIn(loader, className, locale, parameters);
+		}
+	}
+
+	/**
+	 * Runs a class through a nested JUnit session in a given class loader.
+	 *
+	 * @param loader     the class loader to load the class from.
+	 * @param className  the class to run.
+	 * @param locale     the locale messages are shown in.
+	 * @param parameters further JUnit configuration parameters.
+	 * @return the session's results
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static EngineExecutionResults runIn(URLClassLoader loader, String className, Locale locale,
+			Map<String, String> parameters) throws Exception {
+		Map<String, String> all = new java.util.HashMap<>(parameters);
+		all.putIfAbsent(GeneratedCodeRuns.AUTODETECTION, "true");
+		all.putIfAbsent(GeneratedCodeRuns.AUTODETECTION_INCLUDE, include);
+		return GeneratedCodeRuns.runIn(loader, className, locale, all);
+	}
+
+	/**
+	 * The class path of a nested run: the compiled roots and the resources.
+	 *
+	 * @param roots the compiled class roots, first wins.
+	 * @return the class path entries
+	 * @throws IOException if a path cannot be turned into a URL
+	 */
+	private static URL[] classPath(List<Path> roots) throws IOException {
+		List<Path> entries = new ArrayList<>(roots);
+		entries.add(resources);
+		return GeneratedCodeRuns.classPath(entries);
+	}
+
+	/**
+	 * The before-deadline message for a locale.
+	 *
+	 * @param locale the locale.
+	 * @return the message
+	 */
+	private static String beforeDeadline(Locale locale) {
+		return bundle(locale).getString("test_guard.hidden_test_before_deadline_message");
+	}
+
+	/** The absence of a hidden-failure message in a generated result. */
+	private static String hiddenFailure() {
+		return "";
+	}
+
+	/**
+	 * The copied bundle for a locale.
+	 *
+	 * @param locale the locale.
+	 * @return the bundle
+	 */
+	private static ResourceBundle bundle(Locale locale) {
+		return ResourceBundle.getBundle("de.tum.cit.ase.ares.api.localization.messages", locale);
+	}
+
+	/**
+	 * The failure messages of every failed test and container of a run.
+	 *
+	 * @param results the run's results.
+	 * @return the messages
+	 */
+	private static List<String> failureMessages(EngineExecutionResults results) {
+		return GeneratedCodeRuns.failureMessages(results);
+	}
+
+	/**
+	 * The reasons of every skipped test and container of a run.
+	 *
+	 * @param results the run's results.
+	 * @return the reasons
+	 */
+	private static List<String> skipReasons(EngineExecutionResults results) {
+		return results.allEvents().skipped().stream().map(event -> event.getPayload(String.class).orElse("")).toList();
+	}
+
+	/**
+	 * Runs an action while both standard streams are captured.
+	 *
+	 * @param action the run.
+	 * @return the run's results and what it printed
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static Captured captured(Callable<EngineExecutionResults> action) throws Exception {
+		PrintStream previousOut = System.out;
+		PrintStream previousErr = System.err;
+		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+		PrintStream sink = new PrintStream(bytes, true, StandardCharsets.UTF_8);
+		try {
+			System.setOut(sink);
+			System.setErr(sink);
+			EngineExecutionResults results = action.call();
+			return new Captured(results, bytes.toString(StandardCharsets.UTF_8));
+		} finally {
+			System.setOut(previousOut);
+			System.setErr(previousErr);
+			sink.close();
+		}
+	}
+
+	/**
+	 * A run's results and what it printed.
+	 *
+	 * @param results the run's results.
+	 * @param output  what it printed on both standard streams.
+	 */
+	private record Captured(EngineExecutionResults results, String output) {
+	}
+
+	/**
+	 * Writes the fixtures into a fresh project, then runs the real generator on it.
+	 *
+	 * @param folder     the project's folder name.
+	 * @param policyText the project's policy.
+	 * @return the project's test source root
+	 * @throws IOException if the project cannot be created
+	 */
+	private static Path generate(String folder, String policyText) throws IOException {
+		Path project = Files.createDirectory(tempDir.resolve(folder));
+		Path policy = project.resolve("SecurityPolicy.yaml");
+		Files.writeString(policy, policyText);
+		Files.writeString(project.resolve("pom.xml"), "<project/>");
+		Files.createDirectories(project.resolve("src/main/java"));
+		Path testSources = Files.createDirectories(project.resolve("src/test/java"));
+		Files.createDirectories(project.resolve("target/classes"));
+		writeFixtures(testSources);
+		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy).projectFolderPath(project).build()
+				.createTestCases().writeTestCases(testSources);
+		return testSources;
+	}
+
+	/**
+	 * A policy for the {@code com.example} exercise listing this class's fixtures.
+	 *
+	 * @param deadline                    the deadline.
+	 * @param alwaysRunBefore             the always-run-before date, or null.
+	 * @param testsNotListedHereAreHidden whether unlisted tests are hidden.
+	 * @param hidden                      the hidden entries.
+	 * @param shown                       the public entries.
+	 * @return the policy text
+	 */
+	private static String policyText(String deadline, String alwaysRunBefore, boolean testsNotListedHereAreHidden,
+			List<String> hidden, List<String> shown) {
+		StringBuilder policy = new StringBuilder("""
+				thisPolicyFileCompliesToThePolicyVersion: 1
+				regardingTheSupervisedCode:
+				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+				  theSupervisedCodeUsesTheFollowingPackage: "com.example"
+				  theMainClassInsideThisPackageIs: "Main"
+				  theFollowingClassesAreTestClasses: []
+				  theFollowingResourceAccessesArePermitted:
+				    regardingFileSystemInteractions: []
+				    regardingNetworkConnections: []
+				    regardingCommandExecutions: []
+				    regardingThreadCreations: []
+				    regardingPackageImports: []
+				    regardingTimeouts: []
+				  theFollowingTestBehaviorIsConfigured:
+				    regardingTheVisibilityAndScheduleOfTheTestCases:
+				""");
+		policy.append("      theDeadlineIs: \"").append(deadline).append("\"\n");
+		if (alwaysRunBefore != null) {
+			policy.append("      theHiddenTestsAreRunBefore: \"").append(alwaysRunBefore).append("\"\n");
+		}
+		policy.append("      testsNotListedHereAreHidden: ").append(testsNotListedHereAreHidden).append('\n');
+		policy.append("      theFollowingTestsAreHidden:\n");
+		hidden.forEach(entry -> policy.append("        - \"").append(entry).append("\"\n"));
+		policy.append("      theFollowingTestsArePublic:\n");
+		shown.forEach(entry -> policy.append("        - \"").append(entry).append("\"\n"));
+		return policy.toString();
+	}
+
+	/**
+	 * Compiles one generated project, fixtures included.
+	 *
+	 * @param folder      the output folder's name.
+	 * @param testSources the project's test source root.
+	 * @return the output folder
+	 * @throws IOException if compiling fails
+	 */
+	private static Path compileProject(String folder, Path testSources) throws IOException {
+		Path output = Files.createDirectories(tempDir.resolve("compiled-" + folder));
+		compile(output, List.of(testSources.resolve("de/tum/cit/ase/ares/generated"),
+				testSources.resolve("com/example/ares/api/localization"), testSources.resolve("com/example/fixtures")),
+				testSources.resolve("com/example/ares/api/util/LruCache.java"));
+		return output;
+	}
+
+	/**
+	 * Writes the fixture tests, one per path and behaviour the extension must show.
+	 *
+	 * @param testSources the test source root to write them into.
+	 * @throws IOException if a file cannot be written
+	 */
+	private static void writeFixtures(Path testSources) throws IOException {
+		Path folder = Files.createDirectories(testSources.resolve("com/example/fixtures"));
+		String secret = "System.out.print(\"SECRET_GENERATED_BODY\"); throw new IllegalStateException(\"secret\");";
+		fixture(folder, "MethodFixture", "", "@Test void passes() {} @Test void fails() { " + secret
+				+ " } @Test void aborts() { Assumptions.abort(\"secret\"); }");
+		fixture(folder, "TemplateFixture", "",
+				"@org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(ints = { 1, 2 }) void each(int value) { "
+						+ secret + " }");
+		fixture(folder, "SourcedFixture",
+				"static java.util.stream.Stream<Integer> values() { System.out.print(\"SECRET_GENERATED_SOURCE\");"
+						+ " throw new IllegalStateException(\"SECRET_GENERATED_SOURCE\"); }",
+				"@org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.MethodSource(\"values\") void each(int value) { }");
+		fixture(folder, "FactoryFixture", "",
+				"@TestFactory java.util.List<DynamicTest> cases() { return java.util.List.of(DynamicTest.dynamicTest(\"case\", () -> { "
+						+ secret + " })); }");
+		fixture(folder, "LifecycleFixture",
+				"@BeforeEach void setUp() { System.err.print(\"SECRET_GENERATED_SETUP\"); throw new IllegalStateException(\"secret setup\"); }",
+				"@Test void test() {}");
+		fixture(folder, "ConstructorFixture",
+				"ConstructorFixture() { System.out.print(\"SECRET_GENERATED_CONSTRUCTOR\"); throw new IllegalStateException(\"secret constructor\"); }",
+				"@Test void test() {}");
+		fixture(folder, "ForgedFixture", "",
+				"@Test void forges() { throw new SecurityException(\"Ares Security Error (Reason: Student-Code; Stage: Execution): secret\"); }");
+		fixture(folder, "UnlistedFixture", "", "@Test void fails() { throw new IllegalStateException(\"visible\"); }");
+		fixture(folder, "Outer", "", "@Nested class Inner { @Test void deep() { " + secret + " } }");
+		fixture(folder, "Nesting", "@Test void top() {}",
+				"@Nested class Inner { @Test void deep() { " + secret + " } }");
+		fixture(folder, "Methods", "", "@Test void listed() { " + secret
+				+ " } @Test void unlisted() { throw new IllegalStateException(\"visible\"); }");
+		fixture(folder, "MixedFixture",
+				"MixedFixture() { System.out.print(\"SECRET_GENERATED_MIXED_CONSTRUCTOR\"); } @BeforeAll static void setup() { System.err.print(\"SECRET_GENERATED_MIXED_SETUP\"); } @AfterAll static void teardown() { System.err.print(\"SECRET_GENERATED_MIXED_TEARDOWN\"); }",
+				"@Test void publicTest() { System.out.print(\"VISIBLE_GENERATED_MIXED\"); } @Test void secret() { "
+						+ secret + " }");
+		fixture(folder, "Shown", "", "@Test void shown() { throw new IllegalStateException(\"visible\"); }"
+				+ " @Test void secret() { " + secret + " }");
+		fixture(folder, "Layered", "@Test void top() { " + secret + " }",
+				"@Nested class Inner { @Test void deep() { throw new IllegalStateException(\"visible\"); } }");
+		fixture(folder, "GeneratedHiddenTestsSentinelTest", "",
+				"@Test void hiddenTestsAreActive() { throw new IllegalStateException(\"visible\"); }");
+		Files.writeString(Files.createDirectories(testSources.resolve("de/tum/cit/ase/ares/generated"))
+				.resolve("StudentTest.java"), """
+						package de.tum.cit.ase.ares.generated;
+
+						import org.junit.jupiter.api.Test;
+
+						class StudentTest {
+							@Test
+							void fails() {
+								throw new IllegalStateException("visible");
+							}
+						}
+						""");
+		Files.writeString(folder.resolve("GlidingTests.java"), """
+				package com.example.fixtures;
+
+				import org.junit.jupiter.api.Test;
+
+				interface GlidingTests {
+					@Test
+					default void glides() {
+						throw new IllegalStateException("secret");
+					}
+				}
+				""");
+		Files.writeString(folder.resolve("Inherits.java"), """
+				package com.example.fixtures;
+
+				class Inherits implements GlidingTests {
+				}
+				""");
+		Files.writeString(folder.resolve("DivingBase.java"), """
+				package com.example.fixtures;
+
+				import org.junit.jupiter.api.BeforeEach;
+				import org.junit.jupiter.api.Test;
+
+				abstract class DivingBase {
+					@BeforeEach
+					void prepare() {
+						System.out.print("SECRET_DIVING_SETUP");
+					}
+
+					@Test
+					void dives() {
+						throw new IllegalStateException("secret");
+					}
+				}
+				""");
+		Files.writeString(folder.resolve("Dives.java"), """
+				package com.example.fixtures;
+
+				class Dives extends DivingBase {
+				}
+				""");
+	}
+
+	/**
+	 * Compiles stand-ins for the security tests Ares generates into the exercise,
+	 * under their exact names, into a compiled project. Each fails with a visible
+	 * text, so a run shows whether the hook left it alone.
+	 *
+	 * @param output the compiled project.
+	 * @throws IOException if writing or compiling fails
+	 */
+	private static void compileArchitectureStandIns(Path output) throws IOException {
+		Path sources = Files.createDirectories(tempDir.resolve("architecture-stand-ins"));
+		List<Path> files = new ArrayList<>();
+		for (String className : List.of(ARCHUNIT_TEST, WALA_TEST)) {
+			int lastDot = className.lastIndexOf('.');
+			Path file = Files.createDirectories(sources.resolve(className.substring(0, lastDot).replace('.', '/')))
+					.resolve(className.substring(lastDot + 1) + ".java");
+			Files.writeString(file, """
+					package %s;
+
+					import org.junit.jupiter.api.Test;
+
+					public class %s {
+						@Test
+						public void reflectionShouldNotBeAccessed() {
+							throw new IllegalStateException("architecture violation");
+						}
+					}
+					""".formatted(className.substring(0, lastDot), className.substring(lastDot + 1)));
+			files.add(file);
+		}
+		compile(output, List.of(), files.toArray(Path[]::new));
+	}
+
+	/**
+	 * Writes one JUnit fixture class.
+	 *
+	 * @param folder the fixtures' package folder.
+	 * @param name   the class's simple name.
+	 * @param setup  members to declare first, or an empty string.
+	 * @param test   the test members.
+	 * @throws IOException if the file cannot be written
+	 */
+	private static void fixture(Path folder, String name, String setup, String test) throws IOException {
+		Files.writeString(folder.resolve(name + ".java"), """
+				package com.example.fixtures;
+
+				import org.junit.jupiter.api.*;
+
+				class %s {
+					%s
+
+					%s
+				}
+				""".formatted(name, setup, test));
+	}
+
+	/**
+	 * Compiles every Java file below the given folders, plus single files, against
+	 * this test run's own classpath.
+	 *
+	 * @param output      the folder to compile into.
+	 * @param folders     folders whose Java files to compile.
+	 * @param singleFiles further files to compile.
+	 * @throws IOException if a folder cannot be listed or compiling fails
+	 */
+	private static void compile(Path output, List<Path> folders, Path... singleFiles) throws IOException {
+		GeneratedCodeRuns.compile(output, folders, singleFiles);
+	}
+}

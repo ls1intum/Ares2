@@ -744,7 +744,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		if (violation == null) {
 			return;
 		}
-		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
+		throw AresSecurityViolation.create("file", actionLabel, violation, localize("security.advice.illegal.file.execution", systemMethodToCheck,
 				actionLabel, violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
 						+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
 						+ buildDenialReason(noAllowRuleConfigured)));
@@ -864,8 +864,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		if (!isFilesMethod && count == 3 && (parameters[2] == null || parameters[2] instanceof File)) {
 			return parameters[2];
 		}
-		throw new SecurityException(localize("security.advice.file.system.malformed.temp.file.creation",
-				systemMethodToCheck, fullMethodSignature));
+		throw AresSecurityViolation.create(UNINSPECTABLE, "create", fullMethodSignature,
+				localize("security.advice.file.system.malformed.temp.file.creation", systemMethodToCheck,
+						fullMethodSignature));
 	}
 
 	/**
@@ -985,7 +986,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			return;
 		}
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
-		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck, "create",
+		throw AresSecurityViolation.create("file", "create", violation, localize("security.advice.illegal.file.execution", systemMethodToCheck, "create",
 				violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
 						+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
 						+ buildDenialReason(noAllowRuleConfigured)));
@@ -1713,7 +1714,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				boolean isExemptSystemFileAccess = !isClassLoaderAccess && !isSystemJarRead
 						&& isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughParameter);
 				if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess) {
-					throw new SecurityException(localize(
+					throw AresSecurityViolation.create("file", actionToCheck, illegallyInteractedThroughParameter, localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughParameter,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)
@@ -1738,7 +1739,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				}
 
 				if (!isInternalAllowed) {
-					throw new SecurityException(localize(
+					throw AresSecurityViolation.create("file", actionToCheck, illegallyInteractedThroughReceiver, localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughReceiver,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)
@@ -1772,7 +1773,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				}
 
 				if (!isInternalAllowed) {
-					throw new SecurityException(localize(
+					throw AresSecurityViolation.create("file", actionToCheck, illegallyInteractedThroughAttribute, localize(
 							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
 							illegallyInteractedThroughAttribute,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)

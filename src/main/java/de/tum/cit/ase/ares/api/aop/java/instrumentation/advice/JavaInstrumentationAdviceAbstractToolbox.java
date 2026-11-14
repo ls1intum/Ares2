@@ -704,20 +704,19 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 */
 	static void requireTrustedRuntimeType(@Nonnull Object value) {
 		ClassLoader loader = value.getClass().getClassLoader();
-		// Bootstrap (null) and platform class loaders only ever load JDK classes;
-		// user and student code is loaded by the application/system class loader,
-		// or by a child of it. A JDK-origin instance is safe to call overridable
-		// methods on, and this also trusts legitimate JDK subclasses that an
-		// exact-class check would wrongly reject, such as SSLSocketImpl extending
-		// java.net.Socket or the zipfs paths. Class.getClassLoader() is final and
-		// cannot be spoofed.
 		if (loader != null && loader != ClassLoader.getPlatformClassLoader()) {
-			throw new SecurityException(
+			String typeName = value.getClass().getName();
+			throw AresSecurityViolation.create(UNINSPECTABLE, "inspect", typeName,
 					"Ares Security Error (Reason: Student-Code; Stage: Execution): Ares cannot safely inspect an"
-							+ " argument of untrusted type " + value.getClass().getName()
-							+ " (not a JDK type) but was blocked by Ares.");
+							+ " argument of untrusted type " + typeName + " (not a JDK type) but was blocked by Ares.");
 		}
 	}
+
+	/**
+	 * The kind of a blocked action whose argument Ares refused to inspect, which no
+	 * policy entry can allow.
+	 */
+	static final String UNINSPECTABLE = "uninspectable";
 
 	/**
 	 * Finds the caller directly above the first method on the current call stack

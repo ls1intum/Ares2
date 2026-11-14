@@ -1,35 +1,102 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseToolbox;
 
 /**
- * Wraps the behavioural test-lifecycle settings a policy configures, parallel
- * to {@link ResourceAccesses} on {@link SupervisedCode}. Carries no category
- * yet; a behavioural-feature policy field is added here as its own record
- * component, one per feature.
+ * Wraps the behavioural settings a policy configures for its tests, parallel to
+ * {@link ResourceAccesses} on {@link SupervisedCode}. Every category is
+ * optional, and omitting one means that feature was never configured.
  *
  * @since 2.2.0
  * @author Luka Petrovic
+ * @param regardingTheStrictTimeoutForTheTestCases        the strict timeout;
+ *                                                        null when not
+ *                                                        configured.
+ * @param regardingTheOutputOfTheTestCases                the I/O manager and
+ *                                                        output settings; null
+ *                                                        when not configured.
+ * @param regardingTheFailureFeedbackForTheTestCases      what a failure shows;
+ *                                                        null when not
+ *                                                        configured.
+ * @param regardingTheVisibilityAndScheduleOfTheTestCases hidden tests and their
+ *                                                        deadline; null when
+ *                                                        not configured.
  */
-public record TestBehaviorConfiguration() {
+public record TestBehaviorConfiguration(@Nullable StrictTimeoutConfiguration regardingTheStrictTimeoutForTheTestCases,
+		@Nullable OutputConfiguration regardingTheOutputOfTheTestCases,
+		@Nullable FailureFeedbackConfiguration regardingTheFailureFeedbackForTheTestCases,
+		@Nullable VisibilityAndScheduleConfiguration regardingTheVisibilityAndScheduleOfTheTestCases) {
 
 	/**
-	 * Fully-qualified name of the generated, compiled class that carries this
-	 * configuration forward for a precompile deployment, as literal
-	 * {@code public static final} fields - the same way file/network/command/thread
-	 * permissions already reach enforcement code, so nothing re-reads or re-parses
-	 * a policy artefact at test-run time. A class under this exact name only exists
-	 * on the classpath once a category actually contributes a field to it.
+	 * Preserves the public empty configuration constructor for existing callers.
 	 */
-	public static final String GENERATED_CLASS_NAME = "de.tum.cit.ase.ares.api.policy.policySubComponents.GeneratedTestBehaviorSettings";
+	public TestBehaviorConfiguration() {
+		this(null, null, null, null);
+	}
+
+	/**
+	 * Fully-qualified name of the class a precompile run generates to carry this
+	 * configuration as literal constants. Its package is deliberately not one of
+	 * the packages inside the Ares JAR: those are sealed, so a class compiled into
+	 * the exercise could not be loaded there next to the JAR.
+	 */
+	public static final String GENERATED_CLASS_NAME = "de.tum.cit.ase.ares.generated.GeneratedTestBehaviorSettings";
+
+	/** Name of the generated field holding the timeout in nanoseconds. */
+	public static final String STRICT_TIMEOUT_TIMEOUT_FIELD_NAME = "REGARDING_THE_STRICT_TIMEOUT_THE_TIMEOUT_NANOS";
+
+	/**
+	 * Name of the generated field holding the grace period in nanoseconds,
+	 * {@value #NOT_CONFIGURED} when not configured.
+	 */
+	public static final String STRICT_TIMEOUT_GRACE_FIELD_NAME = "REGARDING_THE_STRICT_TIMEOUT_THE_TERMINATION_GRACE_NANOS";
+
+	/** The generated value of a duration that is not configured. */
+	public static final long NOT_CONFIGURED = -1;
+
+	/** Name of the generated field saying whether output is mirrored. */
+	public static final String OUTPUT_MIRRORED_FIELD_NAME = "REGARDING_THE_OUTPUT_THE_OUTPUT_IS_MIRRORED";
+
+	/** Name of the generated field holding the output limit. */
+	public static final String OUTPUT_LIMIT_FIELD_NAME = "REGARDING_THE_OUTPUT_THE_MAXIMUM_NUMBER_OF_OUTPUT_CHARACTERS";
+
+	/**
+	 * Name of the generated field saying whether privileged-only reporting is on.
+	 */
+	public static final String FAILURE_FEEDBACK_PRIVILEGED_ONLY_FIELD_NAME = "REGARDING_THE_FAILURE_FEEDBACK_ONLY_PRIVILEGED_EXCEPTIONS_ARE_REPORTED";
+
+	/** Name of the generated field holding the message for other failures. */
+	public static final String FAILURE_FEEDBACK_MESSAGE_FIELD_NAME = "REGARDING_THE_FAILURE_FEEDBACK_THE_FAILURE_MESSAGE_FOR_OTHER_EXCEPTIONS";
+
+	/** Name of the generated field holding the feedback level's name. */
+	public static final String FAILURE_FEEDBACK_LEVEL_FIELD_NAME = "REGARDING_THE_FAILURE_FEEDBACK_THE_SECURITY_VIOLATION_FEEDBACK_LEVEL";
+
+	/**
+	 * Name of the generated field holding the effective deadline, extension
+	 * included, in epoch milliseconds.
+	 */
+	public static final String VISIBILITY_DEADLINE_FIELD_NAME = "REGARDING_THE_VISIBILITY_AND_SCHEDULE_THE_DEADLINE";
+
+	/**
+	 * Name of the generated field holding the early-run date in epoch milliseconds,
+	 * {@link Long#MIN_VALUE} when not configured.
+	 */
+	public static final String VISIBILITY_RUN_BEFORE_FIELD_NAME = "REGARDING_THE_VISIBILITY_AND_SCHEDULE_THE_HIDDEN_TESTS_ARE_RUN_BEFORE";
+
+	/** Name of the generated field saying whether unlisted tests are hidden. */
+	public static final String VISIBILITY_UNLISTED_HIDDEN_FIELD_NAME = "REGARDING_THE_VISIBILITY_AND_SCHEDULE_TESTS_NOT_LISTED_HERE_ARE_HIDDEN";
 
 	/**
 	 * Literal field assignments every configured category contributes, one entry
 	 * per field, each already formatted by {@code JavaAOPTestCaseToolbox}'s
-	 * public-static-final assignment helpers. Empty here, since no category is
-	 * configured yet; a category adds its own contribution once it exists.
+	 * public-static-final assignment helpers, defaults applied and durations in
+	 * nanoseconds. Empty when nothing is configured.
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
@@ -38,7 +105,88 @@ public record TestBehaviorConfiguration() {
 	 */
 	@Nonnull
 	public List<String> literalFieldAssignments() {
-		return List.of();
+		List<String> assignments = new ArrayList<>();
+		if (regardingTheStrictTimeoutForTheTestCases != null) {
+			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalLongAssignment(STRICT_TIMEOUT_TIMEOUT_FIELD_NAME,
+					regardingTheStrictTimeoutForTheTestCases.timeout().toNanos()));
+			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalLongAssignment(STRICT_TIMEOUT_GRACE_FIELD_NAME,
+					regardingTheStrictTimeoutForTheTestCases.terminationGrace().map(grace -> grace.toNanos())
+							.orElse(NOT_CONFIGURED)));
+		}
+		if (regardingTheOutputOfTheTestCases != null) {
+			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalBooleanAssignment(OUTPUT_MIRRORED_FIELD_NAME,
+					regardingTheOutputOfTheTestCases.mirrored()));
+			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalLongAssignment(OUTPUT_LIMIT_FIELD_NAME,
+					regardingTheOutputOfTheTestCases.maximumCharacterCount()));
+		}
+		if (regardingTheFailureFeedbackForTheTestCases != null) {
+			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalBooleanAssignment(
+					FAILURE_FEEDBACK_PRIVILEGED_ONLY_FIELD_NAME,
+					regardingTheFailureFeedbackForTheTestCases.privilegedOnly()));
+			assignments.add(
+					JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment(FAILURE_FEEDBACK_MESSAGE_FIELD_NAME,
+							regardingTheFailureFeedbackForTheTestCases.theFailureMessageForOtherExceptionsIs()));
+			assignments
+					.add(JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment(FAILURE_FEEDBACK_LEVEL_FIELD_NAME,
+							regardingTheFailureFeedbackForTheTestCases.feedbackLevel().name()));
+		}
+		VisibilityAndScheduleConfiguration visibility = regardingTheVisibilityAndScheduleOfTheTestCases;
+		if (visibility != null) {
+			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalLongAssignment(VISIBILITY_DEADLINE_FIELD_NAME,
+					visibility.effectiveDeadline().toInstant().toEpochMilli()));
+			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalLongAssignment(VISIBILITY_RUN_BEFORE_FIELD_NAME,
+					visibility.alwaysRunBefore().map(date -> date.toInstant().toEpochMilli()).orElse(Long.MIN_VALUE)));
+			assignments.add(JavaAOPTestCaseToolbox.getPublicStaticFinalBooleanAssignment(
+					VISIBILITY_UNLISTED_HIDDEN_FIELD_NAME, visibility.testsNotListedHereAreHidden()));
+		}
+		return List.copyOf(assignments);
+	}
+
+	/**
+	 * The most characters one generated string literal holds. A Java class stores a
+	 * literal in at most 65,535 bytes and a character takes up to three, so this
+	 * leaves room to spare.
+	 */
+	private static final int LITERAL_CHARACTER_LIMIT = 20_000;
+
+	/**
+	 * The Java expression the hidden-test hook keeps a list of test entries in, one
+	 * entry per line. A list too long for one literal is joined from several, each
+	 * within the limit. The list lives only inside that hook, never in a public
+	 * field student code could read.
+	 *
+	 * @param entries the entries, in order.
+	 * @return the expression
+	 */
+	@Nonnull
+	public static String listLiteral(@Nonnull List<String> entries) {
+		List<String> literals = new ArrayList<>();
+		for (String chunk : chunks(entries)) {
+			literals.add(JavaAOPTestCaseToolbox.getStringLiteral(chunk));
+		}
+		return literals.size() == 1 ? literals.get(0) : "String.join(\"\\n\", " + String.join(", ", literals) + ")";
+	}
+
+	/**
+	 * Splits a list's entries, joined with line breaks, into texts within the
+	 * literal limit; never splits an entry.
+	 *
+	 * @param entries the entries, in order.
+	 * @return at least one text
+	 */
+	@Nonnull
+	private static List<String> chunks(@Nonnull List<String> entries) {
+		List<String> chunks = new ArrayList<>();
+		StringBuilder chunk = new StringBuilder();
+		for (String entry : entries) {
+			if (chunk.length() > 0 && chunk.length() + 1 + entry.length() > LITERAL_CHARACTER_LIMIT) {
+				chunks.add(chunk.toString());
+				chunk.setLength(0);
+			}
+			chunk.append(chunk.length() > 0 ? "\n" : "").append(entry);
+		}
+		chunks.add(chunk.toString());
+		return chunks;
 	}
 
 	/**
@@ -61,6 +209,79 @@ public record TestBehaviorConfiguration() {
 	 */
 	public static class Builder {
 
+		/** The strict-timeout category, or null for none. */
+		@Nullable
+		private StrictTimeoutConfiguration regardingTheStrictTimeoutForTheTestCases;
+
+		/** The output category, or null for none. */
+		@Nullable
+		private OutputConfiguration regardingTheOutputOfTheTestCases;
+
+		/** The failure-feedback category, or null for none. */
+		@Nullable
+		private FailureFeedbackConfiguration regardingTheFailureFeedbackForTheTestCases;
+
+		/** The visibility-and-schedule category, or null for none. */
+		@Nullable
+		private VisibilityAndScheduleConfiguration regardingTheVisibilityAndScheduleOfTheTestCases;
+
+		/**
+		 * Sets the strict-timeout category.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param category the category; may be null.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder regardingTheStrictTimeoutForTheTestCases(@Nullable StrictTimeoutConfiguration category) {
+			this.regardingTheStrictTimeoutForTheTestCases = category;
+			return this;
+		}
+
+		/**
+		 * Sets the output category.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param category the category; may be null.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder regardingTheOutputOfTheTestCases(@Nullable OutputConfiguration category) {
+			this.regardingTheOutputOfTheTestCases = category;
+			return this;
+		}
+
+		/**
+		 * Sets the failure-feedback category.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param category the category; may be null.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder regardingTheFailureFeedbackForTheTestCases(@Nullable FailureFeedbackConfiguration category) {
+			this.regardingTheFailureFeedbackForTheTestCases = category;
+			return this;
+		}
+
+		/**
+		 * Sets the visibility-and-schedule category.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param category the category; may be null.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder regardingTheVisibilityAndScheduleOfTheTestCases(
+				@Nullable VisibilityAndScheduleConfiguration category) {
+			this.regardingTheVisibilityAndScheduleOfTheTestCases = category;
+			return this;
+		}
+
 		/**
 		 * Builds a new TestBehaviorConfiguration instance.
 		 *
@@ -70,7 +291,9 @@ public record TestBehaviorConfiguration() {
 		 */
 		@Nonnull
 		public TestBehaviorConfiguration build() {
-			return new TestBehaviorConfiguration();
+			return new TestBehaviorConfiguration(regardingTheStrictTimeoutForTheTestCases,
+					regardingTheOutputOfTheTestCases, regardingTheFailureFeedbackForTheTestCases,
+					regardingTheVisibilityAndScheduleOfTheTestCases);
 		}
 	}
 }

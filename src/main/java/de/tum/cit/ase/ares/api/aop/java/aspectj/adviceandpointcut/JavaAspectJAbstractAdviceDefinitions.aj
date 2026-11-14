@@ -611,12 +611,18 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	protected static void requireTrustedRuntimeType(@Nonnull Object value) {
 		ClassLoader loader = value.getClass().getClassLoader();
 		if (loader != null && loader != ClassLoader.getPlatformClassLoader()) {
-			throw new SecurityException(
+			String typeName = value.getClass().getName();
+			throw AresSecurityViolation.create(UNINSPECTABLE, "inspect", typeName,
 					"Ares Security Error (Reason: Student-Code; Stage: Execution): Ares cannot safely inspect an"
-							+ " argument of untrusted type " + value.getClass().getName()
-							+ " (not a JDK type) but was blocked by Ares.");
+							+ " argument of untrusted type " + typeName + " (not a JDK type) but was blocked by Ares.");
 		}
 	}
+
+	/**
+	 * The kind of a blocked action whose argument Ares refused to inspect, which no
+	 * policy entry can allow.
+	 */
+	protected static final String UNINSPECTABLE = "uninspectable";
 
 	/**
 	 * Finds the caller directly above the first method on the current call stack
