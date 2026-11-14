@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
@@ -201,6 +202,11 @@ class GeneratedAllHooksTest {
 		fixture(fixtures, "CompletionViolationFixture",
 				"@Test void reads() { throw new java.util.concurrent.CompletionException(" + VIOLATION_PACKAGE
 						+ ".ViolationSource.blocked()); }");
+		fixture(fixtures, "GroupedViolationFixture", "@Test void reads() { Assertions.assertAll(() -> { throw "
+				+ VIOLATION_PACKAGE + ".ViolationSource.blocked(); }); }");
+		fixture(fixtures, "SuppressedViolationFixture",
+				"@Test void reads() { IllegalStateException outer = new IllegalStateException(\"outer\");"
+						+ " outer.addSuppressed(" + VIOLATION_PACKAGE + ".ViolationSource.blocked()); throw outer; }");
 		Path violationSources = Files
 				.createDirectories(tempDir.resolve("violation-sources").resolve(VIOLATION_PACKAGE.replace('.', '/')));
 		Files.writeString(violationSources.resolve("ViolationSource.java"), """
@@ -625,6 +631,23 @@ class GeneratedAllHooksTest {
 	@ValueSource(booleans = { false, true })
 	void aWrappedBlockedActionFollowsTheFeedbackLevel(boolean reversed) throws Exception {
 		assertThat(messages(run("com.example.fixtures.CompletionViolationFixture", reversed))).containsExactly(
+				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
+	}
+
+	/**
+	 * A blocked action inside an {@code assertAll} group, or attached as a
+	 * suppressed failure, still follows the feedback level, so its path never
+	 * reaches the report.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @param fixture  the fixture carrying the blocked action
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@CsvSource({ "false, GroupedViolationFixture", "true, GroupedViolationFixture", "false, SuppressedViolationFixture",
+			"true, SuppressedViolationFixture" })
+	void anAttachedBlockedActionFollowsTheFeedbackLevel(boolean reversed, String fixture) throws Exception {
+		assertThat(messages(run("com.example.fixtures." + fixture, reversed))).containsExactly(
 				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
 	}
 
