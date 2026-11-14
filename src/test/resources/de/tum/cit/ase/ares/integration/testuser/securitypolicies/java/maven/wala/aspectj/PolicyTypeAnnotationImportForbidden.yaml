@@ -1,0 +1,18 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.architecture.forbidden.TypeAnnotationImportTest"
+    - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: [ ]
+    regardingNetworkConnections: [ ]
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations: [ ]
+    # No import allowance, so a type annotation from a foreign package is a
+    # forbidden import.
+    regardingPackageImports: [ ]
+    regardingTimeouts:
+      - timeout: 3000
