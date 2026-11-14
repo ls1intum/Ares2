@@ -7,6 +7,7 @@ sun/**
 jdk/**
 com/sun/**
 de/tum/cit/ase/ares/api/**
+de/tum/cit/ase/ares/generated/**
 net/bytebuddy/**
 org/aspectj/**
 com/ibm/wala/**

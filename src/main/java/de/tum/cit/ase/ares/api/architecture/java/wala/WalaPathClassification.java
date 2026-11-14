@@ -67,11 +67,11 @@ public final class WalaPathClassification {
 	 * analysed, not trusted.
 	 */
 	public static final List<String> RESERVED_PACKAGE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
-			"de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
-			"junit.", "org.junit.", "org.opentest4j.", "org.assertj.", "org.mockito.", "ch.qos.logback.", "org.slf4j.",
-			"com.github.javaparser.", "com.fasterxml.jackson.", "org.yaml.", "org.json.", "com.opencsv.",
-			"org.jgrapht.", "org.apiguardian.", "org.apache.", "org.eclipse.", "org.gradle.", "org.jacoco.",
-			"com.intellij.", "worker.org.gradle.", "de.tum.in.test.api.");
+			"de.tum.cit.ase.ares.api.", "de.tum.cit.ase.ares.generated.", "net.bytebuddy.", "org.aspectj.",
+			"com.ibm.wala.", "com.tngtech.archunit.", "junit.", "org.junit.", "org.opentest4j.", "org.assertj.",
+			"org.mockito.", "ch.qos.logback.", "org.slf4j.", "com.github.javaparser.", "com.fasterxml.jackson.",
+			"org.yaml.", "org.json.", "com.opencsv.", "org.jgrapht.", "org.apiguardian.", "org.apache.", "org.eclipse.",
+			"org.gradle.", "org.jacoco.", "com.intellij.", "worker.org.gradle.", "de.tum.in.test.api.");
 
 	/**
 	 * Version of the prefix data above. Version 3 restores the test harness and

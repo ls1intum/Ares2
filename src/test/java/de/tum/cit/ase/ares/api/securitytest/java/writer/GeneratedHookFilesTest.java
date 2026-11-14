@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -30,6 +31,7 @@ import org.junit.platform.testkit.engine.EngineTestKit;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
 
 /**
  * Checks the files every generated hook shares: one registration with JUnit for
@@ -385,6 +387,25 @@ class GeneratedHookFilesTest {
 
 		assertThat(source).doesNotExist();
 		assertThat(compiled).doesNotExist();
+	}
+
+	/**
+	 * The package the hooks are generated into is reserved, so a student class
+	 * there is refused, while the hooks' own test output is not scanned.
+	 *
+	 * @throws IOException if the shipped prefix list cannot be read
+	 */
+	@Test
+	void theGeneratedPackageIsReserved() throws IOException {
+		assertThat(ReservedPackageGuard.reservedPrefixOf("de.tum.cit.ase.ares.generated.evil"))
+				.isEqualTo("de.tum.cit.ase.ares.generated.");
+		assertThrows(SecurityException.class, () -> ReservedPackageGuard
+				.validateClassNames(List.of("de.tum.cit.ase.ares.generated.GeneratedStrictTimeout")));
+		try (var list = GeneratedHookFilesTest.class.getResourceAsStream(
+				"/de/tum/cit/ase/ares/api/configuration/reservedPackages/ReservedPackagePrefixes.txt")) {
+			assertThat(new String(list.readAllBytes(), StandardCharsets.UTF_8).lines())
+					.contains("de/tum/cit/ase/ares/generated/**");
+		}
 	}
 
 	/**
