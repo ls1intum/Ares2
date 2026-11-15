@@ -5,9 +5,16 @@ description: "Full reference for the Ares 2 security policy file: structure, eve
 ---
 
 :::tip[Simple Story]
-This is the full reference for the checklist, the one the board keeps open while filling one in.
+This page is the full guide to the rule sheet, for the head teacher who writes one. It explains
+every line, what it means and what happens when they set it.
 
-Every option, what it means, and what happens when you set it.
+The rule sheet only lists what a pupil is allowed to do; everything it leaves out is forbidden.
+Two traps catch head teachers most often. The teacher follows the rule sheet only for a
+question that says when the pupil hears the result: straight away, or after the whole
+examination. Any other question runs with nobody following the rule sheet. And a time limit on
+the rule sheet bounds nothing yet; the teacher's stopwatch does.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 > **Audience:** IT-Education experts with no security background.

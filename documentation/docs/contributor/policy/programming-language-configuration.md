@@ -5,9 +5,15 @@ description: "How the configuration value is dispatched into a director, an anal
 ---
 
 :::tip[Simple Story]
-This one field decides which of Ares 2's interchangeable engines turn up for duty.
+One line on the rule sheet picks the language the pupils answer in, the kind of school, and
+which of two ways the teacher clears the desks and watches. It allows nothing by itself. Every
+other line says what a pupil can do; this one says who checks it.
 
-Everything else on the checklist says *what* is allowed. This says *who* enforces it.
+The way of watching does not decide how the rules reach the teacher. The head teacher can print
+the rules onto the grading instructions beforehand, or the teacher can pick up the rule sheet
+for each question, with either way of watching.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 For the fields an exercise author writes, see

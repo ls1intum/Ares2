@@ -5,10 +5,15 @@ description: "How the arguments and context of the intercepted operation reach t
 ---
 
 :::tip[Simple Story]
-Knowing that a paper is about to be picked up is not enough. You need to know **which** paper.
+Knowing that a pupil reaches for a worksheet is not enough. The teacher needs to know which
+worksheet.
 
-Binding is how that gets handed to the teacher. Without it you could only ever answer yes or no
-to "may this pupil pick up papers at all", never "may they pick up *this* one".
+While watching during the examination, the teacher sees the actual worksheet in the pupil's
+hand. That lets the rule sheet allow one worksheet and forbid another. Clearing the desks before
+the start cannot tell the two apart. So once the rule sheet allows anything with worksheets,
+only the watching still covers them.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

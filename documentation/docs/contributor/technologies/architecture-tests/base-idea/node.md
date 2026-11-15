@@ -5,12 +5,15 @@ description: "The unit the architecture layer reasons about: a class, a method o
 ---
 
 :::tip[Simple Story]
-Imagine the pupil's compiled answer drawn as a map of dots joined by arrows. Compiled, not
-written: the map holds things the compiler produced that the pupil never typed.
+While clearing the desks, the teacher looks at what each pupil's work turned into, not at what
+the pupil wrote. That holds some pieces nobody typed.
 
-A node is one dot. Depending on how closely you look, a dot might be a whole class or a single
-method. Everything the reach check does is answering questions about which dots exist and which
-arrows lead where.
+This page is about one such piece, one stop on a route. The teacher sorts the pieces before judging them.
+The rule sheet applies to the pieces of the pupils' work. The teacher trusts some other pieces,
+such as those of the grading instructions, because of where they sit. A pupil's piece placed
+there counts as trusted too, so the pupils' work must never sit there.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

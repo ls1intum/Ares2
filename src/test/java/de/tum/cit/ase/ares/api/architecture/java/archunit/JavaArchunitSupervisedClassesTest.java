@@ -4,13 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+
+import de.tum.cit.ase.ares.api.architecture.java.wala.WalaPathClassification;
 
 /**
  * The question a package permission has to ask, and the one it must not be
@@ -36,6 +40,7 @@ class JavaArchunitSupervisedClassesTest {
 		assertThat(ancestorOfReservedPrefix("de")).isEqualTo("de.tum.cit.ase.ares.api.");
 		// com is not reserved itself, but com.sun. lies below it.
 		assertThat(ancestorOfReservedPrefix("com")).isEqualTo("com.sun.");
+		assertThat(ancestorOfReservedPrefix("com.github")).isEqualTo("com.github.javaparser.");
 	}
 
 	@Test
@@ -72,6 +77,29 @@ class JavaArchunitSupervisedClassesTest {
 		assertThat(reservedPrefixOf("java")).isEqualTo("java.");
 		assertThat(ancestorOfReservedPrefix("de.tum.cit.ase.ares.api")).isNull();
 		assertThat(reservedPrefixOf("de.tum.cit.ase.ares.api")).isEqualTo("de.tum.cit.ase.ares.api.");
+		assertThat(reservedPrefixOf("org.junit.jupiter.api")).isEqualTo("org.junit.");
+	}
+
+	/**
+	 * The copied class cannot import the canonical list, so this holds the two in
+	 * step: a drift would let one layer reserve a namespace the other still trusts,
+	 * which is the shadowing hole the list exists to close.
+	 */
+	@Test
+	@DisplayName("Keeps the reserved list identical to the canonical WalaPathClassification list")
+	void keepsTheReservedListIdenticalToTheCanonicalList() throws Exception {
+		assertThat(reservedPrefixes()).isEqualTo(WalaPathClassification.RESERVED_PACKAGE_PREFIXES);
+	}
+
+	/**
+	 * Reads the copied class' private reserved-prefix list by reflection, so the
+	 * parity check can compare it without widening the production field's access.
+	 */
+	@SuppressWarnings("unchecked")
+	private static List<String> reservedPrefixes() throws Exception {
+		Field field = JavaArchunitSupervisedClasses.class.getDeclaredField("RESERVED_PREFIXES");
+		field.setAccessible(true);
+		return (List<String>) field.get(null);
 	}
 
 	/**

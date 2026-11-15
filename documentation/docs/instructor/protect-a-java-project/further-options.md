@@ -5,10 +5,12 @@ description: "Path access, testing before release, deadline extensions, threads,
 ---
 
 :::tip[Simple Story]
-The basics get an examination running. This page is everything else you will eventually want.
+Once the examination runs, smaller questions follow, and this page answers them. The head
+teacher can try the examination before any pupil and hear the marks the teacher normally gives
+only after the whole examination. They can give extra time, check a pupil who answers out loud,
+or hold the examination without writing a rule sheet.
 
-How to sit the examination yourself before any pupil does, how to grant someone extra time, how to
-examine a pupil who talks to the console, and a few smaller adjustments.
+[Who is who](/instructor/who-is-who)
 :::
 
 The basics are covered by [Setup](setup.md) and [Test Annotations](test-annotations.md),

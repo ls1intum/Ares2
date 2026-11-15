@@ -1,7 +1,7 @@
 package de.tum.cit.ase.ares.api.buildtoolconfiguration;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +35,11 @@ public enum BuildMode {
 	GRADLE;
 
 	private static final Logger LOG = LoggerFactory.getLogger(BuildMode.class);
+
+	/**
+	 * A Windows drive such as {@code C:}, which no bytecode path can begin with.
+	 */
+	private static final Pattern DRIVE_PREFIX = Pattern.compile("[A-Za-z]:");
 
 	/**
 	 * Returns the supported build-descriptor filenames.
@@ -74,65 +79,61 @@ public enum BuildMode {
 	}
 
 	/**
-	 * Computes the classpath for class loading based on the project path and
-	 * package name.
-	 * <p>
-	 * The projectPath (from @Policy withinPath) can have different formats:
-	 * <ul>
-	 * <li>null or empty - uses packageName to construct the classpath</li>
-	 * <li>"classes/java/main/package/..." - Gradle-style bytecode path, converted
-	 * to actual build path</li>
-	 * <li>"classes/package/..." - Maven-style bytecode path, converted to actual
-	 * build path</li>
-	 * <li>"test-classes/..." - Test classes path (handled similarly)</li>
-	 * </ul>
+	 * Resolves a bytecode scope against this mode's conventional output roots.
 	 *
-	 * @param projectPath the path specified in @Policy withinPath (can be null or
-	 *                    empty)
-	 * @param packageName the package name from the security policy (e.g.,
-	 *                    "anonymous" or "de.tum.cit.ase")
-	 * @return the actual filesystem classpath for class loading
+	 * @param projectPath the optional bytecode-relative scope
+	 * @param packageName the fallback package name
+	 * @return the filesystem classpath for class loading
+	 * @throws SecurityException if the scope, or the package path used without one,
+	 *                           starts at a root or a drive
 	 */
 	public String getClasspath(Path projectPath, String packageName) {
-		// If projectPath is null or empty, use packageName to construct the classpath
-		if (projectPath == null || projectPath.toString().isEmpty()) {
-			if (packageName != null && !packageName.isEmpty()) {
-				// Convert package name to path: "anonymous" -> "anonymous", "de.tum.cit" ->
-				// "de/tum/cit"
-				String packagePath = packageName.replace(".", "/");
-				return reportClasspath(Paths.get(getBuildDirectory(), packagePath));
-			}
-			return reportClasspath(Path.of(getBuildDirectory()));
-		}
-
-		String projectPathStr = projectPath.toString();
-
-		// Handle bytecode paths that start with "classes/" or "test-classes/"
-		// These need to be converted to actual build tool paths
-		if (projectPathStr.startsWith("classes/java/main/")) {
-			// Gradle-style path: classes/java/main/package/subpackage
-			// Extract package path and prepend actual build directory
-			String extractedPackagePath = projectPathStr.substring("classes/java/main/".length());
-			return reportClasspath(Paths.get(getBuildDirectory(), extractedPackagePath));
-		} else if (projectPathStr.startsWith("classes/")) {
-			// Maven-style path: classes/package/subpackage
-			// Extract package path and prepend actual build directory
-			String extractedPackagePath = projectPathStr.substring("classes/".length());
-			return reportClasspath(Paths.get(getBuildDirectory(), extractedPackagePath));
-		} else if (projectPathStr.startsWith("test-classes/java/test/")) {
-			// Gradle test classes
-			String extractedPackagePath = projectPathStr.substring("test-classes/java/test/".length());
-			return reportClasspath(Paths.get(getTestBuildDirectory(), extractedPackagePath));
-		} else if (projectPathStr.startsWith("test-classes/")) {
-			// Maven test classes
-			String extractedPackagePath = projectPathStr.substring("test-classes/".length());
-			return reportClasspath(Paths.get(getTestBuildDirectory(), extractedPackagePath));
-		}
-
-		// Otherwise, assume it's a package path and combine with build directory
-		return reportClasspath(Paths.get(getBuildDirectory(), projectPathStr));
+		return reportClasspath(resolveClasspath(projectPath, packageName, Path.of(getBuildDirectory()),
+				Path.of(getTestBuildDirectory())));
 	}
 
+	/**
+	 * Maps either separator form to output roots using whole path components.
+	 */
+	static Path resolveClasspath(Path withinPath, String packageName, Path productionOutputRoot, Path testOutputRoot) {
+		if (withinPath == null || withinPath.toString().isEmpty()) {
+			return productionOutputRoot
+					.resolve(relativeScope(packageName == null ? "" : packageName.replace('.', '/')));
+		}
+		Path configured = relativeScope(withinPath.toString());
+		Path base = productionOutputRoot;
+		Path prefix;
+		if (configured.startsWith("classes/java/main")) {
+			prefix = Path.of("classes/java/main");
+		} else if (configured.startsWith("classes")) {
+			prefix = Path.of("classes");
+		} else if (configured.startsWith("test-classes/java/test")) {
+			base = testOutputRoot;
+			prefix = Path.of("test-classes/java/test");
+		} else if (configured.startsWith("test-classes")) {
+			base = testOutputRoot;
+			prefix = Path.of("test-classes");
+		} else {
+			return base.resolve(configured);
+		}
+		return base.resolve(prefix.relativize(configured));
+	}
+
+	/**
+	 * Reads a scope or package path with either separator and refuses one that
+	 * starts at a root or a drive, on every host, since resolving it would replace
+	 * the output root. The text checks run first, so such a path is refused before
+	 * the host gets to parse it.
+	 */
+	private static Path relativeScope(String original) {
+		String scope = original.replace('\\', '/');
+		if (scope.startsWith("/") || DRIVE_PREFIX.matcher(scope).lookingAt() || Path.of(scope).getRoot() != null) {
+			throw new SecurityException("Bytecode scope must be relative to the build output: " + original);
+		}
+		return Path.of(scope);
+	}
+
+	/** Logs and returns a classpath in the host filesystem's format. */
 	private String reportClasspath(Path path) {
 		String resolved = path.toString();
 		LOG.info("Resolved Ares analysis/import path for {}: {}", this, resolved);

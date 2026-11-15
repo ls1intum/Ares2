@@ -103,7 +103,7 @@ class ThreadTest {
 	@TestTest
 	@PublicTest
 	@StrictTimeout(1000000)
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_threadAccess() {
 		// The thread pool must be created by supervised subject code (ThreadPenguin),
 		// not inline in the
@@ -114,98 +114,98 @@ class ThreadTest {
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_executorServiceSlide8() {
 		assertThreadSecurityException(ThreadPenguin::executorServiceSlide8);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_executorServiceSlide9() {
 		assertThreadSecurityException(ThreadPenguin::executorServiceSlide9);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_executorServiceSlide10() {
 		assertThreadSecurityException(ThreadPenguin::executorServiceSlide10);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_executorServiceSlide11() {
 		assertThreadSecurityException(ThreadPenguin::executorServiceSlide11);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_executorServiceFuture1() {
 		assertThreadSecurityException(ThreadPenguin::executorServiceFuture1);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_completableFutureSlide1() {
 		assertThreadSecurityException(ThreadPenguin::completableFutureSlide1);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_completableFutureSlide2() {
 		assertThreadSecurityException(ThreadPenguin::completableFutureSlide2);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_completableFutureSlide3Combine() {
 		assertThreadSecurityException(ThreadPenguin::completableFutureSlide3Combine);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_parallelStreams1() {
 		assertThreadSecurityException(ThreadPenguin::parallelStreams1);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_publisherSubscriber() {
 		assertThreadSecurityException(ThreadPenguin::publisherSubscriber);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_tryStartTwoThreads() {
 		assertThreadSecurityException(ThreadPenguin::tryStartTwoThreads);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_tryBreakThreadGroup() {
 		assertThreadSecurityException(ThreadPenguin::tryBreakThreadGroup);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_spawnEndlessThreads() {
 		assertThreadSecurityException(ThreadPenguin::spawnEndlessThreads);
 	}
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_sleepInCurrentThread() {
 		// Thread.sleep only pauses the current thread; it neither creates nor starts
 		// a thread, so it is not a thread-creation operation and must be allowed even
@@ -216,7 +216,7 @@ class ThreadTest {
 
 	@TestTest
 	@PublicTest
-	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/student")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/PolicyOneThreadAllowedCreate.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/threads")
 	void test_runItself() {
 		assertThreadSecurityException(ThreadPenguin::runItself);
 	}

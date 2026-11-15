@@ -5,11 +5,13 @@ description: "Which packages the supervised code may import, matched by prefix."
 ---
 
 :::tip[Simple Story]
-Pupils bring equipment into the room by importing libraries.
+The permitted aids are the things a pupil's work is allowed to lean on. The rule sheet lists
+them, and some aids are always allowed, whatever it says.
 
-Some of it is harmless and some of it is a way straight past the checklist. This list names
-what may be brought in. Naming a package covers everything inside it, so permitting
-`java.util` permits `java.util.concurrent` as well.
+Allowing an aid allows every part that belongs to it. One short line can therefore let in far
+more than it seems to.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example policy file

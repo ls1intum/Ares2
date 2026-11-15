@@ -5,12 +5,19 @@ description: "How the AOP layer intercepts and evaluates command execution."
 ---
 
 :::tip[Simple Story]
-Sending someone out on an errand is the biggest hole of all, because an errand can fetch
-anything.
+Asking a friend outside the room for help is the biggest risk of all, because a friend can
+fetch almost anything.
 
-This page follows one attempt from beginning to end: the pupil asks for the errand, the teacher
-gets there first, works out what was asked for, checks it against the checklist, and
-either stands aside or refuses.
+This page follows one request from start to finish. The pupil asks for the friend. The teacher
+steps in first and checks that the request comes from a pupil and not from the grading
+instructions. They work out which friend and which words the pupil wants, and compare both with
+the rule sheet. If the rule sheet asks for it, they check that the friend is the right person
+and not someone else with the same name. Then they stand aside, or stop the pupil and name the
+rule they broke.
+
+Both ways of watching follow these steps, though they do not catch exactly the same requests.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## 1. High-Level Overview

@@ -5,7 +5,14 @@ description: "Resource limits, which mode enforces them today, and what to use i
 ---
 
 :::tip[Simple Story]
-A pupil who never finishes must fail their own question rather than halt the whole examination.
+A pupil who never finishes has to fail their own question, not hold up the whole
+examination. The rule sheet has a line for a time limit, but that limit belongs to the clock
+of the special examination room, and that clock stops nobody yet. The teacher's stopwatch is
+what stops a pupil today.
+
+Nobody has written this recipe yet.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

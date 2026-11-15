@@ -5,11 +5,15 @@ description: "The five extension points of Ares 2, what each one requires, and w
 ---
 
 :::tip[Simple Story]
-Ares 2 is built so that the next language, build tool or analysis technique can join without
-rewriting the parts that already work.
+The school can grow. One day its pupils can answer in another language, or the examination can
+take place in a new kind of school. The teacher can learn a new way to clear the desks or to
+watch, and the rule sheet can learn a new kind of thing to allow.
 
-This section says where those seams are, so a new kind of examination can be run in the same
-school.
+Each of these changes has to reach every part of the school. A rule sheet that promises a check
+nobody carries out is worse than no promise at all. Nobody has written the pages for these
+changes yet; each one is still an outline.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## The five extension points

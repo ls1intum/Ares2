@@ -5,10 +5,15 @@ description: "Load-time bytecode rewriting through a Java agent and Byte Buddy."
 ---
 
 :::tip[Simple Story]
-A Java agent inspects and rewrites every class as it is loaded, before any of it runs.
+This is the other way the teacher watches by the rule sheet during the examination. Here the teacher stands
+beside the things a pupil can reach for, such as the worksheets and the telephone. They take up
+that place as each thing comes into the room, before anyone uses it.
 
-That is a far better place for the teacher to stand than the compiler, because by then you see
-classes you never compiled, including Java's own.
+So it does not matter who reaches out: a pupil, or one of the permitted aids working for them.
+This way catches most of what watching the pupils' hands misses. The two ways still do not catch exactly
+the same things.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is
