@@ -121,7 +121,9 @@ public final class JavaInstrumentationAgent {
 	 */
 	private static final Object ACTIVATION_LOCK = new Object();
 	/**
-	 * Whether the transformers are installed. Once true, it stays true.
+	 * Whether the transformers are installed. It is set only after the step that
+	 * seals the library-load weave record, so a caller that sees it true never
+	 * reads that record before the seal. Once true, it stays true.
 	 */
 	private static volatile boolean activated;
 	/**
@@ -199,7 +201,8 @@ public final class JavaInstrumentationAgent {
 	 * exactly once. A failed attempt, or a class it could not transform, is kept
 	 * and rethrown by every later one, so a half-finished installation is never
 	 * repeated and never ignored. The library-load weave record is open only during
-	 * this attempt and sealed after it, whatever its outcome.
+	 * this attempt and sealed after it, whatever its outcome. Only a successful
+	 * attempt marks the agent as activated, and only after that seal.
 	 *
 	 * @throws SecurityException if the agent is not attached or installing failed
 	 */
@@ -211,6 +214,7 @@ public final class JavaInstrumentationAgent {
 			throwIfActivationFailed();
 			Instrumentation currentInstrumentation = instrumentation;
 			Factory currentFactory = classInjectorFactory;
+			boolean installed = false;
 			try {
 				if (currentInstrumentation == null || currentFactory == null) {
 					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
@@ -220,7 +224,7 @@ public final class JavaInstrumentationAgent {
 				installAgentBuilder(currentInstrumentation, currentFactory, guardedPointcuts());
 				installThreadCallSiteBuilder(currentInstrumentation, currentFactory);
 				throwIfPermanentFailure();
-				activated = true;
+				installed = true;
 			} catch (SecurityException failure) {
 				activationFailure = failure;
 				throw failure;
@@ -229,8 +233,9 @@ public final class JavaInstrumentationAgent {
 						.localize("security.instrumentation.agent.installation.error", "instrumentation"), failure);
 				throw activationFailure;
 			} finally {
-				sealBootWeaveRecord(activated && wasTransformed(Runtime.class));
+				sealBootWeaveRecord(installed && wasTransformed(Runtime.class));
 			}
+			activated = true;
 		}
 	}
 
