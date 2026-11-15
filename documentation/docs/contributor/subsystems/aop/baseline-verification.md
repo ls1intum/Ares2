@@ -43,7 +43,9 @@ The same class compares the constants the backends duplicate:
 | --- | --- | --- | --- |
 | Read under `java.home` | Allowed: trusted start-up root | Allowed: same root, from the Java Virtual Machine (JVM)'s start-up record | Parity test; `BaselineStandardAllowTest` (certificates, locale and charset data) |
 | Create, replace or delete under `java.home` | Refused | Refused | Parity test |
-| Load a Java Development Kit (JDK) native library by name or under `java.home` | Allowed | Allowed | Parity test |
+| Load a Java Development Kit (JDK) native library under `java.home`, by path | Allowed | Allowed | Parity test |
+| The JDK loading its own native library by name | Allowed at `Runtime.loadLibrary0` for a caller from the JVM's own or the platform class loader, a plain name and a file directly in the JDK's library folder, on JDK 17, 21 and 25 only | Nothing to allow: the JDK's call sites are not woven | `NativeLibraryFirstLoadTest`; `NativeLibraryJdkLoadTest` |
+| Load a native library by name from student code, or from test code beneath student code | Refused | Refused | Parity test (the three `by bare name` rows); `NativeLibraryLoadDeniedTest` |
 | Read a `.jar` in the start-up Maven repository | Allowed | Allowed | Parity test; `JceGeneratedExerciseTest` (start-up repository only) |
 | Read an entry of an already-open `JarFile`/`ZipFile` | Allowed for `entries` or `getInputStream` on a JDK archive class; Ares still checks opening it | Same | Parity test (including malformed method details); `ArchiveEntryInterceptionTest` (student subclass, four modes); `BaselineStandardAllowTest` (open JDK archives, both backends) |
 | `SecureRandom`, `UUID.randomUUID()` | Allowed while the JDK's own seed class reads the device | Nothing to allow: the JDK's read is not woven | `BaselineStandardAllowTest`; `BaselineStillDeniedTest` (direct read, provider callback) |
@@ -59,6 +61,12 @@ The same class compares the constants the backends duplicate:
   allows exactly that; AspectJ never sees it. Both refuse a student who opens the device
   directly. The reason AspectJ cannot see the JDK's own calls is
   [section 2 of the weaknesses page](aspectj-vs-instrumentation-weaknesses.md#2-jdk-internal-call-sites-cannot-be-woven).
+- **The JDK's own native libraries.** Instrumentation sees the JDK ask for its own library by
+  name, such as `awt` on a student's first `BufferedImage`, and allows exactly that at
+  `Runtime.loadLibrary0`; AspectJ never sees it. Both refuse a load by name that student code, or
+  test code beneath it, asks for. On a feature release other than 17, 21 and 25, instrumentation
+  keeps the check at the public `loadLibrary` methods and refuses the JDK's own first loads too, see
+  [the execute operations](block-file-system-access.md#26-what-are-the-monitored-execute-operations).
 - **A thread started through a method reference.** Refused on instrumentation, missed by AspectJ;
   this is an AspectJ weakness outside the baseline, listed in
   [section 3 of the weaknesses page](aspectj-vs-instrumentation-weaknesses.md#3-indirect-reflective-and-library-mediated-calls-escape).
