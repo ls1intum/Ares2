@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -347,20 +348,16 @@ public class JavaWriterTest {
 		}
 
 		@Test
-		@DisplayName("Should refuse failure feedback in precompile instead of leaving it out of the generated tests")
-		void failureFeedbackIsRefusedInsteadOfDropped() {
+		@DisplayName("Should refuse failure feedback in precompile before writing any file")
+		void failureFeedbackIsRefusedInsteadOfDropped() throws IOException {
 			TestBehaviorConfiguration withFailureFeedback = TestBehaviorConfiguration.builder()
 					.regardingTheFailureFeedbackForTheTestCases(FailureFeedbackConfiguration.builder()
 							.onlyPrivilegedExceptionsAreReported(true)
 							.theSecurityViolationFeedbackLevelIs(SecurityViolationFeedbackLevel.MINIMIZED).build())
 					.build();
+			List<Path> before = filesBelow(tempDir);
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
 					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
-				stubArchitectureModeDefaults();
-				stubAopModeDefaults();
-				stubFileToolsDefaults(mockedFileTools);
-				stubPhobosDefaults(mockedPhobos);
-
 				SecurityException refusal = assertThrows(SecurityException.class,
 						() -> javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 								essentialClasses, testClasses, packageName, mainClassInPackageName,
@@ -369,7 +366,24 @@ public class JavaWriterTest {
 
 				assertEquals(Messages.localized("security.creation.test.behavior.unsupported",
 						TestBehaviorFieldNames.FAILURE_FEEDBACK), refusal.getMessage());
-				assertFalse(Files.exists(generatedSettingsClassPath()));
+				verifyNoInteractions(architectureMode, aopMode);
+				mockedFileTools.verifyNoInteractions();
+				mockedPhobos.verifyNoInteractions();
+				assertEquals(before, filesBelow(tempDir));
+			}
+		}
+
+		/**
+		 * Lists every path below a folder, so a test can show a refused run wrote
+		 * nothing.
+		 *
+		 * @param folder the folder to list.
+		 * @return the paths below it, sorted.
+		 * @throws IOException if the folder cannot be read.
+		 */
+		private List<Path> filesBelow(Path folder) throws IOException {
+			try (Stream<Path> paths = Files.walk(folder)) {
+				return paths.sorted().toList();
 			}
 		}
 

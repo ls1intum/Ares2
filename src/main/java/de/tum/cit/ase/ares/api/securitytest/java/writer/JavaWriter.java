@@ -229,15 +229,15 @@ public class JavaWriter implements Writer {
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
-	 * @param testBehaviorConfiguration the configuration whose literal field
-	 *                                  assignments to write; must not be null.
-	 * @param testFolderPath            the project's source root; must not be null.
+	 * @param fieldAssignments the literal field assignments to write, read from the
+	 *                         configuration before anything was written; must not
+	 *                         be null.
+	 * @param testFolderPath   the project's source root; must not be null.
 	 * @return the written file's path, or an empty list if nothing was configured.
 	 */
 	@Nonnull
-	private List<Path> createTestBehaviorSettingsFiles(@Nonnull TestBehaviorConfiguration testBehaviorConfiguration,
+	private List<Path> createTestBehaviorSettingsFiles(@Nonnull List<String> fieldAssignments,
 			@Nonnull Path testFolderPath) {
-		List<String> fieldAssignments = testBehaviorConfiguration.literalFieldAssignments();
 		if (fieldAssignments.isEmpty()) {
 			return List.of();
 		}
@@ -347,10 +347,12 @@ public class JavaWriter implements Writer {
 
 	/**
 	 * Writes security test cases to files, then adds the generated test-behaviour
-	 * settings class. Calls the released overload virtually first, so a subclass
-	 * overriding only that one still has its customisation applied even though this
-	 * is the overload {@code JavaTestCaseFactoryAndBuilder} actually calls, before
-	 * adding behaviour-specific outputs on top.
+	 * settings class. Reads the settings first, so a setting Precompile refuses
+	 * stops the run before any file is written. Calls the released overload
+	 * virtually, so a subclass overriding only that one still has its customisation
+	 * applied even though this is the overload
+	 * {@code JavaTestCaseFactoryAndBuilder} actually calls, before adding
+	 * behaviour-specific outputs on top.
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
@@ -375,10 +377,11 @@ public class JavaWriter implements Writer {
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
 			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath) {
+		List<String> fieldAssignments = testBehaviorConfiguration.literalFieldAssignments();
 		List<Path> written = new ArrayList<>(writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 				essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 				javaAOPTestCases, javaPhobosTestCases, testFolderPath));
-		written.addAll(createTestBehaviorSettingsFiles(testBehaviorConfiguration, confineToProject(testFolderPath)));
+		written.addAll(createTestBehaviorSettingsFiles(fieldAssignments, confineToProject(testFolderPath)));
 		return written;
 	}
 	// </editor-fold>
