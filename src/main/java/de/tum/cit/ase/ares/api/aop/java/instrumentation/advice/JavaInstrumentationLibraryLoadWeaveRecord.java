@@ -12,8 +12,9 @@ public final class JavaInstrumentationLibraryLoadWeaveRecord {
 
 	/**
 	 * The record the checks read. The JVM's own loader holds one copy and the
-	 * application loader another; only the agent changes the first, by reflection,
-	 * which is why the methods below need no wider visibility.
+	 * application loader another. The agent opens and seals the first, and the
+	 * binding that weaves the check marks it, both by reflection, which is why the
+	 * methods below need no wider visibility.
 	 */
 	static final JavaInstrumentationLibraryLoadWeaveRecord INSTALLATION = new JavaInstrumentationLibraryLoadWeaveRecord();
 

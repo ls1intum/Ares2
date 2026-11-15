@@ -1802,7 +1802,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	/**
 	 * Checks a load at {@code Runtime.loadLibrary0}. The JDK loading its own
 	 * library is allowed; any other is checked as executing the name in the working
-	 * directory, and a name that is no path is refused. The class is never a path.
+	 * directory. A name that is no path is refused under an instrumentation policy,
+	 * with student code on the call stack and no {@code *} execute rule. The class
+	 * is never a path.
 	 *
 	 * @param declaringTypeName the class
 	 * @param methodName        the method
@@ -1850,8 +1852,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * Tells whether a call of {@code Runtime.loadLibrary0} is the JDK loading its
 	 * own library. Sound because a JDK caller's class loader skips its own search,
 	 * so the JDK's folder is searched first and the file found there is what loads.
-	 * The caller is what the JDK itself works out, so reflection, method handles
-	 * and method references cannot pose as the JDK.
+	 * Through the public {@code loadLibrary} methods the JDK works out the caller
+	 * itself. Deep reflection on this method can name any class, but the exemption
+	 * then still covers only a plain name whose file lies directly in the JDK's
+	 * library folder.
 	 *
 	 * @param bootLibraryDirectory the JDK's own library folder, or {@code null}
 	 * @return {@code true} only if every condition holds
