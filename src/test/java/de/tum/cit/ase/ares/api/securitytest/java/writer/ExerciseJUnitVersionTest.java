@@ -103,6 +103,35 @@ class ExerciseJUnitVersionTest {
 	}
 
 	/**
+	 * A Maven range with no lowest version is checked by its highest one: when
+	 * every version it allows is older than 5.12 it is refused, naming the range,
+	 * also through a property and as one set of several; otherwise accepted.
+	 *
+	 * @param range   the range.
+	 * @param refused whether the build is refused.
+	 * @throws IOException if the build file cannot be written
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = { "(,5.11.4]|true", "(,5.12)|true", "(,5.12.0)|true", "(,5.12-M1)|true",
+			"[5.12,6),(,5.11]|true", "(,5.12]|false", "(,6)|false", "(,5.12.1)|false", "[5.12,6),(,7)|false" })
+	void aRangeWithoutALowestVersionIsCheckedByItsHighest(String range, boolean refused) throws IOException {
+		aRangeIsCheckedByItsLowestVersion(range, refused);
+	}
+
+	/**
+	 * A Maven range whose only bound is not a number is refused as unreadable.
+	 *
+	 * @throws IOException if the build file cannot be written
+	 */
+	@Test
+	void aRangeWithoutANumberAsItsHighestIsRefused() throws IOException {
+		write("pom.xml",
+				"<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>(,latest]</version></dependency></dependencies></project>");
+		assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("(,latest]");
+	}
+
+	/**
 	 * A Maven range whose lowest version is not a number is refused as unreadable.
 	 *
 	 * @throws IOException if the build file cannot be written

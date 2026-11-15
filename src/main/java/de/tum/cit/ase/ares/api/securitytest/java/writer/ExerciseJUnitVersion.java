@@ -23,7 +23,7 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * refused for an older version, for one that is not a number, and for a build
  * file that cannot be read. A version set in the exercise's own build files is
  * looked up first; one from a parent is accepted, and a range is checked by its
- * lowest version.
+ * bounds.
  *
  * @since 2.3.0
  * @author Luka Petrovic
@@ -64,8 +64,11 @@ final class ExerciseJUnitVersion {
 	 */
 	private static final Pattern VERSION_NUMBER = Pattern.compile("\\d{1,9}(?:\\.\\d{1,9})*(?:[-+][\\w.\\-+]*)?");
 
-	/** The opening of one set in a Maven range, capturing its lowest version. */
-	private static final Pattern RANGE_LOWER_BOUND = Pattern.compile("[\\[(]([^,\\])]*)");
+	/**
+	 * One set in a Maven range, capturing its lowest version, its highest version
+	 * when it has a comma, and its closing bracket.
+	 */
+	private static final Pattern RANGE_SET = Pattern.compile("[\\[(]([^,\\])]*)(?:,([^\\])]*))?([\\])])");
 
 	/** A comment in a Maven build file, which names no dependency. */
 	private static final Pattern XML_COMMENT = Pattern.compile("<!--.*?-->", Pattern.DOTALL);
@@ -142,6 +145,16 @@ final class ExerciseJUnitVersion {
 	 * @param source the file that sets it.
 	 */
 	private record Definition(@Nonnull String value, @Nonnull Path source) {
+	}
+
+	/**
+	 * A version number to check against 5.12.
+	 *
+	 * @param number   the number as written.
+	 * @param excluded true for the highest version of a range that excludes it, so
+	 *                 5.12 itself is then too old too.
+	 */
+	private record Bound(@Nonnull String number, boolean excluded) {
 	}
 
 	/**
@@ -355,8 +368,8 @@ final class ExerciseJUnitVersion {
 
 	/**
 	 * Refuses one version value after looking up its references, unless it is still
-	 * taken from elsewhere. A Maven range is checked by each lowest version it
-	 * allows, so {@code [5.11.4]} is refused like {@code 5.11.4}.
+	 * taken from elsewhere. A Maven range is checked by its bounds, so
+	 * {@code [5.11.4]} and {@code (,5.11.4]} are refused like {@code 5.11.4}.
 	 *
 	 * @param buildFile   the file that names it.
 	 * @param version     the value as written.
@@ -370,30 +383,31 @@ final class ExerciseJUnitVersion {
 		if (isTakenFromElsewhere(value)) {
 			return;
 		}
-		List<String> numbers = isRange(value) ? lowerBounds(value) : List.of(value);
-		for (String number : numbers) {
-			requireNumberSupported(buildFile, version, resolution, number);
+		List<Bound> bounds = isRange(value) ? rangeBounds(value) : List.of(new Bound(value, false));
+		for (Bound bound : bounds) {
+			requireNumberSupported(buildFile, version, resolution, bound);
 		}
 	}
 
 	/**
-	 * Refuses one version number, or a lowest version of a range, that is not a
-	 * number or is older than 5.12.
+	 * Refuses one version number, or a bound of a range, that is not a number or
+	 * allows only versions older than 5.12.
 	 *
 	 * @param buildFile  the file that names it.
 	 * @param version    the value as written.
 	 * @param resolution the value after its references were looked up.
-	 * @param number     the number to check.
+	 * @param bound      the number to check.
 	 * @throws SecurityException naming the value as written and as looked up
 	 */
 	private static void requireNumberSupported(@Nonnull Path buildFile, @Nonnull String version,
-			@Nonnull Resolution resolution, @Nonnull String number) {
+			@Nonnull Resolution resolution, @Nonnull Bound bound) {
 		String value = resolution.value();
+		String number = bound.number();
 		if (!VERSION_NUMBER.matcher(number).matches()) {
 			throw new SecurityException(
 					Messages.localized("security.writer.junit.version.unreadable", buildFile.toString(), value));
 		}
-		if (!isTooOld(number)) {
+		if (!isTooOld(number) && !(bound.excluded() && isMinimum(number))) {
 			return;
 		}
 		if (value.equals(version)) {
@@ -425,21 +439,28 @@ final class ExerciseJUnitVersion {
 	}
 
 	/**
-	 * The lowest version of every set in a Maven range. A set with no lowest
-	 * version, such as {@code (,6)}, adds none, since Ares cannot tell its version.
+	 * The bound to check in every set of a Maven range: its lowest version, or,
+	 * when it has none, its highest one, so {@code (,5.11.4]} is checked too. A set
+	 * with neither, or a range Ares cannot split into sets, adds itself unread.
 	 *
 	 * @param range the range, such as {@code [5.11,6),[7,)}.
-	 * @return each lowest version as written
+	 * @return each bound as written
 	 */
 	@Nonnull
-	private static List<String> lowerBounds(@Nonnull String range) {
-		List<String> bounds = new ArrayList<>();
-		Matcher set = RANGE_LOWER_BOUND.matcher(range);
+	private static List<Bound> rangeBounds(@Nonnull String range) {
+		List<Bound> bounds = new ArrayList<>();
+		Matcher set = RANGE_SET.matcher(range);
 		while (set.find()) {
-			String bound = set.group(1).strip();
-			if (!bound.isEmpty()) {
-				bounds.add(bound);
+			String lower = set.group(1).strip();
+			String upper = set.group(2) == null ? "" : set.group(2).strip();
+			if (!lower.isEmpty()) {
+				bounds.add(new Bound(lower, false));
+			} else if (!upper.isEmpty()) {
+				bounds.add(new Bound(upper, ")".equals(set.group(3))));
 			}
+		}
+		if (bounds.isEmpty() && !RANGE_SET.matcher(range).find()) {
+			bounds.add(new Bound(range, false));
 		}
 		return bounds;
 	}
@@ -474,6 +495,27 @@ final class ExerciseJUnitVersion {
 		} catch (NumberFormatException unreadable) {
 			return true;
 		}
+	}
+
+	/**
+	 * Whether a version number is 5.12.0 itself, ignoring any qualifier, so a range
+	 * that excludes it allows only older versions.
+	 *
+	 * @param version the version, such as {@code 5.12} or {@code 5.12.0-M1}.
+	 * @return true for 5.12 with only zero parts after it
+	 */
+	private static boolean isMinimum(@Nonnull String version) {
+		String[] parts = version.split("[-+]", 2)[0].split("\\.");
+		if (parts.length < 2 || Integer.parseInt(parts[0]) != MINIMUM_MAJOR
+				|| Integer.parseInt(parts[1]) != MINIMUM_MINOR) {
+			return false;
+		}
+		for (int part = 2; part < parts.length; part++) {
+			if (Integer.parseInt(parts[part]) != 0) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
