@@ -113,17 +113,16 @@ class JceCryptoPolicyReadTest {
 	 * Writes fixtures in the parent, then launches the child with the current test
 	 * JVM's agent.
 	 */
-	private static String runProbe(ProgrammingLanguageConfiguration configuration, String operation, Path directory)
+	static String runProbe(ProgrammingLanguageConfiguration configuration, String operation, Path directory)
 			throws Exception {
-		Path compiled = prepareProject(configuration, directory, "environment".equals(operation));
+		String subjectPackage = subjectPackage(operation);
+		Path compiled = prepareProject(configuration, directory, subjectPackage);
 		Path file = directory.resolve("default_local.policy");
 		Files.writeString(file, "protected fixture");
 		Path policy = directory.resolve("policy.yaml");
-		String policyContents = policy(configuration, directory.resolve("allowed.txt"));
-		if ("environment".equals(operation)) {
-			policyContents = policyContents.replace("example.jce", "example.environment").replace("JceCryptoSubject",
-					"JceEnvironmentSubject");
-		}
+		String policyContents = policy(configuration, directory.resolve("allowed.txt"))
+				.replace("example.jce", "example." + subjectPackage)
+				.replace("JceCryptoSubject", subjects(subjectPackage)[0].getSimpleName());
 		Files.writeString(policy, policyContents);
 		Files.writeString(directory.resolve("allowed.txt"), "permitted fixture");
 		Path log = directory.resolve(operation + ".log");
@@ -159,6 +158,8 @@ class JceCryptoPolicyReadTest {
 		command.add("-Djava.io.tmpdir=" + Files.createDirectories(project.resolve("tmp")));
 		command.add("-javaagent:" + JceTraceAgent.packageAgent());
 		command.add("-Xlog:class+init=info");
+		command.add("-Xlog:library=info");
+		command.add("-Djava.awt.headless=true");
 		command.add("-cp");
 		command.add(compiled + java.io.File.pathSeparator
 				+ System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
@@ -167,32 +168,52 @@ class JceCryptoPolicyReadTest {
 		command.add(policy.toAbsolutePath().toString());
 		command.add(file.toAbsolutePath().toString());
 		command.add(project.toAbsolutePath().toString());
-		command.add(compiled.resolve("environment".equals(operation) ? "example/environment" : "example/jce")
-				.toAbsolutePath().toString());
+		command.add(compiled.resolve("example/" + subjectPackage(operation)).toAbsolutePath().toString());
 		return command;
+	}
+
+	/**
+	 * Names the package below {@code example} that holds the student fixture of an
+	 * operation.
+	 */
+	private static String subjectPackage(String operation) {
+		return switch (operation) {
+		case "environment" -> "environment";
+		case "image", "preferences" -> "nativelibrary";
+		default -> "jce";
+		};
+	}
+
+	/**
+	 * Lists the student classes of a fixture package, the policy's main class
+	 * first.
+	 */
+	private static Class<?>[] subjects(String subjectPackage) {
+		return switch (subjectPackage) {
+		case "environment" -> new Class<?>[] { example.environment.JceEnvironmentSubject.class };
+		case "nativelibrary" -> new Class<?>[] { example.nativelibrary.NativeLibraryFirstUser.class };
+		default -> new Class<?>[] { example.jce.JceCryptoSubject.class, example.jce.JceProviderService.class };
+		};
 	}
 
 	/**
 	 * Prepares the selected build layout with the real compiled student fixture.
 	 */
 	private static Path prepareProject(ProgrammingLanguageConfiguration configuration, Path project,
-			boolean environment) throws Exception {
+			String subjectPackage) throws Exception {
 		boolean gradle = configuration.name().contains("GRADLE");
 		Files.writeString(project.resolve(gradle ? "build.gradle" : "pom.xml"),
 				gradle ? "plugins { id 'java' }" : "<project/>");
 		if (gradle) {
 			Files.writeString(project.resolve("settings.gradle"), "rootProject.name = 'jce-proof'");
 		}
-		Path sources = Files.createDirectories(
-				project.resolve(environment ? "src/main/java/example/environment" : "src/main/java/example/jce"));
+		Path sources = Files.createDirectories(project.resolve("src/main/java/example/" + subjectPackage));
 		Path classes = Files.createDirectories(project.resolve(gradle ? "build/classes/java/main" : "target/classes"));
-		Class<?>[] subjects = environment ? new Class<?>[] { example.environment.JceEnvironmentSubject.class }
-				: new Class<?>[] { example.jce.JceCryptoSubject.class, example.jce.JceProviderService.class };
-		for (Class<?> subject : subjects) {
+		for (Class<?> subject : subjects(subjectPackage)) {
 			String name = subject.getSimpleName();
-			Files.writeString(sources.resolve(name + ".java"), Files
-					.readString(Path.of("src/test/java/example", environment ? "environment" : "jce", name + ".java")));
-			Path destination = classes.resolve("example/" + (environment ? "environment/" : "jce/") + name + ".class");
+			Files.writeString(sources.resolve(name + ".java"),
+					Files.readString(Path.of("src/test/java/example", subjectPackage, name + ".java")));
+			Path destination = classes.resolve("example/" + subjectPackage + "/" + name + ".class");
 			Files.createDirectories(destination.getParent());
 			try (var input = subject.getResourceAsStream(name + ".class")) {
 				Files.copy(java.util.Objects.requireNonNull(input), destination);
@@ -247,11 +268,10 @@ class JceCryptoPolicyReadTest {
 	 * Keeps failures readable while full JVM evidence remains under
 	 * target/jce-proofs.
 	 */
-	private static String summary(String output) {
-		return output.lines()
-				.filter(line -> line.contains("JCE_") || line.contains("JceSecurity")
-						|| line.contains("FileSystemAdviceDefinitions") || line.contains("AdviceFileSystemToolbox")
-						|| line.contains("Exception") || line.startsWith("\tat "))
+	static String summary(String output) {
+		return output.lines().filter(line -> line.contains("JCE_") || line.contains("NATIVE_LIBRARY_")
+				|| line.contains("JceSecurity") || line.contains("FileSystemAdviceDefinitions")
+				|| line.contains("AdviceFileSystemToolbox") || line.contains("Exception") || line.startsWith("\tat "))
 				.collect(java.util.stream.Collectors.joining(System.lineSeparator()));
 	}
 
