@@ -406,6 +406,8 @@ Ares reads these settings once per policy file, before it supervises any test co
 - `theFailureMessageForOtherExceptionsIs` (text): the fixed message. Defaults to `"Test failed."` when omitted or blank.
 - `theSecurityViolationFeedbackLevelIs` (`DEBUG`, `MINIMIZED` or `FULL`): how much a blocked action reveals. Defaults to `FULL`.
 
+This category applies in Postcompile. In Precompile, Ares refuses to generate the security tests when the policy sets it, and names the category, so a generated exercise never runs without the feedback the instructor chose.
+
 The feedback level decides every action Ares blocks at run time:
 
 | Level | What the student sees |

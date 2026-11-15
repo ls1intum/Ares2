@@ -21,11 +21,15 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FailureFeedbackConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.SecurityViolationFeedbackLevel;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorFieldNames;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 @DisplayName("JavaWriter Tests")
@@ -338,6 +342,33 @@ public class JavaWriterTest {
 						javaAOPTestCases, javaPhobosTestCases, tempDir);
 
 				assertEquals(3, result.size());
+				assertFalse(Files.exists(generatedSettingsClassPath()));
+			}
+		}
+
+		@Test
+		@DisplayName("Should refuse failure feedback in precompile instead of leaving it out of the generated tests")
+		void failureFeedbackIsRefusedInsteadOfDropped() {
+			TestBehaviorConfiguration withFailureFeedback = TestBehaviorConfiguration.builder()
+					.regardingTheFailureFeedbackForTheTestCases(FailureFeedbackConfiguration.builder()
+							.onlyPrivilegedExceptionsAreReported(true)
+							.theSecurityViolationFeedbackLevelIs(SecurityViolationFeedbackLevel.MINIMIZED).build())
+					.build();
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				SecurityException refusal = assertThrows(SecurityException.class,
+						() -> javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+								essentialClasses, testClasses, packageName, mainClassInPackageName,
+								javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases, withFailureFeedback,
+								tempDir));
+
+				assertEquals(Messages.localized("security.creation.test.behavior.unsupported",
+						TestBehaviorFieldNames.FAILURE_FEEDBACK), refusal.getMessage());
 				assertFalse(Files.exists(generatedSettingsClassPath()));
 			}
 		}
