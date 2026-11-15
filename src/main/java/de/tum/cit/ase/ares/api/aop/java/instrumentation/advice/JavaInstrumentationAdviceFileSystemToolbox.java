@@ -152,6 +152,35 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	@Nullable
 	private static final String TRUSTED_MAVEN_REPOSITORY = resolveTrustedMavenRepository();
 
+	/**
+	 * The folder the JVM loads its own native libraries from, read once at start-up
+	 * before student code runs. It is {@code null} unless that value names exactly
+	 * one absolute folder inside {@link #TRUSTED_JAVA_HOME}, and then no library
+	 * load counts as the JDK's own.
+	 */
+	@Nullable
+	private static final Path TRUSTED_BOOT_LIBRARY_DIRECTORY = trustedBootLibraryDirectory(TRUSTED_JAVA_HOME,
+			System.getProperty("sun.boot.library.path"), File.pathSeparator);
+
+	/**
+	 * The feature release of the running JDK, such as 21, read once at start-up.
+	 */
+	private static final int RUNNING_FEATURE_RELEASE = Runtime.version().feature();
+
+	/**
+	 * The JDK feature releases whose public {@code loadLibrary} methods were
+	 * checked to pass every call on to {@code Runtime.loadLibrary0}.
+	 */
+	@Nonnull
+	private static final Set<Integer> AUDITED_FEATURE_RELEASES = Set.of(17, 21, 25);
+
+	/**
+	 * The JVM descriptor of {@code System.loadLibrary} and
+	 * {@code Runtime.loadLibrary}: one {@code String}, no result.
+	 */
+	@Nonnull
+	private static final String LOAD_LIBRARY_DESCRIPTOR = "(Ljava/lang/String;)V";
+
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -1740,6 +1769,305 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		} finally {
 			exitAdvice();
 		}
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="Native library loads">
+
+	/**
+	 * Checks a call of an execute method. A public {@code loadLibrary} call may be
+	 * left to the check in {@code Runtime.loadLibrary0}, see
+	 * {@link #shouldDeferToLoadLibrary0}.
+	 *
+	 * @param declaringTypeName the class
+	 * @param methodName        the method
+	 * @param methodSignature   for messages
+	 * @param methodDescriptor  JVM descriptor
+	 * @param attributes        receiver fields
+	 * @param parameters        arguments
+	 * @param instance          receiver
+	 * @throws SecurityException if forbidden
+	 */
+	public static void checkExecuteInteraction(@Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nonnull String methodSignature, @Nullable String methodDescriptor, @Nullable Object[] attributes,
+			@Nullable Object[] parameters, @Nullable Object instance) {
+		if (isPublicLoadLibrary(declaringTypeName, methodName, methodDescriptor) && shouldDeferToLoadLibrary0(
+				RUNNING_FEATURE_RELEASE, JavaInstrumentationLibraryLoadWeaveRecord.INSTALLATION.isWoven())) {
+			return;
+		}
+		checkFileSystemInteraction("execute", declaringTypeName, methodName, methodSignature, attributes, parameters,
+				instance);
+	}
+
+	/**
+	 * Checks a load at {@code Runtime.loadLibrary0}. The JDK loading its own
+	 * library is allowed; any other is checked as executing the name in the working
+	 * directory, and a name that is no path is refused. The class is never a path.
+	 *
+	 * @param declaringTypeName the class
+	 * @param methodName        the method
+	 * @param methodSignature   for messages
+	 * @param methodDescriptor  JVM descriptor
+	 * @param fromClass         the caller the JDK names
+	 * @param libraryName       the name as passed
+	 * @throws SecurityException if forbidden
+	 */
+	public static void checkLibraryLoad0(@Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nonnull String methodSignature, @Nullable String methodDescriptor, @Nullable Class<?> fromClass,
+			@Nullable String libraryName) {
+		if (isJdkOwnLibraryLoadWithinGuard(declaringTypeName, methodName, methodDescriptor, fromClass, libraryName)) {
+			return;
+		}
+		if (isUnreadableAsPath(libraryName)) {
+			refuseUnreadableLibraryName(declaringTypeName, methodName, methodSignature, libraryName);
+			return;
+		}
+		checkFileSystemInteraction("execute", declaringTypeName, methodName, methodSignature, new Object[0],
+				new Object[] { libraryName }, null);
+	}
+
+	/**
+	 * Runs {@link #isJdkOwnLibraryLoad} inside the advice's guard against calling
+	 * itself, since looking for the library file reads the file system. A nested
+	 * call counts as not exempt; the check it then reaches skips nested calls too.
+	 *
+	 * @return {@code true} only for the JDK loading its own library
+	 */
+	private static boolean isJdkOwnLibraryLoadWithinGuard(@Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nullable String methodDescriptor, @Nullable Class<?> fromClass, @Nullable String libraryName) {
+		if (!enterAdvice()) {
+			return false;
+		}
+		try {
+			return isJdkOwnLibraryLoad(declaringTypeName, methodName, methodDescriptor, fromClass, libraryName,
+					TRUSTED_BOOT_LIBRARY_DIRECTORY);
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	/**
+	 * Tells whether a call of {@code Runtime.loadLibrary0} is the JDK loading its
+	 * own library. Sound because a JDK caller's class loader skips its own search,
+	 * so the JDK's folder is searched first and the file found there is what loads.
+	 * The caller is what the JDK itself works out, so reflection, method handles
+	 * and method references cannot pose as the JDK.
+	 *
+	 * @param bootLibraryDirectory the JDK's own library folder, or {@code null}
+	 * @return {@code true} only if every condition holds
+	 */
+	static boolean isJdkOwnLibraryLoad(@Nullable String declaringTypeName, @Nullable String methodName,
+			@Nullable String methodDescriptor, @Nullable Class<?> fromClass, @Nullable String libraryName,
+			@Nullable Path bootLibraryDirectory) {
+		return isLoadLibrary0(declaringTypeName, methodName, methodDescriptor) && isJdkCaller(fromClass)
+				&& isPlainLibraryName(libraryName) && isBootLibraryFile(bootLibraryDirectory, libraryName);
+	}
+
+	/**
+	 * Tells whether a method is exactly
+	 * {@code java.lang.Runtime.loadLibrary0(Class, String)}, compared by its JVM
+	 * descriptor.
+	 *
+	 * @return {@code true} only for that method
+	 */
+	static boolean isLoadLibrary0(@Nullable String declaringTypeName, @Nullable String methodName,
+			@Nullable String methodDescriptor) {
+		return JavaInstrumentationLibraryLoadWeaveRecord.DECLARING_TYPE.equals(declaringTypeName)
+				&& JavaInstrumentationLibraryLoadWeaveRecord.METHOD_NAME.equals(methodName)
+				&& JavaInstrumentationLibraryLoadWeaveRecord.METHOD_DESCRIPTOR.equals(methodDescriptor);
+	}
+
+	/**
+	 * Tells whether the JVM's own loader or the platform loader defined a class, so
+	 * that it is part of the JDK. {@code getClassLoader} cannot be overridden.
+	 *
+	 * @param fromClass the class the JDK says asked for the library
+	 * @return {@code true} for a JDK class, {@code false} for any other or none
+	 */
+	static boolean isJdkCaller(@Nullable Class<?> fromClass) {
+		if (fromClass == null) {
+			return false;
+		}
+		ClassLoader loader = fromClass.getClassLoader();
+		return loader == null || loader == ClassLoader.getPlatformClassLoader();
+	}
+
+	/**
+	 * Tells whether a library name is a plain name: not empty, and without
+	 * {@code /}, {@code \}, {@code .} or a NUL character. The name is checked as
+	 * passed, without cutting anything off.
+	 *
+	 * @param libraryName the library name
+	 * @return {@code true} for a plain name
+	 */
+	static boolean isPlainLibraryName(@Nullable String libraryName) {
+		return libraryName != null && !libraryName.isEmpty() && libraryName.indexOf('/') < 0
+				&& libraryName.indexOf('\\') < 0 && libraryName.indexOf('.') < 0 && libraryName.indexOf('\0') < 0;
+	}
+
+	/**
+	 * Tells whether the JDK's library folder holds a regular file for the library,
+	 * under the name the JVM gives it, such as {@code libnet.so}.
+	 *
+	 * @param bootLibraryDirectory the JDK's own library folder, or {@code null}
+	 * @param libraryName          a plain library name
+	 * @return {@code true} if that file exists there
+	 */
+	static boolean isBootLibraryFile(@Nullable Path bootLibraryDirectory, @Nonnull String libraryName) {
+		if (bootLibraryDirectory == null) {
+			return false;
+		}
+		try {
+			return Files.isRegularFile(bootLibraryDirectory.resolve(System.mapLibraryName(libraryName)));
+		} catch (InvalidPathException unreadable) {
+			return false;
+		}
+	}
+
+	/**
+	 * Works out the JDK's own library folder from the value of
+	 * {@code sun.boot.library.path}: {@code lib} on Linux and macOS, {@code bin} on
+	 * Windows. It is accepted only as exactly one absolute folder inside the Java
+	 * home.
+	 *
+	 * @param javaHome        the trusted Java home, or {@code null}
+	 * @param bootLibraryPath the property's value, or {@code null}
+	 * @param pathSeparator   the separator between several folders
+	 * @return the folder, or {@code null} if the value is not accepted
+	 */
+	@Nullable
+	static Path trustedBootLibraryDirectory(@Nullable String javaHome, @Nullable String bootLibraryPath,
+			@Nonnull String pathSeparator) {
+		if (javaHome == null || javaHome.isBlank() || bootLibraryPath == null || bootLibraryPath.isEmpty()
+				|| bootLibraryPath.contains(pathSeparator)) {
+			return null;
+		}
+		try {
+			Path directory = Path.of(bootLibraryPath);
+			if (!directory.isAbsolute()) {
+				return null;
+			}
+			Path normalised = directory.normalize();
+			return normalised.startsWith(Path.of(javaHome).toAbsolutePath().normalize()) ? normalised : null;
+		} catch (InvalidPathException unreadable) {
+			return null;
+		}
+	}
+
+	/**
+	 * Tells whether a method is one of the two public {@code loadLibrary} methods,
+	 * compared by its JVM descriptor.
+	 *
+	 * @return {@code true} for {@code System.loadLibrary(String)} and
+	 *         {@code Runtime.loadLibrary(String)}
+	 */
+	static boolean isPublicLoadLibrary(@Nullable String declaringTypeName, @Nullable String methodName,
+			@Nullable String methodDescriptor) {
+		return ("java.lang.System".equals(declaringTypeName) || "java.lang.Runtime".equals(declaringTypeName))
+				&& "loadLibrary".equals(methodName) && LOAD_LIBRARY_DESCRIPTOR.equals(methodDescriptor);
+	}
+
+	/**
+	 * Tells whether a JDK feature release is one whose public {@code loadLibrary}
+	 * methods were checked to call {@code Runtime.loadLibrary0}.
+	 *
+	 * @param featureRelease the feature release, such as 21
+	 * @return {@code true} for 17, 21 and 25 only
+	 */
+	static boolean isAuditedFeatureRelease(int featureRelease) {
+		return AUDITED_FEATURE_RELEASES.contains(featureRelease);
+	}
+
+	/**
+	 * Tells whether a public {@code loadLibrary} check may leave the call to the
+	 * check in {@code Runtime.loadLibrary0}: only if that check was really woven in
+	 * and the JDK is an audited release. Otherwise the public method is checked
+	 * itself, so a missing check one step deeper never lets a load through.
+	 *
+	 * @param featureRelease the running JDK's feature release
+	 * @param woven          whether the sealed record says the check was woven
+	 * @return {@code true} if the public check may do nothing
+	 */
+	static boolean shouldDeferToLoadLibrary0(int featureRelease, boolean woven) {
+		return woven && isAuditedFeatureRelease(featureRelease);
+	}
+
+	/**
+	 * Tells whether the file check cannot read a name as a path, for example
+	 * because it holds a NUL character. Such a name would pass that check unseen.
+	 *
+	 * @param libraryName the library name, or {@code null}
+	 * @return {@code true} if the name is not {@code null} and not a valid path
+	 */
+	static boolean isUnreadableAsPath(@Nullable String libraryName) {
+		if (libraryName == null) {
+			return false;
+		}
+		try {
+			Path.of(libraryName);
+			return false;
+		} catch (InvalidPathException unreadable) {
+			return true;
+		}
+	}
+
+	/**
+	 * Refuses a library load whose name cannot be read as a path, in the cases the
+	 * file check would refuse a readable one: instrumentation is active, student
+	 * code is on the call stack and the execute allow-list does not allow every
+	 * path. The message is the file check's own.
+	 *
+	 * @throws SecurityException in those cases
+	 */
+	private static void refuseUnreadableLibraryName(@Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nonnull String methodSignature, @Nonnull String libraryName) {
+		if (!enterAdvice()) {
+			return;
+		}
+		try {
+			@Nullable
+			String restrictedPackage = getValueFromSettings("restrictedPackage");
+			if (!"INSTRUMENTATION".equals(getValueFromSettings("aopMode")) || restrictedPackage == null
+					|| restrictedPackage.isEmpty() || isProjectSourcesFinderInProgress()) {
+				return;
+			}
+			@Nullable
+			String violatingMethod = checkIfCallstackCriteriaIsViolated(restrictedPackage,
+					getValueFromSettings("allowedListedClasses"), declaringTypeName, methodName);
+			@Nullable
+			String[] allowedPaths = getValueFromSettings("pathsAllowedToBeExecuted");
+			if (violatingMethod == null || allowsEveryPath(allowedPaths)) {
+				return;
+			}
+			@Nullable
+			String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
+			throw new SecurityException(
+					localize("security.advice.illegal.file.execution", violatingMethod, "execute", libraryName,
+							declaringTypeName + "." + methodName + methodSignature
+									+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+									+ " | " + buildDenialReason(allowedPaths == null || allowedPaths.length == 0)));
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	/**
+	 * Tells whether an allow-list holds the {@code *} entry, which allows every
+	 * path.
+	 *
+	 * @param allowedPaths the allow-list, possibly {@code null}
+	 * @return {@code true} if it allows every path
+	 */
+	private static boolean allowsEveryPath(@Nullable String[] allowedPaths) {
+		if (allowedPaths == null) {
+			return false;
+		}
+		for (String allowedPath : allowedPaths) {
+			if ("*".equals(allowedPath)) {
+				return true;
+			}
+		}
+		return false;
 	}
 	// </editor-fold>
 }

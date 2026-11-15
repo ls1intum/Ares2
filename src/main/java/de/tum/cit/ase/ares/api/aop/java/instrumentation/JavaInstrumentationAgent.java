@@ -39,6 +39,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceNetworkSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationArchiveCallSite;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationLibraryLoadWeaveRecord;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.NetworkTarget;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.ThreadTarget;
@@ -197,7 +198,8 @@ public final class JavaInstrumentationAgent {
 	 * Installs the pointcut transformers and application call-site transformer
 	 * exactly once. A failed attempt, or a class it could not transform, is kept
 	 * and rethrown by every later one, so a half-finished installation is never
-	 * repeated and never ignored.
+	 * repeated and never ignored. The library-load weave record is open only during
+	 * this attempt and sealed after it, whatever its outcome.
 	 *
 	 * @throws SecurityException if the agent is not attached or installing failed
 	 */
@@ -214,6 +216,7 @@ public final class JavaInstrumentationAgent {
 					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 							.localize("security.instrumentation.agent.not.attached"));
 				}
+				callBootWeaveRecord("open");
 				installAgentBuilder(currentInstrumentation, currentFactory, guardedPointcuts());
 				installThreadCallSiteBuilder(currentInstrumentation, currentFactory);
 				throwIfPermanentFailure();
@@ -225,7 +228,45 @@ public final class JavaInstrumentationAgent {
 				activationFailure = new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 						.localize("security.instrumentation.agent.installation.error", "instrumentation"), failure);
 				throw activationFailure;
+			} finally {
+				sealBootWeaveRecord(activated && wasTransformed(Runtime.class));
 			}
+		}
+	}
+
+	/**
+	 * Seals the weave record for good. If installing failed or did not transform
+	 * {@code java.lang.Runtime}, the record is opened once more first, which wipes
+	 * any mark, so the public {@code loadLibrary} checks keep checking.
+	 *
+	 * @param runtimeTransformed whether installing succeeded and transformed
+	 *                           {@code java.lang.Runtime}
+	 */
+	private static void sealBootWeaveRecord(boolean runtimeTransformed) {
+		if (!runtimeTransformed) {
+			callBootWeaveRecord("open");
+		}
+		callBootWeaveRecord("seal");
+	}
+
+	/**
+	 * Calls a method without arguments on the weave record held by the JVM's own
+	 * loader, which the advice reads. This class sees a second copy under the
+	 * application loader, so the JVM's copy is reached by reflection. A failure is
+	 * ignored: an unmarked or unsealed record makes no public check defer.
+	 *
+	 * @param methodName {@code open} or {@code seal}
+	 */
+	private static void callBootWeaveRecord(String methodName) {
+		try {
+			Class<?> recordClass = Class.forName(JavaInstrumentationLibraryLoadWeaveRecord.class.getName(), true, null);
+			Field installation = recordClass.getDeclaredField("INSTALLATION");
+			installation.setAccessible(true);
+			Method method = recordClass.getDeclaredMethod(methodName);
+			method.setAccessible(true);
+			method.invoke(installation.get(null));
+		} catch (ReflectiveOperationException | LinkageError | RuntimeException unreachable) {
+			return;
 		}
 	}
 
@@ -397,6 +438,8 @@ public final class JavaInstrumentationAgent {
 						JavaInstrumentationBindingDefinitions::createCreatePathMethodBinding),
 				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_FILES,
 						JavaInstrumentationBindingDefinitions::createExecutePathMethodBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_LOAD_LIBRARIES_FOR_A_CALLER,
+						JavaInstrumentationBindingDefinitions::createLoadLibrary0MethodBinding),
 				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
 						JavaInstrumentationBindingDefinitions::createDeletePathMethodBinding),
 				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
@@ -552,6 +595,8 @@ public final class JavaInstrumentationAgent {
 
 			// Step 3: Load target value types (used by concrete toolboxes)
 			injectClassesSafely(classInjector, Map.ofEntries(
+					Map.entry(JavaInstrumentationLibraryLoadWeaveRecord.class.getName(),
+							ClassFileLocator.ForClassLoader.read(JavaInstrumentationLibraryLoadWeaveRecord.class)),
 					Map.entry(FileTarget.class.getName(), ClassFileLocator.ForClassLoader.read(FileTarget.class)),
 					Map.entry(NetworkTarget.class.getName(), ClassFileLocator.ForClassLoader.read(NetworkTarget.class)),
 					Map.entry(ThreadTarget.class.getName(), ClassFileLocator.ForClassLoader.read(ThreadTarget.class)),

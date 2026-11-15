@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.pointcut;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.security.ProtectionDomain;
 import java.util.List;
 import java.util.Map;
@@ -7,12 +9,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.asm.AsmVisitorWrapper;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.ClassFileLocator;
 import net.bytebuddy.dynamic.DynamicType;
+import net.bytebuddy.implementation.Implementation;
 import net.bytebuddy.implementation.bytecode.assign.Assigner;
+import net.bytebuddy.jar.asm.MethodVisitor;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.pool.TypePool;
 import net.bytebuddy.utility.JavaModule;
 
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
@@ -28,6 +34,8 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecuteCommandMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationLibraryLoadWeaveRecord;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationLoadLibraryMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationReadPathConstructorAdvice;
@@ -331,6 +339,103 @@ public final class JavaInstrumentationBindingDefinitions {
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 					.localize("security.instrumentation.execute.constructor.binding.error"), e);
+		}
+	}
+
+	/**
+	 * Puts the library-load check into {@code Runtime.loadLibrary0(Class, String)}
+	 * alone and marks the weave record as it does.
+	 *
+	 * @param builder          the type builder
+	 * @param typeDescription  the type being transformed
+	 * @param classLoader      its loader, {@code null} for the JVM's own
+	 * @param javaModule       ignored
+	 * @param protectionDomain ignored
+	 * @return the builder with the binding
+	 */
+	public static DynamicType.Builder<?> createLoadLibrary0MethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+			ProtectionDomain protectionDomain) {
+		try {
+			return builder.visit(new AsmVisitorWrapper.ForDeclaredMethods().invokable(
+					JavaInstrumentationPointcutDefinitions.getLoadLibrary0Matcher(), new LoadLibrary0WeaveMarker(
+							resolvedAdvice(JavaInstrumentationLoadLibraryMethodAdvice.class), classLoader == null)));
+		} catch (Exception e) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.execute.method.binding.error"), e);
+		}
+	}
+
+	/**
+	 * Marks the weave record held by the JVM's own loader. The agent and this class
+	 * see a second copy of the record class under the application loader, so the
+	 * JVM's copy is reached by reflection. A failure leaves the record unmarked, so
+	 * the public checks keep checking.
+	 *
+	 * @param declaringType the class the check is woven into
+	 * @param methodName    the method the check is woven into
+	 * @param descriptor    the JVM descriptor of that method
+	 * @param loaderIsBoot  whether the JVM's own loader defined that class
+	 */
+	private static void markBootWeaveRecord(String declaringType, String methodName, String descriptor,
+			boolean loaderIsBoot) {
+		try {
+			Class<?> recordClass = Class.forName(JavaInstrumentationLibraryLoadWeaveRecord.class.getName(), true, null);
+			Field installation = recordClass.getDeclaredField("INSTALLATION");
+			installation.setAccessible(true);
+			Method mark = recordClass.getDeclaredMethod("mark", String.class, String.class, String.class,
+					boolean.class);
+			mark.setAccessible(true);
+			mark.invoke(installation.get(null), declaringType, methodName, descriptor, loaderIsBoot);
+		} catch (ReflectiveOperationException | LinkageError | RuntimeException unreachable) {
+			return;
+		}
+	}
+
+	/**
+	 * Applies the library-load check to a method and, just before, marks the weave
+	 * record with that method's class, name and JVM descriptor.
+	 */
+	private static final class LoadLibrary0WeaveMarker
+			implements AsmVisitorWrapper.ForDeclaredMethods.MethodVisitorWrapper {
+
+		/** The resolved library-load check. */
+		private final Advice advice;
+
+		/** Whether the JVM's own loader defined the class being rewritten. */
+		private final boolean loaderIsBoot;
+
+		/**
+		 * Creates the marker.
+		 *
+		 * @param advice       the resolved library-load check
+		 * @param loaderIsBoot whether the JVM's own loader defined the class
+		 */
+		private LoadLibrary0WeaveMarker(Advice advice, boolean loaderIsBoot) {
+			this.advice = advice;
+			this.loaderIsBoot = loaderIsBoot;
+		}
+
+		/**
+		 * Marks the record, then lets the check rewrite the method.
+		 *
+		 * @param instrumentedType      the class being rewritten
+		 * @param instrumentedMethod    the method being rewritten
+		 * @param methodVisitor         the visitor that writes the method
+		 * @param implementationContext the context of the rewrite
+		 * @param typePool              the types the check resolves against
+		 * @param writerFlags           the class writer's flags
+		 * @param readerFlags           the class reader's flags
+		 * @return the visitor the method's instructions are sent to
+		 */
+		@Override
+		public MethodVisitor wrap(TypeDescription instrumentedType, MethodDescription instrumentedMethod,
+				MethodVisitor methodVisitor, Implementation.Context implementationContext, TypePool typePool,
+				int writerFlags, int readerFlags) {
+			markBootWeaveRecord(instrumentedType.getName(), instrumentedMethod.getInternalName(),
+					instrumentedMethod.getDescriptor(), loaderIsBoot);
+			return advice.wrap(instrumentedType, instrumentedMethod, methodVisitor, implementationContext, typePool,
+					writerFlags, readerFlags);
 		}
 	}
 	// </editor-fold>
