@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -33,19 +34,34 @@ class ProjectSourcesFinderTest {
 		assertEquals(temporaryDirectory.resolve("checks").toRealPath(), configuration.testSourceRoots().get(0));
 	}
 
+	/**
+	 * The same layout declared in each Gradle language, each descriptor valid in
+	 * its own: Kotlin has no command syntax and reads a property by delegation.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
 	@Test
 	void discoversGroovyAndKotlinGradleRoots() throws IOException {
-		for (String descriptor : new String[] { "build.gradle", "build.gradle.kts" }) {
-			Path root = Files.createDirectory(temporaryDirectory.resolve(descriptor.replace('.', '-')));
+		Map<String, String> descriptors = Map.of("build.gradle", """
+				plugins { id 'java' }
+				sourceSets {
+				  main { java { srcDir(assignmentPath) } }
+				  test { java { srcDir 'checks' } }
+				}
+				""", "build.gradle.kts", """
+				plugins { java }
+				val assignmentPath: String by project
+				sourceSets {
+				  main { java { srcDir(assignmentPath) } }
+				  test { java { srcDir("checks") } }
+				}
+				""");
+		for (Map.Entry<String, String> descriptor : descriptors.entrySet()) {
+			Path root = Files.createDirectory(temporaryDirectory.resolve(descriptor.getKey().replace('.', '-')));
 			Files.createDirectories(root.resolve("assignment"));
 			Files.createDirectories(root.resolve("checks"));
 			Files.writeString(root.resolve("gradle.properties"), "assignmentPath=assignment\n");
-			Files.writeString(root.resolve(descriptor), """
-					sourceSets {
-					  main { java { srcDir(assignmentPath) } }
-					  test { java { srcDir 'checks' } }
-					}
-					""");
+			Files.writeString(root.resolve(descriptor.getKey()), descriptor.getValue());
 			var configuration = ProjectSourcesFinder.discover(root);
 			assertEquals(BuildMode.GRADLE, configuration.buildMode());
 			assertEquals(root.resolve("assignment").toRealPath(), configuration.productionSourceRoots().get(0));
@@ -330,6 +346,13 @@ class ProjectSourcesFinderTest {
 		assertTrue(configuration.productionRootsComplete());
 	}
 
+	/**
+	 * The comma inside {@code files(...)} separates arguments rather than source
+	 * roots, so the operand is two entries. The first names a and b, which are not
+	 * there and leave the set incomplete; the second is there, and is declared.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
 	@Test
 	void keepsAnArgumentCommaOutOfTheSourceRootList() throws IOException {
 		Files.createDirectories(temporaryDirectory.resolve("assignment"));
@@ -341,13 +364,10 @@ class ProjectSourcesFinderTest {
 
 		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
 
-		// The comma inside files(...) separates arguments rather than source roots, so
-		// the operand is two entries. The first is not a static path and leaves the set
-		// incomplete; the second is, and is declared.
 		assertEquals(List.of(temporaryDirectory.resolve("assignment").toRealPath()),
 				configuration.productionSourceRoots());
 		assertTrue(!configuration.productionRootsComplete(),
-				"files('a', 'b') was not resolved, so what was found is not the whole source set");
+				"a and b are not there, so what was found is not the whole source set");
 	}
 
 	@Test

@@ -7,12 +7,15 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,8 +41,24 @@ public final class ProjectSourcesFinder {
 	private static final Logger LOG = LoggerFactory.getLogger(ProjectSourcesFinder.class);
 	private static final String DEFAULT_PRODUCTION_SOURCE = "src/main/java";
 	private static final String DEFAULT_TEST_SOURCE = "src/test/java";
-	private static final Pattern PROPERTY_ASSIGNMENT = Pattern
+	/**
+	 * A {@code def}, {@code val} or {@code var} given a string literal, as the
+	 * legacy {@link #findProjectSourcesPath()} reads it from the unmasked file.
+	 */
+	private static final Pattern LEGACY_PROPERTY_ASSIGNMENT = Pattern
 			.compile("(?m)^\\s*(?:def|val|var)?\\s*([A-Za-z_][A-Za-z0-9_.-]*)\\s*=\\s*['\"]([^'\"]+)['\"]");
+	/**
+	 * A name given one string literal as its whole value on its own line, such as
+	 * {@code def dir = 'a'}. Matched on masked code.
+	 */
+	private static final Pattern PROPERTY_ASSIGNMENT = Pattern.compile(
+			"(?m)^[ \\t]*(?:def|val|var)?[ \\t]*([A-Za-z_][A-Za-z0-9_.-]*)[ \\t]*=[ \\t]*['\"]([^'\"\\n]+)['\"][ \\t\\r\\u0001;]*$");
+	/**
+	 * Any assignment to a name, plain or compound such as {@code +=}, wherever it
+	 * stands, so that a name given more than one value is not read as a fixed one.
+	 */
+	private static final Pattern ASSIGNED_NAME = Pattern.compile(
+			"(?<![A-Za-z0-9_$.])([A-Za-z_][A-Za-z0-9_.]*)[ \\t]*(?::[ \\t]*[A-Za-z0-9_.<>?, ]+)?[-+*/%]?=(?!=)");
 	/**
 	 * Any mention of {@code group} as a name in Gradle code, qualified or not.
 	 * Matched on masked code, so a mention inside a comment or a string does not
@@ -73,9 +92,43 @@ public final class ProjectSourcesFinder {
 	 */
 	private static final char STRING_MASK = '\u0002';
 	/**
-	 * Where a source-directory operand ends: the statement or the collection does.
+	 * The name the Gradle reader puts in place of a call that reaches another
+	 * project, such as {@code subprojects} or {@code project(':x')}, so that a
+	 * source set changed there is never taken for this project's.
 	 */
-	private static final String OPERAND_TERMINATORS = ")]\n}";
+	private static final String OTHER_PROJECT = "?project";
+	/**
+	 * The name the Gradle reader adds where a statement assigns, so that a block
+	 * opened after it, a closure or lambda stored for later, counts as deferred.
+	 */
+	private static final String ASSIGNED = "?assigned";
+	/**
+	 * The name the Gradle reader adds where a block is the body of a method, such
+	 * as {@code int unused() {}}, which runs only when something calls it.
+	 */
+	private static final String METHOD_BODY = "?method";
+	/** A {@code throws} clause between a parameter list and a method body. */
+	private static final Pattern THROWS_CLAUSE = Pattern
+			.compile("throws\\s+[A-Za-z_$][A-Za-z0-9_$.]*(?:\\s*,\\s*[A-Za-z_$][A-Za-z0-9_$.]*)*");
+	/**
+	 * Words before a call and its block that do not make the call a method
+	 * declaration.
+	 */
+	private static final Set<String> NOT_TYPES = Set.of("task", "else", "return", "new", "throw", "in", "is", "as",
+			"case", "assert", "println", "print");
+	/**
+	 * Names that make the code after them conditional or deferred: a branch, a
+	 * loop, a handler, the body of a definition, or a callback Gradle runs later. A
+	 * declaration under one may never run, or run after code written below it.
+	 */
+	private static final Set<String> CONDITIONS = Set.of("if", "else", "for", "while", "switch", "when", "catch", "do",
+			"def", "fun", "void", ASSIGNED, METHOD_BODY, "afterEvaluate", "beforeEvaluate", "projectsEvaluated",
+			"whenReady", "doFirst", "doLast", "whenTaskAdded", "whenObjectAdded", "provider");
+	/** Words that, before a name, declare it as a local variable or function. */
+	private static final Set<String> DECLARING_WORDS = Set.of("def", "val", "var", "fun", "final", "static", "private",
+			"protected", "public");
+	/** How deeply nested an operand this reader works through before giving up. */
+	private static final int MAX_NESTING = 64;
 	private static String pomXmlPath = "pom.xml";
 	private static String buildGradlePath = "build.gradle";
 
@@ -118,7 +171,7 @@ public final class ProjectSourcesFinder {
 		}
 		if (mode == BuildMode.MAVEN) {
 			MavenSourceRoots production = discoverMavenRoots(root, false);
-			warnIfProductionRootsArePartial(production.complete(), root.resolve("pom.xml"));
+			warnIfProductionRootsArePartial(production.complete(), root.resolve("pom.xml"), List.of());
 			return new BuildToolConfiguration(mode, root, production.roots(), discoverMavenRoots(root, true).roots(),
 					root.resolve(mode.getBuildDirectory()), root.resolve(mode.getTestBuildDirectory()),
 					production.complete());
@@ -236,43 +289,81 @@ public final class ProjectSourcesFinder {
 	/**
 	 * The roots of both Gradle source sets, read in one pass over the descriptor.
 	 *
-	 * @param production the roots of the main source set
-	 * @param test       the roots of the test source set
+	 * @param production         the roots of the main source set
+	 * @param test               the roots of the test source set
+	 * @param productionComplete whether the main roots are known to be all of them
 	 */
 	private record GradleSourceRoots(List<Path> production, List<Path> test, boolean productionComplete) {
 	}
 
 	/**
-	 * Reads the source roots a Gradle descriptor declares.
-	 * <p>
-	 * The descriptor is neither evaluated nor fully parsed. It is masked so that
-	 * comments and the contents of string literals cannot be mistaken for
-	 * declarations, then walked once while a stack records the enclosing blocks. A
-	 * declaration counts only inside {@code sourceSets}, then {@code main} or
-	 * {@code test}, then {@code java}, which is what keeps a {@code resources}
-	 * block, and a {@code main} block belonging to something other than a source
-	 * set, out of the Java source roots. Reading both source sets together is what
-	 * lets one occurrence belong to exactly one of them.
-	 * <p>
-	 * Gradle's own semantics decide what the declarations add up to. A source set
-	 * starts at its conventional root; {@code srcDir}, {@code srcDirs(…)} and
-	 * {@code srcDirs +=} add to it, and {@code srcDirs =} replaces whatever came
-	 * before. Applying them in order is what makes {@code srcDirs += ['generated']}
-	 * mean the conventional root <em>and</em> the generated one, rather than the
-	 * generated one alone. <b>Known gaps, deliberately not covered:</b> Kotlin's
-	 * {@code setSrcDirs(…)}, receiver chains such as {@code sourceSets.main.java {
-	 * … }}, and any computed value. None is silent: a declaration this reader
-	 * cannot resolve, and one it resolves to a directory the project does not
-	 * contain, both mark the source set incomplete, and that travels to the
-	 * consumer through {@link BuildToolConfiguration#productionRootsComplete()}, so
-	 * the roots are still offered but no longer as the whole project. That matters
-	 * because {@code srcDirs =} clears the conventional root before its operand is
-	 * read, so a value that is unresolvable or absent leaves the source set empty
-	 * and indistinguishable from a project declaring no sources. {@code srcDirs =
-	 * []} stays what it says: known, complete and empty. Properties are read from
-	 * the mask so an assignment inside a comment or a string cannot define one, and
-	 * taken from the original at the same offsets, which works because masking
-	 * preserves every length.
+	 * What a source-directory declaration changes, judged by where it is written.
+	 */
+	private enum Slot {
+		/** The Java directories of the main source set. */
+		MAIN_JAVA,
+		/** The Java directories of the test source set. */
+		TEST_JAVA,
+		/** Something that holds no production Java source, such as main's resources. */
+		IGNORED,
+		/** No single source set, so main is no longer known to be complete. */
+		UNATTRIBUTED
+	}
+
+	/** How a name is used where it is written. */
+	private enum Use {
+		/** Assigned with {@code =}, which replaces. */
+		REPLACE,
+		/** Extended with {@code +=} in Groovy, which adds. */
+		APPEND,
+		/** Extended with {@code +=} in Kotlin, which compiles and changes nothing. */
+		INERT,
+		/** Called with parentheses. */
+		CALL,
+		/** Called without parentheses, as Groovy allows. */
+		COMMAND,
+		/** Given a closure, whose result this reader cannot know. */
+		BLOCK,
+		/** Only read. */
+		READ
+	}
+
+	/**
+	 * The directories an operand names, and whether it was read in full.
+	 *
+	 * @param values   the paths read, relative to the project or absolute
+	 * @param complete whether nothing in the operand was left unread
+	 */
+	private record Resolution(List<String> values, boolean complete) {
+		/** An operand this reader cannot work out. */
+		private static final Resolution UNREAD = new Resolution(List.of(), false);
+	}
+
+	/**
+	 * An operand read from a script.
+	 *
+	 * @param resolution what it names
+	 * @param end        the offset to go on from
+	 */
+	private record Operand(Resolution resolution, int end) {
+	}
+
+	/**
+	 * A block the walker is inside, with what it needs to resume the statement that
+	 * opened it once the block closes.
+	 *
+	 * @param path  the names leading into this block, outermost first
+	 * @param head  the names of the statement that opened it
+	 * @param depth that statement's bracket depth
+	 */
+	private record Frame(List<String> path, List<String> head, int depth) {
+	}
+
+	/**
+	 * Reads the source roots a Gradle descriptor declares, without running it. Only
+	 * {@code sourceSets.main.java} and {@code sourceSets.test.java} give roots.
+	 * What cannot be placed or worked out marks main incomplete; a form this reader
+	 * does not know, such as one a plugin adds, stays unseen.
 	 *
 	 * @param root       the project root
 	 * @param descriptor the build.gradle or build.gradle.kts to read
@@ -285,139 +376,1032 @@ public final class ProjectSourcesFinder {
 		} catch (IOException exception) {
 			throw new IllegalStateException("Cannot read Gradle descriptor " + descriptor, exception);
 		}
-		String code = maskInactiveRegions(content, Objects.toString(descriptor.getFileName(), "").endsWith(".kts"));
-		Map<String, String> properties = loadGradleProperties(root);
-		Matcher assignments = PROPERTY_ASSIGNMENT.matcher(code);
-		while (assignments.find()) {
-			properties.put(assignments.group(1), content.substring(assignments.start(2), assignments.end(2)));
+		GradleReading reading = new GradleReading(root, loadGradleProperties(root));
+		if (Files.isDirectory(root.resolve("buildSrc"))) {
+			reading.blocked.add("buildSrc: its build logic may change the source sets, and it is not read");
 		}
-		Map<String, List<Path>> declared = new LinkedHashMap<>();
-		Map<String, Boolean> complete = new LinkedHashMap<>();
-		Deque<String> blocks = new ArrayDeque<>();
-		String pending = "";
-		int index = 0;
-		while (index < code.length()) {
-			char current = code.charAt(index);
-			if (current == '{') {
-				blocks.push(pending);
-				pending = "";
-				index++;
-			} else if (current == '}') {
-				blocks.poll();
-				pending = "";
-				index++;
-			} else if (isIdentifierStart(current)) {
-				int end = index;
-				while (end < code.length() && isIdentifierPart(code.charAt(end))) {
-					end++;
-				}
-				String chain = code.substring(index, end);
-				String identifier = lastSegmentOf(chain);
-				if ("named".equals(identifier) || "getByName".equals(identifier)) {
-					int close = code.indexOf(')', end);
-					pending = close < 0 ? "" : unquote(content.substring(skipWhitespace(code, end) + 1, close).trim());
-					index = close < 0 ? end : close + 1;
-				} else if ("srcDir".equals(identifier) || "srcDirs".equals(identifier)) {
-					index = readSourceDirectories(root, descriptor, content, code, end, identifier, blocks, properties,
-							declared, complete);
-				} else {
-					pending = chain;
-					index = end;
-				}
-			} else {
-				index++;
-			}
-		}
-		boolean productionComplete = complete.getOrDefault("main", Boolean.TRUE);
-		warnIfProductionRootsArePartial(productionComplete, descriptor);
-		return new GradleSourceRoots(rootsOf(root, declared, "main"), rootsOf(root, declared, "test"),
-				productionComplete);
+		reading.applying.push(BuildToolConfiguration.canonicalise(descriptor));
+		new GradleScriptWalker(reading, descriptor, content).walk();
+		List<String> reasons = reading.productionGaps();
+		warnIfProductionRootsArePartial(reasons.isEmpty(), descriptor, reasons);
+		return new GradleSourceRoots(rootsOf(root, reading.declared, "main"), rootsOf(root, reading.declared, "test"),
+				reasons.isEmpty());
 	}
 
 	/**
-	 * Applies one {@code srcDir} or {@code srcDirs} declaration and returns the
-	 * offset to continue from. {@code =} replaces, everything else adds.
-	 * <p>
-	 * A parenthesised call is pointed AT rather than past, so its opening delimiter
-	 * stays visible and the operand is seen as bracketed at all.
-	 * <p>
-	 * A replacement supersedes whatever uncertainty preceded it, so it can restore
-	 * completeness as well as remove it, whereas an addition can only ever make the
-	 * picture less complete.
+	 * The source set a declaration changes, from the names leading to it: the name
+	 * after the last {@code sourceSets}, then {@code java} or {@code resources}
+	 * further on. Any other source set, {@code all} included, another project's,
+	 * and one under a condition count as unattributed.
+	 *
+	 * @param path the names leading to the declaration, outermost first
+	 * @return what the declaration changes
 	 */
-	private static int readSourceDirectories(Path root, Path descriptor, String content, String code, int end,
-			String identifier, Deque<String> blocks, Map<String, String> properties, Map<String, List<Path>> declared,
-			Map<String, Boolean> complete) {
-		int operator = skipInactive(code, end);
-		char next = operator < code.length() ? code.charAt(operator) : '\0';
-		boolean replacing = next == '=';
-		int operandStart;
-		if (replacing) {
-			operandStart = skipInactive(code, operator + 1);
-		} else if (next == '+' && operator + 1 < code.length() && code.charAt(operator + 1) == '=') {
-			operandStart = skipInactive(code, operator + 2);
-		} else if (next == '(') {
-			operandStart = operator;
-		} else if ("srcDir".equals(identifier) && (next == '\'' || next == '"' || isIdentifierStart(next))) {
-			operandStart = operator;
-		} else {
-			return end;
+	private static Slot slotOf(List<String> path) {
+		int set = setIndexOf(path);
+		if (set < 0 || set >= path.size() || path.contains(OTHER_PROJECT)
+				|| path.stream().anyMatch(CONDITIONS::contains)) {
+			return Slot.UNATTRIBUTED;
 		}
-		char opener = operandStart < code.length() ? code.charAt(operandStart) : '\0';
-		boolean bracketed = opener == '[' || opener == '(';
-		boolean resolvedEverything = true;
-		int tokensStart;
-		int tokensEnd;
-		int resumeAt;
-		if (bracketed) {
-			int close = matchingClose(code, operandStart);
-			if (close < 0) {
-				tokensStart = operandStart + 1;
-				tokensEnd = code.length();
-				resumeAt = code.length();
-				resolvedEverything = false;
-			} else {
-				tokensStart = operandStart + 1;
-				tokensEnd = close;
-				resumeAt = close + 1;
-				resolvedEverything = endsStatement(code, close + 1);
-			}
-		} else {
-			tokensStart = operandStart;
-			tokensEnd = operandStart;
-			while (tokensEnd < code.length() && OPERAND_TERMINATORS.indexOf(code.charAt(tokensEnd)) < 0) {
-				tokensEnd++;
-			}
-			resumeAt = tokensEnd;
+		String kind = path.subList(set + 1, path.size()).stream()
+				.filter(name -> "java".equals(name) || "resources".equals(name)).findFirst().orElse("");
+		if ("main".equals(path.get(set))) {
+			return "java".equals(kind) ? Slot.MAIN_JAVA : "resources".equals(kind) ? Slot.IGNORED : Slot.UNATTRIBUTED;
 		}
-		List<String> values = new ArrayList<>();
-		for (int[] span : splitTopLevel(code, tokensStart, tokensEnd)) {
-			String operand = activeText(content, code, span[0], span[1]).trim();
-			if (operand.isEmpty()) {
-				continue;
-			}
-			Optional<String> value = resolveGradlePath(operand, properties);
-			if (value.isPresent()) {
-				values.add(value.get());
-			} else {
-				resolvedEverything = false;
-			}
+		if ("test".equals(path.get(set))) {
+			return "java".equals(kind) ? Slot.TEST_JAVA : Slot.IGNORED;
 		}
-		String sourceSet = sourceSetOf(blocks);
-		if (sourceSet != null) {
+		return Slot.UNATTRIBUTED;
+	}
+
+	/**
+	 * Where the source set name stands in these names: right after the last
+	 * {@code sourceSets}, past any {@code val} or {@code var}.
+	 *
+	 * @param path the names leading to a declaration
+	 * @return the index, or -1 without {@code sourceSets}
+	 */
+	private static int setIndexOf(List<String> path) {
+		int set = path.lastIndexOf("sourceSets") + 1;
+		if (set == 0) {
+			return -1;
+		}
+		while (set < path.size() && ("val".equals(path.get(set)) || "var".equals(path.get(set)))) {
+			set++;
+		}
+		return set;
+	}
+
+	/**
+	 * What reading one Gradle build has found, shared by its descriptor and every
+	 * script the descriptor applies.
+	 */
+	private static final class GradleReading {
+		/** The canonical project root every path is resolved against. */
+		private final Path root;
+		/** The entries of gradle.properties, which every script can read. */
+		private final Map<String, String> properties;
+		/** The roots of main and test, each starting from its convention. */
+		private final Map<String, List<Path>> declared = new LinkedHashMap<>();
+		/** Why a source set's roots may be partial; a replacement starts afresh. */
+		private final Map<String, List<String>> gaps = new LinkedHashMap<>();
+		/** Why main is partial whatever comes later in the script. */
+		private final List<String> blocked = new ArrayList<>();
+		/**
+		 * The scripts being read right now, to notice one applied again inside itself.
+		 */
+		private final Deque<Path> applying = new ArrayDeque<>();
+		/** Whether code this reader cannot follow may have replaced the test roots. */
+		private boolean testUntrusted;
+
+		/**
+		 * Starts reading the build at this root.
+		 *
+		 * @param root       the canonical project root
+		 * @param properties the entries of gradle.properties
+		 */
+		private GradleReading(Path root, Map<String, String> properties) {
+			this.root = root;
+			this.properties = properties;
+		}
+
+		/**
+		 * Every reason main is not known to be complete, in the order found.
+		 *
+		 * @return the reasons, empty when main is complete
+		 */
+		private List<String> productionGaps() {
+			List<String> reasons = new ArrayList<>(blocked);
+			reasons.addAll(gaps.getOrDefault("main", List.of()));
+			return reasons;
+		}
+
+		/**
+		 * Applies one declaration to main or test: a replacement clears the roots and
+		 * gaps of that set, an addition keeps both. An absent value or a partly read
+		 * operand is a gap, and test takes no value from the latter.
+		 *
+		 * @param sourceSet  main or test
+		 * @param replacing  whether the declaration replaces
+		 * @param resolution what its operand names
+		 * @param where      the script and line, for the warning
+		 * @param script     the script it is written in
+		 */
+		private void declare(String sourceSet, boolean replacing, Resolution resolution, String where, Path script) {
+			if ("test".equals(sourceSet) && testUntrusted) {
+				return;
+			}
 			List<Path> roots = declared.computeIfAbsent(sourceSet, name -> conventionalRootOf(root, name));
+			List<String> found = new ArrayList<>();
 			if (replacing) {
 				roots.clear();
 			}
-			boolean allPresent = addDeclaredRoots(root, descriptor, values, roots);
-			boolean declarationComplete = resolvedEverything && allPresent;
+			if (!resolution.complete()) {
+				found.add(where + ": a source directory whose value cannot be worked out without running Gradle");
+			}
+			for (String value : "test".equals(sourceSet) && !resolution.complete() ? List.<String>of()
+					: resolution.values()) {
+				Optional<Path> resolved = resolveDeclaredRoot(root, root.resolve(value), script);
+				if (resolved.isPresent()) {
+					roots.add(resolved.get());
+				} else {
+					found.add(where + ": the source directory " + value + " is not there");
+				}
+			}
 			if (replacing) {
-				complete.put(sourceSet, declarationComplete);
+				gaps.put(sourceSet, found);
 			} else {
-				complete.merge(sourceSet, declarationComplete, Boolean::logicalAnd);
+				gaps.computeIfAbsent(sourceSet, name -> new ArrayList<>()).addAll(found);
 			}
 		}
-		return resumeAt;
+
+		/**
+		 * Records code this reader cannot follow: main is no longer complete, and the
+		 * test roots are dropped for good, since that code may have replaced them and
+		 * their classes would otherwise stay exempt.
+		 *
+		 * @param reason what could not be followed, with script and line
+		 */
+		private void opaque(String reason) {
+			blocked.add(reason);
+			declared.put("test", new ArrayList<>());
+			testUntrusted = true;
+		}
+
+		/**
+		 * Reads a script named by {@code apply from} as part of this build. One that
+		 * cannot be found or read, lies outside the project, or is already being read
+		 * is recorded as code this reader cannot follow instead.
+		 *
+		 * @param target the script named
+		 * @param where  the script and line applying it
+		 */
+		private void applyScript(Path target, String where) {
+			Path script;
+			try {
+				script = target.toRealPath();
+			} catch (IOException exception) {
+				opaque(where + ": the applied script " + target + " cannot be found");
+				return;
+			}
+			if (!script.startsWith(root)) {
+				opaque(where + ": the applied script " + target + " lies outside the project");
+				return;
+			}
+			if (applying.contains(script)) {
+				opaque(where + ": the script " + target + " is applied again while it is being read");
+				return;
+			}
+			String content;
+			try {
+				content = Files.readString(script);
+			} catch (IOException exception) {
+				opaque(where + ": the applied script " + target + " cannot be read");
+				return;
+			}
+			applying.push(script);
+			try {
+				new GradleScriptWalker(this, script, content).walk();
+			} finally {
+				applying.pop();
+			}
+		}
+	}
+
+	/**
+	 * Walks one Gradle script statement by statement, following the blocks and the
+	 * names that lead to each source-directory declaration. Comments and the bodies
+	 * of strings are masked first, so neither is mistaken for code.
+	 */
+	private static final class GradleScriptWalker {
+		/** Calls whose first argument names the source set or task they return. */
+		private static final Set<String> LOOKUPS = Set.of("named", "getByName", "findByName", "maybeCreate", "create",
+				"register", "getAt");
+		/** The names that declare Java source directories. */
+		private static final Set<String> DECLARATIONS = Set.of("srcDir", "srcDirs", "setSrcDirs");
+		/** The names that add sources to a compile task or a source directory set. */
+		private static final Set<String> SOURCES = Set.of("source", "setSource");
+		/** The calls that turn their one argument into a single file. */
+		private static final Set<String> FILE_CALLS = Set.of("file", "project.file");
+		/** The calls that turn their arguments into a collection of files. */
+		private static final Set<String> COLLECTION_CALLS = Set.of("files", "project.files", "listOf", "setOf");
+		/** The build being read. */
+		private final GradleReading reading;
+		/** The script this walker reads. */
+		private final Path script;
+		/** The script as written. */
+		private final String content;
+		/** Whether the script is Kotlin, where {@code srcDirs +=} changes nothing. */
+		private final boolean kotlin;
+		/** The script with comments and the bodies of strings masked. */
+		private final String code;
+		/** The blocks open at the current offset, innermost first. */
+		private final Deque<Frame> blocks = new ArrayDeque<>();
+		/** The names of the current statement so far. */
+		private List<String> head = new ArrayList<>();
+		/** The bracket depth inside the current statement. */
+		private int depth;
+		/** How many operand entries are being resolved inside one another. */
+		private int nesting;
+		/** Every name this script assigns, which hides a property of the same name. */
+		private final Set<String> localNames = new HashSet<>();
+		/**
+		 * The names this script declares once, at the top level, with a literal, as in
+		 * {@code def dir = 'a'}. An assignment without a declaration writes a project
+		 * property instead, which another script may change.
+		 */
+		private final Map<String, String> locals = new HashMap<>();
+
+		/**
+		 * Prepares a walk over one script, collecting the names it assigns and which of
+		 * them hold a fixed literal.
+		 *
+		 * @param reading the build being read
+		 * @param script  the script
+		 * @param content the script as written
+		 */
+		private GradleScriptWalker(GradleReading reading, Path script, String content) {
+			this.reading = reading;
+			this.script = script;
+			this.content = content;
+			this.kotlin = Objects.toString(script.getFileName(), "").endsWith(".kts");
+			this.code = maskInactiveRegions(content, kotlin);
+			Map<String, String> literal = new HashMap<>();
+			Matcher assignments = PROPERTY_ASSIGNMENT.matcher(code);
+			while (assignments.find()) {
+				if (atTopLevel(code, assignments.start())) {
+					literal.put(assignments.group(1), content.substring(assignments.start(2), assignments.end(2)));
+				}
+			}
+			Map<String, Integer> counts = new HashMap<>();
+			Set<String> declared = new HashSet<>();
+			Matcher names = ASSIGNED_NAME.matcher(code);
+			while (names.find()) {
+				counts.merge(names.group(1), 1, Integer::sum);
+				if (declaresALocal(names.start())) {
+					declared.add(names.group(1));
+				} else {
+					forgetProjectProperty(names.group(1));
+				}
+			}
+			localNames.addAll(counts.keySet());
+			counts.forEach((name, count) -> {
+				if (count == 1 && declared.contains(name) && literal.containsKey(name)) {
+					locals.put(name, literal.get(name));
+				}
+			});
+		}
+
+		/**
+		 * Forgets the gradle.properties entry an assignment without {@code def},
+		 * {@code val} or {@code var} may overwrite, plainly or through {@code ext},
+		 * since every script after it would see the new value.
+		 */
+		private void forgetProjectProperty(String name) {
+			reading.properties.remove(name);
+			reading.properties.remove(lastSegmentOf(name));
+		}
+
+		/**
+		 * The fixed value of a name as this script sees it: its own once-assigned
+		 * literal, else, where the script assigns nothing to it, the gradle.properties
+		 * entry. A parent script's variables are not visible here, as in Gradle.
+		 */
+		private Optional<String> propertyValue(String name) {
+			String value = localNames.contains(name) ? locals.get(name) : reading.properties.get(name);
+			return value != null && isStaticLiteral(value) ? Optional.of(value) : Optional.empty();
+		}
+
+		/** Walks the whole script once. */
+		private void walk() {
+			int index = 0;
+			while (index < code.length()) {
+				index = step(index);
+			}
+		}
+
+		/**
+		 * Handles the character at this offset.
+		 *
+		 * @param index the offset
+		 * @return the offset to go on from
+		 */
+		private int step(int index) {
+			char current = code.charAt(index);
+			if (current == '{') {
+				openBlock(index);
+			} else if (current == '}') {
+				closeBlock();
+			} else if (current == '[') {
+				return openBracket(index);
+			} else if (current == '(') {
+				depth++;
+			} else if (current == ')' || current == ']') {
+				depth = Math.max(0, depth - 1);
+			} else if (current == ';' || current == '\n' && depth == 0 && !continuesOnTheNextLine(index)) {
+				head = new ArrayList<>();
+			} else if ((current == '\'' || current == '"') && followsADot(index)) {
+				return quotedName(index);
+			} else if (current == '=' && depth == 0 && "=!<>".indexOf(code.charAt(Math.max(0, index - 1))) < 0
+					&& (index + 1 >= code.length() || code.charAt(index + 1) != '=')) {
+				head.add(ASSIGNED);
+			} else if (isIdentifierStart(current)) {
+				return identifier(index);
+			}
+			return index + 1;
+		}
+
+		/**
+		 * Whether the statement goes on after this line break, because the next line
+		 * starts with {@code .} or {@code ?.}.
+		 */
+		private boolean continuesOnTheNextLine(int lineBreak) {
+			int next = skipInactive(code, lineBreak);
+			return next < code.length() && (code.charAt(next) == '.' || code.startsWith("?.", next));
+		}
+
+		/**
+		 * Handles a quoted name after a dot, as in {@code java.'srcDir'('a')}, which
+		 * Groovy calls like any other. One of the declaring names is taken as a
+		 * replacement Ares cannot read, since the mask hides it from the rest of the
+		 * walk.
+		 */
+		private int quotedName(int quote) {
+			int close = code.indexOf(code.charAt(quote), quote + 1);
+			if (close < 0) {
+				return quote + 1;
+			}
+			String name = content.substring(quote + 1, close);
+			List<String> path = pathWith(List.of());
+			if ((DECLARATIONS.contains(name) || SOURCES.contains(name)) && path.contains("sourceSets")) {
+				declare(quote, path, true, Resolution.UNREAD);
+			} else if (DECLARATIONS.contains(name) || SOURCES.contains(name)) {
+				reading.opaque(locationOf(quote) + ": the quoted name " + name + ", which is not read");
+			}
+			return close + 1;
+		}
+
+		/**
+		 * Whether the last code before this offset, past blanks and comments, is a dot.
+		 */
+		private boolean followsADot(int at) {
+			int index = skipInactiveBackwards(at - 1);
+			return index >= 0 && code.charAt(index) == '.';
+		}
+
+		/** Enters the block opening at this brace, saving the statement around it. */
+		private void openBlock(int brace) {
+			if (startsAMethodBody(brace)) {
+				head.add(METHOD_BODY);
+			}
+			blocks.push(new Frame(pathWith(List.of()), head, depth));
+			head = new ArrayList<>();
+			depth = 0;
+		}
+
+		/**
+		 * Whether the brace here opens a method body, as in {@code int unused() {}} or
+		 * {@code List<String> names() {}}: a parameter list closes right before it, a
+		 * name opens that list, and a type stands before the name.
+		 */
+		private boolean startsAMethodBody(int brace) {
+			int close = parameterListCloseBefore(brace);
+			int open = close >= 0 ? openingParenthesis(close) : -1;
+			if (open <= 0) {
+				return false;
+			}
+			int nameEnd = skipBlanksBackwards(code, open - 1) + 1;
+			int nameStart = wordStartBefore(nameEnd);
+			if (nameStart == nameEnd || nameStart > 0 && code.charAt(nameStart - 1) == '.') {
+				return false;
+			}
+			int typeEnd = skipBlanksBackwards(code, nameStart - 1) + 1;
+			if (typeEnd == nameStart || typeEnd == 0) {
+				return false;
+			}
+			char before = code.charAt(typeEnd - 1);
+			String type = code.substring(wordStartBefore(typeEnd), typeEnd);
+			return before == '>' || before == ']'
+					|| !type.isEmpty() && isIdentifierStart(type.charAt(0)) && !NOT_TYPES.contains(type);
+		}
+
+		/**
+		 * The parenthesis closing a parameter list right before this brace, past a
+		 * {@code throws} clause, or -1 where none closes there.
+		 */
+		private int parameterListCloseBefore(int brace) {
+			int close = skipInactiveBackwards(brace - 1);
+			if (close >= 0 && code.charAt(close) == ')') {
+				return close;
+			}
+			int paren = code.lastIndexOf(')', brace);
+			if (paren < 0) {
+				return -1;
+			}
+			String between = code.substring(paren + 1, brace).replace(String.valueOf(COMMENT_MASK), " ").strip();
+			return THROWS_CLAUSE.matcher(between).matches() ? paren : -1;
+		}
+
+		/** The offset of the parenthesis this one closes, or -1. */
+		private int openingParenthesis(int close) {
+			int level = 0;
+			for (int index = close; index >= 0; index--) {
+				if (code.charAt(index) == ')') {
+					level++;
+				} else if (code.charAt(index) == '(' && --level == 0) {
+					return index;
+				}
+			}
+			return -1;
+		}
+
+		/**
+		 * The last offset at or before this one that is neither whitespace nor a
+		 * comment.
+		 */
+		private int skipInactiveBackwards(int from) {
+			int index = from;
+			while (index >= 0 && (Character.isWhitespace(code.charAt(index)) || code.charAt(index) == COMMENT_MASK)) {
+				index--;
+			}
+			return index;
+		}
+
+		/** Where the undotted name ending at this offset begins. */
+		private int wordStartBefore(int end) {
+			int start = end;
+			while (start > 0 && isIdentifierPart(code.charAt(start - 1)) && code.charAt(start - 1) != '.') {
+				start--;
+			}
+			return start;
+		}
+
+		/** Leaves the innermost block and resumes the statement that opened it. */
+		private void closeBlock() {
+			Frame frame = blocks.poll();
+			if (frame != null) {
+				head = frame.head();
+				depth = frame.depth();
+			}
+		}
+
+		/**
+		 * Handles a square bracket: an index right after a name, as in
+		 * {@code sourceSets["main"]}, adds its literal to the names, or {@code ?} where
+		 * it is not one; any other bracket only opens a nesting level.
+		 */
+		private int openBracket(int bracket) {
+			char previous = bracket > 0 ? code.charAt(bracket - 1) : ' ';
+			boolean indexing = depth == 0 && (previous != '.' && isIdentifierPart(previous) || previous == ')');
+			if (!indexing) {
+				depth++;
+				return bracket + 1;
+			}
+			int close = matchingClose(code, bracket);
+			if (close < 0) {
+				head.add("?");
+				return code.length();
+			}
+			head.add(staticLiteral(bracket + 1, close).orElse("?"));
+			return close + 1;
+		}
+
+		/**
+		 * Handles the name starting here, a dotted chain such as
+		 * {@code sourceSets.main.java.srcDir}, by its last segment.
+		 *
+		 * @param start where the name begins
+		 * @return the offset to go on from
+		 */
+		private int identifier(int start) {
+			int end = start;
+			while (end < code.length() && isIdentifierPart(code.charAt(end))) {
+				end++;
+			}
+			List<String> prefix = new ArrayList<>(List.of(code.substring(start, end).split("\\.")));
+			prefix.removeIf(String::isEmpty);
+			String name = prefix.remove(prefix.size() - 1);
+			if (LOOKUPS.contains(name) && depth == 0) {
+				return lookup(end, prefix, name);
+			}
+			if (DECLARATIONS.contains(name)) {
+				return declaration(start, end, prefix, name);
+			}
+			if (SOURCES.contains(name)) {
+				return source(start, end, prefix, name);
+			}
+			if ("apply".equals(name) && (prefix.isEmpty() || List.of("project").equals(prefix))) {
+				return apply(start, end);
+			}
+			if (depth == 0) {
+				head.addAll(prefix);
+				head.add(reachesAnotherProject(name, end) ? OTHER_PROJECT : name);
+			}
+			return end;
+		}
+
+		/**
+		 * Whether the name ending here reaches projects other than the one being read:
+		 * {@code subprojects}, {@code childProjects}, or a call to {@code project},
+		 * {@code findProject} or {@code configure}.
+		 */
+		private boolean reachesAnotherProject(String name, int end) {
+			if ("subprojects".equals(name) || "childProjects".equals(name)) {
+				return true;
+			}
+			int next = skipInactive(code, end);
+			return ("project".equals(name) || "findProject".equals(name) || "configure".equals(name))
+					&& next < code.length() && code.charAt(next) == '(';
+		}
+
+		/**
+		 * Handles a lookup such as {@code named("main")}: the literal first argument
+		 * stands for the call among the names, or {@code ?} where it is not a literal.
+		 * The arguments are then walked as nested code.
+		 */
+		private int lookup(int end, List<String> prefix, String name) {
+			int open = skipTypeArguments(skipInactive(code, end));
+			head.addAll(prefix);
+			if (open >= code.length() || code.charAt(open) != '(') {
+				head.add(name);
+				return end;
+			}
+			int close = matchingClose(code, open);
+			int[] first = splitTopLevel(code, open + 1, close < 0 ? code.length() : close).get(0);
+			head.add(staticLiteral(first[0], first[1]).orElse("?"));
+			depth++;
+			return open + 1;
+		}
+
+		/**
+		 * The offset after a type argument list such as {@code <JavaCompile>}, if one
+		 * starts here.
+		 */
+		private int skipTypeArguments(int at) {
+			if (at >= code.length() || code.charAt(at) != '<') {
+				return at;
+			}
+			int close = code.indexOf('>', at);
+			return close < 0 ? at : skipInactive(code, close + 1);
+		}
+
+		/**
+		 * Handles {@code srcDir}, {@code srcDirs} or {@code setSrcDirs}: reads its
+		 * operand where it is set and applies it to the source set its place names.
+		 */
+		private int declaration(int start, int end, List<String> prefix, String name) {
+			Use use = useOf(start, end);
+			if (use == Use.READ || use == Use.INERT) {
+				return end;
+			}
+			List<String> path = pathWith(prefix);
+			if (use == Use.BLOCK) {
+				declare(start, path, false, Resolution.UNREAD);
+				return end;
+			}
+			int operator = skipInactive(code, end);
+			int operandStart = switch (use) {
+			case REPLACE -> skipInactive(code, operator + 1);
+			case APPEND -> skipInactive(code, operator + 2);
+			default -> operator;
+			};
+			Operand operand = operandAt(operandStart);
+			declare(start, path, use == Use.REPLACE || "setSrcDirs".equals(name), operand.resolution());
+			return operand.end();
+		}
+
+		/**
+		 * Handles {@code source} or {@code setSource} being set. On a task, which may
+		 * be the Java compile task under any of its names or types, it compiles files
+		 * outside every source set; on a source set it adds directories this reader
+		 * cannot name. Either way main becomes incomplete.
+		 */
+		private int source(int start, int end, List<String> prefix, String name) {
+			Use use = useOf(start, end);
+			if (use == Use.READ || use == Use.INERT) {
+				return end;
+			}
+			List<String> path = pathWith(prefix);
+			if (path.contains("sourceSets")) {
+				declare(start, path, false, Resolution.UNREAD);
+			} else {
+				reading.blocked.add(locationOf(start) + ": " + name + " set on a task, which may compile Java");
+			}
+			return end;
+		}
+
+		/**
+		 * Handles {@code apply from}: a script inside the project, applied to this
+		 * project, is read as part of the build; any other is recorded as a gap. Other
+		 * uses of {@code apply}, such as applying a plugin, are passed over.
+		 */
+		private int apply(int start, int end) {
+			int open = skipInactive(code, end);
+			if (open >= code.length()) {
+				return end;
+			}
+			if (code.charAt(open) == '{') {
+				reading.opaque(locationOf(start) + ": apply with a block, which is not read");
+				return end;
+			}
+			boolean call = code.charAt(open) == '(';
+			int argumentsEnd = call ? matchingClose(code, open) : bareOperandEnd(open);
+			if (argumentsEnd < 0) {
+				return end;
+			}
+			Map<String, int[]> arguments = namedArguments(call ? open + 1 : open, argumentsEnd);
+			int[] from = arguments.get("from");
+			if (from == null) {
+				return end;
+			}
+			String where = locationOf(start);
+			Resolution resolution = resolve(from[0], from[1]);
+			if (pathWith(List.of()).contains(OTHER_PROJECT)) {
+				reading.blocked.add(where + ": apply from inside another project's configuration");
+			} else if (!appliesToThisProject() || arguments.containsKey("to")) {
+				reading.opaque(where + ": apply from a script that may or may not be applied to this project");
+			} else if (!resolution.complete() || resolution.values().size() != 1
+					|| resolution.values().get(0).contains("://")) {
+				reading.opaque(where + ": apply from a script that cannot be located inside the project");
+			} else {
+				reading.applyScript(reading.root.resolve(resolution.values().get(0)), where);
+			}
+			return end;
+		}
+
+		/**
+		 * Whether code here runs against this project: at the top level, or directly in
+		 * {@code allprojects}.
+		 */
+		private boolean appliesToThisProject() {
+			return blocks.isEmpty() || blocks.size() == 1 && List.of("allprojects").equals(blocks.peek().path());
+		}
+
+		/**
+		 * The named arguments in this span, written {@code name: value} or
+		 * {@code name = value}, each with the span of its value.
+		 */
+		private Map<String, int[]> namedArguments(int from, int to) {
+			Map<String, int[]> arguments = new LinkedHashMap<>();
+			for (int[] span : splitTopLevel(code, from, to)) {
+				int nameStart = skipInactive(code, span[0]);
+				int nameEnd = nameStart;
+				while (nameEnd < span[1] && isIdentifierPart(code.charAt(nameEnd)) && code.charAt(nameEnd) != '.') {
+					nameEnd++;
+				}
+				int separator = skipInactive(code, nameEnd);
+				if (nameEnd > nameStart && separator < span[1] && (code.charAt(separator) == ':'
+						|| code.charAt(separator) == '=' && !code.startsWith("==", separator))) {
+					arguments.put(code.substring(nameStart, nameEnd), new int[] { separator + 1, span[1] });
+				}
+			}
+			return arguments;
+		}
+
+		/**
+		 * How the name ending at {@code end} is used. A name declared as a local
+		 * variable or function, or passed as a named argument, is only read.
+		 */
+		private Use useOf(int start, int end) {
+			int operator = skipInactive(code, end);
+			if (operator >= code.length() || declaresALocal(start)) {
+				return Use.READ;
+			}
+			char next = code.charAt(operator);
+			if (next == '=') {
+				return code.startsWith("==", operator) || namedArgument(start, end) ? Use.READ : Use.REPLACE;
+			}
+			if (code.startsWith("+=", operator)) {
+				return kotlin ? Use.INERT : Use.APPEND;
+			}
+			if (code.substring(end, operator).indexOf('\n') >= 0) {
+				return Use.READ;
+			}
+			if (next == '(') {
+				return Use.CALL;
+			}
+			if (next == '{') {
+				return Use.BLOCK;
+			}
+			return next == '\'' || next == '"' || isIdentifierStart(next) ? Use.COMMAND : Use.READ;
+		}
+
+		/**
+		 * Whether the name starting here is being declared, as in {@code def srcDirs},
+		 * {@code File srcDir} or {@code List<File> srcDirs}: a declaring word, a
+		 * capitalised type, a closing type argument or {@code []} precedes it on the
+		 * same line. A closure's {@code ->} does not count.
+		 */
+		private boolean declaresALocal(int start) {
+			int index = start - 1;
+			while (index >= 0 && (code.charAt(index) == ' ' || code.charAt(index) == '\t'
+					|| code.charAt(index) == COMMENT_MASK)) {
+				index--;
+			}
+			if (index < 0) {
+				return false;
+			}
+			char previous = code.charAt(index);
+			if (previous == '>') {
+				return index == 0 || code.charAt(index - 1) != '-';
+			}
+			if (previous == ']') {
+				return index > 0 && code.charAt(index - 1) == '[';
+			}
+			int wordStart = index;
+			while (wordStart > 0 && isIdentifierPart(code.charAt(wordStart - 1)) && code.charAt(wordStart - 1) != '.') {
+				wordStart--;
+			}
+			String word = code.substring(wordStart, index + 1);
+			return DECLARING_WORDS.contains(word) || Character.isUpperCase(word.charAt(0));
+		}
+
+		/**
+		 * Whether the plain name starting here opens a Kotlin named argument, as in
+		 * {@code f(srcDir = x)}. In Groovy the same text is an assignment.
+		 */
+		private boolean namedArgument(int start, int end) {
+			if (!kotlin || code.substring(start, end).indexOf('.') >= 0) {
+				return false;
+			}
+			int index = start - 1;
+			while (index >= 0 && (Character.isWhitespace(code.charAt(index)) || code.charAt(index) == COMMENT_MASK)) {
+				index--;
+			}
+			return index >= 0 && (code.charAt(index) == '(' || code.charAt(index) == ',');
+		}
+
+		/**
+		 * Reads the operand starting here. A list or an argument list ends at its
+		 * closing bracket, and anything after that other than the end of the statement
+		 * means it was not read in full. A bare operand ends at the end of its line.
+		 */
+		private Operand operandAt(int start) {
+			char opener = start < code.length() ? code.charAt(start) : '\0';
+			if (opener == '[' || opener == '(') {
+				int close = matchingClose(code, start);
+				if (close < 0) {
+					return new Operand(Resolution.UNREAD, code.length());
+				}
+				Resolution resolution = opener == '[' ? resolve(start, close + 1) : resolveAll(start + 1, close);
+				return new Operand(endsStatement(code, close + 1) ? resolution : partOf(resolution), close + 1);
+			}
+			int end = bareOperandEnd(start);
+			Resolution resolution = resolveAll(start, end);
+			boolean continues = end < code.length() && code.charAt(end) == '\n' && continuesTheExpression(end);
+			return new Operand(continues ? partOf(resolution) : resolution, end);
+		}
+
+		/** The same values, no longer known to be all of them. */
+		private static Resolution partOf(Resolution resolution) {
+			return new Resolution(resolution.values(), false);
+		}
+
+		/**
+		 * Where an operand without brackets ends: at a line break or {@code ;} outside
+		 * any bracket, unless the line ends with a comma, or at a bracket closing
+		 * around it.
+		 */
+		private int bareOperandEnd(int start) {
+			int nesting = 0;
+			int index = start;
+			while (index < code.length()) {
+				char current = code.charAt(index);
+				if (current == '(' || current == '[' || current == '{') {
+					nesting++;
+				} else if (current == ')' || current == ']' || current == '}') {
+					if (nesting == 0) {
+						return index;
+					}
+					nesting--;
+				} else if (nesting == 0 && (current == ';' || current == '\n' && !endsWithAComma(start, index))) {
+					return index;
+				}
+				index++;
+			}
+			return index;
+		}
+
+		/**
+		 * Whether the last code before this line break, after {@code from}, is a comma.
+		 */
+		private boolean endsWithAComma(int from, int lineBreak) {
+			int index = lineBreak - 1;
+			while (index >= from
+					&& (Character.isWhitespace(code.charAt(index)) || code.charAt(index) == COMMENT_MASK)) {
+				index--;
+			}
+			return index >= from && code.charAt(index) == ',';
+		}
+
+		/**
+		 * Whether the next line carries the expression on, starting with an operator.
+		 */
+		private boolean continuesTheExpression(int lineBreak) {
+			int next = skipInactive(code, lineBreak);
+			return next < code.length() && ".?+-*/:".indexOf(code.charAt(next)) >= 0;
+		}
+
+		/**
+		 * Resolves every comma-separated entry of this span, keeping what can be read.
+		 */
+		private Resolution resolveAll(int from, int to) {
+			List<String> values = new ArrayList<>();
+			boolean complete = true;
+			for (int[] span : splitTopLevel(code, from, to)) {
+				Resolution entry = resolve(span[0], span[1]);
+				values.addAll(entry.values());
+				complete &= entry.complete();
+			}
+			return new Resolution(values, complete);
+		}
+
+		/**
+		 * Resolves one entry, giving up past {@link #MAX_NESTING} entries inside one
+		 * another rather than running out of stack.
+		 */
+		private Resolution resolve(int from, int to) {
+			if (nesting >= MAX_NESTING) {
+				return Resolution.UNREAD;
+			}
+			nesting++;
+			try {
+				return resolveEntry(from, to);
+			} finally {
+				nesting--;
+			}
+		}
+
+		/**
+		 * Resolves one entry: a list, a string literal, a property, or a call to
+		 * {@code file}, {@code files}, {@code listOf} or {@code setOf} over entries
+		 * like these. Anything else cannot be worked out without running Gradle.
+		 */
+		private Resolution resolveEntry(int from, int to) {
+			int start = skipInactive(code, from);
+			int end = to;
+			while (end > start
+					&& (Character.isWhitespace(code.charAt(end - 1)) || code.charAt(end - 1) == COMMENT_MASK)) {
+				end--;
+			}
+			if (start >= end) {
+				return new Resolution(List.of(), true);
+			}
+			char first = code.charAt(start);
+			if (first == '[') {
+				return matchingClose(code, start) == end - 1 ? resolveAll(start + 1, end - 1) : Resolution.UNREAD;
+			}
+			if (first == '\'' || first == '"') {
+				return staticLiteral(start, end).map(value -> new Resolution(List.of(value), true))
+						.orElse(Resolution.UNREAD);
+			}
+			if (!isIdentifierStart(first)) {
+				return Resolution.UNREAD;
+			}
+			int nameEnd = start;
+			while (nameEnd < end && isIdentifierPart(code.charAt(nameEnd))) {
+				nameEnd++;
+			}
+			String name = code.substring(start, nameEnd);
+			if (nameEnd == end) {
+				return propertyValue(name).map(value -> new Resolution(List.of(value), true)).orElse(Resolution.UNREAD);
+			}
+			int open = skipInactive(code, nameEnd);
+			return open < end && code.charAt(open) == '(' && matchingClose(code, open) == end - 1
+					? call(name, open, end - 1)
+					: Resolution.UNREAD;
+		}
+
+		/**
+		 * Resolves a call to one of the file or collection functions this reader knows.
+		 */
+		private Resolution call(String name, int open, int close) {
+			if (FILE_CALLS.contains(name)) {
+				List<int[]> arguments = splitTopLevel(code, open + 1, close);
+				Resolution argument = arguments.size() == 1 ? resolve(arguments.get(0)[0], arguments.get(0)[1])
+						: Resolution.UNREAD;
+				return argument.complete() && argument.values().size() == 1 ? argument : Resolution.UNREAD;
+			}
+			return COLLECTION_CALLS.contains(name) ? resolveAll(open + 1, close) : Resolution.UNREAD;
+		}
+
+		/**
+		 * The value of the one string literal filling this span, or empty where the
+		 * span holds anything else. A single-quoted body is taken as written unless it
+		 * has an escape; a double-quoted one goes through {@link #interpolate}.
+		 */
+		private Optional<String> staticLiteral(int from, int to) {
+			int start = skipInactive(code, from);
+			int end = to;
+			while (end > start
+					&& (Character.isWhitespace(code.charAt(end - 1)) || code.charAt(end - 1) == COMMENT_MASK)) {
+				end--;
+			}
+			if (start >= end || code.charAt(start) != '\'' && code.charAt(start) != '"') {
+				return Optional.empty();
+			}
+			int close = code.indexOf(code.charAt(start), start + 1);
+			if (close != end - 1 || code.substring(start, close).indexOf('\n') >= 0) {
+				return Optional.empty();
+			}
+			String body = content.substring(start + 1, close);
+			if (code.charAt(start) == '"') {
+				return interpolate(body);
+			}
+			return body.indexOf('\\') < 0 ? Optional.of(body) : Optional.empty();
+		}
+
+		/**
+		 * The value of a double-quoted body. Only {@code $projectDir},
+		 * {@code ${projectDir}}, {@code ${project.projectDir}} and properties are
+		 * filled in; any other interpolation or an escape means it cannot be worked
+		 * out.
+		 */
+		private Optional<String> interpolate(String body) {
+			StringBuilder value = new StringBuilder(body.length());
+			int index = 0;
+			while (index < body.length()) {
+				char current = body.charAt(index);
+				if (current == '\\') {
+					return Optional.empty();
+				}
+				if (current != '$') {
+					value.append(current);
+					index++;
+					continue;
+				}
+				boolean braced = index + 1 < body.length() && body.charAt(index + 1) == '{';
+				int nameStart = index + (braced ? 2 : 1);
+				int nameEnd = braced ? body.indexOf('}', nameStart) : simpleNameEnd(body, nameStart);
+				if (nameEnd < 0 || !braced && nameEnd + 1 < body.length() && body.charAt(nameEnd) == '.'
+						&& isIdentifierStart(body.charAt(nameEnd + 1))) {
+					return Optional.empty();
+				}
+				Optional<String> filled = interpolated(body.substring(nameStart, nameEnd).trim());
+				if (filled.isEmpty()) {
+					return Optional.empty();
+				}
+				value.append(filled.get());
+				index = braced ? nameEnd + 1 : nameEnd;
+			}
+			return Optional.of(value.toString());
+		}
+
+		/**
+		 * Where a name without braces after {@code $} ends: at the first character that
+		 * cannot be part of it.
+		 */
+		private static int simpleNameEnd(String body, int from) {
+			int index = from;
+			while (index < body.length() && isIdentifierPart(body.charAt(index)) && body.charAt(index) != '.') {
+				index++;
+			}
+			return index;
+		}
+
+		/** The value an interpolated name stands for, where this reader knows it. */
+		private Optional<String> interpolated(String name) {
+			if ("project.projectDir".equals(name) || "projectDir".equals(name) && !localNames.contains(name)) {
+				return Optional.of(reading.root.toString());
+			}
+			return propertyValue(name);
+		}
+
+		/**
+		 * Records a declaration against what its place names: main or test gets the
+		 * operand, and an unattributed one leaves main incomplete and, if it replaces
+		 * and is in this project, drops the test roots. Anything else is passed over.
+		 */
+		private void declare(int at, List<String> path, boolean replacing, Resolution resolution) {
+			Slot slot = slotOf(path);
+			String where = locationOf(at);
+			if (slot == Slot.MAIN_JAVA) {
+				reading.declare("main", replacing, resolution, where, script);
+			} else if (slot == Slot.TEST_JAVA) {
+				reading.declare("test", replacing, resolution, where, script);
+			} else if (slot == Slot.UNATTRIBUTED) {
+				reading.blocked.add(where + ": a source directory set outside sourceSets.main.java and "
+						+ "sourceSets.test.java, which may reach the main source set");
+				if (replacing && !path.contains(OTHER_PROJECT)) {
+					reading.opaque(where + ": a replacement that may reach the test source set");
+				}
+			}
+		}
+
+		/** The names leading to this point, outermost first, followed by these. */
+		private List<String> pathWith(List<String> extra) {
+			Frame outer = blocks.peek();
+			List<String> path = new ArrayList<>(outer == null ? List.of() : outer.path());
+			path.addAll(head);
+			path.addAll(extra);
+			return path;
+		}
+
+		/** The script, relative to the project, and the line of this offset. */
+		private String locationOf(int at) {
+			long line = content.substring(0, at).chars().filter(character -> character == '\n').count() + 1;
+			return reading.root.relativize(script) + ":" + line;
+		}
 	}
 
 	/**
@@ -460,9 +1444,9 @@ public final class ProjectSourcesFinder {
 		int spanStart = start;
 		for (int index = start; index < end; index++) {
 			char current = code.charAt(index);
-			if (current == '[' || current == '(') {
+			if (current == '[' || current == '(' || current == '{') {
 				depth++;
-			} else if (current == ']' || current == ')') {
+			} else if (current == ']' || current == ')' || current == '}') {
 				depth--;
 			} else if (current == ',' && depth == 0) {
 				spans.add(new int[] { spanStart, index });
@@ -471,25 +1455,6 @@ public final class ProjectSourcesFinder {
 		}
 		spans.add(new int[] { spanStart, end });
 		return spans;
-	}
-
-	/**
-	 * The text Gradle would have seen in this span: the original characters, minus
-	 * everything commented out.
-	 * <p>
-	 * The mask decides what is inactive and the original supplies the values, which
-	 * works only because masking preserves every offset. Dropping comments here is
-	 * what lets one sit inside a live declaration without invalidating the path
-	 * beside it.
-	 */
-	private static String activeText(String content, String code, int start, int end) {
-		StringBuilder active = new StringBuilder(end - start);
-		for (int index = start; index < end; index++) {
-			if (code.charAt(index) != COMMENT_MASK) {
-				active.append(content.charAt(index));
-			}
-		}
-		return active.toString();
 	}
 
 	/**
@@ -514,37 +1479,6 @@ public final class ProjectSourcesFinder {
 		}
 		char current = code.charAt(index);
 		return current == ';' || current == '}' || current == ')' || current == ']' || isIdentifierStart(current);
-	}
-
-	/**
-	 * Returns the source set a declaration at this point belongs to, or null when
-	 * it belongs to none.
-	 * <p>
-	 * The blocks must nest as {@code sourceSets}, then {@code main} or
-	 * {@code test}, then {@code java}, though not necessarily one immediately
-	 * inside the next. Requiring {@code sourceSets} is what stops an unrelated
-	 * block that happens to be called {@code main} from declaring a source root,
-	 * and requiring {@code java} is what stops a {@code resources} block from doing
-	 * so.
-	 */
-	private static String sourceSetOf(Deque<String> blocks) {
-		List<String> path = new ArrayList<>();
-		blocks.descendingIterator().forEachRemaining(block -> {
-			for (String segment : block.split("\\.")) {
-				path.add(segment);
-			}
-		});
-		int sourceSets = path.indexOf("sourceSets");
-		if (sourceSets < 0) {
-			return null;
-		}
-		for (int outer = sourceSets + 1; outer < path.size(); outer++) {
-			String name = path.get(outer);
-			if ("main".equals(name) || "test".equals(name)) {
-				return path.subList(outer + 1, path.size()).contains("java") ? name : null;
-			}
-		}
-		return null;
 	}
 
 	/**
@@ -576,20 +1510,6 @@ public final class ProjectSourcesFinder {
 	private static String lastSegmentOf(String chain) {
 		int separator = chain.lastIndexOf('.');
 		return separator < 0 ? chain : chain.substring(separator + 1);
-	}
-
-	private static String unquote(String value) {
-		return value.length() > 1 && (value.charAt(0) == '\'' || value.charAt(0) == '"')
-				? value.substring(1, value.length() - 1)
-				: value;
-	}
-
-	private static int skipWhitespace(String code, int from) {
-		int index = from;
-		while (index < code.length() && Character.isWhitespace(code.charAt(index))) {
-			index++;
-		}
-		return index;
 	}
 
 	/**
@@ -795,38 +1715,6 @@ public final class ProjectSourcesFinder {
 	}
 
 	/**
-	 * The directory a source-root operand names, or empty when this reader cannot
-	 * say so statically.
-	 * <p>
-	 * Empty is not a neutral answer. For an operand inside a Java source set the
-	 * caller records that set as incomplete, because a value that cannot be read
-	 * may still name a root, not a set that declares none.
-	 * <p>
-	 * A double-quoted body is read only when it is static, because Groovy and
-	 * Kotlin both interpolate one, so a non-static body would be evaluated rather
-	 * than taken literally.
-	 */
-	private static Optional<String> resolveGradlePath(String operand, Map<String, String> properties) {
-		String value = operand.trim().replace("[", "").replace("]", "").replace("files(", "").trim();
-		while (value.endsWith(")")) {
-			value = value.substring(0, value.length() - 1).trim();
-		}
-		if (value.length() > 1 && value.charAt(0) == '"' && value.endsWith("\"")) {
-			String literal = value.substring(1, value.length() - 1);
-			if (literal.indexOf('"') >= 0) {
-				return Optional.empty();
-			}
-			return isStaticLiteral(literal) ? Optional.of(literal) : Optional.empty();
-		}
-		if (value.length() > 1 && value.charAt(0) == '\'' && value.endsWith("'")) {
-			String literal = value.substring(1, value.length() - 1);
-			return literal.indexOf('\'') < 0 && literal.indexOf('\\') < 0 ? Optional.of(literal) : Optional.empty();
-		}
-		String resolved = properties.get(value);
-		return resolved != null && isStaticLiteral(resolved) ? Optional.of(resolved) : Optional.empty();
-	}
-
-	/**
 	 * Whether a string literal's body is a fixed path rather than something this
 	 * reader would have to evaluate. Interpolation and undecoded escapes both mean
 	 * it is not.
@@ -836,23 +1724,23 @@ public final class ProjectSourcesFinder {
 	}
 
 	/**
-	 * Says once, where a reader will see it, that the production roots are not
-	 * known to be all of them.
-	 * <p>
-	 * Two things lead here: a declaration this reader cannot resolve, and one it
-	 * resolved to a directory that is not there. The roots are still offered, but
-	 * no longer as the whole project.
+	 * Says once that the production roots are not known to be all of them, and why.
+	 * They are still offered, but the supervised package is not derived from them.
 	 *
 	 * @param productionComplete whether they are the whole source set
 	 * @param descriptor         the descriptor they were read from
+	 * @param reasons            what made them partial, with script and line;
+	 *                           possibly empty
 	 */
-	private static void warnIfProductionRootsArePartial(boolean productionComplete, Path descriptor) {
+	private static void warnIfProductionRootsArePartial(boolean productionComplete, Path descriptor,
+			List<String> reasons) {
 		if (productionComplete) {
 			return;
 		}
-		LOG.warn("The main source set in {} declares a source root this reader cannot resolve or cannot find, so the "
-				+ "discovered production roots are not known to be the whole of it. The supervised package will not "
-				+ "be derived from them.", descriptor);
+		LOG.warn(
+				"The main source set in {} is not known to be the whole of the production sources, so the "
+						+ "supervised package will not be derived from them.{}",
+				descriptor, reasons.isEmpty() ? "" : " Reasons: " + String.join("; ", reasons));
 	}
 
 	/**
@@ -899,32 +1787,6 @@ public final class ProjectSourcesFinder {
 		LOG.warn("The source root {} declared in {} is not there, so it is passed over. Its source set is no longer "
 				+ "known to be the whole of the project.", candidate, descriptor);
 		return Optional.empty();
-	}
-
-	/**
-	 * Adds the roots a declaration resolved to, saying whether all were there.
-	 * <p>
-	 * An absent root is passed over, so the roots that are there keep scoping
-	 * enforcement. The false return tells the caller they are no longer the whole
-	 * source set.
-	 *
-	 * @param root       the project root
-	 * @param descriptor the descriptor read
-	 * @param values     the declared paths
-	 * @param roots      the list to add to
-	 * @return whether every declared root was there
-	 */
-	private static boolean addDeclaredRoots(Path root, Path descriptor, List<String> values, List<Path> roots) {
-		boolean allPresent = true;
-		for (String value : values) {
-			Optional<Path> resolved = resolveDeclaredRoot(root, root.resolve(value), descriptor);
-			if (resolved.isPresent()) {
-				roots.add(resolved.get());
-			} else {
-				allPresent = false;
-			}
-		}
-		return allPresent;
 	}
 
 	/**
@@ -1219,9 +2081,15 @@ public final class ProjectSourcesFinder {
 		}
 	}
 
+	/**
+	 * The legacy answer for Gradle: the value of {@code assignmentSrcDir} in the
+	 * configured build.gradle, read as the old adapter did.
+	 *
+	 * @return the path, or empty where none is assigned or the file is unreadable
+	 */
 	private static Optional<Path> findLegacyGradleSource() {
 		try {
-			Matcher matcher = PROPERTY_ASSIGNMENT.matcher(Files.readString(Path.of(buildGradlePath)));
+			Matcher matcher = LEGACY_PROPERTY_ASSIGNMENT.matcher(Files.readString(Path.of(buildGradlePath)));
 			while (matcher.find()) {
 				if ("assignmentSrcDir".equals(matcher.group(1))) {
 					return Optional.of(Path.of(matcher.group(2)));

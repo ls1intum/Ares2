@@ -438,15 +438,14 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
-	 * Derives the supervised package when no policy pins one: the build
-	 * descriptor's group if it covers every declared package, else the topmost
-	 * declared package, the heaviest between disjoint ones, else
-	 * {@link #getDefaultPackage()}.
-	 * <p>
-	 * Declarations come from the sources, or from the compiled output where the
-	 * sources are incomplete or declare nothing.
+	 * Derives the supervised package when no policy pins one: the descriptor's
+	 * group if it covers every declared package, else the topmost declared package,
+	 * the heaviest between disjoint ones, else {@link #getDefaultPackage()}. The
+	 * compiled output is read where the sources are incomplete or declare nothing.
 	 *
-	 * @return the supervised package name, possibly empty; never null
+	 * @return the package name, possibly empty; never null
+	 * @throws SecurityException if the sources are incomplete and nothing compiled
+	 *                           declares a package
 	 */
 	@Override
 	@Nonnull
@@ -467,6 +466,10 @@ public class JavaProjectScanner implements ProjectScanner {
 		}
 		if (counts.isEmpty()) {
 			counts = compiledPackageCounts();
+		}
+		if (counts.isEmpty() && !productionRootsAreComplete()) {
+			throw new SecurityException(Messages.localized("security.scope.sources.incomplete",
+					projectRoot().toString(), productionOutputRoot().toString()));
 		}
 		Optional<String> group = declaredGroupCovering(counts.keySet());
 		if (group.isPresent()) {

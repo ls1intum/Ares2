@@ -366,7 +366,7 @@ class ProjectSourcesFinderEdgeCaseTest {
 		Path descriptor = temporaryDirectory.resolve("build.gradle");
 		Files.writeString(descriptor, """
 				def someOtherProperty = "not-the-one"
-				def assignmentSrcDir = "assignment/src"
+				def assignmentSrcDir = "assignment/src" // where the student code lives
 				""");
 		ProjectSourcesFinder.setBuildGradlePath(descriptor.toString());
 		ProjectSourcesFinder.setPomXmlPath(temporaryDirectory.resolve("absent-pom.xml").toString());

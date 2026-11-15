@@ -1,0 +1,721 @@
+package de.tum.cit.ase.ares.api.util;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+
+/**
+ * The Gradle forms of declaring Java source directories. Every descriptor here
+ * was run through Gradle 9.9.1 as written, the one naming {@code :child} with a
+ * settings file including it: a form Ares reads must give the roots Gradle
+ * uses, and a form it cannot place must leave main incomplete.
+ */
+@DisplayName("ProjectSourcesFinder Gradle declaration forms")
+class ProjectSourcesFinderGradleFormsTest {
+
+	/** The Groovy descriptor's name. */
+	private static final String GROOVY = "build.gradle";
+
+	/** The Kotlin descriptor's name. */
+	private static final String KOTLIN = "build.gradle.kts";
+
+	/** The conventional main root, which every addition keeps. */
+	private static final String MAIN = "src/main/java";
+
+	/** The conventional test root. */
+	private static final String TEST = "src/test/java";
+
+	/** The project each descriptor is written into. */
+	@TempDir
+	Path projectRoot;
+
+	/**
+	 * Creates every directory a descriptor here may name, as the Gradle run did.
+	 *
+	 * @throws IOException if one cannot be created
+	 */
+	@BeforeEach
+	void createDirectories() throws IOException {
+		for (String directory : List.of("a", "b", "checks", MAIN, TEST)) {
+			Files.createDirectories(projectRoot.resolve(directory));
+		}
+	}
+
+	/**
+	 * Forms that declare a root, with the roots Gradle reported for them.
+	 *
+	 * @return label, descriptor name, descriptor, main roots, test roots
+	 */
+	static Stream<Arguments> declaringForms() {
+		return Stream.of(form("Groovy receiver block", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.java { srcDir 'a' }
+				""", List.of("a", MAIN), List.of(TEST)), form("Groovy receiver chain, command call", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.java.srcDir 'a'
+				""", List.of("a", MAIN), List.of(TEST)), form("Groovy receiver chain, method call", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.java.srcDir('a')
+				""", List.of("a", MAIN), List.of(TEST)), form("Groovy dotted assignment in sourceSets", GROOVY, """
+				plugins { id 'java' }
+				sourceSets { main.java.srcDirs = ['a'] }
+				""", List.of("a"), List.of(TEST)), form("Groovy java chain in main", GROOVY, """
+				plugins { id 'java' }
+				sourceSets { main { java.srcDir 'a' } }
+				""", List.of("a", MAIN), List.of(TEST)), form("Groovy srcDirs command with two operands", GROOVY, """
+				plugins { id 'java' }
+				sourceSets { main { java { srcDirs 'a', 'b' } } }
+				""", List.of("a", "b", MAIN), List.of(TEST)), form("Groovy setSrcDirs", GROOVY, """
+				plugins { id 'java' }
+				sourceSets { main { java { setSrcDirs(['a']) } } }
+				""", List.of("a"), List.of(TEST)), form("Groovy index lookup", GROOVY, """
+				plugins { id 'java' }
+				sourceSets['main'].java.srcDir 'a'
+				""", List.of("a", MAIN), List.of(TEST)), form("Groovy getByName", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.getByName('main').java.srcDir 'a'
+				""", List.of("a", MAIN), List.of(TEST)), form("Groovy named with a block", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.named('main') { java.srcDir 'a' }
+				""", List.of("a", MAIN), List.of(TEST)), form("Groovy files on one line", GROOVY, """
+				plugins { id 'java' }
+				sourceSets { main { java { srcDirs = files('a', 'b') } } }
+				""", List.of("a", "b"), List.of(TEST)), form("Groovy files over two lines", GROOVY, """
+				plugins { id 'java' }
+				sourceSets { main { java { srcDirs = files('a',
+						'b') } } }
+				""", List.of("a", "b"), List.of(TEST)), form("Groovy list of file", GROOVY, """
+				plugins { id 'java' }
+				sourceSets { main { java { srcDirs = [file('a')] } } }
+				""", List.of("a"), List.of(TEST)), form("Groovy srcDir with file", GROOVY, """
+				plugins { id 'java' }
+				sourceSets { main { java { srcDir file('a') } } }
+				""", List.of("a", MAIN), List.of(TEST)), form("Groovy projectDir interpolations", GROOVY, """
+				plugins { id 'java' }
+				sourceSets { main { java { srcDir "$projectDir/a"; srcDir "${projectDir}/b" } } }
+				""", List.of("a", "b", MAIN), List.of(TEST)),
+				form("Groovy project.projectDir interpolation", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java { srcDir "${project.projectDir}/a" } } }
+						""", List.of("a", MAIN), List.of(TEST)),
+				form("Groovy chain continued on the next lines", GROOVY, """
+						plugins { id 'java' }
+						sourceSets.main
+						    .java
+						    .srcDir 'a'
+						""", List.of("a", MAIN), List.of(TEST)), form("Groovy srcDir with a list", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java { srcDir(['a', 'b']) } } }
+						""", List.of("a", "b", MAIN), List.of(TEST)), form("Groovy srcDirs += file", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java { srcDirs += file('a') } } }
+						""", List.of("a", MAIN), List.of(TEST)),
+				form("Groovy allprojects, which includes this project", GROOVY, """
+						plugins { id 'java' }
+						allprojects { sourceSets.main.java.srcDir 'a' }
+						""", List.of("a", MAIN), List.of(TEST)),
+				form("Groovy srcDir as the argument of println", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java {
+						    println srcDir('a')
+						} } }
+						""", List.of("a", MAIN), List.of(TEST)), form("Groovy assignment inside a call", GROOVY, """
+						plugins { id 'java' }
+						println(sourceSets.main.java.srcDirs = ['a'])
+						""", List.of("a"), List.of(TEST)), form("Groovy test chain", GROOVY, """
+						plugins { id 'java' }
+						sourceSets.test.java.srcDir 'checks'
+						""", List.of(MAIN), List.of("checks", TEST)), form("Kotlin main with java chain", KOTLIN, """
+						plugins { java }
+						sourceSets.main { java.srcDir("a") }
+						""", List.of("a", MAIN), List.of(TEST)), form("Kotlin main with java block", KOTLIN, """
+						plugins { java }
+						sourceSets.main { java { srcDir("a") } }
+						""", List.of("a", MAIN), List.of(TEST)), form("Kotlin configure", KOTLIN, """
+						plugins { java }
+						sourceSets.main.configure { java.srcDir("a") }
+						""", List.of("a", MAIN), List.of(TEST)), form("Kotlin java.setSrcDirs", KOTLIN, """
+						plugins { java }
+						sourceSets.main { java.setSrcDirs(listOf("a")) }
+						""", List.of("a"), List.of(TEST)), form("Kotlin setSrcDirs in a java block", KOTLIN, """
+						plugins { java }
+						sourceSets.main { java { setSrcDirs(listOf("a")) } }
+						""", List.of("a"), List.of(TEST)), form("Kotlin get", KOTLIN, """
+						plugins { java }
+						sourceSets.main.get().java.srcDir("a")
+						""", List.of("a", MAIN), List.of(TEST)), form("Kotlin index lookup", KOTLIN, """
+						plugins { java }
+						sourceSets["main"].java.srcDir("a")
+						""", List.of("a", MAIN), List.of(TEST)), form("Kotlin getByName", KOTLIN, """
+						plugins { java }
+						sourceSets.getByName("main").java.srcDir("a")
+						""", List.of("a", MAIN), List.of(TEST)), form("Kotlin named with a block", KOTLIN, """
+						plugins { java }
+						sourceSets.named("main") { java.srcDir("a") }
+						""", List.of("a", MAIN), List.of(TEST)), form("Kotlin java extension", KOTLIN, """
+						plugins { java }
+						java.sourceSets["main"].java.srcDir("a")
+						""", List.of("a", MAIN), List.of(TEST)), form("Kotlin srcDirs with two operands", KOTLIN, """
+						plugins { java }
+						sourceSets.main { java.srcDirs("a", "b") }
+						""", List.of("a", "b", MAIN), List.of(TEST)), form("Kotlin srcDirs with files", KOTLIN, """
+						plugins { java }
+						sourceSets.main { java.srcDirs(files("a", "b")) }
+						""", List.of("a", "b", MAIN), List.of(TEST)), form("Kotlin srcDir with listOf", KOTLIN, """
+						plugins { java }
+						sourceSets.main { java.srcDir(listOf("a", "b")) }
+						""", List.of("a", "b", MAIN), List.of(TEST)), form("Kotlin srcDir with file", KOTLIN, """
+						plugins { java }
+						sourceSets.main { java.srcDir(file("a")) }
+						""", List.of("a", MAIN), List.of(TEST)), form("Kotlin projectDir interpolation", KOTLIN, """
+						plugins { java }
+						sourceSets.main { java.srcDir("$projectDir/a") }
+						""", List.of("a", MAIN), List.of(TEST)));
+	}
+
+	/**
+	 * Forms that look like a declaration but declare nothing, so the roots stay
+	 * conventional, with what Gradle reported for them.
+	 *
+	 * @return label, descriptor name, descriptor, main roots, test roots
+	 */
+	static Stream<Arguments> nonDeclaringForms() {
+		return Stream.of(form("Groovy line comment", GROOVY, """
+				plugins { id 'java' }
+				// sourceSets.main.java.srcDir 'a'
+				""", List.of(MAIN), List.of(TEST)), form("Groovy string", GROOVY, """
+				plugins { id 'java' }
+				println "sourceSets.main.java.srcDir 'a'"
+				""", List.of(MAIN), List.of(TEST)), form("Groovy resources", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.resources.srcDir 'a'
+				""", List.of(MAIN), List.of(TEST)), form("Groovy name ending in srcDirs", GROOVY, """
+				plugins { id 'java' }
+				def mySrcDirs = ['a']
+				println mySrcDirs
+				""", List.of(MAIN), List.of(TEST)), form("Groovy name starting with srcDirs", GROOVY, """
+				plugins { id 'java' }
+				ext.srcDirsExtra = ['a']
+				""", List.of(MAIN), List.of(TEST)), form("Groovy local named srcDirs", GROOVY, """
+				plugins { id 'java' }
+				def srcDirs = ['a']
+				println srcDirs
+				""", List.of(MAIN), List.of(TEST)), form("Groovy comparison", GROOVY, """
+				plugins { id 'java' }
+				println(sourceSets.main.java.srcDirs == [file('a')] as Set)
+				""", List.of(MAIN), List.of(TEST)), form("Groovy add on the returned set", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.java.srcDirs.add(file('a'))
+				""", List.of(MAIN), List.of(TEST)), form("Kotlin local named srcDirs", KOTLIN, """
+				plugins { java }
+				val srcDirs = listOf("a")
+				println(srcDirs)
+				""", List.of(MAIN), List.of(TEST)), form("Kotlin named argument", KOTLIN, """
+				plugins { java }
+				fun show(srcDir: String) = println(srcDir)
+				show(srcDir = "a")
+				""", List.of(MAIN), List.of(TEST)), form("Kotlin srcDirs +=, which changes nothing", KOTLIN, """
+				plugins { java }
+				sourceSets.main { java.srcDirs += setOf(file("a")) }
+				""", List.of(MAIN), List.of(TEST)));
+	}
+
+	/**
+	 * Forms this reader cannot place in one source set or cannot work out, each of
+	 * which Gradle accepts.
+	 *
+	 * @return label, descriptor name, descriptor
+	 */
+	static Stream<Arguments> unplaceableForms() {
+		return Stream.of(Arguments.of("Groovy all", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.all { java.srcDir 'a' }
+				"""), Arguments.of("Kotlin configureEach", KOTLIN, """
+				plugins { java }
+				sourceSets.configureEach { java.srcDir("a") }
+				"""), Arguments.of("Groovy custom source set", GROOVY, """
+				plugins { id 'java' }
+				sourceSets { integration { java.srcDir 'a' } }
+				"""), Arguments.of("Groovy subprojects", GROOVY, """
+				plugins { id 'java' }
+				subprojects { apply plugin: 'java'; sourceSets.main.java.srcDir 'a' }
+				"""), Arguments.of("Groovy another project's test set", GROOVY, """
+				plugins { id 'java' }
+				project(':child') { apply plugin: 'java'; sourceSets.test.java.srcDir 'a' }
+				"""), Arguments.of("Groovy configure", GROOVY, """
+				plugins { id 'java' }
+				configure(subprojects) { apply plugin: 'java'; sourceSets.main.java.srcDir 'a' }
+				"""), Arguments.of("Groovy declarations under a condition", GROOVY, """
+				plugins { id 'java' }
+				if (false) {
+				    sourceSets.main.java.setSrcDirs(['a'])
+				    sourceSets.test.java.srcDir 'a'
+				}
+				"""), Arguments.of("Groovy a variable given a second value", GROOVY, """
+				plugins { id 'java' }
+				def directory = 'a'
+				sourceSets.main.java.setSrcDirs([directory])
+				directory = 'b'
+				"""), Arguments.of("Groovy a variable built from two literals", GROOVY, """
+				plugins { id 'java' }
+				def directory = 'a' + '/nested'
+				sourceSets.main.java.setSrcDirs([directory])
+				"""), Arguments.of("Groovy source on a compile supertype", GROOVY, """
+				plugins { id 'java' }
+				tasks.withType(org.gradle.api.tasks.compile.AbstractCompile) { source 'a' }
+				"""), Arguments.of("Groovy quoted method name", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.java.'srcDir'('a')
+				"""), Arguments.of("Groovy compound assignment", GROOVY, """
+				plugins { id 'java' }
+				def directory = 'a'
+				directory += '/b'
+				sourceSets.main.java.setSrcDirs([directory])
+				"""), Arguments.of("Groovy assignment after another statement", GROOVY, """
+				plugins { id 'java' }
+				def directory = 'a'
+				println 'x'; directory = 'b'
+				sourceSets.main.java.setSrcDirs([directory])
+				"""), Arguments.of("Groovy method never called", GROOVY, """
+				plugins { id 'java' }
+				void unused() {
+				    sourceSets.main.java.setSrcDirs(['a'])
+				}
+				"""), Arguments.of("Kotlin lambda never called", KOTLIN, """
+				plugins { java }
+				val unused = {
+				    sourceSets.main { java.setSrcDirs(listOf("a")) }
+				}
+				"""), Arguments.of("Groovy method with a return type", GROOVY, """
+				plugins { id 'java' }
+				int unused() {
+				    sourceSets.main.java.setSrcDirs(['a'])
+				    return 0
+				}
+				"""), Arguments.of("Groovy method with a throws clause", GROOVY, """
+				plugins { id 'java' }
+				int unused() throws Exception {
+				    sourceSets.main.java.setSrcDirs(['a'])
+				    return 0
+				}
+				"""), Arguments.of("Groovy method with a comment before its name", GROOVY, """
+				plugins { id 'java' }
+				int /* note */ unused() {
+				    sourceSets.main.java.setSrcDirs(['a'])
+				    return 0
+				}
+				"""), Arguments.of("Groovy quoted name after a comment", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.java./* source folder */'srcDir'('a')
+				"""), Arguments.of("Groovy srcDir with a closure", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.java.srcDir { 'a' }
+				"""), Arguments.of("Kotlin srcDir with a provider", KOTLIN, """
+				plugins { java }
+				sourceSets.main { java.srcDir(provider { "a" }) }
+				"""), Arguments.of("Groovy source of another source directory set", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.java.source(sourceSets.test.java)
+				"""), Arguments.of("Groovy withType block", GROOVY, """
+				plugins { id 'java' }
+				tasks.withType(JavaCompile) { source 'a' }
+				"""), Arguments.of("Kotlin withType configureEach", KOTLIN, """
+				plugins { java }
+				tasks.withType<JavaCompile>().configureEach { source("a") }
+				"""), Arguments.of("Kotlin named compile task", KOTLIN, """
+				plugins { java }
+				tasks.named<JavaCompile>("compileJava") { source("a") }
+				"""), Arguments.of("Groovy compileJava block", GROOVY, """
+				plugins { id 'java' }
+				compileJava { source 'a' }
+				"""), Arguments.of("Groovy compileJava chain", GROOVY, """
+				plugins { id 'java' }
+				compileJava.source 'a'
+				"""));
+	}
+
+	/**
+	 * A form Gradle reads as roots gives exactly those roots, and main stays
+	 * complete.
+	 *
+	 * @param label      what the form is
+	 * @param descriptor the descriptor's name
+	 * @param content    the descriptor
+	 * @param main       the main roots Gradle reported
+	 * @param test       the test roots Gradle reported
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("declaringForms")
+	void readsTheRootsGradleDeclares(String label, String descriptor, String content, List<String> main,
+			List<String> test) throws IOException {
+		assertRootsAndComplete(descriptor, content, main, test);
+	}
+
+	/**
+	 * A form that only resembles a declaration leaves the roots as Gradle leaves
+	 * them, and main complete.
+	 *
+	 * @param label      what the form is
+	 * @param descriptor the descriptor's name
+	 * @param content    the descriptor
+	 * @param main       the main roots Gradle reported
+	 * @param test       the test roots Gradle reported
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("nonDeclaringForms")
+	void passesOverWhatDeclaresNothing(String label, String descriptor, String content, List<String> main,
+			List<String> test) throws IOException {
+		assertRootsAndComplete(descriptor, content, main, test);
+	}
+
+	/**
+	 * A form this reader cannot place leaves main incomplete, and never adds what
+	 * it names to the test roots, whose classes would be exempt.
+	 *
+	 * @param label      what the form is
+	 * @param descriptor the descriptor's name
+	 * @param content    the descriptor
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("unplaceableForms")
+	void marksMainIncompleteWhereTheFormCannotBePlaced(String label, String descriptor, String content)
+			throws IOException {
+		BuildToolConfiguration configuration = discover(descriptor, content);
+
+		assertFalse(configuration.productionRootsComplete(), label);
+		assertFalse(configuration.testSourceRoots().contains(projectRoot.resolve("a").toRealPath()), label);
+	}
+
+	/**
+	 * A test operand not read in full gives no test root, and a declaration on
+	 * every source set that may replace them drops the test roots, since a test
+	 * root Gradle does not use would exempt the classes in it.
+	 *
+	 * @param label      what the form is
+	 * @param descriptor the descriptor's name
+	 * @param content    the descriptor
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("testRootsGradleDoesNotUse")
+	void neverTakesATestRootGradleMayNotUse(String label, String descriptor, String content) throws IOException {
+		assertFalse(discover(descriptor, content).testSourceRoots().contains(projectRoot.resolve(MAIN).toRealPath()),
+				label);
+	}
+
+	/**
+	 * Forms after which Gradle has no test root {@code src/main/java}, though an
+	 * operand names it.
+	 *
+	 * @return label, descriptor name, descriptor
+	 */
+	static Stream<Arguments> testRootsGradleDoesNotUse() {
+		return Stream.of(Arguments.of("Groovy test list filtered after it is read", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDirs =
+				    ['src/main/java'].findAll { false }
+				"""), Arguments.of("Groovy afterEvaluate replacing what test is given below it", GROOVY, """
+				plugins { id 'java' }
+				afterEvaluate {
+				    sourceSets.main.java.setSrcDirs(['a'])
+				    sourceSets.test.java.setSrcDirs([])
+				}
+				sourceSets.main.java.setSrcDirs(['b'])
+				sourceSets.test.java.srcDir 'src/main/java'
+				"""), Arguments.of("Groovy quoted replacement after a blank", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDir 'src/main/java'
+				sourceSets.test.java. 'setSrcDirs'([])
+				"""), Arguments.of("Groovy replacement on a found source set", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDir 'src/main/java'
+				sourceSets.find { it.name == 'test' }.java.setSrcDirs([])
+				"""), Arguments.of("Groovy test assignment inside a call", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDir 'src/main/java'
+				println(sourceSets.test.java.srcDirs = [])
+				"""), Arguments.of("Groovy all replacing what test was given", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDir 'src/main/java'
+				sourceSets.all { java.setSrcDirs([]) }
+				sourceSets.main.java.srcDir 'src/main/java'
+				"""));
+	}
+
+	/**
+	 * A script applied from the project is read as part of it, also when it is
+	 * applied twice in a row.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void readsAScriptAppliedFromTheProject() throws IOException {
+		Files.createDirectories(projectRoot.resolve("gradle"));
+		Files.writeString(projectRoot.resolve("gradle/roots.gradle"), "sourceSets.main.java.srcDir 'a'\n");
+
+		assertRootsAndComplete(GROOVY, """
+				plugins { id 'java' }
+				apply from: 'gradle/roots.gradle'
+				apply from: 'gradle/roots.gradle'
+				""", List.of("a", MAIN), List.of(TEST));
+	}
+
+	/**
+	 * The example exercise, with its compile-task configuration and its applied
+	 * reserved-package script, declares nothing beyond the convention.
+	 *
+	 * @throws IOException if the example's root cannot be resolved
+	 */
+	@Test
+	void readsTheExampleExerciseAsComplete() throws IOException {
+		Path example = Path.of("examples/ares-exercise-gradle");
+		assumeTrue(Files.isRegularFile(example.resolve("build.gradle")), "run from the repository root");
+
+		BuildToolConfiguration configuration = ProjectSourcesFinder.discover(example);
+
+		assertTrue(configuration.productionRootsComplete());
+		assertEquals(List.of(example.resolve(MAIN).toRealPath()), configuration.productionSourceRoots());
+	}
+
+	/**
+	 * An applied script that cannot be read as part of the project leaves main
+	 * incomplete: one from a URL, a missing one, one reached through a link out of
+	 * the project, and one that applies itself.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void marksMainIncompleteForAScriptItCannotRead() throws IOException {
+		Files.createDirectories(projectRoot.resolve("gradle"));
+		Files.writeString(projectRoot.resolve("gradle/self.gradle"), "apply from: 'gradle/self.gradle'\n");
+		for (String target : List.of("'https://example.org/roots.gradle'", "'gradle/missing.gradle'",
+				"'gradle/self.gradle'")) {
+			assertFalse(
+					discover(GROOVY, "plugins { id 'java' }\napply from: " + target + "\n").productionRootsComplete(),
+					target);
+		}
+		Path outside = Files.createTempFile("ares-190-outside", ".gradle");
+		try {
+			Files.writeString(outside, "println 'outside'\n");
+			Path link = projectRoot.resolve("gradle/outside.gradle");
+			try {
+				Files.createSymbolicLink(link, outside);
+			} catch (UnsupportedOperationException | IOException exception) {
+				assumeTrue(false, "symbolic links are not available here");
+			}
+			assertFalse(discover(GROOVY, "plugins { id 'java' }\napply from: 'gradle/outside.gradle'\n")
+					.productionRootsComplete());
+		} finally {
+			Files.deleteIfExists(outside);
+		}
+	}
+
+	/**
+	 * A script applied under a condition, or from a location this reader cannot
+	 * work out, may replace the test roots, so they are dropped, as Gradle 9.9.1
+	 * does here.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void dropsTheTestRootsForAScriptItCannotPlace() throws IOException {
+		Files.writeString(projectRoot.resolve("roots.gradle"), "sourceSets.test.java.setSrcDirs([])\n");
+		for (String apply : List.of("if (true) {\n    apply from: 'roots.gradle'\n}\n",
+				"apply from: ('roots' + '.gradle')\n")) {
+			BuildToolConfiguration configuration = discover(GROOVY,
+					"plugins { id 'java' }\nsourceSets.test.java.srcDir 'src/main/java'\n" + apply);
+
+			assertFalse(configuration.testSourceRoots().contains(projectRoot.resolve(MAIN).toRealPath()), apply);
+			assertFalse(configuration.productionRootsComplete(), apply);
+		}
+	}
+
+	/**
+	 * A variable of the applying script is not visible in the applied one, which
+	 * reads the gradle.properties entry instead, as Gradle 9.9.1 does with
+	 * {@code b} here.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void readsAnAppliedScriptWithoutTheVariablesOfTheScriptApplyingIt() throws IOException {
+		Files.writeString(projectRoot.resolve("gradle.properties"), "directory=b\n");
+		Files.writeString(projectRoot.resolve("roots.gradle"), "sourceSets.main.java.setSrcDirs([directory])\n");
+
+		assertRootsAndComplete(GROOVY, """
+				plugins { id 'java' }
+				def directory = 'a'
+				apply from: 'roots.gradle'
+				""", List.of("b"), List.of(TEST));
+	}
+
+	/**
+	 * An assignment without {@code def} in an applied script overwrites the project
+	 * property every later script reads, so neither the gradle.properties value nor
+	 * one the applying script set earlier is taken; Gradle 9.9.1 uses {@code b}
+	 * here in both cases.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void forgetsAPropertyAnAppliedScriptOverwrites() throws IOException {
+		Files.writeString(projectRoot.resolve("gradle.properties"), "directory=a\n");
+		Files.writeString(projectRoot.resolve("roots.gradle"), "directory = 'b'\n");
+
+		for (String before : List.of("", "directory = 'a'\n")) {
+			BuildToolConfiguration configuration = discover(GROOVY, "plugins { id 'java' }\n" + before
+					+ "apply from: 'roots.gradle'\nsourceSets.main.java.setSrcDirs([directory])\n");
+
+			assertFalse(configuration.productionSourceRoots().contains(projectRoot.resolve("a").toRealPath()), before);
+		}
+	}
+
+	/**
+	 * A local variable named {@code projectDir} hides the project directory in an
+	 * interpolation, so {@code "${projectDir}/b"} names {@code a/b}, as Gradle
+	 * 9.9.1 confirms.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void letsALocalProjectDirHideTheProjectDirectory() throws IOException {
+		Files.createDirectories(projectRoot.resolve("b"));
+		Files.createDirectories(projectRoot.resolve("a/b"));
+
+		assertRootsAndComplete(GROOVY, """
+				plugins { id 'java' }
+				def projectDir = 'a'
+				sourceSets.main.java.setSrcDirs(["${projectDir}/b"])
+				""", List.of("a/b"), List.of(TEST));
+	}
+
+	/**
+	 * A literal assigned inside a block is that block's own variable, so a name
+	 * read outside it is the project property instead, as Gradle 9.9.1 confirms
+	 * with {@code b} here.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void doesNotTakeAVariableOfAnInnerBlockForTheProperty() throws IOException {
+		Files.writeString(projectRoot.resolve("gradle.properties"), "directory=b\n");
+
+		BuildToolConfiguration configuration = discover(GROOVY, """
+				plugins { id 'java' }
+				def unused = {
+				    def directory = 'a'
+				}
+				sourceSets.main.java.setSrcDirs([directory])
+				""");
+
+		assertFalse(configuration.productionSourceRoots().contains(projectRoot.resolve("a").toRealPath()));
+	}
+
+	/**
+	 * An empty source set name, which Gradle need not accept, is read without an
+	 * exception and leaves main incomplete.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void readsAnEmptySourceSetNameWithoutFailing() throws IOException {
+		assertFalse(discover(GROOVY, "plugins { id 'java' }\nsourceSets[''].java.setSrcDirs([])\n")
+				.productionRootsComplete());
+	}
+
+	/**
+	 * A buildSrc directory holds build logic this reader does not read, so main is
+	 * no longer known to be complete.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void marksMainIncompleteBesideBuildSrc() throws IOException {
+		Files.createDirectories(projectRoot.resolve("buildSrc"));
+
+		assertFalse(discover(GROOVY, "plugins { id 'java' }\n").productionRootsComplete());
+	}
+
+	/**
+	 * A form row: label, descriptor name, descriptor, main roots and test roots.
+	 *
+	 * @param label      what the form is
+	 * @param descriptor the descriptor's name
+	 * @param content    the descriptor
+	 * @param main       the main roots Gradle reported
+	 * @param test       the test roots Gradle reported
+	 * @return the row
+	 */
+	private static Arguments form(String label, String descriptor, String content, List<String> main,
+			List<String> test) {
+		return Arguments.of(label, descriptor, content, main, test);
+	}
+
+	/**
+	 * Discovers the project with this descriptor and checks its roots, which are
+	 * compared sorted, as the configuration keeps them.
+	 *
+	 * @param descriptor the descriptor's name
+	 * @param content    the descriptor
+	 * @param main       the expected main roots
+	 * @param test       the expected test roots
+	 * @throws IOException if the fixture cannot be written
+	 */
+	private void assertRootsAndComplete(String descriptor, String content, List<String> main, List<String> test)
+			throws IOException {
+		BuildToolConfiguration configuration = discover(descriptor, content);
+
+		assertEquals(realPaths(main), configuration.productionSourceRoots().stream().sorted().toList());
+		assertEquals(realPaths(test), configuration.testSourceRoots().stream().sorted().toList());
+		assertTrue(configuration.productionRootsComplete());
+	}
+
+	/**
+	 * Writes the descriptor and discovers the project.
+	 *
+	 * @param descriptor the descriptor's name
+	 * @param content    the descriptor
+	 * @return the discovered configuration
+	 * @throws IOException if the descriptor cannot be written
+	 */
+	private BuildToolConfiguration discover(String descriptor, String content) throws IOException {
+		Files.writeString(projectRoot.resolve(descriptor), content);
+		return ProjectSourcesFinder.discover(projectRoot);
+	}
+
+	/**
+	 * The canonical paths of these project directories, sorted.
+	 *
+	 * @param relative the directories, relative to the project
+	 * @return their real paths
+	 * @throws IOException if one cannot be resolved
+	 */
+	private List<Path> realPaths(List<String> relative) throws IOException {
+		List<Path> paths = new ArrayList<>();
+		for (String directory : relative) {
+			paths.add(projectRoot.resolve(directory).toRealPath());
+		}
+		return paths.stream().sorted().toList();
+	}
+}
