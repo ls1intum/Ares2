@@ -387,7 +387,7 @@ public final class JavaInstrumentationBindingDefinitions {
 					boolean.class);
 			mark.setAccessible(true);
 			mark.invoke(installation.get(null), declaringType, methodName, descriptor, loaderIsBoot);
-		} catch (ReflectiveOperationException | LinkageError | RuntimeException unreachable) {
+		} catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
 			return;
 		}
 	}

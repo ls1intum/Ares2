@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
@@ -36,6 +37,62 @@ class JavaInstrumentationLibraryLoadWeaveTest {
 		call(bootRecord, "open");
 		assertThat(call(bootRecord, "isWoven")).isEqualTo(Boolean.TRUE);
 		assertThat(call(JavaInstrumentationLibraryLoadWeaveRecord.class, "isWoven")).isEqualTo(Boolean.FALSE);
+	}
+
+	/**
+	 * Sealing after a failed installation, or one that did not transform
+	 * {@code Runtime}, wipes a mark made during it; after a successful one the mark
+	 * stays. Without a record nothing happens.
+	 *
+	 * @throws ReflectiveOperationException if a record cannot be created or read
+	 */
+	@Test
+	void sealingAfterAFailedInstallationWipesTheMark() throws ReflectiveOperationException {
+		Object failed = markedRecord();
+		JavaInstrumentationAgent.sealWeaveRecord(failed, false);
+		assertThat(invoke(failed, "isWoven")).isEqualTo(Boolean.FALSE);
+		invoke(failed, "open");
+		assertThat(invoke(failed, "isWoven")).isEqualTo(Boolean.FALSE);
+
+		Object succeeded = markedRecord();
+		JavaInstrumentationAgent.sealWeaveRecord(succeeded, true);
+		assertThat(invoke(succeeded, "isWoven")).isEqualTo(Boolean.TRUE);
+
+		JavaInstrumentationAgent.sealWeaveRecord(null, false);
+	}
+
+	/**
+	 * Creates a fresh record of the application loader's copy, opens it and marks
+	 * it for {@code Runtime.loadLibrary0}, as the installation would.
+	 *
+	 * @return the open, marked record
+	 * @throws ReflectiveOperationException if the record cannot be created
+	 */
+	private static Object markedRecord() throws ReflectiveOperationException {
+		Constructor<JavaInstrumentationLibraryLoadWeaveRecord> constructor = JavaInstrumentationLibraryLoadWeaveRecord.class
+				.getDeclaredConstructor();
+		constructor.setAccessible(true);
+		Object record = constructor.newInstance();
+		invoke(record, "open");
+		Method mark = JavaInstrumentationLibraryLoadWeaveRecord.class.getDeclaredMethod("mark", String.class,
+				String.class, String.class, boolean.class);
+		mark.setAccessible(true);
+		mark.invoke(record, "java.lang.Runtime", "loadLibrary0", "(Ljava/lang/Class;Ljava/lang/String;)V", true);
+		return record;
+	}
+
+	/**
+	 * Calls a method without arguments on one record.
+	 *
+	 * @param record     the record
+	 * @param methodName the method
+	 * @return what it returned
+	 * @throws ReflectiveOperationException if it cannot be called
+	 */
+	private static Object invoke(Object record, String methodName) throws ReflectiveOperationException {
+		Method method = JavaInstrumentationLibraryLoadWeaveRecord.class.getDeclaredMethod(methodName);
+		method.setAccessible(true);
+		return method.invoke(record);
 	}
 
 	/**

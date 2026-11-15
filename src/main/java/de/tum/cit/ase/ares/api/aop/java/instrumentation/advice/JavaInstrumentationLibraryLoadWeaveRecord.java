@@ -5,7 +5,8 @@ package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
  * {@code Runtime.loadLibrary0}. Only then may the public {@code loadLibrary}
  * checks leave the decision to it. The record is open only while the agent
  * installs its transformers and is sealed for good afterwards. It assumes no
- * exercise code runs during that installation.
+ * exercise code runs during that installation. The class is public only so the
+ * agent's list of injected classes can name it.
  */
 public final class JavaInstrumentationLibraryLoadWeaveRecord {
 

@@ -133,6 +133,70 @@ class JavaInstrumentationLibraryLoadCheckTest {
 	}
 
 	/**
+	 * Only a plain name passes: no {@code /}, {@code \}, {@code .} or NUL and not
+	 * empty.
+	 *
+	 * @param libraryName a name that is not plain
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "ares\\net", "../net", "a/net", "net.x", "", "net\0" })
+	void onlyAPlainNameIsAPlainLibraryName(String libraryName) {
+		assertThat(JavaInstrumentationAdviceFileSystemToolbox.isPlainLibraryName(libraryName)).isFalse();
+		assertThat(JavaInstrumentationAdviceFileSystemToolbox.isPlainLibraryName(null)).isFalse();
+		assertThat(JavaInstrumentationAdviceFileSystemToolbox.isPlainLibraryName("net")).isTrue();
+	}
+
+	/**
+	 * A name that is not plain gets no exemption even when the file it maps to
+	 * exists, in the Linux and macOS layout {@code lib} and the Windows layout
+	 * {@code bin}.
+	 *
+	 * @param home a fresh Java home
+	 * @throws IOException if a library file cannot be written
+	 */
+	@Test
+	void aNameThatIsNotPlainIsNotExemptEvenIfItsFileExists(@TempDir Path home) throws IOException {
+		for (String folder : new String[] { "lib", "bin" }) {
+			Path directory = Files.createDirectories(home.resolve(folder));
+			for (String libraryName : new String[] { "ares\\net", "../x", "a/net", "net.x", "" }) {
+				Path mapped = directory.resolve(System.mapLibraryName(libraryName));
+				Files.createDirectories(mapped.getParent());
+				Files.writeString(mapped, "library");
+				assertThat(mapped).as("%s in %s", libraryName, folder).isRegularFile();
+				assertThat(JavaInstrumentationAdviceFileSystemToolbox.isJdkOwnLibraryLoad("java.lang.Runtime",
+						"loadLibrary0", LOAD_LIBRARY0, Object.class, libraryName, directory))
+								.as("%s in %s", libraryName, folder).isFalse();
+			}
+		}
+	}
+
+	/**
+	 * A name whose file lies in another folder never counts as the JDK's file, even
+	 * if that file exists: neither in a sub folder nor above the library folder.
+	 * This is the check that also stops a Windows drive-relative name.
+	 *
+	 * @param home a fresh Java home
+	 * @throws IOException if a library file cannot be written
+	 */
+	@Test
+	void aFileOutsideTheLibraryFolderNeverCounts(@TempDir Path home) throws IOException {
+		Path bin = Files.createDirectories(home.resolve("bin"));
+		for (String libraryName : new String[] { "a/net", "/../../x" }) {
+			Path raw = bin.resolve(System.mapLibraryName(libraryName));
+			Path outside = raw.normalize();
+			createFoldersAlong(bin, Path.of(System.mapLibraryName(libraryName)));
+			Files.createDirectories(outside.getParent());
+			Files.writeString(outside, "library");
+			assertThat(outside.getParent()).as(libraryName).isNotEqualTo(bin);
+			assertThat(raw).as(libraryName).isRegularFile();
+			assertThat(JavaInstrumentationAdviceFileSystemToolbox.isBootLibraryFile(bin, libraryName)).as(libraryName)
+					.isFalse();
+		}
+		Files.writeString(bin.resolve(System.mapLibraryName("net")), "library");
+		assertThat(JavaInstrumentationAdviceFileSystemToolbox.isBootLibraryFile(bin, "net")).isTrue();
+	}
+
+	/**
 	 * A name that cannot be read as a path is refused with the file check's own
 	 * message, and allowed when the execute allow-list allows every path.
 	 */
@@ -355,6 +419,17 @@ class JavaInstrumentationLibraryLoadCheckTest {
 	}
 
 	/**
+	 * A mark made without opening the window counts for nothing.
+	 */
+	@Test
+	void aMarkWithoutOpeningCountsForNothing() {
+		JavaInstrumentationLibraryLoadWeaveRecord record = new JavaInstrumentationLibraryLoadWeaveRecord();
+		markLoadLibrary0(record);
+		record.seal();
+		assertThat(record.isWoven()).isFalse();
+	}
+
+	/**
 	 * After sealing, neither opening nor marking changes the record, in either
 	 * direction.
 	 */
@@ -388,6 +463,24 @@ class JavaInstrumentationLibraryLoadCheckTest {
 		assertThat(sealedAfterMark("java.lang.Runtime", "loadLibrary0", "(java.lang.Class,java.lang.String)", true))
 				.isFalse();
 		assertThat(sealedAfterMark("java.lang.Runtime", "loadLibrary0", LOAD_LIBRARY0, true)).isTrue();
+	}
+
+	/**
+	 * Creates every folder a relative file path passes through from a base folder,
+	 * skipping the {@code ..} steps, so the path can be followed as written.
+	 *
+	 * @param base     the folder the path starts in
+	 * @param relative the file path, possibly with {@code ..} steps
+	 * @throws IOException if a folder cannot be created
+	 */
+	private static void createFoldersAlong(Path base, Path relative) throws IOException {
+		Path current = base;
+		for (int index = 0; index < relative.getNameCount() - 1; index++) {
+			current = current.resolve(relative.getName(index));
+			if (!"..".equals(relative.getName(index).toString())) {
+				Files.createDirectories(current.normalize());
+			}
+		}
 	}
 
 	/**

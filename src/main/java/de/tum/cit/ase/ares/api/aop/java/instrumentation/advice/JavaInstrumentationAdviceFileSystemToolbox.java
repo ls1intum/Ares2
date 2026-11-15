@@ -1906,19 +1906,22 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
-	 * Tells whether the JDK's library folder holds a regular file for the library,
-	 * under the name the JVM gives it, such as {@code libnet.so}.
+	 * Tells whether the JDK's library folder directly holds a regular file for the
+	 * library, under the name the JVM gives it, such as {@code libnet.so}. A name
+	 * that leads into another folder, such as a Windows drive-relative
+	 * {@code C:evil}, never counts.
 	 *
 	 * @param bootLibraryDirectory the JDK's own library folder, or {@code null}
-	 * @param libraryName          a plain library name
-	 * @return {@code true} if that file exists there
+	 * @param libraryName          the library name
+	 * @return {@code true} if that file exists directly there
 	 */
 	static boolean isBootLibraryFile(@Nullable Path bootLibraryDirectory, @Nonnull String libraryName) {
 		if (bootLibraryDirectory == null) {
 			return false;
 		}
 		try {
-			return Files.isRegularFile(bootLibraryDirectory.resolve(System.mapLibraryName(libraryName)));
+			Path candidate = bootLibraryDirectory.resolve(System.mapLibraryName(libraryName)).normalize();
+			return bootLibraryDirectory.normalize().equals(candidate.getParent()) && Files.isRegularFile(candidate);
 		} catch (InvalidPathException unreadable) {
 			return false;
 		}
@@ -2041,11 +2044,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			@Nullable
 			String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
-			throw new SecurityException(
-					localize("security.advice.illegal.file.execution", violatingMethod, "execute", libraryName,
-							declaringTypeName + "." + methodName + methodSignature
-									+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
-									+ " | " + buildDenialReason(allowedPaths == null || allowedPaths.length == 0)));
+			throw new SecurityException(localize("security.advice.illegal.file.execution", violatingMethod, "execute",
+					libraryName.replace("\0", "\\0"),
+					declaringTypeName + "." + methodName + methodSignature
+							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+							+ buildDenialReason(allowedPaths == null || allowedPaths.length == 0)));
 		} finally {
 			exitAdvice();
 		}

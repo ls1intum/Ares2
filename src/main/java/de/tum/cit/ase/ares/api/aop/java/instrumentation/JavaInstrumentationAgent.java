@@ -216,7 +216,7 @@ public final class JavaInstrumentationAgent {
 					throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 							.localize("security.instrumentation.agent.not.attached"));
 				}
-				callBootWeaveRecord("open");
+				callWeaveRecord(bootWeaveRecord(), "open");
 				installAgentBuilder(currentInstrumentation, currentFactory, guardedPointcuts());
 				installThreadCallSiteBuilder(currentInstrumentation, currentFactory);
 				throwIfPermanentFailure();
@@ -235,37 +235,67 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Seals the weave record for good. If installing failed or did not transform
-	 * {@code java.lang.Runtime}, the record is opened once more first, which wipes
-	 * any mark, so the public {@code loadLibrary} checks keep checking.
+	 * Seals the weave record the advice reads for good, see
+	 * {@link #sealWeaveRecord(Object, boolean)}.
 	 *
 	 * @param runtimeTransformed whether installing succeeded and transformed
 	 *                           {@code java.lang.Runtime}
 	 */
 	private static void sealBootWeaveRecord(boolean runtimeTransformed) {
-		if (!runtimeTransformed) {
-			callBootWeaveRecord("open");
-		}
-		callBootWeaveRecord("seal");
+		sealWeaveRecord(bootWeaveRecord(), runtimeTransformed);
 	}
 
 	/**
-	 * Calls a method without arguments on the weave record held by the JVM's own
-	 * loader, which the advice reads. This class sees a second copy under the
-	 * application loader, so the JVM's copy is reached by reflection. A failure is
-	 * ignored: an unmarked or unsealed record makes no public check defer.
+	 * Seals a weave record for good. If installing failed or did not transform
+	 * {@code java.lang.Runtime}, the record is opened once more first, which wipes
+	 * any mark, so the public {@code loadLibrary} checks keep checking.
 	 *
-	 * @param methodName {@code open} or {@code seal}
+	 * @param record             the record, or {@code null}
+	 * @param runtimeTransformed whether installing succeeded and transformed
+	 *                           {@code java.lang.Runtime}
 	 */
-	private static void callBootWeaveRecord(String methodName) {
+	static void sealWeaveRecord(Object record, boolean runtimeTransformed) {
+		if (!runtimeTransformed) {
+			callWeaveRecord(record, "open");
+		}
+		callWeaveRecord(record, "seal");
+	}
+
+	/**
+	 * Returns the weave record held by the JVM's own loader, which the advice
+	 * reads. This class sees a second copy under the application loader, so the
+	 * JVM's copy is reached by reflection.
+	 *
+	 * @return the record, or {@code null} if it cannot be reached
+	 */
+	private static Object bootWeaveRecord() {
 		try {
 			Class<?> recordClass = Class.forName(JavaInstrumentationLibraryLoadWeaveRecord.class.getName(), true, null);
 			Field installation = recordClass.getDeclaredField("INSTALLATION");
 			installation.setAccessible(true);
-			Method method = recordClass.getDeclaredMethod(methodName);
+			return installation.get(null);
+		} catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
+			return null;
+		}
+	}
+
+	/**
+	 * Calls a method without arguments on a weave record by reflection, since its
+	 * methods are package-private. A failure is ignored: an unmarked or unsealed
+	 * record makes no public check defer.
+	 *
+	 * @param record     the record, or {@code null} to do nothing
+	 * @param methodName {@code open} or {@code seal}
+	 */
+	private static void callWeaveRecord(Object record, String methodName) {
+		if (record == null) {
+			return;
+		}
+		try {
+			Method method = record.getClass().getDeclaredMethod(methodName);
 			method.setAccessible(true);
-			method.invoke(installation.get(null));
-		} catch (ReflectiveOperationException | LinkageError | RuntimeException unreachable) {
+			method.invoke(record);
+		} catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
 			return;
 		}
 	}
