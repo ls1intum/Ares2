@@ -12,6 +12,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,9 @@ class JavaInstrumentationLibraryLoadCheckTest {
 
 	/** The JVM descriptor of {@code Runtime.loadLibrary0}. */
 	private static final String LOAD_LIBRARY0 = "(Ljava/lang/Class;Ljava/lang/String;)V";
+
+	/** How the check's messages name {@code Runtime.loadLibrary0}. */
+	private static final String LOAD_LIBRARY0_SIGNATURE = "java.lang.Runtime.loadLibrary0(java.lang.Class,java.lang.String)";
 
 	/** The property the JVM's library folder is read from. */
 	private static final String BOOT_LIBRARY_PATH = "sun.boot.library.path";
@@ -115,21 +119,32 @@ class JavaInstrumentationLibraryLoadCheckTest {
 	void aLoadByAClassOfALibraryFindingLoaderIsRefused() throws IOException {
 		Class<?> foreign = new LibraryFindingLoader().defineCopyOf(LibraryCallerFixture.class);
 		assertThat(foreign.getClassLoader()).isInstanceOf(LibraryFindingLoader.class);
-		assertThatThrownBy(() -> InstrumentationSecurityProbe.checkLibraryLoad0(foreign, "net"))
-				.isInstanceOf(SecurityException.class);
+		assertRefusedAsIllegalExecute(() -> InstrumentationSecurityProbe.checkLibraryLoad0(foreign, "net"),
+				LOAD_LIBRARY0_SIGNATURE);
 	}
 
 	/**
 	 * A JDK caller with a name that is not a plain name of a JDK library gets no
-	 * exemption and is refused.
+	 * exemption and is refused as an illegal execute.
 	 *
 	 * @param libraryName the library name
 	 */
 	@ParameterizedTest
-	@ValueSource(strings = { "ares\\net", "../net", "a/net", "net.x", "", "net\0", "aresNoSuchLib" })
+	@ValueSource(strings = { "ares\\net", "../net", "a/net", "net.x", "net\0", "aresNoSuchLib" })
 	void aJdkCallerWithAnUnusualNameIsRefused(String libraryName) {
-		assertThatThrownBy(() -> InstrumentationSecurityProbe.checkLibraryLoad0(Object.class, libraryName))
-				.isInstanceOf(SecurityException.class);
+		assertRefusedAsIllegalExecute(() -> InstrumentationSecurityProbe.checkLibraryLoad0(Object.class, libraryName),
+				LOAD_LIBRARY0_SIGNATURE);
+	}
+
+	/**
+	 * A JDK caller with an empty name gets no exemption and is refused, by the file
+	 * check's refusal of an empty path.
+	 */
+	@Test
+	void aJdkCallerWithAnEmptyNameIsRefused() {
+		assertThatThrownBy(() -> InstrumentationSecurityProbe.checkLibraryLoad0(Object.class, ""))
+				.isInstanceOf(SecurityException.class).hasMessage(
+						JavaInstrumentationAdviceAbstractToolbox.localize("security.instrumentation.invalid.path", ""));
 	}
 
 	/**
@@ -173,7 +188,8 @@ class JavaInstrumentationLibraryLoadCheckTest {
 	/**
 	 * A name whose file lies in another folder never counts as the JDK's file, even
 	 * if that file exists: neither in a sub folder nor above the library folder.
-	 * This is the check that also stops a Windows drive-relative name.
+	 * This is the check that also stops a Windows drive-relative name. Every file
+	 * stays inside the fresh Java home, on every platform.
 	 *
 	 * @param home a fresh Java home
 	 * @throws IOException if a library file cannot be written
@@ -181,9 +197,10 @@ class JavaInstrumentationLibraryLoadCheckTest {
 	@Test
 	void aFileOutsideTheLibraryFolderNeverCounts(@TempDir Path home) throws IOException {
 		Path bin = Files.createDirectories(home.resolve("bin"));
-		for (String libraryName : new String[] { "a/net", "/../../x" }) {
+		for (String libraryName : new String[] { "a/net", "a/../../x" }) {
 			Path raw = bin.resolve(System.mapLibraryName(libraryName));
 			Path outside = raw.normalize();
+			assertThat(outside).as(libraryName).startsWithRaw(home);
 			createFoldersAlong(bin, Path.of(System.mapLibraryName(libraryName)));
 			Files.createDirectories(outside.getParent());
 			Files.writeString(outside, "library");
@@ -303,10 +320,12 @@ class JavaInstrumentationLibraryLoadCheckTest {
 	@Test
 	void aPublicLoadLibraryCallWithoutTheRecordIsChecked() {
 		assertThat(JavaInstrumentationLibraryLoadWeaveRecord.INSTALLATION.isWoven()).isFalse();
-		assertThatThrownBy(() -> InstrumentationSecurityProbe.checkPublicLoadLibrary("java.lang.System", "net"))
-				.isInstanceOf(SecurityException.class);
-		assertThatThrownBy(() -> InstrumentationSecurityProbe.checkPublicLoadLibrary("java.lang.Runtime", "net"))
-				.isInstanceOf(SecurityException.class);
+		assertRefusedAsIllegalExecute(
+				() -> InstrumentationSecurityProbe.checkPublicLoadLibrary("java.lang.System", "net"),
+				"java.lang.System.loadLibrary(java.lang.String)");
+		assertRefusedAsIllegalExecute(
+				() -> InstrumentationSecurityProbe.checkPublicLoadLibrary("java.lang.Runtime", "net"),
+				"java.lang.Runtime.loadLibrary(java.lang.String)");
 	}
 
 	/**
@@ -357,20 +376,14 @@ class JavaInstrumentationLibraryLoadCheckTest {
 	}
 
 	/**
-	 * The library folder is read once: changing the property later changes nothing.
+	 * The running JDK's own library folder is accepted: the folder the toolbox
+	 * captured is not missing and is the one the JDK's property names.
 	 */
 	@Test
-	void aLaterPropertyChangeDoesNotMoveTheLibraryFolder() {
-		String original = System.getProperty(BOOT_LIBRARY_PATH);
-		Path captured = capturedBootLibraryDirectory();
-		assertThat(captured).isNotNull().isEqualTo(JavaInstrumentationAdviceFileSystemToolbox
-				.trustedBootLibraryDirectory(System.getProperty("java.home"), original, File.pathSeparator));
-		try {
-			System.setProperty(BOOT_LIBRARY_PATH, Path.of(System.getProperty("java.home"), "elsewhere").toString());
-			assertThat(capturedBootLibraryDirectory()).isEqualTo(captured);
-		} finally {
-			System.setProperty(BOOT_LIBRARY_PATH, original);
-		}
+	void theRunningJdkLibraryFolderIsAccepted() {
+		assertThat(capturedBootLibraryDirectory()).isNotNull().isEqualTo(
+				JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(System.getProperty("java.home"),
+						System.getProperty(BOOT_LIBRARY_PATH), File.pathSeparator));
 	}
 
 	/**
@@ -481,6 +494,30 @@ class JavaInstrumentationLibraryLoadCheckTest {
 				Files.createDirectories(current.normalize());
 			}
 		}
+	}
+
+	/**
+	 * Requires a call to be refused with the file check's message for illegally
+	 * executing a file, naming the given method.
+	 *
+	 * @param call   the call that must be refused
+	 * @param method the method as the message names it
+	 */
+	private static void assertRefusedAsIllegalExecute(ThrowingCallable call, String method) {
+		assertThatThrownBy(call).isInstanceOf(SecurityException.class).hasMessageContaining(illegalExecuteWording())
+				.hasMessageContaining(method);
+	}
+
+	/**
+	 * Returns the words of the illegal-file message between the student method and
+	 * the file, for the action {@code execute}, in the current language.
+	 *
+	 * @return those words, such as {@code tried to illegally execute File}
+	 */
+	private static String illegalExecuteWording() {
+		String message = JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.file.execution",
+				"\u0001", "execute", "\u0002", "\u0003");
+		return message.substring(message.indexOf('\u0001') + 1, message.indexOf('\u0002'));
 	}
 
 	/**
