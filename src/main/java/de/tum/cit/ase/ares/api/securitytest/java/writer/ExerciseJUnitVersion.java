@@ -22,7 +22,8 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * limits which extensions load only from 5.12 on, so the generated hooks are
  * refused for an older version, for one that is not a number, and for a build
  * file that cannot be read. A version set in the exercise's own build files is
- * looked up first; one from a parent or a range is accepted.
+ * looked up first; one from a parent is accepted, and a range is checked by its
+ * lowest version.
  *
  * @since 2.3.0
  * @author Luka Petrovic
@@ -62,6 +63,9 @@ final class ExerciseJUnitVersion {
 	 * of at most nine digits, then any qualifier after a dash or a plus.
 	 */
 	private static final Pattern VERSION_NUMBER = Pattern.compile("\\d{1,9}(?:\\.\\d{1,9})*(?:[-+][\\w.\\-+]*)?");
+
+	/** The opening of one set in a Maven range, capturing its lowest version. */
+	private static final Pattern RANGE_LOWER_BOUND = Pattern.compile("[\\[(]([^,\\])]*)");
 
 	/** A comment in a Maven build file, which names no dependency. */
 	private static final Pattern XML_COMMENT = Pattern.compile("<!--.*?-->", Pattern.DOTALL);
@@ -351,7 +355,8 @@ final class ExerciseJUnitVersion {
 
 	/**
 	 * Refuses one version value after looking up its references, unless it is still
-	 * taken from elsewhere.
+	 * taken from elsewhere. A Maven range is checked by each lowest version it
+	 * allows, so {@code [5.11.4]} is refused like {@code 5.11.4}.
 	 *
 	 * @param buildFile   the file that names it.
 	 * @param version     the value as written.
@@ -365,11 +370,30 @@ final class ExerciseJUnitVersion {
 		if (isTakenFromElsewhere(value)) {
 			return;
 		}
-		if (!VERSION_NUMBER.matcher(value).matches()) {
+		List<String> numbers = isRange(value) ? lowerBounds(value) : List.of(value);
+		for (String number : numbers) {
+			requireNumberSupported(buildFile, version, resolution, number);
+		}
+	}
+
+	/**
+	 * Refuses one version number, or a lowest version of a range, that is not a
+	 * number or is older than 5.12.
+	 *
+	 * @param buildFile  the file that names it.
+	 * @param version    the value as written.
+	 * @param resolution the value after its references were looked up.
+	 * @param number     the number to check.
+	 * @throws SecurityException naming the value as written and as looked up
+	 */
+	private static void requireNumberSupported(@Nonnull Path buildFile, @Nonnull String version,
+			@Nonnull Resolution resolution, @Nonnull String number) {
+		String value = resolution.value();
+		if (!VERSION_NUMBER.matcher(number).matches()) {
 			throw new SecurityException(
 					Messages.localized("security.writer.junit.version.unreadable", buildFile.toString(), value));
 		}
-		if (!isTooOld(value)) {
+		if (!isTooOld(number)) {
 			return;
 		}
 		if (value.equals(version)) {
@@ -380,15 +404,44 @@ final class ExerciseJUnitVersion {
 	}
 
 	/**
-	 * Whether a version value points elsewhere: a property anywhere in it, such as
-	 * {@code ${junit.version}}, {@code 5.${junit.minor}.0} or
-	 * {@code $junitVersion}, or a Maven version range.
+	 * Whether a version value still holds a property Ares could not look up, such
+	 * as {@code ${project.parent.version}} or {@code $junitVersion}.
 	 *
-	 * @param version the value as written.
+	 * @param version the value after looking up.
 	 * @return true when the build file does not name the number itself
 	 */
 	private static boolean isTakenFromElsewhere(@Nonnull String version) {
-		return version.contains("$") || version.startsWith("[") || version.startsWith("(");
+		return version.contains("$");
+	}
+
+	/**
+	 * Whether a version value is a Maven version range, such as {@code [5.12,6)}.
+	 *
+	 * @param version the value after looking up.
+	 * @return true when it starts with a bracket
+	 */
+	private static boolean isRange(@Nonnull String version) {
+		return version.startsWith("[") || version.startsWith("(");
+	}
+
+	/**
+	 * The lowest version of every set in a Maven range. A set with no lowest
+	 * version, such as {@code (,6)}, adds none, since Ares cannot tell its version.
+	 *
+	 * @param range the range, such as {@code [5.11,6),[7,)}.
+	 * @return each lowest version as written
+	 */
+	@Nonnull
+	private static List<String> lowerBounds(@Nonnull String range) {
+		List<String> bounds = new ArrayList<>();
+		Matcher set = RANGE_LOWER_BOUND.matcher(range);
+		while (set.find()) {
+			String bound = set.group(1).strip();
+			if (!bound.isEmpty()) {
+				bounds.add(bound);
+			}
+		}
+		return bounds;
 	}
 
 	/**

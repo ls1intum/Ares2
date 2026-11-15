@@ -53,8 +53,8 @@ class ExerciseJUnitVersionTest {
 	}
 
 	/**
-	 * A version taken from a property, a range, a catalogue or a parent, and a
-	 * project without a build file, are accepted.
+	 * A version taken from a property, a range from 5.12, a catalogue or a parent,
+	 * and a project without a build file, are accepted.
 	 *
 	 * @param buildFile the build file's name.
 	 * @param text      the build file's text.
@@ -73,6 +73,46 @@ class ExerciseJUnitVersionTest {
 		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
 		write(buildFile, text);
 		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
+	}
+
+	/**
+	 * A Maven range is checked by its lowest version: one below 5.12 is refused,
+	 * naming the range, also through a property; one from 5.12, or one with no
+	 * lowest version, is accepted.
+	 *
+	 * @param range   the range.
+	 * @param refused whether the build is refused.
+	 * @throws IOException if the build file cannot be written
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = { "[5.11.4]|true", "[5.11,6)|true", "(5.11.4,6)|true",
+			"[5.12,6),[5.10,5.11)|true", "[5.12.0]|false", "[5.12,6)|false", "[5.12.0,)|false", "(,6)|false" })
+	void aRangeIsCheckedByItsLowestVersion(String range, boolean refused) throws IOException {
+		String direct = "<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>%s</version></dependency></dependencies></project>";
+		String property = "<project><properties><junit.version>%s</junit.version></properties><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>${junit.version}</version></dependency></dependencies></project>";
+		for (String text : new String[] { direct, property }) {
+			write("pom.xml", text.formatted(range));
+			if (refused) {
+				assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+						.isInstanceOf(SecurityException.class).hasMessageContaining(range);
+			} else {
+				assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+						.doesNotThrowAnyException();
+			}
+		}
+	}
+
+	/**
+	 * A Maven range whose lowest version is not a number is refused as unreadable.
+	 *
+	 * @throws IOException if the build file cannot be written
+	 */
+	@Test
+	void aRangeWithoutANumberIsRefused() throws IOException {
+		write("pom.xml",
+				"<project><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>[latest,6)</version></dependency></dependencies></project>");
+		assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("[latest,6)");
 	}
 
 	/**
