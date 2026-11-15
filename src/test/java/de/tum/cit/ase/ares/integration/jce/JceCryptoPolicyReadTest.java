@@ -23,6 +23,14 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageCon
 class JceCryptoPolicyReadTest {
 
 	/**
+	 * Extra options of a child that runs a first library use: the JVM's log of
+	 * every library it loads, no display, and an English locale so the messages
+	 * read the same everywhere.
+	 */
+	private static final List<String> LIBRARY_PROBE_OPTIONS = List.of("-Xlog:library=info", "-Djava.awt.headless=true",
+			"-Duser.language=en", "-Duser.country=US");
+
+	/**
 	 * Distinguishes restrictive discovery before crypto from an active runtime
 	 * verdict.
 	 */
@@ -158,12 +166,14 @@ class JceCryptoPolicyReadTest {
 		command.add("-Djava.io.tmpdir=" + Files.createDirectories(project.resolve("tmp")));
 		command.add("-javaagent:" + JceTraceAgent.packageAgent());
 		command.add("-Xlog:class+init=info");
-		command.add("-Xlog:library=info");
-		command.add("-Djava.awt.headless=true");
+		boolean libraryProbe = "nativelibrary".equals(subjectPackage(operation));
+		if (libraryProbe) {
+			command.addAll(LIBRARY_PROBE_OPTIONS);
+		}
 		command.add("-cp");
 		command.add(compiled + java.io.File.pathSeparator
 				+ System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
-		command.add(JceForkProbe.class.getName());
+		command.add(libraryProbe ? NativeLibraryForkProbe.class.getName() : JceForkProbe.class.getName());
 		command.add(operation);
 		command.add(policy.toAbsolutePath().toString());
 		command.add(file.toAbsolutePath().toString());

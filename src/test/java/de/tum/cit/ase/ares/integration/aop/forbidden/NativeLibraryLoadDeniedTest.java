@@ -47,7 +47,7 @@ class NativeLibraryLoadDeniedTest extends SystemAccessTest {
 	private static final String POLICY_WALAINSTRUMENTATION = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyNativeLibraryLoad.yaml";
 
 	/**
-	 * A library the JDK ships and has already loaded, asked for by name.
+	 * A library the JDK ships, asked for by name.
 	 */
 	private static final String LIBRARY = "net";
 

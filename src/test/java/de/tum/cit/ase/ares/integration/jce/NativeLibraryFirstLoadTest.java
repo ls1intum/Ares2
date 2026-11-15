@@ -44,7 +44,7 @@ class NativeLibraryFirstLoadTest {
 	/**
 	 * The first use of the preferences makes the JDK load {@code prefs}, which is
 	 * allowed. What the JDK does next is refused for other reasons, which must not
-	 * be the library load.
+	 * be a library decision.
 	 */
 	@ParameterizedTest
 	@EnumSource(value = ProgrammingLanguageConfiguration.class, names = ".*_INSTRUMENTATION", mode = EnumSource.Mode.MATCH_ALL)
@@ -52,23 +52,28 @@ class NativeLibraryFirstLoadTest {
 			throws Exception {
 		String output = JceCryptoPolicyReadTest.runProbe(configuration, "preferences", directory);
 		assertDecidedDuringFirstUse(output, "prefs");
-		assertFalse(outcome(output).contains("illegally execute"), JceCryptoPolicyReadTest.summary(output));
+		assertFalse(outcome(output).contains("Runtime.loadLibrary0"), JceCryptoPolicyReadTest.summary(output));
 	}
 
 	/**
 	 * Requires, in this order: the policy armed, the first use started, the JDK's
 	 * own request allowed, and the library loaded. Also requires the launcher's
-	 * request for the same library, made beneath student code, to be refused.
+	 * request for the same library, made beneath student code, to be the only
+	 * refused decision for that library.
 	 */
 	private static void assertDecidedDuringFirstUse(String output, String library) {
 		String summary = JceCryptoPolicyReadTest.summary(output);
+		int armed = output.indexOf("JCE_PROBE_ARMED");
 		int firstUse = output.indexOf(FIRST_USE);
 		int decision = output.indexOf(DECISION + library + " java.");
 		int load = output.indexOf(File.separator + System.mapLibraryName(library) + ", handle");
-		assertTrue(output.indexOf("JCE_PROBE_ARMED") < firstUse, summary);
+		assertTrue(armed >= 0 && armed < firstUse, summary);
 		assertTrue(firstUse < decision && decision < load, summary);
 		assertTrue(lineAt(output, decision).endsWith(" ALLOWED"), summary);
-		assertTrue(output.contains(DECISION + library + " " + JceForkProbe.class.getName() + " DENIED"), summary);
+		String launcherRefusal = DECISION + library + " " + NativeLibraryForkProbe.class.getName() + " DENIED";
+		assertTrue(output.lines().filter(line -> line.startsWith(DECISION + library + " "))
+				.filter(line -> line.endsWith(" DENIED")).allMatch(launcherRefusal::equals), summary);
+		assertTrue(output.contains(launcherRefusal), summary);
 		assertTrue(output.contains("NATIVE_LIBRARY_LAUNCHER_LOAD_DENIED"), summary);
 	}
 

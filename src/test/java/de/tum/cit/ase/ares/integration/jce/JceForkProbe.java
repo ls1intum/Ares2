@@ -8,7 +8,6 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
 import example.jce.JceCryptoSubject;
-import example.nativelibrary.NativeLibraryFirstUser;
 
 /**
  * Trusted child launcher that prepares a real policy before entering student
@@ -39,8 +38,8 @@ public final class JceForkProbe {
 	}
 
 	/**
-	 * Runs one isolated capture, crypto or first library use case and leaves
-	 * ordering markers in its log.
+	 * Runs one isolated capture or crypto case and leaves ordering markers in its
+	 * log.
 	 */
 	public static void main(String[] arguments) throws Exception {
 		System.out.println("JCE_PROBE_ENTRY");
@@ -59,21 +58,27 @@ public final class JceForkProbe {
 			System.out.println("JCE_PROBE_PASSED");
 			return;
 		}
-		SecurityPolicyReaderAndDirector.builder().projectFolderPath(Path.of(arguments[3]))
-				.securityPolicyFilePath(Path.of(arguments[1])).withinPath(Path.of(arguments[4])).build()
-				.createTestCases().executeTestCases();
-		System.out.println("JCE_PROBE_ARMED");
+		armPolicy(arguments);
 		if ("snapshot".equals(arguments[0])) {
 			checkSnapshot(Path.of(arguments[2]));
 		} else if ("boundary".equals(arguments[0])) {
 			JceRuntimeContract.verify(Path.of(arguments[2]).getParent(), "de.tum.cit.ase.ares");
-		} else if ("image".equals(arguments[0]) || "preferences".equals(arguments[0])) {
-			checkFirstLibraryUse(arguments[0]);
 		} else {
 			checkCrypto(Path.of(arguments[2]));
 		}
 		JavaInstrumentationAgent.throwIfTransformationFailed();
 		System.out.println("JCE_PROBE_PASSED");
+	}
+
+	/**
+	 * Arms the real policy named in the launch arguments for the project and the
+	 * student folder they name, then prints the armed marker.
+	 */
+	static void armPolicy(String[] arguments) {
+		SecurityPolicyReaderAndDirector.builder().projectFolderPath(Path.of(arguments[3]))
+				.securityPolicyFilePath(Path.of(arguments[1])).withinPath(Path.of(arguments[4])).build()
+				.createTestCases().executeTestCases();
+		System.out.println("JCE_PROBE_ARMED");
 	}
 
 	/**
@@ -182,41 +187,6 @@ public final class JceForkProbe {
 			throw new AssertionError("AES jurisdiction policy was not available");
 		}
 		requireDeniedRead(file);
-	}
-
-	/**
-	 * Lets the student use an image or the preferences for the first time, then
-	 * asks for the same library from launcher code beneath student code, which must
-	 * be refused.
-	 */
-	private static void checkFirstLibraryUse(String operation) {
-		String library = "image".equals(operation) ? "awt" : "prefs";
-		System.out.println("NATIVE_LIBRARY_FIRST_USE");
-		System.out.println("NATIVE_LIBRARY_OUTCOME " + firstUseOutcome(operation));
-		try {
-			NativeLibraryFirstUser.run(() -> System.loadLibrary(library));
-		} catch (SecurityException denied) {
-			System.out.println("NATIVE_LIBRARY_LAUNCHER_LOAD_DENIED " + denied.getMessage());
-			return;
-		}
-		throw new AssertionError("The launcher's own load of " + library + " was not refused");
-	}
-
-	/**
-	 * Runs the student's first use and describes on one line how it ended, naming
-	 * every cause of a failure.
-	 */
-	private static String firstUseOutcome(String operation) {
-		try {
-			return "OK " + ("image".equals(operation) ? NativeLibraryFirstUser.readPixel()
-					: NativeLibraryFirstUser.openPreferences());
-		} catch (RuntimeException | Error failure) {
-			StringBuilder description = new StringBuilder("FAILED");
-			for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-				description.append(" | ").append(cause);
-			}
-			return description.toString().replace('\n', ' ');
-		}
 	}
 
 	/**
