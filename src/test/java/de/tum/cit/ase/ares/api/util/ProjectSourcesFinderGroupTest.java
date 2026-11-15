@@ -101,6 +101,20 @@ class ProjectSourcesFinderGroupTest {
 				Arguments.of("if (false) group = 'org.example'", null),
 				Arguments.of("if (ready) { } else\n    group = 'org.example'", null),
 				Arguments.of("def base = 'x' +\n    group = 'org.example'", null),
+				Arguments.of("group = 'org.example'\n    .plus('.exercise')", null),
+				Arguments.of("group = 'org.example'\n    as String", null),
+				Arguments.of("group = 'de.tum.cit.aet'\nversion = '1'", group),
+				Arguments.of("if (true) return;\ngroup = 'org.example'", null),
+				Arguments.of("group = 'de.tum.cit.aet'\ntasks.register('x') { return }", group),
+				Arguments.of("description = \"${project.setGroup('org.example.exercise')}\"", null),
+				Arguments.of("description = \"${project.version}\"", "from.properties"),
+				Arguments.of("group = 'org.example'\ndescription = \"${foo('}') + project.setGroup('x.y')}\"", null),
+				Arguments.of("group = 'org.example'\ndescription = \"${foo(\"${'}'}\") + project.setGroup('x.y')}\"",
+						null),
+				Arguments.of("group = 'org.example'\ndescription = \"${foo(/* } */) + project.setGroup('x.y')}\"",
+						null),
+				Arguments.of("group = 'de.tum.cit.aet'\nversion = \"${base}\"", group),
+				Arguments.of("version = \"${base}\"\ngroup = 'de.tum.cit.aet'", null),
 				Arguments.of("plugins { id 'java' }\ngroup = 'de.tum.cit.aet'", group),
 				Arguments.of("apply plugin: 'java'\ngroup = 'de.tum.cit.aet'", group),
 				Arguments.of("group = 'de.tum.cit.aet'; version = '1'", group),
@@ -153,6 +167,8 @@ class ProjectSourcesFinderGroupTest {
 	 */
 	static Stream<Arguments> kotlinDescriptors() {
 		return Stream.of(Arguments.of("group = \"de.tum.cit.aet\"", "de.tum.cit.aet"),
+				Arguments.of("group = \"org.example\"\n    .plus(\".exercise\")", null),
+				Arguments.of("group = \"de.tum.cit.aet\"\nversion = \"1\"", "de.tum.cit.aet"),
 				Arguments.of("val group = \"de.tum.cit.aet\"", null));
 	}
 
