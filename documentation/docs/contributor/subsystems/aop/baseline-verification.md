@@ -9,8 +9,9 @@ Even a rule sheet that allows no worksheet lets a few through. The permitted aid
 do their work, such as picking a random number.
 
 Both ways of watching have to let exactly the same things through and stop the same things.
-This page lists each one and the proof that the two agree, and today they agree on every one.
-Where one way never even sees an act, the page names that difference, so a new one cannot slip
+This page lists each one and the proof that the two agree. They agree on every one but one. With
+some editions of the permitted aids, one way stops an aid fetching a tool it needs for itself,
+and the other way never sees it. Where one way never even sees an act, the page names that difference, so a new one cannot slip
 in unseen.
 
 [Who is who](/instructor/who-is-who)

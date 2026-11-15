@@ -1800,18 +1800,17 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
-	 * Checks a load at {@code Runtime.loadLibrary0}. The JDK loading its own
-	 * library is allowed; any other is checked as executing the name in the working
-	 * directory. A name that is no path is refused under an instrumentation policy,
-	 * with student code on the call stack and no {@code *} execute rule. The class
-	 * is never a path.
+	 * Checks a load at {@code Runtime.loadLibrary0}. The JDK's own load passes; any
+	 * other is checked as running that name. A name that is no path is refused only
+	 * for student code under an instrumentation policy without a {@code *} execute
+	 * rule.
 	 *
 	 * @param declaringTypeName the class
 	 * @param methodName        the method
 	 * @param methodSignature   for messages
 	 * @param methodDescriptor  JVM descriptor
 	 * @param fromClass         the caller the JDK names
-	 * @param libraryName       the name as passed
+	 * @param libraryName       the name
 	 * @throws SecurityException if forbidden
 	 */
 	public static void checkLibraryLoad0(@Nonnull String declaringTypeName, @Nonnull String methodName,
@@ -1850,12 +1849,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Tells whether a call of {@code Runtime.loadLibrary0} is the JDK loading its
-	 * own library. Sound because a JDK caller's class loader skips its own search,
-	 * so the JDK's folder is searched first and the file found there is what loads.
-	 * Through the public {@code loadLibrary} methods the JDK works out the caller
-	 * itself. Deep reflection on this method can name any class, but the exemption
-	 * then still covers only a plain name whose file lies directly in the JDK's
-	 * library folder.
+	 * own library. Sound because a JDK caller's loader skips its own search, so the
+	 * JDK's folder is searched first. The public methods name the real caller; deep
+	 * reflection on this one can name any class, but still only a plain name whose
+	 * file lies directly in the JDK's library folder is exempt.
 	 *
 	 * @param bootLibraryDirectory the JDK's own library folder, or {@code null}
 	 * @return {@code true} only if every condition holds

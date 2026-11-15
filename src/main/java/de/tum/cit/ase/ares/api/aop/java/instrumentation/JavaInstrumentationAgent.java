@@ -199,10 +199,9 @@ public final class JavaInstrumentationAgent {
 	/**
 	 * Installs the pointcut transformers and application call-site transformer
 	 * exactly once. A failed attempt, or a class it could not transform, is kept
-	 * and rethrown by every later one, so a half-finished installation is never
-	 * repeated and never ignored. The library-load weave record is open only during
-	 * this attempt and sealed after it, whatever its outcome. Only a successful
-	 * attempt marks the agent as activated, and only after that seal.
+	 * and rethrown by every later one. The library-load weave record is open only
+	 * during this attempt and sealed after it, whatever its outcome. Only a
+	 * successful attempt marks the agent as activated, and only after that seal.
 	 *
 	 * @throws SecurityException if the agent is not attached or installing failed
 	 */
