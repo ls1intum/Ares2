@@ -5,17 +5,22 @@ import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -355,6 +360,66 @@ public class JavaCreatorTest {
 							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
 							aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
+	}
+
+	/**
+	 * Checks that a malformed essential package is refused while a valid one in the
+	 * JDK namespace is kept as that package alone. The pinned package and the test
+	 * class names are checked elsewhere, and the supervised code's own packages are
+	 * read from the compiled classes when the rule runs.
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesRejectsAMalformedEssentialPackage() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class);
+		prepare.setAccessible(true);
+		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(null, List.of("com..essential"), restrictive));
+		Set<PackagePermission> valid = (Set<PackagePermission>) prepare.invoke(null, List.of("java.lang"), restrictive);
+		assertEquals(Set.of(new PackagePermission("java.lang", true)), valid);
+	}
+
+	/** Checks that a wildcard package declared in the policy is kept unchanged. */
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesPassesAPolicyDeclaredWildcardThrough() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class);
+		prepare.setAccessible(true);
+		when(resourceAccesses.regardingPackageImports()).thenReturn(List.of(new PackagePermission("*")));
+		Set<PackagePermission> result = (Set<PackagePermission>) prepare.invoke(null, List.of(), resourceAccesses);
+		assertEquals(Set.of(new PackagePermission("*")), result);
+	}
+
+	/**
+	 * Checks that blank entries are dropped and a malformed class name is refused
+	 * before any class is exempted.
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	void usableClassNamesFiltersBlanksThenValidates() throws Exception {
+		Method usable = JavaCreator.class.getDeclaredMethod("usableClassNames", List.class);
+		usable.setAccessible(true);
+		List<String> result = (List<String>) usable.invoke(null,
+				Arrays.asList("com.example.Foo", "   ", null, "com.example.BarTest", ""));
+		assertEquals(List.of("com.example.Foo", "com.example.BarTest"), result);
+		assertInvocationCause(IllegalArgumentException.class, () -> usable.invoke(null, List.of("com..example.Foo")));
+	}
+
+	/**
+	 * Asserts a reflective call fails with the given cause, unwrapping the
+	 * {@link InvocationTargetException} that reflection wraps a thrown exception
+	 * in.
+	 *
+	 * @param expected   the exception type the underlying call should raise
+	 * @param invocation the reflective call under test
+	 * @return the unwrapped cause, for any further assertion
+	 */
+	private static <T extends Throwable> T assertInvocationCause(Class<T> expected, Executable invocation) {
+		InvocationTargetException wrapper = assertThrows(InvocationTargetException.class, invocation);
+		return assertInstanceOf(expected, wrapper.getCause());
 	}
 
 	/**

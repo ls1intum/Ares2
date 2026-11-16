@@ -7,20 +7,26 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.lang.ArchRule;
+
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.dynamic.scaffold.TypeValidation;
 
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
@@ -385,6 +391,28 @@ class PackageImportEnforcementTest {
 		JavaClasses checked = new ClassFileImporter().importClasses(OwnUser.class);
 		assertTrue(JavaArchunitTestCaseCollection
 				.withOwnPackages(Set.of(), checked, Set.of(new ClassPermission(OwnUser.class.getName()))).isEmpty());
+	}
+
+	/**
+	 * A compiled class whose package is not a valid Java package, which bytecode
+	 * allows and source does not, is refused instead of becoming an own package; a
+	 * valid one still does.
+	 */
+	@Test
+	@DisplayName("Refuses an own package that is not a valid Java package")
+	void ownPackageMustBeAValidJavaPackage(@TempDir Path classFolder) throws Exception {
+		byte[] bytecode = new ByteBuddy().with(TypeValidation.DISABLED).subclass(Object.class).name("com.class.Evil")
+				.make().getBytes();
+		Path classFile = Files.createDirectories(classFolder.resolve("com").resolve("class")).resolve("Evil.class");
+		Files.write(classFile, bytecode);
+		JavaClasses invalid = new ClassFileImporter().importPath(classFolder);
+		assertEquals(Set.of("com.class"),
+				invalid.stream().map(javaClass -> javaClass.getPackageName()).collect(Collectors.toSet()));
+		assertThrows(SecurityException.class,
+				() -> JavaArchunitTestCaseCollection.withOwnPackages(Set.of(), invalid, Set.of()));
+		JavaClasses valid = new ClassFileImporter().importClasses(OwnUser.class);
+		assertEquals(Set.of(new PackagePermission(FIXTURES + ".own", true)),
+				JavaArchunitTestCaseCollection.withOwnPackages(Set.of(), valid, Set.of()));
 	}
 
 	// </editor-fold>

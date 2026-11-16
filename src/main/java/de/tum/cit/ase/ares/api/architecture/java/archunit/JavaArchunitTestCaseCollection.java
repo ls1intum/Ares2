@@ -313,21 +313,26 @@ public final class JavaArchunitTestCaseCollection {
 	/**
 	 * Adds the packages the checked classes declare, each as an exact permission,
 	 * so the supervised code may use its own classes but nothing below them. Exempt
-	 * classes and the JDK namespace add nothing.
+	 * classes and the JDK namespace add nothing, and a package that is not a valid
+	 * Java package is refused.
 	 *
 	 * @param allowedPackages the packages permitted otherwise
 	 * @param javaClasses     the classes the rule checks
 	 * @param allowedClasses  the classes the rule does not check
 	 * @return the permitted packages including the checked classes' own
+	 * @throws SecurityException when a checked class declares an invalid package
 	 */
 	public static Set<PackagePermission> withOwnPackages(Set<PackagePermission> allowedPackages,
 			JavaClasses javaClasses, Set<ClassPermission> allowedClasses) {
 		Set<PackagePermission> permissions = new LinkedHashSet<>(allowedPackages);
 		javaClasses.stream()
 				.filter(javaClass -> !ClassPermission.isAllowedClass(javaClass.getFullName(), allowedClasses))
-				.map(JavaClass::getPackageName)
-				.filter(packageName -> !packageName.isBlank() && !PackagePermission.isInJdkNamespace(packageName))
-				.forEach(packageName -> permissions.add(new PackagePermission(packageName, true)));
+				.filter(javaClass -> !javaClass.getPackageName().isBlank()
+						&& !PackagePermission.isInJdkNamespace(javaClass.getPackageName()))
+				.forEach(javaClass -> {
+					JavaArchunitSupervisedClasses.requireDeclarablePackage(javaClass, javaClass.getPackageName());
+					permissions.add(new PackagePermission(javaClass.getPackageName(), true));
+				});
 		return permissions;
 	}
 	// </editor-fold>

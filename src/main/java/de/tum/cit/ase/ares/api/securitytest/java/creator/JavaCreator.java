@@ -35,6 +35,7 @@ import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ExemptedClassNests;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.JavaNameRules;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
@@ -108,6 +109,32 @@ public class JavaCreator implements Creator {
 				"buildConfiguration must not be null");
 	}
 
+	/**
+	 * Returns the creator bound to the build configuration found for this run. A
+	 * framework-default creator is rebuilt; a subclass is kept only if it holds an
+	 * equal configuration, as an unbound one would look at another project. An
+	 * override must return an instance bound to the given configuration.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param buildConfiguration the discovered configuration; not null.
+	 * @return the bound creator.
+	 * @throws IllegalStateException if a subclass holds no or another
+	 *                               configuration.
+	 */
+	@Nonnull
+	public JavaCreator withBuildConfiguration(@Nonnull BuildToolConfiguration buildConfiguration) {
+		java.util.Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
+		if (getClass() == JavaCreator.class) {
+			return new JavaCreator(buildConfiguration);
+		}
+		if (!buildConfiguration.equals(this.buildConfiguration)) {
+			throw new IllegalStateException(
+					Messages.localized("security.policy.collaborator.unbound", getClass().getName()));
+		}
+		return this;
+	}
+
 	// Within-run memoisation of the resolved classpath, imported JavaClasses and
 	// call
 	// graph, shared across the test cases built by a single createTestCases call.
@@ -158,22 +185,55 @@ public class JavaCreator implements Creator {
 	@Nonnull
 	private static Set<PackagePermission> prepareAllowedPackages(@Nonnull List<String> essentialPackages,
 			@Nonnull ResourceAccesses resourceAccesses) {
-		return Stream.concat(
-				essentialPackages.stream().filter(p -> p != null && !p.isBlank())
-						.map(p -> new PackagePermission(p, PackagePermission.isInJdkNamespace(p))),
-				resourceAccesses.regardingPackageImports().stream()).collect(Collectors.toSet());
+		return Stream
+				.concat(essentialPackages.stream().filter(p -> p != null && !p.isBlank()).map(
+						JavaCreator::validatedEssentialPackage), resourceAccesses.regardingPackageImports().stream())
+				.collect(Collectors.toSet());
 	}
 
 	/**
-	 * Returns the given class names without null or blank entries.
+	 * Checks that an essential package is a valid Java package and wraps it in a
+	 * {@link PackagePermission}, exact inside the JDK namespace.
+	 * <p>
+	 * The permission record only refuses null, so an invalid essential package
+	 * aborts test-case creation here.
+	 *
+	 * @param packageName the essential package
+	 * @return its permission
+	 * @throws IllegalArgumentException when the name is not a valid Java package
+	 */
+	@Nonnull
+	private static PackagePermission validatedEssentialPackage(@Nonnull String packageName) {
+		JavaNameRules.INSTANCE.requirePackage("allowed package", packageName);
+		return new PackagePermission(packageName, PackagePermission.isInJdkNamespace(packageName));
+	}
+
+	/**
+	 * Returns the given class names without null or blank entries, each checked to
+	 * be a valid Java class name. {@link ClassPermission} only refuses null or
+	 * blank names, so the Java check happens here, before nested classes are added.
 	 *
 	 * @param classNames the class names; must not be null
 	 * @return the usable names
+	 * @throws IllegalArgumentException if a name is not a valid Java class name
 	 */
 	@Nonnull
 	private static List<String> usableClassNames(@Nonnull List<String> classNames) {
 		return classNames.stream().filter(java.util.Objects::nonNull).filter(className -> !className.isBlank())
-				.toList();
+				.map(JavaCreator::validatedClassName).toList();
+	}
+
+	/**
+	 * Returns a class name after checking that it is a valid Java class name.
+	 *
+	 * @param className the class name
+	 * @return the same name
+	 * @throws IllegalArgumentException if it is not a valid Java class name
+	 */
+	@Nonnull
+	private static String validatedClassName(@Nonnull String className) {
+		JavaNameRules.INSTANCE.requireClassPath("className", className);
+		return className;
 	}
 
 	/**

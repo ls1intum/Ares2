@@ -224,18 +224,16 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		// The allow-listed classes change which violations are exempt, so they MUST be
 		// part of the cache key; otherwise a run with exemptions could be served a
 		// no-exemption outcome (or vice versa).
-		String allowedClassesSignature = getAllowedClasses().stream().map(ClassPermission::className).sorted()
-				.collect(java.util.stream.Collectors.joining(","));
+		String allowedClassesSignature = unambiguousSignature(
+				getAllowedClasses().stream().map(ClassPermission::className));
 		java.util.concurrent.FutureTask<java.util.Optional<SecurityException>> task;
 		if (supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT) {
 			// The exactness flag changes which imports the rule accepts, so it belongs in
 			// the key too; two configurations differing only in exactness must not share
 			// a cached outcome.
-			String allowedSignature = allowedPackages.stream()
-					.map(p -> p.importTheFollowingPackage() + "#" + p.exactMatchOnly()).sorted()
-					.collect(java.util.stream.Collectors.joining(","));
-			String testClassesSignature = getTestClassNames().stream().sorted()
-					.collect(java.util.stream.Collectors.joining(","));
+			String allowedSignature = unambiguousSignature(allowedPackages.stream()
+					.map(permission -> permission.importTheFollowingPackage() + "#" + permission.exactMatchOnly()));
+			String testClassesSignature = unambiguousSignature(getTestClassNames().stream());
 			String pkgKey = allowedSignature + "#" + allowedClassesSignature + "#" + testClassesSignature + "@"
 					+ javaClassesToken(javaClasses);
 			task = PACKAGE_OUTCOME_CACHE.computeIfAbsent(pkgKey,

@@ -9,14 +9,22 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * A package the supervised code may import.
+ * Allowed package import.
+ * <p>
+ * Description: A package the supervised code may import, with the packages
+ * below it unless {@code exactMatchOnly} is set, but never a reserved namespace
+ * below it that the permission does not name.
+ * <p>
+ * Design Rationale: Not knowing the language, the record only refuses null. The
+ * name is checked where the language is known: in {@link SupervisedCode}, the
+ * schema validator and {@code JavaCreator}.
  *
  * @since 2.0.0
  * @author Markus Paulsen
- * @param importTheFollowingPackage the package, or {@code *} for every package
+ * @param importTheFollowingPackage the package, or {@code *} for every package.
  * @param exactMatchOnly            whether only this package is covered rather
  *                                  than also the packages below it; it changes
- *                                  nothing for {@code *}
+ *                                  nothing for {@code *}.
  */
 public record PackagePermission(@Nonnull String importTheFollowingPackage, boolean exactMatchOnly) {
 
@@ -33,10 +41,10 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage, boole
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
+	 * @throws NullPointerException if the package name is null.
 	 */
 	public PackagePermission {
 		Objects.requireNonNull(importTheFollowingPackage, "Package name must not be null");
-		PolicyValueValidator.requirePackageImport(importTheFollowingPackage);
 	}
 
 	/**
@@ -91,12 +99,14 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage, boole
 	}
 
 	/**
-	 * Creates a restrictive package permission.
+	 * Creates a permission for a package and the packages below it.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param importTheFollowingPackage the package name to allow.
+	 * @param importTheFollowingPackage the package name to allow, or {@code *} for
+	 *                                  every package; must not be null.
 	 * @return a new PackagePermission instance.
+	 * @throws NullPointerException if the package name is null.
 	 */
 	@Nonnull
 	public static PackagePermission allowPackage(@Nonnull String importTheFollowingPackage) {
@@ -148,13 +158,14 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage, boole
 		 *
 		 * @since 2.0.0
 		 * @author Markus Paulsen
-		 * @param importTheFollowingPackage the package name.
+		 * @param importTheFollowingPackage the package name; must not be null.
 		 * @return the updated Builder.
+		 * @throws NullPointerException if the package name is null.
 		 */
 		@Nonnull
 		public Builder importTheFollowingPackage(@Nonnull String importTheFollowingPackage) {
 			this.importTheFollowingPackage = Objects.requireNonNull(importTheFollowingPackage,
-					"@Nonnull String importTheFollowingPackage must not be null");
+					"importTheFollowingPackage must not be null");
 			return this;
 		}
 
@@ -178,11 +189,13 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage, boole
 		 * @since 2.0.0
 		 * @author Markus Paulsen
 		 * @return a new PackagePermission instance.
+		 * @throws NullPointerException if no package name was set.
 		 */
 		@Nonnull
 		public PackagePermission build() {
 			return new PackagePermission(
-					Objects.requireNonNull(importTheFollowingPackage, "packageName must not be null"), exactMatchOnly);
+					Objects.requireNonNull(importTheFollowingPackage, "importTheFollowingPackage must not be null"),
+					exactMatchOnly);
 		}
 	}
 }
