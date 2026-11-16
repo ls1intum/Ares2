@@ -122,7 +122,8 @@ public class JavaArchitectureTestCaseTest {
 		SecurityException thrown = assertThrows(SecurityException.class,
 				() -> JavaArchitectureTestCase.parseErrorMessage(error));
 
-		assertTrue(thrown.getMessage().contains("serialise objects"),
+		String action = Messages.localized("security.archunit.action.serialize");
+		assertTrue(thrown.getMessage().contains(action),
 				() -> "Exception message should use the normalised serialisation action: " + thrown.getMessage());
 		assertFalse(thrown.getMessage().contains("Serialises objects"),
 				() -> "Exception message must not leak the original capitalised rule label: " + thrown.getMessage());
