@@ -149,6 +149,13 @@ public final class ProjectSourcesFinder {
 	 * {@code rootProject} that may be this project.
 	 */
 	private static final String SHORT_CIRCUIT = "?short-circuit";
+	/**
+	 * The name the Gradle reader adds where a lookup takes a configuration action
+	 * Gradle runs only once the element is created, which may be never: any
+	 * {@code register}, and {@code named} on anything but {@code sourceSets}, whose
+	 * main and test exist from the start.
+	 */
+	private static final String DEFERRED = "?deferred";
 	/** A {@code throws} clause between a parameter list and a method body. */
 	private static final Pattern THROWS_CLAUSE = Pattern
 			.compile("throws\\s+[A-Za-z_$][A-Za-z0-9_$.]*(?:\\s*,\\s*[A-Za-z_$][A-Za-z0-9_$.]*)*");
@@ -166,9 +173,9 @@ public final class ProjectSourcesFinder {
 	 * or run after code written below it.
 	 */
 	private static final Set<String> CONDITIONS = Set.of("if", "else", "for", "while", "switch", "when", "catch", "do",
-			"try", "def", "fun", "void", ASSIGNED, METHOD_BODY, SHORT_CIRCUIT, MAYBE_THIS_PROJECT, LOOKED_UP_PROJECT,
-			"afterEvaluate", "beforeEvaluate", "projectsEvaluated", "whenReady", "doFirst", "doLast", "whenTaskAdded",
-			"whenObjectAdded", "provider");
+			"try", "def", "fun", "void", ASSIGNED, METHOD_BODY, SHORT_CIRCUIT, DEFERRED, MAYBE_THIS_PROJECT,
+			LOOKED_UP_PROJECT, "afterEvaluate", "beforeEvaluate", "projectsEvaluated", "whenReady", "doFirst", "doLast",
+			"whenTaskAdded", "whenObjectAdded", "provider");
 	/** Words that, before a name, declare it as a local variable or function. */
 	private static final Set<String> DECLARING_WORDS = Set.of("def", "val", "var", "fun", "final", "static", "private",
 			"protected", "public");
@@ -731,6 +738,16 @@ public final class ProjectSourcesFinder {
 				.compile("(?:[A-Z][A-Za-z0-9_$<>?]*[ \\t\\u0001]+)(project|rootProject|parent)(?![A-Za-z0-9_$])"
 						+ "|(?<![A-Za-z0-9_$.])(project|rootProject|parent)[\\s\\u0001]*(?:,|->|in(?![A-Za-z0-9_$])|:(?!:))"
 						+ "|,[\\s\\u0001]*(project|rootProject|parent)[\\s\\u0001]*\\)");
+		/**
+		 * The parameters a closure or lambda names before its {@code ->}, with or
+		 * without a type and, in Kotlin, also in parentheses, and the variable a
+		 * {@code for} loop names before {@code in} or a single colon. Matched on masked
+		 * code.
+		 */
+		private static final Pattern PARAMETER_LIST = Pattern
+				.compile("\\{[\\s\\u0001]*\\(?([A-Za-z_$][A-Za-z0-9_$<>?.,:\\s\\u0001]*?)\\)?[\\s\\u0001]*->"
+						+ "|(?<![A-Za-z0-9_$])for[\\s\\u0001]*\\(([A-Za-z_$][A-Za-z0-9_$<>?.\\s\\u0001]*?)"
+						+ "(?:[\\s\\u0001]+in(?![A-Za-z0-9_$])|[\\s\\u0001]*:(?!:))");
 		/** The names that, before {@code apply}, end a project receiver. */
 		private static final Set<String> PROJECT_NAMES = Set.of("project", "rootProject");
 		/**
@@ -816,6 +833,7 @@ public final class ProjectSourcesFinder {
 				}
 			}
 			localNames.addAll(counts.keySet());
+			localNames.addAll(boundNames(code));
 			SHADOWABLE_PROJECTS.stream().filter(localNames::contains).forEach(shadowedProjects::add);
 			Matcher bindings = PROJECT_BINDING.matcher(code);
 			while (bindings.find()) {
@@ -827,6 +845,25 @@ public final class ProjectSourcesFinder {
 					locals.put(name, literal.get(name));
 				}
 			});
+		}
+
+		/**
+		 * The names this script binds as a closure, lambda or loop parameter, and
+		 * {@code it}, a closure's implicit parameter. Gradle gives such a name the
+		 * value passed in, not the gradle.properties entry of the same name, so the
+		 * reader counts it as a name the script assigns and never reads it from there.
+		 */
+		private static Set<String> boundNames(String code) {
+			Set<String> names = new HashSet<>(Set.of("it"));
+			Matcher lists = PARAMETER_LIST.matcher(code);
+			while (lists.find()) {
+				String list = lists.group(1) != null ? lists.group(1) : lists.group(2);
+				for (String parameter : list.split(",")) {
+					String[] words = parameter.split(":")[0].strip().split("[\\s\\u0001]+");
+					names.add(words[words.length - 1]);
+				}
+			}
+			return names;
 		}
 
 		/**
@@ -1173,10 +1210,10 @@ public final class ProjectSourcesFinder {
 				return lookup(end, prefix, name);
 			}
 			if (DECLARATIONS.contains(name)) {
-				return declaration(start, end, prefix, name);
+				return recordHandled(declaration(start, end, prefix, name), prefix, recorded);
 			}
 			if (SOURCES.contains(name)) {
-				return source(start, end, prefix, name);
+				return recordHandled(source(start, end, prefix, name), prefix, recorded);
 			}
 			if ("apply".equals(name) && namesAProjectReceiver(prefix)) {
 				return apply(start, end, prefix);
@@ -1184,6 +1221,22 @@ public final class ProjectSourcesFinder {
 			head.addAll(prefix);
 			head.add(recorded);
 			return end;
+		}
+
+		/**
+		 * Adds a handled declaration or {@code source} to the names of the statement,
+		 * as any other name is added, so that a branch whose one-line body it was stops
+		 * waiting for its body at the next line break.
+		 *
+		 * @param next     the offset the handler goes on from
+		 * @param prefix   the names before it in its dotted name
+		 * @param recorded the name recorded for it
+		 * @return the offset to go on from
+		 */
+		private int recordHandled(int next, List<String> prefix, String recorded) {
+			head.addAll(prefix);
+			head.add(recorded);
+			return next;
 		}
 
 		/**
@@ -1363,12 +1416,16 @@ public final class ProjectSourcesFinder {
 
 		/**
 		 * Handles a lookup such as {@code named("main")}: the literal first argument
-		 * stands for the call among the names, or {@code ?} where it is not a literal.
-		 * The arguments are then walked as nested code.
+		 * stands for the call among the names, or {@code ?} where it is not a literal,
+		 * after {@link #DEFERRED} where its action may never run. The arguments are
+		 * then walked as nested code.
 		 */
 		private int lookup(int end, List<String> prefix, String name) {
 			int open = skipTypeArguments(skipInactive(code, end));
 			head.addAll(prefix);
+			if (defersItsAction(prefix, name)) {
+				head.add(DEFERRED);
+			}
 			if (open >= code.length() || code.charAt(open) != '(') {
 				head.add(name);
 				return end;
@@ -1378,6 +1435,16 @@ public final class ProjectSourcesFinder {
 			head.add(staticLiteral(first[0], first[1]).orElse("?"));
 			openArguments();
 			return open + 1;
+		}
+
+		/**
+		 * Whether a lookup's configuration action waits until Gradle creates the
+		 * element: {@code register} always, {@code named} unless the receiver is
+		 * {@code sourceSets}.
+		 */
+		private static boolean defersItsAction(List<String> prefix, String name) {
+			return "register".equals(name) || "named".equals(name)
+					&& (prefix.isEmpty() || !"sourceSets".equals(prefix.get(prefix.size() - 1)));
 		}
 
 		/**

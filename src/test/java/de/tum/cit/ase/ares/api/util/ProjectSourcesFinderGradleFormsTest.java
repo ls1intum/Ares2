@@ -65,7 +65,10 @@ class ProjectSourcesFinderGradleFormsTest {
 	 * @return label, descriptor name, descriptor, main roots, test roots
 	 */
 	static Stream<Arguments> declaringForms() {
-		return Stream.of(form("Groovy receiver block", GROOVY, """
+		return Stream.of(form("Groovy test root inside a task created at once", GROOVY, """
+				plugins { id 'java' }
+				tasks.create('eager') { sourceSets.test.java.srcDir 'b' }
+				""", List.of(MAIN), List.of("b", TEST)), form("Groovy receiver block", GROOVY, """
 				plugins { id 'java' }
 				sourceSets.main.java { srcDir 'a' }
 				""", List.of("a", MAIN), List.of(TEST)), form("Groovy receiver chain, command call", GROOVY, """
@@ -266,7 +269,13 @@ class ProjectSourcesFinderGradleFormsTest {
 	 * @return label, descriptor name, descriptor
 	 */
 	static Stream<Arguments> unplaceableForms() {
-		return Stream.of(Arguments.of("Groovy all", GROOVY, """
+		return Stream.of(Arguments.of("Groovy srcDir inside a registered task", GROOVY, """
+				plugins { id 'java' }
+				tasks.register('unused') { sourceSets.main.java.srcDir 'a' }
+				"""), Arguments.of("Groovy srcDir inside a task looked up by name", GROOVY, """
+				plugins { id 'java' }
+				tasks.named('compileJava') { sourceSets.main.java.srcDir 'a' }
+				"""), Arguments.of("Groovy all", GROOVY, """
 				plugins { id 'java' }
 				sourceSets.all { java.srcDir 'a' }
 				"""), Arguments.of("Kotlin configureEach", KOTLIN, """
@@ -483,7 +492,16 @@ class ProjectSourcesFinderGradleFormsTest {
 	 * @return label, descriptor name, descriptor
 	 */
 	static Stream<Arguments> testRootsGradleDoesNotUse() {
-		return Stream.of(Arguments.of("Groovy test list filtered after it is read", GROOVY, """
+		return Stream.of(Arguments.of("Groovy test root inside a registered task", GROOVY, """
+				plugins { id 'java' }
+				tasks.register('unused') { sourceSets.test.java.srcDir 'src/main/java' }
+				"""), Arguments.of("Kotlin test root inside a registered task", KOTLIN, """
+				plugins { java }
+				tasks.register("unused") { sourceSets.test { java.srcDir("src/main/java") } }
+				"""), Arguments.of("Groovy test root inside a task looked up by name", GROOVY, """
+				plugins { id 'java' }
+				tasks.named('compileJava') { sourceSets.test.java.srcDir 'src/main/java' }
+				"""), Arguments.of("Groovy test list filtered after it is read", GROOVY, """
 				plugins { id 'java' }
 				sourceSets.test.java.srcDirs =
 				    ['src/main/java'].findAll { false }
@@ -622,6 +640,108 @@ class ProjectSourcesFinderGradleFormsTest {
 				subprojects {
 				    rootProject.sourceSets.test.java.srcDir 'src/main/java'
 				}
+				"""));
+	}
+
+	/**
+	 * A closure or lambda parameter, named or the implicit {@code it}, hides the
+	 * gradle.properties entry of the same name, so Gradle 9.9.1 adds {@code checks}
+	 * here. This reader cannot work the value out, so it never takes the main
+	 * folder the entry names as a test root.
+	 *
+	 * @param label      what the form is
+	 * @param descriptor the descriptor's name
+	 * @param property   the gradle.properties entry the parameter hides
+	 * @param content    the descriptor
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("parametersHidingAProperty")
+	void takesNoTestRootFromAPropertyAParameterHides(String label, String descriptor, String property, String content)
+			throws IOException {
+		Files.writeString(projectRoot.resolve("gradle.properties"), property + "=" + MAIN + "\n");
+
+		assertFalse(discover(descriptor, content).testSourceRoots().contains(projectRoot.resolve(MAIN).toRealPath()),
+				label);
+	}
+
+	/**
+	 * Closures and lambdas whose parameter has the name of a gradle.properties
+	 * entry.
+	 *
+	 * @return label, descriptor name, the entry's name, descriptor
+	 */
+	static Stream<Arguments> parametersHidingAProperty() {
+		return Stream.of(Arguments.of("Groovy closure parameter", GROOVY, "directory", """
+				plugins { id 'java' }
+				['checks'].each { directory -> sourceSets.test.java.srcDir(directory) }
+				"""), Arguments.of("Groovy typed closure parameter", GROOVY, "directory", """
+				plugins { id 'java' }
+				['checks'].each { String directory -> sourceSets.test.java.srcDir(directory) }
+				"""), Arguments.of("Groovy implicit it", GROOVY, "it", """
+				plugins { id 'java' }
+				['checks'].each { sourceSets.test.java.srcDir(it) }
+				"""), Arguments.of("Kotlin lambda parameter", KOTLIN, "directory", """
+				plugins { java }
+				listOf("checks").forEach { directory -> sourceSets.test { java.srcDir(directory) } }
+				"""), Arguments.of("Kotlin typed lambda parameter", KOTLIN, "directory", """
+				plugins { java }
+				listOf("checks").forEach { directory: String -> sourceSets.test { java.srcDir(directory) } }
+				"""));
+	}
+
+	/**
+	 * A declaration after a branch whose body is one line without braces runs
+	 * whatever the branch decides, so Gradle 9.9.1 keeps its test root {@code b},
+	 * and so must this reader; the body's own root is not taken.
+	 *
+	 * @param label      what the form is
+	 * @param descriptor the descriptor's name
+	 * @param content    the descriptor
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("declarationsAfterABraceFreeBody")
+	void keepsATestRootDeclaredAfterABraceFreeBody(String label, String descriptor, String content) throws IOException {
+		BuildToolConfiguration configuration = discover(descriptor, content);
+
+		assertTrue(configuration.testSourceRoots().contains(projectRoot.resolve("b").toRealPath()), label);
+		assertFalse(configuration.testSourceRoots().contains(projectRoot.resolve(MAIN).toRealPath()), label);
+	}
+
+	/**
+	 * Branches with a one-line body without braces, each followed by a test root
+	 * declared outside them.
+	 *
+	 * @return label, descriptor name, descriptor
+	 */
+	static Stream<Arguments> declarationsAfterABraceFreeBody() {
+		return Stream.of(Arguments.of("Groovy if, then a declaration", GROOVY, """
+				plugins { id 'java' }
+				if (false)
+				    sourceSets.test.java.srcDir('src/main/java')
+				sourceSets.test.java.srcDir 'b'
+				"""), Arguments.of("Groovy else, then a declaration", GROOVY, """
+				plugins { id 'java' }
+				if (true) println 'x'
+				else
+				    sourceSets.test.java.srcDir('src/main/java')
+				sourceSets.test.java.srcDir 'b'
+				"""), Arguments.of("Groovy if with a command call, then a declaration", GROOVY, """
+				plugins { id 'java' }
+				if (false)
+				    sourceSets.test.java.srcDir 'src/main/java'
+				sourceSets.test.java.srcDir('b')
+				"""), Arguments.of("Groovy if with source, then a declaration", GROOVY, """
+				plugins { id 'java' }
+				if (false)
+				    sourceSets.test.java.source(sourceSets.main.java)
+				sourceSets.test.java.srcDir 'b'
+				"""), Arguments.of("Kotlin if, then a declaration", KOTLIN, """
+				plugins { java }
+				if (false)
+				    sourceSets.test { java.srcDir("src/main/java") }
+				sourceSets.test { java.srcDir("b") }
 				"""));
 	}
 
