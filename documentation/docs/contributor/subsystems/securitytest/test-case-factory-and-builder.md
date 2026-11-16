@@ -177,7 +177,7 @@ Step 4 — Extract configuration (fail-closed when a policy is present)
   └── No policy (legacy scan path):
         ├── packageName                  ← projectScanner.scanForPackageName()
         ├── mainClassInPackageName       ← projectScanner.scanForMainClassInPackage()
-        ├── resourceAccesses             ← ResourceAccesses.createRestrictive()
+        ├── resourceAccesses             ← ResourceAccesses.createRestrictiveWithoutPolicy()
         └── testClasses                  ← projectScanner.scanForTestClasses()
 
 Step 5 — Guard the supervised package
@@ -206,7 +206,7 @@ The constructor distinguishes **two modes**, depending on whether a `SecurityPol
 | `theFollowingClassesAreTestClasses` | Used as-is — test classes come **only** from the policy. Deriving the exempt set from the project would let a student add an `@Test` class to obtain a blanket exemption from every check |
 | `theFollowingResourceAccessesArePermitted` | Used as-is from the policy |
 
-**Mode 2 — No policy (legacy scan path):** Without a policy, the scanner auto-detects everything: `packageName` via `scanForPackageName()`, `mainClassInPackageName` via `scanForMainClassInPackage()`, `testClasses` via `scanForTestClasses()`, and `resourceAccesses` is set to the fully restrictive `ResourceAccesses.createRestrictive()`.
+**Mode 2 — No policy (legacy scan path):** Without a policy, the scanner auto-detects everything: `packageName` via `scanForPackageName()`, `mainClassInPackageName` via `scanForMainClassInPackage()`, `testClasses` via `scanForTestClasses()`, and `resourceAccesses` is set to `ResourceAccesses.createRestrictiveWithoutPolicy()`. That is fully restrictive, except that it permits every `java.*` package.
 
 This design allows Ares to work **without** a policy file, while a present policy pins the enforcement scope instead of merely taking precedence over the scanner.
 
