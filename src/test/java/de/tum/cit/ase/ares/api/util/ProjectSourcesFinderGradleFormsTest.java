@@ -790,6 +790,16 @@ class ProjectSourcesFinderGradleFormsTest {
 						"""), Arguments.of("Groovy closure parameter interpolated", GROOVY, "directory", """
 						plugins { id 'java' }
 						['checks'].each { directory -> sourceSets.test.java.srcDir("$directory") }
+						"""), Arguments.of("Groovy closure parameter written with a dollar", GROOVY, "$directory", """
+						plugins { id 'java' }
+						['checks'].each { $directory ->
+						    sourceSets.test.java.srcDir($directory)
+						}
+						"""),
+				Arguments.of("Kotlin variable delegated to an extra property with a value", KOTLIN, "directory", """
+						plugins { java }
+						val directory: String by project.extra("checks")
+						sourceSets.test { java.srcDir(directory) }
 						"""), Arguments.of("Groovy closure parameter with a default", GROOVY, "directory", """
 						plugins { id 'java' }
 						def c = { directory = 'checks' -> sourceSets.test.java.srcDir(directory) }

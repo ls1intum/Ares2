@@ -752,10 +752,12 @@ public final class ProjectSourcesFinder {
 		private static final Pattern NAME = Pattern.compile("(?<![A-Za-z0-9_])[A-Za-z_][A-Za-z0-9_]*");
 		/**
 		 * A Kotlin variable that reads the project property of its name, as in
-		 * {@code val dir: String by project}, which binds nothing of its own.
+		 * {@code val dir: String by project}, which binds nothing of its own. The
+		 * statement must end after {@code project}: {@code by project.extra("x")} gives
+		 * the variable a value of its own.
 		 */
 		private static final Pattern PROPERTY_DELEGATE = Pattern.compile(
-				"(?<![A-Za-z0-9_$])val[ \\t]+([A-Za-z_][A-Za-z0-9_]*)[ \\t]*(?::[ \\t]*[A-Za-z0-9_.<>?]+[ \\t]*)?by[ \\t]+project(?![A-Za-z0-9_$])");
+				"(?<![A-Za-z0-9_$])val[ \\t]+([A-Za-z_][A-Za-z0-9_]*)[ \\t]*(?::[ \\t]*[A-Za-z0-9_.<>?]+[ \\t]*)?by[ \\t]+project[ \\t\\u0001]*(?=[\\r\\n;]|$)");
 		/**
 		 * The names a closure gives its code without their being written as parameters,
 		 * which never stand for a property or a variable of the script.
@@ -893,7 +895,7 @@ public final class ProjectSourcesFinder {
 		 * here, as in Gradle.
 		 */
 		private Optional<String> propertyValue(String name) {
-			String simple = lastSegmentOf(name);
+			String simple = lastSegmentOf(name).replaceFirst("^\\$+", "");
 			int written = mentions.getOrDefault(simple, 0);
 			if (IMPLICIT_NAMES.contains(simple)) {
 				return Optional.empty();
