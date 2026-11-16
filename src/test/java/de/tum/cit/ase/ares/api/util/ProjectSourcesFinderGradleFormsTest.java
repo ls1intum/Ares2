@@ -533,6 +533,10 @@ class ProjectSourcesFinderGradleFormsTest {
 				    Iterator<String> iterator() { ['checks'].iterator() }
 				}
 				sourceSets.test.java.srcDirs = ['src/main/java'] as Checks
+				"""), Arguments.of("Groovy test string coerced with as on the next line", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDirs = 'src/main/java'
+				    as List
 				"""), Arguments.of("Groovy test root inside a registered task inside a call", GROOVY, """
 				plugins { id 'java' }
 				println(tasks.register('unused') {

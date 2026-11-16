@@ -1783,11 +1783,20 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
-		 * Whether the next line carries the expression on, starting with an operator.
+		 * Whether the next line carries the expression on, starting with an operator or
+		 * a word in {@link #CONTINUING_WORDS} such as {@code as}.
 		 */
 		private boolean continuesTheExpression(int lineBreak) {
 			int next = skipInactive(code, lineBreak);
-			return next < code.length() && ".?+-*/:".indexOf(code.charAt(next)) >= 0;
+			if (next >= code.length()) {
+				return false;
+			}
+			int wordEnd = next;
+			while (wordEnd < code.length() && isIdentifierPart(code.charAt(wordEnd)) && code.charAt(wordEnd) != '.') {
+				wordEnd++;
+			}
+			return ".?+-*/:".indexOf(code.charAt(next)) >= 0
+					|| CONTINUING_WORDS.contains(code.substring(next, wordEnd));
 		}
 
 		/**
