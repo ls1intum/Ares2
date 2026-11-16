@@ -500,6 +500,9 @@
 				</dependencies>
 				<configuration>
 					<forceAjcCompile>true</forceAjcCompile>
+					<!-- On a JDK newer than 17, ajc still compiles against that JDK's own class
+						library despite this release setting, so an aspect calling a newer API
+						would build. CompiledClassesJava17LibraryTest is what catches that. -->
 					<release>${maven.compiler.release}</release>
 					<complianceLevel>17</complianceLevel>
 					<source>17</source>
