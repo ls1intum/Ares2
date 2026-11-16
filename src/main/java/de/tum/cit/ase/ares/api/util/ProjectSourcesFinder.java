@@ -61,6 +61,11 @@ public final class ProjectSourcesFinder {
 	 */
 	private static final Pattern RETURN = Pattern.compile("(?<![A-Za-z0-9_$])return(?![A-Za-z0-9_$])");
 	/**
+	 * The name {@code project} where it is not a member of something else, as
+	 * {@code task.project} is. Matched on masked code.
+	 */
+	private static final Pattern PROJECT_NAME = Pattern.compile("(?<![A-Za-z0-9_$.])project(?![A-Za-z0-9_$])");
+	/**
 	 * Words that may open a line yet continue the expression of the line before, as
 	 * {@code as} does in Groovy and Kotlin.
 	 */
@@ -1045,6 +1050,22 @@ public final class ProjectSourcesFinder {
 	}
 
 	/**
+	 * Whether the descriptor uses {@code project} other than as a receiver or a
+	 * call, as a local variable of that name would be declared, so that
+	 * {@code project.group} might not reach Gradle's project.
+	 */
+	private static boolean projectMayBeRebound(String code) {
+		Matcher name = PROJECT_NAME.matcher(code);
+		while (name.find()) {
+			int next = skipBlanks(code, name.end());
+			if (next >= code.length() || code.charAt(next) != '.' && code.charAt(next) != '(') {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * The literal a statement {@code group = '...'} or
 	 * {@code project.group = '...'} sets, or empty for any other use of the name.
 	 *
@@ -1063,7 +1084,7 @@ public final class ProjectSourcesFinder {
 			boolean namedProject = statement >= 0 && "project".equals(code.substring(statement, qualifier + 1))
 					&& (statement == 0
 							|| !isIdentifierPart(code.charAt(statement - 1)) && code.charAt(statement - 1) != '.');
-			if (!namedProject) {
+			if (!namedProject || projectMayBeRebound(code)) {
 				return Optional.empty();
 			}
 		}
