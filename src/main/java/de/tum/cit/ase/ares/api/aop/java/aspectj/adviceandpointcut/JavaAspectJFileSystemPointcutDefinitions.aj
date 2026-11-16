@@ -102,6 +102,10 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
     pointcut imageConsumerQueueInitMethods(): if(false);
 
+    // Instrumentation rewrites application archive calls to JavaInstrumentationArchiveCallSite,
+    // which checks them itself; that check is inactive under an AspectJ policy. Exclude the
+    // wrapper here: the agent loads it on the boot class loader, which sees AspectJ only when it
+    // is on the boot class path, so a woven copy stops the agent from starting.
     pointcut filesReadMethods():
             (call(* java.awt.Toolkit+.createImage(..)) ||
                     call(* java.awt.Toolkit+.getImage(..)) ||
@@ -165,7 +169,8 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(java.util.jar.JarInputStream+.new(..)) ||
                     call(* java.util.jar.JarInputStream+.getNextJarEntry(..)) ||
                     call(* java.util.Properties+.load(..)) ||
-                    call(* java.util.Properties+.loadFromXML(..)));
+                    call(* java.util.Properties+.loadFromXML(..)))
+            && !within(de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationArchiveCallSite);
 
     // Note: Files.newByteChannel is intentionally NOT included here.
     // It is already in filesReadMethods, and the actual operation (read/write/create)

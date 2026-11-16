@@ -5,7 +5,13 @@ description: "Permitting creation and overwrite of one output path without grant
 ---
 
 :::tip[Simple Story]
-The pupil has to produce one sheet of work. They should be able to create and replace that one sheet, and nothing else.
+The pupil has to hand in one worksheet of their own. The rule sheet must let them make
+that worksheet and replace it, and nothing else. Allowing them to replace a whole pile lets
+them replace sheets the exercise needs.
+
+Nobody has written this recipe yet.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

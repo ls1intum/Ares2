@@ -70,19 +70,9 @@ public final class ReservedPackageGuard {
 	 * Returns the reserved prefix that lies <em>below</em> the given package, or
 	 * {@code null} if none does.
 	 * <p>
-	 * The complement of {@link #reservedPrefixOf(String)}: that one refuses a
-	 * package <em>inside</em> a trusted namespace, which is how supervised code
-	 * would be trusted by name, this one a package that <em>contains</em> one,
-	 * which matters because a permission matches as a prefix: permitting
-	 * {@code de.tum.cit} permits every import from {@code de.tum.cit.ase.ares.api}
-	 * with it.
-	 * <p>
-	 * Only derived permissions are held to this. A package a policy names outright
-	 * is the instructor's decision and stays authoritative; a derived one is a
-	 * reading of files the submitter can add to.
-	 * <p>
-	 * Both ends are normalised to a trailing dot before comparing, or {@code java}
-	 * would not be seen as the ancestor of {@code java.} that it is.
+	 * The complement of {@link #reservedPrefixOf(String)}: it finds a package that
+	 * <em>contains</em> a trusted namespace, such as {@code de.tum.cit}. Such a
+	 * package is not refused. Both ends get a trailing dot before comparing.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen

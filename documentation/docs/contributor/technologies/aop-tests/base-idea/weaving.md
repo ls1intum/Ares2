@@ -5,11 +5,15 @@ description: "How advice is placed into the bytecode: at compile time, at load t
 ---
 
 :::tip[Simple Story]
-At some point the checking has to get into the room.
+The teacher has to be in place before a pupil reaches for anything. This page is about how they get
+there.
 
-That can happen when the work is compiled, or as each class is loaded into memory, or while the
-examination is already under way. Later is more powerful, because by then you can reach parts
-you never had the source for.
+One way puts the teacher beside the pupils' hands before the examination starts. The other puts
+them beside each worksheet, telephone and other thing as it comes into the room. The second
+reaches places the first never sees, such as the inside of the permitted aids. The two ways
+still do not catch exactly the same things.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

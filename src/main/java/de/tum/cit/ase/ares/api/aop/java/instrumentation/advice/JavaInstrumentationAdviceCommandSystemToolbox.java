@@ -208,8 +208,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	 * Converts a variable value to a command string array.
 	 * <p>
 	 * Description: Converts various input types to a command array representation.
-	 * For String inputs, uses shell-like parsing that properly handles quoted
-	 * arguments.
+	 * For String inputs, splits the string as Runtime.exec(String) does.
 	 *
 	 * @param variableValue the value of the variable to convert
 	 * @return the command string array representation of the variable value
@@ -243,73 +242,27 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	}
 
 	/**
-	 * Parses a command string into an array of arguments, handling quoted strings.
+	 * Splits a command string into its arguments exactly as Runtime.exec(String)
+	 * does.
 	 * <p>
-	 * Description: Implements shell-like parsing that properly handles
-	 * single-quoted, double-quoted, and unquoted arguments. This prevents command
-	 * injection attacks where malicious input could manipulate argument boundaries
-	 * through spaces in quoted strings.
+	 * Description: The JDK splits that string at whitespace with a StringTokenizer
+	 * and gives quotes and backslashes no meaning, so a check reads the same
+	 * arguments the process is started with. A backslash, the path separator on
+	 * Windows, stays part of its argument.
 	 *
-	 * @param command the command string to parse
-	 * @return array of parsed arguments
+	 * @param command the command string to split
+	 * @return the arguments the JDK starts the process with
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 */
 	@Nonnull
 	private static String[] parseCommandString(@Nonnull String command) {
-		List<String> args = new java.util.ArrayList<>();
-		StringBuilder current = new StringBuilder();
-		boolean inSingleQuote = false;
-		boolean inDoubleQuote = false;
-		boolean escaped = false;
-
-		for (int i = 0; i < command.length(); i++) {
-			char c = command.charAt(i);
-
-			if (escaped) {
-				// Handle escaped characters
-				current.append(c);
-				escaped = false;
-				continue;
-			}
-
-			if (c == '\\' && !inSingleQuote) {
-				// Backslash escapes next character (except in single quotes)
-				escaped = true;
-				continue;
-			}
-
-			if (c == '\'' && !inDoubleQuote) {
-				// Toggle single quote mode (single quotes don't interpret anything)
-				inSingleQuote = !inSingleQuote;
-				continue;
-			}
-
-			if (c == '"' && !inSingleQuote) {
-				// Toggle double quote mode
-				inDoubleQuote = !inDoubleQuote;
-				continue;
-			}
-
-			if (c == ' ' && !inSingleQuote && !inDoubleQuote) {
-				// Space outside quotes - argument boundary
-				if (!current.isEmpty()) {
-					args.add(current.toString());
-					current = new StringBuilder();
-				}
-				continue;
-			}
-
-			// Regular character - add to current argument
-			current.append(c);
+		java.util.StringTokenizer tokens = new java.util.StringTokenizer(command);
+		String[] args = new String[tokens.countTokens()];
+		for (int i = 0; i < args.length; i++) {
+			args[i] = tokens.nextToken();
 		}
-
-		// Add final argument if present
-		if (!current.isEmpty()) {
-			args.add(current.toString());
-		}
-
-		return args.toArray(new String[0]);
+		return args;
 	}
 	// </editor-fold>
 
@@ -770,6 +723,18 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		}
 	}
 
+	/**
+	 * Performs the command check behind {@link #checkCommandSystemInteraction} for
+	 * the outermost advice on a thread; throws a {@link SecurityException} if the
+	 * policy forbids it.
+	 *
+	 * @param action            the raw action
+	 * @param declaringTypeName the method's class
+	 * @param methodName        its name
+	 * @param methodSignature   its signature
+	 * @param attributes        receiver fields, or {@code null}
+	 * @param parameters        call arguments, or {@code null}
+	 */
 	private static void checkCommandSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters) {
@@ -826,9 +791,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughParameter != null) {
 			throw new SecurityException(localize("security.advice.illegal.command.execution",
-					commandSystemMethodToCheck, action, commandIllegallyExecutedThroughParameter,
-					fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+					commandSystemMethodToCheck, localizeAction(action), commandIllegallyExecutedThroughParameter,
+					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
@@ -844,9 +808,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
 			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
-					action, pathIllegallyExecutedThroughParameter,
-					fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+					localizeAction(action), pathIllegallyExecutedThroughParameter,
+					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
@@ -858,9 +821,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughAttribute != null) {
 			throw new SecurityException(localize("security.advice.illegal.command.execution",
-					commandSystemMethodToCheck, action, commandIllegallyExecutedThroughAttribute,
-					fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+					commandSystemMethodToCheck, localizeAction(action), commandIllegallyExecutedThroughAttribute,
+					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
@@ -876,9 +838,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
 			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
-					action, pathIllegallyExecutedThroughAttribute,
-					fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+					localizeAction(action), pathIllegallyExecutedThroughAttribute,
+					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>

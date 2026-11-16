@@ -2,12 +2,14 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 //<editor-fold desc="Imports">
 import java.nio.file.Path;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.conditions.ArchConditions;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
@@ -120,6 +122,22 @@ public final class JavaArchunitTestCaseCollection {
 	 */
 	public static ArchRule allowAwareRuleFor(JavaArchitectureTestCaseSupported supported,
 			Set<ClassPermission> allowedClasses, Set<PackagePermission> allowedPackages) {
+		return allowAwareRuleFor(supported, allowedClasses, allowedPackages, Set.of());
+	}
+
+	/**
+	 * Returns the architecture rule for the given category, exempting the
+	 * allow-listed classes and, for package imports, refusing every dependency on
+	 * the named test classes.
+	 *
+	 * @param supported       the category
+	 * @param allowedClasses  the classes the rule does not check
+	 * @param allowedPackages the packages that may be imported
+	 * @param testClassNames  the binary names of the test classes
+	 * @return the rule
+	 */
+	public static ArchRule allowAwareRuleFor(JavaArchitectureTestCaseSupported supported,
+			Set<ClassPermission> allowedClasses, Set<PackagePermission> allowedPackages, Set<String> testClassNames) {
 		return switch (supported) {
 		case FILESYSTEM_INTERACTION -> createNoClassShouldHaveMethodRule(
 				Messages.localized("security.architecture.file.system.access"),
@@ -133,7 +151,7 @@ public final class JavaArchunitTestCaseCollection {
 		case COMMAND_EXECUTION -> createNoClassShouldHaveMethodRule(
 				Messages.localized("security.architecture.execute.command"),
 				FileHandlerConstants.ARCHUNIT_COMMAND_EXECUTION_METHODS, allowedClasses);
-		case PACKAGE_IMPORT -> noClassMustImportForbiddenPackages(allowedPackages, allowedClasses);
+		case PACKAGE_IMPORT -> noClassMustImportForbiddenPackages(allowedPackages, allowedClasses, testClassNames);
 		case REFLECTION -> createNoClassShouldHaveMethodRule(
 				Messages.localized("security.architecture.reflection.uses"),
 				FileHandlerConstants.ARCHUNIT_REFLECTION_METHODS, allowedClasses);
@@ -213,17 +231,47 @@ public final class JavaArchunitTestCaseCollection {
 	}
 
 	/**
-	 * Package-import rule that also exempts the allow-listed classes (an empty
-	 * allow-list reproduces the original behaviour). A type named only through a
-	 * type annotation, such as {@code @NonNull String}, counts as an import too.
+	 * Package-import rule that also exempts the given classes; an empty set changes
+	 * nothing. A type named only through a type annotation, such as
+	 * {@code @NonNull String}, counts as an import too.
+	 * <p>
+	 * A dependency passes once any permission matches its package, so a package
+	 * granted both exactly and with its subpackages counts as granted with them.
+	 * That is intentional: a policy widening the exact JDK baseline this way does
+	 * so on purpose and visibly.
+	 *
+	 * @param allowedPackages the packages that may be imported
+	 * @param allowedClasses  the classes the rule does not check
+	 * @return the rule
 	 */
 	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages,
 			Set<ClassPermission> allowedClasses) {
+		return noClassMustImportForbiddenPackages(allowedPackages, allowedClasses, Set.of());
+	}
+
+	/**
+	 * Package-import rule that also keeps the supervised code away from test code.
+	 * <p>
+	 * A dependency on a named test class, or on a class named like one nested in
+	 * it, fails whatever its package, so no package permission opens it. Any other
+	 * dependency passes once one permission matches its package.
+	 *
+	 * @param allowedPackages the packages that may be imported
+	 * @param allowedClasses  the classes the rule does not check
+	 * @param testClassNames  the binary names of the test classes
+	 * @return the rule
+	 */
+	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages,
+			Set<ClassPermission> allowedClasses, Set<String> testClassNames) {
 		return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses)).should(ArchConditions
 				.dependOnClassesThat(new DescribedPredicate<JavaClass>("imports a forbidden package package") {
+					/**
+					 * Whether the imported class is test code, or no permission covers its package.
+					 */
 					@Override
 					public boolean test(JavaClass javaClass) {
-						return isForbiddenPackage(javaClass.getPackageName(), allowedPackages);
+						return isTestCode(javaClass.getName(), testClassNames)
+								|| isForbiddenPackage(javaClass.getPackageName(), allowedPackages);
 					}
 				})
 				.or(TypeAnnotationDependencies
@@ -232,23 +280,77 @@ public final class JavaArchunitTestCaseCollection {
 	}
 
 	/**
-	 * Tells whether a package is outside every allowed package. {@code *} allows
-	 * everything, and an allowed package also covers the packages below it, but
-	 * {@code com.foo} does not cover the unrelated {@code com.foobar}.
+	 * Tells whether no allowed package covers a package, judged by
+	 * {@link #permits(PackagePermission, String)}.
 	 *
 	 * @param packageName     the package to check
 	 * @param allowedPackages the packages the policy allows
 	 * @return {@code true} if the package is forbidden
 	 */
 	private static boolean isForbiddenPackage(String packageName, Set<PackagePermission> allowedPackages) {
-		return allowedPackages.stream().noneMatch(allowedPackage -> {
-			String allowed = allowedPackage.importTheFollowingPackage();
-			if ("*".equals(allowed)) {
-				return true;
-			}
-			String normalizedAllowed = allowed.endsWith(".") ? allowed.substring(0, allowed.length() - 1) : allowed;
-			return packageName.equals(normalizedAllowed) || packageName.startsWith(normalizedAllowed + ".");
-		});
+		return allowedPackages.stream().noneMatch(allowedPackage -> permits(allowedPackage, packageName));
+	}
+
+	/**
+	 * Whether a class is a test class or named like a class nested in one. The
+	 * prefix is deliberate: a nested test class may be compiled only after the rule
+	 * was generated, so it cannot be listed.
+	 *
+	 * @param className      the binary name of the class
+	 * @param testClassNames the binary names of the test classes
+	 * @return true if the supervised code must not depend on the class
+	 */
+	private static boolean isTestCode(String className, Set<String> testClassNames) {
+		return testClassNames.stream().anyMatch(
+				testClassName -> className.equals(testClassName) || className.startsWith(testClassName + "$"));
+	}
+
+	/**
+	 * Whether a permission covers a package. The match respects package boundaries,
+	 * so {@code com.foo} never covers {@code com.foobar}, and an exact permission
+	 * covers only its own package: {@code java.lang} as a subtree would re-admit
+	 * {@code java.lang.reflect}. No permission but {@code *} reaches a trusted
+	 * namespace below it that it does not name.
+	 *
+	 * @param allowedPackage the permission
+	 * @param packageName    the package of the dependency
+	 * @return true if the permission covers the package
+	 */
+	private static boolean permits(PackagePermission allowedPackage, String packageName) {
+		String allowed = allowedPackage.importTheFollowingPackage();
+		if ("*".equals(allowed)) {
+			return true;
+		}
+		String normalizedAllowed = allowed.endsWith(".") ? allowed.substring(0, allowed.length() - 1) : allowed;
+		return (packageName.equals(normalizedAllowed)
+				|| !allowedPackage.exactMatchOnly() && packageName.startsWith(normalizedAllowed + "."))
+				&& !JavaArchunitSupervisedClasses.isReservedBelow(normalizedAllowed, packageName);
+	}
+
+	/**
+	 * Adds the packages the checked classes declare, each as an exact permission,
+	 * so the supervised code may use its own classes but nothing below them. Exempt
+	 * classes and the JDK namespace add nothing, and a package that is not a valid
+	 * Java package is refused.
+	 *
+	 * @param allowedPackages the packages permitted otherwise
+	 * @param javaClasses     the classes the rule checks
+	 * @param allowedClasses  the classes the rule does not check
+	 * @return the permitted packages including the checked classes' own
+	 * @throws SecurityException when a checked class declares an invalid package
+	 */
+	public static Set<PackagePermission> withOwnPackages(Set<PackagePermission> allowedPackages,
+			JavaClasses javaClasses, Set<ClassPermission> allowedClasses) {
+		Set<PackagePermission> permissions = new LinkedHashSet<>(allowedPackages);
+		javaClasses.stream()
+				.filter(javaClass -> !ClassPermission.isAllowedClass(javaClass.getFullName(), allowedClasses))
+				.filter(javaClass -> !javaClass.getPackageName().isBlank()
+						&& !PackagePermission.isInJdkNamespace(javaClass.getPackageName()))
+				.forEach(javaClass -> {
+					JavaArchunitSupervisedClasses.requireDeclarablePackage(javaClass, javaClass.getPackageName());
+					permissions.add(new PackagePermission(javaClass.getPackageName(), true));
+				});
+		return permissions;
 	}
 	// </editor-fold>
 	// </editor-fold>

@@ -1,8 +1,13 @@
 package de.tum.cit.ase.ares.api.architecture.java;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -43,6 +48,26 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
 	// <editor-fold desc="Attributes">
 
+	/** The message catalogue that names the architecture rules. */
+	private static final String MESSAGES_BUNDLE = "de.tum.cit.ase.ares.api.localization.messages"; //$NON-NLS-1$
+
+	/**
+	 * The catalogues a rule name may come from. A rule keeps the name it got when
+	 * its class was loaded, which can be a different language from the one active
+	 * when its violation is reported, so every catalogue is searched.
+	 */
+	private static final List<Locale> RULE_NAME_LOCALES = List.of(Locale.ROOT, Locale.GERMAN);
+
+	/**
+	 * The architecture rules, by the part of their message key after
+	 * {@code security.architecture.}; the same part names their action under
+	 * {@code security.archunit.action.}.
+	 */
+	private static final List<String> RULE_KEYS = List.of("file.system.access", "network.access", "terminate.jvm", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+			"reflection.uses", "execute.command", "manipulate.threads", "package.import", "serialize", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+			"class.loading", "native.code.access", "agent.attach", "environment.access", "module.system.access", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+			"jndi.injection"); //$NON-NLS-1$
+
 	/**
 	 * Optional lazy supplier of the call graph. When non-null, the WALA conversion
 	 * uses this supplier (deferred construction) instead of the eagerly resolved
@@ -66,6 +91,13 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 */
 	@Nonnull
 	private final Set<ClassPermission> allowedClasses;
+
+	/**
+	 * The binary names of the test classes. The supervised code may not depend on
+	 * them or on classes named like ones nested in them. Never null.
+	 */
+	@Nonnull
+	private final Set<String> testClassNames;
 
 	/**
 	 * The supervised scope the generated test must analyse, and whether Ares
@@ -104,6 +136,15 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	@Nonnull
 	public Set<ClassPermission> getAllowedClasses() {
 		return allowedClasses;
+	}
+
+	/**
+	 * @return the binary names of the test classes the supervised code may not
+	 *         depend on
+	 */
+	@Nonnull
+	public Set<String> getTestClassNames() {
+		return testClassNames;
 	}
 
 	/** Checks exact and nested class names against the policy exemptions. */
@@ -180,9 +221,32 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 			@Nullable CallGraph callGraph, @Nullable Supplier<CallGraph> callGraphSupplier,
 			@Nonnull Set<ClassPermission> allowedClasses, @Nullable String supervisedPackage,
 			boolean supervisedScopeWasDerived) {
+		this(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph, callGraphSupplier,
+				allowedClasses, Set.of(), supervisedPackage, supervisedScopeWasDerived);
+	}
+
+	/**
+	 * Constructs a test case that also knows the test classes.
+	 *
+	 * @param javaArchitectureTestCaseSupported the category
+	 * @param allowedPackages                   the permitted packages
+	 * @param javaClasses                       the classes to check
+	 * @param callGraph                         the call graph
+	 * @param callGraphSupplier                 the lazy call graph
+	 * @param allowedClasses                    the exempt classes
+	 * @param testClassNames                    the test class names
+	 * @param supervisedPackage                 the scope, or {@code null}
+	 * @param supervisedScopeWasDerived         whether it was derived
+	 */
+	public JavaArchitectureTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
+			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,
+			@Nullable CallGraph callGraph, @Nullable Supplier<CallGraph> callGraphSupplier,
+			@Nonnull Set<ClassPermission> allowedClasses, @Nonnull Set<String> testClassNames,
+			@Nullable String supervisedPackage, boolean supervisedScopeWasDerived) {
 		super(javaArchitectureTestCaseSupported, allowedPackages, javaClasses, callGraph);
 		this.callGraphSupplier = callGraphSupplier;
 		this.allowedClasses = allowedClasses;
+		this.testClassNames = Set.copyOf(Objects.requireNonNull(testClassNames, "testClassNames must not be null"));
 		this.supervisedPackage = supervisedPackage;
 		this.supervisedScopeWasDerived = supervisedScopeWasDerived;
 	}
@@ -237,6 +301,19 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	// </editor-fold>
 
 	// <editor-fold desc="Tool methods">
+
+	/**
+	 * Returns one string standing for a set of names, for use in a cache key. Each
+	 * name is prefixed with its length, so no name, whatever it contains, can make
+	 * two different sets produce the same string.
+	 *
+	 * @param names the names, in any order
+	 * @return the signature of the names
+	 */
+	@Nonnull
+	protected static String unambiguousSignature(@Nonnull Stream<String> names) {
+		return names.sorted().map(name -> name.length() + ":" + name).collect(Collectors.joining(","));
+	}
 	// TODO Markus: Move to better fitting class
 
 	/**
@@ -289,7 +366,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		String ruleName = messageParts[0].replaceAll(ruleNamePattern, "$1").trim();
 
 		// Check if this is a package import violation (different message format)
-		if (ruleName.toLowerCase().contains("imports forbidden packages")) {
+		if (isImportRule(ruleName)) {
 			// Extract all forbidden packages from the message
 			// The message can have multiple formats:
 			// 1. "Class <class> depends on <forbidden.package.Class> in (File.java:0)" -
@@ -441,7 +518,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	}
 
 	/**
-	 * Maps an ArchUnit rule name to a human-readable action description.
+	 * Maps a rule name, in any supported language, to the action it forbids, worded
+	 * in the active language. An unknown name is returned unchanged.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -450,27 +528,110 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 */
 	@Nonnull
 	private static String mapRuleNameToAction(@Nonnull String ruleName) {
-		return switch (ruleName.toLowerCase()) {
-		case "accesses file system" -> "access the file system";
-		case "accesses network" -> "access the network";
-		case "terminates jvm" -> "terminate the JVM";
-		case "uses reflection" -> "use reflection";
-		case "executes commands" -> "execute a command";
-		case "manipulates threads" -> "manipulate threads";
-		case "imports forbidden packages" -> "import forbidden packages";
-		case "serialises objects" -> "serialise objects";
-		case "manipulates the loading of classes" -> "manipulate class loading";
-		case "accesses native code" -> "access native code";
-		case "attaches agents" -> "attach an agent";
-		case "accesses environment" -> "access the environment";
-		case "accesses module system" -> "access the module system";
-		case "performs jndi lookups" -> "perform a JNDI lookup";
-		default -> ruleName;
-		};
+		@Nullable
+		String ruleKey = findRuleKey(ruleName);
+		return ruleKey == null ? ruleName : Messages.localized("security.archunit.action." + ruleKey); //$NON-NLS-1$
+	}
+
+	/**
+	 * Finds which architecture rule a name belongs to, comparing it with that
+	 * rule's name in every supported language.
+	 *
+	 * @param ruleName The name of the violated rule
+	 * @return The rule's key part after {@code security.architecture.}, or
+	 *         {@code null} when the name belongs to no known rule
+	 */
+	@Nullable
+	private static String findRuleKey(@Nonnull String ruleName) {
+		String trimmed = ruleName.trim();
+		return RULE_KEYS.stream().filter(ruleKey -> ruleNamesOf(ruleKey).stream().anyMatch(trimmed::equalsIgnoreCase))
+				.findFirst().orElse(null);
+	}
+
+	/**
+	 * Tells whether a rule name is the forbidden-import rule, in any supported
+	 * language. It matches when the name contains that rule's name, as the
+	 * English-only check before it did.
+	 *
+	 * @param ruleName The name of the violated rule
+	 * @return {@code true} when the name is the forbidden-import rule
+	 */
+	private static boolean isImportRule(@Nonnull String ruleName) {
+		String lowerCaseName = ruleName.toLowerCase(Locale.ROOT);
+		return ruleNamesOf("package.import").stream() //$NON-NLS-1$
+				.anyMatch(name -> lowerCaseName.contains(name.toLowerCase(Locale.ROOT)));
+	}
+
+	/**
+	 * Reads one rule's name from every supported catalogue.
+	 *
+	 * @param ruleKey The rule's key part after {@code security.architecture.}
+	 * @return The rule's name in each supported language
+	 */
+	@Nonnull
+	private static List<String> ruleNamesOf(@Nonnull String ruleKey) {
+		return RULE_NAME_LOCALES.stream().map(locale -> ResourceBundle.getBundle(MESSAGES_BUNDLE, locale)
+				.getString("security.architecture." + ruleKey)).toList(); //$NON-NLS-1$
 	}
 	// </editor-fold>
 
 	// <editor-fold desc="Write architecture test case methods">
+
+	/** The namespace Ares's own classes live in before Precompile copies them. */
+	private static final String ARES_NAMESPACE = "de.tum.cit.ase";
+
+	/** The part of that namespace that Precompile copies below the scope. */
+	private static final String COPIED_API = ARES_NAMESPACE + ".ares.api";
+
+	/**
+	 * Formats the permitted packages as a Java literal
+	 * {@code Set.of(new PackagePermission(...), ...)} for a generated test.
+	 * <p>
+	 * Precompile copies Ares's api into {@code <scope>.ares.api}, and woven code
+	 * then refers to the copy, so each permission inside
+	 * {@code de.tum.cit.ase.ares.api} is written a second time for the copy. The
+	 * supervised code's own packages are not written: the generated rule reads them
+	 * when it runs.
+	 *
+	 * @return the literal
+	 */
+	@Nonnull
+	protected String allowedPackagesAsCopiedCode() {
+		return "Set.of(" + allowedPackages.stream().flatMap(this::withCopiedCounterpart).distinct()
+				.map(pp -> String.format("new %s(\"%s\", %s)", PackagePermission.class.getSimpleName(),
+						pp.importTheFollowingPackage(), pp.exactMatchOnly()))
+				.collect(java.util.stream.Collectors.joining(", ")) + ")";
+	}
+
+	/**
+	 * Returns a permission and, if it lies inside Ares's copied api and a scope is
+	 * known, the same permission for the copy below the scope.
+	 *
+	 * @param permission the permission
+	 * @return the permission, followed by its counterpart for the copy if any
+	 */
+	@Nonnull
+	private java.util.stream.Stream<PackagePermission> withCopiedCounterpart(@Nonnull PackagePermission permission) {
+		String packageName = permission.importTheFollowingPackage();
+		if (supervisedPackage == null || supervisedPackage.isBlank()
+				|| !(packageName.equals(COPIED_API) || packageName.startsWith(COPIED_API + "."))) {
+			return java.util.stream.Stream.of(permission);
+		}
+		return java.util.stream.Stream.of(permission, new PackagePermission(
+				supervisedPackage + packageName.substring(ARES_NAMESPACE.length()), permission.exactMatchOnly()));
+	}
+
+	/**
+	 * Formats the test class names as a Java literal {@code Set.of("a.B", ...)} for
+	 * a generated test.
+	 *
+	 * @return the literal
+	 */
+	@Nonnull
+	protected String testClassNamesAsCode() {
+		return "Set.of(" + testClassNames.stream().sorted().map(name -> "\"" + name + "\"")
+				.collect(java.util.stream.Collectors.joining(", ")) + ")";
+	}
 
 	/**
 	 * Generates the architecture test case code as a string based on the specified
@@ -501,12 +662,13 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		case "ARCHUNIT" -> JavaArchunitTestCase.archunitBuilder()
 				.javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported)
 				.allowedPackages(allowedPackages).javaClasses(javaClasses).allowedClasses(allowedClasses)
-				.supervisedPackage(supervisedPackage).supervisedScopeWasDerived(supervisedScopeWasDerived).build()
+				.testClassNames(testClassNames).supervisedPackage(supervisedPackage)
+				.supervisedScopeWasDerived(supervisedScopeWasDerived).build()
 				.writeArchitectureTestCase(architectureMode, aopMode);
 		case "WALA" -> JavaWalaTestCase.walaBuilder()
 				.javaArchitectureTestCaseSupported((JavaArchitectureTestCaseSupported) architectureTestCaseSupported)
 				.allowedPackages(allowedPackages).javaClasses(javaClasses).callGraph(callGraph)
-				.allowedClasses(allowedClasses).supervisedPackage(supervisedPackage)
+				.allowedClasses(allowedClasses).testClassNames(testClassNames).supervisedPackage(supervisedPackage)
 				.supervisedScopeWasDerived(supervisedScopeWasDerived).build()
 				.writeArchitectureTestCase(architectureMode, aopMode);
 		default -> throw new SecurityException(
@@ -546,7 +708,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		switch (architectureMode) {
 		case "ARCHUNIT" -> JavaArchunitTestCase.archunitBuilder()
 				.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
-				.allowedPackages(protectedAllowedPackages).allowedClasses(allowedClasses)
+				.allowedPackages(protectedAllowedPackages).allowedClasses(allowedClasses).testClassNames(testClassNames)
 				.javaClasses(protectedJavaClasses).build().executeArchitectureTestCase(architectureMode, aopMode);
 		case "WALA" -> {
 			// Use the lazy supplier path when present so the WALA outcome cache can
@@ -555,13 +717,13 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 			JavaWalaTestCase tc;
 			if (callGraphSupplier != null) {
 				tc = new JavaWalaTestCase(protectedJavaArchitectureTestCaseSupported, protectedAllowedPackages,
-						protectedJavaClasses, callGraphSupplier, allowedClasses, supervisedPackage,
+						protectedJavaClasses, callGraphSupplier, allowedClasses, testClassNames, supervisedPackage,
 						supervisedScopeWasDerived);
 			} else {
 				tc = JavaWalaTestCase.walaBuilder()
 						.javaArchitectureTestCaseSupported(protectedJavaArchitectureTestCaseSupported)
 						.allowedPackages(protectedAllowedPackages).allowedClasses(allowedClasses)
-						.javaClasses(protectedJavaClasses).callGraph(callGraph).build();
+						.testClassNames(testClassNames).javaClasses(protectedJavaClasses).callGraph(callGraph).build();
 			}
 			tc.executeArchitectureTestCase(architectureMode, aopMode);
 		}
@@ -609,9 +771,24 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		private Set<PackagePermission> allowedPackages;
 		@Nonnull
 		private Set<ClassPermission> allowedClasses = java.util.Set.of();
+		/** The binary names of the test classes; empty unless set. */
+		@Nonnull
+		private Set<String> testClassNames = java.util.Set.of();
 		@Nullable
 		private String supervisedPackage;
 		private boolean supervisedScopeWasDerived;
+
+		/**
+		 * Records the test classes the supervised code may not depend on.
+		 *
+		 * @param testClassNames the binary names of the test classes
+		 * @return this builder
+		 */
+		@Nonnull
+		public Builder testClassNames(@Nonnull Set<String> testClassNames) {
+			this.testClassNames = Objects.requireNonNull(testClassNames, "testClassNames must not be null");
+			return this;
+		}
 
 		/**
 		 * Records the scope a generated test asks for at runtime.
@@ -741,7 +918,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 							"javaArchitecturalTestCaseSupported must not be null"),
 					Objects.requireNonNull(allowedPackages, "allowedPackages must not be null"),
 					Objects.requireNonNull(javaClasses, "javaClasses must not be null"), callGraph, callGraphSupplier,
-					allowedClasses, supervisedPackage, supervisedScopeWasDerived);
+					allowedClasses, testClassNames, supervisedPackage, supervisedScopeWasDerived);
 		}
 	}
 	// </editor-fold>

@@ -5,12 +5,15 @@ description: "The language rules this documentation is held to, which of them a 
 ---
 
 :::tip[Simple Story]
-One hand throughout. Everything on this site has to read as though one person wrote it.
+Every page of this site opens with a story set in the same school. The rest of each page has to
+sound as though one person wrote it too.
 
-These are the language rules that achieve that. A check enforces the ones a machine can decide
-from the words alone, and counts the ones it cannot, so the prose can drift in only one
-direction. The rest are left to whoever reads the sentence, because getting them wrong in
-documentation for a security tool is worse than the style problem it fixes.
+This page sets out the language rules that make that happen. A check enforces the rules a
+machine can decide from the words alone. It counts the findings of the others, and that count
+can fall but cannot rise unless somebody writes down a higher number. A person decides the rest
+when they read the sentence.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 The rules themselves are the
@@ -184,7 +187,8 @@ site before the list existed, so it is written as "T. J. Watson Libraries for An
 (WALA)".
 
 The label of the admonition every page opens with, `Simple Story`, is two ordinary words and
-needs no expansion.
+needs no expansion. The rules for what such a box says, and the cast it uses, are in
+`AGENTS.md` under "Writing a Simple Story" and on the [Who is who](/instructor/who-is-who) page.
 
 **Surfaces.** Front matter, sidebar labels and image alt text are all read, and `.mdx` is
 parsed rather than forbidden. The children of a JSX element are prose, inline and block-level

@@ -5,11 +5,14 @@ description: "A point in the execution of the program where behaviour can be att
 ---
 
 :::tip[Simple Story]
-A join point is a moment during the examination where the teacher could step in: this method
-is about to be called, this constructor is about to run.
+This page is about a moment in the examination where the teacher could step in: a pupil is about
+to pick up a worksheet, or about to start a side job.
 
-It is a *candidate* moment, not a chosen one. Choosing which of them you care about is
-a separate step.
+It is only a moment the teacher could use. Which moments they watch is a separate choice. With
+one way of watching, the moment sits where the pupil's own work reaches out. With the other, it
+sits at the worksheet itself.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

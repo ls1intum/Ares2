@@ -5,12 +5,14 @@ description: "The security-policy.yaml file and the eight supported programming 
 ---
 
 :::tip[Simple Story]
-This is where the board fills the checklist in: what a pupil is allowed to do.
+This page is where the head teacher writes the rule sheet. It lists what a pupil is allowed to
+do, and the teacher refuses anything it leaves out.
 
-It is a plain list of permissions, and anything you do not write down is refused. So the
-strictest checklist is one properly filled in with every permission list left empty, not one
-left blank:
-a blank file is rejected on load rather than treated as strict.
+The strictest rule sheet is one written out with nothing allowed. A blank page is not strict:
+the teacher does not accept it at all. A time limit written on the rule sheet bounds nothing
+yet; only the teacher's stopwatch does.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 Ares 2 security enforcement is driven by a central configuration file. It defines how the

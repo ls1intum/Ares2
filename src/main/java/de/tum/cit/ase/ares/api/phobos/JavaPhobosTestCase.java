@@ -240,8 +240,26 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 			return;
 		}
 		out.append('[').append(header).append("]\n");
-		limits.forEach((k, v) -> out.append(k).append('=').append(v).append('\n'));
+		limits.forEach((k, v) -> out.append(k).append('=').append(serialiseLimitValue(k, v)).append('\n'));
 		out.append('\n');
+	}
+
+	/**
+	 * Writes one {@code [limits]} value. The policy holds the timeout in
+	 * milliseconds, but Phobos reads seconds, whole or with exactly three decimals,
+	 * so the timeout is written as {@code S.mmm}, for instance {@code 2.500}, and
+	 * keeps every millisecond. Phobos itself refuses more than 15 digits of
+	 * seconds. Every other limit is written unchanged.
+	 *
+	 * @param key   the limit, for instance {@code timeout}
+	 * @param value the value; for {@code timeout} in milliseconds
+	 * @return the text written after {@code key=}
+	 */
+	private static String serialiseLimitValue(String key, long value) {
+		if (!"timeout".equals(key)) {
+			return Long.toString(value);
+		}
+		return String.format(Locale.ROOT, "%d.%03d", value / 1000L, value % 1000L);
 	}
 
 	/**
@@ -273,31 +291,51 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 		private JavaPhobosTestCaseSupported javaPhobosTestCaseSupported;
 		private Supplier<List<?>> resourceAccessSupplier;
 
+		/**
+		 * Sets which kind of Phobos test case to build.
+		 *
+		 * @param javaPhobosTestCaseSupported the kind of test case, never {@code null}
+		 * @return this builder
+		 */
 		public JavaPhobosTestCase.Builder javaPhobosTestCaseSupported(
 				@Nonnull JavaPhobosTestCaseSupported javaPhobosTestCaseSupported) {
 			if (javaPhobosTestCaseSupported == null) {
-				throw new SecurityException(
-						Messages.localized("security.common.not.null", "javaPhobosTestCaseSupported"));
+				throw new SecurityException(Messages.localized("security.common.not.null",
+						"javaPhobosTestCaseSupported", "JavaPhobosTestCase.Builder"));
 			}
 			this.javaPhobosTestCaseSupported = javaPhobosTestCaseSupported;
 			return this;
 		}
 
+		/**
+		 * Sets where the permitted resource accesses come from.
+		 *
+		 * @param resourceAccessSupplier the source of permitted accesses, never
+		 *                               {@code null}
+		 * @return this builder
+		 */
 		public JavaPhobosTestCase.Builder resourceAccessSupplier(Supplier<List<?>> resourceAccessSupplier) {
 			if (resourceAccessSupplier == null) {
-				throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier"));
+				throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier",
+						"JavaPhobosTestCase.Builder"));
 			}
 			this.resourceAccessSupplier = resourceAccessSupplier;
 			return this;
 		}
 
+		/**
+		 * Builds the Phobos test case once both settings are given.
+		 *
+		 * @return the test case
+		 */
 		public JavaPhobosTestCase build() {
 			if (javaPhobosTestCaseSupported == null) {
-				throw new SecurityException(
-						Messages.localized("security.common.not.null", "javaPhobosTestCaseSupported"));
+				throw new SecurityException(Messages.localized("security.common.not.null",
+						"javaPhobosTestCaseSupported", "JavaPhobosTestCase.Builder"));
 			}
 			if (resourceAccessSupplier == null) {
-				throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier"));
+				throw new SecurityException(Messages.localized("security.common.not.null", "resourceAccessSupplier",
+						"JavaPhobosTestCase.Builder"));
 			}
 			return new JavaPhobosTestCase(javaPhobosTestCaseSupported, resourceAccessSupplier);
 		}

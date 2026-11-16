@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -188,6 +189,20 @@ public final class DocumentationPages {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Returns the text inside the Simple Story box that opens the page, without its
+	 * two fence lines, or the empty string when the page does not open with one.
+	 */
+	public static String simpleStoryOf(String content) {
+		if (!opensWithSimpleStory(content)) {
+			return "";
+		}
+		List<String> body = content.substring(frontMatterEnd(content)).stripLeading().lines().toList();
+		int closing = IntStream.range(1, body.size()).filter(index -> ":::".equals(body.get(index).stripTrailing()))
+				.findFirst().orElseThrow();
+		return String.join("\n", body.subList(1, closing));
 	}
 
 	private static int frontMatterEnd(String content) {

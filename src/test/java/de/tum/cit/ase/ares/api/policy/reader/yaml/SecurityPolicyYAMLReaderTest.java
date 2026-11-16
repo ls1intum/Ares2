@@ -1,6 +1,11 @@
 package de.tum.cit.ase.ares.api.policy.reader.yaml;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,6 +21,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
@@ -374,6 +380,40 @@ public class SecurityPolicyYAMLReaderTest {
 
 			// Act & Assert
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(commentsOnlyFile));
+		}
+
+		/**
+		 * Checks that when the file parses and validates but turning it into a policy
+		 * object yields {@code null}, the reader throws a {@link SecurityException}
+		 * rather than returning {@code null}.
+		 */
+		@Test
+		@DisplayName("Should wrap a null binding result as a SecurityException")
+		void wrapsNullBindingResultAsSecurityException(@TempDir Path tempDir) throws Exception {
+			Path policyFile = tempDir.resolve("policy.yaml");
+			Files.writeString(policyFile, minimalPolicy());
+			YAMLMapper spyMapper = spy(new YAMLMapper());
+			SecurityPolicyYAMLReader spyReader = new SecurityPolicyYAMLReader(spyMapper, tempDir);
+			doReturn(null).when(spyMapper).treeToValue(any(JsonNode.class), eq(SecurityPolicy.class));
+
+			assertThrows(SecurityException.class, () -> spyReader.readSecurityPolicyFrom(policyFile));
+		}
+
+		/**
+		 * Checks that an {@link UnsupportedOperationException} thrown while turning the
+		 * file into a policy object reaches the caller as a {@link SecurityException}.
+		 */
+		@Test
+		@DisplayName("Should wrap an UnsupportedOperationException as a SecurityException")
+		void wrapsUnsupportedOperationAsSecurityException(@TempDir Path tempDir) throws Exception {
+			Path policyFile = tempDir.resolve("policy.yaml");
+			Files.writeString(policyFile, minimalPolicy());
+			YAMLMapper spyMapper = spy(new YAMLMapper());
+			SecurityPolicyYAMLReader spyReader = new SecurityPolicyYAMLReader(spyMapper, tempDir);
+			doThrow(new UnsupportedOperationException("boom")).when(spyMapper).treeToValue(any(JsonNode.class),
+					eq(SecurityPolicy.class));
+
+			assertThrows(SecurityException.class, () -> spyReader.readSecurityPolicyFrom(policyFile));
 		}
 	}
 

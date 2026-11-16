@@ -109,6 +109,26 @@ public class JavaArchitectureTestCaseTest {
 				"Exception message should contain Ares Security Error prefix");
 	}
 
+	/**
+	 * The British rule label is turned into the lower-case action and never leaks
+	 * into the message unchanged.
+	 */
+	@Test
+	void testParseErrorMessage_withBritishSerializationRule_normalisesAction() {
+		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Serialises objects' was violated (1 time):\n"
+				+ "Method <com.example.Test.serialize()> calls method <java.io.ObjectOutputStream.writeObject(java.lang.Object)>";
+		AssertionError error = new AssertionError(message);
+
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error));
+
+		String action = Messages.localized("security.archunit.action.serialize");
+		assertTrue(thrown.getMessage().contains(action),
+				() -> "Exception message should use the normalised serialisation action: " + thrown.getMessage());
+		assertFalse(thrown.getMessage().contains("Serialises objects"),
+				() -> "Exception message must not leak the original capitalised rule label: " + thrown.getMessage());
+	}
+
 	@Test
 	void testParseErrorMessage_callerWithQualifiedParameterType_namesTheDeclaringType() {
 		// A caller rendered with a fully qualified parameter type ends in a dot of its
@@ -124,7 +144,8 @@ public class JavaArchitectureTestCaseTest {
 		// Compared against the localized message for the whole expected parse, so the
 		// assertion holds in any locale and pins every argument rather than a suffix.
 		String expected = Messages.localized("security.archunit.violation.error",
-				"com.example.Sender.sendWithDataOutputStream(java.lang.String)", "access the file system",
+				"com.example.Sender.sendWithDataOutputStream(java.lang.String)",
+				Messages.localized("security.archunit.action.file.system.access"),
 				"java.io.DataOutputStream.writeUTF(java.lang.String)", "com.example.Sender");
 		assertEquals(expected, thrown.getMessage(),
 				"The declaring type should be reported without cutting inside the parameter list");
@@ -142,7 +163,8 @@ public class JavaArchitectureTestCaseTest {
 				() -> JavaArchitectureTestCase.parseErrorMessage(error),
 				"parseErrorMessage should throw SecurityException for a network violation");
 		String expected = Messages.localized("security.archunit.violation.error", "com.example.Sender.send()",
-				"access the network", "java.net.Socket.connect()", "com.example.Sender");
+				Messages.localized("security.archunit.action.network.access"), "java.net.Socket.connect()",
+				"com.example.Sender");
 		assertEquals(expected, thrown.getMessage(), "The declaring type should be reported unchanged");
 	}
 

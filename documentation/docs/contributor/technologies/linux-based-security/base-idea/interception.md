@@ -5,11 +5,20 @@ description: "Where each layer places itself between the supervised program and 
 ---
 
 :::tip[Simple Story]
-The three Linux layers each stand between the pupil and what they asked for.
+Each feature of the special examination room stands between the pupil and what they ask for.
 
-The pupil asks for something and, instead of reaching the thing they asked for, they reach
-whoever is standing there first. Two of them hold a doorway, the kernel and the linker. The
-third holds none at all: it watches the clock.
+The pupil reaches for a worksheet or rings out on the telephone, and meets the room's check on
+the way. The clock is different: it stands in nobody's way and only ends the time, and today it
+stops nobody. Nobody uses this room yet when the teacher picks up the rule sheet for each
+question. This page tells how an earlier version of the room worked.
+
+[Who is who](/instructor/who-is-who)
+:::
+
+:::note[Historical design]
+Where this page names a Phobos layer or script, it describes the scripts Ares used to bundle,
+which it no longer ships. Current Phobos works differently; see the
+[Phobos documentation](https://ls1intum.github.io/phobos/).
 :::
 
 ## What it is
