@@ -277,7 +277,11 @@ class ProjectSourcesFinderGradleFormsTest {
 	 * @return label, descriptor name, descriptor
 	 */
 	static Stream<Arguments> unplaceableForms() {
-		return Stream.of(Arguments.of("Groovy srcDir inside a registered task", GROOVY, """
+		return Stream.of(Arguments.of("Groovy main srcDirs given a closure on the next line", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.java.srcDirs('a')
+				{ 'b' }
+				"""), Arguments.of("Groovy srcDir inside a registered task", GROOVY, """
 				plugins { id 'java' }
 				tasks.register('unused') { sourceSets.main.java.srcDir 'a' }
 				"""), Arguments.of("Groovy srcDir inside a task looked up by name", GROOVY, """
@@ -520,6 +524,12 @@ class ProjectSourcesFinderGradleFormsTest {
 				"""), Arguments.of("Groovy test root inside a project's task looked up inside a call", GROOVY, """
 				plugins { id 'java' }
 				println(project.tasks.named('compileJava') { sourceSets.test.java.srcDir 'src/main/java' })
+				"""), Arguments.of("Groovy closure passed to a test srcDirs inside main", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main {
+				    project.sourceSets.test.java.srcDirs('checks')
+				    { java.srcDir('src/main/java'); 'checks' }
+				}
 				"""), Arguments.of("Groovy if whose one-line body takes a closure on the next line", GROOVY, """
 				plugins { id 'java' }
 				if (false)
@@ -727,11 +737,22 @@ class ProjectSourcesFinderGradleFormsTest {
 				    directory ->
 				    sourceSets.test.java.srcDir(directory)
 				}
-				"""), Arguments.of("Groovy closure parameter with a default", GROOVY, "directory", """
+				"""), Arguments.of("Groovy closure parameter before an arrow on the next line", GROOVY, "directory", """
 				plugins { id 'java' }
-				def c = { directory = 'checks' -> sourceSets.test.java.srcDir(directory) }
-				c()
+				['checks'].each { directory
+				    -> sourceSets.test.java.srcDir(directory)
+				}
 				"""),
+				Arguments.of("Groovy closure parameter after an annotation on its own line", GROOVY, "directory", """
+						plugins { id 'java' }
+						['checks'].each { @Deprecated
+						    String directory -> sourceSets.test.java.srcDir(directory)
+						}
+						"""), Arguments.of("Groovy closure parameter with a default", GROOVY, "directory", """
+						plugins { id 'java' }
+						def c = { directory = 'checks' -> sourceSets.test.java.srcDir(directory) }
+						c()
+						"""),
 				Arguments.of("Kotlin typed destructured lambda parameters", KOTLIN, "directory",
 						"""
 								plugins { java }

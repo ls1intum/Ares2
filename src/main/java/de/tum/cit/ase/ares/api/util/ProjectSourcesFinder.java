@@ -150,10 +150,12 @@ public final class ProjectSourcesFinder {
 	 */
 	private static final String SHORT_CIRCUIT = "?short-circuit";
 	/**
-	 * The name the Gradle reader adds where a lookup takes a configuration action
-	 * Gradle runs only once the element is created, which may be never: any
-	 * {@code register}, and {@code named} on anything but {@code sourceSets}, whose
-	 * main and test exist from the start.
+	 * The name the Gradle reader adds where code that follows may run later or
+	 * never: after a lookup whose configuration action Gradle runs only once the
+	 * element is created, which is any {@code register}, and {@code named} on
+	 * anything but {@code sourceSets}, whose main and test exist from the start;
+	 * and after a declaration, where a block that follows is a path Gradle
+	 * evaluates when it needs it.
 	 */
 	private static final String DEFERRED = "?deferred";
 	/** A {@code throws} clause between a parameter list and a method body. */
@@ -874,13 +876,13 @@ public final class ProjectSourcesFinder {
 
 		/**
 		 * Where the closure or lambda whose parameters end at this {@code ->} opens:
-		 * the brace before it on the same line, or on an earlier line where every line
-		 * break in between follows that brace or a comma. -1 where the arrow is not one
-		 * of a parameter list, as after a {@code when} branch.
+		 * the nearest brace before it, across line breaks, or -1 where a closing brace,
+		 * a semicolon or another {@code ->} comes first, as after a {@code when}
+		 * branch. Each scan ends at the arrow before, so all of them together read the
+		 * script once.
 		 */
 		private static int parameterListStart(String code, int arrow) {
-			int index = arrow - 1;
-			while (index >= 0) {
+			for (int index = arrow - 1; index >= 0; index--) {
 				char character = code.charAt(index);
 				if (character == '{') {
 					return index;
@@ -889,19 +891,6 @@ public final class ProjectSourcesFinder {
 						|| character == '>' && index > 0 && code.charAt(index - 1) == '-') {
 					return -1;
 				}
-				if (character == '\n') {
-					int before = index - 1;
-					while (before >= 0
-							&& (Character.isWhitespace(code.charAt(before)) || code.charAt(before) == COMMENT_MASK)) {
-						before--;
-					}
-					if (before < 0 || code.charAt(before) != '{' && code.charAt(before) != ',') {
-						return -1;
-					}
-					index = before;
-					continue;
-				}
-				index--;
 			}
 			return -1;
 		}
@@ -1262,10 +1251,10 @@ public final class ProjectSourcesFinder {
 				return lookup(end, prefix, name, deferred);
 			}
 			if (DECLARATIONS.contains(name)) {
-				return recordHandled(declaration(start, end, prefix, name), prefix, recorded);
+				return recordHandled(declaration(start, end, prefix, name));
 			}
 			if (SOURCES.contains(name)) {
-				return recordHandled(source(start, end, prefix, name), prefix, recorded);
+				return recordHandled(source(start, end, prefix, name));
 			}
 			if ("apply".equals(name) && namesAProjectReceiver(prefix)) {
 				return apply(start, end, prefix);
@@ -1279,18 +1268,17 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
-		 * Adds a handled declaration or {@code source} to the names of the statement,
-		 * as any other name is added, so that a branch whose one-line body it was stops
-		 * waiting for its body at the next line break.
+		 * Ends a handled declaration or {@code source} with {@link #DEFERRED}, so that
+		 * a branch whose one-line body it was stops waiting for its body at the next
+		 * line break, and a block following it, a closure Gradle evaluates later as a
+		 * path, is read as deferred code rather than as configuration of the source set
+		 * the declaration names.
 		 *
-		 * @param next     the offset the handler goes on from
-		 * @param prefix   the names before it in its dotted name
-		 * @param recorded the name recorded for it
+		 * @param next the offset the handler goes on from
 		 * @return the offset to go on from
 		 */
-		private int recordHandled(int next, List<String> prefix, String recorded) {
-			head.addAll(prefix);
-			head.add(recorded);
+		private int recordHandled(int next) {
+			head.add(DEFERRED);
 			return next;
 		}
 
@@ -1539,8 +1527,19 @@ public final class ProjectSourcesFinder {
 			default -> operator;
 			};
 			Operand operand = operandAt(operandStart);
-			declare(start, path, use == Use.REPLACE || "setSrcDirs".equals(name), operand.resolution());
+			Resolution resolution = takesAClosureAfter(operand.end()) ? Resolution.UNREAD : operand.resolution();
+			declare(start, path, use == Use.REPLACE || "setSrcDirs".equals(name), resolution);
 			return operand.end();
+		}
+
+		/**
+		 * Whether a brace follows this offset, on its line or the next: Groovy passes
+		 * that closure to the call as one more path, which Gradle works out only when
+		 * it resolves the paths, and which this reader cannot read.
+		 */
+		private boolean takesAClosureAfter(int at) {
+			int next = skipInactive(code, at);
+			return next < code.length() && code.charAt(next) == '{';
 		}
 
 		/**
