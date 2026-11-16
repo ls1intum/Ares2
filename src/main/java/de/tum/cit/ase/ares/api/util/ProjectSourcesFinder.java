@@ -18,6 +18,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.xml.XMLConstants;
@@ -98,6 +99,19 @@ public final class ProjectSourcesFinder {
 	 */
 	private static final String OTHER_PROJECT = "?project";
 	/**
+	 * The name the Gradle reader puts in place of {@code parent} used as a
+	 * receiver: another project, whose {@code allprojects} and {@code subprojects}
+	 * still include this one.
+	 */
+	private static final String ANCESTOR = "?ancestor";
+	/**
+	 * The name the Gradle reader puts in place of {@code rootProject} used as a
+	 * receiver where it may or may not be this project, and after a call given a
+	 * project as an argument, as in {@code with(rootProject)}, whose block may then
+	 * configure that project.
+	 */
+	private static final String MAYBE_THIS_PROJECT = "?maybe-this-project";
+	/**
 	 * The name the Gradle reader adds where a statement assigns, so that a block
 	 * opened after it, a closure or lambda stored for later, counts as deferred.
 	 */
@@ -107,6 +121,14 @@ public final class ProjectSourcesFinder {
 	 * as {@code int unused() {}}, which runs only when something calls it.
 	 */
 	private static final String METHOD_BODY = "?method";
+	/**
+	 * The name the Gradle reader puts at {@code &&}, {@code ||}, {@code ?:}, a
+	 * ternary {@code ?} and its {@code :}, after which the rest of the expression
+	 * may never run. The names before it belong to another operand, so it replaces
+	 * them. It is also added at a safe call {@code ?.} on {@code parent} or on a
+	 * {@code rootProject} that may be this project.
+	 */
+	private static final String SHORT_CIRCUIT = "?short-circuit";
 	/** A {@code throws} clause between a parameter list and a method body. */
 	private static final Pattern THROWS_CLAUSE = Pattern
 			.compile("throws\\s+[A-Za-z_$][A-Za-z0-9_$.]*(?:\\s*,\\s*[A-Za-z_$][A-Za-z0-9_$.]*)*");
@@ -118,12 +140,14 @@ public final class ProjectSourcesFinder {
 			"case", "assert", "println", "print");
 	/**
 	 * Names that make the code after them conditional or deferred: a branch, a
-	 * loop, a handler, the body of a definition, or a callback Gradle runs later. A
-	 * declaration under one may never run, or run after code written below it.
+	 * loop, a handler, a short-circuiting operator, the body of a definition, a
+	 * callback Gradle runs later, or a project that may not be this one. A
+	 * declaration under one may never run here, or run after code written below it.
 	 */
 	private static final Set<String> CONDITIONS = Set.of("if", "else", "for", "while", "switch", "when", "catch", "do",
-			"def", "fun", "void", ASSIGNED, METHOD_BODY, "afterEvaluate", "beforeEvaluate", "projectsEvaluated",
-			"whenReady", "doFirst", "doLast", "whenTaskAdded", "whenObjectAdded", "provider");
+			"def", "fun", "void", ASSIGNED, METHOD_BODY, SHORT_CIRCUIT, MAYBE_THIS_PROJECT, "afterEvaluate",
+			"beforeEvaluate", "projectsEvaluated", "whenReady", "doFirst", "doLast", "whenTaskAdded", "whenObjectAdded",
+			"provider");
 	/** Words that, before a name, declare it as a local variable or function. */
 	private static final Set<String> DECLARING_WORDS = Set.of("def", "val", "var", "fun", "final", "static", "private",
 			"protected", "public");
@@ -352,11 +376,12 @@ public final class ProjectSourcesFinder {
 	 * A block the walker is inside, with what it needs to resume the statement that
 	 * opened it once the block closes.
 	 *
-	 * @param path  the names leading into this block, outermost first
-	 * @param head  the names of the statement that opened it
-	 * @param depth that statement's bracket depth
+	 * @param path     the names leading into this block, outermost first
+	 * @param head     the names of the statement that opened it
+	 * @param brackets that statement's brackets still open, as the walker keeps
+	 *                 them
 	 */
-	private record Frame(List<String> path, List<String> head, int depth) {
+	private record Frame(List<String> path, List<String> head, List<List<String>> brackets) {
 	}
 
 	/**
@@ -376,7 +401,7 @@ public final class ProjectSourcesFinder {
 		} catch (IOException exception) {
 			throw new IllegalStateException("Cannot read Gradle descriptor " + descriptor, exception);
 		}
-		GradleReading reading = new GradleReading(root, loadGradleProperties(root));
+		GradleReading reading = new GradleReading(root, loadGradleProperties(root), rootProjectIsThisProject(root));
 		if (Files.isDirectory(root.resolve("buildSrc"))) {
 			reading.blocked.add("buildSrc: its build logic may change the source sets, and it is not read");
 		}
@@ -386,6 +411,31 @@ public final class ProjectSourcesFinder {
 		warnIfProductionRootsArePartial(reasons.isEmpty(), descriptor, reasons);
 		return new GradleSourceRoots(rootsOf(root, reading.declared, "main"), rootsOf(root, reading.declared, "test"),
 				reasons.isEmpty());
+	}
+
+	/**
+	 * Whether {@code rootProject} is known to be the project being read: a settings
+	 * file beside the descriptor, or none at or above it, makes it the root
+	 * project. A settings file only above it may make it a subproject, or move the
+	 * root project here, which this reader does not work out.
+	 *
+	 * @param root the project root
+	 * @return whether the project is known to be the root project
+	 */
+	private static boolean rootProjectIsThisProject(Path root) {
+		return hasSettingsFile(root) || Stream.iterate(root.getParent(), Objects::nonNull, Path::getParent)
+				.noneMatch(ProjectSourcesFinder::hasSettingsFile);
+	}
+
+	/**
+	 * Whether this directory holds a Gradle settings file.
+	 *
+	 * @param directory the directory to look in
+	 * @return whether settings.gradle or settings.gradle.kts is there
+	 */
+	private static boolean hasSettingsFile(Path directory) {
+		return Files.isRegularFile(directory.resolve("settings.gradle"))
+				|| Files.isRegularFile(directory.resolve("settings.gradle.kts"));
 	}
 
 	/**
@@ -399,7 +449,7 @@ public final class ProjectSourcesFinder {
 	 */
 	private static Slot slotOf(List<String> path) {
 		int set = setIndexOf(path);
-		if (set < 0 || set >= path.size() || path.contains(OTHER_PROJECT)
+		if (set < 0 || set >= path.size() || reachesOnlyAnotherProject(path)
 				|| path.stream().anyMatch(CONDITIONS::contains)) {
 			return Slot.UNATTRIBUTED;
 		}
@@ -412,6 +462,17 @@ public final class ProjectSourcesFinder {
 			return "java".equals(kind) ? Slot.TEST_JAVA : Slot.IGNORED;
 		}
 		return Slot.UNATTRIBUTED;
+	}
+
+	/**
+	 * Whether these names lead into a project other than this one, such as
+	 * {@code subprojects} or {@code parent}.
+	 *
+	 * @param path the names leading to a declaration
+	 * @return whether another project's configuration holds it
+	 */
+	private static boolean reachesOnlyAnotherProject(List<String> path) {
+		return path.contains(OTHER_PROJECT) || path.contains(ANCESTOR);
 	}
 
 	/**
@@ -453,16 +514,21 @@ public final class ProjectSourcesFinder {
 		private final Deque<Path> applying = new ArrayDeque<>();
 		/** Whether code this reader cannot follow may have replaced the test roots. */
 		private boolean testUntrusted;
+		/** Whether {@code rootProject} is known to be this project. */
+		private final boolean rootProjectIsThis;
 
 		/**
 		 * Starts reading the build at this root.
 		 *
-		 * @param root       the canonical project root
-		 * @param properties the entries of gradle.properties
+		 * @param root              the canonical project root
+		 * @param properties        the entries of gradle.properties
+		 * @param rootProjectIsThis whether {@code rootProject} is known to be this
+		 *                          project
 		 */
-		private GradleReading(Path root, Map<String, String> properties) {
+		private GradleReading(Path root, Map<String, String> properties, boolean rootProjectIsThis) {
 			this.root = root;
 			this.properties = properties;
+			this.rootProjectIsThis = rootProjectIsThis;
 		}
 
 		/**
@@ -581,6 +647,12 @@ public final class ProjectSourcesFinder {
 		private static final Set<String> DECLARATIONS = Set.of("srcDir", "srcDirs", "setSrcDirs");
 		/** The names that add sources to a compile task or a source directory set. */
 		private static final Set<String> SOURCES = Set.of("source", "setSource");
+		/** The markers a receiver leaves, including a safe call after one. */
+		private static final Set<String> RECEIVER_MARKERS = Set.of(ANCESTOR, MAYBE_THIS_PROJECT, SHORT_CIRCUIT);
+		/** The markers that stand for a project other than, or maybe not, this one. */
+		private static final Set<String> PROJECT_MARKERS = Set.of(OTHER_PROJECT, ANCESTOR, MAYBE_THIS_PROJECT);
+		/** The project sets that, read from an ancestor, include this project. */
+		private static final Set<String> INCLUDING_DESCENDANTS = Set.of("allprojects", "subprojects");
 		/** The calls that turn their one argument into a single file. */
 		private static final Set<String> FILE_CALLS = Set.of("file", "project.file");
 		/** The calls that turn their arguments into a collection of files. */
@@ -597,10 +669,16 @@ public final class ProjectSourcesFinder {
 		private final String code;
 		/** The blocks open at the current offset, innermost first. */
 		private final Deque<Frame> blocks = new ArrayDeque<>();
-		/** The names of the current statement so far. */
+		/**
+		 * The names of the current statement so far, inside the innermost bracket still
+		 * open.
+		 */
 		private List<String> head = new ArrayList<>();
-		/** The bracket depth inside the current statement. */
-		private int depth;
+		/**
+		 * For each bracket of the current statement still open, outermost first, the
+		 * names written before it.
+		 */
+		private List<List<String>> brackets = new ArrayList<>();
 		/** How many operand entries are being resolved inside one another. */
 		private int nesting;
 		/** Every name this script assigns, which hides a property of the same name. */
@@ -695,14 +773,25 @@ public final class ProjectSourcesFinder {
 			} else if (current == '[') {
 				return openBracket(index);
 			} else if (current == '(') {
-				depth++;
+				openArguments();
 			} else if (current == ')' || current == ']') {
-				depth = Math.max(0, depth - 1);
-			} else if (current == ';' || current == '\n' && depth == 0 && !continuesOnTheNextLine(index)) {
+				closeArguments();
+			} else if (current == ',' && !brackets.isEmpty()) {
+				leaveArgument();
+				head = new ArrayList<>();
+			} else if (current == ';' || current == '\n' && brackets.isEmpty() && !continuesOnTheNextLine(index)) {
 				head = new ArrayList<>();
 			} else if ((current == '\'' || current == '"') && followsADot(index)) {
 				return quotedName(index);
-			} else if (current == '=' && depth == 0 && "=!<>".indexOf(code.charAt(Math.max(0, index - 1))) < 0
+			} else if (shortCircuitLength(index) > 0) {
+				head = new ArrayList<>(List.of(SHORT_CIRCUIT));
+				return index + shortCircuitLength(index);
+			} else if (code.startsWith("?.", index) && !head.isEmpty() && (ANCESTOR.equals(head.get(head.size() - 1))
+					|| MAYBE_THIS_PROJECT.equals(head.get(head.size() - 1)))) {
+				head.add(SHORT_CIRCUIT);
+			} else if (current == ':' && head.contains(SHORT_CIRCUIT)) {
+				head = new ArrayList<>(List.of(SHORT_CIRCUIT));
+			} else if (current == '=' && brackets.isEmpty() && "=!<>".indexOf(code.charAt(Math.max(0, index - 1))) < 0
 					&& (index + 1 >= code.length() || code.charAt(index + 1) != '=')) {
 				head.add(ASSIGNED);
 			} else if (isIdentifierStart(current)) {
@@ -712,12 +801,98 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
-		 * Whether the statement goes on after this line break, because the next line
-		 * starts with {@code .} or {@code ?.}.
+		 * Enters a bracket, whose names are kept apart from the ones written before it.
+		 */
+		private void openArguments() {
+			brackets.add(head);
+			head = new ArrayList<>();
+		}
+
+		/**
+		 * Leaves the innermost bracket, if one is open, and resumes the names written
+		 * before it.
+		 */
+		private void closeArguments() {
+			if (!brackets.isEmpty()) {
+				leaveArgument();
+				head = brackets.remove(brackets.size() - 1);
+			}
+		}
+
+		/**
+		 * Ends one argument of the innermost bracket. Where it names a project, the
+		 * call's block may configure that project, so the call is marked as maybe this
+		 * project. A call to {@code configure} is marked for any argument, an empty one
+		 * included: as another project where the argument is only another project, as
+		 * maybe this one otherwise.
+		 */
+		private void leaveArgument() {
+			List<String> call = brackets.get(brackets.size() - 1);
+			if (configures(call)) {
+				call.add(List.of(OTHER_PROJECT).equals(head) ? OTHER_PROJECT : MAYBE_THIS_PROJECT);
+			} else if (head.stream().anyMatch(this::namesAProject)) {
+				call.add(MAYBE_THIS_PROJECT);
+			}
+		}
+
+		/**
+		 * Whether these names, past the markers an argument left, are a call to
+		 * {@code configure} or {@code project.configure}.
+		 */
+		private static boolean configures(List<String> call) {
+			List<String> names = call.stream().filter(name -> !PROJECT_MARKERS.contains(name)).toList();
+			return List.of("configure").equals(names) || List.of("project", "configure").equals(names);
+		}
+
+		/**
+		 * Whether this recorded name stands for a project that may not be this one: a
+		 * marker, {@code parent}, or a {@code rootProject} not known to be this
+		 * project.
+		 */
+		private boolean namesAProject(String name) {
+			return PROJECT_MARKERS.contains(name) || "parent".equals(name)
+					|| "rootProject".equals(name) && !reading.rootProjectIsThis;
+		}
+
+		/**
+		 * Whether the statement goes on after this line break: the next line starts
+		 * with {@code .}, {@code ?}, {@code :}, {@code &&} or {@code ||}, or this line
+		 * ends in the middle of an expression.
 		 */
 		private boolean continuesOnTheNextLine(int lineBreak) {
 			int next = skipInactive(code, lineBreak);
-			return next < code.length() && (code.charAt(next) == '.' || code.startsWith("?.", next));
+			return next < code.length() && (".?:".indexOf(code.charAt(next)) >= 0 || code.startsWith("&&", next)
+					|| code.startsWith("||", next)) || endsMidExpression(lineBreak);
+		}
+
+		/**
+		 * Whether the last code before this line break is {@code &&}, {@code ||},
+		 * {@code :}, a dot, a backslash continuing the line or, in Groovy, a ternary
+		 * {@code ?}.
+		 */
+		private boolean endsMidExpression(int lineBreak) {
+			int last = skipInactiveBackwards(lineBreak - 1);
+			if (last < 0) {
+				return false;
+			}
+			char character = code.charAt(last);
+			return ":.\\".indexOf(character) >= 0 || character == '?' && !kotlin
+					|| (character == '&' || character == '|') && last > 0 && code.charAt(last - 1) == character;
+		}
+
+		/**
+		 * How many characters of a short-circuiting operator start here: two for
+		 * {@code &&}, {@code ||} and {@code ?:}, one for a Groovy ternary {@code ?},
+		 * none otherwise. A safe call {@code ?.}, a safe index {@code ?[} and a Kotlin
+		 * nullable type are not counted.
+		 */
+		private int shortCircuitLength(int at) {
+			char current = code.charAt(at);
+			char next = at + 1 < code.length() ? code.charAt(at + 1) : '\0';
+			if ((current == '&' || current == '|') && next == current || current == '?' && next == ':') {
+				return 2;
+			}
+			return current == '?' && !kotlin && next != '.' && next != '[' ? 1 : 0;
 		}
 
 		/**
@@ -754,9 +929,9 @@ public final class ProjectSourcesFinder {
 			if (startsAMethodBody(brace)) {
 				head.add(METHOD_BODY);
 			}
-			blocks.push(new Frame(pathWith(List.of()), head, depth));
+			blocks.push(new Frame(pathWith(List.of()), head, brackets));
 			head = new ArrayList<>();
-			depth = 0;
+			brackets = new ArrayList<>();
 		}
 
 		/**
@@ -841,7 +1016,7 @@ public final class ProjectSourcesFinder {
 			Frame frame = blocks.poll();
 			if (frame != null) {
 				head = frame.head();
-				depth = frame.depth();
+				brackets = frame.brackets();
 			}
 		}
 
@@ -852,9 +1027,9 @@ public final class ProjectSourcesFinder {
 		 */
 		private int openBracket(int bracket) {
 			char previous = bracket > 0 ? code.charAt(bracket - 1) : ' ';
-			boolean indexing = depth == 0 && (previous != '.' && isIdentifierPart(previous) || previous == ')');
+			boolean indexing = brackets.isEmpty() && (previous != '.' && isIdentifierPart(previous) || previous == ')');
 			if (!indexing) {
-				depth++;
+				openArguments();
 				return bracket + 1;
 			}
 			int close = matchingClose(code, bracket);
@@ -878,10 +1053,12 @@ public final class ProjectSourcesFinder {
 			while (end < code.length() && isIdentifierPart(code.charAt(end))) {
 				end++;
 			}
-			List<String> prefix = new ArrayList<>(List.of(code.substring(start, end).split("\\.")));
-			prefix.removeIf(String::isEmpty);
-			String name = prefix.remove(prefix.size() - 1);
-			if (LOOKUPS.contains(name) && depth == 0) {
+			List<String> chain = new ArrayList<>(List.of(code.substring(start, end).split("\\.")));
+			chain.removeIf(String::isEmpty);
+			List<String> prefix = recordChain(chain, start, end);
+			String recorded = prefix.remove(prefix.size() - 1);
+			String name = chain.get(chain.size() - 1);
+			if (LOOKUPS.contains(name) && brackets.isEmpty()) {
 				return lookup(end, prefix, name);
 			}
 			if (DECLARATIONS.contains(name)) {
@@ -893,25 +1070,115 @@ public final class ProjectSourcesFinder {
 			if ("apply".equals(name) && (prefix.isEmpty() || List.of("project").equals(prefix))) {
 				return apply(start, end);
 			}
-			if (depth == 0) {
-				head.addAll(prefix);
-				head.add(reachesAnotherProject(name, end) ? OTHER_PROJECT : name);
-			}
+			head.addAll(prefix);
+			head.add(recorded);
 			return end;
 		}
 
 		/**
+		 * The names the walker records for a dotted name, going on from the statement
+		 * so far where it follows a dot. Before {@code allprojects} or
+		 * {@code subprojects}, which include this project, the run of receivers is
+		 * replaced by {@link #includeThisProject}.
+		 *
+		 * @param chain the segments of the dotted name
+		 * @param start where the dotted name begins
+		 * @param end   where the dotted name ends
+		 * @return the name to record for each segment
+		 */
+		private List<String> recordChain(List<String> chain, int start, int end) {
+			boolean continuing = followsADot(start);
+			List<String> working = new ArrayList<>(continuing ? head : List.of());
+			int kept = working.size();
+			for (int index = 0; index < chain.size(); index++) {
+				String segment = chain.get(index);
+				int run = receiversStart(working);
+				if (INCLUDING_DESCENDANTS.contains(segment) && run < working.size()) {
+					kept = Math.min(kept, run);
+					includeThisProject(working.subList(run, working.size()), "subprojects".equals(segment));
+					working.add(segment);
+				} else {
+					working.add(recorded(segment, index == chain.size() - 1, end));
+				}
+			}
+			if (continuing) {
+				head = new ArrayList<>(working.subList(0, kept));
+			}
+			return new ArrayList<>(working.subList(kept, working.size()));
+		}
+
+		/**
+		 * Replaces a run of receivers before {@code allprojects} or
+		 * {@code subprojects}: the ancestors go, a safe call stays as a condition, and
+		 * a {@code rootProject} that may be this project stays once before
+		 * {@code subprojects}, which may then leave this project out.
+		 *
+		 * @param receivers   the run, changed in place
+		 * @param subprojects whether {@code subprojects} follows
+		 */
+		private static void includeThisProject(List<String> receivers, boolean subprojects) {
+			boolean safe = receivers.contains(SHORT_CIRCUIT);
+			boolean uncertain = subprojects && receivers.contains(MAYBE_THIS_PROJECT);
+			receivers.clear();
+			if (safe) {
+				receivers.add(SHORT_CIRCUIT);
+			}
+			if (uncertain) {
+				receivers.add(MAYBE_THIS_PROJECT);
+			}
+		}
+
+		/**
+		 * Where the run of ANCESTOR, MAYBE_THIS_PROJECT and SHORT_CIRCUIT markers
+		 * ending these names begins, as in {@code parent?.parent}.
+		 */
+		private static int receiversStart(List<String> names) {
+			int start = names.size();
+			while (start > 0 && RECEIVER_MARKERS.contains(names.get(start - 1))) {
+				start--;
+			}
+			return start;
+		}
+
+		/**
+		 * The name the walker records for one segment of a dotted name: ANCESTOR for
+		 * {@code parent} and MAYBE_THIS_PROJECT for a {@code rootProject} that may be
+		 * this project, each only as a receiver, OTHER_PROJECT where
+		 * {@link #reachesAnotherProject} says so, the segment itself otherwise.
+		 */
+		private String recorded(String segment, boolean last, int end) {
+			boolean receiver = !last || leadsOn(end);
+			if (receiver && "parent".equals(segment)) {
+				return ANCESTOR;
+			}
+			if (receiver && "rootProject".equals(segment) && !reading.rootProjectIsThis) {
+				return MAYBE_THIS_PROJECT;
+			}
+			return last && reachesAnotherProject(segment, end) ? OTHER_PROJECT : segment;
+		}
+
+		/**
+		 * Whether the name ending here is the receiver of what follows it, because it
+		 * ends with a dot, or the next code is {@code .}, {@code ?.} or {@code !!.}.
+		 */
+		private boolean leadsOn(int end) {
+			int next = skipInactive(code, end);
+			return code.charAt(end - 1) == '.' || code.startsWith(".", next) || code.startsWith("?.", next)
+					|| code.startsWith("!!.", next);
+		}
+
+		/**
 		 * Whether the name ending here reaches projects other than the one being read:
-		 * {@code subprojects}, {@code childProjects}, or a call to {@code project},
-		 * {@code findProject} or {@code configure}.
+		 * {@code subprojects}, {@code childProjects}, or a call to {@code project} or
+		 * {@code findProject}. What {@code configure} reaches, its arguments decide.
 		 */
 		private boolean reachesAnotherProject(String name, int end) {
 			if ("subprojects".equals(name) || "childProjects".equals(name)) {
 				return true;
 			}
 			int next = skipInactive(code, end);
-			return ("project".equals(name) || "findProject".equals(name) || "configure".equals(name))
-					&& next < code.length() && code.charAt(next) == '(';
+			return ("project".equals(name) || "findProject".equals(name)) && next < code.length()
+					&& code.charAt(next) == '(';
 		}
 
 		/**
@@ -929,7 +1196,7 @@ public final class ProjectSourcesFinder {
 			int close = matchingClose(code, open);
 			int[] first = splitTopLevel(code, open + 1, close < 0 ? code.length() : close).get(0);
 			head.add(staticLiteral(first[0], first[1]).orElse("?"));
-			depth++;
+			openArguments();
 			return open + 1;
 		}
 
@@ -992,8 +1259,9 @@ public final class ProjectSourcesFinder {
 
 		/**
 		 * Handles {@code apply from}: a script inside the project, applied to this
-		 * project, is read as part of the build; any other is recorded as a gap. Other
-		 * uses of {@code apply}, such as applying a plugin, are passed over.
+		 * project and not under a condition, is read as part of the build; any other is
+		 * recorded as a gap. Other uses of {@code apply}, such as applying a plugin,
+		 * are passed over.
 		 */
 		private int apply(int start, int end) {
 			int open = skipInactive(code, end);
@@ -1016,9 +1284,10 @@ public final class ProjectSourcesFinder {
 			}
 			String where = locationOf(start);
 			Resolution resolution = resolve(from[0], from[1]);
-			if (pathWith(List.of()).contains(OTHER_PROJECT)) {
+			if (reachesOnlyAnotherProject(pathWith(List.of()))) {
 				reading.blocked.add(where + ": apply from inside another project's configuration");
-			} else if (!appliesToThisProject() || arguments.containsKey("to")) {
+			} else if (!appliesToThisProject() || arguments.containsKey("to")
+					|| pathWith(List.of()).stream().anyMatch(CONDITIONS::contains)) {
 				reading.opaque(where + ": apply from a script that may or may not be applied to this project");
 			} else if (!resolution.complete() || resolution.values().size() != 1
 					|| resolution.values().get(0).contains("://")) {
@@ -1382,7 +1651,7 @@ public final class ProjectSourcesFinder {
 			} else if (slot == Slot.UNATTRIBUTED) {
 				reading.blocked.add(where + ": a source directory set outside sourceSets.main.java and "
 						+ "sourceSets.test.java, which may reach the main source set");
-				if (replacing && !path.contains(OTHER_PROJECT)) {
+				if (replacing && !reachesOnlyAnotherProject(path)) {
 					reading.opaque(where + ": a replacement that may reach the test source set");
 				}
 			}
@@ -1392,6 +1661,7 @@ public final class ProjectSourcesFinder {
 		private List<String> pathWith(List<String> extra) {
 			Frame outer = blocks.peek();
 			List<String> path = new ArrayList<>(outer == null ? List.of() : outer.path());
+			brackets.forEach(path::addAll);
 			path.addAll(head);
 			path.addAll(extra);
 			return path;
