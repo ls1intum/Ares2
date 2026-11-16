@@ -10,14 +10,17 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -26,6 +29,7 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
+import de.tum.cit.ase.AncestorPackageExercise;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
@@ -82,48 +86,6 @@ public class JavaCreatorTest {
 		when(buildMode.getTestBuildDirectory()).thenReturn(tempDir.resolve("test-classes").toString());
 		when(buildMode.getBuildDirectory()).thenReturn(tempDir.resolve("classes").toString());
 		javaCreator = new JavaCreator();
-	}
-
-	/**
-	 * The derived-permission path that turns a reserved namespace below a scope
-	 * into a refusal, exercised directly so the restored breadth is proven at the
-	 * creator and not only in the guard it calls.
-	 */
-	@Nested
-	@DisplayName("Reserved Package Tests")
-	class ReservedPackageTests {
-
-		/**
-		 * A derived scope whose descendant is a restored reserved namespace is refused
-		 * during permission creation, naming that namespace, so the restored breadth is
-		 * enforced at the creator and not only in the guard it calls.
-		 */
-		@Test
-		@DisplayName("Refuses a derived scope that carries a restored reserved namespace")
-		void refusesADerivedScopeCarryingAReservedNamespace() throws Exception {
-			Method method = JavaCreator.class.getDeclaredMethod("derivedAllowedPackage", String.class);
-			method.setAccessible(true);
-			InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
-					() -> method.invoke(null, "com.github"));
-			assertInstanceOf(SecurityException.class, thrown.getCause());
-			assertTrue(thrown.getCause().getMessage().contains("com.github.javaparser"),
-					"the refusal must name the reserved namespace the derived scope would carry: "
-							+ thrown.getCause().getMessage());
-		}
-
-		/**
-		 * An ordinary derived scope with no reserved namespace below it yields a plain
-		 * package permission, so the refusal above is specific to reserved descendants
-		 * rather than a blanket rejection.
-		 */
-		@Test
-		@DisplayName("Allows an ordinary derived scope")
-		void allowsAnOrdinaryDerivedScope() throws Exception {
-			Method method = JavaCreator.class.getDeclaredMethod("derivedAllowedPackage", String.class);
-			method.setAccessible(true);
-			Object permission = method.invoke(null, "de.tum.cit.aet");
-			assertInstanceOf(PackagePermission.class, permission);
-		}
 	}
 
 	@Nested
@@ -299,6 +261,36 @@ public class JavaCreatorTest {
 			// We verify that the method completed successfully and the parameters were used
 			verify(resourceAccesses).regardingPackageImports();
 		}
+
+		/**
+		 * Student code declared in {@code de.tum.cit.ase}, above Ares' own API, is not
+		 * refused. Its own package is not granted here; the rule adds it as an exact
+		 * permission when it runs.
+		 *
+		 * @throws IOException if the fixture cannot be copied
+		 */
+		@Test
+		@DisplayName("Should permit a supervised package that lies above a trusted namespace")
+		void shouldPermitASupervisedPackageAboveATrustedNamespace() throws IOException {
+			Path output = Files.createDirectories(tempDir.resolve("classes/de/tum/cit/ase"));
+			try (InputStream bytecode = AncestorPackageExercise.class
+					.getResourceAsStream(AncestorPackageExercise.class.getSimpleName() + ".class")) {
+				Files.copy(bytecode, output.resolve(AncestorPackageExercise.class.getSimpleName() + ".class"));
+			}
+			String ancestorPackage = AncestorPackageExercise.class.getPackageName();
+			String ancestorClasspath = tempDir.resolve("classes").toString();
+			when(buildMode.getClasspath(tempDir, ancestorPackage)).thenReturn(ancestorClasspath);
+			when(architectureMode.getJavaClasses(ancestorClasspath)).thenReturn(javaClasses);
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+
+			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of("java"),
+					List.of(), List.of(), ancestorPackage, mainClassName, architectureTestCases, aopTestCases,
+					phobosTestCases, resourceAccesses, tempDir, false));
+
+			assertFalse(architectureTestCases.isEmpty());
+			assertTrue(architectureTestCases.get(0).getAllowedPackages().stream()
+					.noneMatch(permission -> permission.importTheFollowingPackage().equals(ancestorPackage)));
+		}
 	}
 
 	@Nested
@@ -368,6 +360,66 @@ public class JavaCreatorTest {
 							essentialClasses, testClasses, packageName, mainClassName, architectureTestCases,
 							aopTestCases, phobosTestCases, resourceAccesses, tempDir, true));
 		}
+	}
+
+	/**
+	 * Checks that a malformed essential package is refused while a valid one in the
+	 * JDK namespace is kept as that package alone. The pinned package and the test
+	 * class names are checked elsewhere, and the supervised code's own packages are
+	 * read from the compiled classes when the rule runs.
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesRejectsAMalformedEssentialPackage() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class);
+		prepare.setAccessible(true);
+		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(null, List.of("com..essential"), restrictive));
+		Set<PackagePermission> valid = (Set<PackagePermission>) prepare.invoke(null, List.of("java.lang"), restrictive);
+		assertEquals(Set.of(new PackagePermission("java.lang", true)), valid);
+	}
+
+	/** Checks that a wildcard package declared in the policy is kept unchanged. */
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesPassesAPolicyDeclaredWildcardThrough() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class);
+		prepare.setAccessible(true);
+		when(resourceAccesses.regardingPackageImports()).thenReturn(List.of(new PackagePermission("*")));
+		Set<PackagePermission> result = (Set<PackagePermission>) prepare.invoke(null, List.of(), resourceAccesses);
+		assertEquals(Set.of(new PackagePermission("*")), result);
+	}
+
+	/**
+	 * Checks that blank entries are dropped and a malformed class name is refused
+	 * before any class is exempted.
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	void usableClassNamesFiltersBlanksThenValidates() throws Exception {
+		Method usable = JavaCreator.class.getDeclaredMethod("usableClassNames", List.class);
+		usable.setAccessible(true);
+		List<String> result = (List<String>) usable.invoke(null,
+				Arrays.asList("com.example.Foo", "   ", null, "com.example.BarTest", ""));
+		assertEquals(List.of("com.example.Foo", "com.example.BarTest"), result);
+		assertInvocationCause(IllegalArgumentException.class, () -> usable.invoke(null, List.of("com..example.Foo")));
+	}
+
+	/**
+	 * Asserts a reflective call fails with the given cause, unwrapping the
+	 * {@link InvocationTargetException} that reflection wraps a thrown exception
+	 * in.
+	 *
+	 * @param expected   the exception type the underlying call should raise
+	 * @param invocation the reflective call under test
+	 * @return the unwrapped cause, for any further assertion
+	 */
+	private static <T extends Throwable> T assertInvocationCause(Class<T> expected, Executable invocation) {
+		InvocationTargetException wrapper = assertThrows(InvocationTargetException.class, invocation);
+		return assertInstanceOf(expected, wrapper.getCause());
 	}
 
 	/**

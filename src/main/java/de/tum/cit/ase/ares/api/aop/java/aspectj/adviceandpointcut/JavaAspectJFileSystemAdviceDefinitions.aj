@@ -800,8 +800,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			return;
 		}
 		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
-				actionLabel, violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
-						+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+				localizeAction(actionLabel), violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
+						+ describeCaller(studentCalledMethod) + " | "
 						+ buildDenialReason(noAllowRuleConfigured)));
 	}
 
@@ -1040,9 +1040,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			return;
 		}
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
-		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck, "create",
-				violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
-						+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
+				localizeAction("create"), violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
+						+ describeCaller(studentCalledMethod) + " | "
 						+ buildDenialReason(noAllowRuleConfigured)));
 	}
 
@@ -1643,10 +1643,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Checks the selected policy against the caller and file-operation arguments.
+	 * Performs the file check behind {@link #checkFileSystemInteraction}, which calls it
+	 * only for the outermost advice on a thread. Throws a {@link SecurityException}
+	 * naming the blocked file operation when the policy forbids it.
 	 *
-	 * @param action        the file-system action being checked
-	 * @param thisJoinPoint the intercepted call
+	 * @param action the raw action name, which drives every decision
+	 * @param thisJoinPoint the join point of the intercepted call
 	 */
 	private void checkFileSystemInteractionImpl(@Nonnull String action, @Nonnull JoinPoint thisJoinPoint) {
 		@Nullable
@@ -1769,10 +1771,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 						&& isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughParameter);
 				if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess) {
 					throw new SecurityException(localize(
-							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
+							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
 							illegallyInteractedThroughParameter,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+									+ describeCaller(studentCalledMethod)
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
 			}
@@ -1794,10 +1796,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 				if (!isInternalAllowed) {
 					throw new SecurityException(localize(
-							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
+							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
 							illegallyInteractedThroughReceiver,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+									+ describeCaller(studentCalledMethod)
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
 			}
@@ -1828,10 +1830,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 				if (!isInternalAllowed) {
 					throw new SecurityException(localize(
-							"security.advice.illegal.file.execution", systemMethodToCheck, messageAction,
+							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
 							illegallyInteractedThroughAttribute,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")")
+									+ describeCaller(studentCalledMethod)
 									+ " | " + buildDenialReason(noAllowRuleConfigured)));
 				}
 			}

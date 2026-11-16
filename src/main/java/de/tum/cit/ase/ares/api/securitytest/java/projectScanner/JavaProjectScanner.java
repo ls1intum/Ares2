@@ -84,6 +84,32 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
+	 * Returns the scanner bound to the build configuration found for this run. A
+	 * framework-default scanner is rebuilt; a subclass is kept only if it holds an
+	 * equal configuration, as an unbound one would look at another project. An
+	 * override must return an instance bound to the given configuration.
+	 *
+	 * @since 2.1.0
+	 * @author Markus Paulsen
+	 * @param buildConfiguration the discovered configuration; not null.
+	 * @return the bound scanner.
+	 * @throws IllegalStateException if a subclass holds no or another
+	 *                               configuration.
+	 */
+	@Nonnull
+	public JavaProjectScanner withBuildConfiguration(@Nonnull BuildToolConfiguration buildConfiguration) {
+		Objects.requireNonNull(buildConfiguration, "buildConfiguration must not be null");
+		if (getClass() == JavaProjectScanner.class) {
+			return new JavaProjectScanner(buildConfiguration);
+		}
+		if (!buildConfiguration.equals(this.buildConfiguration)) {
+			throw new IllegalStateException(
+					Messages.localized("security.policy.collaborator.unbound", getClass().getName()));
+		}
+		return this;
+	}
+
+	/**
 	 * The last-resort supervised package, used only when neither the production
 	 * sources nor the compiled production output declares one.
 	 * <p>
