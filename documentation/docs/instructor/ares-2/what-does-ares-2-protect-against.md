@@ -35,17 +35,20 @@ permitted until you write it down, and what you write down is then checked value
 
 The implicit part matters for package imports. Whatever your list says, Ares always permits:
 
-- the Java standard library (every package under `java`), AspectJ (`org.aspectj`) and one
-  internal Ares package
-- the packages your compiled student code is in
-- the packages your test classes sit in, as named in `theFollowingClassesAreTestClasses`
+- `java.lang` and `java.io` from the Java standard library, each without the packages
+  beneath it, so `java.lang` does not open `java.lang.reflect`
+- AspectJ (`org.aspectj`) and one internal Ares package
+- the packages your compiled student code is in, again without the packages beneath them
 
-Your list can add to these but cannot remove any of them.
+Your list can add to these but cannot remove any of them. With a policy, every other package of
+the standard library, `java.util` included, needs an entry in your list. Without a policy, Ares
+permits every package under `java`.
 
-The last point does not hand your tests to the student. Usually the test classes share the
-package of the student code, so it adds nothing new. Where they do not, the import check
-permits an import of a test class, and the build stops it instead. A standard Maven or Gradle
-build compiles the student code without the test classes, so such an import does not compile.
+Your test classes add no package. On top of that, the import check rejects any dependency
+of the student code on a class named in `theFollowingClassesAreTestClasses`, or on a class
+nested in one, whatever package it sits in. It knows only the names listed there, so list every
+test class by its fully qualified name, with `$` before a nested class, as in
+`com.example.Outer$Nested`.
 
 | Category | Policy field | What you grant, and how narrowly |
 | --- | --- | --- |
@@ -53,7 +56,7 @@ build compiles the student code without the test classes, so such an import does
 | Network | `regardingNetworkConnections` | A named host and port, and separately whether the code may connect, send and receive |
 | Command execution | `regardingCommandExecutions` | Named executables together with the exact arguments they may be given |
 | Thread creation | `regardingThreadCreations` | Which class of worker may be started, and how many at most |
-| Package imports | `regardingPackageImports` | Which packages the submission may import. Naming a package covers everything beneath it |
+| Package imports | `regardingPackageImports` | Which packages the submission may import. An entry naming a package covers the packages beneath it unless `exactMatchOnly` is `true`, but never a reserved namespace it does not name. Only `*` permits every package |
 
 :::warning[Granting anything changes how the category is enforced]
 For the first four, the two layers do not both apply. While a category's list is **empty**,
