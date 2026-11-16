@@ -274,8 +274,8 @@ public final class JavaArchunitTestCaseCollection {
 								|| isForbiddenPackage(javaClass.getPackageName(), allowedPackages);
 					}
 				})
-				.or(TypeAnnotationDependencies
-						.useTypeAnnotationsFrom(packageName -> isForbiddenPackage(packageName, allowedPackages))))
+				.or(TypeAnnotationDependencies.useTypeAnnotationsFrom(typeName -> isTestCode(typeName, testClassNames)
+						|| isForbiddenPackage(TypeAnnotationDependencies.packageOf(typeName), allowedPackages))))
 				.as(Messages.localized("security.architecture.package.import"));
 	}
 

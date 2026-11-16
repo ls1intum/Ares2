@@ -68,15 +68,16 @@ public final class TypeAnnotationDependencies {
 	// <editor-fold desc="Condition">
 	/**
 	 * Builds a condition that a class meets when one of its type annotations names
-	 * a type from a forbidden package, or when its class file cannot be read. Used
-	 * under {@code noClasses()}, every such class becomes a violation.
+	 * a forbidden type, or when its class file cannot be read. Used under
+	 * {@code noClasses()}, every such class becomes a violation.
 	 *
-	 * @param forbiddenPackage tells whether a package name is forbidden
+	 * @param forbiddenTypeName tells whether a type, given by its fully qualified
+	 *                          binary name, is forbidden
 	 * @return the condition
 	 */
 	@Nonnull
-	public static ArchCondition<JavaClass> useTypeAnnotationsFrom(@Nonnull Predicate<String> forbiddenPackage) {
-		return new TypeAnnotationCondition(Objects.requireNonNull(forbiddenPackage, "forbiddenPackage"));
+	public static ArchCondition<JavaClass> useTypeAnnotationsFrom(@Nonnull Predicate<String> forbiddenTypeName) {
+		return new TypeAnnotationCondition(Objects.requireNonNull(forbiddenTypeName, "forbiddenTypeName"));
 	}
 
 	/**
@@ -84,11 +85,12 @@ public final class TypeAnnotationDependencies {
 	 * event when the class cannot be read, and one unmet event when the class was
 	 * read and names no forbidden type.
 	 *
-	 * @param javaClass        the class to check
-	 * @param forbiddenPackage tells whether a package name is forbidden
-	 * @param events           the events of the running rule
+	 * @param javaClass         the class to check
+	 * @param forbiddenTypeName tells whether a type, given by its fully qualified
+	 *                          binary name, is forbidden
+	 * @param events            the events of the running rule
 	 */
-	static void reportTypeAnnotations(@Nonnull JavaClass javaClass, @Nonnull Predicate<String> forbiddenPackage,
+	static void reportTypeAnnotations(@Nonnull JavaClass javaClass, @Nonnull Predicate<String> forbiddenTypeName,
 			@Nonnull ConditionEvents events) {
 		Set<String> namedTypes;
 		try {
@@ -99,7 +101,7 @@ public final class TypeAnnotationDependencies {
 		}
 		Set<String> forbiddenTypes = new TreeSet<>();
 		for (String namedType : namedTypes) {
-			if (forbiddenPackage.test(packageOf(namedType))) {
+			if (forbiddenTypeName.test(namedType)) {
 				forbiddenTypes.add(namedType);
 			}
 		}
@@ -223,19 +225,20 @@ public final class TypeAnnotationDependencies {
 	private static final class TypeAnnotationCondition extends ArchCondition<JavaClass> {
 
 		/**
-		 * Tells whether a package name is forbidden.
+		 * Tells whether a type, given by its fully qualified binary name, is forbidden.
 		 */
 		@Nonnull
-		private final Predicate<String> forbiddenPackage;
+		private final Predicate<String> forbiddenTypeName;
 
 		/**
 		 * Creates the condition.
 		 *
-		 * @param forbiddenPackage tells whether a package name is forbidden
+		 * @param forbiddenTypeName tells whether a type, given by its fully qualified
+		 *                          binary name, is forbidden
 		 */
-		private TypeAnnotationCondition(@Nonnull Predicate<String> forbiddenPackage) {
+		private TypeAnnotationCondition(@Nonnull Predicate<String> forbiddenTypeName) {
 			super("use type annotations from forbidden packages");
-			this.forbiddenPackage = forbiddenPackage;
+			this.forbiddenTypeName = forbiddenTypeName;
 		}
 
 		/**
@@ -246,7 +249,7 @@ public final class TypeAnnotationDependencies {
 		 */
 		@Override
 		public void check(@Nonnull JavaClass javaClass, @Nonnull ConditionEvents events) {
-			reportTypeAnnotations(javaClass, forbiddenPackage, events);
+			reportTypeAnnotations(javaClass, forbiddenTypeName, events);
 		}
 	}
 

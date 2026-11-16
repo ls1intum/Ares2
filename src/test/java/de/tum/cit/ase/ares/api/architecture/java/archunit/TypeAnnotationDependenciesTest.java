@@ -260,6 +260,31 @@ class TypeAnnotationDependenciesTest {
 	}
 
 	/**
+	 * Checks that a test class stays forbidden when only a type annotation names
+	 * it, as the annotation or inside its values, although its package is allowed,
+	 * and that the same classes pass when no test class is named.
+	 */
+	@Test
+	@DisplayName("A test class stays forbidden when only a type annotation names it")
+	void testClassNamedOnlyByATypeAnnotationIsRejected() {
+		Set<PackagePermission> allowed = Set.of(new PackagePermission("java"), new PackagePermission(CHECKED),
+				new PackagePermission(FOREIGN), new PackagePermission(PERMITTED), new PackagePermission(VALUES));
+		JavaClasses annotated = classes(FieldTypeFixture.class);
+		JavaClasses valued = classes(ClassLiteralValueFixture.class);
+
+		assertDoesNotThrow(() -> JavaArchunitTestCaseCollection
+				.noClassMustImportForbiddenPackages(allowed, Set.of(), Set.of()).check(annotated));
+		assertDoesNotThrow(() -> JavaArchunitTestCaseCollection
+				.noClassMustImportForbiddenPackages(allowed, Set.of(), Set.of()).check(valued));
+		String annotation = rejectionMessage(JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowed,
+				Set.of(), Set.of(FOREIGN + ".ForeignTypeUse")), annotated);
+		assertTrue(annotation.contains(FOREIGN), annotation);
+		String value = rejectionMessage(JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowed,
+				Set.of(), Set.of(VALUES + ".ValueType")), valued);
+		assertTrue(value.contains(VALUES), value);
+	}
+
+	/**
 	 * Checks that the annotation is found from its descriptor alone, even when its
 	 * class does not exist.
 	 */
