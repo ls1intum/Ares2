@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.NestingKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.ArrayType;
@@ -81,8 +82,8 @@ class CompiledClassesJava17LibraryTest {
 	private static final String CONSTRUCTOR = "<init>";
 
 	/**
-	 * Owners whose native methods accept any argument list, so a call to them is
-	 * matched by name only.
+	 * Owners of signature-polymorphic methods, such as {@code invokeExact}, which
+	 * accept any argument list, so a call to one of those is matched by name only.
 	 */
 	private static final Set<String> SIGNATURE_POLYMORPHIC_OWNERS = Set.of("java.lang.invoke.MethodHandle",
 			"java.lang.invoke.VarHandle");
@@ -172,6 +173,42 @@ class CompiledClassesJava17LibraryTest {
 		writeListMethod(directory, FixedValue.value(handle));
 		assertTrue(missingFromRelease(directory).stream().anyMatch(line -> line.contains("List.reversed")),
 				() -> missingFromRelease(directory).toString());
+	}
+
+	/**
+	 * Fails when a method of {@code MethodHandle} that is not signature-polymorphic
+	 * is matched by name alone: no {@code asType()} without a parameter exists.
+	 *
+	 * @param directory the folder the fixture is written to
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void nonPolymorphicMethodHandleMethodIsMatchedByDescriptor(@TempDir Path directory) throws IOException {
+		JavaConstant.MethodHandle handle = new JavaConstant.MethodHandle(
+				JavaConstant.MethodHandle.HandleType.INVOKE_VIRTUAL,
+				TypeDescription.ForLoadedType.of(java.lang.invoke.MethodHandle.class), "asType",
+				TypeDescription.ForLoadedType.of(java.lang.invoke.MethodHandle.class), List.of());
+		writeListMethod(directory, FixedValue.value(handle));
+		assertTrue(missingFromRelease(directory).stream().anyMatch(line -> line.contains("MethodHandle.asType")),
+				() -> missingFromRelease(directory).toString());
+	}
+
+	/**
+	 * Fails when a call to the signature-polymorphic {@code invokeExact}, whose
+	 * descriptor is the call site's own, is reported.
+	 *
+	 * @param directory the folder the fixture is compiled to
+	 */
+	@Test
+	void signaturePolymorphicCallIsNotReported(@TempDir Path directory) {
+		Path classes = compileWithNewerApi(directory, "Invoker", """
+				public class Invoker {
+					public int call(java.lang.invoke.MethodHandle handle) throws Throwable {
+						return (int) handle.invokeExact(3);
+					}
+				}
+				""");
+		assertTrue(missingFromRelease(classes).isEmpty(), () -> missingFromRelease(classes).toString());
 	}
 
 	/**
@@ -490,8 +527,8 @@ class CompiledClassesJava17LibraryTest {
 
 	/**
 	 * Tells whether a release 17 member is the referenced one: an annotation
-	 * element by name, a method of a signature-polymorphic owner by name, anything
-	 * else by name and full descriptor.
+	 * element by name, a signature-polymorphic method by name, anything else by
+	 * name and full descriptor.
 	 *
 	 * @param member    the member of a release 17 type
 	 * @param owner     the type that declares the member
@@ -510,7 +547,22 @@ class CompiledClassesJava17LibraryTest {
 		}
 		return reference.kind() == Kind.ELEMENT
 				|| SIGNATURE_POLYMORPHIC_OWNERS.contains(owner.getQualifiedName().toString())
+						&& isSignaturePolymorphic(executable)
 				|| methodDescriptor(executable, owner).equals(reference.descriptor());
+	}
+
+	/**
+	 * Whether a method of a signature-polymorphic owner is itself one, as JVMS
+	 * 2.9.3 defines it: native, variable-arity, with one parameter of type
+	 * {@code Object[]}. Any other method of that owner needs its full descriptor.
+	 *
+	 * @param executable the method
+	 * @return true if any argument list matches it
+	 */
+	private static boolean isSignaturePolymorphic(ExecutableElement executable) {
+		return executable.isVarArgs() && executable.getModifiers().contains(Modifier.NATIVE)
+				&& executable.getParameters().size() == 1
+				&& "[Ljava/lang/Object;".equals(descriptor(executable.getParameters().get(0).asType()));
 	}
 
 	/**
@@ -778,8 +830,8 @@ class CompiledClassesJava17LibraryTest {
 		 * Tells whether a referenced member exists for Java 17, walking from its owner
 		 * through application supertypes to the JDK; constructors and annotation
 		 * elements are looked up in the owner only. A member an application class
-		 * declares counts as found, and so does one whose walk meets a class file it
-		 * cannot read or never reaches the JDK.
+		 * declares counts as found, and so does one whose walk meets a class it cannot
+		 * find or never reaches the JDK.
 		 *
 		 * @param reference the referenced member
 		 * @return false only when the walk reached the JDK and release 17 lacks the
