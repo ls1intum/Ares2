@@ -70,14 +70,14 @@ class JavaArchunitGeneratedScopeTest {
 	}
 
 	@Test
-	@DisplayName("Leaves a pinned scope stated as the instructor wrote it")
-	void leavesAPinnedScopeAlone() {
+	@DisplayName("Writes a pinned scope's permissions as declared and reads its own packages at runtime")
+	void writesAPinnedScopeAsDeclared() {
 		String written = generated(false).writeArchitectureTestCase("ARCHUNIT", "");
 
-		// A pinned policy may deliberately supervise part of the output and declare
-		// exactly what may be imported, so neither is second-guessed at runtime.
 		assertTrue(written.contains("JavaArchunitSupervisedClasses.pinned(\"de.tum.cit.aet\")"), written);
-		assertFalse(written.contains("JavaArchunitSupervisedClasses.allowedPackages("),
-				"a pinned scope's permissions are a declaration, not a reading: " + written);
+		assertTrue(written.contains("new PackagePermission(\"de.tum.cit.aet\", false)"),
+				"a pinned scope's permissions are a declaration and are written as such: " + written);
+		assertTrue(written.contains("JavaArchunitTestCaseCollection.withOwnPackages(allowedPackages, javaClasses"),
+				"the supervised code's own packages are read from the checked classes: " + written);
 	}
 }

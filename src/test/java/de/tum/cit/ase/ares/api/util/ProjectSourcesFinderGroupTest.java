@@ -95,7 +95,28 @@ class ProjectSourcesFinderGroupTest {
 		String group = "de.tum.cit.aet";
 		return Stream.of(Arguments.of("group = 'de.tum.cit.aet'", group),
 				Arguments.of("project.group = \"de.tum.cit.aet\"", group),
-				Arguments.of("group = 'first.one'\ngroup = 'de.tum.cit.aet'", group),
+				Arguments.of("group = 'first.one'\ngroup = 'de.tum.cit.aet'", null),
+				Arguments.of("group = 'org.example.exercise'\nif (false)\n    group = 'org.example'", null),
+				Arguments.of("if (false)\n    group = 'org.example'", null),
+				Arguments.of("if (false) group = 'org.example'", null),
+				Arguments.of("if (ready) { } else\n    group = 'org.example'", null),
+				Arguments.of("def base = 'x' +\n    group = 'org.example'", null),
+				Arguments.of("group = 'org.example'\n    .plus('.exercise')", null),
+				Arguments.of("group = 'org.example'\n    as String", null),
+				Arguments.of("group = 'de.tum.cit.aet'\nversion = '1'", group),
+				Arguments.of("if (true) return;\ngroup = 'org.example'", null),
+				Arguments.of("group = 'de.tum.cit.aet'\ntasks.register('x') { return }", group),
+				Arguments.of("description = \"${project.setGroup('org.example.exercise')}\"", null),
+				Arguments.of("description = \"${project.version}\"", "from.properties"),
+				Arguments.of("group = 'org.example'\ndescription = \"${foo('}') + project.setGroup('x.y')}\"", null),
+				Arguments.of("group = 'org.example'\ndescription = \"${foo(\"${'}'}\") + project.setGroup('x.y')}\"",
+						null),
+				Arguments.of("group = 'org.example'\ndescription = \"${foo(/* } */) + project.setGroup('x.y')}\"",
+						null),
+				Arguments.of("group = 'de.tum.cit.aet'\nversion = \"${base}\"", group),
+				Arguments.of("version = \"${base}\"\ngroup = 'de.tum.cit.aet'", null),
+				Arguments.of("plugins { id 'java' }\ngroup = 'de.tum.cit.aet'", group),
+				Arguments.of("apply plugin: 'java'\ngroup = 'de.tum.cit.aet'", group),
 				Arguments.of("group = 'de.tum.cit.aet'; version = '1'", group),
 				Arguments.of("group = 'de.tum.cit.aet' // the exercise", group),
 				Arguments.of("tasks.register('x') { group = 'verification' }", null),
@@ -146,6 +167,8 @@ class ProjectSourcesFinderGroupTest {
 	 */
 	static Stream<Arguments> kotlinDescriptors() {
 		return Stream.of(Arguments.of("group = \"de.tum.cit.aet\"", "de.tum.cit.aet"),
+				Arguments.of("group = \"org.example\"\n    .plus(\".exercise\")", null),
+				Arguments.of("group = \"de.tum.cit.aet\"\nversion = \"1\"", "de.tum.cit.aet"),
 				Arguments.of("val group = \"de.tum.cit.aet\"", null));
 	}
 
@@ -161,6 +184,16 @@ class ProjectSourcesFinderGroupTest {
 		Files.writeString(projectRoot.resolve("gradle.properties"), line + "\n");
 
 		assertEquals(Optional.of("de.tum.cit.aet"), ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
+	}
+
+	/** build.gradle is read beside build.gradle.kts, as Gradle runs it. */
+	@Test
+	void prefersTheGroovyScriptOverTheKotlinScript() throws IOException {
+		Files.writeString(projectRoot.resolve("build.gradle"), "group = 'org.example.exercise'\n");
+		Files.writeString(projectRoot.resolve("build.gradle.kts"), "group = \"org.example\"\n");
+
+		assertEquals(Optional.of("org.example.exercise"),
+				ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
 	}
 
 	/** The descriptor wins over gradle.properties, as it does in Gradle. */

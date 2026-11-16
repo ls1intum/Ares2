@@ -93,6 +93,22 @@ class ProjectSourcesFinderTest {
 		assertEquals(temporaryDirectory.resolve("test").toRealPath(), configuration.testSourceRoots().get(0));
 	}
 
+	/**
+	 * Beside a build.gradle.kts, build.gradle is the script Gradle runs, so its
+	 * source roots are the ones read.
+	 */
+	@Test
+	void readsTheGroovyScriptBesideAKotlinScript() throws IOException {
+		Files.createDirectories(temporaryDirectory.resolve("groovy"));
+		Files.createDirectories(temporaryDirectory.resolve("kotlin"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"),
+				"sourceSets { main { java { srcDirs = ['groovy'] } } }\n");
+		Files.writeString(temporaryDirectory.resolve("build.gradle.kts"),
+				"sourceSets { main { java { setSrcDirs(listOf(\"kotlin\")) } } }\n");
+		var configuration = ProjectSourcesFinder.discover(temporaryDirectory);
+		assertEquals(List.of(temporaryDirectory.resolve("groovy").toRealPath()), configuration.productionSourceRoots());
+	}
+
 	@Test
 	void discoversGradleRootsFromLiteralListsAndAppendedAssignments() throws IOException {
 		Files.createDirectories(temporaryDirectory.resolve("first"));

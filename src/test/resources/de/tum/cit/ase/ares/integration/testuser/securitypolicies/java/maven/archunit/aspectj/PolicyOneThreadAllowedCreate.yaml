@@ -15,6 +15,10 @@ regardingTheSupervisedCode:
     regardingThreadCreations:
       - createTheFollowingNumberOfThreads: 1
         ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.LegalThread"
-    regardingPackageImports: []
+    regardingPackageImports:
+      - importTheFollowingPackage: "de.tum.cit.ase.ares.integration.aop.allowed.subject"
+      - importTheFollowingPackage: "de.tum.cit.ase.ares.integration.aop.forbidden.subject"
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "java.util.concurrent"
     regardingTimeouts:
       - timeout: 3000
