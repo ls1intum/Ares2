@@ -105,4 +105,13 @@ class JavaTestCaseFactoryAndBuilderExemptionTest {
 		verify(executer, never()).executeTestCases(any(), any(), any(), anyList(), anyList(), anyList(), any(), any(),
 				anyList(), anyList());
 	}
+
+	/** A scope that missed the compiled classes stops the run before arming. */
+	@Test
+	void aScopeWithoutClassesStopsTheRunBeforeArming() {
+		doThrow(new SecurityException("no classes")).when(creator).requireSupervisedClasses(BuildMode.MAVEN);
+		assertThrows(SecurityException.class, factory::executeTestCases);
+		verify(executer, never()).executeTestCases(any(), any(), any(), anyList(), anyList(), anyList(), any(), any(),
+				anyList(), anyList());
+	}
 }

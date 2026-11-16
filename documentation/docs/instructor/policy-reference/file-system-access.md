@@ -5,11 +5,15 @@ description: "Which paths the supervised code may read, overwrite, create, execu
 ---
 
 :::tip[Simple Story]
-This is the list of papers a pupil may pick up, and what they may do with each one.
+A worksheet is a sheet of paper a pupil can be allowed to use. For each worksheet, the rule
+sheet says separately whether the pupil can read it, change it, make it, use it or throw it
+away.
 
-Anything not on the list stays out of reach. And being allowed to pick something up is not
-permission to do as you like with it: reading, replacing, creating, running and destroying are
-five separate permissions, each granted on its own.
+All five have to be on the rule sheet, even when the answer is no. The teacher does not
+accept a rule sheet that leaves one out. A worksheet the rule sheet does not mention is not
+allowed.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example policy file
@@ -88,7 +92,13 @@ Some file accesses are part of what ordinary Java code does and carry no risk, s
 | Formats numbers, dates or text for a locale, or uses a charset | Their data lies inside the Java installation too. |
 | Creates a temporary file without naming a directory: `File.createTempFile(prefix, suffix)` or `Files.createTempFile(prefix, suffix)` | The file always lands in the default temp directory, which Ares fixes when the tests start. |
 
-A temporary file in a directory the code names still needs an entry for that directory, even for a folder inside the temp directory, and so does `Files.createTempDirectory`. Ares fixes the temp directory when the Ares agent starts with the Java Virtual Machine (JVM). Without the agent Ares refuses a temporary file without a named directory, with a message saying Ares did not start. That happens, for example, in an exercise prepared ahead of time that runs with AspectJ. Name a directory there and list it here with `createAllFiles: true`.
+A temporary file in a directory the code names still needs an entry for that directory, even for a folder inside the temp directory, and so does `Files.createTempDirectory`.
+
+Ares takes the temp directory from the values the Java Virtual Machine (JVM) started with, so code that changes `java.io.tmpdir` later cannot move it. With instrumentation the Ares agent records them at start-up. With AspectJ no agent is needed, but the test JVM needs the arguments the documented build files pass: `--add-exports java.base/jdk.internal.misc=ALL-UNNAMED`, and, for `File.createTempFile`, `--add-opens java.base/java.io=ALL-UNNAMED`. Without them Ares refuses the temporary file, and its message names the missing argument.
+
+Ares's own files, such as its messages, need no entry either. Ares reads them itself, not on behalf of the student code, so no rule about their names is needed. A file that merely has the same name as one of Ares's files gets the same check as any other.
+
+[The contributor documentation](/contributor/subsystems/aop/baseline-verification) describes how both enforcement backends verify each of these.
 
 ## Notes
 

@@ -23,16 +23,13 @@ import de.tum.cit.ase.ares.api.securitytest.java.writer.Writer;
 /**
  * Abstract class for directing the creation of security test cases.
  * <p>
- * Description: This interface defines the contract for a director that creates
- * security test cases based on a given SecurityPolicy. It abstracts the
- * instantiation and configuration process to a concrete implementation, working
- * in tandem with an abstract factory to ensure that test cases are built in a
- * consistent and modular manner.
+ * Description: This abstract class defines the contract for a director that
+ * creates security test cases based on a given SecurityPolicy, leaving the
+ * instantiation and configuration to a concrete implementation that works with
+ * an abstract factory.
  * <p>
- * Design Rationale: This interface supports loose coupling by decoupling the
- * test case creation logic from other system components. Its usage ensures
- * adherence to the Single Responsibility Principle and makes the security test
- * case generation process transparent and maintainable.
+ * Design Rationale: Keeping test case creation behind this class decouples it
+ * from the rest of the system.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -120,27 +117,47 @@ public abstract class SecurityPolicyDirector {
 	}
 	// </editor-fold>
 
-	// <editor-fold desc="Abstract methods ">
+	// <editor-fold desc="Test case creation">
 	/**
 	 * Creates and configures security test cases based on the provided
 	 * SecurityPolicy and project path.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
-	 * @param securityPolicy    the SecurityPolicy driving the test case creation;
-	 *                          may be null if no policy is provided.
-	 * @param projectFolderPath the project directory path where test cases should
-	 *                          be applied; may be null.
+	 * @param securityPolicy  the SecurityPolicy driving the test case creation; may
+	 *                        be null if no policy is provided.
+	 * @param projectRootPath the project root directory path where test cases
+	 *                        should be applied; may be null.
 	 * @return a non-null instance of TestCaseAbstractFactoryAndBuilder configured
 	 *         according to the security policy.
 	 */
 	@Nonnull
 	public abstract TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
-			@Nullable Path projectFolderPath);
+			@Nullable Path projectRootPath);
 
+	/**
+	 * Creates security test cases scoped to {@code withinPath}.
+	 * <p>
+	 * This default, kept concrete for subclasses built against 2.1.0, refuses any
+	 * scope but the empty path, which means the whole project.
+	 *
+	 * @since 2.0.0
+	 * @author Markus Paulsen
+	 * @param securityPolicy  the policy; may be null.
+	 * @param projectRootPath the project root; may be null.
+	 * @param withinPath      the scope; must not be null.
+	 * @return the configured factory.
+	 * @throws UnsupportedOperationException for a non-empty scope.
+	 */
 	@Nonnull
 	public TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
 			@Nullable Path projectRootPath, @Nonnull Path withinPath) {
+		Objects.requireNonNull(withinPath, "withinPath must not be null");
+		if (!withinPath.toString().isEmpty()) {
+			throw new UnsupportedOperationException(
+					getClass().getName() + " cannot scope the analysis to a path within the project; override"
+							+ " createTestCases(SecurityPolicy, Path, Path) to honour withinPath");
+		}
 		return createTestCases(securityPolicy, projectRootPath);
 	}
 	// </editor-fold>

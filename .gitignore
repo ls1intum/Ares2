@@ -43,3 +43,6 @@ gradle-app.setting
 /ares/
 /de/
 /resources/
+
+# Written by trustedExecute during the execute tests, which also remove it.
+/src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted_output.txt

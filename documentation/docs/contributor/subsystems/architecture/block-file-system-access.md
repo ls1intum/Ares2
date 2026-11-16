@@ -5,12 +5,16 @@ description: "How the architecture layer detects file system access statically, 
 ---
 
 :::tip[Simple Story]
-The same forbidden thing the aspect-oriented programming (AOP) layer watches for while a pupil
-works, looked for without the pupil doing anything.
+Before the start, the teacher clears the desks by the rule sheet. They look at what each
+pupil's work turned into and search it for a route to any worksheet. They can tell that a route
+exists. They cannot tell which worksheet waits at the end of it, because that only shows once
+the pupil is working.
 
-This layer reads the compiled answer like a map and looks for a route from their desk to the
-file-opening machinery. It can tell you that a route exists. It cannot tell you which paper,
-because that is only settled once the pupil is working.
+So the clearing covers worksheets only while the rule sheet allows none. Once it allows even
+one, the clearing leaves worksheets alone, and only the watching tells the allowed worksheet
+from the rest.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 <a id="file-system-security-mechanism"></a>
@@ -42,7 +46,7 @@ representative non-matching paths; see `docs/policy/EnforcementModel.md`.
 **When do you need this?**
 - When you want to prevent students from using file system operations entirely
 - For pre-submission checks in a continuous integration (CI) pipeline
-- When runtime monitoring (AOP) is not feasible or desired
+- When runtime monitoring through aspect-oriented programming (AOP) is not feasible or desired
 - For comprehensive code structure validation
 
 **How does it work (simplified)?**

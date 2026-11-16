@@ -5,12 +5,15 @@ description: "The JUnit 5 engine Ares 2 builds on, and the extension points it h
 ---
 
 :::tip[Simple Story]
-JUnit is the teacher. It decides what a question is, puts it to the pupil, and says whether the
-answer was right.
+The teacher hands out one question at a time and marks each answer by the grading instructions.
+They decide nothing about safety by those instructions. Clearing the desks and watching are jobs
+they do by the rule sheet, a second sheet that sits beside the first.
 
-Ares does not replace it. Ares is the checklist the teacher works **alongside**: JUnit still
-owns the question and when it is asked, and Ares decides whether that desk may be visited at
-all, and what the pupil may do while answering.
+When the teacher picks up the rule sheet for each question, they do it only for questions whose
+answers they read out at once or keep back until the end. Any other question goes ahead with no
+clearing and no watching, even with a rule sheet on the desk.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

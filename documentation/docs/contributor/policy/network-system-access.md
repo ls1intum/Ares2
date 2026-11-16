@@ -5,11 +5,15 @@ description: "How connect, send and receive permissions are enforced in the JVM 
 ---
 
 :::tip[Simple Story]
-Three layers watch the telephone: one reads the compiled answer before any call, one stands
-inside the room, and one sits beneath it.
+Three things look after the telephone. The teacher clears the desks before any call, the
+teacher watches during the examination, and the special examination room is meant to cover
+every line out of the room. Each sees different things, which is why all three exist. When the
+teacher picks up the rule sheet for each question, nobody uses the room.
 
-They see different things, which is why all three exist. In Postcompile the one beneath the
-room never runs.
+Grading instructions that test the telephone must not put their own telephone in the room,
+because the rule sheet covers that telephone too. They ring a number outside the room instead.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 For the fields an exercise author writes, see
@@ -39,15 +43,16 @@ consulted.
 
 ## Runtime enforcement
 
-`JavaInstrumentationAdviceNetworkSystemToolbox` inside the Java Virtual Machine (JVM). Outside it, the Phobos
-`LD_PRELOAD` firewall (`libnetblocker.so`) applies the same allow-list to the whole process,
-including anything the JVM shells out to.
+`JavaInstrumentationAdviceNetworkSystemToolbox` inside the Java Virtual Machine (JVM). Outside it,
+Phobos is meant to apply the allow-list to the whole process, including anything the JVM shells
+out to; see [ls1intum/phobos](https://github.com/ls1intum/phobos).
 
 ## Where the code lives
 
 - `policy/policySubComponents/NetworkPermission.java`
 - `aop/java/instrumentation/advice/JavaInstrumentationAdviceNetworkSystemToolbox.java`
-- `templates/phobos/phobos-network.sh` and the `NETBLOCKER_CONF` contract
+- `templates/phobos/PhobosCopyTool.sh`, copied into the exercise
+- the network layer itself, in [ls1intum/phobos](https://github.com/ls1intum/phobos)
 
 ## Known gaps
 

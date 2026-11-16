@@ -5,11 +5,18 @@ description: "How static and runtime responsibilities are divided, project disco
 ---
 
 :::tip[Simple Story]
-Two layers do the checking inside the room, and this page settles who is responsible for what.
-The room itself is a third, and belongs to Phobos.
+The teacher clears the desks before the start and watches during the examination. This page
+says which of the two looks after what.
 
-It states the one rule the build itself has to keep, and it is honest about what the
-boundary does **not** cover, which is the part most worth reading.
+Clearing can only take away a whole kind of thing. So it covers a kind only while the rule
+sheet allows none of it. Once the rule sheet allows even one worksheet, only the watching tells
+that worksheet from the rest.
+
+The teacher trusts by name. So the school's office has to turn away any pupil's work that
+borrows a name the school keeps for itself. Whoever runs the office can switch that off, so the
+head teacher has to keep the office's instructions in their own hands.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Static and runtime responsibility
@@ -57,9 +64,15 @@ student classes beneath every prefix in
 deployment prerequisite, not an optional Ares runtime feature.
 
 Two versions are pinned, because the data and the contract that enforces it
-change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the
+change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the
 prefix list. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side
 contract. Templates and continuous integration (CI) must pin both.
+
+Version 3 restored the Ares 1 breadth. Besides the platform, Ares' own
+`de.tum.cit.ase.ares.api` and the analysis and weaving libraries, the list now
+reserves the test harness (JUnit, opentest4j, AssertJ, Mockito) and Ares' other
+non-shaded dependencies. A submission therefore cannot shadow a class that runs
+or judges it. The authoritative list is `WalaPathClassification.RESERVED_PACKAGE_PREFIXES`.
 
 Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
 `process-classes` that scans `${project.build.outputDirectory}` and fails for

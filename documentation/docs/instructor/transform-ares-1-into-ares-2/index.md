@@ -5,10 +5,11 @@ description: "The migration work that is the same whichever mode you choose: why
 ---
 
 :::tip[Simple Story]
-You have an exercise built to the old rules and you want it on the new ones.
+Before, the head teacher wrote the rules beside each question. Now they write them on one rule
+sheet, and this page shows how to move them across, whichever way the rule sheet then reaches
+the teacher.
 
-This page is everything that has to happen either way. The build-side work depends on which
-mode you pick, and lives on the four pages behind it.
+[Who is who](/instructor/who-is-who)
 :::
 
 > **Audience:** IT-Education experts maintaining an existing Ares 1 exercise.

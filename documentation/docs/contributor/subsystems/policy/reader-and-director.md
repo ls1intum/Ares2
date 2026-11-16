@@ -5,11 +5,16 @@ description: "How a security policy file is read and turned into the test cases 
 ---
 
 :::tip[Simple Story]
-Somebody has to read the filled-in checklist and turn it into actual checks.
+Before the teacher checks anything, someone has to read the head teacher's rule sheet and work
+out which checks it calls for. This page covers the two parts that do that. One reads the rule
+sheet. The other picks the kind of school, the way of clearing the desks and the way of
+watching, and hands the job on.
 
-That is these two parts. One reads the checklist and understands it. The other decides which
-checks have to be built from what it read. This page explains how they work and why they are
-separate.
+No rule sheet does not mean no rules. Without one, the teacher uses the strictest rule sheet
+there is: no worksheets, no telephone, no friend and no side jobs. If it cannot tell what kind
+of school this is, nothing starts at all.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 > **Audience:** IT-Education experts with no security background.
@@ -212,7 +217,7 @@ SecurityPolicyReaderAndDirector.builder()
 
 The builder accepts two optional paths (both are `@Nullable`, and `build()` performs no null checks):
 - `securityPolicyFilePath`: The file system path to the YAML security policy file (e.g., `SecurityConfiguration.yaml`) that the instructor has written. If this is `null`, no policy file is read and Ares falls back to the default most-restricted enforcement (see Section 7.3).
-- `projectFolderPath`: The file system path to the student's project folder, where the code to be verified lives. If this is `null`, the project-dependent steps operate without a project base path.
+- `projectFolderPath`: The file system path to the student's project folder, where the code to be verified lives. If this is `null`, Ares uses the current working directory, both for `${PROJECT_ROOT}` in the policy and for the director's project discovery, so the two cannot name different projects. A reader chosen directly through `SecurityPolicyReader.selectSecurityPolicyReader(path, null)` still expands `${PROJECT_ROOT}` to the folder the policy file sits in.
 
 The resulting instance is immutable and ready to orchestrate the three-step workflow.
 
@@ -247,7 +252,7 @@ The class uses a plain null-and-empty check (`if (securityPolicyFilePath != null
 - `SecurityPolicyDirector.selectSecurityPolicyDirector(null)` is still called and returns the default `SecurityPolicyJavaDirector`.
 - The director's `createTestCases(null, …)` first calls `ProjectSourcesFinder.discover(root, null)`, so the build mode is **discovered from the project** rather than defaulted, and it then builds a factory with `ArchitectureMode.ARCHUNIT` and `AOPMode.ASPECTJ`.
 - **Discovery can fail, and it runs before any enforcement is configured.** With no policy there is no explicitly selected build mode, so a project root containing both a `pom.xml` and a Gradle descriptor is rejected as ambiguous, and one containing neither is rejected as unsupported. Both throw an `IllegalStateException` out of `discover`, which pre-empts everything below: no factory is built and the restrictive fallback is never reached. The remaining bullets therefore describe what happens **after** discovery succeeds.
-- The factory then falls back to `ResourceAccesses.createRestrictive()`: file system, network, command execution and thread creation are denied outright, and package imports are restricted to an implicit allowlist (the essential packages, which include the `java` prefix, plus the supervised package and the test-class packages). A 10-second limit is constructed as well, but it becomes a Phobos test case, and `executeTestCases()` does not dispatch the Phobos family yet, so **no execution timeout applies today**; use `@StrictTimeout` where a deadline is required.
+- The factory then falls back to `ResourceAccesses.createRestrictive()`: file system, network, command execution and thread creation are denied outright, and package imports are restricted to an implicit allowlist (the essential packages, which include the `java` prefix, plus the supervised package and the test-class packages). A 3,000 ms limit is constructed as well, but it becomes a Phobos test case, and `executeTestCases()` does not dispatch the Phobos family yet, so **no execution timeout applies today**; use `@StrictTimeout` where a deadline is required.
 - The supervised package, main class, and test classes are derived by scanning the project instead of the policy.
 
 In other words, a missing policy path does **not** disable enforcement. Provided the project is discoverable, it results in the most restrictive default enforcement, so that a forgotten or misconfigured policy path fails closed rather than open. An undiscoverable project fails earlier and louder, which is closed too.

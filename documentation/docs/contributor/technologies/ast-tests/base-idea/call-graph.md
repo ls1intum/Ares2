@@ -5,11 +5,14 @@ description: "Deriving call relationships from the syntax tree, and how that dif
 ---
 
 :::tip[Simple Story]
-You can work out from the source which method calls which, and draw the same kind of map the
-bytecode analysis draws.
+While marking, the teacher can work out from what the pupil wrote which part of an answer calls
+on which. That shows, for example, whether an answer calls on itself.
 
-The catch is that the source only shows what the pupil wrote. Anything borrowed from a
-library is a name on the page with nothing behind it.
+It shows only what the pupil wrote. A permitted aid appears as a name with nothing behind it.
+This serves the instructions that forbid certain ways of answering, and it stops nobody from
+doing anything forbidden. Clearing the desks looks at what the pupil's work turned into instead.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is
