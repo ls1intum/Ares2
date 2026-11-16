@@ -1,6 +1,8 @@
 package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -8,6 +10,9 @@ import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 import de.tum.cit.ase.ares.api.architecture.java.wala.WalaPathClassification;
 
@@ -95,6 +100,21 @@ class JavaArchunitSupervisedClassesTest {
 		Field field = JavaArchunitSupervisedClasses.class.getDeclaredField("RESERVED_PREFIXES");
 		field.setAccessible(true);
 		return (List<String>) field.get(null);
+	}
+
+	/**
+	 * Checks that a malformed compiled package name is refused with a
+	 * SecurityException, while a valid one passes.
+	 */
+	@Test
+	@DisplayName("Refuses a compiled package name that is not a valid Java package")
+	void refusesAMalformedCompiledPackageName() throws Exception {
+		JavaClass anyClass = new ClassFileImporter().importClass(JavaArchunitSupervisedClassesTest.class);
+		Method method = JavaArchunitSupervisedClasses.class.getDeclaredMethod("requireDeclarablePackage",
+				JavaClass.class, String.class);
+		method.setAccessible(true);
+		assertThatThrownBy(() -> method.invoke(null, anyClass, "com..bad")).hasCauseInstanceOf(SecurityException.class);
+		assertThatCode(() -> method.invoke(null, anyClass, "com.good")).doesNotThrowAnyException();
 	}
 
 	private static String ancestorOfReservedPrefix(String packageName) throws Exception {
