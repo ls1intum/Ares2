@@ -22,6 +22,8 @@ regardingTheSupervisedCode:
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]
-    regardingPackageImports: [ ]
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.nio.file"
+      - importTheFollowingPackage: "java.util"
     regardingTimeouts:
       - timeout: 3000

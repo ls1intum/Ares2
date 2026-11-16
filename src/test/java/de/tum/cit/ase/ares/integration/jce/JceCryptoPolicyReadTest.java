@@ -232,6 +232,9 @@ class JceCryptoPolicyReadTest {
 				    regardingPackageImports:
 				      - importTheFollowingPackage: "javax.crypto"
 				      - importTheFollowingPackage: "javax.net.ssl"
+				      - importTheFollowingPackage: "java.nio.file"
+				      - importTheFollowingPackage: "java.security"
+				      - importTheFollowingPackage: "java.util"
 				    regardingTimeouts: []
 				""".formatted(configuration, allowed.toAbsolutePath().toString().replace("\\", "/"));
 	}
