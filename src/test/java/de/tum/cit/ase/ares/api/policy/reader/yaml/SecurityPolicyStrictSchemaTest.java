@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
@@ -273,12 +274,13 @@ class SecurityPolicyStrictSchemaTest {
 
 	/**
 	 * Checks that {@code ${PROJECT_ROOT}} is inserted as plain text after parsing,
-	 * not parsed again as YAML. The root therefore carries YAML-special characters,
-	 * quotes, a backslash and a non-ASCII letter, but no control characters.
+	 * not parsed again as YAML. The root therefore carries YAML-special characters
+	 * and a non-ASCII letter, plus a double quote and a backslash where the file
+	 * system takes them, but no control characters.
 	 */
 	@Test
 	void expandsProjectRootAsScalarDataAfterParsing() throws IOException {
-		Path unusualRoot = tempDirectory.resolve("root: #quote '\" \\ ä end");
+		Path unusualRoot = tempDirectory.resolve(unusualRootName());
 		Files.createDirectories(unusualRoot);
 		Path file = write(validYaml().replace("/tmp/data", "${PROJECT_ROOT}/line\\nname"));
 		SecurityPolicy policy = new SecurityPolicyYAMLReader(new YAMLMapper(), unusualRoot)
@@ -419,6 +421,25 @@ class SecurityPolicyStrictSchemaTest {
 		Path file = tempDirectory.resolve("policy-" + Integer.toUnsignedString(yaml.hashCode()) + ".yaml");
 		Files.writeString(file, yaml);
 		return file;
+	}
+
+	/**
+	 * A folder name full of characters that mean something in YAML, so a root
+	 * pasted into the document as text would change it. It is the whole set where
+	 * the file system takes it, and otherwise the part a Windows name may hold:
+	 * Windows refuses a colon and a double quote in a name, and reads a backslash
+	 * as a separator.
+	 *
+	 * @return the folder name
+	 */
+	private String unusualRootName() {
+		String everyCharacter = "root: #quote '\" \\ ä end";
+		try {
+			tempDirectory.resolve(everyCharacter);
+			return everyCharacter;
+		} catch (InvalidPathException refused) {
+			return "root #quote ' ä [list], {map} &anchor !tag %directive @at `tick";
+		}
 	}
 
 	private static String validYaml() {
