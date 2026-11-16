@@ -2084,8 +2084,9 @@ public final class ProjectSourcesFinder {
 	 * <p>
 	 * Only a definite boundary counts, because guessing the other way is what makes
 	 * a partly read declaration look complete. A statement separator, the close of
-	 * an enclosing block or call, a following statement and the end of the
-	 * descriptor all end it; anything else continues it, which covers
+	 * an enclosing block or call, a following statement, which a name other than a
+	 * word in {@link #CONTINUING_WORDS} such as {@code as} starts, and the end of
+	 * the descriptor all end it; anything else continues it, which covers
 	 * {@code + generatedRoots}, {@code .collect { file(it) }}, indexing and spread
 	 * without having to predict them.
 	 * <p>
@@ -2099,7 +2100,14 @@ public final class ProjectSourcesFinder {
 			return true;
 		}
 		char current = code.charAt(index);
-		return current == ';' || current == '}' || current == ')' || current == ']' || isIdentifierStart(current);
+		if (isIdentifierStart(current)) {
+			int end = index;
+			while (end < code.length() && isIdentifierPart(code.charAt(end)) && code.charAt(end) != '.') {
+				end++;
+			}
+			return !CONTINUING_WORDS.contains(code.substring(index, end));
+		}
+		return current == ';' || current == '}' || current == ')' || current == ']';
 	}
 
 	/**
