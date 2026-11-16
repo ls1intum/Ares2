@@ -9,10 +9,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -293,7 +296,9 @@ class SecurityPolicyStrictSchemaTest {
 
 	/**
 	 * A reader chosen without a project root expands {@code ${PROJECT_ROOT}} to the
-	 * folder the policy file sits in.
+	 * folder the policy file sits in. It compares paths, not text, since the
+	 * expansion keeps the policy's forward slash beside the backslashes of a
+	 * Windows root.
 	 */
 	@Test
 	void selectedReaderWithoutARootExpandsProjectRootToThePolicyFolder() throws IOException {
@@ -302,12 +307,14 @@ class SecurityPolicyStrictSchemaTest {
 				.readSecurityPolicyFrom(file);
 		String path = policy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
 				.regardingFileSystemInteractions().get(0).onThisPathAndAllPathsBelow();
-		assertEquals(file.toAbsolutePath().normalize().getParent().resolve("data").toString(), path);
+		assertEquals(file.toAbsolutePath().normalize().getParent().resolve("data"), Path.of(path));
 	}
 
 	/**
 	 * A reader chosen with a project root expands {@code ${PROJECT_ROOT}} to that
-	 * root, wherever the policy file sits.
+	 * root, wherever the policy file sits. It compares paths, not text, since the
+	 * expansion keeps the policy's forward slash beside the backslashes of a
+	 * Windows root.
 	 */
 	@Test
 	void selectedReaderWithARootExpandsProjectRootToThatRoot() throws IOException {
@@ -317,7 +324,7 @@ class SecurityPolicyStrictSchemaTest {
 				.readSecurityPolicyFrom(file);
 		String path = policy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
 				.regardingFileSystemInteractions().get(0).onThisPathAndAllPathsBelow();
-		assertEquals(root.resolve("data").toString(), path);
+		assertEquals(root.resolve("data"), Path.of(path));
 	}
 
 	/**
@@ -327,10 +334,13 @@ class SecurityPolicyStrictSchemaTest {
 	 */
 	@Test
 	void rejectsControlCharacterInExpandedProjectRoot() throws IOException {
-		Path controlCharacterRoot = tempDirectory.resolve("rootWith\u0001Control");
 		Path file = write(validYaml().replace("/tmp/data", "${PROJECT_ROOT}/data"));
-		assertThrows(SecurityException.class, () -> new SecurityPolicyYAMLReader(new YAMLMapper(), controlCharacterRoot)
-				.readSecurityPolicyFrom(file));
+		try (FileSystem anyName = fileSystemTakingAnyName()) {
+			Path controlCharacterRoot = anyName.getPath("/rootWith\u0001Control");
+			assertThrows(SecurityException.class,
+					() -> new SecurityPolicyYAMLReader(new YAMLMapper(), controlCharacterRoot)
+							.readSecurityPolicyFrom(file));
+		}
 	}
 
 	@Test
@@ -415,6 +425,18 @@ class SecurityPolicyStrictSchemaTest {
 
 	private SecurityPolicy read(String yaml) throws IOException {
 		return new SecurityPolicyYAMLReader(new YAMLMapper(), tempDirectory).readSecurityPolicyFrom(write(yaml));
+	}
+
+	/**
+	 * A file system that takes a control character in a folder name. Windows
+	 * refuses one in any path of its own file system, so a root holding one could
+	 * not be made there. A ZIP file system takes it on every platform.
+	 *
+	 * @return the file system, which the caller closes
+	 * @throws IOException if the archive cannot be created
+	 */
+	private FileSystem fileSystemTakingAnyName() throws IOException {
+		return FileSystems.newFileSystem(tempDirectory.resolve("names.zip"), Map.of("create", "true"));
 	}
 
 	private Path write(String yaml) throws IOException {
