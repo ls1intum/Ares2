@@ -2,12 +2,14 @@ package de.tum.cit.ase.ares.api.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -68,7 +70,13 @@ class ProjectSourcesFinderGradleFormsTest {
 		return Stream.of(form("Groovy test root inside a task created at once", GROOVY, """
 				plugins { id 'java' }
 				tasks.create('eager') { sourceSets.test.java.srcDir 'b' }
-				""", List.of(MAIN), List.of("b", TEST)), form("Groovy receiver block", GROOVY, """
+				""", List.of(MAIN), List.of("b", TEST)), form("Groovy named inside a sourceSets block", GROOVY, """
+				plugins { id 'java' }
+				sourceSets { named('test') { java.srcDir('checks') } }
+				""", List.of(MAIN), List.of("checks", TEST)), form("Groovy named after a spaced dot", GROOVY, """
+				plugins { id 'java' }
+				sourceSets . named('test') { java.srcDir('checks') }
+				""", List.of(MAIN), List.of("checks", TEST)), form("Groovy receiver block", GROOVY, """
 				plugins { id 'java' }
 				sourceSets.main.java { srcDir 'a' }
 				""", List.of("a", MAIN), List.of(TEST)), form("Groovy receiver chain, command call", GROOVY, """
@@ -501,6 +509,22 @@ class ProjectSourcesFinderGradleFormsTest {
 				"""), Arguments.of("Groovy test root inside a task looked up by name", GROOVY, """
 				plugins { id 'java' }
 				tasks.named('compileJava') { sourceSets.test.java.srcDir 'src/main/java' }
+				"""), Arguments.of("Groovy test root inside a registered task inside a call", GROOVY, """
+				plugins { id 'java' }
+				println(tasks.register('unused') {
+				    sourceSets.test.java.srcDir('src/main/java')
+				})
+				"""), Arguments.of("Kotlin test root inside a typed registered task inside a call", KOTLIN, """
+				plugins { java }
+				println(tasks.register<DefaultTask>("unused") { sourceSets.test { java.srcDir("src/main/java") } })
+				"""), Arguments.of("Groovy test root inside a project's task looked up inside a call", GROOVY, """
+				plugins { id 'java' }
+				println(project.tasks.named('compileJava') { sourceSets.test.java.srcDir 'src/main/java' })
+				"""), Arguments.of("Groovy if whose one-line body takes a closure on the next line", GROOVY, """
+				plugins { id 'java' }
+				if (false)
+				    sourceSets.test.java.srcDirs('a')
+				    { sourceSets.test.java.srcDir('src/main/java') }
 				"""), Arguments.of("Groovy test list filtered after it is read", GROOVY, """
 				plugins { id 'java' }
 				sourceSets.test.java.srcDirs =
@@ -645,9 +669,9 @@ class ProjectSourcesFinderGradleFormsTest {
 
 	/**
 	 * A closure or lambda parameter, named or the implicit {@code it}, hides the
-	 * gradle.properties entry of the same name, so Gradle 9.9.1 adds {@code checks}
-	 * here. This reader cannot work the value out, so it never takes the main
-	 * folder the entry names as a test root.
+	 * gradle.properties entry or the script variable of the same name, so Gradle
+	 * 9.9.1 adds {@code checks} here. This reader cannot work the value out, so it
+	 * never takes the main folder the entry or variable names as a test root.
 	 *
 	 * @param label      what the form is
 	 * @param descriptor the descriptor's name
@@ -687,7 +711,53 @@ class ProjectSourcesFinderGradleFormsTest {
 				"""), Arguments.of("Kotlin typed lambda parameter", KOTLIN, "directory", """
 				plugins { java }
 				listOf("checks").forEach { directory: String -> sourceSets.test { java.srcDir(directory) } }
-				"""));
+				"""), Arguments.of("Groovy annotated closure parameter", GROOVY, "directory", """
+				plugins { id 'java' }
+				['checks'].each { @Deprecated String directory ->
+				    sourceSets.test.java.srcDir(directory)
+				}
+				"""), Arguments.of("Groovy array closure parameter", GROOVY, "directory", """
+				plugins { id 'java' }
+				[['checks'] as String[]].each { String[] directory ->
+				    sourceSets.test.java.srcDir(directory[0])
+				}
+				"""), Arguments.of("Groovy closure parameter on the next line", GROOVY, "directory", """
+				plugins { id 'java' }
+				['checks'].each {
+				    directory ->
+				    sourceSets.test.java.srcDir(directory)
+				}
+				"""), Arguments.of("Groovy closure parameter with a default", GROOVY, "directory", """
+				plugins { id 'java' }
+				def c = { directory = 'checks' -> sourceSets.test.java.srcDir(directory) }
+				c()
+				"""),
+				Arguments.of("Kotlin typed destructured lambda parameters", KOTLIN, "directory",
+						"""
+								plugins { java }
+								listOf(Pair("checks", "x")).forEach { (directory, other): Pair<String, String> -> sourceSets.test { java.srcDir(directory) } }
+								"""),
+				Arguments.of("Groovy implicit it hiding a script variable", GROOVY, "unused", """
+						plugins { id 'java' }
+						def it = 'src/main/java'
+						['checks'].each { sourceSets.test.java.srcDir(it) }
+						"""), Arguments.of("Kotlin lambda parameter hiding a script variable", KOTLIN, "unused", """
+						plugins { java }
+						val directory = "src/main/java"
+						listOf("checks").forEach { directory -> sourceSets.test { java.srcDir(directory) } }
+						"""));
+	}
+
+	/**
+	 * A closure padded with tens of thousands of blanks, which Gradle 9.9.1 reads
+	 * without a problem, is read within seconds and leaves main complete.
+	 */
+	@Test
+	void readsALongClosureQuickly() {
+		String content = "plugins { id 'java' }\ndef c = { word" + " ".repeat(32_000) + "}\n";
+
+		assertTimeoutPreemptively(Duration.ofSeconds(5),
+				() -> assertTrue(discover(GROOVY, content).productionRootsComplete()));
 	}
 
 	/**

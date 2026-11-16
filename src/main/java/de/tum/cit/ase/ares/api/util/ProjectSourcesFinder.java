@@ -738,16 +738,15 @@ public final class ProjectSourcesFinder {
 				.compile("(?:[A-Z][A-Za-z0-9_$<>?]*[ \\t\\u0001]+)(project|rootProject|parent)(?![A-Za-z0-9_$])"
 						+ "|(?<![A-Za-z0-9_$.])(project|rootProject|parent)[\\s\\u0001]*(?:,|->|in(?![A-Za-z0-9_$])|:(?!:))"
 						+ "|,[\\s\\u0001]*(project|rootProject|parent)[\\s\\u0001]*\\)");
+		/** The start of a {@code for} loop's header. Matched on masked code. */
+		private static final Pattern FOR_HEADER = Pattern.compile("(?<![A-Za-z0-9_$])for[\\s\\u0001]*\\(");
 		/**
-		 * The parameters a closure or lambda names before its {@code ->}, with or
-		 * without a type and, in Kotlin, also in parentheses, and the variable a
-		 * {@code for} loop names before {@code in} or a single colon. Matched on masked
-		 * code.
+		 * Where a {@code for} header names its variable before the collection: a
+		 * blank-delimited {@code in} or a single colon.
 		 */
-		private static final Pattern PARAMETER_LIST = Pattern
-				.compile("\\{[\\s\\u0001]*\\(?([A-Za-z_$][A-Za-z0-9_$<>?.,:\\s\\u0001]*?)\\)?[\\s\\u0001]*->"
-						+ "|(?<![A-Za-z0-9_$])for[\\s\\u0001]*\\(([A-Za-z_$][A-Za-z0-9_$<>?.\\s\\u0001]*?)"
-						+ "(?:[\\s\\u0001]+in(?![A-Za-z0-9_$])|[\\s\\u0001]*:(?!:))");
+		private static final Pattern LOOP_VARIABLE_END = Pattern.compile("[\\s\\u0001]in(?![A-Za-z0-9_$])|:(?!:)");
+		/** A name, as written in Groovy or Kotlin code. */
+		private static final Pattern NAME = Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*");
 		/** The names that, before {@code apply}, end a project receiver. */
 		private static final Set<String> PROJECT_NAMES = Set.of("project", "rootProject");
 		/**
@@ -833,7 +832,8 @@ public final class ProjectSourcesFinder {
 				}
 			}
 			localNames.addAll(counts.keySet());
-			localNames.addAll(boundNames(code));
+			Set<String> bound = boundNames(code);
+			localNames.addAll(bound);
 			SHADOWABLE_PROJECTS.stream().filter(localNames::contains).forEach(shadowedProjects::add);
 			Matcher bindings = PROJECT_BINDING.matcher(code);
 			while (bindings.find()) {
@@ -841,7 +841,7 @@ public final class ProjectSourcesFinder {
 						.filter(Objects::nonNull).findFirst().orElseThrow());
 			}
 			counts.forEach((name, count) -> {
-				if (count == 1 && declared.contains(name) && literal.containsKey(name)) {
+				if (count == 1 && declared.contains(name) && literal.containsKey(name) && !bound.contains(name)) {
 					locals.put(name, literal.get(name));
 				}
 			});
@@ -850,18 +850,68 @@ public final class ProjectSourcesFinder {
 		/**
 		 * The names this script binds as a closure, lambda or loop parameter, and
 		 * {@code it}, a closure's implicit parameter. Gradle gives such a name the
-		 * value passed in, not the gradle.properties entry of the same name, so the
-		 * reader counts it as a name the script assigns and never reads it from there.
+		 * value passed in, not the gradle.properties entry or the script variable of
+		 * the same name. Every name written in a parameter list counts, types and
+		 * annotations included, which only makes the reader more careful.
 		 */
 		private static Set<String> boundNames(String code) {
 			Set<String> names = new HashSet<>(Set.of("it"));
-			Matcher lists = PARAMETER_LIST.matcher(code);
-			while (lists.find()) {
-				String list = lists.group(1) != null ? lists.group(1) : lists.group(2);
-				for (String parameter : list.split(",")) {
-					String[] words = parameter.split(":")[0].strip().split("[\\s\\u0001]+");
-					names.add(words[words.length - 1]);
+			for (int arrow = code.indexOf("->"); arrow >= 0; arrow = code.indexOf("->", arrow + 2)) {
+				int open = parameterListStart(code, arrow);
+				if (open >= 0) {
+					names.addAll(namesIn(code.substring(open + 1, arrow)));
 				}
+			}
+			Matcher loops = FOR_HEADER.matcher(code);
+			while (loops.find()) {
+				int close = matchingClose(code, loops.end() - 1);
+				String header = code.substring(loops.end(), close < 0 ? code.length() : close);
+				Matcher variableEnd = LOOP_VARIABLE_END.matcher(header);
+				names.addAll(namesIn(variableEnd.find() ? header.substring(0, variableEnd.start()) : ""));
+			}
+			return names;
+		}
+
+		/**
+		 * Where the closure or lambda whose parameters end at this {@code ->} opens:
+		 * the brace before it on the same line, or on an earlier line where every line
+		 * break in between follows that brace or a comma. -1 where the arrow is not one
+		 * of a parameter list, as after a {@code when} branch.
+		 */
+		private static int parameterListStart(String code, int arrow) {
+			int index = arrow - 1;
+			while (index >= 0) {
+				char character = code.charAt(index);
+				if (character == '{') {
+					return index;
+				}
+				if (character == '}' || character == ';'
+						|| character == '>' && index > 0 && code.charAt(index - 1) == '-') {
+					return -1;
+				}
+				if (character == '\n') {
+					int before = index - 1;
+					while (before >= 0
+							&& (Character.isWhitespace(code.charAt(before)) || code.charAt(before) == COMMENT_MASK)) {
+						before--;
+					}
+					if (before < 0 || code.charAt(before) != '{' && code.charAt(before) != ',') {
+						return -1;
+					}
+					index = before;
+					continue;
+				}
+				index--;
+			}
+			return -1;
+		}
+
+		/** Every name written in this code. */
+		private static Set<String> namesIn(String code) {
+			Set<String> names = new HashSet<>();
+			Matcher matcher = NAME.matcher(code);
+			while (matcher.find()) {
+				names.add(matcher.group());
 			}
 			return names;
 		}
@@ -1004,12 +1054,13 @@ public final class ProjectSourcesFinder {
 
 		/**
 		 * Whether the statement goes on after this line break: the next line starts
-		 * with {@code .}, {@code ?}, {@code :}, {@code &&} or {@code ||}, or this line
-		 * ends in the middle of an expression.
+		 * with {@code .}, {@code ?}, {@code :}, {@code &&} or {@code ||}, or with a
+		 * brace, which Groovy takes as a closure passed to the call before it, or this
+		 * line ends in the middle of an expression.
 		 */
 		private boolean continuesOnTheNextLine(int lineBreak) {
 			int next = skipInactive(code, lineBreak);
-			return next < code.length() && (".?:".indexOf(code.charAt(next)) >= 0 || code.startsWith("&&", next)
+			return next < code.length() && (".?:{".indexOf(code.charAt(next)) >= 0 || code.startsWith("&&", next)
 					|| code.startsWith("||", next)) || endsMidExpression(lineBreak);
 		}
 
@@ -1206,8 +1257,9 @@ public final class ProjectSourcesFinder {
 			List<String> prefix = recordChain(chain, start, end);
 			String recorded = prefix.remove(prefix.size() - 1);
 			String name = chain.get(chain.size() - 1);
+			boolean deferred = defersItsAction(pathWith(prefix), name);
 			if (LOOKUPS.contains(name) && brackets.isEmpty()) {
-				return lookup(end, prefix, name);
+				return lookup(end, prefix, name, deferred);
 			}
 			if (DECLARATIONS.contains(name)) {
 				return recordHandled(declaration(start, end, prefix, name), prefix, recorded);
@@ -1220,6 +1272,9 @@ public final class ProjectSourcesFinder {
 			}
 			head.addAll(prefix);
 			head.add(recorded);
+			if (deferred) {
+				head.add(DEFERRED);
+			}
 			return end;
 		}
 
@@ -1420,10 +1475,10 @@ public final class ProjectSourcesFinder {
 		 * after {@link #DEFERRED} where its action may never run. The arguments are
 		 * then walked as nested code.
 		 */
-		private int lookup(int end, List<String> prefix, String name) {
+		private int lookup(int end, List<String> prefix, String name, boolean deferred) {
 			int open = skipTypeArguments(skipInactive(code, end));
 			head.addAll(prefix);
-			if (defersItsAction(prefix, name)) {
+			if (deferred) {
 				head.add(DEFERRED);
 			}
 			if (open >= code.length() || code.charAt(open) != '(') {
@@ -1439,12 +1494,16 @@ public final class ProjectSourcesFinder {
 
 		/**
 		 * Whether a lookup's configuration action waits until Gradle creates the
-		 * element: {@code register} always, {@code named} unless the receiver is
-		 * {@code sourceSets}.
+		 * element: {@code register} always, {@code named} unless the names leading to
+		 * it, enclosing blocks included, end in {@code sourceSets}.
+		 *
+		 * @param path the names leading to the lookup, outermost first
+		 * @param name the lookup's name
+		 * @return whether its action may never run
 		 */
-		private static boolean defersItsAction(List<String> prefix, String name) {
-			return "register".equals(name) || "named".equals(name)
-					&& (prefix.isEmpty() || !"sourceSets".equals(prefix.get(prefix.size() - 1)));
+		private static boolean defersItsAction(List<String> path, String name) {
+			return "register".equals(name)
+					|| "named".equals(name) && (path.isEmpty() || !"sourceSets".equals(path.get(path.size() - 1)));
 		}
 
 		/**
