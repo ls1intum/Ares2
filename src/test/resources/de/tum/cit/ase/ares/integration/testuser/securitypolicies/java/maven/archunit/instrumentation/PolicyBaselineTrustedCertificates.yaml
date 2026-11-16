@@ -19,5 +19,6 @@ regardingTheSupervisedCode:
     regardingThreadCreations: [ ]
     regardingPackageImports:
       - importTheFollowingPackage: "javax.net.ssl"
+      - importTheFollowingPackage: "java.security"
     regardingTimeouts:
       - timeout: 3000
