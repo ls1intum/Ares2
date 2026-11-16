@@ -20,6 +20,7 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
@@ -358,6 +359,53 @@ public class JavaWriterTest {
 			assertTrue(legacySubclassWriter.releasedOverloadInvoked);
 			assertEquals(List.of(), result);
 		}
+	}
+
+	/** Checks that the writer refuses a null project root. */
+	@Test
+	void constructorRejectsANullProjectRoot() {
+		assertThrows(NullPointerException.class, () -> new JavaWriter((Path) null));
+	}
+
+	/** Checks that the writer refuses a project root that is a file. */
+	@Test
+	void constructorRejectsAProjectRootThatIsNotADirectory() throws IOException {
+		Path file = Files.createFile(tempDir.resolve("not-a-directory.txt"));
+		assertThrows(IllegalArgumentException.class, () -> new JavaWriter(file));
+	}
+
+	/**
+	 * Checks that a writer bound to a Maven configuration refuses a Gradle write
+	 * request with an IllegalStateException.
+	 */
+	@Test
+	void writeTestCasesRejectsABuildModeThatMismatchesTheConfiguration() {
+		BuildToolConfiguration configuration = new BuildToolConfiguration(BuildMode.MAVEN, tempDir, List.of(tempDir),
+				List.of(tempDir), tempDir.resolve("classes"), tempDir.resolve("test-classes"));
+		JavaWriter configured = new JavaWriter(configuration);
+		IllegalStateException failure = assertThrows(IllegalStateException.class,
+				() -> configured.writeTestCases(BuildMode.GRADLE, architectureMode, aopMode, essentialPackages,
+						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+						javaAOPTestCases, javaPhobosTestCases, tempDir));
+		assertEquals("Writer build mode does not match the discovered build configuration", failure.getMessage());
+	}
+
+	/**
+	 * Checks that a matching build mode passes the mismatch check, so the request
+	 * fails later, at the missing build descriptor, instead.
+	 */
+	@Test
+	void writeTestCasesWithAMatchingBuildModePassesTheConfigurationGuard() throws IOException {
+		Path emptyRoot = Files.createDirectories(tempDir.resolve("empty-root"));
+		BuildToolConfiguration configuration = new BuildToolConfiguration(BuildMode.MAVEN, emptyRoot,
+				List.of(emptyRoot), List.of(emptyRoot), emptyRoot.resolve("classes"),
+				emptyRoot.resolve("test-classes"));
+		JavaWriter configured = new JavaWriter(configuration);
+		IllegalStateException failure = assertThrows(IllegalStateException.class,
+				() -> configured.writeTestCases(BuildMode.MAVEN, architectureMode, aopMode, essentialPackages,
+						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
+						javaAOPTestCases, javaPhobosTestCases, emptyRoot));
+		assertTrue(failure.getMessage().contains("has no build descriptor"));
 	}
 
 	private void stubArchitectureModeDefaults() {

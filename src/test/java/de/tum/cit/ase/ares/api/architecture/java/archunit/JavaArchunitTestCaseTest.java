@@ -15,6 +15,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
 public class JavaArchunitTestCaseTest {
@@ -165,5 +166,79 @@ public class JavaArchunitTestCaseTest {
 	@Test
 	void archunitBuilder_returnsBuilderInstance() {
 		assertNotNull(JavaArchunitTestCase.archunitBuilder());
+	}
+
+	/** A class with no dependencies beyond its own nest and java.lang. */
+	static final class Tiny {
+	}
+
+	/** The package of {@link Tiny}, which it depends on through its nest host. */
+	private static final String OWN_PACKAGE = "de.tum.cit.ase.ares.api.architecture.java.archunit";
+
+	/**
+	 * Runs the package-import rule over the given classes with the given
+	 * permissions.
+	 *
+	 * @param javaClasses the analysed classes, shared between runs
+	 * @param packages    the permitted package names
+	 * @param classes     the exempted class names
+	 */
+	private static void runPackageImport(JavaClasses javaClasses, Set<String> packages, Set<String> classes) {
+		Set<PackagePermission> allowedPackages = new HashSet<>();
+		packages.forEach(name -> allowedPackages.add(new PackagePermission(name)));
+		Set<ClassPermission> allowedClasses = new HashSet<>();
+		classes.forEach(name -> allowedClasses.add(new ClassPermission(name)));
+		JavaArchunitTestCase.archunitBuilder()
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
+				.allowedPackages(allowedPackages).allowedClasses(allowedClasses).javaClasses(javaClasses).build()
+				.executeArchitectureTestCase("ARCHUNIT", "ASPECTJ");
+	}
+
+	/**
+	 * A single permitted package named "a,b" is not served the cached pass of the
+	 * two packages a and b.
+	 */
+	@Test
+	void packageImport_commaJoinedPackageAfterTheSplitOnes_isNotServedTheirCachedPass() {
+		JavaClasses javaClasses = new ClassFileImporter().importClasses(Tiny.class);
+		runPackageImport(javaClasses, Set.of("java", OWN_PACKAGE), Set.of());
+		assertThrows(SecurityException.class,
+				() -> runPackageImport(javaClasses, Set.of(OWN_PACKAGE + ",java"), Set.of()));
+	}
+
+	/**
+	 * The two packages a and b are not served the cached failure of the single
+	 * package named "a,b".
+	 */
+	@Test
+	void packageImport_splitPackagesAfterTheCommaJoinedOne_areNotServedItsCachedFailure() {
+		JavaClasses javaClasses = new ClassFileImporter().importClasses(Tiny.class);
+		assertThrows(SecurityException.class,
+				() -> runPackageImport(javaClasses, Set.of(OWN_PACKAGE + ",java"), Set.of()));
+		assertDoesNotThrow(() -> runPackageImport(javaClasses, Set.of("java", OWN_PACKAGE), Set.of()));
+	}
+
+	/**
+	 * A single exempted class named "a,b" is not served the cached pass of the two
+	 * exempted classes a and b.
+	 */
+	@Test
+	void packageImport_commaJoinedExemptionAfterTheSplitOnes_isNotServedTheirCachedPass() {
+		JavaClasses javaClasses = new ClassFileImporter().importClasses(Tiny.class);
+		String tiny = Tiny.class.getName();
+		runPackageImport(javaClasses, Set.of(), Set.of(tiny, "x.Other"));
+		assertThrows(SecurityException.class, () -> runPackageImport(javaClasses, Set.of(), Set.of(tiny + ",x.Other")));
+	}
+
+	/**
+	 * The two exempted classes a and b are not served the cached failure of the
+	 * single exempted class named "a,b".
+	 */
+	@Test
+	void packageImport_splitExemptionsAfterTheCommaJoinedOne_areNotServedItsCachedFailure() {
+		JavaClasses javaClasses = new ClassFileImporter().importClasses(Tiny.class);
+		String tiny = Tiny.class.getName();
+		assertThrows(SecurityException.class, () -> runPackageImport(javaClasses, Set.of(), Set.of(tiny + ",x.Other")));
+		assertDoesNotThrow(() -> runPackageImport(javaClasses, Set.of(), Set.of(tiny, "x.Other")));
 	}
 }

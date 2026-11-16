@@ -281,7 +281,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 			// No-policy path: derive scope and exemptions from the project scan.
 			this.packageName = projectScanner.scanForPackageName();
 			this.mainClassInPackageName = projectScanner.scanForMainClassInPackage();
-			this.resourceAccesses = ResourceAccesses.createRestrictive();
+			this.resourceAccesses = ResourceAccesses.createRestrictiveWithoutPolicy();
 			this.testBehaviorConfiguration = TestBehaviorConfiguration.builder().build();
 			this.testClasses = new ArrayList<>(Arrays.asList(projectScanner.scanForTestClasses()));
 		}
