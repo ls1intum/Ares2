@@ -253,7 +253,44 @@ class ExerciseJUnitVersionTest {
 	}
 
 	/**
-	 * A reference the exercise's own files do not define, or one that loops, is
+	 * A value set once to many copies of itself, or two values that repeat each
+	 * other, is refused as unreadable within seconds, instead of growing longer
+	 * with every lookup.
+	 *
+	 * @param firstFile the build file's path.
+	 * @param firstText its text.
+	 * @throws IOException if a file cannot be written
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+			"pom.xml|<project><properties><v>${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}${v}</v></properties><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>${v}</version></dependency></dependencies></project>",
+			"pom.xml|<project><properties><a>${b}${b}${b}${b}${b}${b}${b}${b}</a><b>${a}${a}${a}${a}${a}${a}${a}${a}</b></properties><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>${a}</version></dependency></dependencies></project>",
+			"build.gradle|ext.a = \"${b}${b}${b}\"\\next.b = \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\\ndependencies { testImplementation \"org.junit.jupiter:junit-jupiter:$a\" }" })
+	void aValueThatGrowsWithEveryLookupIsRefusedQuickly(String firstFile, String firstText) throws IOException {
+		writeFiles(firstFile, firstText, "-", "-");
+		assertTimeoutPreemptively(Duration.ofSeconds(5),
+				() -> assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+						.isInstanceOf(SecurityException.class));
+	}
+
+	/**
+	 * A value looked up through another one that the exercise sets is still checked
+	 * at the number it ends in.
+	 *
+	 * @throws IOException if a file cannot be written
+	 */
+	@Test
+	void aChainedValueIsStillChecked() throws IOException {
+		String pom = "<project><properties><a>${b}</a><b>%s</b></properties><dependencies><dependency><artifactId>junit-jupiter</artifactId><version>${a}</version></dependency></dependencies></project>";
+		writeFiles("pom.xml", pom.formatted("5.12.0"), "-", "-");
+		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
+		writeFiles("pom.xml", pom.formatted("5.11.4"), "-", "-");
+		assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("5.11.4");
+	}
+
+	/**
+	 * A reference the exercise's own files do not define, or a short loop, is
 	 * accepted, since Ares cannot tell the version.
 	 *
 	 * @param firstFile  the first file's path.

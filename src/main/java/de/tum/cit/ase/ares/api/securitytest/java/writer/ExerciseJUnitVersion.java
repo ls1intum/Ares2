@@ -47,6 +47,13 @@ final class ExerciseJUnitVersion {
 	 */
 	private static final int MAXIMUM_READINGS = 256;
 
+	/**
+	 * How many characters one reading of a version value may have. A value that
+	 * repeats a reference to itself would otherwise double in length with every
+	 * lookup, so a longer reading is refused as unreadable before it is built.
+	 */
+	private static final int MAXIMUM_READING_LENGTH = 256;
+
 	/** The build files a JUnit version can be set in, below the project root. */
 	private static final List<String> BUILD_FILES = List.of("pom.xml", "build.gradle", "build.gradle.kts");
 
@@ -366,13 +373,15 @@ final class ExerciseJUnitVersion {
 	/**
 	 * Every way a version value reads once its references are replaced by the
 	 * values the exercise sets, a few times over. A name set twice gives one
-	 * reading per value; a reference Ares cannot look up, or a loop, stays in it.
+	 * reading per value; a reference Ares cannot look up, or a short loop, stays in
+	 * it.
 	 *
 	 * @param buildFile   the file that names it.
 	 * @param version     the value as written.
 	 * @param definitions the values the exercise sets.
 	 * @return each reading and the files it used
-	 * @throws SecurityException when it has more than {@link #MAXIMUM_READINGS}
+	 * @throws SecurityException when it has more than {@link #MAXIMUM_READINGS}, or
+	 *                           one longer than {@link #MAXIMUM_READING_LENGTH}
 	 */
 	@Nonnull
 	private static Set<Resolution> resolved(@Nonnull Path buildFile, @Nonnull String version,
@@ -398,7 +407,8 @@ final class ExerciseJUnitVersion {
 	 * @param reading     the value so far and the files it used.
 	 * @param definitions the values the exercise sets.
 	 * @return each combination
-	 * @throws SecurityException when there are more than {@link #MAXIMUM_READINGS}
+	 * @throws SecurityException when there are more than {@link #MAXIMUM_READINGS},
+	 *                           or one longer than {@link #MAXIMUM_READING_LENGTH}
 	 */
 	@Nonnull
 	private static List<Resolution> lookedUpOnce(@Nonnull Path buildFile, @Nonnull String version,
@@ -412,10 +422,12 @@ final class ExerciseJUnitVersion {
 			String before = text.substring(end, reference.start());
 			List<Definition> values = definitions.getOrDefault(name.strip(), List.of());
 			requireFewReadings(buildFile, version, (long) partial.size() * Math.max(1, values.size()));
+			requireShortReadings(buildFile, version, longestContinued(partial, before, reference.group(), values));
 			partial = appended(partial, before, reference.group(), values);
 			end = reference.end();
 		}
 		String tail = text.substring(end);
+		requireShortReadings(buildFile, version, longestContinued(partial, tail, "", List.of()));
 		return partial.stream().map(part -> new Resolution(part.value() + tail, part.sources())).toList();
 	}
 
@@ -445,6 +457,40 @@ final class ExerciseJUnitVersion {
 			}
 		}
 		return continued;
+	}
+
+	/**
+	 * The length of the longest reading that continuing the partial readings by the
+	 * text before a reference and by one of its values would give.
+	 *
+	 * @param partial   the readings so far.
+	 * @param before    the text before the reference.
+	 * @param reference the reference as written, kept when it has no value.
+	 * @param values    the values its name is set to.
+	 * @return the longest continued length, computed without building it
+	 */
+	private static long longestContinued(@Nonnull List<Resolution> partial, @Nonnull String before,
+			@Nonnull String reference, @Nonnull List<Definition> values) {
+		long longestPart = partial.stream().mapToLong(part -> part.value().length()).max().orElse(0);
+		long longestValue = values.isEmpty() ? reference.length()
+				: values.stream().mapToLong(value -> value.value().length()).max().orElse(0);
+		return longestPart + before.length() + longestValue;
+	}
+
+	/**
+	 * Refuses a version value whose reading would be longer than
+	 * {@link #MAXIMUM_READING_LENGTH}, before that reading is built.
+	 *
+	 * @param buildFile the file that names it.
+	 * @param version   the value as written.
+	 * @param length    how long its longest reading would be.
+	 * @throws SecurityException naming the value as unreadable
+	 */
+	private static void requireShortReadings(@Nonnull Path buildFile, @Nonnull String version, long length) {
+		if (length > MAXIMUM_READING_LENGTH) {
+			throw new SecurityException(
+					Messages.localized("security.writer.junit.version.unreadable", buildFile.toString(), version));
+		}
 	}
 
 	/**
