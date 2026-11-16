@@ -135,8 +135,7 @@ public final class ProjectSourcesFinder {
 					root.resolve(mode.getBuildDirectory()), root.resolve(mode.getTestBuildDirectory()),
 					production.complete());
 		}
-		GradleSourceRoots gradleRoots = discoverGradleRoots(root,
-				gradleKotlin ? root.resolve("build.gradle.kts") : root.resolve("build.gradle"));
+		GradleSourceRoots gradleRoots = discoverGradleRoots(root, gradleDescriptorOf(root));
 		return new BuildToolConfiguration(mode, root, gradleRoots.production(), gradleRoots.test(),
 				root.resolve(mode.getBuildDirectory()), root.resolve(mode.getTestBuildDirectory()),
 				gradleRoots.productionComplete());
@@ -957,11 +956,19 @@ public final class ProjectSourcesFinder {
 		if (buildMode == BuildMode.MAVEN) {
 			return mavenGroupOf(projectRoot.resolve("pom.xml"));
 		}
-		Path kotlin = projectRoot.resolve("build.gradle.kts");
-		Path descriptor = Files.isRegularFile(kotlin) ? kotlin : projectRoot.resolve("build.gradle");
-		Optional<GroupSetting> setting = gradleGroupOf(descriptor);
+		Optional<GroupSetting> setting = gradleGroupOf(gradleDescriptorOf(projectRoot));
 		return setting.isPresent() ? setting.get().literal()
 				: gradlePropertiesGroupOf(projectRoot.resolve("gradle.properties"));
+	}
+
+	/**
+	 * The build script Gradle runs for the root project: {@code build.gradle} where
+	 * it exists, even beside a {@code build.gradle.kts}, as measured with Gradle
+	 * 9.8.0, else {@code build.gradle.kts}.
+	 */
+	private static Path gradleDescriptorOf(Path root) {
+		Path groovy = root.resolve("build.gradle");
+		return Files.isRegularFile(groovy) ? groovy : root.resolve("build.gradle.kts");
 	}
 
 	/**

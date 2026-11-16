@@ -186,6 +186,16 @@ class ProjectSourcesFinderGroupTest {
 		assertEquals(Optional.of("de.tum.cit.aet"), ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
 	}
 
+	/** build.gradle is read beside build.gradle.kts, as Gradle runs it. */
+	@Test
+	void prefersTheGroovyScriptOverTheKotlinScript() throws IOException {
+		Files.writeString(projectRoot.resolve("build.gradle"), "group = 'org.example.exercise'\n");
+		Files.writeString(projectRoot.resolve("build.gradle.kts"), "group = \"org.example\"\n");
+
+		assertEquals(Optional.of("org.example.exercise"),
+				ProjectSourcesFinder.declaredGroup(projectRoot, BuildMode.GRADLE));
+	}
+
 	/** The descriptor wins over gradle.properties, as it does in Gradle. */
 	@Test
 	void prefersTheDescriptorOverGradleProperties() throws IOException {
