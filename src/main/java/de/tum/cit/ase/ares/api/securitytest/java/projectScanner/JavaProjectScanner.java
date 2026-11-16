@@ -595,14 +595,15 @@ public class JavaProjectScanner implements ProjectScanner {
 	 * <p>
 	 * Every class file in the output root must yield a class of its own, and every
 	 * executable class must declare a non-reserved package equal to the scope or
-	 * below it. Nothing executable passes with a warning. Only this root is read.
+	 * below it. Nothing executable passes with a warning. Only this root is read,
+	 * and only a root proven absent counts as empty.
 	 *
 	 * @param derivedPackage the derived scope
 	 * @throws SecurityException when the output contradicts it
 	 */
 	public void requireDerivedScopeToCoverTheProject(@Nonnull String derivedPackage) {
 		Path outputRoot = productionOutputRoot();
-		if (Files.exists(outputRoot) && !Files.isReadable(outputRoot)) {
+		if (!Files.notExists(outputRoot) && !Files.isReadable(outputRoot)) {
 			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()));
 		}
 		String reservedBelow = ReservedPackageGuard.ancestorOfReservedPrefix(derivedPackage);
@@ -664,15 +665,19 @@ public class JavaProjectScanner implements ProjectScanner {
 	 * <p>
 	 * Listed on disk, since the importer skips unreadable files silently. A
 	 * symbolic link anywhere in the tree is refused, as the walk does not follow
-	 * it. A tree that cannot be walked is unreadable, not empty.
+	 * it. A tree that cannot be walked is unreadable, not empty, and so is a root
+	 * that is neither a folder nor proven absent.
 	 *
 	 * @param outputRoot the production output root
 	 * @return the class files, unresolved
 	 */
 	private static List<Path> compiledFilesIn(Path outputRoot) {
 		Path root = outputRoot.toAbsolutePath().normalize();
-		if (!Files.exists(root, LinkOption.NOFOLLOW_LINKS)) {
+		if (Files.notExists(root, LinkOption.NOFOLLOW_LINKS)) {
 			return List.of();
+		}
+		if (!Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS) && !Files.isSymbolicLink(root)) {
+			throw new SecurityException(Messages.localized("security.scope.output.unreadable", outputRoot.toString()));
 		}
 		try (Stream<Path> tree = Files.walk(root)) {
 			return tree.map(path -> refuseSymbolicLink(path, outputRoot)).filter(Files::isRegularFile)

@@ -291,6 +291,45 @@ class JavaProjectScannerScopeCoverageTest {
 	}
 
 	/**
+	 * An output root behind a folder that cannot be searched is neither present nor
+	 * absent as far as Ares can tell. Taking it for absent would pass the run with
+	 * a warning, so it is refused as unreadable.
+	 */
+	@Test
+	@DisplayName("Refuses an output root behind a folder it cannot search")
+	void refusesAnOutputRootBehindAnUnsearchableFolder() throws IOException {
+		assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
+				"POSIX permissions are needed to make the folder above the output root unsearchable");
+		Path outputRoot = assignmentOutput();
+		Path parent = outputRoot.getParent();
+		JavaProjectScanner scanner = scanner(outputRoot);
+		Files.setPosixFilePermissions(parent, PosixFilePermissions.fromString("rw-------"));
+		try {
+			assumeTrue(!Files.exists(outputRoot) && !Files.notExists(outputRoot),
+					() -> "cannot hide " + outputRoot + " behind an unsearchable folder here");
+
+			assertThrows(SecurityException.class, () -> scanner.requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+		} finally {
+			Files.setPosixFilePermissions(parent, PosixFilePermissions.fromString("rwxr-xr-x"));
+		}
+	}
+
+	/**
+	 * A file where the output folder belongs holds no class files to list, yet it
+	 * is not proven absent either, so it is refused rather than accepted as empty.
+	 */
+	@Test
+	@DisplayName("Refuses an output root that is a file")
+	void refusesAnOutputRootThatIsAFile() throws IOException {
+		Path outputRoot = projectRoot.resolve(ScannerFixtures.PRODUCTION_OUTPUT);
+		Files.createDirectories(outputRoot.getParent());
+		Files.writeString(outputRoot, "not a folder");
+
+		assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+	}
+
+	/**
 	 * A package declaration is not code that can run, so it says nothing about the
 	 * scope. Counting it would refuse a project for describing its own packages.
 	 */
@@ -555,7 +594,8 @@ class JavaProjectScannerScopeCoverageTest {
 
 	/**
 	 * Creates a symbolic link, or skips the calling test where the file system or
-	 * its permissions cannot express one.
+	 * its permissions cannot express one. A security refusal is not skipped, so
+	 * that a sandbox denial fails the test rather than hiding as a missing fixture.
 	 *
 	 * @param link   the link to create
 	 * @param target what it points to
@@ -563,7 +603,7 @@ class JavaProjectScannerScopeCoverageTest {
 	private static void link(Path link, Path target) {
 		try {
 			Files.createSymbolicLink(link, target);
-		} catch (IOException | UnsupportedOperationException | SecurityException exception) {
+		} catch (IOException | UnsupportedOperationException exception) {
 			assumeTrue(false, () -> "cannot create a symbolic link here: " + exception);
 		}
 	}
