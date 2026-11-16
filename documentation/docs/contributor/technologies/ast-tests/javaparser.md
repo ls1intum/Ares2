@@ -5,8 +5,14 @@ description: "Parsing Java source into an AST, and resolving what its names refe
 ---
 
 :::tip[Simple Story]
-JavaParser turns a pupil's `.java` file into a tree you can ask questions about, and can
-work out what each name in that file refers to.
+Some instructions forbid certain words and ways of answering, such as "solve it without a loop".
+The teacher checks them while marking, by reading what the pupil wrote.
+
+This tool turns the pupil's writing into parts the teacher can ask questions about. It can work
+out what each name in the writing refers to. These instructions are about how the pupil wrote
+the answer. They stop nobody from doing anything forbidden.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it is

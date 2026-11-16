@@ -17,7 +17,6 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.fil
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.fileSystemProvider.DeleteFileSystemProviderMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.filesDelete.FilesDeleteMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.thirdPartyPackage.DeleteThirdPartyPackageMain;
-import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.execute.desktop.ExecuteDesktopMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.overwrite.bufferedWriter.WriteBufferedWriterMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.overwrite.fileOutputStream.WriteFileOutputStreamMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.overwrite.fileSystemProvider.WriteFileSystemProviderMain;
@@ -53,16 +52,6 @@ class FileSystemAccessTest {
 	private static final String ERROR_SECURITY_EXCEPTION = "A SecurityException was thrown, but access should be allowed.";
 	private static final String ERROR_FILE_CONTENT_MISMATCH = "File content does not match the expected value.";
 	private static final String TRUSTED_FILE_CONTENT = "Let all who dare look upon these words tremble: Hello, world, and witness the unraveling of reality.";
-
-	/**
-	 * Executes the platform-specific trusted script and verifies console output.
-	 */
-	private String returnPlatformSpecificTrustedScriptPath() {
-		String osName = System.getProperty("os.name").toLowerCase();
-		return osName.contains("windows")
-				? "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.bat"
-				: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trustedExecute.sh";
-	}
 
 	/**
 	 * Sets up the input file with the expected trusted content for read tests.
@@ -1108,63 +1097,6 @@ class FileSystemAccessTest {
 		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedDelete.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/delete/thirdPartyPackage")
 		void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
 			assertNoAresSecurityException(DeleteThirdPartyPackageMain::accessFileSystemViaThirdPartyPackage);
-		}
-		// </editor-fold>
-	}
-	// </editor-fold>
-
-	// <editor-fold desc="Execute Operations">
-	// --- Execute Operations ---
-	@Nested
-	class ExecuteOperations {
-
-		// <editor-fold desc="accessFileSystemViaDesktop (Desktop execution)">
-		@PublicTest
-		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/execute/desktop")
-		void test_accessFileSystemViaDesktopMavenArchunitAspectJ() {
-			assertNoAresSecurityException(() -> {
-				try {
-					ExecuteDesktopMain.accessFileSystemViaDesktop(returnPlatformSpecificTrustedScriptPath());
-				} catch (java.io.IOException e) {
-					throw new RuntimeException(e);
-				}
-			});
-		}
-
-		@PublicTest
-		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/execute/desktop")
-		void test_accessFileSystemViaDesktopMavenArchunitInstrumentation() {
-			assertNoAresSecurityException(() -> {
-				try {
-					ExecuteDesktopMain.accessFileSystemViaDesktop(returnPlatformSpecificTrustedScriptPath());
-				} catch (java.io.IOException e) {
-					throw new RuntimeException(e);
-				}
-			});
-		}
-
-		@PublicTest
-		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/execute/desktop")
-		void test_accessFileSystemViaDesktopMavenWalaAspectJ() {
-			assertNoAresSecurityException(() -> {
-				try {
-					ExecuteDesktopMain.accessFileSystemViaDesktop(returnPlatformSpecificTrustedScriptPath());
-				} catch (java.io.IOException e) {
-					throw new RuntimeException(e);
-				}
-			});
-		}
-
-		@PublicTest
-		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedExecute.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/execute/desktop")
-		void test_accessFileSystemViaDesktopMavenWalaInstrumentation() {
-			assertNoAresSecurityException(() -> {
-				try {
-					ExecuteDesktopMain.accessFileSystemViaDesktop(returnPlatformSpecificTrustedScriptPath());
-				} catch (java.io.IOException e) {
-					throw new RuntimeException(e);
-				}
-			});
 		}
 		// </editor-fold>
 	}

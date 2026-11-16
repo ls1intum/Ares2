@@ -11,6 +11,9 @@
 # PlantUML renderer cache (the rendered .svg files themselves are committed)
 /.plantuml-cache
 
+# Renders the diagram drift check produced, kept on a mismatch and uploaded by CI
+/.plantuml-check
+
 # Playwright
 /test-results
 /playwright-report

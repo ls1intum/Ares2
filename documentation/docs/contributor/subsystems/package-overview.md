@@ -5,10 +5,15 @@ description: "Conceptual overview of every package under de.tum.cit.ase.ares.api
 ---
 
 :::tip[Simple Story]
-This is the map of the school.
+This page walks through the whole school one part at a time. Many parts have a place in the
+story: the rule sheet, the teacher clearing the desks and watching, and the instructions
+forbidding certain words. So do the special examination room, the pupils answering out loud and
+the teacher telling a pupil off for a broken rule. The remaining parts are tools the rest
+share, and have no place in the story.
 
-Ares is made of a dozen or so parts and each one has a job. This page names every part and says
-in a sentence or two what it is for, so you can find the right room before opening any doors.
+Each part gets a sentence or two, so you know where to look before you read further.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 This document provides a high-level conceptual overview of each package in `src/main/java/de/tum/cit/ase/ares/api/`.
@@ -212,7 +217,7 @@ This package manages **internationalisation** for error messages and test output
 
 ## `phobos`: Container and Sandbox-Based Security
 
-Phobos provides an alternative security mechanism based on **external container sandboxing** (e.g. Docker/bwrap). Unlike the in-process AOP approach, Phobos generates configuration files (allowed lists, shell scripts) that are consumed by an external sandbox runtime.
+Phobos provides an alternative security mechanism based on **external sandboxing**. Unlike the in-process AOP approach, Phobos generates `SpecificExercise.cfg` for an external sandbox runtime, maintained in [ls1intum/phobos](https://github.com/ls1intum/phobos).
 
 | Class | Purpose |
 |---|---|
@@ -222,7 +227,7 @@ Phobos provides an alternative security mechanism based on **external container 
 | `PhobosTestCaseSupported` | Interface for supported Phobos test cases |
 | `JavaPhobosTestCaseSupported` | Enum: `FILESYSTEM_INTERACTION`, `NETWORK_CONNECTION`, `TIMEOUT` |
 
-`JavaPhobosTestCase` transforms the abstract permission model into concrete shell-script and configuration-file content that an external sandbox runtime can enforce.
+`JavaPhobosTestCase` transforms the abstract permission model into concrete configuration-file content for an external sandbox runtime.
 
 **Key design patterns:** Builder (`JavaPhobosTestCase.Builder`), Strategy (extractors), Template Method.
 

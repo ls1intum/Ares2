@@ -5,11 +5,16 @@ description: "How read, overwrite, execute and delete permissions are enforced b
 ---
 
 :::tip[Simple Story]
-This is the part of the checklist with the most ways to reach it, so it carries the most
-enforcement.
+A pupil can be allowed to read, change, make, use or throw away a worksheet. Three things can
+stop them: the teacher clearing the desks, the teacher watching, and the special examination
+room. They do not all behave alike, and when the teacher picks up the rule sheet for each
+question, nobody uses the room.
 
-Three independent layers can each stop a pupil picking up a paper, they do not all behave
-alike, and in Postcompile the third never runs.
+The trap: while the rule sheet allows no worksheet at all, the desk clearing stops every
+attempt before the start, and the watching never gets its turn. Anyone who wants to see the
+watching at work has to allow at least one worksheet first.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 For the fields an exercise author writes, see

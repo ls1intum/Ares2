@@ -5,11 +5,15 @@ description: "The abstract syntax tree analysis subsystem."
 ---
 
 :::tip[Simple Story]
-Everything else in Ares asks what a pupil is allowed to **do**.
+Every other part of the school checks what a pupil does. This part looks at how they answered.
+Here live the instructions forbidding certain words and ways of answering, such as "solve it
+without a loop". The teacher follows them while marking.
 
-This part asks how they **answered**. Did they use a loop? Is there recursion? That is
-a mark-scheme question rather than a checklist one, and it is settled by reading the source as
-a tree of sentences rather than by watching the pupil work.
+These instructions read what the pupil wrote, so they miss anything whose writing they cannot
+see, and nothing that happens while the pupil works. They cannot stop a pupil from doing
+anything forbidden. That is the rule sheet's job.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it does

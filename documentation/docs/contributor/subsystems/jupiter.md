@@ -5,11 +5,19 @@ description: "The JUnit Jupiter integration subsystem."
 ---
 
 :::tip[Simple Story]
-This is the piece that puts the checklist into the hands of the teacher who runs the
-examination.
+This part tells the teacher how to run each question. Before each question, it has the teacher
+pick up the rule sheet, and afterwards put it away. It holds the stopwatch and listens to
+pupils who answer out loud.
 
-It is what makes a question public or hidden, what refuses to ask a hidden question before its
-deadline, and what puts a desk under supervision when the question asks for it.
+It decides whether the teacher says straight away if an answer was right, or only after the
+whole examination. Before the examination is over, the teacher does not even ask a question
+whose answer they keep back, so it leaves no trace.
+
+The trap: the rule sheet counts only for a question marked one of those two ways. A question
+with neither mark runs with nobody clearing the desks or watching, even with a rule sheet
+attached.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What it does

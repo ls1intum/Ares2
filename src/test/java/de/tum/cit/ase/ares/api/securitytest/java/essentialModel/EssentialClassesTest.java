@@ -41,8 +41,9 @@ public class EssentialClassesTest {
 				.readEssentialPackagesFrom(SecurityPolicyJavaDirector.DEFAULT_ESSENTIAL_PACKAGES_PATH);
 		List<String> entries = configured.getEssentialPackages();
 		assertEquals(entries.size(), new HashSet<>(entries).size());
-		Map<String, String> representativeClasses = Map.of("java", "java.lang.String", "org.aspectj",
-				"org.aspectj.lang.JoinPoint", "de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut",
+		Map<String, String> representativeClasses = Map.of("java.lang", "java.lang.String", "java.io",
+				"java.io.PrintStream", "org.aspectj", "org.aspectj.lang.JoinPoint",
+				"de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut",
 				"de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.CommandTarget");
 		assertEquals(representativeClasses.keySet(), new HashSet<>(entries));
 		for (String packagePrefix : entries) {

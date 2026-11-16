@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,8 +52,8 @@ public class EssentialDataYAMLReaderTest {
 			assertNotNull(result.essentialAresPackages());
 			assertNotNull(result.essentialJUnitPackages());
 
-			// Check that java packages contain "java"
-			assertTrue(result.essentialJavaPackages().contains("java"));
+			// Check that the JDK baseline is java.lang and java.io, not the whole of java
+			assertEquals(List.of("java.lang", "java.io"), result.essentialJavaPackages());
 
 			// Check that AspectJ packages contain expected packages
 			assertTrue(result.essentialAspectJPackages().contains("org.aspectj"));

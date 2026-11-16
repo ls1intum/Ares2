@@ -5,10 +5,11 @@ description: "Protecting a Gradle project with Ares 2 in Postcompile mode, from 
 ---
 
 :::tip[Simple Story]
-This is the whole path for a Gradle exercise, in the order you have to do it.
+This page sets up, step by step, an examination in which the teacher picks up the rule sheet for
+each question and puts it away afterwards. One step is not optional: the school's office has to
+make sure that the rule sheet on the desk is the head teacher's.
 
-Add Ares, label your tests, fill in the checklist, and wire the check into the build so nobody
-can quietly take it off the desk.
+[Who is who](/instructor/who-is-who)
 :::
 
 ## The path, in order
@@ -358,7 +359,7 @@ and live in the repository at
 - `MavenReservedPackages.xml`
 - `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
-Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
+Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
 
 ### Gradle
 

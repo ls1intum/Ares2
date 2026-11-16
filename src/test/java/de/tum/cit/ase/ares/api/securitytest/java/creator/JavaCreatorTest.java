@@ -5,24 +5,31 @@ import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 
+import de.tum.cit.ase.AncestorPackageExercise;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
@@ -254,6 +261,36 @@ public class JavaCreatorTest {
 			// We verify that the method completed successfully and the parameters were used
 			verify(resourceAccesses).regardingPackageImports();
 		}
+
+		/**
+		 * Student code declared in {@code de.tum.cit.ase}, above Ares' own API, is not
+		 * refused. Its own package is not granted here; the rule adds it as an exact
+		 * permission when it runs.
+		 *
+		 * @throws IOException if the fixture cannot be copied
+		 */
+		@Test
+		@DisplayName("Should permit a supervised package that lies above a trusted namespace")
+		void shouldPermitASupervisedPackageAboveATrustedNamespace() throws IOException {
+			Path output = Files.createDirectories(tempDir.resolve("classes/de/tum/cit/ase"));
+			try (InputStream bytecode = AncestorPackageExercise.class
+					.getResourceAsStream(AncestorPackageExercise.class.getSimpleName() + ".class")) {
+				Files.copy(bytecode, output.resolve(AncestorPackageExercise.class.getSimpleName() + ".class"));
+			}
+			String ancestorPackage = AncestorPackageExercise.class.getPackageName();
+			String ancestorClasspath = tempDir.resolve("classes").toString();
+			when(buildMode.getClasspath(tempDir, ancestorPackage)).thenReturn(ancestorClasspath);
+			when(architectureMode.getJavaClasses(ancestorClasspath)).thenReturn(javaClasses);
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+
+			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of("java"),
+					List.of(), List.of(), ancestorPackage, mainClassName, architectureTestCases, aopTestCases,
+					phobosTestCases, resourceAccesses, tempDir, false));
+
+			assertFalse(architectureTestCases.isEmpty());
+			assertTrue(architectureTestCases.get(0).getAllowedPackages().stream()
+					.noneMatch(permission -> permission.importTheFollowingPackage().equals(ancestorPackage)));
+		}
 	}
 
 	@Nested
@@ -326,6 +363,66 @@ public class JavaCreatorTest {
 	}
 
 	/**
+	 * Checks that a malformed essential package is refused while a valid one in the
+	 * JDK namespace is kept as that package alone. The pinned package and the test
+	 * class names are checked elsewhere, and the supervised code's own packages are
+	 * read from the compiled classes when the rule runs.
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesRejectsAMalformedEssentialPackage() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class);
+		prepare.setAccessible(true);
+		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(null, List.of("com..essential"), restrictive));
+		Set<PackagePermission> valid = (Set<PackagePermission>) prepare.invoke(null, List.of("java.lang"), restrictive);
+		assertEquals(Set.of(new PackagePermission("java.lang", true)), valid);
+	}
+
+	/** Checks that a wildcard package declared in the policy is kept unchanged. */
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesPassesAPolicyDeclaredWildcardThrough() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class);
+		prepare.setAccessible(true);
+		when(resourceAccesses.regardingPackageImports()).thenReturn(List.of(new PackagePermission("*")));
+		Set<PackagePermission> result = (Set<PackagePermission>) prepare.invoke(null, List.of(), resourceAccesses);
+		assertEquals(Set.of(new PackagePermission("*")), result);
+	}
+
+	/**
+	 * Checks that blank entries are dropped and a malformed class name is refused
+	 * before any class is exempted.
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	void usableClassNamesFiltersBlanksThenValidates() throws Exception {
+		Method usable = JavaCreator.class.getDeclaredMethod("usableClassNames", List.class);
+		usable.setAccessible(true);
+		List<String> result = (List<String>) usable.invoke(null,
+				Arrays.asList("com.example.Foo", "   ", null, "com.example.BarTest", ""));
+		assertEquals(List.of("com.example.Foo", "com.example.BarTest"), result);
+		assertInvocationCause(IllegalArgumentException.class, () -> usable.invoke(null, List.of("com..example.Foo")));
+	}
+
+	/**
+	 * Asserts a reflective call fails with the given cause, unwrapping the
+	 * {@link InvocationTargetException} that reflection wraps a thrown exception
+	 * in.
+	 *
+	 * @param expected   the exception type the underlying call should raise
+	 * @param invocation the reflective call under test
+	 * @return the unwrapped cause, for any further assertion
+	 */
+	private static <T extends Throwable> T assertInvocationCause(Class<T> expected, Executable invocation) {
+		InvocationTargetException wrapper = assertThrows(InvocationTargetException.class, invocation);
+		return assertInstanceOf(expected, wrapper.getCause());
+	}
+
+	/**
 	 * Checks that the creator reads nest members from the trusted test output and
 	 * scans the whole production output for a class named like one of them.
 	 */
@@ -394,6 +491,150 @@ public class JavaCreatorTest {
 			createTestCases();
 			assertThrows(SecurityException.class,
 					() -> javaCreator.requireNoProductionClassNamedLikeAnExemptedOne(buildMode));
+		}
+	}
+
+	/**
+	 * Checks that a run is refused when the classes the rules analyse are none
+	 * while the production output holds some, and let through otherwise.
+	 */
+	@Nested
+	@DisplayName("Supervised classes tests")
+	class SupervisedClassesTests {
+
+		/** The package supervised in these tests. */
+		private static final String PACKAGE = "example.nest";
+
+		/** Copies the compiled fixture into the given folder. */
+		private void compileFixtureInto(Path folder) throws IOException {
+			Files.createDirectories(folder);
+			try (InputStream input = JavaCreatorTest.class.getClassLoader()
+					.getResourceAsStream("example/nest/NestHostFixture.class")) {
+				Files.copy(Objects.requireNonNull(input, "the fixture is compiled"),
+						folder.resolve("NestHostFixture.class"));
+			}
+		}
+
+		/** Creates the test cases with the given folder as the analysed one. */
+		private void createTestCasesFor(Path supervisedFolder) {
+			createTestCasesFor(supervisedFolder, new ClassFileImporter().importPath(supervisedFolder));
+		}
+
+		/** Creates the test cases with the given folder and analysed classes. */
+		private void createTestCasesFor(Path supervisedFolder, JavaClasses analysedClasses) {
+			String classPath = supervisedFolder.toString();
+			when(buildMode.getClasspath(tempDir, PACKAGE)).thenReturn(classPath);
+			when(architectureMode.getJavaClasses(classPath)).thenReturn(analysedClasses);
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+			javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of(), List.of(), List.of(), PACKAGE,
+					"Main", new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), resourceAccesses, tempDir, true);
+		}
+
+		/** A scope holding a compiled class is accepted. */
+		@Test
+		@DisplayName("Accepts a scope holding a compiled class")
+		void acceptsAScopeHoldingACompiledClass() throws IOException {
+			Path scope = tempDir.resolve("classes/example/nest");
+			compileFixtureInto(scope);
+			createTestCasesFor(scope);
+			assertDoesNotThrow(() -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/** An empty scope is refused while the output holds a class elsewhere. */
+		@Test
+		@DisplayName("Refuses an empty scope while classes are compiled elsewhere")
+		void refusesAnEmptyScopeWhileClassesAreCompiledElsewhere() throws IOException {
+			compileFixtureInto(tempDir.resolve("classes/example/other"));
+			createTestCasesFor(Files.createDirectories(tempDir.resolve("classes/example/nest")));
+			assertThrows(SecurityException.class, () -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
+		 * A missing scope is refused while the output holds a class. The path is the
+		 * one a withinPath with "\" separators used to resolve to on Windows.
+		 */
+		@Test
+		@DisplayName("Refuses a missing scope while classes are compiled")
+		void refusesAMissingScopeWhileClassesAreCompiled() throws IOException {
+			compileFixtureInto(tempDir.resolve("classes/example/nest"));
+			createTestCasesFor(tempDir.resolve("classes/classes/java/main/example/nest"));
+			assertThrows(SecurityException.class, () -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
+		 * A missing test-output scope is refused while the test output holds a class,
+		 * although the production output is empty.
+		 */
+		@Test
+		@DisplayName("Refuses a missing test scope while test classes are compiled")
+		void refusesAMissingTestScopeWhileTestClassesAreCompiled() throws IOException {
+			Files.createDirectories(tempDir.resolve("classes"));
+			compileFixtureInto(tempDir.resolve("test-classes/example/nest"));
+			createTestCasesFor(tempDir.resolve("test-classes/example/typo"));
+			assertThrows(SecurityException.class, () -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
+		 * A missing test-output scope is refused while the production output holds a
+		 * class, although the test output is empty.
+		 */
+		@Test
+		@DisplayName("Refuses a missing test scope while production classes are compiled")
+		void refusesAMissingTestScopeWhileProductionClassesAreCompiled() throws IOException {
+			compileFixtureInto(tempDir.resolve("classes/example/nest"));
+			createTestCasesFor(tempDir.resolve("test-classes/example/typo"));
+			assertThrows(SecurityException.class, () -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
+		 * The rules' own classes decide, not the folder: a scope whose classes the
+		 * analysis left out is refused.
+		 */
+		@Test
+		@DisplayName("Refuses a scope whose classes the analysis left out")
+		void refusesAScopeWhoseClassesTheAnalysisLeftOut() throws IOException {
+			Path scope = tempDir.resolve("classes/example/nest");
+			compileFixtureInto(scope);
+			createTestCasesFor(scope, new ClassFileImporter().importClasses());
+			assertThrows(SecurityException.class, () -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
+		 * A creator reused after compiling still analyses its first, empty import, so
+		 * it is refused.
+		 */
+		@Test
+		@DisplayName("Refuses a reused creator whose cached import was empty")
+		void refusesAReusedCreatorWhoseCachedImportWasEmpty() throws IOException {
+			Path scope = Files.createDirectories(tempDir.resolve("classes/example/nest"));
+			createTestCasesFor(scope);
+			compileFixtureInto(scope);
+			createTestCasesFor(scope);
+			assertThrows(SecurityException.class, () -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
+		 * A directory named like a class file is not a compiled class, so an output
+		 * holding only that is still an exercise with nothing compiled.
+		 */
+		@Test
+		@DisplayName("Ignores a directory named like a class file")
+		void ignoresADirectoryNamedLikeAClassFile() throws IOException {
+			Files.createDirectories(tempDir.resolve("classes/assets/cache.class"));
+			createTestCasesFor(tempDir.resolve("classes/example/nest"));
+			assertDoesNotThrow(() -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
+		 * Nothing compiled at all is an exercise the student has yet to fill, and is
+		 * let through rather than turned into an Ares error.
+		 */
+		@Test
+		@DisplayName("Accepts an exercise with nothing compiled yet")
+		void acceptsAnExerciseWithNothingCompiledYet() throws IOException {
+			Files.createDirectories(tempDir.resolve("classes"));
+			createTestCasesFor(tempDir.resolve("classes/example/nest"));
+			assertDoesNotThrow(() -> javaCreator.requireSupervisedClasses(buildMode));
 		}
 	}
 }

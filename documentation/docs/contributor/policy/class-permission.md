@@ -5,9 +5,16 @@ description: "How the derived ClassPermission set is built and how it reaches bo
 ---
 
 :::tip[Simple Story]
-Some people in the room are trusted rather than checked, and this is where that set comes from.
+The grading instructions are trusted. They can do what the pupils cannot, such as opening a
+worksheet to check it, and both the desk clearing and the watching let them through.
 
-It is the only line of the checklist nobody writes by hand.
+Nobody writes this trust out as a line of its own. It comes from the names of the grading
+instructions on the rule sheet, together with a few things the checks themselves need. The
+trap: the teacher trusts by name. Any pupil's work that borrows a trusted name gets the same
+trust, so the school's office has to turn such work away. The head teacher has to set that up
+themselves.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 For the fields an exercise author writes, see

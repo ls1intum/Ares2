@@ -5,9 +5,11 @@ description: "Protecting a Gradle project with Ares 2 in Precompile mode, from p
 ---
 
 :::tip[Simple Story]
-This is the whole path for a Gradle exercise that has its checks printed in beforehand.
+This page sets up, step by step, an examination for which the head teacher prints the rules onto
+the grading instructions beforehand. The printing leaves out one step. The head teacher has to
+make the school's office check that the rule sheet on the desk is theirs.
 
-Fill in the checklist, run the generator, then wire the generated files into the build.
+[Who is who](/instructor/who-is-who)
 :::
 
 Precompile generates the enforcement artefacts before the exercise is built. The generator is run
@@ -335,7 +337,7 @@ and live in the repository at
 - `MavenReservedPackages.xml`
 - `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
-Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
+Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
 
 ### Gradle
 

@@ -5,10 +5,16 @@ description: "Adding a permission domain beyond the current eight, from the YAML
 ---
 
 :::tip[Simple Story]
-A policy domain is one category of thing a pupil might try, such as picking up a paper or
-telephoning out.
+The rule sheet can allow a few kinds of things, such as worksheets, the telephone and side
+jobs. This page is about adding a new kind.
 
-Adding one means changing every layer that has an opinion about it.
+A new kind has to reach everyone who follows the rule sheet: the desk clearing, the watching
+and, where it fits, the special examination room. The trap is a line the head teacher can write
+that nobody acts on. Today a time limit on the rule sheet is such a line: nobody keeps it when
+the teacher picks up the rule sheet for each question. This page is still an outline; nobody
+has written it out.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

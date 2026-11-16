@@ -5,10 +5,11 @@ description: "Migrating an Ares 1 Gradle exercise onto Ares 2 in Postcompile mod
 ---
 
 :::tip[Simple Story]
-This is the build-side half of the migration for a Gradle exercise.
+This page does the school office's part of the move, for the way where the teacher picks up
+the rule sheet for each question. The part that every office shares is on
+[the common page](../index.md); do it before or alongside this one.
 
-The parts that do not depend on your build tool are on [the common page](../index.md); do those
-first, or alongside these.
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Before this page
@@ -247,7 +248,9 @@ Ares 2 trusts a different set of identities by name, including its own `de.tum.c
 
 They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reservedPackages/`, and live in the Ares repository at `src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`. Both are reproduced in full below, so you can complete the migration without extracting them.
 
-Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+
+Prefix version 3 widened the list to the Ares 1 breadth. A version 1 or 2 snippet now reserves too little rather than too much: it omits the test harness (JUnit, AssertJ) and Ares' other dependencies. A submission that places a class in one of those shadows the code that grades it. Upgrading the Ares dependency does not rewrite a build guard you copied earlier, so refresh any snippet below prefix version 3 from the shipped files. Regenerate any previously generated helper sources too, since the upgrade does not replace their embedded reserved-package list either. This is a breaking change for an affected exercise: the build now rejects a submission that compiled before if it takes a reserved package.
 
 ### Gradle
 
@@ -275,7 +278,13 @@ def aresReservedPackageBoundaryVersion = '2'
 def aresReservedPackagePatterns = [
         'java/**', 'javax/**', 'sun/**', 'jdk/**', 'com/sun/**',
         'de/tum/cit/ase/ares/api/**', 'net/bytebuddy/**', 'org/aspectj/**',
-        'com/ibm/wala/**', 'com/tngtech/archunit/**'
+        'com/ibm/wala/**', 'com/tngtech/archunit/**', 'junit/**', 'org/junit/**',
+        'org/opentest4j/**', 'org/assertj/**', 'org/mockito/**', 'ch/qos/logback/**',
+        'org/slf4j/**', 'com/github/javaparser/**', 'com/fasterxml/jackson/**',
+        'org/yaml/**', 'org/json/**', 'com/opencsv/**', 'org/jgrapht/**',
+        'org/apiguardian/**', 'org/apache/**', 'org/eclipse/**', 'org/gradle/**',
+        'org/jacoco/**', 'com/intellij/**', 'worker/org/gradle/**',
+        'de/tum/in/test/api/**'
 ]
 
 tasks.register('verifyAresReservedPackagesV2') {
@@ -353,8 +362,8 @@ If your exercise's supervised code needs no file, network, command or thread acc
 What it restricts:
 
 - **File system, network, command execution and thread creation: denied.** No allowance exists.
-- **Package imports: restricted, not eliminated.** Ares always permits an implicit allowlist made of the essential packages it ships, the supervised package itself, and the packages of the recognised test classes. The essential list includes the `java` prefix, so all of `java.*` stays importable.
-- **No default execution timeout yet.** A 10,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.2.1 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
+- **Package imports: restricted, not eliminated.** Without a policy, Ares permits every `java.*` package, the essential packages it ships, and each package of the supervised code as that package alone. A recognised test class opens no package.
+- **No default execution timeout yet.** A 3,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.2.1 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
 
 It fixes the modes: always ArchUnit for static analysis and AspectJ for the runtime layer, with the build tool discovered from the project. So the AspectJ weaving of the step named in section 4 of this guide is what enforces at runtime here, and a project that is not woven falls back to the static checks alone.
 
