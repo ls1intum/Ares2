@@ -740,15 +740,22 @@ public final class ProjectSourcesFinder {
 				.compile("(?:[A-Z][A-Za-z0-9_$<>?]*[ \\t\\u0001]+)(project|rootProject|parent)(?![A-Za-z0-9_$])"
 						+ "|(?<![A-Za-z0-9_$.])(project|rootProject|parent)[\\s\\u0001]*(?:,|->|in(?![A-Za-z0-9_$])|:(?!:))"
 						+ "|,[\\s\\u0001]*(project|rootProject|parent)[\\s\\u0001]*\\)");
-		/** The start of a {@code for} loop's header. Matched on masked code. */
-		private static final Pattern FOR_HEADER = Pattern.compile("(?<![A-Za-z0-9_$])for[\\s\\u0001]*\\(");
 		/**
-		 * Where a {@code for} header names its variable before the collection: a
-		 * blank-delimited {@code in} or a single colon.
+		 * A whole name as written, also right after the {@code $} of a string
+		 * interpolation, not part of a longer one.
 		 */
-		private static final Pattern LOOP_VARIABLE_END = Pattern.compile("[\\s\\u0001]in(?![A-Za-z0-9_$])|:(?!:)");
-		/** A name, as written in Groovy or Kotlin code. */
-		private static final Pattern NAME = Pattern.compile("[A-Za-z_$][A-Za-z0-9_$]*");
+		private static final Pattern NAME = Pattern.compile("(?<![A-Za-z0-9_])[A-Za-z_][A-Za-z0-9_]*");
+		/**
+		 * A Kotlin variable that reads the project property of its name, as in
+		 * {@code val dir: String by project}, which binds nothing of its own.
+		 */
+		private static final Pattern PROPERTY_DELEGATE = Pattern.compile(
+				"(?<![A-Za-z0-9_$])val[ \\t]+([A-Za-z_][A-Za-z0-9_]*)[ \\t]*(?::[ \\t]*[A-Za-z0-9_.<>?]+[ \\t]*)?by[ \\t]+project(?![A-Za-z0-9_$])");
+		/**
+		 * The names a closure gives its code without their being written as parameters,
+		 * which never stand for a property or a variable of the script.
+		 */
+		private static final Set<String> IMPLICIT_NAMES = Set.of("it", "owner", "delegate", "this");
 		/** The names that, before {@code apply}, end a project receiver. */
 		private static final Set<String> PROJECT_NAMES = Set.of("project", "rootProject");
 		/**
@@ -800,6 +807,12 @@ public final class ProjectSourcesFinder {
 		 * may then hold any project.
 		 */
 		private final Set<String> shadowedProjects = new HashSet<>();
+		/**
+		 * How often each name is written in the script as written, strings and comments
+		 * included, so that every place a name may be bound counts. A Kotlin
+		 * {@code val dir by project}, which only reads the property, does not count.
+		 */
+		private final Map<String, Integer> mentions = new HashMap<>();
 
 		/**
 		 * Prepares a walk over one script, collecting the names it assigns and which of
@@ -834,8 +847,14 @@ public final class ProjectSourcesFinder {
 				}
 			}
 			localNames.addAll(counts.keySet());
-			Set<String> bound = boundNames(code);
-			localNames.addAll(bound);
+			Matcher written = NAME.matcher(content);
+			while (written.find()) {
+				mentions.merge(written.group(), 1, Integer::sum);
+			}
+			Matcher delegates = PROPERTY_DELEGATE.matcher(code);
+			while (delegates.find()) {
+				mentions.merge(delegates.group(1), -1, Integer::sum);
+			}
 			SHADOWABLE_PROJECTS.stream().filter(localNames::contains).forEach(shadowedProjects::add);
 			Matcher bindings = PROJECT_BINDING.matcher(code);
 			while (bindings.find()) {
@@ -843,74 +862,10 @@ public final class ProjectSourcesFinder {
 						.filter(Objects::nonNull).findFirst().orElseThrow());
 			}
 			counts.forEach((name, count) -> {
-				if (count == 1 && declared.contains(name) && literal.containsKey(name) && !bound.contains(name)) {
+				if (count == 1 && declared.contains(name) && literal.containsKey(name)) {
 					locals.put(name, literal.get(name));
 				}
 			});
-		}
-
-		/**
-		 * The names this script binds as a closure, lambda or loop parameter, and
-		 * {@code it}, a closure's implicit parameter. Gradle gives such a name the
-		 * value passed in, not the gradle.properties entry or the script variable of
-		 * the same name. Every name written in a parameter list counts, types and
-		 * annotations included, which only makes the reader more careful.
-		 */
-		private static Set<String> boundNames(String code) {
-			Set<String> names = new HashSet<>(Set.of("it"));
-			for (int arrow = code.indexOf("->"); arrow >= 0; arrow = code.indexOf("->", arrow + 2)) {
-				int open = parameterListStart(code, arrow);
-				if (open >= 0) {
-					names.addAll(namesIn(code.substring(open + 1, arrow)));
-				}
-			}
-			Matcher loops = FOR_HEADER.matcher(code);
-			while (loops.find()) {
-				int close = matchingClose(code, loops.end() - 1);
-				String header = code.substring(loops.end(), close < 0 ? code.length() : close);
-				Matcher variableEnd = LOOP_VARIABLE_END.matcher(header);
-				names.addAll(namesIn(variableEnd.find() ? header.substring(0, variableEnd.start()) : ""));
-			}
-			return names;
-		}
-
-		/**
-		 * Where the parameters ending at this {@code ->} begin: the first brace or
-		 * parenthesis before it that is not closed in between, as in {@code { a, b
-		 * ->}}, {@code forEach(a -> } or {@code forEach((a) -> }, past what brackets in
-		 * between hold, such as a Kotlin function type. -1 where a closing brace, a
-		 * semicolon or another {@code ->} at that level comes first, as after a
-		 * {@code when} branch.
-		 */
-		private static int parameterListStart(String code, int arrow) {
-			int depth = 0;
-			for (int index = arrow - 1; index >= 0; index--) {
-				char character = code.charAt(index);
-				if (character == ')' || character == ']') {
-					depth++;
-				} else if (character == '(' || character == '[') {
-					if (depth == 0) {
-						return index;
-					}
-					depth--;
-				} else if (character == '{') {
-					return index;
-				} else if (depth == 0 && (character == '}' || character == ';'
-						|| character == '>' && index > 0 && code.charAt(index - 1) == '-')) {
-					return -1;
-				}
-			}
-			return -1;
-		}
-
-		/** Every name written in this code. */
-		private static Set<String> namesIn(String code) {
-			Set<String> names = new HashSet<>();
-			Matcher matcher = NAME.matcher(code);
-			while (matcher.find()) {
-				names.add(matcher.group());
-			}
-			return names;
 		}
 
 		/**
@@ -925,11 +880,21 @@ public final class ProjectSourcesFinder {
 
 		/**
 		 * The fixed value of a name as this script sees it: its own once-assigned
-		 * literal, else, where the script assigns nothing to it, the gradle.properties
-		 * entry. A parent script's variables are not visible here, as in Gradle.
+		 * literal, where the script writes the name only there and in this use, else,
+		 * where the script assigns nothing to it and writes it only here, the
+		 * gradle.properties entry. Any other mention may bind the name, as a closure,
+		 * lambda or loop parameter does, so it then has no fixed value; neither has a
+		 * closure's implicit {@code it}. A parent script's variables are not visible
+		 * here, as in Gradle.
 		 */
 		private Optional<String> propertyValue(String name) {
-			String value = localNames.contains(name) ? locals.get(name) : reading.properties.get(name);
+			String simple = lastSegmentOf(name);
+			int written = mentions.getOrDefault(simple, 0);
+			if (IMPLICIT_NAMES.contains(simple)) {
+				return Optional.empty();
+			}
+			String value = localNames.contains(name) ? written == 2 ? locals.get(name) : null
+					: written <= 1 ? reading.properties.get(name) : null;
 			return value != null && isStaticLiteral(value) ? Optional.of(value) : Optional.empty();
 		}
 
@@ -1549,12 +1514,17 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
-		 * Whether a brace follows this offset, on its line or the next: Groovy passes
-		 * that closure to the call as one more path, which Gradle works out only when
-		 * it resolves the paths, and which this reader cannot read.
+		 * Whether a brace follows this offset, past an argument list there, on its line
+		 * or the next: Groovy passes that closure to the call as one more path, which
+		 * Gradle works out only when it resolves the paths, and which this reader
+		 * cannot read.
 		 */
 		private boolean takesAClosureAfter(int at) {
 			int next = skipInactive(code, at);
+			if (next < code.length() && code.charAt(next) == '(') {
+				int close = matchingClose(code, next);
+				next = close < 0 ? code.length() : skipInactive(code, close + 1);
+			}
 			return next < code.length() && code.charAt(next) == '{';
 		}
 

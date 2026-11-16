@@ -527,6 +527,19 @@ class ProjectSourcesFinderGradleFormsTest {
 				"""), Arguments.of("Groovy test root inside a project's task looked up inside a call", GROOVY, """
 				plugins { id 'java' }
 				println(project.tasks.named('compileJava') { sourceSets.test.java.srcDir 'src/main/java' })
+				"""), Arguments.of("Groovy closure passed to a source call inside test", GROOVY, """
+				plugins { id 'java' }
+				tasks.create('unused', JavaCompile)
+				sourceSets.test {
+				    tasks.unused.source('checks')
+				    { java.srcDir('src/main/java'); 'checks' }
+				}
+				"""), Arguments.of("Groovy closure on the same line passed to a source call inside test", GROOVY, """
+				plugins { id 'java' }
+				tasks.create('unused', JavaCompile)
+				sourceSets.test {
+				    tasks.unused.source('checks') { java.srcDir('src/main/java'); 'checks' }
+				}
 				"""), Arguments.of("Groovy closure passed to a test srcDirs inside main", GROOVY, """
 				plugins { id 'java' }
 				sourceSets.main {
@@ -766,6 +779,17 @@ class ProjectSourcesFinderGradleFormsTest {
 						    (supplier: () -> String, directory) ->
 						    sourceSets.test { java.srcDir(directory) }
 						}
+						"""),
+				Arguments.of("Kotlin lambda parameters with a function type, unparenthesised", KOTLIN, "directory", """
+						plugins { java }
+						listOf("checks").fold({ "checks" }) {
+						    supplier: () -> String, directory: String ->
+						    sourceSets.test { java.srcDir(directory) }
+						    supplier
+						}
+						"""), Arguments.of("Groovy closure parameter interpolated", GROOVY, "directory", """
+						plugins { id 'java' }
+						['checks'].each { directory -> sourceSets.test.java.srcDir("$directory") }
 						"""), Arguments.of("Groovy closure parameter with a default", GROOVY, "directory", """
 						plugins { id 'java' }
 						def c = { directory = 'checks' -> sourceSets.test.java.srcDir(directory) }
