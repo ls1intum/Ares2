@@ -5,11 +5,18 @@ description: "How static and runtime responsibilities are divided, project disco
 ---
 
 :::tip[Simple Story]
-Two layers do the checking inside the room, and this page settles who is responsible for what.
-The room itself is a third, and belongs to Phobos.
+The teacher clears the desks before the start and watches during the examination. This page
+says which of the two looks after what.
 
-It states the one rule the build itself has to keep, and it is honest about what the
-boundary does **not** cover, which is the part most worth reading.
+Clearing can only take away a whole kind of thing. So it covers a kind only while the rule
+sheet allows none of it. Once the rule sheet allows even one worksheet, only the watching tells
+that worksheet from the rest.
+
+The teacher trusts by name. So the school's office has to turn away any pupil's work that
+borrows a name the school keeps for itself. Whoever runs the office can switch that off, so the
+head teacher has to keep the office's instructions in their own hands.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Static and runtime responsibility
@@ -57,9 +64,15 @@ student classes beneath every prefix in
 deployment prerequisite, not an optional Ares runtime feature.
 
 Two versions are pinned, because the data and the contract that enforces it
-change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 2` is the
+change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the
 prefix list. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side
 contract. Templates and continuous integration (CI) must pin both.
+
+Version 3 restored the Ares 1 breadth. Besides the platform, Ares' own
+`de.tum.cit.ase.ares.api` and the analysis and weaving libraries, the list now
+reserves the test harness (JUnit, opentest4j, AssertJ, Mockito) and Ares' other
+non-shaded dependencies. A submission therefore cannot shadow a class that runs
+or judges it. The authoritative list is `WalaPathClassification.RESERVED_PACKAGE_PREFIXES`.
 
 Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
 `process-classes` that scans `${project.build.outputDirectory}` and fails for
@@ -119,9 +132,9 @@ counterpart, and the intent must be re-expressed by granting less.
 | `WhitelistPath` | approximate | a permitted path and its booleans under `regardingFileSystemInteractions`. Only prefix-shaped paths map naturally; glob and regex path types do not |
 | `BlacklistPath` | **none** | there is no deny rule. Grant narrower paths instead of the parent. "Allow a directory except one file inside it" is not representable |
 | `WhitelistPackage` | approximate | `regardingPackageImports`, after recomputing the effective permission set |
-| `BlacklistPackage` | **none** | there is no negative package rule. Note that the `java` prefix is always permitted as an essential package, so a blacklist of a `java.*` package cannot be reproduced |
+| `BlacklistPackage` | **none** | there is no negative package rule. Grant only the packages the exercise needs instead: with a policy, Ares permits no `java.*` package beyond `java.lang` and `java.io` unless the policy grants it. That cannot forbid `java.lang`, `java.io`, the supervised code's own packages or the packages Ares weaves in, which are always permitted. A grant covers the packages below it, apart from reserved namespaces, unless `exactMatchOnly` is `true`, so "allow a package except one package below it" means granting the wanted packages one by one. Without a policy every `java.*` package is permitted |
 | `WhitelistClass` | conditional | `theFollowingClassesAreTestClasses`, **only** for instructor-owned, student-unmodifiable test infrastructure. An entry there is exempt from both the static and the runtime checks |
-| `AddTrustedPackage` | **none** | do not place a package name in `theFollowingClassesAreTestClasses`: entries match an exact fully qualified class name, or a class that the named class's own compiled file lists as declared inside it. A package name therefore grants no exemption. It is not inert either, because a permitted package is derived from every entry by stripping the last dotted component, so such an entry silently widens the package allowlist. Infrastructure packages stay in the versioned essential configuration |
+| `AddTrustedPackage` | **none** | do not place a package name in `theFollowingClassesAreTestClasses`: entries match an exact fully qualified class name, or a class that the named class's own compiled file lists as declared inside it. A package name therefore grants no exemption, and Ares derives no package permission from the entries, so it permits no import either. Infrastructure packages stay in the versioned essential configuration |
 | `AllowLocalPort` | approximate | `regardingNetworkConnections` with explicit host, port and operation booleans. Range-with-exclusion forms do not map. Note that port `0` is a **wildcard** matching every port, which makes an unrestricted threshold representable and makes a literal `0` dangerously broad |
 | `AllowThreads` | approximate | `regardingThreadCreations` with an explicit class and count. The original capped concurrently active threads, so the accounting differs and the limit must be re-derived |
 | `TrustedThreads`, `DisableThreadGroupCheckFor` | **none** | these controlled the trusted execution context, not permission to create a thread |

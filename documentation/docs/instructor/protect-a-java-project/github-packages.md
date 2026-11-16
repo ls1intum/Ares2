@@ -5,11 +5,10 @@ description: "Consuming Ares 2 from GitHub Packages instead of Maven Central."
 ---
 
 :::tip[Simple Story]
-There are two suppliers you can order the checklists from. This page is about the one that
-asks to see your staff card.
+Blank rule sheets come from two shops. This page is about the one that asks to see a staff
+card; most head teachers can use the other one, which does not.
 
-Most people should use the other one, which does not. This page exists for the cases where you
-cannot.
+[Who is who](/instructor/who-is-who)
 :::
 
 :::tip[Maven Central is recommended]

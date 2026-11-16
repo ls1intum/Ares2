@@ -1,0 +1,496 @@
+@startuml ArchitectureClassDiagram
+
+title Ares 2 Architecture-Test API
+
+scale max 3799 width
+top to bottom direction
+hide circle
+hide empty members
+skinparam ArrowFontSize 9
+skinparam classAttributeFontSize 8
+skinparam classAttributeIconSize 0
+skinparam classFontSize 11
+skinparam classMethodFontSize 7
+skinparam linetype ortho
+' Reduced from the 170/220 starting values because the browser renderer
+' rejects the natural 4365-pixel-wide layout.
+skinparam nodesep 70
+skinparam noteFontSize 7
+skinparam packageStyle rectangle
+skinparam ranksep 180
+skinparam shadowing false
+
+package "architecture" {
+  enum ArchitectureMode <<enum>> {
+    ARCHUNIT
+    WALA
+    --
+    - {static} fileLoader: JavaFileLoader
+    - {static} MAX_CONFIGURATION_COUNT: int
+    - {static} MAX_JAVA_CLASSES_CACHE_ENTRIES: int
+    - {static} JAVA_CLASSES_CACHE: Map<String, FutureTask<JavaClasses>>
+    + {static} setFileLoader(loader: JavaFileLoader): void
+    + getCopyFSConfigurationEntries(): List<List<String>>
+    + getCopyNonFSConfigurationEntries(): List<List<String>>
+    + getEditConfigurationEntries(): List<List<String>>
+    - validateConfigurationRows(entries: List<List<String>>, context: String, requireNonEmpty: boolean): void
+    - validateConfigurationCount(countCell: String, context: String, row: int): void
+    + fsFilesToCopy(): List<Path>
+    + nonFSFilesToCopy(): List<Path>
+    + placeholderValues(): List<String[]>
+    + fsFormatValues(packageName: String, mainClassInPackageName: String): List<String[]>
+    + nonFSFormatValues(packageName: String, mainClassInPackageName: String): List<String[]>
+    + fsTargetsToCopyTo(targetPath: Path): List<Path>
+    + nonFSTargetsToCopyTo(targetPath: Path): List<Path>
+    + threePartedFileHeader(): Path
+    + threePartedFileBody(testCases: List<?>): String
+    + threePartedFileFooter(): Path
+    + formatValues(packageName: String): String[]
+    + targetToCopyTo(targetPath: Path): Path
+    + getJavaClasses(classPath: String): JavaClasses
+    - {static} importJavaClasses(analysisPath: Path): JavaClasses
+    - {static} awaitJavaClasses(importTask: FutureTask<JavaClasses>, analysisPath: Path): JavaClasses
+    - {static} analysisInputFingerprint(analysisPath: Path): String
+    - {static} isArchitectureInput(file: Path): boolean
+    - {static} updateAnalysisInputDigest(digest: MessageDigest, relativePath: Path, file: Path): void
+    + getCallGraph(classPath: String): CallGraph
+    - {static} convertToJavaArchunitTestCase(testCase: JavaArchitectureTestCase): JavaArchunitTestCase
+    - {static} convertToJavaWalaTestCases(testCase: JavaArchitectureTestCase): JavaWalaTestCase
+    - {static} convertToJavaArchunitTestCases(testCases: List<JavaArchitectureTestCase>): List<JavaArchunitTestCase>
+    - {static} convertToJavaWalaTestCases(testCases: List<JavaArchitectureTestCase>): List<JavaWalaTestCase>
+  }
+
+  abstract class ArchitectureTestCase {
+    # allowedPackages: Set<PackagePermission>
+    # javaClasses: JavaClasses
+    # callGraph: CallGraph
+    # ArchitectureTestCase(architectureTestCaseSupported: ArchitectureTestCaseSupported, ...): ArchitectureTestCase
+    + getArchitectureTestCaseSupported(): ArchitectureTestCaseSupported
+    + getAllowedPackages(): Set<PackagePermission>
+    + getJavaClasses(): JavaClasses
+    + getCallGraph(): CallGraph
+    + {abstract} writeArchitectureTestCase(architectureMode: String, aopMode: String): String
+    + {abstract} executeArchitectureTestCase(architectureMode: String, aopMode: String): void
+  }
+
+  note left of ArchitectureTestCase
+    architectureTestCaseSupported: nonnull
+    - allowed: exactly one supported architecture test
+    allowedPackages: nonnull
+    - allowed: exhaustive permitted-package set
+    javaClasses: nonnull
+    - allowed: imported classes under test
+    callGraph: nullable
+    - allowed: WALA call graph
+  end note
+
+  interface ArchitectureTestCaseSupported {
+    + getStatic(): List<ArchitectureTestCaseSupported>
+    + getDynamic(): List<ArchitectureTestCaseSupported>
+  }
+}
+
+package "architecture.java" {
+  class FileHandlerConstants <<utility>> {
+    + {static} ARCHUNIT_FILESYSTEM_METHODS: Path
+    + {static} ARCHUNIT_NETWORK_METHODS: Path
+    + {static} ARCHUNIT_JVM_TERMINATION_METHODS: Path
+    + {static} ARCHUNIT_REFLECTION_METHODS: Path
+    + {static} ARCHUNIT_COMMAND_EXECUTION_METHODS: Path
+    + {static} ARCHUNIT_THREAD_MANIPULATION_METHODS: Path
+    + {static} ARCHUNIT_SERIALIZATION_METHODS: Path
+    + {static} ARCHUNIT_CLASSLOADER_METHODS: Path
+    + {static} ARCHUNIT_NATIVE_CODE_METHODS: Path
+    + {static} ARCHUNIT_AGENT_ATTACH_METHODS: Path
+    + {static} ARCHUNIT_ENVIRONMENT_ACCESS_METHODS: Path
+    + {static} ARCHUNIT_MODULE_SYSTEM_METHODS: Path
+    + {static} ARCHUNIT_JNDI_INJECTION_METHODS: Path
+    + {static} WALA_CLASSLOADER_METHODS: Path
+    + {static} WALA_FILESYSTEM_METHODS: Path
+    + {static} WALA_NETWORK_METHODS: Path
+    + {static} WALA_JVM_TERMINATION_METHODS: Path
+    + {static} WALA_REFLECTION_METHODS: Path
+    + {static} WALA_COMMAND_EXECUTION_METHODS: Path
+    + {static} WALA_SERIALIZATION_METHODS: Path
+    + {static} WALA_THREAD_MANIPULATION_METHODS: Path
+    + {static} WALA_NATIVE_CODE_METHODS: Path
+    + {static} WALA_AGENT_ATTACH_METHODS: Path
+    + {static} WALA_ENVIRONMENT_ACCESS_METHODS: Path
+    + {static} WALA_MODULE_SYSTEM_METHODS: Path
+    + {static} WALA_JNDI_INJECTION_METHODS: Path
+    + {static} FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS: Path
+    - FileHandlerConstants()
+  }
+
+  class ForbiddenMethodMatcher <<utility>> {
+    + {static} POLICY_SCHEMA_VERSION: String
+    - ForbiddenMethodMatcher()
+    + {static} effectiveMethods(methodsPath: Path): Set<String>
+    + {static} matches(actualSignature: String, forbiddenSignature: String): boolean
+    + {static} canonicalise(signature: String): String
+    - {static} loadValidated(path: Path): Set<String>
+    - {static} counterpartOf(path: Path): Path
+    - {static} isStructurallyValid(entry: String): boolean
+    - {static} invalidEntry(path: Path, lineNumber: int, entry: String): SecurityException
+    - {static} looksLikeDescriptorSequence(parameters: String): boolean
+    - {static} parseSourceParameters(parameters: String): List<String>
+    - {static} sourceType(parameter: String): String
+    - {static} parseDescriptorSequence(descriptor: String): List<String>
+    - {static} primitiveName(descriptor: char): String
+  }
+
+  class JavaArchitectureTestCase {
+    - callGraphSupplier: Supplier<CallGraph>
+    - allowedClasses: Set<ClassPermission>
+    + JavaArchitectureTestCase(javaArchitectureTestCaseSupported: JavaArchitectureTestCaseSupported, ...)
+    + JavaArchitectureTestCase(javaArchitectureTestCaseSupported: JavaArchitectureTestCaseSupported, ...)
+    + getCallGraphSupplier(): Supplier<CallGraph>
+    + getAllowedClasses(): Set<ClassPermission>
+    + {static} isAllowedClass(fullyQualifiedClassName: String, allowedClasses: Set<ClassPermission>): boolean
+    + {static} parseErrorMessage(e: AssertionError): void
+    - {static} mapRuleNameToAction(ruleName: String): String
+    + writeArchitectureTestCase(architectureMode: String, aopMode: String): String
+    + executeArchitectureTestCase(architectureMode: String, aopMode: String): void
+    + {static} builder(): Builder
+  }
+
+  note left of JavaArchitectureTestCase
+    callGraphSupplier: nullable
+    - allowed: lazy WALA graph supplier
+    allowedClasses: nonnull
+    - allowed: exhaustive permitted-class set
+  end note
+
+  enum JavaArchitectureTestCaseSupported <<enum>> {
+    FILESYSTEM_INTERACTION
+    NETWORK_CONNECTION
+    COMMAND_EXECUTION
+    THREAD_CREATION
+    PACKAGE_IMPORT
+    TERMINATE_JVM
+    REFLECTION
+    SERIALIZATION
+    CLASS_LOADING
+    NATIVE_CODE
+    AGENT_ATTACH
+    ENVIRONMENT_ACCESS
+    MODULE_SYSTEM
+    JNDI_INJECTION
+    --
+    + getPriority(): List<ArchitectureTestCaseSupported>
+    + getStatic(): List<ArchitectureTestCaseSupported>
+    + getDynamic(): List<ArchitectureTestCaseSupported>
+  }
+}
+
+package "architecture.java.archunit" {
+  class JavaArchunitTestCase {
+    - {static} RULE_OUTCOME_CACHE: ConcurrentHashMap<String, FutureTask<Optional<SecurityException>>>
+    - {static} PACKAGE_OUTCOME_CACHE: ConcurrentHashMap<String, FutureTask<Optional<SecurityException>>>
+    - {static} JAVA_CLASSES_TOKENS: Map<JavaClasses, String>
+    - {static} JAVA_CLASSES_TOKEN_SEQUENCE: AtomicLong
+    + JavaArchunitTestCase(javaArchitectureTestCaseSupported: JavaArchitectureTestCaseSupported, ...)
+    + JavaArchunitTestCase(javaArchitectureTestCaseSupported: JavaArchitectureTestCaseSupported, ...)
+    - allowedPackagesAsCode(): String
+    - javaClassesAsCode(): String
+    + writeArchitectureTestCase(architectureMode: String, aopMode: String): String
+    - {static} javaClassesToken(javaClasses: JavaClasses): String
+    + executeArchitectureTestCase(architectureMode: String, aopMode: String): void
+    - {static} awaitOutcome(task: FutureTask<Optional<SecurityException>>): Optional<SecurityException>
+    - runRuleAndCapture(supported: JavaArchitectureTestCaseSupported): Optional<SecurityException>
+    + {static} archunitBuilder(): JavaArchunitTestCase.Builder
+  }
+
+  class JavaArchunitTestCaseCollection <<utility>> {
+    + {static} NO_CLASS_MUST_ACCESS_FILE_SYSTEM: ArchRule
+    + {static} NO_CLASS_MUST_ACCESS_NETWORK: ArchRule
+    + {static} NO_CLASS_MUST_CREATE_THREADS: ArchRule
+    + {static} NO_CLASS_MUST_EXECUTE_COMMANDS: ArchRule
+    + {static} NO_CLASS_MUST_USE_REFLECTION: ArchRule
+    + {static} NO_CLASS_MUST_TERMINATE_JVM: ArchRule
+    + {static} NO_CLASS_MUST_SERIALIZE: ArchRule
+    + {static} NO_CLASS_MUST_USE_CLASSLOADERS: ArchRule
+    + {static} NO_CLASS_MUST_ACCESS_NATIVE_CODE: ArchRule
+    + {static} NO_CLASS_MUST_ATTACH_AGENTS: ArchRule
+    + {static} NO_CLASS_MUST_ACCESS_ENVIRONMENT: ArchRule
+    + {static} NO_CLASS_MUST_ACCESS_MODULE_SYSTEM: ArchRule
+    + {static} NO_CLASS_MUST_PERFORM_JNDI_LOOKUPS: ArchRule
+    - JavaArchunitTestCaseCollection()
+    - {static} convertArrayNotation(signature: String): String
+    - {static} createNoClassShouldHaveMethodRule(ruleName: String, methodsFilePath: Path): ArchRule
+    - {static} createNoClassShouldHaveMethodRule(ruleName: String, methodsFilePath: Path, allowedClasses: Set<ClassPermission>): ArchRule
+    - {static} isNotAllowedClass(allowedClasses: Set<ClassPermission>): DescribedPredicate<JavaClass>
+    + {static} allowAwareRuleFor(supported: JavaArchitectureTestCaseSupported, allowedClasses: Set<ClassPermission>, ...): ArchRule
+    + {static} noClassMustImportForbiddenPackages(allowedPackages: Set<PackagePermission>): ArchRule
+    + {static} noClassMustImportForbiddenPackages(allowedPackages: Set<PackagePermission>, allowedClasses: Set<ClassPermission>): ArchRule
+  }
+
+  class TransitivelyAccessesMethodsCondition {
+    - checkIfAccessIsViolating: DescribedPredicate<? super JavaAccess<?>>
+    - outgoingAccessesByMethod: Map<String, List<JavaAccess<?>>>
+    - violationPathsByMethod: Map<String, List<JavaAccess<?>>>
+    - methodsWithoutViolation: Set<String>
+    - violationByAccess: Map<JavaAccess<?>, Boolean>
+    - indexedClasses: Set<JavaClass>
+    - transitiveAccessPath: TransitiveAccessPath
+    + TransitivelyAccessesMethodsCondition(checkIfAccessIsViolating: DescribedPredicate<? super JavaAccess<?>>)
+    - {static} newTransitiveAccessPathFoundEvent(access: JavaAccess<?>, transitiveAccessDependencyPath: List<JavaAccess<?>>): ConditionEvent
+    + check(clazz: JavaClass, events: ConditionEvents): void
+    + init(allObjectsToTest: Collection<JavaClass>): void
+  }
+}
+
+package "architecture.java.wala" {
+  class CustomCallgraphBuilder {
+    - {static} TRUSTED_FRAMEWORK_CODE_SOURCES: Set<Path>
+    - classFileImporter: ClassFileImporter
+    - scope: AnalysisScope
+    - classHierarchy: ClassHierarchy
+    - analysedClassPath: String
+    - callGraph: CallGraph
+    - {static} HELPER_SUBPACKAGES: List<String>
+    + CustomCallgraphBuilder(classPath: String)
+    - {static} expandClassPathWithReachableDependencies(classPath: String): String
+    ~ {static} dependencyFingerprint(applicationClasses: JavaClasses): String
+    - {static} addReachableDependencies(entries: LinkedHashSet<String>, pending: Deque<JavaClass>, importer: ClassFileImporter, ...): void
+    - {static} locateClass(targetName: String, projectClassRoots: Set<Path>): URL
+    - {static} discoverProjectClassRoots(classpathEntries: Set<String>): Set<Path>
+    - {static} containingProjectRoot(outputRoot: Path): Path
+    - {static} isProjectDirectory(path: Path): boolean
+    - {static} outputRootOf(path: Path): Path
+    - {static} isConventionalClassRoot(path: Path): boolean
+    - {static} normaliseDependencyClassName(className: String): String
+    - {static} importJar(importer: ClassFileImporter, jarPath: String): JavaClasses
+    - {static} isTrustedFrameworkLocation(classpathEntry: String): boolean
+    - {static} isTrustedFrameworkLocation(classResource: URL, classpathEntry: String): boolean
+    - {static} trustedFrameworkCodeSources(frameworkClasses: Class<?>...): Set<Path>
+    ~ {static} fingerprintAnalysisEntries(classpathEntries: Set<String>): String
+    - {static} canonicalAnalysisEntry(classpathEntry: String): Path
+    - {static} analysisEntryFingerprint(entry: Path): String
+    - {static} hashAnalysisFile(path: Path): String
+    - {static} sha256Hex(value: byte[]): String
+    - {static} classpathEntryFor(location: URL, targetClassName: String): Optional<String>
+    - {static} filterClassPath(classPath: String): String
+    - {static} addHelperRoots(target: LinkedHashSet<String>, classRoot: String): void
+    - {static} convertTypeNameToClassName(typeName: String): String
+    - {static} convertTypeNameToWalaName(typeName: String): String
+    - tryResolve(typeName: String): Optional<JavaClass>
+    + getImmediateSubclasses(typeName: String): Set<JavaClass>
+    + buildCallGraph(classPathToAnalyze: String): CallGraph
+    - {static} validateClassPath(classPath: String): void
+    - {static} derivePackagePrefix(classPath: String): String
+  }
+
+  class CustomDFSPathFinder {
+    - graph: Graph<CGNode>
+    - P: Predicate<CGNode>
+    - roots: Iterator<CGNode>
+    - pendingChildren: Map<CGNode, Iterator<? extends CGNode>>
+    - initialized: boolean
+    - stack: Deque<CGNode>
+    + CustomDFSPathFinder(graph: Graph<CGNode>, nodes: Iterator<CGNode>, f: Predicate<CGNode>)
+    - {static} getExcludedMethods(): Set<String>
+    - init(): void
+    - sortedSuccessors(node: CGNode): Iterator<? extends CGNode>
+    + find(): List<CGNode>
+    - advance(): void
+  }
+
+  class JavaWalaTestCase {
+    - {static} SECURE_RANDOM: SecureRandom
+    - {static} RULE_OUTCOME_CACHE: ConcurrentHashMap<String, CachedOutcome>
+    - {static} RULE_EVALUATIONS: ConcurrentHashMap<String, FutureTask<CachedOutcome>>
+    ~ {static} CACHE_SCHEMA_VERSION: String
+    - {static} CACHE_DIR: Path
+    - {static} CACHE_SECRET: byte[]
+    - {static} CACHE_FILE: Path
+    - {static} CACHE_LOCK_FILE: Path
+    - {static} IMPLEMENTATION_FINGERPRINT: String
+    - {static} CLASSPATH_FINGERPRINT: String
+    - callGraphSupplier: Supplier<CallGraph>
+    + JavaWalaTestCase(javaArchitectureTestCaseSupported: JavaArchitectureTestCaseSupported, ...)
+    + JavaWalaTestCase(javaArchitectureTestCaseSupported: JavaArchitectureTestCaseSupported, ...)
+    + JavaWalaTestCase(javaArchitectureTestCaseSupported: JavaArchitectureTestCaseSupported, ...)
+    + JavaWalaTestCase(javaArchitectureTestCaseSupported: JavaArchitectureTestCaseSupported, ...)
+    - {static} resolveCacheDir(): Path
+    - {static} isTrustworthyOwnerOnly(path: Path, directory: boolean): boolean
+    - {static} restrictToOwner(path: Path, directory: boolean): void
+    - {static} loadOrCreateSecret(): byte[]
+    - {static} loadCacheFromDisk(): void
+    - {static} saveCacheToDisk(): void
+    - cacheKey(): String
+    ~ {static} environmentFingerprint(): String
+    ~ {static} classpathFingerprint(classpath: String): String
+    - {static} blocklistFingerprint(supported: JavaArchitectureTestCaseSupported): String
+    - {static} readFileQuietly(path: Path): String
+    - {static} sha256Hex(value: String): String
+    - {static} sha256Hex(value: byte[]): String
+    - {static} classBytecodeHash(javaClass: JavaClass): String
+    - allowedPackagesAsCode(): String
+    - javaClassesAsCode(): String
+    - callGraphAsCode(): String
+    + writeArchitectureTestCase(architectureMode: String, aopMode: String): String
+    + executeArchitectureTestCase(architectureMode: String, aopMode: String): void
+    - evaluateAndCache(key: String, architectureMode: String, aopMode: String): CachedOutcome
+    - runRuleAndCapture(architectureMode: String, aopMode: String): Optional<SecurityException>
+    - {static} implementationFingerprint(): String
+    - {static} codeSourceOf(implementationClass: Class<?>): Path
+    ~ {static} implementationFingerprint(codeSources: Path...): String
+    - {static} codeSourceFingerprint(codeSource: Path): String
+    - {static} hashFile(path: Path): String
+    - checkWalaRule(rule: WalaRule, callGraph: CallGraph, exemptClasses: Set<ClassPermission>): void
+    + {static} walaBuilder(): JavaWalaTestCase.Builder
+  }
+
+  note right of JavaWalaTestCase
+    RULE_OUTCOME_CACHE: nonnull
+    - allowed: concurrent in-memory outcome cache
+    RULE_EVALUATIONS: nonnull
+    - allowed: concurrent in-flight evaluation cache
+    CACHE_DIR: nullable
+    - allowed: owner-only persistent-cache directory
+    CACHE_SECRET: nullable
+    - allowed: HMAC secret
+    CACHE_FILE: nullable
+    - allowed: versioned outcome-cache file
+    CACHE_LOCK_FILE: nullable
+    - allowed: process-lock file
+    IMPLEMENTATION_FINGERPRINT: nonnull
+    - allowed: current implementation fingerprint
+    CLASSPATH_FINGERPRINT: nonnull
+    - allowed: current class-path fingerprint
+    callGraphSupplier: nonnull
+    - allowed: lazy WALA graph supplier
+  end note
+
+  class JavaWalaTestCaseCollection <<utility>> {
+    - JavaWalaTestCaseCollection()
+    - {static} createNoClassShouldHaveMethodRule(ruleName: String, methodsFilePath: Path): WalaRule
+    + {static} noClassMustImportForbiddenPackages(allowedPackages: Set<PackagePermission>): ArchRule
+    + {static} noClassMustImportForbiddenPackages(allowedPackages: Set<PackagePermission>, ...): ArchRule
+  }
+
+  class ReachabilityChecker <<utility>> {
+    - ReachabilityChecker()
+    + {static} findReachableMethods(callGraph: CallGraph, startNodes: Iterator<CGNode>, targetNodeFilter: Predicate<CGNode>): List<CGNode>
+    + {static} getEntryPointsFromStudentSubmission(classPath: String, applicationClassHierarchy: ClassHierarchy): List<DefaultEntrypoint>
+  }
+
+  class WalaOutcomeCacheStore <<utility>> {
+    - {static} HMAC_ALGORITHM: String
+    - {static} JVM_LOCKS: ConcurrentHashMap<Path, Object>
+    - WalaOutcomeCacheStore()
+    ~ {static} load(cacheFile: Path, secret: byte[]): Map<String, Optional<String>>
+    ~ {static} mergeAndSave(cacheFile: Path, lockFile: Path, secret: byte[], updates: Map<String, Optional<String>>): void
+    - {static} mergeAndSaveWithProcessLock(cacheFile: Path, lockFile: Path, secret: byte[], updates: Map<String, Optional<String>>): void
+    - {static} parseBody(body: String): Map<String, Optional<String>>
+    - {static} encodeBody(outcomes: Map<String, Optional<String>>): String
+    - {static} encode(value: String): String
+    - {static} decode(value: String): String
+    - {static} hmac(secret: byte[], body: byte[]): byte[]
+  }
+
+  class WalaPathClassification <<utility>> {
+    + {static} INFRA_PREFIXES: List<String>
+    + {static} RESERVED_PACKAGE_PREFIXES: List<String>
+    + {static} RESERVED_PACKAGE_PREFIX_VERSION: String
+    ~ {static} TRANSITIVE_FALSE_POSITIVE_PREFIXES: List<String>
+    - WalaPathClassification()
+    ~ {static} nearestStudentFrame(path: List<CGNode>): OptionalInt
+    ~ {static} isFalsePositiveTransitivePath(path: List<CGNode>, studentIdx: int): boolean
+    ~ {static} isInfraFrame(node: CGNode): boolean
+    ~ {static} isTransitiveFalsePositiveFrame(node: CGNode): boolean
+    - {static} hasInfrastructureOrigin(node: CGNode, applicationPrefixes: List<String>): boolean
+    - {static} unclassifiableNode(reason: String, cause: Throwable): SecurityException
+    ~ {static} packageNameOf(cls: IClass): String
+    ~ {static} packageNameOf(ref: TypeReference): String
+  }
+
+  class WalaRule {
+    ~ ruleName: String
+    ~ forbiddenMethods: Set<String>
+    - {static} MAX_APPROACHES_PER_SINK: int
+    + WalaRule(ruleName: String, forbiddenMethods: Set<String>)
+    + check(cg: CallGraph): void
+    + check(cg: CallGraph, allowedClasses: Set<ClassPermission>): void
+    + checkDirectAccesses(javaClasses: JavaClasses, allowedClasses: Set<ClassPermission>): void
+    + checkDirectAccesses(javaClasses: JavaClasses, allowedClasses: Set<ClassPermission>, classHierarchy: IClassHierarchy): void
+    - isDirectlyForbidden(access: JavaAccess<?>, classHierarchy: IClassHierarchy): boolean
+    ~ {static} matchesInheritedTarget(access: JavaAccess<?>, forbidden: String): boolean
+    ~ {static} matchesInheritedTarget(access: JavaAccess<?>, forbidden: String, classHierarchy: IClassHierarchy): boolean
+    - {static} matchesUsingWalaHierarchy(targetOwner: String, forbiddenOwner: String, classHierarchy: IClassHierarchy): boolean
+    - {static} matchesUsingRuntimeHierarchy(targetOwner: String, forbiddenOwner: String): Optional<Boolean>
+    - {static} loadRuntimeClass(className: String): Optional<Class<?>>
+    - {static} hasNamedSupertype(targetClass: Class<?>, forbiddenOwner: String): boolean
+    - {static} lookupClass(classHierarchy: IClassHierarchy, className: String): IClass
+    - throwDirectAccessViolation(access: JavaAccess<?>): void
+    - isForbidden(node: CGNode): boolean
+    - evaluatePath(path: List<CGNode>, allowedClasses: Set<ClassPermission>): Optional<AssertionError>
+    - {static} forwardReachableFromEntrypoints(cg: CallGraph): Set<CGNode>
+    - evaluateSink(cg: CallGraph, sink: CGNode, allowedClasses: Set<ClassPermission>, entryReachable: Set<CGNode>): void
+    - evaluateApproach(cg: CallGraph, suffix: List<CGNode>, allowedClasses: Set<ClassPermission>, ...): void
+    - prefixToEntry(cg: CallGraph, student: CGNode, allowedClasses: Set<ClassPermission>): List<CGNode>
+    - {static} reversePathToEntry(cg: CallGraph, target: CGNode): List<CGNode>
+    - prefixThroughNonAllowed(cg: CallGraph, student: CGNode, allowedClasses: Set<ClassPermission>): List<CGNode>
+    - {static} reconstruct(start: CGNode, toward: Map<CGNode, CGNode>, target: CGNode): List<CGNode>
+    - {static} isAllowedStudentFrame(node: CGNode, allowedClasses: Set<ClassPermission>): boolean
+    - {static} nearestNonAllowedStudentFrame(path: List<CGNode>, allowedClasses: Set<ClassPermission>): int
+    - {static} walaTypeToFullyQualifiedName(walaTypeName: String): String
+    - {static} matchesForbiddenMethod(actualSignature: String, forbiddenSignature: String): boolean
+    ~ {static} formatJvmSignature(walaSignature: String): String
+  }
+}
+
+' Inheritance and realisation.
+ArchitectureTestCase <|-down- JavaArchitectureTestCase
+JavaArchitectureTestCase <|-down- JavaArchunitTestCase
+JavaArchitectureTestCase <|-down- JavaWalaTestCase
+ArchitectureTestCaseSupported <|.down. JavaArchitectureTestCaseSupported
+
+' Associations for in-scope reference attributes.
+ArchitectureTestCase "1" o-right- "1" ArchitectureTestCaseSupported : # architectureTestCaseSupported: ArchitectureTestCaseSupported
+JavaWalaTestCaseCollection "1" o-left- "*" WalaRule : + {static} NO_CLASS_MUST_ACCESS_FILE_SYSTEM: WalaRule\n+ {static} NO_CLASS_MUST_ACCESS_NETWORK: WalaRule\n+ {static} NO_CLASS_MUST_CREATE_THREADS: WalaRule\n+ {static} NO_CLASS_MUST_EXECUTE_COMMANDS: WalaRule\n+ {static} NO_CLASS_MUST_USE_REFLECTION: WalaRule\n+ {static} NO_CLASS_MUST_TERMINATE_JVM: WalaRule\n+ {static} NO_CLASS_MUST_SERIALIZE: WalaRule\n+ {static} NO_CLASS_MUST_USE_CLASSLOADERS: WalaRule
+
+' Dependencies.
+ArchitectureMode ..down..> JavaArchitectureTestCase : converts
+ArchitectureMode ..down..> JavaArchunitTestCase : converts
+ArchitectureMode ..down..> JavaWalaTestCase : converts
+JavaArchunitTestCase ..right..> JavaArchunitTestCaseCollection : selects rules
+JavaArchunitTestCaseCollection ..up..> FileHandlerConstants : loads blocklists
+JavaWalaTestCase ..right..> JavaWalaTestCaseCollection : selects rules
+JavaWalaTestCase ..down..> WalaOutcomeCacheStore : persists outcomes
+JavaWalaTestCaseCollection ..up..> FileHandlerConstants : loads blocklists
+WalaRule ..left..> ForbiddenMethodMatcher : matches methods
+WalaRule ..left..> ReachabilityChecker : finds entries
+WalaRule ..left..> CustomDFSPathFinder : finds paths
+WalaRule ..down..> WalaPathClassification : classifies paths
+
+' Hidden ranking rails.
+ArchitectureMode -[hidden]right- ArchitectureTestCase
+ArchitectureTestCase -[hidden]right- ArchitectureTestCaseSupported
+FileHandlerConstants -[hidden]right- ForbiddenMethodMatcher
+ForbiddenMethodMatcher -[hidden]right- JavaArchitectureTestCase
+JavaArchitectureTestCase -[hidden]right- JavaArchitectureTestCaseSupported
+JavaArchunitTestCase -[hidden]right- JavaArchunitTestCaseCollection
+JavaArchunitTestCaseCollection -[hidden]right- TransitivelyAccessesMethodsCondition
+CustomCallgraphBuilder -[hidden]right- CustomDFSPathFinder
+CustomDFSPathFinder -[hidden]right- JavaWalaTestCase
+JavaWalaTestCase -[hidden]right- JavaWalaTestCaseCollection
+ReachabilityChecker -[hidden]right- WalaOutcomeCacheStore
+WalaOutcomeCacheStore -[hidden]right- WalaPathClassification
+WalaPathClassification -[hidden]right- WalaRule
+
+ArchitectureMode -[hidden]down- FileHandlerConstants
+FileHandlerConstants -[hidden]down- JavaArchunitTestCase
+JavaArchunitTestCase -[hidden]down- CustomCallgraphBuilder
+CustomCallgraphBuilder -[hidden]down- ReachabilityChecker
+ArchitectureTestCase -[hidden]down- ForbiddenMethodMatcher
+ForbiddenMethodMatcher -[hidden]down- JavaArchunitTestCaseCollection
+JavaArchunitTestCaseCollection -[hidden]down- CustomDFSPathFinder
+CustomDFSPathFinder -[hidden]down- WalaOutcomeCacheStore
+ArchitectureTestCaseSupported -[hidden]down- JavaArchitectureTestCaseSupported
+JavaArchitectureTestCaseSupported -[hidden]down- TransitivelyAccessesMethodsCondition
+TransitivelyAccessesMethodsCondition -[hidden]down- JavaWalaTestCase
+JavaWalaTestCase -[hidden]down- WalaPathClassification
+
+@enduml

@@ -5,13 +5,15 @@ description: "How every backend decides and proves each operation the secure bas
 ---
 
 :::tip[Simple Story]
-The board of education does not have to write "may sharpen a pencil" on the checklist. Some
-things every pupil does are fine without asking, and some things that look equally small never
-are.
+Even a rule sheet that allows no worksheet lets a few through. The permitted aids need them to
+do their work, such as picking a random number.
 
-This page is the record that both ways of watching the pupil wave the same small things through and
-stop the same things. One watches at every desk, the other at the pencil sharpener itself. Where the
-two genuinely differ, this page names the difference, so a new one cannot slip in unseen.
+Both ways of watching have to let exactly the same things through and stop the same things.
+This page lists each one and the proof that the two agree, and today they agree on every one.
+Where one way never even sees an act, the page names that difference, so a new one cannot slip
+in unseen.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 The secure baseline is what a policy with no file entries still allows. The instructor-facing list

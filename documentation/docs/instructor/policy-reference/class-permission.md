@@ -5,12 +5,13 @@ description: "The field that exempts your test classes from enforcement, and why
 ---
 
 :::tip[Simple Story]
-Somebody in the room has to be allowed to do what the pupils may not.
+The rule sheet holds back the pupils, not the grading instructions. When the grading
+instructions tell the teacher to open a pupil's worksheet and check it, the teacher can do so.
 
-The teacher may need to open a file in order to check that a pupil wrote it correctly, and a
-teacher bound by the pupils' checklist could never check anything at all. So the classes named
-here carry the teacher's keys: the rules still stand, these classes are simply on the other
-side of the desk.
+The head teacher names which papers are the grading instructions. They write no second list
+of who is free from the rule sheet: naming the grading instructions is what frees them.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## Position in the example policy file

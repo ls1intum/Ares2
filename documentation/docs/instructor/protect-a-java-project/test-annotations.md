@@ -5,10 +5,14 @@ description: "The @Public, @Hidden, @PublicTest, @HiddenTest and @Deadline annot
 ---
 
 :::tip[Simple Story]
-These are the labels you put on a question to say which kind it is.
+For each question, the head teacher decides when the teacher says whether the answer was right:
+at once, or only after the whole examination. For the second kind, the head teacher has to write
+down when the examination is over. The teacher does not guess.
 
-Public means the mark is read out at once. Hidden means it waits, and a hidden question has to
-be told **when** to wake up, because Ares refuses to guess a deadline.
+The choice does more than that. A question for which the head teacher made neither choice gets
+no desk clearing and no watching, even when a rule sheet lies beside it.
+
+[Who is who](/instructor/who-is-who)
 :::
 
 ## What puts a test under supervision

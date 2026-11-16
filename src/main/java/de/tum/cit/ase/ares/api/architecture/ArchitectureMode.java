@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.stream.Stream;
@@ -494,7 +495,7 @@ public enum ArchitectureMode {
 				.javaArchitectureTestCaseSupported(
 						(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
 				.allowedPackages(testCase.getAllowedPackages()).javaClasses(testCase.getJavaClasses())
-				.supervisedPackage(testCase.getSupervisedPackage())
+				.testClassNames(testCase.getTestClassNames()).supervisedPackage(testCase.getSupervisedPackage())
 				.supervisedScopeWasDerived(testCase.isSupervisedScopeWasDerived()).build();
 	}
 
@@ -510,14 +511,16 @@ public enum ArchitectureMode {
 		java.util.function.Supplier<com.ibm.wala.ipa.callgraph.CallGraph> supplier = testCase.getCallGraphSupplier();
 		if (supplier != null) {
 			return new JavaWalaTestCase((JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported(),
-					testCase.getAllowedPackages(), testCase.getJavaClasses(), supplier, testCase.getSupervisedPackage(),
+					testCase.getAllowedPackages(), testCase.getJavaClasses(), supplier, Set.of(),
+					testCase.getTestClassNames(), testCase.getSupervisedPackage(),
 					testCase.isSupervisedScopeWasDerived());
 		}
 		return JavaWalaTestCase.walaBuilder()
 				.javaArchitectureTestCaseSupported(
 						(JavaArchitectureTestCaseSupported) testCase.getArchitectureTestCaseSupported())
 				.allowedPackages(testCase.getAllowedPackages()).callGraph(testCase.getCallGraph())
-				.javaClasses(testCase.getJavaClasses()).supervisedPackage(testCase.getSupervisedPackage())
+				.javaClasses(testCase.getJavaClasses()).testClassNames(testCase.getTestClassNames())
+				.supervisedPackage(testCase.getSupervisedPackage())
 				.supervisedScopeWasDerived(testCase.isSupervisedScopeWasDerived()).build();
 	}
 

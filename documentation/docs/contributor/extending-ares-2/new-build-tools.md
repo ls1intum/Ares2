@@ -5,9 +5,12 @@ description: "Adding a build tool beyond Maven and Gradle: BuildMode, descriptor
 ---
 
 :::tip[Simple Story]
-Ares has to get its checklist into somebody else's build.
+Today the examination can take place in two kinds of school, and this page is about a third.
+Its office has to make sure the rule sheet on the desk is the head teacher's, and that no
+pupil's work borrows a name the school keeps for itself. That second job is the easiest one to
+forget. This page is still an outline; nobody has written it out.
 
-Adding a build tool means teaching it one more build's vocabulary.
+[Who is who](/instructor/who-is-who)
 :::
 
 :::note[This page is a stub]

@@ -5,10 +5,12 @@ description: "Path access, testing before release, deadline extensions, threads,
 ---
 
 :::tip[Simple Story]
-The basics get an examination running. This page is everything else you will eventually want.
+Once the examination runs, smaller questions follow, and this page answers them. The head
+teacher can try the examination before any pupil and hear the marks the teacher normally gives
+only after the whole examination. They can give extra time, check a pupil who answers out loud,
+or hold the examination without writing a rule sheet.
 
-How to sit the examination yourself before any pupil does, how to grant someone extra time, how to
-examine a pupil who talks to the console, and a few smaller adjustments.
+[Who is who](/instructor/who-is-who)
 :::
 
 The basics are covered by [Setup](setup.md) and [Test Annotations](test-annotations.md),
@@ -135,11 +137,11 @@ The first row is the trap. `@Policy` is not itself a JUnit extension: it carries
 
 ### What the policy-free configuration restricts
 
-With the extension registered and no policy present, Ares builds a restrictive configuration in which all five permission lists are empty:
+With the extension registered and no policy present, Ares builds a restrictive configuration in which four permission lists are empty and the package imports permit every `java.*` package:
 
 - **File system, network, command execution and thread creation: denied.** No allowance exists in any of those domains, so nothing is permitted.
-- **Package imports: denied *outside an implicit allowlist*.** This is the part that is commonly overstated. Ares always unions three sources into the permitted set: the essential packages it ships, the supervised package itself, and the packages of the recognised test classes. The shipped essential list includes the `java` prefix, so all of `java.*` remains importable. Package imports are restricted, not eliminated.
-- **No default execution timeout applies yet.** The policy-free configuration does construct a 10,000 ms limit, but timeouts belong to the **Phobos** test-case family, which Ares 2.2.1 generates without yet dispatching it from the in-process execution path. That part of the pipeline has not been migrated across, so the limit does not bound a test today. Add [`@StrictTimeout`](./precompile-or-postcompile.md#glossary) wherever a test needs a deadline.
+- **Package imports: denied *outside an implicit allowlist*.** This is the part that is commonly overstated. Ares permits every `java.*` package, the essential packages it ships, and each package of the supervised code as that package alone, not the packages below it. A recognised test class opens no package, and the supervised code must not depend on one. Package imports are restricted, not eliminated.
+- **No default execution timeout applies yet.** The policy-free configuration does construct a 3,000 ms limit, but timeouts belong to the **Phobos** test-case family, which Ares 2.2.1 generates without yet dispatching it from the in-process execution path. That part of the pipeline has not been migrated across, so the limit does not bound a test today. Add [`@StrictTimeout`](./precompile-or-postcompile.md#glossary) wherever a test needs a deadline.
 
 Two further points apply whether or not a policy is present:
 

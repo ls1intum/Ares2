@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -58,14 +60,41 @@ public final class JavaArchunitSupervisedClasses {
 	 * this entry into the copied API's prefix and stop naming Ares itself.
 	 */
 	private static final List<String> RESERVED_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
-			"de.tum." + "cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.",
-			"com.tngtech.archunit.");
+			"de.tum." + "cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
+			"junit.", "org.junit.", "org.opentest4j.", "org.assertj.", "org.mockito.", "ch.qos.logback.", "org.slf4j.",
+			"com.github.javaparser.", "com.fasterxml.jackson.", "org.yaml.", "org.json.", "com.opencsv.",
+			"org.jgrapht.", "org.apiguardian.", "org.apache.", "org.eclipse.", "org.gradle.", "org.jacoco.",
+			"com.intellij.", "worker.org.gradle.", "de.tum.in.test.api.");
 
 	/**
 	 * The prefix of the API copied beside this class, taken from where this class
 	 * itself ended up rather than from a literal, which the copy would rewrite.
 	 */
 	private static final String COPIED_API_PREFIX = copiedApiPrefix();
+
+	/**
+	 * The Java reserved words a package segment may not be, spelled out rather than
+	 * imported. The shared name rules are not on the classpath once this class is
+	 * copied into the supervised project, so the package rule is duplicated here.
+	 */
+	private static final String JAVA_RESERVED_WORD = "abstract|assert|boolean|break|byte|case|catch|char|class|const|continue|default|do|double|else|enum|extends|false|final|finally|float|for|goto|if|implements|import|instanceof|int|interface|long|native|new|null|package|private|protected|public|return|short|static|strictfp|super|switch|synchronized|this|throw|throws|transient|true|try|void|volatile|while|_";
+
+	/**
+	 * One identifier character, excluding the identifier-ignorable ones. Controls
+	 * and zero-width characters pass {@link Character#isJavaIdentifierPart} but
+	 * would corrupt a generated source or hide one allowlist entry behind another.
+	 */
+	private static final String JAVA_IDENTIFIER_PART = "[\\p{javaJavaIdentifierPart}&&[^\\p{javaIdentifierIgnorable}]]";
+
+	/** One package segment: an identifier that is not a reserved word. */
+	private static final String JAVA_IDENTIFIER = "(?!(?:" + JAVA_RESERVED_WORD + ")(?=\\.|$))"
+			+ "\\p{javaJavaIdentifierStart}" + JAVA_IDENTIFIER_PART + "*";
+
+	/**
+	 * A dot-separated Java package name, the same shape the shared rules require.
+	 */
+	private static final Pattern PACKAGE_PATTERN = Pattern
+			.compile("^" + JAVA_IDENTIFIER + "(?:\\." + JAVA_IDENTIFIER + ")*$");
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -115,26 +144,12 @@ public final class JavaArchunitSupervisedClasses {
 
 	/**
 	 * The packages the supervised code may import from itself, read from the
-	 * compiled output rather than from the scope.
-	 * <p>
-	 * The scope is a prefix, so permitting it permits everything below it, and a
-	 * permission written into the generated file outlives the coverage check beside
-	 * it. The packages the output declares cannot be broader than that output, so
-	 * they are what the generated rules ask for. A reserved one is skipped: it is
-	 * refused during validation, so reaching one here would mean the inventory and
-	 * the check disagreed, and a permission must never name a trusted namespace
-	 * whatever else went wrong.
-	 * <p>
-	 * A package that <em>contains</em> a trusted namespace is refused outright.
-	 * Validation cannot catch that one, because it asks whether a package lies
-	 * inside a reserved prefix and {@code de.tum.cit} lies inside none, while a
-	 * scope broad enough to hold it covers every compiled class by construction.
-	 * Permitting it would grant the supervised code every import from the
-	 * framework's own namespace below it, which is the framework supervising it.
+	 * compiled output, not the wider scope. A reserved package is skipped. One
+	 * above a trusted namespace is kept: {@link #isReservedBelow(String, String)}
+	 * stops its permission there.
 	 *
 	 * @param supervisedPackage the supervised scope
-	 * @param declaredByPolicy  the permissions the policy itself granted, which
-	 *                          stay authoritative
+	 * @param declaredByPolicy  the permissions the policy granted
 	 * @return the permissions the generated rule should apply
 	 */
 	public static Set<PackagePermission> allowedPackages(String supervisedPackage,
@@ -145,19 +160,31 @@ public final class JavaArchunitSupervisedClasses {
 			if (declared.isBlank() || reservedPrefixOf(declared) != null) {
 				continue;
 			}
-			String reserved = ancestorOfReservedPrefix(declared);
-			if (reserved != null) {
-				throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): "
-						+ "The compiled class " + javaClass.getName() + " declares the package " + declared
-						+ ", which lies above the trusted namespace " + reserved
-						+ ". A permission is matched as a prefix, so permitting that package would grant the "
-						+ "supervised code every import from that namespace. Declare "
-						+ "theSupervisedCodeUsesTheFollowingPackage in a security policy, and what may be "
-						+ "imported in theFollowingResourceAccessesArePermitted.");
-			}
+			requireDeclarablePackage(javaClass, declared);
 			permissions.add(new PackagePermission(declared));
 		}
 		return permissions;
+	}
+
+	/**
+	 * Refuses a compiled package name that is not a valid Java package before it is
+	 * turned into a permission.
+	 * <p>
+	 * The permission record does not check the shape, and this value comes from
+	 * student-controlled bytecode, where a control or zero-width character could
+	 * make one permission look like another.
+	 *
+	 * @param javaClass the compiled class the package was read from
+	 * @param declared  the package name to check
+	 * @throws SecurityException when the name is not a valid Java package
+	 */
+	static void requireDeclarablePackage(JavaClass javaClass, String declared) {
+		if (!PACKAGE_PATTERN.matcher(declared).matches()) {
+			throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): "
+					+ "The compiled class " + javaClass.getName() + " declares the package " + declared
+					+ ", which is not a valid Java package name, so Ares does not accept it as a package "
+					+ "of the supervised code.");
+		}
 	}
 	// </editor-fold>
 
@@ -345,34 +372,34 @@ public final class JavaArchunitSupervisedClasses {
 	}
 
 	/**
-	 * The trusted namespace lying <em>below</em> the package, or null if none does.
-	 * <p>
-	 * The complement of {@link #reservedPrefixOf(String)}, and the question a
-	 * permission has to ask. That one refuses a package inside a trusted namespace,
-	 * which is how supervised code would be trusted by name. This one refuses a
-	 * package that contains one, because permitting a package permits everything
-	 * below it. A package equal to a reserved prefix lies inside it rather than
-	 * above it, and is left to the other method so that one package cannot be
-	 * refused twice for two different reasons.
+	 * Whether the package lies in a trusted namespace strictly below the permitted
+	 * package, which that permission must not reach into. Only a permission naming
+	 * the namespace reaches it. Every prefix is checked, so a nested namespace
+	 * stays closed to a permission naming the outer one.
+	 *
+	 * @param permittedPackage the permitted package, without a trailing dot
+	 * @param packageName      the imported package
+	 * @return true if the permission must not cover the package
 	 */
-	private static String ancestorOfReservedPrefix(String packageName) {
-		if (packageName == null || packageName.isBlank()) {
-			return null;
-		}
-		// Reserved prefixes carry a trailing dot and package names do not, so both
-		// ends are normalised before comparing. Without it "com" would not be seen as
-		// the ancestor of "com.sun." that it is.
-		String normalized = packageName.endsWith(".") ? packageName : packageName + ".";
-		if (!COPIED_API_PREFIX.isEmpty() && COPIED_API_PREFIX.startsWith(normalized)
-				&& !COPIED_API_PREFIX.equals(normalized)) {
-			return COPIED_API_PREFIX;
-		}
-		for (String reserved : RESERVED_PREFIXES) {
-			if (reserved.startsWith(normalized) && !reserved.equals(normalized)) {
-				return reserved;
-			}
-		}
-		return null;
+	static boolean isReservedBelow(String permittedPackage, String packageName) {
+		return isReservedBelow(permittedPackage, packageName, COPIED_API_PREFIX);
+	}
+
+	/**
+	 * {@link #isReservedBelow(String, String)} with the prefix of the copied API
+	 * passed in, so the copied case can be checked outside a supervised project.
+	 *
+	 * @param permittedPackage the permitted package, without a trailing dot
+	 * @param packageName      the imported package
+	 * @param copiedApiPrefix  the prefix of the copied API, or empty if none
+	 * @return true if the permission must not cover the package
+	 */
+	static boolean isReservedBelow(String permittedPackage, String packageName, String copiedApiPrefix) {
+		String permitted = permittedPackage + ".";
+		String imported = packageName + ".";
+		return Stream.concat(RESERVED_PREFIXES.stream(), Stream.of(copiedApiPrefix))
+				.filter(reserved -> !reserved.isEmpty()).anyMatch(reserved -> imported.startsWith(reserved)
+						&& reserved.startsWith(permitted) && !reserved.equals(permitted));
 	}
 
 	private static String copiedApiPrefix() {

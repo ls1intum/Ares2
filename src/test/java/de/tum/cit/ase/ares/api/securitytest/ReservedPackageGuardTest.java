@@ -8,6 +8,8 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import de.tum.cit.ase.ares.api.architecture.java.wala.WalaPathClassification;
+
 /**
  * Verifies the reserved-package guard rejects exactly the trusted
  * infrastructure namespaces and leaves legitimate supervised packages
@@ -29,6 +31,50 @@ class ReservedPackageGuardTest {
 		assertThat(ReservedPackageGuard.reservedPrefixOf("jdk.internal.misc")).isEqualTo("jdk.");
 		assertThat(ReservedPackageGuard.reservedPrefixOf("javax.activation")).isEqualTo("javax.");
 		assertThat(ReservedPackageGuard.reservedPrefixOf("com.sun.example")).isEqualTo("com.sun.");
+	}
+
+	/**
+	 * Version 3 restores the Ares 1 breadth: the test harness and Ares' other
+	 * non-shaded dependencies are reserved again, so a submission cannot shadow the
+	 * classes that run or judge it.
+	 */
+	@Test
+	void rejectsTheRestoredHarnessAndDependencyPrefixes() {
+		assertThat(ReservedPackageGuard.reservedPrefixOf("org.junit.jupiter.api.Assertions")).isEqualTo("org.junit.");
+		assertThat(ReservedPackageGuard.reservedPrefixOf("junit.framework.TestCase")).isEqualTo("junit.");
+		assertThat(ReservedPackageGuard.reservedPrefixOf("org.opentest4j.AssertionFailedError"))
+				.isEqualTo("org.opentest4j.");
+		assertThat(ReservedPackageGuard.reservedPrefixOf("org.assertj.core.api.Assertions")).isEqualTo("org.assertj.");
+		assertThat(ReservedPackageGuard.reservedPrefixOf("com.fasterxml.jackson.databind.ObjectMapper"))
+				.isEqualTo("com.fasterxml.jackson.");
+		assertThat(ReservedPackageGuard.reservedPrefixOf("org.yaml.snakeyaml.Yaml")).isEqualTo("org.yaml.");
+		assertThat(ReservedPackageGuard.reservedPrefixOf("org.apache.commons.io.FileUtils")).isEqualTo("org.apache.");
+		assertThat(ReservedPackageGuard.reservedPrefixOf("de.tum.in.test.api.Deadline"))
+				.isEqualTo("de.tum.in.test.api.");
+		assertThat(ReservedPackageGuard.reservedPrefixOf("worker.org.gradle.process.internal.worker.GradleWorkerMain"))
+				.isEqualTo("worker.org.gradle.");
+	}
+
+	/**
+	 * A derived scope broad enough to contain a newly reserved dependency now
+	 * reports it, so JavaCreator refuses that derived permission.
+	 */
+	@Test
+	void reportsARestoredNamespaceLyingBelowAPackage() {
+		assertThat(ReservedPackageGuard.ancestorOfReservedPrefix("com.github")).isEqualTo("com.github.javaparser.");
+	}
+
+	/**
+	 * Every canonical reserved prefix is refused, not only the ones sampled in the
+	 * tests above, so widening the list cannot leave an addition unenforced by the
+	 * guard.
+	 */
+	@Test
+	void reservesEveryCanonicalPrefix() {
+		for (String prefix : WalaPathClassification.RESERVED_PACKAGE_PREFIXES) {
+			assertThat(ReservedPackageGuard.reservedPrefixOf(prefix + "Example"))
+					.as("prefix %s must be reserved", prefix).isEqualTo(prefix);
+		}
 	}
 
 	@Test

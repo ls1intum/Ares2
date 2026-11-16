@@ -21,6 +21,27 @@ class ResourceAccessesTest {
 				.isEqualTo(ResourceLimitsPermission.createRestrictive().timeout());
 	}
 
+	/**
+	 * Checks that the restrictive timeout is exactly 3000 milliseconds. The value
+	 * is pinned literally on purpose: the test above only compares two factories
+	 * with each other, so it would stay green if both drifted together.
+	 */
+	@Test
+	void theRestrictiveTimeoutIsThreeSeconds() {
+		assertThat(ResourceLimitsPermission.createRestrictive().timeout()).isEqualTo(3000L);
+	}
+
+	/**
+	 * Checks that a builder given no timeout falls back to the restrictive one.
+	 * This default decides whether a policy assembled in code records a limit at
+	 * all, so it must not quietly become an empty list.
+	 */
+	@Test
+	void anOmittedTimeoutFallsBackToTheRestrictiveOne() {
+		ResourceAccesses withoutTimeouts = ResourceAccesses.builder().build();
+		assertThat(withoutTimeouts.regardingTimeouts()).containsExactly(ResourceLimitsPermission.createRestrictive());
+	}
+
 	@Test
 	void restrictiveDeniesEveryOtherResource() {
 		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
