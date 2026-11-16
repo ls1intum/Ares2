@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -260,6 +261,7 @@ class JavaProjectScannerHierarchyTest {
 		SecurityException refusal = assertThrows(SecurityException.class,
 				() -> scanner.requireDerivedScopeToCoverTheProject("de.tum.cit"));
 		assertTrue(refusal.getMessage().contains("de.tum.cit.ase.ares.api."), refusal.getMessage());
+		assertFalse(refusal.getMessage().contains(".."), refusal.getMessage());
 	}
 
 	/** The same for a compiled class in a package above the test frameworks. */
@@ -272,7 +274,9 @@ class JavaProjectScannerHierarchyTest {
 		JavaProjectScanner scanner = scanner();
 
 		assertEquals("org", scanner.scanForPackageName());
-		assertThrows(SecurityException.class, () -> scanner.requireDerivedScopeToCoverTheProject("org"));
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner.requireDerivedScopeToCoverTheProject("org"));
+		assertFalse(refusal.getMessage().contains(".."), refusal.getMessage());
 	}
 
 	/**
