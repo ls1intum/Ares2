@@ -387,14 +387,18 @@ public final class ProjectSourcesFinder {
 	}
 
 	/**
-	 * The directories an operand names, and whether it was read in full.
+	 * The directories an operand names, whether it was read in full, and whether a
+	 * value came from a name rather than from a literal.
 	 *
 	 * @param values   the paths read, relative to the project or absolute
 	 * @param complete whether nothing in the operand was left unread
+	 * @param named    whether a value came from a property or a variable of the
+	 *                 script, whose value Gradle may set elsewhere, for example on
+	 *                 the command line
 	 */
-	private record Resolution(List<String> values, boolean complete) {
+	private record Resolution(List<String> values, boolean complete, boolean named) {
 		/** An operand this reader cannot work out. */
-		private static final Resolution UNREAD = new Resolution(List.of(), false);
+		private static final Resolution UNREAD = new Resolution(List.of(), false, false);
 	}
 
 	/**
@@ -615,7 +619,9 @@ public final class ProjectSourcesFinder {
 		/**
 		 * Applies one declaration to main or test: a replacement clears the roots and
 		 * gaps of that set, an addition keeps both. An absent value or a partly read
-		 * operand is a gap, and test takes no value from the latter.
+		 * operand is a gap, and test takes no value from the latter, nor one a property
+		 * or a variable names: Gradle may set those elsewhere, and a test root it does
+		 * not use would exempt the classes in it.
 		 *
 		 * @param sourceSet  main or test
 		 * @param replacing  whether the declaration replaces
@@ -635,7 +641,11 @@ public final class ProjectSourcesFinder {
 			if (!resolution.complete()) {
 				found.add(where + ": a source directory whose value cannot be worked out without running Gradle");
 			}
-			for (String value : "test".equals(sourceSet) && !resolution.complete() ? List.<String>of()
+			boolean test = "test".equals(sourceSet);
+			if (test && resolution.named()) {
+				found.add(where + ": a test source directory named by a property or a variable, which is not taken");
+			}
+			for (String value : test && (!resolution.complete() || resolution.named()) ? List.<String>of()
 					: resolution.values()) {
 				Optional<Path> resolved = resolveDeclaredRoot(root, root.resolve(value), script);
 				if (resolved.isPresent()) {
@@ -745,6 +755,12 @@ public final class ProjectSourcesFinder {
 				.compile("(?:[A-Z][A-Za-z0-9_$<>?]*[ \\t\\u0001]+)(project|rootProject|parent)(?![A-Za-z0-9_$])"
 						+ "|(?<![A-Za-z0-9_$.])(project|rootProject|parent)[\\s\\u0001]*(?:,|->|in(?![A-Za-z0-9_$])|:(?!:))"
 						+ "|,[\\s\\u0001]*(project|rootProject|parent)[\\s\\u0001]*\\)");
+		/**
+		 * The interpolations of the project directory a double-quoted literal may hold,
+		 * which name no property.
+		 */
+		private static final Pattern PROJECT_DIRECTORY = Pattern
+				.compile("\\$\\{project\\.projectDir\\}|\\$\\{projectDir\\}|\\$projectDir(?![A-Za-z0-9_$])");
 		/**
 		 * A whole name as written, also right after the {@code $} of a string
 		 * interpolation, not part of a longer one.
@@ -1729,7 +1745,7 @@ public final class ProjectSourcesFinder {
 
 		/** The same values, no longer known to be all of them. */
 		private static Resolution partOf(Resolution resolution) {
-			return new Resolution(resolution.values(), false);
+			return new Resolution(resolution.values(), false, resolution.named());
 		}
 
 		/**
@@ -1783,12 +1799,14 @@ public final class ProjectSourcesFinder {
 		private Resolution resolveAll(int from, int to) {
 			List<String> values = new ArrayList<>();
 			boolean complete = true;
+			boolean named = false;
 			for (int[] span : splitTopLevel(code, from, to)) {
 				Resolution entry = resolve(span[0], span[1]);
 				values.addAll(entry.values());
 				complete &= entry.complete();
+				named |= entry.named();
 			}
-			return new Resolution(values, complete);
+			return new Resolution(values, complete, named);
 		}
 
 		/**
@@ -1820,14 +1838,15 @@ public final class ProjectSourcesFinder {
 				end--;
 			}
 			if (start >= end) {
-				return new Resolution(List.of(), true);
+				return new Resolution(List.of(), true, false);
 			}
 			char first = code.charAt(start);
 			if (first == '[') {
 				return matchingClose(code, start) == end - 1 ? resolveAll(start + 1, end - 1) : Resolution.UNREAD;
 			}
 			if (first == '\'' || first == '"') {
-				return staticLiteral(start, end).map(value -> new Resolution(List.of(value), true))
+				boolean named = interpolatesAName(start, end);
+				return staticLiteral(start, end).map(value -> new Resolution(List.of(value), true, named))
 						.orElse(Resolution.UNREAD);
 			}
 			if (!isIdentifierStart(first)) {
@@ -1839,12 +1858,27 @@ public final class ProjectSourcesFinder {
 			}
 			String name = code.substring(start, nameEnd);
 			if (nameEnd == end) {
-				return propertyValue(name).map(value -> new Resolution(List.of(value), true)).orElse(Resolution.UNREAD);
+				return propertyValue(name).map(value -> new Resolution(List.of(value), true, true))
+						.orElse(Resolution.UNREAD);
 			}
 			int open = skipInactive(code, nameEnd);
 			return open < end && code.charAt(open) == '(' && matchingClose(code, open) == end - 1
 					? call(name, open, end - 1)
 					: Resolution.UNREAD;
+		}
+
+		/**
+		 * Whether the double-quoted literal filling this span interpolates a name other
+		 * than the project directory, whose value Gradle fixes itself.
+		 */
+		private boolean interpolatesAName(int from, int to) {
+			int start = skipInactive(code, from);
+			if (start >= to || code.charAt(start) != '"') {
+				return false;
+			}
+			String body = content.substring(start, to);
+			return localNames.contains("projectDir")
+					|| PROJECT_DIRECTORY.matcher(body).replaceAll("").indexOf('$') >= 0;
 		}
 
 		/**

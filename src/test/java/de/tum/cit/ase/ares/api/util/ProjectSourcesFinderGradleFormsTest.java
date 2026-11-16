@@ -70,62 +70,71 @@ class ProjectSourcesFinderGradleFormsTest {
 		return Stream.of(form("Groovy test root inside a task created at once", GROOVY, """
 				plugins { id 'java' }
 				tasks.create('eager') { sourceSets.test.java.srcDir 'b' }
-				""", List.of(MAIN), List.of("b", TEST)), form("Groovy named inside a sourceSets block", GROOVY, """
-				plugins { id 'java' }
-				sourceSets { named('test') { java.srcDir('checks') } }
-				""", List.of(MAIN), List.of("checks", TEST)), form("Groovy named after a spaced dot", GROOVY, """
-				plugins { id 'java' }
-				sourceSets . named('test') { java.srcDir('checks') }
-				""", List.of(MAIN), List.of("checks", TEST)), form("Groovy replacement chained to a srcDir", GROOVY, """
-				plugins { id 'java' }
-				sourceSets.main.java.srcDir('a').setSrcDirs(['b'])
-				""", List.of("b"), List.of(TEST)), form("Groovy receiver block", GROOVY, """
-				plugins { id 'java' }
-				sourceSets.main.java { srcDir 'a' }
-				""", List.of("a", MAIN), List.of(TEST)), form("Groovy receiver chain, command call", GROOVY, """
-				plugins { id 'java' }
-				sourceSets.main.java.srcDir 'a'
-				""", List.of("a", MAIN), List.of(TEST)), form("Groovy receiver chain, method call", GROOVY, """
-				plugins { id 'java' }
-				sourceSets.main.java.srcDir('a')
-				""", List.of("a", MAIN), List.of(TEST)), form("Groovy dotted assignment in sourceSets", GROOVY, """
-				plugins { id 'java' }
-				sourceSets { main.java.srcDirs = ['a'] }
-				""", List.of("a"), List.of(TEST)), form("Groovy java chain in main", GROOVY, """
-				plugins { id 'java' }
-				sourceSets { main { java.srcDir 'a' } }
-				""", List.of("a", MAIN), List.of(TEST)), form("Groovy srcDirs command with two operands", GROOVY, """
-				plugins { id 'java' }
-				sourceSets { main { java { srcDirs 'a', 'b' } } }
-				""", List.of("a", "b", MAIN), List.of(TEST)), form("Groovy setSrcDirs", GROOVY, """
-				plugins { id 'java' }
-				sourceSets { main { java { setSrcDirs(['a']) } } }
-				""", List.of("a"), List.of(TEST)), form("Groovy index lookup", GROOVY, """
-				plugins { id 'java' }
-				sourceSets['main'].java.srcDir 'a'
-				""", List.of("a", MAIN), List.of(TEST)), form("Groovy getByName", GROOVY, """
-				plugins { id 'java' }
-				sourceSets.getByName('main').java.srcDir 'a'
-				""", List.of("a", MAIN), List.of(TEST)), form("Groovy named with a block", GROOVY, """
-				plugins { id 'java' }
-				sourceSets.named('main') { java.srcDir 'a' }
-				""", List.of("a", MAIN), List.of(TEST)), form("Groovy files on one line", GROOVY, """
-				plugins { id 'java' }
-				sourceSets { main { java { srcDirs = files('a', 'b') } } }
-				""", List.of("a", "b"), List.of(TEST)), form("Groovy files over two lines", GROOVY, """
-				plugins { id 'java' }
-				sourceSets { main { java { srcDirs = files('a',
-						'b') } } }
-				""", List.of("a", "b"), List.of(TEST)), form("Groovy list of file", GROOVY, """
-				plugins { id 'java' }
-				sourceSets { main { java { srcDirs = [file('a')] } } }
-				""", List.of("a"), List.of(TEST)), form("Groovy srcDir with file", GROOVY, """
-				plugins { id 'java' }
-				sourceSets { main { java { srcDir file('a') } } }
-				""", List.of("a", MAIN), List.of(TEST)), form("Groovy projectDir interpolations", GROOVY, """
-				plugins { id 'java' }
-				sourceSets { main { java { srcDir "$projectDir/a"; srcDir "${projectDir}/b" } } }
-				""", List.of("a", "b", MAIN), List.of(TEST)),
+				""", List.of(MAIN), List.of("b", TEST)),
+				form("Groovy test root under the interpolated project directory", GROOVY, """
+						plugins { id 'java' }
+						sourceSets.test.java.srcDir("$projectDir/checks")
+						""", List.of(MAIN), List.of("checks", TEST)),
+				form("Groovy named inside a sourceSets block", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { named('test') { java.srcDir('checks') } }
+						""", List.of(MAIN), List.of("checks", TEST)),
+				form("Groovy named after a spaced dot", GROOVY, """
+						plugins { id 'java' }
+						sourceSets . named('test') { java.srcDir('checks') }
+						""", List.of(MAIN), List.of("checks", TEST)),
+				form("Groovy replacement chained to a srcDir", GROOVY, """
+						plugins { id 'java' }
+						sourceSets.main.java.srcDir('a').setSrcDirs(['b'])
+						""", List.of("b"), List.of(TEST)), form("Groovy receiver block", GROOVY, """
+						plugins { id 'java' }
+						sourceSets.main.java { srcDir 'a' }
+						""", List.of("a", MAIN), List.of(TEST)), form("Groovy receiver chain, command call", GROOVY, """
+						plugins { id 'java' }
+						sourceSets.main.java.srcDir 'a'
+						""", List.of("a", MAIN), List.of(TEST)), form("Groovy receiver chain, method call", GROOVY, """
+						plugins { id 'java' }
+						sourceSets.main.java.srcDir('a')
+						""", List.of("a", MAIN), List.of(TEST)),
+				form("Groovy dotted assignment in sourceSets", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main.java.srcDirs = ['a'] }
+						""", List.of("a"), List.of(TEST)), form("Groovy java chain in main", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java.srcDir 'a' } }
+						""", List.of("a", MAIN), List.of(TEST)),
+				form("Groovy srcDirs command with two operands", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java { srcDirs 'a', 'b' } } }
+						""", List.of("a", "b", MAIN), List.of(TEST)), form("Groovy setSrcDirs", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java { setSrcDirs(['a']) } } }
+						""", List.of("a"), List.of(TEST)), form("Groovy index lookup", GROOVY, """
+						plugins { id 'java' }
+						sourceSets['main'].java.srcDir 'a'
+						""", List.of("a", MAIN), List.of(TEST)), form("Groovy getByName", GROOVY, """
+						plugins { id 'java' }
+						sourceSets.getByName('main').java.srcDir 'a'
+						""", List.of("a", MAIN), List.of(TEST)), form("Groovy named with a block", GROOVY, """
+						plugins { id 'java' }
+						sourceSets.named('main') { java.srcDir 'a' }
+						""", List.of("a", MAIN), List.of(TEST)), form("Groovy files on one line", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java { srcDirs = files('a', 'b') } } }
+						""", List.of("a", "b"), List.of(TEST)), form("Groovy files over two lines", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java { srcDirs = files('a',
+								'b') } } }
+						""", List.of("a", "b"), List.of(TEST)), form("Groovy list of file", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java { srcDirs = [file('a')] } } }
+						""", List.of("a"), List.of(TEST)), form("Groovy srcDir with file", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java { srcDir file('a') } } }
+						""", List.of("a", MAIN), List.of(TEST)), form("Groovy projectDir interpolations", GROOVY, """
+						plugins { id 'java' }
+						sourceSets { main { java { srcDir "$projectDir/a"; srcDir "${projectDir}/b" } } }
+						""", List.of("a", "b", MAIN), List.of(TEST)),
 				form("Groovy project.projectDir interpolation", GROOVY, """
 						plugins { id 'java' }
 						sourceSets { main { java { srcDir "${project.projectDir}/a" } } }
@@ -819,6 +828,60 @@ class ProjectSourcesFinderGradleFormsTest {
 						val directory = "src/main/java"
 						listOf("checks").forEach { directory -> sourceSets.test { java.srcDir(directory) } }
 						"""));
+	}
+
+	/**
+	 * A test root is taken only from a literal. Gradle 9.9.1 adds {@code checks}
+	 * here, but the same script given {@code -Pdirectory=src/main/java} on the
+	 * command line adds the main folder instead, which this reader cannot see, so
+	 * it takes neither and keeps only the conventional test root.
+	 *
+	 * @param label   what the form is
+	 * @param content the descriptor
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("testRootsANameGives")
+	void takesNoTestRootANameGives(String label, String content) throws IOException {
+		Files.writeString(projectRoot.resolve("gradle.properties"), "directory=checks\n");
+
+		assertEquals(realPaths(List.of(TEST)), discover(GROOVY, content).testSourceRoots().stream().sorted().toList(),
+				label);
+	}
+
+	/**
+	 * Test declarations whose directory comes from a property or a variable.
+	 *
+	 * @return label, descriptor
+	 */
+	static Stream<Arguments> testRootsANameGives() {
+		return Stream.of(Arguments.of("Groovy property", """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDir(directory)
+				"""), Arguments.of("Groovy script variable", """
+				plugins { id 'java' }
+				def directory = 'checks'
+				sourceSets.test.java.srcDir(directory)
+				"""), Arguments.of("Groovy interpolated property", """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDir("${directory}")
+				"""));
+	}
+
+	/**
+	 * A main root still comes from a property, as Gradle 9.9.1 adds {@code checks}
+	 * here: a wrong main root can only make Ares more careful.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void readsAMainRootFromAProperty() throws IOException {
+		Files.writeString(projectRoot.resolve("gradle.properties"), "directory=checks\n");
+
+		assertRootsAndComplete(GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.java.srcDir(directory)
+				""", List.of("checks", MAIN), List.of(TEST));
 	}
 
 	/**
