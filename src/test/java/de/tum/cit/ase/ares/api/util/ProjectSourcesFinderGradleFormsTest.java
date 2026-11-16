@@ -76,7 +76,10 @@ class ProjectSourcesFinderGradleFormsTest {
 				""", List.of(MAIN), List.of("checks", TEST)), form("Groovy named after a spaced dot", GROOVY, """
 				plugins { id 'java' }
 				sourceSets . named('test') { java.srcDir('checks') }
-				""", List.of(MAIN), List.of("checks", TEST)), form("Groovy receiver block", GROOVY, """
+				""", List.of(MAIN), List.of("checks", TEST)), form("Groovy replacement chained to a srcDir", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.main.java.srcDir('a').setSrcDirs(['b'])
+				""", List.of("b"), List.of(TEST)), form("Groovy receiver block", GROOVY, """
 				plugins { id 'java' }
 				sourceSets.main.java { srcDir 'a' }
 				""", List.of("a", MAIN), List.of(TEST)), form("Groovy receiver chain, command call", GROOVY, """
@@ -747,6 +750,21 @@ class ProjectSourcesFinderGradleFormsTest {
 						plugins { id 'java' }
 						['checks'].each { @Deprecated
 						    String directory -> sourceSets.test.java.srcDir(directory)
+						}
+						"""), Arguments.of("Groovy lambda parameter", GROOVY, "directory", """
+						plugins { id 'java' }
+						['checks'].forEach(directory -> {
+						    sourceSets.test.java.srcDir(directory)
+						})
+						"""), Arguments.of("Groovy lambda parameter in parentheses", GROOVY, "directory", """
+						plugins { id 'java' }
+						['checks'].forEach((directory) -> sourceSets.test.java.srcDir(directory))
+						"""),
+				Arguments.of("Kotlin destructured parameters with a function type", KOTLIN, "directory", """
+						plugins { java }
+						listOf(Pair({ "checks" }, "checks")).forEach {
+						    (supplier: () -> String, directory) ->
+						    sourceSets.test { java.srcDir(directory) }
 						}
 						"""), Arguments.of("Groovy closure parameter with a default", GROOVY, "directory", """
 						plugins { id 'java' }

@@ -875,20 +875,28 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
-		 * Where the closure or lambda whose parameters end at this {@code ->} opens:
-		 * the nearest brace before it, across line breaks, or -1 where a closing brace,
-		 * a semicolon or another {@code ->} comes first, as after a {@code when}
-		 * branch. Each scan ends at the arrow before, so all of them together read the
-		 * script once.
+		 * Where the parameters ending at this {@code ->} begin: the first brace or
+		 * parenthesis before it that is not closed in between, as in {@code { a, b
+		 * ->}}, {@code forEach(a -> } or {@code forEach((a) -> }, past what brackets in
+		 * between hold, such as a Kotlin function type. -1 where a closing brace, a
+		 * semicolon or another {@code ->} at that level comes first, as after a
+		 * {@code when} branch.
 		 */
 		private static int parameterListStart(String code, int arrow) {
+			int depth = 0;
 			for (int index = arrow - 1; index >= 0; index--) {
 				char character = code.charAt(index);
-				if (character == '{') {
+				if (character == ')' || character == ']') {
+					depth++;
+				} else if (character == '(' || character == '[') {
+					if (depth == 0) {
+						return index;
+					}
+					depth--;
+				} else if (character == '{') {
 					return index;
-				}
-				if (character == '}' || character == ';'
-						|| character == '>' && index > 0 && code.charAt(index - 1) == '-') {
+				} else if (depth == 0 && (character == '}' || character == ';'
+						|| character == '>' && index > 0 && code.charAt(index - 1) == '-')) {
 					return -1;
 				}
 			}
@@ -1251,10 +1259,10 @@ public final class ProjectSourcesFinder {
 				return lookup(end, prefix, name, deferred);
 			}
 			if (DECLARATIONS.contains(name)) {
-				return recordHandled(declaration(start, end, prefix, name));
+				return recordHandled(declaration(start, end, prefix, name), prefix, recorded);
 			}
 			if (SOURCES.contains(name)) {
-				return recordHandled(source(start, end, prefix, name));
+				return recordHandled(source(start, end, prefix, name), prefix, recorded);
 			}
 			if ("apply".equals(name) && namesAProjectReceiver(prefix)) {
 				return apply(start, end, prefix);
@@ -1268,17 +1276,25 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
-		 * Ends a handled declaration or {@code source} with {@link #DEFERRED}, so that
-		 * a branch whose one-line body it was stops waiting for its body at the next
-		 * line break, and a block following it, a closure Gradle evaluates later as a
-		 * path, is read as deferred code rather than as configuration of the source set
-		 * the declaration names.
+		 * Adds a handled declaration or {@code source} to the names of the statement,
+		 * so that a branch whose one-line body it was stops waiting for its body at the
+		 * next line break: its names, as any other name is added, so that a call
+		 * chained to it keeps its receiver, or {@link #DEFERRED} where a brace follows,
+		 * whose closure Gradle evaluates later as a path rather than as configuration
+		 * of the source set the declaration names.
 		 *
-		 * @param next the offset the handler goes on from
+		 * @param next     the offset the handler goes on from
+		 * @param prefix   the names before it in its dotted name
+		 * @param recorded the name recorded for it
 		 * @return the offset to go on from
 		 */
-		private int recordHandled(int next) {
-			head.add(DEFERRED);
+		private int recordHandled(int next, List<String> prefix, String recorded) {
+			if (takesAClosureAfter(next)) {
+				head.add(DEFERRED);
+			} else {
+				head.addAll(prefix);
+				head.add(recorded);
+			}
 			return next;
 		}
 
