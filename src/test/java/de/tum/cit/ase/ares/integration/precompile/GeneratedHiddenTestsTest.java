@@ -23,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.platform.testkit.engine.EngineExecutionResults;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.testutilities.GeneratedCodeRuns;
 
 /**
@@ -117,8 +118,9 @@ class GeneratedHiddenTestsTest {
 	private static Path shadowVisibility;
 
 	/**
-	 * Generated code and fixtures whose always-run-before date is read from the
-	 * {@code ares.test.crossing.cutoff} property, so a run can cross it.
+	 * Generated code and fixtures whose always-run-before date starts far ahead and
+	 * can be moved into the past by the fixture itself, so a run crosses it at a
+	 * known point.
 	 */
 	private static Path crossing;
 
@@ -154,9 +156,8 @@ class GeneratedHiddenTestsTest {
 				policyText("2200-01-01 00:00 UTC", "2199-01-01 00:00 UTC", false, HIDDEN, PUBLIC));
 		Path crossingSettings = crossingSources
 				.resolve("de/tum/cit/ase/ares/generated/GeneratedTestBehaviorSettings.java");
-		Files.writeString(crossingSettings,
-				Files.readString(crossingSettings).replaceAll("THE_HIDDEN_TESTS_ARE_RUN_BEFORE = -?\\d+L;",
-						"THE_HIDDEN_TESTS_ARE_RUN_BEFORE = Long.getLong(\"ares.test.crossing.cutoff\", 0L);"));
+		Files.writeString(crossingSettings, Files.readString(crossingSettings).replaceAll(
+				"final(\\s+long\\s+\\w*THE_HIDDEN_TESTS_ARE_RUN_BEFORE\\s*=\\s*)-?\\d+L;", "$1Long.MAX_VALUE;"));
 		crossing = compileProject("crossing", crossingSources);
 		resources = futureSources.resolveSibling("resources");
 		include = Files.readAllLines(resources.resolve("junit-platform.properties")).stream()
@@ -279,20 +280,19 @@ class GeneratedHiddenTestsTest {
 
 	/**
 	 * A factory that started before the early run ended still has its stream closed
-	 * once the early run is over, while its dynamic test is held back.
+	 * once the early run is over, while its dynamic test is held back. The factory
+	 * itself ends the early run, so the order does not depend on timing.
 	 *
 	 * @throws Exception if the run cannot be set up
 	 */
 	@Test
 	void aFactoryStreamIsClosedAfterTheEarlyRunEnds() throws Exception {
 		System.clearProperty("ares.test.crossing.closed");
-		System.setProperty("ares.test.crossing.cutoff", Long.toString(System.currentTimeMillis() + 3_000L));
 		try {
 			EngineExecutionResults results = run(crossing, "CrossingFactoryFixture", Locale.ENGLISH);
 			assertThat(System.getProperty("ares.test.crossing.closed")).isEqualTo("true");
 			assertThat(failureMessages(results)).containsExactly(beforeDeadline(Locale.ENGLISH));
 		} finally {
-			System.clearProperty("ares.test.crossing.cutoff");
 			System.clearProperty("ares.test.crossing.closed");
 		}
 	}
@@ -920,9 +920,11 @@ class GeneratedHiddenTestsTest {
 				"@TestFactory java.util.List<DynamicTest> cases() { return java.util.List.of(DynamicTest.dynamicTest(\"case\", () -> { "
 						+ secret + " })); }");
 		fixture(folder, "CrossingFactoryFixture", "",
-				"@TestFactory java.util.stream.Stream<DynamicTest> cases() throws InterruptedException { "
-						+ "long cutOff = Long.getLong(\"ares.test.crossing.cutoff\", 0L); "
-						+ "while (System.currentTimeMillis() <= cutOff) { Thread.sleep(20L); } "
+				"@TestFactory java.util.stream.Stream<DynamicTest> cases() throws ReflectiveOperationException { "
+						+ "java.lang.reflect.Field cutOff = Class.forName(\""
+						+ TestBehaviorConfiguration.GENERATED_CLASS_NAME + "\").getDeclaredField(\""
+						+ TestBehaviorConfiguration.VISIBILITY_RUN_BEFORE_FIELD_NAME + "\"); "
+						+ "cutOff.setAccessible(true); cutOff.setLong(null, 0L); "
 						+ "return java.util.stream.Stream.of(DynamicTest.dynamicTest(\"case\", () -> { " + secret
 						+ " })).onClose(() -> System.setProperty(\"ares.test.crossing.closed\", \"true\")); }");
 		fixture(folder, "LifecycleFixture",

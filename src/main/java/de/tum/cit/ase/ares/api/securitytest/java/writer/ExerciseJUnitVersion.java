@@ -40,6 +40,13 @@ final class ExerciseJUnitVersion {
 	/** How many times a reference inside a looked-up value is followed. */
 	private static final int MAXIMUM_LOOKUPS = 4;
 
+	/**
+	 * How many readings of one version value Ares builds at most. A value whose
+	 * names are set to many values, or refer to themselves, would otherwise grow
+	 * the readings exponentially, so it is refused as unreadable instead.
+	 */
+	private static final int MAXIMUM_READINGS = 256;
+
 	/** The build files a JUnit version can be set in, below the project root. */
 	private static final List<String> BUILD_FILES = List.of("pom.xml", "build.gradle", "build.gradle.kts");
 
@@ -361,18 +368,21 @@ final class ExerciseJUnitVersion {
 	 * values the exercise sets, a few times over. A name set twice gives one
 	 * reading per value; a reference Ares cannot look up, or a loop, stays in it.
 	 *
+	 * @param buildFile   the file that names it.
 	 * @param version     the value as written.
 	 * @param definitions the values the exercise sets.
 	 * @return each reading and the files it used
+	 * @throws SecurityException when it has more than {@link #MAXIMUM_READINGS}
 	 */
 	@Nonnull
-	private static Set<Resolution> resolved(@Nonnull String version,
+	private static Set<Resolution> resolved(@Nonnull Path buildFile, @Nonnull String version,
 			@Nonnull Map<String, List<Definition>> definitions) {
 		Set<Resolution> readings = Set.of(new Resolution(version, new TreeSet<>()));
 		for (int lookup = 0; lookup < MAXIMUM_LOOKUPS; lookup++) {
 			Set<Resolution> next = new LinkedHashSet<>();
 			for (Resolution reading : readings) {
-				next.addAll(lookedUpOnce(reading, definitions));
+				next.addAll(lookedUpOnce(buildFile, version, reading, definitions));
+				requireFewReadings(buildFile, version, next.size());
 			}
 			readings = next;
 		}
@@ -383,13 +393,16 @@ final class ExerciseJUnitVersion {
 	 * One reading with every reference replaced once, one result per combination of
 	 * the values its names are set to.
 	 *
+	 * @param buildFile   the file that names the value.
+	 * @param version     the value as written there.
 	 * @param reading     the value so far and the files it used.
 	 * @param definitions the values the exercise sets.
 	 * @return each combination
+	 * @throws SecurityException when there are more than {@link #MAXIMUM_READINGS}
 	 */
 	@Nonnull
-	private static List<Resolution> lookedUpOnce(@Nonnull Resolution reading,
-			@Nonnull Map<String, List<Definition>> definitions) {
+	private static List<Resolution> lookedUpOnce(@Nonnull Path buildFile, @Nonnull String version,
+			@Nonnull Resolution reading, @Nonnull Map<String, List<Definition>> definitions) {
 		String text = reading.value();
 		List<Resolution> partial = List.of(new Resolution("", reading.sources()));
 		Matcher reference = REFERENCE.matcher(text);
@@ -397,7 +410,9 @@ final class ExerciseJUnitVersion {
 		while (reference.find()) {
 			String name = reference.group(1) == null ? reference.group(2) : reference.group(1);
 			String before = text.substring(end, reference.start());
-			partial = appended(partial, before, reference.group(), definitions.getOrDefault(name.strip(), List.of()));
+			List<Definition> values = definitions.getOrDefault(name.strip(), List.of());
+			requireFewReadings(buildFile, version, (long) partial.size() * Math.max(1, values.size()));
+			partial = appended(partial, before, reference.group(), values);
 			end = reference.end();
 		}
 		String tail = text.substring(end);
@@ -433,6 +448,22 @@ final class ExerciseJUnitVersion {
 	}
 
 	/**
+	 * Refuses a version value with more readings than {@link #MAXIMUM_READINGS},
+	 * before they are built.
+	 *
+	 * @param buildFile the file that names it.
+	 * @param version   the value as written.
+	 * @param readings  how many readings it would have.
+	 * @throws SecurityException naming the value as unreadable
+	 */
+	private static void requireFewReadings(@Nonnull Path buildFile, @Nonnull String version, long readings) {
+		if (readings > MAXIMUM_READINGS) {
+			throw new SecurityException(
+					Messages.localized("security.writer.junit.version.unreadable", buildFile.toString(), version));
+		}
+	}
+
+	/**
 	 * Refuses one version value if any reading of it, after looking up its
 	 * references, is too old, unless that reading is still taken from elsewhere. A
 	 * Maven range is checked by its bounds, so {@code [5.11.4]} and
@@ -445,7 +476,7 @@ final class ExerciseJUnitVersion {
 	 */
 	private static void requireSupported(@Nonnull Path buildFile, @Nonnull String version,
 			@Nonnull Map<String, List<Definition>> definitions) {
-		for (Resolution resolution : resolved(version, definitions)) {
+		for (Resolution resolution : resolved(buildFile, version, definitions)) {
 			String value = resolution.value();
 			if (isTakenFromElsewhere(value)) {
 				continue;

@@ -3,10 +3,12 @@ package de.tum.cit.ase.ares.api.securitytest.java.writer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.stream.Stream;
@@ -227,6 +229,27 @@ class ExerciseJUnitVersionTest {
 			assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
 					.doesNotThrowAnyException();
 		}
+	}
+
+	/**
+	 * A variable set to a number and to several copies of itself is refused as
+	 * unreadable within seconds, instead of building its readings exponentially,
+	 * while a variable set to a handful of values is still checked at each.
+	 *
+	 * @throws IOException if a file cannot be written
+	 */
+	@Test
+	void aValueThatMultipliesItselfIsRefusedQuickly() throws IOException {
+		writeFiles("build.gradle",
+				"ext.v = '5.12.0'\\nv = \"${v}${v}${v}${v}\"\\ndependencies { testImplementation \"org.junit.jupiter:junit-jupiter:$v\" }",
+				"-", "-");
+		assertTimeoutPreemptively(Duration.ofSeconds(5),
+				() -> assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+						.isInstanceOf(SecurityException.class).hasMessageContaining("\"$v\""));
+		writeFiles("build.gradle",
+				"ext.v = '5.12.0'\\nv = '5.12.1'\\nv = '5.13.0'\\ndependencies { testImplementation \"org.junit.jupiter:junit-jupiter:$v\" }",
+				"-", "-");
+		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
 	}
 
 	/**
