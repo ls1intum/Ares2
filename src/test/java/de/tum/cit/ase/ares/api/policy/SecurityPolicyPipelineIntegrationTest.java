@@ -26,8 +26,13 @@ class SecurityPolicyPipelineIntegrationTest {
 	@TempDir
 	Path temporaryDirectory;
 
+	/**
+	 * Checks, for Maven and for Gradle, that the values of a fully filled-in policy
+	 * file reach the generated test-case factory, with {@code ${PROJECT_ROOT}}
+	 * expanded to the project folder.
+	 */
 	@Test
-	void carriesFullyPopulatedYamlThroughRealMavenAndGradlePipelines() throws IOException {
+	void carriesFullyPopulatedYamlThroughRealMavenAndGradlePipelines() throws Exception {
 		for (BuildMode mode : BuildMode.values()) {
 			Path root = Files.createDirectory(temporaryDirectory.resolve(mode.name().toLowerCase()));
 			if (mode == BuildMode.MAVEN) {
@@ -76,8 +81,12 @@ class SecurityPolicyPipelineIntegrationTest {
 		}
 	}
 
+	/**
+	 * Checks that a policy whose port is {@code null} is refused with a
+	 * {@link SecurityException} and that no test-case factory is left behind.
+	 */
 	@Test
-	void invalidPolicyFailsBeforeAFactoryExists() throws IOException {
+	void invalidPolicyFailsBeforeAFactoryExists() throws Exception {
 		Path root = Files.createDirectory(temporaryDirectory.resolve("invalid"));
 		Files.writeString(root.resolve("pom.xml"), "<project/>");
 		Path policy = root.resolve("policy.yaml");
@@ -85,7 +94,8 @@ class SecurityPolicyPipelineIntegrationTest {
 		SecurityPolicyReaderAndDirector pipeline = SecurityPolicyReaderAndDirector.builder()
 				.securityPolicyFilePath(policy).projectFolderPath(root).build();
 		assertThrows(SecurityException.class, pipeline::createTestCases);
-		assertThrows(NullPointerException.class, pipeline::factoryAndBuilder);
+		assertThrows(NullPointerException.class, pipeline::factoryAndBuilder,
+				"no factory should exist after a failed createTestCases()");
 	}
 
 	/**
