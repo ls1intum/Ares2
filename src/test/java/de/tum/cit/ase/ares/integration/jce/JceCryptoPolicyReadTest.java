@@ -263,6 +263,7 @@ class JceCryptoPolicyReadTest {
 				    regardingPackageImports:
 				      - importTheFollowingPackage: "javax.crypto"
 				      - importTheFollowingPackage: "javax.net.ssl"
+				      - importTheFollowingPackage: "java.awt.image"
 				      - importTheFollowingPackage: "java.nio.file"
 				      - importTheFollowingPackage: "java.security"
 				      - importTheFollowingPackage: "java.util"
