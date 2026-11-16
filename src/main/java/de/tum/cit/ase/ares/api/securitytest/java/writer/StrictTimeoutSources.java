@@ -82,6 +82,8 @@ final class StrictTimeoutSources {
 			 */
 			public final class GeneratedStrictTimeout implements InvocationInterceptor {
 
+				@ENGINE_CHECK@
+
 				/** The grace period a JUnit invocation gets when the policy names none. */
 				private static final Duration DEFAULT_GRACE = Duration.ofMillis(50);
 
@@ -1297,7 +1299,8 @@ final class StrictTimeoutSources {
 	 */
 	@Nonnull
 	private static String fill(@Nonnull String source, @Nonnull String messagesClass) {
-		return source.replace(MESSAGES, messagesClass).replace(SETTINGS, TestBehaviorConfiguration.GENERATED_CLASS_NAME)
+		return ExerciseJUnitVersion.withEngineCheck(source).replace(MESSAGES, messagesClass)
+				.replace(SETTINGS, TestBehaviorConfiguration.GENERATED_CLASS_NAME)
 				.replace(GRACE, TestBehaviorConfiguration.STRICT_TIMEOUT_GRACE_FIELD_NAME)
 				.replace(TIMEOUT, TestBehaviorConfiguration.STRICT_TIMEOUT_TIMEOUT_FIELD_NAME)
 				.replace(PACKAGE, messagesClass.substring(0, messagesClass.indexOf(".ares.api.localization.Messages")))

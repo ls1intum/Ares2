@@ -87,6 +87,9 @@ final class HiddenTestsSources {
 			 * edit: regenerate instead.
 			 */
 			public final class GeneratedHiddenTests implements InvocationInterceptor, BeforeAllCallback, ExecutionCondition {
+
+				@ENGINE_CHECK@
+
 				/** Refuses concurrent tests before a hidden invocation can alter process streams. */
 				@Override
 				public void beforeAll(ExtensionContext context) {
@@ -863,7 +866,8 @@ final class HiddenTestsSources {
 	 */
 	@Nonnull
 	private static String fill(@Nonnull String source, @Nonnull String messagesClass) {
-		return source.replace(MESSAGES, messagesClass).replace(SETTINGS, TestBehaviorConfiguration.GENERATED_CLASS_NAME)
+		return ExerciseJUnitVersion.withEngineCheck(source).replace(MESSAGES, messagesClass)
+				.replace(SETTINGS, TestBehaviorConfiguration.GENERATED_CLASS_NAME)
 				.replace(DEADLINE, TestBehaviorConfiguration.VISIBILITY_DEADLINE_FIELD_NAME)
 				.replace(ALWAYS_RUN_BEFORE, TestBehaviorConfiguration.VISIBILITY_RUN_BEFORE_FIELD_NAME)
 				.replace(UNLISTED, TestBehaviorConfiguration.VISIBILITY_UNLISTED_HIDDEN_FIELD_NAME)

@@ -82,6 +82,8 @@ final class FailureReportingSources {
 			public final class GeneratedFailureReporting
 					implements TestExecutionExceptionHandler, LifecycleMethodExecutionExceptionHandler, InvocationInterceptor {
 
+				@ENGINE_CHECK@
+
 				/** The test guarded now, inherited by a worker another hook starts. */
 				private static final InheritableThreadLocal<String> GUARDING = new InheritableThreadLocal<>();
 
@@ -1297,7 +1299,8 @@ final class FailureReportingSources {
 	 */
 	@Nonnull
 	private static String fill(@Nonnull String source, @Nonnull String messagesClass) {
-		return source.replace(MESSAGES, messagesClass).replace(SETTINGS, TestBehaviorConfiguration.GENERATED_CLASS_NAME)
+		return ExerciseJUnitVersion.withEngineCheck(source).replace(MESSAGES, messagesClass)
+				.replace(SETTINGS, TestBehaviorConfiguration.GENERATED_CLASS_NAME)
 				.replace(ENABLED, TestBehaviorConfiguration.FAILURE_FEEDBACK_PRIVILEGED_ONLY_FIELD_NAME)
 				.replace(MESSAGE, TestBehaviorConfiguration.FAILURE_FEEDBACK_MESSAGE_FIELD_NAME)
 				.replace(LEVEL, TestBehaviorConfiguration.FAILURE_FEEDBACK_LEVEL_FIELD_NAME)

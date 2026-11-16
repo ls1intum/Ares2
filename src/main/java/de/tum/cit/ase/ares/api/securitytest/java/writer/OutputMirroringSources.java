@@ -66,6 +66,8 @@ final class OutputMirroringSources {
 			 */
 			public final class GeneratedOutputMirroring implements BeforeEachCallback, AfterEachCallback {
 
+				@ENGINE_CHECK@
+
 				/** Where this hook remembers that it installed its streams for a test. */
 				private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace
 						.create(GeneratedOutputMirroring.class);
@@ -445,8 +447,8 @@ final class OutputMirroringSources {
 	 */
 	@Nonnull
 	static String jupiterHook(@Nonnull String messagesClass, boolean hiddenTestsGenerated) {
-		return fill(JUPITER_HOOK_SOURCE, messagesClass).replace(HIDDEN_TESTS_GENERATED,
-				Boolean.toString(hiddenTestsGenerated));
+		return fill(ExerciseJUnitVersion.withEngineCheck(JUPITER_HOOK_SOURCE), messagesClass)
+				.replace(HIDDEN_TESTS_GENERATED, Boolean.toString(hiddenTestsGenerated));
 	}
 
 	/**

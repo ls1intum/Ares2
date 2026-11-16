@@ -37,6 +37,96 @@ final class ExerciseJUnitVersion {
 	/** The oldest minor version of {@link #MINIMUM_MAJOR} that reads it. */
 	private static final int MINIMUM_MINOR = 12;
 
+	/**
+	 * Placeholder in a generated hook's source for its check of the JUnit engine.
+	 */
+	static final String ENGINE_CHECK = "@ENGINE_CHECK@";
+
+	/**
+	 * Source text of the members every generated JUnit hook carries: when JUnit
+	 * loads the hook, they read the version of the JUnit engine running the tests
+	 * and fail the whole run below 5.12 or when it cannot be read. This catches a
+	 * version the build file does not show, such as one a parent sets.
+	 */
+	private static final String ENGINE_CHECK_SOURCE = """
+				/** The oldest JUnit version whose engine reads the setting that limits which extensions load. */
+				private static final String MINIMUM_JUNIT_ENGINE = "5.12";
+
+				static {
+					requireSupportedJUnitEngine(loadedJUnitEngineVersion());
+				}
+
+				/**
+				 * Fails when the JUnit engine running the tests is older than 5.12, or its
+				 * version is unknown, since such an engine would load every extension on the
+				 * class path, the student's included.
+				 *
+				 * @param version the engine's version, or null when it cannot be read
+				 * @throws IllegalStateException naming the version and the minimum
+				 */
+				static void requireSupportedJUnitEngine(String version) {
+					if (!readsExtensionFilter(version)) {
+						throw new IllegalStateException(@MESSAGES@.localized("generated.junit.engine.unsupported",
+								version == null ? "?" : version, MINIMUM_JUNIT_ENGINE));
+					}
+				}
+
+				/**
+				 * The version of the JUnit Jupiter engine this run loaded, from its JAR's
+				 * manifest or else its module, or null when neither names one or the engine
+				 * cannot be found.
+				 *
+				 * @return the version, or null
+				 */
+				static String loadedJUnitEngineVersion() {
+					try {
+						Class<?> engine = Class.forName("org.junit.jupiter.engine.JupiterTestEngine", false,
+								java.lang.invoke.MethodHandles.lookup().lookupClass().getClassLoader());
+						Package enginePackage = engine.getPackage();
+						String version = enginePackage == null ? null : enginePackage.getImplementationVersion();
+						java.lang.module.ModuleDescriptor module = engine.getModule().getDescriptor();
+						return version != null || module == null ? version : module.rawVersion().orElse(null);
+					} catch (ClassNotFoundException | LinkageError e) {
+						return null;
+					}
+				}
+
+				/**
+				 * Whether a JUnit version is 5.12 or newer, read from its first two numbers.
+				 *
+				 * @param version the version, or null
+				 * @return false for an older version, null, or one not starting with two numbers
+				 */
+				static boolean readsExtensionFilter(String version) {
+					int majorEnd = version == null ? 0 : digitsEnd(version, 0);
+					if (majorEnd == 0 || majorEnd >= version.length() || version.charAt(majorEnd) != '.') {
+						return false;
+					}
+					int minorEnd = digitsEnd(version, majorEnd + 1);
+					if (minorEnd == majorEnd + 1 || minorEnd - majorEnd - 1 > 9 || majorEnd > 9) {
+						return false;
+					}
+					int major = Integer.parseInt(version.substring(0, majorEnd));
+					int minor = Integer.parseInt(version.substring(majorEnd + 1, minorEnd));
+					return major > 5 || major == 5 && minor >= 12;
+				}
+
+				/**
+				 * Where a run of ASCII digits starting at an index ends.
+				 *
+				 * @param text  the text
+				 * @param start where the run starts
+				 * @return the index after the last digit, or start when there is none
+				 */
+				private static int digitsEnd(String text, int start) {
+					int end = start;
+					while (end < text.length() && text.charAt(end) >= '0' && text.charAt(end) <= '9') {
+						end++;
+					}
+					return end;
+				}
+			""";
+
 	/** How many times a reference inside a looked-up value is followed. */
 	private static final int MAXIMUM_LOOKUPS = 4;
 
@@ -182,6 +272,19 @@ final class ExerciseJUnitVersion {
 	 * @param sources the files whose values were used.
 	 */
 	private record Resolution(@Nonnull String value, @Nonnull Set<String> sources) {
+	}
+
+	/**
+	 * A generated hook's source with its check of the running JUnit engine filled
+	 * in. The build file check refuses what it can see early; this one also stops
+	 * an old engine the build file does not name.
+	 *
+	 * @param source the hook's source text with the {@link #ENGINE_CHECK} line.
+	 * @return the source with that line replaced by the check's members
+	 */
+	@Nonnull
+	static String withEngineCheck(@Nonnull String source) {
+		return source.replace("\t" + ENGINE_CHECK + "\n", ENGINE_CHECK_SOURCE);
 	}
 
 	/** Prevents instantiation: this class only reads build files. */

@@ -461,6 +461,26 @@ class ExerciseJUnitVersionTest {
 	}
 
 	/**
+	 * A versionless dependency a parent manages passes the build file check, so
+	 * every generated hook's source carries the check of the running engine that
+	 * stops an old one, with no placeholder left.
+	 *
+	 * @throws IOException if the build file cannot be written
+	 */
+	@Test
+	void aParentManagedVersionIsLeftToTheEngineCheck() throws IOException {
+		write("pom.xml",
+				"<project><parent><artifactId>course-parent</artifactId></parent><dependencies><dependency><artifactId>junit-jupiter</artifactId></dependency></dependencies></project>");
+		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
+		String messages = "com.example.ares.api.localization.Messages";
+		for (String source : new String[] { StrictTimeoutSources.jupiterHook(messages, true),
+				OutputMirroringSources.jupiterHook(messages, true), FailureReportingSources.jupiterHook(messages) }) {
+			assertThat(source).contains("requireSupportedJUnitEngine(loadedJUnitEngineVersion());")
+					.doesNotContain(ExerciseJUnitVersion.ENGINE_CHECK);
+		}
+	}
+
+	/**
 	 * Writes one file below the project folder, creating its folders.
 	 *
 	 * @param file the file's path.

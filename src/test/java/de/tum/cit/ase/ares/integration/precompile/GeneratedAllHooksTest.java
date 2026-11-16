@@ -932,6 +932,64 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
+	 * Every generated hook checks the JUnit engine running the tests: it loads
+	 * under this run's engine, accepts 5.12 and newer, and refuses an older or
+	 * unreadable version, such as 5.11.4 from a parent, naming it in both locales.
+	 *
+	 * @param hook the generated hook's simple name.
+	 * @throws Exception if the hook cannot be loaded
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "GeneratedStrictTimeout", "GeneratedHiddenTests", "GeneratedOutputMirroring",
+			"GeneratedFailureReporting" })
+	void everyHookRefusesAnOldJUnitEngine(String hook) throws Exception {
+		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(compiled, resources)),
+				Thread.currentThread().getContextClassLoader())) {
+			Class<?> generated = Class.forName(GENERATED + hook, true, loader);
+			java.lang.reflect.Method reads = generated.getDeclaredMethod("readsExtensionFilter", String.class);
+			reads.setAccessible(true);
+			java.lang.reflect.Method loaded = generated.getDeclaredMethod("loadedJUnitEngineVersion");
+			loaded.setAccessible(true);
+			assertThat(reads.invoke(null, loaded.invoke(null))).isEqualTo(true);
+			for (String accepted : List.of("5.12.0", "5.12.0-M1", "5.14.1", "6.1.3", "10.0")) {
+				assertThat(reads.invoke(null, accepted)).as(accepted).isEqualTo(true);
+			}
+			for (String refused : Arrays.asList("5.11.4", "5.9", "4.13.2", "5", "5.x", "", "unknown", null)) {
+				assertThat(reads.invoke(null, refused)).as(String.valueOf(refused)).isEqualTo(false);
+			}
+			java.lang.reflect.Method require = generated.getDeclaredMethod("requireSupportedJUnitEngine", String.class);
+			require.setAccessible(true);
+			assertThat(engineRefusal(require, "5.11.4", Locale.ENGLISH)).contains("version 5.11.4",
+					"JUnit 5.12 or newer");
+			assertThat(engineRefusal(require, null, Locale.GERMAN)).contains("die Version ?", "JUnit 5.12 oder neuer");
+		}
+	}
+
+	/**
+	 * The message a generated hook's engine check fails with for a version.
+	 *
+	 * @param require the hook's check.
+	 * @param version the engine version to check.
+	 * @param locale  the locale to fail in.
+	 * @return the failure's message
+	 * @throws Exception if the check accepts the version
+	 */
+	private static String engineRefusal(java.lang.reflect.Method require, String version, Locale locale)
+			throws Exception {
+		Locale original = Locale.getDefault(Locale.Category.DISPLAY);
+		try {
+			Locale.setDefault(Locale.Category.DISPLAY, locale);
+			require.invoke(null, version);
+		} catch (java.lang.reflect.InvocationTargetException refusal) {
+			assertThat(refusal.getCause()).isInstanceOf(IllegalStateException.class);
+			return refusal.getCause().getMessage();
+		} finally {
+			Locale.setDefault(Locale.Category.DISPLAY, original);
+		}
+		throw new AssertionError("The engine check accepted " + version);
+	}
+
+	/**
 	 * Runs one class with only one hook registered, on a copy of the generated
 	 * output and its registration without the visibility hook.
 	 *
