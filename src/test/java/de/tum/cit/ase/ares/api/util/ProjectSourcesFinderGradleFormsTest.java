@@ -204,7 +204,12 @@ class ProjectSourcesFinderGradleFormsTest {
 				form("Groovy closure as a lookup's second argument", GROOVY, """
 						plugins { id 'java' }
 						sourceSets.named('main', { java.srcDir 'a' })
-						""", List.of("a", MAIN), List.of(TEST)));
+						""", List.of("a", MAIN), List.of(TEST)),
+				form("Groovy if with its body on its own line, then a declaration", GROOVY, """
+						plugins { id 'java' }
+						if (true) println 'x'
+						sourceSets.test.java.srcDir 'a'
+						""", List.of(MAIN), List.of("a", TEST)));
 	}
 
 	/**
@@ -545,6 +550,78 @@ class ProjectSourcesFinderGradleFormsTest {
 				configure([]) {
 				    sourceSets.test.java.srcDir('src/main/java')
 				}
+				"""), Arguments.of("Groovy if whose body is on the next line", GROOVY, """
+				plugins { id 'java' }
+				if (false)
+				    sourceSets.test.java.srcDir('src/main/java')
+				"""), Arguments.of("Groovy if whose brace is on the next line", GROOVY, """
+				plugins { id 'java' }
+				if (false)
+				{
+				    sourceSets.test.java.srcDir('src/main/java')
+				}
+				"""), Arguments.of("Groovy else whose body is on the next line", GROOVY, """
+				plugins { id 'java' }
+				if (true) println 'x'
+				else
+				    sourceSets.test.java.srcDir('src/main/java')
+				"""), Arguments.of("Groovy while whose body is on the next line", GROOVY, """
+				plugins { id 'java' }
+				while (false)
+				    sourceSets.test.java.srcDir('src/main/java')
+				"""), Arguments.of("Kotlin if whose body is on the next line", KOTLIN, """
+				plugins { java }
+				if (false)
+				    sourceSets.test { java.srcDir("src/main/java") }
+				"""), Arguments.of("Groovy addition in a try block an exception leaves", GROOVY, """
+				plugins { id 'java' }
+				try {
+				    Integer.parseInt('invalid')
+				    sourceSets.test.java.srcDir 'src/main/java'
+				} catch (Exception ignored) {
+				}
+				"""), Arguments.of("Groovy project(':') replacing this project's test set", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDir 'src/main/java'
+				project(':') {
+				    sourceSets.test.java.setSrcDirs([])
+				}
+				"""), Arguments.of("Groovy findProject(':') replacing this project's test set", GROOVY, """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDir 'src/main/java'
+				findProject(':').sourceSets.test.java.setSrcDirs([])
+				"""), Arguments.of("Groovy if on a project lookup whose body is on the next line", GROOVY, """
+				plugins { id 'java' }
+				if (findProject(':') == null)
+				    sourceSets.test.java.srcDir('src/main/java')
+				"""), Arguments.of("Kotlin when without a subject whose brace is on the next line", KOTLIN, """
+				plugins { java }
+				when
+				{
+				    false -> sourceSets.test {
+				        java.srcDir("src/main/java")
+				    }
+				}
+				"""), Arguments.of("Groovy rootProject behind a safe call on a project lookup", GROOVY, """
+				plugins { id 'java' }
+				findProject(':nope')?.rootProject?.sourceSets?.test?.java?.srcDir('src/main/java')
+				"""), Arguments.of("Groovy rootProject of every subproject where there is none", GROOVY, """
+				plugins { id 'java' }
+				subprojects
+				    .rootProject
+				    .each {
+				        sourceSets.test.java.srcDir 'src/main/java'
+				    }
+				"""), Arguments.of("Groovy allprojects of a looked-up rootProject behind &&", GROOVY, """
+				plugins { id 'java' }
+				false && project(':').rootProject.allprojects {
+				    sourceSets.test.java.srcDir 'src/main/java'
+				}
+				"""), Arguments.of("Groovy rootProject inside subprojects where there is none", GROOVY, """
+				plugins { id 'java' }
+				subprojects {
+				    rootProject.sourceSets.test.java.srcDir 'src/main/java'
+				}
 				"""));
 	}
 
@@ -650,6 +727,203 @@ class ProjectSourcesFinderGradleFormsTest {
 				"if (false) apply from: 'roots.gradle'\n")) {
 			assertFalse(discover(GROOVY, "plugins { id 'java' }\n" + apply).productionRootsComplete(), apply);
 		}
+	}
+
+	/**
+	 * In the root project, {@code rootProject} is this project, also reached as
+	 * {@code project.rootProject}, so a script applied through it is read, and its
+	 * replacement empties the test roots, as Gradle 9.9.1 does here.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void readsAScriptAppliedThroughRootProjectInTheRootProject() throws IOException {
+		Files.writeString(projectRoot.resolve("roots.gradle"), "sourceSets.test.java.setSrcDirs([])\n");
+		for (String receiver : List.of("rootProject", "project.rootProject")) {
+			assertRootsAndComplete(GROOVY, "plugins { id 'java' }\nsourceSets.test.java.srcDir 'src/main/java'\n"
+					+ receiver + ".apply from: 'roots.gradle'\n", List.of(MAIN), List.of());
+		}
+	}
+
+	/**
+	 * The {@code rootProject} reached through another project is the root, as
+	 * Gradle 9.9.1 shows here, but the receiver before it may be a collection or a
+	 * call that returns null, so it is read as maybe this project: an applied
+	 * script drops the test roots, a declaration adds none, and main is left
+	 * incomplete, the cautious answers.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void readsTheRootProjectOfAnotherProjectAsMaybeThisProject() throws IOException {
+		createSubproject();
+		Files.writeString(projectRoot.resolve("roots.gradle"), "sourceSets.test.java.setSrcDirs([])\n");
+		Files.writeString(projectRoot.resolve(GROOVY), """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDir 'src/main/java'
+				project(':child').rootProject.apply from: 'roots.gradle'
+				""");
+
+		BuildToolConfiguration applied = ProjectSourcesFinder.discover(projectRoot);
+
+		assertEquals(List.of(), applied.testSourceRoots());
+		assertFalse(applied.productionRootsComplete());
+
+		Files.writeString(projectRoot.resolve(GROOVY),
+				"plugins { id 'java' }\nproject(':child').rootProject.sourceSets.test.java.srcDir 'a'\n");
+
+		BuildToolConfiguration declared = ProjectSourcesFinder.discover(projectRoot);
+
+		assertEquals(List.of(projectRoot.resolve(TEST).toRealPath()), declared.testSourceRoots());
+		assertFalse(declared.productionRootsComplete());
+	}
+
+	/**
+	 * A script applied with a target of its own, as an argument or in a block, or
+	 * through a receiver that only ends in {@code project}, may reach this project
+	 * or another, so the test roots are dropped and main is left incomplete. Gradle
+	 * 9.9.1 empties them for both targets and leaves them for the other receiver.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void dropsTheTestRootsForAScriptAppliedToATargetItCannotPlace() throws IOException {
+		createSubproject();
+		Files.writeString(projectRoot.resolve("empty.gradle"), "sourceSets.test.java.setSrcDirs([])\n");
+		Files.writeString(projectRoot.resolve("adds.gradle"),
+				"apply plugin: 'java'\nsourceSets.test.java.srcDir 'src/main/java'\n");
+		for (String apply : List.of(
+				"project(':child').apply(\n    from: file('empty.gradle'),\n    to: rootProject\n)\n",
+				"def holder = [project: project(':child')]\nholder.project.apply from: file('adds.gradle')\n",
+				"project(':child').apply {\n    from(rootProject.file('empty.gradle'))\n    to(rootProject)\n}\n")) {
+			Files.writeString(projectRoot.resolve(GROOVY),
+					"plugins { id 'java' }\nsourceSets.test.java.srcDir 'src/main/java'\n" + apply);
+
+			BuildToolConfiguration configuration = ProjectSourcesFinder.discover(projectRoot);
+
+			assertEquals(List.of(), configuration.testSourceRoots(), apply);
+			assertFalse(configuration.productionRootsComplete(), apply);
+		}
+	}
+
+	/**
+	 * Inside {@code subprojects}, an explicit {@code rootProject} or {@code parent}
+	 * leads back to the root, which Gradle 9.9.1 changes here, though the block
+	 * runs only where a subproject exists. So the test roots are dropped and main
+	 * is left incomplete.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void dropsTheTestRootsWhereSubprojectsLeadsBackToTheRoot() throws IOException {
+		createSubproject();
+		Files.writeString(projectRoot.resolve("empty.gradle"), "sourceSets.test.java.setSrcDirs([])\n");
+		for (String change : List.of("rootProject.apply from: 'empty.gradle'",
+				"rootProject.sourceSets.test.java.setSrcDirs([])", "parent.sourceSets.test.java.setSrcDirs([])")) {
+			Files.writeString(projectRoot.resolve(GROOVY), "plugins { id 'java' }\nsourceSets.test.java.srcDir "
+					+ "'src/main/java'\nsubprojects {\n    " + change + "\n}\n");
+
+			BuildToolConfiguration configuration = ProjectSourcesFinder.discover(projectRoot);
+
+			assertEquals(List.of(), configuration.testSourceRoots(), change);
+			assertFalse(configuration.productionRootsComplete(), change);
+		}
+	}
+
+	/**
+	 * The {@code parent} of a project looked up by a computed path may be this
+	 * project, as the root is for {@code :child} in Gradle 9.9.1 here, so a
+	 * replacement or a script applied through it drops the test roots.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void dropsTheTestRootsWhereTheParentOfALookedUpProjectIsChanged() throws IOException {
+		createSubproject();
+		Files.writeString(projectRoot.resolve("empty.gradle"), "sourceSets.test.java.setSrcDirs([])\n");
+		for (String change : List.of("sourceSets.test.java.setSrcDirs([])", "apply from: 'empty.gradle'")) {
+			Files.writeString(projectRoot.resolve(GROOVY), "plugins { id 'java' }\nsourceSets.test.java.srcDir "
+					+ "'src/main/java'\ndef target = ':child'\nproject(target).parent." + change + "\n");
+
+			BuildToolConfiguration configuration = ProjectSourcesFinder.discover(projectRoot);
+
+			assertEquals(List.of(), configuration.testSourceRoots(), change);
+			assertFalse(configuration.productionRootsComplete(), change);
+		}
+	}
+
+	/**
+	 * A variable of the script named {@code rootProject} or {@code project},
+	 * assigned, or bound in a tuple, a closure or a loop, may hold another project,
+	 * as {@code :child} here, which Gradle 9.9.1 changes instead of the root. So
+	 * neither what is applied through it nor what is declared on it gives a test
+	 * root, and main is left incomplete.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void takesNoTestRootThroughAProjectVariableOfTheScript() throws IOException {
+		createSubproject();
+		Files.writeString(projectRoot.resolve("adds.gradle"),
+				"apply plugin: 'java'\nsourceSets.test.java.srcDir 'src/main/java'\n");
+		for (String use : List.of("def rootProject = project(':child')\nrootProject.apply from: file('adds.gradle')\n",
+				"project(':child') { apply plugin: 'java' }\ndef rootProject = project(':child')\n"
+						+ "rootProject.sourceSets.test.java.srcDir 'src/main/java'\n",
+				"def project = project(':child')\nproject.apply from: file('adds.gradle')\n",
+				"def (rootProject, unused) = [project(':child'), null]\nrootProject.apply from: file('adds.gradle')\n",
+				"def (unused,\n     rootProject) = [null, project(':child')]\nrootProject.apply from: file('adds.gradle')\n",
+				"[project(':child')].each { rootProject ->\n    rootProject.apply from: file('adds.gradle')\n}\n",
+				"for (rootProject in [project(':child')]) {\n    rootProject.apply from: file('adds.gradle')\n}\n")) {
+			Files.writeString(projectRoot.resolve(GROOVY), "plugins { id 'java' }\n" + use);
+
+			BuildToolConfiguration configuration = ProjectSourcesFinder.discover(projectRoot);
+
+			assertFalse(configuration.testSourceRoots().contains(projectRoot.resolve(MAIN).toRealPath()), use);
+			assertFalse(configuration.productionRootsComplete(), use);
+		}
+	}
+
+	/**
+	 * Below a settings file of another directory, {@code rootProject} may be this
+	 * project, so a script applied through it may replace the test roots. They are
+	 * dropped and main is left incomplete, the cautious answer.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void dropsTheTestRootsForAScriptAppliedThroughAnUncertainRootProject() throws IOException {
+		Path child = createSubproject();
+		Files.writeString(child.resolve("roots.gradle"), "sourceSets.test.java.setSrcDirs([])\n");
+		Files.writeString(child.resolve(GROOVY), "plugins { id 'java' }\nrootProject.apply from: 'roots.gradle'\n");
+
+		BuildToolConfiguration configuration = ProjectSourcesFinder.discover(child);
+
+		assertEquals(List.of(), configuration.testSourceRoots());
+		assertFalse(configuration.productionRootsComplete());
+	}
+
+	/**
+	 * In the root project, {@code project(':child')} is another project, so its
+	 * replacement leaves this project's test roots as they are, as Gradle 9.9.1
+	 * does here, while main is left incomplete.
+	 *
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void keepsTheTestRootsWhereAnotherProjectIsLookedUp() throws IOException {
+		createSubproject();
+		Files.writeString(projectRoot.resolve(GROOVY), """
+				plugins { id 'java' }
+				project(':child') {
+				    apply plugin: 'java'
+				    sourceSets.test.java.setSrcDirs([])
+				}
+				""");
+
+		BuildToolConfiguration configuration = ProjectSourcesFinder.discover(projectRoot);
+
+		assertEquals(List.of(projectRoot.resolve(TEST).toRealPath()), configuration.testSourceRoots());
+		assertFalse(configuration.productionRootsComplete());
 	}
 
 	/**

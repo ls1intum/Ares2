@@ -94,8 +94,9 @@ public final class ProjectSourcesFinder {
 	private static final char STRING_MASK = '\u0002';
 	/**
 	 * The name the Gradle reader puts in place of a call that reaches another
-	 * project, such as {@code subprojects} or {@code project(':x')}, so that a
-	 * source set changed there is never taken for this project's.
+	 * project, such as {@code subprojects}, or {@code project(':x')} in the root
+	 * project, so that a source set changed there is never taken for this
+	 * project's.
 	 */
 	private static final String OTHER_PROJECT = "?project";
 	/**
@@ -111,6 +112,14 @@ public final class ProjectSourcesFinder {
 	 * configure that project.
 	 */
 	private static final String MAYBE_THIS_PROJECT = "?maybe-this-project";
+	/**
+	 * The name the Gradle reader puts in place of {@code project(...)} or
+	 * {@code findProject(...)} where the project found may be this one, such as
+	 * {@code project(':')}, and of a {@code rootProject} reached through such
+	 * receivers. Unlike {@link #MAYBE_THIS_PROJECT}, it is never dropped before
+	 * {@code allprojects}, whose block then may not run here.
+	 */
+	private static final String LOOKED_UP_PROJECT = "?looked-up-project";
 	/**
 	 * The name the Gradle reader adds where a statement assigns, so that a block
 	 * opened after it, a closure or lambda stored for later, counts as deferred.
@@ -140,14 +149,15 @@ public final class ProjectSourcesFinder {
 			"case", "assert", "println", "print");
 	/**
 	 * Names that make the code after them conditional or deferred: a branch, a
-	 * loop, a handler, a short-circuiting operator, the body of a definition, a
-	 * callback Gradle runs later, or a project that may not be this one. A
-	 * declaration under one may never run here, or run after code written below it.
+	 * loop, a handler, a {@code try} an exception may leave, a short-circuiting
+	 * operator, the body of a definition, a callback Gradle runs later, or a
+	 * project that may not be this one. A declaration under one may never run here,
+	 * or run after code written below it.
 	 */
 	private static final Set<String> CONDITIONS = Set.of("if", "else", "for", "while", "switch", "when", "catch", "do",
-			"def", "fun", "void", ASSIGNED, METHOD_BODY, SHORT_CIRCUIT, MAYBE_THIS_PROJECT, "afterEvaluate",
-			"beforeEvaluate", "projectsEvaluated", "whenReady", "doFirst", "doLast", "whenTaskAdded", "whenObjectAdded",
-			"provider");
+			"try", "def", "fun", "void", ASSIGNED, METHOD_BODY, SHORT_CIRCUIT, MAYBE_THIS_PROJECT, LOOKED_UP_PROJECT,
+			"afterEvaluate", "beforeEvaluate", "projectsEvaluated", "whenReady", "doFirst", "doLast", "whenTaskAdded",
+			"whenObjectAdded", "provider");
 	/** Words that, before a name, declare it as a local variable or function. */
 	private static final Set<String> DECLARING_WORDS = Set.of("def", "val", "var", "fun", "final", "static", "private",
 			"protected", "public");
@@ -449,7 +459,7 @@ public final class ProjectSourcesFinder {
 	 */
 	private static Slot slotOf(List<String> path) {
 		int set = setIndexOf(path);
-		if (set < 0 || set >= path.size() || reachesOnlyAnotherProject(path)
+		if (set < 0 || set >= path.size() || path.contains(OTHER_PROJECT) || path.contains(ANCESTOR)
 				|| path.stream().anyMatch(CONDITIONS::contains)) {
 			return Slot.UNATTRIBUTED;
 		}
@@ -466,13 +476,49 @@ public final class ProjectSourcesFinder {
 
 	/**
 	 * Whether these names lead into a project other than this one, such as
-	 * {@code subprojects} or {@code parent}.
+	 * {@code subprojects} or {@code parent}. The last project named decides, so a
+	 * {@code rootProject} inside {@code subprojects} may lead back here, and so may
+	 * a {@code parent} after any project but another {@code parent}.
 	 *
 	 * @param path the names leading to a declaration
 	 * @return whether another project's configuration holds it
 	 */
 	private static boolean reachesOnlyAnotherProject(List<String> path) {
-		return path.contains(OTHER_PROJECT) || path.contains(ANCESTOR);
+		int last = lastProjectIn(path);
+		if (last < 0) {
+			return false;
+		}
+		String project = path.get(last);
+		return OTHER_PROJECT.equals(project) || ANCESTOR.equals(project)
+				&& path.subList(0, last).stream().allMatch(name -> !switchesProject(name) || ANCESTOR.equals(name));
+	}
+
+	/**
+	 * Where the last name that switches to a project, maybe this one, is in these
+	 * names: a project marker or {@code rootProject}.
+	 *
+	 * @param path the names leading to a declaration
+	 * @return its index, or -1 where there is none
+	 */
+	private static int lastProjectIn(List<String> path) {
+		for (int index = path.size() - 1; index >= 0; index--) {
+			if (switchesProject(path.get(index))) {
+				return index;
+			}
+		}
+		return -1;
+	}
+
+	/**
+	 * Whether this recorded name switches to a project, maybe this one: a project
+	 * marker or {@code rootProject}.
+	 *
+	 * @param name a recorded name
+	 * @return whether it names a project
+	 */
+	private static boolean switchesProject(String name) {
+		return OTHER_PROJECT.equals(name) || ANCESTOR.equals(name) || MAYBE_THIS_PROJECT.equals(name)
+				|| LOOKED_UP_PROJECT.equals(name) || "rootProject".equals(name);
 	}
 
 	/**
@@ -650,7 +696,39 @@ public final class ProjectSourcesFinder {
 		/** The markers a receiver leaves, including a safe call after one. */
 		private static final Set<String> RECEIVER_MARKERS = Set.of(ANCESTOR, MAYBE_THIS_PROJECT, SHORT_CIRCUIT);
 		/** The markers that stand for a project other than, or maybe not, this one. */
-		private static final Set<String> PROJECT_MARKERS = Set.of(OTHER_PROJECT, ANCESTOR, MAYBE_THIS_PROJECT);
+		private static final Set<String> PROJECT_MARKERS = Set.of(OTHER_PROJECT, ANCESTOR, MAYBE_THIS_PROJECT,
+				LOOKED_UP_PROJECT);
+		/**
+		 * The words before a body that may not run: a branch, a loop, a handler or a
+		 * {@code try}, with or without a condition in parentheses.
+		 */
+		private static final Set<String> BODY_HEADERS = Set.of("if", "for", "while", "switch", "when", "catch", "else",
+				"do", "try");
+		/**
+		 * The project names a script may hide behind a variable of its own, which then
+		 * may hold any project.
+		 */
+		private static final Set<String> SHADOWABLE_PROJECTS = Set.of("project", "rootProject", "parent");
+		/**
+		 * One of those names where it is bound rather than used: after a capitalised
+		 * type on its line, or, across line breaks and comments, before a comma,
+		 * {@code ->}, {@code in} or a single colon, or between a comma and a closing
+		 * parenthesis, as in a tuple, a closure or loop parameter, or a Kotlin
+		 * parameter. A map key or a call argument matches too, which only makes the
+		 * reader more careful.
+		 */
+		private static final Pattern PROJECT_BINDING = Pattern
+				.compile("(?:[A-Z][A-Za-z0-9_$<>?]*[ \\t\\u0001]+)(project|rootProject|parent)(?![A-Za-z0-9_$])"
+						+ "|(?<![A-Za-z0-9_$.])(project|rootProject|parent)[\\s\\u0001]*(?:,|->|in(?![A-Za-z0-9_$])|:(?!:))"
+						+ "|,[\\s\\u0001]*(project|rootProject|parent)[\\s\\u0001]*\\)");
+		/** The names that, before {@code apply}, end a project receiver. */
+		private static final Set<String> PROJECT_NAMES = Set.of("project", "rootProject");
+		/**
+		 * The receivers before {@code apply} known to be this project: none,
+		 * {@code project}, and {@code rootProject} where it is recorded as itself.
+		 */
+		private static final Set<List<String>> CERTAIN_RECEIVERS = Set.of(List.of(), List.of("project"),
+				List.of("rootProject"));
 		/** The project sets that, read from an ancestor, include this project. */
 		private static final Set<String> INCLUDING_DESCENDANTS = Set.of("allprojects", "subprojects");
 		/** The calls that turn their one argument into a single file. */
@@ -689,6 +767,11 @@ public final class ProjectSourcesFinder {
 		 * property instead, which another script may change.
 		 */
 		private final Map<String, String> locals = new HashMap<>();
+		/**
+		 * The project names this script assigns or binds anywhere, which as a receiver
+		 * may then hold any project.
+		 */
+		private final Set<String> shadowedProjects = new HashSet<>();
 
 		/**
 		 * Prepares a walk over one script, collecting the names it assigns and which of
@@ -723,6 +806,12 @@ public final class ProjectSourcesFinder {
 				}
 			}
 			localNames.addAll(counts.keySet());
+			SHADOWABLE_PROJECTS.stream().filter(localNames::contains).forEach(shadowedProjects::add);
+			Matcher bindings = PROJECT_BINDING.matcher(code);
+			while (bindings.find()) {
+				shadowedProjects.add(Stream.of(bindings.group(1), bindings.group(2), bindings.group(3))
+						.filter(Objects::nonNull).findFirst().orElseThrow());
+			}
 			counts.forEach((name, count) -> {
 				if (count == 1 && declared.contains(name) && literal.containsKey(name)) {
 					locals.put(name, literal.get(name));
@@ -779,15 +868,16 @@ public final class ProjectSourcesFinder {
 			} else if (current == ',' && !brackets.isEmpty()) {
 				leaveArgument();
 				head = new ArrayList<>();
-			} else if (current == ';' || current == '\n' && brackets.isEmpty() && !continuesOnTheNextLine(index)) {
+			} else if (current == ';'
+					|| current == '\n' && brackets.isEmpty() && !continuesOnTheNextLine(index) && !awaitsItsBody()) {
 				head = new ArrayList<>();
 			} else if ((current == '\'' || current == '"') && followsADot(index)) {
 				return quotedName(index);
 			} else if (shortCircuitLength(index) > 0) {
 				head = new ArrayList<>(List.of(SHORT_CIRCUIT));
 				return index + shortCircuitLength(index);
-			} else if (code.startsWith("?.", index) && !head.isEmpty() && (ANCESTOR.equals(head.get(head.size() - 1))
-					|| MAYBE_THIS_PROJECT.equals(head.get(head.size() - 1)))) {
+			} else if (code.startsWith("?.", index) && !head.isEmpty()
+					&& PROJECT_MARKERS.contains(head.get(head.size() - 1))) {
 				head.add(SHORT_CIRCUIT);
 			} else if (current == ':' && head.contains(SHORT_CIRCUIT)) {
 				head = new ArrayList<>(List.of(SHORT_CIRCUIT));
@@ -852,6 +942,17 @@ public final class ProjectSourcesFinder {
 		private boolean namesAProject(String name) {
 			return PROJECT_MARKERS.contains(name) || "parent".equals(name)
 					|| "rootProject".equals(name) && !reading.rootProjectIsThis;
+		}
+
+		/**
+		 * Whether the statement so far is a branch, loop or handler still waiting for
+		 * its body at a line break, as {@code if (x)} or {@code else}, so that a body
+		 * on the next line, braced or not, stays under it. A project marker its
+		 * condition left, as in {@code if (findProject(':') == null)}, is passed over.
+		 */
+		private boolean awaitsItsBody() {
+			List<String> names = head.stream().filter(name -> !PROJECT_MARKERS.contains(name)).toList();
+			return !names.isEmpty() && BODY_HEADERS.contains(names.get(names.size() - 1));
 		}
 
 		/**
@@ -1067,8 +1168,8 @@ public final class ProjectSourcesFinder {
 			if (SOURCES.contains(name)) {
 				return source(start, end, prefix, name);
 			}
-			if ("apply".equals(name) && (prefix.isEmpty() || List.of("project").equals(prefix))) {
-				return apply(start, end);
+			if ("apply".equals(name) && namesAProjectReceiver(prefix)) {
+				return apply(start, end, prefix);
 			}
 			head.addAll(prefix);
 			head.add(recorded);
@@ -1076,10 +1177,20 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
+		 * Whether the names before {@code apply} are a project: none, or names ending
+		 * in {@code project}, {@code rootProject} or one of the project markers.
+		 */
+		private static boolean namesAProjectReceiver(List<String> prefix) {
+			return prefix.isEmpty() || PROJECT_NAMES.contains(prefix.get(prefix.size() - 1))
+					|| PROJECT_MARKERS.contains(prefix.get(prefix.size() - 1));
+		}
+
+		/**
 		 * The names the walker records for a dotted name, going on from the statement
 		 * so far where it follows a dot. Before {@code allprojects} or
-		 * {@code subprojects}, which include this project, the run of receivers is
-		 * replaced by {@link #includeThisProject}.
+		 * {@code subprojects} the run of receivers is replaced by
+		 * {@link #includeThisProject}, before a receiver {@code rootProject} by
+		 * {@link #rootProjectAfter}.
 		 *
 		 * @param chain the segments of the dotted name
 		 * @param start where the dotted name begins
@@ -1093,10 +1204,18 @@ public final class ProjectSourcesFinder {
 			for (int index = 0; index < chain.size(); index++) {
 				String segment = chain.get(index);
 				int run = receiversStart(working);
+				boolean last = index == chain.size() - 1;
 				if (INCLUDING_DESCENDANTS.contains(segment) && run < working.size()) {
 					kept = Math.min(kept, run);
 					includeThisProject(working.subList(run, working.size()), "subprojects".equals(segment));
 					working.add(segment);
+				} else if ("rootProject".equals(segment) && (!last || leadsOn(end))) {
+					int projects = projectReceiversStart(working);
+					kept = Math.min(kept, projects);
+					List<String> receivers = working.subList(projects, working.size());
+					String root = rootProjectAfter(receivers, recorded(segment, last, end));
+					receivers.clear();
+					working.add(root);
 				} else {
 					working.add(recorded(segment, index == chain.size() - 1, end));
 				}
@@ -1129,6 +1248,34 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
+		 * What a receiver {@code rootProject} stands for after the project receivers
+		 * before it: itself after none or only {@code project}, else LOOKED_UP_PROJECT,
+		 * since those receivers may be a collection, as in
+		 * {@code subprojects.rootProject}, a call that may return null, or behind a
+		 * condition.
+		 *
+		 * @param receivers the project receivers before it
+		 * @param itself    what {@code rootProject} alone is recorded as
+		 * @return the name to record in place of the receivers and itself
+		 */
+		private static String rootProjectAfter(List<String> receivers, String itself) {
+			return receivers.stream().allMatch("project"::equals) ? itself : LOOKED_UP_PROJECT;
+		}
+
+		/**
+		 * Where the run of project receivers ending these names begins: project
+		 * markers, safe calls and {@code project}, as in {@code project(':x')?.}.
+		 */
+		private static int projectReceiversStart(List<String> names) {
+			int start = names.size();
+			while (start > 0 && (PROJECT_MARKERS.contains(names.get(start - 1))
+					|| SHORT_CIRCUIT.equals(names.get(start - 1)) || "project".equals(names.get(start - 1)))) {
+				start--;
+			}
+			return start;
+		}
+
+		/**
 		 * Where the run of ANCESTOR, MAYBE_THIS_PROJECT and SHORT_CIRCUIT markers
 		 * ending these names begins, as in {@code parent?.parent}.
 		 */
@@ -1141,20 +1288,28 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
-		 * The name the walker records for one segment of a dotted name: ANCESTOR for
-		 * {@code parent} and MAYBE_THIS_PROJECT for a {@code rootProject} that may be
-		 * this project, each only as a receiver, OTHER_PROJECT where
-		 * {@link #reachesAnotherProject} says so, the segment itself otherwise.
+		 * The name the walker records for one segment of a dotted name. As a receiver:
+		 * LOOKED_UP_PROJECT for {@code project}, {@code rootProject} or {@code parent}
+		 * where this script assigns or binds that name, ANCESTOR for {@code parent},
+		 * MAYBE_THIS_PROJECT for a {@code rootProject} that may be this project. Else
+		 * OTHER_PROJECT where {@link #reachesAnotherProject} says so, LOOKED_UP_PROJECT
+		 * for any other project lookup, the segment itself.
 		 */
 		private String recorded(String segment, boolean last, int end) {
 			boolean receiver = !last || leadsOn(end);
+			if (receiver && shadowedProjects.contains(segment)) {
+				return LOOKED_UP_PROJECT;
+			}
 			if (receiver && "parent".equals(segment)) {
 				return ANCESTOR;
 			}
 			if (receiver && "rootProject".equals(segment) && !reading.rootProjectIsThis) {
 				return MAYBE_THIS_PROJECT;
 			}
-			return last && reachesAnotherProject(segment, end) ? OTHER_PROJECT : segment;
+			if (last && reachesAnotherProject(segment, end)) {
+				return OTHER_PROJECT;
+			}
+			return last && looksUpAProject(segment, end) ? LOOKED_UP_PROJECT : segment;
 		}
 
 		/**
@@ -1169,13 +1324,28 @@ public final class ProjectSourcesFinder {
 
 		/**
 		 * Whether the name ending here reaches projects other than the one being read:
-		 * {@code subprojects}, {@code childProjects}, or a call to {@code project} or
-		 * {@code findProject}. What {@code configure} reaches, its arguments decide.
+		 * {@code subprojects}, {@code childProjects}, or, in the root project, a lookup
+		 * of a literal path other than {@code ':'}. What {@code configure} reaches, its
+		 * arguments decide.
 		 */
 		private boolean reachesAnotherProject(String name, int end) {
 			if ("subprojects".equals(name) || "childProjects".equals(name)) {
 				return true;
 			}
+			if (!looksUpAProject(name, end) || !reading.rootProjectIsThis) {
+				return false;
+			}
+			int open = skipInactive(code, end);
+			int close = matchingClose(code, open);
+			int[] first = splitTopLevel(code, open + 1, close < 0 ? code.length() : close).get(0);
+			return staticLiteral(first[0], first[1]).filter(path -> !path.isEmpty() && !":".equals(path)).isPresent();
+		}
+
+		/**
+		 * Whether the name ending here is a call to {@code project} or
+		 * {@code findProject}, which may return any project, this one included.
+		 */
+		private boolean looksUpAProject(String name, int end) {
 			int next = skipInactive(code, end);
 			return ("project".equals(name) || "findProject".equals(name)) && next < code.length()
 					&& code.charAt(next) == '(';
@@ -1258,16 +1428,22 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
-		 * Handles {@code apply from}: a script inside the project, applied to this
-		 * project and not under a condition, is read as part of the build; any other is
-		 * recorded as a gap. Other uses of {@code apply}, such as applying a plugin,
-		 * are passed over.
+		 * Handles {@code apply from} on a project: a script inside the project, applied
+		 * to this project and not under a condition, is read as part of the build; any
+		 * other is recorded as a gap. Other uses of {@code apply}, such as applying a
+		 * plugin, are passed over.
+		 *
+		 * @param start  where the name begins
+		 * @param end    where the name ends
+		 * @param prefix the names before {@code apply} in its dotted name
+		 * @return the offset to go on from
 		 */
-		private int apply(int start, int end) {
+		private int apply(int start, int end, List<String> prefix) {
 			int open = skipInactive(code, end);
 			if (open >= code.length()) {
 				return end;
 			}
+			List<String> path = pathWith(prefix);
 			if (code.charAt(open) == '{') {
 				reading.opaque(locationOf(start) + ": apply with a block, which is not read");
 				return end;
@@ -1284,10 +1460,12 @@ public final class ProjectSourcesFinder {
 			}
 			String where = locationOf(start);
 			Resolution resolution = resolve(from[0], from[1]);
-			if (reachesOnlyAnotherProject(pathWith(List.of()))) {
+			if (arguments.containsKey("to")) {
+				reading.opaque(where + ": apply from with a target of its own, which is not read");
+			} else if (reachesOnlyAnotherProject(path)) {
 				reading.blocked.add(where + ": apply from inside another project's configuration");
-			} else if (!appliesToThisProject() || arguments.containsKey("to")
-					|| pathWith(List.of()).stream().anyMatch(CONDITIONS::contains)) {
+			} else if (!CERTAIN_RECEIVERS.contains(prefix) || !appliesToThisProject()
+					|| path.stream().anyMatch(CONDITIONS::contains)) {
 				reading.opaque(where + ": apply from a script that may or may not be applied to this project");
 			} else if (!resolution.complete() || resolution.values().size() != 1
 					|| resolution.values().get(0).contains("://")) {
