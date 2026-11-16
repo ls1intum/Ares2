@@ -608,8 +608,9 @@ public class JavaProjectScanner implements ProjectScanner {
 		}
 		String reservedBelow = ReservedPackageGuard.ancestorOfReservedPrefix(derivedPackage);
 		if (reservedBelow != null) {
-			throw new SecurityException(
-					Messages.localized("security.scope.contains.reserved", derivedPackage, reservedBelow));
+			throw new SecurityException(Messages.localized("security.scope.contains.reserved", derivedPackage,
+					reservedBelow.endsWith(".") ? reservedBelow.substring(0, reservedBelow.length() - 1)
+							: reservedBelow));
 		}
 		List<Path> classFiles = compiledFilesIn(outputRoot);
 		if (classFiles.isEmpty()) {
