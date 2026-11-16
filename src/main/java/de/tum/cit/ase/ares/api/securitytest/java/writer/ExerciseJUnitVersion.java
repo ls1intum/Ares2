@@ -6,6 +6,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -110,9 +111,12 @@ final class ExerciseJUnitVersion {
 	private static final Pattern PROPERTY_LINE = Pattern.compile("^\\s*([\\w.\\-]+)\\s*[=:]\\s*(\\S[^\\n]*?)\\s*$",
 			Pattern.MULTILINE);
 
-	/** A catalogue's {@code [versions]} table, up to the next table. */
-	private static final Pattern VERSIONS_TABLE = Pattern.compile("^\\s*\\[versions]\\s*$(.*?)(?=^\\s*\\[|\\z)",
-			Pattern.MULTILINE | Pattern.DOTALL);
+	/**
+	 * A catalogue's {@code [versions]} table, up to the next table. Its header may
+	 * carry spaces inside the brackets and a trailing comment.
+	 */
+	private static final Pattern VERSIONS_TABLE = Pattern.compile(
+			"^\\s*\\[\\s*versions\\s*]\\s*(?:#[^\\n]*)?$(.*?)(?=^\\s*\\[|\\z)", Pattern.MULTILINE | Pattern.DOTALL);
 
 	/** One entry of a TOML table: its key, then its quoted value. */
 	private static final Pattern TOML_ENTRY = Pattern.compile("^\\s*([\\w.\\-]+)\\s*=\\s*\"([^\"]*)\"",
@@ -180,7 +184,7 @@ final class ExerciseJUnitVersion {
 	 * @throws SecurityException naming the version, or the build file
 	 */
 	static void requireIncludeFilterSupport(@Nonnull Path projectRoot) {
-		Map<String, Definition> definitions = definitions(projectRoot);
+		Map<String, List<Definition>> definitions = definitions(projectRoot);
 		for (String buildFile : BUILD_FILES) {
 			Path path = projectRoot.resolve(buildFile);
 			String text = withoutComments(buildFile, read(path));
@@ -275,14 +279,15 @@ final class ExerciseJUnitVersion {
 	/**
 	 * The values the exercise's own build files set: Maven properties, Gradle
 	 * variables, {@code gradle.properties} and the catalogue's {@code [versions]}.
-	 * The first one set under a name wins.
+	 * Every value set under a name is kept, since a later assignment can replace an
+	 * earlier one.
 	 *
 	 * @param projectRoot the exercise's root folder.
 	 * @return every value by its name
 	 */
 	@Nonnull
-	private static Map<String, Definition> definitions(@Nonnull Path projectRoot) {
-		Map<String, Definition> definitions = new HashMap<>();
+	private static Map<String, List<Definition>> definitions(@Nonnull Path projectRoot) {
+		Map<String, List<Definition>> definitions = new HashMap<>();
 		Path pom = projectRoot.resolve("pom.xml");
 		Matcher block = MAVEN_PROPERTIES.matcher(withoutComments("pom.xml", read(pom)));
 		while (block.find()) {
@@ -308,7 +313,7 @@ final class ExerciseJUnitVersion {
 	 * @param catalogue   the catalogue; may not exist.
 	 * @param definitions where the entries are added.
 	 */
-	private static void collectCatalogue(@Nonnull Path catalogue, @Nonnull Map<String, Definition> definitions) {
+	private static void collectCatalogue(@Nonnull Path catalogue, @Nonnull Map<String, List<Definition>> definitions) {
 		String text = HASH_COMMENT.matcher(read(catalogue)).replaceAll(" ");
 		Matcher table = VERSIONS_TABLE.matcher(text);
 		if (!table.find()) {
@@ -316,7 +321,7 @@ final class ExerciseJUnitVersion {
 		}
 		Matcher entry = TOML_ENTRY.matcher(table.group(1));
 		while (entry.find()) {
-			definitions.putIfAbsent(catalogueLookup(entry.group(1)), new Definition(entry.group(2), catalogue));
+			add(definitions, catalogueLookup(entry.group(1)), new Definition(entry.group(2), catalogue));
 		}
 	}
 
@@ -326,50 +331,112 @@ final class ExerciseJUnitVersion {
 	 * @param pattern     captures a name, then a value.
 	 * @param text        the text to search.
 	 * @param source      the file the text comes from.
-	 * @param definitions where the values are added, keeping the first per name.
+	 * @param definitions where the values are added, every one per name.
 	 */
 	private static void collect(@Nonnull Pattern pattern, @Nonnull String text, @Nonnull Path source,
-			@Nonnull Map<String, Definition> definitions) {
+			@Nonnull Map<String, List<Definition>> definitions) {
 		Matcher matcher = pattern.matcher(text);
 		while (matcher.find()) {
-			definitions.putIfAbsent(matcher.group(1), new Definition(matcher.group(2), source));
+			add(definitions, matcher.group(1), new Definition(matcher.group(2), source));
 		}
 	}
 
 	/**
-	 * A version value with its references replaced by the values the exercise sets,
-	 * a few times over. A reference Ares cannot look up, or a loop, stays in it.
+	 * Adds one value under its name, unless the same value is already there.
+	 *
+	 * @param definitions where the value is added.
+	 * @param name        the name it is set under.
+	 * @param definition  the value and its file.
+	 */
+	private static void add(@Nonnull Map<String, List<Definition>> definitions, @Nonnull String name,
+			@Nonnull Definition definition) {
+		List<Definition> values = definitions.computeIfAbsent(name, unused -> new ArrayList<>());
+		if (!values.contains(definition)) {
+			values.add(definition);
+		}
+	}
+
+	/**
+	 * Every way a version value reads once its references are replaced by the
+	 * values the exercise sets, a few times over. A name set twice gives one
+	 * reading per value; a reference Ares cannot look up, or a loop, stays in it.
 	 *
 	 * @param version     the value as written.
 	 * @param definitions the values the exercise sets.
-	 * @return the value and the files used
+	 * @return each reading and the files it used
 	 */
 	@Nonnull
-	private static Resolution resolved(@Nonnull String version, @Nonnull Map<String, Definition> definitions) {
-		String current = version;
-		Set<String> sources = new TreeSet<>();
-		for (int lookup = 0; lookup < MAXIMUM_LOOKUPS && current.contains("$"); lookup++) {
-			Matcher reference = REFERENCE.matcher(current);
-			StringBuilder replaced = new StringBuilder();
-			while (reference.find()) {
-				String name = reference.group(1) == null ? reference.group(2) : reference.group(1);
-				Definition definition = definitions.get(name.strip());
-				String value = definition == null ? reference.group() : definition.value();
-				if (definition != null) {
-					sources.add(definition.source().toString());
-				}
-				reference.appendReplacement(replaced, Matcher.quoteReplacement(value));
+	private static Set<Resolution> resolved(@Nonnull String version,
+			@Nonnull Map<String, List<Definition>> definitions) {
+		Set<Resolution> readings = Set.of(new Resolution(version, new TreeSet<>()));
+		for (int lookup = 0; lookup < MAXIMUM_LOOKUPS; lookup++) {
+			Set<Resolution> next = new LinkedHashSet<>();
+			for (Resolution reading : readings) {
+				next.addAll(lookedUpOnce(reading, definitions));
 			}
-			reference.appendTail(replaced);
-			current = replaced.toString();
+			readings = next;
 		}
-		return new Resolution(current, sources);
+		return readings;
 	}
 
 	/**
-	 * Refuses one version value after looking up its references, unless it is still
-	 * taken from elsewhere. A Maven range is checked by its bounds, so
-	 * {@code [5.11.4]} and {@code (,5.11.4]} are refused like {@code 5.11.4}.
+	 * One reading with every reference replaced once, one result per combination of
+	 * the values its names are set to.
+	 *
+	 * @param reading     the value so far and the files it used.
+	 * @param definitions the values the exercise sets.
+	 * @return each combination
+	 */
+	@Nonnull
+	private static List<Resolution> lookedUpOnce(@Nonnull Resolution reading,
+			@Nonnull Map<String, List<Definition>> definitions) {
+		String text = reading.value();
+		List<Resolution> partial = List.of(new Resolution("", reading.sources()));
+		Matcher reference = REFERENCE.matcher(text);
+		int end = 0;
+		while (reference.find()) {
+			String name = reference.group(1) == null ? reference.group(2) : reference.group(1);
+			String before = text.substring(end, reference.start());
+			partial = appended(partial, before, reference.group(), definitions.getOrDefault(name.strip(), List.of()));
+			end = reference.end();
+		}
+		String tail = text.substring(end);
+		return partial.stream().map(part -> new Resolution(part.value() + tail, part.sources())).toList();
+	}
+
+	/**
+	 * Each partial reading continued by the text before a reference and then by
+	 * each value the reference's name is set to, or by the reference itself when
+	 * none is.
+	 *
+	 * @param partial   the readings so far.
+	 * @param before    the text before the reference.
+	 * @param reference the reference as written.
+	 * @param values    the values its name is set to.
+	 * @return the continued readings
+	 */
+	@Nonnull
+	private static List<Resolution> appended(@Nonnull List<Resolution> partial, @Nonnull String before,
+			@Nonnull String reference, @Nonnull List<Definition> values) {
+		List<Resolution> continued = new ArrayList<>();
+		for (Resolution part : partial) {
+			if (values.isEmpty()) {
+				continued.add(new Resolution(part.value() + before + reference, part.sources()));
+			}
+			for (Definition value : values) {
+				Set<String> sources = new TreeSet<>(part.sources());
+				sources.add(value.source().toString());
+				continued.add(new Resolution(part.value() + before + value.value(), sources));
+			}
+		}
+		return continued;
+	}
+
+	/**
+	 * Refuses one version value if any reading of it, after looking up its
+	 * references, is too old, unless that reading is still taken from elsewhere. A
+	 * Maven range is checked by its bounds, so {@code [5.11.4]} and
+	 * {@code (,5.11.4]} are refused like {@code 5.11.4}.
 	 *
 	 * @param buildFile   the file that names it.
 	 * @param version     the value as written.
@@ -377,15 +444,16 @@ final class ExerciseJUnitVersion {
 	 * @throws SecurityException for a version older than 5.12 or not a number
 	 */
 	private static void requireSupported(@Nonnull Path buildFile, @Nonnull String version,
-			@Nonnull Map<String, Definition> definitions) {
-		Resolution resolution = resolved(version, definitions);
-		String value = resolution.value();
-		if (isTakenFromElsewhere(value)) {
-			return;
-		}
-		List<Bound> bounds = isRange(value) ? rangeBounds(value) : List.of(new Bound(value, false));
-		for (Bound bound : bounds) {
-			requireNumberSupported(buildFile, version, resolution, bound);
+			@Nonnull Map<String, List<Definition>> definitions) {
+		for (Resolution resolution : resolved(version, definitions)) {
+			String value = resolution.value();
+			if (isTakenFromElsewhere(value)) {
+				continue;
+			}
+			List<Bound> bounds = isRange(value) ? rangeBounds(value) : List.of(new Bound(value, false));
+			for (Bound bound : bounds) {
+				requireNumberSupported(buildFile, version, resolution, bound);
+			}
 		}
 	}
 

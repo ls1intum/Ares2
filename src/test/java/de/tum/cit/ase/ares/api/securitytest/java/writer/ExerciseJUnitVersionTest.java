@@ -178,6 +178,58 @@ class ExerciseJUnitVersionTest {
 	}
 
 	/**
+	 * A catalogue's {@code [versions]} header with a trailing comment or spaces
+	 * inside its brackets is still read, also beside a quoted value holding a hash,
+	 * so a JUnit below 5.12 set there is refused and one from 5.12 accepted.
+	 *
+	 * @param header the table header as written.
+	 * @throws IOException if a file cannot be written
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = { "[versions] # pinned", "[ versions ]", "  [versions]   #" })
+	void aVersionsTableWithACommentedHeaderIsRead(String header) throws IOException {
+		String catalogue = header
+				+ "\\nnote = \"see # below\"\\njunit = \"%s\"\\n[libraries]\\njunit-jupiter = { module = \"org.junit.jupiter:junit-jupiter\", version.ref = \"junit\" }";
+		String build = "dependencies { testImplementation libs.junit.jupiter }";
+		writeFiles("build.gradle", build, "gradle/libs.versions.toml", catalogue.formatted("5.11.4"));
+		assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+				.isInstanceOf(SecurityException.class).hasMessageContaining("5.11.4");
+		writeFiles("build.gradle", build, "gradle/libs.versions.toml", catalogue.formatted("5.12.0"));
+		assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot)).doesNotThrowAnyException();
+	}
+
+	/**
+	 * A Gradle variable set twice is checked at every value, since a later
+	 * assignment replaces an earlier one: an old JUnit in either place is refused,
+	 * and two values from 5.12 are accepted.
+	 *
+	 * @param buildFile the build file's name.
+	 * @param text      its text, with {@code %s} for the first and the second
+	 *                  value.
+	 * @param first     the first value.
+	 * @param second    the second value.
+	 * @param refused   whether the build is refused.
+	 * @throws IOException if a file cannot be written
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+			"build.gradle|ext.junitVersion = '%s'\\njunitVersion = '%s'\\ndependencies { testImplementation \"org.junit.jupiter:junit-jupiter:$junitVersion\" }|5.12.2|5.11.4|true",
+			"build.gradle|ext.junitVersion = '%s'\\njunitVersion = '%s'\\ndependencies { testImplementation \"org.junit.jupiter:junit-jupiter:$junitVersion\" }|5.11.4|5.12.2|true",
+			"build.gradle.kts|var junitVersion = \"%s\"\\njunitVersion = \"%s\"\\ndependencies { testImplementation(\"org.junit.jupiter:junit-jupiter:$junitVersion\") }|5.12.2|5.11.4|true",
+			"build.gradle|ext.junitVersion = '%s'\\njunitVersion = '%s'\\ndependencies { testImplementation \"org.junit.jupiter:junit-jupiter:$junitVersion\" }|5.12.0|5.12.2|false" })
+	void aVariableSetTwiceIsCheckedAtEveryValue(String buildFile, String text, String first, String second,
+			boolean refused) throws IOException {
+		writeFiles(buildFile, text.formatted(first, second), "-", "-");
+		if (refused) {
+			assertThatThrownBy(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+					.isInstanceOf(SecurityException.class).hasMessageContaining("5.11.4");
+		} else {
+			assertThatCode(() -> ExerciseJUnitVersion.requireIncludeFilterSupport(projectRoot))
+					.doesNotThrowAnyException();
+		}
+	}
+
+	/**
 	 * A reference the exercise's own files do not define, or one that loops, is
 	 * accepted, since Ares cannot tell the version.
 	 *

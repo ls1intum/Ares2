@@ -347,7 +347,9 @@ final class HiddenTestsSources {
 
 				/**
 				 * A stream's close callback that this hook guards like the factory itself, since
-				 * closing can run student code that prints or fails.
+				 * closing can run student code that prints or fails. It never holds the close
+				 * back, so a stream a factory produced before the early run ended is still
+				 * closed after it.
 				 *
 				 * @param stream the produced stream
 				 * @param context the factory's context
@@ -356,13 +358,13 @@ final class HiddenTestsSources {
 				private static Runnable guardedClose(Stream<?> stream, ExtensionContext context) {
 					return () -> {
 						try {
-							guard(new Invocation<Void>() {
+							guarded(new Invocation<Void>() {
 								@Override
 								public Void proceed() {
 									stream.close();
 									return null;
 								}
-							}, context);
+							}, context, false);
 						} catch (Throwable failure) {
 							rethrow(failure);
 						}
@@ -409,11 +411,27 @@ final class HiddenTestsSources {
 				 * @throws Throwable a hidden test's redacted failure, or the test's own
 				 */
 				private static <T> T guard(Invocation<T> invocation, ExtensionContext context) throws Throwable {
+					return guarded(invocation, context, true);
+				}
+
+				/**
+				 * Marks the test as guarded for the length of its invocation and runs it as
+				 * {@code guard} does, holding a hidden test back only when asked to.
+				 *
+				 * @param <T> the invocation's result type
+				 * @param invocation the invocation
+				 * @param context the test's context
+				 * @param scheduled whether a hidden test is held back before the deadline
+				 * @return the invocation's result
+				 * @throws Throwable a hidden test's redacted failure, or the test's own
+				 */
+				private static <T> T guarded(Invocation<T> invocation, ExtensionContext context, boolean scheduled)
+						throws Throwable {
 					Optional<String> methodName = nearest(context, ExtensionContext::getTestMethod).map(Method::getName);
 					Optional<Class<?>> testClass = nearest(context, ExtensionContext::getTestClass);
 					GUARDING.set(testClass.map(Class::getName).orElse("") + "#" + methodName.orElse(""));
 					try {
-						return decide(invocation, testClass, methodName);
+						return decide(invocation, testClass, methodName, scheduled);
 					} finally {
 						GUARDING.remove();
 					}
@@ -427,15 +445,16 @@ final class HiddenTestsSources {
 				 * @param invocation the invocation
 				 * @param testClass the test's class, if any
 				 * @param methodName the test's method name, if any
+				 * @param scheduled whether a hidden test is held back before the deadline
 				 * @return the invocation's result
 				 * @throws Throwable a hidden test's redacted failure, or the test's own
 				 */
 				private static <T> T decide(Invocation<T> invocation, Optional<Class<?>> testClass,
-						Optional<String> methodName) throws Throwable {
+						Optional<String> methodName, boolean scheduled) throws Throwable {
 					if (testClass.isEmpty() || !isHidden(testClass.get(), methodName)) {
 						return invocation.proceed();
 					}
-					if (isHeldBack()) {
+					if (scheduled && isHeldBack()) {
 						invocation.skip();
 						throw new HiddenTestScheduled(@MESSAGES@.localized("test_guard.hidden_test_before_deadline_message"));
 					}

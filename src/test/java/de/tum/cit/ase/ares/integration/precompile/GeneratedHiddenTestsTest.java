@@ -45,7 +45,7 @@ class GeneratedHiddenTestsTest {
 			"com.example.fixtures.ForgedFixture", "com.example.fixtures.Outer", "com.example.fixtures.Nesting.Inner",
 			"com.example.fixtures.Methods#listed", "com.example.fixtures.Shown", "com.example.fixtures.Inherits#glides",
 			"com.example.fixtures.MixedFixture#secret", "com.example.fixtures.DivingBase#dives",
-			"com.example.fixtures.SourcedFixture");
+			"com.example.fixtures.SourcedFixture", "com.example.fixtures.CrossingFactoryFixture");
 
 	/** The public entries of the policies that do not hide unlisted tests. */
 	private static final List<String> PUBLIC = List.of("com.example.fixtures.Shown#shown");
@@ -116,6 +116,12 @@ class GeneratedHiddenTestsTest {
 	 */
 	private static Path shadowVisibility;
 
+	/**
+	 * Generated code and fixtures whose always-run-before date is read from the
+	 * {@code ares.test.crossing.cutoff} property, so a run can cross it.
+	 */
+	private static Path crossing;
+
 	/** The resources of the future project, holding the bundles. */
 	private static Path resources;
 
@@ -144,6 +150,14 @@ class GeneratedHiddenTestsTest {
 		visibilityPast = compileProject("visibility-past", generate("visibility-past",
 				policyText("2000-01-01 00:00 UTC", null, true, VISIBILITY_HIDDEN, VISIBILITY_PUBLIC)));
 		compileArchitectureStandIns(visibility);
+		Path crossingSources = generate("crossing",
+				policyText("2200-01-01 00:00 UTC", "2199-01-01 00:00 UTC", false, HIDDEN, PUBLIC));
+		Path crossingSettings = crossingSources
+				.resolve("de/tum/cit/ase/ares/generated/GeneratedTestBehaviorSettings.java");
+		Files.writeString(crossingSettings,
+				Files.readString(crossingSettings).replaceAll("THE_HIDDEN_TESTS_ARE_RUN_BEFORE = -?\\d+L;",
+						"THE_HIDDEN_TESTS_ARE_RUN_BEFORE = Long.getLong(\"ares.test.crossing.cutoff\", 0L);"));
+		crossing = compileProject("crossing", crossingSources);
 		resources = futureSources.resolveSibling("resources");
 		include = Files.readAllLines(resources.resolve("junit-platform.properties")).stream()
 				.filter(line -> line.startsWith("junit.jupiter.extensions.autodetection.include="))
@@ -261,6 +275,26 @@ class GeneratedHiddenTestsTest {
 	void aListedFactoryIsHeldBack() throws Exception {
 		assertThat(failureMessages(run(future, "FactoryFixture", Locale.ENGLISH)))
 				.containsExactly(beforeDeadline(Locale.ENGLISH));
+	}
+
+	/**
+	 * A factory that started before the early run ended still has its stream closed
+	 * once the early run is over, while its dynamic test is held back.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aFactoryStreamIsClosedAfterTheEarlyRunEnds() throws Exception {
+		System.clearProperty("ares.test.crossing.closed");
+		System.setProperty("ares.test.crossing.cutoff", Long.toString(System.currentTimeMillis() + 3_000L));
+		try {
+			EngineExecutionResults results = run(crossing, "CrossingFactoryFixture", Locale.ENGLISH);
+			assertThat(System.getProperty("ares.test.crossing.closed")).isEqualTo("true");
+			assertThat(failureMessages(results)).containsExactly(beforeDeadline(Locale.ENGLISH));
+		} finally {
+			System.clearProperty("ares.test.crossing.cutoff");
+			System.clearProperty("ares.test.crossing.closed");
+		}
 	}
 
 	/**
@@ -885,6 +919,12 @@ class GeneratedHiddenTestsTest {
 		fixture(folder, "FactoryFixture", "",
 				"@TestFactory java.util.List<DynamicTest> cases() { return java.util.List.of(DynamicTest.dynamicTest(\"case\", () -> { "
 						+ secret + " })); }");
+		fixture(folder, "CrossingFactoryFixture", "",
+				"@TestFactory java.util.stream.Stream<DynamicTest> cases() throws InterruptedException { "
+						+ "long cutOff = Long.getLong(\"ares.test.crossing.cutoff\", 0L); "
+						+ "while (System.currentTimeMillis() <= cutOff) { Thread.sleep(20L); } "
+						+ "return java.util.stream.Stream.of(DynamicTest.dynamicTest(\"case\", () -> { " + secret
+						+ " })).onClose(() -> System.setProperty(\"ares.test.crossing.closed\", \"true\")); }");
 		fixture(folder, "LifecycleFixture",
 				"@BeforeEach void setUp() { System.err.print(\"SECRET_GENERATED_SETUP\"); throw new IllegalStateException(\"secret setup\"); }",
 				"@Test void test() {}");
