@@ -29,6 +29,7 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
+import de.tum.cit.ase.AncestorPackageExercise;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
@@ -85,48 +86,6 @@ public class JavaCreatorTest {
 		when(buildMode.getTestBuildDirectory()).thenReturn(tempDir.resolve("test-classes").toString());
 		when(buildMode.getBuildDirectory()).thenReturn(tempDir.resolve("classes").toString());
 		javaCreator = new JavaCreator();
-	}
-
-	/**
-	 * The derived-permission path that turns a reserved namespace below a scope
-	 * into a refusal, exercised directly so the restored breadth is proven at the
-	 * creator and not only in the guard it calls.
-	 */
-	@Nested
-	@DisplayName("Reserved Package Tests")
-	class ReservedPackageTests {
-
-		/**
-		 * A derived scope whose descendant is a restored reserved namespace is refused
-		 * during permission creation, naming that namespace, so the restored breadth is
-		 * enforced at the creator and not only in the guard it calls.
-		 */
-		@Test
-		@DisplayName("Refuses a derived scope that carries a restored reserved namespace")
-		void refusesADerivedScopeCarryingAReservedNamespace() throws Exception {
-			Method method = JavaCreator.class.getDeclaredMethod("derivedAllowedPackage", String.class);
-			method.setAccessible(true);
-			InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
-					() -> method.invoke(null, "com.github"));
-			assertInstanceOf(SecurityException.class, thrown.getCause());
-			assertTrue(thrown.getCause().getMessage().contains("com.github.javaparser"),
-					"the refusal must name the reserved namespace the derived scope would carry: "
-							+ thrown.getCause().getMessage());
-		}
-
-		/**
-		 * An ordinary derived scope with no reserved namespace below it yields a plain
-		 * package permission, so the refusal above is specific to reserved descendants
-		 * rather than a blanket rejection.
-		 */
-		@Test
-		@DisplayName("Allows an ordinary derived scope")
-		void allowsAnOrdinaryDerivedScope() throws Exception {
-			Method method = JavaCreator.class.getDeclaredMethod("derivedAllowedPackage", String.class);
-			method.setAccessible(true);
-			Object permission = method.invoke(null, "de.tum.cit.aet");
-			assertInstanceOf(PackagePermission.class, permission);
-		}
 	}
 
 	@Nested
@@ -311,6 +270,36 @@ public class JavaCreatorTest {
 			// We verify that the method completed successfully and the parameters were used
 			verify(resourceAccesses).regardingPackageImports();
 		}
+
+		/**
+		 * Student code declared in {@code de.tum.cit.ase}, above Ares' own API, is not
+		 * refused. Its own package is not granted here; the rule adds it as an exact
+		 * permission when it runs.
+		 *
+		 * @throws IOException if the fixture cannot be copied
+		 */
+		@Test
+		@DisplayName("Should permit a supervised package that lies above a trusted namespace")
+		void shouldPermitASupervisedPackageAboveATrustedNamespace() throws IOException {
+			Path output = Files.createDirectories(tempDir.resolve("classes/de/tum/cit/ase"));
+			try (InputStream bytecode = AncestorPackageExercise.class
+					.getResourceAsStream(AncestorPackageExercise.class.getSimpleName() + ".class")) {
+				Files.copy(bytecode, output.resolve(AncestorPackageExercise.class.getSimpleName() + ".class"));
+			}
+			String ancestorPackage = AncestorPackageExercise.class.getPackageName();
+			String ancestorClasspath = tempDir.resolve("classes").toString();
+			when(buildMode.getClasspath(tempDir, ancestorPackage)).thenReturn(ancestorClasspath);
+			when(architectureMode.getJavaClasses(ancestorClasspath)).thenReturn(javaClasses);
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+
+			assertDoesNotThrow(() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of("java"),
+					List.of(), List.of(), ancestorPackage, mainClassName, architectureTestCases, aopTestCases,
+					phobosTestCases, resourceAccesses, tempDir, false));
+
+			assertFalse(architectureTestCases.isEmpty());
+			assertTrue(architectureTestCases.get(0).getAllowedPackages().stream()
+					.noneMatch(permission -> permission.importTheFollowingPackage().equals(ancestorPackage)));
+		}
 	}
 
 	@Nested
@@ -383,40 +372,22 @@ public class JavaCreatorTest {
 	}
 
 	/**
-	 * Checks that a malformed package name is refused whether it comes from the
-	 * pinned package name, the scanned packages or a test class name.
-	 */
-	@Test
-	void prepareAllowedPackagesRejectsMalformedNamesOnEveryDerivedPath() throws Exception {
-		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
-				ResourceAccesses.class, String.class, Set.class, List.class);
-		prepare.setAccessible(true);
-		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
-		assertInvocationCause(IllegalArgumentException.class,
-				() -> prepare.invoke(javaCreator, List.of(), restrictive, "com..pinned", Set.of(), List.of()));
-		assertInvocationCause(IllegalArgumentException.class,
-				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of("com..student"), List.of()));
-		assertInvocationCause(IllegalArgumentException.class,
-				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of(), List.of("com..tests.BadTest")));
-	}
-
-	/**
-	 * Checks that a scanned package with a reserved namespace below it, such as
-	 * de.tum.cit, is refused with a SecurityException, while the same package of a
-	 * test class is still allowed.
+	 * Checks that a malformed essential package is refused while a valid one in the
+	 * JDK namespace is kept as that package alone. The pinned package and the test
+	 * class names are checked elsewhere, and the supervised code's own packages are
+	 * read from the compiled classes when the rule runs.
 	 */
 	@Test
 	@SuppressWarnings("unchecked")
-	void prepareAllowedPackagesKeepsTheReservedNamespaceGuards() throws Exception {
+	void prepareAllowedPackagesRejectsAMalformedEssentialPackage() throws Exception {
 		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
-				ResourceAccesses.class, String.class, Set.class, List.class);
+				ResourceAccesses.class);
 		prepare.setAccessible(true);
 		ResourceAccesses restrictive = ResourceAccesses.createRestrictive();
-		assertInvocationCause(SecurityException.class,
-				() -> prepare.invoke(javaCreator, List.of(), restrictive, "", Set.of("de.tum.cit"), List.of()));
-		Set<PackagePermission> fromTestClass = (Set<PackagePermission>) prepare.invoke(javaCreator, List.of(),
-				restrictive, "", Set.of(), List.of("de.tum.cit.Test"));
-		assertEquals(Set.of(new PackagePermission("de.tum.cit")), fromTestClass);
+		assertInvocationCause(IllegalArgumentException.class,
+				() -> prepare.invoke(null, List.of("com..essential"), restrictive));
+		Set<PackagePermission> valid = (Set<PackagePermission>) prepare.invoke(null, List.of("java.lang"), restrictive);
+		assertEquals(Set.of(new PackagePermission("java.lang", true)), valid);
 	}
 
 	/** Checks that a wildcard package declared in the policy is kept unchanged. */
@@ -424,11 +395,10 @@ public class JavaCreatorTest {
 	@SuppressWarnings("unchecked")
 	void prepareAllowedPackagesPassesAPolicyDeclaredWildcardThrough() throws Exception {
 		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
-				ResourceAccesses.class, String.class, Set.class, List.class);
+				ResourceAccesses.class);
 		prepare.setAccessible(true);
 		when(resourceAccesses.regardingPackageImports()).thenReturn(List.of(new PackagePermission("*")));
-		Set<PackagePermission> result = (Set<PackagePermission>) prepare.invoke(javaCreator, List.of(),
-				resourceAccesses, "", Set.of(), List.of());
+		Set<PackagePermission> result = (Set<PackagePermission>) prepare.invoke(null, List.of(), resourceAccesses);
 		assertEquals(Set.of(new PackagePermission("*")), result);
 	}
 

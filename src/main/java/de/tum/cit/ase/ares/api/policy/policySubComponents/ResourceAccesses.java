@@ -10,8 +10,9 @@ import javax.annotation.Nullable;
 /**
  * Resource accesses permitted for the supervised code.
  * <p>
- * Each list is exhaustive, except that Ares adds its own, the supervised and
- * the test-class packages to the imports, and timeouts declare limits.
+ * Each list is exhaustive, except that Ares adds its essential packages and
+ * each of the supervised code's own packages to the imports, and timeouts
+ * declare limits.
  *
  * @since 2.0.0
  * @author Markus Paulsen
@@ -73,6 +74,27 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 				.regardingNetworkConnections(new ArrayList<>()).regardingCommandExecutions(new ArrayList<>())
 				.regardingThreadCreations(new ArrayList<>()).regardingPackageImports(new ArrayList<>())
 				.regardingTimeouts(new ArrayList<>(List.of(ResourceLimitsPermission.createRestrictive()))).build();
+	}
+
+	/**
+	 * Creates the resource accesses Ares applies when a test has no security
+	 * policy: everything of {@link #createRestrictive()}, except that every
+	 * {@code java.*} package may be imported. Whether a forbidden JDK operation is
+	 * actually used stays the business of the other rules.
+	 *
+	 * @since 2.3.0
+	 * @author Markus Paulsen
+	 * @return a new ResourceAccesses instance for a test without a policy
+	 */
+	@Nonnull
+	public static ResourceAccesses createRestrictiveWithoutPolicy() {
+		ResourceAccesses restrictive = createRestrictive();
+		return builder().regardingFileSystemInteractions(restrictive.regardingFileSystemInteractions())
+				.regardingNetworkConnections(restrictive.regardingNetworkConnections())
+				.regardingCommandExecutions(restrictive.regardingCommandExecutions())
+				.regardingThreadCreations(restrictive.regardingThreadCreations())
+				.regardingPackageImports(List.of(new PackagePermission("java")))
+				.regardingTimeouts(restrictive.regardingTimeouts()).build();
 	}
 
 	/**
