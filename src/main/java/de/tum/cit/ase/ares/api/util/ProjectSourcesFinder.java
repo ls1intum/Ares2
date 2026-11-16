@@ -756,12 +756,6 @@ public final class ProjectSourcesFinder {
 						+ "|(?<![A-Za-z0-9_$.])(project|rootProject|parent)[\\s\\u0001]*(?:,|->|in(?![A-Za-z0-9_$])|:(?!:))"
 						+ "|,[\\s\\u0001]*(project|rootProject|parent)[\\s\\u0001]*\\)");
 		/**
-		 * The interpolations of the project directory a double-quoted literal may hold,
-		 * which name no property.
-		 */
-		private static final Pattern PROJECT_DIRECTORY = Pattern
-				.compile("\\$\\{project\\.projectDir\\}|\\$\\{projectDir\\}|\\$projectDir(?![A-Za-z0-9_$])");
-		/**
 		 * A whole name as written, also right after the {@code $} of a string
 		 * interpolation, not part of a longer one.
 		 */
@@ -791,6 +785,13 @@ public final class ProjectSourcesFinder {
 		private static final Set<String> INCLUDING_DESCENDANTS = Set.of("allprojects", "subprojects");
 		/** The calls that turn their one argument into a single file. */
 		private static final Set<String> FILE_CALLS = Set.of("file", "project.file");
+		/**
+		 * A method this script declares under the name of a file or collection
+		 * function, as in {@code File file(String s)}, {@code def files(...)} or Kotlin
+		 * {@code fun listOf(...)}. Matched on masked code.
+		 */
+		private static final Pattern HELPER_DECLARATION = Pattern.compile(
+				"(?<![A-Za-z0-9_$.])(?:def|fun|void|[A-Z][A-Za-z0-9_$<>?,\\[\\]]*)[ \\t]+(file|files|listOf|setOf)[ \\t]*\\(");
 		/** The calls that turn their arguments into a collection of files. */
 		private static final Set<String> COLLECTION_CALLS = Set.of("files", "project.files", "listOf", "setOf");
 		/** The build being read. */
@@ -836,6 +837,11 @@ public final class ProjectSourcesFinder {
 		 * {@code val dir by project}, which only reads the property, does not count.
 		 */
 		private final Map<String, Integer> mentions = new HashMap<>();
+		/**
+		 * The file and collection functions this script declares or assigns itself,
+		 * whose result this reader cannot know.
+		 */
+		private final Set<String> redefinedHelpers = new HashSet<>();
 
 		/**
 		 * Prepares a walk over one script, collecting the names it assigns and which of
@@ -874,6 +880,11 @@ public final class ProjectSourcesFinder {
 			while (written.find()) {
 				mentions.merge(written.group(), 1, Integer::sum);
 			}
+			Matcher helpers = HELPER_DECLARATION.matcher(code);
+			while (helpers.find()) {
+				redefinedHelpers.add(helpers.group(1));
+			}
+			Stream.of("file", "files", "listOf", "setOf").filter(localNames::contains).forEach(redefinedHelpers::add);
 			Matcher delegates = PROPERTY_DELEGATE.matcher(code);
 			while (delegates.find()) {
 				mentions.merge(delegates.group(1), -1, Integer::sum);
@@ -1221,7 +1232,7 @@ public final class ProjectSourcesFinder {
 				head.add("?");
 				return code.length();
 			}
-			head.add(staticLiteral(bracket + 1, close).orElse("?"));
+			head.add(unnamedLiteral(bracket + 1, close).orElse("?"));
 			return close + 1;
 		}
 
@@ -1448,7 +1459,7 @@ public final class ProjectSourcesFinder {
 			int open = skipInactive(code, end);
 			int close = matchingClose(code, open);
 			int[] first = splitTopLevel(code, open + 1, close < 0 ? code.length() : close).get(0);
-			return staticLiteral(first[0], first[1]).filter(path -> !path.isEmpty() && !":".equals(path)).isPresent();
+			return unnamedLiteral(first[0], first[1]).filter(path -> !path.isEmpty() && !":".equals(path)).isPresent();
 		}
 
 		/**
@@ -1479,7 +1490,7 @@ public final class ProjectSourcesFinder {
 			}
 			int close = matchingClose(code, open);
 			int[] first = splitTopLevel(code, open + 1, close < 0 ? code.length() : close).get(0);
-			head.add(staticLiteral(first[0], first[1]).orElse("?"));
+			head.add(unnamedLiteral(first[0], first[1]).orElse("?"));
 			openArguments();
 			return open + 1;
 		}
@@ -1611,6 +1622,8 @@ public final class ProjectSourcesFinder {
 			} else if (!CERTAIN_RECEIVERS.contains(prefix) || !appliesToThisProject()
 					|| path.stream().anyMatch(CONDITIONS::contains)) {
 				reading.opaque(where + ": apply from a script that may or may not be applied to this project");
+			} else if (resolution.named()) {
+				reading.opaque(where + ": apply from a script that a property or a variable names");
 			} else if (!resolution.complete() || resolution.values().size() != 1
 					|| resolution.values().get(0).contains("://")) {
 				reading.opaque(where + ": apply from a script that cannot be located inside the project");
@@ -1868,23 +1881,31 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
-		 * Whether the double-quoted literal filling this span interpolates a name other
-		 * than the project directory, whose value Gradle fixes itself.
+		 * Whether the double-quoted literal filling this span interpolates anything,
+		 * the project directory included, since a closure parameter or a variable of
+		 * that name may stand in for it.
 		 */
 		private boolean interpolatesAName(int from, int to) {
 			int start = skipInactive(code, from);
-			if (start >= to || code.charAt(start) != '"') {
-				return false;
-			}
-			String body = content.substring(start, to);
-			return localNames.contains("projectDir")
-					|| PROJECT_DIRECTORY.matcher(body).replaceAll("").indexOf('$') >= 0;
+			return start < to && code.charAt(start) == '"' && content.substring(start, to).indexOf('$') >= 0;
 		}
 
 		/**
-		 * Resolves a call to one of the file or collection functions this reader knows.
+		 * The value of the string literal filling this span, where it interpolates
+		 * nothing, so that no property or variable chose it.
+		 */
+		private Optional<String> unnamedLiteral(int from, int to) {
+			return interpolatesAName(from, to) ? Optional.empty() : staticLiteral(from, to);
+		}
+
+		/**
+		 * Resolves a call to one of the file or collection functions this reader knows,
+		 * unless the script declares or assigns a function of that name itself.
 		 */
 		private Resolution call(String name, int open, int close) {
+			if (redefinedHelpers.contains(name)) {
+				return Resolution.UNREAD;
+			}
 			if (FILE_CALLS.contains(name)) {
 				List<int[]> arguments = splitTopLevel(code, open + 1, close);
 				Resolution argument = arguments.size() == 1 ? resolve(arguments.get(0)[0], arguments.get(0)[1])

@@ -71,10 +71,11 @@ class ProjectSourcesFinderGradleFormsTest {
 				plugins { id 'java' }
 				tasks.create('eager') { sourceSets.test.java.srcDir 'b' }
 				""", List.of(MAIN), List.of("b", TEST)),
-				form("Groovy test root under the interpolated project directory", GROOVY, """
+				form("Groovy double-quoted test root beside a projectDir variable", GROOVY, """
 						plugins { id 'java' }
-						sourceSets.test.java.srcDir("$projectDir/checks")
-						""", List.of(MAIN), List.of("checks", TEST)),
+						def projectDir = 'a'
+						sourceSets.test.java.srcDir("b")
+						""", List.of(MAIN), List.of("b", TEST)),
 				form("Groovy named inside a sourceSets block", GROOVY, """
 						plugins { id 'java' }
 						sourceSets { named('test') { java.srcDir('checks') } }
@@ -831,10 +832,11 @@ class ProjectSourcesFinderGradleFormsTest {
 	}
 
 	/**
-	 * A test root is taken only from a literal. Gradle 9.9.1 adds {@code checks}
-	 * here, but the same script given {@code -Pdirectory=src/main/java} on the
-	 * command line adds the main folder instead, which this reader cannot see, so
-	 * it takes neither and keeps only the conventional test root.
+	 * A test root is taken only from a literal that interpolates nothing. Gradle
+	 * 9.9.1 adds {@code checks} here, but the same script given
+	 * {@code -Pdirectory=src/main/java} on the command line adds the main folder
+	 * instead, which this reader cannot see, so it takes neither and keeps only the
+	 * conventional test root.
 	 *
 	 * @param label   what the form is
 	 * @param content the descriptor
@@ -865,6 +867,60 @@ class ProjectSourcesFinderGradleFormsTest {
 				"""), Arguments.of("Groovy interpolated property", """
 				plugins { id 'java' }
 				sourceSets.test.java.srcDir("${directory}")
+				"""), Arguments.of("Groovy interpolated project directory", """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDir("$projectDir/checks")
+				"""));
+	}
+
+	/**
+	 * A source set chosen by an interpolated property, a script applied through a
+	 * property, a closure parameter named {@code projectDir} and a {@code file}
+	 * method of the script's own each lead Gradle 9.9.1 elsewhere than the main
+	 * folder here, or there given another {@code -P} value, so the main folder is
+	 * never taken as a test root.
+	 *
+	 * @param label   what the form is
+	 * @param content the descriptor
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("testRootsAStandInChooses")
+	void takesNoTestRootAStandInChooses(String label, String content) throws IOException {
+		Files.writeString(projectRoot.resolve("gradle.properties"), "kind=test\nscriptPath=adds.gradle\n");
+		Files.writeString(projectRoot.resolve("adds.gradle"), "sourceSets.test.java.srcDir('src/main/java')\n");
+
+		assertFalse(discover(GROOVY, content).testSourceRoots().contains(projectRoot.resolve(MAIN).toRealPath()),
+				label);
+	}
+
+	/**
+	 * Descriptors where a property, a parameter or a method of the script decides
+	 * the test root.
+	 *
+	 * @return label, descriptor
+	 */
+	static Stream<Arguments> testRootsAStandInChooses() {
+		return Stream.of(Arguments.of("Groovy source set named by an interpolated property", """
+				plugins { id 'java' }
+				sourceSets.named("${kind}") {
+				    java.srcDir('src/main/java')
+				}
+				"""), Arguments.of("Groovy source set indexed by an interpolated property", """
+				plugins { id 'java' }
+				sourceSets["${kind}"].java.srcDir('src/main/java')
+				"""), Arguments.of("Groovy script applied through a property", """
+				plugins { id 'java' }
+				apply from: scriptPath
+				"""), Arguments.of("Groovy closure parameter named projectDir", """
+				plugins { id 'java' }
+				['checks'].each { projectDir ->
+				    sourceSets.test.java.srcDir("$projectDir/src/main/java")
+				}
+				"""), Arguments.of("Groovy file method of the script's own", """
+				plugins { id 'java' }
+				File file(String ignored) { new File(projectDir, 'checks') }
+				sourceSets.test.java.srcDir(file('src/main/java'))
 				"""));
 	}
 
