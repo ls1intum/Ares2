@@ -870,6 +870,12 @@ class ProjectSourcesFinderGradleFormsTest {
 				"""), Arguments.of("Groovy interpolated project directory", """
 				plugins { id 'java' }
 				sourceSets.test.java.srcDir("$projectDir/checks")
+				"""), Arguments.of("Groovy file call", """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDir(file('checks'))
+				"""), Arguments.of("Groovy files call", """
+				plugins { id 'java' }
+				sourceSets.test.java.srcDirs(files('checks'))
 				"""));
 	}
 
@@ -921,6 +927,19 @@ class ProjectSourcesFinderGradleFormsTest {
 				plugins { id 'java' }
 				File file(String ignored) { new File(projectDir, 'checks') }
 				sourceSets.test.java.srcDir(file('src/main/java'))
+				"""), Arguments.of("Groovy file method with a qualified return type", """
+				plugins { id 'java' }
+				java.io.File file(String ignored) { new File(projectDir, 'checks') }
+				sourceSets.test.java.srcDir(file('src/main/java'))
+				"""), Arguments.of("Groovy closure parameter named file", """
+				plugins { id 'java' }
+				[{ ignored -> new File('checks') }].each { file ->
+				    sourceSets.test.java.srcDir(file('src/main/java'))
+				}
+				"""), Arguments.of("Groovy project rebound to a map with a file closure", """
+				plugins { id 'java' }
+				def project = [file: { ignored -> new File('checks') }]
+				sourceSets.test.java.srcDir(project.file('src/main/java'))
 				"""));
 	}
 

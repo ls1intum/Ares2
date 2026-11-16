@@ -392,8 +392,9 @@ public final class ProjectSourcesFinder {
 	 *
 	 * @param values   the paths read, relative to the project or absolute
 	 * @param complete whether nothing in the operand was left unread
-	 * @param named    whether a value came from a property or a variable of the
-	 *                 script, whose value Gradle may set elsewhere, for example on
+	 * @param named    whether a value came from a property, a variable, an
+	 *                 interpolation or a call such as {@code file(...)}, whose
+	 *                 value Gradle or the script may set elsewhere, for example on
 	 *                 the command line
 	 */
 	private record Resolution(List<String> values, boolean complete, boolean named) {
@@ -785,13 +786,6 @@ public final class ProjectSourcesFinder {
 		private static final Set<String> INCLUDING_DESCENDANTS = Set.of("allprojects", "subprojects");
 		/** The calls that turn their one argument into a single file. */
 		private static final Set<String> FILE_CALLS = Set.of("file", "project.file");
-		/**
-		 * A method this script declares under the name of a file or collection
-		 * function, as in {@code File file(String s)}, {@code def files(...)} or Kotlin
-		 * {@code fun listOf(...)}. Matched on masked code.
-		 */
-		private static final Pattern HELPER_DECLARATION = Pattern.compile(
-				"(?<![A-Za-z0-9_$.])(?:def|fun|void|[A-Z][A-Za-z0-9_$<>?,\\[\\]]*)[ \\t]+(file|files|listOf|setOf)[ \\t]*\\(");
 		/** The calls that turn their arguments into a collection of files. */
 		private static final Set<String> COLLECTION_CALLS = Set.of("files", "project.files", "listOf", "setOf");
 		/** The build being read. */
@@ -837,11 +831,6 @@ public final class ProjectSourcesFinder {
 		 * {@code val dir by project}, which only reads the property, does not count.
 		 */
 		private final Map<String, Integer> mentions = new HashMap<>();
-		/**
-		 * The file and collection functions this script declares or assigns itself,
-		 * whose result this reader cannot know.
-		 */
-		private final Set<String> redefinedHelpers = new HashSet<>();
 
 		/**
 		 * Prepares a walk over one script, collecting the names it assigns and which of
@@ -880,11 +869,6 @@ public final class ProjectSourcesFinder {
 			while (written.find()) {
 				mentions.merge(written.group(), 1, Integer::sum);
 			}
-			Matcher helpers = HELPER_DECLARATION.matcher(code);
-			while (helpers.find()) {
-				redefinedHelpers.add(helpers.group(1));
-			}
-			Stream.of("file", "files", "listOf", "setOf").filter(localNames::contains).forEach(redefinedHelpers::add);
 			Matcher delegates = PROPERTY_DELEGATE.matcher(code);
 			while (delegates.find()) {
 				mentions.merge(delegates.group(1), -1, Integer::sum);
@@ -1899,20 +1883,26 @@ public final class ProjectSourcesFinder {
 		}
 
 		/**
-		 * Resolves a call to one of the file or collection functions this reader knows,
-		 * unless the script declares or assigns a function of that name itself.
+		 * Resolves a call to one of the file or collection functions this reader knows.
+		 * The result counts as named, so it gives main roots but no test root.
 		 */
 		private Resolution call(String name, int open, int close) {
-			if (redefinedHelpers.contains(name)) {
-				return Resolution.UNREAD;
-			}
 			if (FILE_CALLS.contains(name)) {
 				List<int[]> arguments = splitTopLevel(code, open + 1, close);
 				Resolution argument = arguments.size() == 1 ? resolve(arguments.get(0)[0], arguments.get(0)[1])
 						: Resolution.UNREAD;
-				return argument.complete() && argument.values().size() == 1 ? argument : Resolution.UNREAD;
+				return argument.complete() && argument.values().size() == 1 ? named(argument) : Resolution.UNREAD;
 			}
-			return COLLECTION_CALLS.contains(name) ? resolveAll(open + 1, close) : Resolution.UNREAD;
+			return COLLECTION_CALLS.contains(name) ? named(resolveAll(open + 1, close)) : Resolution.UNREAD;
+		}
+
+		/**
+		 * The same values, now counted as named: a call's result depends on what the
+		 * name it calls stands for, which a script may change, for example with a
+		 * method, a parameter or a variable of that name.
+		 */
+		private static Resolution named(Resolution resolution) {
+			return new Resolution(resolution.values(), resolution.complete(), true);
 		}
 
 		/**
