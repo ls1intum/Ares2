@@ -41,8 +41,9 @@ public final class ReportingUtils {
 	}
 
 	/**
-	 * Replaces a hidden result before logging or reporting its original throwable.
-	 * An abort keeps its status, while any other hidden failure stays failed.
+	 * Replaces a hidden result before its original throwable is logged or reported;
+	 * an Ares fault in a hidden test is logged as a fixed line only. An abort keeps
+	 * its status, while any other hidden failure stays failed.
 	 *
 	 * @param t       the test's throwable
 	 * @param context the test context
@@ -50,6 +51,7 @@ public final class ReportingUtils {
 	 */
 	public static Throwable processThrowable(Throwable t, TestContext context) {
 		if (context.findTestType().orElse(null) == TestType.HIDDEN) {
+			logHiddenInternalError(t);
 			return hiddenResult(t);
 		}
 		boolean aresInternalError = isAresInternalError(t);
@@ -64,6 +66,18 @@ public final class ReportingUtils {
 			return processThrowablePrivilegedOnly(t, nonprivilegedFailureMessage.get());
 		}
 		return processThrowableRegularly(t);
+	}
+
+	/**
+	 * Notes in the build log that Ares itself failed during a hidden test. The line
+	 * is fixed and carries neither the fault's text nor its stack, because a
+	 * student can read the build log and a hidden test must not reveal why it
+	 * failed.
+	 */
+	private static void logHiddenInternalError(Throwable t) {
+		if (isAresInternalError(t)) {
+			LOG.error("Ares internal error during a hidden test; details are withheld because the test is hidden"); //$NON-NLS-1$
+		}
 	}
 
 	/** Returns a status-preserving throwable with no hidden detail or stack. */

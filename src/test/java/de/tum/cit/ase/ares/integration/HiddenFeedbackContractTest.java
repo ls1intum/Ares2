@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -306,9 +307,29 @@ class HiddenFeedbackContractTest {
 				.isEqualTo(Messages.localized("test_guard.hidden_test_before_deadline_message"));
 	}
 
-	/** A hidden internal fault never reaches the existing build logger. */
+	/**
+	 * A hidden internal fault is logged as one fixed line, without its text or
+	 * stack.
+	 */
 	@Test
-	void internalErrorDoesNotLogHiddenThrowable() {
+	void internalErrorLogsOnlyAFixedLineForAHiddenTest() {
+		List<ILoggingEvent> logged = logOfHidden(
+				new SecurityException("Reason: Ares-Code; JavaAOPTestCaseSettings; SECRET_HIDDEN_INTERNAL"));
+		assertThat(logged).hasSize(1);
+		assertThat(logged.get(0).getFormattedMessage())
+				.isEqualTo("Ares internal error during a hidden test; details are withheld because the test is hidden")
+				.doesNotContain("SECRET_HIDDEN_INTERNAL");
+		assertNull(logged.get(0).getThrowableProxy());
+	}
+
+	/** A student's own security exception in a hidden test logs nothing. */
+	@Test
+	void studentSecurityErrorInAHiddenTestLogsNothing() {
+		assertThat(logOfHidden(new SecurityException("SECRET_HIDDEN_STUDENT"))).isEmpty();
+	}
+
+	/** Runs a throwable through the hidden path and returns what was logged. */
+	private static List<ILoggingEvent> logOfHidden(Throwable thrown) {
 		Logger logger = (Logger) LoggerFactory.getLogger(ReportingUtils.class);
 		ListAppender<ILoggingEvent> appender = new ListAppender<>();
 		appender.start();
@@ -316,11 +337,8 @@ class HiddenFeedbackContractTest {
 		try {
 			TestContext context = mock(TestContext.class);
 			when(context.findTestType()).thenReturn(Optional.of(TestType.HIDDEN));
-			Throwable safe = ReportingUtils.processThrowable(
-					new SecurityException("Reason: Ares-Code; JavaAOPTestCaseSettings; SECRET_HIDDEN_INTERNAL"),
-					context);
-			assertNoThrowableDetails(safe);
-			assertThat(appender.list).isEmpty();
+			assertNoThrowableDetails(ReportingUtils.processThrowable(thrown, context));
+			return List.copyOf(appender.list);
 		} finally {
 			logger.detachAppender(appender);
 			appender.stop();
