@@ -14,11 +14,15 @@ import java.util.stream.Stream;
 import javax.tools.ToolProvider;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.AnnotatedElementContext;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.io.TempDirFactory;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import de.tum.cit.ase.ares.api.Main;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
 /**
@@ -212,6 +216,83 @@ public class PrecompileTest {
 		String settings = Files.readString(settingsFile);
 		assertTrue(declarationOf(settings, "allowedListedClasses").contains("\"example.nest.NestedTestFixture$Inner\""),
 				settings);
+	}
+
+	/**
+	 * The command-line generator writes the same files into the project whether its
+	 * two paths are relative to the working directory or absolute, and never
+	 * repeats a relative project path inside the project.
+	 */
+	@Test
+	void mainWritesIntoTheProjectWhetherItsPathsAreRelativeOrAbsolute(
+			@TempDir(factory = BelowWorkingDirectory.class) Path tempDir) throws IOException {
+		Path workingDirectory = Path.of("").toAbsolutePath();
+		Path relativeProject = workingDirectory.relativize(emptyMavenProject(tempDir.resolve("relative")));
+		Path absoluteProject = emptyMavenProject(tempDir.resolve("absolute"));
+		Path policy = Files.writeString(tempDir.resolve("policy.yaml"), policyWithOneReadPath("ARCHUNIT", "ASPECTJ"));
+		assertFalse(relativeProject.isAbsolute(), relativeProject.toString());
+
+		Main.main(new String[] { workingDirectory.relativize(policy).toString(), relativeProject.toString() });
+		Main.main(new String[] { policy.toString(), absoluteProject.toString() });
+
+		Path project = relativeProject.toAbsolutePath();
+		Path settings = Path.of("src/test/java", EXERCISE_PACKAGE.replace('.', '/'),
+				"ares/api/aop/java/JavaAOPTestCaseSettings.java");
+		assertFalse(Files.exists(project.resolve(relativeProject)), "the relative project path was repeated inside it");
+		assertTrue(Files.isRegularFile(project.resolve(settings)), "nothing was written into the relative project");
+		assertTrue(Files.isRegularFile(absoluteProject.resolve(settings)), "nothing was written into the absolute one");
+		assertEquals(filesBelow(absoluteProject), filesBelow(project));
+	}
+
+	/**
+	 * Lays out an empty Maven project: a descriptor and empty source and production
+	 * output folders.
+	 *
+	 * @param projectFolderPath the project root to create
+	 * @return the project root
+	 * @throws IOException if the layout cannot be written
+	 */
+	private static Path emptyMavenProject(Path projectFolderPath) throws IOException {
+		Files.createDirectories(projectFolderPath.resolve("src/main/java"));
+		Files.createDirectories(projectFolderPath.resolve("target/classes"));
+		Files.writeString(projectFolderPath.resolve("pom.xml"), "<project/>");
+		return projectFolderPath;
+	}
+
+	/**
+	 * Lists every file below a folder, as sorted paths relative to it.
+	 *
+	 * @param root the folder
+	 * @return the relative file paths
+	 * @throws IOException if the folder cannot be walked
+	 */
+	private static List<Path> filesBelow(Path root) throws IOException {
+		try (Stream<Path> files = Files.walk(root)) {
+			return files.filter(Files::isRegularFile).map(root::relativize).sorted().toList();
+		}
+	}
+
+	/**
+	 * Creates temporary folders inside the build output below the working
+	 * directory, so that a path relative to that directory reaches them on every
+	 * platform, a Windows temporary folder on another drive included.
+	 */
+	static final class BelowWorkingDirectory implements TempDirFactory {
+
+		/**
+		 * Creates a fresh folder below {@code target} in the working directory.
+		 *
+		 * @param elementContext   the annotated parameter or field, unused
+		 * @param extensionContext the running test, unused
+		 * @return the absolute path of the new folder
+		 * @throws IOException if the folder cannot be created
+		 */
+		@Override
+		public Path createTempDirectory(AnnotatedElementContext elementContext, ExtensionContext extensionContext)
+				throws IOException {
+			return Files.createTempDirectory(Files.createDirectories(Path.of("target").toAbsolutePath()),
+					"precompile-paths");
+		}
 	}
 
 	/**
