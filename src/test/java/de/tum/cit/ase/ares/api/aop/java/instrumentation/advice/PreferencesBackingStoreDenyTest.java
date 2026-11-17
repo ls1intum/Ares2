@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
+import de.tum.cit.ase.ares.api.localization.AdviceActionWording;
 
 import example.student.InstrumentationSecurityProbe;
 
@@ -64,19 +66,18 @@ class PreferencesBackingStoreDenyTest {
 	}
 
 	/**
-	 * Runs the call and expects Ares to refuse this action on the Preferences
-	 * store, so a failure in the test setup cannot pass for a denial.
+	 * Runs the call in English and expects Ares to refuse this action on the
+	 * Preferences store, so a failure in the test setup cannot pass for a denial.
+	 * The language is fixed because Ares words the action in the active one.
 	 *
-	 * @param action the action the denial must name
+	 * @param action the action the denial must name, in English
 	 * @param call   the call to run
 	 */
 	private static void assertDeniedAs(String action, Executable call) {
-		SecurityException exception = assertThrows(SecurityException.class, call);
-		assertTrue(
-				exception.getMessage().contains(" " + action + " ")
-						&& exception.getMessage().contains(PREFERENCES_STORE),
-				() -> "Denial should name the " + action + " action and the Preferences store, but was:\n"
-						+ exception.getMessage());
+		String message = AdviceActionWording.inLocale(Locale.ENGLISH,
+				() -> assertThrows(SecurityException.class, call).getMessage());
+		assertTrue(message.contains(" " + action + " ") && message.contains(PREFERENCES_STORE),
+				() -> "Denial should name the " + action + " action and the Preferences store, but was:\n" + message);
 	}
 
 	/**

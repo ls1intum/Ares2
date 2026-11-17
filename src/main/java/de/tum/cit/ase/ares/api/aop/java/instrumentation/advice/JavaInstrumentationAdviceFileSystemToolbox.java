@@ -1629,10 +1629,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		if (isPreferencesBackingStore(declaringTypeName) && !allowsAllPaths(allowedPaths)) {
 			throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
-					action, PREFERENCES_BACKING_STORE,
-					fullMethodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+					localizeAction(action), PREFERENCES_BACKING_STORE, fullMethodSignature
+							+ describeCaller(studentCalledMethod) + " | " + buildDenialReason(noAllowRuleConfigured)));
 		}
 		if (isPreferencesBackingStore(declaringTypeName)) {
 			return;

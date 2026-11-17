@@ -1725,9 +1725,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			});
 			if (!allowsAllPaths(allowedPreferencePaths)) {
 				throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
-						action, PREFERENCES_BACKING_STORE,
-						describeDeniedCall(thisJoinPoint, fullMethodSignature)
-								+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
+						localizeAction(action), PREFERENCES_BACKING_STORE,
+						describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod) + " | "
 								+ buildDenialReason(allowedPreferencePaths == null || allowedPreferencePaths.length == 0)));
 			}
 			return;
