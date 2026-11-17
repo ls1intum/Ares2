@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -23,6 +24,7 @@ import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
+import de.tum.cit.ase.ares.api.aop.java.aspectj.JavaAspectJWeavingCheck;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
@@ -98,6 +100,14 @@ public class JavaCreator implements Creator {
 
 	/** Whether the classes the architecture rules analyse include any at all. */
 	private boolean supervisedClassesFound;
+
+	/**
+	 * The classes read from the supervised class path, kept so that the AspectJ
+	 * weaving check looks at the same classes; {@code null} until test cases are
+	 * created.
+	 */
+	@Nullable
+	private JavaClasses importedSupervisedClasses;
 	private final BuildToolConfiguration buildConfiguration;
 
 	public JavaCreator() {
@@ -309,6 +319,22 @@ public class JavaCreator implements Creator {
 						supervisedClassPath, outputRoot));
 			}
 		}
+	}
+
+	/**
+	 * Refuses an AspectJ run whose supervised classes were not woven with the Ares
+	 * aspects, as instrumentation refuses a run without its agent. Other modes need
+	 * no weaving and pass, and so does a creator that has read no classes yet. Run
+	 * before arming.
+	 *
+	 * @param aopMode the selected runtime enforcement
+	 * @throws SecurityException if a supervised class lacks the Ares aspects
+	 */
+	public void requireWovenSupervisedClasses(@Nonnull AOPMode aopMode) {
+		if (aopMode != AOPMode.ASPECTJ || importedSupervisedClasses == null) {
+			return;
+		}
+		JavaAspectJWeavingCheck.requireWoven(importedSupervisedClasses, exemptedClassNames);
 	}
 
 	/**
@@ -656,6 +682,7 @@ public class JavaCreator implements Creator {
 		// classes that never appear in the scanned source and would otherwise be
 		// trusted by name.
 		JavaClasses supervisedClasses = new ClassFileImporter().importPath(Path.of(classPath));
+		this.importedSupervisedClasses = supervisedClasses;
 		ReservedPackageGuard.validateClassNames(supervisedClasses.stream().map(JavaClass::getName).toList());
 		@Nonnull
 		JavaClasses javaClasses = cacheResult(projectPath + "_" + packageName + "_javaClasses",
