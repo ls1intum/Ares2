@@ -290,7 +290,21 @@ class ProjectSourcesFinderGradleFormsTest {
 	 * @return label, descriptor name, descriptor
 	 */
 	static Stream<Arguments> unplaceableForms() {
-		return Stream.of(Arguments.of("Groovy main srcDirs given a closure on the next line", GROOVY, """
+		return Stream.of(Arguments.of("Groovy main root inside each over an empty list", GROOVY, """
+				plugins { id 'java' }
+				[].each { sourceSets.main.java.srcDir('a') }
+				"""), Arguments.of("Kotlin main root inside forEach over an empty list", KOTLIN, """
+				plugins { java }
+				listOf<String>().forEach { sourceSets.getByName("main").java.srcDir("a") }
+				"""), Arguments.of("Groovy main root after a script-level return", GROOVY, """
+				plugins { id 'java' }
+				if (true) return
+				sourceSets.main.java.srcDir('a')
+				"""), Arguments.of("Groovy main root after a return in a braced condition", GROOVY, """
+				plugins { id 'java' }
+				if (true) { return }
+				sourceSets.main.java.srcDir('a')
+				"""), Arguments.of("Groovy main srcDirs given a closure on the next line", GROOVY, """
 				plugins { id 'java' }
 				sourceSets.main.java.srcDirs('a')
 				{ 'b' }
@@ -517,7 +531,22 @@ class ProjectSourcesFinderGradleFormsTest {
 	 * @return label, descriptor name, descriptor
 	 */
 	static Stream<Arguments> testRootsGradleDoesNotUse() {
-		return Stream.of(Arguments.of("Groovy test root inside a registered task", GROOVY, """
+		return Stream.of(Arguments.of("Groovy test root inside each over an empty list", GROOVY, """
+				plugins { id 'java' }
+				[].each { sourceSets.test.java.srcDir('src/main/java') }
+				"""), Arguments.of("Kotlin test root inside forEach over an empty list", KOTLIN, """
+				plugins { java }
+				listOf<String>().forEach { sourceSets.test { java.srcDir("src/main/java") } }
+				"""), Arguments.of("Groovy test root after a script-level return", GROOVY, """
+				plugins { id 'java' }
+				if (true) return
+				sourceSets.test.java.srcDir('src/main/java')
+				"""), Arguments.of("Groovy test root through a variable holding another project", GROOVY, """
+				plugins { id 'java' }
+				project(':child') { apply plugin: 'java' }
+				def target = project(':child')
+				target.sourceSets.test.java.srcDir('src/main/java')
+				"""), Arguments.of("Groovy test root inside a registered task", GROOVY, """
 				plugins { id 'java' }
 				tasks.register('unused') { sourceSets.test.java.srcDir 'src/main/java' }
 				"""), Arguments.of("Kotlin test root inside a registered task", KOTLIN, """
@@ -983,9 +1012,9 @@ class ProjectSourcesFinderGradleFormsTest {
 	}
 
 	/**
-	 * A declaration after a branch whose body is one line without braces runs
-	 * whatever the branch decides, so Gradle 9.9.1 keeps its test root {@code b},
-	 * and so must this reader; the body's own root is not taken.
+	 * A declaration after a branch, with or without braces, runs whatever the
+	 * branch decides, so Gradle 9.9.1 keeps its test root {@code b}, and so must
+	 * this reader; the body's own root is not taken.
 	 *
 	 * @param label      what the form is
 	 * @param descriptor the descriptor's name
@@ -993,8 +1022,8 @@ class ProjectSourcesFinderGradleFormsTest {
 	 * @throws IOException if the fixture cannot be written
 	 */
 	@ParameterizedTest(name = "{0}")
-	@MethodSource("declarationsAfterABraceFreeBody")
-	void keepsATestRootDeclaredAfterABraceFreeBody(String label, String descriptor, String content) throws IOException {
+	@MethodSource("declarationsAfterABranch")
+	void keepsATestRootDeclaredAfterABranch(String label, String descriptor, String content) throws IOException {
 		BuildToolConfiguration configuration = discover(descriptor, content);
 
 		assertTrue(configuration.testSourceRoots().contains(projectRoot.resolve("b").toRealPath()), label);
@@ -1002,12 +1031,12 @@ class ProjectSourcesFinderGradleFormsTest {
 	}
 
 	/**
-	 * Branches with a one-line body without braces, each followed by a test root
-	 * declared outside them.
+	 * Branches, with or without braces, each followed by a test root declared
+	 * outside them.
 	 *
 	 * @return label, descriptor name, descriptor
 	 */
-	static Stream<Arguments> declarationsAfterABraceFreeBody() {
+	static Stream<Arguments> declarationsAfterABranch() {
 		return Stream.of(Arguments.of("Groovy if, then a declaration", GROOVY, """
 				plugins { id 'java' }
 				if (false)
@@ -1033,6 +1062,22 @@ class ProjectSourcesFinderGradleFormsTest {
 				plugins { java }
 				if (false)
 				    sourceSets.test { java.srcDir("src/main/java") }
+				sourceSets.test { java.srcDir("b") }
+				"""), Arguments.of("Groovy braced if, then a declaration", GROOVY, """
+				plugins { id 'java' }
+				if (false) { sourceSets.test.java.srcDir('src/main/java') }
+				sourceSets.test.java.srcDir 'b'
+				"""), Arguments.of("Groovy braced if and else, then a declaration", GROOVY, """
+				plugins { id 'java' }
+				if (true) { println 'x' } else { sourceSets.test.java.srcDir('src/main/java') }
+				sourceSets.test.java.srcDir 'b'
+				"""), Arguments.of("Kotlin braced if, then a declaration", KOTLIN, """
+				plugins { java }
+				if (false) { sourceSets.test { java.srcDir("src/main/java") } }
+				sourceSets.test { java.srcDir("b") }
+				"""), Arguments.of("Kotlin do-while, then a declaration", KOTLIN, """
+				plugins { java }
+				do { println("x") } while (false)
 				sourceSets.test { java.srcDir("b") }
 				"""));
 	}

@@ -163,6 +163,17 @@ public final class ProjectSourcesFinder {
 	 * evaluates when it needs it.
 	 */
 	private static final String DEFERRED = "?deferred";
+	/**
+	 * The name the Gradle reader adds to code after a {@code return}, which an
+	 * earlier return in the same script, closure or method body may skip.
+	 */
+	private static final String EXITED = "?exited";
+	/**
+	 * The name the Gradle reader adds where a block is a closure handed to a call
+	 * it does not know, such as {@code each} over a list, which may run it any
+	 * number of times, none included.
+	 */
+	private static final String CALLBACK = "?callback";
 	/** A {@code throws} clause between a parameter list and a method body. */
 	private static final Pattern THROWS_CLAUSE = Pattern
 			.compile("throws\\s+[A-Za-z_$][A-Za-z0-9_$.]*(?:\\s*,\\s*[A-Za-z_$][A-Za-z0-9_$.]*)*");
@@ -180,9 +191,9 @@ public final class ProjectSourcesFinder {
 	 * or run after code written below it.
 	 */
 	private static final Set<String> CONDITIONS = Set.of("if", "else", "for", "while", "switch", "when", "catch", "do",
-			"try", "def", "fun", "void", ASSIGNED, METHOD_BODY, SHORT_CIRCUIT, DEFERRED, MAYBE_THIS_PROJECT,
-			LOOKED_UP_PROJECT, "afterEvaluate", "beforeEvaluate", "projectsEvaluated", "whenReady", "doFirst", "doLast",
-			"whenTaskAdded", "whenObjectAdded", "provider");
+			"try", "def", "fun", "void", ASSIGNED, METHOD_BODY, SHORT_CIRCUIT, DEFERRED, EXITED, CALLBACK,
+			MAYBE_THIS_PROJECT, LOOKED_UP_PROJECT, "afterEvaluate", "beforeEvaluate", "projectsEvaluated", "whenReady",
+			"doFirst", "doLast", "whenTaskAdded", "whenObjectAdded", "provider");
 	/** Words that, before a name, declare it as a local variable or function. */
 	private static final Set<String> DECLARING_WORDS = Set.of("def", "val", "var", "fun", "final", "static", "private",
 			"protected", "public");
@@ -745,6 +756,23 @@ public final class ProjectSourcesFinder {
 		 */
 		private static final Set<String> SHADOWABLE_PROJECTS = Set.of("project", "rootProject", "parent");
 		/**
+		 * The names whose block Gradle or the language runs once, right away: the
+		 * source-set configuration, the project blocks, the scope functions and the
+		 * usual top-level blocks. A closure handed to any other call may run any number
+		 * of times, none included.
+		 */
+		private static final Set<String> RUNS_ITS_BLOCK_ONCE = Set.of("sourceSets", "main", "test", "java",
+				"allprojects", "subprojects", "project", "rootProject", "configure", "with", "apply", "run", "also",
+				"let", "plugins", "dependencies", "repositories", "buildscript", "tasks", "getByName", "maybeCreate",
+				"create", "getAt");
+		/**
+		 * The receivers before {@code sourceSets} known to be this project, with
+		 * {@code rootProject} only where it is recorded as itself. Any other name may
+		 * hold another project, as {@code def target = project(':child')} does.
+		 */
+		private static final Set<String> THIS_PROJECT_RECEIVERS = Set.of("project", "rootProject", "java", "this",
+				"getProject");
+		/**
 		 * One of those names where it is bound rather than used: after a capitalised
 		 * type on its line, or, across line breaks and comments, before a comma,
 		 * {@code ->}, {@code in} or a single colon, or between a comma and a closing
@@ -831,6 +859,12 @@ public final class ProjectSourcesFinder {
 		 * {@code val dir by project}, which only reads the property, does not count.
 		 */
 		private final Map<String, Integer> mentions = new HashMap<>();
+		/**
+		 * For each {@code return} seen, how many blocks deep the script, closure or
+		 * method body it leaves is, 0 for the script itself, innermost last. The code
+		 * after it in that body may never run.
+		 */
+		private final Deque<Integer> exits = new ArrayDeque<>();
 
 		/**
 		 * Prepares a walk over one script, collecting the names it assigns and which of
@@ -1028,8 +1062,19 @@ public final class ProjectSourcesFinder {
 		 * condition left, as in {@code if (findProject(':') == null)}, is passed over.
 		 */
 		private boolean awaitsItsBody() {
-			List<String> names = head.stream().filter(name -> !PROJECT_MARKERS.contains(name)).toList();
-			return !names.isEmpty() && BODY_HEADERS.contains(names.get(names.size() - 1));
+			return awaitsABody(head);
+		}
+
+		/**
+		 * Whether these names are a branch, loop or handler still waiting for its body,
+		 * project markers passed over. The {@code while} that ends a {@code do} waits
+		 * for nothing.
+		 */
+		private static boolean awaitsABody(List<String> statement) {
+			List<String> names = statement.stream().filter(name -> !PROJECT_MARKERS.contains(name)).toList();
+			int last = names.size() - 1;
+			return last >= 0 && BODY_HEADERS.contains(names.get(last))
+					&& !("while".equals(names.get(last)) && last > 0 && "do".equals(names.get(last - 1)));
 		}
 
 		/**
@@ -1107,6 +1152,8 @@ public final class ProjectSourcesFinder {
 		private void openBlock(int brace) {
 			if (startsAMethodBody(brace)) {
 				head.add(METHOD_BODY);
+			} else if (handsItsBlockToAnUnknownCall(brace)) {
+				head.add(CALLBACK);
 			}
 			blocks.push(new Frame(pathWith(List.of()), head, brackets));
 			head = new ArrayList<>();
@@ -1194,9 +1241,81 @@ public final class ProjectSourcesFinder {
 		private void closeBlock() {
 			Frame frame = blocks.poll();
 			if (frame != null) {
-				head = frame.head();
+				head = awaitsABody(frame.head()) && !endsInDo(frame.head()) ? new ArrayList<>() : frame.head();
 				brackets = frame.brackets();
 			}
+			while (!exits.isEmpty() && exits.peek() > blocks.size()) {
+				exits.pop();
+			}
+		}
+
+		/**
+		 * Whether this statement is a {@code do}, whose {@code while} still follows its
+		 * body. Any other branch, loop or handler is complete once its body closes.
+		 */
+		private static boolean endsInDo(List<String> statement) {
+			return !statement.isEmpty() && "do".equals(statement.get(statement.size() - 1));
+		}
+
+		/**
+		 * Whether the block opening here is a closure handed to a call this reader does
+		 * not know to run it once, such as {@code each}: the statement ends in a plain
+		 * name, not a marker, a branch or one of {@link #RUNS_ITS_BLOCK_ONCE}, and the
+		 * block does not configure the element a lookup such as {@code create('x')}
+		 * names.
+		 */
+		private boolean handsItsBlockToAnUnknownCall(int brace) {
+			if (head.isEmpty() || followsALookup(brace)) {
+				return false;
+			}
+			String last = head.get(head.size() - 1);
+			return !last.startsWith("?") && !CONDITIONS.contains(last) && !BODY_HEADERS.contains(last)
+					&& !RUNS_ITS_BLOCK_ONCE.contains(last);
+		}
+
+		/**
+		 * Whether the brace here follows the argument list of one of {@link #LOOKUPS},
+		 * type arguments such as {@code <JavaCompile>} passed over.
+		 */
+		private boolean followsALookup(int brace) {
+			int close = skipInactiveBackwards(brace - 1);
+			int open = close >= 0 && code.charAt(close) == ')' ? openingParenthesis(close) : -1;
+			if (open <= 0) {
+				return false;
+			}
+			int nameEnd = skipBlanksBackwards(code, open - 1) + 1;
+			if (nameEnd > 0 && code.charAt(nameEnd - 1) == '>') {
+				nameEnd = code.lastIndexOf('<', nameEnd - 1);
+			}
+			return nameEnd > 0 && LOOKUPS.contains(code.substring(wordStartBefore(nameEnd), nameEnd));
+		}
+
+		/**
+		 * How many blocks deep the body a {@code return} here leaves is: the innermost
+		 * closure or method body, or 0 for the script. A branch, loop or handler, or a
+		 * block with no statement before it, is not left but passed through.
+		 */
+		private int depthOfTheBodyLeft() {
+			int depth = blocks.size();
+			for (Frame frame : blocks) {
+				if (!frame.head().isEmpty() && !awaitsABody(frame.head())) {
+					return depth;
+				}
+				depth--;
+			}
+			return 0;
+		}
+
+		/**
+		 * Whether the names before a {@code sourceSets} end in a receiver that may be
+		 * another project: a plain name other than {@link #THIS_PROJECT_RECEIVERS}.
+		 */
+		private static boolean followsAnUnknownReceiver(List<String> before) {
+			if (before.isEmpty()) {
+				return false;
+			}
+			String receiver = before.get(before.size() - 1);
+			return !receiver.startsWith("?") && !THIS_PROJECT_RECEIVERS.contains(receiver);
 		}
 
 		/**
@@ -1237,6 +1356,9 @@ public final class ProjectSourcesFinder {
 			List<String> prefix = recordChain(chain, start, end);
 			String recorded = prefix.remove(prefix.size() - 1);
 			String name = chain.get(chain.size() - 1);
+			if ("return".equals(name) && chain.size() == 1 && !followsADot(start)) {
+				exits.push(depthOfTheBodyLeft());
+			}
 			boolean deferred = defersItsAction(pathWith(prefix), name);
 			if (LOOKUPS.contains(name) && brackets.isEmpty()) {
 				return lookup(end, prefix, name, deferred);
@@ -1322,6 +1444,9 @@ public final class ProjectSourcesFinder {
 					receivers.clear();
 					working.add(root);
 				} else {
+					if ("sourceSets".equals(segment) && followsAnUnknownReceiver(working)) {
+						working.add(LOOKED_UP_PROJECT);
+					}
 					working.add(recorded(segment, index == chain.size() - 1, end));
 				}
 			}
@@ -2021,6 +2146,9 @@ public final class ProjectSourcesFinder {
 		private List<String> pathWith(List<String> extra) {
 			Frame outer = blocks.peek();
 			List<String> path = new ArrayList<>(outer == null ? List.of() : outer.path());
+			if (!exits.isEmpty()) {
+				path.add(EXITED);
+			}
 			brackets.forEach(path::addAll);
 			path.addAll(head);
 			path.addAll(extra);
