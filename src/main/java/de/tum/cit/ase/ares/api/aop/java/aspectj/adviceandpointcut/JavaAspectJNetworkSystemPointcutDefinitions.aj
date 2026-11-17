@@ -29,6 +29,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             call(* java.net.Socket+.getOutputStream(..)) ||
             call(* java.net.DatagramSocket+.send(..)) ||
             call(* java.nio.channels.DatagramChannel+.send(..)) ||
+            call(* java.nio.channels.DatagramChannel+.write(..)) ||
             call(* java.net.http.HttpClient+.send(..)) ||
             call(* java.net.http.HttpClient+.sendAsync(..)) ||
             call(* java.net.URLConnection+.getOutputStream(..)) ||
@@ -38,6 +39,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
     pointcut networkReceiveMethods(): (
             call(* java.net.DatagramSocket+.receive(..)) ||
             call(* java.nio.channels.DatagramChannel+.receive(..)) ||
+            call(* java.nio.channels.DatagramChannel+.read(..)) ||
             call(* java.net.Socket+.getInputStream(..)) ||
             call(* java.net.URLConnection+.getInputStream(..)) ||
             call(* java.net.HttpURLConnection+.getInputStream(..))

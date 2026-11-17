@@ -71,7 +71,25 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	 * exempted from ignore rules during network system checks.
 	 */
 	@Nonnull
-	private static final Map<String, IgnoreValues> NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries();
+	private static final Map<String, IgnoreValues> NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries(
+			// DatagramSocket(), (int), (int, InetAddress), (SocketAddress): every argument
+			// names where the socket binds locally, never a peer, and the policy names
+			// peers
+			Map.entry("java.net.DatagramSocket.<init>", IgnoreValues.ALL));
+
+	/**
+	 * The datagram channel class whose connect empties its receive queue through
+	 * its own receive method.
+	 */
+	@Nonnull
+	private static final String DATAGRAM_CHANNEL_IMPL = "sun.nio.ch.DatagramChannelImpl";
+
+	/**
+	 * The parameter list of the private receive method that a datagram channel's
+	 * connect calls to throw away datagrams that arrived before it connected.
+	 */
+	@Nonnull
+	private static final String CONNECT_FLUSH_RECEIVE_SIGNATURE = "(java.nio.ByteBuffer,boolean)";
 
 	// </editor-fold>
 
@@ -876,11 +894,16 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 				|| allowedPorts.length == 0;
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
-		final boolean hasParameters = parameters != null && parameters.length > 0;
-		@Nonnull
-		final BitSet consumedParameterIndices = new BitSet(hasParameters ? parameters.length : 0);
 		@Nullable
-		NetworkTarget targetFromParameters = hasParameters ? parametersToTarget(parameters, consumedParameterIndices)
+		final Object[] peerParameters = parameters == null ? null
+				: filterVariables(parameters, NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT
+						.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
+		final boolean hasParameters = peerParameters != null && peerParameters.length > 0;
+		@Nonnull
+		final BitSet consumedParameterIndices = new BitSet(hasParameters ? peerParameters.length : 0);
+		@Nullable
+		NetworkTarget targetFromParameters = hasParameters
+				? parametersToTarget(peerParameters, consumedParameterIndices)
 				: null;
 		if (targetFromParameters != null
 				&& checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
@@ -895,20 +918,18 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		@Nullable
 		final Object[] residualParameters;
 		if (!hasParameters || consumedParameterIndices.isEmpty()) {
-			residualParameters = parameters;
+			residualParameters = peerParameters;
 		} else {
-			residualParameters = new Object[parameters.length];
-			for (int i = 0; i < parameters.length; i++) {
-				residualParameters[i] = consumedParameterIndices.get(i) ? null : parameters[i];
+			residualParameters = new Object[peerParameters.length];
+			for (int i = 0; i < peerParameters.length; i++) {
+				residualParameters[i] = consumedParameterIndices.get(i) ? null : peerParameters[i];
 			}
 		}
 		@Nullable
 		String networkIllegallyInteractedThroughParameter = (residualParameters == null
-				|| residualParameters.length == 0)
-						? null
+				|| residualParameters.length == 0) ? null
 						: checkIfVariableCriteriaIsViolated(residualParameters, allowedHosts, allowedPorts,
-								NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT
-										.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
+								IgnoreValues.NONE);
 		if (networkIllegallyInteractedThroughParameter != null) {
 			throw new SecurityException(localize("security.advice.illegal.network.execution",
 					networkSystemMethodToCheck, localizeAction(action), networkIllegallyInteractedThroughParameter,
@@ -1101,6 +1122,23 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 				parameters, instance);
 	}
 
+	/**
+	 * Tells whether this call is the receive a datagram channel's connect makes to
+	 * throw away datagrams that arrived before it connected. That receive hands
+	 * nothing to the student, and the connect itself is checked as a connect.
+	 *
+	 * @param declaringTypeName the class of the intercepted method
+	 * @param methodName        the intercepted method
+	 * @param methodSignature   the parameter list of the intercepted method
+	 * @return {@code true} for the receive inside a datagram channel's connect
+	 */
+	private static boolean isDatagramConnectDiscardingStaleDatagrams(@Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nonnull String methodSignature) {
+		return DATAGRAM_CHANNEL_IMPL.equals(declaringTypeName) && "receive".equals(methodName)
+				&& CONNECT_FLUSH_RECEIVE_SIGNATURE.equals(methodSignature)
+				&& isJdkMethodCalledDirectlyBy(DATAGRAM_CHANNEL_IMPL, "receive", "connect");
+	}
+
 	private static void checkNetworkSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {
@@ -1109,6 +1147,9 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		// class-resource loading, not a student network connection. Blocking it aborts
 		// the transformation and leaves the class unprotected.
 		if (isByteBuddyTransformationInProgress()) {
+			return;
+		}
+		if (isDatagramConnectDiscardingStaleDatagrams(declaringTypeName, methodName, methodSignature)) {
 			return;
 		}
 		// <editor-fold desc="Get information from settings">

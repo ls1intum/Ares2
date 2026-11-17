@@ -443,6 +443,45 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
+	 * Tells whether the topmost call of a method of a JDK class was made directly
+	 * by another method of that same class, as opposed to by anyone else. Both
+	 * frames must belong to the class the JVM itself loaded, so a student class
+	 * with the same name cannot pass for it.
+	 *
+	 * @param className    the JDK class, such as sun.nio.ch.DatagramChannelImpl
+	 * @param calleeMethod the method whose topmost call is looked at
+	 * @param callerMethod the method of the same class that must have called it
+	 * @return {@code true} if the caller method called the callee method directly
+	 */
+	static boolean isJdkMethodCalledDirectlyBy(@Nonnull String className, @Nonnull String calleeMethod,
+			@Nonnull String callerMethod) {
+		return STACK_WALKER_WITH_CLASS_REFERENCE.walk(frames -> {
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+				if (isJdkFrame(iterator.next(), className, calleeMethod)) {
+					return Boolean.valueOf(iterator.hasNext() && isJdkFrame(iterator.next(), className, callerMethod));
+				}
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
+	 * Tells whether a frame runs the given method of the given class, and that
+	 * class was loaded by the JVM itself.
+	 *
+	 * @param frame      the frame to look at
+	 * @param className  the expected class
+	 * @param methodName the expected method
+	 * @return {@code true} if the frame matches and its class is the JDK's own
+	 */
+	private static boolean isJdkFrame(@Nonnull StackWalker.StackFrame frame, @Nonnull String className,
+			@Nonnull String methodName) {
+		return className.equals(frame.getClassName()) && methodName.equals(frame.getMethodName())
+				&& frame.getDeclaringClass().getClassLoader() == null;
+	}
+
+	/**
 	 * Tells whether a frame's class belongs to the student code: inside the
 	 * restricted package and not one of the trusted prefixes in
 	 * {@link #IGNORE_CALLSTACK}.

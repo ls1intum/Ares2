@@ -769,8 +769,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.net.Socket", List.of("getOutputStream")),
 			Map.entry("java.net.DatagramSocket", List.of("send")),
 			Map.entry("java.net.NetMulticastSocket", List.of("send")),
-			Map.entry("java.nio.channels.DatagramChannel", List.of("send")),
-			Map.entry("sun.nio.ch.DatagramChannelImpl", List.of("send")),
+			Map.entry("java.nio.channels.DatagramChannel", List.of("send", "write")),
+			Map.entry("sun.nio.ch.DatagramChannelImpl", List.of("send", "write")),
 			Map.entry("java.net.http.HttpClient", List.of("send", "sendAsync")),
 			Map.entry("java.net.URLConnection", List.of("getOutputStream")),
 			Map.entry("java.net.HttpURLConnection", List.of("getOutputStream")));
@@ -783,8 +783,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 	public static final Map<String, List<String>> METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK = Map.ofEntries(
 			Map.entry("java.net.DatagramSocket", List.of("receive")),
 			Map.entry("java.net.NetMulticastSocket", List.of("receive")),
-			Map.entry("java.nio.channels.DatagramChannel", List.of("receive")),
-			Map.entry("sun.nio.ch.DatagramChannelImpl", List.of("receive")),
+			Map.entry("java.nio.channels.DatagramChannel", List.of("receive", "read")),
+			Map.entry("sun.nio.ch.DatagramChannelImpl", List.of("receive", "read")),
 			Map.entry("java.net.Socket", List.of("getInputStream")),
 			Map.entry("java.net.URLConnection", List.of("getInputStream")),
 			Map.entry("java.net.HttpURLConnection", List.of("getInputStream")));
