@@ -6,7 +6,6 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.ReflectionTestUtilsUser"
     - "de.tum.cit.ase.ares.integration.ReflectionTestUtilsTest"
-    - "de.tum.cit.ase.ares.testutilities"
   # The former @WhitelistPath("") of ReflectionTestUtilsUser specified an empty path and
   # therefore granted no concrete file access; the equivalent is an active policy with no
   # permitted resource accesses (these tests exercise ReflectionTestUtils, not governed I/O).

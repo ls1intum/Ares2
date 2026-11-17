@@ -29,6 +29,7 @@ import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
@@ -221,7 +222,7 @@ public class JavaProjectScanner implements ProjectScanner {
 				boolean annotatedTest = resolver.marksATest(unit, type.getAnnotations()) || type.getMethods().stream()
 						.anyMatch(method -> resolver.marksATest(unit, method.getAnnotations()));
 				if (junitThree || annotatedTest) {
-					classes.add(qualifiedTypeName(packageName, type));
+					binaryTypeName(packageName, type).ifPresent(classes::add);
 				}
 			}
 		}
@@ -451,6 +452,31 @@ public class JavaProjectScanner implements ProjectScanner {
 		return separator < 0 ? name : name.substring(separator + 1);
 	}
 
+	/**
+	 * Returns the binary name the compiler gives a top-level or member type, with
+	 * {@code $} between enclosing types, as its class file is named. A local type,
+	 * or one declared inside an anonymous class, has a compiler-numbered name that
+	 * the source does not tell, and yields empty; JUnit cannot discover such a type
+	 * anyway.
+	 *
+	 * @param packageName the package of the compilation unit, or empty
+	 * @param type        the type declaration
+	 * @return the binary name, or empty for a local or anonymous-body type
+	 */
+	private static Optional<String> binaryTypeName(String packageName, TypeDeclaration<?> type) {
+		List<String> names = new ArrayList<>();
+		Node current = type;
+		while (current instanceof TypeDeclaration<?> declaration) {
+			names.add(0, declaration.getNameAsString());
+			current = declaration.getParentNode().orElse(null);
+		}
+		if (!(current instanceof CompilationUnit)) {
+			return Optional.empty();
+		}
+		String nestedName = String.join("$", names);
+		return Optional.of(packageName.isEmpty() ? nestedName : packageName + "." + nestedName);
+	}
+
 	private static String qualifiedTypeName(String packageName, TypeDeclaration<?> type) {
 		List<String> names = new ArrayList<>();
 		TypeDeclaration<?> current = type;
@@ -464,14 +490,15 @@ public class JavaProjectScanner implements ProjectScanner {
 	}
 
 	/**
-	 * Derives the supervised package when no policy pins one: the descriptor's
-	 * group if it covers every declared package, else the topmost declared package,
-	 * the heaviest between disjoint ones, else {@link #getDefaultPackage()}. The
-	 * compiled output is read where the sources are incomplete or declare nothing.
+	 * Derives the supervised package when no policy pins one: the build
+	 * descriptor's group if it covers every declared package, else the topmost
+	 * declared package, the heaviest between disjoint ones, else
+	 * {@link #getDefaultPackage()}.
+	 * <p>
+	 * Declarations come from the sources, or from the compiled output where the
+	 * sources are incomplete or declare nothing.
 	 *
-	 * @return the package name, possibly empty; never null
-	 * @throws SecurityException if the sources are incomplete and nothing compiled
-	 *                           declares a package
+	 * @return the supervised package name, possibly empty; never null
 	 */
 	@Override
 	@Nonnull
@@ -492,10 +519,6 @@ public class JavaProjectScanner implements ProjectScanner {
 		}
 		if (counts.isEmpty()) {
 			counts = compiledPackageCounts();
-		}
-		if (counts.isEmpty() && !productionRootsAreComplete()) {
-			throw new SecurityException(Messages.localized("security.scope.sources.incomplete",
-					projectRoot().toString(), productionOutputRoot().toString()));
 		}
 		Optional<String> group = declaredGroupCovering(counts.keySet());
 		if (group.isPresent()) {

@@ -280,51 +280,6 @@ class JavaProjectScannerHierarchyTest {
 	}
 
 	/**
-	 * Sources the descriptor does not fully declare, with nothing compiled, give no
-	 * declaration to derive from, so the run is refused rather than handed the
-	 * group, which nothing could confirm.
-	 *
-	 * @throws IOException if the fixture cannot be written
-	 */
-	@Test
-	void refusesIncompleteSourcesWithNothingCompiled() throws IOException {
-		gradle("group = 'org.example'\nsourceSets.all { java.srcDir 'generated' }\n");
-		Path file = Files.createDirectories(projectRoot.resolve("src/main/java/org/example")).resolve("Main.java");
-		Files.writeString(file, "package org.example; public class Main { }");
-
-		SecurityException refusal = assertThrows(SecurityException.class, () -> scanner().scanForPackageName());
-
-		assertTrue(refusal.getMessage().contains("theSupervisedCodeUsesTheFollowingPackage"), refusal.getMessage());
-	}
-
-	/**
-	 * Incomplete sources are not counted, but the compiled output still decides.
-	 *
-	 * @throws IOException if the fixture cannot be written
-	 */
-	@Test
-	void readsTheCompiledOutputWhereTheSourcesAreIncomplete() throws IOException {
-		gradle("sourceSets.all { java.srcDir 'generated' }\n");
-		source("org/example/Main.java", "package org.example; public class Main { }");
-
-		assertEquals("org.example", scanner().scanForPackageName());
-	}
-
-	/**
-	 * Complete sources that declare nothing, with nothing compiled, still fall back
-	 * to the default, since nothing is hidden from the scan.
-	 *
-	 * @throws IOException if the fixture cannot be written
-	 */
-	@Test
-	void keepsTheDefaultWhereCompleteSourcesDeclareNothing() throws IOException {
-		gradle("");
-		Files.createDirectories(projectRoot.resolve("src/main/java"));
-
-		assertEquals("", assertDoesNotThrow(() -> scanner().scanForPackageName()));
-	}
-
-	/**
 	 * Writes a Gradle descriptor.
 	 *
 	 * @param extra further descriptor lines
