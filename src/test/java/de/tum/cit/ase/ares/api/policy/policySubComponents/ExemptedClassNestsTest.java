@@ -243,7 +243,7 @@ class ExemptedClassNestsTest {
 		}
 	}
 
-	/** Malformed nest attributes and constants grant nothing. */
+	/** Malformed class files grant nothing. */
 	@Test
 	void malformedAttributesGrantNothing() throws Exception {
 		for (Variant variant : List.of(Variant.TWO_NEST_MEMBERS, Variant.WRONG_LENGTH, Variant.NEST_HOST_TOO,
@@ -381,15 +381,15 @@ class ExemptedClassNestsTest {
 		DOUBLE_CONSTANT,
 		/** An {@code Integer} constant. */
 		INTEGER_CONSTANT,
-		/** A class that declares one interface. */
+		/** A class that declares the interface {@code java.lang.Runnable}. */
 		WITH_INTERFACE,
 		/** A virtual-method handle to an ordinary method. */
 		VIRTUAL_HANDLE_TO_METHOD,
 		/** A special-method handle to an ordinary class method. */
 		SPECIAL_HANDLE_TO_METHOD,
 		/**
-		 * A special-method handle to an interface method in a version 52 file, the
-		 * first version that allows it.
+		 * A special-method handle to the interface method {@code Runnable.run} in a
+		 * version 52 file, the first version that allows it.
 		 */
 		SPECIAL_HANDLE_TO_INTERFACE_METHOD_FROM_52,
 		/**
@@ -403,8 +403,8 @@ class ExemptedClassNestsTest {
 		/** An invokedynamic constant whose name-and-type index points at a text. */
 		INVOKEDYNAMIC_NAME_AND_TYPE_IS_TEXT,
 		/**
-		 * A special-method handle to an interface method in a version 51 file, which
-		 * does not allow it.
+		 * A special-method handle to the interface method {@code Runnable.run} in a
+		 * version 51 file, which does not allow it.
 		 */
 		SPECIAL_HANDLE_TO_INTERFACE_METHOD_BEFORE_52,
 		/** A special-method handle to a field. */
@@ -472,7 +472,7 @@ class ExemptedClassNestsTest {
 		out.writeShort(superclassOf(variant));
 		out.writeShort(variant == Variant.WITH_INTERFACE ? 1 : 0);
 		if (variant == Variant.WITH_INTERFACE) {
-			out.writeShort(7);
+			out.writeShort(10);
 		}
 		out.writeShort(0);
 		out.writeShort(0);
@@ -534,7 +534,7 @@ class ExemptedClassNestsTest {
 
 	/**
 	 * Writes the constants a variant adds from index 9 on and returns how many
-	 * slots they take.
+	 * slots the pool count gives them.
 	 */
 	private static int writeExtraConstants(DataOutputStream out, Variant variant) throws IOException {
 		return switch (variant) {
@@ -542,9 +542,14 @@ class ExemptedClassNestsTest {
 			out.writeByte(99);
 			yield 1;
 		}
-		case DANGLING_REFERENCE, INDEX_PAST_POOL_FOR_TEXT -> {
+		case DANGLING_REFERENCE -> {
 			out.writeByte(8);
-			out.writeShort(variant == Variant.DANGLING_REFERENCE ? 0 : 10);
+			out.writeShort(0);
+			yield 1;
+		}
+		case INDEX_PAST_POOL_FOR_TEXT -> {
+			out.writeByte(8);
+			out.writeShort(10);
 			yield 1;
 		}
 		case LONG_CONSTANT, LONG_ENDS_POOL -> {
@@ -562,6 +567,7 @@ class ExemptedClassNestsTest {
 			out.writeInt(1);
 			yield 1;
 		}
+		case WITH_INTERFACE -> writeNamedClass(out, 9, "java/lang/Runnable");
 		case FIELD_HANDLE -> writeHandle(out, 9, "f", "I", 1);
 		case METHOD_HANDLE_TO_FIELD -> writeHandle(out, 9, "f", "I", 5);
 		case SPECIAL_HANDLE_TO_FIELD -> writeHandle(out, 9, "f", "I", 7);
@@ -571,16 +577,16 @@ class ExemptedClassNestsTest {
 		case INTERFACE_HANDLE_TO_CLASS_METHOD -> writeHandle(out, 10, "run", "()V", 9);
 		case VIRTUAL_HANDLE_TO_METHOD -> writeHandle(out, 10, "run", "()V", 5);
 		case SPECIAL_HANDLE_TO_METHOD -> writeHandle(out, 10, "run", "()V", 7);
-		case SPECIAL_HANDLE_TO_INTERFACE_METHOD_FROM_52, SPECIAL_HANDLE_TO_INTERFACE_METHOD_BEFORE_52 -> writeHandle(
-				out, 11, "run", "()V", 7);
+		case SPECIAL_HANDLE_TO_INTERFACE_METHOD_FROM_52, SPECIAL_HANDLE_TO_INTERFACE_METHOD_BEFORE_52 -> writeRunnableHandle(
+				out);
 		case FIELDREF_CLASS_IS_TEXT -> writeMember(out, 9, 1, "f", "I");
 		case FIELDREF_NAME_AND_TYPE_IS_TEXT -> writeReferences(out, 9, 2, 1);
 		case INVOKEDYNAMIC_NAME_AND_TYPE_IS_TEXT -> writeReferences(out, 18, 0, 1);
 		case INDEX_PAST_POOL_FOR_TAG -> writeReferences(out, 9, 2, 10);
 		case INDEX_PAST_POOL_FOR_HANDLE -> writeHandleConstant(out, 1, 10);
 		case HANDLE_BEFORE_ITS_TARGET -> writeHandleConstant(out, 1, 10) + writeReferences(out, 9, 2, 11);
-		case SUPERCLASS_NAME_STARTS_WITH_DOT -> writeNamedClass(out, ".Object");
-		case FOREIGN_MEMBER -> writeNamedClass(out, "y/Other");
+		case SUPERCLASS_NAME_STARTS_WITH_DOT -> writeNamedClass(out, 9, ".Object");
+		case FOREIGN_MEMBER -> writeNamedClass(out, 9, "y/Other");
 		case PADDED -> writeText(out, "Padding");
 		default -> 0;
 		};
@@ -594,6 +600,17 @@ class ExemptedClassNestsTest {
 	private static int writeHandle(DataOutputStream out, int memberTag, String name, String descriptor, int kind)
 			throws IOException {
 		return writeMember(out, memberTag, 2, name, descriptor) + writeHandleConstant(out, kind, 12);
+	}
+
+	/**
+	 * Writes the name {@code run}, its descriptor and their pairing at indices 9 to
+	 * 11, an interface-method reference to {@code Runnable.run} at 12, a
+	 * special-method handle to it at 13, and the text {@code java/lang/Runnable}
+	 * with its class constant at 14 and 15, and returns the seven slots they take.
+	 */
+	private static int writeRunnableHandle(DataOutputStream out) throws IOException {
+		return writeMember(out, 11, 15, "run", "()V") + writeHandleConstant(out, 7, 12)
+				+ writeNamedClass(out, 14, "java/lang/Runnable");
 	}
 
 	/**
@@ -615,13 +632,13 @@ class ExemptedClassNestsTest {
 	}
 
 	/**
-	 * Writes a text at index 9 and a class constant naming it at index 10, and
-	 * returns the two slots they take.
+	 * Writes a text at the given index and a class constant naming it right after,
+	 * and returns the two slots they take.
 	 */
-	private static int writeNamedClass(DataOutputStream out, String internalName) throws IOException {
+	private static int writeNamedClass(DataOutputStream out, int textIndex, String internalName) throws IOException {
 		writeText(out, internalName);
 		out.writeByte(7);
-		out.writeShort(9);
+		out.writeShort(textIndex);
 		return 2;
 	}
 

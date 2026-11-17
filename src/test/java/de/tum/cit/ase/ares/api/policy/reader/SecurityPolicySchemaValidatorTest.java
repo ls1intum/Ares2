@@ -27,10 +27,10 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import de.tum.cit.ase.ares.api.AresConstants;
 
 /**
- * Checks each rule of the policy schema validator on its own. Every case breaks
- * exactly one rule of an otherwise valid policy and expects the message that
- * names the field to fix. Messages are compared literally, as they are not
- * translated.
+ * Checks each rule of the policy schema validator on its own. Every rejection
+ * case breaks exactly one rule of an otherwise valid policy and expects the
+ * message that names the field to fix. Messages are compared literally, as they
+ * are not translated.
  */
 class SecurityPolicySchemaValidatorTest {
 
@@ -43,8 +43,8 @@ class SecurityPolicySchemaValidatorTest {
 	/** The factory that builds the replacement values of the cases. */
 	private static final JsonNodeFactory NODES = JsonNodeFactory.instance;
 
-	/** Marks an expected message that is compared only up to its pattern. */
-	private static final String PATTERN_PREFIX_END = "must match ";
+	/** An expected message ending in this text is compared only as a prefix. */
+	private static final String PATTERN_MESSAGE_ENDING = "must match ";
 
 	/**
 	 * Parses a fully populated, valid policy into a fresh tree.
@@ -130,7 +130,7 @@ class SecurityPolicySchemaValidatorTest {
 	private static void assertRejected(JsonNode tree, String expectedMessage) {
 		MismatchedInputException thrown = assertThrows(MismatchedInputException.class,
 				() -> SecurityPolicySchemaValidator.validate(tree));
-		if (expectedMessage.endsWith(PATTERN_PREFIX_END)) {
+		if (expectedMessage.endsWith(PATTERN_MESSAGE_ENDING)) {
 			assertTrue(thrown.getOriginalMessage().startsWith(expectedMessage), thrown.getOriginalMessage());
 		} else {
 			assertEquals(expectedMessage, thrown.getOriginalMessage());

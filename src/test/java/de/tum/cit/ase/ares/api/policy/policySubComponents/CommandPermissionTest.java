@@ -25,8 +25,10 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * <p>
  * These tests use a bare mapper, one layer below
  * {@code SecurityPolicyYAMLReader}, which checks the schema first. What the
- * schema rejects, such as a numeric argument, is covered by
- * {@code SecurityPolicyStrictSchemaTest}.
+ * schema rejects, such as a numeric argument, is covered through the reader by
+ * {@code SecurityPolicyStrictSchemaTest}. The deprecated {@code fromJson} is
+ * also called directly here with malformed nodes, a numeric argument among
+ * them, to check its own refusals.
  */
 class CommandPermissionTest {
 
@@ -95,7 +97,6 @@ class CommandPermissionTest {
 	private static Stream<Arguments> malformedCommandNodes() throws Exception {
 		YAMLMapper mapper = new YAMLMapper();
 		return Stream.of(Arguments.of(NullNode.getInstance(), "policy.permission.command.blank"),
-				Arguments.of(mapper.readTree("[git]"), "policy.permission.command.blank"),
 				Arguments.of(mapper.readTree("{executeTheCommand: git, somethingElse: []}"),
 						"policy.permission.command.mapping.fields"),
 				Arguments.of(mapper.readTree("{executeTheCommand: 5, withTheseArguments: []}"),
@@ -113,7 +114,8 @@ class CommandPermissionTest {
 	 */
 	@ParameterizedTest
 	@MethodSource("malformedCommandNodes")
-	void fromJsonRefusesEachMalformedMappingItself(JsonNode node, String messageKey) {
+	@SuppressWarnings("removal")
+	void fromJsonRefusesEachMalformedNodeItself(JsonNode node, String messageKey) {
 		assertThatThrownBy(() -> CommandPermission.fromJson(node)).isInstanceOf(IllegalArgumentException.class)
 				.hasMessage(Messages.localized(messageKey));
 	}

@@ -357,11 +357,19 @@ public class SecurityPolicyReaderAndDirectorTest {
 		}
 	}
 
+	/**
+	 * Stubs the reader and the director for the project folder set up before each
+	 * test, with the director stubbed for an empty {@code withinPath}.
+	 */
 	private void stubReaderAndDirectorChain(MockedStatic<SecurityPolicyReader> readerMock,
 			MockedStatic<SecurityPolicyDirector> directorMock) {
 		stubReaderAndDirectorChain(readerMock, directorMock, projectFolderPath);
 	}
 
+	/**
+	 * Stubs the reader and the director for the given project folder, with the
+	 * director stubbed for an empty {@code withinPath}.
+	 */
 	private void stubReaderAndDirectorChain(MockedStatic<SecurityPolicyReader> readerMock,
 			MockedStatic<SecurityPolicyDirector> directorMock, Path projectFolder) {
 		readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath, projectFolder))
