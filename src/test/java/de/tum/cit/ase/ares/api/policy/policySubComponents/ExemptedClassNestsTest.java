@@ -254,7 +254,8 @@ class ExemptedClassNestsTest {
 				Variant.SPECIAL_HANDLE_TO_FIELD, Variant.CLASS_INITIALISER_HANDLE, Variant.SUPERCLASS_IS_TEXT,
 				Variant.SUPERCLASS_NAME_STARTS_WITH_DOT, Variant.INDEX_PAST_POOL_FOR_TEXT,
 				Variant.INDEX_PAST_POOL_FOR_TAG, Variant.INDEX_PAST_POOL_FOR_HANDLE, Variant.INDEX_PAST_POOL_FOR_CLASS,
-				Variant.HANDLE_BEFORE_ITS_TARGET)) {
+				Variant.HANDLE_BEFORE_ITS_TARGET, Variant.EMPTY_CONSTANT_POOL, Variant.HANDLE_KIND_ZERO,
+				Variant.HANDLE_KIND_TEN)) {
 			assertEquals(List.of(), ExemptedClassNests.nestMembersOf("x.T", minimal(variant)), variant.name());
 		}
 	}
@@ -327,6 +328,46 @@ class ExemptedClassNestsTest {
 		assertThrows(SecurityException.class,
 				() -> ExemptedClassNests.requireNoProductionClassNamedLikeAnExemptedOne(production.resolve("absent"),
 						"example.nest", List.of(HOST)));
+	}
+
+	/** Without a loader, only the exact name of an exempted class is kept. */
+	@Test
+	void withoutALoaderOnlyTheExactNameIsKept() {
+		assertEquals(List.of(HOST), ExemptedClassNests.expandThroughLoader(List.of(HOST), null));
+	}
+
+	/**
+	 * A class file the loader finds but cannot read keeps only the exact name of
+	 * the exempted class, without any exception.
+	 */
+	@Test
+	void aClassFileTheLoaderCannotReadKeepsOnlyItsExactName() {
+		assertEquals(List.of(HOST), ExemptedClassNests.expandThroughLoader(List.of(HOST), new UnreadableLoader()));
+	}
+
+	/**
+	 * A hand-built class that is itself nested passes by its exact name and lists
+	 * no members, the control for the malformed nest hosts below.
+	 */
+	@Test
+	void aHandBuiltNestedClassPassesByItsExactName(@TempDir Path testOutput) throws Exception {
+		write(testOutput, "x.T$A", minimal(Variant.NESTED));
+		assertEquals(List.of("x.T$A"), ExemptedClassNests.expandFromTestOutput(List.of("x.T$A"), testOutput));
+		assertEquals(List.of(), ExemptedClassNests.nestMembersOf("x.T$A", minimal(Variant.NESTED)));
+	}
+
+	/**
+	 * A nested class with two NestHost attributes, or with one whose length is not
+	 * two, is refused, with the reader's complaint kept as the cause.
+	 */
+	@Test
+	void aMalformedNestHostIsRefused(@TempDir Path testOutput) throws Exception {
+		for (Variant variant : List.of(Variant.TWO_NEST_HOSTS, Variant.NEST_HOST_WRONG_LENGTH)) {
+			write(testOutput, "x.T$A", minimal(variant));
+			SecurityException refused = assertThrows(SecurityException.class,
+					() -> ExemptedClassNests.expandFromTestOutput(List.of("x.T$A"), testOutput), variant.name());
+			assertNotNull(refused.getCause(), variant.name());
+		}
 	}
 
 	/** Reads a compiled fixture's bytes. */
@@ -433,13 +474,54 @@ class ExemptedClassNestsTest {
 		/**
 		 * A well-formed file ending in an empty extra attribute named {@code Padding}.
 		 */
-		PADDED
+		PADDED,
+		/** The {@code VALID} file with its constant-pool count written as 0. */
+		EMPTY_CONSTANT_POOL,
+		/** A field handle of kind 0, a kind no method handle may have. */
+		HANDLE_KIND_ZERO,
+		/** A field handle of kind 10, a kind no method handle may have. */
+		HANDLE_KIND_TEN,
+		/** A class {@code x.T$A} with one NestHost attribute naming {@code x.T}. */
+		NESTED,
+		/** A class {@code x.T$A} with two NestHost attributes naming {@code x.T}. */
+		TWO_NEST_HOSTS,
+		/** A class {@code x.T$A} with a NestHost attribute of length 4. */
+		NEST_HOST_WRONG_LENGTH
+	}
+
+	/**
+	 * A loader without a parent that returns, for every name, a stream that fails
+	 * when it is read.
+	 */
+	private static final class UnreadableLoader extends ClassLoader {
+
+		/** Creates the loader without a parent. */
+		private UnreadableLoader() {
+			super(null);
+		}
+
+		/** Returns a stream that fails on every read, whatever the name. */
+		@Override
+		public InputStream getResourceAsStream(String name) {
+			return new FailingStream();
+		}
+	}
+
+	/** A stream whose reads always fail. */
+	private static final class FailingStream extends InputStream {
+
+		/** Always fails with an {@link IOException}. */
+		@Override
+		public int read() throws IOException {
+			throw new IOException("unreadable");
+		}
 	}
 
 	/**
 	 * Builds a minimal class file for {@code x.T} whose nest lists {@code x.T$A},
-	 * with the version, superclass, interface, extra constants and attributes the
-	 * variant asks for.
+	 * or, for the three NestHost variants, one for {@code x.T$A} that names
+	 * {@code x.T} as its host and lists no members, with the version, superclass,
+	 * interface, extra constants and attributes the variant asks for.
 	 */
 	private static byte[] minimal(Variant variant) throws IOException {
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -449,7 +531,7 @@ class ExemptedClassNestsTest {
 		out.writeShort(majorVersionOf(variant));
 		ByteArrayOutputStream extraBytes = new ByteArrayOutputStream();
 		int extraSlots = writeExtraConstants(new DataOutputStream(extraBytes), variant);
-		out.writeShort(9 + extraSlots);
+		out.writeShort(variant == Variant.EMPTY_CONSTANT_POOL ? 0 : 9 + extraSlots);
 		out.writeByte(1);
 		out.writeUTF("x/T");
 		out.writeByte(7);
@@ -468,7 +550,7 @@ class ExemptedClassNestsTest {
 		out.writeUTF("NestHost");
 		out.write(extraBytes.toByteArray());
 		out.writeShort(0x21);
-		out.writeShort(2);
+		out.writeShort(thisClassOf(variant));
 		out.writeShort(superclassOf(variant));
 		out.writeShort(variant == Variant.WITH_INTERFACE ? 1 : 0);
 		if (variant == Variant.WITH_INTERFACE) {
@@ -477,8 +559,16 @@ class ExemptedClassNestsTest {
 		out.writeShort(0);
 		out.writeShort(0);
 		int attributes = variant == Variant.TWO_NEST_MEMBERS || variant == Variant.NEST_HOST_TOO
-				|| variant == Variant.PADDED ? 2 : 1;
+				|| variant == Variant.PADDED || variant == Variant.TWO_NEST_HOSTS ? 2 : 1;
 		out.writeShort(attributes);
+		if (isNestHostVariant(variant)) {
+			writeNestHost(out, variant);
+			if (variant == Variant.TWO_NEST_HOSTS) {
+				writeNestHost(out, variant);
+			}
+			out.flush();
+			return bytes.toByteArray();
+		}
 		writeNestMembers(out, variant);
 		if (variant == Variant.TWO_NEST_MEMBERS) {
 			writeNestMembers(out, Variant.VALID);
@@ -506,6 +596,34 @@ class ExemptedClassNestsTest {
 		case SPECIAL_HANDLE_TO_INTERFACE_METHOD_BEFORE_52 -> 51;
 		default -> 61;
 		};
+	}
+
+	/**
+	 * Returns the constant-pool index a variant names as its own class: 4, the
+	 * class constant for {@code x.T$A}, for the three NestHost variants, and 2, the
+	 * class constant for {@code x.T}, otherwise.
+	 */
+	private static int thisClassOf(Variant variant) {
+		return isNestHostVariant(variant) ? 4 : 2;
+	}
+
+	/** Tells whether a variant is a nested class with NestHost attributes. */
+	private static boolean isNestHostVariant(Variant variant) {
+		return variant == Variant.NESTED || variant == Variant.TWO_NEST_HOSTS
+				|| variant == Variant.NEST_HOST_WRONG_LENGTH;
+	}
+
+	/**
+	 * Writes one NestHost attribute naming {@code x.T}, with a length of 4 and two
+	 * extra bytes for {@link Variant#NEST_HOST_WRONG_LENGTH}, and of 2 otherwise.
+	 */
+	private static void writeNestHost(DataOutputStream out, Variant variant) throws IOException {
+		out.writeShort(8);
+		out.writeInt(variant == Variant.NEST_HOST_WRONG_LENGTH ? 4 : 2);
+		out.writeShort(2);
+		if (variant == Variant.NEST_HOST_WRONG_LENGTH) {
+			out.writeShort(0);
+		}
 	}
 
 	/**
@@ -569,6 +687,8 @@ class ExemptedClassNestsTest {
 		}
 		case WITH_INTERFACE -> writeNamedClass(out, 9, "java/lang/Runnable");
 		case FIELD_HANDLE -> writeHandle(out, 9, "f", "I", 1);
+		case HANDLE_KIND_ZERO -> writeHandle(out, 9, "f", "I", 0);
+		case HANDLE_KIND_TEN -> writeHandle(out, 9, "f", "I", 10);
 		case METHOD_HANDLE_TO_FIELD -> writeHandle(out, 9, "f", "I", 5);
 		case SPECIAL_HANDLE_TO_FIELD -> writeHandle(out, 9, "f", "I", 7);
 		case CONSTRUCTOR_HANDLE -> writeHandle(out, 10, "<init>", "()V", 8);
