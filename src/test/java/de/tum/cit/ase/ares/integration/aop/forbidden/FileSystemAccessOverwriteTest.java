@@ -5,10 +5,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.function.Executable;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.charsetName.CharsetNameWriteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.fileChannel.FileChannelWriteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.files.WriteFilesWriteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.overwrite.outputStream.bufferedOutputStream.BufferedOutputStreamWriteMain;
@@ -1923,6 +1926,74 @@ class FileSystemAccessOverwriteTest extends SystemAccessTest {
 	void test_accessFileSystemViaFilesMoveMavenWalaInstrumentation() {
 		assertAresSecurityExceptionOverwrite(WriteFilesWriteMain::accessFileSystemViaFilesMove,
 				WriteFilesWriteMain.class);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="A character set name does not hide the file">
+	/**
+	 * Where the subjects of the character set name tests live.
+	 */
+	private static final String CHARSET_NAME_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/overwrite/charsetName";
+
+	/**
+	 * Expects the call to be refused as an overwrite of the file it names, not of a
+	 * path spelled like the character set, and the file to stay empty.
+	 *
+	 * @param executable the call that names a character set next to the file
+	 */
+	private void assertCharsetNameCallRefusedForFile(Executable executable) {
+		assertAresSecurityExceptionOverwrite(executable, CharsetNameWriteMain.class,
+				Paths.get(CharsetNameWriteMain.NOT_TRUSTED_FILE));
+		Assertions.assertEquals(0L, Paths.get(CharsetNameWriteMain.NOT_TRUSTED_FILE).toFile().length(),
+				"The refused call must not have written to the file.");
+	}
+
+	/**
+	 * Runs every refused call that names a character set next to a file.
+	 */
+	private void assertCharsetNameCallsRefusedForFile() {
+		Assertions.assertAll(
+				() -> assertCharsetNameCallRefusedForFile(CharsetNameWriteMain::formatterWithFileAndCharsetName),
+				() -> assertCharsetNameCallRefusedForFile(CharsetNameWriteMain::formatterWithFileNameAndCharsetName),
+				() -> assertCharsetNameCallRefusedForFile(CharsetNameWriteMain::printWriterWithFileAndCharsetName));
+	}
+
+	/**
+	 * The file next to a character set name is checked with ArchUnit and AspectJ.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = CHARSET_NAME_WITHIN_PATH)
+	void test_charsetNameDoesNotHideFileMavenArchunitAspectJ() {
+		assertCharsetNameCallsRefusedForFile();
+	}
+
+	/**
+	 * The file next to a character set name is checked with ArchUnit and
+	 * instrumentation.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = CHARSET_NAME_WITHIN_PATH)
+	void test_charsetNameDoesNotHideFileMavenArchunitInstrumentation() {
+		assertCharsetNameCallsRefusedForFile();
+	}
+
+	/**
+	 * The file next to a character set name is checked with WALA and AspectJ.
+	 */
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = CHARSET_NAME_WITHIN_PATH)
+	void test_charsetNameDoesNotHideFileMavenWalaAspectJ() {
+		assertCharsetNameCallsRefusedForFile();
+	}
+
+	/**
+	 * The file next to a character set name is checked with WALA and
+	 * instrumentation.
+	 */
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_OVERWRITE, withinPath = CHARSET_NAME_WITHIN_PATH)
+	void test_charsetNameDoesNotHideFileMavenWalaInstrumentation() {
+		assertCharsetNameCallsRefusedForFile();
 	}
 	// </editor-fold>
 }

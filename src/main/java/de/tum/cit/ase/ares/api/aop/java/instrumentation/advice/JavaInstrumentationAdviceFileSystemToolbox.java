@@ -117,6 +117,17 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// socket/stream is not a path. File/String-named PrintStreams still validate
 			// their path at index 0.
 			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)),
+			// Formatter, OutputStreamWriter, PrintWriter, InputStreamReader, Scanner: every
+			// public constructor takes the sink or source at index 0 and after it only a
+			// charset name, Charset, coder, Locale or boolean, so a name like "UTF-8" is
+			// never read as a path. A private constructor with the file later is still
+			// covered by the FileOutputStream or FileInputStream it opens, which is
+			// checked.
+			Map.entry("java.util.Formatter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.io.OutputStreamWriter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.io.PrintWriter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.io.InputStreamReader.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.util.Scanner.<init>", IgnoreValues.allExcept(0)),
 			// FileSystemView.getChild(File dir, String name) and isParent(File dir, File
 			// file) list dir; only dir is checked, the name is not a path and the file is
 			// not listed.
