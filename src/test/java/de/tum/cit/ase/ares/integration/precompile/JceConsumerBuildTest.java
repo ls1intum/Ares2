@@ -89,12 +89,13 @@ class JceConsumerBuildTest {
 	}
 
 	/**
-	 * Runs an exercise without a policy through each consumer tool, so Ares derives
-	 * the supervised package and checks it against the compiled output in the real
-	 * test JVM, in the director's ArchUnit and AspectJ modes. The assignment alone
-	 * passes, so does it with a busier child package or, under a group covering
-	 * both, beside a busier unrelated package; two decoy classes are refused before
-	 * any check is armed. Only the grouped variant sets a group that fits.
+	 * Runs an exercise without a policy through each tool, so Ares derives the
+	 * supervised package and checks it against the compiled output in a real test
+	 * JVM. Under Maven the assignment passes alone, beside a busier child package
+	 * and, under a fitting group, beside a busier unrelated one; two decoys are
+	 * refused before any check is armed. This Gradle build compiles by hand and
+	 * takes Ares from a local file, so Gradle reports no folders and every Gradle
+	 * variant is refused.
 	 */
 	@ParameterizedTest
 	@CsvSource({ "MAVEN,PLAIN", "MAVEN,NESTED", "MAVEN,GROUPED", "MAVEN,DECOY", "GRADLE,PLAIN", "GRADLE,NESTED",
@@ -154,10 +155,12 @@ class JceConsumerBuildTest {
 		if ("GROUPED".equals(variant)) {
 			groupTheConsumerAsExample(project, gradle);
 		}
-		String report = reportOfFinishedBuild(project, gradle, !decoy);
+		String report = reportOfFinishedBuild(project, gradle, !decoy && !gradle);
 		boolean passed = report.contains("failures=\"0\"") && report.contains("errors=\"0\"");
-		assertEquals(!decoy, passed, report);
-		if (decoy) {
+		assertEquals(!decoy && !gradle, passed, report);
+		if (gradle) {
+			assertTrue(report.contains("GradleSourceRoots.gradle"), report);
+		} else if (decoy) {
 			assertTrue(report.contains("example.policyfree.Assignment"), report);
 			assertTrue(report.contains("theSupervisedCodeUsesTheFollowingPackage"), report);
 		}

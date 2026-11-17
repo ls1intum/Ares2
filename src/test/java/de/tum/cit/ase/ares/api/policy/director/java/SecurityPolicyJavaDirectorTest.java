@@ -394,6 +394,13 @@ public class SecurityPolicyJavaDirectorTest {
 			assertSame(customWriter, writerField.get(result));
 		}
 
+		/**
+		 * Without a policy, a Maven project is recognised, while a Gradle project is
+		 * refused unless Gradle reported its source folders to this JVM, which the test
+		 * JVM does not do; ambiguous and unsupported projects are rejected.
+		 *
+		 * @throws Exception if the fixtures cannot be written
+		 */
 		@Test
 		void recognisesBothNoPolicyBuildToolsAndRejectsInvalidDiscovery() throws Exception {
 			Path maven = Files.createDirectory(tempDir.resolve("maven-project"));
@@ -401,11 +408,12 @@ public class SecurityPolicyJavaDirectorTest {
 			Path gradle = Files.createDirectory(tempDir.resolve("gradle-project"));
 			Files.writeString(gradle.resolve("build.gradle.kts"), "plugins { java }");
 			TestCaseAbstractFactoryAndBuilder mavenFactory = director.createTestCases(null, maven);
-			TestCaseAbstractFactoryAndBuilder gradleFactory = director.createTestCases(null, gradle);
 			assertEquals(BuildMode.MAVEN, mavenFactory.buildMode());
-			assertEquals(BuildMode.GRADLE, gradleFactory.buildMode());
-			assertEquals(ArchitectureMode.ARCHUNIT, gradleFactory.architectureMode());
-			assertEquals(AOPMode.ASPECTJ, gradleFactory.aopMode());
+			assertEquals(ArchitectureMode.ARCHUNIT, mavenFactory.architectureMode());
+			assertEquals(AOPMode.ASPECTJ, mavenFactory.aopMode());
+			SecurityException unreported = assertThrows(SecurityException.class,
+					() -> director.createTestCases(null, gradle));
+			assertTrue(unreported.getMessage().contains("GradleSourceRoots.gradle"), unreported.getMessage());
 
 			Path ambiguous = Files.createDirectory(tempDir.resolve("ambiguous-project"));
 			Files.writeString(ambiguous.resolve("pom.xml"), "<project/>");
