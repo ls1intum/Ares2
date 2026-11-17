@@ -503,7 +503,10 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.channels.FileChannel", List.of("map", "open", "transferTo")),
 			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("open", "read")),
 			Map.entry("java.nio.channels.SeekableByteChannel", List.of("read")),
-			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newDirectoryStream")),
+			// "copy" is also an overwrite below: the copy Files.copy delegates to checks
+			// its
+			// source for reading, see checkCopyOrTransferSpecialCase.
+			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("copy", "newDirectoryStream")),
 			// java.lang
 			Map.entry("java.lang.ClassLoader", List.of("getResourceAsStream")),
 			// java.net.URL.openStream is a network fetch, not a file read; it is bound to

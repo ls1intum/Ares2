@@ -17,6 +17,7 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.spi.FileSystemProvider;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -189,6 +190,14 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 */
 	@Nonnull
 	private static final Set<String> JDK_TEMP_FILE_STEPS = Set.of("createFile", "newByteChannel");
+
+	/**
+	 * The signature the agent reports for the provider method
+	 * {@code copy(Path, Path, CopyOption...)}, the one {@code Files.copy} delegates
+	 * to for two paths.
+	 */
+	@Nonnull
+	private static final String PROVIDER_COPY_SIGNATURE = "(java.nio.file.Path,java.nio.file.Path,[Ljava.nio.file.CopyOption;)";
 
 	/**
 	 * Trusted JVM home captured at class-initialisation time, before student code
@@ -725,37 +734,19 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	// <editor-fold desc="Copy/transfer per-parameter role special case (I-114)">
 
 	/**
-	 * Special-cases {@code java.nio.file.Files.copy} and
-	 * {@code FileChannel.transferTo}/{@code transferFrom}, which the generic
-	 * {@link #deriveActionChecks} path would otherwise validate as ONE uniform
-	 * action applied to the whole parameters array. That would let a policy
-	 * granting only {@code pathsAllowedToBeOverwritten} authorise reading the
-	 * SOURCE side too, since {@code copy}'s source path was checked against the
-	 * OVERWRITE allow-list instead of READ (I-114/TD-063) — a real
-	 * privilege-escalation path, not just a misclassification.
-	 * <p>
-	 * Each of these methods is registered in both
-	 * {@code METHODS_WHICH_CAN_READ_FILES} and
-	 * {@code METHODS_WHICH_CAN_OVERWRITE_FILES}, so this advice fires once per
-	 * action; this method independently checks only the parameter/receiver relevant
-	 * to the currently-firing action, and reports {@code true} once it has fully
-	 * handled the call (the caller must not additionally run the generic path).
-	 * <p>
-	 * A destination that is itself a channel (not a {@link Path}/{@link File}) is
-	 * not resolvable to a checkable path with the existing machinery (the same
-	 * limitation the generic "receiver instance" check already has for any
-	 * channel-typed value) — that side is intentionally left unchecked here, since
-	 * a channel obtained via {@code FileChannel.open(path, ...)} was already
-	 * subject to a create/overwrite check at the point it was opened.
-	 *
-	 * @return {@code true} if the call was one of the special-cased methods and has
-	 *         been fully handled (the generic path must be skipped)
+	 * Checks each side of a copy or channel transfer for its own action, so the
+	 * source of {@code Files.copy} or of the provider copy it delegates to is
+	 * checked for reading, never for overwriting. Each method fires once per action
+	 * it is registered for; a channel side is not checked here, since opening the
+	 * channel was. Returns {@code true} when it handled the call, and the generic
+	 * check must then be skipped.
 	 */
 	private static boolean checkCopyOrTransferSpecialCase(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nullable Object[] parameters, @Nullable Object instance,
 			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature) {
-		if ("java.nio.file.Files".equals(declaringTypeName) && "copy".equals(methodName)) {
+		if ("java.nio.file.Files".equals(declaringTypeName) && "copy".equals(methodName)
+				|| isProviderPathCopy(declaringTypeName, methodName, instance, fullMethodSignature)) {
 			if ("read".equals(action)) {
 				// source (index 0). The other overloads' index-0 argument (InputStream) is
 				// not Path-shaped and resolves to no target, so this is a safe no-op for them.
@@ -811,6 +802,19 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	@Nullable
 	private static Object parameterAt(@Nullable Object[] parameters, int index) {
 		return parameters == null || index < 0 || index >= parameters.length ? null : parameters[index];
+	}
+
+	/**
+	 * Tells whether the call is {@code copy(Path, Path, CopyOption...)} on a file
+	 * system provider, which takes its source and target where {@code Files.copy}
+	 * does. Any other provider {@code copy} keeps the generic check.
+	 *
+	 * @return {@code true} for exactly that provider method
+	 */
+	private static boolean isProviderPathCopy(@Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nullable Object instance, @Nonnull String fullMethodSignature) {
+		return "copy".equals(methodName) && instance instanceof FileSystemProvider
+				&& (declaringTypeName + ".copy" + PROVIDER_COPY_SIGNATURE).equals(fullMethodSignature);
 	}
 
 	/**

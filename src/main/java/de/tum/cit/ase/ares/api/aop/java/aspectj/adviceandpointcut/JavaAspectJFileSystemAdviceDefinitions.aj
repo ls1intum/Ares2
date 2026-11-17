@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.channels.FileChannel;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.LinkOption;
@@ -16,7 +17,9 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.spi.FileSystemProvider;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -181,6 +184,13 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 */
 	@Nonnull
 	private static final List<String> NATIVE_LIBRARY_SUFFIXES = List.of(".dylib", ".jnilib", ".so", ".dll");
+
+	/**
+	 * The parameter types of the provider method {@code copy(Path, Path,
+	 * CopyOption...)}, the one {@code Files.copy} delegates to for two paths.
+	 */
+	@Nonnull
+	private static final Class<?>[] PROVIDER_COPY_PARAMETERS = { Path.class, Path.class, CopyOption[].class };
 
 	/**
 	 * The JDK class whose public static methods return the system properties as the
@@ -702,37 +712,34 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	// <editor-fold desc="Copy/transfer per-parameter role special case (I-114)">
 
 	/**
-	 * Special-cases {@code java.nio.file.Files.copy} and
-	 * {@code FileChannel.transferTo}/{@code transferFrom}, which the generic
-	 * {@link #deriveActionChecks} path would otherwise validate as ONE uniform
-	 * action applied to the whole parameters array. That would let a policy
-	 * granting only {@code pathsAllowedToBeOverwritten} authorise reading the
-	 * SOURCE side too, since {@code copy}'s source path was checked against the
-	 * OVERWRITE allow-list instead of READ (I-114/TD-063) — a real
-	 * privilege-escalation path, not just a misclassification.
-	 * <p>
-	 * Each of these methods is registered in both {@code filesReadMethods()} (or
-	 * {@code fileChannelReadMethods()}) and {@code filesWriteMethods()} (or
-	 * {@code fileChannelWriteMethods()}), so this advice fires once per action;
-	 * this method independently checks only the parameter/receiver relevant to
-	 * the currently-firing action, and reports {@code true} once it has fully
-	 * handled the call (the caller must not additionally run the generic path).
-	 * <p>
-	 * A destination that is itself a channel (not a {@link Path}/{@link File}) is
-	 * not resolvable to a checkable path with the existing machinery (the same
-	 * limitation the generic "receiver instance" check already has for any
-	 * channel-typed value) — that side is intentionally left unchecked here,
-	 * since a channel obtained via {@code FileChannel.open(path, ...)} was
-	 * already subject to a create/overwrite check at the point it was opened.
+	 * Tells whether the call is {@code copy(Path, Path, CopyOption...)} on a file
+	 * system provider, which takes its source and target where {@code Files.copy}
+	 * does. Any other provider {@code copy} keeps the generic check.
 	 *
-	 * @return {@code true} if the call was one of the special-cased methods and
-	 *         has been fully handled (the generic path must be skipped)
+	 * @return {@code true} for exactly that provider method
+	 */
+	private static boolean isProviderPathCopy(@Nonnull String methodName, @Nullable Object instance,
+			@Nonnull JoinPoint thisJoinPoint) {
+		return "copy".equals(methodName) && instance instanceof FileSystemProvider
+				&& thisJoinPoint.getSignature() instanceof MethodSignature
+				&& Arrays.equals(((MethodSignature) thisJoinPoint.getSignature()).getParameterTypes(),
+						PROVIDER_COPY_PARAMETERS);
+	}
+
+	/**
+	 * Checks each side of a copy or channel transfer for its own action, so the
+	 * source of {@code Files.copy} or of a provider copy is checked for reading,
+	 * never for overwriting. Each method fires once per action it is registered
+	 * for; a channel side is not checked here, since opening the channel was.
+	 * Returns {@code true} when it handled the call, and the generic check must
+	 * then be skipped.
 	 */
 	private boolean checkCopyOrTransferSpecialCase(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nullable Object[] parameters, @Nullable Object instance,
 			@Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature, @Nonnull JoinPoint thisJoinPoint) {
-		if ("java.nio.file.Files".equals(declaringTypeName) && "copy".equals(methodName)) {
+		if ("java.nio.file.Files".equals(declaringTypeName) && "copy".equals(methodName)
+				|| isProviderPathCopy(methodName, instance, thisJoinPoint)) {
 			if ("read".equals(action)) {
 				// source (index 0). The other overloads' index-0 argument
 				// (InputStream) is not Path-shaped and resolves to no target, so this

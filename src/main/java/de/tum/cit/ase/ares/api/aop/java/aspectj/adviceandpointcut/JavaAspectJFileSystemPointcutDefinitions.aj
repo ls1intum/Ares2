@@ -288,8 +288,11 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
     pointcut defaultFileSystemExecuteMethods(): if(false);
 
+    // Note: FileSystemProvider.copy is also registered in fileSystemProviderWriteMethods()
+    // below: its source path must be checked as READ - see checkCopyOrTransferSpecialCase.
     pointcut fileSystemProviderReadMethods():
-            (call(* java.nio.file.spi.FileSystemProvider+.newDirectoryStream(..)));
+            (call(* java.nio.file.spi.FileSystemProvider+.copy(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.newDirectoryStream(..)));
 
     pointcut fileSystemProviderCreateMethods():
             call(* java.nio.file.spi.FileSystemProvider+.createDirectory(..));
