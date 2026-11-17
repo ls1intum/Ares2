@@ -40,13 +40,16 @@ Its main features are:
    caps how many threads a submission can start, which makes tests and builds more robust.
 4. **I/O limitation:** utilities for comfortably testing exercises that use `System.out` and
    `System.in`. A test provides the console input up front, and reading past it fails with a
-   clear message. Output beyond a set amount fails the test, and
-   `@MirrorOutput(maxCharCount = ...)` changes that amount.
+   clear message. Writing beyond a set amount of output throws a `SecurityException`, which
+   fails the test unless the submission catches it, and `@MirrorOutput(maxCharCount = ...)`
+   changes that amount.
 5. **Test case result visibility limitation:** public tests run and report straight away.
    Hidden tests do not run before the deadline you set with `@Deadline` and count as failed
-   until then. Once they run, a failing hidden test tells the student only that it failed.
-6. **Better feedback for students:** utilities for improved feedback in Artemis, such as
-   processing multiline error messages.
+   until then. The exception is `@ActivateHiddenBefore`: before the date it names, hidden tests
+   run, so you can try them before you release the exercise. Once they run, a failing hidden
+   test tells the student only that it failed.
+6. **Better feedback for students:** Ares 2 writes its messages in English or German,
+   following the language the tests run in.
 
 :::warning[Read the basics before using Ares 2 in production]
 Ares 2 provides a high level of security, and that comes with a small downgrade in
@@ -69,7 +72,9 @@ through the guide from top to bottom.
 | Migrate an Ares 1 exercise | [How to transform an Ares 1 protected project into an Ares 2 protected project](../transform-ares-1-into-ares-2/index.md) |
 | Write a policy for one concrete situation | [Policy Cookbook](/instructor/policy-cookbook/) |
 | Look up a single policy field | [Policy Reference](/instructor/policy-reference/) |
+| Check through the abstract syntax tree (AST) how a student wrote a solution, for example without a loop | [AST Test](/instructor/category/ast-test) |
 | Work out what an error message is telling you | [Troubleshooting](../troubleshooting.md) |
+| Look up who is who in the Simple Story boxes | [Who is who](../who-is-who.md) |
 
 ## Licence
 

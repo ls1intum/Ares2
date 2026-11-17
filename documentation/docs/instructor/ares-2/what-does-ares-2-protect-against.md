@@ -42,7 +42,8 @@ The implicit part matters for package imports. Whatever your list says, Ares alw
 
 Your list can add to these but cannot remove any of them. With a policy, every other package of
 the standard library, `java.util` included, needs an entry in your list. Without a policy, Ares
-permits every package under `java`.
+permits every package under `java`. This holds from the release after Ares 2.2.1: Ares 2.2.1
+still permits every package under `java`, with a policy too.
 
 Your test classes add no package. On top of that, the import check rejects any dependency
 of the student code on a class named in `theFollowingClassesAreTestClasses`, or on a class
