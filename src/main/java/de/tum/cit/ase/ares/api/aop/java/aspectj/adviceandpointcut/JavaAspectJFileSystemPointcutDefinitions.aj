@@ -7,7 +7,12 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.io.File+.list(..)) ||
                     call(* java.io.File+.listFiles(..)) ||
                     call(* java.io.File+.listRoots(..)) ||
-                    call(* java.io.RandomAccessFile+.read(..)));
+                    call(* java.io.RandomAccessFile+.read(..)) ||
+                    // FileSystemView lists inside the JDK, which is not woven, so the
+                    // call itself is checked against the directory it is given.
+                    call(* javax.swing.filechooser.FileSystemView+.getFiles(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.getChild(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.isParent(..)));
 
     pointcut fileWriteMethods():
             (call(java.io.RandomAccessFile+.new(..)) ||
@@ -64,7 +69,8 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(java.io.BufferedOutputStream+.new(..)) ||
                     call(java.io.FileWriter+.new(..)) ||
                     call(java.io.PrintWriter+.new(..)) ||
-                    call(java.io.RandomAccessFile+.new(..)));
+                    call(java.io.RandomAccessFile+.new(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.createNewFolder(..)));
 
     // Note: ProcessBuilder.start, startPipeline, and Runtime.exec are handled by the Command System
     // in Byte Buddy mode, as they execute commands rather than individual files.

@@ -10,7 +10,7 @@ regardingTheSupervisedCode:
     # deny-all rule only while a domain has NO allowance. Under a fully
     # restrictive file policy, ArchUnit or WALA would reject the forbidden read
     # before any runtime mechanism was consulted, and the negative control would
-    # pass even with the agent detached and the weaving switched off. One
+    # pass even if the agent or the woven aspects checked nothing. One
     # allowance makes the runtime layer authoritative for the file domain.
     regardingFileSystemInteractions:
       - readAllFiles: true

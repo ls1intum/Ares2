@@ -156,6 +156,7 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 			javaProjectScanner.requireDerivedScopeToCoverTheProject(packageName);
 		}
 		javaCreator.requireNoProductionClassNamedLikeAnExemptedOne(buildMode);
+		javaCreator.requireWovenSupervisedClasses(aopMode);
 		executer.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 				javaCreator.exemptedClassNames(), packageName, mainClassInPackageName,
 				this.architectureTestCases.stream()

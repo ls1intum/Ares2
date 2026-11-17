@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -111,13 +112,22 @@ public class JavaArchunitTestCaseCollectionTest {
 	}
 
 	/**
-	 * Checks the import rule over one fixture class.
+	 * The package of the marker annotation the AspectJ build weaves into every
+	 * fixture. Ares permits it as an essential package in every mode, so a fixture
+	 * carrying the marker does not import a forbidden package.
+	 */
+	private static final String WOVEN_MARKER_PACKAGE = "de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut";
+
+	/**
+	 * Checks the import rule over one fixture class, with the woven marker's
+	 * package permitted as {@link #WOVEN_MARKER_PACKAGE} explains.
 	 *
 	 * @param fixture           the class whose imports are checked
 	 * @param permittedPackages the permitted packages
 	 */
 	static void checkImports(Class<?> fixture, String... permittedPackages) {
-		Set<PackagePermission> permissions = Arrays.stream(permittedPackages).map(PackagePermission::new)
+		Set<PackagePermission> permissions = Stream
+				.concat(Arrays.stream(permittedPackages), Stream.of(WOVEN_MARKER_PACKAGE)).map(PackagePermission::new)
 				.collect(Collectors.toSet());
 		JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(permissions)
 				.check(new ClassFileImporter().importClasses(fixture));
