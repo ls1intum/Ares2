@@ -6,7 +6,6 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.HelloWorldUser"
     - "de.tum.cit.ase.ares.integration.HelloWorldTest"
-    - "de.tum.cit.ase.ares.testutilities"
     - "de.tum.cit.ase.ares.integration.aop.allowed.SystemAccessTest"
     - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
     - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
