@@ -169,17 +169,31 @@ public class SecurityPolicyReaderAndDirectorTest {
 			Path workingDirectory = Path.of("").toAbsolutePath();
 			try (MockedStatic<SecurityPolicyReader> readerMock = mockStatic(SecurityPolicyReader.class);
 					MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
-				readerMock.when(
-						() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath, workingDirectory))
-						.thenReturn(mockSecurityPolicyReader);
-				when(mockSecurityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath))
-						.thenReturn(mockSecurityPolicy);
-				directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(mockSecurityPolicy))
-						.thenReturn(mockSecurityPolicyDirector);
-				when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, workingDirectory, Path.of("")))
-						.thenReturn(mockFactoryAndBuilder);
+				stubReaderAndDirectorChain(readerMock, directorMock, workingDirectory);
 				SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(securityPolicyFilePath,
 						null);
+
+				SecurityPolicyReaderAndDirector result = instance.createTestCases();
+
+				assertSame(instance, result);
+				readerMock.verify(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath,
+						workingDirectory));
+				verify(mockSecurityPolicyDirector).createTestCases(mockSecurityPolicy, workingDirectory, Path.of(""));
+			}
+		}
+
+		/**
+		 * Checks that the constructor taking only a policy path reads the policy with
+		 * the working directory and passes an empty {@code withinPath} to the director.
+		 */
+		@Test
+		@DisplayName("Should use the working directory and an empty withinPath for the single-path constructor")
+		void singlePathConstructorUsesTheWorkingDirectoryAndTheEmptyWithinPath() {
+			Path workingDirectory = Path.of("").toAbsolutePath();
+			try (MockedStatic<SecurityPolicyReader> readerMock = mockStatic(SecurityPolicyReader.class);
+					MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
+				stubReaderAndDirectorChain(readerMock, directorMock, workingDirectory);
+				SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(securityPolicyFilePath);
 
 				SecurityPolicyReaderAndDirector result = instance.createTestCases();
 
@@ -345,13 +359,17 @@ public class SecurityPolicyReaderAndDirectorTest {
 
 	private void stubReaderAndDirectorChain(MockedStatic<SecurityPolicyReader> readerMock,
 			MockedStatic<SecurityPolicyDirector> directorMock) {
-		readerMock
-				.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath, projectFolderPath))
+		stubReaderAndDirectorChain(readerMock, directorMock, projectFolderPath);
+	}
+
+	private void stubReaderAndDirectorChain(MockedStatic<SecurityPolicyReader> readerMock,
+			MockedStatic<SecurityPolicyDirector> directorMock, Path projectFolder) {
+		readerMock.when(() -> SecurityPolicyReader.selectSecurityPolicyReader(securityPolicyFilePath, projectFolder))
 				.thenReturn(mockSecurityPolicyReader);
 		when(mockSecurityPolicyReader.readSecurityPolicyFrom(securityPolicyFilePath)).thenReturn(mockSecurityPolicy);
 		directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(mockSecurityPolicy))
 				.thenReturn(mockSecurityPolicyDirector);
-		when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, projectFolderPath, Path.of("")))
+		when(mockSecurityPolicyDirector.createTestCases(mockSecurityPolicy, projectFolder, Path.of("")))
 				.thenReturn(mockFactoryAndBuilder);
 	}
 }
