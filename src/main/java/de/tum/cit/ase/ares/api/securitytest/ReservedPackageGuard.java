@@ -72,7 +72,8 @@ public final class ReservedPackageGuard {
 	 * <p>
 	 * The complement of {@link #reservedPrefixOf(String)}: it finds a package that
 	 * <em>contains</em> a trusted namespace, such as {@code de.tum.cit}. Such a
-	 * package is not refused. Both ends get a trailing dot before comparing.
+	 * package is not refused as a permission, only as a supervised scope derived
+	 * without a policy. Both ends get a trailing dot before comparing.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen

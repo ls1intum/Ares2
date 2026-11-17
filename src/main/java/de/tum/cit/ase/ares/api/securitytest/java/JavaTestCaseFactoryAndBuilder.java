@@ -14,6 +14,7 @@ import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
@@ -109,22 +110,22 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	// <editor-fold desc="Write security test cases methods">
 
 	/**
-	 * Writes the generated security test cases to files.
+	 * Writes the generated security test cases and answers their paths.
 	 * <p>
-	 * This method creates files for both architecture and AOP test cases by
-	 * utilising specialised file tools. It returns a list of file paths to the
-	 * generated files.
-	 * </p>
+	 * A derived supervised package is refused before anything is written, since
+	 * nothing verifies it before the generated runtime checks use it.
 	 *
-	 * @param testFolderPath the directory where test case files will be written;
-	 *                       must not be null.
-	 * @return a non-null list of {@link Path} objects representing the generated
-	 *         files.
+	 * @param testFolderPath the directory to write into
+	 * @return the generated files
+	 * @throws SecurityException if the supervised package was derived
 	 */
 	@Override
 	@Nonnull
 	public List<Path> writeTestCases(@Nonnull Path testFolderPath) {
 		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
+		if (supervisedScopeWasDerived) {
+			throw new SecurityException(Messages.localized("security.precompile.scope.derived", packageName));
+		}
 		return writer.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 				javaCreator.exemptedClassNames(), packageName, mainClassInPackageName,
 				this.architectureTestCases.stream()
