@@ -11,18 +11,20 @@ import org.junit.platform.testkit.engine.Events;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
-import de.tum.cit.ase.ares.integration.architecture.forbidden.subject.typeannotation.TypeAnnotationCastMain;
+import de.tum.cit.ase.ares.integration.architecture.forbidden.subject.typeannotation.TypeAnnotationParameterMain;
 
 /**
  * Checks, in all four mode combinations, that a type named only through a type
- * annotation counts as an import: student code with an annotated cast is
- * rejected without an allowance and passes with one. Each case runs as a
- * disabled inner test, as the other architecture tests do.
+ * annotation counts as an import: student code with an annotated parameter is
+ * rejected without an allowance and passes with one. A parameter, not a cast:
+ * this build compiles the tests with ajc, which drops type annotations inside
+ * the method bodies of the classes it weaves. Each case runs as a disabled
+ * inner test, as the other architecture tests do.
  */
 class TypeAnnotationImportTest extends SystemAccessTest {
 
 	/**
-	 * Folder of the student code with the annotated cast.
+	 * Folder of the student code with the annotated parameter.
 	 */
 	private static final String SUBJECT_PATH = "test-classes/de/tum/cit/ase/ares/integration/architecture/forbidden/subject/typeannotation";
 
@@ -77,7 +79,7 @@ class TypeAnnotationImportTest extends SystemAccessTest {
 	private static final String ALLOWED_POLICY_WALAINSTRUMENTATION = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyTypeAnnotationImportAllowed.yaml";
 
 	/**
-	 * A cast annotated with a type from a forbidden package is rejected as an
+	 * A parameter annotated with a type from a forbidden package is rejected as an
 	 * import in MavenArchunitAspectJ.
 	 */
 	@Test
@@ -95,7 +97,7 @@ class TypeAnnotationImportTest extends SystemAccessTest {
 	}
 
 	/**
-	 * A cast annotated with a type from a forbidden package is rejected as an
+	 * A parameter annotated with a type from a forbidden package is rejected as an
 	 * import in MavenArchunitInstrumentation.
 	 */
 	@Test
@@ -113,7 +115,7 @@ class TypeAnnotationImportTest extends SystemAccessTest {
 	}
 
 	/**
-	 * A cast annotated with a type from a forbidden package is rejected as an
+	 * A parameter annotated with a type from a forbidden package is rejected as an
 	 * import in MavenWalaAspectJ.
 	 */
 	@Test
@@ -131,7 +133,7 @@ class TypeAnnotationImportTest extends SystemAccessTest {
 	}
 
 	/**
-	 * A cast annotated with a type from a forbidden package is rejected as an
+	 * A parameter annotated with a type from a forbidden package is rejected as an
 	 * import in MavenWalaInstrumentation.
 	 */
 	@Test
@@ -189,85 +191,88 @@ class TypeAnnotationImportTest extends SystemAccessTest {
 	}
 
 	/**
-	 * Runs the annotated cast under the forbidden policy in MavenArchunitAspectJ.
+	 * Runs the annotated parameter under the forbidden policy in
+	 * MavenArchunitAspectJ.
 	 */
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = FORBIDDEN_POLICY_ARCHUNITASPECTJ, withinPath = SUBJECT_PATH)
 	void test_typeAnnotationForbiddenMavenArchunitAspectJ() {
-		TypeAnnotationCastMain.castToText("text");
+		TypeAnnotationParameterMain.toText("text");
 	}
 
 	/**
-	 * Runs the annotated cast under the allowed policy in MavenArchunitAspectJ.
+	 * Runs the annotated parameter under the allowed policy in
+	 * MavenArchunitAspectJ.
 	 */
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ALLOWED_POLICY_ARCHUNITASPECTJ, withinPath = SUBJECT_PATH)
 	void test_typeAnnotationAllowedMavenArchunitAspectJ() {
-		TypeAnnotationCastMain.castToText("text");
+		TypeAnnotationParameterMain.toText("text");
 	}
 
 	/**
-	 * Runs the annotated cast under the forbidden policy in
+	 * Runs the annotated parameter under the forbidden policy in
 	 * MavenArchunitInstrumentation.
 	 */
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = FORBIDDEN_POLICY_ARCHUNITINSTRUMENTATION, withinPath = SUBJECT_PATH)
 	void test_typeAnnotationForbiddenMavenArchunitInstrumentation() {
-		TypeAnnotationCastMain.castToText("text");
+		TypeAnnotationParameterMain.toText("text");
 	}
 
 	/**
-	 * Runs the annotated cast under the allowed policy in
+	 * Runs the annotated parameter under the allowed policy in
 	 * MavenArchunitInstrumentation.
 	 */
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ALLOWED_POLICY_ARCHUNITINSTRUMENTATION, withinPath = SUBJECT_PATH)
 	void test_typeAnnotationAllowedMavenArchunitInstrumentation() {
-		TypeAnnotationCastMain.castToText("text");
+		TypeAnnotationParameterMain.toText("text");
 	}
 
 	/**
-	 * Runs the annotated cast under the forbidden policy in MavenWalaAspectJ.
+	 * Runs the annotated parameter under the forbidden policy in MavenWalaAspectJ.
 	 */
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = FORBIDDEN_POLICY_WALAASPECTJ, withinPath = SUBJECT_PATH)
 	void test_typeAnnotationForbiddenMavenWalaAspectJ() {
-		TypeAnnotationCastMain.castToText("text");
+		TypeAnnotationParameterMain.toText("text");
 	}
 
 	/**
-	 * Runs the annotated cast under the allowed policy in MavenWalaAspectJ.
+	 * Runs the annotated parameter under the allowed policy in MavenWalaAspectJ.
 	 */
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ALLOWED_POLICY_WALAASPECTJ, withinPath = SUBJECT_PATH)
 	void test_typeAnnotationAllowedMavenWalaAspectJ() {
-		TypeAnnotationCastMain.castToText("text");
+		TypeAnnotationParameterMain.toText("text");
 	}
 
 	/**
-	 * Runs the annotated cast under the forbidden policy in
+	 * Runs the annotated parameter under the forbidden policy in
 	 * MavenWalaInstrumentation.
 	 */
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = FORBIDDEN_POLICY_WALAINSTRUMENTATION, withinPath = SUBJECT_PATH)
 	void test_typeAnnotationForbiddenMavenWalaInstrumentation() {
-		TypeAnnotationCastMain.castToText("text");
+		TypeAnnotationParameterMain.toText("text");
 	}
 
 	/**
-	 * Runs the annotated cast under the allowed policy in MavenWalaInstrumentation.
+	 * Runs the annotated parameter under the allowed policy in
+	 * MavenWalaInstrumentation.
 	 */
 	@Disabled(SUBJECT_PROBE_REASON)
 	@PublicTest
 	@Policy(value = ALLOWED_POLICY_WALAINSTRUMENTATION, withinPath = SUBJECT_PATH)
 	void test_typeAnnotationAllowedMavenWalaInstrumentation() {
-		TypeAnnotationCastMain.castToText("text");
+		TypeAnnotationParameterMain.toText("text");
 	}
 }
