@@ -9,12 +9,16 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nonnull;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -38,6 +42,34 @@ public final class ProjectSourcesFinder {
 	private static final String DEFAULT_TEST_SOURCE = "src/test/java";
 	private static final Pattern PROPERTY_ASSIGNMENT = Pattern
 			.compile("(?m)^\\s*(?:def|val|var)?\\s*([A-Za-z_][A-Za-z0-9_.-]*)\\s*=\\s*['\"]([^'\"]+)['\"]");
+	/**
+	 * Any mention of {@code group} as a name in Gradle code, qualified or not.
+	 * Matched on masked code, so a mention inside a comment or a string does not
+	 * count, and {@code groupId} is a different name.
+	 */
+	private static final Pattern GROUP_MENTION = Pattern.compile("(?<![A-Za-z0-9_$])group(?![A-Za-z0-9_$])");
+	/**
+	 * The other ways Gradle code reaches the group: its accessors, and the name as
+	 * a string, as in {@code setProperty('group', ...)} or {@code project."group"}.
+	 * Matched on the original text; the mask decides whether a match is code.
+	 */
+	private static final Pattern GROUP_BY_OTHER_MEANS = Pattern
+			.compile("(?<![A-Za-z0-9_$])[sg]etGroup(?![A-Za-z0-9_$])|(['\"])group\\1");
+	/**
+	 * A {@code return}, which at the top of a script skips every statement after
+	 * it. Matched on masked code, so one in a comment or a string does not count.
+	 */
+	private static final Pattern RETURN = Pattern.compile("(?<![A-Za-z0-9_$])return(?![A-Za-z0-9_$])");
+	/**
+	 * The name {@code project} where it is not a member of something else, as
+	 * {@code task.project} is. Matched on masked code.
+	 */
+	private static final Pattern PROJECT_NAME = Pattern.compile("(?<![A-Za-z0-9_$.])project(?![A-Za-z0-9_$])");
+	/**
+	 * Words that may open a line yet continue the expression of the line before, as
+	 * {@code as} does in Groovy and Kotlin.
+	 */
+	private static final Set<String> CONTINUING_WORDS = Set.of("as", "in", "is", "instanceof");
 	/**
 	 * The filler {@link #maskInactiveRegions} writes over a comment, its delimiters
 	 * included.
@@ -108,8 +140,7 @@ public final class ProjectSourcesFinder {
 					root.resolve(mode.getBuildDirectory()), root.resolve(mode.getTestBuildDirectory()),
 					production.complete());
 		}
-		GradleSourceRoots gradleRoots = discoverGradleRoots(root,
-				gradleKotlin ? root.resolve("build.gradle.kts") : root.resolve("build.gradle"));
+		GradleSourceRoots gradleRoots = discoverGradleRoots(root, gradleDescriptorOf(root));
 		return new BuildToolConfiguration(mode, root, gradleRoots.production(), gradleRoots.test(),
 				root.resolve(mode.getBuildDirectory()), root.resolve(mode.getTestBuildDirectory()),
 				gradleRoots.productionComplete());
@@ -910,6 +941,333 @@ public final class ProjectSourcesFinder {
 			}
 		}
 		return allPresent;
+	}
+
+	/**
+	 * The group the build descriptor itself declares, or empty where none can be
+	 * taken literally.
+	 * <p>
+	 * Maven: the project's own {@code groupId}, never an inherited one. Gradle: a
+	 * plain {@code group = '...'} at the top level, else {@code group} in
+	 * {@code gradle.properties}; any other top-level use of {@code group} yields
+	 * none rather than a guess.
+	 *
+	 * @param projectRoot the project root
+	 * @param buildMode   the build tool of the project
+	 * @return the declared group, possibly empty
+	 */
+	@Nonnull
+	public static Optional<String> declaredGroup(@Nonnull Path projectRoot, @Nonnull BuildMode buildMode) {
+		if (buildMode == BuildMode.MAVEN) {
+			return mavenGroupOf(projectRoot.resolve("pom.xml"));
+		}
+		Optional<GroupSetting> setting = gradleGroupOf(gradleDescriptorOf(projectRoot));
+		return setting.isPresent() ? setting.get().literal()
+				: gradlePropertiesGroupOf(projectRoot.resolve("gradle.properties"));
+	}
+
+	/**
+	 * The build script Gradle runs for the root project: {@code build.gradle} where
+	 * it exists, even beside a {@code build.gradle.kts}, as measured with Gradle
+	 * 9.8.0, else {@code build.gradle.kts}.
+	 */
+	private static Path gradleDescriptorOf(Path root) {
+		Path groovy = root.resolve("build.gradle");
+		return Files.isRegularFile(groovy) ? groovy : root.resolve("build.gradle.kts");
+	}
+
+	/**
+	 * What the Gradle descriptor says about the root project's group. Its literal
+	 * is empty where the descriptor touches the group in any way this reader does
+	 * not take literally; that still overrides {@code gradle.properties}.
+	 *
+	 * @param literal the group set, or empty when it cannot be read literally
+	 */
+	private record GroupSetting(@Nonnull Optional<String> literal) {
+	}
+
+	/**
+	 * The {@code groupId} that is a direct child of the descriptor's document
+	 * element, read namespace-aware so that a prefixed element counts too.
+	 */
+	private static Optional<String> mavenGroupOf(Path descriptor) {
+		if (!Files.isRegularFile(descriptor)) {
+			return Optional.empty();
+		}
+		try {
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+			factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+			factory.setNamespaceAware(true);
+			NodeList children = factory.newDocumentBuilder().parse(descriptor.toFile()).getDocumentElement()
+					.getChildNodes();
+			for (int index = 0; index < children.getLength(); index++) {
+				Node child = children.item(index);
+				if (child.getNodeType() == Node.ELEMENT_NODE && "groupId".equals(child.getLocalName())) {
+					return literalGroup(child.getTextContent().trim());
+				}
+			}
+			return Optional.empty();
+		} catch (Exception exception) {
+			LOG.debug("Could not read a groupId from {}", descriptor, exception);
+			return Optional.empty();
+		}
+	}
+
+	/**
+	 * The root project's group as a Gradle descriptor sets it, read narrowly.
+	 * <p>
+	 * Only a top-level {@code group = '...'} or {@code project.group = '...'}
+	 * counts. Any other use of the name anywhere, a task's group or a write inside
+	 * a condition included, makes the answer unknown: telling which of them reach
+	 * the root project would need a Groovy or Kotlin interpreter.
+	 */
+	private static Optional<GroupSetting> gradleGroupOf(Path descriptor) {
+		if (!Files.isRegularFile(descriptor)) {
+			return Optional.empty();
+		}
+		String content;
+		try {
+			content = Files.readString(descriptor);
+		} catch (IOException exception) {
+			LOG.debug("Could not read a group from {}", descriptor, exception);
+			return Optional.of(new GroupSetting(Optional.empty()));
+		}
+		String code = maskInactiveRegions(content, Objects.toString(descriptor.getFileName(), "").endsWith(".kts"));
+		if (reachesTheGroupByOtherMeans(content, code) || interpolationMentionsTheGroup(content, code)) {
+			return Optional.of(new GroupSetting(Optional.empty()));
+		}
+		Matcher mention = GROUP_MENTION.matcher(code);
+		if (!mention.find()) {
+			return Optional.empty();
+		}
+		int start = mention.start();
+		int end = mention.end();
+		Optional<String> literal = !mention.find() && atTopLevel(code, start)
+				&& !RETURN.matcher(code).region(0, start).find() ? plainLiteralAssignment(content, code, start, end)
+						: Optional.empty();
+		return Optional.of(new GroupSetting(literal));
+	}
+
+	/**
+	 * Whether the descriptor uses {@code project} other than as a receiver or a
+	 * call, as a local variable of that name would be declared, so that
+	 * {@code project.group} might not reach Gradle's project.
+	 */
+	private static boolean projectMayBeRebound(String code) {
+		Matcher name = PROJECT_NAME.matcher(code);
+		while (name.find()) {
+			int next = skipBlanks(code, name.end());
+			if (next >= code.length() || code.charAt(next) != '.' && code.charAt(next) != '(') {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * The literal a statement {@code group = '...'} or
+	 * {@code project.group = '...'} sets, or empty for any other use of the name.
+	 *
+	 * @param content the descriptor as written
+	 * @param code    the masked descriptor
+	 * @param start   where the name begins
+	 * @param end     where the name ends
+	 * @return the literal group, or empty
+	 */
+	private static Optional<String> plainLiteralAssignment(String content, String code, int start, int end) {
+		int statement = start;
+		int before = skipBlanksBackwards(code, start - 1);
+		if (before >= 0 && code.charAt(before) == '.') {
+			int qualifier = skipBlanksBackwards(code, before - 1);
+			statement = qualifier - "project".length() + 1;
+			boolean namedProject = statement >= 0 && "project".equals(code.substring(statement, qualifier + 1))
+					&& (statement == 0
+							|| !isIdentifierPart(code.charAt(statement - 1)) && code.charAt(statement - 1) != '.');
+			if (!namedProject || projectMayBeRebound(code)) {
+				return Optional.empty();
+			}
+		}
+		int equals = skipBlanks(code, end);
+		boolean assigns = equals < code.length() && code.charAt(equals) == '='
+				&& (equals + 1 >= code.length() || code.charAt(equals + 1) != '=');
+		if (!assigns || !startsAStatement(code, statement) || !followsACompleteStatement(code, statement)) {
+			return Optional.empty();
+		}
+		return literalRightHandSide(content, code, equals + 1).flatMap(ProjectSourcesFinder::literalGroup);
+	}
+
+	/**
+	 * Whether a statement begins at this offset, so that {@code group} there is set
+	 * rather than declared ({@code def group}, {@code String group}) or read
+	 * ({@code println group}).
+	 */
+	private static boolean startsAStatement(String code, int start) {
+		int index = skipBlanksBackwards(code, start - 1);
+		return index < 0 || "\n\r{};".indexOf(code.charAt(index)) >= 0;
+	}
+
+	/**
+	 * Whether the code before this statement is a finished statement, so that it
+	 * cannot be the unbraced body of {@code if}, {@code else}, {@code for},
+	 * {@code while} or {@code do}, nor the continuation of an expression.
+	 */
+	private static boolean followsACompleteStatement(String code, int statement) {
+		int index = statement - 1;
+		while (index >= 0 && (Character.isWhitespace(code.charAt(index)) || code.charAt(index) == COMMENT_MASK)) {
+			index--;
+		}
+		if (index < 0 || "};'\"]".indexOf(code.charAt(index)) >= 0) {
+			return true;
+		}
+		if (!isIdentifierPart(code.charAt(index))) {
+			return false;
+		}
+		int wordStart = index;
+		while (wordStart > 0 && isIdentifierPart(code.charAt(wordStart - 1))) {
+			wordStart--;
+		}
+		String word = code.substring(wordStart, index + 1);
+		return !"else".equals(word) && !"do".equals(word);
+	}
+
+	/**
+	 * The literal that is the whole right-hand side, or empty when the value is
+	 * computed.
+	 *
+	 * @param content the descriptor as written
+	 * @param code    the masked descriptor
+	 * @param from    where the value begins
+	 * @return the literal, or empty
+	 */
+	private static Optional<String> literalRightHandSide(String content, String code, int from) {
+		int open = skipBlanks(code, from);
+		if (open >= code.length() || code.charAt(open) != '\'' && code.charAt(open) != '"') {
+			return Optional.empty();
+		}
+		int close = code.indexOf(code.charAt(open), open + 1);
+		int lineEnd = code.indexOf('\n', open);
+		if (close < 0 || lineEnd >= 0 && close > lineEnd) {
+			return Optional.empty();
+		}
+		int after = skipBlanks(code, close + 1);
+		boolean ends = after >= code.length() || ";}".indexOf(code.charAt(after)) >= 0
+				|| "\n\r".indexOf(code.charAt(after)) >= 0 && !continuesOnTheNextLine(code, after);
+		return ends ? Optional.of(content.substring(open + 1, close)) : Optional.empty();
+	}
+
+	/**
+	 * Whether the next line of code continues the value ended by this line break,
+	 * as {@code .plus(...)} or {@code ?: '...'} would. Only a line that opens with
+	 * a name, other than a word in {@link #CONTINUING_WORDS}, starts a new
+	 * statement.
+	 */
+	private static boolean continuesOnTheNextLine(String code, int lineBreak) {
+		int next = skipInactive(code, lineBreak);
+		if (next >= code.length()) {
+			return false;
+		}
+		if (!isIdentifierStart(code.charAt(next))) {
+			return true;
+		}
+		int wordEnd = next;
+		while (wordEnd < code.length() && Character.isLetterOrDigit(code.charAt(wordEnd))) {
+			wordEnd++;
+		}
+		return CONTINUING_WORDS.contains(code.substring(next, wordEnd));
+	}
+
+	/** The first offset from here that is neither a blank nor a masked comment. */
+	private static int skipBlanks(String code, int from) {
+		int index = from;
+		while (index < code.length() && isBlankOrComment(code.charAt(index))) {
+			index++;
+		}
+		return index;
+	}
+
+	/** The last offset up to here that is neither a blank nor a masked comment. */
+	private static int skipBlanksBackwards(String code, int from) {
+		int index = from;
+		while (index >= 0 && isBlankOrComment(code.charAt(index))) {
+			index--;
+		}
+		return index;
+	}
+
+	/** Whether the character is a space, a tab or part of a masked comment. */
+	private static boolean isBlankOrComment(char character) {
+		return character == ' ' || character == '\t' || character == COMMENT_MASK;
+	}
+
+	/**
+	 * Whether the code reaches the group through its accessors or by its name as a
+	 * string literal of its own. An accessor name counts only as code, the string
+	 * only where its opening quote is code, so text in comments or other strings
+	 * does not count.
+	 */
+	private static boolean reachesTheGroupByOtherMeans(String content, String code) {
+		Matcher other = GROUP_BY_OTHER_MEANS.matcher(content);
+		while (other.find()) {
+			char masked = code.charAt(other.start());
+			boolean literal = other.group(1) != null;
+			if (literal ? masked == other.group(1).charAt(0) : masked != COMMENT_MASK && masked != STRING_MASK) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Whether the group may be reached from code interpolated into a string, as in
+	 * {@code "${...}"}. Where that code ends cannot be told without parsing it, so
+	 * any spelling of {@code group} from the first such interpolation on counts.
+	 */
+	private static boolean interpolationMentionsTheGroup(String content, String code) {
+		int open = content.indexOf("${");
+		while (open >= 0 && code.charAt(open) != STRING_MASK) {
+			open = content.indexOf("${", open + 2);
+		}
+		return open >= 0 && content.substring(open).toLowerCase(Locale.ROOT).contains("group");
+	}
+
+	/**
+	 * Whether no block is open at this offset. Comments and strings are masked, so
+	 * every brace counted here is code.
+	 */
+	private static boolean atTopLevel(String code, int offset) {
+		int depth = 0;
+		for (int index = 0; index < offset; index++) {
+			if (code.charAt(index) == '{') {
+				depth++;
+			} else if (code.charAt(index) == '}' && depth > 0) {
+				depth--;
+			}
+		}
+		return depth == 0;
+	}
+
+	/**
+	 * The {@code group} entry of {@code gradle.properties}, read as Gradle does.
+	 */
+	private static Optional<String> gradlePropertiesGroupOf(Path file) {
+		if (!Files.isRegularFile(file)) {
+			return Optional.empty();
+		}
+		Properties properties = new Properties();
+		try (var reader = Files.newBufferedReader(file)) {
+			properties.load(reader);
+		} catch (IOException | IllegalArgumentException exception) {
+			LOG.debug("Could not read a group from {}", file, exception);
+			return Optional.empty();
+		}
+		String group = properties.getProperty("group");
+		return group == null ? Optional.empty() : literalGroup(group.trim());
+	}
+
+	/** The value as a group, or empty when it is blank or would be evaluated. */
+	private static Optional<String> literalGroup(String value) {
+		return value.isBlank() || !isStaticLiteral(value) ? Optional.empty() : Optional.of(value);
 	}
 
 	public static Optional<Path> findProjectSourcesPath() {

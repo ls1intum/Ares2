@@ -11,6 +11,7 @@ import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.conditions.ArchConditions;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 
 import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
@@ -231,7 +232,8 @@ public final class JavaArchunitTestCaseCollection {
 
 	/**
 	 * Package-import rule that also exempts the given classes; an empty set changes
-	 * nothing.
+	 * nothing. A type named only through a type annotation, such as
+	 * {@code @NonNull String}, counts as an import too.
 	 * <p>
 	 * A dependency passes once any permission matches its package, so a package
 	 * granted both exactly and with its subpackages counts as granted with them.
@@ -261,17 +263,32 @@ public final class JavaArchunitTestCaseCollection {
 	 */
 	public static ArchRule noClassMustImportForbiddenPackages(Set<PackagePermission> allowedPackages,
 			Set<ClassPermission> allowedClasses, Set<String> testClassNames) {
-		return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses)).should()
-				.dependOnClassesThat(new DescribedPredicate<>("imports a forbidden package package") {
+		return ArchRuleDefinition.noClasses().that(isNotAllowedClass(allowedClasses)).should(ArchConditions
+				.dependOnClassesThat(new DescribedPredicate<JavaClass>("imports a forbidden package package") {
 					/**
 					 * Whether the imported class is test code, or no permission covers its package.
 					 */
 					@Override
 					public boolean test(JavaClass javaClass) {
-						return isTestCode(javaClass.getName(), testClassNames) || allowedPackages.stream()
-								.noneMatch(allowedPackage -> permits(allowedPackage, javaClass.getPackageName()));
+						return isTestCode(javaClass.getName(), testClassNames)
+								|| isForbiddenPackage(javaClass.getPackageName(), allowedPackages);
 					}
-				}).as(Messages.localized("security.architecture.package.import"));
+				})
+				.or(TypeAnnotationDependencies.useTypeAnnotationsFrom(typeName -> isTestCode(typeName, testClassNames)
+						|| isForbiddenPackage(TypeAnnotationDependencies.packageOf(typeName), allowedPackages))))
+				.as(Messages.localized("security.architecture.package.import"));
+	}
+
+	/**
+	 * Tells whether no allowed package covers a package, judged by
+	 * {@link #permits(PackagePermission, String)}.
+	 *
+	 * @param packageName     the package to check
+	 * @param allowedPackages the packages the policy allows
+	 * @return {@code true} if the package is forbidden
+	 */
+	private static boolean isForbiddenPackage(String packageName, Set<PackagePermission> allowedPackages) {
+		return allowedPackages.stream().noneMatch(allowedPackage -> permits(allowedPackage, packageName));
 	}
 
 	/**
