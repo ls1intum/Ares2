@@ -16,6 +16,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.integration.ConventionalGradleReport;
 
 /**
  * Runs prerequisite proofs in fresh JVMs with the real agent and woven subject.
@@ -127,8 +128,12 @@ class JceCryptoPolicyReadTest {
 		Files.writeString(policy, policyContents);
 		Files.writeString(directory.resolve("allowed.txt"), "permitted fixture");
 		Path log = directory.resolve(operation + ".log");
-		Process child = new ProcessBuilder(command(operation, policy, file, directory, compiled))
-				.directory(directory.toFile()).redirectErrorStream(true).redirectOutput(log.toFile()).start();
+		List<String> command = command(operation, policy, file, directory, compiled);
+		if (configuration.name().contains("GRADLE")) {
+			command.addAll(1, ConventionalGradleReport.arguments(directory));
+		}
+		Process child = new ProcessBuilder(command).directory(directory.toFile()).redirectErrorStream(true)
+				.redirectOutput(log.toFile()).start();
 		try {
 			assertTrue(child.waitFor(90, TimeUnit.SECONDS), "The isolated JCE proof timed out: " + log);
 			String output = Files.readString(log);

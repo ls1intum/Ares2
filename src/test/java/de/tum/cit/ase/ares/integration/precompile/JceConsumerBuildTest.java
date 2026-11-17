@@ -15,6 +15,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.integration.ConventionalGradleReport;
 
 /**
  * Builds actual emitted exercises with Maven and Gradle and executes Jupiter
@@ -91,11 +92,10 @@ class JceConsumerBuildTest {
 	/**
 	 * Runs an exercise without a policy through each tool, so Ares derives the
 	 * supervised package and checks it against the compiled output in a real test
-	 * JVM. Under Maven the assignment passes alone, beside a busier child package
-	 * and, under a fitting group, beside a busier unrelated one; two decoys are
-	 * refused before any check is armed. This Gradle build compiles by hand and
-	 * takes Ares from a local file, so Gradle reports no folders and every Gradle
-	 * variant is refused.
+	 * JVM. The assignment passes alone, beside a busier child package and, under a
+	 * fitting group, beside a busier unrelated one; two decoys are refused before
+	 * any check is armed. The Gradle test JVM gets the report of a conventional
+	 * layout, which its hand-written build cannot produce itself.
 	 */
 	@ParameterizedTest
 	@CsvSource({ "MAVEN,PLAIN", "MAVEN,NESTED", "MAVEN,GROUPED", "MAVEN,DECOY", "GRADLE,PLAIN", "GRADLE,NESTED",
@@ -155,12 +155,10 @@ class JceConsumerBuildTest {
 		if ("GROUPED".equals(variant)) {
 			groupTheConsumerAsExample(project, gradle);
 		}
-		String report = reportOfFinishedBuild(project, gradle, !decoy && !gradle);
+		String report = reportOfFinishedBuild(project, gradle, !decoy);
 		boolean passed = report.contains("failures=\"0\"") && report.contains("errors=\"0\"");
-		assertEquals(!decoy && !gradle, passed, report);
-		if (gradle) {
-			assertTrue(report.contains("GradleSourceRoots.gradle"), report);
-		} else if (decoy) {
+		assertEquals(!decoy, passed, report);
+		if (decoy) {
 			assertTrue(report.contains("example.policyfree.Assignment"), report);
 			assertTrue(report.contains("theSupervisedCodeUsesTheFollowingPackage"), report);
 		}
@@ -361,7 +359,9 @@ class JceConsumerBuildTest {
 	private static String gradleBuild(Path project, boolean generated, boolean agent) {
 		String files = buildDependencies(project, generated).stream().map(path -> groovy(path.toString()))
 				.collect(java.util.stream.Collectors.joining(","));
-		String arguments = runtimeArguments(project, agent).stream().map(JceConsumerBuildTest::groovy)
+		List<String> gradleArguments = new ArrayList<>(runtimeArguments(project, agent));
+		gradleArguments.addAll(ConventionalGradleReport.arguments(project));
+		String arguments = gradleArguments.stream().map(JceConsumerBuildTest::groovy)
 				.collect(java.util.stream.Collectors.joining(","));
 		return """
 				plugins { id 'java' }
