@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import javax.imageio.ImageIO;
 import javax.swing.filechooser.FileSystemView;
 
 import org.junit.jupiter.api.AfterEach;
@@ -186,14 +187,17 @@ class FileSystemInspectTest extends SystemAccessTest {
 	}
 
 	/**
-	 * Sets up the JDK's file system view once, before any policy is armed. On a
-	 * desktop JVM that first call starts the graphics system and a thread, which a
+	 * Sets up the JDK's file system view and image reading once, before any policy
+	 * is armed. Their first use starts the graphics system and its threads, which a
 	 * policy without thread creations rightly refuses. That start-up is not what
 	 * these tests check.
+	 *
+	 * @throws IOException if the image cannot be read
 	 */
 	@BeforeAll
-	static void setUpTheFileSystemView() {
+	static void setUpTheGraphicsSystem() throws IOException {
 		FileSystemView.getFileSystemView();
+		ImageIO.read(Paths.get(InspectMain.BASE, "readable", "image.png").toFile());
 	}
 
 	/**
@@ -220,8 +224,9 @@ class FileSystemInspectTest extends SystemAccessTest {
 	// <editor-fold desc="Helpers">
 
 	/**
-	 * Fails if the call is refused by Ares. Any other exception, such as a file
-	 * that is not a link, is the answer to the question and not a refusal.
+	 * Fails if Ares refuses the call for its file access. Any other exception is
+	 * the answer to the question, such as a file that is not a link, or concerns
+	 * something else, such as a thread the JDK starts to draw an icon.
 	 *
 	 * @param name       what the call asks, for the failure message
 	 * @param executable the call
@@ -231,7 +236,8 @@ class FileSystemInspectTest extends SystemAccessTest {
 			executable.execute();
 		} catch (Throwable thrown) {
 			for (Throwable cause = thrown; cause != null; cause = cause.getCause()) {
-				if (cause instanceof SecurityException) {
+				if (cause instanceof SecurityException && cause.getMessage() != null
+						&& (cause.getMessage().contains(" File ") || cause.getMessage().contains(" Datei "))) {
 					Assertions.fail(name + " was refused although the policy permits it", thrown);
 				}
 			}
