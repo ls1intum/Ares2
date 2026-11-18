@@ -842,29 +842,18 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	// <editor-fold desc="Check methods">
 
 	/**
-	 * Performs the security validation for a single network action.
-	 * <p>
-	 * Description: Resolves the allowed hosts and ports for the given action, then
-	 * evaluates method parameters, the receiver instance, and instance attributes
-	 * against the whitelist. Throws {@link SecurityException} if a policy violation
-	 * is detected.
+	 * Checks one network action of a call against the hosts and ports the policy
+	 * permits, skipping local arguments such as a bind address.
 	 *
-	 * @param action                     the concrete network action under
-	 *                                   inspection
-	 * @param declaringTypeName          fully qualified declaring type name
-	 * @param methodName                 method being intercepted
-	 * @param attributes                 instance attributes (if any)
-	 * @param parameters                 intercepted method arguments
-	 * @param instance                   instance on which the method is invoked
-	 * @param networkSystemMethodToCheck offending method discovered in the
-	 *                                   restricted call stack
-	 * @param studentCalledMethod        external method initiating the restricted
-	 *                                   call (may be null)
-	 * @param fullMethodSignature        human-readable method signature for
-	 *                                   diagnostics
-	 * @throws SecurityException if the interaction violates configured policies
-	 * @since 2.0.0
-	 * @author Kevin Fischer
+	 * @param action                     the action
+	 * @param declaringTypeName          the class
+	 * @param methodName                 the method
+	 * @param attributes                 receiver fields
+	 * @param parameters                 the arguments
+	 * @param instance                   the receiver
+	 * @param networkSystemMethodToCheck the student method
+	 * @param studentCalledMethod        its callee
+	 * @param fullMethodSignature        the signature
 	 */
 	private static void checkNetworkSystemInteractionForAction(@Nonnull String action,
 			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nullable Object[] attributes,
@@ -1139,6 +1128,19 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 				&& isJdkMethodCalledDirectlyBy(DATAGRAM_CHANNEL_IMPL, "receive", "connect");
 	}
 
+	/**
+	 * Checks one network call, unless the JDK makes it for its own purposes: while
+	 * Byte Buddy rewrites a class, or while a datagram channel's connect throws
+	 * away old datagrams. Each action the call performs is checked on its own.
+	 *
+	 * @param action            the action, such as "send"
+	 * @param declaringTypeName the method's class
+	 * @param methodName        the method
+	 * @param methodSignature   its parameter list
+	 * @param attributes        the receiver's fields
+	 * @param parameters        the arguments
+	 * @param instance          the receiver
+	 */
 	private static void checkNetworkSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
 			@Nullable Object[] parameters, @Nullable Object instance) {

@@ -7,6 +7,10 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.nio.channels.GatheringByteChannel;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.ScatteringByteChannel;
+import java.nio.channels.WritableByteChannel;
 
 /**
  * Student code that connects a datagram socket or channel to a host and port
@@ -153,6 +157,101 @@ public final class DatagramConnectMain {
 			channel.connect(new InetSocketAddress(HOST, PORT));
 			channel.configureBlocking(false);
 			channel.receive(ByteBuffer.allocate(1));
+		}
+	}
+
+	/**
+	 * Creates a {@link DatagramSocket} bound to a free local port, which is
+	 * permitted: the port is where the socket listens, not a peer.
+	 *
+	 * @throws IOException if the socket cannot be created
+	 */
+	public static void bindDatagramSocketToLocalPort() throws IOException {
+		try (DatagramSocket socket = new DatagramSocket(0)) {
+			socket.getLocalPort();
+		}
+	}
+
+	/**
+	 * Creates a {@link DatagramSocket} bound to a local address, which is
+	 * permitted.
+	 *
+	 * @throws IOException if the socket cannot be created
+	 */
+	public static void bindDatagramSocketToLocalAddress() throws IOException {
+		try (DatagramSocket socket = new DatagramSocket(new InetSocketAddress(HOST, 0))) {
+			socket.getLocalPort();
+		}
+	}
+
+	/**
+	 * Creates a {@link DatagramSocket} bound to a local port and address, which is
+	 * permitted.
+	 *
+	 * @throws IOException if the socket cannot be created
+	 */
+	public static void bindDatagramSocketToLocalPortAndAddress() throws IOException {
+		try (DatagramSocket socket = new DatagramSocket(0, InetAddress.getByName(HOST))) {
+			socket.getLocalPort();
+		}
+	}
+
+	/**
+	 * Writes on a connected {@link DatagramChannel} held as a
+	 * {@link WritableByteChannel}, which is not permitted.
+	 *
+	 * @throws IOException if the datagram cannot be written
+	 */
+	public static void writeThroughWritableChannel() throws IOException {
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			channel.connect(new InetSocketAddress(HOST, PORT));
+			WritableByteChannel writable = channel;
+			writable.write(ByteBuffer.wrap(new byte[] { 1 }));
+		}
+	}
+
+	/**
+	 * Writes several buffers on a connected {@link DatagramChannel} held as a
+	 * {@link GatheringByteChannel}, which is not permitted.
+	 *
+	 * @throws IOException if the datagram cannot be written
+	 */
+	public static void writeThroughGatheringChannel() throws IOException {
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			channel.connect(new InetSocketAddress(HOST, PORT));
+			GatheringByteChannel gathering = channel;
+			gathering.write(new ByteBuffer[] { ByteBuffer.wrap(new byte[] { 1 }) });
+		}
+	}
+
+	/**
+	 * Reads without waiting on a connected {@link DatagramChannel} held as a
+	 * {@link ReadableByteChannel}, which is not permitted.
+	 *
+	 * @throws IOException if the channel cannot be read
+	 */
+	public static void readThroughReadableChannel() throws IOException {
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			channel.connect(new InetSocketAddress(HOST, PORT));
+			channel.configureBlocking(false);
+			ReadableByteChannel readable = channel;
+			readable.read(ByteBuffer.allocate(1));
+		}
+	}
+
+	/**
+	 * Reads into several buffers without waiting on a connected
+	 * {@link DatagramChannel} held as a {@link ScatteringByteChannel}, which is not
+	 * permitted.
+	 *
+	 * @throws IOException if the channel cannot be read
+	 */
+	public static void readThroughScatteringChannel() throws IOException {
+		try (DatagramChannel channel = DatagramChannel.open()) {
+			channel.connect(new InetSocketAddress(HOST, PORT));
+			channel.configureBlocking(false);
+			ScatteringByteChannel scattering = channel;
+			scattering.read(new ByteBuffer[] { ByteBuffer.allocate(1) });
 		}
 	}
 }

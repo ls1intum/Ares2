@@ -122,7 +122,14 @@ class NetworkSystemAccessTest extends SystemAccessTest {
 				() -> assertDatagramRefusedAs(DatagramConnectMain::receiveOnConnectedDatagramSocket, "receive"),
 				() -> assertDatagramRefusedAs(DatagramConnectMain::receiveOnConnectedDatagramChannel, "receive"),
 				() -> assertDatagramRefusedAs(DatagramConnectMain::writeOnConnectedDatagramChannel, "send"),
-				() -> assertDatagramRefusedAs(DatagramConnectMain::readOnConnectedDatagramChannel, "receive"));
+				() -> assertDatagramRefusedAs(DatagramConnectMain::readOnConnectedDatagramChannel, "receive"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::writeThroughWritableChannel, "send"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::writeThroughGatheringChannel, "send"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::readThroughReadableChannel, "receive"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::readThroughScatteringChannel, "receive"),
+				() -> Assertions.assertDoesNotThrow(DatagramConnectMain::bindDatagramSocketToLocalPort),
+				() -> Assertions.assertDoesNotThrow(DatagramConnectMain::bindDatagramSocketToLocalAddress),
+				() -> Assertions.assertDoesNotThrow(DatagramConnectMain::bindDatagramSocketToLocalPortAndAddress));
 	}
 
 	/**
