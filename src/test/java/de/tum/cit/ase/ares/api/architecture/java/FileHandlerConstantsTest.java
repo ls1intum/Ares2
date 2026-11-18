@@ -247,6 +247,29 @@ public class FileHandlerConstantsTest {
 				"java.io.FileWriter.<init>(Ljava/lang/String;Ljava/nio/charset/Charset;Z)");
 	}
 
+	/**
+	 * The questions a {@code java.io.File} answers about its file without opening
+	 * it, in the ArchUnit form.
+	 */
+	private static final String[] ARCHUNIT_FILE_INSPECTIONS = { "java.io.File.exists()", "java.io.File.isFile()",
+			"java.io.File.isDirectory()", "java.io.File.isHidden()", "java.io.File.length()",
+			"java.io.File.lastModified()", "java.io.File.canRead()", "java.io.File.canWrite()",
+			"java.io.File.canExecute()", "java.io.File.getFreeSpace()", "java.io.File.getTotalSpace()",
+			"java.io.File.getUsableSpace()" };
+
+	/**
+	 * Both static lists name the questions a {@code java.io.File} answers about its
+	 * file, so a policy without file rules refuses them before the test runs. The
+	 * WALA form of these methods without arguments is the same as the ArchUnit one.
+	 *
+	 * @throws IOException if a list cannot be read
+	 */
+	@Test
+	void testFilesystemMethodsContainFileInspections() throws IOException {
+		assertListsEveryEntry(FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS, ARCHUNIT_FILE_INSPECTIONS);
+		assertListsEveryEntry(FileHandlerConstants.WALA_FILESYSTEM_METHODS, ARCHUNIT_FILE_INSPECTIONS);
+	}
+
 	@Test
 	void testArchunitThreadMethodsContainExecutorsFactories() throws IOException {
 		String content = Files.readString(FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS);

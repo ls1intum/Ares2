@@ -90,6 +90,7 @@ Some file accesses are part of what ordinary Java code does and carry no risk, s
 | Uses the system timezone, for example `ZoneId.systemDefault()` or `ZonedDateTime.now()` | The JDK reads the timezone without Java's file classes, so no check sees it. |
 | Loads the JDK's trusted certificates, as an encrypted connection does | The certificate file lies inside the Java installation, which is readable anyway. The connection itself still needs a network entry. |
 | Formats numbers, dates or text for a locale, or uses a charset | Their data lies inside the Java installation too. |
+| Asks for the content type of a file with `Files.probeContentType` | The JDK reads its own table of file types, such as `~/.mime.types`, itself. The file asked about still needs `readAllFiles`. |
 | Creates a temporary file without naming a directory: `File.createTempFile(prefix, suffix)` or `Files.createTempFile(prefix, suffix)` | The file always lands in the default temp directory, which Ares fixes when the tests start. |
 
 A temporary file in a directory the code names still needs an entry for that directory, even for a folder inside the temp directory, and so does `Files.createTempDirectory`.
@@ -99,6 +100,29 @@ Ares takes the temp directory from the values the Java Virtual Machine (JVM) sta
 Ares's own files, such as its messages, need no entry either. Ares reads them itself, not on behalf of the student code, so no rule about their names is needed. A file that merely has the same name as one of Ares's files gets the same check as any other.
 
 [The contributor documentation](/contributor/subsystems/aop/baseline-verification) describes how both enforcement backends verify each of these.
+
+### Asking about a file
+
+Some calls do not open a file but ask about it: whether it exists, whether it is a folder, how large it is, when it last changed or who owns it. Ares checks these questions too. A question is allowed on a path at or below any entry of this list, whichever of the five operations that entry permits. An entry that sets all five to `false` permits no question, and an empty list permits none at all. With an empty list the static analysis refuses the `File` calls below before the tests run.
+
+| Class | Calls that ask about a file |
+| --- | --- |
+| `java.nio.file.Files` | `exists`, `notExists`, `isDirectory`, `isRegularFile`, `isSymbolicLink`, `isReadable`, `isWritable`, `isExecutable`, `isHidden`, `isSameFile`, `size`, `getLastModifiedTime`, `getOwner`, `getPosixFilePermissions`, `readAttributes`, `getAttribute`, `getFileAttributeView`, `getFileStore`, `readSymbolicLink` |
+| `java.nio.file.spi.FileSystemProvider` | `checkAccess`, `exists`, `readAttributes`, `readAttributesIfExists`, `getFileAttributeView`, `getFileStore`, `isHidden`, `isSameFile`, `readSymbolicLink` |
+| `java.io.File` | `exists`, `isFile`, `isDirectory`, `isHidden`, `length`, `lastModified`, `canRead`, `canWrite`, `canExecute`, `getFreeSpace`, `getTotalSpace`, `getUsableSpace` |
+| `javax.swing.filechooser.FileSystemView` | `isRoot`, `isTraversable`, `getSystemDisplayName`, `getSystemTypeDescription`, `getSystemIcon`, `isFileSystem`, `isHiddenFile`, `isFileSystemRoot`, `isDrive`, `isFloppyDrive`, `isComputerNode`, `getParentDirectory`, `isLink`, `getLinkLocation` |
+
+`Files.probeContentType` reads the start of the file, so it needs `readAllFiles`.
+
+Ares follows links before it compares the path, as it does for reading. Ares refuses a link inside a permitted folder that points outside it, even when the call asks not to follow links, and a link whose target is missing. A link outside that points into a permitted folder is allowed.
+
+With instrumentation, Ares checks the questions the JDK asks while it carries out a call of the student code as well. `Files.walk` and `Files.find` then leave out an entry whose question Ares refuses, instead of failing. Two questions of the JDK stay allowed: `Files.createDirectories` asking about the folders above a permitted path, and the JVM looking for a class file or an archive while it loads a class.
+
+What this check does not cover:
+
+- With AspectJ, Ares checks only the calls in the student code. Information the JDK collects itself and hands back, such as the attributes `Files.walkFileTree` passes to its visitor or the folder contents of `FileSystemView.getFiles`, does not go through this check.
+- An attribute view from `getFileAttributeView` goes through the check when the code obtains it. Reading attributes from that view later does not, in either backend.
+- `File.getCanonicalPath`, `File.getCanonicalFile`, `Path.toRealPath` and `Path.toUri` do not go through this check.
 
 ## Notes
 

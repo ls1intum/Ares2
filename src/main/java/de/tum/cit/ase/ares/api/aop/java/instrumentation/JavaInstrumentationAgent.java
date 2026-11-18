@@ -399,6 +399,8 @@ public final class JavaInstrumentationAgent {
 						JavaInstrumentationBindingDefinitions::createExecutePathMethodBinding),
 				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_DELETE_FILES,
 						JavaInstrumentationBindingDefinitions::createDeletePathMethodBinding),
+				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_INSPECT_FILES,
+						JavaInstrumentationBindingDefinitions::createInspectPathMethodBinding),
 				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_CREATE_THREADS,
 						JavaInstrumentationBindingDefinitions::createCreateThreadMethodBinding),
 				new Pointcut(JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_EXECUTE_COMMANDS,

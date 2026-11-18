@@ -17,6 +17,7 @@ import javax.swing.filechooser.FileSystemView;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.function.Executable;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
@@ -123,6 +124,18 @@ class FileSystemViewAccessTest extends SystemAccessTest {
 
 	// </editor-fold>
 
+	/**
+	 * Expects the call to be refused as an inspection of the given path.
+	 *
+	 * @param executable   the call
+	 * @param expectedPath the path the refusal must name
+	 */
+	private void assertRefusedAsInspection(Executable executable, Path expectedPath) {
+		SecurityException exception = assertThrowsAresSecurityException(executable);
+		assertGeneralErrorMessageWithPath(expectedPath, exception.getMessage(), "illegally inspect",
+				"illegal zu untersuchen", FileSystemViewAccess.class);
+	}
+
 	// <editor-fold desc="looksInsideTheDefaultDirectory">
 	/** Checks that getChild on a special folder outside the policy is refused. */
 	@PublicTest
@@ -132,12 +145,16 @@ class FileSystemViewAccessTest extends SystemAccessTest {
 				FileSystemViewAccess.class, FileSystemView.getFileSystemView().getDefaultDirectory().toPath());
 	}
 
-	/** Checks that getChild on a special folder outside the policy is refused. */
+	/**
+	 * Checks that looking inside a special folder outside the policy is refused.
+	 * Instrumentation refuses it already when the JDK asks about the default folder
+	 * while finding it, so the refusal names an inspection.
+	 */
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = WITHIN_PATH)
 	void test_looksInsideTheDefaultDirectoryMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionRead(() -> FileSystemViewAccess.childOfDefaultDirectory("x"),
-				FileSystemViewAccess.class, FileSystemView.getFileSystemView().getDefaultDirectory().toPath());
+		assertRefusedAsInspection(() -> FileSystemViewAccess.childOfDefaultDirectory("x"),
+				FileSystemView.getFileSystemView().getDefaultDirectory().toPath());
 	}
 
 	/** Checks that getChild on a special folder outside the policy is refused. */
@@ -148,12 +165,16 @@ class FileSystemViewAccessTest extends SystemAccessTest {
 				FileSystemViewAccess.class, FileSystemView.getFileSystemView().getDefaultDirectory().toPath());
 	}
 
-	/** Checks that getChild on a special folder outside the policy is refused. */
+	/**
+	 * Checks that looking inside a special folder outside the policy is refused.
+	 * Instrumentation refuses it already when the JDK asks about the default folder
+	 * while finding it, so the refusal names an inspection.
+	 */
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = WITHIN_PATH)
 	void test_looksInsideTheDefaultDirectoryMavenWalaInstrumentation() {
-		assertAresSecurityExceptionRead(() -> FileSystemViewAccess.childOfDefaultDirectory("x"),
-				FileSystemViewAccess.class, FileSystemView.getFileSystemView().getDefaultDirectory().toPath());
+		assertRefusedAsInspection(() -> FileSystemViewAccess.childOfDefaultDirectory("x"),
+				FileSystemView.getFileSystemView().getDefaultDirectory().toPath());
 	}
 
 	// </editor-fold>

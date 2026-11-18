@@ -336,7 +336,7 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	@Nonnull
 	static String localizeAction(@Nonnull String action) {
 		return switch (action) {
-		case "read", "overwrite", "create", "delete", "execute", "connect", "send", "receive", "manipulate" -> localize(
+		case "read", "overwrite", "create", "delete", "execute", "inspect", "connect", "send", "receive", "manipulate" -> localize(
 				"security.advice.action." + action);
 		default -> action;
 		};
@@ -443,15 +443,14 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
-	 * Tells whether the topmost call of a method of a JDK class was made directly
-	 * by another method of that same class, as opposed to by anyone else. Both
-	 * frames must belong to the class the JVM itself loaded, so a student class
-	 * with the same name cannot pass for it.
+	 * Tells whether the topmost call of a method of a JDK class came directly from
+	 * another method of that class. Both frames must belong to the class the JVM
+	 * itself loaded, so a student class of the same name cannot pass for it.
 	 *
-	 * @param className    the JDK class, such as sun.nio.ch.DatagramChannelImpl
+	 * @param className    the JDK class
 	 * @param calleeMethod the method whose topmost call is looked at
-	 * @param callerMethod the method of the same class that must have called it
-	 * @return {@code true} if the caller method called the callee method directly
+	 * @param callerMethod the method that must have called it
+	 * @return {@code true} if it did
 	 */
 	static boolean isJdkMethodCalledDirectlyBy(@Nonnull String className, @Nonnull String calleeMethod,
 			@Nonnull String callerMethod) {
@@ -460,6 +459,70 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			while (iterator.hasNext()) {
 				if (isJdkFrame(iterator.next(), className, calleeMethod)) {
 					return Boolean.valueOf(iterator.hasNext() && isJdkFrame(iterator.next(), className, callerMethod));
+				}
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
+	 * The package of the advice and toolbox classes.
+	 */
+	@Nonnull
+	private static final String ADVICE_PACKAGE = "de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.";
+
+	/**
+	 * Tells whether the checked JDK call was made by another Ares check, as when a
+	 * toolbox copy loaded beside the student code asks whether a path exists. That
+	 * copy has its own re-entry guard, so this one cannot see it. This check's own
+	 * frames come first and are skipped; a student frame found before another
+	 * advice frame ends the walk.
+	 *
+	 * @param restrictedPackage the package holding the student code
+	 * @return {@code true} if Ares asked, not the student code
+	 */
+	static boolean isAnotherAresCheckAsking(@Nullable String restrictedPackage) {
+		return STACK_WALKER.walk(frames -> {
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
+			boolean ownFramesPassed = false;
+			while (iterator.hasNext()) {
+				String className = iterator.next().getClassName();
+				boolean adviceFrame = className.startsWith(ADVICE_PACKAGE);
+				if (!ownFramesPassed) {
+					ownFramesPassed = !adviceFrame;
+				} else if (adviceFrame) {
+					return Boolean.TRUE;
+				} else if (isStudentFrame(className, restrictedPackage)) {
+					return Boolean.FALSE;
+				}
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
+	 * Tells whether one of the given JDK methods is running with no student code
+	 * between it and this check. Student code further down, which called the JDK
+	 * method, is expected; student code above it means a callback is acting.
+	 *
+	 * @param restrictedPackage the package holding the student code
+	 * @param jdkMethods        the methods, each as class name, a dot and the
+	 *                          method name
+	 * @return {@code true} if one of them is acting for itself
+	 */
+	static boolean isJdkMethodActingWithoutStudentCode(@Nullable String restrictedPackage,
+			@Nonnull Set<String> jdkMethods) {
+		return STACK_WALKER_WITH_CLASS_REFERENCE.walk(frames -> {
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+				StackWalker.StackFrame frame = iterator.next();
+				String className = frame.getClassName();
+				if (isStudentFrame(className, restrictedPackage)) {
+					return Boolean.FALSE;
+				}
+				if (jdkMethods.contains(className + "." + frame.getMethodName())
+						&& frame.getDeclaringClass().getClassLoader() == null) {
+					return Boolean.TRUE;
 				}
 			}
 			return Boolean.FALSE;
