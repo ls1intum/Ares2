@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -187,16 +188,17 @@ class FileSystemInspectTest extends SystemAccessTest {
 	}
 
 	/**
-	 * Sets up the JDK's file system view and image reading once, before any policy
-	 * is armed. Their first use starts the graphics system and its threads, which a
-	 * policy without thread creations rightly refuses. That start-up is not what
-	 * these tests check.
+	 * Sets up the JDK's file system view, image reading and file icon once, before
+	 * any policy is armed. Their first use starts graphics threads, which a policy
+	 * without thread creations rightly refuses. Afterwards the JDK keeps the icon
+	 * and its image disposer thread, so the tests start no graphics thread. That
+	 * start-up is not what these tests check.
 	 *
 	 * @throws IOException if the image cannot be read
 	 */
 	@BeforeAll
 	static void setUpTheGraphicsSystem() throws IOException {
-		FileSystemView.getFileSystemView();
+		FileSystemView.getFileSystemView().getSystemIcon(new File(InspectMain.READABLE_FILE));
 		ImageIO.read(Paths.get(InspectMain.BASE, "readable", "image.png").toFile());
 	}
 
@@ -224,9 +226,8 @@ class FileSystemInspectTest extends SystemAccessTest {
 	// <editor-fold desc="Helpers">
 
 	/**
-	 * Fails if Ares refuses the call for its file access. Any other exception is
-	 * the answer to the question, such as a file that is not a link, or concerns
-	 * something else, such as a thread the JDK starts to draw an icon.
+	 * Fails if Ares refuses the call. Any other exception, such as a file that is
+	 * not a link, is the answer to the question and not a refusal.
 	 *
 	 * @param name       what the call asks, for the failure message
 	 * @param executable the call
@@ -236,8 +237,7 @@ class FileSystemInspectTest extends SystemAccessTest {
 			executable.execute();
 		} catch (Throwable thrown) {
 			for (Throwable cause = thrown; cause != null; cause = cause.getCause()) {
-				if (cause instanceof SecurityException && cause.getMessage() != null
-						&& (cause.getMessage().contains(" File ") || cause.getMessage().contains(" Datei "))) {
+				if (cause instanceof SecurityException) {
 					Assertions.fail(name + " was refused although the policy permits it", thrown);
 				}
 			}
