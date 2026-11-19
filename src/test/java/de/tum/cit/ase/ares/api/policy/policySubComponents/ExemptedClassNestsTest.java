@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -19,6 +20,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -255,7 +257,9 @@ class ExemptedClassNestsTest {
 				Variant.SUPERCLASS_NAME_STARTS_WITH_DOT, Variant.INDEX_PAST_POOL_FOR_TEXT,
 				Variant.INDEX_PAST_POOL_FOR_TAG, Variant.INDEX_PAST_POOL_FOR_HANDLE, Variant.INDEX_PAST_POOL_FOR_CLASS,
 				Variant.HANDLE_BEFORE_ITS_TARGET, Variant.EMPTY_CONSTANT_POOL, Variant.HANDLE_KIND_ZERO,
-				Variant.HANDLE_KIND_TEN)) {
+				Variant.HANDLE_KIND_TEN, Variant.CONSTRUCTOR_HANDLE_TO_METHOD, Variant.FIELD_HANDLE_TO_METHOD,
+				Variant.SUPERCLASS_NAME_EMPTY, Variant.SUPERCLASS_IS_ARRAY, Variant.STRING_NAMES_A_CLASS,
+				Variant.HANDLE_TO_ZERO, Variant.FIELDREF_CLASS_ZERO, Variant.INTERFACE_ZERO)) {
 			assertEquals(List.of(), ExemptedClassNests.nestMembersOf("x.T", minimal(variant)), variant.name());
 		}
 	}
@@ -368,6 +372,45 @@ class ExemptedClassNestsTest {
 					() -> ExemptedClassNests.expandFromTestOutput(List.of("x.T$A"), testOutput), variant.name());
 			assertNotNull(refused.getCause(), variant.name());
 		}
+	}
+
+	/** A scan without a production output folder fails closed. */
+	@Test
+	void withoutAProductionOutputTheScanFailsClosed() {
+		assertThrows(SecurityException.class, () -> ExemptedClassNests
+				.requireNoProductionClassNamedLikeAnExemptedOne(null, "example.nest", List.of(HOST)));
+	}
+
+	/**
+	 * The one class Java allows without a superclass, {@code java.lang.Object},
+	 * passes by its exact name, and the foreign member its file lists is dropped.
+	 */
+	@Test
+	void theClassWithoutASuperclassPassesByItsExactName(@TempDir Path testOutput) throws Exception {
+		write(testOutput, "java.lang.Object", minimal(Variant.OBJECT_WITHOUT_SUPERCLASS));
+		assertEquals(List.of("java.lang.Object"),
+				ExemptedClassNests.expandFromTestOutput(List.of("java.lang.Object"), testOutput));
+	}
+
+	/**
+	 * A test class name that leads outside the output folder is refused, although
+	 * the file there is accepted when the folder is the root, so only its place is
+	 * at fault. Needs a POSIX path without a dot.
+	 */
+	@Test
+	void aTestClassNameLeavingTheOutputFolderIsRefused(@TempDir Path root) throws Exception {
+		Path base = root.toRealPath();
+		Path out = base.resolve("out");
+		Path outside = base.resolve("outside");
+		Files.createDirectories(out);
+		Files.createDirectories(outside);
+		Assumptions.assumeTrue(File.separatorChar == '/' && outside.toString().indexOf('.') < 0,
+				"Needs a POSIX path without a dot: " + outside);
+		String internal = outside + "/T";
+		String name = internal.replace('/', '.');
+		Files.write(Path.of(internal + ".class"), minimal(Variant.VALID, internal));
+		assertThrows(SecurityException.class, () -> ExemptedClassNests.expandFromTestOutput(List.of(name), out));
+		assertEquals(List.of(name), ExemptedClassNests.expandFromTestOutput(List.of(name), Path.of("/")));
 	}
 
 	/** Reads a compiled fixture's bytes. */
@@ -486,7 +529,39 @@ class ExemptedClassNestsTest {
 		/** A class {@code x.T$A} with two NestHost attributes naming {@code x.T}. */
 		TWO_NEST_HOSTS,
 		/** A class {@code x.T$A} with a NestHost attribute of length 4. */
-		NEST_HOST_WRONG_LENGTH
+		NEST_HOST_WRONG_LENGTH,
+		/**
+		 * A constructor handle (kind 8) to a method that is not named {@code <init>}.
+		 */
+		CONSTRUCTOR_HANDLE_TO_METHOD,
+		/** A field handle (kind 1) to a method reference instead of a field one. */
+		FIELD_HANDLE_TO_METHOD,
+		/** A superclass whose class constant names the empty text. */
+		SUPERCLASS_NAME_EMPTY,
+		/** A superclass whose class constant names an array type. */
+		SUPERCLASS_IS_ARRAY,
+		/** A string constant referring to a class constant instead of a text. */
+		STRING_NAMES_A_CLASS,
+		/**
+		 * A method handle whose target index is 0. Refused by the same rule as any
+		 * non-member target, so it only takes the zero branch.
+		 */
+		HANDLE_TO_ZERO,
+		/**
+		 * A field reference whose class index is 0. Refused by the same rule as any
+		 * non-class index, so it only takes the zero branch.
+		 */
+		FIELDREF_CLASS_ZERO,
+		/**
+		 * A declared interface with index 0. Refused by the same rule as any non-class
+		 * index, so it only takes the zero branch.
+		 */
+		INTERFACE_ZERO,
+		/**
+		 * A class {@code java.lang.Object} with superclass index 0, the one case Java
+		 * allows. The file still lists {@code x.T$A}, so it is not valid as a whole.
+		 */
+		OBJECT_WITHOUT_SUPERCLASS
 	}
 
 	/**
@@ -524,6 +599,14 @@ class ExemptedClassNestsTest {
 	 * interface, extra constants and attributes the variant asks for.
 	 */
 	private static byte[] minimal(Variant variant) throws IOException {
+		return minimal(variant, "x/T");
+	}
+
+	/**
+	 * Builds what {@link #minimal(Variant)} builds, with the given internal name as
+	 * the name of the host class instead of {@code x/T}.
+	 */
+	private static byte[] minimal(Variant variant, String hostInternalName) throws IOException {
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		DataOutputStream out = new DataOutputStream(bytes);
 		out.writeInt(0xCAFEBABE);
@@ -533,7 +616,7 @@ class ExemptedClassNestsTest {
 		int extraSlots = writeExtraConstants(new DataOutputStream(extraBytes), variant);
 		out.writeShort(variant == Variant.EMPTY_CONSTANT_POOL ? 0 : 9 + extraSlots);
 		out.writeByte(1);
-		out.writeUTF("x/T");
+		out.writeUTF(hostInternalName);
 		out.writeByte(7);
 		out.writeShort(1);
 		out.writeByte(1);
@@ -552,9 +635,10 @@ class ExemptedClassNestsTest {
 		out.writeShort(0x21);
 		out.writeShort(thisClassOf(variant));
 		out.writeShort(superclassOf(variant));
-		out.writeShort(variant == Variant.WITH_INTERFACE ? 1 : 0);
-		if (variant == Variant.WITH_INTERFACE) {
-			out.writeShort(10);
+		boolean declaresInterface = variant == Variant.WITH_INTERFACE || variant == Variant.INTERFACE_ZERO;
+		out.writeShort(declaresInterface ? 1 : 0);
+		if (declaresInterface) {
+			out.writeShort(variant == Variant.WITH_INTERFACE ? 10 : 0);
 		}
 		out.writeShort(0);
 		out.writeShort(0);
@@ -600,11 +684,15 @@ class ExemptedClassNestsTest {
 
 	/**
 	 * Returns the constant-pool index a variant names as its own class: 4, the
-	 * class constant for {@code x.T$A}, for the three NestHost variants, and 2, the
-	 * class constant for {@code x.T}, otherwise.
+	 * class constant for {@code x.T$A}, for the three NestHost variants, 7, the one
+	 * for {@code java.lang.Object}, for {@link Variant#OBJECT_WITHOUT_SUPERCLASS},
+	 * and 2, the one for the host, otherwise.
 	 */
 	private static int thisClassOf(Variant variant) {
-		return isNestHostVariant(variant) ? 4 : 2;
+		if (isNestHostVariant(variant)) {
+			return 4;
+		}
+		return variant == Variant.OBJECT_WITHOUT_SUPERCLASS ? 7 : 2;
 	}
 
 	/** Tells whether a variant is a nested class with NestHost attributes. */
@@ -628,13 +716,15 @@ class ExemptedClassNestsTest {
 
 	/**
 	 * Returns the constant-pool index a variant names as the superclass, normally
-	 * 7, the class constant for {@code java.lang.Object}.
+	 * 7, the class constant for {@code java.lang.Object}, and 0, meaning none, for
+	 * {@link Variant#OBJECT_WITHOUT_SUPERCLASS}.
 	 */
 	private static int superclassOf(Variant variant) {
 		return switch (variant) {
 		case SUPERCLASS_IS_TEXT -> 1;
 		case INDEX_PAST_POOL_FOR_CLASS -> 9;
-		case SUPERCLASS_NAME_STARTS_WITH_DOT -> 10;
+		case SUPERCLASS_NAME_STARTS_WITH_DOT, SUPERCLASS_NAME_EMPTY, SUPERCLASS_IS_ARRAY -> 10;
+		case OBJECT_WITHOUT_SUPERCLASS -> 0;
 		default -> 7;
 		};
 	}
@@ -660,9 +750,9 @@ class ExemptedClassNestsTest {
 			out.writeByte(99);
 			yield 1;
 		}
-		case DANGLING_REFERENCE -> {
+		case DANGLING_REFERENCE, STRING_NAMES_A_CLASS -> {
 			out.writeByte(8);
-			out.writeShort(0);
+			out.writeShort(variant == Variant.DANGLING_REFERENCE ? 0 : 2);
 			yield 1;
 		}
 		case INDEX_PAST_POOL_FOR_TEXT -> {
@@ -706,6 +796,12 @@ class ExemptedClassNestsTest {
 		case INDEX_PAST_POOL_FOR_HANDLE -> writeHandleConstant(out, 1, 10);
 		case HANDLE_BEFORE_ITS_TARGET -> writeHandleConstant(out, 1, 10) + writeReferences(out, 9, 2, 11);
 		case SUPERCLASS_NAME_STARTS_WITH_DOT -> writeNamedClass(out, 9, ".Object");
+		case SUPERCLASS_NAME_EMPTY -> writeNamedClass(out, 9, "");
+		case SUPERCLASS_IS_ARRAY -> writeNamedClass(out, 9, "[Ljava/lang/Object;");
+		case CONSTRUCTOR_HANDLE_TO_METHOD -> writeHandle(out, 10, "run", "()V", 8);
+		case FIELD_HANDLE_TO_METHOD -> writeHandle(out, 10, "run", "()V", 1);
+		case HANDLE_TO_ZERO -> writeHandleConstant(out, 1, 0);
+		case FIELDREF_CLASS_ZERO -> writeMember(out, 9, 0, "f", "I");
 		case FOREIGN_MEMBER -> writeNamedClass(out, 9, "y/Other");
 		case PADDED -> writeText(out, "Padding");
 		default -> 0;

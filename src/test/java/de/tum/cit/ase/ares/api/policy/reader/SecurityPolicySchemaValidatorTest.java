@@ -187,6 +187,14 @@ class SecurityPolicySchemaValidatorTest {
 		assertRejected(NODES.textNode("a bare scalar"), "$ must be a non-null object");
 	}
 
+	/**
+	 * Checks that a missing root is refused, not left to fail with a null pointer.
+	 */
+	@Test
+	void rejectsAMissingRoot() {
+		assertRejected(null, "$ must be a non-null object");
+	}
+
 	/** Checks that an unknown field in the test behaviour object is refused. */
 	@Test
 	void rejectsAnUnknownFieldInTheTestBehavior() {

@@ -99,6 +99,8 @@ class CommandPermissionTest {
 		return Stream.of(Arguments.of(NullNode.getInstance(), "policy.permission.command.blank"),
 				Arguments.of(mapper.readTree("{executeTheCommand: git, somethingElse: []}"),
 						"policy.permission.command.mapping.fields"),
+				Arguments.of(mapper.readTree("{somethingElse: git, withTheseArguments: []}"),
+						"policy.permission.command.mapping.fields"),
 				Arguments.of(mapper.readTree("{executeTheCommand: 5, withTheseArguments: []}"),
 						"policy.permission.command.blank"),
 				Arguments.of(mapper.readTree("{executeTheCommand: git, withTheseArguments: status}"),
