@@ -126,7 +126,7 @@ class SecurityViolationFeedbackTest {
 	void minimizedIsLocalisedInGerman() {
 		Locale.setDefault(Locale.GERMAN);
 		assertThat(SecurityViolationFeedback.render(fileRead(), SecurityViolationFeedbackLevel.MINIMIZED))
-				.startsWith("Ares Sicherheitsfehler (Grund: Student-Code; Phase: Execution)");
+				.startsWith("Ares Sicherheitsfehler (Grund: Student-Code; Phase: Ausf\u00fchrung)");
 	}
 
 	/** DEBUG adds the exact file entry that would allow the read. */

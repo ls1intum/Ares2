@@ -32,9 +32,6 @@ public final class SecurityViolationFeedback {
 	private static final List<String> FILE_FLAGS = List.of("readAllFiles", "overwriteAllFiles", "createAllFiles",
 			"executeAllFiles", "deleteAllFiles");
 
-	/** The stage every blocked action reports. */
-	private static final String STAGE = "Execution";
-
 	/** Not instantiable. */
 	private SecurityViolationFeedback() {
 	}
@@ -71,7 +68,7 @@ public final class SecurityViolationFeedback {
 	public static String render(Violation violation, SecurityViolationFeedbackLevel level) {
 		return switch (level) {
 		case FULL -> violation.message();
-		case MINIMIZED -> localized("reporting.security.violation.minimized", STAGE);
+		case MINIMIZED -> localized("reporting.security.violation.minimized");
 		case DEBUG -> isAllowable(violation)
 				? violation.message() + System.lineSeparator()
 						+ localized("reporting.security.violation.hint", categoryOf(violation), entryOf(violation))
