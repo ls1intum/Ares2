@@ -6,7 +6,6 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.OutputMirroringPolicyUser"
     - "de.tum.cit.ase.ares.integration.OutputMirroringPolicyTest"
-    - "de.tum.cit.ase.ares.testutilities"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: []
     regardingNetworkConnections: []

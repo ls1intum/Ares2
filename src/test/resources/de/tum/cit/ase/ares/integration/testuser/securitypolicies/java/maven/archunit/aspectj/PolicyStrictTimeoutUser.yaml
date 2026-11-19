@@ -6,7 +6,6 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.StrictTimeoutPolicyUser"
     - "de.tum.cit.ase.ares.integration.StrictTimeoutPolicyTest"
-    - "de.tum.cit.ase.ares.testutilities"
   # No thread creation is allowed, so the timeout's own worker relies on the
   # exemption of Ares's timeout machinery, and a student thread stays blocked.
   theFollowingResourceAccessesArePermitted:
