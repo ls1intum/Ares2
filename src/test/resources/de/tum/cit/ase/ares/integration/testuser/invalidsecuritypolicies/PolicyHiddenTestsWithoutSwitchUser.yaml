@@ -6,7 +6,6 @@ regardingTheSupervisedCode:
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.HiddenTestsPolicyUser"
     - "de.tum.cit.ase.ares.integration.HiddenTestsPolicyTest"
-    - "de.tum.cit.ase.ares.testutilities"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: []
     regardingNetworkConnections: []
