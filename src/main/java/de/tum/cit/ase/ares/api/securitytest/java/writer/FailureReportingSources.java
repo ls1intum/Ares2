@@ -180,7 +180,7 @@ final class FailureReportingSources {
 										"an entry that allows this access"));
 					} else {
 						rendered = new SecurityException(
-								@MESSAGES@.localized("reporting.security.violation.minimized", "Execution"));
+								@MESSAGES@.localized("reporting.security.violation.minimized"));
 						rendered.setStackTrace(new StackTraceElement[0]);
 					}
 					return rendered;
@@ -1159,13 +1159,13 @@ final class FailureReportingSources {
 					String target = field(violation, "target");
 					SecurityException rendered;
 					if ("DEBUG".equals(@SETTINGS@.@LEVEL@)) {
-						String report = @MESSAGES@.localized("reporting.security.violation.debug", "Execution", action, target);
+						String report = @MESSAGES@.localized("reporting.security.violation.debug", action, target);
 						rendered = new SecurityException("uninspectable".equals(kind) ? report
 								: report + System.lineSeparator() + @MESSAGES@.localized("reporting.security.violation.hint",
 										categoryOf(kind), entryOf(kind, action, target)));
 					} else {
 						rendered = new SecurityException(
-								@MESSAGES@.localized("reporting.security.violation.minimized", "Execution"));
+								@MESSAGES@.localized("reporting.security.violation.minimized"));
 						rendered.setStackTrace(new StackTraceElement[0]);
 					}
 					return rendered;
