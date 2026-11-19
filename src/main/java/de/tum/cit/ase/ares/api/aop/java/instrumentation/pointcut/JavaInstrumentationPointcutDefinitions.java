@@ -535,9 +535,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.util.Properties", List.of("load", "loadFromXML")),
 			// java.util.prefs.Preferences reads from a backing store on disk without a path
 			// argument, like Properties.load. The accessor methods are the only route to
-			// the
-			// store, so they count as reads; the architecture layer (reach) is the real
-			// gate.
+			// the store, so they count as reads. The file system advice allows them only
+			// where the read allow-list contains "*".
 			Map.entry("java.util.prefs.Preferences",
 					List.of("get", "getInt", "getLong", "getBoolean", "getFloat", "getDouble", "getByteArray", "keys",
 							"childrenNames", "nodeExists", "exportNode", "exportSubtree", "userRoot", "systemRoot")));
@@ -568,8 +567,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.util.jar.JarOutputStream", List.of("<init>", "putNextEntry", "closeEntry")),
 			Map.entry("java.util.Properties", List.of("store", "storeToXML")),
 			// java.util.prefs.Preferences writes to a backing store on disk without a path
-			// argument, like Properties.store. The architecture layer (reach) is the real
-			// gate; it is registered here so the AOP layer classifies it as a write too.
+			// argument, like Properties.store. The file system advice allows it only
+			// where the overwrite allow-list contains "*".
 			Map.entry("java.util.prefs.Preferences",
 					List.of("put", "putInt", "putLong", "putBoolean", "putFloat", "putDouble", "putByteArray", "remove",
 							"clear", "flush", "sync", "importPreferences")),

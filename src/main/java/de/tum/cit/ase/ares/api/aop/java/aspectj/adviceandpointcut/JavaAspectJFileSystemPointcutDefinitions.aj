@@ -60,8 +60,8 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.util.Properties+.storeToXML(..)) ||
                     // java.util.prefs.Preferences writes to a backing store on disk through
                     // no student-opened stream, so it carries no path argument, exactly like
-                    // Properties.store above. The architecture layer (reach) is its real gate;
-                    // it is registered here so the AOP layer classifies it as a write too.
+                    // Properties.store above. The file system advice allows it only where the
+                    // overwrite allow-list contains "*".
                     call(* java.util.prefs.Preferences+.put(..)) ||
                     call(* java.util.prefs.Preferences+.putInt(..)) ||
                     call(* java.util.prefs.Preferences+.putLong(..)) ||
@@ -211,7 +211,8 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     // java.util.prefs.Preferences reads from a backing store on disk without a
                     // path argument, like Properties.load above. The accessor methods
                     // (userRoot, systemRoot, ...) are the only way to reach the store, so they
-                    // are classified as reads. The architecture layer (reach) is the real gate.
+                    // are classified as reads. The file system advice allows them only where
+                    // the read allow-list contains "*".
                     call(* java.util.prefs.Preferences+.get(..)) ||
                     call(* java.util.prefs.Preferences+.getInt(..)) ||
                     call(* java.util.prefs.Preferences+.getLong(..)) ||
