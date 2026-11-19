@@ -245,7 +245,7 @@ class GeneratedFailureReportingTest {
 		assertThat(failureOf(runJupiter("FailingFixture", true, Locale.ENGLISH), "timesOut"))
 				.isEqualTo("The test timed out.");
 		assertThat(failureOf(runJupiter("FailingFixture", true, Locale.GERMAN), "timesOut"))
-				.isEqualTo("Der Test hat das Zeitlimit u\u0308berschritten.");
+				.isEqualTo("Der Test hat das Zeitlimit \u00fcberschritten.");
 	}
 
 	/** A student-thrown timeout shows the fixed text, never its own message. */

@@ -90,7 +90,7 @@ class FailureReportingWriterTest extends GeneratedHookWriterProject {
 		}
 		assertThat(ResourceBundle.getBundle("de.tum.cit.ase.ares.api.localization.messages", Locale.GERMAN)
 				.getString(FailureReportingSources.TIMEOUT_KEY))
-						.isEqualTo("Der Test hat das Zeitlimit u\u0308berschritten.");
+						.isEqualTo("Der Test hat das Zeitlimit \u00fcberschritten.");
 	}
 
 	/**
