@@ -395,7 +395,9 @@ class ExemptedClassNestsTest {
 	/**
 	 * A test class name that leads outside the output folder is refused, although
 	 * the file there is accepted when the folder is the root, so only its place is
-	 * at fault. Needs a POSIX path without a dot.
+	 * at fault. Needs a POSIX path without a dot. The control relies on the reader
+	 * not refusing a name that starts with a dot, so tightening its name rules
+	 * would leave the folder check without a test.
 	 */
 	@Test
 	void aTestClassNameLeavingTheOutputFolderIsRefused(@TempDir Path root) throws Exception {
@@ -559,7 +561,8 @@ class ExemptedClassNestsTest {
 		INTERFACE_ZERO,
 		/**
 		 * A class {@code java.lang.Object} with superclass index 0, the one case Java
-		 * allows. The file still lists {@code x.T$A}, so it is not valid as a whole.
+		 * allows. The file still lists the foreign {@code x.T$A}, which the reader
+		 * drops.
 		 */
 		OBJECT_WITHOUT_SUPERCLASS
 	}
@@ -594,17 +597,19 @@ class ExemptedClassNestsTest {
 
 	/**
 	 * Builds a minimal class file for {@code x.T} whose nest lists {@code x.T$A},
-	 * or, for the three NestHost variants, one for {@code x.T$A} that names
-	 * {@code x.T} as its host and lists no members, with the version, superclass,
-	 * interface, extra constants and attributes the variant asks for.
+	 * with the version, superclass, interface, extra constants and attributes the
+	 * variant asks for. The three NestHost variants build {@code x.T$A} naming
+	 * {@code x.T} as host, and {@code OBJECT_WITHOUT_SUPERCLASS} builds
+	 * {@code java.lang.Object}.
 	 */
 	private static byte[] minimal(Variant variant) throws IOException {
 		return minimal(variant, "x/T");
 	}
 
 	/**
-	 * Builds what {@link #minimal(Variant)} builds, with the given internal name as
-	 * the name of the host class instead of {@code x/T}.
+	 * Builds what {@link #minimal(Variant)} builds, with the given internal name in
+	 * constant 1, the one {@code x/T} fills, which is the host's name except for
+	 * {@code OBJECT_WITHOUT_SUPERCLASS}, whose own class is constant 7.
 	 */
 	private static byte[] minimal(Variant variant, String hostInternalName) throws IOException {
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
