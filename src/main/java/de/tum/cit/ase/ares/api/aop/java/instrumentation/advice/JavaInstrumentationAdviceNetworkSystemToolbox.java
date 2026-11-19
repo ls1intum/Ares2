@@ -884,10 +884,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 				: null;
 		if (targetFromParameters != null
 				&& checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
-			throw AresSecurityViolation.create("network", action, targetFromParameters.toDisplayString(), localize("security.advice.illegal.network.execution",
-					networkSystemMethodToCheck, localizeAction(action), targetFromParameters.toDisplayString(),
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+			throw AresSecurityViolation.create("network", action, targetFromParameters.toDisplayString(),
+					localize("security.advice.illegal.network.execution", networkSystemMethodToCheck,
+							localizeAction(action), targetFromParameters.toDisplayString(),
+							fullMethodSignature + describeCaller(studentCalledMethod) + " | "
+									+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		// Mask out indices already consumed by parametersToTarget so the per-parameter
 		// scan does not re-resolve the same host (or local-bind host) as a port=-1
@@ -910,20 +911,22 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 								NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT
 										.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughParameter != null) {
-			throw AresSecurityViolation.create("network", action, networkIllegallyInteractedThroughParameter, localize("security.advice.illegal.network.execution",
-					networkSystemMethodToCheck, localizeAction(action), networkIllegallyInteractedThroughParameter,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+			throw AresSecurityViolation.create("network", action, networkIllegallyInteractedThroughParameter,
+					localize("security.advice.illegal.network.execution", networkSystemMethodToCheck,
+							localizeAction(action), networkIllegallyInteractedThroughParameter,
+							fullMethodSignature + describeCaller(studentCalledMethod) + " | "
+									+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check receiver instance">
 		@Nullable
 		NetworkTarget targetFromReceiver = variableToTarget(instance);
 		if (targetFromReceiver != null && checkIfNetworkIsForbidden(targetFromReceiver, allowedHosts, allowedPorts)) {
-			throw AresSecurityViolation.create("network", action, targetFromReceiver.toDisplayString(), localize("security.advice.illegal.network.execution",
-					networkSystemMethodToCheck, localizeAction(action), targetFromReceiver.toDisplayString(),
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+			throw AresSecurityViolation.create("network", action, targetFromReceiver.toDisplayString(),
+					localize("security.advice.illegal.network.execution", networkSystemMethodToCheck,
+							localizeAction(action), targetFromReceiver.toDisplayString(),
+							fullMethodSignature + describeCaller(studentCalledMethod) + " | "
+									+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -936,10 +939,11 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 						NETWORK_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (networkIllegallyInteractedThroughAttribute != null) {
-			throw AresSecurityViolation.create("network", action, networkIllegallyInteractedThroughAttribute, localize("security.advice.illegal.network.execution",
-					networkSystemMethodToCheck, localizeAction(action), networkIllegallyInteractedThroughAttribute,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+			throw AresSecurityViolation.create("network", action, networkIllegallyInteractedThroughAttribute,
+					localize("security.advice.illegal.network.execution", networkSystemMethodToCheck,
+							localizeAction(action), networkIllegallyInteractedThroughAttribute,
+							fullMethodSignature + describeCaller(studentCalledMethod) + " | "
+									+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 	}
