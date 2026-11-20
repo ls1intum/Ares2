@@ -211,6 +211,35 @@ This package manages **internationalisation** for error messages and test output
 
 `Messages` provides factory methods that return localised `AssertionFailedError` instances, ensuring that all error messages shown to students are presented in the configured language.
 
+### Error message template
+
+The error messages in the two catalogues follow one standard template, each in its own language:
+
+```text
+Ares Security Error (Reason: <Ares-Code | Student-Code>; Stage: <Creation | Execution>): <text>
+Ares Sicherheitsfehler (Grund: <Ares-Code | Student-Code>; Phase: <Erstellung | Ausführung>): <Text>
+```
+
+| Part | Value | Meaning |
+|---|---|---|
+| Reason | `Student-Code` | Ares blames the student's code: it did something the policy forbids, or it contains something Ares refuses, such as a class that takes the name of a test class |
+| Reason | `Ares-Code` | The student is not at fault: Ares itself, the policy or the exercise setup is wrong |
+| Stage | `Creation` (`Erstellung`) | Ares was preparing the checks: reading the policy, scanning the project or creating the security test cases |
+| Stage | `Execution` (`Ausführung`) | A security test case or a test method was running |
+
+Reason and stage are labels a person chose for each message. `MessagesCatalogueTest` checks that each label is one of the allowed values and that both languages agree, but no test checks whether a label is right for the code that throws it. A few messages carry a stage that does not match the code that throws them. `security.policy.read.failed`, for example, says `Execution`, although Ares throws it while reading the policy.
+
+Ares throws these messages as `java.lang.SecurityException`. A few checks on the setup throw `IllegalArgumentException` or `IllegalStateException` with the same prefix. Every `Student-Code` message is a `SecurityException`. Not every error follows the template: some messages sit straight in the Java code without the prefix, and a key missing from the catalogue shows up as `!key!`. If the advice cannot reach `Messages` at all, it shows the bare key.
+
+A new error message follows four rules:
+
+1. Write it under the same key in `messages.properties` and in `messages_de.properties`, with the same reason and stage in both.
+2. Keep the German catalogue plain ASCII and write every other character as a `\uXXXX` escape, so `Ausführung` becomes `Ausf\u00fchrung`.
+3. Build the text with `Messages.localized(key, args)`. The advice, the code Ares adds around forbidden calls, cannot import `Messages`, so it calls its own `localize(key, args)` helper, which reads the same catalogue.
+4. Throw it as a `SecurityException`.
+
+`MessagesCatalogueTest` checks the prefix in two passes. The first takes every English value that starts with `Ares Security Error`: that value and its German partner each need the full prefix, and both have to name the same reason and stage. The second takes every German value that starts with `Ares` and contains `Sicherheitsfehler`, and checks its prefix alone. So the test misses a German prefix whose English partner has none, a message without any prefix, and text written straight into the Java code. Those cases still need a reviewer.
+
 **Key design patterns:** Singleton (ResourceBundle cache), Utility.
 
 ---
