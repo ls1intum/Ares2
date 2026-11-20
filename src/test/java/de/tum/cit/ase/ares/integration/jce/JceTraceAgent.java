@@ -15,7 +15,10 @@ import java.util.jar.Manifest;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.Advice;
 
-/** Records real backend entries in fixtures without changing JDK bytecode. */
+/**
+ * Records real backend entries and library-load decisions in fixtures without
+ * changing JDK bytecode.
+ */
 public final class JceTraceAgent {
 
 	/** Prevents creating instances of this test agent. */
@@ -23,7 +26,8 @@ public final class JceTraceAgent {
 	}
 
 	/**
-	 * Instruments only the Ares filesystem entry methods for trusted diagnostics.
+	 * Instruments only the Ares filesystem entry methods and the library-load
+	 * decision for trusted diagnostics.
 	 */
 	public static void premain(String arguments, Instrumentation instrumentation) {
 		new AgentBuilder.Default().disableClassFormatChanges().ignore(none())
@@ -31,7 +35,8 @@ public final class JceTraceAgent {
 				.type(nameEndsWith("JavaAspectJFileSystemAdviceDefinitions")
 						.or(nameEndsWith("JavaInstrumentationAdviceFileSystemToolbox")))
 				.transform((builder, type, loader, module, domain) -> builder
-						.visit(Advice.to(TraceAdvice.class).on(named("checkFileSystemInteraction"))))
+						.visit(Advice.to(TraceAdvice.class).on(named("checkFileSystemInteraction")))
+						.visit(Advice.to(LibraryTraceAdvice.class).on(named("checkLibraryLoad0"))))
 				.installOn(instrumentation);
 	}
 
@@ -43,7 +48,7 @@ public final class JceTraceAgent {
 		manifest.getMainAttributes().putValue("Premain-Class", JceTraceAgent.class.getName());
 		manifest.getMainAttributes().putValue("Can-Retransform-Classes", "true");
 		try (var jar = new JarOutputStream(Files.newOutputStream(destination), manifest)) {
-			for (Class<?> type : new Class<?>[] { JceTraceAgent.class, TraceAdvice.class }) {
+			for (Class<?> type : new Class<?>[] { JceTraceAgent.class, TraceAdvice.class, LibraryTraceAdvice.class }) {
 				String resource = type.getName().replace('.', '/') + ".class";
 				jar.putNextEntry(new JarEntry(resource));
 				try (var input = type.getClassLoader().getResourceAsStream(resource)) {
@@ -79,6 +84,26 @@ public final class JceTraceAgent {
 			if (origin != null) {
 				System.out.println("JCE_BACKEND_ENTRY " + backend + " " + origin);
 			}
+		}
+	}
+
+	/** Inlines a report of each library-load decision into the backend. */
+	public static final class LibraryTraceAdvice {
+
+		/** Prevents creating instances of the advice container. */
+		private LibraryTraceAdvice() {
+		}
+
+		/**
+		 * Prints the library name, the class the JDK loads it for, and whether the
+		 * decision returned or threw.
+		 */
+		@Advice.OnMethodExit(onThrowable = Throwable.class)
+		public static void record(@Advice.Argument(4) Class<?> fromClass, @Advice.Argument(5) String libraryName,
+				@Advice.Thrown Throwable thrown) {
+			System.out.println(
+					"NATIVE_LIBRARY_DECISION " + libraryName + " " + (fromClass == null ? "null" : fromClass.getName())
+							+ " " + (thrown == null ? "ALLOWED" : "DENIED"));
 		}
 	}
 }

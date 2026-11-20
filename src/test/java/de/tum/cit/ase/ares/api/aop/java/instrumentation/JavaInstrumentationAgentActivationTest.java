@@ -35,13 +35,15 @@ import org.junit.jupiter.api.Test;
 
 import net.bytebuddy.dynamic.loading.ClassInjector.UsingUnsafe.Factory;
 
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationLibraryLoadWeaveRecord;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 
 /**
  * Checks the deferred activation of the agent: the transformers are installed
  * once, on demand, never twice, and a failure keeps every later test from
  * running unguarded. Each test swaps in a stand-in for the JVM's
- * instrumentation and restores the agent's state afterwards.
+ * instrumentation and restores the agent's state and the JVM's weave record
+ * afterwards.
  */
 class JavaInstrumentationAgentActivationTest {
 
@@ -53,12 +55,24 @@ class JavaInstrumentationAgentActivationTest {
 			"activationFailure");
 
 	/**
+	 * Names of the fields of the weave record held by the JVM's own loader. Each
+	 * installation attempt, the stand-in's too, seals that real record, and a
+	 * sealed record ignores every later installation, so they are restored too.
+	 */
+	private static final List<String> WEAVE_RECORD_FIELDS = List.of("open", "marked", "sealed");
+
+	/**
 	 * Values of {@link #STATE_FIELDS} before the test.
 	 */
 	private final List<Object> savedState = new ArrayList<>();
 
 	/**
-	 * Saves the agent's activation state.
+	 * Values of {@link #WEAVE_RECORD_FIELDS} before the test.
+	 */
+	private final List<Object> savedWeaveRecord = new ArrayList<>();
+
+	/**
+	 * Saves the agent's activation state and the JVM's weave record.
 	 *
 	 * @throws ReflectiveOperationException If a field cannot be read.
 	 */
@@ -67,11 +81,15 @@ class JavaInstrumentationAgentActivationTest {
 		for (String name : STATE_FIELDS) {
 			savedState.add(field(name).get(null));
 		}
+		Object weaveRecord = bootWeaveRecord();
+		for (String name : WEAVE_RECORD_FIELDS) {
+			savedWeaveRecord.add(weaveRecordField(name).get(weaveRecord));
+		}
 	}
 
 	/**
-	 * Restores the agent's activation state and drops the failures the stand-in
-	 * provoked, so no later test inherits them.
+	 * Restores the agent's activation state and the JVM's weave record and drops
+	 * the failures the stand-in provoked, so no later test inherits them.
 	 *
 	 * @throws ReflectiveOperationException If a field cannot be written.
 	 */
@@ -79,6 +97,10 @@ class JavaInstrumentationAgentActivationTest {
 	void restoreAgentState() throws ReflectiveOperationException {
 		for (int i = 0; i < STATE_FIELDS.size(); i++) {
 			field(STATE_FIELDS.get(i)).set(null, savedState.get(i));
+		}
+		Object weaveRecord = bootWeaveRecord();
+		for (int i = 0; i < WEAVE_RECORD_FIELDS.size(); i++) {
+			weaveRecordField(WEAVE_RECORD_FIELDS.get(i)).set(weaveRecord, savedWeaveRecord.get(i));
 		}
 		((AtomicReference<?>) field("PERMANENT_FAILURE").get(null)).set(null);
 		((AtomicReference<?>) field("TRANSFORMATION_FAILURE").get(null)).set(null);
@@ -309,6 +331,32 @@ class JavaInstrumentationAgentActivationTest {
 	 */
 	private static Field field(String name) throws NoSuchFieldException {
 		Field field = JavaInstrumentationAgent.class.getDeclaredField(name);
+		field.setAccessible(true);
+		return field;
+	}
+
+	/**
+	 * Returns the weave record held by the JVM's own loader, the one activation
+	 * opens and seals.
+	 *
+	 * @return The record.
+	 * @throws ReflectiveOperationException If the record cannot be reached.
+	 */
+	private static Object bootWeaveRecord() throws ReflectiveOperationException {
+		return weaveRecordField("INSTALLATION").get(null);
+	}
+
+	/**
+	 * Opens one field of the copy of the weave record class held by the JVM's own
+	 * loader.
+	 *
+	 * @param name The field name.
+	 * @return The accessible field.
+	 * @throws ReflectiveOperationException If that copy or field cannot be found.
+	 */
+	private static Field weaveRecordField(String name) throws ReflectiveOperationException {
+		Field field = Class.forName(JavaInstrumentationLibraryLoadWeaveRecord.class.getName(), true, null)
+				.getDeclaredField(name);
 		field.setAccessible(true);
 		return field;
 	}

@@ -1,0 +1,27 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.allowed.NativeLibraryJdkLoadTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.NativeLibraryLoadDeniedTest"
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
+  theFollowingResourceAccessesArePermitted:
+    # One create path unrelated to native libraries: any file permission makes
+    # the runtime check, not the static rule, decide every library load.
+    regardingFileSystemInteractions:
+      - readAllFiles: false
+        overwriteAllFiles: false
+        createAllFiles: true
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
+    regardingNetworkConnections: [ ]
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations: [ ]
+    # The student code reads the user id through this JDK package.
+    regardingPackageImports:
+      - importTheFollowingPackage: "com.sun.security.auth.module"
+    regardingTimeouts:
+      - timeout: 3000

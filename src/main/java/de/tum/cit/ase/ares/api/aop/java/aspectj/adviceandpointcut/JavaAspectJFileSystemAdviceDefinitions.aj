@@ -118,7 +118,103 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			Map.entry("java.io.DataOutputStream.writeBytes", IgnoreValues.ALL),
 			// PrintStream(OutputStream|File|String, [boolean], [String charset]) - keep
 			// only index 0 (the sink); a charset name like "UTF-8" is not a path.
-			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)));
+			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)),
+			// FileSystemView.getChild(File dir, String name) and isParent(File dir, File
+			// file) list dir; only dir is checked, the name is not a path and the file is
+			// not listed.
+			Map.entry("javax.swing.filechooser.FileSystemView.getChild", IgnoreValues.allExcept(0)),
+			Map.entry("javax.swing.filechooser.FileSystemView.isParent", IgnoreValues.allExcept(0)));
+
+	/**
+	 * The JDK class whose subclasses share its argument rules. A call on a
+	 * subclass of it, a student's own included, that has no rule of its own is
+	 * read with the rule of the method it inherits, so a child name is never taken
+	 * for a path.
+	 */
+	@Nonnull
+	private static final String FILE_SYSTEM_VIEW = "javax.swing.filechooser.FileSystemView";
+
+	/**
+	 * Returns which arguments of a call are checked as paths. The exact rule wins;
+	 * a receiver whose class extends FileSystemView falls back to that class's
+	 * rule, found by comparing class names, so no desktop class is loaded.
+	 *
+	 * @param methodKey  the called method as declaring type and name
+	 * @param methodName the called method's name
+	 * @param instance   the receiver, or {@code null} for a static call
+	 * @return the rule for the call's arguments
+	 */
+	@Nonnull
+	private static IgnoreValues parameterIgnoreValues(@Nonnull String methodKey, @Nonnull String methodName,
+			@Nullable Object instance) {
+		@Nullable
+		IgnoreValues exact = FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.get(methodKey);
+		if (exact != null) {
+			return exact;
+		}
+		if (instance == null || !extendsFileSystemView(instance.getClass())) {
+			return IgnoreValues.NONE;
+		}
+		return FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(FILE_SYSTEM_VIEW + "." + methodName,
+				IgnoreValues.NONE);
+	}
+
+	/**
+	 * Tells whether a class is FileSystemView or extends it, by name, walking up
+	 * the superclasses.
+	 *
+	 * @param type the receiver's class
+	 * @return whether FileSystemView is among its classes
+	 */
+	private static boolean extendsFileSystemView(@Nonnull Class<?> type) {
+		for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+			if (FILE_SYSTEM_VIEW.equals(current.getName())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Stand-in shown in the denial message for a {@code java.util.prefs.Preferences}
+	 * operation, which has no path to report because the OS fixes the store's
+	 * location.
+	 */
+	@Nonnull
+	private static final String PREFERENCES_BACKING_STORE = "<java.util.prefs backing store>";
+
+	/**
+	 * Returns whether the intercepted call targets the Java Preferences API. Its
+	 * backing store sits where the operating system puts it, so the student passes
+	 * no path and the key and value arguments must not be checked as paths. No
+	 * policy can scope that store to a directory, so only an allow-list of all
+	 * paths ("*") permits it.
+	 *
+	 * @param declaringTypeName the fully qualified type the called method belongs to
+	 * @return true for any {@code java.util.prefs} type
+	 */
+	private static boolean isPreferencesBackingStore(@Nullable String declaringTypeName) {
+		return declaringTypeName != null && declaringTypeName.startsWith("java.util.prefs.");
+	}
+
+	/**
+	 * Returns whether the allow-list authorises every path, the only rule under
+	 * which the unscopable Preferences backing store may be touched.
+	 *
+	 * @param allowedPaths the configured allow-list for the action, may be null
+	 * @return true if the list contains the {@code "*"} wildcard
+	 */
+	private static boolean allowsAllPaths(@Nullable String[] allowedPaths) {
+		if (allowedPaths == null) {
+			return false;
+		}
+		for (String allowedPath : allowedPaths) {
+			if ("*".equals(allowedPath)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	/**
 	 * Native-library file suffixes whose loads under {@code java.home} are JVM
@@ -1432,8 +1528,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 	/**
 	 * Tells whether an access is the JVM's own: a read under the Java installation
-	 * the JVM started with, or a load of a native library there, by path or by the
-	 * bare name {@code System.loadLibrary} uses. Other actions are never exempt.
+	 * the JVM started with, or a load of a native library there, by its
+	 * path. Other actions are never exempt.
 	 *
 	 * @param action the file-system action under inspection
 	 * @param path   the already-resolved path under inspection
@@ -1445,16 +1541,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			return false;
 		}
 		requireStartUpProperties();
-		// System.loadLibrary(name)/Runtime.loadLibrary(name) resolve a JDK native library by name
-		// on java.library.path, but the intercepted path is the bare name resolved against the
-		// working directory (e.g. "<cwd>/awt" when java.awt.Toolkit initialises). Recognise such
-		// JDK libraries by mapping the name and checking java.home/lib, so the JVM loading its own
-		// native libraries is never mistaken for student file access. This cannot be abused:
-		// loadLibrary never searches the working directory, and System.load(path) keeps the file
-		// extension so its basename does not map to a JDK library.
-		if ("execute".equals(action) && isJdkNativeLibraryLoad(path)) {
-			return true;
-		}
 		if (!isPathWithin(path, TRUSTED_JAVA_HOME)) {
 			return false;
 		}
@@ -1469,34 +1555,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * Returns {@code true} when {@code path} is the bare-name form of a JDK native
-	 * library load (a {@code System.loadLibrary}/{@code Runtime.loadLibrary} whose
-	 * argument maps to a library present under {@code java.home/lib}). The
-	 * intercepted path is the library name resolved against the working directory,
-	 * so it is not recognised by the {@code java.home} prefix check.
-	 *
-	 * @param path the already-resolved path string under inspection
-	 * @return true if the load targets a JDK-internal native library
-	 */
-	private static boolean isJdkNativeLibraryLoad(@Nonnull String path) {
-		if (TRUSTED_JAVA_HOME == null) {
-			return false;
-		}
-		int separator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-		String name = separator >= 0 ? path.substring(separator + 1) : path;
-		// loadLibrary names are extensionless; a dotted basename is a System.load(path) file
-		// whose mapped name would not resolve to a JDK library anyway.
-		if (name.isEmpty() || name.indexOf('.') >= 0) {
-			return false;
-		}
-		try {
-			return Files.exists(Path.of(TRUSTED_JAVA_HOME, "lib", System.mapLibraryName(name)));
-		} catch (RuntimeException exception) {
-			return false;
-		}
 	}
 
 	/**
@@ -1672,6 +1730,24 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				studentCalledMethod, fullMethodSignature, thisJoinPoint)) {
 			return;
 		}
+		if (isPreferencesBackingStore(declaringTypeName)) {
+			@Nullable
+			final String[] allowedPreferencePaths = getValueFromSettings(switch (action) {
+			case "read" -> "pathsAllowedToBeRead";
+			case "overwrite" -> "pathsAllowedToBeOverwritten";
+			case "create" -> "pathsAllowedToBeCreated";
+			case "execute" -> "pathsAllowedToBeExecuted";
+			case "delete" -> "pathsAllowedToBeDeleted";
+			default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+			});
+			if (!allowsAllPaths(allowedPreferencePaths)) {
+				throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
+						localizeAction(action), PREFERENCES_BACKING_STORE,
+						describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod) + " | "
+								+ buildDenialReason(allowedPreferencePaths == null || allowedPreferencePaths.length == 0)));
+			}
+			return;
+		}
 		if (isEntryReadOnOpenArchive(action, declaringTypeName, thisJoinPoint)) {
 			return;
 		}
@@ -1700,8 +1776,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			@Nullable
 			String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
 					: checkIfVariableCriteriaIsViolated(parameters, allowedPaths,
-							FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(
-									extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE),
+							parameterIgnoreValues(extractMethodNameWithoutModifiers(fullMethodSignature), methodName,
+									instance),
 							allowNonExistingPaths);
 			if (illegallyInteractedThroughParameter != null) {
 				boolean isClassLoaderAccess = illegallyInteractedThroughParameter.endsWith(".class")

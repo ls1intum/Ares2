@@ -134,6 +134,9 @@ public class JavaCreatorTest {
 	@DisplayName("CreateTestCases Tests")
 	class CreateTestCasesTests {
 
+		/** A compiled fixture without nested classes, standing in for a test class. */
+		private static final String TEST_CLASS = "example.nest.NestHostFixture$Evil";
+
 		private String packageName;
 		private String mainClassName;
 		private String classpath;
@@ -142,13 +145,19 @@ public class JavaCreatorTest {
 		private List<PhobosTestCase> phobosTestCases;
 
 		@BeforeEach
-		void arrangeCommonScenario() {
+		void arrangeCommonScenario() throws IOException {
 			packageName = "com.example";
 			mainClassName = "Main";
 			classpath = "/test/classpath";
 			architectureTestCases = new ArrayList<>();
 			aopTestCases = new ArrayList<>();
 			phobosTestCases = new ArrayList<>();
+			Path compiled = tempDir.resolve("test-classes/example/nest/NestHostFixture$Evil.class");
+			Files.createDirectories(compiled.getParent());
+			try (InputStream input = JavaCreatorTest.class.getClassLoader()
+					.getResourceAsStream("example/nest/NestHostFixture$Evil.class")) {
+				Files.write(compiled, Objects.requireNonNull(input, "the fixture is compiled").readAllBytes());
+			}
 		}
 
 		private void stubClasspathAndArchitecture() {
@@ -163,7 +172,7 @@ public class JavaCreatorTest {
 			// Arrange
 			List<String> essentialPackages = List.of("java.lang", "java.util");
 			List<String> essentialClasses = List.of("String", "Object");
-			List<String> testClasses = List.of("TestClass1", "TestClass2");
+			List<String> testClasses = List.of(TEST_CLASS);
 			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports())
 					.thenReturn(List.of(new PackagePermission("allowed.example")));
@@ -188,7 +197,7 @@ public class JavaCreatorTest {
 			// Arrange
 			List<String> essentialPackages = List.of();
 			List<String> essentialClasses = List.of("TestClass");
-			List<String> testClasses = List.of("TestClass");
+			List<String> testClasses = List.of(TEST_CLASS);
 			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
@@ -220,7 +229,7 @@ public class JavaCreatorTest {
 			// Arrange
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of("String");
-			List<String> testClasses = List.of("TestClass");
+			List<String> testClasses = List.of(TEST_CLASS);
 			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
@@ -247,7 +256,7 @@ public class JavaCreatorTest {
 			// Arrange
 			List<String> essentialPackages = List.of("java.lang");
 			List<String> essentialClasses = List.of("String");
-			List<String> testClasses = List.of("TestClass");
+			List<String> testClasses = List.of(TEST_CLASS);
 			stubClasspathAndArchitecture();
 			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 
@@ -492,6 +501,21 @@ public class JavaCreatorTest {
 			assertThrows(SecurityException.class,
 					() -> javaCreator.requireNoProductionClassNamedLikeAnExemptedOne(buildMode));
 		}
+
+		/**
+		 * A declared test class the test output does not hold is refused while the test
+		 * cases are created, so its bare name never becomes an exemption a student
+		 * class could take over.
+		 */
+		@Test
+		@DisplayName("Refuses a declared test class that was never compiled")
+		void refusesADeclaredTestClassThatWasNeverCompiled() {
+			SecurityException refused = assertThrows(SecurityException.class,
+					() -> javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of(), List.of(),
+							List.of(HOST, "example.nest.GhostTest"), PACKAGE, "Main", new ArrayList<>(),
+							new ArrayList<>(), new ArrayList<>(), resourceAccesses, tempDir, true));
+			assertTrue(refused.getMessage().contains("example.nest.GhostTest"), refused.getMessage());
+		}
 	}
 
 	/**
@@ -635,6 +659,95 @@ public class JavaCreatorTest {
 			Files.createDirectories(tempDir.resolve("classes"));
 			createTestCasesFor(tempDir.resolve("classes/example/nest"));
 			assertDoesNotThrow(() -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+	}
+
+	/**
+	 * Checks that an AspectJ run is refused when a supervised class was built
+	 * without the Ares aspects, while instrumentation, which needs no weaving, is
+	 * not.
+	 */
+	@Nested
+	@DisplayName("Weaving tests")
+	class WeavingTests {
+
+		/** The package supervised in these tests. */
+		private static final String PACKAGE = "example.nest";
+
+		/** The folder the supervised classes are compiled into. */
+		private Path scope;
+
+		/** Compiles a class with plain javac, so it carries no Ares aspect. */
+		private void compileUnwovenClass() throws IOException {
+			Path source = Files.createDirectories(tempDir.resolve("src/example/nest")).resolve("Plain.java");
+			Files.writeString(source, "package example.nest; public class Plain { }");
+			Path classes = Files.createDirectories(tempDir.resolve("classes"));
+			assertEquals(0, javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d",
+					classes.toString(), source.toString()));
+		}
+
+		/** Copies the fixture this build wove with the Ares aspects into the scope. */
+		private void copyWovenFixture() throws IOException {
+			Files.createDirectories(scope);
+			try (InputStream input = JavaCreatorTest.class.getClassLoader()
+					.getResourceAsStream("example/nest/NestHostFixture.class")) {
+				Files.copy(Objects.requireNonNull(input, "the fixture is compiled"),
+						scope.resolve("NestHostFixture.class"));
+			}
+		}
+
+		/** Creates the test cases over the scope, with no test classes exempted. */
+		private void createTestCases() {
+			String classPath = scope.toString();
+			when(buildMode.getClasspath(tempDir, PACKAGE)).thenReturn(classPath);
+			when(architectureMode.getJavaClasses(classPath)).thenReturn(new ClassFileImporter().importPath(scope));
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+			javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of(), List.of(), List.of(), PACKAGE,
+					"Main", new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), resourceAccesses, tempDir, true);
+		}
+
+		/** Resolves the scope below the temporary project. */
+		@BeforeEach
+		void resolveScope() {
+			scope = tempDir.resolve("classes/example/nest");
+		}
+
+		/** An AspectJ run over a class built without the aspects is refused. */
+		@Test
+		@DisplayName("Refuses an unwoven class under AspectJ")
+		void refusesAnUnwovenClassUnderAspectJ() throws IOException {
+			compileUnwovenClass();
+			createTestCases();
+			SecurityException refusal = assertThrows(SecurityException.class,
+					() -> javaCreator.requireWovenSupervisedClasses(AOPMode.ASPECTJ));
+			assertTrue(refusal.getMessage().contains("example.nest.Plain"), refusal.getMessage());
+		}
+
+		/**
+		 * The same class is not refused under instrumentation, which needs no weaving.
+		 */
+		@Test
+		@DisplayName("Accepts an unwoven class under instrumentation")
+		void acceptsAnUnwovenClassUnderInstrumentation() throws IOException {
+			compileUnwovenClass();
+			createTestCases();
+			assertDoesNotThrow(() -> javaCreator.requireWovenSupervisedClasses(AOPMode.INSTRUMENTATION));
+		}
+
+		/** A class this build wove with the Ares aspects passes under AspectJ. */
+		@Test
+		@DisplayName("Accepts a woven class under AspectJ")
+		void acceptsAWovenClassUnderAspectJ() throws IOException {
+			copyWovenFixture();
+			createTestCases();
+			assertDoesNotThrow(() -> javaCreator.requireWovenSupervisedClasses(AOPMode.ASPECTJ));
+		}
+
+		/** A creator that has read no classes yet has nothing to refuse. */
+		@Test
+		@DisplayName("Accepts a creator that has read no classes")
+		void acceptsACreatorThatHasReadNoClasses() {
+			assertDoesNotThrow(() -> javaCreator.requireWovenSupervisedClasses(AOPMode.ASPECTJ));
 		}
 	}
 }

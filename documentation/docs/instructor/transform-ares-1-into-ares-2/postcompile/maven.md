@@ -353,7 +353,7 @@ What it restricts:
 - **Package imports: restricted, not eliminated.** Without a policy, Ares permits every `java.*` package, the essential packages it ships, and each package of the supervised code as that package alone. A recognised test class opens no package.
 - **No default execution timeout yet.** A 3,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.2.1 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
 
-It fixes the modes: always ArchUnit for static analysis and AspectJ for the runtime layer, with the build tool discovered from the project. So the AspectJ weaving of the step named in section 4 of this guide is what enforces at runtime here, and a project that is not woven falls back to the static checks alone.
+It fixes the modes: always ArchUnit for static analysis and AspectJ for the runtime layer, with the build tool discovered from the project. So the AspectJ weaving of the step named in section 4 of this guide is what enforces at runtime here, and without the weaving Ares refuses the project. Every test then fails with a message naming a class that lacks the Ares aspects.
 
 That discovery step has to succeed before any of this applies. Without a policy there is no explicitly selected build tool, so a project containing both a `pom.xml` and a `build.gradle` is rejected as ambiguous, and one containing neither is rejected as unsupported. Both fail the build outright rather than falling back to the restrictive configuration.
 
@@ -361,7 +361,7 @@ That discovery step has to succeed before any of this applies. Without a policy 
 
 The second reason for caution is that without a policy, Ares derives from the project what a policy would have pinned:
 
-- **The supervised package** is chosen as the most frequent non-reserved package among the production sources, so a submission with an unexpected file distribution can shift the enforcement scope.
+- **The supervised package** is the build file's own group where it contains every declared package. Otherwise it is the topmost package the production sources declare, or the compiled classes where the sources cannot be read. Where the project declares no package and the build file no usable group, a configured default applies. Between unrelated packages the one whose package tree holds the most files wins. A submission with an unexpected file distribution can therefore still shift the enforcement scope. Ares then refuses the run if a class in `target/classes` lies outside the derived scope, so a decoy package cannot move the scope away from an assignment class in that folder. A decoy in a parent package can still widen it. That check reads only that folder, and an empty folder passes with a warning. A wide scope can fail correct tests too, because Ares compares class names with it as a plain prefix.
 - **The exempt test classes** are found by scanning the discovered test source roots for annotated test classes. If students can add files beneath a test source root, they can obtain that exemption. Note that a nested test class is covered only when its enclosing class is recognised too: the scanner reports nested types in source notation (`Outer.Inner`), whereas the exemption check matches binary notation (`Outer$Inner`), so an independently detected nested class is not exempt on its own.
 
 For a graded exercise, prefer a policy with six empty lists over no policy at all. It is equally strict and pins the scope, the exempt set and the mode.
@@ -376,7 +376,7 @@ A migration is verified when enforcement can be shown to fail for the right reas
 Two details decide whether this proves anything:
 
 1. **The forbidden operation must happen in supervised code, not in the test.** A class named in `theFollowingClassesAreTestClasses` is exempt, so an operation performed by the test itself is *supposed* to succeed. Put it in the student-facing class and let the test assert the exception.
-2. **The domain must permit exactly one thing, not nothing.** Ares adds a static deny-all rule only while a domain has **no** allowance. Under a fully restrictive file policy, the static analysis rejects the operation before the runtime layer is consulted, so the negative control passes even with the agent detached and the weaving switched off, and it proves nothing. One allowance makes the runtime layer authoritative for that domain.
+2. **The domain must permit exactly one thing, not nothing.** Ares adds a static deny-all rule only while a domain has **no** allowance. Under a fully restrictive file policy, the static analysis rejects the operation before the runtime layer is consulted, so the negative control passes even when the agent or the woven aspects check nothing, and it proves nothing. One allowance makes the runtime layer authoritative for that domain.
 
 A correct run is therefore **green** and contains an asserted rejection. Then break the setup deliberately and confirm each break is detected:
 
