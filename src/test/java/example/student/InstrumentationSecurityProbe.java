@@ -27,6 +27,30 @@ public final class InstrumentationSecurityProbe {
 		return (String) method.invoke(null);
 	}
 
+	/**
+	 * Enters the library-load check of {@code Runtime.loadLibrary0} from a
+	 * supervised frame, as the woven JDK method would.
+	 *
+	 * @param fromClass   the class the JDK names as the caller
+	 * @param libraryName the library name
+	 */
+	public static void checkLibraryLoad0(Class<?> fromClass, String libraryName) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkLibraryLoad0("java.lang.Runtime", "loadLibrary0",
+				"(java.lang.Class,java.lang.String)", "(Ljava/lang/Class;Ljava/lang/String;)V", fromClass, libraryName);
+	}
+
+	/**
+	 * Enters the execute check of a public {@code loadLibrary} method from a
+	 * supervised frame, as the woven JDK method would.
+	 *
+	 * @param owner       {@code java.lang.System} or {@code java.lang.Runtime}
+	 * @param libraryName the library name
+	 */
+	public static void checkPublicLoadLibrary(String owner, String libraryName) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkExecuteInteraction(owner, "loadLibrary", "(java.lang.String)",
+				"(Ljava/lang/String;)V", new Object[0], new Object[] { libraryName }, null);
+	}
+
 	public static void checkFileUrlOpenStream(URL fileUrl) {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read", "java.net.URL", "openStream",
 				"()Ljava/io/InputStream;", null, new Object[0], fileUrl);

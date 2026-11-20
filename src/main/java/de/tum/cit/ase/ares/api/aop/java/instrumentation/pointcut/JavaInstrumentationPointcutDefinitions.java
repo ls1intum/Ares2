@@ -637,6 +637,27 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// operation rather than a file read.
 			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
 	// Note: ProcessBuilder is handled entirely by Command System
+
+	/**
+	 * The class holding the JDK method both public {@code loadLibrary} methods pass
+	 * every library load on to. Only the class is chosen through this map; the
+	 * method itself is chosen by {@link #getLoadLibrary0Matcher()}.
+	 */
+	public static final Map<String, List<String>> METHODS_WHICH_LOAD_LIBRARIES_FOR_A_CALLER = Map
+			.of("java.lang.Runtime", List.of("loadLibrary0"));
+
+	/**
+	 * Selects exactly {@code java.lang.Runtime.loadLibrary0(Class, String)}
+	 * returning {@code void}, by its declaring class, name, parameter types and
+	 * return type rather than by name alone.
+	 *
+	 * @return the matcher of that one method
+	 */
+	static ElementMatcher<MethodDescription> getLoadLibrary0Matcher() {
+		return ElementMatchers.<MethodDescription>isDeclaredBy(Runtime.class).and(ElementMatchers.named("loadLibrary0"))
+				.and(ElementMatchers.takesArguments(2)).and(ElementMatchers.takesArgument(0, Class.class))
+				.and(ElementMatchers.takesArgument(1, String.class)).and(ElementMatchers.returns(void.class));
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Delete Path">

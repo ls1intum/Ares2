@@ -1528,8 +1528,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 	/**
 	 * Tells whether an access is the JVM's own: a read under the Java installation
-	 * the JVM started with, or a load of a native library there, by path or by the
-	 * bare name {@code System.loadLibrary} uses. Other actions are never exempt.
+	 * the JVM started with, or a load of a native library there, by its
+	 * path. Other actions are never exempt.
 	 *
 	 * @param action the file-system action under inspection
 	 * @param path   the already-resolved path under inspection
@@ -1541,16 +1541,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			return false;
 		}
 		requireStartUpProperties();
-		// System.loadLibrary(name)/Runtime.loadLibrary(name) resolve a JDK native library by name
-		// on java.library.path, but the intercepted path is the bare name resolved against the
-		// working directory (e.g. "<cwd>/awt" when java.awt.Toolkit initialises). Recognise such
-		// JDK libraries by mapping the name and checking java.home/lib, so the JVM loading its own
-		// native libraries is never mistaken for student file access. This cannot be abused:
-		// loadLibrary never searches the working directory, and System.load(path) keeps the file
-		// extension so its basename does not map to a JDK library.
-		if ("execute".equals(action) && isJdkNativeLibraryLoad(path)) {
-			return true;
-		}
 		if (!isPathWithin(path, TRUSTED_JAVA_HOME)) {
 			return false;
 		}
@@ -1565,34 +1555,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * Returns {@code true} when {@code path} is the bare-name form of a JDK native
-	 * library load (a {@code System.loadLibrary}/{@code Runtime.loadLibrary} whose
-	 * argument maps to a library present under {@code java.home/lib}). The
-	 * intercepted path is the library name resolved against the working directory,
-	 * so it is not recognised by the {@code java.home} prefix check.
-	 *
-	 * @param path the already-resolved path string under inspection
-	 * @return true if the load targets a JDK-internal native library
-	 */
-	private static boolean isJdkNativeLibraryLoad(@Nonnull String path) {
-		if (TRUSTED_JAVA_HOME == null) {
-			return false;
-		}
-		int separator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-		String name = separator >= 0 ? path.substring(separator + 1) : path;
-		// loadLibrary names are extensionless; a dotted basename is a System.load(path) file
-		// whose mapped name would not resolve to a JDK library anyway.
-		if (name.isEmpty() || name.indexOf('.') >= 0) {
-			return false;
-		}
-		try {
-			return Files.exists(Path.of(TRUSTED_JAVA_HOME, "lib", System.mapLibraryName(name)));
-		} catch (RuntimeException exception) {
-			return false;
-		}
 	}
 
 	/**
