@@ -644,6 +644,81 @@ class JavaProjectScannerAstTest {
 				scanner.scanForTestClasses());
 	}
 
+	/**
+	 * The outer annotation sorts first in the walk, so it is read before the inner
+	 * one that carries the test annotation. It is still trusted, because trust is
+	 * repeated until nothing changes.
+	 */
+	@Test
+	void trustsAnAnnotationComposedTwoLevelsDeep() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.createDirectories(tests.resolve("a"));
+		Files.createDirectories(tests.resolve("m"));
+		Files.createDirectories(tests.resolve("z"));
+		Files.writeString(tests.resolve("a/Outer.java"), "package checks;\n@Inner @interface Outer {}\n");
+		Files.writeString(tests.resolve("z/Inner.java"),
+				"package checks;\n@org.junit.jupiter.api.Test @interface Inner {}\n");
+		Files.writeString(tests.resolve("m/Cases.java"), "package checks;\nclass Cases { @Outer void real() {} }\n");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+
+		assertArrayEquals(new String[] { "checks.Cases" }, scanner.scanForTestClasses());
+	}
+
+	/**
+	 * The same chain without a test annotation at the end marks nothing, so the
+	 * repeated trust does not reach classes it should not.
+	 */
+	@Test
+	void doesNotTrustAnAnnotationComposedFromANonTestAnnotation() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.createDirectories(tests.resolve("a"));
+		Files.createDirectories(tests.resolve("m"));
+		Files.createDirectories(tests.resolve("z"));
+		Files.writeString(tests.resolve("a/Outer.java"), "package checks;\n@Inner @interface Outer {}\n");
+		Files.writeString(tests.resolve("z/Inner.java"),
+				"package checks;\n@java.lang.Deprecated @interface Inner {}\n");
+		Files.writeString(tests.resolve("m/Cases.java"),
+				"package checks;\nclass Cases { @Outer void notATest() {} }\n");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+
+		assertArrayEquals(new String[0], scanner.scanForTestClasses());
+	}
+
+	/**
+	 * A folder is not a source file whatever its name ends with. The scan must skip
+	 * it and still read the real class beside it.
+	 */
+	@Test
+	void ignoresAFolderNamedLikeASourceFile() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.createDirectories(production.resolve("Weird.java"));
+		Files.writeString(production.resolve("Real.java"), "package real;\nclass Real {}\n");
+
+		assertEquals("real", new JavaProjectScanner(configuration(production, tests)).scanForPackageName());
+	}
+
+	/**
+	 * With no class called Main, the one called Application is chosen even though
+	 * another class with a main method sorts before it by name.
+	 */
+	@Test
+	void prefersApplicationOverAnEarlierName() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Alpha.java"),
+				"package app;\nclass Alpha { public static void main(String[] arguments) {} }\n");
+		Files.writeString(production.resolve("Application.java"),
+				"package app;\nclass Application { public static void main(String[] arguments) {} }\n");
+
+		assertEquals("Application",
+				new JavaProjectScanner(configuration(production, tests)).scanForMainClassInPackage());
+	}
+
 	private BuildToolConfiguration configuration(Path production, Path tests) {
 		return new BuildToolConfiguration(BuildMode.MAVEN, root, List.of(production), List.of(tests),
 				root.resolve("target/classes"), root.resolve("target/test-classes"));

@@ -3,6 +3,8 @@ package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
@@ -151,6 +154,22 @@ public class JavaProjectScannerTest {
 				// Then
 				assertNotNull(result);
 				assertEquals("Main", result); // Default main class
+			}
+		}
+
+		/**
+		 * Without a build configuration the sources come from the folder the finder
+		 * reports, and the class with a main method in it is found.
+		 */
+		@Test
+		@DisplayName("Should scan the sources the finder reports")
+		void scansTheSourcesTheFinderReports(@TempDir Path sources) throws IOException {
+			Files.writeString(sources.resolve("Tool.java"),
+					"package tools;\nclass Tool { public static void main(String[] arguments) {} }\n");
+			try (MockedStatic<ProjectSourcesFinder> mockedFinder = mockStatic(ProjectSourcesFinder.class)) {
+				mockedFinder.when(ProjectSourcesFinder::findProjectSourcesPath).thenReturn(Optional.of(sources));
+
+				assertEquals("Tool", scanner.scanForMainClassInPackage());
 			}
 		}
 
