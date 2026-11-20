@@ -108,7 +108,7 @@ public final class JavaAOPTestCaseToolbox {
 					value != null ? value.getClass() : null));
 		}
 		String text = (String) value;
-		if (modifiedUtf8Length(text) <= MAXIMUM_CONSTANT_BYTES) {
+		if (modifiedUtf8Length(text) < MAXIMUM_CONSTANT_BYTES) {
 			return String.format(Locale.ROOT, "public static final String %s = \"%s\";%n", fieldName,
 					escapeJavaString(text));
 		}
@@ -116,7 +116,10 @@ public final class JavaAOPTestCaseToolbox {
 				String.join(", ", chunkLiterals(text)));
 	}
 
-	/** The most bytes one string constant of a class file may hold. */
+	/**
+	 * One more than the bytes a single generated literal may take: the class file
+	 * holds 65,535, but {@code javac} already refuses a literal of that length.
+	 */
 	private static final int MAXIMUM_CONSTANT_BYTES = 65_535;
 
 	/**

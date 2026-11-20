@@ -282,10 +282,13 @@ final class HiddenTestsSources {
 				 * @param result the factory's result
 				 * @param closer turns a produced stream into its guarded close callback
 				 * @param opened the streams opened so far
-				 * @return the tests, read into a list
+				 * @return the tests, read into a list; null for a null result, which JUnit refuses itself
 				 */
 				@SuppressWarnings("unchecked")
 				private static <T> T materialisedResult(T result, Function<Stream<?>, Runnable> closer, List<Stream<?>> opened) {
+					if (result == null) {
+						return null;
+					}
 					List<Object> nodes = new ArrayList<>();
 					if (result instanceof DynamicNode node) {
 						return (T) materialisedNode(node, closer, opened);
@@ -312,37 +315,24 @@ final class HiddenTestsSources {
 				}
 
 				/**
-				 * The iterator of a result that is none of the shapes above but has a public,
-				 * parameterless {@code iterator()} returning an {@code Iterator}, which JUnit also
-				 * accepts, so its tests are read under this hook's guard too; null when it has none.
+				 * The tests of a result that is none of the shapes above, read through the running
+				 * JUnit engine's own conversion, so this hook reads exactly the results that engine
+				 * accepts, such as one with only an {@code iterator()} method, under its guard;
+				 * null when the engine accepts none and reports it itself.
 				 *
 				 * @param result the factory's result
 				 * @return its iterator, or null
 				 */
 				private static Iterator<?> reflectiveIterator(Object result) {
-					Method method;
-					try {
-						method = result.getClass().getMethod("iterator");
-						method.setAccessible(true);
-					} catch (NoSuchMethodException | RuntimeException unusable) {
+					if (!org.junit.platform.commons.util.CollectionUtils.isConvertibleToStream(result.getClass())) {
 						return null;
 					}
-					if (!Iterator.class.isAssignableFrom(method.getReturnType())) {
-						return null;
-					}
-					try {
-						return (Iterator<?>) method.invoke(result);
-					} catch (java.lang.reflect.InvocationTargetException thrown) {
-						rethrow(thrown.getCause());
-						return null;
-					} catch (IllegalAccessException inaccessible) {
-						return null;
-					}
+					return org.junit.platform.commons.util.CollectionUtils.toStream(result).iterator();
 				}
 
 				/**
 				 * Closes the streams a failed read opened, newest first, still under this
-				 * hook's guard; a failure while closing is kept as suppressed.
+				 * hook's guard; a different failure while closing is kept as suppressed.
 				 *
 				 * @param opened the streams opened so far
 				 * @param failure the failure that stopped the read
@@ -352,7 +342,9 @@ final class HiddenTestsSources {
 						try {
 							opened.get(index).close();
 						} catch (RuntimeException | Error closing) {
-							failure.addSuppressed(closing);
+							if (closing != failure) {
+								failure.addSuppressed(closing);
+							}
 						}
 					}
 				}

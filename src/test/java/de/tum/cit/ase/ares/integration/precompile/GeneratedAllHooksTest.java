@@ -124,7 +124,7 @@ class GeneratedAllHooksTest {
 						    regardingTheVisibilityAndScheduleOfTheTestCases:
 						      theDeadlineIs: "2000-01-01 00:00 UTC"
 						      testsNotListedHereAreHidden: false
-						      theFollowingTestsAreHidden: ["com.example.fixtures.HiddenFixture", "com.example.fixtures.HiddenTimeoutFixture", "com.example.fixtures.HiddenLoudFixture", "com.example.fixtures.HiddenFactoryFixture", "com.example.fixtures.HiddenIteratorFactoryFixture", "com.example.fixtures.HiddenUnflushedFixture", "com.example.fixtures.HiddenAbortFixture"]
+						      theFollowingTestsAreHidden: ["com.example.fixtures.HiddenFixture", "com.example.fixtures.HiddenTimeoutFixture", "com.example.fixtures.HiddenLoudFixture", "com.example.fixtures.HiddenFactoryFixture", "com.example.fixtures.HiddenIteratorFactoryFixture", "com.example.fixtures.HiddenPackageIteratorFactoryFixture", "com.example.fixtures.HiddenNullFactoryFixture", "com.example.fixtures.HiddenUnflushedFixture", "com.example.fixtures.HiddenAbortFixture"]
 						""");
 		Files.writeString(project.resolve("pom.xml"), "<project/>");
 		Files.createDirectories(project.resolve("src/main/java"));
@@ -237,6 +237,19 @@ class GeneratedAllHooksTest {
 		fixture(fixtures, "SuppressedViolationFixture",
 				"@Test void reads() { IllegalStateException outer = new IllegalStateException(\"outer\");"
 						+ " outer.addSuppressed(" + VIOLATION_PACKAGE + ".ViolationSource.blocked()); throw outer; }");
+		fixture(fixtures, "UnreadableBesideViolationFixture",
+				"@Test void reads() { RuntimeException unreadable = new RuntimeException(\"u\") {"
+						+ " @Override public synchronized Throwable getCause() { return super.getCause(); } };"
+						+ " RuntimeException blocked = " + VIOLATION_PACKAGE + ".ViolationSource.blocked();"
+						+ " IllegalStateException outer = new IllegalStateException(\"outer \" + blocked.getMessage(), unreadable);"
+						+ " outer.addSuppressed(blocked); throw outer; }");
+		fixture(fixtures, "HiddenPackageIteratorFactoryFixture",
+				"public static final class Cases { java.util.Iterator<DynamicTest> iterator() {"
+						+ " return java.util.stream.Stream.of(1).map(number -> { System.out.print(\"SECRET_PACKAGE_ITERATOR\");"
+						+ " return DynamicTest.dynamicTest(\"case\", () -> { }); }).iterator(); } }"
+						+ " @TestFactory Cases cases() { return new Cases(); }");
+		fixture(fixtures, "HiddenNullFactoryFixture",
+				"@TestFactory java.util.List<DynamicTest> cases() { return null; }");
 		Path violationSources = Files
 				.createDirectories(tempDir.resolve("violation-sources").resolve(VIOLATION_PACKAGE.replace('.', '/')));
 		Files.writeString(violationSources.resolve("ViolationSource.java"), """
@@ -464,6 +477,44 @@ class GeneratedAllHooksTest {
 		assertThat(captured.results().testEvents().succeeded().stream()
 				.map(event -> event.getTestDescriptor().getDisplayName())).containsExactly("case");
 		assertThat(captured.output()).doesNotContain("SECRET_ITERATOR");
+	}
+
+	/**
+	 * A hidden factory whose result has only a package-private {@code iterator()},
+	 * which the JUnit engine also accepts, prints nothing either, with the hooks
+	 * registered both ways round and with the hidden-test hook alone.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenPackageIteratorFactoryPrintsNothing(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenPackageIteratorFactoryFixture", reversed));
+		assertThat(captured.results().containerEvents().failed().count()).isZero();
+		assertThat(captured.results().testEvents().succeeded().stream()
+				.map(event -> event.getTestDescriptor().getDisplayName())).containsExactly("case");
+		assertThat(captured.output()).doesNotContain("SECRET_PACKAGE_ITERATOR");
+		Captured alone = captured(
+				() -> runWithOnly("com.example.fixtures.HiddenPackageIteratorFactoryFixture", "GeneratedHiddenTests"));
+		assertThat(alone.results().testEvents().succeeded().count()).isEqualTo(1);
+		assertThat(alone.output()).doesNotContain("SECRET_PACKAGE_ITERATOR");
+	}
+
+	/**
+	 * A hidden factory returning null still gets JUnit's own refusal, which the
+	 * hooks hide like any hidden failure, instead of failing inside a hook.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenNullFactoryFailsWithoutBreakingAHook(boolean reversed) throws Exception {
+		EngineExecutionResults results = run("com.example.fixtures.HiddenNullFactoryFixture", reversed);
+		assertThat(results.allEvents().failed().count()).isEqualTo(1);
+		assertThat(results.allEvents().failed().stream().map(GeneratedAllHooksTest::messageOf))
+				.noneMatch(message -> message.contains("getClass") || message.contains("NullPointerException"));
 	}
 
 	/**
@@ -706,7 +757,8 @@ class GeneratedAllHooksTest {
 	@ParameterizedTest
 	@CsvSource({ "false, GroupedViolationFixture", "true, GroupedViolationFixture", "false, SuppressedViolationFixture",
 			"true, SuppressedViolationFixture", "false, MemberOnlyViolationFixture", "true, MemberOnlyViolationFixture",
-			"false, ClassNotFoundViolationFixture", "true, ClassNotFoundViolationFixture" })
+			"false, ClassNotFoundViolationFixture", "true, ClassNotFoundViolationFixture",
+			"false, UnreadableBesideViolationFixture", "true, UnreadableBesideViolationFixture" })
 	void anAttachedBlockedActionFollowsTheFeedbackLevel(boolean reversed, String fixture) throws Exception {
 		assertThat(messages(run("com.example.fixtures." + fixture, reversed))).containsExactly(
 				"Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.");
@@ -744,6 +796,10 @@ class GeneratedAllHooksTest {
 		assertThat(messages).containsExactly("java.lang.RuntimeException");
 		assertThat(messages(run("com.example.fixtures.QuotedUnreadableGroupFixture", reversed)))
 				.containsExactly("java.lang.RuntimeException");
+		for (String fixture : List.of("QuotedUnreadableViolationFixture", "QuotedUnreadableGroupFixture")) {
+			assertThat(messages(runWithOnly("com.example.fixtures." + fixture, "GeneratedFailureReporting")))
+					.containsExactly("java.lang.RuntimeException");
+		}
 	}
 
 	/**
@@ -756,15 +812,10 @@ class GeneratedAllHooksTest {
 	 */
 	@Test
 	void aFailureRepeatingOneSuppressedFailureShowsNoText() throws Exception {
-		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(compiled, resources)),
-				Thread.currentThread().getContextClassLoader())) {
-			List<String> messages = messages(
-					GeneratedCodeRuns.runIn(loader, "com.example.fixtures.RepeatedSuppressedFixture", Locale.ENGLISH,
-							Map.of(GeneratedCodeRuns.AUTODETECTION, "true", GeneratedCodeRuns.AUTODETECTION_INCLUDE,
-									GENERATED + "GeneratedFailureReporting")));
-			assertThat(messages).hasSize(1);
-			assertThat(messages.get(0)).doesNotContain("REPEATED_OUTER");
-		}
+		List<String> messages = messages(
+				runWithOnly("com.example.fixtures.RepeatedSuppressedFixture", "GeneratedFailureReporting"));
+		assertThat(messages).hasSize(1);
+		assertThat(messages.get(0)).doesNotContain("REPEATED_OUTER");
 		assertThat(messages(run("com.example.fixtures.RepeatedSuppressedFixture"))).containsExactly("REPEATED_OUTER");
 	}
 
@@ -781,8 +832,7 @@ class GeneratedAllHooksTest {
 	void aCauseReadThroughAStudentOverrideIsNotRead(boolean reversed) throws Exception {
 		List<String> messages = messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
 				() -> run("com.example.fixtures.LoopingRootCauseFixture", reversed)));
-		assertThat(messages).hasSize(1);
-		assertThat(messages.get(0)).doesNotContain("NAMING_OUTER");
+		assertThat(messages).containsExactly("com.example.fixtures.LoopingRootCauseFixture$1");
 	}
 
 	/**
@@ -1290,10 +1340,27 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
-	 * Runs one class in a nested JUnit session on the generated output.
+	 * Runs one class in a nested JUnit session on the generated output with only
+	 * one generated hook loaded.
 	 *
 	 * @param className the class to run.
+	 * @param hook      the simple name of the one generated hook to load.
 	 * @return the results.
+	 * @throws Exception if the run cannot be set up
+	 */
+	private static EngineExecutionResults runWithOnly(String className, String hook) throws Exception {
+		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(compiled, resources)),
+				Thread.currentThread().getContextClassLoader())) {
+			return GeneratedCodeRuns.runIn(loader, className, Locale.ENGLISH, Map.of(GeneratedCodeRuns.AUTODETECTION,
+					"true", GeneratedCodeRuns.AUTODETECTION_INCLUDE, GENERATED + hook));
+		}
+	}
+
+	/**
+	 * Runs one fixture class with every generated hook loaded.
+	 *
+	 * @param className the fixture class.
+	 * @return the results
 	 * @throws Exception if the run cannot be set up
 	 */
 	private static EngineExecutionResults run(String className) throws Exception {

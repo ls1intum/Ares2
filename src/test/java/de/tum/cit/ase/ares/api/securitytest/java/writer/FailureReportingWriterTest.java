@@ -160,7 +160,8 @@ class FailureReportingWriterTest extends GeneratedHookFilesTest.Project {
 				.contains(PACKAGE + ".ares.api.aop.java.instrumentation.advice.AresSecurityViolation")
 				.contains(PACKAGE
 						+ ".ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox")
-				.contains("registerGeneratedHookLoader").doesNotContain("@PACKAGE@").doesNotContain("@LEVEL@");
+				.contains("registerGeneratedHookLoader").contains("generated.hook.registration.failed")
+				.doesNotContain("@PACKAGE@").doesNotContain("@LEVEL@");
 	}
 
 	/**

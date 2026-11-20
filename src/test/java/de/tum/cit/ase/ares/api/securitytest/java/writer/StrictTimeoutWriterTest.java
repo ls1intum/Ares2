@@ -61,8 +61,9 @@ class StrictTimeoutWriterTest extends GeneratedHookFilesTest.Project {
 	void aSecondRunWritesTheSameFiles() throws IOException {
 		writer(null).write(configured(), PACKAGE, testFolder);
 		String hook = Files.readString(source(StrictTimeoutSources.JUPITER_HOOK));
-		assertThat(hook).contains("registerGeneratedHookLoader").contains(
-				PACKAGE + ".ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemAdviceDefinitions");
+		assertThat(hook).contains("registerGeneratedHookLoader").contains("generated.hook.registration.failed")
+				.contains(PACKAGE
+						+ ".ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemAdviceDefinitions");
 
 		writer(null).write(configured(), PACKAGE, testFolder);
 

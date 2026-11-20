@@ -86,17 +86,28 @@ final class StrictTimeoutSources {
 
 				/*
 				 * Registers this hook's loader with the copied thread checks, so they find it
-				 * even when they sit on the boot class path.
+				 * even when they sit on the boot class path. Checks of the other backend are not
+				 * copied and are skipped; any other failure stops the hook from loading, since
+				 * its workers would otherwise be refused without saying why.
 				 */
 				static {
 					for (String checks : new String[] {
 							"@PACKAGE@.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox",
 							"@PACKAGE@.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemAdviceDefinitions" }) {
+						Class<?> copied;
 						try {
-							Class.forName(checks, true, GeneratedStrictTimeout.class.getClassLoader())
-									.getMethod("registerGeneratedHookLoader", Class.class).invoke(null, GeneratedStrictTimeout.class);
-						} catch (ReflectiveOperationException | LinkageError | RuntimeException absent) {
+							copied = Class.forName(checks, true, GeneratedStrictTimeout.class.getClassLoader());
+						} catch (ClassNotFoundException absent) {
 							continue;
+						} catch (LinkageError broken) {
+							throw new ExceptionInInitializerError(new IllegalStateException(
+									@MESSAGES@.localized("generated.hook.registration.failed", GeneratedStrictTimeout.class.getName(), checks), broken));
+						}
+						try {
+							copied.getMethod("registerGeneratedHookLoader", Class.class).invoke(null, GeneratedStrictTimeout.class);
+						} catch (ReflectiveOperationException | LinkageError | RuntimeException failed) {
+							throw new ExceptionInInitializerError(new IllegalStateException(
+									@MESSAGES@.localized("generated.hook.registration.failed", GeneratedStrictTimeout.class.getName(), checks), failed));
 						}
 					}
 				}
@@ -239,10 +250,13 @@ final class StrictTimeoutSources {
 				 * @param result the factory's result
 				 * @param closer turns a produced stream into its guarded close callback
 				 * @param opened the streams opened so far
-				 * @return the tests, read into a list
+				 * @return the tests, read into a list; null for a null result, which JUnit refuses itself
 				 */
 				@SuppressWarnings("unchecked")
 				private static <T> T materialisedResult(T result, Function<Stream<?>, Runnable> closer, List<Stream<?>> opened) {
+					if (result == null) {
+						return null;
+					}
 					List<Object> nodes = new ArrayList<>();
 					if (result instanceof DynamicNode node) {
 						return (T) materialisedNode(node, closer, opened);
@@ -269,37 +283,24 @@ final class StrictTimeoutSources {
 				}
 
 				/**
-				 * The iterator of a result that is none of the shapes above but has a public,
-				 * parameterless {@code iterator()} returning an {@code Iterator}, which JUnit also
-				 * accepts, so its tests are read under this hook's guard too; null when it has none.
+				 * The tests of a result that is none of the shapes above, read through the running
+				 * JUnit engine's own conversion, so this hook reads exactly the results that engine
+				 * accepts, such as one with only an {@code iterator()} method, under its guard;
+				 * null when the engine accepts none and reports it itself.
 				 *
 				 * @param result the factory's result
 				 * @return its iterator, or null
 				 */
 				private static Iterator<?> reflectiveIterator(Object result) {
-					Method method;
-					try {
-						method = result.getClass().getMethod("iterator");
-						method.setAccessible(true);
-					} catch (NoSuchMethodException | RuntimeException unusable) {
+					if (!org.junit.platform.commons.util.CollectionUtils.isConvertibleToStream(result.getClass())) {
 						return null;
 					}
-					if (!Iterator.class.isAssignableFrom(method.getReturnType())) {
-						return null;
-					}
-					try {
-						return (Iterator<?>) method.invoke(result);
-					} catch (java.lang.reflect.InvocationTargetException thrown) {
-						rethrow(thrown.getCause());
-						return null;
-					} catch (IllegalAccessException inaccessible) {
-						return null;
-					}
+					return org.junit.platform.commons.util.CollectionUtils.toStream(result).iterator();
 				}
 
 				/**
 				 * Closes the streams a failed read opened, newest first, still under this
-				 * hook's guard; a failure while closing is kept as suppressed.
+				 * hook's guard; a different failure while closing is kept as suppressed.
 				 *
 				 * @param opened the streams opened so far
 				 * @param failure the failure that stopped the read
@@ -309,7 +310,9 @@ final class StrictTimeoutSources {
 						try {
 							opened.get(index).close();
 						} catch (RuntimeException | Error closing) {
-							failure.addSuppressed(closing);
+							if (closing != failure) {
+								failure.addSuppressed(closing);
+							}
 						}
 					}
 				}
@@ -640,7 +643,7 @@ final class StrictTimeoutSources {
 					}
 					java.util.Map<Throwable, Throwable> copies = new java.util.IdentityHashMap<>();
 					Throwable copy = copyOf(failure, copies);
-					return copies.containsKey(TRUNCATED) ? truncated(failure, copy) : copy;
+					return copies.containsKey(TRUNCATED) ? truncated(failure, copy, copies) : copy;
 				}
 
 				/**
@@ -652,11 +655,16 @@ final class StrictTimeoutSources {
 
 				/**
 				 * A failure too large to copy whole, by its type alone, so a blocked action past the
-				 * budget cannot leave its text in the copied top. An abort stays an abort.
+				 * budget cannot leave its text in the copied top. An abort stays an abort. A blocked
+				 * action the copy did verify is kept, alone, as a suppressed failure, so the failure
+				 * feedback still finds it and applies its level.
 				 */
-				private static Throwable truncated(Throwable failure, Throwable copy) {
-					return detached(failure, failure.getClass().getName(),
+				private static Throwable truncated(Throwable failure, Throwable copy, java.util.Map<Throwable, Throwable> copies) {
+					Throwable alone = detached(failure, failure.getClass().getName(),
 							copy == null ? new StackTraceElement[0] : copy.getStackTrace());
+					copies.values().stream().filter(DetachedViolation.class::isInstance).findFirst()
+							.ifPresent(violation -> alone.addSuppressed(((DetachedViolation) violation).get()));
+					return alone;
 				}
 
 				/** A copy of the failure's cause, or null for none or once the budget is spent. */

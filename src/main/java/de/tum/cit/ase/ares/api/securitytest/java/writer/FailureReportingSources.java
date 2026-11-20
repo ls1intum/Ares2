@@ -91,17 +91,28 @@ final class FailureReportingSources {
 
 				/*
 				 * Registers this hook's loader with the copied thread checks, so they find it
-				 * even when they sit on the boot class path.
+				 * even when they sit on the boot class path. Checks of the other backend are not
+				 * copied and are skipped; any other failure stops the hook from loading, since
+				 * its workers would otherwise be refused without saying why.
 				 */
 				static {
 					for (String checks : new String[] {
 							"@PACKAGE@.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox",
 							"@PACKAGE@.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemAdviceDefinitions" }) {
+						Class<?> copied;
 						try {
-							Class.forName(checks, true, GeneratedFailureReporting.class.getClassLoader())
-									.getMethod("registerGeneratedHookLoader", Class.class).invoke(null, GeneratedFailureReporting.class);
-						} catch (ReflectiveOperationException | LinkageError | RuntimeException absent) {
+							copied = Class.forName(checks, true, GeneratedFailureReporting.class.getClassLoader());
+						} catch (ClassNotFoundException absent) {
 							continue;
+						} catch (LinkageError broken) {
+							throw new ExceptionInInitializerError(new IllegalStateException(
+									@MESSAGES@.localized("generated.hook.registration.failed", GeneratedFailureReporting.class.getName(), checks), broken));
+						}
+						try {
+							copied.getMethod("registerGeneratedHookLoader", Class.class).invoke(null, GeneratedFailureReporting.class);
+						} catch (ReflectiveOperationException | LinkageError | RuntimeException failed) {
+							throw new ExceptionInInitializerError(new IllegalStateException(
+									@MESSAGES@.localized("generated.hook.registration.failed", GeneratedFailureReporting.class.getName(), checks), failed));
 						}
 					}
 				}
@@ -308,41 +319,28 @@ final class FailureReportingSources {
 						try {
 							stream.close();
 						} catch (RuntimeException | Error closeFailure) {
-							failure.addSuppressed(closeFailure);
+							if (closeFailure != failure) {
+								failure.addSuppressed(closeFailure);
+							}
 						}
 						throw failure;
 					}
 				}
 
 				/**
-				 * The iterator of a result that is none of the shapes above but has a public,
-				 * parameterless {@code iterator()} returning an {@code Iterator}, which JUnit
-				 * also accepts; null when it has none.
+				 * The iterator of a result that is none of the shapes above, made by the running
+				 * JUnit engine's own conversion, so this hook reads exactly the results that engine
+				 * accepts, such as one with only an {@code iterator()} method; null when the engine
+				 * accepts none and reports it itself.
 				 *
 				 * @param result the factory's result
 				 * @return its iterator, or null
-				 * @throws Throwable what {@code iterator()} threw
 				 */
-				private static Iterator<?> reflectiveIterator(Object result) throws Throwable {
-					Method method;
-					try {
-						method = result.getClass().getMethod("iterator");
-					} catch (NoSuchMethodException none) {
+				private static Iterator<?> reflectiveIterator(Object result) {
+					if (!org.junit.platform.commons.util.CollectionUtils.isConvertibleToStream(result.getClass())) {
 						return null;
 					}
-					if (!Iterator.class.isAssignableFrom(method.getReturnType())) {
-						return null;
-					}
-					try {
-						method.setAccessible(true);
-					} catch (RuntimeException inaccessible) {
-						return null;
-					}
-					try {
-						return (Iterator<?>) method.invoke(result);
-					} catch (java.lang.reflect.InvocationTargetException thrown) {
-						throw thrown.getCause();
-					}
+					return org.junit.platform.commons.util.CollectionUtils.toStream(result).iterator();
 				}
 
 				/**
@@ -570,7 +568,7 @@ final class FailureReportingSources {
 						return renderedViolation(violation);
 					}
 					if (!@SETTINGS@.@ENABLED@) {
-						return copyOf(throwable);
+						return checkedCopy(throwable, violation);
 					}
 					if (violation != null) {
 						return fullViolation(violation);
@@ -582,6 +580,24 @@ final class FailureReportingSources {
 						return new AssertionError(@MESSAGES@.localized("generated.failure.reporting.timeout"));
 					}
 					return new AssertionError(@SETTINGS@.@MESSAGE@);
+				}
+
+				/**
+				 * The copy of a failure the search found no blocked action in, searched again once
+				 * copied: another thread may attach one meanwhile, and an attached failure is never
+				 * taken away again, so whatever the copy read the second search sees too. Below
+				 * HIGH a late blocked action is then rendered as one, not copied with its text.
+				 */
+				private static Throwable checkedCopy(Throwable throwable, Throwable violation) {
+					Throwable copy = copyOf(throwable);
+					if (violation != null || "HIGH".equals(@SETTINGS@.@LEVEL@)) {
+						return copy;
+					}
+					Throwable late = violationIn(throwable);
+					if (late == UNSEARCHED) {
+						return unsearchedReplacement(throwable);
+					}
+					return late == null ? copy : renderedViolation(late);
 				}
 
 				/**
@@ -649,13 +665,16 @@ final class FailureReportingSources {
 				/**
 				 * Finds a blocked action of the copied Ares checks anywhere in a failure: its
 				 * causes, suppressed failures and the members of an {@code assertAll} group,
-				 * visiting at most the traversal budget; {@link #UNSEARCHED} when the budget ran
-				 * out first or a cause could not be read, since a failure above it may quote it.
+				 * visiting at most the traversal budget. A part it cannot read is skipped while the
+				 * rest is still searched, so a blocked action elsewhere is found; without one,
+				 * {@link #UNSEARCHED} when the budget ran out first or a part could not be read,
+				 * since a failure above it may quote it.
 				 */
 				private static Throwable violationIn(Throwable throwable) {
 					java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
 					java.util.ArrayDeque<Throwable> pending = new java.util.ArrayDeque<>();
 					pending.add(throwable);
+					boolean complete = true;
 					while (!pending.isEmpty() && seen.size() < TRAVERSAL_LIMIT) {
 						Throwable current = pending.poll();
 						if (!seen.add(current)) {
@@ -664,42 +683,40 @@ final class FailureReportingSources {
 						if (isViolation(current)) {
 							return current;
 						}
-						if (!safeCauseAccessor(current) && !fromGeneratedHooks(current.getClass())
-								|| !queueAttached(current, pending)) {
-							return UNSEARCHED;
-						}
+						boolean causeReadable = safeCauseAccessor(current) || fromGeneratedHooks(current.getClass());
+						complete &= queueAttached(current, causeReadable, pending) && causeReadable;
 					}
-					return pending.isEmpty() ? null : UNSEARCHED;
+					return pending.isEmpty() && complete ? null : UNSEARCHED;
 				}
 
 				/** What the search returns when its budget ran out before it saw every attached failure. */
 				private static final Throwable UNSEARCHED = new Throwable();
 
 				/**
-				 * Queues a failure's cause, suppressed failures and group members for the search;
-				 * false when the queue reached the traversal budget first or the group's members
-				 * cannot be read, so the search is not complete.
+				 * Queues a failure's readable cause, suppressed failures and readable group
+				 * members for the search; false when the queue reached the traversal budget or
+				 * the group's members cannot be read, so the search is not complete.
 				 */
-				private static boolean queueAttached(Throwable failure, java.util.ArrayDeque<Throwable> pending) {
-					Throwable cause = causeOf(failure);
-					if (cause != null && !queued(cause, pending)) {
-						return false;
+				private static boolean queueAttached(Throwable failure, boolean causeReadable,
+						java.util.ArrayDeque<Throwable> pending) {
+					boolean complete = true;
+					Throwable cause = causeReadable ? causeOf(failure) : null;
+					if (cause != null) {
+						complete &= queued(cause, pending);
 					}
 					for (Throwable suppressed : failure.getSuppressed()) {
-						if (!queued(suppressed, pending)) {
-							return false;
-						}
+						complete &= queued(suppressed, pending);
 					}
 					java.util.List<Throwable> members = aggregateMembers(failure);
 					if (members == null) {
 						return false;
 					}
 					for (Throwable member : members) {
-						if (member != null && !queued(member, pending)) {
-							return false;
+						if (member != null) {
+							complete &= queued(member, pending);
 						}
 					}
-					return true;
+					return complete;
 				}
 
 				/** Adds one failure to the search queue unless the queue holds the traversal budget already. */

@@ -119,10 +119,35 @@ public class JavaAOPTestCaseToolboxTest {
 		Assertions.assertTrue(assignment.contains("String.join("), assignment.substring(0, 80));
 		Path source = folder.resolve("LongConstant.java");
 		Files.writeString(source, "public class LongConstant { " + assignment + " }");
-		Assertions.assertEquals(0, javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d",
-				folder.toString(), source.toString()));
+		Assertions.assertEquals(0, javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null, "-encoding",
+				"UTF-8", "-d", folder.toString(), source.toString()));
 		try (URLClassLoader loader = new URLClassLoader(new URL[] { folder.toUri().toURL() }, null)) {
 			Assertions.assertEquals(value, loader.loadClass("LongConstant").getField("message").get(null));
+		}
+	}
+
+	/**
+	 * A value of exactly 65,535 characters, which {@code javac} refuses as one
+	 * literal, is joined and still compiles; one character less stays one literal
+	 * and compiles too.
+	 *
+	 * @param folder where the classes are compiled.
+	 * @throws Exception if compiling or loading fails
+	 */
+	@Test
+	public void aStringAtTheConstantBoundaryStillCompiles(@TempDir Path folder) throws Exception {
+		for (int length : new int[] { 65_534, 65_535 }) {
+			String value = "a".repeat(length);
+			String assignment = JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment("message", value);
+			Assertions.assertEquals(length == 65_535, assignment.contains("String.join("), String.valueOf(length));
+			Path output = Files.createDirectories(folder.resolve("length" + length));
+			Path source = output.resolve("BoundaryConstant.java");
+			Files.writeString(source, "public class BoundaryConstant { " + assignment + " }");
+			Assertions.assertEquals(0, javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null,
+					"-encoding", "UTF-8", "-d", output.toString(), source.toString()));
+			try (URLClassLoader loader = new URLClassLoader(new URL[] { output.toUri().toURL() }, null)) {
+				Assertions.assertEquals(value, loader.loadClass("BoundaryConstant").getField("message").get(null));
+			}
 		}
 	}
 
@@ -179,15 +204,15 @@ public class JavaAOPTestCaseToolboxTest {
 	 */
 	@Test
 	public void testAssignmentsUseAsciiDigitsUnderAnyDefaultLocale() {
-		Locale original = Locale.getDefault();
+		Locale original = Locale.getDefault(Locale.Category.FORMAT);
 		try {
-			Locale.setDefault(Locale.forLanguageTag("ar-EG"));
+			Locale.setDefault(Locale.Category.FORMAT, Locale.forLanguageTag("ar-EG"));
 			Assertions.assertEquals("private static int count = 42;" + System.lineSeparator(),
 					JavaAOPTestCaseToolbox.getIntegerAssignment("count", 42));
 			Assertions.assertEquals("public static final long limit = 1234567L;" + System.lineSeparator(),
 					JavaAOPTestCaseToolbox.getPublicStaticFinalLongAssignment("limit", 1_234_567L));
 		} finally {
-			Locale.setDefault(original);
+			Locale.setDefault(Locale.Category.FORMAT, original);
 		}
 	}
 }

@@ -190,12 +190,24 @@ class GeneratedStrictTimeoutTest {
 	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "ConstructorFixture", "BeforeAllFixture", "BeforeEachFixture", "TestMethodFixture",
-			"FactoryFixture", "LazyFactoryFixture", "IteratorFactoryFixture", "LazyContainerFixture", "TemplateFixture",
-			"DynamicFixture", "AfterEachFixture", "AfterAllFixture" })
+			"FactoryFixture", "LazyFactoryFixture", "IteratorFactoryFixture", "PackageIteratorFactoryFixture",
+			"LazyContainerFixture", "TemplateFixture", "DynamicFixture", "AfterEachFixture", "AfterAllFixture" })
 	void everyInvocationKindTimesOut(String fixture) throws Exception {
 		EngineExecutionResults results = runJupiter(fixture, Locale.ENGLISH);
 
 		assertThat(failureMessages(results)).isNotEmpty().allMatch(timeoutMessage(Locale.ENGLISH)::equals);
+	}
+
+	/**
+	 * A factory returning null keeps JUnit's own refusal of it, instead of failing
+	 * inside the timeout's adapter.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aNullFactoryKeepsJUnitsRefusal() throws Exception {
+		assertThat(failureMessages(runJupiter("NullFactoryFixture", Locale.ENGLISH))).singleElement().asString()
+				.contains("must not return").doesNotContain("NullPointerException");
 	}
 
 	/**
@@ -472,6 +484,10 @@ class GeneratedStrictTimeoutTest {
 		fixture(folder, "IteratorFactoryFixture",
 				"public static final class Cases { public java.util.Iterator<DynamicTest> iterator() { return java.util.stream.Stream.generate(() -> DynamicTest.dynamicTest(\"case\", () -> { })).peek(test -> Loop.untilInterrupted()).limit(1).iterator(); } }",
 				"@TestFactory Cases cases() { return new Cases(); }");
+		fixture(folder, "PackageIteratorFactoryFixture",
+				"public static final class Cases { java.util.Iterator<DynamicTest> iterator() { return java.util.stream.Stream.generate(() -> DynamicTest.dynamicTest(\"case\", () -> { })).peek(test -> Loop.untilInterrupted()).limit(1).iterator(); } }",
+				"@TestFactory Cases cases() { return new Cases(); }");
+		fixture(folder, "NullFactoryFixture", "", "@TestFactory java.util.List<DynamicTest> cases() { return null; }");
 		fixture(folder, "LazyContainerFixture", "",
 				"@TestFactory java.util.stream.Stream<DynamicNode> cases() { return java.util.stream.Stream.of(DynamicContainer.dynamicContainer(\"inner\", java.util.stream.Stream.generate(() -> DynamicTest.dynamicTest(\"case\", () -> { })).peek(test -> Loop.untilInterrupted()).limit(1))); }");
 		fixture(folder, "TemplateFixture", "",

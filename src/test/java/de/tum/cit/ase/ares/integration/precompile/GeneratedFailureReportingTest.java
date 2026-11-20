@@ -317,16 +317,16 @@ class GeneratedFailureReportingTest {
 
 	/**
 	 * A factory whose tests fail while JUnit walks them, directly, inside a
-	 * container or through a result that only has an {@code iterator()} method,
-	 * shows the policy's message; a stream whose iterator cannot be made is closed;
-	 * and a passing factory still runs.
+	 * container or through a result that only has a public or package-private
+	 * {@code iterator()} method, shows the policy's message; a stream whose
+	 * iterator cannot be made is closed; and a passing factory still runs.
 	 */
 	@Test
 	void aFactoryFailingWhileWalkedShowsThePolicyMessage() throws Exception {
 		System.clearProperty("ares.test.factoryStreamClosed");
 		EngineExecutionResults results = runJupiter("LazyFactoryFixture", true, Locale.ENGLISH);
 
-		assertThat(results.allEvents().failed().stream().map(GeneratedFailureReportingTest::messageOf)).hasSize(4)
+		assertThat(results.allEvents().failed().stream().map(GeneratedFailureReportingTest::messageOf)).hasSize(5)
 				.allMatch(POLICY_MESSAGE::equals);
 		assertThat(System.getProperty("ares.test.factoryStreamClosed")).isEqualTo("true");
 		assertThat(results.testEvents().succeeded().stream().map(event -> event.getTestDescriptor().getDisplayName()))
@@ -644,6 +644,11 @@ class GeneratedFailureReportingTest {
 					}
 
 					@TestFactory
+					PackageIteratorOnly failsWhileWalkedThroughItsPackageIterator() {
+						return new PackageIteratorOnly();
+					}
+
+					@TestFactory
 					Stream<DynamicTest> failsWhileItsIteratorIsMade() {
 						Stream<DynamicTest> used = Stream.of(DynamicTest.dynamicTest("never", () -> {
 						})).onClose(() -> System.setProperty("ares.test.factoryStreamClosed", "true"));
@@ -659,6 +664,14 @@ class GeneratedFailureReportingTest {
 
 					public static final class IteratorOnly {
 						public java.util.Iterator<DynamicTest> iterator() {
+							return Stream.<DynamicTest>generate(() -> {
+								throw new AssertionError("expected=42");
+							}).limit(1).iterator();
+						}
+					}
+
+					public static final class PackageIteratorOnly {
+						java.util.Iterator<DynamicTest> iterator() {
 							return Stream.<DynamicTest>generate(() -> {
 								throw new AssertionError("expected=42");
 							}).limit(1).iterator();
