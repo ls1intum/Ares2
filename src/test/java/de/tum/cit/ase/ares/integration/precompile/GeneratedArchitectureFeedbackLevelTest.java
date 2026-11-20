@@ -148,6 +148,100 @@ class GeneratedArchitectureFeedbackLevelTest {
 	}
 
 	/**
+	 * At DEBUG, a target no single entry can name exactly gets only the category: a
+	 * command with arguments, whose boundaries the target text lost (one argument
+	 * holding a space reads as two), a target that is the wildcard {@code *}, and a
+	 * target cut at the 200-character field limit. A command without arguments gets
+	 * its entry with an empty argument list.
+	 *
+	 * @throws Exception if the generated hook cannot be loaded
+	 */
+	@Test
+	void debugNamesOnlyTheCategoryWhenNoEntryIsExact() throws Exception {
+		String echo = "Main.run tried to illegally execute /bin/echo hello world but was blocked by Ares.";
+		assertThat(renderedAtDebug(new Blocked("command", "execute", "/bin/echo hello world")))
+				.isEqualTo(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory(echo,
+						"regardingCommandExecutions", java.util.Optional.empty())));
+		assertThat(renderedAtDebug(new Blocked("file", "read", "*")))
+				.isEqualTo(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory(
+						"Main.run tried to illegally read * but was blocked by Ares.",
+						"regardingFileSystemInteractions", java.util.Optional.empty())));
+		assertThat(renderedAtDebug(new Blocked("network", "connect", "*:443")))
+				.endsWith(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory("",
+						"regardingNetworkConnections", java.util.Optional.empty())));
+		String longPath = "/" + "a".repeat(250);
+		assertThat(renderedAtDebug(new Blocked("file", "read", longPath)))
+				.endsWith(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory("",
+						"regardingFileSystemInteractions", java.util.Optional.empty())));
+		assertThat(renderedAtDebug(new Blocked("command", "execute", "/bin/date")))
+				.isEqualTo(inEnglish(() -> SecurityViolationFeedbackTexts.debug(
+						"Main.run tried to illegally execute /bin/date but was blocked by Ares.", "execute",
+						"/bin/date", java.util.Optional.empty(), SecurityViolationFeedbackTexts
+								.lines("- executeTheCommand: \"/bin/date\"", "  withTheseArguments: []"))));
+	}
+
+	/**
+	 * At DEBUG, the report keeps the blocked action's own stack, so an instructor
+	 * sees where the action happened.
+	 *
+	 * @throws Exception if the generated hook cannot be loaded
+	 */
+	@Test
+	void debugKeepsTheBlockedActionsStack() throws Exception {
+		Blocked blocked = new Blocked("file", "read", "/secret/path");
+		StackTraceElement[] stack = { new StackTraceElement("org.example.Main", "run", "Main.java", 7) };
+		blocked.setStackTrace(stack);
+		assertThat(invokeTheDebugHookUnchecked("renderedViolation", new Class<?>[] { Throwable.class }, blocked)
+				.getStackTrace()).containsExactly(stack);
+	}
+
+	/**
+	 * At DEBUG, a generated architecture test for a fixed rule, such as reflection,
+	 * which no policy entry relaxes, shows its report without a hint, while a
+	 * file-system test names its category.
+	 *
+	 * @throws Exception if the generated hook cannot be loaded
+	 */
+	@Test
+	void debugGivesAFixedArchitectureRuleNoHint() throws Exception {
+		SecurityException reflection = new SecurityException("Main.run tried to illegally use reflection.");
+		assertThat(inEnglish(() -> invokeTheDebugHookUnchecked("architectureReplacementFor",
+				new Class<?>[] { Throwable.class, String.class }, reflection,
+				"theFollowingResourceAccessesArePermitted").getMessage()))
+						.isEqualTo("Main.run tried to illegally use reflection.");
+		SecurityException file = new SecurityException("Main.run tried to illegally access the file system.");
+		assertThat(inEnglish(() -> invokeTheDebugHookUnchecked("architectureReplacementFor",
+				new Class<?>[] { Throwable.class, String.class }, file, "regardingFileSystemInteractions")
+						.getMessage()))
+								.isEqualTo(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory(
+										"Main.run tried to illegally access the file system.",
+										"regardingFileSystemInteractions", java.util.Optional.empty())));
+	}
+
+	/**
+	 * Calls one static method of the DEBUG project's failure reporting.
+	 *
+	 * @param method    the method's name.
+	 * @param types     its parameter types.
+	 * @param arguments its arguments.
+	 * @return the failure it returns
+	 */
+	private static Throwable invokeTheDebugHookUnchecked(String method, Class<?>[] types, Object... arguments) {
+		try (java.net.URLClassLoader loader = new java.net.URLClassLoader(
+				new java.net.URL[] { debug.toUri().toURL(),
+						debug.resolveSibling("debug-compiled-resources").toUri().toURL() },
+				GeneratedArchitectureFeedbackLevelTest.class.getClassLoader())) {
+			java.lang.reflect.Method called = loader
+					.loadClass("de.tum.cit.ase.ares.generated.GeneratedFailureReporting")
+					.getDeclaredMethod(method, types);
+			called.setAccessible(true);
+			return (Throwable) called.invoke(null, arguments);
+		} catch (Exception unexpected) {
+			throw new IllegalStateException(unexpected);
+		}
+	}
+
+	/**
 	 * Renders a blocked action as the DEBUG project's failure reporting does, with
 	 * English as the display language, so the expected English text does not depend
 	 * on the machine's language.

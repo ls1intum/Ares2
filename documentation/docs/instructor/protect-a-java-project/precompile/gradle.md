@@ -209,7 +209,10 @@ precompile exercise has no Ares dependency to run a custom manager with. The one
 for `regardingTheVisibilityAndScheduleOfTheTestCases` holds back the tests the policy makes hidden
 until the deadline and hides why they failed. JUnit loads the extensions through the file under
 `META-INF/services`, and `junit-platform.properties` switches JUnit's automatic loading on for
-these hooks only. An existing `junit-platform.properties` or service file keeps its own lines;
+these hooks and for the extensions the instructor's own service file already registers. If the
+instructor's `junit-platform.properties` already switched automatic loading on, the generator adds
+no such limit, so every extension on the test class path loads, as it did before. An existing
+`junit-platform.properties` or service file keeps its own lines;
 the generator adds one marked block for all hooks. A setting there that contradicts the block
 stops the generator, which then names the file. So does any
 `junit.jupiter.extensions.autodetection` setting in `build.gradle`, since it overrides the block.

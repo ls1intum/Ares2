@@ -160,7 +160,8 @@ final class FailureReportingSources {
 				/**
 				 * A generated architecture test's failure at the feedback level: unchanged at
 				 * HIGH, the LOW text at MEDIUM and LOW, since a finding's action is not known,
-				 * and the report plus the category that would allow the access at DEBUG.
+				 * and at DEBUG the report plus the category that would allow the access, or the
+				 * report alone for a fixed rule such as reflection, which no entry relaxes.
 				 *
 				 * @param throwable the real failure
 				 * @param category  the policy category the test checks
@@ -175,9 +176,11 @@ final class FailureReportingSources {
 					}
 					SecurityException rendered;
 					if ("DEBUG".equals(@SETTINGS@.@LEVEL@)) {
-						rendered = new SecurityException(String.valueOf(throwable.getMessage()) + System.lineSeparator()
-								+ @MESSAGES@.localized("reporting.security.violation.hint.category", category,
-										@MESSAGES@.localized("reporting.security.violation.policy.unnamed")));
+						String report = String.valueOf(throwable.getMessage());
+						rendered = new SecurityException("theFollowingResourceAccessesArePermitted".equals(category) ? report
+								: report + System.lineSeparator() + @MESSAGES@.localized("reporting.security.violation.hint.category",
+										category, @MESSAGES@.localized("reporting.security.violation.policy.unnamed")));
+						rendered.setStackTrace(throwable.getStackTrace());
 					} else {
 						rendered = new SecurityException(@MESSAGES@.localized("reporting.security.violation.low"));
 						rendered.setStackTrace(new StackTraceElement[0]);
@@ -1150,8 +1153,8 @@ final class FailureReportingSources {
 
 				/**
 				 * Reports a blocked action at a level other than HIGH: DEBUG adds the entry that
-				 * would allow it to the text HIGH shows, MEDIUM names only the kind of action and
-				 * LOW only that a policy was violated, both without stack.
+				 * would allow it to the text and stack HIGH shows, MEDIUM names only the kind of
+				 * action and LOW only that a policy was violated, both without stack.
 				 */
 				private static Throwable renderedViolation(Throwable violation) {
 					String kind = field(violation, "kind");
@@ -1159,9 +1162,11 @@ final class FailureReportingSources {
 					String target = field(violation, "target");
 					SecurityException rendered;
 					if ("DEBUG".equals(@SETTINGS@.@LEVEL@)) {
-						String report = String.valueOf(fullViolation(violation).getMessage());
+						Throwable full = fullViolation(violation);
+						String report = String.valueOf(full.getMessage());
 						rendered = new SecurityException("uninspectable".equals(kind) ? report
 								: report + System.lineSeparator() + hintOf(kind, action, target));
+						rendered.setStackTrace(full.getStackTrace());
 					} else {
 						String phrase = "MEDIUM".equals(@SETTINGS@.@LEVEL@) ? phraseOf(kind, operationOf(kind, action)) : null;
 						rendered = new SecurityException(phrase == null
@@ -1174,12 +1179,12 @@ final class FailureReportingSources {
 
 				/**
 				 * The DEBUG hint: the permission, the target and the entry to paste, or only the
-				 * category when no single entry allows the action.
+				 * category when no single entry allows exactly the action.
 				 */
 				private static String hintOf(String kind, String action, String target) {
 					String policy = @MESSAGES@.localized("reporting.security.violation.policy.unnamed");
 					String operation = operationOf(kind, action);
-					String entry = operation == null ? null : entryOf(kind, operation, target);
+					String entry = operation == null || !isExactTarget(kind, target) ? null : entryOf(kind, operation, target);
 					if (entry == null) {
 						return @MESSAGES@.localized("reporting.security.violation.hint.category", categoryOf(kind), policy);
 					}
@@ -1301,15 +1306,19 @@ final class FailureReportingSources {
 							new String[] { "openConnections", "sendData", "receiveData" }, granted);
 				}
 
-				/** A command entry from a target of the command and its arguments, separated by spaces. */
+				/**
+				 * Whether an entry can name the target exactly: not a target cut at the field
+				 * limit, not one holding the wildcard {@code *}, which the policy reads as any,
+				 * and not a command with arguments, whose boundaries the target text lost.
+				 */
+				private static boolean isExactTarget(String kind, String target) {
+					return target.length() < FIELD_LIMIT && !java.util.List.of(target.split("[ :]", -1)).contains("*")
+							&& !("command".equals(kind) && target.contains(" "));
+				}
+
+				/** The entry for a command run without arguments. */
 				private static String commandEntryOf(String target) {
-					String[] words = target.split(" ", -1);
-					StringBuilder arguments = new StringBuilder("[");
-					for (int i = 1; i < words.length; i++) {
-						arguments.append(i > 1 ? ", " : "").append(yamlString(words[i]));
-					}
-					return "- executeTheCommand: " + yamlString(words[0]) + System.lineSeparator()
-							+ "  withTheseArguments: " + arguments.append(']');
+					return "- executeTheCommand: " + yamlString(target) + System.lineSeparator() + "  withTheseArguments: []";
 				}
 
 				/** Quotes a value as a double-quoted YAML scalar, so a Windows path reads back unchanged. */
