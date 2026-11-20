@@ -115,7 +115,7 @@ regardingTheSupervisedCode:
 
 This policy forbids all file, network, command and thread operations.
 
-> **`thisPolicyFileCompliesToThePolicyVersion` is required** and must be exactly `1`. A policy file that omits it, or that declares any other value, is rejected on load.
+> **`thisPolicyFileCompliesToThePolicyVersion` is required.** Ares 2.2.1 accepts only `1`; Ares 2.3.0 accepts `1` and `2`, and needs `2` as soon as the policy sets a category under `theFollowingTestBehaviorIsConfigured` (7.7). Ares refuses a policy file that omits it or declares another value when it loads the file.
 
 > **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.2.1. Use [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
 
@@ -237,9 +237,10 @@ Security policies are written in YAML format. YAML uses indentation (spaces, not
 ### 7.2 Complete Structure
 
 ```yaml
-# REQUIRED: The policy format version. Must be exactly 1; any other value,
-# or omitting the key, causes the policy to be rejected on load.
-thisPolicyFileCompliesToThePolicyVersion: 1
+# REQUIRED: The policy format version, 1 or 2. Version 2 is needed as soon as
+# any category under theFollowingTestBehaviorIsConfigured is set; any other
+# value, or omitting the key, causes the policy to be rejected on load.
+thisPolicyFileCompliesToThePolicyVersion: 2
 
 regardingTheSupervisedCode:
   # REQUIRED: Which configuration to use
@@ -292,6 +293,16 @@ regardingTheSupervisedCode:
     # REQUIRED list: Timeouts (can be empty array)
     regardingTimeouts:
       - timeout: 10000                               # REQUIRED (milliseconds)
+
+  # OPTIONAL: Behaviour of the tests, see 7.7. Every category inside is optional.
+  theFollowingTestBehaviorIsConfigured:
+    regardingTheVisibilityAndScheduleOfTheTestCases:
+      theDeadlineIs: "2026-12-24 23:59 Europe/Berlin"               # REQUIRED in this category
+      theDeadlineIsExtendedBy: "36 HOURS"                           # OPTIONAL
+      theHiddenTestsAreRunBefore: "2026-11-01 00:00 Europe/Berlin"  # OPTIONAL
+      testsNotListedHereAreHidden: false                            # REQUIRED in this category
+      theFollowingTestsAreHidden: [ "org.example.PenguinTest#name" ] # OPTIONAL
+      theFollowingTestsArePublic: [ "org.example.ParrotTest" ]       # OPTIONAL
 ```
 
 ### 7.3 Configuration Options
@@ -380,6 +391,57 @@ theFollowingClassesAreTestClasses:
 **Verification:** in both modes, Ares looks up every entry in the compiled test output before it creates any security test. It stops with an error unless it finds a class file there that its reader accepts and that declares that exact name. An entry for a class nobody compiled therefore never becomes an exemption a student class of that name could take over. Compile the tests before generating or running, and in Precompile regenerate after changing them.
 
 > **Package names and package prefixes do not work here.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package. Ares finds no compiled class of that name and stops with an error. Ares derives no package permission from an entry either, so `"com.instructor"` does not let the supervised code import that package. List each test class by its exact fully qualified name.
+
+---
+
+### 7.7 Test Behaviour Configuration
+
+The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before. A policy that sets any category must declare `thisPolicyFileCompliesToThePolicyVersion: 2`; Ares refuses a version 1 policy that sets one, and its message names the category and the version it needs.
+
+The category and field names follow the proposal in issue #386, section C. They are not final until the advisor accepts them; [Policy Compatibility](./policy-compatibility.md) lists which release accepts which key.
+
+Ares reads these settings once per policy file and test run, when the first test class that uses the file starts and before it supervises any of that class's test code. Every later test class of the run keeps that reading, so changing the file afterwards changes nothing. A file that only a later test class uses is read when that class starts. Ares refuses a policy that lets the tested code overwrite or create files on the policy file, its folder or a folder above it. A grant on `*` counts too, and Ares compares paths with their links resolved. Every test using such a policy fails and names the entry, so no test can rewrite a policy before Ares reads it. Any malformed value, unknown key or explicit `null` fails every test and names the field.
+
+**Durations** such as `theTimeoutIs`, `theTerminationGraceIs` and `theDeadlineIsExtendedBy` are one text each. The text is a whole number, one space and the name of a Java `TimeUnit` in capitals: `NANOSECONDS`, `MICROSECONDS`, `MILLISECONDS`, `SECONDS`, `MINUTES`, `HOURS` or `DAYS`. `"2 SECONDS"`, `"500 MILLISECONDS"` and `"36 HOURS"` are durations; `"2s"`, `"2 seconds"`, `"2 SECOND"`, `"1 DAYS 12 HOURS"` and `"2"` are not. Ares refuses a YAML number such as `2` too, and its message names the field and lists the seven units.
+
+#### 7.7.4 Visibility and schedule
+
+`regardingTheVisibilityAndScheduleOfTheTestCases` sets, for the whole exercise, what `@Deadline`, `@ExtendedDeadline` and `@ActivateHiddenBefore` set per class or method, and what `@Hidden` and `@Public` say about a test.
+
+- `theDeadlineIs` (text, **required**): the deadline, in the `@Deadline` format, ending in a time zone such as `Europe/Berlin` or `UTC`. Hidden tests run once it has passed.
+- `theDeadlineIsExtendedBy` (duration, optional): added to the deadline, such as `"36 HOURS"`. The `@ExtendedDeadline` annotation keeps its own format, such as `1d 12h`; only this policy field uses the `TimeUnit` form.
+- `theHiddenTestsAreRunBefore` (text, optional): a date in the same format, before which hidden tests run, as `@ActivateHiddenBefore` does.
+- `testsNotListedHereAreHidden` (boolean, **required**): whether a test no entry names is hidden (`true`) or left to its annotations (`false`). It reaches only tests under Ares. A plain JUnit `@Test` in a class without `@PublicTest`, `@HiddenTest`, `@Public` or `@Hidden` still runs before the deadline and shows its result. So give every test class one of these annotations.
+- `theFollowingTestsAreHidden` (list of text, optional): the hidden tests. A fully qualified class name (`org.example.PenguinTest`) covers every test in that class and in its nested classes. A class name followed by `#` and a method name (`org.example.PenguinTest#name`) covers every method of that name the class declares or inherits, but not one of a nested class. Write a nested class with dots (`org.example.PenguinTest.Inner`).
+- `theFollowingTestsArePublic` (list of text, optional): the public tests, written the same way.
+
+The nearest entry wins: the test's own class with its method, then its class, then each class it is nested in. Only when no entry names a test does `testsNotListedHereAreHidden` decide. An entry that matches no test class or method, or that is on both lists, fails every test and names it.
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingTheVisibilityAndScheduleOfTheTestCases:
+    theDeadlineIs: "2026-12-24 23:59 Europe/Berlin"
+    theDeadlineIsExtendedBy: "1 DAYS"
+    testsNotListedHereAreHidden: true
+    theFollowingTestsAreHidden:
+      - "org.example.PenguinTest#secret"
+    theFollowingTestsArePublic:
+      - "org.example.PenguinTest"
+```
+
+These lists make hidden the default for every test, and public the default for the tests of `PenguinTest` apart from its `secret` method. A test's own annotation decides first (7.7.5): `@PublicTest` and `@Public` keep a test public, and `@HiddenTest` and `@Hidden` keep it hidden. Ares supervises a test only when the test, its class or a class it is nested in carries one of these annotations, and `@Public` and `@Hidden` on a class count for its subclasses as well. A plain JUnit test with none of them is not under Ares and always shows its result. In postcompile, every test under Ares carries one of these annotations. For now, Ares checks the lists, but they change no test's type.
+
+Before the deadline a hidden test does not run and reports the scheduling message. After it, a failed hidden test keeps its failed status and name, but shows no message, cause, stack or console output, at any feedback level and whatever the output settings say. An aborted hidden test stays aborted without its reason. A shared `@BeforeAll`, `@AfterAll` or constructor counts as hidden when any test below it, `@Nested` classes included, is hidden. Ares sees these class-level phases only when the class itself carries `@Public` or `@Hidden`. JUnit applies an extension declared on a method to that method alone. Ares refuses to run while JUnit's parallel execution is on, because two hidden classes running at once could restore each other's console.
+
+#### 7.7.5 Precedence
+
+| Setting | Decided by, first match wins |
+|---|---|
+| Deadline, extension, early run | The nearest `@Deadline` decides: the method's, else the class's, else the policy's own, its extension included. A method `@ExtendedDeadline` always adds to it; a class `@ExtendedDeadline` adds only when the method has no `@Deadline`. The early-run date follows the same order. |
+| Hidden or public | `@HiddenTest`, `@Hidden`, `@PublicTest` and `@Public`, then the policy's lists, then `testsNotListedHereAreHidden`. In postcompile those same annotations put a test under Ares, so the lists do not change a supervised test's type yet; they are still checked. |
+| Policy deactivated, or no policy | No test behaviour from the policy; annotations still apply. |
+
+A policy read on a method-level `@Policy` gives that method its own file's settings.
 
 ---
 

@@ -21,6 +21,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
+import de.tum.cit.ase.ares.api.AresConstants;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 
@@ -100,7 +101,9 @@ class PolicyExampleValidityTest {
 			SecurityPolicy policy = new SecurityPolicyYAMLReader(new YAMLMapper(), temporaryDirectory)
 					.readSecurityPolicyFrom(file);
 
-			assertEquals(SecurityPolicy.CURRENT_POLICY_VERSION, policy.thisPolicyFileCompliesToThePolicyVersion(),
+			int version = policy.thisPolicyFileCompliesToThePolicyVersion();
+			assertTrue(
+					version >= AresConstants.MINIMUM_POLICY_VERSION && version <= AresConstants.MAXIMUM_POLICY_VERSION,
 					origin + " declares a policy version Ares does not accept.");
 		} catch (SecurityException rejection) {
 			fail(origin + " shows a policy Ares rejects: " + rootCauseOf(rejection), rejection);

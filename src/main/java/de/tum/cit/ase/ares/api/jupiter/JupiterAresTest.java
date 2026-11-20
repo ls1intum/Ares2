@@ -21,8 +21,8 @@ import de.tum.cit.ase.ares.api.context.TestType;
 @Documented
 @Retention(RUNTIME)
 @Target(ANNOTATION_TYPE)
-@ExtendWith(JupiterIOExtension.class)
 @ExtendWith(JupiterTestGuard.class)
+@ExtendWith(JupiterIOExtension.class)
 @ExtendWith(JupiterSecurityExtension.class)
 @ExtendWith(JupiterStrictTimeoutExtension.class)
 public @interface JupiterAresTest {

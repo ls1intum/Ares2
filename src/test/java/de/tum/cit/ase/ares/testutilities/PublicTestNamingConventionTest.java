@@ -62,16 +62,18 @@ class PublicTestNamingConventionTest {
 
 	/**
 	 * Tells whether a test source hands the class to a JUnit launcher by name, as
-	 * the fork probes do, through {@code selectClass(Name.class)} or
-	 * {@code selectClass("pkg.Name")}. Such a class runs in that launcher's JVM, so
-	 * it must not end in {@code Test}, or Surefire would run it a second time.
+	 * the fork probes do, through {@code selectClass(Name.class)}, a nested class
+	 * {@code selectClass(Name.Nested.class)} or {@code selectClass("pkg.Name")}.
+	 * Such a class runs in that launcher's JVM, so it must not end in {@code Test},
+	 * or Surefire would run it a second time.
 	 *
 	 * @param sources         every test source, concatenated
 	 * @param simpleClassName the class's simple name
 	 * @return {@code true} if a launcher selects the class by name
 	 */
 	private static boolean isSelectedByName(String sources, String simpleClassName) {
-		return sources.contains("selectClass(" + simpleClassName + ".class)")
+		return Pattern.compile("selectClass\\(" + Pattern.quote(simpleClassName) + "(?:\\.\\w+)*\\.class\\)")
+				.matcher(sources).find()
 				|| Pattern.compile("selectClass\\(\"(?:[\\w$]+\\.)*" + Pattern.quote(simpleClassName) + "\"\\)")
 						.matcher(sources).find();
 	}
