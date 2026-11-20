@@ -17,11 +17,14 @@ import javax.swing.filechooser.FileSystemView;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.function.Executable;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.fileSystemView.FileSystemViewAccess;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.fileSystemView.HidingFileSystemView;
 
 /**
  * Checks that listing and creating folders through FileSystemView obeys the
@@ -384,6 +387,84 @@ class FileSystemViewAccessTest extends SystemAccessTest {
 		assertTrue(Arrays.stream(entries).anyMatch(entry -> "entry.txt".equals(entry.getName())));
 	}
 
+	// </editor-fold>
+
+	// <editor-fold desc="usesTheComThreadOnWindows">
+	/**
+	 * Checks that a student's view without a hiding rule lists a permitted folder,
+	 * though Windows hands the listing to the JDK's COM thread.
+	 */
+	@PublicTest
+	@EnabledOnOs(OS.WINDOWS)
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = WITHIN_PATH)
+	void test_listsAPermittedFolderThroughAStudentViewWithoutHidingMavenArchunitInstrumentation() {
+		File[] entries = assertDoesNotThrow(
+				() -> FileSystemViewAccess.listThroughHidingView(FileSystemViewAccess.PERMITTED, false));
+		assertTrue(Arrays.stream(entries).anyMatch(entry -> "entry.txt".equals(entry.getName())));
+	}
+
+	/**
+	 * Checks that a student's hiding rule which asks the JDK about a link, a
+	 * question Ares does not check as a read, still may not use the COM thread.
+	 */
+	@PublicTest
+	@EnabledOnOs(OS.WINDOWS)
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = WITHIN_PATH)
+	void test_aHidingRuleAskingForALinkStaysRefusedMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionThread(
+				() -> FileSystemViewAccess.listThroughHidingView(FileSystemViewAccess.PERMITTED, true),
+				HidingFileSystemView.class);
+	}
+
+	/**
+	 * Checks that asking the JDK whether an entry is a link, which Ares does not
+	 * check as a read, still may not use the COM thread.
+	 */
+	@PublicTest
+	@EnabledOnOs(OS.WINDOWS)
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = WITHIN_PATH)
+	void test_askingWhetherAnEntryIsALinkStaysRefusedMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionThread(() -> FileSystemViewAccess.entryIsLink(FileSystemViewAccess.PERMITTED),
+				FileSystemViewAccess.class);
+	}
+
+	/**
+	 * Checks that a student's view without a hiding rule lists a permitted folder,
+	 * though Windows hands the listing to the JDK's COM thread.
+	 */
+	@PublicTest
+	@EnabledOnOs(OS.WINDOWS)
+	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = WITHIN_PATH)
+	void test_listsAPermittedFolderThroughAStudentViewWithoutHidingMavenWalaInstrumentation() {
+		File[] entries = assertDoesNotThrow(
+				() -> FileSystemViewAccess.listThroughHidingView(FileSystemViewAccess.PERMITTED, false));
+		assertTrue(Arrays.stream(entries).anyMatch(entry -> "entry.txt".equals(entry.getName())));
+	}
+
+	/**
+	 * Checks that a student's hiding rule which asks the JDK about a link, a
+	 * question Ares does not check as a read, still may not use the COM thread.
+	 */
+	@PublicTest
+	@EnabledOnOs(OS.WINDOWS)
+	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = WITHIN_PATH)
+	void test_aHidingRuleAskingForALinkStaysRefusedMavenWalaInstrumentation() {
+		assertAresSecurityExceptionThread(
+				() -> FileSystemViewAccess.listThroughHidingView(FileSystemViewAccess.PERMITTED, true),
+				HidingFileSystemView.class);
+	}
+
+	/**
+	 * Checks that asking the JDK whether an entry is a link, which Ares does not
+	 * check as a read, still may not use the COM thread.
+	 */
+	@PublicTest
+	@EnabledOnOs(OS.WINDOWS)
+	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = WITHIN_PATH)
+	void test_askingWhetherAnEntryIsALinkStaysRefusedMavenWalaInstrumentation() {
+		assertAresSecurityExceptionThread(() -> FileSystemViewAccess.entryIsLink(FileSystemViewAccess.PERMITTED),
+				FileSystemViewAccess.class);
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="looksInsideAPermittedFolder">

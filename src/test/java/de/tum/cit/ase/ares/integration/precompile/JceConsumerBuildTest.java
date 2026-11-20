@@ -15,6 +15,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.integration.ConventionalGradleReport;
 
 /**
  * Builds actual emitted exercises with Maven and Gradle and executes Jupiter
@@ -89,12 +90,12 @@ class JceConsumerBuildTest {
 	}
 
 	/**
-	 * Runs an exercise without a policy through each consumer tool, so Ares derives
-	 * the supervised package and checks it against the compiled output in the real
-	 * test JVM, in the director's ArchUnit and AspectJ modes. The assignment alone
-	 * passes, so does it with a busier child package or, under a group covering
-	 * both, beside a busier unrelated package; two decoy classes are refused before
-	 * any check is armed. Only the grouped variant sets a group that fits.
+	 * Runs an exercise without a policy through each tool, so Ares derives the
+	 * supervised package and checks it against the compiled output in a real test
+	 * JVM. The assignment passes alone, beside a busier child package and, under a
+	 * fitting group, beside a busier unrelated one; two decoys are refused before
+	 * any check is armed. The Gradle test JVM gets the report of a conventional
+	 * layout, which its hand-written build cannot produce itself.
 	 */
 	@ParameterizedTest
 	@CsvSource({ "MAVEN,PLAIN", "MAVEN,NESTED", "MAVEN,GROUPED", "MAVEN,DECOY", "GRADLE,PLAIN", "GRADLE,NESTED",
@@ -358,7 +359,9 @@ class JceConsumerBuildTest {
 	private static String gradleBuild(Path project, boolean generated, boolean agent) {
 		String files = buildDependencies(project, generated).stream().map(path -> groovy(path.toString()))
 				.collect(java.util.stream.Collectors.joining(","));
-		String arguments = runtimeArguments(project, agent).stream().map(JceConsumerBuildTest::groovy)
+		List<String> gradleArguments = new ArrayList<>(runtimeArguments(project, agent));
+		gradleArguments.addAll(ConventionalGradleReport.arguments(project));
+		String arguments = gradleArguments.stream().map(JceConsumerBuildTest::groovy)
 				.collect(java.util.stream.Collectors.joining(","));
 		return """
 				plugins { id 'java' }

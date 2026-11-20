@@ -746,7 +746,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		// for process I/O handling. These threads should not be blocked by the Thread
 		// subsystem
 		// because the Command/Execute subsystem will check these operations.
-		if (isThreadCreationFromCommandExecution() || isThreadCreationFromAresTimeout(restrictedPackage)) {
+		if (isThreadCreationFromCommandExecution() || isThreadCreationFromAresTimeout(restrictedPackage)
+				|| isJdkShellFolderHandOffWithoutStudentCode()) {
 			return;
 		}
 		// </editor-fold>
