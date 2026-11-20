@@ -651,17 +651,7 @@ class JavaProjectScannerAstTest {
 	 */
 	@Test
 	void trustsAnAnnotationComposedTwoLevelsDeep() throws IOException {
-		Path production = Files.createDirectories(root.resolve("src/main/java"));
-		Path tests = Files.createDirectories(root.resolve("src/test/java"));
-		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
-		Files.createDirectories(tests.resolve("a"));
-		Files.createDirectories(tests.resolve("m"));
-		Files.createDirectories(tests.resolve("z"));
-		Files.writeString(tests.resolve("a/Outer.java"), "package checks;\n@Inner @interface Outer {}\n");
-		Files.writeString(tests.resolve("z/Inner.java"),
-				"package checks;\n@org.junit.jupiter.api.Test @interface Inner {}\n");
-		Files.writeString(tests.resolve("m/Cases.java"), "package checks;\nclass Cases { @Outer void real() {} }\n");
-		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		JavaProjectScanner scanner = scannerOverAnnotationChain("org.junit.jupiter.api.Test");
 
 		assertArrayEquals(new String[] { "checks.Cases" }, scanner.scanForTestClasses());
 	}
@@ -672,6 +662,21 @@ class JavaProjectScannerAstTest {
 	 */
 	@Test
 	void doesNotTrustAnAnnotationComposedFromANonTestAnnotation() throws IOException {
+		JavaProjectScanner scanner = scannerOverAnnotationChain("java.lang.Deprecated");
+
+		assertArrayEquals(new String[0], scanner.scanForTestClasses());
+	}
+
+	/**
+	 * Writes a test tree where a class uses {@code Outer}, which carries
+	 * {@code Inner}, which carries the given annotation. The folders make the walk
+	 * read {@code Outer} before {@code Inner}.
+	 *
+	 * @param innerAnnotation the fully qualified annotation placed on {@code Inner}
+	 * @return a scanner over that tree
+	 * @throws IOException if the fixture cannot be written
+	 */
+	private JavaProjectScanner scannerOverAnnotationChain(String innerAnnotation) throws IOException {
 		Path production = Files.createDirectories(root.resolve("src/main/java"));
 		Path tests = Files.createDirectories(root.resolve("src/test/java"));
 		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
@@ -680,12 +685,9 @@ class JavaProjectScannerAstTest {
 		Files.createDirectories(tests.resolve("z"));
 		Files.writeString(tests.resolve("a/Outer.java"), "package checks;\n@Inner @interface Outer {}\n");
 		Files.writeString(tests.resolve("z/Inner.java"),
-				"package checks;\n@java.lang.Deprecated @interface Inner {}\n");
-		Files.writeString(tests.resolve("m/Cases.java"),
-				"package checks;\nclass Cases { @Outer void notATest() {} }\n");
-		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
-
-		assertArrayEquals(new String[0], scanner.scanForTestClasses());
+				"package checks;\n@" + innerAnnotation + " @interface Inner {}\n");
+		Files.writeString(tests.resolve("m/Cases.java"), "package checks;\nclass Cases { @Outer void real() {} }\n");
+		return new JavaProjectScanner(configuration(production, tests));
 	}
 
 	/**
