@@ -33,6 +33,7 @@ import de.tum.cit.ase.ares.api.jupiter.JupiterContext;
 import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.VisibilityAndScheduleConfiguration;
@@ -225,7 +226,47 @@ public final class ConfigurationUtils {
 		SecurityPolicy securityPolicy = SecurityPolicyReader.selectSecurityPolicyReader(policyPath)
 				.readSecurityPolicyFrom(policyPath);
 		SupervisedCode supervisedCode = securityPolicy.regardingTheSupervisedCode();
+		requireNoWriteGrantOnThePolicy(policyPath, supervisedCode);
 		return new PolicyBehavior(supervisedCode.theFollowingTestBehaviorIsConfiguredOrEmpty());
+	}
+
+	/**
+	 * Refuses a policy that lets the tested code overwrite or create files on its
+	 * own file, its folder or a folder above, so test code cannot rewrite a policy
+	 * before Ares reads it.
+	 *
+	 * @param policyPath     the policy file.
+	 * @param supervisedCode the policy's supervised-code part.
+	 * @throws SecurityException naming the entry, when such a grant exists.
+	 */
+	private static void requireNoWriteGrantOnThePolicy(Path policyPath, SupervisedCode supervisedCode) {
+		Path policy = policyPath.toAbsolutePath().normalize();
+		supervisedCode.theFollowingResourceAccessesArePermitted().regardingFileSystemInteractions().stream()
+				.filter(entry -> entry.overwriteAllFiles() || entry.createAllFiles())
+				.map(FilePermission::onThisPathAndAllPathsBelow).filter(granted -> covers(granted, policy)).findFirst()
+				.ifPresent(granted -> {
+					throw new SecurityException(
+							Messages.localized("policy.behavior.write.grant.policy", policyPath, granted));
+				});
+	}
+
+	/**
+	 * Whether a granted path is the policy file or a folder holding it; the
+	 * wildcard {@code *} covers every file.
+	 *
+	 * @param granted the granted path, as written in the policy.
+	 * @param policy  the policy file, absolute and normalised.
+	 * @return true when the grant reaches the policy file.
+	 */
+	private static boolean covers(String granted, Path policy) {
+		if ("*".equals(granted.strip())) {
+			return true;
+		}
+		try {
+			return policy.startsWith(Path.of(granted.strip()).toAbsolutePath().normalize());
+		} catch (InvalidPathException invalid) {
+			return false;
+		}
 	}
 
 	/**
