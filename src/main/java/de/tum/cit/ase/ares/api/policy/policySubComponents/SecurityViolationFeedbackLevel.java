@@ -10,7 +10,11 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
  */
 public enum SecurityViolationFeedbackLevel {
 
-	/** The {@code HIGH} message, plus the policy entry that would allow it. */
+	/**
+	 * The {@code HIGH} message plus a hint: the policy entry that allows exactly
+	 * the action when one does, else the category to add an entry under, and no
+	 * hint for a fixed rule such as reflection.
+	 */
 	DEBUG,
 
 	/** The blocked action, its target and its caller; the default. */
