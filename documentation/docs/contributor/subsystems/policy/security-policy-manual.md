@@ -429,7 +429,7 @@ theFollowingTestBehaviorIsConfigured:
       - "org.example.PenguinTest"
 ```
 
-Here every test is hidden, except the tests of `PenguinTest`, which are public, apart from its `secret` method.
+These lists hide every test except the tests of `PenguinTest`, which are public, apart from its `secret` method. A test's own annotation comes first (7.7.5): `@PublicTest` and `@Public` keep a test public, and `@HiddenTest` and `@Hidden` keep it hidden. A plain JUnit test without an Ares annotation is not under Ares at all and always shows its result. In postcompile every test under Ares carries one of these annotations, so for now Ares checks the lists but they change no test's type.
 
 Before the deadline a hidden test does not run and reports the scheduling message. After it, a failed hidden test keeps its failed status and name, but shows no message, cause, stack or console output, at any feedback level and whatever the output settings say. An aborted hidden test stays aborted without its reason. A shared `@BeforeAll`, `@AfterAll` or constructor counts as hidden when any test below it, `@Nested` classes included, is hidden. Ares sees these class-level phases only when the class itself carries `@Public` or `@Hidden`. JUnit applies an extension declared on a method to that method alone. Ares refuses to run while JUnit's parallel execution is on, because two hidden classes running at once could restore each other's console.
 
