@@ -1,14 +1,19 @@
 package de.tum.cit.ase.ares.api.securitytest.java.creator;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -22,6 +27,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -32,12 +39,28 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.AncestorPackageExercise;
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
+import de.tum.cit.ase.ares.api.aop.AOPTestCaseSupported;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
+import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.PhobosTestCase;
+import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceLimitsPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ThreadPermission;
+import de.tum.cit.ase.ares.api.securitytest.ReservedPackageGuard;
 
 /**
  * Test suite for the JavaCreator class.
@@ -300,6 +323,255 @@ public class JavaCreatorTest {
 			assertTrue(architectureTestCases.get(0).getAllowedPackages().stream()
 					.noneMatch(permission -> permission.importTheFollowingPackage().equals(ancestorPackage)));
 		}
+
+		/** The file permissions the stubbed policy grants. */
+		private final List<FilePermission> fileAccesses = List.of(FilePermission.createRestrictive("src"));
+
+		/** The network permissions the stubbed policy grants. */
+		private final List<NetworkPermission> networkAccesses = List
+				.of(new NetworkPermission("localhost", 8080, true, false, false));
+
+		/** The command permissions the stubbed policy grants. */
+		private final List<CommandPermission> commandAccesses = List
+				.of(new CommandPermission("git", List.of("status")));
+
+		/** The thread permissions the stubbed policy grants. */
+		private final List<ThreadPermission> threadAccesses = List.of(new ThreadPermission(2, "java.lang.Thread"));
+
+		/** The time limits the stubbed policy grants. */
+		private final List<ResourceLimitsPermission> timeoutAccesses = List.of(new ResourceLimitsPermission(5L));
+
+		/**
+		 * Returns no permissions when the category is unpermitted, else the given ones.
+		 *
+		 * @param unpermitted whether the category gets no permission
+		 * @param permissions the permissions of a permitted category
+		 * @return the permissions the stubbed policy returns
+		 */
+		private <T> List<T> permissionsUnless(boolean unpermitted, List<T> permissions) {
+			return unpermitted ? List.of() : permissions;
+		}
+
+		/**
+		 * Stubs the policy: every category holds its own distinct permission, except
+		 * the unpermitted ones, which hold none.
+		 *
+		 * @param unpermitted the categories without a permission
+		 */
+		private void stubAccesses(Set<JavaAOPTestCaseSupported> unpermitted) {
+			stubClasspathAndArchitecture();
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+			when(resourceAccesses.regardingFileSystemInteractions()).thenReturn(permissionsUnless(
+					unpermitted.contains(JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION), fileAccesses));
+			when(resourceAccesses.regardingNetworkConnections()).thenReturn(permissionsUnless(
+					unpermitted.contains(JavaAOPTestCaseSupported.NETWORK_CONNECTION), networkAccesses));
+			when(resourceAccesses.regardingCommandExecutions()).thenReturn(permissionsUnless(
+					unpermitted.contains(JavaAOPTestCaseSupported.COMMAND_EXECUTION), commandAccesses));
+			when(resourceAccesses.regardingThreadCreations()).thenReturn(
+					permissionsUnless(unpermitted.contains(JavaAOPTestCaseSupported.THREAD_CREATION), threadAccesses));
+			when(resourceAccesses.regardingTimeouts()).thenReturn(timeoutAccesses);
+		}
+
+		/**
+		 * Returns what the stubbed policy holds for an AOP category.
+		 *
+		 * @param category    the category
+		 * @param unpermitted the categories without a permission
+		 * @return the permissions the category's supplier should return
+		 */
+		private List<?> expectedAccesses(JavaAOPTestCaseSupported category, Set<JavaAOPTestCaseSupported> unpermitted) {
+			if (unpermitted.contains(category)) {
+				return List.of();
+			}
+			return switch (category) {
+			case FILESYSTEM_INTERACTION -> fileAccesses;
+			case NETWORK_CONNECTION -> networkAccesses;
+			case COMMAND_EXECUTION -> commandAccesses;
+			case THREAD_CREATION -> threadAccesses;
+			};
+		}
+
+		/**
+		 * Creates the test cases over the stubbed policy, with no test classes.
+		 */
+		private void createCasesOverStubbedPolicy() {
+			javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of("java.lang"), List.of(),
+					List.of(), packageName, mainClassName, architectureTestCases, aopTestCases, phobosTestCases,
+					resourceAccesses, tempDir, true);
+		}
+
+		/**
+		 * Returns the architecture categories expected: the priority ones, then one
+		 * counterpart per unpermitted AOP category in order, then the static ones.
+		 *
+		 * @param unpermitted the categories without a permission
+		 * @return the expected architecture categories in order
+		 */
+		private List<ArchitectureTestCaseSupported> expectedArchitectureCategories(
+				Set<JavaAOPTestCaseSupported> unpermitted) {
+			List<ArchitectureTestCaseSupported> expected = new ArrayList<>(
+					JavaArchitectureTestCaseSupported.NATIVE_CODE.getPriority());
+			for (AOPTestCaseSupported category : JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION.getDynamic()) {
+				if (unpermitted.contains(category)) {
+					expected.add(
+							JavaArchitectureTestCaseSupported.valueOf(((JavaAOPTestCaseSupported) category).name()));
+				}
+			}
+			expected.addAll(JavaArchitectureTestCaseSupported.TERMINATE_JVM.getStatic());
+			return expected;
+		}
+
+		/**
+		 * Checks the three generated lists against the stubbed policy: each AOP and
+		 * Phobos case in order with its own category's permissions, and the
+		 * architecture cases in order.
+		 *
+		 * @param unpermitted the categories without a permission
+		 */
+		private void assertGeneratedCases(Set<JavaAOPTestCaseSupported> unpermitted) {
+			List<AOPTestCaseSupported> aopCategories = JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION.getDynamic();
+			assertFalse(aopTestCases.isEmpty());
+			assertEquals(aopCategories, aopTestCases.stream().map(AOPTestCase::getAopTestCaseSupported).toList());
+			for (int index = 0; index < aopCategories.size(); index++) {
+				JavaAOPTestCase aopCase = (JavaAOPTestCase) aopTestCases.get(index);
+				assertEquals(expectedAccesses((JavaAOPTestCaseSupported) aopCategories.get(index), unpermitted),
+						aopCase.getResourceAccessSupplier().get());
+			}
+			assertFalse(phobosTestCases.isEmpty());
+			assertEquals(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION.getPhobosTestCases(),
+					phobosTestCases.stream().map(PhobosTestCase::getPhobosTestCaseSupported).toList());
+			List<List<?>> expectedPhobosAccesses = List.of(
+					expectedAccesses(JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION, unpermitted),
+					expectedAccesses(JavaAOPTestCaseSupported.NETWORK_CONNECTION, unpermitted), timeoutAccesses);
+			for (int index = 0; index < expectedPhobosAccesses.size(); index++) {
+				JavaPhobosTestCase phobosCase = (JavaPhobosTestCase) phobosTestCases.get(index);
+				assertEquals(expectedPhobosAccesses.get(index), phobosCase.getResourceAccessSupplier().get());
+			}
+			assertFalse(architectureTestCases.isEmpty());
+			assertEquals(expectedArchitectureCategories(unpermitted), architectureTestCases.stream()
+					.map(ArchitectureTestCase::getArchitectureTestCaseSupported).toList());
+			assertFalse(aopTestCases.contains(null));
+			assertFalse(phobosTestCases.contains(null));
+			assertFalse(architectureTestCases.contains(null));
+		}
+
+		/**
+		 * With every category permitted, the cases come in order and each holds its own
+		 * permissions, and the architecture cases are the priority and static ones.
+		 */
+		@Test
+		@DisplayName("Creates every category in its order with its own permissions")
+		void createsEveryCategoryInItsOrder() {
+			stubAccesses(Set.of());
+			createCasesOverStubbedPolicy();
+			assertGeneratedCases(Set.of());
+		}
+
+		/**
+		 * One unpermitted AOP category adds exactly its own architecture case between
+		 * the priority and the static ones.
+		 *
+		 * @param unpermitted the category without a permission
+		 */
+		@ParameterizedTest
+		@EnumSource(JavaAOPTestCaseSupported.class)
+		@DisplayName("An unpermitted category gets its architecture case")
+		void anUnpermittedCategoryGetsItsArchitectureCase(JavaAOPTestCaseSupported unpermitted) {
+			Set<JavaAOPTestCaseSupported> none = Set.of(unpermitted);
+			stubAccesses(none);
+			createCasesOverStubbedPolicy();
+			assertGeneratedCases(none);
+			assertEquals(
+					JavaArchitectureTestCaseSupported.NATIVE_CODE.getPriority().size() + 1
+							+ JavaArchitectureTestCaseSupported.TERMINATE_JVM.getStatic().size(),
+					architectureTestCases.size());
+		}
+
+		/**
+		 * With every AOP category unpermitted, the four counterparts follow the
+		 * priority cases in the order of the AOP categories.
+		 */
+		@Test
+		@DisplayName("Every unpermitted category gets its architecture case in order")
+		void everyUnpermittedCategoryGetsItsArchitectureCaseInOrder() {
+			Set<JavaAOPTestCaseSupported> all = Set.of(JavaAOPTestCaseSupported.values());
+			stubAccesses(all);
+			createCasesOverStubbedPolicy();
+			assertGeneratedCases(all);
+			assertEquals(
+					List.of(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION,
+							JavaArchitectureTestCaseSupported.NETWORK_CONNECTION,
+							JavaArchitectureTestCaseSupported.COMMAND_EXECUTION,
+							JavaArchitectureTestCaseSupported.THREAD_CREATION),
+					architectureTestCases
+							.subList(JavaArchitectureTestCaseSupported.NATIVE_CODE.getPriority().size(),
+									JavaArchitectureTestCaseSupported.NATIVE_CODE.getPriority().size() + 4)
+							.stream().map(ArchitectureTestCase::getArchitectureTestCaseSupported).toList());
+		}
+
+		/**
+		 * The call graph is not built while the cases are created. It is built once
+		 * when a case first asks, and the other cases share it.
+		 */
+		@Test
+		@DisplayName("Builds the call graph once when a case asks for it")
+		void buildsTheCallGraphOnceWhenACaseAsksForIt() {
+			stubAccesses(Set.of());
+			createCasesOverStubbedPolicy();
+			verify(architectureMode, never()).getCallGraph(classpath);
+			assertTrue(architectureTestCases.size() > 1);
+			JavaArchitectureTestCase first = (JavaArchitectureTestCase) architectureTestCases.get(0);
+			JavaArchitectureTestCase last = (JavaArchitectureTestCase) architectureTestCases
+					.get(architectureTestCases.size() - 1);
+			assertSame(callGraph, first.getCallGraphSupplier().get());
+			assertSame(callGraph, last.getCallGraphSupplier().get());
+			verify(architectureMode, times(1)).getCallGraph(classpath);
+		}
+
+		/**
+		 * A compiled class in a reserved package on the supervised class path is
+		 * refused with the message that names the package and its reserved prefix.
+		 *
+		 * @throws IOException if the fixture cannot be copied
+		 */
+		@Test
+		@DisplayName("Refuses a reserved class on the supervised class path")
+		void refusesAReservedClassOnTheSupervisedClassPath() throws IOException {
+			String reservedPackage = ReservedPackageGuard.class.getPackageName();
+			String fileName = ReservedPackageGuard.class.getSimpleName() + ".class";
+			Path reservedRoot = tempDir.resolve("reserved");
+			Path reservedFolder = Files.createDirectories(reservedRoot.resolve(reservedPackage.replace('.', '/')));
+			try (InputStream bytecode = ReservedPackageGuard.class.getResourceAsStream(fileName)) {
+				Files.copy(Objects.requireNonNull(bytecode, "the class is compiled"), reservedFolder.resolve(fileName));
+			}
+			when(buildMode.getClasspath(tempDir, packageName)).thenReturn(reservedRoot.toString());
+			String reservedPrefix = ReservedPackageGuard.reservedPrefixOf(reservedPackage);
+			assertNotNull(reservedPrefix);
+			SecurityException refused = assertThrows(SecurityException.class, this::createCasesOverStubbedPolicy);
+			assertEquals(Messages.localized("security.policy.reserved.package", reservedPackage, reservedPrefix),
+					refused.getMessage());
+		}
+
+		/**
+		 * The overload without the derived flag reports the scope as derived on every
+		 * architecture case, which holds the priority and the static categories.
+		 */
+		@Test
+		@DisplayName("The overload without the flag reports the scope as derived")
+		void theOverloadWithoutTheFlagReportsTheScopeAsDerived() {
+			stubClasspathAndArchitecture();
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+			javaCreator.createTestCases(buildMode, architectureMode, aopMode, List.of("java.lang"), List.of(),
+					List.of(), packageName, mainClassName, architectureTestCases, aopTestCases, phobosTestCases,
+					resourceAccesses, tempDir);
+			List<ArchitectureTestCaseSupported> categories = architectureTestCases.stream()
+					.map(ArchitectureTestCase::getArchitectureTestCaseSupported).toList();
+			assertFalse(architectureTestCases.isEmpty());
+			assertTrue(categories.containsAll(JavaArchitectureTestCaseSupported.NATIVE_CODE.getPriority()));
+			assertTrue(categories.containsAll(JavaArchitectureTestCaseSupported.TERMINATE_JVM.getStatic()));
+			assertTrue(architectureTestCases.stream().allMatch(
+					architectureCase -> ((JavaArchitectureTestCase) architectureCase).isSupervisedScopeWasDerived()));
+		}
 	}
 
 	@Nested
@@ -400,6 +672,21 @@ public class JavaCreatorTest {
 		when(resourceAccesses.regardingPackageImports()).thenReturn(List.of(new PackagePermission("*")));
 		Set<PackagePermission> result = (Set<PackagePermission>) prepare.invoke(null, List.of(), resourceAccesses);
 		assertEquals(Set.of(new PackagePermission("*")), result);
+	}
+
+	/**
+	 * Checks that a null entry and a blank entry are skipped, and a valid one kept.
+	 */
+	@Test
+	@SuppressWarnings("unchecked")
+	void prepareAllowedPackagesSkipsNullAndBlankEntries() throws Exception {
+		Method prepare = JavaCreator.class.getDeclaredMethod("prepareAllowedPackages", List.class,
+				ResourceAccesses.class);
+		prepare.setAccessible(true);
+		when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+		Set<PackagePermission> result = (Set<PackagePermission>) prepare.invoke(null,
+				Arrays.asList(null, " ", "java.lang"), resourceAccesses);
+		assertEquals(Set.of(new PackagePermission("java.lang", true)), result);
 	}
 
 	/**
@@ -659,6 +946,100 @@ public class JavaCreatorTest {
 			Files.createDirectories(tempDir.resolve("classes"));
 			createTestCasesFor(tempDir.resolve("classes/example/nest"));
 			assertDoesNotThrow(() -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
+		 * Compiles a package descriptor and a module descriptor into the folder.
+		 *
+		 * @param classes the folder to compile into
+		 */
+		private void compileDescriptorsInto(Path classes) throws IOException {
+			Path sources = Files.createDirectories(tempDir.resolve("descriptor-src/example/nest"));
+			Path moduleInfo = Files.writeString(tempDir.resolve("descriptor-src/module-info.java"),
+					"module fixture { }");
+			Path packageInfo = Files.writeString(sources.resolve("package-info.java"), "package example.nest;");
+			Files.createDirectories(classes);
+			assertEquals(0, javax.tools.ToolProvider.getSystemJavaCompiler().run(null, null, null, "-Xpkginfo:always",
+					"-d", classes.toString(), moduleInfo.toString(), packageInfo.toString()));
+			assertTrue(Files.isRegularFile(classes.resolve("module-info.class")));
+			assertTrue(Files.isRegularFile(classes.resolve("example/nest/package-info.class")));
+		}
+
+		/** An output with no production folder at all holds nothing and is accepted. */
+		@Test
+		@DisplayName("Accepts a project without a production output")
+		void acceptsAProjectWithoutAProductionOutput() {
+			assertFalse(Files.exists(tempDir.resolve("classes")));
+			createTestCasesFor(tempDir.resolve("classes/example/nest"));
+			assertDoesNotThrow(() -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
+		 * An output holding only package and module descriptors and a resource file is
+		 * not compiled code, so a missing scope is accepted.
+		 */
+		@Test
+		@DisplayName("Ignores descriptors and resources")
+		void ignoresDescriptorsAndResources() throws IOException {
+			Path classes = tempDir.resolve("classes");
+			compileDescriptorsInto(classes);
+			Files.writeString(classes.resolve("app.properties"), "key=value");
+			createTestCasesFor(classes.resolve("example/missing"));
+			assertDoesNotThrow(() -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
+		 * An output folder Ares cannot read is refused, not trusted. The test is
+		 * skipped where the file system has no permissions or ignores them, as for an
+		 * administrator.
+		 */
+		@Test
+		@DisplayName("Refuses an output it cannot read")
+		void refusesAnOutputItCannotRead() throws IOException {
+			assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
+					"needs a POSIX file system");
+			Path unreadable = Files.createDirectories(tempDir.resolve("classes/hidden"));
+			Set<PosixFilePermission> original = Files.getPosixFilePermissions(unreadable);
+			try {
+				Files.setPosixFilePermissions(unreadable, Set.of());
+				assumeFalse(Files.isReadable(unreadable), "the file system ignores permissions");
+				Path scope = tempDir.resolve("classes/example/nest");
+				createTestCasesFor(scope);
+				SecurityException refused = assertThrows(SecurityException.class,
+						() -> javaCreator.requireSupervisedClasses(buildMode));
+				assertEquals(Messages.localized("security.policy.supervised.classes.missing", scope.toString(),
+						tempDir.resolve("classes")), refused.getMessage());
+			} finally {
+				Files.setPosixFilePermissions(unreadable, original);
+			}
+		}
+
+		/**
+		 * A creator bound to a build configuration measures the configuration's
+		 * production output, not the build mode's: it refuses while a class lies there
+		 * and accepts once the folder is empty.
+		 */
+		@Test
+		@DisplayName("Checks the configured production output")
+		void checksTheConfiguredProductionOutput() throws IOException {
+			Path configuredOutput = Files.createDirectories(tempDir.resolve("configured-classes"));
+			compileFixtureInto(configuredOutput.resolve("example/nest"));
+			BuildToolConfiguration configuration = new BuildToolConfiguration(buildMode, tempDir, List.of(), List.of(),
+					configuredOutput, tempDir.resolve("configured-test-classes"));
+			Path scope = tempDir.resolve("missing/example/nest");
+			JavaCreator bound = new JavaCreator(configuration);
+			when(architectureMode.getJavaClasses(anyString())).thenReturn(javaClasses);
+			when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
+			bound.createTestCases(buildMode, architectureMode, aopMode, List.of(), List.of(), List.of(), PACKAGE,
+					"Main", new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), resourceAccesses, scope, true);
+			SecurityException refused = assertThrows(SecurityException.class,
+					() -> bound.requireSupervisedClasses(buildMode));
+			assertEquals(
+					Messages.localized("security.policy.supervised.classes.missing",
+							configuration.classpath(scope, PACKAGE), configuration.productionOutputRoot()),
+					refused.getMessage());
+			Files.delete(configuredOutput.resolve("example/nest/NestHostFixture.class"));
+			assertDoesNotThrow(() -> bound.requireSupervisedClasses(buildMode));
 		}
 	}
 
