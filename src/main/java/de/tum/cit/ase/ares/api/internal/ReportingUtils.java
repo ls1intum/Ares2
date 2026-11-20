@@ -136,7 +136,9 @@ public final class ReportingUtils {
 	 * test: a hidden test's failure as the uniform hidden text, a blocked action at
 	 * the policy's feedback level, and, when the policy reports only privileged
 	 * failures, any other failure as the policy's message. A privileged failure is
-	 * reported as in a test, and an aborted test keeps its own report.
+	 * reported as in a test, and an aborted test keeps its own report. When the
+	 * policy file cannot be read, the test fails on that, with the setup failure
+	 * attached.
 	 *
 	 * @param t       the failure.
 	 * @param context the test context.
@@ -145,6 +147,11 @@ public final class ReportingUtils {
 	public static Throwable processLifecycleFailure(Throwable t, TestContext context) {
 		if (!(t instanceof IncompleteExecutionException) && context.findTestType().orElse(null) == TestType.HIDDEN) {
 			return new AssertionError(localized("test_guard.hidden_test_failed")); //$NON-NLS-1$
+		}
+		try {
+			ConfigurationUtils.findPolicyFailureFeedback(context);
+		} catch (RuntimeException unreadablePolicy) {
+			return unreadablePolicyReport(unreadablePolicy, t);
 		}
 		if (t instanceof PrivilegedException) {
 			return inspectedReport(t, inspect(t), ConfigurationUtils.getSecurityViolationFeedbackLevel(context),
@@ -157,6 +164,21 @@ public final class ReportingUtils {
 		Inspection inspection = inspect(t);
 		return inspection.violation() == null ? new AssertionError(nonprivilegedFailureMessage.get())
 				: blockedActionReport(t, inspection, context);
+	}
+
+	/**
+	 * The report of a setup failure under a policy file that cannot be read: a new
+	 * exception with the policy's error as its message and cause, so the cached
+	 * error is never changed, and the setup failure attached as suppressed.
+	 *
+	 * @param unreadablePolicy why the policy could not be read.
+	 * @param setupFailure     the failure of the setup method.
+	 * @return the report.
+	 */
+	private static SecurityException unreadablePolicyReport(RuntimeException unreadablePolicy, Throwable setupFailure) {
+		SecurityException report = new SecurityException(unreadablePolicy.getMessage(), unreadablePolicy);
+		report.addSuppressed(setupFailure);
+		return report;
 	}
 
 	/**

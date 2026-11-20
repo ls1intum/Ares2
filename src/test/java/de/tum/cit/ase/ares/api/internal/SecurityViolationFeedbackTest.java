@@ -48,6 +48,9 @@ class SecurityViolationFeedbackTest {
 	/** The LOW text, in English. */
 	private static final String LOW_TEXT = "Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.";
 
+	/** A policy file the unreadable-policy test writes broken. */
+	private static final String UNREADABLE_POLICY = "target/unreadable-policy/Broken.yaml";
+
 	/** What a failure that could not be read completely is reported as. */
 	private static final String UNINSPECTABLE_TEXT = "Ares could not read this failure completely, so its details are not shown.";
 
@@ -929,6 +932,25 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
+	 * A setup failure under a policy file that cannot be read fails on the policy,
+	 * with the setup failure attached, and leaves the policy's own error unchanged
+	 * for the next report.
+	 *
+	 * @throws Exception if the fixture cannot be written
+	 */
+	@Test
+	void anUnreadablePolicyKeepsTheSetupFailureAttached() throws Exception {
+		java.nio.file.Path broken = java.nio.file.Path.of(UNREADABLE_POLICY);
+		java.nio.file.Files.createDirectories(broken.getParent());
+		java.nio.file.Files.writeString(broken, "thisPolicyFileCompliesToThePolicyVersion: [");
+		IllegalStateException setup = new IllegalStateException("setup detail");
+		Throwable reported = ReportingUtils.processLifecycleFailure(setup, contextFor("unreadablePolicy"));
+		assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasCauseInstanceOf(RuntimeException.class);
+		assertThat(reported.getSuppressed()).containsExactly(setup);
+		assertThat(reported.getCause().getSuppressed()).isEmpty();
+	}
+
+	/**
 	 * At HIGH, a setup failure carrying a blocked action under a student override
 	 * the search skipped is reported as the blocked action alone, so the carrier's
 	 * own methods are never handed on.
@@ -1599,6 +1621,16 @@ class SecurityViolationFeedbackTest {
 	@SuppressWarnings("PMD.UnusedPrivateMethod")
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelDEBUG.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject")
 	private static void debugPolicy() {
+		// A policy only, no test behaviour of its own.
+	}
+
+	/**
+	 * Carries a policy file the test writes unreadable; used only through the
+	 * mocked context.
+	 */
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy(value = UNREADABLE_POLICY)
+	private static void unreadablePolicy() {
 		// A policy only, no test behaviour of its own.
 	}
 
