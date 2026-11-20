@@ -58,10 +58,7 @@ public final class JceForkProbe {
 			System.out.println("JCE_PROBE_PASSED");
 			return;
 		}
-		SecurityPolicyReaderAndDirector.builder().projectFolderPath(Path.of(arguments[3]))
-				.securityPolicyFilePath(Path.of(arguments[1])).withinPath(Path.of(arguments[4])).build()
-				.createTestCases().executeTestCases();
-		System.out.println("JCE_PROBE_ARMED");
+		armPolicy(arguments);
 		if ("snapshot".equals(arguments[0])) {
 			checkSnapshot(Path.of(arguments[2]));
 		} else if ("boundary".equals(arguments[0])) {
@@ -71,6 +68,17 @@ public final class JceForkProbe {
 		}
 		JavaInstrumentationAgent.throwIfTransformationFailed();
 		System.out.println("JCE_PROBE_PASSED");
+	}
+
+	/**
+	 * Arms the real policy named in the launch arguments for the project and the
+	 * student folder they name, then prints the armed marker.
+	 */
+	static void armPolicy(String[] arguments) {
+		SecurityPolicyReaderAndDirector.builder().projectFolderPath(Path.of(arguments[3]))
+				.securityPolicyFilePath(Path.of(arguments[1])).withinPath(Path.of(arguments[4])).build()
+				.createTestCases().executeTestCases();
+		System.out.println("JCE_PROBE_ARMED");
 	}
 
 	/**
