@@ -397,7 +397,7 @@ The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports 
 
 The category and field names follow the proposal in issue #386, section C. They are not final until the advisor accepts them; [Policy Compatibility](./policy-compatibility.md) lists which release accepts which key.
 
-Ares reads these settings once per policy file, before it supervises any test code, and keeps them for the test class. A policy file changed while the tests run changes nothing. Any malformed value, unknown key or explicit `null` fails every test and names the field.
+Ares reads these settings once per policy file and test run, before it supervises any test code, and every test class of the run keeps that reading. A policy file changed while the tests run changes nothing, even for a test class that starts later. Any malformed value, unknown key or explicit `null` fails every test and names the field.
 
 #### 7.7.3 Failure feedback
 

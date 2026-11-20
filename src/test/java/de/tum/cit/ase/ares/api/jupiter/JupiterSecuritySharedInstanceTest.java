@@ -93,6 +93,7 @@ class JupiterSecuritySharedInstanceTest {
 		ExtensionContext context = mock(ExtensionContext.class);
 		ExtensionContext.Store store = MockStores.workingStore();
 		when(context.getStore(any())).thenReturn(store);
+		when(context.getRoot()).thenReturn(context);
 		when(context.getTestClass()).thenReturn(Optional.of(SharedFixture.class));
 		when(context.getRequiredTestClass()).thenAnswer(call -> SharedFixture.class);
 		when(context.getTestMethod()).thenReturn(Optional.empty());
