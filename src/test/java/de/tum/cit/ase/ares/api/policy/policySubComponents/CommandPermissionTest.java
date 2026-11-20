@@ -12,6 +12,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
@@ -97,6 +98,10 @@ class CommandPermissionTest {
 	private static Stream<Arguments> malformedCommandNodes() throws Exception {
 		YAMLMapper mapper = new YAMLMapper();
 		return Stream.of(Arguments.of(NullNode.getInstance(), "policy.permission.command.blank"),
+				Arguments.of(TextNode.valueOf(" "), "policy.permission.command.blank"),
+				Arguments.of(mapper.readTree("[git]"), "policy.permission.command.blank"),
+				Arguments.of(mapper.readTree("{executeTheCommand: \" \", withTheseArguments: status}"),
+						"policy.permission.command.blank"),
 				Arguments.of(mapper.readTree("{executeTheCommand: git, somethingElse: []}"),
 						"policy.permission.command.mapping.fields"),
 				Arguments.of(mapper.readTree("{somethingElse: git, withTheseArguments: []}"),
