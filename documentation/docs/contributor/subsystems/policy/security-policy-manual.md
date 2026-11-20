@@ -237,9 +237,10 @@ Security policies are written in YAML format. YAML uses indentation (spaces, not
 ### 7.2 Complete Structure
 
 ```yaml
-# REQUIRED: The policy format version. Must be exactly 1; any other value,
-# or omitting the key, causes the policy to be rejected on load.
-thisPolicyFileCompliesToThePolicyVersion: 1
+# REQUIRED: The policy format version, 1 or 2. Version 2 is needed as soon as
+# any category under theFollowingTestBehaviorIsConfigured is set; any other
+# value, or omitting the key, causes the policy to be rejected on load.
+thisPolicyFileCompliesToThePolicyVersion: 2
 
 regardingTheSupervisedCode:
   # REQUIRED: Which configuration to use
@@ -297,7 +298,7 @@ regardingTheSupervisedCode:
   theFollowingTestBehaviorIsConfigured:
     regardingTheVisibilityAndScheduleOfTheTestCases:
       theDeadlineIs: "2026-12-24 23:59 Europe/Berlin"               # REQUIRED in this category
-      theDeadlineIsExtendedBy: "1d 12h"                             # OPTIONAL
+      theDeadlineIsExtendedBy: "36 HOURS"                           # OPTIONAL
       theHiddenTestsAreRunBefore: "2026-11-01 00:00 Europe/Berlin"  # OPTIONAL
       testsNotListedHereAreHidden: false                            # REQUIRED in this category
       theFollowingTestsAreHidden: [ "org.example.PenguinTest#name" ] # OPTIONAL
@@ -395,20 +396,20 @@ theFollowingClassesAreTestClasses:
 
 ### 7.7 Test Behaviour Configuration
 
-The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before.
+The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before. A policy that sets any category must declare `thisPolicyFileCompliesToThePolicyVersion: 2`; Ares refuses a version 1 policy that sets one, and its message names the category and the version it needs.
 
 The category and field names follow the proposal in issue #386, section C. They are not final until the advisor accepts them; [Policy Compatibility](./policy-compatibility.md) lists which release accepts which key.
 
 Ares reads these settings once per policy file, before it supervises any test code, and keeps them for the test class. A policy file changed while the tests run changes nothing. Any malformed value, unknown key or explicit `null` fails every test and names the field.
 
-**Durations** such as `theTimeoutIs`, `theTerminationGraceIs` and `theDeadlineIsExtendedBy` are text: days `d`, hours `h`, minutes `m`, seconds `s` and milliseconds `ms`, each at most once, largest first, in any letter case. `"2s"`, `"500ms"` and `"1d 12h"` are durations; `"1s 1m"` (wrong order), `"1s 2s"` (repeated unit) and `"2"` (no unit) are not. `"5M"` is five minutes, and `"5MS"` five milliseconds.
+**Durations** such as `theTimeoutIs`, `theTerminationGraceIs` and `theDeadlineIsExtendedBy` are one text each. The text is a whole number, one space and the name of a Java `TimeUnit` in capitals: `NANOSECONDS`, `MICROSECONDS`, `MILLISECONDS`, `SECONDS`, `MINUTES`, `HOURS` or `DAYS`. `"2 SECONDS"`, `"500 MILLISECONDS"` and `"36 HOURS"` are durations; `"2s"`, `"2 seconds"`, `"2 SECOND"`, `"1 DAYS 12 HOURS"` and `"2"` are not. Ares refuses a YAML number such as `2` too, and its message names the field and lists the seven units.
 
 #### 7.7.4 Visibility and schedule
 
 `regardingTheVisibilityAndScheduleOfTheTestCases` sets, for the whole exercise, what `@Deadline`, `@ExtendedDeadline` and `@ActivateHiddenBefore` set per class or method, and what `@Hidden` and `@Public` say about a test.
 
 - `theDeadlineIs` (text, **required**): the deadline, in the `@Deadline` format, ending in a time zone such as `Europe/Berlin` or `UTC`. Hidden tests run once it has passed.
-- `theDeadlineIsExtendedBy` (duration, optional): added to the deadline.
+- `theDeadlineIsExtendedBy` (duration, optional): added to the deadline, such as `"36 HOURS"`. The `@ExtendedDeadline` annotation keeps its own format, such as `1d 12h`; only this policy field uses the `TimeUnit` form.
 - `theHiddenTestsAreRunBefore` (text, optional): a date in the same format, before which hidden tests run, as `@ActivateHiddenBefore` does.
 - `testsNotListedHereAreHidden` (boolean, **required**): whether a test no entry names is hidden (`true`) or left to its annotations (`false`). It reaches only tests under Ares. A plain JUnit `@Test` in a class without `@PublicTest`, `@HiddenTest`, `@Public` or `@Hidden` still runs before the deadline and shows its result. So give every test class one of these annotations.
 - `theFollowingTestsAreHidden` (list of text, optional): the hidden tests. A fully qualified class name (`org.example.PenguinTest`) covers every test in that class and in its nested classes. A class name followed by `#` and a method name (`org.example.PenguinTest#name`) covers every method of that name the class declares or inherits, but not one of a nested class. Write a nested class with dots (`org.example.PenguinTest.Inner`).
@@ -420,7 +421,7 @@ The nearest entry wins: the test's own class with its method, then its class, th
 theFollowingTestBehaviorIsConfigured:
   regardingTheVisibilityAndScheduleOfTheTestCases:
     theDeadlineIs: "2026-12-24 23:59 Europe/Berlin"
-    theDeadlineIsExtendedBy: "1d"
+    theDeadlineIsExtendedBy: "1 DAYS"
     testsNotListedHereAreHidden: true
     theFollowingTestsAreHidden:
       - "org.example.PenguinTest#secret"

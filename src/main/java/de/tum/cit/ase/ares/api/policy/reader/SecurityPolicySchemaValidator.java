@@ -224,7 +224,7 @@ public final class SecurityPolicySchemaValidator {
 	}
 
 	/**
-	 * Requires a field to be a duration such as {@code "2s"}.
+	 * Requires a field to be a duration such as {@code "2 SECONDS"}.
 	 *
 	 * @param parent the node holding the field.
 	 * @param field  the field's name.
@@ -234,7 +234,8 @@ public final class SecurityPolicySchemaValidator {
 	private static void requireDuration(JsonNode parent, String field, String path) throws MismatchedInputException {
 		requireText(parent, field, path);
 		if (PolicyDuration.tryParse(parent.get(field).textValue()).isEmpty()) {
-			fail(path + "." + field + " must be a duration such as \"2s\", \"500ms\" or \"1d 12h\"");
+			fail(path + "." + field
+					+ " must be a whole number, one space and a time unit (NANOSECONDS, MICROSECONDS, MILLISECONDS, SECONDS, MINUTES, HOURS, DAYS), such as \"2 SECONDS\"");
 		}
 	}
 

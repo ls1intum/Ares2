@@ -9,6 +9,7 @@ import java.time.*;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
@@ -16,7 +17,6 @@ import org.slf4j.*;
 
 import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.context.*;
-import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyDuration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.VisibilityAndScheduleConfiguration;
 
 /**
@@ -34,6 +34,8 @@ public final class TestGuardUtils {
 	 * the ones in {@link ZoneId#SHORT_IDS} do as well.
 	 */
 	private static final String ZONE_ID_START_PATTERN = "[-+A-Za-z].*"; //$NON-NLS-1$
+	private static final Pattern DURATION_PATTERN = Pattern
+			.compile("(?:(?<d>\\d++)d)?\\s*+(?:\\b(?<h>\\d++)h)?\\s*+(?:\\b(?<m>\\d++)m)?", Pattern.CASE_INSENSITIVE); //$NON-NLS-1$
 
 	private TestGuardUtils() {
 	}
@@ -249,8 +251,14 @@ public final class TestGuardUtils {
 	 */
 	@API(status = Status.INTERNAL)
 	public static Duration parseDuration(String durationString) {
-		var duration = PolicyDuration.tryParse(durationString).orElseThrow(() -> new AnnotationFormatError(
-				localized("test_guard.invalid_extended_deadline_format", durationString))); //$NON-NLS-1$
+		var matcher = DURATION_PATTERN.matcher(durationString);
+		if (!matcher.matches()) {
+			throw new AnnotationFormatError(localized("test_guard.invalid_extended_deadline_format", durationString)); //$NON-NLS-1$
+		}
+		int d = Optional.ofNullable(matcher.group("d")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
+		int h = Optional.ofNullable(matcher.group("h")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
+		int m = Optional.ofNullable(matcher.group("m")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
+		var duration = Duration.ofDays(d).plusHours(h).plusMinutes(m);
 		if (duration.isZero() || duration.isNegative()) {
 			throw new AnnotationFormatError(localized("test_guard.extended_deadline_zero_or_negative", durationString)); //$NON-NLS-1$
 		}

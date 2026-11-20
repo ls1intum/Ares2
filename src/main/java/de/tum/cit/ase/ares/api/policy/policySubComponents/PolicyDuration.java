@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,22 +12,19 @@ import javax.annotation.Nullable;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
- * Reads the durations a policy writes as text, such as {@code "2s"},
- * {@code "500ms"} or {@code "1d 12h"}. Days, hours, minutes, seconds and
- * milliseconds may each appear once, largest first, in any letter case. The
- * same rules serve the strict timeout, its grace and the deadline extension.
+ * Reads the durations a policy writes as text: a whole number, one space and
+ * the exact name of a {@link TimeUnit} constant, such as {@code "2 SECONDS"} or
+ * {@code "36 HOURS"}. The unit is read with {@link TimeUnit#valueOf(String)},
+ * so only the seven upper-case names are accepted. The same rules serve the
+ * strict timeout, its grace and the deadline extension.
  *
  * @since 2.3.0
  * @author Luka Petrovic
  */
 public final class PolicyDuration {
 
-	/**
-	 * The grammar. {@code ms} is tried before {@code m}, so {@code "5MS"} is five
-	 * milliseconds and {@code "5M"} five minutes.
-	 */
-	private static final Pattern GRAMMAR = Pattern.compile("(?:(?<d>\\d++)d)?\\s*+(?:(?<h>\\d++)h)?\\s*+"
-			+ "(?:(?<m>\\d++)m(?!s))?\\s*+(?:(?<s>\\d++)s)?\\s*+(?:(?<ms>\\d++)ms)?", Pattern.CASE_INSENSITIVE);
+	/** The grammar: digits, exactly one space, upper-case letters. */
+	private static final Pattern GRAMMAR = Pattern.compile("^(\\d+) ([A-Z]+)$");
 
 	/** Not instantiable. */
 	private PolicyDuration() {
@@ -34,8 +32,8 @@ public final class PolicyDuration {
 	}
 
 	/**
-	 * Reads a duration, or nothing when the text does not follow the grammar, has
-	 * no unit at all, or is too long for a {@link Duration}.
+	 * Reads a duration, or nothing when the text does not follow the grammar, names
+	 * no {@link TimeUnit}, or is too long to count in nanoseconds.
 	 *
 	 * @since 2.3.0
 	 * @author Luka Petrovic
@@ -47,17 +45,18 @@ public final class PolicyDuration {
 		if (text == null) {
 			return Optional.empty();
 		}
-		Matcher matcher = GRAMMAR.matcher(text.strip());
-		if (!matcher.matches() || matcher.group("d") == null && matcher.group("h") == null && matcher.group("m") == null
-				&& matcher.group("s") == null && matcher.group("ms") == null) {
+		Matcher matcher = GRAMMAR.matcher(text);
+		if (!matcher.matches()) {
 			return Optional.empty();
 		}
 		try {
-			Duration duration = Duration.ofDays(amount(matcher, "d")).plusHours(amount(matcher, "h"))
-					.plusMinutes(amount(matcher, "m")).plusSeconds(amount(matcher, "s"))
-					.plusMillis(amount(matcher, "ms"));
-			return Optional.of(duration);
-		} catch (ArithmeticException | NumberFormatException tooLong) {
+			long amount = Long.parseLong(matcher.group(1));
+			TimeUnit unit = TimeUnit.valueOf(matcher.group(2));
+			if (unit.toNanos(amount) == Long.MAX_VALUE) {
+				return Optional.empty();
+			}
+			return Optional.of(Duration.of(amount, unit.toChronoUnit()));
+		} catch (IllegalArgumentException | ArithmeticException notADuration) {
 			return Optional.empty();
 		}
 	}
@@ -77,17 +76,5 @@ public final class PolicyDuration {
 	public static Duration parse(@Nonnull String field, @Nullable String text) {
 		return tryParse(text).orElseThrow(() -> new IllegalArgumentException(
 				Messages.localized("policy.behavior.duration.invalid", field, String.valueOf(text))));
-	}
-
-	/**
-	 * Returns one unit's amount, zero when that unit is absent.
-	 *
-	 * @param matcher the successful match.
-	 * @param unit    the group's name.
-	 * @return the amount.
-	 */
-	private static long amount(@Nonnull Matcher matcher, @Nonnull String unit) {
-		String value = matcher.group(unit);
-		return value == null ? 0 : Long.parseLong(value);
 	}
 }

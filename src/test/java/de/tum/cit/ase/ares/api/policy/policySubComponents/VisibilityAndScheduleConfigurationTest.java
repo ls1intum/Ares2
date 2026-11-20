@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.lang.annotation.AnnotationFormatError;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Locale;
@@ -19,6 +20,8 @@ import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 
 import de.tum.cit.ase.ares.api.context.TestType;
+import de.tum.cit.ase.ares.api.internal.TestGuardUtils;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Checks the policy's hidden-test category: its required deadline and
@@ -83,7 +86,7 @@ class VisibilityAndScheduleConfigurationTest {
 	/** The extension is added to the deadline. */
 	@Test
 	void theExtensionIsAddedToTheDeadline() {
-		VisibilityAndScheduleConfiguration configuration = base().theDeadlineIsExtendedBy("1d 12h").build();
+		VisibilityAndScheduleConfiguration configuration = base().theDeadlineIsExtendedBy("36 HOURS").build();
 
 		assertThat(configuration.extension()).contains(Duration.ofHours(36));
 		assertThat(configuration.effectiveDeadline())
@@ -97,7 +100,7 @@ class VisibilityAndScheduleConfigurationTest {
 	 */
 	@Test
 	void anExtensionPastTheLastDateIsRefused() {
-		assertThatThrownBy(() -> base().theDeadlineIsExtendedBy("9223372036854775807s").build())
+		assertThatThrownBy(() -> base().theDeadlineIsExtendedBy("9223372036854775807 SECONDS").build())
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("theDeadlineIsExtendedBy");
 	}
 
@@ -143,6 +146,18 @@ class VisibilityAndScheduleConfigurationTest {
 	}
 
 	/**
+	 * The {@code @ExtendedDeadline} annotation keeps its own format: {@code 1d 12h}
+	 * still extends by 36 hours, and the policy's {@code 36 HOURS} is refused
+	 * there.
+	 */
+	@Test
+	void theAnnotationKeepsItsOwnFormat() {
+		assertThat(TestGuardUtils.parseDuration("1d 12h")).isEqualTo(Duration.ofHours(36));
+		assertThatThrownBy(() -> TestGuardUtils.parseDuration("36 HOURS")).isInstanceOf(AnnotationFormatError.class)
+				.hasMessage(Messages.localized("test_guard.invalid_extended_deadline_format", "36 HOURS"));
+	}
+
+	/**
 	 * A malformed value is refused, naming its field.
 	 *
 	 * @param field the field.
@@ -150,7 +165,8 @@ class VisibilityAndScheduleConfigurationTest {
 	 */
 	@ParameterizedTest
 	@CsvSource(delimiter = '|', value = { "theDeadlineIs|2026-13-45 23:59 UTC", "theDeadlineIs|tomorrow UTC",
-			"theDeadlineIsExtendedBy|soon", "theDeadlineIsExtendedBy|0d", "theHiddenTestsAreRunBefore|yesterday UTC" })
+			"theDeadlineIsExtendedBy|soon", "theDeadlineIsExtendedBy|0 DAYS", "theDeadlineIsExtendedBy|1d 12h",
+			"theDeadlineIsExtendedBy|36 hours", "theHiddenTestsAreRunBefore|yesterday UTC" })
 	void aMalformedValueIsRefused(String field, String value) {
 		VisibilityAndScheduleConfiguration.Builder builder = base();
 		switch (field) {

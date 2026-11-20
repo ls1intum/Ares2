@@ -11,21 +11,22 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import de.tum.cit.ase.ares.api.internal.TestGuardUtils;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 /** Checks the one duration grammar the policy uses. */
 class PolicyDurationTest {
 
 	/**
-	 * Every unit, combined in order, with and without spaces and in any case.
+	 * Every {@code TimeUnit} name is read with a whole number before it.
 	 *
-	 * @param text   the text to read.
-	 * @param millis the expected duration in milliseconds.
+	 * @param text  the text to read.
+	 * @param nanos the expected duration in nanoseconds.
 	 */
 	@ParameterizedTest
-	@CsvSource({ "2s, 2000", "500ms, 500", "1d 12h, 129600000", "1d12h30m, 131400000", "1m 30s 5ms, 90005",
-			"5M, 300000", "5MS, 5", "5Ms, 5", "1D 12H 30M, 131400000", "0s, 0" })
-	void validDurationsAreRead(String text, long millis) {
-		assertThat(PolicyDuration.tryParse(text)).contains(Duration.ofMillis(millis));
+	@CsvSource({ "2 NANOSECONDS, 2", "2 MICROSECONDS, 2000", "2 MILLISECONDS, 2000000", "2 SECONDS, 2000000000",
+			"2 MINUTES, 120000000000", "2 HOURS, 7200000000000", "2 DAYS, 172800000000000", "0 SECONDS, 0" })
+	void everyTimeUnitIsRead(String text, long nanos) {
+		assertThat(PolicyDuration.tryParse(text)).contains(Duration.ofNanos(nanos));
 	}
 
 	/**
@@ -34,8 +35,9 @@ class PolicyDurationTest {
 	 * @param text the text to refuse.
 	 */
 	@ParameterizedTest
-	@ValueSource(strings = { "", " ", "2", "soon", "1s 1m", "1s 2s", "-1s", "1.5s", "1 s x", "1ns",
-			"9999999999999999999d" })
+	@ValueSource(strings = { "", " ", "2s", "2 seconds", "2 SECOND", "2", "SECONDS", "-1 SECONDS", "2  SECONDS",
+			" 2 SECONDS", "2 SECONDS ", "1 DAYS 12 HOURS", "1.5 SECONDS", "2 WEEKS", "9223372036854775807 DAYS",
+			"99999999999999999999 SECONDS" })
 	void invalidTextIsNotADuration(String text) {
 		assertThat(PolicyDuration.tryParse(text)).isEmpty();
 	}
@@ -46,16 +48,18 @@ class PolicyDurationTest {
 		assertThat(PolicyDuration.tryParse(null)).isEmpty();
 	}
 
-	/** The refusal names the field. */
+	/** The refusal names the field, the value and the seven units. */
 	@Test
-	void theRefusalNamesTheField() {
-		assertThatThrownBy(() -> PolicyDuration.parse("theTimeoutIs", "soon"))
-				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("theTimeoutIs")
-				.hasMessageContaining("soon");
+	void theRefusalNamesTheFieldAndTheUnits() {
+		assertThatThrownBy(() -> PolicyDuration.parse("theTimeoutIs", "2s"))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessage(Messages.localized("policy.behavior.duration.invalid", "theTimeoutIs", "2s"))
+				.hasMessageContaining("theTimeoutIs").hasMessageContaining("NANOSECONDS").hasMessageContaining("DAYS");
 	}
 
 	/**
-	 * Every form {@code @ExtendedDeadline} accepted before still parses the same.
+	 * Every form {@code @ExtendedDeadline} accepted before still parses the same,
+	 * since the annotation keeps its own format.
 	 *
 	 * @param text    the extension.
 	 * @param minutes the expected duration in minutes.

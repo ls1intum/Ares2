@@ -352,7 +352,7 @@ public record VisibilityAndScheduleConfiguration(@Nullable String theDeadlineIs,
 		 *
 		 * @since 2.3.0
 		 * @author Luka Petrovic
-		 * @param theDeadlineIsExtendedBy the extension, such as {@code 1d 12h}.
+		 * @param theDeadlineIsExtendedBy the extension, such as {@code 36 HOURS}.
 		 * @return the updated Builder.
 		 */
 		@Nonnull

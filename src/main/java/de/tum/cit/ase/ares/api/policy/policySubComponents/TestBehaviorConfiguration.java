@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -50,6 +51,24 @@ public record TestBehaviorConfiguration(
 	@Nonnull
 	public List<String> literalFieldAssignments() {
 		return List.of();
+	}
+
+	/**
+	 * Names the first category this configuration sets, in the order the policy
+	 * file lists them. The version check uses it to say which setting needs the
+	 * newer policy format.
+	 *
+	 * @since 2.3.0
+	 * @author Luka Petrovic
+	 * @return the policy key of the first configured category; empty when none is
+	 *         configured.
+	 */
+	@Nonnull
+	public Optional<String> firstConfiguredCategory() {
+		if (regardingTheVisibilityAndScheduleOfTheTestCases != null) {
+			return Optional.of(TestBehaviorFieldNames.VISIBILITY_AND_SCHEDULE);
+		}
+		return Optional.empty();
 	}
 
 	/**
