@@ -281,6 +281,24 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
+	 * Only a whole value is the policy's wildcard: a path or host that merely holds
+	 * a {@code *} keeps its exact entry, as Ares matches it literally.
+	 *
+	 * @param kind   the kind.
+	 * @param action the action.
+	 * @param target the target.
+	 * @param first  the entry's first line.
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = { "file|read|/data/*|- onThisPathAndAllPathsBelow: \"/data/*\"",
+			"network|connect|*.example.org:443|- onTheHost: \"*.example.org\"" })
+	void aTargetMerelyHoldingAStarKeepsItsEntry(String kind, String action, String target, String first) {
+		assertThat(
+				SecurityViolationFeedback.entryOf(new SecurityViolationFeedback.Violation(kind, action, target, HIGH)))
+						.hasValueSatisfying(entry -> assertThat(entry).startsWith(first));
+	}
+
+	/**
 	 * A fixed architecture rule, which no policy entry switches off, gets no hint
 	 * at all: DEBUG shows the HIGH report alone.
 	 *
