@@ -337,21 +337,24 @@ class JavaInstrumentationLibraryLoadCheckTest {
 	@Test
 	void anUnacceptedBootLibraryPathGivesNoFolder(@TempDir Path home) {
 		String lib = home.resolve("lib").toString();
-		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(home.toString(), null, ":"))
-				.isNull();
-		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(home.toString(), "", ":"))
-				.isNull();
+		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(home.toString(), null,
+				File.pathSeparator)).isNull();
+		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(home.toString(), "",
+				File.pathSeparator)).isNull();
 		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(home.toString(),
-				lib + ":" + lib, ":")).isNull();
-		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(home.toString(), "lib", ":"))
-				.isNull();
+				lib + File.pathSeparator + lib, File.pathSeparator)).isNull();
+		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(home.toString(), "lib",
+				File.pathSeparator)).isNull();
 		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(home.toString(),
-				home.getParent().resolve("elsewhere").toString(), ":")).isNull();
+				home.getParent().resolve("elsewhere").toString(), File.pathSeparator)).isNull();
 		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(home.toString(),
-				home.resolve("lib").resolve("..").resolve("..").resolve("elsewhere").toString(), ":")).isNull();
-		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(null, lib, ":")).isNull();
-		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(home.toString(), lib, ":"))
-				.isEqualTo(home.resolve("lib"));
+				home.resolve("lib").resolve("..").resolve("..").resolve("elsewhere").toString(), File.pathSeparator))
+						.isNull();
+		assertThat(
+				JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(null, lib, File.pathSeparator))
+						.isNull();
+		assertThat(JavaInstrumentationAdviceFileSystemToolbox.trustedBootLibraryDirectory(home.toString(), lib,
+				File.pathSeparator)).isEqualTo(home.resolve("lib"));
 	}
 
 	/**
