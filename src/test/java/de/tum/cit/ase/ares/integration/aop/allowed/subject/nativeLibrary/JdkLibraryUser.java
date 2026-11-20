@@ -1,10 +1,11 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.nativeLibrary;
 
+import com.sun.security.auth.module.NTSystem;
 import com.sun.security.auth.module.UnixSystem;
 
 /**
- * Student code that reads the user id through the JDK, which loads its own
- * {@code jaas} library for every new reader.
+ * Student code that reads the current user through the JDK, which loads its own
+ * {@code jaas} library for every new reader, on Windows as on other systems.
  */
 public final class JdkLibraryUser {
 
@@ -19,6 +20,16 @@ public final class JdkLibraryUser {
 	 */
 	public static long readUserId() {
 		return new UnixSystem().getUid();
+	}
+
+	/**
+	 * Reads the security identifier of the current user, the Windows counterpart of
+	 * {@link #readUserId()}, whose native part exists only on Windows.
+	 *
+	 * @return that identifier
+	 */
+	public static String readUserSid() {
+		return new NTSystem().getUserSID();
 	}
 
 	/**

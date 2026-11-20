@@ -4,7 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.nio.file.Path;
+
+import org.junit.jupiter.api.function.Executable;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
@@ -64,8 +67,9 @@ class NativeLibraryJdkLoadTest {
 	 * check.
 	 */
 	private static void assertJdkLoadAllowedAndTestLoadRefused() {
-		assertDoesNotThrow(JdkLibraryUser::readUserId);
-		assertDoesNotThrow(JdkLibraryUser::readUserId);
+		Executable studentUse = File.separatorChar == '\\' ? JdkLibraryUser::readUserSid : JdkLibraryUser::readUserId;
+		assertDoesNotThrow(studentUse);
+		assertDoesNotThrow(studentUse);
 		SecurityException refused = assertThrows(SecurityException.class,
 				() -> JdkLibraryUser.run(() -> System.loadLibrary("jaas")));
 		String expected = Path.of("jaas").toAbsolutePath() + " via " + DECIDING_METHOD;
