@@ -327,6 +327,7 @@ class ConfigurationUtilsHiddenTestsTest {
 		when(store.getOrComputeIfAbsent(any(), any(), any())).thenAnswer(
 				call -> call.<java.util.function.Function<Object, Object>>getArgument(1).apply(call.getArgument(0)));
 		when(extensionContext.getStore(any())).thenReturn(store);
+		when(extensionContext.getRoot()).thenReturn(extensionContext);
 		return JupiterContext.of(extensionContext);
 	}
 
