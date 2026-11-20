@@ -480,7 +480,7 @@ The security validator performs a **series of checks** to decide whether the thr
 1. **Re-entrancy Guard**: `enterAdvice()`/`exitAdvice()`: nested advice invocations on the same thread (triggered by the advice's own class loading and stack walking) return immediately, so only the outermost interception is enforced
 2. **Is Security Enabled?** → If no: 🟢 (in instrumentation mode, a missing/empty `restrictedPackage` allows immediately)
 3. **Configuration Consistency**: If `threadClassAllowedToBeCreated` and `threadNumberAllowedToBeCreated` have different lengths → 🔴 SecurityException (this runs **before** the callstack check)
-4. **Internal Bypasses**: Thread creations owned by `ProcessBuilder`/`Runtime.exec` process I/O (`isThreadCreationFromCommandExecution()`) or by Ares's own `@StrictTimeout` machinery (`isThreadCreationFromAresTimeout()`) → 🟢
+4. **Internal Bypasses**: Thread creations owned by `ProcessBuilder`/`Runtime.exec` process I/O (`isThreadCreationFromCommandExecution()`) or by Ares's own `@StrictTimeout` machinery (`isThreadCreationFromAresTimeout()`) → 🟢. On Windows, instrumentation further lets Java 17, 21 and 25 pass their own shell-folder task to a COM thread (`isJdkShellFolderHandOffWithoutStudentCode()`) → 🟢. This holds only when a `FileSystemView` method that Ares already checks as a file read asked for it.
 5. **Does the Call Come from Student Code?** → If no: 🟢
 6. **Are All Thread Classes Allowed?** → Parameters, receiver instance, and object state are resolved into **one de-duplicated set** and checked in a single pass, so the quota is consumed at most once per distinct class per interception → If a class is forbidden or its quota is exhausted: 🔴
 7. **Block and Throw Error** → If violation found
