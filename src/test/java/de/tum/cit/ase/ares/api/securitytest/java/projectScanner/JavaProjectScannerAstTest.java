@@ -3,8 +3,10 @@ package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -642,6 +644,115 @@ class JavaProjectScannerAstTest {
 		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
 		assertArrayEquals(new String[] { "legacy.ImportedLegacy", "legacy.QualifiedLegacy", "wildcard.WildcardLegacy" },
 				scanner.scanForTestClasses());
+	}
+
+	/**
+	 * The outer annotation sorts first in the walk, so it is read before the inner
+	 * one that carries the test annotation. It is still trusted, because trust is
+	 * repeated until nothing changes.
+	 */
+	@Test
+	void trustsAnAnnotationComposedTwoLevelsDeep() throws IOException {
+		JavaProjectScanner scanner = scannerOverAnnotationChain("org.junit.jupiter.api.Test");
+
+		assertArrayEquals(new String[] { "checks.Cases" }, scanner.scanForTestClasses());
+	}
+
+	/**
+	 * The same chain without a test annotation at the end marks nothing, so the
+	 * repeated trust does not reach classes it should not.
+	 */
+	@Test
+	void doesNotTrustAnAnnotationComposedFromANonTestAnnotation() throws IOException {
+		JavaProjectScanner scanner = scannerOverAnnotationChain("java.lang.Deprecated");
+
+		assertArrayEquals(new String[0], scanner.scanForTestClasses());
+	}
+
+	/**
+	 * Writes a test tree where a class uses {@code Outer}, which carries
+	 * {@code Inner}, which carries the given annotation. The folders make the walk
+	 * read {@code Outer} before {@code Inner}.
+	 *
+	 * @param innerAnnotation the fully qualified annotation placed on {@code Inner}
+	 * @return a scanner over that tree
+	 * @throws IOException if the fixture cannot be written
+	 */
+	private JavaProjectScanner scannerOverAnnotationChain(String innerAnnotation) throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.createDirectories(tests.resolve("a"));
+		Files.createDirectories(tests.resolve("m"));
+		Files.createDirectories(tests.resolve("z"));
+		Files.writeString(tests.resolve("a/Outer.java"), "package checks;\n@Inner @interface Outer {}\n");
+		Files.writeString(tests.resolve("z/Inner.java"),
+				"package checks;\n@" + innerAnnotation + " @interface Inner {}\n");
+		Files.writeString(tests.resolve("m/Cases.java"), "package checks;\nclass Cases { @Outer void real() {} }\n");
+		return new JavaProjectScanner(configuration(production, tests));
+	}
+
+	/**
+	 * A folder is not a source file whatever its name ends with. The scan must skip
+	 * it and still read the real class beside it. JavaParser reads a folder as an
+	 * empty unit on some systems, so the link test below is what pins the filter.
+	 */
+	@Test
+	void ignoresAFolderNamedLikeASourceFile() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.createDirectories(production.resolve("Weird.java"));
+		Files.writeString(production.resolve("Real.java"), "package real;\nclass Real {}\n");
+
+		assertEquals("real", new JavaProjectScanner(configuration(production, tests)).scanForPackageName());
+	}
+
+	/**
+	 * A link to a file that does not exist is not a source file either. The scan
+	 * must skip it and still read the real class beside it, not fail while opening
+	 * it. The test is skipped where links cannot be created.
+	 */
+	@Test
+	void ignoresADanglingLinkNamedLikeASourceFile() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Real.java"), "package real;\nclass Real {}\n");
+		link(production.resolve("Missing.java"), root.resolve("does-not-exist.java"));
+
+		assertEquals("real", new JavaProjectScanner(configuration(production, tests)).scanForPackageName());
+	}
+
+	/**
+	 * Creates a symbolic link, or skips the calling test where the file system
+	 * cannot express one. Any other I/O failure propagates.
+	 *
+	 * @param link   the link to create
+	 * @param target what it points to
+	 * @throws IOException if the link fails for a reason other than missing support
+	 */
+	private static void link(Path link, Path target) throws IOException {
+		try {
+			Files.createSymbolicLink(link, target);
+		} catch (FileSystemException | UnsupportedOperationException exception) {
+			assumeTrue(false, () -> "cannot create a symbolic link here: " + exception);
+		}
+	}
+
+	/**
+	 * With no class called Main, the one called Application is chosen even though
+	 * another class with a main method sorts before it by name.
+	 */
+	@Test
+	void prefersApplicationOverAnEarlierName() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Alpha.java"),
+				"package app;\nclass Alpha { public static void main(String[] arguments) {} }\n");
+		Files.writeString(production.resolve("Application.java"),
+				"package app;\nclass Application { public static void main(String[] arguments) {} }\n");
+
+		assertEquals("Application",
+				new JavaProjectScanner(configuration(production, tests)).scanForMainClassInPackage());
 	}
 
 	private BuildToolConfiguration configuration(Path production, Path tests) {

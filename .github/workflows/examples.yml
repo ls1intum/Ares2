@@ -56,7 +56,7 @@ jobs:
       - name: Set up JDK 25 to build Ares
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
-          java-version: '25.0.5+8.0.LTS'
+          java-version: '25.0.5+100000002.0.LTS'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -129,7 +129,7 @@ jobs:
       - name: Set up JDK 17 for the exercise
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
-          java-version: '17.0.21+9'
+          java-version: '17.0.21+100000002'
           distribution: 'temurin'
 
       # The same check as above, repeated after the switch of JDK, so that the

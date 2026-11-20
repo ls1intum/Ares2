@@ -10,6 +10,7 @@ import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.GradleReportedSourceRoots;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
@@ -125,15 +126,14 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 	}
 
 	/**
-	 * Creates security test cases scoped to {@code withinPath}, where the empty
-	 * path means the whole project, for the build configuration found under the
-	 * project root, or under the working directory when that is null.
-	 * <p>
-	 * The scanner, creator and writer each bind themselves to that configuration
-	 * through their own {@code withBuildConfiguration}, rather than this director
-	 * checking their concrete types.
+	 * Creates security test cases scoped to {@code withinPath}, the empty path
+	 * meaning the whole project, for the build found under the project root, or the
+	 * working directory when that is null. The scanner, creator and writer bind
+	 * themselves to it through {@code withBuildConfiguration}.
 	 *
 	 * @throws NullPointerException if one of them returns null from it.
+	 * @throws SecurityException    without a policy, for a Gradle project whose
+	 *                              folders Gradle did not validly report.
 	 */
 	@Override
 	@Nonnull
@@ -142,6 +142,9 @@ public class SecurityPolicyJavaDirector extends SecurityPolicyDirector {
 		Path root = projectRootPath == null ? Path.of("").toAbsolutePath() : projectRootPath;
 		BuildMode selectedMode = securityPolicy == null ? null : buildModeOf(securityPolicy);
 		BuildToolConfiguration configuration = ProjectSourcesFinder.discover(root, selectedMode);
+		if (securityPolicy == null && configuration.buildMode() == BuildMode.GRADLE) {
+			GradleReportedSourceRoots.read(configuration.projectRoot()).requireValid(configuration.projectRoot());
+		}
 		JavaProjectScanner configuredScanner = Objects.requireNonNull(
 				((JavaProjectScanner) projectScanner).withBuildConfiguration(configuration),
 				"projectScanner.withBuildConfiguration must not return null");
