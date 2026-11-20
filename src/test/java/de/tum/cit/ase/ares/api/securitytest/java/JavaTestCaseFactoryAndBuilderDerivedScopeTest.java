@@ -169,7 +169,7 @@ class JavaTestCaseFactoryAndBuilderDerivedScopeTest {
 
 		assertTrue(refusal.getMessage().contains("theSupervisedCodeUsesTheFollowingPackage"), refusal.getMessage());
 		verify(writer, never()).writeTestCases(any(), any(), any(), anyList(), anyList(), anyList(), any(), any(),
-				anyList(), anyList(), anyList(), any(), any());
+				anyList(), anyList(), anyList(), any(), any(), any());
 	}
 
 	/**
@@ -190,7 +190,7 @@ class JavaTestCaseFactoryAndBuilderDerivedScopeTest {
 		verify(executer).executeTestCases(eq(BuildMode.GRADLE), eq(analysis), eq(aop), anyList(), anyList(), anyList(),
 				eq("de.tum.cit.aet.part"), any(), anyList(), anyList());
 		verify(writer).writeTestCases(eq(BuildMode.GRADLE), eq(analysis), eq(aop), anyList(), anyList(), anyList(),
-				eq("de.tum.cit.aet.part"), any(), anyList(), anyList(), anyList(), any(), any());
+				eq("de.tum.cit.aet.part"), any(), anyList(), anyList(), anyList(), any(), any(), any());
 	}
 
 	/**
