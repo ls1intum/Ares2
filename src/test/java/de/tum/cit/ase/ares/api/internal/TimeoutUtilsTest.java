@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -15,6 +16,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.opentest4j.AssertionFailedError;
@@ -24,6 +27,22 @@ import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.context.TestContext;
 
 class TimeoutUtilsTest {
+
+	/** The display locale before each test, restored afterwards. */
+	private Locale previous;
+
+	/** Reads the timeout texts in English, whatever the JVM's locale. */
+	@BeforeEach
+	void useEnglish() {
+		previous = Locale.getDefault();
+		Locale.setDefault(Locale.ENGLISH);
+	}
+
+	/** Restores the display locale. */
+	@AfterEach
+	void restoreLocale() {
+		Locale.setDefault(previous);
+	}
 
 	/** A policy enabling privileged-exceptions-only reporting. */
 	private static final String POLICY_ENABLED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelPrivilegedLowRuntime.yaml";

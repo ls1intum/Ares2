@@ -126,6 +126,12 @@ public final class SecurityViolationFeedback {
 	private static final String UNINSPECTABLE = "uninspectable";
 
 	/**
+	 * The target an import finding names when the analysis could not tell the
+	 * package.
+	 */
+	private static final String UNKNOWN_PACKAGE = "unknown package";
+
+	/**
 	 * Returns the DEBUG hint: the permission, its target, the policy and the entry
 	 * to paste, or only the category when no single entry allows the action.
 	 *
@@ -203,7 +209,7 @@ public final class SecurityViolationFeedback {
 	 * @return true for an import with a package.
 	 */
 	private static boolean isKnownImport(Violation violation) {
-		return "import".equals(kindOf(violation)) && !violation.target().startsWith("unknown");
+		return "import".equals(kindOf(violation)) && !UNKNOWN_PACKAGE.equals(violation.target());
 	}
 
 	/**
@@ -269,17 +275,18 @@ public final class SecurityViolationFeedback {
 	/**
 	 * Returns the block-style policy entry that allows exactly the action, every
 	 * other flag of the category off, or nothing when no single entry does: a
-	 * target that holds the wildcard {@code *}, which the policy reads as "any", or
-	 * a command with arguments, whose argument boundaries the target text no longer
-	 * shows, or a thread, whose denial may be an exhausted quota that one more
-	 * entry cannot lift.
+	 * target that is the wildcard {@code *}, which the policy reads as "any", a
+	 * file path holding a {@code ${...}} placeholder, which the reader rewrites, a
+	 * command with arguments, whose argument boundaries the target text no longer
+	 * shows, or a thread, whose denial may be an exhausted quota.
 	 *
 	 * @param violation the violation.
 	 * @return the entry, as YAML.
 	 */
 	static Optional<String> entryOf(Violation violation) {
 		Optional<String> operation = operationOf(violation);
-		if (operation.isEmpty() || holdsAWildcard(violation.target())
+		if (operation.isEmpty() || holdsAWildcard(violation)
+				|| "file".equals(kindOf(violation)) && violation.target().contains("${")
 				|| "command".equals(kindOf(violation)) && violation.target().contains(" ")) {
 			return Optional.empty();
 		}
@@ -333,14 +340,25 @@ public final class SecurityViolationFeedback {
 	}
 
 	/**
-	 * Whether a target, or one of its space-separated parts, is the policy's
-	 * wildcard {@code *}, which an entry cannot write as a literal value.
+	 * Whether the value an entry would write is the policy's wildcard {@code *},
+	 * which an entry cannot write as a literal: the whole path or package, the host
+	 * or the port of a network target, or one word of a command. A path that only
+	 * contains a {@code *} is an ordinary path.
 	 *
-	 * @param target the target.
+	 * @param violation the violation.
 	 * @return true when an entry would grant more than the action
 	 */
-	private static boolean holdsAWildcard(String target) {
-		return List.of(target.split("[ :]", -1)).contains("*");
+	private static boolean holdsAWildcard(Violation violation) {
+		String target = violation.target();
+		return switch (kindOf(violation)) {
+		case "network" -> {
+			int colon = target.lastIndexOf(':');
+			yield colon < 0 ? "*".equals(target)
+					: "*".equals(target.substring(0, colon)) || "*".equals(target.substring(colon + 1));
+		}
+		case "command" -> List.of(target.split(" ", -1)).contains("*");
+		default -> "*".equals(target);
+		};
 	}
 
 	/**

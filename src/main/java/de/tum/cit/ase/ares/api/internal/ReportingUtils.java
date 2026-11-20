@@ -133,16 +133,19 @@ public final class ReportingUtils {
 
 	/**
 	 * Reports a failure of a test's constructor or lifecycle method like one of the
-	 * test: a blocked action at the policy's feedback level, and, when the policy
-	 * reports only privileged failures, any other failure as the policy's message.
-	 * A privileged failure is reported as in a test, and an aborted test keeps its
-	 * own report.
+	 * test: a hidden test's failure as the uniform hidden text, a blocked action at
+	 * the policy's feedback level, and, when the policy reports only privileged
+	 * failures, any other failure as the policy's message. A privileged failure is
+	 * reported as in a test, and an aborted test keeps its own report.
 	 *
 	 * @param t       the failure.
 	 * @param context the test context.
 	 * @return the failure to report.
 	 */
 	public static Throwable processLifecycleFailure(Throwable t, TestContext context) {
+		if (!(t instanceof IncompleteExecutionException) && context.findTestType().orElse(null) == TestType.HIDDEN) {
+			return new AssertionError(localized("test_guard.hidden_test_failed")); //$NON-NLS-1$
+		}
 		if (t instanceof PrivilegedException) {
 			return inspectedReport(t, inspect(t), ConfigurationUtils.getSecurityViolationFeedbackLevel(context),
 					ConfigurationUtils.findPolicyFileName(context));
@@ -158,17 +161,24 @@ public final class ReportingUtils {
 
 	/**
 	 * Applies the policy's feedback level to an inspected failure that fails
-	 * outside the test invocation; a failure with no blocked action in it is
-	 * returned unchanged.
+	 * outside the test invocation. A failure with no blocked action keeps its own
+	 * report: unchanged at {@code HIGH} and {@code DEBUG}, and at {@code MEDIUM}
+	 * and {@code LOW} as the copy made after the search, so nothing attached later
+	 * is shown. At {@code HIGH}, a blocked action in a failure the search could not
+	 * read completely is reported by itself.
 	 */
 	private static Throwable blockedActionReport(Throwable t, Inspection inspection, TestContext context) {
 		SecurityViolationFeedbackLevel level = ConfigurationUtils.getSecurityViolationFeedbackLevel(context);
-		if (level == SecurityViolationFeedbackLevel.HIGH
-				|| inspection.violation() == null && !inspection.mayHideAViolation(level)) {
-			return t;
+		if (inspection.violation() == null) {
+			if (inspection.mayHideAViolation(level)) {
+				return uninspectable();
+			}
+			return hidesTheTarget(level) ? sanitizedWithin(t, inspection) : t;
 		}
-		return inspection.violation() == null ? uninspectable()
-				: renderedViolation(t, inspection, level, ConfigurationUtils.findPolicyFileName(context));
+		if (level == SecurityViolationFeedbackLevel.HIGH) {
+			return inspection.complete() && !inspection.skipped() ? t : violationByItself(inspection);
+		}
+		return renderedViolation(t, inspection, level, ConfigurationUtils.findPolicyFileName(context));
 	}
 
 	/**

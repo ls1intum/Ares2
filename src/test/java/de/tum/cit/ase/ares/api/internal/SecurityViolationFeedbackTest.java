@@ -95,10 +95,12 @@ class SecurityViolationFeedbackTest {
 				.isNotInstanceOf(de.tum.cit.ase.ares.api.architecture.java.AresSecurityViolation.class);
 	}
 
-	/** The constructor cannot be called from outside. */
+	/** Every constructor is private, so code outside cannot call one. */
 	@Test
 	void theConstructorIsPrivate() {
-		assertThat(AresSecurityViolation.class.getConstructors()).isEmpty();
+		assertThat(AresSecurityViolation.class.getDeclaredConstructors()).isNotEmpty()
+				.allSatisfy(constructor -> assertThat(java.lang.reflect.Modifier.isPrivate(constructor.getModifiers()))
+						.as(constructor.toString()).isTrue());
 	}
 
 	/** A plain exception with Ares-looking text is not a blocked action. */
@@ -272,7 +274,8 @@ class SecurityViolationFeedbackTest {
 			"thread|create|*|regardingThreadCreations", "architecture|import|*|regardingPackageImports",
 			"network|connect|127.0.0.1:0|regardingNetworkConnections",
 			"network|send|example.org:000|regardingNetworkConnections",
-			"thread|create|java.lang.Thread|regardingThreadCreations" })
+			"thread|create|java.lang.Thread|regardingThreadCreations",
+			"file|read|${PROJECT_ROOT}/data|regardingFileSystemInteractions" })
 	void anInexactEntryFallsBackToTheCategory(String kind, String action, String target, String category) {
 		Locale.setDefault(Locale.ENGLISH);
 		SecurityViolationFeedback.Violation violation = new SecurityViolationFeedback.Violation(kind, action, target,
@@ -293,6 +296,8 @@ class SecurityViolationFeedbackTest {
 	 */
 	@ParameterizedTest
 	@CsvSource(delimiter = '|', value = { "file|read|/data/*|- onThisPathAndAllPathsBelow: \"/data/*\"",
+			"file|read|/data/a * b|- onThisPathAndAllPathsBelow: \"/data/a * b\"",
+			"architecture|import|unknown.tools|- importTheFollowingPackage: \"unknown.tools\"",
 			"network|connect|*.example.org:443|- onTheHost: \"*.example.org\"" })
 	void aTargetMerelyHoldingAStarKeepsItsEntry(String kind, String action, String target, String first) {
 		assertThat(
@@ -845,9 +850,13 @@ class SecurityViolationFeedbackTest {
 		}, "student-caller", 0, false);
 		caller.setDaemon(true);
 		caller.start();
-		caller.join(TimeUnit.SECONDS.toMillis(10));
-		release.countDown();
-		assertThat(reported.get()).isInstanceOf(IllegalStateException.class).hasMessage("plain failure");
+		try {
+			caller.join(TimeUnit.SECONDS.toMillis(10));
+			assertThat(caller.isAlive()).as("the report finished while the copy was still blocked").isFalse();
+			assertThat(reported.get()).isInstanceOf(IllegalStateException.class).hasMessage("plain failure");
+		} finally {
+			release.countDown();
+		}
 	}
 
 	/**
@@ -899,6 +908,53 @@ class SecurityViolationFeedbackTest {
 		assertThat(ReportingUtils.processThrowable(arrays, context)).hasMessageContaining("arrays first differed");
 		assertThat(ReportingUtils.processThrowable(new StudentComparisonFailure(realViolation()), context))
 				.hasMessage(UNINSPECTABLE_TEXT).hasNoSuppressedExceptions();
+	}
+
+	/**
+	 * A hidden test's setup failure shows only the uniform hidden text, as a
+	 * failure of the test itself does, while an aborted hidden test keeps its own
+	 * report.
+	 *
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@Test
+	void aHiddenLifecycleFailureShowsOnlyTheHiddenText() throws NoSuchMethodException {
+		Locale.setDefault(Locale.ENGLISH);
+		TestContext context = contextFor("noPolicy");
+		when(context.findTestType()).thenReturn(Optional.of(TestType.HIDDEN));
+		assertThat(ReportingUtils.processLifecycleFailure(new IllegalStateException("secret detail"), context))
+				.isExactlyInstanceOf(AssertionError.class).hasMessageNotContaining("secret detail");
+		org.opentest4j.TestAbortedException aborted = new org.opentest4j.TestAbortedException("not yet");
+		assertThat(ReportingUtils.processLifecycleFailure(aborted, context)).isSameAs(aborted);
+	}
+
+	/**
+	 * At HIGH, a setup failure carrying a blocked action under a student override
+	 * the search skipped is reported as the blocked action alone, so the carrier's
+	 * own methods are never handed on.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void aSkippedCarrierAtHighShowsTheViolationAlone() throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		Throwable reported = ReportingUtils.processBlockedAction(new StudentMessageCarrier(realViolation()),
+				contextFor("noPolicy"));
+		assertThat(reported).isExactlyInstanceOf(SecurityException.class).hasMessage(HIGH).hasNoCause()
+				.hasNoSuppressedExceptions();
+	}
+
+	/**
+	 * At LOW, a setup failure without a blocked action is reported as the copy the
+	 * search made, so nothing attached to the original afterwards is shown.
+	 *
+	 * @throws NoSuchMethodException if the fixture method is missing
+	 */
+	@Test
+	void aPlainLifecycleFailureAtLowIsReportedAsACopy() throws NoSuchMethodException {
+		IllegalStateException original = new IllegalStateException("plain setup failure");
+		Throwable reported = ReportingUtils.processBlockedAction(original, contextFor("lowPolicy"));
+		assertThat(reported).isNotSameAs(original).hasMessage("plain setup failure");
 	}
 
 	/**
@@ -1464,6 +1520,32 @@ class SecurityViolationFeedbackTest {
 				Thread.currentThread().interrupt();
 			}
 			return parentValue;
+		}
+	}
+
+	/** A student exception that overrides getMessage over a real cause. */
+	private static final class StudentMessageCarrier extends RuntimeException {
+
+		/** Serialisation version. */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Carries a cause.
+		 *
+		 * @param cause the cause.
+		 */
+		StudentMessageCarrier(Throwable cause) {
+			super(cause);
+		}
+
+		/**
+		 * A student text, as an override could return.
+		 *
+		 * @return the text.
+		 */
+		@Override
+		public String getMessage() {
+			return "student text";
 		}
 	}
 
