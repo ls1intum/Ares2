@@ -199,6 +199,47 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
+	 * Stand-in shown in the denial message for a {@code java.util.prefs.Preferences}
+	 * operation, which has no path to report because the OS fixes the store's
+	 * location.
+	 */
+	@Nonnull
+	private static final String PREFERENCES_BACKING_STORE = "<java.util.prefs backing store>";
+
+	/**
+	 * Returns whether the intercepted call targets the Java Preferences API. Its
+	 * backing store sits where the operating system puts it, so the student passes
+	 * no path and the key and value arguments must not be checked as paths. No
+	 * policy can scope that store to a directory, so only an allow-list of all
+	 * paths ("*") permits it.
+	 *
+	 * @param declaringTypeName the fully qualified type the called method belongs to
+	 * @return true for any {@code java.util.prefs} type
+	 */
+	private static boolean isPreferencesBackingStore(@Nullable String declaringTypeName) {
+		return declaringTypeName != null && declaringTypeName.startsWith("java.util.prefs.");
+	}
+
+	/**
+	 * Returns whether the allow-list authorises every path, the only rule under
+	 * which the unscopable Preferences backing store may be touched.
+	 *
+	 * @param allowedPaths the configured allow-list for the action, may be null
+	 * @return true if the list contains the {@code "*"} wildcard
+	 */
+	private static boolean allowsAllPaths(@Nullable String[] allowedPaths) {
+		if (allowedPaths == null) {
+			return false;
+		}
+		for (String allowedPath : allowedPaths) {
+			if ("*".equals(allowedPath)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Native-library file suffixes whose loads under {@code java.home} are JVM
 	 * infrastructure rather than student file access.
 	 */
@@ -1510,8 +1551,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 	/**
 	 * Tells whether an access is the JVM's own: a read under the Java installation
-	 * the JVM started with, or a load of a native library there, by path or by the
-	 * bare name {@code System.loadLibrary} uses. Other actions are never exempt.
+	 * the JVM started with, or a load of a native library there, by its
+	 * path. Other actions are never exempt.
 	 *
 	 * @param action the file-system action under inspection
 	 * @param path   the already-resolved path under inspection
@@ -1523,16 +1564,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			return false;
 		}
 		requireStartUpProperties();
-		// System.loadLibrary(name)/Runtime.loadLibrary(name) resolve a JDK native library by name
-		// on java.library.path, but the intercepted path is the bare name resolved against the
-		// working directory (e.g. "<cwd>/awt" when java.awt.Toolkit initialises). Recognise such
-		// JDK libraries by mapping the name and checking java.home/lib, so the JVM loading its own
-		// native libraries is never mistaken for student file access. This cannot be abused:
-		// loadLibrary never searches the working directory, and System.load(path) keeps the file
-		// extension so its basename does not map to a JDK library.
-		if ("execute".equals(action) && isJdkNativeLibraryLoad(path)) {
-			return true;
-		}
 		if (!isPathWithin(path, TRUSTED_JAVA_HOME)) {
 			return false;
 		}
@@ -1547,34 +1578,6 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * Returns {@code true} when {@code path} is the bare-name form of a JDK native
-	 * library load (a {@code System.loadLibrary}/{@code Runtime.loadLibrary} whose
-	 * argument maps to a library present under {@code java.home/lib}). The
-	 * intercepted path is the library name resolved against the working directory,
-	 * so it is not recognised by the {@code java.home} prefix check.
-	 *
-	 * @param path the already-resolved path string under inspection
-	 * @return true if the load targets a JDK-internal native library
-	 */
-	private static boolean isJdkNativeLibraryLoad(@Nonnull String path) {
-		if (TRUSTED_JAVA_HOME == null) {
-			return false;
-		}
-		int separator = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-		String name = separator >= 0 ? path.substring(separator + 1) : path;
-		// loadLibrary names are extensionless; a dotted basename is a System.load(path) file
-		// whose mapped name would not resolve to a JDK library anyway.
-		if (name.isEmpty() || name.indexOf('.') >= 0) {
-			return false;
-		}
-		try {
-			return Files.exists(Path.of(TRUSTED_JAVA_HOME, "lib", System.mapLibraryName(name)));
-		} catch (RuntimeException exception) {
-			return false;
-		}
 	}
 
 	/**
@@ -1814,6 +1817,24 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 		if (checkTempFileCreationSpecialCase(action, declaringTypeName, methodName, parameters, systemMethodToCheck,
 				studentCalledMethod, fullMethodSignature, thisJoinPoint)) {
+			return;
+		}
+		if (isPreferencesBackingStore(declaringTypeName)) {
+			@Nullable
+			final String[] allowedPreferencePaths = getValueFromSettings(switch (action) {
+			case "read" -> "pathsAllowedToBeRead";
+			case "overwrite" -> "pathsAllowedToBeOverwritten";
+			case "create" -> "pathsAllowedToBeCreated";
+			case "execute" -> "pathsAllowedToBeExecuted";
+			case "delete" -> "pathsAllowedToBeDeleted";
+			default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+			});
+			if (!allowsAllPaths(allowedPreferencePaths)) {
+				throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
+						localizeAction(action), PREFERENCES_BACKING_STORE,
+						describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod) + " | "
+								+ buildDenialReason(allowedPreferencePaths == null || allowedPreferencePaths.length == 0)));
+			}
 			return;
 		}
 		if (isEntryReadOnOpenArchive(action, declaringTypeName, thisJoinPoint)) {

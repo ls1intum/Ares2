@@ -57,7 +57,23 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.util.jar.JarOutputStream+.putNextEntry(..)) ||
                     call(* java.util.jar.JarOutputStream+.closeEntry(..)) ||
                     call(* java.util.Properties+.store(..)) ||
-                    call(* java.util.Properties+.storeToXML(..))
+                    call(* java.util.Properties+.storeToXML(..)) ||
+                    // java.util.prefs.Preferences writes to a backing store on disk through
+                    // no student-opened stream, so it carries no path argument, exactly like
+                    // Properties.store above. The file system advice allows it only where the
+                    // overwrite allow-list contains "*".
+                    call(* java.util.prefs.Preferences+.put(..)) ||
+                    call(* java.util.prefs.Preferences+.putInt(..)) ||
+                    call(* java.util.prefs.Preferences+.putLong(..)) ||
+                    call(* java.util.prefs.Preferences+.putBoolean(..)) ||
+                    call(* java.util.prefs.Preferences+.putFloat(..)) ||
+                    call(* java.util.prefs.Preferences+.putDouble(..)) ||
+                    call(* java.util.prefs.Preferences+.putByteArray(..)) ||
+                    call(* java.util.prefs.Preferences+.remove(..)) ||
+                    call(* java.util.prefs.Preferences+.clear(..)) ||
+                    call(* java.util.prefs.Preferences+.flush(..)) ||
+                    call(* java.util.prefs.Preferences+.sync(..)) ||
+                    call(* java.util.prefs.Preferences+.importPreferences(..))
                     );
 
     pointcut fileCreateMethods():
@@ -70,7 +86,20 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(java.io.FileWriter+.new(..)) ||
                     call(java.io.PrintWriter+.new(..)) ||
                     call(java.io.RandomAccessFile+.new(..)) ||
-                    call(* javax.swing.filechooser.FileSystemView+.createNewFolder(..)));
+                    call(* javax.swing.filechooser.FileSystemView+.createNewFolder(..)) ||
+                    // Preferences.node(path) and the userNodeForPackage/systemNodeForPackage
+                    // factories create the node and any missing ancestors in the backing
+                    // store, like File.mkdir, so they are creates. importPreferences creates
+                    // every missing node its XML names, so it is a create as well as the
+                    // overwrite it is registered as above. userRoot and systemRoot can create
+                    // the store's directory and its modification file on first access, so they
+                    // are creates as well as the reads they are registered as below.
+                    call(* java.util.prefs.Preferences+.node(..)) ||
+                    call(* java.util.prefs.Preferences+.userNodeForPackage(..)) ||
+                    call(* java.util.prefs.Preferences+.systemNodeForPackage(..)) ||
+                    call(* java.util.prefs.Preferences+.importPreferences(..)) ||
+                    call(* java.util.prefs.Preferences+.userRoot(..)) ||
+                    call(* java.util.prefs.Preferences+.systemRoot(..)));
 
     // Note: ProcessBuilder.start, startPipeline, and Runtime.exec are handled by the Command System
     // in Byte Buddy mode, as they execute commands rather than individual files.
@@ -92,7 +121,10 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             (call(* java.awt.Desktop+.moveToTrash(..)) ||
                     call(* java.io.File+.delete(..)) ||
                     call(* java.io.File+.deleteOnExit(..)) ||
-                    call(* org.apache.commons.io.FileUtils+.forceDelete(..)));
+                    call(* org.apache.commons.io.FileUtils+.forceDelete(..)) ||
+                    // Preferences.removeNode removes the node from the backing store, so it is
+                    // a delete and is checked against the delete allow-list, not overwrite.
+                    call(* java.util.prefs.Preferences+.removeNode(..)));
 
     // Questions about a file that do not open it. Ares's own AOP code is left out: the
     // instrumentation classes run on the boot class loader, which cannot see this aspect.
@@ -237,7 +269,26 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(java.util.jar.JarInputStream+.new(..)) ||
                     call(* java.util.jar.JarInputStream+.getNextJarEntry(..)) ||
                     call(* java.util.Properties+.load(..)) ||
-                    call(* java.util.Properties+.loadFromXML(..)))
+                    call(* java.util.Properties+.loadFromXML(..)) ||
+                    // java.util.prefs.Preferences reads from a backing store on disk without a
+                    // path argument, like Properties.load above. The accessor methods
+                    // (userRoot, systemRoot, ...) are the only way to reach the store, so they
+                    // are classified as reads. The file system advice allows them only where
+                    // the read allow-list contains "*".
+                    call(* java.util.prefs.Preferences+.get(..)) ||
+                    call(* java.util.prefs.Preferences+.getInt(..)) ||
+                    call(* java.util.prefs.Preferences+.getLong(..)) ||
+                    call(* java.util.prefs.Preferences+.getBoolean(..)) ||
+                    call(* java.util.prefs.Preferences+.getFloat(..)) ||
+                    call(* java.util.prefs.Preferences+.getDouble(..)) ||
+                    call(* java.util.prefs.Preferences+.getByteArray(..)) ||
+                    call(* java.util.prefs.Preferences+.keys(..)) ||
+                    call(* java.util.prefs.Preferences+.childrenNames(..)) ||
+                    call(* java.util.prefs.Preferences+.nodeExists(..)) ||
+                    call(* java.util.prefs.Preferences+.exportNode(..)) ||
+                    call(* java.util.prefs.Preferences+.exportSubtree(..)) ||
+                    call(* java.util.prefs.Preferences+.userRoot(..)) ||
+                    call(* java.util.prefs.Preferences+.systemRoot(..)))
             && !within(de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationArchiveCallSite);
 
     // Note: Files.newByteChannel is intentionally NOT included here.
