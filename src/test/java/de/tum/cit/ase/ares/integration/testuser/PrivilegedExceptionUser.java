@@ -24,6 +24,11 @@ import de.tum.cit.ase.ares.integration.testuser.subject.PrivilegedExceptionPengu
 public class PrivilegedExceptionUser {
 
 	@PublicTest
+	void nonprivilegedFailure() {
+		fail("xyz");
+	}
+
+	@PublicTest
 	void nonprivilegedExceptionExtern() {
 		PrivilegedExceptionPenguin.throwNullPointerException();
 	}

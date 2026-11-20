@@ -26,9 +26,9 @@ import de.tum.cit.ase.ares.api.context.TestContext;
 class TimeoutUtilsTest {
 
 	/** A policy enabling privileged-exceptions-only reporting. */
-	private static final String POLICY_ENABLED = "src/test/resources/de/tum/cit/ase/ares/api/internal/configurationUtils/PolicyPrivilegedExceptionsEnabled.yaml";
+	private static final String POLICY_ENABLED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelPrivilegedLowRuntime.yaml";
 	/** A policy explicitly disabling privileged-exceptions-only reporting. */
-	private static final String POLICY_DISABLED = "src/test/resources/de/tum/cit/ase/ares/api/internal/configurationUtils/PolicyPrivilegedExceptionsDisabled.yaml";
+	private static final String POLICY_DISABLED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelLowRuntime.yaml";
 
 	@Test
 	void timedOutExecutionUsesOneCancellationInterrupt() {

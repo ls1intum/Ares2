@@ -700,7 +700,7 @@ class SecurityViolationFeedbackTest {
 		String javaExecutable = Path.of(System.getProperty("java.home"), "bin", "java").toString(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 		String classPath = System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")); //$NON-NLS-1$ //$NON-NLS-2$
 		Process process = new ProcessBuilder(javaExecutable, "-cp", classPath, //$NON-NLS-1$
-				ReportingUtilsForkProbe.class.getName(), kind).redirectErrorStream(true).start();
+				TimeoutUtilsForkProbe.class.getName(), kind).redirectErrorStream(true).start();
 		try {
 			assertThat(process.waitFor(20, TimeUnit.SECONDS)).isTrue();
 			assertThat(process.exitValue()).isEqualTo(124);

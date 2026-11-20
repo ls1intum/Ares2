@@ -15,12 +15,18 @@ class PrivilegedExceptionTest {
 	@UserTestResults
 	private static Events tests;
 
+	private final String nonprivilegedFailure = "nonprivilegedFailure";
 	private final String nonprivilegedExceptionExtern = "nonprivilegedExceptionExtern";
 	private final String nonprivilegedExceptionIntern = "nonprivilegedExceptionIntern";
 	private final String nonprivilegedExceptionTry = "nonprivilegedExceptionTry";
 	private final String privilegedExceptionFail = "privilegedExceptionFail";
 	private final String privilegedExceptionNormal = "privilegedExceptionNormal";
 	private final String privilegedTimeout = "privilegedTimeout";
+
+	@TestTest
+	void test_nonprivilegedFailure() {
+		tests.assertThatEvents().haveExactly(1, testFailedWith(nonprivilegedFailure, AssertionError.class, "ABC"));
+	}
 
 	@TestTest
 	void test_nonprivilegedExceptionExtern() {

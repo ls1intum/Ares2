@@ -33,30 +33,33 @@ public class FeedbackLevelPolicyUser {
 	/** The student code reading a file. */
 	private static final String WITHIN = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/oldMethods/files";
 
-	/** A blocked read at HIGH keeps today's message. */
+	/**
+	 * A blocked read under a policy without a feedback level keeps today's message,
+	 * since HIGH is the default.
+	 */
 	@PublicTest
-	@Policy(value = POLICIES + "archunit/aspectj/PolicyFeedbackLevelHIGH.yaml", withinPath = WITHIN)
+	@Policy(value = POLICIES + "archunit/aspectj/PolicyEverythingForbidden.yaml", withinPath = WITHIN)
 	void highArchunitAspectj() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
 
 	/** A blocked read at HIGH, ArchUnit and instrumentation. */
 	@PublicTest
-	@Policy(value = POLICIES + "archunit/instrumentation/PolicyFeedbackLevelHIGH.yaml", withinPath = WITHIN)
+	@Policy(value = POLICIES + "archunit/instrumentation/PolicyEverythingForbidden.yaml", withinPath = WITHIN)
 	void highArchunitInstrumentation() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
 
 	/** A blocked read at HIGH, WALA and AspectJ. */
 	@PublicTest
-	@Policy(value = POLICIES + "wala/aspectj/PolicyFeedbackLevelHIGH.yaml", withinPath = WITHIN)
+	@Policy(value = POLICIES + "wala/aspectj/PolicyEverythingForbidden.yaml", withinPath = WITHIN)
 	void highWalaAspectj() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
 
 	/** A blocked read at HIGH, WALA and instrumentation. */
 	@PublicTest
-	@Policy(value = POLICIES + "wala/instrumentation/PolicyFeedbackLevelHIGH.yaml", withinPath = WITHIN)
+	@Policy(value = POLICIES + "wala/instrumentation/PolicyEverythingForbidden.yaml", withinPath = WITHIN)
 	void highWalaInstrumentation() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
