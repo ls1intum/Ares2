@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.JupiterContext;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Checks that a policy's test behaviour is read once per file and test class,
@@ -79,6 +81,57 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 		JupiterContext other = JupiterContext.of(methodContext(classContextIn(firstClass), "classPolicyTest"));
 		assertThat(ConfigurationUtils.findPolicyStrictTimeout(other).orElseThrow().timeout())
 				.isEqualTo(Duration.ofSeconds(2));
+	}
+
+	/** A policy letting tested code overwrite its own file is refused. */
+	@Test
+	void aWriteGrantOnThePolicyFileIsRefused() throws Exception {
+		grantOnTheClassPolicy(CLASS_POLICY, true);
+		assertThatThrownBy(() -> ConfigurationUtils
+				.testBehavior(JupiterContext.of(methodContext(classContext(), "classPolicyTest"))))
+						.isInstanceOf(SecurityException.class).hasMessage(Messages
+								.localized("policy.behavior.write.grant.policy", Path.of(CLASS_POLICY), CLASS_POLICY));
+	}
+
+	/** A policy letting tested code write in its folder is refused. */
+	@Test
+	void aWriteGrantOnThePolicyFolderIsRefused() throws Exception {
+		grantOnTheClassPolicy(Path.of(CLASS_POLICY).getParent().toString(), true);
+		assertThatThrownBy(() -> ConfigurationUtils
+				.testBehavior(JupiterContext.of(methodContext(classContext(), "classPolicyTest"))))
+						.isInstanceOf(SecurityException.class)
+						.hasMessage(Messages.localized("policy.behavior.write.grant.policy", Path.of(CLASS_POLICY),
+								Path.of(CLASS_POLICY).getParent().toString()));
+	}
+
+	/** A write grant elsewhere, or only reading the policy file, is accepted. */
+	@Test
+	void aWriteGrantElsewhereOrAReadGrantIsAccepted() throws Exception {
+		grantOnTheClassPolicy("target/test-behavior-elsewhere", true);
+		ConfigurationUtils.testBehavior(JupiterContext.of(methodContext(classContext(), "classPolicyTest")));
+		grantOnTheClassPolicy(CLASS_POLICY, false);
+		ConfigurationUtils.testBehavior(JupiterContext.of(methodContext(classContext(), "classPolicyTest")));
+	}
+
+	/**
+	 * Gives the class policy one file rule on a path, reading and, if asked,
+	 * overwriting it.
+	 *
+	 * @param path      the path of the rule.
+	 * @param overwrite whether the rule lets the tested code overwrite files.
+	 * @throws IOException if the policy cannot be rewritten
+	 */
+	private static void grantOnTheClassPolicy(String path, boolean overwrite) throws IOException {
+		Path file = Path.of(CLASS_POLICY);
+		Files.writeString(file, Files.readString(file).replace("    regardingFileSystemInteractions: []\n", """
+				    regardingFileSystemInteractions:
+				      - onThisPathAndAllPathsBelow: "%s"
+				        readAllFiles: true
+				        overwriteAllFiles: %s
+				        createAllFiles: false
+				        executeAllFiles: false
+				        deleteAllFiles: false
+				""".formatted(path, overwrite)));
 	}
 
 	/** A method-level policy is read up front and keeps its own settings. */
