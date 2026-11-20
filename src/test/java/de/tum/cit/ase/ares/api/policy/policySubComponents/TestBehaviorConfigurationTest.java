@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -9,9 +10,17 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import de.tum.cit.ase.ares.api.AresConstants;
+import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 
 /**
  * Checks the behavioural wrapper and the literal constants a precompile run
@@ -47,15 +56,15 @@ class TestBehaviorConfigurationTest {
 	@Test
 	void theStrictTimeoutIsWrittenInNanoseconds() {
 		String withGrace = assignments(TestBehaviorConfiguration.builder()
-				.regardingTheStrictTimeoutForTheTestCases(
-						StrictTimeoutConfiguration.builder().theTimeoutIs("2s").theTerminationGraceIs("500ms").build())
+				.regardingTheStrictTimeoutForTheTestCases(StrictTimeoutConfiguration.builder().theTimeoutIs("2 SECONDS")
+						.theTerminationGraceIs("500 MILLISECONDS").build())
 				.build());
 		assertThat(withGrace)
 				.contains("REGARDING_THE_STRICT_TIMEOUT_THE_TIMEOUT_NANOS = " + Duration.ofSeconds(2).toNanos() + "L;")
 				.contains("REGARDING_THE_STRICT_TIMEOUT_THE_TERMINATION_GRACE_NANOS = "
 						+ Duration.ofMillis(500).toNanos() + "L;");
 		String withoutGrace = assignments(TestBehaviorConfiguration.builder().regardingTheStrictTimeoutForTheTestCases(
-				StrictTimeoutConfiguration.builder().theTimeoutIs("1m").build()).build());
+				StrictTimeoutConfiguration.builder().theTimeoutIs("1 MINUTES").build()).build());
 		assertThat(withoutGrace).contains("REGARDING_THE_STRICT_TIMEOUT_THE_TERMINATION_GRACE_NANOS = -1L;");
 	}
 
@@ -69,14 +78,14 @@ class TestBehaviorConfigurationTest {
 						+ de.tum.cit.ase.ares.api.MirrorOutput.DEFAULT_MAX_STD_OUT + "L;");
 	}
 
-	/** An empty failure-feedback category writes off, the default text and FULL. */
+	/** An empty failure-feedback category writes off, the default text and HIGH. */
 	@Test
 	void theFailureFeedbackCategoryWritesItsDefaults() {
 		String written = assignments(TestBehaviorConfiguration.builder()
 				.regardingTheFailureFeedbackForTheTestCases(FailureFeedbackConfiguration.builder().build()).build());
 		assertThat(written).contains("REGARDING_THE_FAILURE_FEEDBACK_ONLY_PRIVILEGED_EXCEPTIONS_ARE_REPORTED = false;")
 				.contains("REGARDING_THE_FAILURE_FEEDBACK_THE_FAILURE_MESSAGE_FOR_OTHER_EXCEPTIONS = \"Test failed.\";")
-				.contains("REGARDING_THE_FAILURE_FEEDBACK_THE_SECURITY_VIOLATION_FEEDBACK_LEVEL = \"FULL\";");
+				.contains("REGARDING_THE_FAILURE_FEEDBACK_THE_SECURITY_VIOLATION_FEEDBACK_LEVEL = \"HIGH\";");
 	}
 
 	/** A configured failure-feedback category writes its values. */
@@ -85,11 +94,11 @@ class TestBehaviorConfigurationTest {
 		String written = assignments(TestBehaviorConfiguration.builder()
 				.regardingTheFailureFeedbackForTheTestCases(FailureFeedbackConfiguration.builder()
 						.onlyPrivilegedExceptionsAreReported(true).theFailureMessageForOtherExceptionsIs("Nope.")
-						.theSecurityViolationFeedbackLevelIs(SecurityViolationFeedbackLevel.MINIMIZED).build())
+						.theSecurityViolationFeedbackLevelIs(SecurityViolationFeedbackLevel.LOW).build())
 				.build());
 		assertThat(written).contains("ONLY_PRIVILEGED_EXCEPTIONS_ARE_REPORTED = true;")
 				.contains("THE_FAILURE_MESSAGE_FOR_OTHER_EXCEPTIONS = \"Nope.\";")
-				.contains("THE_SECURITY_VIOLATION_FEEDBACK_LEVEL = \"MINIMIZED\";");
+				.contains("THE_SECURITY_VIOLATION_FEEDBACK_LEVEL = \"LOW\";");
 	}
 
 	/**
@@ -101,7 +110,7 @@ class TestBehaviorConfigurationTest {
 	void theVisibilityCategoryWritesItsValues() {
 		String written = assignments(TestBehaviorConfiguration.builder()
 				.regardingTheVisibilityAndScheduleOfTheTestCases(VisibilityAndScheduleConfiguration.builder()
-						.theDeadlineIs("2000-01-01 00:00 UTC").theDeadlineIsExtendedBy("1d")
+						.theDeadlineIs("2000-01-01 00:00 UTC").theDeadlineIsExtendedBy("1 DAYS")
 						.theHiddenTestsAreRunBefore("1990-01-01 00:00 UTC").testsNotListedHereAreHidden(true)
 						.hiddenTests("org.example.A", "org.example.B#m").publicTests("org.example.C").build())
 				.build());
@@ -157,7 +166,7 @@ class TestBehaviorConfigurationTest {
 	void allFourCategoriesWriteEveryField() {
 		TestBehaviorConfiguration configuration = TestBehaviorConfiguration.builder()
 				.regardingTheStrictTimeoutForTheTestCases(
-						StrictTimeoutConfiguration.builder().theTimeoutIs("2s").build())
+						StrictTimeoutConfiguration.builder().theTimeoutIs("2 SECONDS").build())
 				.regardingTheOutputOfTheTestCases(OutputConfiguration.builder().build())
 				.regardingTheFailureFeedbackForTheTestCases(FailureFeedbackConfiguration.builder().build())
 				.regardingTheVisibilityAndScheduleOfTheTestCases(VisibilityAndScheduleConfiguration.builder()
@@ -174,5 +183,91 @@ class TestBehaviorConfigurationTest {
 	 */
 	private static String assignments(TestBehaviorConfiguration configuration) {
 		return String.join("", configuration.literalFieldAssignments());
+	}
+
+	/** An empty configuration names no category. */
+	@Test
+	void anEmptyConfigurationNamesNoCategory() {
+		assertThat(TestBehaviorConfiguration.builder().build().firstConfiguredCategory()).isEmpty();
+	}
+
+	/** Each category this branch reads, alone in a configuration. */
+	static Stream<Arguments> categories() {
+		return Stream.of(
+				Arguments.of(TestBehaviorFieldNames.STRICT_TIMEOUT, TestBehaviorConfiguration.builder()
+						.regardingTheStrictTimeoutForTheTestCases(
+								StrictTimeoutConfiguration.builder().theTimeoutIs("2 SECONDS").build())
+						.build()),
+				Arguments.of(TestBehaviorFieldNames.OUTPUT,
+						TestBehaviorConfiguration.builder()
+								.regardingTheOutputOfTheTestCases(OutputConfiguration.builder().build()).build()),
+				Arguments.of(TestBehaviorFieldNames.FAILURE_FEEDBACK,
+						TestBehaviorConfiguration.builder()
+								.regardingTheFailureFeedbackForTheTestCases(
+										FailureFeedbackConfiguration.builder().build())
+								.build()),
+				Arguments.of(TestBehaviorFieldNames.VISIBILITY_AND_SCHEDULE, TestBehaviorConfiguration.builder()
+						.regardingTheVisibilityAndScheduleOfTheTestCases(VisibilityAndScheduleConfiguration.builder()
+								.theDeadlineIs("2000-01-01 00:00 UTC").testsNotListedHereAreHidden(false).build())
+						.build()));
+	}
+
+	/**
+	 * A version 1 policy built in code refuses a test-behaviour category, naming
+	 * the version, the category and the version it needs.
+	 *
+	 * @param category the category's policy key.
+	 * @param behavior a configuration setting only that category.
+	 */
+	@ParameterizedTest
+	@MethodSource("categories")
+	void aVersionOnePolicyRefusesTheCategory(String category, TestBehaviorConfiguration behavior) {
+		assertThat(behavior.firstConfiguredCategory()).contains(category);
+		assertThatThrownBy(() -> policy(1, behavior)).isInstanceOf(IllegalArgumentException.class).hasMessage(Messages
+				.localized("policy.version.test.behavior", 1, category, AresConstants.TEST_BEHAVIOR_POLICY_VERSION));
+	}
+
+	/**
+	 * A version 2 policy built in code accepts the category.
+	 *
+	 * @param category the category's policy key.
+	 * @param behavior a configuration setting only that category.
+	 */
+	@ParameterizedTest
+	@MethodSource("categories")
+	void aVersionTwoPolicyAcceptsTheCategory(String category, TestBehaviorConfiguration behavior) {
+		assertThat(policy(2, behavior).thisPolicyFileCompliesToThePolicyVersion()).isEqualTo(2);
+	}
+
+	/** A version 1 policy may carry an empty test-behaviour section. */
+	@Test
+	void aVersionOnePolicyAcceptsAnEmptySection() {
+		assertThat(policy(1, TestBehaviorConfiguration.builder().build()).thisPolicyFileCompliesToThePolicyVersion())
+				.isEqualTo(1);
+	}
+
+	/** A policy built in code without a version declares the newest one. */
+	@Test
+	void aPolicyBuiltInCodeDeclaresTheNewestVersion() {
+		assertThat(
+				SecurityPolicy.createRestrictive(ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ)
+						.thisPolicyFileCompliesToThePolicyVersion()).isEqualTo(AresConstants.MAXIMUM_POLICY_VERSION);
+	}
+
+	/**
+	 * Builds a policy with the given version and test behaviour.
+	 *
+	 * @param version  the declared version.
+	 * @param behavior the test behaviour.
+	 * @return the policy.
+	 */
+	private static SecurityPolicy policy(int version, TestBehaviorConfiguration behavior) {
+		return new SecurityPolicy(version,
+				SupervisedCode.builder()
+						.theFollowingProgrammingLanguageConfigurationIsUsed(
+								ProgrammingLanguageConfiguration.JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ)
+						.theFollowingClassesAreTestClasses(List.of())
+						.theFollowingResourceAccessesArePermitted(ResourceAccesses.createRestrictive())
+						.theFollowingTestBehaviorIsConfigured(behavior).build());
 	}
 }

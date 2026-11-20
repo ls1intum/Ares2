@@ -83,7 +83,7 @@ class VisibilityAndScheduleConfigurationTest {
 	/** The extension is added to the deadline. */
 	@Test
 	void theExtensionIsAddedToTheDeadline() {
-		VisibilityAndScheduleConfiguration configuration = base().theDeadlineIsExtendedBy("1d 12h").build();
+		VisibilityAndScheduleConfiguration configuration = base().theDeadlineIsExtendedBy("36 HOURS").build();
 
 		assertThat(configuration.extension()).contains(Duration.ofHours(36));
 		assertThat(configuration.effectiveDeadline())
@@ -97,7 +97,7 @@ class VisibilityAndScheduleConfigurationTest {
 	 */
 	@Test
 	void anExtensionPastTheLastDateIsRefused() {
-		assertThatThrownBy(() -> base().theDeadlineIsExtendedBy("9223372036854775807s").build())
+		assertThatThrownBy(() -> base().theDeadlineIsExtendedBy("9223372036854775807 SECONDS").build())
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("theDeadlineIsExtendedBy");
 	}
 

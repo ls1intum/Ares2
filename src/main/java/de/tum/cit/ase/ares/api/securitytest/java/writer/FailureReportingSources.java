@@ -159,8 +159,8 @@ final class FailureReportingSources {
 
 				/**
 				 * A generated architecture test's failure at the feedback level: unchanged at
-				 * FULL, the fixed text at MINIMIZED, and the report plus the category that
-				 * would allow the access at DEBUG.
+				 * HIGH, the LOW text at MEDIUM and LOW, since a finding's action is not known,
+				 * and the report plus the category that would allow the access at DEBUG.
 				 *
 				 * @param throwable the real failure
 				 * @param category  the policy category the test checks
@@ -170,17 +170,16 @@ final class FailureReportingSources {
 					if (isHiddenResult(throwable)) {
 						return freshMarker(throwable);
 					}
-					if ("FULL".equals(@SETTINGS@.@LEVEL@) || isAresConfigurationError(throwable)) {
+					if ("HIGH".equals(@SETTINGS@.@LEVEL@) || isAresConfigurationError(throwable)) {
 						return throwable;
 					}
 					SecurityException rendered;
 					if ("DEBUG".equals(@SETTINGS@.@LEVEL@)) {
 						rendered = new SecurityException(String.valueOf(throwable.getMessage()) + System.lineSeparator()
-								+ @MESSAGES@.localized("reporting.security.violation.hint", category,
-										"an entry that allows this access"));
+								+ @MESSAGES@.localized("reporting.security.violation.hint.category", category,
+										@MESSAGES@.localized("reporting.security.violation.policy.unnamed")));
 					} else {
-						rendered = new SecurityException(
-								@MESSAGES@.localized("reporting.security.violation.minimized"));
+						rendered = new SecurityException(@MESSAGES@.localized("reporting.security.violation.low"));
 						rendered.setStackTrace(new StackTraceElement[0]);
 					}
 					return rendered;
@@ -483,12 +482,12 @@ final class FailureReportingSources {
 					}
 					Throwable violation = violationIn(throwable);
 					if (violation == UNSEARCHED) {
-						if (!"FULL".equals(@SETTINGS@.@LEVEL@)) {
+						if (!"HIGH".equals(@SETTINGS@.@LEVEL@)) {
 							return unsearchedReplacement(throwable);
 						}
 						violation = null;
 					}
-					if (violation != null && !"FULL".equals(@SETTINGS@.@LEVEL@)) {
+					if (violation != null && !"HIGH".equals(@SETTINGS@.@LEVEL@)) {
 						return renderedViolation(violation);
 					}
 					if (!@SETTINGS@.@ENABLED@) {
@@ -507,7 +506,7 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * The report below FULL for a failure too large to search to the end: it may hide a
+				 * The report below HIGH for a failure too large to search to the end: it may hide a
 				 * blocked action, so it shows no text of its own. An abort stays an abort.
 				 */
 				private static Throwable unsearchedReplacement(Throwable throwable) {
@@ -519,7 +518,7 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * A blocked action at FULL with privileged-only reporting on, as a copy: its own
+				 * A blocked action at HIGH with privileged-only reporting on, as a copy: its own
 				 * text, read now on the bounded worker, with each attached cause or suppressed
 				 * failure redacted unless it is itself a blocked action, so neither their text
 				 * nor student code reaches the report.
@@ -551,7 +550,7 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * What a failure attached to a blocked action becomes at FULL with
+				 * What a failure attached to a blocked action becomes at HIGH with
 				 * privileged-only reporting on: another blocked action keeps its own text, and
 				 * anything else shows only the policy's message.
 				 */
@@ -1150,8 +1149,9 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * Reports a blocked action at a lower level, rebuilt from its fields with a fixed
-				 * template, never from its own message.
+				 * Reports a blocked action at a level other than HIGH: DEBUG adds the entry that
+				 * would allow it to the text HIGH shows, MEDIUM names only the kind of action and
+				 * LOW only that a policy was violated, both without stack.
 				 */
 				private static Throwable renderedViolation(Throwable violation) {
 					String kind = field(violation, "kind");
@@ -1159,16 +1159,82 @@ final class FailureReportingSources {
 					String target = field(violation, "target");
 					SecurityException rendered;
 					if ("DEBUG".equals(@SETTINGS@.@LEVEL@)) {
-						String report = @MESSAGES@.localized("reporting.security.violation.debug", action, target);
+						String report = String.valueOf(fullViolation(violation).getMessage());
 						rendered = new SecurityException("uninspectable".equals(kind) ? report
-								: report + System.lineSeparator() + @MESSAGES@.localized("reporting.security.violation.hint",
-										categoryOf(kind), entryOf(kind, action, target)));
+								: report + System.lineSeparator() + hintOf(kind, action, target));
 					} else {
-						rendered = new SecurityException(
-								@MESSAGES@.localized("reporting.security.violation.minimized"));
+						String phrase = "MEDIUM".equals(@SETTINGS@.@LEVEL@) ? phraseOf(kind, operationOf(kind, action)) : null;
+						rendered = new SecurityException(phrase == null
+								? @MESSAGES@.localized("reporting.security.violation.low")
+								: @MESSAGES@.localized("reporting.security.violation.medium", @MESSAGES@.localized(phrase)));
 						rendered.setStackTrace(new StackTraceElement[0]);
 					}
 					return rendered;
+				}
+
+				/**
+				 * The DEBUG hint: the permission, the target and the entry to paste, or only the
+				 * category when no single entry allows the action.
+				 */
+				private static String hintOf(String kind, String action, String target) {
+					String policy = @MESSAGES@.localized("reporting.security.violation.policy.unnamed");
+					String operation = operationOf(kind, action);
+					String entry = operation == null ? null : entryOf(kind, operation, target);
+					if (entry == null) {
+						return @MESSAGES@.localized("reporting.security.violation.hint.category", categoryOf(kind), policy);
+					}
+					return @MESSAGES@.localized("reporting.security.violation.hint", permissionOf(operation), target, policy)
+							+ System.lineSeparator() + entry;
+				}
+
+				/** The action in the words of the policy, such as read or open; null when no flag names it. */
+				private static String operationOf(String kind, String action) {
+					String lower = action.toLowerCase(java.util.Locale.ROOT);
+					return switch (kind) {
+					case "file" -> lower.contains("delete") ? "delete"
+							: lower.contains("execute") ? "execute"
+									: lower.contains("create") ? "create"
+											: lower.contains("write") ? "overwrite" : "read";
+					case "network" -> "connect".equals(lower) ? "open"
+							: "send".equals(lower) || "receive".equals(lower) ? lower : null;
+					case "command" -> "execute".equals(lower) ? "execute" : null;
+					case "thread" -> "create".equals(lower) ? "create" : null;
+					default -> null;
+					};
+				}
+
+				/** The message key of the MEDIUM phrase; null when there is none. */
+				private static String phraseOf(String kind, String operation) {
+					if (operation == null) {
+						return null;
+					}
+					return switch (kind + "." + operation) {
+					case "file.read" -> "reporting.security.violation.phrase.file.read";
+					case "file.overwrite" -> "reporting.security.violation.phrase.file.overwrite";
+					case "file.create" -> "reporting.security.violation.phrase.file.create";
+					case "file.execute" -> "reporting.security.violation.phrase.file.execute";
+					case "file.delete" -> "reporting.security.violation.phrase.file.delete";
+					case "network.open" -> "reporting.security.violation.phrase.network.open";
+					case "network.send" -> "reporting.security.violation.phrase.network.send";
+					case "network.receive" -> "reporting.security.violation.phrase.network.receive";
+					case "command.execute" -> "reporting.security.violation.phrase.command.execute";
+					case "thread.create" -> "reporting.security.violation.phrase.thread.create";
+					default -> null;
+					};
+				}
+
+				/** The localised name of the permission the DEBUG hint grants. */
+				private static String permissionOf(String operation) {
+					return switch (operation) {
+					case "read" -> @MESSAGES@.localized("reporting.security.violation.permission.read");
+					case "overwrite" -> @MESSAGES@.localized("reporting.security.violation.permission.overwrite");
+					case "create" -> @MESSAGES@.localized("reporting.security.violation.permission.create");
+					case "execute" -> @MESSAGES@.localized("reporting.security.violation.permission.execute");
+					case "delete" -> @MESSAGES@.localized("reporting.security.violation.permission.delete");
+					case "open" -> @MESSAGES@.localized("reporting.security.violation.permission.open");
+					case "send" -> @MESSAGES@.localized("reporting.security.violation.permission.send");
+					default -> @MESSAGES@.localized("reporting.security.violation.permission.receive");
+					};
 				}
 
 				/** Reads one field of a blocked action, capped in length. */
@@ -1193,24 +1259,57 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * The entry that would allow a blocked action: for a file, a complete entry the
-				 * policy reader accepts, granting only that action.
+				 * The block-style entry that allows exactly a blocked action, every other flag of
+				 * the category off; null when no single entry does, such as a network target
+				 * without a port.
 				 */
-				private static String entryOf(String kind, String action, String target) {
-					if (!"file".equals(kind)) {
-						return "an entry that allows " + action + " for " + target;
+				private static String entryOf(String kind, String operation, String target) {
+					String line = System.lineSeparator();
+					return switch (kind) {
+					case "file" -> flagEntry("onThisPathAndAllPathsBelow: " + yamlString(target), new String[] { "readAllFiles",
+							"overwriteAllFiles", "createAllFiles", "executeAllFiles", "deleteAllFiles" },
+							"delete".equals(operation) ? "deleteAllFiles"
+									: "execute".equals(operation) ? "executeAllFiles"
+											: "create".equals(operation) ? "createAllFiles"
+													: "overwrite".equals(operation) ? "overwriteAllFiles" : "readAllFiles");
+					case "network" -> networkEntryOf(target, "open".equals(operation) ? "openConnections"
+							: "send".equals(operation) ? "sendData" : "receiveData");
+					case "command" -> commandEntryOf(target);
+					case "thread" -> "- createTheFollowingNumberOfThreads: 1" + line + "  ofThisClass: " + yamlString(target);
+					default -> null;
+					};
+				}
+
+				/** An entry whose first line names the resource and whose flags are off except one. */
+				private static String flagEntry(String first, String[] flags, String granted) {
+					StringBuilder entry = new StringBuilder("- ").append(first);
+					for (String flag : flags) {
+						entry.append(System.lineSeparator()).append("  ").append(flag).append(": ").append(flag.equals(granted));
 					}
-					String lower = action.toLowerCase(java.util.Locale.ROOT);
-					String flag = lower.contains("delete") ? "deleteAllFiles"
-							: lower.contains("execute") ? "executeAllFiles"
-									: lower.contains("create") ? "createAllFiles"
-											: lower.contains("write") ? "overwriteAllFiles" : "readAllFiles";
-					StringBuilder entry = new StringBuilder("{ onThisPathAndAllPathsBelow: ").append(yamlString(target));
-					for (String each : new String[] { "readAllFiles", "overwriteAllFiles", "createAllFiles", "executeAllFiles",
-							"deleteAllFiles" }) {
-						entry.append(", ").append(each).append(": ").append(each.equals(flag));
+					return entry.toString();
+				}
+
+				/** A network entry from a host:port target; null when the target names no port. */
+				private static String networkEntryOf(String target, String granted) {
+					int colon = target.lastIndexOf(':');
+					if (colon <= 0 || colon == target.length() - 1
+							|| !target.substring(colon + 1).chars().allMatch(Character::isDigit)) {
+						return null;
 					}
-					return entry.append(" }").toString();
+					return flagEntry("onTheHost: " + yamlString(target.substring(0, colon)) + System.lineSeparator()
+							+ "  onThePort: " + target.substring(colon + 1),
+							new String[] { "openConnections", "sendData", "receiveData" }, granted);
+				}
+
+				/** A command entry from a target of the command and its arguments, separated by spaces. */
+				private static String commandEntryOf(String target) {
+					String[] words = target.split(" ", -1);
+					StringBuilder arguments = new StringBuilder("[");
+					for (int i = 1; i < words.length; i++) {
+						arguments.append(i > 1 ? ", " : "").append(yamlString(words[i]));
+					}
+					return "- executeTheCommand: " + yamlString(words[0]) + System.lineSeparator()
+							+ "  withTheseArguments: " + arguments.append(']');
 				}
 
 				/** Quotes a value as a double-quoted YAML scalar, so a Windows path reads back unchanged. */

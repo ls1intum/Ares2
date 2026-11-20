@@ -854,7 +854,7 @@ class GeneratedHiddenTestsTest {
 	private static String policyText(String deadline, String alwaysRunBefore, boolean testsNotListedHereAreHidden,
 			List<String> hidden, List<String> shown) {
 		StringBuilder policy = new StringBuilder("""
-				thisPolicyFileCompliesToThePolicyVersion: 1
+				thisPolicyFileCompliesToThePolicyVersion: 2
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 				  theSupervisedCodeUsesTheFollowingPackage: "com.example"

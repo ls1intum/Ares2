@@ -531,7 +531,7 @@ class GeneratedOutputMirroringTest {
 	 */
 	private static String policyText(boolean mirroringIsOn) {
 		return """
-				thisPolicyFileCompliesToThePolicyVersion: 1
+				thisPolicyFileCompliesToThePolicyVersion: 2
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 				  theSupervisedCodeUsesTheFollowingPackage: "com.example"

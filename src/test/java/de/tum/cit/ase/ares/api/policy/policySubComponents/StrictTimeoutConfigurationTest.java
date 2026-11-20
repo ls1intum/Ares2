@@ -28,8 +28,8 @@ class StrictTimeoutConfigurationTest {
 	/** A timeout and a grace period read as durations. */
 	@Test
 	void durationsAreRead() {
-		StrictTimeoutConfiguration configuration = StrictTimeoutConfiguration.builder().theTimeoutIs("1m 30s")
-				.theTerminationGraceIs("250ms").build();
+		StrictTimeoutConfiguration configuration = StrictTimeoutConfiguration.builder().theTimeoutIs("90 SECONDS")
+				.theTerminationGraceIs("250 MILLISECONDS").build();
 		assertThat(configuration.timeout()).isEqualTo(Duration.ofSeconds(90));
 		assertThat(configuration.terminationGrace()).contains(Duration.ofMillis(250));
 	}
@@ -37,14 +37,14 @@ class StrictTimeoutConfigurationTest {
 	/** Without a grace period the record reports none, not zero. */
 	@Test
 	void aMissingGraceIsEmpty() {
-		assertThat(StrictTimeoutConfiguration.builder().theTimeoutIs("2s").build().terminationGrace()).isEmpty();
+		assertThat(StrictTimeoutConfiguration.builder().theTimeoutIs("2 SECONDS").build().terminationGrace()).isEmpty();
 	}
 
 	/** A grace period of zero is configured, not absent. */
 	@Test
 	void aZeroGraceIsKept() {
-		assertThat(StrictTimeoutConfiguration.builder().theTimeoutIs("2s").theTerminationGraceIs("0ms").build()
-				.terminationGrace()).contains(Duration.ZERO);
+		assertThat(StrictTimeoutConfiguration.builder().theTimeoutIs("2 SECONDS")
+				.theTerminationGraceIs("0 MILLISECONDS").build().terminationGrace()).contains(Duration.ZERO);
 	}
 
 	/**
@@ -53,27 +53,49 @@ class StrictTimeoutConfigurationTest {
 	 * @param timeout the timeout to refuse.
 	 */
 	@ParameterizedTest
-	@ValueSource(strings = { "", "soon", "0s", "-1s", "1s 1m", "1s 2s", "99999999999999999999d", "106752d" })
+	@ValueSource(strings = { "", "soon", "0 SECONDS", "-1 SECONDS", "2s", "2 seconds", "1 DAYS 12 HOURS",
+			"99999999999999999999 DAYS", "106752 DAYS" })
 	void anInvalidTimeoutIsRefused(String timeout) {
 		assertThatThrownBy(() -> StrictTimeoutConfiguration.builder().theTimeoutIs(timeout).build())
 				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("theTimeoutIs");
+	}
+
+	/** The shortest timeout, one nanosecond, is accepted. */
+	@Test
+	void aOneNanosecondTimeoutIsAccepted() {
+		assertThat(StrictTimeoutConfiguration.builder().theTimeoutIs("1 NANOSECONDS").build().timeout())
+				.isEqualTo(Duration.ofNanos(1));
+	}
+
+	/** A grace period of exactly one day is accepted. */
+	@Test
+	void aGraceOfOneDayIsAccepted() {
+		assertThat(StrictTimeoutConfiguration.builder().theTimeoutIs("2 SECONDS").theTerminationGraceIs("1 DAYS")
+				.build().terminationGrace()).contains(Duration.ofDays(1));
+	}
+
+	/** A grace period of 25 hours is refused. */
+	@Test
+	void aGraceOf25HoursIsRefused() {
+		assertThatThrownBy(() -> StrictTimeoutConfiguration.builder().theTimeoutIs("2 SECONDS")
+				.theTerminationGraceIs("25 HOURS").build()).isInstanceOf(IllegalArgumentException.class)
+						.hasMessageContaining("theTerminationGraceIs");
 	}
 
 	/** A grace period above one day is refused, naming the field. */
 	@Test
 	void aGraceAboveOneDayIsRefused() {
 		Locale.setDefault(Locale.Category.DISPLAY, Locale.ENGLISH);
-		assertThatThrownBy(
-				() -> StrictTimeoutConfiguration.builder().theTimeoutIs("2s").theTerminationGraceIs("1d 1ms").build())
-						.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("theTerminationGraceIs")
-						.hasMessageContaining("at most one day");
+		assertThatThrownBy(() -> StrictTimeoutConfiguration.builder().theTimeoutIs("2 SECONDS")
+				.theTerminationGraceIs("86400001 MILLISECONDS").build()).isInstanceOf(IllegalArgumentException.class)
+						.hasMessageContaining("theTerminationGraceIs").hasMessageContaining("at most one day");
 	}
 
 	/** The refusal is localised in German too. */
 	@Test
 	void theRefusalIsLocalisedInGerman() {
 		Locale.setDefault(Locale.Category.DISPLAY, Locale.GERMAN);
-		assertThatThrownBy(() -> StrictTimeoutConfiguration.builder().theTimeoutIs("0s").build())
+		assertThatThrownBy(() -> StrictTimeoutConfiguration.builder().theTimeoutIs("0 SECONDS").build())
 				.hasMessageContaining("Ares Sicherheitsfehler");
 	}
 }

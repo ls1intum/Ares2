@@ -161,7 +161,7 @@ class GeneratedFailureReportingTest {
 	 */
 	private static String policyText() {
 		return """
-				thisPolicyFileCompliesToThePolicyVersion: 1
+				thisPolicyFileCompliesToThePolicyVersion: 2
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 				  theSupervisedCodeUsesTheFollowingPackage: "com.example"
@@ -182,8 +182,9 @@ class GeneratedFailureReportingTest {
 	}
 
 	/**
-	 * The DEBUG entry for a blocked file action is complete and quoted, so the
-	 * policy reader accepts it as written and a Windows path reads back unchanged.
+	 * The DEBUG entry for a blocked file action is one complete, quoted list item,
+	 * so the policy reader accepts it as written and a Windows path reads back
+	 * unchanged.
 	 *
 	 * @throws Exception if the generated hook cannot be loaded
 	 */
@@ -197,9 +198,12 @@ class GeneratedFailureReportingTest {
 					.getDeclaredMethod("entryOf", String.class, String.class, String.class);
 			entryOf.setAccessible(true);
 			String entry = (String) entryOf.invoke(null, "file", "create", target);
-			java.util.Map<String, Object> read = new com.fasterxml.jackson.dataformat.yaml.YAMLMapper().readValue(entry,
-					new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {
-					});
+			java.util.List<java.util.Map<String, Object>> entries = new com.fasterxml.jackson.dataformat.yaml.YAMLMapper()
+					.readValue(entry,
+							new com.fasterxml.jackson.core.type.TypeReference<java.util.List<java.util.Map<String, Object>>>() {
+							});
+			assertThat(entries).hasSize(1);
+			java.util.Map<String, Object> read = entries.get(0);
 			assertThat(read)
 					.containsOnlyKeys("onThisPathAndAllPathsBelow", "readAllFiles", "overwriteAllFiles",
 							"createAllFiles", "executeAllFiles", "deleteAllFiles")

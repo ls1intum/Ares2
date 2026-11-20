@@ -9,6 +9,7 @@ import de.tum.cit.ase.ares.api.AresConstants;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 
 /**
  * Immutable security policy for supervised code execution.
@@ -50,17 +51,45 @@ public record SecurityPolicy(int thisPolicyFileCompliesToThePolicyVersion,
 	 * and validated supervised code.
 	 * <p>
 	 * The range check is shared with the builder's version setter through
-	 * {@link #requireSupportedPolicyVersion(int)}, so the two cannot drift apart.
+	 * {@link #requireSupportedPolicyVersion(int)}, so the two cannot drift apart. A
+	 * policy that configures test behaviour must declare at least
+	 * {@value AresConstants#TEST_BEHAVIOR_POLICY_VERSION}.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
 	 * @throws IllegalArgumentException if the declared policy-format version lies
-	 *                                  outside the supported range.
+	 *                                  outside the supported range, or is too old
+	 *                                  for the test behaviour it configures.
 	 * @throws NullPointerException     if the supervised code is null.
 	 */
 	public SecurityPolicy {
 		requireSupportedPolicyVersion(thisPolicyFileCompliesToThePolicyVersion);
 		Objects.requireNonNull(regardingTheSupervisedCode, "regardingTheSupervisedCode must not be null");
+		requireVersionForTestBehavior(thisPolicyFileCompliesToThePolicyVersion,
+				regardingTheSupervisedCode.theFollowingTestBehaviorIsConfiguredOrEmpty());
+	}
+
+	/**
+	 * Refuses a policy whose declared version is older than the first format with
+	 * test-behaviour categories while it configures one. An empty test-behaviour
+	 * section is allowed in every version, so released version 1 policies keep
+	 * working.
+	 *
+	 * @since 2.3.0
+	 * @author Luka Petrovic
+	 * @param version  the declared policy-format version.
+	 * @param behavior the configured test behaviour; empty when none.
+	 * @throws IllegalArgumentException naming the declared version, the first
+	 *                                  configured category and the required
+	 *                                  version.
+	 */
+	private static void requireVersionForTestBehavior(int version, @Nonnull TestBehaviorConfiguration behavior) {
+		if (version < AresConstants.TEST_BEHAVIOR_POLICY_VERSION) {
+			behavior.firstConfiguredCategory().ifPresent(category -> {
+				throw new IllegalArgumentException(Messages.localized("policy.version.test.behavior", version, category,
+						AresConstants.TEST_BEHAVIOR_POLICY_VERSION));
+			});
+		}
 	}
 
 	/**

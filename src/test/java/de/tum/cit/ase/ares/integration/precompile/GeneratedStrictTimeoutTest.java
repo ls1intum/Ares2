@@ -159,7 +159,7 @@ class GeneratedStrictTimeoutTest {
 	 */
 	static String policyText(String configuration) {
 		return """
-				thisPolicyFileCompliesToThePolicyVersion: 1
+				thisPolicyFileCompliesToThePolicyVersion: 2
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: %s
 				  theSupervisedCodeUsesTheFollowingPackage: "com.example"
@@ -174,8 +174,8 @@ class GeneratedStrictTimeoutTest {
 				    regardingTimeouts: []
 				  theFollowingTestBehaviorIsConfigured:
 				    regardingTheStrictTimeoutForTheTestCases:
-				      theTimeoutIs: "100ms"
-				      theTerminationGraceIs: "1s"
+				      theTimeoutIs: "100 MILLISECONDS"
+				      theTerminationGraceIs: "1 SECONDS"
 				""".formatted(configuration);
 	}
 

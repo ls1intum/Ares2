@@ -126,11 +126,11 @@ class FailureReportingWriterTest extends GeneratedHookWriterProject {
 
 	/**
 	 * The hook is written when privileged-only reporting is on or the feedback
-	 * level is not FULL, and removed again once both are back to their defaults.
+	 * level is not HIGH, and removed again once both are back to their defaults.
 	 */
 	@org.junit.jupiter.params.ParameterizedTest
-	@org.junit.jupiter.params.provider.CsvSource({ "false, FULL, false", "true, FULL, true", "false, MINIMIZED, true",
-			"false, DEBUG, true", "true, MINIMIZED, true" })
+	@org.junit.jupiter.params.provider.CsvSource({ "false, HIGH, false", "true, HIGH, true", "false, LOW, true",
+			"false, DEBUG, true", "true, LOW, true" })
 	void theHookFollowsBothSettings(boolean privilegedOnly, SecurityViolationFeedbackLevel level, boolean written) {
 		writer(null)
 				.write(TestBehaviorConfiguration.builder()
@@ -151,7 +151,7 @@ class FailureReportingWriterTest extends GeneratedHookWriterProject {
 	void theHookReadsTheLevelAndTheCopiedViolations() throws IOException {
 		writer(null).write(TestBehaviorConfiguration.builder()
 				.regardingTheFailureFeedbackForTheTestCases(FailureFeedbackConfiguration.builder()
-						.theSecurityViolationFeedbackLevelIs(SecurityViolationFeedbackLevel.MINIMIZED).build())
+						.theSecurityViolationFeedbackLevelIs(SecurityViolationFeedbackLevel.LOW).build())
 				.build(), PACKAGE, testFolder);
 		assertThat(Files.readString(source(FailureReportingSources.JUPITER_HOOK)))
 				.contains(TestBehaviorConfiguration.FAILURE_FEEDBACK_LEVEL_FIELD_NAME)

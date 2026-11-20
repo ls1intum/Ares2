@@ -549,7 +549,7 @@ public class JavaWriterTest {
 		 */
 		private TestBehaviorConfiguration strictTimeoutConfigured() {
 			return TestBehaviorConfiguration.builder().regardingTheStrictTimeoutForTheTestCases(
-					StrictTimeoutConfiguration.builder().theTimeoutIs("2s").build()).build();
+					StrictTimeoutConfiguration.builder().theTimeoutIs("2 SECONDS").build()).build();
 		}
 
 		@Test

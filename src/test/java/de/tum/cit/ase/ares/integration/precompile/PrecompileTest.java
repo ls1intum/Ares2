@@ -99,7 +99,7 @@ public class PrecompileTest {
 		Files.createDirectories(projectFolderPath.resolve("target/classes"));
 		Path policyFile = tempDir.resolve("SecurityPolicy.yaml");
 		Files.writeString(policyFile, """
-				thisPolicyFileCompliesToThePolicyVersion: 1
+				thisPolicyFileCompliesToThePolicyVersion: 2
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 				  theSupervisedCodeUsesTheFollowingPackage: "com.example"

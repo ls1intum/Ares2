@@ -104,6 +104,6 @@ class StrictTimeoutWriterTest extends GeneratedHookWriterProject {
 	 */
 	private static TestBehaviorConfiguration configured() {
 		return TestBehaviorConfiguration.builder().regardingTheStrictTimeoutForTheTestCases(
-				StrictTimeoutConfiguration.builder().theTimeoutIs("2s").build()).build();
+				StrictTimeoutConfiguration.builder().theTimeoutIs("2 SECONDS").build()).build();
 	}
 }

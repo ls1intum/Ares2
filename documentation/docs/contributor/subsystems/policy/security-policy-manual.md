@@ -237,9 +237,10 @@ Security policies are written in YAML format. YAML uses indentation (spaces, not
 ### 7.2 Complete Structure
 
 ```yaml
-# REQUIRED: The policy format version. Must be exactly 1; any other value,
-# or omitting the key, causes the policy to be rejected on load.
-thisPolicyFileCompliesToThePolicyVersion: 1
+# REQUIRED: The policy format version, 1 or 2. Version 2 is needed as soon as
+# any category under theFollowingTestBehaviorIsConfigured is set; any other
+# value, or omitting the key, causes the policy to be rejected on load.
+thisPolicyFileCompliesToThePolicyVersion: 2
 
 regardingTheSupervisedCode:
   # REQUIRED: Which configuration to use
@@ -296,8 +297,8 @@ regardingTheSupervisedCode:
   # OPTIONAL: Behaviour of the tests, see 7.7. Every category inside is optional.
   theFollowingTestBehaviorIsConfigured:
     regardingTheStrictTimeoutForTheTestCases:
-      theTimeoutIs: "2s"                             # REQUIRED within this category
-      theTerminationGraceIs: "200ms"                 # OPTIONAL
+      theTimeoutIs: "2 SECONDS"                      # REQUIRED within this category
+      theTerminationGraceIs: "200 MILLISECONDS"      # OPTIONAL
 
     regardingTheOutputOfTheTestCases:
       theOutputIsMirrored: false                     # OPTIONAL, defaults as shown
@@ -307,11 +308,11 @@ regardingTheSupervisedCode:
     regardingTheFailureFeedbackForTheTestCases:
       onlyPrivilegedExceptionsAreReported: false     # OPTIONAL, defaults as shown
       theFailureMessageForOtherExceptionsIs: "Test failed."  # OPTIONAL, defaults as shown
-      theSecurityViolationFeedbackLevelIs: FULL      # OPTIONAL: DEBUG, MINIMIZED or FULL
+      theSecurityViolationFeedbackLevelIs: HIGH      # OPTIONAL: DEBUG, HIGH, MEDIUM or LOW
 
     regardingTheVisibilityAndScheduleOfTheTestCases:
       theDeadlineIs: "2026-12-24 23:59 Europe/Berlin"               # REQUIRED in this category
-      theDeadlineIsExtendedBy: "1d 12h"                             # OPTIONAL
+      theDeadlineIsExtendedBy: "36 HOURS"                             # OPTIONAL
       theHiddenTestsAreRunBefore: "2026-11-01 00:00 Europe/Berlin"  # OPTIONAL
       testsNotListedHereAreHidden: false                            # REQUIRED in this category
       theFollowingTestsAreHidden: [ "org.example.PenguinTest#name" ] # OPTIONAL
@@ -409,13 +410,13 @@ theFollowingClassesAreTestClasses:
 
 ### 7.7 Test Behaviour Configuration
 
-The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before.
+The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before. A policy that sets any category must declare `thisPolicyFileCompliesToThePolicyVersion: 2`; Ares refuses a version 1 policy that sets one, and its message names the category and the version it needs.
 
 The category and field names follow the proposal in issue #386, section C. They are not final until the advisor accepts them; [Policy Compatibility](./policy-compatibility.md) lists which release accepts which key.
 
 In a precompile exercise the generator reads these settings when it writes the exercise. Any malformed value, unknown key or explicit `null` stops the generator and names the field.
 
-**Durations** such as `theTimeoutIs`, `theTerminationGraceIs` and `theDeadlineIsExtendedBy` are text: days `d`, hours `h`, minutes `m`, seconds `s` and milliseconds `ms`, each at most once, largest first, in any letter case. `"2s"`, `"500ms"` and `"1d 12h"` are durations; `"1s 1m"` (wrong order), `"1s 2s"` (repeated unit) and `"2"` (no unit) are not. `"5M"` is five minutes, and `"5MS"` five milliseconds.
+**Durations** such as `theTimeoutIs`, `theTerminationGraceIs` and `theDeadlineIsExtendedBy` are one text each. The text is a whole number, one space and the name of a Java `TimeUnit` in capitals: `NANOSECONDS`, `MICROSECONDS`, `MILLISECONDS`, `SECONDS`, `MINUTES`, `HOURS` or `DAYS`. `"2 SECONDS"`, `"500 MILLISECONDS"` and `"36 HOURS"` are durations; `"2s"`, `"2 seconds"`, `"2 SECOND"`, `"1 DAYS 12 HOURS"` and `"2"` are not. Ares refuses a YAML number such as `2` too, and its message names the field and lists the seven units.
 
 #### 7.7.1 Strict timeout
 
@@ -427,8 +428,8 @@ In a precompile exercise the generator reads these settings when it writes the e
 ```yaml
 theFollowingTestBehaviorIsConfigured:
   regardingTheStrictTimeoutForTheTestCases:
-    theTimeoutIs: "2s"
-    theTerminationGraceIs: "200ms"
+    theTimeoutIs: "2 SECONDS"
+    theTerminationGraceIs: "200 MILLISECONDS"
 ```
 
 **Not `regardingTimeouts`:** the resource-access list `regardingTimeouts` (8.6) is a separate Phobos limit. This category is the one that bounds tests.
@@ -459,15 +460,18 @@ theFollowingTestBehaviorIsConfigured:
 
 - `onlyPrivilegedExceptionsAreReported` (boolean): `true` replaces the text of every failure except a blocked action and a privileged one with a fixed message. Defaults to `false`.
 - `theFailureMessageForOtherExceptionsIs` (text): the fixed message. Defaults to `"Test failed."` when omitted or blank.
-- `theSecurityViolationFeedbackLevelIs` (`DEBUG`, `MINIMIZED` or `FULL`): how much a blocked action reveals. Defaults to `FULL`.
+- `theSecurityViolationFeedbackLevelIs` (`DEBUG`, `HIGH`, `MEDIUM` or `LOW`): how much a blocked action reveals. Defaults to `HIGH`.
 
 In a precompile exercise the feedback level decides every action the copied checks block, and the failures of the generated ArchUnit and WALA tests:
 
-| Level | What the student sees |
+| Level | What the student sees, for a blocked read of `/etc/passwd` |
 |---|---|
-| `FULL` | The full message, as before: `Ares Security Error (Reason: Student-Code; Stage: Execution): Main.run tried to illegally read File /etc/passwd via FileInputStream.<init> but was blocked by Ares.` |
-| `MINIMIZED` | `Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.` No action, target or caller, and no stack. |
-| `DEBUG` | The full message, followed by the policy entry that allows the action, such as `To allow this, add to regardingFileSystemInteractions: { onThisPathAndAllPathsBelow: "/etc/passwd", readAllFiles: true, overwriteAllFiles: false, createAllFiles: false, executeAllFiles: false, deleteAllFiles: false }`, which the policy reader accepts as written and which grants only that action. For an action the architecture analysis blocks, the hint names only the category. |
+| `DEBUG` | The `HIGH` message and a hint. For a blocked read, the hint reads `Allow it by granting the read permission on /etc/passwd in the security policy SecurityPolicy1.yml as:`. The entry to paste follows on the next lines.<br/>`- onThisPathAndAllPathsBelow: "/etc/passwd"`<br/>`  readAllFiles: true`<br/>`  overwriteAllFiles: false`<br/>`  createAllFiles: false`<br/>`  executeAllFiles: false`<br/>`  deleteAllFiles: false`<br/>The policy reader accepts the entry as written, and it grants only that action. Network, command, thread and package-import entries look the same way; a package entry sets `exactMatchOnly: true`, so it allows no package below the blocked one. For an action the architecture analysis blocks, whose exact target is not known, the hint names only the category. A policy built in code has no file name, so the hint says only "the security policy". |
+| `HIGH` (default) | The full message, as before: `Ares Security Error (Reason: Student-Code; Stage: Execution): Main.run tried to illegally read File /etc/passwd via FileInputStream.<init> but was blocked by Ares.` |
+| `MEDIUM` | `Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally read a File, but was blocked by Ares.` Only the kind of action: reading, overwriting, creating, executing or deleting a file, opening a network connection, sending or receiving data over it, executing a command or creating a thread. No target or caller, and no stack. An action the architecture analysis blocks shows the `LOW` text. |
+| `LOW` | `Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.` No action, target or caller, and no stack. |
+
+Every text exists in English and German.
 
 Errors in Ares itself (`Reason: Ares-Code`) are never shortened and never get a hint. A student who creates an exception that looks like a blocked action gets no special treatment: only the exceptions Ares's own checks create follow the level.
 
@@ -476,10 +480,10 @@ theFollowingTestBehaviorIsConfigured:
   regardingTheFailureFeedbackForTheTestCases:
     onlyPrivilegedExceptionsAreReported: true
     theFailureMessageForOtherExceptionsIs: "Something went wrong."
-    theSecurityViolationFeedbackLevelIs: MINIMIZED
+    theSecurityViolationFeedbackLevelIs: LOW
 ```
 
-**Precompile:** the generator writes the three values as constants and a JUnit extension, but only when privileged-only reporting is on or the level is not `FULL`. Below `FULL`, the extension rebuilds a blocked action's message from its parts, each cut to 200 characters, and never shows the exception's own text. At `FULL` with privileged-only reporting on, it reports a recognised blocked action as it is, with its own message and no length limit. A failure that only wraps one shows the blocked action alone. In a generated exercise the copied checks sit in the exercise's own package, so a student class placed there could create such an exception. Below `FULL`, the most it can show is text inside those parts; at `FULL`, its own message. One failure keeps its own message: one thrown by another extension's callback, such as an instructor's `BeforeEachCallback`, because JUnit hands it to no extension that could replace it. Keep student code out of such callbacks.
+**Precompile:** the generator writes the three values as constants and a JUnit extension, but only when privileged-only reporting is on or the level is not `HIGH`. At `MEDIUM` and `LOW`, the extension shows only the fixed texts above, the `MEDIUM` phrase chosen from the blocked action's kind, and never the exception's own text. At `HIGH` with privileged-only reporting on, it reports a recognised blocked action as it is, with its own message and no length limit. `DEBUG` adds to that message the hint built from the action's parts, each cut to 200 characters. The generated hint names "the security policy" without a file name, since the generator is not told which file it read. A failure that only wraps one shows the blocked action alone. In a generated exercise the copied checks sit in the exercise's own package, so a student class placed there could create such an exception. At `MEDIUM` and `LOW`, the most it can show is its kind of action; at `HIGH` and `DEBUG`, its own message. One failure keeps its own message: one thrown by another extension's callback, such as an instructor's `BeforeEachCallback`, because JUnit hands it to no extension that could replace it. Keep student code out of such callbacks.
 
 #### 7.7.4 Visibility and schedule
 
@@ -498,7 +502,7 @@ The nearest entry wins: the test's own class with its method, then its class, th
 theFollowingTestBehaviorIsConfigured:
   regardingTheVisibilityAndScheduleOfTheTestCases:
     theDeadlineIs: "2026-12-24 23:59 Europe/Berlin"
-    theDeadlineIsExtendedBy: "1d"
+    theDeadlineIsExtendedBy: "1 DAYS"
     testsNotListedHereAreHidden: true
     theFollowingTestsAreHidden:
       - "org.example.PenguinTest#secret"

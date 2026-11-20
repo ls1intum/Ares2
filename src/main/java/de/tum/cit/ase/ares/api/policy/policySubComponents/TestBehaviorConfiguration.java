@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -187,6 +188,33 @@ public record TestBehaviorConfiguration(@Nullable StrictTimeoutConfiguration reg
 		}
 		chunks.add(chunk.toString());
 		return chunks;
+	}
+
+	/**
+	 * Names the first category this configuration sets, in the order the policy
+	 * file lists them. The version check uses it to say which setting needs the
+	 * newer policy format.
+	 *
+	 * @since 2.3.0
+	 * @author Luka Petrovic
+	 * @return the policy key of the first configured category; empty when none is
+	 *         configured.
+	 */
+	@Nonnull
+	public Optional<String> firstConfiguredCategory() {
+		if (regardingTheStrictTimeoutForTheTestCases != null) {
+			return Optional.of(TestBehaviorFieldNames.STRICT_TIMEOUT);
+		}
+		if (regardingTheOutputOfTheTestCases != null) {
+			return Optional.of(TestBehaviorFieldNames.OUTPUT);
+		}
+		if (regardingTheFailureFeedbackForTheTestCases != null) {
+			return Optional.of(TestBehaviorFieldNames.FAILURE_FEEDBACK);
+		}
+		if (regardingTheVisibilityAndScheduleOfTheTestCases != null) {
+			return Optional.of(TestBehaviorFieldNames.VISIBILITY_AND_SCHEDULE);
+		}
+		return Optional.empty();
 	}
 
 	/**

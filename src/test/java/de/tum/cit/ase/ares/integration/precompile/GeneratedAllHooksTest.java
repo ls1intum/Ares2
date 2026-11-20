@@ -51,8 +51,7 @@ class GeneratedAllHooksTest {
 	private static final String VIOLATION_PACKAGE = "com.example.ares.api.aop.java.aspectj.adviceandpointcut";
 
 	/**
-	 * The path the blocked-action fixture names, which a MINIMIZED report must not
-	 * show.
+	 * The path the blocked-action fixture names, which a LOW report must not show.
 	 */
 	private static final String BLOCKED_PATH = "/secret/solution.txt";
 
@@ -96,7 +95,7 @@ class GeneratedAllHooksTest {
 		Path policy = project.resolve("SecurityPolicy.yaml");
 		Files.writeString(policy,
 				"""
-						thisPolicyFileCompliesToThePolicyVersion: 1
+						thisPolicyFileCompliesToThePolicyVersion: 2
 						regardingTheSupervisedCode:
 						  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 						  theSupervisedCodeUsesTheFollowingPackage: "com.example"
@@ -111,11 +110,11 @@ class GeneratedAllHooksTest {
 						    regardingTimeouts: []
 						  theFollowingTestBehaviorIsConfigured:
 						    regardingTheStrictTimeoutForTheTestCases:
-						      theTimeoutIs: "2s"
+						      theTimeoutIs: "2 SECONDS"
 						    regardingTheOutputOfTheTestCases:
 						      theMaximumNumberOfOutputCharactersIs: 100000
 						    regardingTheFailureFeedbackForTheTestCases:
-						      theSecurityViolationFeedbackLevelIs: MINIMIZED
+						      theSecurityViolationFeedbackLevelIs: LOW
 						    regardingTheVisibilityAndScheduleOfTheTestCases:
 						      theDeadlineIs: "2000-01-01 00:00 UTC"
 						      testsNotListedHereAreHidden: false
@@ -572,8 +571,8 @@ class GeneratedAllHooksTest {
 
 	/**
 	 * A blocked action thrown in a timed test still follows the feedback level, so
-	 * at MINIMIZED the report shows the fixed text and never the blocked path, with
-	 * the hooks in either order.
+	 * at LOW the report shows the fixed text and never the blocked path, with the
+	 * hooks in either order.
 	 *
 	 * @param reversed whether the hooks are registered the other way round.
 	 * @throws Exception if the run cannot be set up
@@ -582,7 +581,7 @@ class GeneratedAllHooksTest {
 	@ValueSource(booleans = { false, true })
 	void aBlockedActionInATimedTestFollowsTheFeedbackLevel(boolean reversed) throws Exception {
 		assertThat(messages(run("com.example.fixtures.BlockedActionFixture", reversed))).containsExactly(
-				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
+				"Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.");
 	}
 
 	/**
@@ -642,7 +641,7 @@ class GeneratedAllHooksTest {
 	@ValueSource(booleans = { false, true })
 	void aWrappedBlockedActionFollowsTheFeedbackLevel(boolean reversed) throws Exception {
 		assertThat(messages(run("com.example.fixtures.CompletionViolationFixture", reversed))).containsExactly(
-				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
+				"Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.");
 	}
 
 	/**
@@ -661,7 +660,7 @@ class GeneratedAllHooksTest {
 			"false, ClassNotFoundViolationFixture", "true, ClassNotFoundViolationFixture" })
 	void anAttachedBlockedActionFollowsTheFeedbackLevel(boolean reversed, String fixture) throws Exception {
 		assertThat(messages(run("com.example.fixtures." + fixture, reversed))).containsExactly(
-				"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.");
+				"Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.");
 	}
 
 	/**

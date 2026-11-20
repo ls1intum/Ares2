@@ -63,7 +63,7 @@ final class FailureReportingWriter {
 
 	/**
 	 * Whether the policy needs the hook: privileged-only reporting is on, or the
-	 * feedback level is not {@code FULL}.
+	 * feedback level is not {@code HIGH}.
 	 *
 	 * @param configuration the policy's behaviour configuration.
 	 * @return true when either setting differs from its default
@@ -71,6 +71,6 @@ final class FailureReportingWriter {
 	static boolean contributes(@Nonnull TestBehaviorConfiguration configuration) {
 		FailureFeedbackConfiguration category = configuration.regardingTheFailureFeedbackForTheTestCases();
 		return category != null
-				&& (category.privilegedOnly() || category.feedbackLevel() != SecurityViolationFeedbackLevel.FULL);
+				&& (category.privilegedOnly() || category.feedbackLevel() != SecurityViolationFeedbackLevel.HIGH);
 	}
 }

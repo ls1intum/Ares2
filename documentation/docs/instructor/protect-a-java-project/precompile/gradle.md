@@ -205,7 +205,7 @@ the settings, one JUnit extension per setting, and a sentinel test for each. The
 `regardingTheStrictTimeoutForTheTestCases` times every test. The one for
 `regardingTheOutputOfTheTestCases` limits and, if asked, echoes each test's console output. With `theInputAndOutputAreManagedBy: NONE` the generator writes none. `CUSTOM` stops the generator, because a
 precompile exercise has no Ares dependency to run a custom manager with. The one for
-`regardingTheFailureFeedbackForTheTestCases` replaces failure text and shortens blocked actions, and the generator writes it only when privileged-only reporting is on or the feedback level is not `FULL`. The one
+`regardingTheFailureFeedbackForTheTestCases` replaces failure text and shortens blocked actions, and the generator writes it only when privileged-only reporting is on or the feedback level is not `HIGH`. The one
 for `regardingTheVisibilityAndScheduleOfTheTestCases` holds back the tests the policy makes hidden
 until the deadline and hides why they failed. JUnit loads the extensions through the file under
 `META-INF/services`, and `junit-platform.properties` switches JUnit's automatic loading on for

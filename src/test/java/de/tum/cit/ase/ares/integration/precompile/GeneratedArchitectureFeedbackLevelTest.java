@@ -16,14 +16,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import de.tum.cit.ase.ares.api.internal.SecurityViolationFeedbackTexts;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import de.tum.cit.ase.ares.testutilities.GeneratedCodeRuns;
 
 /**
  * Runs the failure reporting a precompile run generates against the security
  * tests Ares generates into the exercise, and checks that their failures follow
- * the policy's feedback level: unchanged at FULL, the fixed text at MINIMIZED,
- * the report plus the policy category at DEBUG. The architecture tests are
+ * the policy's feedback level: unchanged at HIGH, the fixed text at LOW, the
+ * report plus the policy category at DEBUG. The architecture tests are
  * stand-ins under their exact generated names, because the generated ones need
  * the copied analysis libraries to compile.
  */
@@ -59,11 +60,11 @@ class GeneratedArchitectureFeedbackLevelTest {
 	@TempDir
 	static Path tempDir;
 
-	/** Compiled output for a policy at FULL with privileged-only reporting on. */
+	/** Compiled output for a policy at HIGH with privileged-only reporting on. */
 	private static Path full;
 
-	/** Compiled output for a policy at MINIMIZED. */
-	private static Path minimized;
+	/** Compiled output for a policy at LOW. */
+	private static Path low;
 
 	/** Compiled output for a policy at DEBUG. */
 	private static Path debug;
@@ -75,13 +76,13 @@ class GeneratedArchitectureFeedbackLevelTest {
 	 */
 	@BeforeAll
 	static void generateAndCompile() throws IOException {
-		full = project("full", "FULL", true);
-		minimized = project("minimized", "MINIMIZED", false);
+		full = project("full", "HIGH", true);
+		low = project("low", "LOW", false);
 		debug = project("debug", "DEBUG", false);
 	}
 
 	/**
-	 * At FULL, the generated security tests keep their report even with
+	 * At HIGH, the generated security tests keep their report even with
 	 * privileged-only reporting on, while another failing test gets the policy's
 	 * message.
 	 *
@@ -96,20 +97,19 @@ class GeneratedArchitectureFeedbackLevelTest {
 	}
 
 	/**
-	 * At MINIMIZED, the generated security tests show only that something was
-	 * blocked, in both locales, and nothing of the report.
+	 * At LOW, the generated security tests show only that something was blocked, in
+	 * both locales, and nothing of the report.
 	 *
 	 * @throws Exception if the run cannot be set up
 	 */
 	@Test
-	void minimizedShowsOnlyTheFixedText() throws Exception {
+	void lowShowsOnlyTheFixedText() throws Exception {
 		for (String test : List.of(ARCHUNIT_TEST, WALA_TEST)) {
-			assertThat(messages(minimized, test, Locale.ENGLISH)).contains(
-					"Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.")
+			assertThat(messages(low, test, Locale.ENGLISH)).contains(
+					"Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.")
 					.noneMatch(message -> message.contains("/secret/path"));
-			assertThat(messages(minimized, test, Locale.GERMAN))
-					.filteredOn(message -> !message.equals(CONFIGURATION_ERROR)).singleElement().asString()
-					.startsWith("Ares Sicherheitsfehler").doesNotContain("/secret/path");
+			assertThat(messages(low, test, Locale.GERMAN)).filteredOn(message -> !message.equals(CONFIGURATION_ERROR))
+					.singleElement().asString().startsWith("Ares Sicherheitsfehler").doesNotContain("/secret/path");
 		}
 	}
 
@@ -123,7 +123,8 @@ class GeneratedArchitectureFeedbackLevelTest {
 	void debugAddsTheCategory() throws Exception {
 		for (String test : List.of(ARCHUNIT_TEST, WALA_TEST)) {
 			assertThat(messages(debug, test, Locale.ENGLISH)).filteredOn(message -> message.startsWith(REPORT))
-					.singleElement().asString().contains("To allow this, add to regardingFileSystemInteractions");
+					.singleElement().asString().endsWith(
+							"Allow it by adding an entry under regardingFileSystemInteractions in the security policy.");
 		}
 	}
 
@@ -136,8 +137,14 @@ class GeneratedArchitectureFeedbackLevelTest {
 	@Test
 	void debugGivesNoHintForAnUninspectableArgument() throws Exception {
 		assertThat(renderedAtDebug(new Blocked("uninspectable", "inspect", "a student Path")))
-				.contains("a student Path").doesNotContain("To allow this");
-		assertThat(renderedAtDebug(new Blocked("file", "read", "/secret/path"))).contains("To allow this");
+				.isEqualTo("Main.run tried to illegally inspect a student Path but was blocked by Ares.");
+		assertThat(renderedAtDebug(new Blocked("file", "read", "/secret/path")))
+				.isEqualTo(inEnglish(() -> SecurityViolationFeedbackTexts.debug(
+						"Main.run tried to illegally read /secret/path but was blocked by Ares.", "read",
+						"/secret/path", java.util.Optional.empty(),
+						SecurityViolationFeedbackTexts.lines("- onThisPathAndAllPathsBelow: \"/secret/path\"",
+								"  readAllFiles: true", "  overwriteAllFiles: false", "  createAllFiles: false",
+								"  executeAllFiles: false", "  deleteAllFiles: false"))));
 	}
 
 	/**
@@ -150,12 +157,36 @@ class GeneratedArchitectureFeedbackLevelTest {
 	 * @throws Exception if the generated hook cannot be loaded
 	 */
 	private static String renderedAtDebug(Throwable violation) throws Exception {
+		return inEnglish(() -> renderedByTheDebugHookUnchecked(violation));
+	}
+
+	/**
+	 * Computes a text with English as the display language.
+	 *
+	 * @param text the text to compute.
+	 * @return the text
+	 */
+	private static String inEnglish(java.util.function.Supplier<String> text) {
 		Locale originalLocale = Locale.getDefault(Locale.Category.DISPLAY);
 		try {
 			Locale.setDefault(Locale.Category.DISPLAY, Locale.ENGLISH);
-			return renderedByTheDebugHook(violation);
+			return text.get();
 		} finally {
 			Locale.setDefault(Locale.Category.DISPLAY, originalLocale);
+		}
+	}
+
+	/**
+	 * {@link #renderedByTheDebugHook} with its checked failure wrapped.
+	 *
+	 * @param violation the blocked action.
+	 * @return the rendered text
+	 */
+	private static String renderedByTheDebugHookUnchecked(Throwable violation) {
+		try {
+			return renderedByTheDebugHook(violation);
+		} catch (Exception unexpected) {
+			throw new IllegalStateException(unexpected);
 		}
 	}
 
@@ -202,6 +233,7 @@ class GeneratedArchitectureFeedbackLevelTest {
 		 * @param target what it was aimed at.
 		 */
 		Blocked(String kind, String action, String target) {
+			super("Main.run tried to illegally " + action + " " + target + " but was blocked by Ares.");
 			this.kind = kind;
 			this.action = action;
 			this.target = target;
@@ -243,13 +275,13 @@ class GeneratedArchitectureFeedbackLevelTest {
 	 */
 	@Test
 	void aConfigurationErrorKeepsItsText() throws Exception {
-		for (Path project : List.of(minimized, debug)) {
+		for (Path project : List.of(low, debug)) {
 			assertThat(messages(project, ARCHUNIT_TEST, Locale.ENGLISH)).contains(CONFIGURATION_ERROR);
 		}
 	}
 
 	/**
-	 * With privileged-only reporting at FULL, a failure that wraps a blocked action
+	 * With privileged-only reporting at HIGH, a failure that wraps a blocked action
 	 * reports the blocked action, not the wrapper's own text.
 	 *
 	 * @throws Exception if the run cannot be set up
@@ -260,7 +292,7 @@ class GeneratedArchitectureFeedbackLevelTest {
 	}
 
 	/**
-	 * With privileged-only reporting at FULL, a blocked action carrying a student
+	 * With privileged-only reporting at HIGH, a blocked action carrying a student
 	 * failure whose {@code toString} never returns is reported as a copy with its
 	 * own text, so printing the report runs no student code, in a JVM of its own.
 	 *
@@ -273,7 +305,7 @@ class GeneratedArchitectureFeedbackLevelTest {
 	}
 
 	/**
-	 * With privileged-only reporting at FULL, an ordinary assertion attached to a
+	 * With privileged-only reporting at HIGH, an ordinary assertion attached to a
 	 * blocked action as its cause or suppressed failure shows only the policy's
 	 * message, while the blocked action keeps its own text.
 	 *
@@ -287,7 +319,7 @@ class GeneratedArchitectureFeedbackLevelTest {
 	}
 
 	/**
-	 * With privileged-only reporting at FULL, a class named like the copied blocked
+	 * With privileged-only reporting at HIGH, a class named like the copied blocked
 	 * action but loaded by another class loader is not treated as one, so its own
 	 * text is never shown.
 	 *
@@ -324,7 +356,7 @@ class GeneratedArchitectureFeedbackLevelTest {
 	}
 
 	/**
-	 * Compiles a probe that hands the FULL project's failure reporting a blocked
+	 * Compiles a probe that hands the HIGH project's failure reporting a blocked
 	 * action with a looping student failure, or ordinary assertions, attached and
 	 * prints the report.
 	 *
@@ -388,7 +420,7 @@ class GeneratedArchitectureFeedbackLevelTest {
 	 */
 	@Test
 	void aLookalikeIsNotTreatedAsASecurityTest() throws Exception {
-		assertThat(messages(minimized, LOOKALIKE, Locale.ENGLISH)).containsExactly(REPORT);
+		assertThat(messages(low, LOOKALIKE, Locale.ENGLISH)).containsExactly(REPORT);
 	}
 
 	/**
@@ -554,7 +586,7 @@ class GeneratedArchitectureFeedbackLevelTest {
 	 */
 	private static String policyText(String level, boolean privilegedOnly) {
 		return """
-				thisPolicyFileCompliesToThePolicyVersion: 1
+				thisPolicyFileCompliesToThePolicyVersion: 2
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 				  theSupervisedCodeUsesTheFollowingPackage: "com.example"

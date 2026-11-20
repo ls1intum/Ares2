@@ -17,7 +17,7 @@ class FailureFeedbackConfigurationTest {
 		assertFalse(configuration.privilegedOnly());
 		assertEquals(FailureFeedbackConfiguration.DEFAULT_FAILURE_MESSAGE,
 				configuration.theFailureMessageForOtherExceptionsIs());
-		assertEquals(SecurityViolationFeedbackLevel.FULL, configuration.feedbackLevel());
+		assertEquals(SecurityViolationFeedbackLevel.HIGH, configuration.feedbackLevel());
 	}
 
 	/** A blank message falls back to the default. */
@@ -32,11 +32,11 @@ class FailureFeedbackConfigurationTest {
 	void givenValuesAreKept() {
 		FailureFeedbackConfiguration configuration = FailureFeedbackConfiguration.builder()
 				.onlyPrivilegedExceptionsAreReported(true).theFailureMessageForOtherExceptionsIs("Custom message")
-				.theSecurityViolationFeedbackLevelIs(SecurityViolationFeedbackLevel.MINIMIZED).build();
+				.theSecurityViolationFeedbackLevelIs(SecurityViolationFeedbackLevel.LOW).build();
 
 		assertTrue(configuration.privilegedOnly());
 		assertEquals("Custom message", configuration.theFailureMessageForOtherExceptionsIs());
-		assertEquals(SecurityViolationFeedbackLevel.MINIMIZED, configuration.feedbackLevel());
+		assertEquals(SecurityViolationFeedbackLevel.LOW, configuration.feedbackLevel());
 	}
 
 	/** Only the level set, privileged-only reporting stays off. */
