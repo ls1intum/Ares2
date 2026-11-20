@@ -115,7 +115,7 @@ regardingTheSupervisedCode:
 
 This policy forbids all file, network, command and thread operations.
 
-> **`thisPolicyFileCompliesToThePolicyVersion` is required** and must be exactly `1`. A policy file that omits it, or that declares any other value, is rejected on load.
+> **`thisPolicyFileCompliesToThePolicyVersion` is required.** Ares 2.2.1 accepts only `1`; Ares 2.3.0 accepts `1` and `2`, and needs `2` as soon as the policy sets a category under `theFollowingTestBehaviorIsConfigured` (7.7). Ares refuses a policy file that omits it or declares another value when it loads the file.
 
 > **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.2.1. Use [`regardingTheStrictTimeoutForTheTestCases`](#77-test-behaviour-configuration) or [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The policy setting needs Ares 2.3.0; on Ares 2.2.1, use `@StrictTimeout`. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
 
@@ -441,7 +441,7 @@ theFollowingTestBehaviorIsConfigured:
 `regardingTheOutputOfTheTestCases` chooses the I/O manager, as `@WithIOManager` does, and the output settings that apply to it, as `@MirrorOutput` does. Every field is optional.
 
 - `theOutputIsMirrored` (boolean): `true` echoes what a test writes to `System.out` and `System.err` to the real console as well. Defaults to `false`.
-- `theMaximumNumberOfOutputCharactersIs` (whole number): the limit on what a test writes to each stream. Ares counts it in UTF-8 bytes, as the IO tester does, so a character outside ASCII such as `ä` uses two. A test that writes more fails with `too much standard output`. Above zero; defaults to 100000000.
+- `theMaximumNumberOfOutputCharactersIs` (whole number): the limit on what a test writes to each stream. Ares counts it in UTF-8 bytes, as the IO tester does, so a character outside ASCII such as `ä` uses two. With `IO_TESTER`, a test that writes more fails with `too much standard output`. A custom manager receives the limit but has to enforce it itself. Above zero; defaults to 100000000.
 - `theInputAndOutputAreManagedBy` (`IO_TESTER`, `NONE` or `CUSTOM`): the manager. `IO_TESTER`, the default, records output and enforces the limit. `NONE` leaves output unrecorded, so the two output settings above do nothing, and Ares refuses them beside it. `CUSTOM` uses your own manager.
 - `theCustomInputAndOutputManagerIs` (class name): the custom manager, required with `CUSTOM` and refused otherwise.
 
