@@ -21,10 +21,9 @@ import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.api.localization.UseLocale;
 
 /**
- * Tests that overwrite their own policy file while the class runs, moving its
- * deadline into the past. Ares reads the test behaviour once, before the first
- * test, so the later tests keep the deadline it held then. Three variants cover
- * the ways a class can be supervised.
+ * Tests whose policy lets them overwrite their own policy file, which Ares
+ * refuses before any of them runs, so none can move the deadline into the past.
+ * Three variants cover the ways a class can be supervised.
  */
 @UseLocale("en")
 @SuppressWarnings("static-method")
@@ -45,6 +44,9 @@ public class PolicyBehaviorCacheUser {
 
 	/** The copy the variant with one instance per class reads. */
 	private static final String PER_CLASS = "target/test-behavior-cache/PolicyPerClass.yaml";
+
+	/** Every copy a variant reads, for checking that none was rewritten. */
+	public static final java.util.List<String> COPIES = java.util.List.of(PUBLIC_CLASS, PUBLIC_METHODS, PER_CLASS);
 
 	/** The benign subject the policies analyse. */
 	private static final String SUBJECT = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld";
@@ -151,11 +153,13 @@ public class PolicyBehaviorCacheUser {
 			moveTheDeadline(PUBLIC_METHODS);
 		}
 
-		/** A method's own policy, with a passed deadline, gives it its own schedule. */
+		/**
+		 * A method's own policy, with a passed deadline and no write grant on itself,
+		 * gives it its own schedule, so it runs although its class's policy is refused.
+		 */
 		@HiddenTest
 		@Policy(value = PAST, withinPath = SUBJECT)
 		void d_methodPolicyHasItsOwnDeadline() {
-			moveTheDeadline(PUBLIC_METHODS);
 		}
 	}
 

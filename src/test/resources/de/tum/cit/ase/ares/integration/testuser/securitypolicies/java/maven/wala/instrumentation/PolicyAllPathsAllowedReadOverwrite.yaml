@@ -16,11 +16,19 @@ regardingTheSupervisedCode:
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: true
-        overwriteAllFiles: true
+        overwriteAllFiles: false
         createAllFiles: false
         executeAllFiles: false
         deleteAllFiles: false
         onThisPathAndAllPathsBelow: "*"
+      # Ares refuses a write grant that reaches this policy file, "*" included, so
+      # overwriting is allowed below the build output only.
+      - readAllFiles: true
+        overwriteAllFiles: true
+        createAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "target"
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]

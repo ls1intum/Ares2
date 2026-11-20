@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -105,6 +106,33 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 						.isInstanceOf(SecurityException.class)
 						.hasMessage(Messages.localized("policy.behavior.write.grant.policy", Path.of(CLASS_POLICY),
 								Path.of(CLASS_POLICY).getParent().toString()));
+	}
+
+	/**
+	 * A write grant on a folder that links to the policy's folder is refused, since
+	 * Ares compares where paths really lead, as the runtime checks do.
+	 *
+	 * @throws Exception if the link or the policy cannot be written
+	 */
+	@Test
+	void aWriteGrantOnALinkToThePolicyFolderIsRefused() throws Exception {
+		Path link = Path.of("target/test-behavior-cache-link");
+		Files.deleteIfExists(link);
+		try {
+			Files.createSymbolicLink(link, Path.of(CLASS_POLICY).getParent().toAbsolutePath());
+		} catch (IOException | UnsupportedOperationException unsupported) {
+			Assumptions.abort("This file system cannot create a symbolic link");
+		}
+		try {
+			grantOnTheClassPolicy("target/test-behavior-cache-link", true);
+			assertThatThrownBy(() -> ConfigurationUtils
+					.testBehavior(JupiterContext.of(methodContext(classContext(), "classPolicyTest"))))
+							.isInstanceOf(SecurityException.class)
+							.hasMessage(Messages.localized("policy.behavior.write.grant.policy", Path.of(CLASS_POLICY),
+									"target/test-behavior-cache-link"));
+		} finally {
+			Files.deleteIfExists(link);
+		}
 	}
 
 	/** A write grant elsewhere, or only reading the policy file, is accepted. */
