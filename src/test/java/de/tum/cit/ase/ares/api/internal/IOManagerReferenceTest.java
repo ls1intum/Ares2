@@ -169,7 +169,9 @@ class IOManagerReferenceTest {
 
 	/**
 	 * A student class that cannot be loaded refuses the manager, since its origin
-	 * is unknown.
+	 * is unknown. The loader refuses the class itself, so the unreadable bytes
+	 * never reach the instrumentation agent, which would refuse every later test in
+	 * this JVM.
 	 *
 	 * @param folder a folder for the unreadable class file.
 	 * @throws IOException if the file cannot be written
@@ -178,7 +180,7 @@ class IOManagerReferenceTest {
 	void anUnloadableStudentClassRefusesTheManager(@TempDir Path folder) throws IOException {
 		Locale.setDefault(Locale.ENGLISH);
 		Files.write(Files.createDirectories(folder.resolve("brokenpkg")).resolve("Broken.class"), new byte[] { 1, 2 });
-		try (URLClassLoader student = new URLClassLoader(new URL[] { folder.toUri().toURL() }, loader())) {
+		try (URLClassLoader student = new UnloadableClassLoader(folder.toUri().toURL(), loader())) {
 			assertThatThrownBy(() -> IOManagerReference.resolve(THIS + ".RecordingManager",
 					policy(List.of(THIS), "brokenpkg", null), student)).isInstanceOf(SecurityException.class)
 							.hasMessageContaining("brokenpkg.Broken").hasMessageContaining("cannot be determined");
@@ -350,6 +352,38 @@ class IOManagerReferenceTest {
 		@Override
 		public Class<Void> getControllerClass() {
 			return null;
+		}
+	}
+
+	/**
+	 * A loader serving one folder that refuses every class of {@code brokenpkg} as
+	 * unreadable, as a malformed class file would be, without defining it.
+	 */
+	private static final class UnloadableClassLoader extends URLClassLoader {
+
+		/**
+		 * Creates one.
+		 *
+		 * @param folder the folder it serves.
+		 * @param parent the parent loader.
+		 */
+		UnloadableClassLoader(URL folder, ClassLoader parent) {
+			super(new URL[] { folder }, parent);
+		}
+
+		/**
+		 * Refuses a {@code brokenpkg} class and finds every other one as usual.
+		 *
+		 * @param name the binary class name.
+		 * @return the class.
+		 * @throws ClassNotFoundException if the folder has no such class
+		 */
+		@Override
+		protected Class<?> findClass(String name) throws ClassNotFoundException {
+			if (name.startsWith("brokenpkg.")) {
+				throw new ClassFormatError("Unreadable class file: " + name);
+			}
+			return super.findClass(name);
 		}
 	}
 }
