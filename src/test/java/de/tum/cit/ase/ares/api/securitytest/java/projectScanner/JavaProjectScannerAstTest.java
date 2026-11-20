@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -722,16 +723,17 @@ class JavaProjectScannerAstTest {
 	}
 
 	/**
-	 * Creates a symbolic link, or skips the calling test where links cannot be
-	 * created.
+	 * Creates a symbolic link, or skips the calling test where the file system
+	 * cannot express one. Any other I/O failure propagates.
 	 *
 	 * @param link   the link to create
 	 * @param target what it points to
+	 * @throws IOException if the link fails for a reason other than missing support
 	 */
-	private static void link(Path link, Path target) {
+	private static void link(Path link, Path target) throws IOException {
 		try {
 			Files.createSymbolicLink(link, target);
-		} catch (IOException | UnsupportedOperationException exception) {
+		} catch (FileSystemException | UnsupportedOperationException exception) {
 			assumeTrue(false, () -> "cannot create a symbolic link here: " + exception);
 		}
 	}
