@@ -242,7 +242,7 @@ final class HiddenTestsSources {
 					return guard(new Invocation<T>() {
 						@Override
 						public T proceed() throws Throwable {
-							return materialised(invocation.proceed(), stream -> guardedClose(stream, context));
+							return guardedResult(invocation.proceed(), context);
 						}
 
 						@Override
@@ -253,77 +253,52 @@ final class HiddenTestsSources {
 				}
 
 				/**
-				 * A test factory's result read completely, nested containers included, so the
-				 * student code that produces the tests runs while this hook still guards it;
-				 * any other result is returned as it is.
+				 * A test factory's result as tests JUnit reads one after the other, as it does
+				 * without this hook, so each test runs before the next one is produced; every
+				 * step of reading, including a container's children, runs under this hook's guard. Any
+				 * other result is returned as it is.
 				 *
 				 * @param <T> the factory's result type
 				 * @param result the factory's result
-				 * @param closer turns a produced stream into its guarded close callback
-				 * @return the tests, read into a list; a stream stays open until JUnit closes the
-				 *         returned one, after its tests ran. When reading fails, every stream opened
-				 *         so far is closed before the failure is rethrown
-				 */
-				static <T> T materialised(T result, Function<Stream<?>, Runnable> closer) {
-					List<Stream<?>> opened = new ArrayList<>();
-					try {
-						return materialisedResult(result, closer, opened);
-					} catch (RuntimeException | Error failure) {
-						closeAll(opened, failure);
-						throw failure;
-					}
-				}
-
-				/**
-				 * Reads a factory's result, recording every stream it opens so a failed read
-				 * can close them.
-				 *
-				 * @param <T> the factory's result type
-				 * @param result the factory's result
-				 * @param closer turns a produced stream into its guarded close callback
-				 * @param opened the streams opened so far
-				 * @return the tests, read into a list; null for a null result, which JUnit refuses itself
+				 * @param context the factory's context
+				 * @return the tests, produced lazily; null for a null result, which JUnit refuses itself
+				 * @throws Throwable what making the first iterator threw, reported by this hook
 				 */
 				@SuppressWarnings("unchecked")
-				private static <T> T materialisedResult(T result, Function<Stream<?>, Runnable> closer, List<Stream<?>> opened) {
+				static <T> T guardedResult(T result, ExtensionContext context) throws Throwable {
 					if (result == null) {
 						return null;
 					}
-					List<Object> nodes = new ArrayList<>();
 					if (result instanceof DynamicNode node) {
-						return (T) materialisedNode(node, closer, opened);
-					} else if (result instanceof Stream<?> stream) {
-						opened.add(stream);
-						stream.sequential().iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
-						return (T) nodes.stream().onClose(closer.apply(stream));
-					} else if (result instanceof Iterable<?> iterable) {
-						iterable.iterator().forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
-					} else if (result instanceof Iterator<?> iterator) {
-						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
-					} else if (result instanceof Object[] array) {
-						for (Object item : array) {
-							nodes.add(materialisedNode(item, closer, opened));
-						}
-					} else {
-						Iterator<?> iterator = reflectiveIterator(result);
-						if (iterator == null) {
-							return result;
-						}
-						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
+						return (T) guardedNode(node, context);
 					}
-					return (T) nodes;
+					if (result instanceof Stream<?> stream) {
+						Iterator<?> source = guardedStep(() -> streamIterator(stream), context);
+						return (T) guardedNodes(source, context).onClose(guardedClose(stream, context));
+					}
+					Iterator<?> source = guardedStep(() -> plainIterator(result), context);
+					return source == null ? result : (T) guardedNodes(source, context);
 				}
 
 				/**
-				 * The tests of a result that is none of the shapes above, read through the running
-				 * JUnit engine's own conversion, so this hook reads exactly the results that engine
-				 * accepts, such as one with only an {@code iterator()} method, under its guard;
-				 * null when the engine accepts none and reports it itself.
+				 * The iterator of a result that is not a stream, in every shape JUnit accepts,
+				 * through the running engine's own conversion for one with only an
+				 * {@code iterator()} method; null when the engine accepts none and reports it
+				 * itself.
 				 *
 				 * @param result the factory's result
 				 * @return its iterator, or null
 				 */
-				private static Iterator<?> reflectiveIterator(Object result) {
+				private static Iterator<?> plainIterator(Object result) {
+					if (result instanceof Iterable<?> iterable) {
+						return iterable.iterator();
+					}
+					if (result instanceof Iterator<?> iterator) {
+						return iterator;
+					}
+					if (result instanceof Object[] array) {
+						return java.util.Arrays.asList(array).iterator();
+					}
 					if (!org.junit.platform.commons.util.CollectionUtils.isConvertibleToStream(result.getClass())) {
 						return null;
 					}
@@ -331,46 +306,148 @@ final class HiddenTestsSources {
 				}
 
 				/**
-				 * Closes the streams a failed read opened, newest first, still under this
-				 * hook's guard; a different failure while closing is kept as suppressed.
+				 * A stream's iterator; when making it fails, the stream is closed first, a failure
+				 * of closing it giving way to the first failure.
 				 *
-				 * @param opened the streams opened so far
-				 * @param failure the failure that stopped the read
+				 * @param stream the produced stream
+				 * @return its iterator
 				 */
-				private static void closeAll(List<Stream<?>> opened, Throwable failure) {
-					for (int index = opened.size() - 1; index >= 0; index--) {
+				private static Iterator<?> streamIterator(Stream<?> stream) {
+					try {
+						return stream.sequential().iterator();
+					} catch (RuntimeException | Error failure) {
 						try {
-							opened.get(index).close();
+							stream.close();
 						} catch (RuntimeException | Error closing) {
 							if (closing != failure) {
 								failure.addSuppressed(closing);
 							}
 						}
+						throw failure;
 					}
 				}
 
 				/**
-				 * One produced test, with a container's children read completely, one after the
-				 * other in their order; the children's stream is closed when JUnit closes the
-				 * container's, after its tests ran.
+				 * A stream that produces the given tests one at a time, each step under the guard.
 				 *
-				 * @param item the produced test
-				 * @param closer turns a produced stream into its guarded close callback
-				 * @param opened the streams opened so far
-				 * @return the test, or the item unchanged when it is not a container
+				 * @param source the produced tests
+				 * @param context the factory's context
+				 * @return the guarded stream
 				 */
-				private static Object materialisedNode(Object item, Function<Stream<?>, Runnable> closer,
-						List<Stream<?>> opened) {
+				private static Stream<DynamicNode> guardedNodes(Iterator<?> source, ExtensionContext context) {
+					return java.util.stream.StreamSupport.stream(java.util.Spliterators.spliteratorUnknownSize(
+							new GuardedIterator(source, context), java.util.Spliterator.ORDERED), false);
+				}
+
+				/**
+				 * The given test, with a container's children produced lazily under the guard too.
+				 *
+				 * @param item the produced test or container
+				 * @param context the factory's context
+				 * @return the test, or a container whose children are guarded
+				 */
+				private static DynamicNode guardedNode(Object item, ExtensionContext context) {
 					if (!(item instanceof DynamicContainer container)) {
-						return item;
+						return (DynamicNode) item;
 					}
-					List<DynamicNode> children = new ArrayList<>();
-					Stream<? extends DynamicNode> stream = container.getChildren();
-					opened.add(stream);
-					stream.sequential().iterator()
-							.forEachRemaining(child -> children.add((DynamicNode) materialisedNode(child, closer, opened)));
+					Stream<? extends DynamicNode> children = container.getChildren();
+					Iterator<?> source = uncheckedStep(() -> streamIterator(children), context);
 					return DynamicContainer.dynamicContainer(container.getDisplayName(),
-							container.getTestSourceUri().orElse(null), children.stream().onClose(closer.apply(stream)));
+							container.getTestSourceUri().orElse(null),
+							guardedNodes(source, context).onClose(guardedClose(children, context)));
+				}
+
+				/**
+				 * One step of reading a factory's tests.
+				 *
+				 * @param <V> what the step returns
+				 */
+				interface Step<V> {
+
+					/**
+					 * Runs the step.
+					 *
+					 * @return its value
+					 * @throws Throwable what it threw
+					 */
+					V run() throws Throwable;
+				}
+
+				/**
+				 * Runs one step of reading under this hook's guard.
+				 *
+				 * @param <V> what the step returns
+				 * @param step the step
+				 * @param context the factory's context
+				 * @return its value
+				 * @throws Throwable what the guard reports
+				 */
+				private static <V> V guardedStep(Step<V> step, ExtensionContext context) throws Throwable {
+					return guarded(new Invocation<V>() {
+						@Override
+						public V proceed() throws Throwable {
+							return step.run();
+						}
+					}, context, false);
+				}
+
+				/**
+				 * Runs one step like {@link #guardedStep}, rethrowing without declaring, for an
+				 * iterator.
+				 *
+				 * @param <V> what the step returns
+				 * @param step the step
+				 * @param context the factory's context
+				 * @return its value
+				 */
+				private static <V> V uncheckedStep(Step<V> step, ExtensionContext context) {
+					try {
+						return guardedStep(step, context);
+					} catch (Throwable failure) {
+						rethrow(failure);
+						return null;
+					}
+				}
+
+				/** Reads a factory's tests one at a time, each step under the guard. */
+				static final class GuardedIterator implements Iterator<DynamicNode> {
+
+					/** The factory's own tests. */
+					private final Iterator<?> source;
+
+					/** The factory's context. */
+					private final ExtensionContext context;
+
+					/**
+					 * Wraps a factory's tests.
+					 *
+					 * @param source the factory's own tests
+					 * @param context the factory's context
+					 */
+					GuardedIterator(Iterator<?> source, ExtensionContext context) {
+						this.source = source;
+						this.context = context;
+					}
+
+					/**
+					 * Whether another test follows, asked under the guard.
+					 *
+					 * @return whether another test follows
+					 */
+					@Override
+					public boolean hasNext() {
+						return Boolean.TRUE.equals(uncheckedStep(source::hasNext, context));
+					}
+
+					/**
+					 * The next test, produced under the guard.
+					 *
+					 * @return the next test
+					 */
+					@Override
+					public DynamicNode next() {
+						return guardedNode(uncheckedStep(source::next, context), context);
+					}
 				}
 
 				/**

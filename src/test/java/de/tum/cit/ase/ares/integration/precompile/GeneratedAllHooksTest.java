@@ -250,6 +250,11 @@ class GeneratedAllHooksTest {
 						+ " @TestFactory Cases cases() { return new Cases(); }");
 		fixture(fixtures, "HiddenNullFactoryFixture",
 				"@TestFactory java.util.List<DynamicTest> cases() { return null; }");
+		fixture(fixtures, "OrderedFactoryFixture",
+				"static final java.util.concurrent.atomic.AtomicInteger CURRENT = new java.util.concurrent.atomic.AtomicInteger();"
+						+ " @TestFactory java.util.stream.Stream<DynamicTest> cases() { return java.util.stream.Stream.of(1, 2)"
+						+ ".map(number -> { CURRENT.set(number); return DynamicTest.dynamicTest(\"case \" + number,"
+						+ " () -> Assertions.assertEquals(number, CURRENT.get())); }); }");
 		Path violationSources = Files
 				.createDirectories(tempDir.resolve("violation-sources").resolve(VIOLATION_PACKAGE.replace('.', '/')));
 		Files.writeString(violationSources.resolve("ViolationSource.java"), """
@@ -502,6 +507,26 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
+	 * A public factory whose tests depend on running before the next one is
+	 * produced passes with every hook, each alone and all together in both orders,
+	 * since the hooks read the factory's tests lazily, as JUnit does.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aFactoryKeepsJUnitsOrderOfProducingAndRunning(boolean reversed) throws Exception {
+		String fixture = "com.example.fixtures.OrderedFactoryFixture";
+		assertThat(run(fixture, reversed).testEvents().succeeded().count()).isEqualTo(2);
+		for (String hook : List.of("GeneratedStrictTimeout", "GeneratedHiddenTests", "GeneratedFailureReporting")) {
+			EngineExecutionResults alone = runWithOnly(fixture, hook);
+			assertThat(alone.allEvents().failed().count()).as(hook).isZero();
+			assertThat(alone.testEvents().succeeded().count()).as(hook).isEqualTo(2);
+		}
+	}
+
+	/**
 	 * A hidden factory returning null still gets JUnit's own refusal, which the
 	 * hooks hide like any hidden failure, instead of failing inside a hook.
 	 *
@@ -533,9 +558,9 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
-	 * When reading a factory's tests fails, the streams opened so far are closed
-	 * anyway, nested ones included, since JUnit never receives them to close. Each
-	 * close throws a marker, kept as suppressed on the reported failure.
+	 * When reading a factory's tests fails, every stream it produced is still
+	 * closed, nested ones included, as JUnit closes them without the hooks. Each
+	 * close throws a marker, reported as a failure or kept as suppressed on one.
 	 *
 	 * @param reversed whether the hooks are registered the other way round.
 	 * @throws Exception if the run cannot be set up
@@ -546,7 +571,9 @@ class GeneratedAllHooksTest {
 		List<String> closed = run("com.example.fixtures.FailingFactoryFixture", reversed).allEvents().failed().stream()
 				.flatMap(event -> event.getPayload(TestExecutionResult.class).flatMap(TestExecutionResult::getThrowable)
 						.stream())
-				.flatMap(failure -> Arrays.stream(failure.getSuppressed())).map(Throwable::getMessage).toList();
+				.flatMap(failure -> java.util.stream.Stream.concat(java.util.stream.Stream.<Throwable>of(failure),
+						Arrays.stream(failure.getSuppressed())))
+				.map(Throwable::getMessage).toList();
 		assertThat(closed).contains("CLOSED_INNER", "CLOSED_OUTER");
 	}
 
