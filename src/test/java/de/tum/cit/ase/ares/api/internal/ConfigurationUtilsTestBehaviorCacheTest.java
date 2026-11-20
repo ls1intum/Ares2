@@ -55,15 +55,30 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 				.isEqualTo(Duration.ofSeconds(2));
 	}
 
-	/** Another test class reads the file afresh. */
+	/** A test class of another run reads the file afresh. */
 	@Test
-	void anotherClassReadsAfresh() throws Exception {
+	void anotherRunReadsAfresh() throws Exception {
 		ConfigurationUtils.prepareTestBehavior(JupiterContext.of(methodContext(classContext(), "classPolicyTest")));
 		write(CLASS_POLICY, "9 SECONDS");
 
 		JupiterContext other = JupiterContext.of(methodContext(classContext(), "classPolicyTest"));
 		assertThat(ConfigurationUtils.findPolicyStrictTimeout(other).orElseThrow().timeout())
 				.isEqualTo(Duration.ofSeconds(9));
+	}
+
+	/**
+	 * Another test class of the same run keeps the run's first reading, so test
+	 * code that rewrites the file cannot change a later class's settings.
+	 */
+	@Test
+	void anotherClassOfTheRunKeepsTheFirstReading() throws Exception {
+		ExtensionContext firstClass = classContext();
+		ConfigurationUtils.prepareTestBehavior(JupiterContext.of(methodContext(firstClass, "classPolicyTest")));
+		write(CLASS_POLICY, "9 SECONDS");
+
+		JupiterContext other = JupiterContext.of(methodContext(classContextIn(firstClass), "classPolicyTest"));
+		assertThat(ConfigurationUtils.findPolicyStrictTimeout(other).orElseThrow().timeout())
+				.isEqualTo(Duration.ofSeconds(2));
 	}
 
 	/** A method-level policy is read up front and keeps its own settings. */
@@ -151,6 +166,19 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 		when(classContext.getTestMethod()).thenReturn(Optional.empty());
 		when(classContext.getElement()).thenReturn(Optional.of(CacheFixture.class));
 		when(classContext.getParent()).thenReturn(Optional.empty());
+		when(classContext.getRoot()).thenReturn(classContext);
+		return classContext;
+	}
+
+	/**
+	 * A class context of {@link CacheFixture} in the run of another class context.
+	 *
+	 * @param sameRun a class context of the run.
+	 * @return the context.
+	 */
+	private static ExtensionContext classContextIn(ExtensionContext sameRun) {
+		ExtensionContext classContext = classContext();
+		when(classContext.getRoot()).thenReturn(sameRun);
 		return classContext;
 	}
 

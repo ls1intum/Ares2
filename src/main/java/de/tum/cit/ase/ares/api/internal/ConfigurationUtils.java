@@ -47,7 +47,7 @@ public final class ConfigurationUtils {
 
 	/**
 	 * Reads every policy file a test class can use (its own {@code @Policy} and
-	 * every method-level one) into the class's store, unless already there. Ares
+	 * every method-level one) into the run's store, unless already there. Ares
 	 * calls this from its earliest callback, before any test code runs.
 	 *
 	 * @param context the context of the class or of one of its tests.
@@ -84,7 +84,7 @@ public final class ConfigurationUtils {
 
 	/**
 	 * Returns the test behaviour of the active policy, empty when no policy is
-	 * active. Read once per file and test class.
+	 * active. Read once per file and test run.
 	 *
 	 * @param context the test context.
 	 * @return the test behaviour; never null.
@@ -104,7 +104,7 @@ public final class ConfigurationUtils {
 	}
 
 	/**
-	 * Returns what the active policy configures, read once per file and class.
+	 * Returns what the active policy configures, read once per file and run.
 	 *
 	 * @param context the test context.
 	 * @return the configuration; empty when no policy is active.
@@ -130,7 +130,7 @@ public final class ConfigurationUtils {
 	 * it, without checking that the file still exists, so a test that moves its
 	 * policy afterwards keeps the reading it started with.
 	 *
-	 * @param classContext the class context whose store holds the cache.
+	 * @param classContext the class context, whose run's store holds the cache.
 	 * @param policy       the annotation.
 	 * @return the earlier reading; empty when there is none or it failed.
 	 */
@@ -140,7 +140,7 @@ public final class ConfigurationUtils {
 		}
 		try {
 			String key = Path.of(policy.value()).toAbsolutePath().normalize().toString();
-			return Optional.ofNullable(classContext.getStore(NAMESPACE).get(key, Reading.class)).map(Reading::behavior);
+			return Optional.ofNullable(runStore(classContext).get(key, Reading.class)).map(Reading::behavior);
 		} catch (InvalidPathException invalid) {
 			return Optional.empty();
 		}
@@ -232,7 +232,7 @@ public final class ConfigurationUtils {
 	/**
 	 * Returns the cached configuration of a policy file, reading it on first use.
 	 *
-	 * @param classContext the class context whose store holds the cache.
+	 * @param classContext the class context, whose run's store holds the cache.
 	 * @param policyPath   the policy file.
 	 * @param loader       the loader of the test classes.
 	 * @return the configuration.
@@ -250,14 +250,14 @@ public final class ConfigurationUtils {
 	 * that cannot be read is kept as its failure, so only the tests using that file
 	 * fail, each with the same error.
 	 *
-	 * @param classContext the class context whose store holds the cache.
+	 * @param classContext the class context, whose run's store holds the cache.
 	 * @param policyPath   the policy file.
 	 * @param loader       the loader of the test classes.
 	 * @return the reading.
 	 */
 	private static Reading reading(ExtensionContext classContext, Path policyPath, ClassLoader loader) {
 		String key = policyPath.toAbsolutePath().normalize().toString();
-		return classContext.getStore(NAMESPACE).getOrComputeIfAbsent(key, ignored -> {
+		return runStore(classContext).getOrComputeIfAbsent(key, ignored -> {
 			try {
 				return new Reading(read(policyPath, loader), null);
 			} catch (RuntimeException unreadable) {
@@ -318,6 +318,18 @@ public final class ConfigurationUtils {
 		/** What no active policy configures. */
 		private static final PolicyBehavior NONE = new PolicyBehavior(new TestBehaviorConfiguration(),
 				Optional.empty());
+	}
+
+	/**
+	 * Returns the store of the whole test run, where policy readings are kept: a
+	 * later test class gets the reading the run started with, even when test code
+	 * has since changed the file.
+	 *
+	 * @param context any context of the run.
+	 * @return the run's store.
+	 */
+	private static ExtensionContext.Store runStore(ExtensionContext context) {
+		return context.getRoot().getStore(NAMESPACE);
 	}
 
 	/**
