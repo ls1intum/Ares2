@@ -229,6 +229,11 @@ class GeneratedAllHooksTest {
 				"@Test void reads() { RuntimeException unreadable = new RuntimeException(" + VIOLATION_PACKAGE
 						+ ".ViolationSource.blocked()) { @Override public synchronized Throwable getCause() {"
 						+ " return super.getCause(); } }; throw new RuntimeException(unreadable); }");
+		fixture(fixtures, "QuotedUnreadableGroupFixture",
+				"@Test void reads() { org.opentest4j.MultipleFailuresError group = new org.opentest4j.MultipleFailuresError(\"g\","
+						+ " java.util.List.of(" + VIOLATION_PACKAGE + ".ViolationSource.blocked())) {"
+						+ " @Override public java.util.List<Throwable> getFailures() { return super.getFailures(); } };"
+						+ " throw new RuntimeException(group); }");
 		fixture(fixtures, "SuppressedViolationFixture",
 				"@Test void reads() { IllegalStateException outer = new IllegalStateException(\"outer\");"
 						+ " outer.addSuppressed(" + VIOLATION_PACKAGE + ".ViolationSource.blocked()); throw outer; }");
@@ -724,9 +729,10 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
-	 * A failure whose message quotes a failure with an unreadable cause, which
-	 * holds a blocked action, shows no text of its own in either registration
-	 * order: the search cannot pass the unreadable cause, so it is not complete.
+	 * A failure whose message quotes a failure with an unreadable cause, or an
+	 * assertAll group whose members cannot be read, which holds a blocked action,
+	 * shows no text of its own in either registration order: the search cannot pass
+	 * the unreadable part, so it is not complete.
 	 *
 	 * @param reversed whether the hooks are registered the other way round.
 	 * @throws Exception if the run cannot be set up
@@ -736,6 +742,8 @@ class GeneratedAllHooksTest {
 	void aQuotedUnreadableCauseShowsNoText(boolean reversed) throws Exception {
 		List<String> messages = messages(run("com.example.fixtures.QuotedUnreadableViolationFixture", reversed));
 		assertThat(messages).containsExactly("java.lang.RuntimeException");
+		assertThat(messages(run("com.example.fixtures.QuotedUnreadableGroupFixture", reversed)))
+				.containsExactly("java.lang.RuntimeException");
 	}
 
 	/**

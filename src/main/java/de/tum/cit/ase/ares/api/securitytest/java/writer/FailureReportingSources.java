@@ -677,7 +677,8 @@ final class FailureReportingSources {
 
 				/**
 				 * Queues a failure's cause, suppressed failures and group members for the search;
-				 * false when the queue reached the traversal budget first, so the search is not complete.
+				 * false when the queue reached the traversal budget first or the group's members
+				 * cannot be read, so the search is not complete.
 				 */
 				private static boolean queueAttached(Throwable failure, java.util.ArrayDeque<Throwable> pending) {
 					Throwable cause = causeOf(failure);
@@ -690,7 +691,10 @@ final class FailureReportingSources {
 						}
 					}
 					java.util.List<Throwable> members = aggregateMembers(failure);
-					for (Throwable member : members == null ? java.util.List.<Throwable>of() : members) {
+					if (members == null) {
+						return false;
+					}
+					for (Throwable member : members) {
 						if (member != null && !queued(member, pending)) {
 							return false;
 						}
@@ -855,9 +859,9 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * Marks a copy that stopped at the budget with failures left, or that met a cause it
-				 * could not read, since a blocked action may hide there while a failure above it
-				 * quotes its text.
+				 * Marks a copy that stopped at the budget with failures left, or that met a cause or
+				 * assertAll members it could not read, since a blocked action may hide there while a
+				 * failure above it quotes its text.
 				 */
 				private static final Throwable TRUNCATED = new Throwable();
 
@@ -944,7 +948,9 @@ final class FailureReportingSources {
 					}
 					java.util.List<Throwable> attached = new java.util.ArrayList<>(java.util.Arrays.asList(failure.getSuppressed()));
 					java.util.List<Throwable> members = aggregateMembers(failure);
-					if (members != null) {
+					if (members == null) {
+						copies.put(TRUNCATED, TRUNCATED);
+					} else {
 						attached.addAll(members);
 					}
 					for (Throwable suppressed : attached) {

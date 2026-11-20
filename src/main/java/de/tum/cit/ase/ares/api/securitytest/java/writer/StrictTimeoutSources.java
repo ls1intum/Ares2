@@ -644,9 +644,9 @@ final class StrictTimeoutSources {
 				}
 
 				/**
-				 * Marks a copy that stopped at the budget with failures left, or that met a cause it
-				 * could not read, since a blocked action may hide there while a failure above it
-				 * quotes its text.
+				 * Marks a copy that stopped at the budget with failures left, or that met a cause or
+				 * assertAll members it could not read, since a blocked action may hide there while a
+				 * failure above it quotes its text.
 				 */
 				private static final Throwable TRUNCATED = new Throwable();
 
@@ -733,7 +733,9 @@ final class StrictTimeoutSources {
 					}
 					java.util.List<Throwable> attached = new java.util.ArrayList<>(java.util.Arrays.asList(failure.getSuppressed()));
 					java.util.List<Throwable> members = aggregateMembers(failure);
-					if (members != null) {
+					if (members == null) {
+						copies.put(TRUNCATED, TRUNCATED);
+					} else {
 						attached.addAll(members);
 					}
 					for (Throwable suppressed : attached) {
