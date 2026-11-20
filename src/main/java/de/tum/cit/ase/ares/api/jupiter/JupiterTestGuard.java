@@ -12,6 +12,7 @@ import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.extension.*;
 
 import de.tum.cit.ase.ares.api.Deadline;
+import de.tum.cit.ase.ares.api.internal.ReportingUtils;
 
 /**
  * This class' main purpose is to guard the {@link HiddenTest}s execution and
@@ -58,5 +59,35 @@ public final class JupiterTestGuard implements UnifiedInvocationInterceptor {
 		JupiterContext jupiterContext = JupiterContext.of(extensionContext);
 		checkForHidden(jupiterContext);
 		return doProceedAndPostProcess(invocation, jupiterContext);
+	}
+
+	/**
+	 * Reports a failure of a test's constructor or lifecycle method as the policy's
+	 * failure feedback allows, before Jupiter receives it: a blocked action at the
+	 * feedback level, and, when only privileged failures are reported, any other
+	 * failure except an aborted test as the policy's message.
+	 *
+	 * @param context the invocation's context.
+	 * @param failure the failure.
+	 * @return the failure to throw instead.
+	 */
+	static Throwable invocationFailure(ExtensionContext context, Throwable failure) {
+		return ReportingUtils.processLifecycleFailure(failure, JupiterContext.of(context));
+	}
+
+	/**
+	 * Applies the policy's feedback level to a blocked action that fails a JUnit
+	 * callback, before Jupiter receives it.
+	 *
+	 * @param context the callback's context.
+	 * @param failure the failure.
+	 * @return the failure to throw instead.
+	 */
+	static RuntimeException callbackFailure(ExtensionContext context, Throwable failure) {
+		Throwable safe = ReportingUtils.processBlockedAction(failure, JupiterContext.of(context));
+		if (safe instanceof Error error) {
+			throw error;
+		}
+		return (RuntimeException) safe;
 	}
 }

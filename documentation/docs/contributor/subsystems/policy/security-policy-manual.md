@@ -115,7 +115,7 @@ regardingTheSupervisedCode:
 
 This policy forbids all file, network, command and thread operations.
 
-> **`thisPolicyFileCompliesToThePolicyVersion` is required** and must be exactly `1`. A policy file that omits it, or that declares any other value, is rejected on load.
+> **`thisPolicyFileCompliesToThePolicyVersion` is required.** Ares 2.2.1 accepts only `1`; Ares 2.3.0 accepts `1` and `2`, and needs `2` as soon as the policy sets a category under `theFollowingTestBehaviorIsConfigured` (7.7). Ares refuses a policy file that omits it or declares another value when it loads the file.
 
 > **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.2.1. Use [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
 
@@ -237,9 +237,10 @@ Security policies are written in YAML format. YAML uses indentation (spaces, not
 ### 7.2 Complete Structure
 
 ```yaml
-# REQUIRED: The policy format version. Must be exactly 1; any other value,
-# or omitting the key, causes the policy to be rejected on load.
-thisPolicyFileCompliesToThePolicyVersion: 1
+# REQUIRED: The policy format version, 1 or 2. Version 2 is needed as soon as
+# any category under theFollowingTestBehaviorIsConfigured is set; any other
+# value, or omitting the key, causes the policy to be rejected on load.
+thisPolicyFileCompliesToThePolicyVersion: 2
 
 regardingTheSupervisedCode:
   # REQUIRED: Which configuration to use
@@ -292,6 +293,13 @@ regardingTheSupervisedCode:
     # REQUIRED list: Timeouts (can be empty array)
     regardingTimeouts:
       - timeout: 10000                               # REQUIRED (milliseconds)
+
+  # OPTIONAL: Behaviour of the tests, see 7.7. Every category inside is optional.
+  theFollowingTestBehaviorIsConfigured:
+    regardingTheFailureFeedbackForTheTestCases:
+      onlyPrivilegedExceptionsAreReported: false     # OPTIONAL, defaults as shown
+      theFailureMessageForOtherExceptionsIs: "Test failed."  # OPTIONAL, defaults as shown
+      theSecurityViolationFeedbackLevelIs: HIGH      # OPTIONAL: DEBUG, HIGH, MEDIUM or LOW
 ```
 
 ### 7.3 Configuration Options
@@ -380,6 +388,58 @@ theFollowingClassesAreTestClasses:
 **Verification:** in both modes, Ares looks up every entry in the compiled test output before it creates any security test. It stops with an error unless it finds a class file there that its reader accepts and that declares that exact name. An entry for a class nobody compiled therefore never becomes an exemption a student class of that name could take over. Compile the tests before generating or running, and in Precompile regenerate after changing them.
 
 > **Package names and package prefixes do not work here.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package. Ares finds no compiled class of that name and stops with an error. Ares derives no package permission from an entry either, so `"com.instructor"` does not let the supervised code import that package. List each test class by its exact fully qualified name.
+
+---
+
+### 7.7 Test Behaviour Configuration
+
+The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before. A policy that sets any category must declare `thisPolicyFileCompliesToThePolicyVersion: 2`; Ares refuses a version 1 policy that sets one, and its message names the category and the version it needs.
+
+The category and field names follow the proposal in issue #386, section C. They are not final until the advisor accepts them; [Policy Compatibility](./policy-compatibility.md) lists which release accepts which key.
+
+Ares reads these settings once per policy file and test run, when the first test class that uses the file starts and before it supervises any of that class's test code. Every later test class of the run keeps that reading, so changing the file afterwards changes nothing. A file that only a later test class uses is read when that class starts. So that no test can rewrite a policy before Ares reads it, Ares refuses a policy that lets the tested code overwrite or create files on the policy file, its folder or a folder above it; every test using that policy then fails and names the entry. Any malformed value, unknown key or explicit `null` fails every test and names the field.
+
+#### 7.7.3 Failure feedback
+
+`regardingTheFailureFeedbackForTheTestCases` says what a student sees when a public test fails. Every field is optional; the defaults are the behaviour without this category. There is no annotation for this any more: Ares 2.3.0 removed `@PrivilegedExceptionsOnly`.
+
+- `onlyPrivilegedExceptionsAreReported` (boolean): `true` replaces the text of every failure except a blocked action and a privileged one with a fixed message. This includes a failing constructor, setup or teardown method; a test skipped by an assumption stays skipped. A privileged failure there keeps its own text, as in the test. Defaults to `false`.
+- `theFailureMessageForOtherExceptionsIs` (text): the fixed message. Defaults to `"Test failed."` when omitted or blank.
+- `theSecurityViolationFeedbackLevelIs` (`DEBUG`, `HIGH`, `MEDIUM` or `LOW`): how much a blocked action reveals. Defaults to `HIGH`.
+
+This category applies in Postcompile. In Precompile, Ares refuses to generate the security tests when the policy sets it, and names the category, so a generated exercise never runs without the feedback the instructor chose.
+
+The feedback level decides every action Ares blocks at run time:
+
+| Level | What the student sees, for a blocked read of `/etc/passwd` |
+|---|---|
+| `DEBUG` | The `HIGH` message and a hint. For a blocked read, the hint reads `Allow it by granting the read permission on /etc/passwd in the security policy SecurityPolicy1.yml as:`. The entry to paste follows on the next lines.<br/>`- onThisPathAndAllPathsBelow: "/etc/passwd"`<br/>`  readAllFiles: true`<br/>`  overwriteAllFiles: false`<br/>`  createAllFiles: false`<br/>`  executeAllFiles: false`<br/>`  deleteAllFiles: false`<br/>The policy reader accepts the entry as written, and it grants only that action. Network, command and package-import entries look the same way; a package entry sets `exactMatchOnly: true`, so it allows no package below the blocked one. For an action the architecture analysis blocks, whose exact target is not known, the hint names only the category. Four more cases get only the category: a command run with arguments, a target that is the wildcard `*`, a file path holding a `${...}` placeholder, and port zero. The reader rewrites a placeholder, and a policy reads port zero as every port. So the hint never grants more than the blocked action on its target. A file entry names `onThisPathAndAllPathsBelow`, so for a blocked directory the pasted entry allows the same action on every path below it as well. A blocked thread gets only the category as well: its limit can be used up, and one more entry then changes nothing. A fixed architecture rule, such as using reflection, gets no hint, and so does an executable that does not resolve or a command Ares could not read: no entry lets such a call run. Review a pasted entry's scope before you apply it. A policy built in code has no file name, so the hint says only "the security policy". |
+| `HIGH` (default) | The full message, as before: `Ares Security Error (Reason: Student-Code; Stage: Execution): Main.run tried to illegally read File /etc/passwd via FileInputStream.<init> but was blocked by Ares.` |
+| `MEDIUM` | `Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally read a File, but was blocked by Ares.` Only the kind of action: reading, overwriting, creating, executing or deleting a file, opening a network connection, sending or receiving data over it, executing a command or creating a thread. No target or caller, and no stack. An action the architecture analysis blocks shows the `LOW` text. |
+| `LOW` | `Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.` No action, target or caller, and no stack. |
+
+Every text exists in English and German.
+
+Errors in Ares itself (`Reason: Ares-Code`) are never shortened and never get a hint. A student who creates an exception that looks like a blocked action gets no special treatment: only the exceptions Ares's own checks create follow the level.
+
+Ares spends at most two seconds searching a failure for a blocked action, and at most two more preparing its report. When student code inside the failure takes longer, for example a message that never returns, the student sees only the blocked action Ares found, or else that the failure could not be read. If that code ignores Ares's request to stop, Ares ends the test run with exit code 124. It does the same for a test that ignores its strict timeout. At `MEDIUM` and `LOW`, Ares shows that a failure could not be read when student code changes any method of the failure, such as `getMessage`, `toString` or the reason of a file-system failure. The same holds when a group of AssertJ failures holds a list or a member written by the student. JUnit's and AssertJ's own assertion failures keep their text, JUnit 4's `assertEquals` included.
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingTheFailureFeedbackForTheTestCases:
+    onlyPrivilegedExceptionsAreReported: true
+    theFailureMessageForOtherExceptionsIs: "Something went wrong."
+    theSecurityViolationFeedbackLevelIs: LOW
+```
+
+#### 7.7.5 Precedence
+
+| Setting | Decided by, first match wins |
+|---|---|
+| Failure feedback | The policy only. |
+| Policy deactivated, or no policy | No test behaviour from the policy; annotations still apply. |
+
+A policy read on a method-level `@Policy` gives that method its own file's settings.
 
 ---
 

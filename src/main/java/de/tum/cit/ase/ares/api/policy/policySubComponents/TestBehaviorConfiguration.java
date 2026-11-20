@@ -1,19 +1,32 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Wraps the behavioural test-lifecycle settings a policy configures, parallel
- * to {@link ResourceAccesses} on {@link SupervisedCode}. Carries no category
- * yet; a behavioural-feature policy field is added here as its own record
- * component, one per feature.
+ * to {@link ResourceAccesses} on {@link SupervisedCode}. Every category is
+ * optional, and omitting one means that feature was never configured.
  *
  * @since 2.2.0
  * @author Luka Petrovic
+ * @param regardingTheFailureFeedbackForTheTestCases what a failure shows; null
+ *                                                   when not configured.
  */
-public record TestBehaviorConfiguration() {
+public record TestBehaviorConfiguration(
+		@Nullable FailureFeedbackConfiguration regardingTheFailureFeedbackForTheTestCases) {
+
+	/**
+	 * Preserves the public empty configuration constructor for existing callers.
+	 */
+	public TestBehaviorConfiguration() {
+		this(null);
+	}
 
 	/**
 	 * Fully-qualified name of the generated, compiled class that carries this
@@ -26,19 +39,41 @@ public record TestBehaviorConfiguration() {
 	public static final String GENERATED_CLASS_NAME = "de.tum.cit.ase.ares.api.policy.policySubComponents.GeneratedTestBehaviorSettings";
 
 	/**
-	 * Literal field assignments every configured category contributes, one entry
-	 * per field, each already formatted by {@code JavaAOPTestCaseToolbox}'s
-	 * public-static-final assignment helpers. Empty here, since no category is
-	 * configured yet; a category adds its own contribution once it exists.
+	 * Literal field assignments for the generated settings class, read only when
+	 * precompile writes the security tests. No category can be generated yet, so
+	 * failure feedback is refused here rather than silently left out of the
+	 * generated exercise.
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
-	 * @return the literal field assignments to write into the generated settings
-	 *         class; empty when nothing is configured.
+	 * @return an empty list when no category is configured.
+	 * @throws SecurityException when failure feedback is configured.
 	 */
 	@Nonnull
 	public List<String> literalFieldAssignments() {
+		if (regardingTheFailureFeedbackForTheTestCases != null) {
+			throw new SecurityException(Messages.localized("security.creation.test.behavior.unsupported",
+					TestBehaviorFieldNames.FAILURE_FEEDBACK));
+		}
 		return List.of();
+	}
+
+	/**
+	 * Names the first category this configuration sets, in the order the policy
+	 * file lists them. The version check uses it to say which setting needs the
+	 * newer policy format.
+	 *
+	 * @since 2.3.0
+	 * @author Luka Petrovic
+	 * @return the policy key of the first configured category; empty when none is
+	 *         configured.
+	 */
+	@Nonnull
+	public Optional<String> firstConfiguredCategory() {
+		if (regardingTheFailureFeedbackForTheTestCases != null) {
+			return Optional.of(TestBehaviorFieldNames.FAILURE_FEEDBACK);
+		}
+		return Optional.empty();
 	}
 
 	/**
@@ -61,6 +96,24 @@ public record TestBehaviorConfiguration() {
 	 */
 	public static class Builder {
 
+		/** The failure-feedback category, or null for none. */
+		@Nullable
+		private FailureFeedbackConfiguration regardingTheFailureFeedbackForTheTestCases;
+
+		/**
+		 * Sets the failure-feedback category.
+		 *
+		 * @since 2.3.0
+		 * @author Luka Petrovic
+		 * @param category the category; may be null.
+		 * @return the updated Builder.
+		 */
+		@Nonnull
+		public Builder regardingTheFailureFeedbackForTheTestCases(@Nullable FailureFeedbackConfiguration category) {
+			this.regardingTheFailureFeedbackForTheTestCases = category;
+			return this;
+		}
+
 		/**
 		 * Builds a new TestBehaviorConfiguration instance.
 		 *
@@ -70,7 +123,7 @@ public record TestBehaviorConfiguration() {
 		 */
 		@Nonnull
 		public TestBehaviorConfiguration build() {
-			return new TestBehaviorConfiguration();
+			return new TestBehaviorConfiguration(regardingTheFailureFeedbackForTheTestCases);
 		}
 	}
 }

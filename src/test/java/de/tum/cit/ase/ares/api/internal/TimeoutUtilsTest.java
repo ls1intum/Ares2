@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -15,14 +16,39 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.opentest4j.AssertionFailedError;
 
+import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.StrictTimeout;
 import de.tum.cit.ase.ares.api.context.TestContext;
 
 class TimeoutUtilsTest {
+
+	/** The display locale before each test, restored afterwards. */
+	private Locale previous;
+
+	/** Reads the timeout texts in English, whatever the JVM's locale. */
+	@BeforeEach
+	void useEnglish() {
+		previous = Locale.getDefault();
+		Locale.setDefault(Locale.ENGLISH);
+	}
+
+	/** Restores the display locale. */
+	@AfterEach
+	void restoreLocale() {
+		Locale.setDefault(previous);
+	}
+
+	/** A policy enabling privileged-exceptions-only reporting. */
+	private static final String POLICY_ENABLED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelPrivilegedLowRuntime.yaml";
+	/** A policy explicitly disabling privileged-exceptions-only reporting. */
+	private static final String POLICY_DISABLED = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelLowRuntime.yaml";
+
 	@Test
 	void timedOutExecutionUsesOneCancellationInterrupt() {
 		Future<?> future = mock(Future.class);
@@ -95,6 +121,34 @@ class TimeoutUtilsTest {
 		}
 	}
 
+	/** With an enabling policy, a timeout is still reported as a timeout. */
+	@Test
+	void policyEnabledTimeoutStaysPrivileged() throws Exception {
+		TestContext context = contextFor("policyEnabledTimeoutTarget"); //$NON-NLS-1$
+
+		PrivilegedException failure = assertThrows(PrivilegedException.class,
+				() -> TimeoutUtils.performTimeoutExecution(() -> {
+					Thread.sleep(1000);
+					return null;
+				}, context));
+
+		assertThat(failure.getPriviledgedThrowable().getMessage()).contains("execution timed out after");
+	}
+
+	/** With a disabling policy, a timeout is reported as an ordinary failure. */
+	@Test
+	void policyDisabledTimeoutStaysNormal() throws Exception {
+		TestContext context = contextFor("policyDisabledTimeoutTarget"); //$NON-NLS-1$
+
+		AssertionFailedError failure = assertThrows(AssertionFailedError.class,
+				() -> TimeoutUtils.performTimeoutExecution(() -> {
+					Thread.sleep(1000);
+					return null;
+				}, context));
+
+		assertThat(failure.getMessage()).contains("execution timed out after");
+	}
+
 	private static final class FatalTermination extends RuntimeException {
 		private static final long serialVersionUID = 1L;
 	}
@@ -112,5 +166,25 @@ class TimeoutUtilsTest {
 	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
 	private static void strictTimeoutTarget() {
 		// Provides the annotation consumed through the mocked test context.
+	}
+
+	/**
+	 * Carries an enabling policy and a timeout; used only through the mocked test
+	 * context.
+	 */
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy(value = POLICY_ENABLED)
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
+	private static void policyEnabledTimeoutTarget() {
+	}
+
+	/**
+	 * Carries a disabling policy and a timeout; used only through the mocked test
+	 * context.
+	 */
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy(value = POLICY_DISABLED)
+	@StrictTimeout(value = 20, unit = TimeUnit.MILLISECONDS)
+	private static void policyDisabledTimeoutTarget() {
 	}
 }

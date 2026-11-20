@@ -1,4 +1,4 @@
-thisPolicyFileCompliesToThePolicyVersion: 1
+thisPolicyFileCompliesToThePolicyVersion: 2
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
@@ -22,3 +22,8 @@ regardingTheSupervisedCode:
     regardingPackageImports: []
     regardingTimeouts:
       - timeout: 3000
+  # The policy is the only source of this failure-reporting choice.
+  theFollowingTestBehaviorIsConfigured:
+    regardingTheFailureFeedbackForTheTestCases:
+      onlyPrivilegedExceptionsAreReported: true
+      theFailureMessageForOtherExceptionsIs: "ABC"

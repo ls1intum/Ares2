@@ -879,7 +879,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		}
 		for (String threadClassName : threadClassNames) {
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers, decrementQuota)) {
-				throw new SecurityException(localize(
+				throw AresSecurityViolation.create("thread", action, threadClassName, localize(
 						"security.advice.illegal.thread.execution", systemMethodToCheck, localizeAction(action), threadClassName,
 						describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
 								+ " | " + buildDenialReason(noAllowRuleConfigured)));

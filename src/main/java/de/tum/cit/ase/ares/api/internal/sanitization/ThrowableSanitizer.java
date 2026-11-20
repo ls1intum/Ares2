@@ -19,9 +19,22 @@ public final class ThrowableSanitizer {
 	}
 
 	private static final List<SpecificThrowableSanitizer> SANITIZERS = List.of(SafeTypeThrowableSanitizer.INSTANCE,
-			AssertionFailedErrorSanitizer.INSTANCE, PrivilegedExceptionSanitizer.INSTANCE,
-			MultipleFailuresErrorSanitizer.INSTANCE, MultipleAssertionsErrorSanitizer.INSTANCE,
-			ExceptionInInitializerErrorSanitizer.INSTANCE, SoftAssertionErrorSanitizer.INSTANCE);
+			AresSecurityViolationSanitizer.INSTANCE, AssertionFailedErrorSanitizer.INSTANCE,
+			PrivilegedExceptionSanitizer.INSTANCE, MultipleFailuresErrorSanitizer.INSTANCE,
+			MultipleAssertionsErrorSanitizer.INSTANCE, ExceptionInInitializerErrorSanitizer.INSTANCE,
+			SoftAssertionErrorSanitizer.INSTANCE);
+
+	/**
+	 * Whether Ares knows a failure class as one it copies safely, such as JUnit's
+	 * comparison failures, so the class's own methods are library code rather than
+	 * student code. Compares the class itself, not its name.
+	 *
+	 * @param type the failure class.
+	 * @return true for a known safe class.
+	 */
+	public static boolean isSafeType(Class<?> type) {
+		return ThrowableSets.SAFE_TYPES.contains(type);
+	}
 
 	public static Throwable sanitize(final Throwable t) {
 		return sanitize(t, MessageTransformer.IDENTITY);

@@ -19,7 +19,8 @@ import de.tum.cit.ase.ares.api.context.*;
 
 @API(status = Status.INTERNAL)
 public final class TimeoutUtils {
-	private static final Duration DEFAULT_TERMINATION_GRACE_PERIOD = Duration.ofMillis(50);
+	/** How long a timed-out worker may take to stop after its interruption. */
+	static final Duration DEFAULT_TERMINATION_GRACE_PERIOD = Duration.ofMillis(50);
 	private static final int UNRESPONSIVE_TIMEOUT_EXIT_CODE = 124;
 
 	private TimeoutUtils() {
@@ -36,8 +37,7 @@ public final class TimeoutUtils {
 
 	public static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context,
 			Duration terminationGracePeriod) throws Throwable {
-		return performTimeoutExecution(execution, context, terminationGracePeriod,
-				exitCode -> Runtime.getRuntime().halt(exitCode));
+		return performTimeoutExecution(execution, context, terminationGracePeriod, TimeoutUtils::terminateTheFork);
 	}
 
 	static <T> T performTimeoutExecution(ThrowingSupplier<T> execution, TestContext context,
@@ -83,6 +83,16 @@ public final class TimeoutUtils {
 		} finally {
 			executorService.shutdownNow();
 		}
+	}
+
+	/**
+	 * Ends the test JVM at once with the given exit code, since a worker that
+	 * ignored its interruption leaves it in a state no later test may run in.
+	 *
+	 * @param exitCode the exit code of the ended run.
+	 */
+	static void terminateTheFork(int exitCode) {
+		Runtime.getRuntime().halt(exitCode);
 	}
 
 	static void terminateTimedOutExecution(Future<?> future, ExecutorService executorService,
@@ -133,7 +143,7 @@ public final class TimeoutUtils {
 
 	private static AssertionFailedError generateTimeoutFailure(Duration timeout, TestContext context) {
 		var failure = localizedFailure("timeout.failure_message", formatDuration(timeout)); //$NON-NLS-1$
-		if (TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class).isPresent()) {
+		if (ConfigurationUtils.getNonprivilegedFailureMessage(context).isPresent()) {
 			throw new PrivilegedException(failure);
 		}
 		return failure;

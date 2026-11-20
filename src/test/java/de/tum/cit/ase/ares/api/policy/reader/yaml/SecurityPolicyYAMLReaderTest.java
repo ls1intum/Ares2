@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -20,12 +21,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
+import de.tum.cit.ase.ares.api.AresConstants;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.SecurityViolationFeedbackLevel;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 
 @DisplayName("SecurityPolicyYAMLReader Tests")
 public class SecurityPolicyYAMLReaderTest {
@@ -417,6 +424,7 @@ public class SecurityPolicyYAMLReaderTest {
 		}
 	}
 
+	/** Reading and validating {@code theFollowingTestBehaviorIsConfigured}. */
 	@Nested
 	@DisplayName("theFollowingTestBehaviorIsConfigured Tests")
 	class TestBehaviorConfigurationTests {
@@ -424,64 +432,146 @@ public class SecurityPolicyYAMLReaderTest {
 		@Test
 		@DisplayName("Should parse a policy without the behavioural wrapper exactly as before")
 		void wrapperAbsentParsesAsBefore(@TempDir Path tempDir) throws IOException {
-			Path policyFile = tempDir.resolve("no-behavior.yaml");
-			Files.writeString(policyFile, minimalPolicy());
-
-			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
-
-			assertNull(policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured());
+			assertNull(
+					read(tempDir, minimalPolicy()).regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured());
 		}
 
 		@Test
-		@DisplayName("Should parse the wrapper present but empty")
-		void wrapperPresentButEmptyParses(@TempDir Path tempDir) throws IOException {
-			Path policyFile = tempDir.resolve("empty-behavior.yaml");
-			Files.writeString(policyFile,
-					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: {}\n");
-
-			SecurityPolicy policy = reader.readSecurityPolicyFrom(policyFile);
-
-			assertNotNull(policy.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured());
+		@DisplayName("Should parse the wrapper with no category, as released in 2.2.1")
+		void emptyWrapperParses(@TempDir Path tempDir) throws IOException {
+			TestBehaviorConfiguration behavior = read(tempDir,
+					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: {}\n")
+							.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured();
+			assertNull(behavior.regardingTheFailureFeedbackForTheTestCases());
 		}
 
 		@Test
-		@DisplayName("Should reject an unknown behavioural category name")
-		void unknownBehaviouralCategoryIsRejected(@TempDir Path tempDir) throws IOException {
-			Path policyFile = tempDir.resolve("privileged-unknown-category.yaml");
-			Files.writeString(policyFile, minimalPolicy().stripTrailing() + """
+		@DisplayName("Should parse its category with every field")
+		void ownCategoriesParse(@TempDir Path tempDir) throws IOException {
+			TestBehaviorConfiguration behavior = behavior(tempDir, """
 
-					  theFollowingTestBehaviorIsConfigured:
-					    regardingSomeUnknownFeature:
-					      enabled: true
+					    regardingTheFailureFeedbackForTheTestCases:
+					      onlyPrivilegedExceptionsAreReported: true
+					      theFailureMessageForOtherExceptionsIs: "Nope."
+					      theSecurityViolationFeedbackLevelIs: DEBUG
 					""");
-
-			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+			assertTrue(behavior.regardingTheFailureFeedbackForTheTestCases().privilegedOnly());
+			assertEquals("Nope.",
+					behavior.regardingTheFailureFeedbackForTheTestCases().theFailureMessageForOtherExceptionsIs());
+			assertEquals(SecurityViolationFeedbackLevel.DEBUG,
+					behavior.regardingTheFailureFeedbackForTheTestCases().feedbackLevel());
 		}
 
 		@Test
-		@DisplayName("Should reject a malformed (non-object) behavioural wrapper")
-		void malformedWrapperTypeIsRejected(@TempDir Path tempDir) throws IOException {
-			Path policyFile = tempDir.resolve("privileged-malformed-wrapper.yaml");
-			Files.writeString(policyFile,
-					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: \"not-an-object\"\n");
+		@DisplayName("Should default every optional field to today's behaviour")
+		void emptyOptionalCategoriesDefault(@TempDir Path tempDir) throws IOException {
+			TestBehaviorConfiguration behavior = behavior(tempDir, """
 
-			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+					    regardingTheFailureFeedbackForTheTestCases:
+					      theFailureMessageForOtherExceptionsIs: "  "
+					""");
+			assertFalse(behavior.regardingTheFailureFeedbackForTheTestCases().privilegedOnly());
+			assertEquals("Test failed.",
+					behavior.regardingTheFailureFeedbackForTheTestCases().theFailureMessageForOtherExceptionsIs());
+			assertEquals(SecurityViolationFeedbackLevel.HIGH,
+					behavior.regardingTheFailureFeedbackForTheTestCases().feedbackLevel());
 		}
 
-		@Test
-		@DisplayName("Should reject an explicit null wrapper, distinct from the wrapper being absent")
-		void explicitNullWrapperIsRejected(@TempDir Path tempDir) throws IOException {
-			Path policyFile = tempDir.resolve("privileged-null-wrapper.yaml");
+		@ParameterizedTest(name = "[{index}] {0}")
+		@DisplayName("Should reject every malformed test-behaviour section")
+		@CsvSource(delimiter = '|', value = { "wrapper not an object | []", "wrapper explicit null | null",
+				"unknown category | { regardingSomethingElse: {} }",
+				"category explicit null | { regardingTheFailureFeedbackForTheTestCases: null }",
+				"field explicit null | { regardingTheFailureFeedbackForTheTestCases: { onlyPrivilegedExceptionsAreReported: null } }",
+				"privileged not a boolean | { regardingTheFailureFeedbackForTheTestCases: { onlyPrivilegedExceptionsAreReported: 1 } }",
+				"message not text | { regardingTheFailureFeedbackForTheTestCases: { theFailureMessageForOtherExceptionsIs: 1 } }",
+				"unknown level | { regardingTheFailureFeedbackForTheTestCases: { theSecurityViolationFeedbackLevelIs: LOUD } }",
+				"strict timeout not handled here | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s' } }",
+				"output not handled here | { regardingTheOutputOfTheTestCases: { theOutputIsMirrored: true } }",
+				"visibility and schedule not handled here | { regardingTheVisibilityAndScheduleOfTheTestCases: { theDeadlineIs: '2000-01-01 00:00 UTC', testsNotListedHereAreHidden: false } }" })
+		void malformedSectionsAreRejected(String description, String section, @TempDir Path tempDir)
+				throws IOException {
+			Path policyFile = tempDir.resolve("malformed.yaml");
 			Files.writeString(policyFile,
-					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: null\n");
+					minimalPolicy(2).stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n");
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile), description);
+		}
 
-			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		@ParameterizedTest(name = "[{index}] {0}")
+		@DisplayName("Should reject the unreleased keys the separate pull requests used")
+		@CsvSource(delimiter = '|', value = {
+				"regardingPrivilegedExceptions | { onlyPrivilegedExceptionsAreReported: true }" })
+		void oldCategoryKeysAreRejected(String category, String body, @TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("old.yaml");
+			Files.writeString(policyFile, minimalPolicy(2).stripTrailing()
+					+ "\n  theFollowingTestBehaviorIsConfigured: { " + category + ": " + body + " }\n");
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile), category);
+		}
+
+		@ParameterizedTest(name = "[{index}] {0}")
+		@DisplayName("Should reject the unreleased field names inside the new categories")
+		@CsvSource(delimiter = '|', value = {
+				"theFailureMessageIs | { regardingTheFailureFeedbackForTheTestCases: { theFailureMessageIs: 'x' } }" })
+		void oldFieldNamesAreRejected(String field, String section, @TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("old-field.yaml");
+			Files.writeString(policyFile,
+					minimalPolicy(2).stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n");
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile), field);
+		}
+
+		/**
+		 * A version 1 policy file that sets a test-behaviour category is refused, and
+		 * the refusal the instructor sees names the version it needs.
+		 *
+		 * @param category the category's policy key.
+		 * @param body     the category's YAML.
+		 * @param tempDir  the folder for the policy file.
+		 * @throws IOException if the policy file cannot be written
+		 */
+		@ParameterizedTest(name = "[{index}] {0}")
+		@DisplayName("Should refuse a test-behaviour category in a version 1 policy")
+		@CsvSource(delimiter = '|', value = { "regardingTheFailureFeedbackForTheTestCases | {}" })
+		void aVersionOneFileRefusesTheCategory(String category, String body, @TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("version-one.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing()
+					+ "\n  theFollowingTestBehaviorIsConfigured: { " + category + ": " + body + " }\n");
+			RuntimeException failure = assertThrows(RuntimeException.class,
+					() -> reader.readSecurityPolicyFrom(policyFile));
+			String expected = Messages.localized("policy.version.test.behavior", 1, category,
+					AresConstants.TEST_BEHAVIOR_POLICY_VERSION);
+			assertTrue(Stream.iterate((Throwable) failure, Objects::nonNull, Throwable::getCause)
+					.map(Throwable::getMessage).anyMatch(message -> message != null && message.contains(expected)),
+					"the refusal names the version: " + expected);
+		}
+
+		/** Reads a policy text from a temporary file. */
+		private SecurityPolicy read(Path tempDir, String text) throws IOException {
+			Path policyFile = tempDir.resolve("policy.yaml");
+			Files.writeString(policyFile, text);
+			return reader.readSecurityPolicyFrom(policyFile);
+		}
+
+		/** Reads the test behaviour of the minimal policy with the given section. */
+		private TestBehaviorConfiguration behavior(Path tempDir, String section) throws IOException {
+			return read(tempDir,
+					minimalPolicy(2).stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n")
+							.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured();
 		}
 	}
 
 	private static String minimalPolicy() {
+		return minimalPolicy(1);
+	}
+
+	/**
+	 * The smallest valid policy, declaring the given policy-format version.
+	 *
+	 * @param version the declared version.
+	 * @return the policy text.
+	 */
+	private static String minimalPolicy(int version) {
 		return """
-				thisPolicyFileCompliesToThePolicyVersion: 1
+				thisPolicyFileCompliesToThePolicyVersion: %d
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 				  theFollowingClassesAreTestClasses: []
@@ -492,6 +582,6 @@ public class SecurityPolicyYAMLReaderTest {
 				    regardingThreadCreations: []
 				    regardingPackageImports: []
 				    regardingTimeouts: []
-				""";
+				""".formatted(version);
 	}
 }
