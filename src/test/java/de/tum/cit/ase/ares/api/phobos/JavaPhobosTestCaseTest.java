@@ -10,6 +10,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
@@ -50,6 +52,74 @@ class JavaPhobosTestCaseTest {
 						() -> List.of(new NetworkPermission("receive-only.example", 443, false, false, true)))
 				.build();
 		assertTrue(network.writePhobosTestCase().contains("allow receive-only.example:443\n"));
+	}
+
+	/**
+	 * Requires a path the Phobos reader would cut or trim to be refused where Ares
+	 * writes it. The reader pins no locale, so under C.UTF-8 it also trims Unicode
+	 * spaces; the guard refuses those and the no-break spaces too.
+	 *
+	 * @param path the path a policy permits
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "/tmp#private", "/data/notes#1.txt", "#/tmp", "/trailing   ", "   /leading", "\u2003/tmp",
+			"/tmp\u3000", "/tmp\u1680", "\u00A0/tmp", "/tmp\u202F" })
+	void refusesAFilesystemPathTheReaderWouldRewrite(String path) {
+		JavaPhobosTestCase rewritten = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(() -> List.of(new FilePermission(path, true, false, false, false, false)))
+				.build();
+		assertThrows(SecurityException.class, rewritten::writePhobosTestCase);
+	}
+
+	/**
+	 * Requires a path the reader does not rewrite to be written as it is, interior
+	 * blanks, Unicode spaces and percent signs included. Phobos itself refuses a
+	 * relative path or one holding a bracket when it runs, so those cases only pin
+	 * that Ares does not rewrite them.
+	 *
+	 * @param path the path a policy permits
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "/var/lib/ares", "relative/path", "/a b/c", "/a\u2003b", "/tmp/a%n/etc", "/tmp/d100%",
+			"/tmp/[cache]/file", "[write]/etc", "/etc[write]", "[]" })
+	void keepsWritingAPathTheReaderDoesNotRewrite(String path) {
+		JavaPhobosTestCase accepted = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(() -> List.of(new FilePermission(path, true, false, false, false, false)))
+				.build();
+		assertTrue(accepted.writePhobosTestCase().contains(path));
+	}
+
+	/**
+	 * Requires a path the reader would take for a section header to be refused. The
+	 * reader opens a section on such a line instead of granting the path, so
+	 * writing one changes what the lines around it mean.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "[write]", "[network]", "[hide]", "[anything]" })
+	void refusesAFilesystemPathTheReaderWouldTakeForASectionHeader(String path) {
+		JavaPhobosTestCase header = JavaPhobosTestCase.builder()
+				.javaPhobosTestCaseSupported(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION)
+				.resourceAccessSupplier(() -> List.of(new FilePermission(path, true, false, false, false, false)))
+				.build();
+		SecurityException refused = assertThrows(SecurityException.class, header::writePhobosTestCase);
+		assertTrue(refused.getMessage().contains(path));
+	}
+
+	/**
+	 * Requires a path holding a control character or a line or paragraph separator
+	 * to be refused by the policy itself, so it never reaches the Phobos writer,
+	 * where a line feed would end a record early and the reader refuses a carriage
+	 * return.
+	 *
+	 * @param path the path a policy would permit
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "safe\n[write]\n/etc", "/trailing\t", "/trailing\r", "safe\rdraft", "safe\tdraft",
+			"/tmp\u2028", "/tmp\u001C", "[read\ronly]" })
+	void refusesAControlCharacterBeforeThePhobosWriterSeesIt(String path) {
+		assertThrows(IllegalArgumentException.class, () -> new FilePermission(path, true, false, false, false, false));
 	}
 
 	/**
