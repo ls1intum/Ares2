@@ -91,14 +91,18 @@ public final class FileSystemViewAccess {
 	}
 
 	/**
-	 * Asks with {@code isLink} whether a folder's entry is a link, which Ares does
-	 * not check as a file read.
+	 * Lists a folder, then asks with {@code isLink} whether its entry is a link,
+	 * which Ares does not check as a file read. The listing comes first because JDK
+	 * 17 and 21 swallow a refusal while building their desktop folder, which would
+	 * turn the expected refusal into a NullPointerException.
 	 *
 	 * @param folder the folder
 	 * @return whether its entry.txt is a link
 	 */
 	public static boolean entryIsLink(File folder) {
-		return FileSystemView.getFileSystemView().isLink(new File(folder, "entry.txt"));
+		FileSystemView view = FileSystemView.getFileSystemView();
+		view.getFiles(folder, false);
+		return view.isLink(new File(folder, "entry.txt"));
 	}
 
 	/**
