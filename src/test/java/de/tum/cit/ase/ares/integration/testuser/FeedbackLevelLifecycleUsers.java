@@ -18,21 +18,21 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.old
 
 /**
  * Test classes whose constructor or one lifecycle method reads a file the
- * policy forbids, at MINIMIZED, so the report of a blocked action outside the
- * test method can be checked for every place it can happen; and two whose setup
+ * policy forbids, at LOW, so the report of a blocked action outside the test
+ * method can be checked for every place it can happen; and two whose setup
  * fails or aborts while only privileged failures are reported.
  */
 @SuppressWarnings({ "static-method", "PMD.TestClassWithoutTestCases" })
 public final class FeedbackLevelLifecycleUsers {
 
-	/** The MINIMIZED policy every class uses. */
-	static final String POLICY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelMINIMIZED.yaml";
+	/** The LOW policy every class uses. */
+	static final String POLICY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelLOW.yaml";
 
 	/**
 	 * A policy reporting only privileged failures, with the message "Policy
 	 * message".
 	 */
-	static final String PRIVILEGED_ONLY_POLICY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelPrivilegedMinimized.yaml";
+	static final String PRIVILEGED_ONLY_POLICY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelPrivilegedLow.yaml";
 
 	/** Student code that does nothing forbidden. */
 	static final String HARMLESS_WITHIN = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld";

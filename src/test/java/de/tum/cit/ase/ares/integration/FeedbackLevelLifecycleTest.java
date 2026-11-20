@@ -20,7 +20,7 @@ import de.tum.cit.ase.ares.testutilities.UserTestResults;
 
 /**
  * Proves that a blocked action in a test's constructor or lifecycle method
- * follows the MINIMIZED feedback level like one in the test itself, and that a
+ * follows the LOW feedback level like one in the test itself, and that a
  * failing setup gets the policy's message when only privileged failures are
  * reported.
  */
@@ -32,16 +32,15 @@ class FeedbackLevelLifecycleTest {
 	@UserTestResults
 	private static Events tests;
 
-	/** The MINIMIZED text, in English. */
-	private static final String MINIMIZED = "Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.";
+	/** The LOW text, in English. */
+	private static final String LOW = "Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.";
 
 	/**
-	 * A failing constructor, setup or teardown shows the MINIMIZED text and no
-	 * stack.
+	 * A failing constructor, setup or teardown shows the LOW text and no stack.
 	 */
 	@TestTest
-	void test_everyPlaceShowsTheMinimizedText() {
-		assertMinimized(failuresIn(tests), 4);
+	void test_everyPlaceShowsTheLowText() {
+		assertLow(failuresIn(tests), 4);
 	}
 
 	/**
@@ -49,8 +48,8 @@ class FeedbackLevelLifecycleTest {
 	 * read from the class's events.
 	 */
 	@TestTest
-	void test_classSetupShowsTheMinimizedText() {
-		assertMinimized(failuresIn(containerEventsOf(FeedbackLevelLifecycleUsers.BeforeAllRead.class)), 1);
+	void test_classSetupShowsTheLowText() {
+		assertLow(failuresIn(containerEventsOf(FeedbackLevelLifecycleUsers.BeforeAllRead.class)), 1);
 	}
 
 	/**
@@ -58,8 +57,8 @@ class FeedbackLevelLifecycleTest {
 	 * read from the class's events too.
 	 */
 	@TestTest
-	void test_classTeardownShowsTheMinimizedText() {
-		assertMinimized(failuresIn(containerEventsOf(FeedbackLevelLifecycleUsers.AfterAllRead.class)), 1);
+	void test_classTeardownShowsTheLowText() {
+		assertLow(failuresIn(containerEventsOf(FeedbackLevelLifecycleUsers.AfterAllRead.class)), 1);
 	}
 
 	/**
@@ -113,14 +112,14 @@ class FeedbackLevelLifecycleTest {
 	}
 
 	/**
-	 * Checks that every failure is the MINIMIZED text without a stack.
+	 * Checks that every failure is the LOW text without a stack.
 	 *
 	 * @param failures the failures.
 	 * @param expected how many there must be.
 	 */
-	private static void assertMinimized(List<Throwable> failures, int expected) {
+	private static void assertLow(List<Throwable> failures, int expected) {
 		assertThat(failures).hasSize(expected).allSatisfy(failure -> {
-			assertThat(failure).isExactlyInstanceOf(SecurityException.class).hasMessage(MINIMIZED);
+			assertThat(failure).isExactlyInstanceOf(SecurityException.class).hasMessage(LOW);
 			assertThat(failure.getStackTrace()).isEmpty();
 		});
 	}

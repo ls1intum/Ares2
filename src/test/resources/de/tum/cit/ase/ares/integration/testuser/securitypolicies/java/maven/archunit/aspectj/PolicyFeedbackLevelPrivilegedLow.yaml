@@ -1,6 +1,6 @@
-thisPolicyFileCompliesToThePolicyVersion: 1
+thisPolicyFileCompliesToThePolicyVersion: 2
 regardingTheSupervisedCode:
-  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_INSTRUMENTATION
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
@@ -17,4 +17,6 @@ regardingTheSupervisedCode:
       - timeout: 3000
   theFollowingTestBehaviorIsConfigured:
     regardingTheFailureFeedbackForTheTestCases:
-      theSecurityViolationFeedbackLevelIs: FULL
+      onlyPrivilegedExceptionsAreReported: true
+      theFailureMessageForOtherExceptionsIs: "Policy message"
+      theSecurityViolationFeedbackLevelIs: LOW

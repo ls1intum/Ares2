@@ -1,4 +1,4 @@
-thisPolicyFileCompliesToThePolicyVersion: 1
+thisPolicyFileCompliesToThePolicyVersion: 2
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
@@ -17,4 +17,4 @@ regardingTheSupervisedCode:
       - timeout: 3000
   theFollowingTestBehaviorIsConfigured:
     regardingTheFailureFeedbackForTheTestCases:
-      theSecurityViolationFeedbackLevelIs: FULL
+      theSecurityViolationFeedbackLevelIs: LOW

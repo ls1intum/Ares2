@@ -237,9 +237,10 @@ Security policies are written in YAML format. YAML uses indentation (spaces, not
 ### 7.2 Complete Structure
 
 ```yaml
-# REQUIRED: The policy format version. Must be exactly 1; any other value,
-# or omitting the key, causes the policy to be rejected on load.
-thisPolicyFileCompliesToThePolicyVersion: 1
+# REQUIRED: The policy format version, 1 or 2. Version 2 is needed as soon as
+# any category under theFollowingTestBehaviorIsConfigured is set; any other
+# value, or omitting the key, causes the policy to be rejected on load.
+thisPolicyFileCompliesToThePolicyVersion: 2
 
 regardingTheSupervisedCode:
   # REQUIRED: Which configuration to use
@@ -298,7 +299,7 @@ regardingTheSupervisedCode:
     regardingTheFailureFeedbackForTheTestCases:
       onlyPrivilegedExceptionsAreReported: false     # OPTIONAL, defaults as shown
       theFailureMessageForOtherExceptionsIs: "Test failed."  # OPTIONAL, defaults as shown
-      theSecurityViolationFeedbackLevelIs: FULL      # OPTIONAL: DEBUG, MINIMIZED or FULL
+      theSecurityViolationFeedbackLevelIs: HIGH      # OPTIONAL: DEBUG, HIGH, MEDIUM or LOW
 ```
 
 ### 7.3 Configuration Options
@@ -392,7 +393,7 @@ theFollowingClassesAreTestClasses:
 
 ### 7.7 Test Behaviour Configuration
 
-The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before.
+The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before. A policy that sets any category must declare `thisPolicyFileCompliesToThePolicyVersion: 2`; Ares refuses a version 1 policy that sets one, and its message names the category and the version it needs.
 
 The category and field names follow the proposal in issue #386, section C. They are not final until the advisor accepts them; [Policy Compatibility](./policy-compatibility.md) lists which release accepts which key.
 
@@ -404,28 +405,31 @@ Ares reads these settings once per policy file, before it supervises any test co
 
 - `onlyPrivilegedExceptionsAreReported` (boolean): `true` replaces the text of every failure except a blocked action and a privileged one with a fixed message. This includes a failing constructor, setup or teardown method; a test skipped by an assumption stays skipped. A privileged failure there keeps its own text, as in the test. Defaults to `false`.
 - `theFailureMessageForOtherExceptionsIs` (text): the fixed message. Defaults to `"Test failed."` when omitted or blank.
-- `theSecurityViolationFeedbackLevelIs` (`DEBUG`, `MINIMIZED` or `FULL`): how much a blocked action reveals. Defaults to `FULL`.
+- `theSecurityViolationFeedbackLevelIs` (`DEBUG`, `HIGH`, `MEDIUM` or `LOW`): how much a blocked action reveals. Defaults to `HIGH`.
 
 This category applies in Postcompile. In Precompile, Ares refuses to generate the security tests when the policy sets it, and names the category, so a generated exercise never runs without the feedback the instructor chose.
 
 The feedback level decides every action Ares blocks at run time:
 
-| Level | What the student sees |
+| Level | What the student sees, for a blocked read of `/etc/passwd` |
 |---|---|
-| `FULL` | The full message, as before: `Ares Security Error (Reason: Student-Code; Stage: Execution): Main.run tried to illegally read File /etc/passwd via FileInputStream.<init> but was blocked by Ares.` |
-| `MINIMIZED` | `Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.` No action, target or caller, and no stack. |
-| `DEBUG` | The full message, followed by the policy entry that allows the action, such as `To allow this, add to regardingFileSystemInteractions: { onThisPathAndAllPathsBelow: "/etc/passwd", readAllFiles: true, overwriteAllFiles: false, createAllFiles: false, executeAllFiles: false, deleteAllFiles: false }`, which the policy reader accepts as written and which grants only that action. For an action the architecture analysis blocks, the hint names only the category. |
+| `DEBUG` | The `HIGH` message and a hint. For a blocked read, the hint reads `Allow it by granting the read permission on /etc/passwd in the security policy SecurityPolicy1.yml as:`. The entry to paste follows on the next lines.<br/>`- onThisPathAndAllPathsBelow: "/etc/passwd"`<br/>`  readAllFiles: true`<br/>`  overwriteAllFiles: false`<br/>`  createAllFiles: false`<br/>`  executeAllFiles: false`<br/>`  deleteAllFiles: false`<br/>The policy reader accepts the entry as written, and it grants only that action. Network, command, thread and package-import entries look the same way; a package entry sets `exactMatchOnly: true`, so it allows no package below the blocked one. For an action the architecture analysis blocks, whose exact target is not known, the hint names only the category. A policy built in code has no file name, so the hint says only "the security policy". |
+| `HIGH` (default) | The full message, as before: `Ares Security Error (Reason: Student-Code; Stage: Execution): Main.run tried to illegally read File /etc/passwd via FileInputStream.<init> but was blocked by Ares.` |
+| `MEDIUM` | `Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally read a File, but was blocked by Ares.` Only the kind of action: reading, overwriting, creating, executing or deleting a file, opening a network connection, sending or receiving data over it, executing a command or creating a thread. No target or caller, and no stack. An action the architecture analysis blocks shows the `LOW` text. |
+| `LOW` | `Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.` No action, target or caller, and no stack. |
+
+Every text exists in English and German.
 
 Errors in Ares itself (`Reason: Ares-Code`) are never shortened and never get a hint. A student who creates an exception that looks like a blocked action gets no special treatment: only the exceptions Ares's own checks create follow the level.
 
-Ares spends at most two seconds searching a failure for a blocked action, and at most two more preparing its report. When student code inside the failure takes longer, for example a message that never returns, the student sees only the blocked action Ares found, or else that the failure could not be read. If that code ignores Ares's request to stop, Ares ends the test run with exit code 124. It does the same for a test that ignores its strict timeout. At `MINIMIZED`, Ares shows that a failure could not be read when student code changes any method of the failure, such as `getMessage`, `toString` or the reason of a file-system failure. The same holds when a group of AssertJ failures holds a list or a member written by the student. JUnit's and AssertJ's own assertion failures keep their text, JUnit 4's `assertEquals` included.
+Ares spends at most two seconds searching a failure for a blocked action, and at most two more preparing its report. When student code inside the failure takes longer, for example a message that never returns, the student sees only the blocked action Ares found, or else that the failure could not be read. If that code ignores Ares's request to stop, Ares ends the test run with exit code 124. It does the same for a test that ignores its strict timeout. At `MEDIUM` and `LOW`, Ares shows that a failure could not be read when student code changes any method of the failure, such as `getMessage`, `toString` or the reason of a file-system failure. The same holds when a group of AssertJ failures holds a list or a member written by the student. JUnit's and AssertJ's own assertion failures keep their text, JUnit 4's `assertEquals` included.
 
 ```yaml
 theFollowingTestBehaviorIsConfigured:
   regardingTheFailureFeedbackForTheTestCases:
     onlyPrivilegedExceptionsAreReported: true
     theFailureMessageForOtherExceptionsIs: "Something went wrong."
-    theSecurityViolationFeedbackLevelIs: MINIMIZED
+    theSecurityViolationFeedbackLevelIs: LOW
 ```
 
 #### 7.7.5 Precedence

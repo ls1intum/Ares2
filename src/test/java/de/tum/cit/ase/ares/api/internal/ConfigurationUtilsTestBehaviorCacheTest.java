@@ -108,7 +108,7 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 		Path file = Path.of(path);
 		Files.createDirectories(file.getParent());
 		Files.writeString(file, """
-				thisPolicyFileCompliesToThePolicyVersion: 1
+				thisPolicyFileCompliesToThePolicyVersion: 2
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 				  theFollowingClassesAreTestClasses: []

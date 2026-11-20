@@ -1,4 +1,4 @@
-thisPolicyFileCompliesToThePolicyVersion: 1
+thisPolicyFileCompliesToThePolicyVersion: 2
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
@@ -8,7 +8,15 @@ regardingTheSupervisedCode:
     - "de.tum.cit.ase.ares.integration.aop.forbidden.SystemAccessTest"
     - "de.tum.cit.ase.ares.integration.architecture.forbidden.SystemAccessTest"
   theFollowingResourceAccessesArePermitted:
-    regardingFileSystemInteractions: [ ]
+    # One readable path unrelated to the read below: any file permission makes the
+    # runtime check, not the static rule, decide the denied read in the test body.
+    regardingFileSystemInteractions:
+      - readAllFiles: true
+        overwriteAllFiles: false
+        createAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]
@@ -17,4 +25,6 @@ regardingTheSupervisedCode:
       - timeout: 3000
   theFollowingTestBehaviorIsConfigured:
     regardingTheFailureFeedbackForTheTestCases:
-      theSecurityViolationFeedbackLevelIs: FULL
+      onlyPrivilegedExceptionsAreReported: false
+      theFailureMessageForOtherExceptionsIs: "Policy message"
+      theSecurityViolationFeedbackLevelIs: LOW

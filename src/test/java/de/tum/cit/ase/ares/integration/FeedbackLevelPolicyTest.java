@@ -24,17 +24,17 @@ class FeedbackLevelPolicyTest {
 	@UserTestResults
 	private static Events tests;
 
-	/** The MINIMIZED text, in English. */
-	private static final String MINIMIZED = "Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.";
+	/** The LOW text, in English. */
+	private static final String LOW = "Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.";
 
 	/**
-	 * FULL keeps the detailed message, in every mode: the action is named, which
-	 * the MINIMIZED text never does.
+	 * HIGH keeps the detailed message, in every mode: the action is named, which
+	 * the LOW text never does.
 	 */
 	@TestTest
 	void test_full() {
-		for (String test : new String[] { "fullArchunitAspectj", "fullArchunitInstrumentation", "fullWalaAspectj",
-				"fullWalaInstrumentation" }) {
+		for (String test : new String[] { "highArchunitAspectj", "highArchunitInstrumentation", "highWalaAspectj",
+				"highWalaInstrumentation" }) {
 			tests.assertThatEvents().haveExactly(1,
 					testFailedWith(test, SecurityException.class, "tried to illegally", Option.MESSAGE_CONTAINS));
 		}
@@ -44,29 +44,59 @@ class FeedbackLevelPolicyTest {
 	@TestTest
 	void test_debugNetwork() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith("debugNetwork", SecurityException.class,
-				"To allow this, add to regardingNetworkConnections", Option.MESSAGE_CONTAINS));
+				"Allow it by adding an entry under regardingNetworkConnections in the security policy PolicyFeedbackLevelDEBUG.yaml.",
+				Option.MESSAGE_CONTAINS));
 	}
 
 	/** DEBUG names the command category for a blocked command. */
 	@TestTest
 	void test_debugCommand() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith("debugCommand", SecurityException.class,
-				"To allow this, add to regardingCommandExecutions", Option.MESSAGE_CONTAINS));
+				"Allow it by adding an entry under regardingCommandExecutions in the security policy PolicyFeedbackLevelDEBUG.yaml.",
+				Option.MESSAGE_CONTAINS));
 	}
 
 	/** DEBUG names the thread category for a blocked thread start. */
 	@TestTest
 	void test_debugThread() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith("debugThread", SecurityException.class,
-				"To allow this, add to regardingThreadCreations", Option.MESSAGE_CONTAINS));
+				"Allow it by adding an entry under regardingThreadCreations in the security policy PolicyFeedbackLevelDEBUG.yaml.",
+				Option.MESSAGE_CONTAINS));
 	}
 
-	/** MINIMIZED shows only that something was blocked, in every mode. */
+	/** LOW shows only that something was blocked, in every mode. */
 	@TestTest
 	void test_minimized() {
-		for (String test : new String[] { "minimizedArchunitAspectj", "minimizedArchunitInstrumentation",
-				"minimizedWalaAspectj", "minimizedWalaInstrumentation" }) {
-			tests.assertThatEvents().haveExactly(1, testFailedWith(test, SecurityException.class, MINIMIZED));
+		for (String test : new String[] { "lowArchunitAspectj", "lowArchunitInstrumentation", "lowWalaAspectj",
+				"lowWalaInstrumentation" }) {
+			tests.assertThatEvents().haveExactly(1, testFailedWith(test, SecurityException.class, LOW));
+		}
+	}
+
+	/**
+	 * MEDIUM shows LOW's sentence for a read the architecture check finds, in every
+	 * mode, since the action of a finding is not known.
+	 */
+	@TestTest
+	void test_mediumArchitecture() {
+		for (String test : new String[] { "mediumArchunitAspectj", "mediumArchunitInstrumentation", "mediumWalaAspectj",
+				"mediumWalaInstrumentation" }) {
+			tests.assertThatEvents().haveExactly(1, testFailedWith(test, SecurityException.class, LOW));
+		}
+	}
+
+	/**
+	 * DEBUG shows the exact package entry and the policy file for a forbidden
+	 * import, in both backends.
+	 */
+	@TestTest
+	void test_debugImport() {
+		for (String test : new String[] { "debugImportAspectj", "debugImportInstrumentation" }) {
+			tests.assertThatEvents().haveExactly(1,
+					testFailedWith(test, SecurityException.class,
+							"Allow it by granting the import permission on java.nio.charset in the security policy "
+									+ "PolicyFeedbackLevelDebugImport.yaml as:",
+							Option.MESSAGE_CONTAINS));
 		}
 	}
 
@@ -75,8 +105,11 @@ class FeedbackLevelPolicyTest {
 	void test_debug() {
 		for (String test : new String[] { "debugArchunitAspectj", "debugArchunitInstrumentation", "debugWalaAspectj",
 				"debugWalaInstrumentation" }) {
-			tests.assertThatEvents().haveExactly(1, testFailedWith(test, SecurityException.class,
-					"To allow this, add to regardingFileSystemInteractions", Option.MESSAGE_CONTAINS));
+			tests.assertThatEvents().haveExactly(1,
+					testFailedWith(test, SecurityException.class,
+							"Allow it by adding an entry under regardingFileSystemInteractions in the security policy "
+									+ "PolicyFeedbackLevelDEBUG.yaml.",
+							Option.MESSAGE_CONTAINS));
 		}
 	}
 
@@ -86,7 +119,7 @@ class FeedbackLevelPolicyTest {
 	@TestTest
 	void test_privilegedOnlyKeepsTheLevel() {
 		tests.assertThatEvents().haveExactly(1,
-				testFailedWith("privilegedOnlyKeepsTheLevel", SecurityException.class, MINIMIZED));
+				testFailedWith("privilegedOnlyKeepsTheLevel", SecurityException.class, LOW));
 	}
 
 	/**
@@ -95,23 +128,23 @@ class FeedbackLevelPolicyTest {
 	 */
 	@TestTest
 	void test_runtimeDenialKeepsTheLevelWhenPrivilegedOnly() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith("runtimeDenialKeepsTheLevelWhenPrivilegedOnlyAspectj",
-				SecurityException.class, MINIMIZED));
+		tests.assertThatEvents().haveExactly(1,
+				testFailedWith("runtimeDenialKeepsTheLevelWhenPrivilegedOnlyAspectj", SecurityException.class, LOW));
 		tests.assertThatEvents().haveExactly(1, testFailedWith(
-				"runtimeDenialKeepsTheLevelWhenPrivilegedOnlyInstrumentation", SecurityException.class, MINIMIZED));
+				"runtimeDenialKeepsTheLevelWhenPrivilegedOnlyInstrumentation", SecurityException.class, LOW));
 	}
 
 	/**
 	 * A student {@code File} subclass Ares refuses to inspect is a blocked action:
-	 * MINIMIZED shows only the fixed text, with privileged-only reporting off and
-	 * on, in both backends.
+	 * LOW shows only the fixed text, with privileged-only reporting off and on, in
+	 * both backends.
 	 */
 	@TestTest
 	void test_untrustedArgumentFollowsTheLevel() {
 		for (String name : List.of("untrustedArgumentIsShortenedAspectj", "untrustedArgumentIsShortenedInstrumentation",
 				"untrustedArgumentKeepsTheLevelWhenPrivilegedOnlyAspectj",
 				"untrustedArgumentKeepsTheLevelWhenPrivilegedOnlyInstrumentation")) {
-			tests.assertThatEvents().haveExactly(1, testFailedWith(name, SecurityException.class, MINIMIZED));
+			tests.assertThatEvents().haveExactly(1, testFailedWith(name, SecurityException.class, LOW));
 		}
 	}
 

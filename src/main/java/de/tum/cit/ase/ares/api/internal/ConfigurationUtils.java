@@ -179,7 +179,7 @@ public final class ConfigurationUtils {
 	}
 
 	/**
-	 * Returns how much a blocked action reveals, {@code FULL} without a policy
+	 * Returns how much a blocked action reveals, {@code HIGH} without a policy
 	 * setting.
 	 *
 	 * @param context the test context.
@@ -187,7 +187,26 @@ public final class ConfigurationUtils {
 	 */
 	public static SecurityViolationFeedbackLevel getSecurityViolationFeedbackLevel(TestContext context) {
 		return findPolicyFailureFeedback(context).map(FailureFeedbackConfiguration::feedbackLevel)
-				.orElse(SecurityViolationFeedbackLevel.FULL);
+				.orElse(SecurityViolationFeedbackLevel.HIGH);
+	}
+
+	/**
+	 * Returns the file name of the active policy, such as
+	 * {@code SecurityPolicy.yaml}, for the DEBUG hint to name.
+	 *
+	 * @param context the test context.
+	 * @return the last part of the policy's path; empty when no policy file is
+	 *         active.
+	 */
+	public static Optional<String> findPolicyFileName(TestContext context) {
+		return TestContextUtils.findAnnotationIn(context, Policy.class)
+				.filter(policy -> policy.activated() && !policy.value().isBlank()).flatMap(policy -> {
+					try {
+						return Optional.ofNullable(Path.of(policy.value()).getFileName()).map(Path::toString);
+					} catch (InvalidPathException invalid) {
+						return Optional.empty();
+					}
+				});
 	}
 
 	/**

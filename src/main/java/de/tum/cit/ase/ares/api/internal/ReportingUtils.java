@@ -101,7 +101,8 @@ public final class ReportingUtils {
 				&& !(t instanceof PrivilegedException)) {
 			return new AssertionError(nonprivilegedFailureMessage.get());
 		}
-		return inspectedReport(t, inspection, ConfigurationUtils.getSecurityViolationFeedbackLevel(context));
+		return inspectedReport(t, inspection, ConfigurationUtils.getSecurityViolationFeedbackLevel(context),
+				ConfigurationUtils.findPolicyFileName(context));
 	}
 
 	/**
@@ -109,9 +110,10 @@ public final class ReportingUtils {
 	 * the feedback level, the fixed text when the failure may hide one, and
 	 * otherwise the failure sanitised within the bound.
 	 */
-	private static Throwable inspectedReport(Throwable t, Inspection inspection, SecurityViolationFeedbackLevel level) {
+	private static Throwable inspectedReport(Throwable t, Inspection inspection, SecurityViolationFeedbackLevel level,
+			Optional<String> policyFile) {
 		if (inspection.violation() != null) {
-			return renderedViolation(t, inspection, level);
+			return renderedViolation(t, inspection, level, policyFile);
 		}
 		return inspection.mayHideAViolation(level) ? uninspectable() : sanitizedWithin(t, inspection);
 	}
@@ -142,7 +144,8 @@ public final class ReportingUtils {
 	 */
 	public static Throwable processLifecycleFailure(Throwable t, TestContext context) {
 		if (t instanceof PrivilegedException) {
-			return inspectedReport(t, inspect(t), ConfigurationUtils.getSecurityViolationFeedbackLevel(context));
+			return inspectedReport(t, inspect(t), ConfigurationUtils.getSecurityViolationFeedbackLevel(context),
+					ConfigurationUtils.findPolicyFileName(context));
 		}
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
 		if (nonprivilegedFailureMessage.isEmpty() || t instanceof IncompleteExecutionException) {
@@ -160,11 +163,12 @@ public final class ReportingUtils {
 	 */
 	private static Throwable blockedActionReport(Throwable t, Inspection inspection, TestContext context) {
 		SecurityViolationFeedbackLevel level = ConfigurationUtils.getSecurityViolationFeedbackLevel(context);
-		if (level == SecurityViolationFeedbackLevel.FULL
+		if (level == SecurityViolationFeedbackLevel.HIGH
 				|| inspection.violation() == null && !inspection.mayHideAViolation(level)) {
 			return t;
 		}
-		return inspection.violation() == null ? uninspectable() : renderedViolation(t, inspection, level);
+		return inspection.violation() == null ? uninspectable()
+				: renderedViolation(t, inspection, level, ConfigurationUtils.findPolicyFileName(context));
 	}
 
 	/**
@@ -190,14 +194,14 @@ public final class ReportingUtils {
 
 		/**
 		 * Whether a failure with no blocked action found may still carry one: the
-		 * search did not finish, or, at {@code MINIMIZED}, it skipped a getter that the
-		 * regular report would later call.
+		 * search did not finish, or, at {@code MEDIUM} or {@code LOW}, which hide the
+		 * target, it skipped a getter that the regular report would later call.
 		 *
 		 * @param level the policy's feedback level.
 		 * @return true when the report has to be redacted
 		 */
 		boolean mayHideAViolation(SecurityViolationFeedbackLevel level) {
-			return !complete || skipped && level == SecurityViolationFeedbackLevel.MINIMIZED;
+			return !complete || skipped && hidesTheTarget(level);
 		}
 	}
 
@@ -491,25 +495,38 @@ public final class ReportingUtils {
 	}
 
 	/**
-	 * Reports a blocked action at the policy's feedback level. {@code FULL} reports
+	 * Reports a blocked action at the policy's feedback level. {@code HIGH} reports
 	 * the failure as before, unless reading it would call a getter student code
 	 * overrides or does not finish in time; then it reports the blocked action
-	 * itself. The other levels replace it, without stack for {@code MINIMIZED}.
+	 * itself. The other levels replace it, without stack for {@code MEDIUM} and
+	 * {@code LOW}.
 	 */
-	private static Throwable renderedViolation(Throwable t, Inspection inspection,
-			SecurityViolationFeedbackLevel level) {
+	private static Throwable renderedViolation(Throwable t, Inspection inspection, SecurityViolationFeedbackLevel level,
+			Optional<String> policyFile) {
 		SecurityViolationFeedback.Violation violation = inspection.violation();
-		if (level == SecurityViolationFeedbackLevel.FULL && !inspection.skipped()) {
+		if (level == SecurityViolationFeedbackLevel.HIGH && !inspection.skipped()) {
 			return sanitizedWithin(t, inspection);
 		}
-		if (level == SecurityViolationFeedbackLevel.FULL) {
+		if (level == SecurityViolationFeedbackLevel.HIGH) {
 			return violationByItself(inspection);
 		}
-		SecurityException rendered = new SecurityException(SecurityViolationFeedback.render(violation, level));
-		if (level == SecurityViolationFeedbackLevel.MINIMIZED) {
+		SecurityException rendered = new SecurityException(
+				SecurityViolationFeedback.render(violation, level, policyFile));
+		if (hidesTheTarget(level)) {
 			rendered.setStackTrace(new StackTraceElement[0]);
 		}
 		return rendered;
+	}
+
+	/**
+	 * Whether a level hides what the blocked action targeted, so the report must
+	 * not show the failure's own text or stack.
+	 *
+	 * @param level the policy's feedback level.
+	 * @return true for {@code MEDIUM} and {@code LOW}.
+	 */
+	private static boolean hidesTheTarget(SecurityViolationFeedbackLevel level) {
+		return level == SecurityViolationFeedbackLevel.MEDIUM || level == SecurityViolationFeedbackLevel.LOW;
 	}
 
 	/**

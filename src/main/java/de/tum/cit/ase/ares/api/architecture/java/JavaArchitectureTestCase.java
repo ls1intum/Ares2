@@ -555,7 +555,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nonnull
 		String action = mapRuleNameToAction(ruleName);
 
-		throw AresSecurityViolation.create("architecture", action, targetResolved, Messages
+		throw AresSecurityViolation.create("architecture", ruleKeyOrName(ruleName), targetResolved, Messages
 				.localized("security.archunit.violation.error", callerResolved, action, targetResolved, parentCaller));
 	}
 
@@ -599,6 +599,21 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nullable
 		String ruleKey = findRuleKey(ruleName);
 		return ruleKey == null ? ruleName : Messages.localized("security.archunit.action." + ruleKey); //$NON-NLS-1$
+	}
+
+	/**
+	 * Returns the rule's key, such as {@code file.system.access}, or its name when
+	 * it is no known rule. The feedback report reads the kind of the finding from
+	 * it, so the kind does not depend on the language of the message.
+	 *
+	 * @param ruleName The name of the violated rule
+	 * @return the rule key, or the name itself
+	 */
+	@Nonnull
+	private static String ruleKeyOrName(@Nonnull String ruleName) {
+		@Nullable
+		String ruleKey = findRuleKey(ruleName);
+		return ruleKey == null ? ruleName : ruleKey;
 	}
 
 	/**

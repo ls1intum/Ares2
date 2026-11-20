@@ -351,9 +351,9 @@ public class JavaWriterTest {
 		@DisplayName("Should refuse failure feedback in precompile before writing any file")
 		void failureFeedbackIsRefusedInsteadOfDropped() throws IOException {
 			TestBehaviorConfiguration withFailureFeedback = TestBehaviorConfiguration.builder()
-					.regardingTheFailureFeedbackForTheTestCases(FailureFeedbackConfiguration.builder()
-							.onlyPrivilegedExceptionsAreReported(true)
-							.theSecurityViolationFeedbackLevelIs(SecurityViolationFeedbackLevel.MINIMIZED).build())
+					.regardingTheFailureFeedbackForTheTestCases(
+							FailureFeedbackConfiguration.builder().onlyPrivilegedExceptionsAreReported(true)
+									.theSecurityViolationFeedbackLevelIs(SecurityViolationFeedbackLevel.LOW).build())
 					.build();
 			List<Path> before = filesBelow(tempDir);
 			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);

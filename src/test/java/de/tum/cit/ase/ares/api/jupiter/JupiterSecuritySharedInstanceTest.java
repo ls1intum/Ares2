@@ -28,11 +28,11 @@ import de.tum.cit.ase.ares.testutilities.MockStores;
  */
 class JupiterSecuritySharedInstanceTest {
 
-	/** The policy at MINIMIZED the fixture class names. */
-	private static final String MINIMIZED_POLICY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelMINIMIZED.yaml";
+	/** The policy at LOW the fixture class names. */
+	private static final String MINIMIZED_POLICY = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelLOW.yaml";
 
-	/** The MINIMIZED text, in English. */
-	private static final String MINIMIZED = "Ares Security Error (Reason: Student-Code; Stage: Execution): An operation was blocked by Ares.";
+	/** The LOW text, in English. */
+	private static final String LOW = "Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.";
 
 	/** The locale before the test. */
 	private final Locale locale = Locale.getDefault();
@@ -44,8 +44,8 @@ class JupiterSecuritySharedInstanceTest {
 	}
 
 	/**
-	 * A blocked action while arming for a shared instance shows the MINIMIZED text,
-	 * and the constructor does not run.
+	 * A blocked action while arming for a shared instance shows the LOW text, and
+	 * the constructor does not run.
 	 *
 	 * @throws Throwable if the interception fails otherwise
 	 */
@@ -65,7 +65,7 @@ class JupiterSecuritySharedInstanceTest {
 
 		assertThatThrownBy(
 				() -> extension.interceptTestClassConstructor(invocation, invocationContext, sharedInstanceContext()))
-						.isInstanceOf(SecurityException.class).hasMessage(MINIMIZED);
+						.isInstanceOf(SecurityException.class).hasMessage(LOW);
 		verify(invocation, never()).proceed();
 	}
 
@@ -102,7 +102,7 @@ class JupiterSecuritySharedInstanceTest {
 		return context;
 	}
 
-	/** A test class with a class-level policy at MINIMIZED. */
+	/** A test class with a class-level policy at LOW. */
 	@Policy(value = MINIMIZED_POLICY, withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject")
 	static final class SharedFixture {
 	}

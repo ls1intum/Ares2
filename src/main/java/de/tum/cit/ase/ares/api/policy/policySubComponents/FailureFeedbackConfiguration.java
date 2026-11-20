@@ -17,7 +17,7 @@ import javax.annotation.Nullable;
  *                                              {@value #DEFAULT_FAILURE_MESSAGE}.
  * @param theSecurityViolationFeedbackLevelIs   how much a blocked action
  *                                              reveals; null means
- *                                              {@code FULL}.
+ *                                              {@code HIGH}.
  */
 public record FailureFeedbackConfiguration(@Nullable Boolean onlyPrivilegedExceptionsAreReported,
 		@Nullable String theFailureMessageForOtherExceptionsIs,
@@ -52,7 +52,7 @@ public record FailureFeedbackConfiguration(@Nullable Boolean onlyPrivilegedExcep
 	}
 
 	/**
-	 * Returns how much a blocked action reveals, {@code FULL} when not configured.
+	 * Returns how much a blocked action reveals, {@code HIGH} when not configured.
 	 *
 	 * @since 2.3.0
 	 * @author Luka Petrovic
@@ -60,7 +60,7 @@ public record FailureFeedbackConfiguration(@Nullable Boolean onlyPrivilegedExcep
 	 */
 	@Nonnull
 	public SecurityViolationFeedbackLevel feedbackLevel() {
-		return theSecurityViolationFeedbackLevelIs == null ? SecurityViolationFeedbackLevel.FULL
+		return theSecurityViolationFeedbackLevelIs == null ? SecurityViolationFeedbackLevel.HIGH
 				: theSecurityViolationFeedbackLevelIs;
 	}
 
@@ -92,7 +92,7 @@ public record FailureFeedbackConfiguration(@Nullable Boolean onlyPrivilegedExcep
 		@Nullable
 		private String theFailureMessageForOtherExceptionsIs;
 
-		/** The feedback level, or null for {@code FULL}. */
+		/** The feedback level, or null for {@code HIGH}. */
 		@Nullable
 		private SecurityViolationFeedbackLevel theSecurityViolationFeedbackLevelIs;
 

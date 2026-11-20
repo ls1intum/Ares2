@@ -12,7 +12,7 @@
     {
       "version": "2.3.0",
       "minimumPolicyFormat": 1,
-      "maximumPolicyFormat": 1,
+      "maximumPolicyFormat": 2,
       "testBehaviorKeys": [
         "theFollowingTestBehaviorIsConfigured",
         "theFollowingTestBehaviorIsConfigured.regardingTheFailureFeedbackForTheTestCases",

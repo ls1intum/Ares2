@@ -33,59 +33,103 @@ public class FeedbackLevelPolicyUser {
 	/** The student code reading a file. */
 	private static final String WITHIN = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/oldMethods/files";
 
-	/** A blocked read at FULL keeps today's message. */
+	/** A blocked read at HIGH keeps today's message. */
 	@PublicTest
-	@Policy(value = POLICIES + "archunit/aspectj/PolicyFeedbackLevelFULL.yaml", withinPath = WITHIN)
-	void fullArchunitAspectj() throws Exception {
+	@Policy(value = POLICIES + "archunit/aspectj/PolicyFeedbackLevelHIGH.yaml", withinPath = WITHIN)
+	void highArchunitAspectj() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
 
-	/** A blocked read at FULL, ArchUnit and instrumentation. */
+	/** A blocked read at HIGH, ArchUnit and instrumentation. */
 	@PublicTest
-	@Policy(value = POLICIES + "archunit/instrumentation/PolicyFeedbackLevelFULL.yaml", withinPath = WITHIN)
-	void fullArchunitInstrumentation() throws Exception {
+	@Policy(value = POLICIES + "archunit/instrumentation/PolicyFeedbackLevelHIGH.yaml", withinPath = WITHIN)
+	void highArchunitInstrumentation() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
 
-	/** A blocked read at FULL, WALA and AspectJ. */
+	/** A blocked read at HIGH, WALA and AspectJ. */
 	@PublicTest
-	@Policy(value = POLICIES + "wala/aspectj/PolicyFeedbackLevelFULL.yaml", withinPath = WITHIN)
-	void fullWalaAspectj() throws Exception {
+	@Policy(value = POLICIES + "wala/aspectj/PolicyFeedbackLevelHIGH.yaml", withinPath = WITHIN)
+	void highWalaAspectj() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
 
-	/** A blocked read at FULL, WALA and instrumentation. */
+	/** A blocked read at HIGH, WALA and instrumentation. */
 	@PublicTest
-	@Policy(value = POLICIES + "wala/instrumentation/PolicyFeedbackLevelFULL.yaml", withinPath = WITHIN)
-	void fullWalaInstrumentation() throws Exception {
+	@Policy(value = POLICIES + "wala/instrumentation/PolicyFeedbackLevelHIGH.yaml", withinPath = WITHIN)
+	void highWalaInstrumentation() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
 
-	/** A blocked read at MINIMIZED, ArchUnit and AspectJ. */
+	/** A blocked read at MEDIUM, ArchUnit and AspectJ. */
 	@PublicTest
-	@Policy(value = POLICIES + "archunit/aspectj/PolicyFeedbackLevelMINIMIZED.yaml", withinPath = WITHIN)
-	void minimizedArchunitAspectj() throws Exception {
+	@Policy(value = POLICIES + "archunit/aspectj/PolicyFeedbackLevelMEDIUM.yaml", withinPath = WITHIN)
+	void mediumArchunitAspectj() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
 
-	/** A blocked read at MINIMIZED, ArchUnit and instrumentation. */
+	/** A blocked read at MEDIUM, ArchUnit and instrumentation. */
 	@PublicTest
-	@Policy(value = POLICIES + "archunit/instrumentation/PolicyFeedbackLevelMINIMIZED.yaml", withinPath = WITHIN)
-	void minimizedArchunitInstrumentation() throws Exception {
+	@Policy(value = POLICIES + "archunit/instrumentation/PolicyFeedbackLevelMEDIUM.yaml", withinPath = WITHIN)
+	void mediumArchunitInstrumentation() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
 
-	/** A blocked read at MINIMIZED, WALA and AspectJ. */
+	/** A blocked read at MEDIUM, WALA and AspectJ. */
 	@PublicTest
-	@Policy(value = POLICIES + "wala/aspectj/PolicyFeedbackLevelMINIMIZED.yaml", withinPath = WITHIN)
-	void minimizedWalaAspectj() throws Exception {
+	@Policy(value = POLICIES + "wala/aspectj/PolicyFeedbackLevelMEDIUM.yaml", withinPath = WITHIN)
+	void mediumWalaAspectj() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
 
-	/** A blocked read at MINIMIZED, WALA and instrumentation. */
+	/** A blocked read at MEDIUM, WALA and instrumentation. */
 	@PublicTest
-	@Policy(value = POLICIES + "wala/instrumentation/PolicyFeedbackLevelMINIMIZED.yaml", withinPath = WITHIN)
-	void minimizedWalaInstrumentation() throws Exception {
+	@Policy(value = POLICIES + "wala/instrumentation/PolicyFeedbackLevelMEDIUM.yaml", withinPath = WITHIN)
+	void mediumWalaInstrumentation() throws Exception {
+		FilesReadMain.accessFileSystemViaFilesRead();
+	}
+
+	/** A forbidden import of the reading code at DEBUG, aspectj. */
+	@PublicTest
+	@Policy(value = POLICIES + "archunit/aspectj/PolicyFeedbackLevelDebugImport.yaml", withinPath = WITHIN)
+	void debugImportAspectj() throws Exception {
+		FilesReadMain.accessFileSystemViaFilesRead();
+	}
+
+	/**
+	 * A read the runtime check denies inside the test, at DEBUG, instrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICIES + "archunit/instrumentation/PolicyFeedbackLevelDebugImport.yaml", withinPath = WITHIN)
+	void debugImportInstrumentation() throws Exception {
+		FilesReadMain.accessFileSystemViaFilesRead();
+	}
+
+	/** A blocked read at LOW, ArchUnit and AspectJ. */
+	@PublicTest
+	@Policy(value = POLICIES + "archunit/aspectj/PolicyFeedbackLevelLOW.yaml", withinPath = WITHIN)
+	void lowArchunitAspectj() throws Exception {
+		FilesReadMain.accessFileSystemViaFilesRead();
+	}
+
+	/** A blocked read at LOW, ArchUnit and instrumentation. */
+	@PublicTest
+	@Policy(value = POLICIES + "archunit/instrumentation/PolicyFeedbackLevelLOW.yaml", withinPath = WITHIN)
+	void lowArchunitInstrumentation() throws Exception {
+		FilesReadMain.accessFileSystemViaFilesRead();
+	}
+
+	/** A blocked read at LOW, WALA and AspectJ. */
+	@PublicTest
+	@Policy(value = POLICIES + "wala/aspectj/PolicyFeedbackLevelLOW.yaml", withinPath = WITHIN)
+	void lowWalaAspectj() throws Exception {
+		FilesReadMain.accessFileSystemViaFilesRead();
+	}
+
+	/** A blocked read at LOW, WALA and instrumentation. */
+	@PublicTest
+	@Policy(value = POLICIES + "wala/instrumentation/PolicyFeedbackLevelLOW.yaml", withinPath = WITHIN)
+	void lowWalaInstrumentation() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
 
@@ -143,7 +187,7 @@ public class FeedbackLevelPolicyUser {
 
 	/** Privileged-only reporting on: a blocked read still follows the level. */
 	@PublicTest
-	@Policy(value = POLICIES + "archunit/aspectj/PolicyFeedbackLevelPrivilegedMinimized.yaml", withinPath = WITHIN)
+	@Policy(value = POLICIES + "archunit/aspectj/PolicyFeedbackLevelPrivilegedLow.yaml", withinPath = WITHIN)
 	void privilegedOnlyKeepsTheLevel() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
@@ -153,8 +197,7 @@ public class FeedbackLevelPolicyUser {
 	 * denies the read inside the test: it still follows the level, AspectJ.
 	 */
 	@PublicTest
-	@Policy(value = POLICIES
-			+ "archunit/aspectj/PolicyFeedbackLevelPrivilegedMinimizedRuntime.yaml", withinPath = WITHIN)
+	@Policy(value = POLICIES + "archunit/aspectj/PolicyFeedbackLevelPrivilegedLowRuntime.yaml", withinPath = WITHIN)
 	void runtimeDenialKeepsTheLevelWhenPrivilegedOnlyAspectj() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
@@ -165,7 +208,7 @@ public class FeedbackLevelPolicyUser {
 	 */
 	@PublicTest
 	@Policy(value = POLICIES
-			+ "archunit/instrumentation/PolicyFeedbackLevelPrivilegedMinimizedRuntime.yaml", withinPath = WITHIN)
+			+ "archunit/instrumentation/PolicyFeedbackLevelPrivilegedLowRuntime.yaml", withinPath = WITHIN)
 	void runtimeDenialKeepsTheLevelWhenPrivilegedOnlyInstrumentation() throws Exception {
 		FilesReadMain.accessFileSystemViaFilesRead();
 	}
@@ -174,23 +217,21 @@ public class FeedbackLevelPolicyUser {
 	private static final String UNTRUSTED_WITHIN = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/fileSystem/read/untrustedFile";
 
 	/**
-	 * A student {@code File} subclass Ares refuses to inspect follows MINIMIZED,
-	 * AspectJ.
+	 * A student {@code File} subclass Ares refuses to inspect follows LOW, AspectJ.
 	 */
 	@PublicTest
-	@Policy(value = POLICIES
-			+ "archunit/aspectj/PolicyFeedbackLevelMinimizedRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
+	@Policy(value = POLICIES + "archunit/aspectj/PolicyFeedbackLevelLowRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
 	void untrustedArgumentIsShortenedAspectj() throws Exception {
 		UntrustedFileReadMain.readThroughAStudentFile();
 	}
 
 	/**
-	 * A student {@code File} subclass Ares refuses to inspect follows MINIMIZED,
+	 * A student {@code File} subclass Ares refuses to inspect follows LOW,
 	 * instrumentation.
 	 */
 	@PublicTest
 	@Policy(value = POLICIES
-			+ "archunit/instrumentation/PolicyFeedbackLevelMinimizedRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
+			+ "archunit/instrumentation/PolicyFeedbackLevelLowRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
 	void untrustedArgumentIsShortenedInstrumentation() throws Exception {
 		UntrustedFileReadMain.readThroughAStudentFile();
 	}
@@ -201,7 +242,7 @@ public class FeedbackLevelPolicyUser {
 	 */
 	@PublicTest
 	@Policy(value = POLICIES
-			+ "archunit/aspectj/PolicyFeedbackLevelPrivilegedMinimizedRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
+			+ "archunit/aspectj/PolicyFeedbackLevelPrivilegedLowRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
 	void untrustedArgumentKeepsTheLevelWhenPrivilegedOnlyAspectj() throws Exception {
 		UntrustedFileReadMain.readThroughAStudentFile();
 	}
@@ -212,7 +253,7 @@ public class FeedbackLevelPolicyUser {
 	 */
 	@PublicTest
 	@Policy(value = POLICIES
-			+ "archunit/instrumentation/PolicyFeedbackLevelPrivilegedMinimizedRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
+			+ "archunit/instrumentation/PolicyFeedbackLevelPrivilegedLowRuntime.yaml", withinPath = UNTRUSTED_WITHIN)
 	void untrustedArgumentKeepsTheLevelWhenPrivilegedOnlyInstrumentation() throws Exception {
 		UntrustedFileReadMain.readThroughAStudentFile();
 	}
@@ -223,7 +264,7 @@ public class FeedbackLevelPolicyUser {
 	 */
 	@PublicTest
 	@Policy(value = POLICIES
-			+ "archunit/aspectj/PolicyFeedbackLevelPrivilegedMinimized.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
+			+ "archunit/aspectj/PolicyFeedbackLevelPrivilegedLow.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject/helloWorld")
 	void privilegedOnlyHidesAForgedViolation() {
 		throw new SecurityException(
 				"Ares Security Error (Reason: Student-Code; Stage: Execution): forged detail that must not show");

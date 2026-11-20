@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
+import de.tum.cit.ase.ares.api.AresConstants;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorFieldNames;
 
 /**
@@ -45,14 +45,18 @@ class PolicyCompatibilityManifestTest {
 	private static final Pattern POM_VERSION = Pattern
 			.compile("<artifactId>ares</artifactId>\\s*<version>([^<]+)</version>");
 
-	/** The newest release accepts exactly the keys the validator knows. */
+	/**
+	 * The newest release accepts exactly the keys the validator knows and the
+	 * policy-format range {@code AresConstants} states.
+	 */
 	@Test
 	void theNewestReleaseListsExactlyTheValidatorsKeys() throws IOException {
 		JsonNode newest = newestRelease();
 		List<String> listed = new ArrayList<>();
 		newest.get("testBehaviorKeys").forEach(key -> listed.add(key.textValue()));
 		assertEquals(new TreeSet<>(validatorKeys()), new TreeSet<>(listed));
-		assertEquals(SecurityPolicy.CURRENT_POLICY_VERSION, newest.get("maximumPolicyFormat").intValue());
+		assertEquals(AresConstants.MAXIMUM_POLICY_VERSION, newest.get("maximumPolicyFormat").intValue());
+		assertEquals(AresConstants.MINIMUM_POLICY_VERSION, newest.get("minimumPolicyFormat").intValue());
 	}
 
 	/**
