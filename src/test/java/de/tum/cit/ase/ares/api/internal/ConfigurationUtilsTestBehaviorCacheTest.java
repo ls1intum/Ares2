@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -22,9 +23,9 @@ import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.JupiterContext;
 
 /**
- * Checks that a policy's test behaviour is read once per file and test class,
- * so changing the file while tests run changes nothing, and that a method-level
- * policy keeps its own settings.
+ * Checks that a policy's test behaviour is read once per file and test run, so
+ * changing or moving the file while tests run changes nothing, and that a
+ * method-level policy keeps its own settings.
  */
 class ConfigurationUtilsTestBehaviorCacheTest {
 
@@ -95,6 +96,22 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 				.getYear()).isEqualTo(2007);
 	}
 
+	/**
+	 * Another test class of the same run keeps the run's reading after the file was
+	 * moved away, since the earlier reading is used before the file is looked for.
+	 */
+	@Test
+	void anotherClassOfTheRunKeepsTheReadingOfAMovedFile() throws Exception {
+		ExtensionContext firstClass = classContext();
+		ConfigurationUtils.prepareTestBehavior(JupiterContext.of(methodContext(firstClass, "classPolicyTest")));
+		Files.move(Path.of(CLASS_POLICY), Path.of(CLASS_POLICY + ".moved"), StandardCopyOption.REPLACE_EXISTING);
+
+		JupiterContext other = JupiterContext.of(methodContext(classContextIn(firstClass), "classPolicyTest"));
+		assertThat(
+				ConfigurationUtils.findPolicyVisibilityAndSchedule(other).orElseThrow().effectiveDeadline().getYear())
+						.isEqualTo(2002);
+	}
+
 	/** A deactivated policy contributes no test behaviour. */
 	@Test
 	void aDeactivatedPolicyContributesNothing() throws Exception {
@@ -143,6 +160,7 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 			Function<Object, Object> creator = call.getArgument(1);
 			return values.computeIfAbsent(call.getArgument(0), creator);
 		});
+		when(store.get(any(), any())).thenAnswer(call -> values.get(call.getArgument(0)));
 		when(classContext.getStore(any())).thenReturn(store);
 		when(classContext.getTestClass()).thenReturn(Optional.of(CacheFixture.class));
 		when(classContext.getTestMethod()).thenReturn(Optional.empty());
