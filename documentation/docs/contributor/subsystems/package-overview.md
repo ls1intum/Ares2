@@ -93,6 +93,7 @@ This package abstracts **Maven and Gradle build configurations**. The `BuildMode
 |---|---|
 | `BuildMode` | Enum providing build directories, template paths, and output file names per build tool |
 | `BuildToolConfiguration` | Marker interface serving as an extension point |
+| `GradleReportedSourceRoots` | Reads the source and output folders Gradle reports to the test run through `GradleSourceRoots.gradle` |
 
 `BuildMode` centralises the differences between Maven and Gradle so that the rest of the framework can operate in a build-tool-agnostic manner.
 
@@ -327,6 +328,7 @@ This package provides a **cross-cutting collection of utility classes** used thr
 |---|---|
 | `FileTools` | File read/write/copy, YAML parsing, JAR extraction, path resolution |
 | `ProjectSourcesFinder` | Detects Maven/Gradle projects and extracts source directories from build files |
+| `StartUpProperties` | The system properties as the Java Virtual Machine started with them, which `System.setProperty` does not change |
 | `DependencyManager` | Dependency resolution utilities |
 | `LruCache` | Simple LRU cache (extends `LinkedHashMap`) |
 | `ClassMemberAccessor` | Reflective member discovery across class hierarchies |

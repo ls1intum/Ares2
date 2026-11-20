@@ -32,6 +32,7 @@ import org.w3c.dom.NodeList;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.GradleReportedSourceRoots;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 /** Discovers Maven, Groovy-Gradle and Kotlin-Gradle project layouts. */
@@ -105,6 +106,17 @@ public final class ProjectSourcesFinder {
 		return discover(projectRoot, null);
 	}
 
+	/**
+	 * Finds the build tool and the source and output folders of the project. For
+	 * Gradle, the folders Gradle reported to this JVM through
+	 * {@code GradleSourceRoots.gradle} win; only without a valid report for this
+	 * project are they read from the build file, which a run without a policy then
+	 * refuses.
+	 *
+	 * @param projectRoot            the project root
+	 * @param explicitlySelectedMode the build tool a policy names, or null
+	 * @return the build configuration
+	 */
 	public static BuildToolConfiguration discover(Path projectRoot, BuildMode explicitlySelectedMode) {
 		Path root = BuildToolConfiguration
 				.canonicalise(Objects.requireNonNull(projectRoot, "projectRoot must not be null"));
@@ -139,6 +151,10 @@ public final class ProjectSourcesFinder {
 			return new BuildToolConfiguration(mode, root, production.roots(), discoverMavenRoots(root, true).roots(),
 					root.resolve(mode.getBuildDirectory()), root.resolve(mode.getTestBuildDirectory()),
 					production.complete());
+		}
+		GradleReportedSourceRoots.Report report = GradleReportedSourceRoots.read(root);
+		if (report.isValid()) {
+			return report.toConfiguration(root);
 		}
 		GradleSourceRoots gradleRoots = discoverGradleRoots(root, gradleDescriptorOf(root));
 		return new BuildToolConfiguration(mode, root, gradleRoots.production(), gradleRoots.test(),
