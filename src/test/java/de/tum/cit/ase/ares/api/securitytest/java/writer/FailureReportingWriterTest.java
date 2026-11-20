@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.UnaryOperator;
 
@@ -21,7 +22,7 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfigurat
  * Checks what the failure-reporting writer generates for a precompile exercise,
  * and that it removes exactly that again.
  */
-class FailureReportingWriterTest extends GeneratedHookWriterProject {
+class FailureReportingWriterTest extends GeneratedHookFilesTest.Project {
 
 	/** Without the setting, nothing is generated or registered. */
 	@Test
@@ -158,6 +159,34 @@ class FailureReportingWriterTest extends GeneratedHookWriterProject {
 				.contains(PACKAGE + ".ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation")
 				.contains(PACKAGE + ".ares.api.aop.java.instrumentation.advice.AresSecurityViolation")
 				.doesNotContain("@PACKAGE@").doesNotContain("@LEVEL@");
+	}
+
+	/**
+	 * The DEBUG hints name the policy file when the generator knows it, and say
+	 * only "the security policy" otherwise.
+	 */
+	@Test
+	void theHookNamesThePolicyFileWhenKnown() throws IOException {
+		TestBehaviorConfiguration debug = TestBehaviorConfiguration.builder()
+				.regardingTheFailureFeedbackForTheTestCases(FailureFeedbackConfiguration.builder()
+						.theSecurityViolationFeedbackLevelIs(SecurityViolationFeedbackLevel.DEBUG).build())
+				.build();
+		writer(null).write(debug, PACKAGE, testFolder, Optional.of("Exercise.yaml"));
+		assertThat(Files.readString(source(FailureReportingSources.JUPITER_HOOK)))
+				.contains("String file = \"Exercise.yaml\";").doesNotContain("@POLICY_FILE@");
+		writer(null).write(debug, PACKAGE, testFolder);
+		assertThat(Files.readString(source(FailureReportingSources.JUPITER_HOOK))).contains("String file = null;")
+				.doesNotContain("@POLICY_FILE@");
+	}
+
+	/**
+	 * A file name with a quote, a backslash, a line break or other characters
+	 * becomes escapes, so it cannot end the generated literal or add code.
+	 */
+	@Test
+	void aPolicyFileNameBecomesASafeLiteral() {
+		assertThat(FailureReportingSources.javaLiteral("a\"b\\c\nd\u00e9\u4e2d (1).yaml"))
+				.isEqualTo("\"a\\042b\\134c\\012d\\351\\u4e2d (1).yaml\"");
 	}
 
 	/**

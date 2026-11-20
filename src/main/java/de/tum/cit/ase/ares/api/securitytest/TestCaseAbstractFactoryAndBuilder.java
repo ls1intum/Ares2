@@ -185,6 +185,10 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 
 	@Nonnull
 	protected final List<PhobosTestCase> phobosTestCases = new ArrayList<>();
+
+	/** The file name of the policy these test cases come from; null if unknown. */
+	@Nullable
+	private String policyFileName;
 	// </editor-fold>
 
 	// </editor-fold>
@@ -363,4 +367,28 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 	 */
 	public abstract void executeTestCases();
 	// </editor-fold>
+
+	/**
+	 * Records the file name of the policy these test cases come from, so generated
+	 * feedback can name it.
+	 *
+	 * @since 2.3.0
+	 * @author Luka Petrovic
+	 * @param policyFileName the file name, without its folder.
+	 */
+	public void namePolicyFile(@Nonnull String policyFileName) {
+		this.policyFileName = Objects.requireNonNull(policyFileName, "policyFileName must not be null");
+	}
+
+	/**
+	 * The file name of the policy these test cases come from.
+	 *
+	 * @since 2.3.0
+	 * @author Luka Petrovic
+	 * @return the file name; empty when it was never recorded
+	 */
+	@Nonnull
+	protected Optional<String> policyFileName() {
+		return Optional.ofNullable(policyFileName);
+	}
 }

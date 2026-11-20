@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -26,10 +27,10 @@ import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import de.tum.cit.ase.ares.testutilities.GeneratedCodeRuns;
 
 /**
- * Runs the strict timeout a precompile run generates, end to end: the real
- * generator writes it into a project, the generated sources are compiled with
- * fixture tests, and nested JUnit runs show every timed invocation stopping at
- * the policy's limit.
+ * Runs the strict timeout a precompile run generates, end to end: nested JUnit
+ * runs show every timed invocation stopping at the policy's limit, a worker
+ * ignoring interruption halts its own JVM, and copying keeps the timeout's
+ * thread exemption.
  */
 class GeneratedStrictTimeoutTest {
 
@@ -607,5 +608,130 @@ class GeneratedStrictTimeoutTest {
 	 */
 	static void compile(Path output, List<Path> folders, Path... singleFiles) throws IOException {
 		GeneratedCodeRuns.compile(output, folders, singleFiles);
+	}
+
+	/** The exit code of a test process halted because a worker did not stop. */
+	private static final int UNRESPONSIVE_EXIT_CODE = 124;
+
+	/** Printed by the probe if the halt returned, which it must never do. */
+	private static final String SURVIVED = "ares.probe.survived";
+
+	/**
+	 * Generates the strict timeout, compiles a probe whose timed work ignores
+	 * interruption, and runs it in a separate JVM.
+	 *
+	 * @param tempRoot where the project is generated and compiled, in a folder of
+	 *                 its own.
+	 * @throws Exception if generating, compiling or starting the JVM fails
+	 */
+	@Test
+	void anUnresponsiveWorkerHaltsTheTestProcess(@TempDir Path tempRoot) throws Exception {
+		Path projectDir = Files.createDirectories(tempRoot.resolve("halt"));
+		Path policy = projectDir.resolve("SecurityPolicy.yaml");
+		String text = policyText("JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ");
+		String shortGrace = text.replace("theTerminationGraceIs: \"1 SECONDS\"",
+				"theTerminationGraceIs: \"100 MILLISECONDS\"");
+		assertThat(shortGrace).isNotEqualTo(text);
+		Files.writeString(policy, shortGrace);
+		Path testSources = generate(projectDir, policy, "project", "<project/>");
+		Path compiled = Files.createDirectories(projectDir.resolve("compiled"));
+		compile(compiled, List.of(testSources.resolve("de/tum/cit/ase/ares/generated"),
+				testSources.resolve("com/example/ares/api/localization"), writeProbe(projectDir.resolve("probe"))),
+				testSources.resolve("com/example/ares/api/util/LruCache.java"));
+		String classPath = String.join(File.pathSeparator, compiled.toString(),
+				testSources.resolveSibling("resources").toString(),
+				System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
+		Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp",
+				classPath, "com.example.probe.HaltProbe").redirectErrorStream(true).start();
+		try {
+			assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
+			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+
+			assertThat(process.exitValue()).as(output).isEqualTo(UNRESPONSIVE_EXIT_CODE);
+			assertThat(output).doesNotContain(SURVIVED);
+		} finally {
+			process.destroyForcibly();
+		}
+	}
+
+	/**
+	 * Calls the timeout's private worker method, as only the generated interceptors
+	 * may, and rethrows what the action threw.
+	 */
+	private static final String HELPER = """
+			static Object run(GeneratedStrictTimeout.TimedAction<Object> action, Duration grace) throws Throwable {
+				java.lang.reflect.Method method = GeneratedStrictTimeout.class.getDeclaredMethod("executeWithTimeout",
+						GeneratedStrictTimeout.TimedAction.class, Duration.class, org.junit.jupiter.api.extension.ExtensionContext.class);
+				method.setAccessible(true);
+				try {
+					return method.invoke(null, action, grace, null);
+				} catch (java.lang.reflect.InvocationTargetException failure) {
+					throw failure.getCause();
+				}
+			}
+					""";
+
+	/**
+	 * Writes the probe: it times a loop that ignores interruption.
+	 *
+	 * @param root the folder to write it into.
+	 * @return the folder
+	 * @throws IOException if the file cannot be written
+	 */
+	private static Path writeProbe(Path root) throws IOException {
+		Path folder = Files.createDirectories(root.resolve("com/example/probe"));
+		Files.writeString(folder.resolve("HaltProbe.java"), """
+				package com.example.probe;
+
+				import java.time.Duration;
+
+				import de.tum.cit.ase.ares.generated.GeneratedStrictTimeout;
+
+				public final class HaltProbe {
+				%s
+					public static void main(String[] arguments) throws Throwable {
+						try {
+							run(() -> {
+								while (true) {
+									Thread.onSpinWait();
+								}
+							}, Duration.ofMillis(50));
+						} finally {
+							System.out.println("%s");
+						}
+					}
+				}
+				""".formatted(HELPER, SURVIVED));
+		return root;
+	}
+
+	/**
+	 * The copied thread advice still names the generated timeout under its real
+	 * name, next to the rewritten {@code TimeoutUtils}.
+	 *
+	 * @param configuration the policy's programming-language configuration.
+	 * @param advice        where the copied thread advice lands, below the test
+	 *                      sources.
+	 * @param tempRoot      where the project is generated, in a folder of its own.
+	 * @throws Exception if generating fails
+	 */
+	@ParameterizedTest
+	@CsvSource({
+			"JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ, com/example/ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJThreadSystemAdviceDefinitions.aj",
+			"JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION, com/example/ares/api/aop/java/instrumentation/advice/JavaInstrumentationAdviceThreadSystemToolbox.java" })
+	void theGeneratedTimeoutsExemptionSurvivesCopying(String configuration, String advice, @TempDir Path tempRoot)
+			throws Exception {
+		Path projectDir = Files.createDirectories(tempRoot.resolve("copied-" + configuration));
+		Path policy = projectDir.resolve("SecurityPolicy.yaml");
+		Files.writeString(policy, policyText(configuration));
+
+		Path testSources = generate(projectDir, policy, "project", "<project/>");
+		String copied = Files.readString(testSources.resolve(advice));
+
+		assertThat(copied).contains("\"de.tum.cit.\" + \"ase.ares.generated.GeneratedStrictTimeout\"")
+				.contains("\"com.example.ares.api.internal.TimeoutUtils\"")
+				.contains("+ \"ase.ares.generated.GeneratedFailureReporting\"")
+				.doesNotContain("com.example.ares.generated.GeneratedStrictTimeout")
+				.doesNotContain("com.example.ares.generated.GeneratedFailureReporting");
 	}
 }

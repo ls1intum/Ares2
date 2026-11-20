@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.securitytest.java.writer;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
@@ -36,17 +37,34 @@ final class FailureReportingWriter {
 	}
 
 	/**
+	 * Writes or removes the failure-reporting hooks for a policy whose file name is
+	 * not known, so the DEBUG hints say only "the security policy".
+	 *
+	 * @param configuration  the policy's behaviour configuration.
+	 * @param packageName    the exercise package the copied Ares classes live in.
+	 * @param testFolderPath the test source root.
+	 * @return what was written and which hook to register
+	 */
+	@Nonnull
+	GeneratedHookFiles.Contribution write(@Nonnull TestBehaviorConfiguration configuration, @Nonnull String packageName,
+			@Nonnull Path testFolderPath) {
+		return write(configuration, packageName, testFolderPath, Optional.empty());
+	}
+
+	/**
 	 * Writes or removes the failure-reporting hooks for the policy's setting.
 	 *
 	 * @param configuration  the policy's behaviour configuration.
 	 * @param packageName    the exercise package the copied Ares classes live in.
 	 * @param testFolderPath the test source root.
+	 * @param policyFile     the policy's file name, which the DEBUG hints name;
+	 *                       empty when it is not known.
 	 * @return what was written and which hook to register; nothing when the setting
 	 *         is absent or switched off
 	 */
 	@Nonnull
 	GeneratedHookFiles.Contribution write(@Nonnull TestBehaviorConfiguration configuration, @Nonnull String packageName,
-			@Nonnull Path testFolderPath) {
+			@Nonnull Path testFolderPath, @Nonnull Optional<String> policyFile) {
 		if (!contributes(configuration)) {
 			hookFiles.deleteGenerated(testFolderPath, FailureReportingSources.JUPITER_HOOK);
 			hookFiles.deleteGenerated(testFolderPath, FailureReportingSources.JUPITER_SENTINEL);
@@ -55,7 +73,7 @@ final class FailureReportingWriter {
 		String messagesClass = packageName + ".ares.api.localization.Messages";
 		List<Path> written = List.of(
 				hookFiles.writeSource(testFolderPath, FailureReportingSources.JUPITER_HOOK,
-						FailureReportingSources.jupiterHook(messagesClass)),
+						FailureReportingSources.jupiterHook(messagesClass, policyFile)),
 				hookFiles.writeSource(testFolderPath, FailureReportingSources.JUPITER_SENTINEL,
 						FailureReportingSources.jupiterSentinel(messagesClass)));
 		return new GeneratedHookFiles.Contribution(written, List.of(FailureReportingSources.JUPITER_HOOK));

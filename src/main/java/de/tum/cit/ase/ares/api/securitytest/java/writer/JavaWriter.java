@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -421,7 +422,33 @@ public class JavaWriter implements Writer {
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
 			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
 			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Path testFolderPath) {
+		return writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses, testClasses,
+				packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases,
+				testBehaviorConfiguration, Optional.empty(), testFolderPath);
+	}
+
+	/**
+	 * Writes security test cases and the precompile hooks like the overload without
+	 * a policy file, and lets the DEBUG hints of the failure reporting name the
+	 * policy's file.
+	 *
+	 * @since 2.3.0
+	 * @author Luka Petrovic
+	 * @param policyFile the policy's file name; empty when it is not known.
+	 * @return a list of paths to the created files
+	 * @see #writeTestCases(BuildMode, ArchitectureMode, AOPMode, List, List, List,
+	 *      String, String, List, List, List, TestBehaviorConfiguration, Path)
+	 */
+	@Nonnull
+	public List<Path> writeTestCases(@Nonnull BuildMode buildMode, @Nonnull ArchitectureMode architectureMode,
+			@Nonnull AOPMode aopMode, @Nonnull List<String> essentialPackages, @Nonnull List<String> essentialClasses,
+			@Nonnull List<String> testClasses, @Nonnull String packageName, @Nonnull String mainClassInPackageName,
+			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases,
+			@Nonnull List<JavaAOPTestCase> javaAOPTestCases, @Nonnull List<JavaPhobosTestCase> javaPhobosTestCases,
+			@Nonnull TestBehaviorConfiguration testBehaviorConfiguration, @Nonnull Optional<String> policyFile,
+			@Nonnull Path testFolderPath) {
 		Objects.requireNonNull(testFolderPath, "testFolderPath must not be null");
+		Objects.requireNonNull(policyFile, "policyFile must not be null");
 		Path validatedTestFolderPath = confineToProject(testFolderPath);
 		GeneratedHookFiles hookFiles = new GeneratedHookFiles(projectRoot, buildConfiguration, this::confineToProject);
 		HiddenTestsWriter hiddenTestsWriter = new HiddenTestsWriter(hookFiles, ExerciseLanguageLevel.of(projectRoot));
@@ -439,7 +466,7 @@ public class JavaWriter implements Writer {
 				javaAOPTestCases, javaPhobosTestCases, testFolderPath));
 		written.addAll(createTestBehaviorSettingsFiles(testBehaviorConfiguration, validatedTestFolderPath));
 		GeneratedHookFiles.Contribution generated = new FailureReportingWriter(hookFiles)
-				.write(testBehaviorConfiguration, packageName, validatedTestFolderPath)
+				.write(testBehaviorConfiguration, packageName, validatedTestFolderPath, policyFile)
 				.and(new StrictTimeoutWriter(hookFiles).write(testBehaviorConfiguration, packageName,
 						validatedTestFolderPath))
 				.and(new OutputMirroringWriter(hookFiles).write(testBehaviorConfiguration, packageName,

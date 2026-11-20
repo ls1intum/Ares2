@@ -17,7 +17,7 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfigurat
  * Checks what the strict-timeout writer generates for a precompile exercise,
  * and that it removes exactly that again.
  */
-class StrictTimeoutWriterTest extends GeneratedHookWriterProject {
+class StrictTimeoutWriterTest extends GeneratedHookFilesTest.Project {
 
 	/** Without the setting, nothing is generated or registered. */
 	@Test

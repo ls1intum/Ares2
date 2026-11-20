@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.securitytest.java.writer;
 
+import java.util.Optional;
+
 import javax.annotation.Nonnull;
 
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
@@ -47,6 +49,9 @@ final class FailureReportingSources {
 
 	/** Placeholder for the exercise package the copied Ares classes live in. */
 	private static final String PACKAGE = "@PACKAGE@";
+
+	/** Placeholder for the policy's file name, a Java literal or {@code null}. */
+	private static final String POLICY_FILE = "@POLICY_FILE@";
 
 	/**
 	 * Source text of the JUnit Jupiter hook, before the placeholders are filled.
@@ -179,7 +184,7 @@ final class FailureReportingSources {
 						String report = String.valueOf(throwable.getMessage());
 						rendered = new SecurityException("theFollowingResourceAccessesArePermitted".equals(category) ? report
 								: report + System.lineSeparator() + @MESSAGES@.localized("reporting.security.violation.hint.category",
-										category, @MESSAGES@.localized("reporting.security.violation.policy.unnamed")));
+										category, policyName()));
 						rendered.setStackTrace(throwable.getStackTrace());
 					} else {
 						rendered = new SecurityException(@MESSAGES@.localized("reporting.security.violation.low"));
@@ -1177,12 +1182,19 @@ final class FailureReportingSources {
 					return rendered;
 				}
 
+				/** The security policy the DEBUG hints name: with its file name when the generator knew it. */
+				private static String policyName() {
+					String file = @POLICY_FILE@;
+					return file == null ? @MESSAGES@.localized("reporting.security.violation.policy.unnamed")
+							: @MESSAGES@.localized("reporting.security.violation.policy.named", file);
+				}
+
 				/**
 				 * The DEBUG hint: the permission, the target and the entry to paste, or only the
 				 * category when no single entry allows exactly the action.
 				 */
 				private static String hintOf(String kind, String action, String target) {
-					String policy = @MESSAGES@.localized("reporting.security.violation.policy.unnamed");
+					String policy = policyName();
 					String operation = operationOf(kind, action);
 					String entry = operation == null || !isExactTarget(kind, target) ? null : entryOf(kind, operation, target);
 					if (entry == null) {
@@ -1384,7 +1396,49 @@ final class FailureReportingSources {
 	 */
 	@Nonnull
 	static String jupiterHook(@Nonnull String messagesClass) {
-		return fill(JUPITER_HOOK_SOURCE, messagesClass);
+		return jupiterHook(messagesClass, Optional.empty());
+	}
+
+	/**
+	 * The JUnit Jupiter hook's source, whose DEBUG hints name the policy file.
+	 *
+	 * @param messagesClass fully qualified name of the copied {@code Messages}.
+	 * @param policyFile    the policy's file name, empty when it is not known.
+	 * @return the source text
+	 */
+	@Nonnull
+	static String jupiterHook(@Nonnull String messagesClass, @Nonnull Optional<String> policyFile) {
+		return fill(JUPITER_HOOK_SOURCE, messagesClass).replace(POLICY_FILE,
+				policyFile.map(FailureReportingSources::javaLiteral).orElse("null"));
+	}
+
+	/**
+	 * A Java string literal holding the text, safe to place in generated source:
+	 * letters, digits and a few signs stay, every other character becomes an octal
+	 * or Unicode escape, so no quote, backslash or line break ends the literal.
+	 *
+	 * @param text the text.
+	 * @return the literal, quotes included
+	 */
+	@Nonnull
+	static String javaLiteral(@Nonnull String text) {
+		StringBuilder literal = new StringBuilder("\"");
+		text.chars().forEach(character -> literal.append(escaped((char) character)));
+		return literal.append('"').toString();
+	}
+
+	/**
+	 * One character of {@link #javaLiteral(String)}.
+	 *
+	 * @param character the character.
+	 * @return the character itself, or its escape
+	 */
+	@Nonnull
+	private static String escaped(char character) {
+		if (character < 128 && (Character.isLetterOrDigit(character) || " ._-+()".indexOf(character) >= 0)) {
+			return String.valueOf(character);
+		}
+		return character < 256 ? String.format("\\%03o", (int) character) : String.format("\\u%04x", (int) character);
 	}
 
 	/**

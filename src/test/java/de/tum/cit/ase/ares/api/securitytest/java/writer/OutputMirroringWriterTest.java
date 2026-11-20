@@ -19,7 +19,7 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfigurat
  * Checks what the output-mirroring writer generates for a precompile exercise,
  * and that it removes exactly that again.
  */
-class OutputMirroringWriterTest extends GeneratedHookWriterProject {
+class OutputMirroringWriterTest extends GeneratedHookFilesTest.Project {
 
 	/** Without the setting, nothing is generated or registered. */
 	@Test

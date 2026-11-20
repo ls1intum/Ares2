@@ -126,12 +126,19 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 		if (supervisedScopeWasDerived) {
 			throw new SecurityException(Messages.localized("security.precompile.scope.derived", packageName));
 		}
+		List<JavaArchitectureTestCase> architecture = this.architectureTestCases.stream()
+				.map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList();
+		List<JavaAOPTestCase> aop = this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase)
+				.toList();
+		List<JavaPhobosTestCase> phobos = this.phobosTestCases.stream()
+				.map(phobosTestCase -> (JavaPhobosTestCase) phobosTestCase).toList();
+		if (writer.getClass() == JavaWriter.class) {
+			return ((JavaWriter) writer).writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
+					essentialClasses, javaCreator.exemptedClassNames(), packageName, mainClassInPackageName,
+					architecture, aop, phobos, testBehaviorConfiguration(), policyFileName(), testFolderPath);
+		}
 		return writer.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
-				javaCreator.exemptedClassNames(), packageName, mainClassInPackageName,
-				this.architectureTestCases.stream()
-						.map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
-				this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList(),
-				this.phobosTestCases.stream().map(phobosTestCase -> (JavaPhobosTestCase) phobosTestCase).toList(),
+				javaCreator.exemptedClassNames(), packageName, mainClassInPackageName, architecture, aop, phobos,
 				testBehaviorConfiguration(), testFolderPath);
 	}
 	// </editor-fold>

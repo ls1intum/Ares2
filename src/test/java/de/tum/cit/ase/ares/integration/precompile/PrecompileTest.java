@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,7 +31,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import de.tum.cit.ase.ares.api.Main;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
-import de.tum.cit.ase.ares.testutilities.GeneratedSettingsClassTestSupport;
+import de.tum.cit.ase.ares.testutilities.GeneratedCodeRuns;
 
 /**
  * Runs the precompile flow, which writes the security-test scaffold into an
@@ -122,8 +123,8 @@ public class PrecompileTest {
 		List<Path> written = SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyFile)
 				.projectFolderPath(projectFolderPath).build().createTestCases().writeTestCases(writeTarget);
 
-		String simpleClassName = GeneratedSettingsClassTestSupport
-				.simpleClassNameOf(TestBehaviorConfiguration.GENERATED_CLASS_NAME);
+		String simpleClassName = TestBehaviorConfiguration.GENERATED_CLASS_NAME
+				.substring(TestBehaviorConfiguration.GENERATED_CLASS_NAME.lastIndexOf('.') + 1);
 		Path generatedSettingsClass = written.stream()
 				.filter(path -> path.getFileName().toString().equals(simpleClassName + ".java")).findFirst()
 				.orElseThrow(() -> new AssertionError("No generated test-behaviour settings class among: " + written));
@@ -132,8 +133,10 @@ public class PrecompileTest {
 				"the settings class must land under src/test/java, compiled alongside the rest of the generated sources");
 		assertTrue(Files.exists(generatedSettingsClass));
 
-		ClassLoader compiled = GeneratedSettingsClassTestSupport.compile(generatedSettingsClass,
-				tempDir.resolve("compiled-settings"));
+		Path compiledSettings = Files.createDirectories(tempDir.resolve("compiled-settings"));
+		GeneratedCodeRuns.compile(compiledSettings, List.of(), generatedSettingsClass);
+		ClassLoader compiled = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(compiledSettings)),
+				Thread.currentThread().getContextClassLoader());
 		Class<?> settingsClass = Class.forName(TestBehaviorConfiguration.GENERATED_CLASS_NAME, true, compiled);
 		Field enabledField = settingsClass
 				.getField(TestBehaviorConfiguration.FAILURE_FEEDBACK_PRIVILEGED_ONLY_FIELD_NAME);
