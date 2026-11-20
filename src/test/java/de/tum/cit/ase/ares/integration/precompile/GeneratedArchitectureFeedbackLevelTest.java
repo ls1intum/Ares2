@@ -150,9 +150,10 @@ class GeneratedArchitectureFeedbackLevelTest {
 	/**
 	 * At DEBUG, a target no single entry can name exactly gets only the category: a
 	 * command with arguments, whose boundaries the target text lost (one argument
-	 * holding a space reads as two), a target that is the wildcard {@code *}, and a
-	 * target cut at the 200-character field limit. A command without arguments gets
-	 * its entry with an empty argument list.
+	 * holding a space reads as two), a target that is the wildcard {@code *}, port
+	 * zero, a thread, whose denial may be an exhausted quota, and a target cut at
+	 * the 200-character field limit. A command without arguments gets its entry
+	 * with an empty argument list.
 	 *
 	 * @throws Exception if the generated hook cannot be loaded
 	 */
@@ -169,6 +170,12 @@ class GeneratedArchitectureFeedbackLevelTest {
 		assertThat(renderedAtDebug(new Blocked("network", "connect", "*:443")))
 				.endsWith(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory("",
 						"regardingNetworkConnections", java.util.Optional.empty())));
+		assertThat(renderedAtDebug(new Blocked("network", "connect", "127.0.0.1:0")))
+				.endsWith(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory("",
+						"regardingNetworkConnections", java.util.Optional.empty())));
+		assertThat(renderedAtDebug(new Blocked("thread", "create", "java.lang.Thread")))
+				.endsWith(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory("", "regardingThreadCreations",
+						java.util.Optional.empty())));
 		String longPath = "/" + "a".repeat(250);
 		assertThat(renderedAtDebug(new Blocked("file", "read", longPath)))
 				.endsWith(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory("",

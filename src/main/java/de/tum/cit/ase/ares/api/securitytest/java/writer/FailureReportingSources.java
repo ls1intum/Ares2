@@ -1266,10 +1266,10 @@ final class FailureReportingSources {
 				/**
 				 * The block-style entry that allows exactly a blocked action, every other flag of
 				 * the category off; null when no single entry does, such as a network target
-				 * without a port.
+				 * without a port or with port zero, which a policy reads as every port, or a
+				 * thread, whose denial may be an exhausted quota that one more entry cannot lift.
 				 */
 				private static String entryOf(String kind, String operation, String target) {
-					String line = System.lineSeparator();
 					return switch (kind) {
 					case "file" -> flagEntry("onThisPathAndAllPathsBelow: " + yamlString(target), new String[] { "readAllFiles",
 							"overwriteAllFiles", "createAllFiles", "executeAllFiles", "deleteAllFiles" },
@@ -1280,7 +1280,6 @@ final class FailureReportingSources {
 					case "network" -> networkEntryOf(target, "open".equals(operation) ? "openConnections"
 							: "send".equals(operation) ? "sendData" : "receiveData");
 					case "command" -> commandEntryOf(target);
-					case "thread" -> "- createTheFollowingNumberOfThreads: 1" + line + "  ofThisClass: " + yamlString(target);
 					default -> null;
 					};
 				}
@@ -1294,11 +1293,12 @@ final class FailureReportingSources {
 					return entry.toString();
 				}
 
-				/** A network entry from a host:port target; null when the target names no port. */
+				/** A network entry from a host:port target; null when it names no port, or port zero. */
 				private static String networkEntryOf(String target, String granted) {
 					int colon = target.lastIndexOf(':');
 					if (colon <= 0 || colon == target.length() - 1
-							|| !target.substring(colon + 1).chars().allMatch(Character::isDigit)) {
+							|| !target.substring(colon + 1).chars().allMatch(Character::isDigit)
+							|| target.substring(colon + 1).chars().allMatch(digit -> digit == '0')) {
 						return null;
 					}
 					return flagEntry("onTheHost: " + yamlString(target.substring(0, colon)) + System.lineSeparator()
