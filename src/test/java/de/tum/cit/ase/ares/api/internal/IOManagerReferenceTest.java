@@ -58,6 +58,20 @@ class IOManagerReferenceTest {
 				policy(List.of(THIS), STUDENT_PACKAGE, "PolicyDuration"), loader())).isEqualTo(RecordingManager.class);
 	}
 
+	/**
+	 * A nested manager listed by itself, under its binary name as the test-class
+	 * list names classes, is accepted, and its canonical name does not count.
+	 */
+	@Test
+	void aDirectlyListedNestedManagerIsAcceptedByItsBinaryName() {
+		assertThat(IOManagerReference.resolve(THIS + ".RecordingManager",
+				policy(List.of(RecordingManager.class.getName()), STUDENT_PACKAGE, "PolicyDuration"), loader()))
+						.isEqualTo(RecordingManager.class);
+		assertThatThrownBy(() -> IOManagerReference.resolve(THIS + ".RecordingManager",
+				policy(List.of(THIS + ".RecordingManager"), STUDENT_PACKAGE, "PolicyDuration"), loader()))
+						.isInstanceOf(SecurityException.class);
+	}
+
 	/** A manager neither listed nor nested in a listed class is refused. */
 	@Test
 	void anUnlistedManagerIsRefused() {

@@ -78,6 +78,22 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 				.isEqualTo(Duration.ofSeconds(7));
 	}
 
+	/**
+	 * A policy read up front keeps its settings after its file is deleted, so the
+	 * test does not resolve the file again before using what was prepared.
+	 */
+	@Test
+	void aPreparedPolicySurvivesItsFileBeingDeleted() throws Exception {
+		ExtensionContext classContext = classContext();
+		JupiterContext context = JupiterContext.of(methodContext(classContext, "classPolicyTest"));
+
+		ConfigurationUtils.prepareTestBehavior(context);
+		Files.delete(Path.of(CLASS_POLICY));
+
+		assertThat(ConfigurationUtils.findPolicyStrictTimeout(context).orElseThrow().timeout())
+				.isEqualTo(Duration.ofSeconds(2));
+	}
+
 	/** A deactivated policy contributes no test behaviour. */
 	@Test
 	void aDeactivatedPolicyContributesNothing() throws Exception {
@@ -113,7 +129,8 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 	}
 
 	/**
-	 * A class context of {@link CacheFixture} with a working store.
+	 * A class context of {@link CacheFixture} with a working store, whose lookup
+	 * and compute operations share one map, as JUnit's store does.
 	 *
 	 * @return the context.
 	 */
@@ -124,6 +141,10 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 		when(store.getOrComputeIfAbsent(any(), any(), any())).thenAnswer(call -> {
 			Function<Object, Object> creator = call.getArgument(1);
 			return values.computeIfAbsent(call.getArgument(0), creator);
+		});
+		when(store.get(any(), any(Class.class))).thenAnswer(call -> {
+			Class<?> type = call.getArgument(1);
+			return type.cast(values.get(call.getArgument(0)));
 		});
 		when(classContext.getStore(any())).thenReturn(store);
 		when(classContext.getTestClass()).thenReturn(Optional.of(CacheFixture.class));

@@ -546,7 +546,7 @@ public class SecurityPolicyYAMLReaderTest {
 			Path policyFile = tempDir.resolve("malformed.yaml");
 			Files.writeString(policyFile,
 					minimalPolicy(2).stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n");
-			assertThrows(RuntimeException.class, () -> reader.readSecurityPolicyFrom(policyFile), description);
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile), description);
 		}
 
 		/**
@@ -565,7 +565,7 @@ public class SecurityPolicyYAMLReaderTest {
 			Path policyFile = tempDir.resolve("old.yaml");
 			Files.writeString(policyFile, minimalPolicy(2).stripTrailing()
 					+ "\n  theFollowingTestBehaviorIsConfigured: { " + category + ": " + body + " }\n");
-			assertThrows(RuntimeException.class, () -> reader.readSecurityPolicyFrom(policyFile), category);
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile), category);
 		}
 
 		/**
@@ -586,7 +586,7 @@ public class SecurityPolicyYAMLReaderTest {
 			Path policyFile = tempDir.resolve("old-field.yaml");
 			Files.writeString(policyFile,
 					minimalPolicy(2).stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n");
-			assertThrows(RuntimeException.class, () -> reader.readSecurityPolicyFrom(policyFile), field);
+			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile), field);
 		}
 
 		/**
@@ -607,7 +607,7 @@ public class SecurityPolicyYAMLReaderTest {
 			Path policyFile = tempDir.resolve("version-one.yaml");
 			Files.writeString(policyFile, minimalPolicy().stripTrailing()
 					+ "\n  theFollowingTestBehaviorIsConfigured: { " + category + ": " + body + " }\n");
-			RuntimeException failure = assertThrows(RuntimeException.class,
+			SecurityException failure = assertThrows(SecurityException.class,
 					() -> reader.readSecurityPolicyFrom(policyFile));
 			String expected = Messages.localized("policy.version.test.behavior", 1, category,
 					AresConstants.TEST_BEHAVIOR_POLICY_VERSION);

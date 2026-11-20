@@ -76,7 +76,8 @@ public final class IOManagerReference {
 
 	/**
 	 * Returns whether a class or one of its enclosing classes is a listed test
-	 * class.
+	 * class. The list holds binary names, as the test-class exemption reads them,
+	 * so a nested class is listed as {@code Outer$Inner}.
 	 *
 	 * @param type        the class.
 	 * @param testClasses the listed test classes.
@@ -84,7 +85,7 @@ public final class IOManagerReference {
 	 */
 	private static boolean isListedOrNestedInListed(Class<?> type, List<String> testClasses) {
 		for (Class<?> current = type; current != null; current = current.getEnclosingClass()) {
-			if (current.getCanonicalName() != null && testClasses.contains(current.getCanonicalName())) {
+			if (testClasses.contains(current.getName())) {
 				return true;
 			}
 		}

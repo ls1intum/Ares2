@@ -337,7 +337,7 @@ The threat this addresses is student **code** that declares a reserved package, 
 
 ## Keep hidden report details out of build output
 
-For a hidden failure after its deadline, configure Surefire to keep the test name and failed status without printing its exception in the build log. In the `maven-surefire-plugin` configuration, set `printSummary` to `false` and `useFile` to `true`. The test report files still contain public failure details.
+After its deadline, Ares replaces a hidden test's own failure message with `Hidden test failed.`, so the build log shows that text and its stack trace, never the student's message. In the `maven-surefire-plugin` configuration, `printSummary` set to `false` keeps the per-class summary lines out of the log, and `useFile` set to `true` writes the reports to `target/surefire-reports`. Neither setting hides the failure itself, and the report files still contain the details of public failures.
 
 ## Verify your setup
 
