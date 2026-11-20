@@ -246,6 +246,13 @@ class GeneratedAllHooksTest {
 				"@Test void fails() throws Exception { throw new java.rmi.RemoteException(\"outer\","
 						+ " new IllegalStateException(\"cause\") { @Override public String toString() {"
 						+ " while (true) { Thread.onSpinWait(); } } }); }");
+		fixture(fixtures, "RepeatedSuppressedFixture",
+				"@Test void fails() { IllegalStateException outer = new IllegalStateException(\"REPEATED_OUTER\");"
+						+ " IllegalStateException inner = new IllegalStateException(\"inner\");"
+						+ " for (int i = 0; i < 300; i++) { outer.addSuppressed(inner); } throw outer; }");
+		fixture(fixtures, "LoopingRootCauseFixture",
+				"@Test void fails() throws Exception { throw new javax.naming.NamingException(\"NAMING_OUTER\") {"
+						+ " @Override public Throwable getRootCause() { while (true) { Thread.onSpinWait(); } } }; }");
 		fixture(fixtures, "SuppressedLoopingFixture",
 				"@Test void fails() { IllegalStateException outer = new IllegalStateException(\"outer\");"
 						+ " outer.addSuppressed(new IllegalStateException(\"inner\") { @Override public String toString() {"
@@ -411,7 +418,8 @@ class GeneratedAllHooksTest {
 
 	/**
 	 * A hidden test factory whose tests print while JUnit reads them shows nothing,
-	 * since the hooks read them while still guarding the factory.
+	 * since the hooks read them while still guarding the factory; its dynamic test
+	 * still runs and passes, so the silence is not a factory that never ran.
 	 *
 	 * @param reversed whether the hooks are registered the other way round.
 	 * @throws Exception if the run cannot be set up
@@ -420,6 +428,9 @@ class GeneratedAllHooksTest {
 	@ValueSource(booleans = { false, true })
 	void aHiddenFactoryPrintsNothing(boolean reversed) throws Exception {
 		Captured captured = captured(() -> run("com.example.fixtures.HiddenFactoryFixture", reversed));
+		assertThat(captured.results().containerEvents().failed().count()).isZero();
+		assertThat(captured.results().testEvents().succeeded().stream()
+				.map(event -> event.getTestDescriptor().getDisplayName())).containsExactly("case");
 		assertThat(captured.output()).doesNotContain("SECRET_FACTORY");
 	}
 
@@ -686,6 +697,45 @@ class GeneratedAllHooksTest {
 	}
 
 	/**
+	 * A failure listing one suppressed failure more often than the search budget
+	 * allows shows no text of its own when failure reporting runs alone, since the
+	 * search stopped at the budget while queuing. With the timeout first, its copy
+	 * keeps each suppressed failure once, so the search completes.
+	 *
+	 * @throws Exception if the run cannot be set up
+	 */
+	@Test
+	void aFailureRepeatingOneSuppressedFailureShowsNoText() throws Exception {
+		try (URLClassLoader loader = new URLClassLoader(GeneratedCodeRuns.classPath(List.of(compiled, resources)),
+				Thread.currentThread().getContextClassLoader())) {
+			List<String> messages = messages(
+					GeneratedCodeRuns.runIn(loader, "com.example.fixtures.RepeatedSuppressedFixture", Locale.ENGLISH,
+							Map.of(GeneratedCodeRuns.AUTODETECTION, "true", GeneratedCodeRuns.AUTODETECTION_INCLUDE,
+									GENERATED + "GeneratedFailureReporting")));
+			assertThat(messages).hasSize(1);
+			assertThat(messages.get(0)).doesNotContain("REPEATED_OUTER");
+		}
+		assertThat(messages(run("com.example.fixtures.RepeatedSuppressedFixture"))).containsExactly("REPEATED_OUTER");
+	}
+
+	/**
+	 * A runtime failure whose {@code getCause} calls a student override that never
+	 * returns, as {@code NamingException}'s does, is reported quickly without
+	 * reading its cause or its text.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aCauseReadThroughAStudentOverrideIsNotRead(boolean reversed) throws Exception {
+		List<String> messages = messages(assertTimeoutPreemptively(Duration.ofSeconds(30),
+				() -> run("com.example.fixtures.LoopingRootCauseFixture", reversed)));
+		assertThat(messages).hasSize(1);
+		assertThat(messages.get(0)).doesNotContain("NAMING_OUTER");
+	}
+
+	/**
 	 * An abort whose cause is a student failure stays an abort with its reason, in
 	 * either registration order.
 	 *
@@ -834,8 +884,9 @@ class GeneratedAllHooksTest {
 		Process process = startInOwnJvm(compileProbe(probe), "com.example.fixtures.LookalikeHiddenFixture", false,
 				GENERATED + "GeneratedFailureReporting", forged);
 		try {
+			java.util.concurrent.CompletableFuture<String> drained = GeneratedCodeRuns.drain(process);
 			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
-			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			String output = drained.get(10, TimeUnit.SECONDS);
 			assertThat(output).as(output).contains(PROBE_DONE)
 					.contains(PROBE_FAILURE + "de.tum.cit.ase.ares.generated.GeneratedHiddenTests$HiddenTestFailure");
 		} finally {
@@ -929,11 +980,40 @@ class GeneratedAllHooksTest {
 			for (String name : List.of("GeneratedTestBehaviorSettings", "GeneratedHiddenTests")) {
 				for (java.lang.reflect.Field field : Class.forName(GENERATED + name, true, loader).getFields()) {
 					Object value = java.lang.reflect.Modifier.isStatic(field.getModifiers()) ? field.get(null) : null;
-					assertThat(String.valueOf(value)).as(name + "." + field.getName())
+					assertThat(contentsOf(value)).as(name + "." + field.getName())
 							.doesNotContain("com.example.fixtures.HiddenFixture");
 				}
 			}
 		}
+	}
+
+	/**
+	 * The text a field value holds, element by element for an array, a collection
+	 * or a map, so a test name inside one is found.
+	 *
+	 * @param value the value.
+	 * @return its text
+	 */
+	private static String contentsOf(Object value) {
+		if (value instanceof char[] characters) {
+			return new String(characters);
+		}
+		if (value != null && value.getClass().isArray()) {
+			StringBuilder text = new StringBuilder();
+			for (int index = 0; index < java.lang.reflect.Array.getLength(value); index++) {
+				text.append(contentsOf(java.lang.reflect.Array.get(value, index))).append('\n');
+			}
+			return text.toString();
+		}
+		if (value instanceof Iterable<?> elements) {
+			StringBuilder text = new StringBuilder();
+			elements.forEach(element -> text.append(contentsOf(element)).append('\n'));
+			return text.toString();
+		}
+		if (value instanceof Map<?, ?> map) {
+			return contentsOf(map.keySet()) + contentsOf(map.values());
+		}
+		return String.valueOf(value);
 	}
 
 	/**
@@ -1050,8 +1130,9 @@ class GeneratedAllHooksTest {
 	private static void assertLookalikeIgnored(Path probe, String className, String hooks) throws Exception {
 		Process process = startInOwnJvm(compileProbe(probe), className, false, hooks, lookalikeVisibility);
 		try {
+			java.util.concurrent.CompletableFuture<String> drained = GeneratedCodeRuns.drain(process);
 			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
-			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			String output = drained.get(10, TimeUnit.SECONDS);
 			assertThat(output).as(output).contains(PROBE_DONE).containsOnlyOnce(PROBE_FAILURE);
 		} finally {
 			process.destroyForcibly();
@@ -1268,8 +1349,9 @@ class GeneratedAllHooksTest {
 			throws Exception {
 		Process process = startInOwnJvm(probeClasses, className, reversed, hooks);
 		try {
+			java.util.concurrent.CompletableFuture<String> drained = GeneratedCodeRuns.drain(process);
 			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
-			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			String output = drained.get(10, TimeUnit.SECONDS);
 			assertThat(output).as(output).contains(PROBE_DONE);
 			return output.lines().filter(line -> line.startsWith(PROBE_FAILURE))
 					.map(line -> line.substring(PROBE_FAILURE.length())).toList();
@@ -1290,6 +1372,7 @@ class GeneratedAllHooksTest {
 	 */
 	private static int exitCodeInOwnJvm(Path probeClasses, String className, String hooks) throws Exception {
 		Process process = startInOwnJvm(probeClasses, className, false, hooks);
+		GeneratedCodeRuns.drain(process);
 		try {
 			assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe ended").isTrue();
 			return process.exitValue();

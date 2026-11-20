@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -92,7 +93,8 @@ public final class JavaAOPTestCaseToolbox {
 	 * Formats a {@code public static final String} field assignment, for a
 	 * generated class read directly (no reflection-crossing classloader trick), as
 	 * opposed to the {@code private static} advice-settings fields the other
-	 * assignment methods in this class produce.
+	 * assignment methods in this class produce. A value too long for one class-file
+	 * constant is joined from shorter literals when the class loads.
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
@@ -105,8 +107,59 @@ public final class JavaAOPTestCaseToolbox {
 			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.string",
 					value != null ? value.getClass() : null));
 		}
-		return String.format(Locale.ROOT, "public static final String %s = \"%s\";%n", fieldName,
-				escapeJavaString((String) value));
+		String text = (String) value;
+		if (modifiedUtf8Length(text) <= MAXIMUM_CONSTANT_BYTES) {
+			return String.format(Locale.ROOT, "public static final String %s = \"%s\";%n", fieldName,
+					escapeJavaString(text));
+		}
+		return String.format(Locale.ROOT, "public static final String %s = String.join(\"\", %s);%n", fieldName,
+				String.join(", ", chunkLiterals(text)));
+	}
+
+	/** The most bytes one string constant of a class file may hold. */
+	private static final int MAXIMUM_CONSTANT_BYTES = 65_535;
+
+	/**
+	 * The characters of one joined literal: at most three bytes each, so well
+	 * within one constant.
+	 */
+	private static final int CHUNK_CHARACTERS = 16_000;
+
+	/**
+	 * The length a string takes as a class-file constant, in modified UTF-8.
+	 *
+	 * @param text the string.
+	 * @return its encoded length in bytes
+	 */
+	private static long modifiedUtf8Length(@Nonnull String text) {
+		long bytes = 0;
+		for (int index = 0; index < text.length(); index++) {
+			char character = text.charAt(index);
+			bytes += character != 0 && character < 0x80 ? 1 : character < 0x800 ? 2 : 3;
+		}
+		return bytes;
+	}
+
+	/**
+	 * A long string as consecutive literals of at most {@link #CHUNK_CHARACTERS}
+	 * characters, never splitting a surrogate pair.
+	 *
+	 * @param text the string.
+	 * @return the literals, quotes included
+	 */
+	@Nonnull
+	private static List<String> chunkLiterals(@Nonnull String text) {
+		List<String> literals = new ArrayList<>();
+		int start = 0;
+		while (start < text.length()) {
+			int end = Math.min(text.length(), start + CHUNK_CHARACTERS);
+			if (end < text.length() && Character.isHighSurrogate(text.charAt(end - 1))) {
+				end--;
+			}
+			literals.add(getStringLiteral(text.substring(start, end)));
+			start = end;
+		}
+		return literals;
 	}
 
 	/**

@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -187,14 +186,15 @@ class GeneratedFailureReportingTest {
 	}
 
 	/**
-	 * The DEBUG entry for a blocked file action is one complete, quoted list item,
-	 * so the policy reader accepts it as written and a Windows path reads back
-	 * unchanged.
+	 * The DEBUG entry for a blocked file action is one complete, quoted list item:
+	 * pasted into a policy, Ares's own reader accepts it as written and a Windows
+	 * path reads back unchanged.
 	 *
+	 * @param policyFolder where the policy with the pasted entry is written.
 	 * @throws Exception if the generated hook cannot be loaded
 	 */
 	@Test
-	void theDebugFileEntryIsACompletePolicyEntry() throws Exception {
+	void theDebugFileEntryIsACompletePolicyEntry(@TempDir Path policyFolder) throws Exception {
 		String target = "C:\\temp\\new \"draft\".txt";
 		try (URLClassLoader loader = new URLClassLoader(new URL[] { compiled.toUri().toURL() },
 				GeneratedFailureReportingTest.class.getClassLoader())) {
@@ -215,6 +215,28 @@ class GeneratedFailureReportingTest {
 					.containsEntry("onThisPathAndAllPathsBelow", target).containsEntry("createAllFiles", true)
 					.containsEntry("readAllFiles", false).containsEntry("overwriteAllFiles", false)
 					.containsEntry("executeAllFiles", false).containsEntry("deleteAllFiles", false);
+			Path policy = policyFolder.resolve("Pasted.yaml");
+			Files.writeString(policy, """
+					thisPolicyFileCompliesToThePolicyVersion: 1
+					regardingTheSupervisedCode:
+					  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+					  theFollowingClassesAreTestClasses: []
+					  theFollowingResourceAccessesArePermitted:
+					    regardingFileSystemInteractions:
+					"""
+					+ entry.lines().map(line -> "      " + line + "\n").collect(java.util.stream.Collectors.joining())
+					+ """
+							    regardingNetworkConnections: []
+							    regardingCommandExecutions: []
+							    regardingThreadCreations: []
+							    regardingPackageImports: []
+							    regardingTimeouts: []
+							""");
+			assertThat(de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader.selectSecurityPolicyReader(policy)
+					.readSecurityPolicyFrom(policy).regardingTheSupervisedCode()
+					.theFollowingResourceAccessesArePermitted().regardingFileSystemInteractions()).containsExactly(
+							new de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission(target, false, false,
+									true, false, false));
 		}
 	}
 
@@ -294,15 +316,19 @@ class GeneratedFailureReportingTest {
 	}
 
 	/**
-	 * A factory whose tests fail while JUnit walks them, directly or inside a
-	 * container, shows the policy's message, and a passing factory still runs.
+	 * A factory whose tests fail while JUnit walks them, directly, inside a
+	 * container or through a result that only has an {@code iterator()} method,
+	 * shows the policy's message; a stream whose iterator cannot be made is closed;
+	 * and a passing factory still runs.
 	 */
 	@Test
 	void aFactoryFailingWhileWalkedShowsThePolicyMessage() throws Exception {
+		System.clearProperty("ares.test.factoryStreamClosed");
 		EngineExecutionResults results = runJupiter("LazyFactoryFixture", true, Locale.ENGLISH);
 
-		assertThat(results.allEvents().failed().stream().map(GeneratedFailureReportingTest::messageOf)).hasSize(2)
+		assertThat(results.allEvents().failed().stream().map(GeneratedFailureReportingTest::messageOf)).hasSize(4)
 				.allMatch(POLICY_MESSAGE::equals);
+		assertThat(System.getProperty("ares.test.factoryStreamClosed")).isEqualTo("true");
 		assertThat(results.testEvents().succeeded().stream().map(event -> event.getTestDescriptor().getDisplayName()))
 				.containsExactly("ok");
 	}
@@ -613,9 +639,30 @@ class GeneratedFailureReportingTest {
 					}
 
 					@TestFactory
+					IteratorOnly failsWhileWalkedThroughItsIterator() {
+						return new IteratorOnly();
+					}
+
+					@TestFactory
+					Stream<DynamicTest> failsWhileItsIteratorIsMade() {
+						Stream<DynamicTest> used = Stream.of(DynamicTest.dynamicTest("never", () -> {
+						})).onClose(() -> System.setProperty("ares.test.factoryStreamClosed", "true"));
+						used.count();
+						return used;
+					}
+
+					@TestFactory
 					List<DynamicTest> passes() {
 						return List.of(DynamicTest.dynamicTest("ok", () -> {
 						}));
+					}
+
+					public static final class IteratorOnly {
+						public java.util.Iterator<DynamicTest> iterator() {
+							return Stream.<DynamicTest>generate(() -> {
+								throw new AssertionError("expected=42");
+							}).limit(1).iterator();
+						}
 					}
 				}
 				""");
@@ -1204,8 +1251,9 @@ class GeneratedFailureReportingTest {
 					"-cp", classPath, "com.example.probe.FullViolationProbe", VIOLATION, mode, full.toUri().toString())
 							.redirectErrorStream(true).start();
 			try {
+				java.util.concurrent.CompletableFuture<String> drained = GeneratedCodeRuns.drain(process);
 				assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the probe finished").isTrue();
-				return new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+				return drained.get(10, TimeUnit.SECONDS);
 			} finally {
 				process.destroyForcibly();
 			}

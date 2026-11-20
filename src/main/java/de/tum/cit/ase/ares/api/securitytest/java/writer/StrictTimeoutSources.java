@@ -533,21 +533,38 @@ final class StrictTimeoutSources {
 				}
 
 				/**
-				 * A failure's cause, read only through a {@code getCause} of {@code Throwable}
-				 * or of the Java runtime, so a student's own override, which may never return,
-				 * is not run outside the timeout.
+				 * Whether a failure's {@code getCause} is one whose whole call reads a field and
+				 * runs nothing else: {@code Throwable}'s own, that of the runtime's two
+				 * reflection wrappers, or {@code NamingException}'s while its
+				 * {@code getRootCause}, which it calls, is not overridden. Any other override may
+				 * call a method a student class replaces, so its cause counts as unreadable.
+				 */
+				private static boolean safeCauseAccessor(Throwable failure) {
+					try {
+						Class<?> type = failure.getClass();
+						Class<?> owner = type.getMethod("getCause").getDeclaringClass();
+						return owner == Throwable.class || owner == java.lang.reflect.InvocationTargetException.class
+								|| owner == java.lang.reflect.UndeclaredThrowableException.class
+								|| "javax.naming.NamingException".equals(owner.getName())
+										&& (owner.getClassLoader() == null || owner.getClassLoader() == ClassLoader.getPlatformClassLoader())
+										&& type.getMethod("getRootCause").getDeclaringClass() == owner;
+					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
+						return false;
+					}
+				}
+
+				/**
+				 * A failure's cause, read only through a {@link #safeCauseAccessor safe}
+				 * {@code getCause}, so an override that may never return is not run outside the
+				 * timeout.
 				 *
 				 * @param failure the failure
-				 * @return its cause, or null when it has none or overrides {@code getCause}
+				 * @return its cause, or null when it has none or its cause is unreadable
 				 */
 				static Throwable causeOf(Throwable failure) {
 					try {
-						ClassLoader owner = failure.getClass().getMethod("getCause").getDeclaringClass().getClassLoader();
-						if (owner != null && owner != ClassLoader.getPlatformClassLoader()) {
-							return null;
-						}
-						return failure.getCause();
-					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
+						return safeCauseAccessor(failure) ? failure.getCause() : null;
+					} catch (RuntimeException | LinkageError unreadable) {
 						return null;
 					}
 				}
@@ -770,7 +787,7 @@ final class StrictTimeoutSources {
 				 * budget, so a group listing one group many times is not read.
 				 */
 				private static boolean readable(Throwable failure, int depth, int[] budget) {
-					if (--budget[0] < 0 || !declaredByRuntime(failure, "getCause") || !reportsSafely(failure)
+					if (--budget[0] < 0 || !safeCauseAccessor(failure) || !reportsSafely(failure)
 							|| overridesTrustedMethod(failure)) {
 						return false;
 					}
@@ -996,16 +1013,6 @@ final class StrictTimeoutSources {
 					java.security.CodeSource hooks = GeneratedStrictTimeout.class.getProtectionDomain().getCodeSource();
 					return source != null && hooks != null && source.getLocation() != null && hooks.getLocation() != null
 							&& source.getLocation().toExternalForm().equals(hooks.getLocation().toExternalForm());
-				}
-
-				/** Whether a failure's public no-argument method is declared by the Java runtime. */
-				private static boolean declaredByRuntime(Throwable failure, String method) {
-					try {
-						ClassLoader owner = failure.getClass().getMethod(method).getDeclaringClass().getClassLoader();
-						return owner == null || owner == ClassLoader.getPlatformClassLoader();
-					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
-						return false;
-					}
 				}
 
 				/** A copy of a failure that runs no student code when read. */

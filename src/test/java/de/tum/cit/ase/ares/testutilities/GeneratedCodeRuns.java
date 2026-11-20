@@ -163,4 +163,21 @@ public final class GeneratedCodeRuns {
 		return event.getPayload(TestExecutionResult.class).flatMap(TestExecutionResult::getThrowable)
 				.map(Throwable::getMessage).map(String::valueOf).orElse("");
 	}
+
+	/**
+	 * Reads a child process's output while it runs, so a child writing more than
+	 * the pipe holds never blocks while the caller waits for it to exit.
+	 *
+	 * @param process the started child.
+	 * @return its whole output, once it has closed it
+	 */
+	public static java.util.concurrent.CompletableFuture<String> drain(Process process) {
+		return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+			try {
+				return new String(process.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+			} catch (IOException unreadable) {
+				throw new java.io.UncheckedIOException(unreadable);
+			}
+		});
+	}
 }

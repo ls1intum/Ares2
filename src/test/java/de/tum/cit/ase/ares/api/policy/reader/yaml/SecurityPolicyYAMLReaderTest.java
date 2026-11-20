@@ -517,13 +517,13 @@ public class SecurityPolicyYAMLReaderTest {
 				"unknown category | { regardingSomethingElse: {} }",
 				"category explicit null | { regardingTheOutputOfTheTestCases: null }",
 				"field explicit null | { regardingTheOutputOfTheTestCases: { theOutputIsMirrored: null } }",
-				"strict timeout missing timeout | { regardingTheStrictTimeoutForTheTestCases: { theTerminationGraceIs: '1s' } }",
+				"strict timeout missing timeout | { regardingTheStrictTimeoutForTheTestCases: { theTerminationGraceIs: '1 SECONDS' } }",
 				"strict timeout not a duration | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: 'soon' } }",
 				"strict timeout a number | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: 2 } }",
-				"strict timeout zero | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '0s' } }",
+				"strict timeout zero | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '0 SECONDS' } }",
 				"strict timeout units out of order | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s 1m' } }",
 				"strict timeout repeated unit | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s 2s' } }",
-				"grace above one day | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s', theTerminationGraceIs: '2d' } }",
+				"grace above one day | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1 SECONDS', theTerminationGraceIs: '2 DAYS' } }",
 				"mirroring not a boolean | { regardingTheOutputOfTheTestCases: { theOutputIsMirrored: 'yes' } }",
 				"limit not a number | { regardingTheOutputOfTheTestCases: { theMaximumNumberOfOutputCharactersIs: 'many' } }",
 				"limit zero | { regardingTheOutputOfTheTestCases: { theMaximumNumberOfOutputCharactersIs: 0 } }",
@@ -548,7 +548,7 @@ public class SecurityPolicyYAMLReaderTest {
 
 		@ParameterizedTest(name = "[{index}] {0}")
 		@DisplayName("Should reject the unreleased keys the separate pull requests used")
-		@CsvSource(delimiter = '|', value = { "regardingStrictTimeouts | { theTimeoutIs: '1s' }",
+		@CsvSource(delimiter = '|', value = { "regardingStrictTimeouts | { theTimeoutIs: '1 SECONDS' }",
 				"regardingOutputMirroring | { theOutputIsMirrored: true }",
 				"regardingPrivilegedExceptions | { onlyPrivilegedExceptionsAreReported: true }",
 				"regardingHiddenTests | { theDeadlineIs: '2000-01-01 00:00 UTC', unlistedTestsAreHidden: false }" })
@@ -562,8 +562,8 @@ public class SecurityPolicyYAMLReaderTest {
 		@ParameterizedTest(name = "[{index}] {0}")
 		@DisplayName("Should reject the unreleased field names inside the new categories")
 		@CsvSource(delimiter = '|', value = {
-				"theTimeUnitIs | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s', theTimeUnitIs: SECONDS } }",
-				"theTerminationGraceUnitIs | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s', theTerminationGraceUnitIs: SECONDS } }",
+				"theTimeUnitIs | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1 SECONDS', theTimeUnitIs: SECONDS } }",
+				"theTerminationGraceUnitIs | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1 SECONDS', theTerminationGraceUnitIs: SECONDS } }",
 				"theMaximumCharacterCountIs | { regardingTheOutputOfTheTestCases: { theMaximumCharacterCountIs: 5 } }",
 				"theFailureMessageIs | { regardingTheFailureFeedbackForTheTestCases: { theFailureMessageIs: 'x' } }",
 				"unlistedTestsAreHidden | { regardingTheVisibilityAndScheduleOfTheTestCases: { theDeadlineIs: '2000-01-01 00:00 UTC', testsNotListedHereAreHidden: false, unlistedTestsAreHidden: false } }",

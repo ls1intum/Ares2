@@ -113,7 +113,8 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	 * Writes the generated security test cases and answers their paths.
 	 * <p>
 	 * A derived supervised package is refused before anything is written, since
-	 * nothing verifies it before the generated runtime checks use it.
+	 * nothing verifies it before the generated runtime checks use it. A plain
+	 * {@link JavaWriter} also gets the policy's file name, when one was recorded.
 	 *
 	 * @param testFolderPath the directory to write into
 	 * @return the generated files
@@ -132,7 +133,7 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 				.toList();
 		List<JavaPhobosTestCase> phobos = this.phobosTestCases.stream()
 				.map(phobosTestCase -> (JavaPhobosTestCase) phobosTestCase).toList();
-		if (writer.getClass() == JavaWriter.class) {
+		if (writer.getClass() == JavaWriter.class && policyFileName().isPresent()) {
 			return ((JavaWriter) writer).writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 					essentialClasses, javaCreator.exemptedClassNames(), packageName, mainClassInPackageName,
 					architecture, aop, phobos, testBehaviorConfiguration(), policyFileName(), testFolderPath);

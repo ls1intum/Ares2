@@ -113,7 +113,7 @@ class JavaTestCaseFactoryAndBuilderExemptionTest {
 		pinnedFactory.writeTestCases(Path.of("target/generated"));
 		verify(writer).writeTestCases(eq(BuildMode.MAVEN), eq(ArchitectureMode.ARCHUNIT), eq(AOPMode.ASPECTJ),
 				anyList(), anyList(), eq(EXEMPTED), eq("example.nest"), eq("Main"), anyList(), anyList(), anyList(),
-				any(), any(), any());
+				any(), any());
 	}
 
 	/** A refused collision stops the run before the executer arms anything. */

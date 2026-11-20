@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -247,7 +246,7 @@ class GeneratedStrictTimeoutTest {
 		String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
 		String classPath = compiled + File.pathSeparator + System.getProperty("java.class.path");
 		Process process = new ProcessBuilder(java, "-cp", classPath, "com.example.fixtures.InterruptedCallerProbe")
-				.start();
+				.redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start();
 		try {
 			assertThat(process.waitFor(5, TimeUnit.SECONDS)).isTrue();
 			assertThat(process.exitValue()).isEqualTo(124);
@@ -278,7 +277,8 @@ class GeneratedStrictTimeoutTest {
 	void aTestsOwnInterruptionLeavesTheCallerUninterrupted() throws Exception {
 		String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
 		String classPath = compiled + File.pathSeparator + System.getProperty("java.class.path");
-		Process process = new ProcessBuilder(java, "-cp", classPath, "com.example.fixtures.OwnInterruptProbe").start();
+		Process process = new ProcessBuilder(java, "-cp", classPath, "com.example.fixtures.OwnInterruptProbe")
+				.redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start();
 		try {
 			assertThat(process.waitFor(5, TimeUnit.SECONDS)).isTrue();
 			assertThat(process.exitValue()).isZero();
@@ -293,7 +293,7 @@ class GeneratedStrictTimeoutTest {
 		String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
 		String classPath = compiled + File.pathSeparator + System.getProperty("java.class.path");
 		Process process = new ProcessBuilder(java, "-cp", classPath, "com.example.fixtures.InterruptStatusProbe")
-				.start();
+				.redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start();
 		try {
 			assertThat(process.waitFor(5, TimeUnit.SECONDS)).isTrue();
 			assertThat(process.exitValue()).isZero();
@@ -644,8 +644,9 @@ class GeneratedStrictTimeoutTest {
 		Process process = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp",
 				classPath, "com.example.probe.HaltProbe").redirectErrorStream(true).start();
 		try {
+			java.util.concurrent.CompletableFuture<String> drained = GeneratedCodeRuns.drain(process);
 			assertThat(process.waitFor(30, TimeUnit.SECONDS)).isTrue();
-			String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+			String output = drained.get(10, TimeUnit.SECONDS);
 
 			assertThat(process.exitValue()).as(output).isEqualTo(UNRESPONSIVE_EXIT_CODE);
 			assertThat(output).doesNotContain(SURVIVED);

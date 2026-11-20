@@ -250,17 +250,20 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * The tests a factory result holds, in every shape JUnit accepts.
+				 * The tests a factory result holds, in every shape JUnit accepts, including an
+				 * object with a public {@code iterator()} method. A stream whose iterator cannot
+				 * be made is closed before the failure is reported.
 				 *
 				 * @param result the factory's result
 				 * @return its elements, or null for a shape JUnit rejects itself
+				 * @throws Throwable what making the iterator threw
 				 */
-				static Iterator<?> nodeIterator(Object result) {
+				static Iterator<?> nodeIterator(Object result) throws Throwable {
 					if (result instanceof DynamicNode node) {
 						return List.of(node).iterator();
 					}
 					if (result instanceof Stream<?> stream) {
-						return stream.iterator();
+						return streamIterator(stream);
 					}
 					if (result instanceof Iterable<?> iterable) {
 						return iterable.iterator();
@@ -271,7 +274,58 @@ final class FailureReportingSources {
 					if (result instanceof Object[] array) {
 						return Arrays.asList(array).iterator();
 					}
-					return null;
+					return result == null ? null : reflectiveIterator(result);
+				}
+
+				/**
+				 * A stream's iterator; when making it fails, the stream is closed first, a
+				 * failure of closing it giving way to the first failure.
+				 *
+				 * @param stream the factory's stream
+				 * @return its iterator
+				 */
+				private static Iterator<?> streamIterator(Stream<?> stream) {
+					try {
+						return stream.iterator();
+					} catch (RuntimeException | Error failure) {
+						try {
+							stream.close();
+						} catch (RuntimeException | Error closeFailure) {
+							failure.addSuppressed(closeFailure);
+						}
+						throw failure;
+					}
+				}
+
+				/**
+				 * The iterator of a result that is none of the shapes above but has a public,
+				 * parameterless {@code iterator()} returning an {@code Iterator}, which JUnit
+				 * also accepts; null when it has none.
+				 *
+				 * @param result the factory's result
+				 * @return its iterator, or null
+				 * @throws Throwable what {@code iterator()} threw
+				 */
+				private static Iterator<?> reflectiveIterator(Object result) throws Throwable {
+					Method method;
+					try {
+						method = result.getClass().getMethod("iterator");
+					} catch (NoSuchMethodException none) {
+						return null;
+					}
+					if (!Iterator.class.isAssignableFrom(method.getReturnType())) {
+						return null;
+					}
+					try {
+						method.setAccessible(true);
+					} catch (RuntimeException inaccessible) {
+						return null;
+					}
+					try {
+						return (Iterator<?>) method.invoke(result);
+					} catch (java.lang.reflect.InvocationTargetException thrown) {
+						throw thrown.getCause();
+					}
 				}
 
 				/**
@@ -592,7 +646,9 @@ final class FailureReportingSources {
 						if (isViolation(current)) {
 							return current;
 						}
-						queueAttached(current, pending);
+						if (!queueAttached(current, pending)) {
+							return UNSEARCHED;
+						}
 					}
 					return pending.isEmpty() ? null : UNSEARCHED;
 				}
@@ -600,17 +656,35 @@ final class FailureReportingSources {
 				/** What the search returns when its budget ran out before it saw every attached failure. */
 				private static final Throwable UNSEARCHED = new Throwable();
 
-				/** Queues a failure's cause, suppressed failures and group members for the search. */
-				private static void queueAttached(Throwable failure, java.util.ArrayDeque<Throwable> pending) {
+				/**
+				 * Queues a failure's cause, suppressed failures and group members for the search;
+				 * false when the queue reached the traversal budget first, so the search is not complete.
+				 */
+				private static boolean queueAttached(Throwable failure, java.util.ArrayDeque<Throwable> pending) {
 					Throwable cause = causeOf(failure);
-					if (cause != null) {
-						pending.add(cause);
+					if (cause != null && !queued(cause, pending)) {
+						return false;
 					}
-					java.util.Collections.addAll(pending, failure.getSuppressed());
+					for (Throwable suppressed : failure.getSuppressed()) {
+						if (!queued(suppressed, pending)) {
+							return false;
+						}
+					}
 					java.util.List<Throwable> members = aggregateMembers(failure);
-					if (members != null) {
-						members.stream().filter(java.util.Objects::nonNull).forEach(pending::add);
+					for (Throwable member : members == null ? java.util.List.<Throwable>of() : members) {
+						if (member != null && !queued(member, pending)) {
+							return false;
+						}
 					}
+					return true;
+				}
+
+				/** Adds one failure to the search queue unless the queue holds the traversal budget already. */
+				private static boolean queued(Throwable failure, java.util.ArrayDeque<Throwable> pending) {
+					if (pending.size() >= TRAVERSAL_LIMIT) {
+						return false;
+					}
+					return pending.add(failure);
 				}
 
 				/** Whether a failure is itself a blocked action of the copied Ares checks. */
@@ -643,18 +717,35 @@ final class FailureReportingSources {
 				}
 
 				/**
-				 * A failure's cause, read only through a {@code getCause} of {@code Throwable}
-				 * or of the Java runtime, so a student's own override, which may never return
-				 * or may throw, is never run here.
+				 * Whether a failure's {@code getCause} is one whose whole call reads a field and
+				 * runs nothing else: {@code Throwable}'s own, that of the runtime's two
+				 * reflection wrappers, or {@code NamingException}'s while its
+				 * {@code getRootCause}, which it calls, is not overridden. Any other override may
+				 * call a method a student class replaces, so its cause counts as unreadable.
+				 */
+				private static boolean safeCauseAccessor(Throwable failure) {
+					try {
+						Class<?> type = failure.getClass();
+						Class<?> owner = type.getMethod("getCause").getDeclaringClass();
+						return owner == Throwable.class || owner == java.lang.reflect.InvocationTargetException.class
+								|| owner == java.lang.reflect.UndeclaredThrowableException.class
+								|| "javax.naming.NamingException".equals(owner.getName())
+										&& (owner.getClassLoader() == null || owner.getClassLoader() == ClassLoader.getPlatformClassLoader())
+										&& type.getMethod("getRootCause").getDeclaringClass() == owner;
+					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
+						return false;
+					}
+				}
+
+				/**
+				 * A failure's cause, read only through a {@link #safeCauseAccessor safe}
+				 * {@code getCause}, so an override that may never return or may throw is never
+				 * run here; null when it has none or its cause is unreadable.
 				 */
 				private static Throwable causeOf(Throwable throwable) {
 					try {
-						ClassLoader owner = throwable.getClass().getMethod("getCause").getDeclaringClass().getClassLoader();
-						if (owner != null && owner != ClassLoader.getPlatformClassLoader()) {
-							return null;
-						}
-						return throwable.getCause();
-					} catch (NoSuchMethodException | RuntimeException | LinkageError faulty) {
+						return safeCauseAccessor(throwable) ? throwable.getCause() : null;
+					} catch (RuntimeException | LinkageError faulty) {
 						return null;
 					}
 				}
@@ -902,7 +993,7 @@ final class FailureReportingSources {
 				 * budget, so a group listing one group many times is not read.
 				 */
 				private static boolean readable(Throwable failure, int depth, int[] budget) {
-					if (--budget[0] < 0 || !declaredByRuntime(failure, "getCause") || !reportsSafely(failure)
+					if (--budget[0] < 0 || !safeCauseAccessor(failure) || !reportsSafely(failure)
 							|| overridesTrustedMethod(failure)) {
 						return false;
 					}
@@ -1121,16 +1212,6 @@ final class FailureReportingSources {
 					java.security.CodeSource hooks = GeneratedFailureReporting.class.getProtectionDomain().getCodeSource();
 					return source != null && hooks != null && source.getLocation() != null && hooks.getLocation() != null
 							&& source.getLocation().toExternalForm().equals(hooks.getLocation().toExternalForm());
-				}
-
-				/** Whether a failure's public no-argument method is declared by the Java runtime. */
-				private static boolean declaredByRuntime(Throwable failure, String method) {
-					try {
-						ClassLoader owner = failure.getClass().getMethod(method).getDeclaringClass().getClassLoader();
-						return owner == null || owner == ClassLoader.getPlatformClassLoader();
-					} catch (NoSuchMethodException | RuntimeException | LinkageError unreadable) {
-						return false;
-					}
 				}
 
 				/** A copy of a failure that runs no student code when read. */
