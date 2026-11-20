@@ -532,7 +532,14 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.util.zip.GZIPInputStream", List.of("<init>")),
 			Map.entry("java.util.jar.JarFile", List.of("<init>", "entries", "getInputStream")),
 			Map.entry("java.util.jar.JarInputStream", List.of("<init>", "getNextJarEntry")),
-			Map.entry("java.util.Properties", List.of("load", "loadFromXML")));
+			Map.entry("java.util.Properties", List.of("load", "loadFromXML")),
+			// java.util.prefs.Preferences reads from a backing store on disk without a path
+			// argument, like Properties.load. The accessor methods are the only route to
+			// the store, so they count as reads. The file system advice allows them only
+			// where the read allow-list contains "*".
+			Map.entry("java.util.prefs.Preferences",
+					List.of("get", "getInt", "getLong", "getBoolean", "getFloat", "getDouble", "getByteArray", "keys",
+							"childrenNames", "nodeExists", "exportNode", "exportSubtree", "userRoot", "systemRoot")));
 	// </editor-fold>
 
 	// <editor-fold desc="Overwrite Path">
@@ -559,6 +566,12 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.util.zip.ZipOutputStream", List.of("<init>", "putNextEntry", "closeEntry")),
 			Map.entry("java.util.jar.JarOutputStream", List.of("<init>", "putNextEntry", "closeEntry")),
 			Map.entry("java.util.Properties", List.of("store", "storeToXML")),
+			// java.util.prefs.Preferences writes to a backing store on disk without a path
+			// argument, like Properties.store. The file system advice allows it only
+			// where the overwrite allow-list contains "*".
+			Map.entry("java.util.prefs.Preferences",
+					List.of("put", "putInt", "putLong", "putBoolean", "putFloat", "putDouble", "putByteArray", "remove",
+							"clear", "flush", "sync", "importPreferences")),
 			Map.entry("java.util.Formatter", List.of("<init>")),
 			Map.entry("java.io.RandomAccessFile", List.of("<init>")),
 			Map.entry("java.io.File",
@@ -624,6 +637,27 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// operation rather than a file read.
 			Map.entry("java.awt.Desktop", List.of("open", "edit", "print", "browse", "browseFileDirectory")));
 	// Note: ProcessBuilder is handled entirely by Command System
+
+	/**
+	 * The class holding the JDK method both public {@code loadLibrary} methods pass
+	 * every library load on to. Only the class is chosen through this map; the
+	 * method itself is chosen by {@link #getLoadLibrary0Matcher()}.
+	 */
+	public static final Map<String, List<String>> METHODS_WHICH_LOAD_LIBRARIES_FOR_A_CALLER = Map
+			.of("java.lang.Runtime", List.of("loadLibrary0"));
+
+	/**
+	 * Selects exactly {@code java.lang.Runtime.loadLibrary0(Class, String)}
+	 * returning {@code void}, by its declaring class, name, parameter types and
+	 * return type rather than by name alone.
+	 *
+	 * @return the matcher of that one method
+	 */
+	static ElementMatcher<MethodDescription> getLoadLibrary0Matcher() {
+		return ElementMatchers.<MethodDescription>isDeclaredBy(Runtime.class).and(ElementMatchers.named("loadLibrary0"))
+				.and(ElementMatchers.takesArguments(2)).and(ElementMatchers.takesArgument(0, Class.class))
+				.and(ElementMatchers.takesArgument(1, String.class)).and(ElementMatchers.returns(void.class));
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Delete Path">
@@ -643,6 +677,9 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move")),
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete")),
 			Map.entry("java.nio.file.SecureDirectoryStream", List.of("deleteFile", "deleteDirectory")),
+			// Preferences.removeNode removes the node from the backing store, so it is a
+			// delete and is checked against the delete allow-list, not overwrite.
+			Map.entry("java.util.prefs.Preferences", List.of("removeNode")),
 			Map.entry("org.apache.commons.io.FileUtils", List.of("forceDelete")));
 	// </editor-fold>
 
@@ -672,6 +709,15 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.file.Files",
 					List.of("createDirectories", "createDirectory", "createFile", "createLink", "createTempDirectory",
 							"createTempFile", "createSymbolicLink", "newBufferedWriter", "newOutputStream")),
+			// Preferences.node(path) and the userNodeForPackage/systemNodeForPackage
+			// factories create the node and any missing ancestors in the backing store,
+			// like File.mkdir, so they are creates. importPreferences creates every
+			// missing node its XML names, so it is a create as well as an overwrite.
+			// userRoot and systemRoot can create the store's directory and its
+			// modification file on first access, so they are creates as well as reads.
+			Map.entry("java.util.prefs.Preferences",
+					List.of("node", "userNodeForPackage", "systemNodeForPackage", "importPreferences", "userRoot",
+							"systemRoot")),
 			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("createDirectory")));
 	// </editor-fold>
 
