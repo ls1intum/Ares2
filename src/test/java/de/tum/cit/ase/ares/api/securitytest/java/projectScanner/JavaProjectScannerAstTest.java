@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -692,7 +693,8 @@ class JavaProjectScannerAstTest {
 
 	/**
 	 * A folder is not a source file whatever its name ends with. The scan must skip
-	 * it and still read the real class beside it.
+	 * it and still read the real class beside it. JavaParser reads a folder as an
+	 * empty unit on some systems, so the link test below is what pins the filter.
 	 */
 	@Test
 	void ignoresAFolderNamedLikeASourceFile() throws IOException {
@@ -702,6 +704,36 @@ class JavaProjectScannerAstTest {
 		Files.writeString(production.resolve("Real.java"), "package real;\nclass Real {}\n");
 
 		assertEquals("real", new JavaProjectScanner(configuration(production, tests)).scanForPackageName());
+	}
+
+	/**
+	 * A link to a file that does not exist is not a source file either. The scan
+	 * must skip it and still read the real class beside it, not fail while opening
+	 * it. The test is skipped where links cannot be created.
+	 */
+	@Test
+	void ignoresADanglingLinkNamedLikeASourceFile() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Real.java"), "package real;\nclass Real {}\n");
+		link(production.resolve("Missing.java"), root.resolve("does-not-exist.java"));
+
+		assertEquals("real", new JavaProjectScanner(configuration(production, tests)).scanForPackageName());
+	}
+
+	/**
+	 * Creates a symbolic link, or skips the calling test where links cannot be
+	 * created.
+	 *
+	 * @param link   the link to create
+	 * @param target what it points to
+	 */
+	private static void link(Path link, Path target) {
+		try {
+			Files.createSymbolicLink(link, target);
+		} catch (IOException | UnsupportedOperationException exception) {
+			assumeTrue(false, () -> "cannot create a symbolic link here: " + exception);
+		}
 	}
 
 	/**

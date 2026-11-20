@@ -422,6 +422,24 @@ public class JavaCreatorTest {
 		}
 
 		/**
+		 * Returns the permissions a Phobos case of the given category must carry, taken
+		 * from that category alone and not from its position in the list.
+		 *
+		 * @param category    the Phobos category of the case
+		 * @param unpermitted the categories without a permission
+		 * @return the permissions expected for that category
+		 */
+		private List<?> expectedPhobosAccesses(JavaPhobosTestCaseSupported category,
+				Set<JavaAOPTestCaseSupported> unpermitted) {
+			return switch (category) {
+			case FILESYSTEM_INTERACTION -> expectedAccesses(JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION,
+					unpermitted);
+			case NETWORK_CONNECTION -> expectedAccesses(JavaAOPTestCaseSupported.NETWORK_CONNECTION, unpermitted);
+			case TIMEOUT -> timeoutAccesses;
+			};
+		}
+
+		/**
 		 * Checks the three generated lists against the stubbed policy: each AOP and
 		 * Phobos case in order with its own category's permissions, and the
 		 * architecture cases in order.
@@ -440,12 +458,12 @@ public class JavaCreatorTest {
 			assertFalse(phobosTestCases.isEmpty());
 			assertEquals(JavaPhobosTestCaseSupported.FILESYSTEM_INTERACTION.getPhobosTestCases(),
 					phobosTestCases.stream().map(PhobosTestCase::getPhobosTestCaseSupported).toList());
-			List<List<?>> expectedPhobosAccesses = List.of(
-					expectedAccesses(JavaAOPTestCaseSupported.FILESYSTEM_INTERACTION, unpermitted),
-					expectedAccesses(JavaAOPTestCaseSupported.NETWORK_CONNECTION, unpermitted), timeoutAccesses);
-			for (int index = 0; index < expectedPhobosAccesses.size(); index++) {
-				JavaPhobosTestCase phobosCase = (JavaPhobosTestCase) phobosTestCases.get(index);
-				assertEquals(expectedPhobosAccesses.get(index), phobosCase.getResourceAccessSupplier().get());
+			for (PhobosTestCase generated : phobosTestCases) {
+				JavaPhobosTestCase phobosCase = (JavaPhobosTestCase) generated;
+				assertEquals(
+						expectedPhobosAccesses((JavaPhobosTestCaseSupported) phobosCase.getPhobosTestCaseSupported(),
+								unpermitted),
+						phobosCase.getResourceAccessSupplier().get());
 			}
 			assertFalse(architectureTestCases.isEmpty());
 			assertEquals(expectedArchitectureCategories(unpermitted), architectureTestCases.stream()
