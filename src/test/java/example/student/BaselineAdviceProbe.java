@@ -38,7 +38,10 @@ public final class BaselineAdviceProbe {
 	}
 
 	/**
-	 * Runs one call through the check of the given backend.
+	 * Runs one call through the check of the given backend. On instrumentation an
+	 * execute call enters where the execute advice does, so a public
+	 * {@code loadLibrary} call meets the same choice to defer; the descriptor is
+	 * handed over as both signature and descriptor.
 	 *
 	 * @param mode   the backend
 	 * @param action the file-system action the call performs
@@ -46,7 +49,11 @@ public final class BaselineAdviceProbe {
 	 * @throws SecurityException if the backend denies the call
 	 */
 	public static void check(AOPMode mode, String action, Call call) {
-		if (mode == AOPMode.INSTRUMENTATION) {
+		if (mode == AOPMode.INSTRUMENTATION && "execute".equals(action)) {
+			JavaInstrumentationAdviceFileSystemToolbox.checkExecuteInteraction(call.owner().getName(), call.method(),
+					call.descriptor(), call.descriptor(), fieldsOf(call.instance()), call.parameters(),
+					call.instance());
+		} else if (mode == AOPMode.INSTRUMENTATION) {
 			JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(action, call.owner().getName(),
 					call.method(), call.descriptor(), fieldsOf(call.instance()), call.parameters(), call.instance());
 		} else {

@@ -534,6 +534,9 @@ Execute APIs listed below trigger execution-like behaviour on files.
 | java.lang.Runtime | loadLibrary | ✅ | ✅ | ❌ |
 | java.lang.System | load | ✅ | ✅ | ❌ |
 | java.lang.System | loadLibrary | ✅ | ✅ | ❌ |
+| java.lang.Runtime | loadLibrary0 | ❌ | ✅ | ❌ |
+
+> **Note:** Both public `loadLibrary` methods reach `Runtime.loadLibrary0` of the Java Development Kit (JDK), and Byte Buddy weaves a check into it. That check allows the JDK loading its own library. It needs a caller from the Java Virtual Machine (JVM)'s own or the platform class loader, a plain name, and a file directly in the JDK's library folder. It checks every other load as executing the name in the working directory. The public `loadLibrary` checks defer to it on JDK 17, 21 and 25 only, once the agent has recorded that it wove the check in. On any other feature release (18 to 20, 22 to 24, 26, 27 and later), instrumentation mode does not defer. There the public check refuses the JDK's own first loads beneath student code as an illegal execute, such as `awt` for `BufferedImage`, `Toolkit` or fonts, and `prefs` for `Preferences`. AspectJ does not weave the JDK's own call sites, so it never sees these loads.
 
 **Opens files with default applications (Desktop integration)**
 
@@ -628,7 +631,7 @@ File paths can appear in **different places** depending on how the method is use
 > - `java.nio.file.Path` = Parameter of type `Path`, by its full class name
 > - `)` = Parameter list ends
 >
-> Byte Buddy writes this form for `@Advice.Origin("#s")`. The return type is not part of it. The Java Virtual Machine (JVM) descriptor form, such as `(Ljava/nio/file/Path;)Ljava/lang/String;`, belongs to `#d`, which Ares does not use here.
+> Byte Buddy writes this form for `@Advice.Origin("#s")`. The return type is not part of it. The JVM descriptor form, such as `(Ljava/nio/file/Path;)Ljava/lang/String;`, belongs to `#d`, which Ares does not use here.
 
 **2. How Do We Collect This Information:**
 
@@ -1236,7 +1239,7 @@ Object[] filteredParameters = filterVariables(parameters, parameterIgnoreRule);
 | `DataOutputStream.writeUTF/writeChars/writeBytes(String)` | Nothing (all parameters ignored) | The argument is payload, never a path; the underlying file was validated when the `FileOutputStream` was opened |
 | `PrintStream.<new>(sink, ...)` | Only parameter 0 (the sink) | A charset name like `"UTF-8"` is not a path |
 
-**`checkTempFileCreationSpecialCase` decides `createTempFile` on its own.** Its overloads put either a directory or a name prefix at the same position, so no fixed parameter index fits. A call without a directory is `File.createTempFile(prefix, suffix)`, the same with `null` as directory, or `Files.createTempFile(prefix, suffix, ...)`. The instrumentation backend allows such a call once its agent has fixed the default temp directory at start-up, and refuses it otherwise. The AspectJ aspect instead finds the directory the Java Development Kit (JDK) writes to, as [5.4.6](#546-allow-the-secure-baselines-standard-operations) describes, and checks it like a named one. A named or found directory needs an entry in `pathsAllowedToBeCreated`, or must be exactly the default temp directory fixed at start-up, with links followed. A folder inside the temp directory, or a link out of it, does not count. Ares refuses arguments that fit neither overload.
+**`checkTempFileCreationSpecialCase` decides `createTempFile` on its own.** Its overloads put either a directory or a name prefix at the same position, so no fixed parameter index fits. A call without a directory is `File.createTempFile(prefix, suffix)`, the same with `null` as directory, or `Files.createTempFile(prefix, suffix, ...)`. The instrumentation backend allows such a call once its agent has fixed the default temp directory at start-up, and refuses it otherwise. The AspectJ aspect instead finds the directory the JDK writes to, as [5.4.6](#546-allow-the-secure-baselines-standard-operations) describes, and checks it like a named one. A named or found directory needs an entry in `pathsAllowedToBeCreated`, or must be exactly the default temp directory fixed at start-up, with links followed. A folder inside the temp directory, or a link out of it, does not count. Ares refuses arguments that fit neither overload.
 
 **4. Result**
 
