@@ -1,5 +1,7 @@
 package de.tum.cit.ase.ares.api.internal;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.List;
@@ -283,29 +285,63 @@ public final class ConfigurationUtils {
 		Path policy = policyPath.toAbsolutePath().normalize();
 		supervisedCode.theFollowingResourceAccessesArePermitted().regardingFileSystemInteractions().stream()
 				.filter(entry -> entry.overwriteAllFiles() || entry.createAllFiles())
-				.map(FilePermission::onThisPathAndAllPathsBelow).filter(granted -> covers(granted, policy)).findFirst()
-				.ifPresent(granted -> {
+				.map(FilePermission::onThisPathAndAllPathsBelow).filter(granted -> covers(granted, policy, policyPath))
+				.findFirst().ifPresent(granted -> {
 					throw new SecurityException(
 							Messages.localized("policy.behavior.write.grant.policy", policyPath, granted));
 				});
 	}
 
 	/**
-	 * Whether a granted path is the policy file or a folder holding it; the
-	 * wildcard {@code *} covers every file.
+	 * Whether a granted path is the policy file or a folder holding it, compared by
+	 * where both really lead, links included, as the runtime checks compare them;
+	 * the wildcard {@code *} covers every file.
 	 *
-	 * @param granted the granted path, as written in the policy.
-	 * @param policy  the policy file, absolute and normalised.
+	 * @param granted    the granted path, as written in the policy.
+	 * @param policy     the policy file, absolute and normalised.
+	 * @param policyPath the policy file as named, for the refusal.
 	 * @return true when the grant reaches the policy file.
+	 * @throws SecurityException when a location cannot be resolved.
 	 */
-	private static boolean covers(String granted, Path policy) {
+	private static boolean covers(String granted, Path policy, Path policyPath) {
 		if ("*".equals(granted.strip())) {
 			return true;
 		}
+		Path grantedPath;
 		try {
-			return policy.startsWith(Path.of(granted.strip()).toAbsolutePath().normalize());
+			grantedPath = Path.of(granted.strip());
 		} catch (InvalidPathException invalid) {
 			return false;
+		}
+		return realLocation(policy, policyPath, granted).startsWith(realLocation(grantedPath, policyPath, granted));
+	}
+
+	/**
+	 * Where a path really leads: its nearest existing ancestor with every link
+	 * resolved, followed by the part that does not exist yet, as the runtime checks
+	 * treat a path that is still to be created.
+	 *
+	 * @param path       the path.
+	 * @param policyPath the policy file as named, for the refusal.
+	 * @param granted    the granted path as written, for the refusal.
+	 * @return the real location, absolute.
+	 * @throws SecurityException when the location cannot be resolved, so the policy
+	 *                           is refused rather than trusted.
+	 */
+	private static Path realLocation(Path path, Path policyPath, String granted) {
+		Path absolute = path.toAbsolutePath().normalize();
+		Path existing = absolute;
+		while (existing != null && !Files.exists(existing)) {
+			existing = existing.getParent();
+		}
+		if (existing == null) {
+			return absolute;
+		}
+		try {
+			return existing.toRealPath().resolve(existing.relativize(absolute)).normalize();
+		} catch (IOException unresolvable) {
+			throw new SecurityException(
+					Messages.localized("policy.behavior.write.grant.unresolvable", policyPath, granted), unresolvable);
 		}
 	}
 
