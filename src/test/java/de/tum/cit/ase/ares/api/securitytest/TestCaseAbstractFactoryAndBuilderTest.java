@@ -16,12 +16,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.SupervisedCode;
@@ -446,6 +450,80 @@ public class TestCaseAbstractFactoryAndBuilderTest {
 			verify(mockCreator).createTestCases(any(), any(), any(), anyList(), anyList(),
 					argThat(testClasses -> testClasses.contains("PolicyDeclaredTest")), anyString(), anyString(),
 					anyList(), anyList(), anyList(), any(ResourceAccesses.class), any(), anyBoolean());
+		}
+
+		/**
+		 * A scanned package under a trusted prefix is refused with the reserved package
+		 * message, and no test case is created.
+		 */
+		@Test
+		@DisplayName("Refuses a scanned package under a reserved prefix")
+		void refusesAScannedReservedPackage() {
+			String evil = "de.tum.cit.ase.ares.api.evil";
+			String prefix = ReservedPackageGuard.reservedPrefixOf(evil);
+			assertNotNull(prefix);
+			when(mockProjectScanner.scanForPackageName()).thenReturn(evil);
+
+			SecurityException failure = assertThrows(SecurityException.class,
+					() -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+							mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+							ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, null, projectPath));
+
+			assertEquals(Messages.localized("security.policy.reserved.package", evil, prefix), failure.getMessage());
+			verify(mockCreator, never()).createTestCases(any(), any(), any(), anyList(), anyList(), anyList(), any(),
+					any(), anyList(), anyList(), anyList(), any(), any(), anyBoolean());
+		}
+
+		/** A present policy that names no package is refused. */
+		@Test
+		@DisplayName("Refuses when the supervised package is null")
+		void refusesWhenSupervisedPackageNull() {
+			when(mockSupervisedCode.theSupervisedCodeUsesTheFollowingPackage()).thenReturn(null);
+
+			SecurityException failure = assertThrows(SecurityException.class,
+					() -> new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+							mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+							ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath));
+
+			assertEquals(Messages.localized("security.policy.supervised.package.required"), failure.getMessage());
+		}
+
+		/** A main class named by the policy is kept and the project is not scanned. */
+		@Test
+		@DisplayName("Takes the main class the policy pins")
+		void takesThePinnedMainClass() {
+			when(mockSupervisedCode.theMainClassInsideThisPackageIs()).thenReturn("PinnedMain");
+			when(mockProjectScanner.scanForMainClassInPackage()).thenReturn("ScannedMain");
+
+			new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+					mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+					ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
+
+			verify(mockProjectScanner, never()).scanForMainClassInPackage();
+			verify(mockCreator).createTestCases(any(), any(), any(), anyList(), anyList(), anyList(), eq("com.example"),
+					eq("PinnedMain"), anyList(), anyList(), anyList(), any(), any(), anyBoolean());
+		}
+
+		/**
+		 * A policy that names no main class, or a blank one, gets the scanner's answer.
+		 *
+		 * @param pinnedMainClass the main class the policy answers
+		 */
+		@ParameterizedTest
+		@NullSource
+		@ValueSource(strings = { " " })
+		@DisplayName("Scans for the main class when the policy omits it")
+		void scansForTheMainClassWhenThePolicyOmitsIt(String pinnedMainClass) {
+			when(mockSupervisedCode.theMainClassInsideThisPackageIs()).thenReturn(pinnedMainClass);
+			when(mockProjectScanner.scanForMainClassInPackage()).thenReturn("ScannedMain");
+
+			new TestableFactoryAndBuilder(mockCreator, mockWriter, mockExecuter, mockEssentialDataReader,
+					mockProjectScanner, essentialPackagesPath, essentialClassesPath, BuildMode.MAVEN,
+					ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, mockSecurityPolicy, projectPath);
+
+			verify(mockProjectScanner).scanForMainClassInPackage();
+			verify(mockCreator).createTestCases(any(), any(), any(), anyList(), anyList(), anyList(), eq("com.example"),
+					eq("ScannedMain"), anyList(), anyList(), anyList(), any(), any(), anyBoolean());
 		}
 	}
 }
