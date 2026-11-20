@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
 import de.tum.cit.ase.ares.api.architecture.java.wala.WalaPathClassification;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Verifies the reserved-package guard rejects exactly the trusted
@@ -178,5 +180,46 @@ class ReservedPackageGuardTest {
 		assertThat(ReservedPackageGuard.reservedPrefixOf("anonymous.toolclasses.Helper")).isNull();
 		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest.Foo")).isNull();
 		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest")).isNull();
+	}
+
+	/**
+	 * A missing list of class names is accepted, since there is nothing to check.
+	 */
+	@Test
+	void validateClassNamesAcceptsNothing() {
+		assertThatCode(() -> ReservedPackageGuard.validateClassNames(null)).doesNotThrowAnyException();
+	}
+
+	/**
+	 * A null entry is skipped and the names after it are still checked: an allowed
+	 * one passes and a reserved one is refused with the reserved-package message.
+	 */
+	@Test
+	void validateClassNamesSkipsANullName() {
+		assertThatCode(() -> ReservedPackageGuard.validateClassNames(Arrays.asList(null, "com.example.Main")))
+				.doesNotThrowAnyException();
+		assertThatThrownBy(
+				() -> ReservedPackageGuard.validateClassNames(Arrays.asList(null, "de.tum.cit.ase.ares.api.evil.X")))
+						.isInstanceOf(SecurityException.class)
+						.hasMessage(Messages.localized("security.policy.reserved.package",
+								"de.tum.cit.ase.ares.api.evil", "de.tum.cit.ase.ares.api."));
+	}
+
+	/**
+	 * A class in the default package has no package to check and is accepted.
+	 */
+	@Test
+	void validateClassNamesAcceptsAClassWithoutAPackage() {
+		assertThatCode(() -> ReservedPackageGuard.validateClassNames(List.of("Main"))).doesNotThrowAnyException();
+	}
+
+	/**
+	 * A package written with a trailing dot is reserved exactly like the same
+	 * package without it.
+	 */
+	@Test
+	void reservedPrefixOfAcceptsATrailingDot() {
+		assertThat(ReservedPackageGuard.reservedPrefixOf("jdk.")).isNotNull()
+				.isEqualTo(ReservedPackageGuard.reservedPrefixOf("jdk"));
 	}
 }

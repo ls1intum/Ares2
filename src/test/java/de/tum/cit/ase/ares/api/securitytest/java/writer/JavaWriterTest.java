@@ -6,7 +6,9 @@ import static org.mockito.Mockito.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -85,6 +87,33 @@ public class JavaWriterTest {
 			assertNotNull(messages.getProperty("security.advice.startup.properties.unavailable"));
 			assertNotNull(messages.getProperty("security.advice.temp.directory.holder.unreadable"));
 			assertNotNull(messages.getProperty("security.advice.denial.reason.not.in.allowlist"));
+		}
+	}
+
+	/**
+	 * Requires the returned paths to name every localisation bundle written below
+	 * the resources folder, so the caller can list or clean them up.
+	 */
+	@Test
+	void returnsTheCopiedLocalisationBundles() throws IOException {
+		Path sourceRoot = Files.createDirectories(tempDir.resolve("src/test/java"));
+		List<Path> returned = javaWriter.writeTestCases(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ,
+				List.of(), List.of(), List.of(), "exercise.security", "Main", List.of(), List.of(), List.of(),
+				sourceRoot);
+		List<Path> bundles;
+		try (var walk = Files.walk(tempDir.resolve("src/test/resources/exercise/security"))) {
+			bundles = walk.filter(Files::isRegularFile).toList();
+		}
+		assertFalse(bundles.isEmpty());
+		Set<Path> returnedReal = new HashSet<>();
+		for (Path path : returned) {
+			if (path.toString().contains("localization")) {
+				assertTrue(Files.exists(path), path.toString());
+				returnedReal.add(path.toRealPath());
+			}
+		}
+		for (Path bundle : bundles) {
+			assertTrue(returnedReal.contains(bundle.toRealPath()), bundle.toString());
 		}
 	}
 
