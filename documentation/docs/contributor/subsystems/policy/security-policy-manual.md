@@ -449,7 +449,8 @@ theFollowingTestBehaviorIsConfigured:
 |---|---|
 | Strict timeout | `@StrictTimeout` on the method, then on the class, then the policy, then the default. |
 | Termination grace | The policy, then the default of 50 ms; `@StrictTimeout` has no grace setting. |
-| Output mirroring and limit | The nearest `@MirrorOutput` replaces the whole category, then the policy. |
+| Output mirroring | The nearest `@MirrorOutput`, then the policy. |
+| Output limit | The lower of the nearest `@MirrorOutput`'s limit and the limit the policy writes. Without an annotation, the policy's limit, then the default. An annotation never raises a limit the policy sets. |
 | I/O manager | The nearest `@WithIOManager`, then the policy, then `IO_TESTER`. |
 | Policy deactivated, or no policy | No test behaviour from the policy; annotations still apply. |
 

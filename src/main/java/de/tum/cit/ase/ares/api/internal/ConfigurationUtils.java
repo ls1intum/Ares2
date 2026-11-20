@@ -188,18 +188,23 @@ public final class ConfigurationUtils {
 
 	/**
 	 * Resolves mirroring and the limit together: the nearest {@code @MirrorOutput}
-	 * replaces the whole category, else the policy, else no echo and the default
-	 * limit.
+	 * decides mirroring and brings its limit, but a lower limit the policy writes
+	 * still applies, so an annotation never lets a test print more than the policy
+	 * allows. Without an annotation the policy decides, else no echo and the
+	 * default limit.
 	 *
 	 * @param context the test context.
 	 * @return the resolved settings.
 	 */
 	public static ResolvedOutputMirroring resolveOutputMirroring(TestContext context) {
 		Optional<MirrorOutput> annotation = TestContextUtils.findAnnotationIn(context, MirrorOutput.class);
-		if (annotation.isPresent()) {
-			return new ResolvedOutputMirroring(annotation.get().value().isEnabled(), annotation.get().maxCharCount());
-		}
 		Optional<OutputConfiguration> policy = findPolicyOutput(context);
+		if (annotation.isPresent()) {
+			long annotationLimit = annotation.get().maxCharCount();
+			return new ResolvedOutputMirroring(annotation.get().value().isEnabled(),
+					policy.map(OutputConfiguration::theMaximumNumberOfOutputCharactersIs)
+							.map(policyLimit -> Math.min(annotationLimit, policyLimit)).orElse(annotationLimit));
+		}
 		return new ResolvedOutputMirroring(policy.map(OutputConfiguration::mirrored).orElse(false),
 				policy.map(OutputConfiguration::maximumCharacterCount).orElse(MirrorOutput.DEFAULT_MAX_STD_OUT));
 	}

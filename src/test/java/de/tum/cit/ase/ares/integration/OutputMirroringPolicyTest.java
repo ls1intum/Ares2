@@ -39,9 +39,12 @@ class OutputMirroringPolicyTest {
 		tests.assertThatEvents().haveExactly(MODE_COMBINATIONS, finishedSuccessfully("policyLetsShortOutputPass"));
 	}
 
-	/** An annotation replaces the whole policy category, limit included. */
+	/**
+	 * An annotation with a higher limit does not lift the policy's lower one.
+	 */
 	@TestTest
-	void annotationReplacesThePolicy() {
-		tests.assertThatEvents().haveExactly(MODE_COMBINATIONS, finishedSuccessfully("annotationReplacesThePolicy"));
+	void annotationKeepsThePolicyLimit() {
+		tests.assertThatEvents().haveExactly(MODE_COMBINATIONS, testFailedWith("annotationKeepsThePolicyLimit",
+				SecurityException.class, "too much standard output", Option.MESSAGE_CONTAINS));
 	}
 }

@@ -32,13 +32,35 @@ class ConfigurationUtilsOutputMirroringTest {
 		assertThat(ConfigurationUtils.getMaxStandardOutput(context)).isEqualTo(10);
 	}
 
-	/** An annotation replaces the whole category, defaults included. */
+	/**
+	 * An annotation decides mirroring, but the policy's lower limit still applies.
+	 */
 	@Test
-	void anAnnotationReplacesThePolicyEntirely() throws Exception {
+	void anAnnotationKeepsThePolicysLowerLimit() throws Exception {
 		TestContext context = contextFor("annotationAndPolicy");
 
 		assertThat(ConfigurationUtils.shouldMirrorOutput(context)).isFalse();
-		assertThat(ConfigurationUtils.getMaxStandardOutput(context)).isEqualTo(MirrorOutput.DEFAULT_MAX_STD_OUT);
+		assertThat(ConfigurationUtils.getMaxStandardOutput(context)).isEqualTo(10);
+	}
+
+	/** An annotation's own lower limit applies under a higher policy limit. */
+	@Test
+	void anAnnotationsLowerLimitApplies() throws Exception {
+		TestContext context = contextFor("lowerAnnotationAndPolicy");
+
+		assertThat(ConfigurationUtils.shouldMirrorOutput(context)).isTrue();
+		assertThat(ConfigurationUtils.getMaxStandardOutput(context)).isEqualTo(5);
+	}
+
+	/**
+	 * A policy that writes no limit leaves the annotation's limit alone, even above
+	 * the default.
+	 */
+	@Test
+	void aPolicyWithoutALimitLeavesTheAnnotationsLimit() throws Exception {
+		TestContext context = contextFor("higherAnnotationAndMirrorOnlyPolicy");
+
+		assertThat(ConfigurationUtils.getMaxStandardOutput(context)).isEqualTo(MirrorOutput.DEFAULT_MAX_STD_OUT + 1);
 	}
 
 	/** A policy setting only the limit leaves mirroring off. */
@@ -101,6 +123,22 @@ class ConfigurationUtilsOutputMirroringTest {
 	@MirrorOutput(MirrorOutputPolicy.DISABLED)
 	@Policy(FIXTURES + "PolicyOutputMirroringFull.yaml")
 	private static void annotationAndPolicy() {
+		// Read reflectively through the mocked context.
+	}
+
+	/** Runs under the policy limiting to 10 with an annotation limiting to 5. */
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@MirrorOutput(value = MirrorOutputPolicy.ENABLED, maxCharCount = 5)
+	@Policy(FIXTURES + "PolicyOutputMirroringFull.yaml")
+	private static void lowerAnnotationAndPolicy() {
+		// Read reflectively through the mocked context.
+	}
+
+	/** Runs under a policy without a limit and an annotation above the default. */
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@MirrorOutput(value = MirrorOutputPolicy.DISABLED, maxCharCount = MirrorOutput.DEFAULT_MAX_STD_OUT + 1)
+	@Policy(FIXTURES + "PolicyOutputMirroringMirrorOnly.yaml")
+	private static void higherAnnotationAndMirrorOnlyPolicy() {
 		// Read reflectively through the mocked context.
 	}
 

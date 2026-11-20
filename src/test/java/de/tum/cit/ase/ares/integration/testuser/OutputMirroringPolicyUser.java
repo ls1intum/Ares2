@@ -48,10 +48,13 @@ public class OutputMirroringPolicyUser {
 			assertThat(tester.out().getLinesAsString()).containsExactly("hi");
 		}
 
-		/** The same long lines, allowed by an annotation that replaces the policy. */
+		/**
+		 * The same long lines under an annotation with the default limit, still stopped
+		 * by the policy's lower limit.
+		 */
 		@PublicTest
 		@MirrorOutput(MirrorOutputPolicy.DISABLED)
-		void annotationReplacesThePolicy() {
+		void annotationKeepsThePolicyLimit() {
 			InputOutputPenguin.writeTwoLines();
 		}
 	}
