@@ -271,7 +271,8 @@ public final class SecurityViolationFeedback {
 	 * other flag of the category off, or nothing when no single entry does: a
 	 * target that holds the wildcard {@code *}, which the policy reads as "any", or
 	 * a command with arguments, whose argument boundaries the target text no longer
-	 * shows.
+	 * shows, or a thread, whose denial may be an exhausted quota that one more
+	 * entry cannot lift.
 	 *
 	 * @param violation the violation.
 	 * @return the entry, as YAML.
@@ -288,8 +289,6 @@ public final class SecurityViolationFeedback {
 		case "network" -> networkEntryOf(violation.target(),
 				NETWORK_FLAGS.get(List.of("open", "send", "receive").indexOf(operation.get())));
 		case "command" -> Optional.of(commandEntryOf(violation.target()));
-		case "thread" -> Optional.of("- createTheFollowingNumberOfThreads: 1" + System.lineSeparator()
-				+ "  ofThisClass: " + yamlString(violation.target()));
 		case "import" -> Optional.of("- importTheFollowingPackage: " + yamlString(violation.target())
 				+ System.lineSeparator() + "  exactMatchOnly: true");
 		default -> Optional.empty();
@@ -318,12 +317,14 @@ public final class SecurityViolationFeedback {
 	 *
 	 * @param target  the target.
 	 * @param granted the flag to set.
-	 * @return the entry; empty when the target names no port.
+	 * @return the entry; empty when the target names no port, or port zero, which a
+	 *         policy reads as every port.
 	 */
 	private static Optional<String> networkEntryOf(String target, String granted) {
 		int colon = target.lastIndexOf(':');
 		if (colon <= 0 || colon == target.length() - 1
-				|| !target.substring(colon + 1).chars().allMatch(Character::isDigit)) {
+				|| !target.substring(colon + 1).chars().allMatch(Character::isDigit)
+				|| target.substring(colon + 1).chars().allMatch(digit -> digit == '0')) {
 			return Optional.empty();
 		}
 		String host = target.substring(0, colon);

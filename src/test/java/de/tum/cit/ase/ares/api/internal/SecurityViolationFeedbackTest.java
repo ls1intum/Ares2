@@ -141,10 +141,7 @@ class SecurityViolationFeedbackTest {
 				networkCase("send", "send", "sendData"), networkCase("receive", "receive", "receiveData"),
 				org.junit.jupiter.params.provider.Arguments.of("command", "execute", "ls", "command.execute", "execute",
 						SecurityViolationFeedbackTexts.lines("- executeTheCommand: \"ls\"",
-								"  withTheseArguments: []")),
-				org.junit.jupiter.params.provider.Arguments.of("thread", "create", "java.lang.Thread", "thread.create",
-						"create", SecurityViolationFeedbackTexts.lines("- createTheFollowingNumberOfThreads: 1",
-								"  ofThisClass: \"java.lang.Thread\"")));
+								"  withTheseArguments: []")));
 	}
 
 	/** A file case granting one flag. */
@@ -258,8 +255,10 @@ class SecurityViolationFeedbackTest {
 
 	/**
 	 * A command with arguments, whose boundaries the target text no longer shows,
-	 * and any target holding the policy's wildcard get the category only, so the
-	 * hint never suggests an entry that allows a different action or every one.
+	 * any target holding the policy's wildcard, port zero, which a policy reads as
+	 * every port, and a thread, whose denial may be an exhausted quota, get the
+	 * category only, so the hint never suggests an entry that allows more or
+	 * changes nothing.
 	 *
 	 * @param kind     the kind.
 	 * @param action   the action.
@@ -270,7 +269,10 @@ class SecurityViolationFeedbackTest {
 	@CsvSource(delimiter = '|', value = { "command|execute|echo hello world|regardingCommandExecutions",
 			"command|execute|echo *|regardingCommandExecutions", "command|execute|*|regardingCommandExecutions",
 			"file|read|*|regardingFileSystemInteractions", "network|connect|*:443|regardingNetworkConnections",
-			"thread|create|*|regardingThreadCreations", "architecture|import|*|regardingPackageImports" })
+			"thread|create|*|regardingThreadCreations", "architecture|import|*|regardingPackageImports",
+			"network|connect|127.0.0.1:0|regardingNetworkConnections",
+			"network|send|example.org:000|regardingNetworkConnections",
+			"thread|create|java.lang.Thread|regardingThreadCreations" })
 	void anInexactEntryFallsBackToTheCategory(String kind, String action, String target, String category) {
 		Locale.setDefault(Locale.ENGLISH);
 		SecurityViolationFeedback.Violation violation = new SecurityViolationFeedback.Violation(kind, action, target,
@@ -463,8 +465,8 @@ class SecurityViolationFeedbackTest {
 	}
 
 	/**
-	 * The DEBUG network, command and thread entries read back and grant exactly the
-	 * blocked action.
+	 * The DEBUG network and command entries read back and grant exactly the blocked
+	 * action.
 	 *
 	 * @param tempDir where the policies are written.
 	 * @throws IOException if a policy cannot be written
@@ -483,11 +485,6 @@ class SecurityViolationFeedbackTest {
 						.get(0);
 		assertThat(command.executeTheCommand()).isEqualTo("ls");
 		assertThat(command.withTheseArguments()).isEmpty();
-		var thread = readBack(tempDir, "regardingThreadCreations",
-				new SecurityViolationFeedback.Violation("thread", "create", "java.lang.Thread", HIGH))
-						.regardingThreadCreations().get(0);
-		assertThat(thread.createTheFollowingNumberOfThreads()).isEqualTo(1);
-		assertThat(thread.ofThisClass()).isEqualTo("java.lang.Thread");
 	}
 
 	/**
