@@ -125,15 +125,21 @@ public class SecurityPolicyReaderAndDirector {
 		Path projectRoot = projectFolderPath == null ? Path.of("").toAbsolutePath() : projectFolderPath;
 		@Nullable
 		SecurityPolicy securityPolicy = null;
+		@Nullable
+		Path policyFileName = null;
 		if (securityPolicyFilePath != null && !securityPolicyFilePath.toString().isEmpty()) {
 			@Nonnull
 			Path nonNullPolicyPath = securityPolicyFilePath;
 			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath, projectRoot);
 			securityPolicy = securityPolicyReader.readSecurityPolicyFrom(nonNullPolicyPath);
+			policyFileName = nonNullPolicyPath.getFileName();
 		}
 		securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicy);
 		this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy, projectRoot,
 				withinPath);
+		if (policyFileName != null) {
+			this.securityTestCaseFactoryAndBuilder.namePolicyFile(policyFileName.toString());
+		}
 		return this;
 	}
 	// </editor-fold>

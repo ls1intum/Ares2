@@ -115,9 +115,9 @@ regardingTheSupervisedCode:
 
 This policy forbids all file, network, command and thread operations.
 
-> **`thisPolicyFileCompliesToThePolicyVersion` is required** and must be exactly `1`. A policy file that omits it, or that declares any other value, is rejected on load.
+> **`thisPolicyFileCompliesToThePolicyVersion` is required.** Ares 2.2.1 accepts only `1`; Ares 2.3.0 accepts `1` and `2`, and needs `2` as soon as the policy sets a category under `theFollowingTestBehaviorIsConfigured` (7.7). Ares refuses a policy file that omits it or declares another value when it loads the file.
 
-> **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.2.1. Use [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
+> **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.2.1. Use [`regardingTheStrictTimeoutForTheTestCases`](#77-test-behaviour-configuration) or [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The policy setting needs Ares 2.3.0; on Ares 2.2.1, use `@StrictTimeout`. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
 
 ### 5.2 Step 2: Apply the Policy to Your Test
 
@@ -237,9 +237,10 @@ Security policies are written in YAML format. YAML uses indentation (spaces, not
 ### 7.2 Complete Structure
 
 ```yaml
-# REQUIRED: The policy format version. Must be exactly 1; any other value,
-# or omitting the key, causes the policy to be rejected on load.
-thisPolicyFileCompliesToThePolicyVersion: 1
+# REQUIRED: The policy format version, 1 or 2. Version 2 is needed as soon as
+# any category under theFollowingTestBehaviorIsConfigured is set; any other
+# value, or omitting the key, causes the policy to be rejected on load.
+thisPolicyFileCompliesToThePolicyVersion: 2
 
 regardingTheSupervisedCode:
   # REQUIRED: Which configuration to use
@@ -292,6 +293,30 @@ regardingTheSupervisedCode:
     # REQUIRED list: Timeouts (can be empty array)
     regardingTimeouts:
       - timeout: 10000                               # REQUIRED (milliseconds)
+
+  # OPTIONAL: Behaviour of the tests, see 7.7. Every category inside is optional.
+  theFollowingTestBehaviorIsConfigured:
+    regardingTheStrictTimeoutForTheTestCases:
+      theTimeoutIs: "2 SECONDS"                      # REQUIRED within this category
+      theTerminationGraceIs: "200 MILLISECONDS"      # OPTIONAL
+
+    regardingTheOutputOfTheTestCases:
+      theOutputIsMirrored: false                     # OPTIONAL, defaults as shown
+      theMaximumNumberOfOutputCharactersIs: 100000000  # OPTIONAL, defaults as shown
+      theInputAndOutputAreManagedBy: IO_TESTER       # OPTIONAL: IO_TESTER, NONE or CUSTOM
+
+    regardingTheFailureFeedbackForTheTestCases:
+      onlyPrivilegedExceptionsAreReported: false     # OPTIONAL, defaults as shown
+      theFailureMessageForOtherExceptionsIs: "Test failed."  # OPTIONAL, defaults as shown
+      theSecurityViolationFeedbackLevelIs: HIGH      # OPTIONAL: DEBUG, HIGH, MEDIUM or LOW
+
+    regardingTheVisibilityAndScheduleOfTheTestCases:
+      theDeadlineIs: "2026-12-24 23:59 Europe/Berlin"               # REQUIRED in this category
+      theDeadlineIsExtendedBy: "36 HOURS"                             # OPTIONAL
+      theHiddenTestsAreRunBefore: "2026-11-01 00:00 Europe/Berlin"  # OPTIONAL
+      testsNotListedHereAreHidden: false                            # REQUIRED in this category
+      theFollowingTestsAreHidden: [ "org.example.PenguinTest#name" ] # OPTIONAL
+      theFollowingTestsArePublic: [ "org.example.ParrotTest" ]       # OPTIONAL
 ```
 
 ### 7.3 Configuration Options
@@ -380,6 +405,118 @@ theFollowingClassesAreTestClasses:
 **Verification:** in both modes, Ares looks up every entry in the compiled test output before it creates any security test. It stops with an error unless it finds a class file there that its reader accepts and that declares that exact name. An entry for a class nobody compiled therefore never becomes an exemption a student class of that name could take over. Compile the tests before generating or running, and in Precompile regenerate after changing them.
 
 > **Package names and package prefixes do not work here.** An entry such as `"com.instructor"` does **not** trust the classes beneath that package. Ares finds no compiled class of that name and stops with an error. Ares derives no package permission from an entry either, so `"com.instructor"` does not let the supervised code import that package. List each test class by its exact fully qualified name.
+
+---
+
+### 7.7 Test Behaviour Configuration
+
+The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before. A policy that sets any category must declare `thisPolicyFileCompliesToThePolicyVersion: 2`; Ares refuses a version 1 policy that sets one, and its message names the category and the version it needs.
+
+The category and field names follow the proposal in issue #386, section C. They are not final until the advisor accepts them; [Policy Compatibility](./policy-compatibility.md) lists which release accepts which key.
+
+In a precompile exercise the generator reads these settings when it writes the exercise. Any malformed value, unknown key or explicit `null` stops the generator and names the field.
+
+**Durations** such as `theTimeoutIs`, `theTerminationGraceIs` and `theDeadlineIsExtendedBy` are one text each. The text is a whole number, one space and the name of a Java `TimeUnit` in capitals: `NANOSECONDS`, `MICROSECONDS`, `MILLISECONDS`, `SECONDS`, `MINUTES`, `HOURS` or `DAYS`. `"2 SECONDS"`, `"500 MILLISECONDS"` and `"36 HOURS"` are durations; `"2s"`, `"2 seconds"`, `"2 SECOND"`, `"1 DAYS 12 HOURS"` and `"2"` are not. Ares refuses a YAML number such as `2` too, and its message names the field and lists the seven units.
+
+#### 7.7.1 Strict timeout
+
+`regardingTheStrictTimeoutForTheTestCases` gives every supervised test a time limit, as `@StrictTimeout` does per test. Ares stops a test that runs longer.
+
+- `theTimeoutIs` (duration, **required** once the category is present): the time limit, above zero.
+- `theTerminationGraceIs` (duration, optional): the time a stopped test gets to finish before Ares halts the test process with exit code 124. At most one day; zero means at once. Without it, a test gets 50 ms.
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingTheStrictTimeoutForTheTestCases:
+    theTimeoutIs: "2 SECONDS"
+    theTerminationGraceIs: "200 MILLISECONDS"
+```
+
+**Not `regardingTimeouts`:** the resource-access list `regardingTimeouts` (8.6) is a separate Phobos limit. This category is the one that bounds tests.
+
+**Precompile:** the generator writes the limit, in nanoseconds, as constants of the class `GeneratedTestBehaviorSettings` in `de.tum.cit.ase.ares.generated`. Beside them it writes a JUnit extension that times every test, setup and teardown method, the test class's constructor and each dynamic test. Callbacks of other extensions, such as an instructor's `BeforeEachCallback`, run outside that time, so student code they call is not bounded by it. The extension times each step of reading a test factory's tests as well, so a factory whose supplier never ends times out too. It reads them one after the other as JUnit does, so each dynamic test runs before the factory produces the next one. Each of those methods runs on a worker thread of its own, as with `@StrictTimeout`, so a `ThreadLocal` value set in a setup method is not visible in the test. When a failure's class comes from student code and replaces one of the methods Java declares for failures, such as `getMessage` or `FileSystemException.getReason`, the report names only that class. None of the student's code runs while Ares builds the report.
+
+#### 7.7.2 Output and I/O manager
+
+`regardingTheOutputOfTheTestCases` chooses the I/O manager, as `@WithIOManager` does, and the output settings that apply to it, as `@MirrorOutput` does. Every field is optional.
+
+- `theOutputIsMirrored` (boolean): `true` echoes what a test writes to `System.out` and `System.err` to the real console as well. Defaults to `false`.
+- `theMaximumNumberOfOutputCharactersIs` (whole number): the limit on what a test writes to each stream. Ares counts it in UTF-8 bytes, as the IO tester does, so a character outside ASCII such as `ä` uses two. With `IO_TESTER`, a test that writes more fails with `too much standard output`. A custom manager receives the limit but has to enforce it itself. Above zero; defaults to 100000000.
+- `theInputAndOutputAreManagedBy` (`IO_TESTER`, `NONE` or `CUSTOM`): the manager. `IO_TESTER`, the default, records output and enforces the limit. `NONE` leaves output unrecorded, so the two output settings above do nothing, and Ares refuses them beside it. `CUSTOM` uses your own manager.
+- `theCustomInputAndOutputManagerIs` (class name): the custom manager, required with `CUSTOM` and refused otherwise.
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingTheOutputOfTheTestCases:
+    theOutputIsMirrored: true
+    theMaximumNumberOfOutputCharactersIs: 10000
+```
+
+**Precompile:** with `IO_TESTER`, the generator writes the two output settings as constants and a JUnit extension that applies the limit and echoes public output when asked. The extension shows nothing of a hidden test's output, but that output still counts toward the limit. With `NONE` it writes no output extension. `CUSTOM` stops the generator, because a precompile exercise has no Ares dependency to run the manager with.
+
+#### 7.7.3 Failure feedback
+
+`regardingTheFailureFeedbackForTheTestCases` says what a student sees when a public test fails. Every field is optional; the defaults are the behaviour without this category. There is no annotation for this any more: Ares 2.3.0 removed `@PrivilegedExceptionsOnly`.
+
+- `onlyPrivilegedExceptionsAreReported` (boolean): `true` replaces the text of every failure except a blocked action and a privileged one with a fixed message. Defaults to `false`.
+- `theFailureMessageForOtherExceptionsIs` (text): the fixed message. Defaults to `"Test failed."` when omitted or blank.
+- `theSecurityViolationFeedbackLevelIs` (`DEBUG`, `HIGH`, `MEDIUM` or `LOW`): how much a blocked action reveals. Defaults to `HIGH`.
+
+In a precompile exercise the feedback level decides every action the copied checks block, and the failures of the generated ArchUnit and WALA tests:
+
+| Level | What the student sees, for a blocked read of `/etc/passwd` |
+|---|---|
+| `DEBUG` | The `HIGH` message and a hint. For a blocked read, the hint reads `Allow it by granting the read permission on /etc/passwd in the security policy SecurityPolicy1.yml as:`. The entry to paste follows on the next lines.<br/>`- onThisPathAndAllPathsBelow: "/etc/passwd"`<br/>`  readAllFiles: true`<br/>`  overwriteAllFiles: false`<br/>`  createAllFiles: false`<br/>`  executeAllFiles: false`<br/>`  deleteAllFiles: false`<br/>The policy reader accepts the entry as written, and it grants only that action. Network, command and package-import entries look the same way; a package entry sets `exactMatchOnly: true`, so it allows no package below the blocked one. For an action the architecture analysis blocks, whose exact target is not known, the hint names only the category. Three more cases get only the category: a command run with arguments, a target holding the wildcard `*`, and port zero, which a policy reads as every port. So the hint never grants more than the blocked action on its target. A file entry names `onThisPathAndAllPathsBelow`, so for a blocked directory the pasted entry allows the same action on every path below it as well. A blocked thread gets only the category as well: its limit can be used up, and one more entry then changes nothing. A fixed architecture rule, such as using reflection, gets no hint. A policy built in code has no file name, so the hint says only "the security policy". |
+| `HIGH` (default) | The full message, as before: `Ares Security Error (Reason: Student-Code; Stage: Execution): Main.run tried to illegally read File /etc/passwd via FileInputStream.<init> but was blocked by Ares.` |
+| `MEDIUM` | `Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally read a File, but was blocked by Ares.` Only the kind of action: reading, overwriting, creating, executing or deleting a file, opening a network connection, sending or receiving data over it, executing a command or creating a thread. No target or caller, and no stack. An action the architecture analysis blocks shows the `LOW` text. |
+| `LOW` | `Ares Security Error (Reason: Student-Code; Stage: Execution): Supervised code tried to illegally violate a policy, but was blocked by Ares.` No action, target or caller, and no stack. |
+
+Every text exists in English and German.
+
+Errors in Ares itself (`Reason: Ares-Code`) are never shortened and never get a hint. A student who creates an exception that looks like a blocked action gets no special treatment: only the exceptions Ares's own checks create follow the level.
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingTheFailureFeedbackForTheTestCases:
+    onlyPrivilegedExceptionsAreReported: true
+    theFailureMessageForOtherExceptionsIs: "Something went wrong."
+    theSecurityViolationFeedbackLevelIs: LOW
+```
+
+**Precompile:** the generator writes the three values as constants and a JUnit extension, but only when privileged-only reporting is on or the level is not `HIGH`. At `MEDIUM` and `LOW`, the extension shows only the fixed texts above, the `MEDIUM` phrase chosen from the blocked action's kind, and never the exception's own text. At `HIGH` with privileged-only reporting on, it reports a recognised blocked action as it is, with its own message and no length limit. `DEBUG` keeps that message and its stack and adds the hint built from the action's parts, each cut to 200 characters; a target that reaches that length gets only the category. The generated hint names the policy file the generator read, such as `the security policy SecurityPolicy.yaml`. A failure that only wraps one shows the blocked action alone. In a generated exercise the copied checks sit in the exercise's own package, so a student class placed there could create such an exception. At `MEDIUM` and `LOW`, the most it can show is its kind of action; at `HIGH` and `DEBUG`, its own message. One failure keeps its own message: one thrown by another extension's callback, such as an instructor's `BeforeEachCallback`, because JUnit hands it to no extension that could replace it. Keep student code out of such callbacks.
+
+#### 7.7.4 Visibility and schedule
+
+`regardingTheVisibilityAndScheduleOfTheTestCases` sets, for the whole exercise, what `@Deadline`, `@ExtendedDeadline` and `@ActivateHiddenBefore` set per class or method, and what `@Hidden` and `@Public` say about a test.
+
+- `theDeadlineIs` (text, **required**): the deadline, in the `@Deadline` format, ending in a time zone such as `Europe/Berlin` or `UTC`. Hidden tests run once it has passed.
+- `theDeadlineIsExtendedBy` (duration, optional): added to the deadline.
+- `theHiddenTestsAreRunBefore` (text, optional): a date in the same format, before which hidden tests run, as `@ActivateHiddenBefore` does.
+- `testsNotListedHereAreHidden` (boolean, **required**): whether a test no entry names is hidden (`true`) or left to its annotations (`false`).
+- `theFollowingTestsAreHidden` (list of text, optional): the hidden tests. A fully qualified class name (`org.example.PenguinTest`) covers every test in that class and in its nested classes. A class name followed by `#` and a method name (`org.example.PenguinTest#name`) covers every method of that name the class declares or inherits, but not one of a nested class. Write a nested class with dots (`org.example.PenguinTest.Inner`).
+- `theFollowingTestsArePublic` (list of text, optional): the public tests, written the same way.
+
+The nearest entry wins: the test's own class with its method, then its class, then each class it is nested in. Only when no entry names a test does `testsNotListedHereAreHidden` decide. An entry that matches no test class or method, or that is on both lists, fails every test and names it.
+
+```yaml
+theFollowingTestBehaviorIsConfigured:
+  regardingTheVisibilityAndScheduleOfTheTestCases:
+    theDeadlineIs: "2026-12-24 23:59 Europe/Berlin"
+    theDeadlineIsExtendedBy: "1 DAYS"
+    testsNotListedHereAreHidden: true
+    theFollowingTestsAreHidden:
+      - "org.example.PenguinTest#secret"
+    theFollowingTestsArePublic:
+      - "org.example.PenguinTest"
+```
+
+Here every test is hidden, except the tests of `PenguinTest`, which are public, apart from its `secret` method.
+
+**Precompile:** a precompile exercise has no `@HiddenTest` or `@PublicTest`, so the policy is the only way to mark a test hidden or public. The generator writes the values as constants and a JUnit extension. Until the deadline, that extension holds back each hidden test method and a test factory and its dynamic tests. It skips a hidden parameterised or repeated test as a whole, with the scheduling message, so the methods that supply its arguments do not run either. A hidden test runs after the deadline, and before the date in `theHiddenTestsAreRunBefore`. Then those methods run before the extension can watch them. It hides neither what they print nor the text of their failure, and the generated timeout does not cover them. Sometimes JUnit runs a constructor or setup before the deadline check; a failure there gives a failed result with no details instead of the scheduling message, and the method body still does not run. The extension never hides the tests Ares generates beside it. The generator stops when an entry names no class in the test sources. It stops as well when an entry names a method that is not a test of that class, declared or inherited. Only a class in the test sources counts for that, so a test inherited from a dependency cannot be named. A test carries `@Test`, `@ParameterizedTest`, `@RepeatedTest`, `@TestFactory`, `@TestTemplate`, `@PublicTest` or `@HiddenTest`, or an annotation of the test sources marked with one of them.
+
+#### 7.7.6 Generated precompile output
+
+A precompile exercise has no Ares dependency at run time. For every category the policy sets, the generator writes its own code into the exercise's test sources, in `de.tum.cit.ase.ares.generated`. It writes the settings as constants of `GeneratedTestBehaviorSettings`, one JUnit extension per category, and one sentinel test per extension that fails when its extension did not run. JUnit loads all extensions through one marked block in `junit-platform.properties` and the service file, so no test needs an annotation. That block limits which extensions JUnit loads, and JUnit reads this limit from 5.12 on. The generator therefore stops when the build file names an older JUnit Jupiter or JUnit BOM version, or one that is not a number, such as `latest.release`. It stops too when a build file is there but cannot be read. It looks up and checks a version the exercise sets in its own `pom.xml` properties, Gradle variables, `gradle.properties` or `gradle/libs.versions.toml`. It accepts a version it cannot look up there, such as one from a parent. For a Maven version range it checks the lowest version the range allows, or the highest when the range has no lowest, so `[5.11.4]`, `[5.11,6)` or `(,5.11.4]` stops it too. The build file does not show every version, so each generated extension further reads the version of the JUnit engine running the tests when JUnit loads it. Below 5.12, or when the engine's JAR names no version, the whole test run fails with a message naming the version, so no test runs. A service file listed before the generated one on the class path is still loaded first; the test resources come first on Maven's and Gradle's test class path. Regenerating without a category deletes its files again. Keep generated precompile output and the Ares dependency out of the same exercise, since both handle the same test.
 
 ---
 
@@ -618,7 +755,7 @@ regardingTimeouts:
   - timeout: 60000
 ```
 
-> **Not in effect yet.** `regardingTimeouts` is parsed and validated into the policy model, but the resulting limit becomes a **Phobos** test case. Phobos is the test-case family covering the file-system, network and timeout domains, and in Ares 2.2.1 it is a generation-only stage: Ares writes those cases out, but the in-process execution path used by the JUnit extension does not dispatch them yet. That migration is still in progress. A timeout expressed here therefore does not bound test execution today, whether the list is populated or empty. Use `@StrictTimeout` on the test class or method wherever a deadline is required. The list must still be present in the file, because all six resource-access lists are structurally required; `regardingTimeouts: []` is the clearest form unless you want to record an intended value for a later release.
+> **Not in effect yet.** `regardingTimeouts` is parsed and validated into the policy model, but the resulting limit becomes a **Phobos** test case. Phobos is the test-case family covering the file-system, network and timeout domains, and in Ares 2.2.1 it is a generation-only stage: Ares writes those cases out, but the in-process execution path used by the JUnit extension does not dispatch them yet. That migration is still in progress. A timeout expressed here therefore does not bound test execution today, whether the list is populated or empty. Use [`regardingTheStrictTimeoutForTheTestCases`](#77-test-behaviour-configuration) in the policy, or `@StrictTimeout` on the test class or method, wherever a deadline is required. The policy setting needs Ares 2.3.0; on Ares 2.2.1, use `@StrictTimeout`. The list must still be present in the file, because all six resource-access lists are structurally required; `regardingTimeouts: []` is the clearest form unless you want to record an intended value for a later release.
 
 ### 8.7 Internal Record: `ClassPermission`
 

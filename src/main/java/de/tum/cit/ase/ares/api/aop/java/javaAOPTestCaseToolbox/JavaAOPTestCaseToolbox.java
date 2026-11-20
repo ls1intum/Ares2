@@ -1,7 +1,9 @@
 package de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,7 +24,8 @@ public final class JavaAOPTestCaseToolbox {
 			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.string",
 					value != null ? value.getClass() : null));
 		}
-		return String.format("private static String %s = \"%s\";%n", adviceSetting, escapeJavaString((String) value));
+		return String.format(Locale.ROOT, "private static String %s = \"%s\";%n", adviceSetting,
+				escapeJavaString((String) value));
 	}
 
 	/**
@@ -37,6 +40,32 @@ public final class JavaAOPTestCaseToolbox {
 	 */
 	@Nonnull
 	private static String escapeJavaString(@Nonnull String raw) {
+		return escapedBody(raw);
+	}
+
+	/**
+	 * A Java string literal, quotes included, holding a value exactly; for text a
+	 * generated class keeps to itself rather than in a public field.
+	 *
+	 * @since 2.3.0
+	 * @author Luka Petrovic
+	 * @param raw the value to embed
+	 * @return the literal
+	 */
+	@Nonnull
+	public static String getStringLiteral(@Nonnull String raw) {
+		return "\"" + escapedBody(raw) + "\"";
+	}
+
+	/**
+	 * The escaped body of a string literal, as {@link #escapeJavaString(String)}
+	 * describes.
+	 *
+	 * @param raw the raw value to embed
+	 * @return the escaped literal body
+	 */
+	@Nonnull
+	private static String escapedBody(@Nonnull String raw) {
 		StringBuilder escaped = new StringBuilder(raw.length() + 8);
 		for (int index = 0; index < raw.length(); index++) {
 			char character = raw.charAt(index);
@@ -57,14 +86,15 @@ public final class JavaAOPTestCaseToolbox {
 			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.int",
 					value != null ? value.getClass() : null));
 		}
-		return String.format("private static int %s = %d;%n", adviceSetting, value);
+		return String.format(Locale.ROOT, "private static int %s = %d;%n", adviceSetting, value);
 	}
 
 	/**
 	 * Formats a {@code public static final String} field assignment, for a
 	 * generated class read directly (no reflection-crossing classloader trick), as
 	 * opposed to the {@code private static} advice-settings fields the other
-	 * assignment methods in this class produce.
+	 * assignment methods in this class produce. A value too long for one class-file
+	 * constant is joined from shorter literals when the class loads.
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
@@ -77,7 +107,62 @@ public final class JavaAOPTestCaseToolbox {
 			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.string",
 					value != null ? value.getClass() : null));
 		}
-		return String.format("public static final String %s = \"%s\";%n", fieldName, escapeJavaString((String) value));
+		String text = (String) value;
+		if (modifiedUtf8Length(text) < MAXIMUM_CONSTANT_BYTES) {
+			return String.format(Locale.ROOT, "public static final String %s = \"%s\";%n", fieldName,
+					escapeJavaString(text));
+		}
+		return String.format(Locale.ROOT, "public static final String %s = String.join(\"\", %s);%n", fieldName,
+				String.join(", ", chunkLiterals(text)));
+	}
+
+	/**
+	 * One more than the bytes a single generated literal may take: the class file
+	 * holds 65,535, but {@code javac} already refuses a literal of that length.
+	 */
+	private static final int MAXIMUM_CONSTANT_BYTES = 65_535;
+
+	/**
+	 * The characters of one joined literal: at most three bytes each, so well
+	 * within one constant.
+	 */
+	private static final int CHUNK_CHARACTERS = 16_000;
+
+	/**
+	 * The length a string takes as a class-file constant, in modified UTF-8.
+	 *
+	 * @param text the string.
+	 * @return its encoded length in bytes
+	 */
+	private static long modifiedUtf8Length(@Nonnull String text) {
+		long bytes = 0;
+		for (int index = 0; index < text.length(); index++) {
+			char character = text.charAt(index);
+			bytes += character != 0 && character < 0x80 ? 1 : character < 0x800 ? 2 : 3;
+		}
+		return bytes;
+	}
+
+	/**
+	 * A long string as consecutive literals of at most {@link #CHUNK_CHARACTERS}
+	 * characters, never splitting a surrogate pair.
+	 *
+	 * @param text the string.
+	 * @return the literals, quotes included
+	 */
+	@Nonnull
+	private static List<String> chunkLiterals(@Nonnull String text) {
+		List<String> literals = new ArrayList<>();
+		int start = 0;
+		while (start < text.length()) {
+			int end = Math.min(text.length(), start + CHUNK_CHARACTERS);
+			if (end < text.length() && Character.isHighSurrogate(text.charAt(end - 1))) {
+				end--;
+			}
+			literals.add(getStringLiteral(text.substring(start, end)));
+			start = end;
+		}
+		return literals;
 	}
 
 	/**
@@ -97,7 +182,25 @@ public final class JavaAOPTestCaseToolbox {
 			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.boolean",
 					value != null ? value.getClass() : null));
 		}
-		return String.format("public static final boolean %s = %b;%n", fieldName, value);
+		return String.format(Locale.ROOT, "public static final boolean %s = %b;%n", fieldName, value);
+	}
+
+	/**
+	 * Formats a {@code public static final long} field assignment, for a generated
+	 * class read directly, as the boolean variant above.
+	 *
+	 * @since 2.3.0
+	 * @author Luka Petrovic
+	 * @param fieldName the name of the field to assign; must not be null.
+	 * @param value     the value to assign; must be a {@link Long}.
+	 * @return the formatted field assignment, terminated with a newline.
+	 */
+	public static String getPublicStaticFinalLongAssignment(@Nonnull String fieldName, @Nullable Object value) {
+		if (!(value instanceof Long)) {
+			throw new SecurityException(Messages.localized("security.advice.settings.data.type.mismatch.long",
+					value != null ? value.getClass() : null));
+		}
+		return String.format(Locale.ROOT, "public static final long %s = %dL;%n", fieldName, value);
 	}
 	// </editor-fold>
 
@@ -109,7 +212,8 @@ public final class JavaAOPTestCaseToolbox {
 		}
 		String stringArrayValue = ((List<?>) value).stream().map(Object::toString)
 				.map(s -> "\"" + escapeJavaString(s) + "\"").collect(Collectors.joining(", "));
-		return String.format("private static String[] %s = new String[] {%s};%n", adviceSetting, stringArrayValue);
+		return String.format(Locale.ROOT, "private static String[] %s = new String[] {%s};%n", adviceSetting,
+				stringArrayValue);
 	}
 
 	public static String getIntegerOneDArrayAssignment(@Nonnull String adviceSetting, @Nullable Object value) {
@@ -118,7 +222,7 @@ public final class JavaAOPTestCaseToolbox {
 					value != null ? value.getClass() : null));
 		}
 		String intArrayValue = ((List<?>) value).stream().map(Object::toString).collect(Collectors.joining(", "));
-		return String.format("private static int[] %s = new int[] {%s};%n", adviceSetting, intArrayValue);
+		return String.format(Locale.ROOT, "private static int[] %s = new int[] {%s};%n", adviceSetting, intArrayValue);
 	}
 	// </editor-fold>
 
@@ -151,7 +255,7 @@ public final class JavaAOPTestCaseToolbox {
 			}
 		}).collect(Collectors.joining(", "));
 		// No trailing semicolon/newline to match expected output
-		return String.format("private static String[][] %s = new String[][] {%s};%n", adviceSetting,
+		return String.format(Locale.ROOT, "private static String[][] %s = new String[][] {%s};%n", adviceSetting,
 				stringArrayArrayValue);
 	}
 
@@ -190,7 +294,8 @@ public final class JavaAOPTestCaseToolbox {
 		String intArrayArrayValue = outer.stream().map(e -> (List<?>) e)
 				.map(innerList -> innerList.stream().map(Object::toString).collect(Collectors.joining(", ")))
 				.map(innerArray -> "new int[]{" + innerArray + "}").collect(Collectors.joining(", "));
-		return String.format("private static int[][] %s = new int[][] {%s};%n", adviceSetting, intArrayArrayValue);
+		return String.format(Locale.ROOT, "private static int[][] %s = new int[][] {%s};%n", adviceSetting,
+				intArrayArrayValue);
 	}
 	// </editor-fold>
 }

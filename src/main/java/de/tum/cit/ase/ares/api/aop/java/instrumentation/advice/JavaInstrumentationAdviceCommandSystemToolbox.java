@@ -514,6 +514,18 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	}
 
 	/**
+	 * The kind a refused executable path is reported as: a file when it names an
+	 * existing executable, which a file entry can allow, and uninspectable when it
+	 * does not resolve, since no policy entry would let it run.
+	 *
+	 * @param path the refused path or command token.
+	 * @return the violation kind
+	 */
+	private static String executableKindOf(@Nonnull String path) {
+		return resolveExecutable(path) == null ? UNINSPECTABLE : "file";
+	}
+
+	/**
 	 * Resolves a command token to an existing executable file, searching
 	 * {@code PATH} for bare command names so that the executable allow-list also
 	 * constrains commands invoked without an explicit path (e.g. {@code git}).
@@ -790,10 +802,11 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughParameter != null) {
-			throw new SecurityException(localize("security.advice.illegal.command.execution",
-					commandSystemMethodToCheck, localizeAction(action), commandIllegallyExecutedThroughParameter,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+			throw AresSecurityViolation.create("command", action, commandIllegallyExecutedThroughParameter,
+					localize("security.advice.illegal.command.execution", commandSystemMethodToCheck,
+							localizeAction(action), commandIllegallyExecutedThroughParameter,
+							fullMethodSignature + describeCaller(studentCalledMethod) + " | "
+									+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
 		String pathIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null
@@ -807,10 +820,12 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// not
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
-			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
-					localizeAction(action), pathIllegallyExecutedThroughParameter,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
+			throw AresSecurityViolation.create(executableKindOf(pathIllegallyExecutedThroughParameter), action,
+					pathIllegallyExecutedThroughParameter,
+					localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
+							localizeAction(action), pathIllegallyExecutedThroughParameter,
+							fullMethodSignature + describeCaller(studentCalledMethod) + " | "
+									+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -820,10 +835,11 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughAttribute != null) {
-			throw new SecurityException(localize("security.advice.illegal.command.execution",
-					commandSystemMethodToCheck, localizeAction(action), commandIllegallyExecutedThroughAttribute,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+			throw AresSecurityViolation.create("command", action, commandIllegallyExecutedThroughAttribute,
+					localize("security.advice.illegal.command.execution", commandSystemMethodToCheck,
+							localizeAction(action), commandIllegallyExecutedThroughAttribute,
+							fullMethodSignature + describeCaller(studentCalledMethod) + " | "
+									+ buildDenialReason(noAllowRuleConfigured)));
 		}
 		@Nullable
 		String pathIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null
@@ -837,10 +853,12 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// not
 			// in the execute allow-list. Report that precisely instead of the misleading
 			// generic "no allow rule configured" reason.
-			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
-					localizeAction(action), pathIllegallyExecutedThroughAttribute,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
+			throw AresSecurityViolation.create(executableKindOf(pathIllegallyExecutedThroughAttribute), action,
+					pathIllegallyExecutedThroughAttribute,
+					localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
+							localizeAction(action), pathIllegallyExecutedThroughAttribute,
+							fullMethodSignature + describeCaller(studentCalledMethod) + " | "
+									+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
 	}

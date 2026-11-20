@@ -69,9 +69,9 @@ class SubsystemsDocumentationStructureTest {
 
 	@Test
 	void theSubsystemSectionHoldsAPageForEveryPackageAndItsManuals() {
-		assertEquals(16, subsystemPages().size(),
-				"The subsystem section is expected to hold exactly the seven package pages and the "
-						+ "reference manuals beneath them.");
+		assertEquals(17, subsystemPages().size(),
+				"The subsystem section is expected to hold exactly the seven package pages, the "
+						+ "reference manuals beneath them and the policy compatibility table.");
 	}
 
 	@Test

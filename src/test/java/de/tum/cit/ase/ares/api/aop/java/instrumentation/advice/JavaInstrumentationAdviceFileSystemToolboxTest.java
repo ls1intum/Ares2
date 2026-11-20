@@ -215,6 +215,31 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 		}
 	}
 
+	/**
+	 * A create through a writer that the message calls an overwrite still reports
+	 * the action it checked, so a DEBUG hint suggests the permission that was
+	 * missing.
+	 *
+	 * @param tempDir where the file would be created.
+	 * @throws Exception if the settings cannot be reset
+	 */
+	@Test
+	void checkFileSystemInteraction_aCreateThroughAWriterReportsTheCheckedAction(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[0], "ARCH",
+					"INSTRUMENTATION");
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkFilesNewOutputStreamCreate(tempDir.resolve("created.txt")));
+			assertInstanceOf(AresSecurityViolation.class, exception);
+			assertEquals("create", ((AresSecurityViolation) exception).action());
+		} finally {
+			resetSettings();
+		}
+	}
+
 	@Test
 	void checkFileSystemInteraction_appendsNotPermittedReasonWhenConfiguredButNotAllowed(@TempDir Path tempDir)
 			throws Exception {
