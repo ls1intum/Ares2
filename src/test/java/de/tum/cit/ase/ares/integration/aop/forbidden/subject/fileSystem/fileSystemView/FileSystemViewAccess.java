@@ -89,4 +89,27 @@ public final class FileSystemViewAccess {
 	public static File childThroughOwnView(File folder, String name) {
 		return new StudentFileSystemView().getChild(folder, name);
 	}
+
+	/**
+	 * Asks with {@code isLink} whether a folder's entry is a link, which Ares does
+	 * not check as a file read.
+	 *
+	 * @param folder the folder
+	 * @return whether its entry.txt is a link
+	 */
+	public static boolean entryIsLink(File folder) {
+		return FileSystemView.getFileSystemView().isLink(new File(folder, "entry.txt"));
+	}
+
+	/**
+	 * Lists a folder through a student's view whose hiding rule asks whether each
+	 * entry is a link.
+	 *
+	 * @param folder        the folder to list
+	 * @param useFileHiding whether to ask the hiding rule at all
+	 * @return its entries
+	 */
+	public static File[] listThroughHidingView(File folder, boolean useFileHiding) {
+		return new HidingFileSystemView().getFiles(folder, useFileHiding);
+	}
 }
