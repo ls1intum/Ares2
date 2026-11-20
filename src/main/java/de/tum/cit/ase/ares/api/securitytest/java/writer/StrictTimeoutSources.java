@@ -84,6 +84,23 @@ final class StrictTimeoutSources {
 
 				@ENGINE_CHECK@
 
+				/*
+				 * Registers this hook's loader with the copied thread checks, so they find it
+				 * even when they sit on the boot class path.
+				 */
+				static {
+					for (String checks : new String[] {
+							"@PACKAGE@.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox",
+							"@PACKAGE@.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemAdviceDefinitions" }) {
+						try {
+							Class.forName(checks, true, GeneratedStrictTimeout.class.getClassLoader())
+									.getMethod("registerGeneratedHookLoader", Class.class).invoke(null, GeneratedStrictTimeout.class);
+						} catch (ReflectiveOperationException | LinkageError | RuntimeException absent) {
+							continue;
+						}
+					}
+				}
+
 				/** The grace period a JUnit invocation gets when the policy names none. */
 				private static final Duration DEFAULT_GRACE = Duration.ofMillis(50);
 

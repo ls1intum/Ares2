@@ -158,7 +158,9 @@ class FailureReportingWriterTest extends GeneratedHookFilesTest.Project {
 				.contains(TestBehaviorConfiguration.FAILURE_FEEDBACK_LEVEL_FIELD_NAME)
 				.contains(PACKAGE + ".ares.api.aop.java.aspectj.adviceandpointcut.AresSecurityViolation")
 				.contains(PACKAGE + ".ares.api.aop.java.instrumentation.advice.AresSecurityViolation")
-				.doesNotContain("@PACKAGE@").doesNotContain("@LEVEL@");
+				.contains(PACKAGE
+						+ ".ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox")
+				.contains("registerGeneratedHookLoader").doesNotContain("@PACKAGE@").doesNotContain("@LEVEL@");
 	}
 
 	/**

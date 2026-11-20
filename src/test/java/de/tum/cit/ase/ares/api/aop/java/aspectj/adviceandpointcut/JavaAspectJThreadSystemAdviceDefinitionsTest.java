@@ -93,4 +93,18 @@ class JavaAspectJThreadSystemAdviceDefinitionsTest {
 	void theGeneratedReportingsExemptionIsExact(@TempDir Path tempDir) throws Exception {
 		GeneratedStackFrames.compile(tempDir).verifyReportingExemption(JavaAspectJThreadSystemAdviceDefinitions.class);
 	}
+
+	/**
+	 * Checks on the boot class path use the loader the first generated hook
+	 * registered, so a hook from a child loader, as under Gradle, keeps its
+	 * exemption and a later lookalike changes nothing.
+	 *
+	 * @param tempDir where the stand-in classes are compiled.
+	 * @throws Exception if a call fails
+	 */
+	@Test
+	void theFirstRegisteredHookLoaderIsTrustedFromTheBootPath(@TempDir Path tempDir) throws Exception {
+		GeneratedStackFrames.compile(tempDir)
+				.verifyRegisteredHookLoader(JavaAspectJThreadSystemAdviceDefinitions.class);
+	}
 }

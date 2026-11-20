@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.testutilities;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -285,6 +286,49 @@ public final class GeneratedStackFrames {
 		Assertions.assertFalse(
 				exempted(copied, loader, STUDENT_PACKAGE, GENERATED_HOOK, "executeWithTimeout", STUDENT_CODE, "run"),
 				"student code above the generated timeout must not be exempt");
+	}
+
+	/**
+	 * Checks the loader a backend's checks use from the boot class path: the
+	 * application loader until a generated hook registers, then the first hook's
+	 * loader, so a hook from a child loader is exempt; a later lookalike, a class
+	 * that is not a hook and a null class change nothing.
+	 *
+	 * @param backend the class holding the backend's check.
+	 * @throws Exception if a call fails
+	 */
+	public void verifyRegisteredHookLoader(Class<?> backend) throws Exception {
+		Method trusted = backend.getDeclaredMethod("trustedLoader", ClassLoader.class);
+		Method register = backend.getDeclaredMethod("registerGeneratedHookLoader", Class.class);
+		Method copied = backend.getDeclaredMethod("isThreadCreationFromAresTimeout", String.class, String.class,
+				ClassLoader.class);
+		trusted.setAccessible(true);
+		copied.setAccessible(true);
+		Field registered = backend.getDeclaredField("GENERATED_HOOK_LOADER");
+		registered.setAccessible(true);
+		java.util.concurrent.atomic.AtomicReference<?> slot = (java.util.concurrent.atomic.AtomicReference<?>) registered
+				.get(null);
+		Object before = slot.get();
+		slot.set(null);
+		try {
+			Assertions.assertSame(ClassLoader.getSystemClassLoader(), trusted.invoke(null, (Object) null),
+					"without a registration the boot path falls back to the application loader");
+			register.invoke(null, (Object) null);
+			register.invoke(null, loader.loadClass(COPIED_MESSAGES));
+			Assertions.assertSame(ClassLoader.getSystemClassLoader(), trusted.invoke(null, (Object) null),
+					"a null class or a class that is not a hook must not register");
+			register.invoke(null, loader.loadClass(GENERATED_HOOK));
+			register.invoke(null, forgedLoader.loadClass(GENERATED_HOOK));
+			ClassLoader chosen = (ClassLoader) trusted.invoke(null, (Object) null);
+			Assertions.assertSame(loader, chosen, "the first hook's loader must win over a later lookalike");
+			Assertions.assertTrue(
+					exempted(copied, chosen, "de.tum.cit.matches.nothing", GENERATED_HOOK, "executeWithTimeout"),
+					"a hook from a child loader must be exempt through the registered loader");
+		} finally {
+			@SuppressWarnings("unchecked")
+			java.util.concurrent.atomic.AtomicReference<Object> restore = (java.util.concurrent.atomic.AtomicReference<Object>) slot;
+			restore.set(before);
+		}
 	}
 
 	/**

@@ -52,7 +52,8 @@ class StrictTimeoutWriterTest extends GeneratedHookFilesTest.Project {
 	}
 
 	/**
-	 * Generating twice writes the same files.
+	 * Generating twice writes the same files, and the hook registers its loader
+	 * with the copied thread checks of both backends.
 	 *
 	 * @throws IOException if a written file cannot be read
 	 */
@@ -60,6 +61,8 @@ class StrictTimeoutWriterTest extends GeneratedHookFilesTest.Project {
 	void aSecondRunWritesTheSameFiles() throws IOException {
 		writer(null).write(configured(), PACKAGE, testFolder);
 		String hook = Files.readString(source(StrictTimeoutSources.JUPITER_HOOK));
+		assertThat(hook).contains("registerGeneratedHookLoader").contains(
+				PACKAGE + ".ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemAdviceDefinitions");
 
 		writer(null).write(configured(), PACKAGE, testFolder);
 

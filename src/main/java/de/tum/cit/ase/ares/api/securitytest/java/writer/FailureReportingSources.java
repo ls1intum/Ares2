@@ -89,6 +89,23 @@ final class FailureReportingSources {
 
 				@ENGINE_CHECK@
 
+				/*
+				 * Registers this hook's loader with the copied thread checks, so they find it
+				 * even when they sit on the boot class path.
+				 */
+				static {
+					for (String checks : new String[] {
+							"@PACKAGE@.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceThreadSystemToolbox",
+							"@PACKAGE@.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemAdviceDefinitions" }) {
+						try {
+							Class.forName(checks, true, GeneratedFailureReporting.class.getClassLoader())
+									.getMethod("registerGeneratedHookLoader", Class.class).invoke(null, GeneratedFailureReporting.class);
+						} catch (ReflectiveOperationException | LinkageError | RuntimeException absent) {
+							continue;
+						}
+					}
+				}
+
 				/** The test guarded now, inherited by a worker another hook starts. */
 				private static final InheritableThreadLocal<String> GUARDING = new InheritableThreadLocal<>();
 

@@ -61,6 +61,14 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	private static final String GENERATED_FAILURE_REPORTING = "de.tum.cit." + "ase.ares.generated.GeneratedFailureReporting";
 
 	/**
+	 * The loader the first generated hook registered, from its static initialiser
+	 * before any test runs. Checks on the boot class path use it to find the hooks
+	 * when the exercise's tests come from a child loader, as under Gradle.
+	 */
+	@Nonnull
+	private static final java.util.concurrent.atomic.AtomicReference<ClassLoader> GENERATED_HOOK_LOADER = new java.util.concurrent.atomic.AtomicReference<>();
+
+	/**
 	 * Weak identity map from admitted Thread receivers to their effective task class.
 	 * The recorded class survives Thread.exit() clearing the task field and is
 	 * revalidated against every active policy rather than preserving stale permission.
@@ -218,15 +226,45 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	}
 
 	/**
-	 * The loader these checks were loaded by, or the application loader when they
-	 * sit on the boot class path, where a precompile exercise's own classes are not.
+	 * Records the loader of a generated hook, so the identity and location checks
+	 * can find the hooks from the boot class path. The first registration wins;
+	 * a later one, a class that is not a generated hook by name, or one without a
+	 * loader is ignored.
+	 *
+	 * @param hook the generated hook registering itself.
+	 */
+	public static void registerGeneratedHookLoader(@Nullable Class<?> hook) {
+		if (hook != null && hook.getClassLoader() != null && hook.getName().equals(generatedHookOf(hook.getName()))) {
+			GENERATED_HOOK_LOADER.compareAndSet(null, hook.getClassLoader());
+		}
+	}
+
+	/**
+	 * The loader these checks were loaded by. On the boot class path, where a
+	 * precompile exercise's own classes are not, it is the loader the first
+	 * generated hook registered, else the application loader.
 	 *
 	 * @return the loader the copied checks and the generated hooks share
 	 */
 	@Nonnull
 	private static ClassLoader trustedLoader() {
-		ClassLoader own = JavaAspectJThreadSystemAdviceDefinitions.class.getClassLoader();
-		return own != null ? own : ClassLoader.getSystemClassLoader();
+		return trustedLoader(JavaAspectJThreadSystemAdviceDefinitions.class.getClassLoader());
+	}
+
+	/**
+	 * The same choice for a given own loader: that loader, or, for the boot class
+	 * path, the registered hook loader, else the application loader.
+	 *
+	 * @param own the checks' own loader; null on the boot class path.
+	 * @return the loader the copied checks and the generated hooks share
+	 */
+	@Nonnull
+	private static ClassLoader trustedLoader(@Nullable ClassLoader own) {
+		if (own != null) {
+			return own;
+		}
+		ClassLoader registered = GENERATED_HOOK_LOADER.get();
+		return registered != null ? registered : ClassLoader.getSystemClassLoader();
 	}
 
 	/**
