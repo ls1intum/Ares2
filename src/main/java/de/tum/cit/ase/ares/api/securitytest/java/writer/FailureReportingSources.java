@@ -649,7 +649,8 @@ final class FailureReportingSources {
 				/**
 				 * Finds a blocked action of the copied Ares checks anywhere in a failure: its
 				 * causes, suppressed failures and the members of an {@code assertAll} group,
-				 * visiting at most the traversal budget; {@link #UNSEARCHED} when the budget ran out first.
+				 * visiting at most the traversal budget; {@link #UNSEARCHED} when the budget ran
+				 * out first or a cause could not be read, since a failure above it may quote it.
 				 */
 				private static Throwable violationIn(Throwable throwable) {
 					java.util.Set<Throwable> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
@@ -663,7 +664,8 @@ final class FailureReportingSources {
 						if (isViolation(current)) {
 							return current;
 						}
-						if (!queueAttached(current, pending)) {
+						if (!safeCauseAccessor(current) && !fromGeneratedHooks(current.getClass())
+								|| !queueAttached(current, pending)) {
 							return UNSEARCHED;
 						}
 					}
@@ -852,7 +854,11 @@ final class FailureReportingSources {
 					return copies.containsKey(TRUNCATED) ? truncated(failure, copy) : copy;
 				}
 
-				/** Marks a copy that stopped at the budget with failures left, since one of them may be a blocked action. */
+				/**
+				 * Marks a copy that stopped at the budget with failures left, or that met a cause it
+				 * could not read, since a blocked action may hide there while a failure above it
+				 * quotes its text.
+				 */
 				private static final Throwable TRUNCATED = new Throwable();
 
 				/**
@@ -890,6 +896,9 @@ final class FailureReportingSources {
 						return null;
 					}
 					boolean marker = fromGeneratedHooks(failure.getClass());
+					if (!marker && !safeCauseAccessor(failure)) {
+						copies.put(TRUNCATED, TRUNCATED);
+					}
 					copies.put(failure, PENDING);
 					Throwable copy = marker ? freshMarker(failure) : copyAlone(failure, () -> causeCopyOf(failure, copies));
 					copies.put(failure, copy);
@@ -1419,11 +1428,29 @@ final class FailureReportingSources {
 				/**
 				 * Whether an entry can name the target exactly: not a target cut at the field
 				 * limit, not one holding the wildcard {@code *}, which the policy reads as any,
-				 * and not a command with arguments, whose boundaries the target text lost.
+				 * not a path holding a {@code ${...}} placeholder, which the policy expands, and
+				 * not a command with arguments, whose boundaries the target text lost.
 				 */
 				private static boolean isExactTarget(String kind, String target) {
-					return target.length() < FIELD_LIMIT && !java.util.List.of(target.split("[ :]", -1)).contains("*")
+					return target.length() < FIELD_LIMIT && !holdsAWildcard(kind, target)
+							&& !("file".equals(kind) && target.contains("${"))
 							&& !("command".equals(kind) && target.contains(" "));
+				}
+
+				/**
+				 * Whether a target is the wildcard where the policy reads one: the whole path, the
+				 * whole host or port of a network target, or one whole word of a command.
+				 */
+				private static boolean holdsAWildcard(String kind, String target) {
+					if ("network".equals(kind)) {
+						int colon = target.lastIndexOf(':');
+						return colon < 0 ? "*".equals(target)
+								: "*".equals(target.substring(0, colon)) || "*".equals(target.substring(colon + 1));
+					}
+					if ("command".equals(kind)) {
+						return java.util.List.of(target.split(" ", -1)).contains("*");
+					}
+					return "*".equals(target);
 				}
 
 				/** The entry for a command run without arguments. */

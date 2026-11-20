@@ -954,9 +954,11 @@ class GeneratedFailureReportingTest {
 		 * At DEBUG, a target no single entry can name exactly gets only the category: a
 		 * command with arguments, whose boundaries the target text lost (one argument
 		 * holding a space reads as two), a target that is the wildcard {@code *}, port
-		 * zero, a thread, whose denial may be an exhausted quota, and a target cut at
-		 * the 200-character field limit. A command without arguments gets its entry
-		 * with an empty argument list.
+		 * zero, a thread, whose denial may be an exhausted quota, a path holding a
+		 * {@code ${...}} placeholder, which the policy expands, and a target cut at the
+		 * 200-character field limit. A command without arguments gets its entry with an
+		 * empty argument list, and a path with a {@code *} that is not the whole path
+		 * gets its entry too, since only the whole value is the wildcard.
 		 *
 		 * @throws Exception if the generated hook cannot be loaded
 		 */
@@ -979,6 +981,16 @@ class GeneratedFailureReportingTest {
 			assertThat(renderedAtDebug(new Blocked("thread", "create", "java.lang.Thread")))
 					.endsWith(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory("",
 							"regardingThreadCreations", java.util.Optional.of("SecurityPolicy.yaml"))));
+			assertThat(renderedAtDebug(new Blocked("file", "read", "/home/${user}/notes")))
+					.endsWith(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory("",
+							"regardingFileSystemInteractions", java.util.Optional.of("SecurityPolicy.yaml"))));
+			assertThat(renderedAtDebug(new Blocked("file", "read", "/data/a *")))
+					.isEqualTo(inEnglish(() -> SecurityViolationFeedbackTexts.debug(
+							"Main.run tried to illegally read /data/a * but was blocked by Ares.", "read", "/data/a *",
+							java.util.Optional.of("SecurityPolicy.yaml"),
+							SecurityViolationFeedbackTexts.lines("- onThisPathAndAllPathsBelow: \"/data/a *\"",
+									"  readAllFiles: true", "  overwriteAllFiles: false", "  createAllFiles: false",
+									"  executeAllFiles: false", "  deleteAllFiles: false"))));
 			String longPath = "/" + "a".repeat(250);
 			assertThat(renderedAtDebug(new Blocked("file", "read", longPath)))
 					.endsWith(inEnglish(() -> SecurityViolationFeedbackTexts.debugCategory("",

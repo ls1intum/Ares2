@@ -124,7 +124,7 @@ class GeneratedAllHooksTest {
 						    regardingTheVisibilityAndScheduleOfTheTestCases:
 						      theDeadlineIs: "2000-01-01 00:00 UTC"
 						      testsNotListedHereAreHidden: false
-						      theFollowingTestsAreHidden: ["com.example.fixtures.HiddenFixture", "com.example.fixtures.HiddenTimeoutFixture", "com.example.fixtures.HiddenLoudFixture", "com.example.fixtures.HiddenFactoryFixture", "com.example.fixtures.HiddenUnflushedFixture", "com.example.fixtures.HiddenAbortFixture"]
+						      theFollowingTestsAreHidden: ["com.example.fixtures.HiddenFixture", "com.example.fixtures.HiddenTimeoutFixture", "com.example.fixtures.HiddenLoudFixture", "com.example.fixtures.HiddenFactoryFixture", "com.example.fixtures.HiddenIteratorFactoryFixture", "com.example.fixtures.HiddenUnflushedFixture", "com.example.fixtures.HiddenAbortFixture"]
 						""");
 		Files.writeString(project.resolve("pom.xml"), "<project/>");
 		Files.createDirectories(project.resolve("src/main/java"));
@@ -142,6 +142,11 @@ class GeneratedAllHooksTest {
 				"@TestFactory java.util.stream.Stream<DynamicTest> cases() { return java.util.stream.Stream.of(1)"
 						+ ".map(number -> { System.out.print(\"SECRET_FACTORY\");"
 						+ " return DynamicTest.dynamicTest(\"case\", () -> { }); }); }");
+		fixture(fixtures, "HiddenIteratorFactoryFixture",
+				"public static final class Cases { public java.util.Iterator<DynamicTest> iterator() {"
+						+ " return java.util.stream.Stream.of(1).map(number -> { System.out.print(\"SECRET_ITERATOR\");"
+						+ " return DynamicTest.dynamicTest(\"case\", () -> { }); }).iterator(); } }"
+						+ " @TestFactory Cases cases() { return new Cases(); }");
 		fixture(fixtures, "ResourceFactoryFixture",
 				"static final java.util.concurrent.atomic.AtomicBoolean OUTER = new java.util.concurrent.atomic.AtomicBoolean();"
 						+ " static final java.util.concurrent.atomic.AtomicBoolean INNER = new java.util.concurrent.atomic.AtomicBoolean();"
@@ -220,6 +225,10 @@ class GeneratedAllHooksTest {
 				+ " RuntimeException outer = new RuntimeException(violation.toString());"
 				+ " for (int i = 0; i < 255; i++) { outer.addSuppressed(new IllegalStateException(\"inner \" + i)); }"
 				+ " outer.addSuppressed(new RuntimeException(violation)); throw outer; }");
+		fixture(fixtures, "QuotedUnreadableViolationFixture",
+				"@Test void reads() { RuntimeException unreadable = new RuntimeException(" + VIOLATION_PACKAGE
+						+ ".ViolationSource.blocked()) { @Override public synchronized Throwable getCause() {"
+						+ " return super.getCause(); } }; throw new RuntimeException(unreadable); }");
 		fixture(fixtures, "SuppressedViolationFixture",
 				"@Test void reads() { IllegalStateException outer = new IllegalStateException(\"outer\");"
 						+ " outer.addSuppressed(" + VIOLATION_PACKAGE + ".ViolationSource.blocked()); throw outer; }");
@@ -432,6 +441,24 @@ class GeneratedAllHooksTest {
 		assertThat(captured.results().testEvents().succeeded().stream()
 				.map(event -> event.getTestDescriptor().getDisplayName())).containsExactly("case");
 		assertThat(captured.output()).doesNotContain("SECRET_FACTORY");
+	}
+
+	/**
+	 * A hidden factory whose result only has a public {@code iterator()}, which
+	 * JUnit also accepts, prints nothing either, since the hooks read it while
+	 * still guarding the factory; its dynamic test still runs and passes.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aHiddenIteratorOnlyFactoryPrintsNothing(boolean reversed) throws Exception {
+		Captured captured = captured(() -> run("com.example.fixtures.HiddenIteratorFactoryFixture", reversed));
+		assertThat(captured.results().containerEvents().failed().count()).isZero();
+		assertThat(captured.results().testEvents().succeeded().stream()
+				.map(event -> event.getTestDescriptor().getDisplayName())).containsExactly("case");
+		assertThat(captured.output()).doesNotContain("SECRET_ITERATOR");
 	}
 
 	/**
@@ -694,6 +721,21 @@ class GeneratedAllHooksTest {
 		List<String> messages = messages(run("com.example.fixtures.DeepViolationFixture", reversed));
 		assertThat(messages).hasSize(1);
 		assertThat(messages.get(0)).doesNotContain(BLOCKED_PATH);
+	}
+
+	/**
+	 * A failure whose message quotes a failure with an unreadable cause, which
+	 * holds a blocked action, shows no text of its own in either registration
+	 * order: the search cannot pass the unreadable cause, so it is not complete.
+	 *
+	 * @param reversed whether the hooks are registered the other way round.
+	 * @throws Exception if the run cannot be set up
+	 */
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void aQuotedUnreadableCauseShowsNoText(boolean reversed) throws Exception {
+		List<String> messages = messages(run("com.example.fixtures.QuotedUnreadableViolationFixture", reversed));
+		assertThat(messages).containsExactly("java.lang.RuntimeException");
 	}
 
 	/**

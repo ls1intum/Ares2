@@ -302,9 +302,42 @@ final class HiddenTestsSources {
 							nodes.add(materialisedNode(item, closer, opened));
 						}
 					} else {
-						return result;
+						Iterator<?> iterator = reflectiveIterator(result);
+						if (iterator == null) {
+							return result;
+						}
+						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
 					}
 					return (T) nodes;
+				}
+
+				/**
+				 * The iterator of a result that is none of the shapes above but has a public,
+				 * parameterless {@code iterator()} returning an {@code Iterator}, which JUnit also
+				 * accepts, so its tests are read under this hook's guard too; null when it has none.
+				 *
+				 * @param result the factory's result
+				 * @return its iterator, or null
+				 */
+				private static Iterator<?> reflectiveIterator(Object result) {
+					Method method;
+					try {
+						method = result.getClass().getMethod("iterator");
+						method.setAccessible(true);
+					} catch (NoSuchMethodException | RuntimeException unusable) {
+						return null;
+					}
+					if (!Iterator.class.isAssignableFrom(method.getReturnType())) {
+						return null;
+					}
+					try {
+						return (Iterator<?>) method.invoke(result);
+					} catch (java.lang.reflect.InvocationTargetException thrown) {
+						rethrow(thrown.getCause());
+						return null;
+					} catch (IllegalAccessException inaccessible) {
+						return null;
+					}
 				}
 
 				/**

@@ -182,15 +182,16 @@ class GeneratedStrictTimeoutTest {
 	/**
 	 * Every JUnit invocation kind the interceptor times stops at the limit with the
 	 * localised timeout message, also a factory whose tests are produced lazily, in
-	 * a nested container too.
+	 * a nested container too or through a result with only a public
+	 * {@code iterator()}.
 	 *
 	 * @param fixture the fixture whose one timed invocation loops.
 	 * @throws Exception if the run cannot be set up
 	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "ConstructorFixture", "BeforeAllFixture", "BeforeEachFixture", "TestMethodFixture",
-			"FactoryFixture", "LazyFactoryFixture", "LazyContainerFixture", "TemplateFixture", "DynamicFixture",
-			"AfterEachFixture", "AfterAllFixture" })
+			"FactoryFixture", "LazyFactoryFixture", "IteratorFactoryFixture", "LazyContainerFixture", "TemplateFixture",
+			"DynamicFixture", "AfterEachFixture", "AfterAllFixture" })
 	void everyInvocationKindTimesOut(String fixture) throws Exception {
 		EngineExecutionResults results = runJupiter(fixture, Locale.ENGLISH);
 
@@ -468,6 +469,9 @@ class GeneratedStrictTimeoutTest {
 				"@TestFactory java.util.List<DynamicTest> cases() { Loop.untilInterrupted(); return java.util.List.of(); }");
 		fixture(folder, "LazyFactoryFixture", "",
 				"@TestFactory java.util.stream.Stream<DynamicTest> cases() { return java.util.stream.Stream.generate(() -> DynamicTest.dynamicTest(\"case\", () -> { })).peek(test -> Loop.untilInterrupted()).limit(1); }");
+		fixture(folder, "IteratorFactoryFixture",
+				"public static final class Cases { public java.util.Iterator<DynamicTest> iterator() { return java.util.stream.Stream.generate(() -> DynamicTest.dynamicTest(\"case\", () -> { })).peek(test -> Loop.untilInterrupted()).limit(1).iterator(); } }",
+				"@TestFactory Cases cases() { return new Cases(); }");
 		fixture(folder, "LazyContainerFixture", "",
 				"@TestFactory java.util.stream.Stream<DynamicNode> cases() { return java.util.stream.Stream.of(DynamicContainer.dynamicContainer(\"inner\", java.util.stream.Stream.generate(() -> DynamicTest.dynamicTest(\"case\", () -> { })).peek(test -> Loop.untilInterrupted()).limit(1))); }");
 		fixture(folder, "TemplateFixture", "",

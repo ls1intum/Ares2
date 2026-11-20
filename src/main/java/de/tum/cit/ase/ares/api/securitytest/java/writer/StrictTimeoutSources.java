@@ -259,9 +259,42 @@ final class StrictTimeoutSources {
 							nodes.add(materialisedNode(item, closer, opened));
 						}
 					} else {
-						return result;
+						Iterator<?> iterator = reflectiveIterator(result);
+						if (iterator == null) {
+							return result;
+						}
+						iterator.forEachRemaining(item -> nodes.add(materialisedNode(item, closer, opened)));
 					}
 					return (T) nodes;
+				}
+
+				/**
+				 * The iterator of a result that is none of the shapes above but has a public,
+				 * parameterless {@code iterator()} returning an {@code Iterator}, which JUnit also
+				 * accepts, so its tests are read under this hook's guard too; null when it has none.
+				 *
+				 * @param result the factory's result
+				 * @return its iterator, or null
+				 */
+				private static Iterator<?> reflectiveIterator(Object result) {
+					Method method;
+					try {
+						method = result.getClass().getMethod("iterator");
+						method.setAccessible(true);
+					} catch (NoSuchMethodException | RuntimeException unusable) {
+						return null;
+					}
+					if (!Iterator.class.isAssignableFrom(method.getReturnType())) {
+						return null;
+					}
+					try {
+						return (Iterator<?>) method.invoke(result);
+					} catch (java.lang.reflect.InvocationTargetException thrown) {
+						rethrow(thrown.getCause());
+						return null;
+					} catch (IllegalAccessException inaccessible) {
+						return null;
+					}
 				}
 
 				/**
@@ -610,7 +643,11 @@ final class StrictTimeoutSources {
 					return copies.containsKey(TRUNCATED) ? truncated(failure, copy) : copy;
 				}
 
-				/** Marks a copy that stopped at the budget with failures left, since one of them may be a blocked action. */
+				/**
+				 * Marks a copy that stopped at the budget with failures left, or that met a cause it
+				 * could not read, since a blocked action may hide there while a failure above it
+				 * quotes its text.
+				 */
 				private static final Throwable TRUNCATED = new Throwable();
 
 				/**
@@ -648,6 +685,9 @@ final class StrictTimeoutSources {
 						return null;
 					}
 					boolean marker = fromGeneratedHooks(failure.getClass());
+					if (!marker && !safeCauseAccessor(failure)) {
+						copies.put(TRUNCATED, TRUNCATED);
+					}
 					copies.put(failure, PENDING);
 					Throwable copy = marker ? freshMarker(failure) : copyAlone(failure, () -> causeCopyOf(failure, copies));
 					copies.put(failure, copy);
