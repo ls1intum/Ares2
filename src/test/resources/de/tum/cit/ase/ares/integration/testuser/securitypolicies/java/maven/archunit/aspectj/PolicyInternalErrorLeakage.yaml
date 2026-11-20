@@ -5,7 +5,6 @@ regardingTheSupervisedCode:
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.testuser.HiddenFeedbackUser"
-    - "de.tum.cit.ase.ares.integration.InternalErrorLeakageTemporaryTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: []
     regardingNetworkConnections: []
