@@ -11,8 +11,8 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 /**
  * The policy-wide default of {@code @StrictTimeout}: how long a supervised test
  * may run, and how long a timed-out test may take to stop before Ares halts the
- * test process. Both are durations such as {@code "2s"} or {@code "500ms"},
- * read by {@link PolicyDuration}.
+ * test process. Both are durations such as {@code "2 SECONDS"} or
+ * {@code "500 MILLISECONDS"}, read by {@link PolicyDuration}.
  *
  * @since 2.3.0
  * @author Luka Petrovic
@@ -123,7 +123,7 @@ public record StrictTimeoutConfiguration(@Nonnull String theTimeoutIs, @Nullable
 		 *
 		 * @since 2.3.0
 		 * @author Luka Petrovic
-		 * @param theTimeoutIs the timeout, such as {@code "2s"}.
+		 * @param theTimeoutIs the timeout, such as {@code "2 SECONDS"}.
 		 * @return the updated Builder.
 		 */
 		@Nonnull
@@ -137,8 +137,8 @@ public record StrictTimeoutConfiguration(@Nonnull String theTimeoutIs, @Nullable
 		 *
 		 * @since 2.3.0
 		 * @author Luka Petrovic
-		 * @param theTerminationGraceIs the grace period, such as {@code "500ms"}; may
-		 *                              be null.
+		 * @param theTerminationGraceIs the grace period, such as
+		 *                              {@code "500 MILLISECONDS"}; may be null.
 		 * @return the updated Builder.
 		 */
 		@Nonnull

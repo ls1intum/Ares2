@@ -14,6 +14,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -28,7 +29,9 @@ import org.junit.jupiter.params.provider.CsvSource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
+import de.tum.cit.ase.ares.api.AresConstants;
 import de.tum.cit.ase.ares.api.MirrorOutput;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.InputOutputManagerKind;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
@@ -452,7 +455,9 @@ public class SecurityPolicyYAMLReaderTest {
 		@Test
 		@DisplayName("Should parse the wrapper with no category, as released in 2.2.1")
 		void emptyWrapperParses(@TempDir Path tempDir) throws IOException {
-			TestBehaviorConfiguration behavior = behavior(tempDir, "{}");
+			TestBehaviorConfiguration behavior = read(tempDir,
+					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: {}\n")
+							.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured();
 			assertNull(behavior.regardingTheStrictTimeoutForTheTestCases());
 			assertNull(behavior.regardingTheOutputOfTheTestCases());
 		}
@@ -469,8 +474,8 @@ public class SecurityPolicyYAMLReaderTest {
 			TestBehaviorConfiguration behavior = behavior(tempDir, """
 
 					    regardingTheStrictTimeoutForTheTestCases:
-					      theTimeoutIs: "2s"
-					      theTerminationGraceIs: "500ms"
+					      theTimeoutIs: "2 SECONDS"
+					      theTerminationGraceIs: "500 MILLISECONDS"
 					    regardingTheOutputOfTheTestCases:
 					      theOutputIsMirrored: true
 					      theMaximumNumberOfOutputCharactersIs: 1000
@@ -518,14 +523,15 @@ public class SecurityPolicyYAMLReaderTest {
 		@CsvSource(delimiter = '|', value = { "wrapper not an object | []", "wrapper explicit null | null",
 				"unknown category | { regardingSomethingElse: {} }",
 				"category explicit null | { regardingTheStrictTimeoutForTheTestCases: null }",
-				"field explicit null | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s', theTerminationGraceIs: null } }",
-				"strict timeout missing timeout | { regardingTheStrictTimeoutForTheTestCases: { theTerminationGraceIs: '1s' } }",
+				"field explicit null | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1 SECONDS', theTerminationGraceIs: null } }",
+				"strict timeout missing timeout | { regardingTheStrictTimeoutForTheTestCases: { theTerminationGraceIs: '1 SECONDS' } }",
 				"strict timeout not a duration | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: 'soon' } }",
 				"strict timeout a number | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: 2 } }",
-				"strict timeout zero | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '0s' } }",
-				"strict timeout units out of order | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s 1m' } }",
-				"strict timeout repeated unit | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s 2s' } }",
-				"grace above one day | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s', theTerminationGraceIs: '2d' } }",
+				"strict timeout zero | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '0 SECONDS' } }",
+				"strict timeout old format | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '2s' } }",
+				"strict timeout lower-case unit | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '2 seconds' } }",
+				"strict timeout two amounts | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1 DAYS 12 HOURS' } }",
+				"grace above one day | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1 SECONDS', theTerminationGraceIs: '2 DAYS' } }",
 				"mirroring not a boolean | { regardingTheOutputOfTheTestCases: { theOutputIsMirrored: 'yes' } }",
 				"limit not a number | { regardingTheOutputOfTheTestCases: { theMaximumNumberOfOutputCharactersIs: 'many' } }",
 				"limit zero | { regardingTheOutputOfTheTestCases: { theMaximumNumberOfOutputCharactersIs: 0 } }",
@@ -539,7 +545,7 @@ public class SecurityPolicyYAMLReaderTest {
 				throws IOException {
 			Path policyFile = tempDir.resolve("malformed.yaml");
 			Files.writeString(policyFile,
-					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n");
+					minimalPolicy(2).stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n");
 			assertThrows(RuntimeException.class, () -> reader.readSecurityPolicyFrom(policyFile), description);
 		}
 
@@ -553,11 +559,11 @@ public class SecurityPolicyYAMLReaderTest {
 		 */
 		@ParameterizedTest(name = "[{index}] {0}")
 		@DisplayName("Should reject the unreleased keys the separate pull requests used")
-		@CsvSource(delimiter = '|', value = { "regardingStrictTimeouts | { theTimeoutIs: '1s' }",
+		@CsvSource(delimiter = '|', value = { "regardingStrictTimeouts | { theTimeoutIs: '1 SECONDS' }",
 				"regardingOutputMirroring | { theOutputIsMirrored: true }" })
 		void oldCategoryKeysAreRejected(String category, String body, @TempDir Path tempDir) throws IOException {
 			Path policyFile = tempDir.resolve("old.yaml");
-			Files.writeString(policyFile, minimalPolicy().stripTrailing()
+			Files.writeString(policyFile, minimalPolicy(2).stripTrailing()
 					+ "\n  theFollowingTestBehaviorIsConfigured: { " + category + ": " + body + " }\n");
 			assertThrows(RuntimeException.class, () -> reader.readSecurityPolicyFrom(policyFile), category);
 		}
@@ -573,14 +579,41 @@ public class SecurityPolicyYAMLReaderTest {
 		@ParameterizedTest(name = "[{index}] {0}")
 		@DisplayName("Should reject the unreleased field names inside the new categories")
 		@CsvSource(delimiter = '|', value = {
-				"theTimeUnitIs | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s', theTimeUnitIs: SECONDS } }",
-				"theTerminationGraceUnitIs | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1s', theTerminationGraceUnitIs: SECONDS } }",
+				"theTimeUnitIs | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1 SECONDS', theTimeUnitIs: SECONDS } }",
+				"theTerminationGraceUnitIs | { regardingTheStrictTimeoutForTheTestCases: { theTimeoutIs: '1 SECONDS', theTerminationGraceUnitIs: SECONDS } }",
 				"theMaximumCharacterCountIs | { regardingTheOutputOfTheTestCases: { theMaximumCharacterCountIs: 5 } }" })
 		void oldFieldNamesAreRejected(String field, String section, @TempDir Path tempDir) throws IOException {
 			Path policyFile = tempDir.resolve("old-field.yaml");
 			Files.writeString(policyFile,
-					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n");
+					minimalPolicy(2).stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n");
 			assertThrows(RuntimeException.class, () -> reader.readSecurityPolicyFrom(policyFile), field);
+		}
+
+		/**
+		 * A version 1 policy file that sets a test-behaviour category is refused, and
+		 * the refusal the instructor sees names the version it needs.
+		 *
+		 * @param category the category's policy key.
+		 * @param body     the category's YAML.
+		 * @param tempDir  the folder for the policy file.
+		 * @throws IOException if the policy file cannot be written
+		 */
+		@ParameterizedTest(name = "[{index}] {0}")
+		@DisplayName("Should refuse a test-behaviour category in a version 1 policy")
+		@CsvSource(delimiter = '|', value = {
+				"regardingTheStrictTimeoutForTheTestCases | { theTimeoutIs: '2 SECONDS' }",
+				"regardingTheOutputOfTheTestCases | {}" })
+		void aVersionOneFileRefusesTheCategory(String category, String body, @TempDir Path tempDir) throws IOException {
+			Path policyFile = tempDir.resolve("version-one.yaml");
+			Files.writeString(policyFile, minimalPolicy().stripTrailing()
+					+ "\n  theFollowingTestBehaviorIsConfigured: { " + category + ": " + body + " }\n");
+			RuntimeException failure = assertThrows(RuntimeException.class,
+					() -> reader.readSecurityPolicyFrom(policyFile));
+			String expected = Messages.localized("policy.version.test.behavior", 1, category,
+					AresConstants.TEST_BEHAVIOR_POLICY_VERSION);
+			assertTrue(Stream.iterate((Throwable) failure, Objects::nonNull, Throwable::getCause)
+					.map(Throwable::getMessage).anyMatch(message -> message != null && message.contains(expected)),
+					"the refusal names the version: " + expected);
 		}
 
 		/** Reads a policy text from a temporary file. */
@@ -593,14 +626,24 @@ public class SecurityPolicyYAMLReaderTest {
 		/** Reads the test behaviour of the minimal policy with the given section. */
 		private TestBehaviorConfiguration behavior(Path tempDir, String section) throws IOException {
 			return read(tempDir,
-					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n")
+					minimalPolicy(2).stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: " + section + "\n")
 							.regardingTheSupervisedCode().theFollowingTestBehaviorIsConfigured();
 		}
 	}
 
 	private static String minimalPolicy() {
+		return minimalPolicy(1);
+	}
+
+	/**
+	 * The smallest valid policy, declaring the given policy-format version.
+	 *
+	 * @param version the declared version.
+	 * @return the policy text.
+	 */
+	private static String minimalPolicy(int version) {
 		return """
-				thisPolicyFileCompliesToThePolicyVersion: 1
+				thisPolicyFileCompliesToThePolicyVersion: %d
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 				  theFollowingClassesAreTestClasses: []
@@ -611,6 +654,6 @@ public class SecurityPolicyYAMLReaderTest {
 				    regardingThreadCreations: []
 				    regardingPackageImports: []
 				    regardingTimeouts: []
-				""";
+				""".formatted(version);
 	}
 }

@@ -237,9 +237,10 @@ Security policies are written in YAML format. YAML uses indentation (spaces, not
 ### 7.2 Complete Structure
 
 ```yaml
-# REQUIRED: The policy format version. Must be exactly 1; any other value,
-# or omitting the key, causes the policy to be rejected on load.
-thisPolicyFileCompliesToThePolicyVersion: 1
+# REQUIRED: The policy format version, 1 or 2. Version 2 is needed as soon as
+# any category under theFollowingTestBehaviorIsConfigured is set; any other
+# value, or omitting the key, causes the policy to be rejected on load.
+thisPolicyFileCompliesToThePolicyVersion: 2
 
 regardingTheSupervisedCode:
   # REQUIRED: Which configuration to use
@@ -296,8 +297,8 @@ regardingTheSupervisedCode:
   # OPTIONAL: Behaviour of the tests, see 7.7. Every category inside is optional.
   theFollowingTestBehaviorIsConfigured:
     regardingTheStrictTimeoutForTheTestCases:
-      theTimeoutIs: "2s"                             # REQUIRED within this category
-      theTerminationGraceIs: "200ms"                 # OPTIONAL
+      theTimeoutIs: "2 SECONDS"                      # REQUIRED within this category
+      theTerminationGraceIs: "200 MILLISECONDS"      # OPTIONAL
 
     regardingTheOutputOfTheTestCases:
       theOutputIsMirrored: false                     # OPTIONAL, defaults as shown
@@ -396,7 +397,7 @@ theFollowingClassesAreTestClasses:
 
 ### 7.7 Test Behaviour Configuration
 
-The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before.
+The `theFollowingTestBehaviorIsConfigured` field says how Ares runs and reports the tests, as opposed to which resources code can access. It holds the categories below, each optional. A policy without the field, or with it empty, behaves exactly as before. A policy that sets any category must declare `thisPolicyFileCompliesToThePolicyVersion: 2`; Ares refuses a version 1 policy that sets one, and its message names the category and the version it needs.
 
 The category and field names follow the proposal in issue #386, section C. They are not final until the advisor accepts them; [Policy Compatibility](./policy-compatibility.md) lists which release accepts which key.
 
@@ -404,7 +405,7 @@ Ares reads these settings once per policy file, before it supervises any test co
 
 These categories apply to postcompile exercises. Generating a precompile exercise from a policy that sets `regardingTheStrictTimeoutForTheTestCases` or `regardingTheOutputOfTheTestCases` stops with an error that names the category, so the generated exercise never drops it silently.
 
-**Durations** such as `theTimeoutIs`, `theTerminationGraceIs` and `theDeadlineIsExtendedBy` are text: days `d`, hours `h`, minutes `m`, seconds `s` and milliseconds `ms`, each at most once, largest first, in any letter case. `"2s"`, `"500ms"` and `"1d 12h"` are durations; `"1s 1m"` (wrong order), `"1s 2s"` (repeated unit) and `"2"` (no unit) are not. `"5M"` is five minutes, and `"5MS"` five milliseconds.
+**Durations** such as `theTimeoutIs`, `theTerminationGraceIs` and `theDeadlineIsExtendedBy` are one text each. The text is a whole number, one space and the name of a Java `TimeUnit` in capitals: `NANOSECONDS`, `MICROSECONDS`, `MILLISECONDS`, `SECONDS`, `MINUTES`, `HOURS` or `DAYS`. `"2 SECONDS"`, `"500 MILLISECONDS"` and `"36 HOURS"` are durations; `"2s"`, `"2 seconds"`, `"2 SECOND"`, `"1 DAYS 12 HOURS"` and `"2"` are not. Ares refuses a YAML number such as `2` too, and its message names the field and lists the seven units.
 
 #### 7.7.1 Strict timeout
 
@@ -416,8 +417,8 @@ These categories apply to postcompile exercises. Generating a precompile exercis
 ```yaml
 theFollowingTestBehaviorIsConfigured:
   regardingTheStrictTimeoutForTheTestCases:
-    theTimeoutIs: "2s"
-    theTerminationGraceIs: "200ms"
+    theTimeoutIs: "2 SECONDS"
+    theTerminationGraceIs: "200 MILLISECONDS"
 ```
 
 A public test reports "execution timed out after …", even when privileged-only reporting is on.

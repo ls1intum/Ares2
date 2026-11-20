@@ -75,7 +75,7 @@ class JavaWriterTestBehaviorRefusalTest {
 	 * @return the cases.
 	 */
 	static Stream<org.junit.jupiter.params.provider.Arguments> refused() {
-		StrictTimeoutConfiguration timeout = StrictTimeoutConfiguration.builder().theTimeoutIs("2s").build();
+		StrictTimeoutConfiguration timeout = StrictTimeoutConfiguration.builder().theTimeoutIs("2 SECONDS").build();
 		OutputConfiguration output = OutputConfiguration.builder().theOutputIsMirrored(true).build();
 		return Stream.of(
 				org.junit.jupiter.params.provider.Arguments.of(

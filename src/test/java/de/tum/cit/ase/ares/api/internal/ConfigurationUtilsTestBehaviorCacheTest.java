@@ -38,8 +38,8 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 	/** Writes both policies before each test. */
 	@BeforeEach
 	void writePolicies() throws IOException {
-		write(CLASS_POLICY, "2s");
-		write(METHOD_POLICY, "7s");
+		write(CLASS_POLICY, "2 SECONDS");
+		write(METHOD_POLICY, "7 SECONDS");
 	}
 
 	/** A rewrite after the first read changes nothing for the same class. */
@@ -49,7 +49,7 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 		JupiterContext context = JupiterContext.of(methodContext(classContext, "classPolicyTest"));
 
 		ConfigurationUtils.prepareTestBehavior(context);
-		write(CLASS_POLICY, "9s");
+		write(CLASS_POLICY, "9 SECONDS");
 
 		assertThat(ConfigurationUtils.findPolicyStrictTimeout(context).orElseThrow().timeout())
 				.isEqualTo(Duration.ofSeconds(2));
@@ -59,7 +59,7 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 	@Test
 	void anotherClassReadsAfresh() throws Exception {
 		ConfigurationUtils.prepareTestBehavior(JupiterContext.of(methodContext(classContext(), "classPolicyTest")));
-		write(CLASS_POLICY, "9s");
+		write(CLASS_POLICY, "9 SECONDS");
 
 		JupiterContext other = JupiterContext.of(methodContext(classContext(), "classPolicyTest"));
 		assertThat(ConfigurationUtils.findPolicyStrictTimeout(other).orElseThrow().timeout())
@@ -71,7 +71,7 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 	void aMethodLevelPolicyKeepsItsOwnSettings() throws Exception {
 		ExtensionContext classContext = classContext();
 		ConfigurationUtils.prepareTestBehavior(JupiterContext.of(methodContext(classContext, "classPolicyTest")));
-		write(METHOD_POLICY, "9s");
+		write(METHOD_POLICY, "9 SECONDS");
 
 		JupiterContext methodPolicy = JupiterContext.of(methodContext(classContext, "methodPolicyTest"));
 		assertThat(ConfigurationUtils.findPolicyStrictTimeout(methodPolicy).orElseThrow().timeout())
@@ -95,7 +95,7 @@ class ConfigurationUtilsTestBehaviorCacheTest {
 		Path file = Path.of(path);
 		Files.createDirectories(file.getParent());
 		Files.writeString(file, """
-				thisPolicyFileCompliesToThePolicyVersion: 1
+				thisPolicyFileCompliesToThePolicyVersion: 2
 				regardingTheSupervisedCode:
 				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
 				  theFollowingClassesAreTestClasses: []

@@ -9,7 +9,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 @SuppressWarnings("AopLanguageInspection")
 public aspect JavaAspectJWovenMarkerDefinitions {
 
-    declare @type: !(java..* || javax..* || sun..* || jdk..* || com.sun..* || de.tum.cit.ase.ares.api..*
+    declare @type: !(java..* || javax..* || sun..* || jdk..* || com.sun..* || de.tum.cit.ase.ares.api..* || de.tum.cit.ase.ares.generated..*
             || net.bytebuddy..* || org.aspectj..* || com.ibm.wala..* || com.tngtech.archunit..* || junit..*
             || org.junit..* || org.opentest4j..* || org.assertj..* || org.mockito..* || ch.qos.logback..*
             || org.slf4j..* || com.github.javaparser..* || com.fasterxml.jackson..* || org.yaml..* || org.json..*

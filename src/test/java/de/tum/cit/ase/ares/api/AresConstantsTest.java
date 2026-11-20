@@ -18,13 +18,15 @@ import org.junit.jupiter.api.Test;
 class AresConstantsTest {
 
 	/**
-	 * Checks that version 1 is both the lowest and the highest supported policy
-	 * version, and that the lowest does not exceed the highest.
+	 * Checks that version 1 is the lowest and version 2 the highest supported
+	 * policy version, that version 2 is the first with test behaviour, and that the
+	 * lowest does not exceed the highest.
 	 */
 	@Test
 	void exposesAConsistentSupportedPolicyVersionRange() {
 		assertEquals(1, AresConstants.MINIMUM_POLICY_VERSION);
-		assertEquals(1, AresConstants.MAXIMUM_POLICY_VERSION);
+		assertEquals(2, AresConstants.MAXIMUM_POLICY_VERSION);
+		assertEquals(2, AresConstants.TEST_BEHAVIOR_POLICY_VERSION);
 		assertTrue(AresConstants.MINIMUM_POLICY_VERSION <= AresConstants.MAXIMUM_POLICY_VERSION);
 	}
 

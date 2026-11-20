@@ -1,4 +1,4 @@
-thisPolicyFileCompliesToThePolicyVersion: 1
+thisPolicyFileCompliesToThePolicyVersion: 2
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
   theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares.integration.testuser.subject"
@@ -13,5 +13,5 @@ regardingTheSupervisedCode:
     regardingTimeouts: [ ]
   theFollowingTestBehaviorIsConfigured:
     regardingTheStrictTimeoutForTheTestCases:
-      theTimeoutIs: "500ms"
-      theTerminationGraceIs: "10ms"
+      theTimeoutIs: "500 MILLISECONDS"
+      theTerminationGraceIs: "10 MILLISECONDS"

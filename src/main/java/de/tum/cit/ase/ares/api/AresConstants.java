@@ -19,7 +19,9 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 public final class AresConstants {
 
 	/**
-	 * The earliest policy-format version supported by this Ares release.
+	 * The earliest policy-format version supported by this Ares release. Version 1
+	 * is the format without test-behaviour categories; version 2, the first that
+	 * may carry them, is {@link #TEST_BEHAVIOR_POLICY_VERSION}.
 	 *
 	 * @since 2.1.0
 	 */
@@ -30,11 +32,19 @@ public final class AresConstants {
 	 * <p>
 	 * This is also the version assumed for policies that are built programmatically
 	 * without declaring one, as such policies are by construction expressed in the
-	 * newest format this release understands.
+	 * newest format this release understands. Version 2 is the first format that
+	 * may carry test-behaviour categories.
 	 *
 	 * @since 2.1.0
 	 */
-	public static final int MAXIMUM_POLICY_VERSION = 1;
+	public static final int MAXIMUM_POLICY_VERSION = 2;
+
+	/**
+	 * The first policy-format version that may carry test-behaviour categories.
+	 *
+	 * @since 2.3.0
+	 */
+	public static final int TEST_BEHAVIOR_POLICY_VERSION = 2;
 
 	static {
 		if (MINIMUM_POLICY_VERSION > MAXIMUM_POLICY_VERSION) {
