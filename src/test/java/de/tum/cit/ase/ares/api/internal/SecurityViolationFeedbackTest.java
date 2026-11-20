@@ -139,10 +139,9 @@ class SecurityViolationFeedbackTest {
 				fileCase("create", "createAllFiles"), fileCase("execute", "executeAllFiles"),
 				fileCase("delete", "deleteAllFiles"), networkCase("connect", "open", "openConnections"),
 				networkCase("send", "send", "sendData"), networkCase("receive", "receive", "receiveData"),
-				org.junit.jupiter.params.provider.Arguments.of("command", "execute", "rm -rf /tmp/x", "command.execute",
-						"execute",
-						SecurityViolationFeedbackTexts.lines("- executeTheCommand: \"rm\"",
-								"  withTheseArguments: [\"-rf\", \"/tmp/x\"]")),
+				org.junit.jupiter.params.provider.Arguments.of("command", "execute", "ls", "command.execute", "execute",
+						SecurityViolationFeedbackTexts.lines("- executeTheCommand: \"ls\"",
+								"  withTheseArguments: []")),
 				org.junit.jupiter.params.provider.Arguments.of("thread", "create", "java.lang.Thread", "thread.create",
 						"create", SecurityViolationFeedbackTexts.lines("- createTheFollowingNumberOfThreads: 1",
 								"  ofThisClass: \"java.lang.Thread\"")));
@@ -255,6 +254,64 @@ class SecurityViolationFeedbackTest {
 								"  exactMatchOnly: true")));
 		assertThat(SecurityViolationFeedback.render(finding, SecurityViolationFeedbackLevel.MEDIUM))
 				.isEqualTo(SecurityViolationFeedbackTexts.low());
+	}
+
+	/**
+	 * A command with arguments, whose boundaries the target text no longer shows,
+	 * and any target holding the policy's wildcard get the category only, so the
+	 * hint never suggests an entry that allows a different action or every one.
+	 *
+	 * @param kind     the kind.
+	 * @param action   the action.
+	 * @param target   the target.
+	 * @param category the category the hint names.
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = { "command|execute|echo hello world|regardingCommandExecutions",
+			"command|execute|echo *|regardingCommandExecutions", "command|execute|*|regardingCommandExecutions",
+			"file|read|*|regardingFileSystemInteractions", "network|connect|*:443|regardingNetworkConnections",
+			"thread|create|*|regardingThreadCreations", "architecture|import|*|regardingPackageImports" })
+	void anInexactEntryFallsBackToTheCategory(String kind, String action, String target, String category) {
+		Locale.setDefault(Locale.ENGLISH);
+		SecurityViolationFeedback.Violation violation = new SecurityViolationFeedback.Violation(kind, action, target,
+				HIGH);
+		assertThat(SecurityViolationFeedback.entryOf(violation)).isEmpty();
+		assertThat(SecurityViolationFeedback.render(violation, SecurityViolationFeedbackLevel.DEBUG))
+				.isEqualTo(SecurityViolationFeedbackTexts.debugCategory(HIGH, category, Optional.empty()));
+	}
+
+	/**
+	 * A fixed architecture rule, which no policy entry switches off, gets no hint
+	 * at all: DEBUG shows the HIGH report alone.
+	 *
+	 * @param rule the rule key the finding carries.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "reflection.uses", "serialize", "terminate.jvm", "class.loading", "native.code.access",
+			"agent.attach", "environment.access", "module.system.access", "jndi.injection", "reach" })
+	void aFixedArchitectureRuleGetsNoHint(String rule) {
+		Locale.setDefault(Locale.ENGLISH);
+		SecurityViolationFeedback.Violation finding = new SecurityViolationFeedback.Violation("architecture", rule,
+				"java.lang.reflect.Method", HIGH);
+		assertThat(SecurityViolationFeedback.render(finding, SecurityViolationFeedbackLevel.DEBUG)).isEqualTo(HIGH);
+	}
+
+	/**
+	 * DEBUG keeps the blocked action's own stack, so the student's call chain is
+	 * still there, while LOW shows none.
+	 *
+	 * @throws ReflectiveOperationException if the violation cannot be created
+	 */
+	@Test
+	void debugKeepsTheBlockedActionsStack() throws ReflectiveOperationException {
+		Locale.setDefault(Locale.ENGLISH);
+		StackTraceElement[] frames = { new StackTraceElement("org.example.Student", "readSecret", "Student.java", 7),
+				new StackTraceElement("org.example.StudentTest", "readsTheSecret", "StudentTest.java", 12) };
+		SecurityException violation = realViolation();
+		violation.setStackTrace(frames);
+		Throwable reported = ReportingUtils.processThrowable(violation, contextFor("debugPolicy"));
+		assertThat(reported.getMessage()).startsWith(HIGH).contains("Allow it by granting the read permission");
+		assertThat(reported.getStackTrace()).containsExactly(frames);
 	}
 
 	/** A thread manipulation no entry allows names the category only. */
@@ -404,10 +461,10 @@ class SecurityViolationFeedbackTest {
 		assertThat(network.sendData()).isTrue();
 		assertThat(network.openConnections() || network.receiveData()).isFalse();
 		var command = readBack(tempDir, "regardingCommandExecutions",
-				new SecurityViolationFeedback.Violation("command", "execute", "ls -la /tmp", HIGH))
-						.regardingCommandExecutions().get(0);
+				new SecurityViolationFeedback.Violation("command", "execute", "ls", HIGH)).regardingCommandExecutions()
+						.get(0);
 		assertThat(command.executeTheCommand()).isEqualTo("ls");
-		assertThat(command.withTheseArguments()).containsExactly("-la", "/tmp");
+		assertThat(command.withTheseArguments()).isEmpty();
 		var thread = readBack(tempDir, "regardingThreadCreations",
 				new SecurityViolationFeedback.Violation("thread", "create", "java.lang.Thread", HIGH))
 						.regardingThreadCreations().get(0);
@@ -1439,6 +1496,13 @@ class SecurityViolationFeedbackTest {
 		when(context.annotatedElement()).thenReturn(Optional.of(method));
 		when(context.findTestType()).thenReturn(Optional.of(TestType.PUBLIC));
 		return context;
+	}
+
+	/** Carries a policy at DEBUG; used only through the mocked context. */
+	@SuppressWarnings("PMD.UnusedPrivateMethod")
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyFeedbackLevelDEBUG.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/testuser/subject")
+	private static void debugPolicy() {
+		// A policy only, no test behaviour of its own.
 	}
 
 	/** Carries a policy at LOW; used only through the mocked context. */

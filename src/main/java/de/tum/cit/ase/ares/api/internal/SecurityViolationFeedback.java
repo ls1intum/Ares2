@@ -101,13 +101,25 @@ public final class SecurityViolationFeedback {
 	/**
 	 * Whether a policy entry could allow the action. An argument Ares refused to
 	 * inspect, a student type it cannot read without running student code, cannot
-	 * be allowed, so it gets no hint.
+	 * be allowed, and neither can a fixed architecture rule such as reflection,
+	 * which no resource entry switches off; both get no hint.
 	 *
 	 * @param violation the violation.
 	 * @return true when a hint can name an entry
 	 */
 	static boolean isAllowable(Violation violation) {
-		return !UNINSPECTABLE.equals(violation.kind());
+		return !UNINSPECTABLE.equals(violation.kind()) && !isFixedProhibition(violation);
+	}
+
+	/**
+	 * Whether an architecture finding comes from a rule no policy entry relaxes,
+	 * such as reflection, serialisation or ending the JVM.
+	 *
+	 * @param violation the violation.
+	 * @return true for a fixed rule
+	 */
+	private static boolean isFixedProhibition(Violation violation) {
+		return "architecture".equals(violation.kind()) && "other".equals(kindOf(violation));
 	}
 
 	/** The kind Ares's checks give an argument they refused to inspect. */
@@ -256,14 +268,18 @@ public final class SecurityViolationFeedback {
 
 	/**
 	 * Returns the block-style policy entry that allows exactly the action, every
-	 * other flag of the category off, or nothing when no single entry does.
+	 * other flag of the category off, or nothing when no single entry does: a
+	 * target that holds the wildcard {@code *}, which the policy reads as "any", or
+	 * a command with arguments, whose argument boundaries the target text no longer
+	 * shows.
 	 *
 	 * @param violation the violation.
 	 * @return the entry, as YAML.
 	 */
 	static Optional<String> entryOf(Violation violation) {
 		Optional<String> operation = operationOf(violation);
-		if (operation.isEmpty()) {
+		if (operation.isEmpty() || holdsAWildcard(violation.target())
+				|| "command".equals(kindOf(violation)) && violation.target().contains(" ")) {
 			return Optional.empty();
 		}
 		return switch (kindOf(violation)) {
@@ -316,18 +332,24 @@ public final class SecurityViolationFeedback {
 	}
 
 	/**
-	 * Builds a command entry from a target of the command and its arguments,
-	 * separated by spaces.
+	 * Whether a target, or one of its space-separated parts, is the policy's
+	 * wildcard {@code *}, which an entry cannot write as a literal value.
 	 *
 	 * @param target the target.
+	 * @return true when an entry would grant more than the action
+	 */
+	private static boolean holdsAWildcard(String target) {
+		return List.of(target.split("[ :]", -1)).contains("*");
+	}
+
+	/**
+	 * Builds the entry for a command run without arguments.
+	 *
+	 * @param target the command.
 	 * @return the entry, as YAML.
 	 */
 	private static String commandEntryOf(String target) {
-		List<String> words = List.of(target.split(" ", -1));
-		String arguments = words.stream().skip(1).map(SecurityViolationFeedback::yamlString)
-				.collect(java.util.stream.Collectors.joining(", ", "[", "]"));
-		return "- executeTheCommand: " + yamlString(words.get(0)) + System.lineSeparator() + "  withTheseArguments: "
-				+ arguments;
+		return "- executeTheCommand: " + yamlString(target) + System.lineSeparator() + "  withTheseArguments: []";
 	}
 
 	/**

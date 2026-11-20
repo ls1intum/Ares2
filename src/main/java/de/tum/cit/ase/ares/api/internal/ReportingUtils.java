@@ -498,8 +498,8 @@ public final class ReportingUtils {
 	 * Reports a blocked action at the policy's feedback level. {@code HIGH} reports
 	 * the failure as before, unless reading it would call a getter student code
 	 * overrides or does not finish in time; then it reports the blocked action
-	 * itself. The other levels replace it, without stack for {@code MEDIUM} and
-	 * {@code LOW}.
+	 * itself. The other levels replace it: {@code DEBUG} keeps the blocked action's
+	 * own stack, {@code MEDIUM} and {@code LOW} show none.
 	 */
 	private static Throwable renderedViolation(Throwable t, Inspection inspection, SecurityViolationFeedbackLevel level,
 			Optional<String> policyFile) {
@@ -512,9 +512,8 @@ public final class ReportingUtils {
 		}
 		SecurityException rendered = new SecurityException(
 				SecurityViolationFeedback.render(violation, level, policyFile));
-		if (hidesTheTarget(level)) {
-			rendered.setStackTrace(new StackTraceElement[0]);
-		}
+		rendered.setStackTrace(hidesTheTarget(level) ? new StackTraceElement[0]
+				: inspection.violationStack().toArray(new StackTraceElement[0]));
 		return rendered;
 	}
 
