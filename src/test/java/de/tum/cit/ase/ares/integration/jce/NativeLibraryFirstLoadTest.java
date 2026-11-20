@@ -43,8 +43,10 @@ class NativeLibraryFirstLoadTest {
 
 	/**
 	 * The first use of the preferences makes the JDK load {@code prefs}, which is
-	 * allowed. What the JDK does next is refused for other reasons, which must not
-	 * be a library decision.
+	 * allowed. The policy lets the student read and create on every path, the only
+	 * rule under which Ares lets student code open the preferences. Whatever the
+	 * JDK does next may be refused for other reasons, but never by a library
+	 * decision.
 	 */
 	@ParameterizedTest
 	@EnumSource(value = ProgrammingLanguageConfiguration.class, names = ".*_INSTRUMENTATION", mode = EnumSource.Mode.MATCH_ALL)

@@ -128,7 +128,7 @@ class JceCryptoPolicyReadTest {
 		Path file = directory.resolve("default_local.policy");
 		Files.writeString(file, "protected fixture");
 		Path policy = directory.resolve("policy.yaml");
-		String policyContents = policy(configuration, directory.resolve("allowed.txt"))
+		String policyContents = policy(configuration, directory.resolve("allowed.txt"), "preferences".equals(operation))
 				.replace("example.jce", "example." + subjectPackage)
 				.replace("JceCryptoSubject", subjects(subjectPackage)[0].getSimpleName());
 		Files.writeString(policy, policyContents);
@@ -234,9 +234,12 @@ class JceCryptoPolicyReadTest {
 
 	/**
 	 * Produces a real policy whose unrelated allowance leaves filesystem checks to
-	 * AOP.
+	 * AOP. It allows reading the fixture file, or, for a probe that opens the
+	 * preferences, reading and creating on every path ({@code *}), the only rule
+	 * under which Ares lets student code open them.
 	 */
-	private static String policy(ProgrammingLanguageConfiguration configuration, Path allowed) {
+	private static String policy(ProgrammingLanguageConfiguration configuration, Path allowed,
+			boolean opensPreferences) {
 		return """
 				thisPolicyFileCompliesToThePolicyVersion: 1
 				regardingTheSupervisedCode:
@@ -248,7 +251,7 @@ class JceCryptoPolicyReadTest {
 				    regardingFileSystemInteractions:
 				      - readAllFiles: true
 				        overwriteAllFiles: false
-				        createAllFiles: false
+				        createAllFiles: %s
 				        executeAllFiles: false
 				        deleteAllFiles: false
 				        onThisPathAndAllPathsBelow: "%s"
@@ -268,7 +271,8 @@ class JceCryptoPolicyReadTest {
 				      - importTheFollowingPackage: "java.security"
 				      - importTheFollowingPackage: "java.util"
 				    regardingTimeouts: []
-				""".formatted(configuration, allowed.toAbsolutePath().toString().replace("\\", "/"));
+				""".formatted(configuration, opensPreferences,
+				opensPreferences ? "*" : allowed.toAbsolutePath().toString().replace("\\", "/"));
 	}
 
 	/**
