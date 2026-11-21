@@ -22,7 +22,7 @@ class NodePositionTest {
 
 	/**
 	 * Source with five for loops, at line 3 column 3, line 4 column 1, line 5
-	 * column 5, and line 6 columns 3 and 16.
+	 * column 5, and line 6 columns 3 and 15.
 	 */
 	private static final String LOOPS = "class A {\n" + "void m() {\n" + "  for (;;) {}\n" + "for (;;) {}\n"
 			+ "    for (;;) {}\n" + "  for (;;) {} for (;;) {}\n" + "}\n" + "}\n";
@@ -79,12 +79,12 @@ class NodePositionTest {
 		NodePosition line4Column1 = positions.get(1);
 		NodePosition line5Column5 = positions.get(2);
 		NodePosition line6Column3 = positions.get(3);
-		NodePosition line6Column16 = positions.get(4);
+		NodePosition line6Column15 = positions.get(4);
 		assertThat(line3Column3.compareTo(line4Column1)).isNegative();
 		assertThat(line4Column1.compareTo(line3Column3)).isPositive();
 		assertThat(line5Column5.compareTo(line6Column3)).isNegative();
-		assertThat(line6Column3.compareTo(line6Column16)).isNegative();
-		assertThat(line6Column16.compareTo(line6Column3)).isPositive();
+		assertThat(line6Column3.compareTo(line6Column15)).isNegative();
+		assertThat(line6Column15.compareTo(line6Column3)).isPositive();
 		assertThat(line6Column3
 				.compareTo(NodePosition.getPositionOf(StaticJavaParser.parse(LOOPS).findAll(ForStmt.class).get(3))))
 						.isZero();
