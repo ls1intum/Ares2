@@ -438,6 +438,80 @@ class JavaProjectScannerAstTest {
 		assertArrayEquals(new String[] { "checks.GenuineCase" }, scanner.scanForTestClasses());
 	}
 
+	/**
+	 * An annotation the scan cannot place, such as {@code @Override}, is not a test
+	 * annotation. A helper class that carries only such an annotation must not be
+	 * recognised as a test class, while a genuine test beside it still is.
+	 */
+	@Test
+	void doesNotTrustAnAnnotationThatResolvesToNothing() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.writeString(tests.resolve("Helper.java"), """
+				package p;
+				class Helper { @Override public String toString() { return ""; } }
+				""");
+		Files.writeString(tests.resolve("RealTest.java"), """
+				package p;
+				import org.junit.jupiter.api.Test;
+				class RealTest { @Test void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "p.RealTest" }, scanner.scanForTestClasses());
+	}
+
+	/**
+	 * An annotation type declared inside the class shadows an imported annotation
+	 * of the same name, so {@code @Test} there means the local type, not JUnit's.
+	 * That class is not a test class. The same class without the local type uses
+	 * JUnit's annotation and is recognised.
+	 */
+	@Test
+	void rejectsAnImportedNameShadowedByAMemberAnnotation() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.writeString(tests.resolve("Shadowed.java"), """
+				package p;
+				import org.junit.jupiter.api.Test;
+				class Shadowed { @interface Test {} @Test void looksLikeATest() {} }
+				""");
+		Files.writeString(tests.resolve("Unshadowed.java"), """
+				package p;
+				import org.junit.jupiter.api.Test;
+				class Unshadowed { @Test void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "p.Unshadowed" }, scanner.scanForTestClasses());
+	}
+
+	/**
+	 * In {@code @Markers.Fast}, {@code Markers} is the class declared in the same
+	 * file, even though a static import brings in a field of that name. Fast there
+	 * carries a JUnit test annotation, so the class using it is a test class. The
+	 * scan must read the file's own classes before its imports.
+	 */
+	@Test
+	void readsTheLeftmostSegmentAsTheFilesOwnClassBeforeAStaticImport() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.writeString(tests.resolve("Utility.java"), """
+				package p;
+				public class Utility { public static final Object Markers = new Object(); }
+				""");
+		Files.writeString(tests.resolve("Marked.java"), """
+				package p;
+				import static p.Utility.Markers;
+				import org.junit.jupiter.api.Test;
+				class Markers { @Test @interface Fast {} }
+				class MarkedCase { @Markers.Fast void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "p.MarkedCase" }, scanner.scanForTestClasses());
+	}
+
 	@Test
 	void ignoresLookalikesOfAComposedAnnotationDeclaredInAnotherPackage() throws IOException {
 		Path production = Files.createDirectories(root.resolve("src/main/java"));
