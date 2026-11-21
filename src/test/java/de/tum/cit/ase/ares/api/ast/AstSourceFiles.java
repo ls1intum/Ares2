@@ -10,6 +10,9 @@ import java.nio.file.Path;
  */
 public final class AstSourceFiles {
 
+	/**
+	 * Stops anyone from creating this helper, which has only static methods.
+	 */
 	private AstSourceFiles() {
 	}
 

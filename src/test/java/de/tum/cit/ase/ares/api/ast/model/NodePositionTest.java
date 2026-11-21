@@ -20,9 +20,16 @@ import com.github.javaparser.ast.stmt.ForStmt;
  */
 class NodePositionTest {
 
+	/**
+	 * Source with five for loops, at line 3 column 3, line 4 column 1, line 5
+	 * column 5, and line 6 columns 3 and 16.
+	 */
 	private static final String LOOPS = "class A {\n" + "void m() {\n" + "  for (;;) {}\n" + "for (;;) {}\n"
 			+ "    for (;;) {}\n" + "  for (;;) {} for (;;) {}\n" + "}\n" + "}\n";
 
+	/**
+	 * The parser configuration found before the test, put back afterwards.
+	 */
 	private ParserConfiguration savedConfiguration;
 
 	/**
@@ -43,6 +50,9 @@ class NodePositionTest {
 		StaticJavaParser.setConfiguration(savedConfiguration);
 	}
 
+	/**
+	 * Parses the source and returns the positions of its for loops in tree order.
+	 */
 	private List<NodePosition> loopPositions() {
 		CompilationUnit unit = StaticJavaParser.parse(LOOPS);
 		return unit.findAll(ForStmt.class).stream().map(NodePosition::getPositionOf).toList();

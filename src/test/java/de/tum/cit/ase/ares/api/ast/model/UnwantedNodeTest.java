@@ -32,17 +32,30 @@ import de.tum.cit.ase.ares.api.ast.type.LoopType;
  */
 class UnwantedNodeTest {
 
+	/**
+	 * Source with a while loop on line 3 and a for loop on line 5.
+	 */
 	private static final String WHILE_THEN_FOR = "class A {\n" + "void m() {\n" + "  while (true) {}\n" + "\n"
 			+ "  for (;;) {}\n" + "}\n" + "}\n";
 
+	/**
+	 * Source with two conditional expressions in type annotations, where the tree
+	 * walk reaches the later one first.
+	 */
 	private static final String TYPE_USE_CONDITIONALS = "import java.lang.annotation.ElementType;\n"
 			+ "import java.lang.annotation.Target;\n" + "class A {\n"
 			+ "@Target(ElementType.TYPE_USE) @interface Ann { int value(); }\n"
 			+ "String @Ann(true ? 1 : 2) [] m(String @Ann(false ? 3 : 4) [] p) { return p; }\n" + "}\n";
 
+	/**
+	 * A fresh folder for the files of one test.
+	 */
 	@TempDir
 	Path directory;
 
+	/**
+	 * The parser configuration found before the test, put back afterwards.
+	 */
 	private ParserConfiguration savedConfiguration;
 
 	/**
@@ -63,6 +76,10 @@ class UnwantedNodeTest {
 		StaticJavaParser.setConfiguration(savedConfiguration);
 	}
 
+	/**
+	 * Parses the source into a {@link JavaFile} named A.java that keeps the main
+	 * method.
+	 */
 	private JavaFile parsed(String source) {
 		return new JavaFile(Path.of("A.java"), StaticJavaParser.parse(source), false);
 	}
@@ -119,11 +136,17 @@ class UnwantedNodeTest {
 				false)).isEmpty();
 	}
 
+	/**
+	 * Builds the text of a position from its begin and end line and column.
+	 */
 	private static String position(int beginLine, int beginColumn, int endLine, int endColumn) {
 		return localized("ast.method.to_string", localized("ast.check.has_begin_end", beginLine, beginColumn),
 				localized("ast.check.has_begin_end", endLine, endColumn));
 	}
 
+	/**
+	 * Builds the report block of one file with the given for-loop positions.
+	 */
 	private static String block(Path file, String... positions) {
 		String lineSeparator = System.lineSeparator();
 		StringBuilder block = new StringBuilder(localized("ast.method.get_formatted_file_string_prefix", file));

@@ -24,9 +24,15 @@ import de.tum.cit.ase.ares.api.ast.AstSourceFiles;
  */
 class JavaFileTest {
 
+	/**
+	 * A fresh folder for the files of one test.
+	 */
 	@TempDir
 	Path directory;
 
+	/**
+	 * The parser configuration found before the test, put back afterwards.
+	 */
 	private ParserConfiguration savedConfiguration;
 
 	/**
@@ -47,10 +53,18 @@ class JavaFileTest {
 		StaticJavaParser.setConfiguration(savedConfiguration);
 	}
 
+	/**
+	 * Builds a class whose only method has the given declaration and holds one for
+	 * loop.
+	 */
 	private static String withMethod(String declaration) {
 		return "class A {\n" + declaration + " { for (int i = 0; i < 1; i++) {} }\n" + "}\n";
 	}
 
+	/**
+	 * Writes the method into a file, reads it as {@link JavaFile} and counts the
+	 * for loops left.
+	 */
 	private int loopsAfterReading(String declaration, boolean excludeMainMethod) throws IOException {
 		Path file = AstSourceFiles.write(directory, "A.java", withMethod(declaration));
 		JavaFile javaFile = JavaFile.convertFromFile(file, excludeMainMethod);
