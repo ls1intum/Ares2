@@ -2,21 +2,26 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.lang.module.ModuleDescriptor;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -232,16 +237,24 @@ class CompiledClassesJava17LibraryTest {
 
 	/**
 	 * Fails when the check misses {@code getFirst()}, which Java 21 added to
-	 * {@code ArrayList}, called on an application subclass.
+	 * {@code ArrayList}, called on an application subclass. The subclass's
+	 * interface declares a static {@code getFirst()}, which the JVM never finds
+	 * through a subclass, so it must not count as the method found.
 	 *
 	 * @param directory the folder the fixture is compiled to
 	 */
 	@Test
 	void inheritedMethodAddedAfterJava17IsReported(@TempDir Path directory) {
 		Path classes = compileWithNewerApi(directory, "OwnList", """
-				public class OwnList extends java.util.ArrayList<Object> {
+				public class OwnList extends java.util.ArrayList<Object> implements Firsts {
 					public Object call() {
 						return getFirst();
+					}
+				}
+
+				interface Firsts {
+					static Object getFirst() {
+						return null;
 					}
 				}
 				""");
@@ -250,21 +263,32 @@ class CompiledClassesJava17LibraryTest {
 	}
 
 	/**
-	 * Fails when the check reports an application method, or a method Java 17 has,
-	 * called on an application subclass of a JDK class.
+	 * Fails when the check reports an application method, a method Java 17 has, a
+	 * default method of an application interface or a static one called on that
+	 * interface, each called from an application subclass of a JDK class.
 	 *
 	 * @param directory the folder the fixture is compiled to
 	 */
 	@Test
 	void applicationAndInheritedJava17MethodsAreNotReported(@TempDir Path directory) {
 		Path classes = compile(directory, RELEASE, "OwnList", """
-				public class OwnList extends java.util.ArrayList<Object> {
+				public class OwnList extends java.util.ArrayList<Object> implements Helper {
 					public Object own() {
 						return null;
 					}
 
 					public Object call() {
-						return own() == null ? size() : 0;
+						return own() == null ? size() + helped() + Helper.make() : 0;
+					}
+				}
+
+				interface Helper {
+					default int helped() {
+						return 1;
+					}
+
+					static int make() {
+						return 2;
 					}
 				}
 				""");
@@ -362,6 +386,45 @@ class CompiledClassesJava17LibraryTest {
 				}
 				""");
 		assertSequencedCollectionReported(classes);
+	}
+
+	/**
+	 * Fails when a type parameter without a class bound, followed by the next type
+	 * parameter, hides that parameter's interface bound, or when a bound that is a
+	 * type variable is misread. javac never writes the first, but the class-file
+	 * format allows it.
+	 */
+	@Test
+	void typeParameterBoundsAreReadWhateverTheNextParameterIsCalled() {
+		Set<String> afterEmptyBound = new HashSet<>();
+		addTypes("<A:Thing::Ljava/util/SequencedCollection;>Ljava/lang/Object;", afterEmptyBound);
+		assertEquals(Set.of("java.util.SequencedCollection", "java.lang.Object"), afterEmptyBound);
+		Set<String> typeVariableBound = new HashSet<>();
+		addTypes("<T:Ljava/lang/Number;U:TT;>Ljava/lang/Object;", typeVariableBound);
+		assertEquals(Set.of("java.lang.Number", "java.lang.Object"), typeVariableBound);
+	}
+
+	/**
+	 * Fails when a class file cut short in its last attribute is read as complete,
+	 * which would let the check pass a class the JVM cannot load. The second file
+	 * also states a length of 2^31 bytes for that attribute, which a signed read
+	 * would take as negative and skip nothing.
+	 *
+	 * @param directory the folder the fixture is compiled to
+	 * @throws IOException if the compiled fixture cannot be read
+	 */
+	@Test
+	void truncatedClassFileIsRefused(@TempDir Path directory) throws IOException {
+		Path classes = compile(directory, RELEASE, "Plain", """
+				public class Plain {
+				}
+				""");
+		byte[] complete = Files.readAllBytes(classes.resolve("Plain.class"));
+		byte[] truncated = Arrays.copyOf(complete, complete.length - 1);
+		assertThrows(EOFException.class, () -> new ClassFileReader(new ByteArrayInputStream(truncated)).read());
+		byte[] oversized = Arrays.copyOf(complete, complete.length - 2);
+		ByteBuffer.wrap(oversized).putInt(oversized.length - 4, Integer.MIN_VALUE);
+		assertThrows(EOFException.class, () -> new ClassFileReader(new ByteArrayInputStream(oversized)).read());
 	}
 
 	/**
@@ -644,12 +707,32 @@ class CompiledClassesJava17LibraryTest {
 			index = signature.indexOf(':', index);
 			while (signature.charAt(index) == ':') {
 				index++;
-				if ("LT[".indexOf(signature.charAt(index)) >= 0) {
+				if (startsBound(signature, index)) {
 					index = parseType(signature, index, types);
 				}
 			}
 		}
 		return index + 1;
+	}
+
+	/**
+	 * Tells whether a bound starts just after a colon in the type parameters. The
+	 * class bound may be empty, so what follows can be the next parameter's name
+	 * instead, such as {@code Thing:}. A name runs to a colon and holds no
+	 * semicolon, while a bound, apart from an array, always ends with one.
+	 *
+	 * @param signature the signature
+	 * @param index     the index just after the colon
+	 * @return true if a type starts there
+	 */
+	private static boolean startsBound(String signature, int index) {
+		char first = signature.charAt(index);
+		if (first == '[') {
+			return true;
+		}
+		int colon = signature.indexOf(':', index);
+		int semicolon = signature.indexOf(';', index);
+		return (first == 'L' || first == 'T') && (colon < 0 || semicolon >= 0 && semicolon < colon);
 	}
 
 	/**
@@ -749,14 +832,16 @@ class CompiledClassesJava17LibraryTest {
 	/**
 	 * What the check reads from one class file.
 	 *
-	 * @param name       the binary name of the class
-	 * @param supertypes the binary names of its superclass and interfaces
-	 * @param declared   its fields and methods, each as name followed by descriptor
-	 * @param types      the binary names of the class types it names
-	 * @param references the members it refers to
+	 * @param name         the class's binary name
+	 * @param isInterface  whether it is an interface
+	 * @param supertypes   its superclass and interfaces
+	 * @param declared     its fields and methods, as name plus descriptor
+	 * @param notInherited its static and private methods, written the same way
+	 * @param types        the class types it names
+	 * @param references   the members it refers to
 	 */
-	private record ParsedClass(String name, List<String> supertypes, Set<String> declared, Set<String> types,
-			Set<MemberReference> references) {
+	private record ParsedClass(String name, boolean isInterface, List<String> supertypes, Set<String> declared,
+			Set<String> notInherited, Set<String> types, Set<MemberReference> references) {
 
 		/**
 		 * Tells whether the class itself declares a referenced member.
@@ -770,6 +855,19 @@ class CompiledClassesJava17LibraryTest {
 			return reference.kind() == Kind.ELEMENT
 					? declared.stream().anyMatch(key -> key.startsWith(reference.name() + "()"))
 					: declared.contains(reference.name() + reference.descriptor());
+		}
+
+		/**
+		 * Tells whether the class declares a referenced member that a subtype's call
+		 * can reach. The JVM skips the static and private methods of an interface when
+		 * it searches a subtype's interfaces, so those do not count here.
+		 *
+		 * @param reference the referenced member, owned by a subtype of this class
+		 * @return true if it is declared here and reachable from that subtype
+		 */
+		boolean declaresForSubtype(MemberReference reference) {
+			return declares(reference)
+					&& !(isInterface && notInherited.contains(reference.name() + reference.descriptor()));
 		}
 	}
 
@@ -857,7 +955,8 @@ class CompiledClassesJava17LibraryTest {
 					continue;
 				}
 				Optional<ParsedClass> parsed = load(type);
-				if (parsed.isEmpty() || parsed.get().declares(reference)) {
+				if (parsed.isEmpty() || (type.equals(reference.owner()) ? parsed.get().declares(reference)
+						: parsed.get().declaresForSubtype(reference))) {
 					return true;
 				}
 				if (!CONSTRUCTOR.equals(reference.name()) && reference.kind() != Kind.ELEMENT) {
@@ -898,6 +997,15 @@ class CompiledClassesJava17LibraryTest {
 	 */
 	private static final class ClassFileReader {
 
+		/** The access flag of a class file that marks an interface. */
+		private static final int ACC_INTERFACE = 0x0200;
+
+		/** The access flag of a method that marks it static. */
+		private static final int ACC_STATIC = 0x0008;
+
+		/** The access flag of a method that marks it private. */
+		private static final int ACC_PRIVATE = 0x0002;
+
 		/** The text entries of the constant pool, by index. */
 		private String[] texts;
 
@@ -922,6 +1030,9 @@ class CompiledClassesJava17LibraryTest {
 		/** The fields and methods the class declares, each as name and descriptor. */
 		private final Set<String> declared = new HashSet<>();
 
+		/** The static and private methods the class declares, written the same way. */
+		private final Set<String> notInherited = new HashSet<>();
+
 		/**
 		 * Creates a reader for one class file.
 		 *
@@ -939,9 +1050,9 @@ class CompiledClassesJava17LibraryTest {
 		 *                     reader knows
 		 */
 		ParsedClass read() throws IOException {
-			input.readNBytes(8);
+			input.skipNBytes(8);
 			readConstantPool();
-			input.readUnsignedShort();
+			boolean isInterface = (input.readUnsignedShort() & ACC_INTERFACE) != 0;
 			String name = className(input.readUnsignedShort());
 			List<String> supertypes = new ArrayList<>();
 			int superclass = input.readUnsignedShort();
@@ -952,11 +1063,11 @@ class CompiledClassesJava17LibraryTest {
 			for (int interfaceIndex = 0; interfaceIndex < interfaceCount; interfaceIndex++) {
 				supertypes.add(className(input.readUnsignedShort()));
 			}
-			readMembers();
-			readMembers();
+			readMembers(false);
+			readMembers(true);
 			readAttributes();
 			collectConstantPool();
-			return new ParsedClass(name, supertypes, declared, types, references);
+			return new ParsedClass(name, isInterface, supertypes, declared, notInherited, types, references);
 		}
 
 		/**
@@ -997,8 +1108,8 @@ class CompiledClassesJava17LibraryTest {
 				input.readUnsignedByte();
 				firstIndexes[index] = input.readUnsignedShort();
 			}
-			case 3, 4 -> input.readNBytes(4);
-			case 5, 6 -> input.readNBytes(8);
+			case 3, 4 -> input.skipNBytes(4);
+			case 5, 6 -> input.skipNBytes(8);
 			default -> throw new IOException("Unknown constant-pool tag " + tag);
 			}
 			return tag == 5 || tag == 6 ? 2 : 1;
@@ -1060,17 +1171,22 @@ class CompiledClassesJava17LibraryTest {
 		}
 
 		/**
-		 * Reads the fields or the methods, recording each as declared.
+		 * Reads the fields or the methods, recording each as declared, and a static or
+		 * private method as not inherited too.
 		 *
+		 * @param methods whether the methods are read rather than the fields
 		 * @throws IOException if the file cannot be read
 		 */
-		private void readMembers() throws IOException {
+		private void readMembers(boolean methods) throws IOException {
 			int count = input.readUnsignedShort();
 			for (int member = 0; member < count; member++) {
-				input.readUnsignedShort();
+				int flags = input.readUnsignedShort();
 				String name = texts[input.readUnsignedShort()];
 				String descriptor = texts[input.readUnsignedShort()];
 				declared.add(name + descriptor);
+				if (methods && (flags & (ACC_STATIC | ACC_PRIVATE)) != 0) {
+					notInherited.add(name + descriptor);
+				}
 				addTypes(descriptor, types);
 				readAttributes();
 			}
@@ -1086,7 +1202,7 @@ class CompiledClassesJava17LibraryTest {
 			int count = input.readUnsignedShort();
 			for (int attribute = 0; attribute < count; attribute++) {
 				String name = texts[input.readUnsignedShort()];
-				int length = input.readInt();
+				long length = Integer.toUnsignedLong(input.readInt());
 				readAttribute(name, length);
 			}
 		}
@@ -1095,10 +1211,10 @@ class CompiledClassesJava17LibraryTest {
 		 * Reads one attribute's content.
 		 *
 		 * @param name   the attribute's name
-		 * @param length its length in bytes, used to skip it
+		 * @param length its length in bytes, read as unsigned, used to skip it
 		 * @throws IOException if the file cannot be read
 		 */
-		private void readAttribute(String name, int length) throws IOException {
+		private void readAttribute(String name, long length) throws IOException {
 			switch (name) {
 			case "Signature" -> addTypes(texts[input.readUnsignedShort()], types);
 			case "RuntimeVisibleAnnotations", "RuntimeInvisibleAnnotations" -> readAnnotations();
@@ -1108,7 +1224,7 @@ class CompiledClassesJava17LibraryTest {
 			case "Code" -> readCode();
 			case "LocalVariableTable", "LocalVariableTypeTable" -> readLocalVariables();
 			case "Record" -> readRecordComponents();
-			default -> input.readNBytes(length);
+			default -> input.skipNBytes(length);
 			}
 		}
 
@@ -1119,9 +1235,9 @@ class CompiledClassesJava17LibraryTest {
 		 * @throws IOException if the file cannot be read
 		 */
 		private void readCode() throws IOException {
-			input.readNBytes(4);
-			input.readNBytes(input.readInt());
-			input.readNBytes(8 * input.readUnsignedShort());
+			input.skipNBytes(4);
+			input.skipNBytes(Integer.toUnsignedLong(input.readInt()));
+			input.skipNBytes(8 * input.readUnsignedShort());
 			readAttributes();
 		}
 
@@ -1133,7 +1249,7 @@ class CompiledClassesJava17LibraryTest {
 		private void readLocalVariables() throws IOException {
 			int count = input.readUnsignedShort();
 			for (int variable = 0; variable < count; variable++) {
-				input.readNBytes(6);
+				input.skipNBytes(6);
 				addTypes(texts[input.readUnsignedShort()], types);
 				input.readUnsignedShort();
 			}
@@ -1188,7 +1304,7 @@ class CompiledClassesJava17LibraryTest {
 			int count = input.readUnsignedShort();
 			for (int annotation = 0; annotation < count; annotation++) {
 				skipTypeAnnotationTarget(input.readUnsignedByte());
-				input.readNBytes(2 * input.readUnsignedByte());
+				input.skipNBytes(2 * input.readUnsignedByte());
 				readAnnotation();
 			}
 		}
@@ -1201,12 +1317,12 @@ class CompiledClassesJava17LibraryTest {
 		 */
 		private void skipTypeAnnotationTarget(int targetType) throws IOException {
 			switch (targetType) {
-			case 0x00, 0x01, 0x16 -> input.readNBytes(1);
-			case 0x10, 0x11, 0x12, 0x17, 0x42, 0x43, 0x44, 0x45, 0x46 -> input.readNBytes(2);
+			case 0x00, 0x01, 0x16 -> input.skipNBytes(1);
+			case 0x10, 0x11, 0x12, 0x17, 0x42, 0x43, 0x44, 0x45, 0x46 -> input.skipNBytes(2);
 			case 0x13, 0x14, 0x15 -> {
 			}
-			case 0x40, 0x41 -> input.readNBytes(6 * input.readUnsignedShort());
-			case 0x47, 0x48, 0x49, 0x4A, 0x4B -> input.readNBytes(3);
+			case 0x40, 0x41 -> input.skipNBytes(6 * input.readUnsignedShort());
+			case 0x47, 0x48, 0x49, 0x4A, 0x4B -> input.skipNBytes(3);
 			default -> throw new IOException("Unknown type annotation target " + targetType);
 			}
 		}
