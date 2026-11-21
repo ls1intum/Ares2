@@ -6,8 +6,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 public class FileHandlerConstantsTest {
 
@@ -182,6 +186,88 @@ public class FileHandlerConstantsTest {
 		String content = Files.readString(FileHandlerConstants.WALA_FILESYSTEM_METHODS);
 		assertTrue(content.contains("org.apache.commons.io.FileUtils.forceDelete(Ljava/io/File;)"));
 		assertTrue(content.contains("java.nio.file.spi.FileSystemProvider.delete(Ljava/nio/file/Path;)"));
+	}
+
+	/**
+	 * Fails unless every expected entry is a whole line of the method list.
+	 *
+	 * @param methodList the method list to read
+	 * @param expected   the entries that must be in it
+	 * @throws IOException if the list cannot be read
+	 */
+	private static void assertListsEveryEntry(Path methodList, String... expected) throws IOException {
+		Set<String> entries = Files.readAllLines(methodList).stream().map(String::strip).collect(Collectors.toSet());
+		assertAll(Arrays.stream(expected)
+				.<Executable>map(entry -> () -> assertTrue(entries.contains(entry), "Missing entry: " + entry)));
+	}
+
+	/**
+	 * The ArchUnit list names the constructors that open a file and take a
+	 * character set, which the runtime layer already checks.
+	 *
+	 * @throws IOException if the list cannot be read
+	 */
+	@Test
+	void testArchunitFilesystemMethodsContainCharsetConstructors() throws IOException {
+		assertListsEveryEntry(FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS,
+				"java.util.Formatter.<init>(java.lang.String, java.nio.charset.Charset, java.util.Locale)",
+				"java.util.Formatter.<init>(java.io.File, java.nio.charset.Charset, java.util.Locale)",
+				"java.util.Scanner.<init>(java.io.File, java.nio.charset.Charset)",
+				"java.util.Scanner.<init>(java.nio.file.Path)",
+				"java.util.Scanner.<init>(java.nio.file.Path, java.lang.String)",
+				"java.util.Scanner.<init>(java.nio.file.Path, java.nio.charset.Charset)",
+				"java.io.PrintStream.<init>(java.io.File, java.nio.charset.Charset)",
+				"java.io.PrintStream.<init>(java.lang.String, java.nio.charset.Charset)",
+				"java.io.FileWriter.<init>(java.io.File, java.nio.charset.Charset)",
+				"java.io.FileWriter.<init>(java.io.File, java.nio.charset.Charset, boolean)",
+				"java.io.FileWriter.<init>(java.lang.String, java.nio.charset.Charset)",
+				"java.io.FileWriter.<init>(java.lang.String, java.nio.charset.Charset, boolean)");
+	}
+
+	/**
+	 * The WALA list names the constructors that open a file and take a character
+	 * set, which the runtime layer already checks.
+	 *
+	 * @throws IOException if the list cannot be read
+	 */
+	@Test
+	void testWalaFilesystemMethodsContainCharsetConstructors() throws IOException {
+		assertListsEveryEntry(FileHandlerConstants.WALA_FILESYSTEM_METHODS,
+				"java.util.Formatter.<init>(Ljava/lang/String;Ljava/nio/charset/Charset;Ljava/util/Locale;)",
+				"java.util.Formatter.<init>(Ljava/io/File;Ljava/nio/charset/Charset;Ljava/util/Locale;)",
+				"java.util.Scanner.<init>(Ljava/io/File;Ljava/nio/charset/Charset;)",
+				"java.util.Scanner.<init>(Ljava/nio/file/Path;)",
+				"java.util.Scanner.<init>(Ljava/nio/file/Path;Ljava/lang/String;)",
+				"java.util.Scanner.<init>(Ljava/nio/file/Path;Ljava/nio/charset/Charset;)",
+				"java.io.PrintStream.<init>(Ljava/io/File;Ljava/nio/charset/Charset;)",
+				"java.io.PrintStream.<init>(Ljava/lang/String;Ljava/nio/charset/Charset;)",
+				"java.io.FileWriter.<init>(Ljava/io/File;Ljava/nio/charset/Charset;)",
+				"java.io.FileWriter.<init>(Ljava/io/File;Ljava/nio/charset/Charset;Z)",
+				"java.io.FileWriter.<init>(Ljava/lang/String;Ljava/nio/charset/Charset;)",
+				"java.io.FileWriter.<init>(Ljava/lang/String;Ljava/nio/charset/Charset;Z)");
+	}
+
+	/**
+	 * The questions a {@code java.io.File} answers about its file without opening
+	 * it, in the ArchUnit form.
+	 */
+	private static final String[] ARCHUNIT_FILE_INSPECTIONS = { "java.io.File.exists()", "java.io.File.isFile()",
+			"java.io.File.isDirectory()", "java.io.File.isHidden()", "java.io.File.length()",
+			"java.io.File.lastModified()", "java.io.File.canRead()", "java.io.File.canWrite()",
+			"java.io.File.canExecute()", "java.io.File.getFreeSpace()", "java.io.File.getTotalSpace()",
+			"java.io.File.getUsableSpace()" };
+
+	/**
+	 * Both static lists name the questions a {@code java.io.File} answers about its
+	 * file, so a policy without file rules refuses them before the test runs. The
+	 * WALA form of these methods without arguments is the same as the ArchUnit one.
+	 *
+	 * @throws IOException if a list cannot be read
+	 */
+	@Test
+	void testFilesystemMethodsContainFileInspections() throws IOException {
+		assertListsEveryEntry(FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS, ARCHUNIT_FILE_INSPECTIONS);
+		assertListsEveryEntry(FileHandlerConstants.WALA_FILESYSTEM_METHODS, ARCHUNIT_FILE_INSPECTIONS);
 	}
 
 	@Test

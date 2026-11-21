@@ -34,6 +34,7 @@ import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentati
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecuteCommandMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathConstructorAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationExecutePathMethodAdvice;
+import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationInspectPathMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationLibraryLoadWeaveRecord;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationLoadLibraryMethodAdvice;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationOverwritePathConstructorAdvice;
@@ -243,6 +244,32 @@ public final class JavaInstrumentationBindingDefinitions {
 		} catch (Exception e) {
 			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 					.localize("security.instrumentation.read.constructor.binding.error"), e);
+		}
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="Inspect Path">
+	/**
+	 * Creates the binding that checks the methods asking about a file without
+	 * opening it, such as whether it exists.
+	 *
+	 * @param builder          the builder the binding is added to
+	 * @param typeDescription  the class whose methods are rewritten
+	 * @param classLoader      its class loader
+	 * @param javaModule       its module, unused
+	 * @param protectionDomain its protection domain, unused
+	 * @return the builder with the binding
+	 */
+	public static DynamicType.Builder<?> createInspectPathMethodBinding(DynamicType.Builder<?> builder,
+			TypeDescription typeDescription, ClassLoader classLoader, JavaModule javaModule,
+			ProtectionDomain protectionDomain) {
+		try {
+			return createMethodBinding(builder, typeDescription,
+					JavaInstrumentationPointcutDefinitions.METHODS_WHICH_CAN_INSPECT_FILES,
+					JavaInstrumentationInspectPathMethodAdvice.class);
+		} catch (Exception e) {
+			throw new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+					.localize("security.instrumentation.inspect.method.binding.error"), e);
 		}
 	}
 	// </editor-fold>

@@ -117,24 +117,48 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// socket/stream is not a path. File/String-named PrintStreams still validate
 			// their path at index 0.
 			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)),
+			// Formatter, OutputStreamWriter, PrintWriter, InputStreamReader, Scanner: every
+			// public constructor takes the sink or source at index 0 and after it only a
+			// charset name, Charset, coder, Locale or boolean, so a name like "UTF-8" is
+			// never read as a path. A private constructor with the file later is still
+			// covered by the FileOutputStream or FileInputStream it opens, which is
+			// checked.
+			Map.entry("java.util.Formatter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.io.OutputStreamWriter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.io.PrintWriter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.io.InputStreamReader.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.util.Scanner.<init>", IgnoreValues.allExcept(0)),
 			// FileSystemView.getChild(File dir, String name) and isParent(File dir, File
 			// file) list dir; only dir is checked, the name is not a path and the file is
 			// not listed.
 			Map.entry("javax.swing.filechooser.FileSystemView.getChild", IgnoreValues.allExcept(0)),
-			Map.entry("javax.swing.filechooser.FileSystemView.isParent", IgnoreValues.allExcept(0)));
+			Map.entry("javax.swing.filechooser.FileSystemView.isParent", IgnoreValues.allExcept(0)),
+			// getSystemIcon(File, int, int): only the file, the two sizes are not paths
+			Map.entry("javax.swing.filechooser.FileSystemView.getSystemIcon", IgnoreValues.allExcept(0)),
+			// readAttributes, getAttribute, getFileAttributeView: the path first, then
+			// only an attribute name such as "basic:size", a class or link options
+			Map.entry("java.nio.file.Files.readAttributes", IgnoreValues.allExcept(0)),
+			Map.entry("java.nio.file.Files.getAttribute", IgnoreValues.allExcept(0)),
+			Map.entry("java.nio.file.Files.getFileAttributeView", IgnoreValues.allExcept(0)),
+			Map.entry("java.nio.file.spi.FileSystemProvider.readAttributes", IgnoreValues.allExcept(0)),
+			Map.entry("java.nio.file.spi.FileSystemProvider.readAttributesIfExists", IgnoreValues.allExcept(0)),
+			Map.entry("java.nio.file.spi.FileSystemProvider.getFileAttributeView", IgnoreValues.allExcept(0)));
 
 	/**
-	 * The JDK class whose subclasses share its argument rules. A call on a subclass
-	 * of it, a student's own included, that has no rule of its own is read with the
-	 * rule of the method it inherits, so a child name is never taken for a path.
+	 * The JDK classes whose subclasses share their argument rules. A call on a
+	 * subclass of one, a student's own included, that has no rule of its own is
+	 * read with the rule of the method it inherits, so an attribute or child name
+	 * is never taken for a path.
 	 */
 	@Nonnull
-	private static final String FILE_SYSTEM_VIEW = "javax.swing.filechooser.FileSystemView";
+	private static final List<String> CLASSES_SHARING_ARGUMENT_RULES = List.of("javax.swing.filechooser.FileSystemView",
+			"java.nio.file.spi.FileSystemProvider");
 
 	/**
 	 * Returns which arguments of a call are checked as paths. The exact rule wins;
-	 * a receiver whose class extends FileSystemView falls back to that class's
-	 * rule, found by comparing class names, so no desktop class is loaded.
+	 * a receiver whose class extends one of {@link #CLASSES_SHARING_ARGUMENT_RULES}
+	 * falls back to that class's rule, found by comparing class names, so no
+	 * desktop class is loaded.
 	 *
 	 * @param methodKey  the called method as declaring type and name
 	 * @param methodName the called method's name
@@ -149,27 +173,29 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		if (exact != null) {
 			return exact;
 		}
-		if (instance == null || !extendsFileSystemView(instance.getClass())) {
+		@Nullable
+		String sharingClass = instance == null ? null : classSharingArgumentRules(instance.getClass());
+		if (sharingClass == null) {
 			return IgnoreValues.NONE;
 		}
-		return FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(FILE_SYSTEM_VIEW + "." + methodName,
-				IgnoreValues.NONE);
+		return FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(sharingClass + "." + methodName, IgnoreValues.NONE);
 	}
 
 	/**
-	 * Tells whether a class is FileSystemView or extends it, by name, walking up
-	 * the superclasses.
+	 * Names the class of {@link #CLASSES_SHARING_ARGUMENT_RULES} a class is or
+	 * extends, by name, walking up the superclasses.
 	 *
 	 * @param type the receiver's class
-	 * @return whether FileSystemView is among its classes
+	 * @return that class's name, or {@code null} if it extends none of them
 	 */
-	private static boolean extendsFileSystemView(@Nonnull Class<?> type) {
+	@Nullable
+	private static String classSharingArgumentRules(@Nonnull Class<?> type) {
 		for (Class<?> current = type; current != null; current = current.getSuperclass()) {
-			if (FILE_SYSTEM_VIEW.equals(current.getName())) {
-				return true;
+			if (CLASSES_SHARING_ARGUMENT_RULES.contains(current.getName())) {
+				return current.getName();
 			}
 		}
-		return false;
+		return null;
 	}
 
 	private static final Set<String> NATIVE_LIBRARY_SUFFIXES = Set.of(".dylib", ".jnilib", ".so", ".dll");
@@ -1701,7 +1727,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			boolean isJdkTempFileCreation = isJdkTempFileCreation(action, declaringTypeName, methodName,
 					pathIllegallyInteractedThroughParameter);
 			if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess && !isJarResourceRead
-					&& !isEntropySourceRead && !isJdkTempFileCreation) {
+					&& !isEntropySourceRead && !isJdkTempFileCreation
+					&& !isJdkMimeTableRead(action, pathIllegallyInteractedThroughParameter)) {
 				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
 						localizeAction(messageAction), pathIllegallyInteractedThroughParameter,
 						fullMethodSignature + describeCaller(studentCalledMethod) + " | "
@@ -1728,6 +1755,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 
 			if (!isInternalAllowed && isEntropySourceRead(action, pathIllegallyInteractedThroughReceiver)) {
+				isInternalAllowed = true;
+			}
+			if (!isInternalAllowed && isJdkMimeTableRead(action, pathIllegallyInteractedThroughReceiver)) {
 				isInternalAllowed = true;
 			}
 
@@ -1769,6 +1799,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (!isInternalAllowed && isEntropySourceRead(action, pathIllegallyInteractedThroughAttribute)) {
 				isInternalAllowed = true;
 			}
+			if (!isInternalAllowed && isJdkMimeTableRead(action, pathIllegallyInteractedThroughAttribute)) {
+				isInternalAllowed = true;
+			}
 
 			if (!isInternalAllowed) {
 				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
@@ -1776,6 +1809,158 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 						fullMethodSignature + describeCaller(studentCalledMethod) + " | "
 								+ buildDenialReason(noAllowRuleConfigured)));
 			}
+		}
+	}
+
+	/**
+	 * The settings holding the paths each file rule permits. A question about a
+	 * file is permitted below any of them, whichever action the rule permits.
+	 */
+	@Nonnull
+	private static final List<String> FILE_RULE_SETTINGS = List.of("pathsAllowedToBeRead",
+			"pathsAllowedToBeOverwritten", "pathsAllowedToBeCreated", "pathsAllowedToBeExecuted",
+			"pathsAllowedToBeDeleted");
+
+	/**
+	 * The JDK method that reads the table of file types behind
+	 * {@code Files.probeContentType}.
+	 */
+	@Nonnull
+	private static final Set<String> MIME_TABLE_READERS = Set.of("sun.nio.fs.MimeTypesFileTypeDetector.loadMimeTypes");
+
+	/**
+	 * Tells whether the JDK reads its own table of file types, such as
+	 * {@code ~/.mime.types}, to answer {@code Files.probeContentType}. The JDK
+	 * fixes that path when it starts; the student code learns only which type a
+	 * file ending stands for.
+	 *
+	 * @param action the action
+	 * @param path   the path read
+	 * @return whether this is that read
+	 */
+	private static boolean isJdkMimeTableRead(@Nonnull String action, @Nonnull String path) {
+		return "read".equals(action) && path.endsWith("mime.types")
+				&& isJdkMethodActingWithoutStudentCode(getValueFromSettings("restrictedPackage"), MIME_TABLE_READERS);
+	}
+
+	/**
+	 * The JDK method that asks about the folders above the one it creates.
+	 */
+	@Nonnull
+	private static final Set<String> CREATE_DIRECTORIES_METHODS = Set.of("java.nio.file.Files.createDirectories");
+
+	/**
+	 * The JDK methods that look for a class to load it. While one of them runs, the
+	 * JVM asks whether class files and archives exist.
+	 */
+	@Nonnull
+	private static final Set<String> CLASS_LOADING_METHODS = Set.of("java.lang.ClassLoader.loadClass",
+			"jdk.internal.loader.BuiltinClassLoader.loadClassOrNull",
+			"jdk.internal.loader.BuiltinClassLoader.findClassOnClassPathOrNull");
+
+	/**
+	 * Collects every path any file rule of the policy names.
+	 *
+	 * @return the paths, empty when the policy has no file rule
+	 */
+	@Nonnull
+	private static String[] inspectablePaths() {
+		List<String> paths = new ArrayList<>();
+		for (String setting : FILE_RULE_SETTINGS) {
+			@Nullable
+			String[] permitted = getValueFromSettings(setting);
+			if (permitted != null) {
+				Collections.addAll(paths, permitted);
+			}
+		}
+		return paths.toArray(new String[0]);
+	}
+
+	/**
+	 * Checks a question about a file, such as whether it exists, against every path
+	 * a file rule names. Each argument and the receiver are checked on their own,
+	 * so a permitted one cannot hide a forbidden one.
+	 *
+	 * @param declaringTypeName       the class
+	 * @param methodName              the method
+	 * @param parameters              the arguments
+	 * @param instance                the receiver
+	 * @param restrictedPackage       the student package
+	 * @param fileSystemMethodToCheck the student method
+	 * @param studentCalledMethod     its callee
+	 * @param fullMethodSignature     the signature
+	 */
+	private static void checkInspection(@Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nullable Object[] parameters, @Nullable Object instance, @Nonnull String restrictedPackage,
+			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature) {
+		String[] inspectablePaths = inspectablePaths();
+		List<Object> observed = new ArrayList<>();
+		if (parameters != null) {
+			Collections.addAll(observed, filterVariables(parameters,
+					parameterIgnoreValues(declaringTypeName + "." + methodName, methodName, instance)));
+		}
+		if (instance != null) {
+			observed.add(instance);
+		}
+		for (Object variable : observed) {
+			@Nullable
+			String violation = extractViolationPath(variable, inspectablePaths, false);
+			if (violation != null && !isExemptInspection(violation, inspectablePaths, restrictedPackage)) {
+				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
+						localizeAction("inspect"), violation, fullMethodSignature + describeCaller(studentCalledMethod)
+								+ " | " + buildDenialReason(inspectablePaths.length == 0)));
+			}
+		}
+	}
+
+	/**
+	 * Tells whether a question about a path no rule names is still allowed: the
+	 * JDK's files, Maven archives, a question another Ares check asks, a folder
+	 * above a permitted path while the JDK creates folders, and a class file or
+	 * archive while the JVM loads a class. The last two need the JDK method to act
+	 * with no student code above it.
+	 *
+	 * @param path              the path asked about
+	 * @param inspectablePaths  the paths the rules name
+	 * @param restrictedPackage the student package
+	 * @return whether it is allowed
+	 */
+	private static boolean isExemptInspection(@Nonnull String path, @Nonnull String[] inspectablePaths,
+			@Nonnull String restrictedPackage) {
+		return isPathWithin(path, TRUSTED_JAVA_HOME) || isSystemJarReadExempt(path)
+				|| isAnotherAresCheckAsking(restrictedPackage)
+				|| (isStrictAncestorOfAny(path, inspectablePaths)
+						&& isJdkMethodActingWithoutStudentCode(restrictedPackage, CREATE_DIRECTORIES_METHODS))
+				|| ((path.endsWith(".class") || path.endsWith(".jar"))
+						&& isJdkMethodActingWithoutStudentCode(restrictedPackage, CLASS_LOADING_METHODS));
+	}
+
+	/**
+	 * Tells whether a path is a folder above one of the given paths, after links in
+	 * both are followed.
+	 *
+	 * @param path  the path asked about
+	 * @param paths the paths a file rule names
+	 * @return whether it lies strictly above one of them
+	 */
+	private static boolean isStrictAncestorOfAny(@Nonnull String path, @Nonnull String[] paths) {
+		try {
+			Path candidate = resolveExistingAncestorRealPath(Path.of(path).toAbsolutePath().normalize());
+			for (String permitted : paths) {
+				@Nullable
+				Path permittedPath = variableToPath(permitted, true);
+				if (permittedPath == null) {
+					continue;
+				}
+				Path resolved = resolveExistingAncestorRealPath(permittedPath);
+				if (!resolved.equals(candidate) && resolved.startsWith(candidate)) {
+					return true;
+				}
+			}
+			return false;
+		} catch (InvalidPathException invalid) {
+			return false;
 		}
 	}
 
@@ -1847,6 +2032,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 			// </editor-fold>
 
+			if ("inspect".equals(action)) {
+				checkInspection(declaringTypeName, methodName, parameters, instance, restrictedPackage,
+						fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+				return;
+			}
 			if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
 					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature)) {
 				return;

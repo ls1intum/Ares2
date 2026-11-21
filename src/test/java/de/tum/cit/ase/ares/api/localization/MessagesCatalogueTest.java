@@ -48,7 +48,7 @@ class MessagesCatalogueTest {
 
 	/** The raw action names that the advice code translates before reporting. */
 	private static final List<String> ADVICE_ACTIONS = List.of("read", "overwrite", "create", "delete", "execute",
-			"connect", "send", "receive", "manipulate");
+			"inspect", "connect", "send", "receive", "manipulate");
 
 	/** The architecture rules, by the key part after their message key prefix. */
 	private static final List<String> ARCHITECTURE_RULES = List.of("file.system.access", "network.access",

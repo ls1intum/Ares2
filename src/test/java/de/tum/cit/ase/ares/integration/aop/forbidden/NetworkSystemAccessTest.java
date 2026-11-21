@@ -1,10 +1,12 @@
 package de.tum.cit.ase.ares.integration.aop.forbidden;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.function.Executable;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.networkSystem.connect.unixdomainsocket.UnixDomainSocketConnectMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.networkSystem.datagram.DatagramConnectMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.networkSystem.send.httpclient.HttpClientSendMain;
 
 /**
@@ -84,6 +86,86 @@ class NetworkSystemAccessTest extends SystemAccessTest {
 	void test_unixDomainSocketConnectMavenWalaInstrumentation() {
 		assertAresSecurityExceptionNetwork(UnixDomainSocketConnectMain::connectViaUnixDomainSocket,
 				UnixDomainSocketConnectMain.class);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="Datagram connect is a connect, not a receive">
+	/**
+	 * Where the datagram subjects live.
+	 */
+	private static final String DATAGRAM_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/networkSystem/datagram";
+
+	/**
+	 * Expects the call to be refused and the refusal to name the given action.
+	 *
+	 * @param executable the datagram call
+	 * @param action     the action the refusal must name, such as "send"
+	 */
+	private void assertDatagramRefusedAs(Executable executable, String action) {
+		SecurityException exception = assertAresSecurityExceptionNetwork(executable, DatagramConnectMain.class);
+		Assertions.assertTrue(exception.getMessage().contains("illegally " + action),
+				() -> "Expected the denial to name the '" + action + "' action, but was:\n" + exception.getMessage());
+	}
+
+	/**
+	 * Under a policy that permits connecting to the host and port but neither
+	 * sending nor receiving, a connect works, a connect to another port is refused,
+	 * and each send or receive on the connected socket or channel is refused under
+	 * its own name.
+	 */
+	private void assertDatagramActionsCheckedSeparately() {
+		Assertions.assertAll(() -> Assertions.assertDoesNotThrow(DatagramConnectMain::connectDatagramSocket),
+				() -> Assertions.assertDoesNotThrow(DatagramConnectMain::connectDatagramChannel),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::connectDatagramSocketToOtherPort, "connect"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::connectDatagramChannelToOtherPort, "connect"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::sendOnConnectedDatagramSocket, "send"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::receiveOnConnectedDatagramSocket, "receive"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::receiveOnConnectedDatagramChannel, "receive"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::writeOnConnectedDatagramChannel, "send"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::readOnConnectedDatagramChannel, "receive"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::writeThroughWritableChannel, "send"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::writeThroughGatheringChannel, "send"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::readThroughReadableChannel, "receive"),
+				() -> assertDatagramRefusedAs(DatagramConnectMain::readThroughScatteringChannel, "receive"),
+				() -> Assertions.assertDoesNotThrow(DatagramConnectMain::bindDatagramSocketToLocalPort),
+				() -> Assertions.assertDoesNotThrow(DatagramConnectMain::bindDatagramSocketToLocalAddress),
+				() -> Assertions.assertDoesNotThrow(DatagramConnectMain::bindDatagramSocketToLocalPortAndAddress));
+	}
+
+	/**
+	 * Datagram actions are checked separately with ArchUnit and AspectJ.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_NETWORK_CONNECTION_ALLOWED, withinPath = DATAGRAM_WITHIN_PATH)
+	void test_datagramActionsCheckedSeparatelyMavenArchunitAspectJ() {
+		assertDatagramActionsCheckedSeparately();
+	}
+
+	/**
+	 * Datagram actions are checked separately with ArchUnit and instrumentation.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_NETWORK_CONNECTION_ALLOWED, withinPath = DATAGRAM_WITHIN_PATH)
+	void test_datagramActionsCheckedSeparatelyMavenArchunitInstrumentation() {
+		assertDatagramActionsCheckedSeparately();
+	}
+
+	/**
+	 * Datagram actions are checked separately with WALA and AspectJ.
+	 */
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_NETWORK_CONNECTION_ALLOWED, withinPath = DATAGRAM_WITHIN_PATH)
+	void test_datagramActionsCheckedSeparatelyMavenWalaAspectJ() {
+		assertDatagramActionsCheckedSeparately();
+	}
+
+	/**
+	 * Datagram actions are checked separately with WALA and instrumentation.
+	 */
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_NETWORK_CONNECTION_ALLOWED, withinPath = DATAGRAM_WITHIN_PATH)
+	void test_datagramActionsCheckedSeparatelyMavenWalaInstrumentation() {
+		assertDatagramActionsCheckedSeparately();
 	}
 	// </editor-fold>
 
