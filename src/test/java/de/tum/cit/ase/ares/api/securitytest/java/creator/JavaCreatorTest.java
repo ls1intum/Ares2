@@ -967,6 +967,21 @@ public class JavaCreatorTest {
 		}
 
 		/**
+		 * A production scope never looks at the test output: an empty production output
+		 * is accepted although the test output holds the instructor's compiled tests.
+		 * The same outputs under a test scope are refused, which the missing test scope
+		 * case above checks.
+		 */
+		@Test
+		@DisplayName("Ignores the test output for a production scope")
+		void ignoresTheTestOutputForAProductionScope() throws IOException {
+			Files.createDirectories(tempDir.resolve("classes"));
+			compileFixtureInto(tempDir.resolve("test-classes/example/nest"));
+			createTestCasesFor(tempDir.resolve("classes/example/nest"));
+			assertDoesNotThrow(() -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
 		 * Compiles a package descriptor and a module descriptor into the folder.
 		 *
 		 * @param classes the folder to compile into

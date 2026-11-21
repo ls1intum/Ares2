@@ -1,9 +1,12 @@
 package de.tum.cit.ase.ares.api.securitytest.java.writer;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -158,6 +161,13 @@ public class JavaWriterTest {
 	@Nested
 	@DisplayName("writeTestCases() Tests")
 	class WriteTestCasesTests {
+
+		/**
+		 * The English bundle below a resources folder, for the package
+		 * exercise.security.
+		 */
+		private static final String LOCALISATION_BUNDLE = "resources/exercise/security/ares/api/localization/messages.properties";
+
 		@Test
 		void confinesRelativeAbsoluteTraversalSiblingAndSymlinkTargets() throws IOException {
 			Path inside = Files.createDirectories(tempDir.resolve("inside"));
@@ -175,6 +185,67 @@ public class JavaWriterTest {
 			} catch (UnsupportedOperationException exception) {
 				org.junit.jupiter.api.Assumptions.abort("Symbolic links are unsupported on this platform");
 			}
+		}
+
+		/**
+		 * A path of another file system, here the Java runtime image, is refused as
+		 * escaping the project, while an absolute path inside the project is accepted.
+		 */
+		@Test
+		void refusesAPathOfAnotherFileSystem() throws IOException {
+			Path inside = Files.createDirectories(tempDir.resolve("inside"));
+			assertEquals(inside.toRealPath(), javaWriter.confineToProject(inside.toAbsolutePath()));
+			Path runtimeImage = FileSystems.getFileSystem(URI.create("jrt:/")).getPath("/modules");
+			SecurityException refused = assertThrows(SecurityException.class,
+					() -> javaWriter.confineToProject(runtimeImage));
+			assertEquals("Writer target escapes authorised project root: /modules", refused.getMessage());
+		}
+
+		/**
+		 * A test folder three names below the file-system root gets its resources
+		 * folder beside it, not inside it. The Phobos helper three folders up is then
+		 * refused, after the bundles are written. It needs a project root two names
+		 * deep, as a temporary folder under /tmp on Linux, and is skipped elsewhere.
+		 */
+		@Test
+		void placesTheResourcesBesideATestFolderThreeNamesDeep() throws IOException {
+			Path projectRoot = tempDir.toRealPath();
+			assumeTrue(projectRoot.getNameCount() == 2, "needs a project root two names below the file-system root");
+			Path testFolder = Files.createDirectories(projectRoot.resolve("src"));
+			SecurityException refused = assertThrows(SecurityException.class, () -> writeRealFilesInto(testFolder));
+			assertEquals("Writer target escapes authorised project root: "
+					+ testFolder.resolve("../../../PhobosCopyTool.sh"), refused.getMessage());
+			assertTrue(Files.isRegularFile(projectRoot.resolve(LOCALISATION_BUNDLE)));
+			assertFalse(Files.exists(testFolder.resolve("resources")));
+		}
+
+		/**
+		 * A test folder at most two names below the file-system root gets its resources
+		 * folder inside it, since it has no parent to place it beside. The Phobos
+		 * helper three folders up is then refused, after the bundles are written. It
+		 * needs such a shallow project root and is skipped elsewhere.
+		 */
+		@Test
+		void placesTheResourcesInsideATestFolderAtMostTwoNamesDeep() throws IOException {
+			Path projectRoot = tempDir.toRealPath();
+			assumeTrue(projectRoot.getNameCount() <= 2,
+					"needs a project root at most two names below the file-system root");
+			SecurityException refused = assertThrows(SecurityException.class, () -> writeRealFilesInto(projectRoot));
+			assertEquals("Writer target escapes authorised project root: "
+					+ projectRoot.resolve("../../../PhobosCopyTool.sh"), refused.getMessage());
+			assertTrue(Files.isRegularFile(projectRoot.resolve(LOCALISATION_BUNDLE)));
+		}
+
+		/**
+		 * Writes the real ArchUnit and AspectJ files of the package
+		 * {@code exercise.security} into the given test folder.
+		 *
+		 * @param testFolder the test folder to write into
+		 * @return the written files
+		 */
+		private List<Path> writeRealFilesInto(Path testFolder) {
+			return javaWriter.writeTestCases(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, List.of(),
+					List.of(), List.of(), "exercise.security", "Main", List.of(), List.of(), List.of(), testFolder);
 		}
 
 		@Test
