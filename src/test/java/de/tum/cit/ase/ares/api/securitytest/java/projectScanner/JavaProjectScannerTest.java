@@ -106,6 +106,41 @@ public class JavaProjectScannerTest {
 			// For now, verify the method executes without errors
 			assertDoesNotThrow(() -> scanner.scanForTestClasses());
 		}
+
+		/**
+		 * Name of a class in Ares' own test tree that holds direct test methods.
+		 */
+		private static final String OWN_TEST_CLASS = "de.tum.cit.ase.ares.api.securitytest.java.projectScanner.JavaProjectScannerDiagnosticsTest";
+
+		/**
+		 * Scans with the given build file answers and checks that Ares' own test tree
+		 * is read from the conventional root.
+		 *
+		 * @param maven  whether the project counts as a Maven project
+		 * @param gradle whether the project counts as a Gradle project
+		 */
+		private void assertScansOwnTestTree(boolean maven, boolean gradle) {
+			try (MockedStatic<ProjectSourcesFinder> mockedFinder = mockStatic(ProjectSourcesFinder.class)) {
+				mockedFinder.when(ProjectSourcesFinder::isMavenProject).thenReturn(maven);
+				mockedFinder.when(ProjectSourcesFinder::isGradleProject).thenReturn(gradle);
+
+				String[] result = scanner.scanForTestClasses();
+
+				assertTrue(java.util.Arrays.asList(result).contains(OWN_TEST_CLASS));
+			}
+		}
+
+		@Test
+		@DisplayName("Should read src/test/java of a Maven project without a build configuration")
+		void testScanForTestClasses_MavenConventionalRoot() {
+			assertScansOwnTestTree(true, false);
+		}
+
+		@Test
+		@DisplayName("Should read src/test/java of a Gradle project without a build configuration")
+		void testScanForTestClasses_GradleConventionalRoot() {
+			assertScansOwnTestTree(false, true);
+		}
 	}
 
 	@Nested
