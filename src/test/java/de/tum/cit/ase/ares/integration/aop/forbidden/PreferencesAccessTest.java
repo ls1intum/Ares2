@@ -26,26 +26,26 @@ class PreferencesAccessTest extends SystemAccessTest {
 	private static final String WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/preferences";
 
 	/**
-	 * Policy permitting read and overwrite on every path but no creation, in the
-	 * ArchUnit and AspectJ combination.
+	 * Policy permitting read on every path and overwrite below the build output,
+	 * but no creation, in the ArchUnit and AspectJ combination.
 	 */
 	private static final String ARCHUNIT_ASPECTJ_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyAllPathsAllowedReadOverwrite.yaml";
 
 	/**
-	 * Policy permitting read and overwrite on every path but no creation, in the
-	 * ArchUnit and instrumentation combination.
+	 * Policy permitting read on every path and overwrite below the build output,
+	 * but no creation, in the ArchUnit and instrumentation combination.
 	 */
 	private static final String ARCHUNIT_INSTRUMENTATION_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyAllPathsAllowedReadOverwrite.yaml";
 
 	/**
-	 * Policy permitting read and overwrite on every path but no creation, in the
-	 * WALA and AspectJ combination.
+	 * Policy permitting read on every path and overwrite below the build output,
+	 * but no creation, in the WALA and AspectJ combination.
 	 */
 	private static final String WALA_ASPECTJ_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyAllPathsAllowedReadOverwrite.yaml";
 
 	/**
-	 * Policy permitting read and overwrite on every path but no creation, in the
-	 * WALA and instrumentation combination.
+	 * Policy permitting read on every path and overwrite below the build output,
+	 * but no creation, in the WALA and instrumentation combination.
 	 */
 	private static final String WALA_INSTRUMENTATION_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyAllPathsAllowedReadOverwrite.yaml";
 
@@ -171,47 +171,55 @@ class PreferencesAccessTest extends SystemAccessTest {
 
 	// <editor-fold desc="Preferences.importPreferences (create)">
 	/**
-	 * Imports a missing node as student code under a policy that permits read and
-	 * overwrite everywhere but no creation, in the ArchUnit and AspectJ
-	 * combination, and expects Ares to refuse it as a create.
+	 * Imports a node as student code under a policy that permits reading every
+	 * path, in the ArchUnit and AspectJ combination, and expects Ares to refuse it.
+	 * Overwriting the Preferences store needs a write grant on every path, which
+	 * Ares refuses in a policy, so the import is refused before creation is
+	 * checked.
 	 */
 	@PublicTest
 	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesImportMavenArchunitAspectJ() {
-		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
+		assertPreferencesDenied(PreferencesMain::accessFileSystemViaPreferencesImport);
 	}
 
 	/**
-	 * Imports a missing node as student code under a policy that permits read and
-	 * overwrite everywhere but no creation, in the ArchUnit and instrumentation
-	 * combination, and expects Ares to refuse it as a create.
+	 * Imports a node as student code under a policy that permits reading every
+	 * path, in the ArchUnit and instrumentation combination, and expects Ares to
+	 * refuse it. Overwriting the Preferences store needs a write grant on every
+	 * path, which Ares refuses in a policy, so the import is refused before
+	 * creation is checked.
 	 */
 	@PublicTest
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesImportMavenArchunitInstrumentation() {
-		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
+		assertPreferencesDenied(PreferencesMain::accessFileSystemViaPreferencesImport);
 	}
 
 	/**
-	 * Imports a missing node as student code under a policy that permits read and
-	 * overwrite everywhere but no creation, in the WALA and AspectJ combination,
-	 * and expects Ares to refuse it as a create.
+	 * Imports a node as student code under a policy that permits reading every
+	 * path, in the WALA and AspectJ combination, and expects Ares to refuse it.
+	 * Overwriting the Preferences store needs a write grant on every path, which
+	 * Ares refuses in a policy, so the import is refused before creation is
+	 * checked.
 	 */
 	@PublicTest
 	@Policy(value = WALA_ASPECTJ_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesImportMavenWalaAspectJ() {
-		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
+		assertPreferencesDenied(PreferencesMain::accessFileSystemViaPreferencesImport);
 	}
 
 	/**
-	 * Imports a missing node as student code under a policy that permits read and
-	 * overwrite everywhere but no creation, in the WALA and instrumentation
-	 * combination, and expects Ares to refuse it as a create.
+	 * Imports a node as student code under a policy that permits reading every
+	 * path, in the WALA and instrumentation combination, and expects Ares to refuse
+	 * it. Overwriting the Preferences store needs a write grant on every path,
+	 * which Ares refuses in a policy, so the import is refused before creation is
+	 * checked.
 	 */
 	@PublicTest
 	@Policy(value = WALA_INSTRUMENTATION_POLICY_ALL_PATHS_ALLOWED_READ_OVERWRITE, withinPath = WITHIN_PATH)
 	void test_accessViaPreferencesImportMavenWalaInstrumentation() {
-		assertPreferencesDeniedAsCreate(PreferencesMain::accessFileSystemViaPreferencesImport);
+		assertPreferencesDenied(PreferencesMain::accessFileSystemViaPreferencesImport);
 	}
 	// </editor-fold>
 

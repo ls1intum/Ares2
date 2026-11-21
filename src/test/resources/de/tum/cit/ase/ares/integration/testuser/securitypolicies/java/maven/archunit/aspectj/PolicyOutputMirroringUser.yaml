@@ -1,0 +1,19 @@
+thisPolicyFileCompliesToThePolicyVersion: 2
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.testuser.OutputMirroringPolicyUser"
+    - "de.tum.cit.ase.ares.integration.OutputMirroringPolicyTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: []
+    regardingNetworkConnections: []
+    regardingCommandExecutions: []
+    regardingThreadCreations: []
+    regardingPackageImports: []
+    regardingTimeouts: []
+  theFollowingTestBehaviorIsConfigured:
+    regardingTheOutputOfTheTestCases:
+      theOutputIsMirrored: false
+      theMaximumNumberOfOutputCharactersIs: 10
