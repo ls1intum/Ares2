@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Covers the supervised-package fallback of {@link JavaProjectScanner}.
@@ -222,6 +224,28 @@ class JavaProjectScannerPackageFallbackTest {
 		}
 	}
 
+	/**
+	 * A production output root that is a single class file, not a folder, holds
+	 * nothing to list, so no package is detected from it.
+	 */
+	@Test
+	@DisplayName("Ignores an output root that is a single class file")
+	void ignoresAnOutputRootThatIsAClassFile() throws IOException {
+		Path outputRoot = compile("""
+				package de.tum.cit.aet;
+
+				public class Calculator {
+				}
+				""", "de/tum/cit/aet/Calculator.java");
+		Path classFile = outputRoot.resolve("de/tum/cit/aet/Calculator.class");
+		assertEquals("de.tum.cit.aet",
+				new JavaProjectScanner(configurationWithoutSourceRoots(outputRoot)).scanForPackageName());
+
+		String packageName = new JavaProjectScanner(configurationWithoutSourceRoots(classFile)).scanForPackageName();
+
+		assertEquals("", packageName);
+	}
+
 	@Test
 	@DisplayName("Reports the build mode of the configuration it was given")
 	void reportsTheConfiguredBuildMode() throws IOException {
@@ -244,10 +268,14 @@ class JavaProjectScannerPackageFallbackTest {
 				Files.createDirectories(projectRoot.resolve("build/classes/java/test")));
 		assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
 				"needs POSIX permissions to make a directory unreadable");
+		Path realRoot = sourceRoot.toRealPath();
 		Files.setPosixFilePermissions(sourceRoot, PosixFilePermissions.fromString("--x--x--x"));
 		try {
 			assumeUnreadable(sourceRoot);
-			assertThrows(SecurityException.class, () -> new JavaProjectScanner(configuration).scanForPackageName());
+			SecurityException refusal = assertThrows(SecurityException.class,
+					() -> new JavaProjectScanner(configuration).scanForPackageName());
+			assertEquals(Messages.localized("security.scanner.source.root.unreadable", realRoot), refusal.getMessage());
+			assertNull(refusal.getCause());
 		} finally {
 			Files.setPosixFilePermissions(sourceRoot, PosixFilePermissions.fromString("rwxr-xr-x"));
 		}

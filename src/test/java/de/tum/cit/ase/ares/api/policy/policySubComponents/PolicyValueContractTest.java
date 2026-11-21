@@ -81,6 +81,18 @@ class PolicyValueContractTest {
 		assertEquals(List.of(), CommandPermission.allowWithoutArguments("java").withTheseArguments());
 	}
 
+	/**
+	 * Checks that each bare JDK root counts as a JDK package, as the packages below
+	 * it do, while a name that only starts with a root's letters does not.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "java", "javax", "jdk", "sun", "com.sun" })
+	void aBareJdkRootIsInTheJdkNamespace(String root) {
+		assertTrue(PackagePermission.isInJdkNamespace(root));
+		assertTrue(PackagePermission.isInJdkNamespace(root + ".util"));
+		assertFalse(PackagePermission.isInJdkNamespace(root + "z"));
+	}
+
 	@Test
 	void everyResourceCollectionIsDefensivelyCopiedAndUnmodifiable() {
 		List<FilePermission> files = new ArrayList<>(List.of(FilePermission.createRestrictive("/tmp")));
