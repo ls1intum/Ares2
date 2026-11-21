@@ -43,13 +43,16 @@ The implicit part matters for package imports. Whatever your list says, Ares alw
 Your list can add to these but cannot remove any of them. With a policy, every other package of
 the standard library, `java.util` included, needs an entry in your list. Without a policy, Ares
 permits every package under `java`. This holds from the release after Ares 2.2.1: Ares 2.2.1
-still permits every package under `java`, with a policy too.
+still permits every package under `java`, with a policy too, and every package it permits covers
+the packages beneath it.
 
 Your test classes add no package. On top of that, the import check rejects any dependency
 of the student code on a class named in `theFollowingClassesAreTestClasses`, or on a class
 nested in one, whatever package it sits in. It knows only the names listed there, so list every
 test class by its fully qualified name, with `$` before a nested class, as in
-`com.example.Outer$Nested`.
+`com.example.Outer$Nested`. This, too, holds from the release after Ares 2.2.1: Ares 2.2.1
+permits the packages your test classes are in, with the packages beneath them, and has no check
+against a dependency on a test class.
 
 | Category | Policy field | What you grant, and how narrowly |
 | --- | --- | --- |
@@ -57,7 +60,7 @@ test class by its fully qualified name, with `$` before a nested class, as in
 | Network | `regardingNetworkConnections` | A named host and port, and separately whether the code may connect, send and receive |
 | Command execution | `regardingCommandExecutions` | Named executables together with the exact arguments they may be given |
 | Thread creation | `regardingThreadCreations` | Which class of worker may be started, and how many at most |
-| Package imports | `regardingPackageImports` | Which packages the submission may import. An entry naming a package covers the packages beneath it unless `exactMatchOnly` is `true`, but never a reserved namespace it does not name. Only `*` permits every package |
+| Package imports | `regardingPackageImports` | Which packages the submission may import. An entry naming a package covers the packages beneath it unless `exactMatchOnly` is `true`, but never a reserved namespace it does not name. Only `*` permits every package. Ares 2.2.1 has no `exactMatchOnly`, and there an entry covers every package beneath it, reserved namespaces included |
 
 :::warning[Granting anything changes how the category is enforced]
 For the first four, the two layers do not both apply. While a category's list is **empty**,
