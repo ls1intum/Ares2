@@ -117,7 +117,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 **Test Code (No Restrictions):**
 - Classes on the `allowedClasses` allow-list
 - Ares internal code (`de.tum.cit.ase.ares.api.*` is excluded from the ArchUnit import and classified as infrastructure by WALA)
-- In WALA mode, infrastructure frames identified by `WalaPathClassification` (`java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, Ares, Byte Buddy, AspectJ, WALA, ArchUnit, and the configured test-helper prefixes)
+- In WALA mode, infrastructure frames identified by `WalaPathClassification` (`java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, Ares, Byte Buddy, AspectJ, WALA and ArchUnit)
 
 **Student Code (Subject to Security Checks):**
 - ArchUnit mode: every imported class from the analysed classpath except excluded Ares internals, unless the class is allow-listed
@@ -614,11 +614,10 @@ Path: [StudentCode.exploit, ProcessBuilder.<init>, ProcessBuilder.start]
 ```java
 // Package prefixes classified as infrastructure (never attributed as student code)
 public static final List<String> INFRA_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
-        "de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
-        "anonymous.toolclasses.", "metatest.");
+        "de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.");
 
 // Subset that indicates a genuine transitive-JDK false positive
-// (project test helpers are deliberately omitted)
+// (helper classes of the exercise are student code and never belong here)
 static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.",
         "com.sun.", "de.tum.cit.ase.ares.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.",
         "com.tngtech.archunit.");
