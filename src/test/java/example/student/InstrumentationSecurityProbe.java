@@ -8,6 +8,7 @@ import java.nio.channels.FileChannel;
 import java.nio.file.CopyOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileAttribute;
+import java.nio.file.spi.FileSystemProvider;
 import java.util.List;
 
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceAbstractToolbox;
@@ -236,6 +237,26 @@ public final class InstrumentationSecurityProbe {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("overwrite", "java.nio.file.Files",
 				"copy", "(Ljava/nio/file/Path;Ljava/nio/file/Path;[Ljava/nio/file/CopyOption;)Ljava/nio/file/Path;",
 				null, new Object[] { source, destination, options }, null);
+	}
+
+	/**
+	 * Simulates one leg of an instrumented provider {@code copy} on the real
+	 * provider of the source, named by the class declaring {@code copy}.
+	 *
+	 * @param action      the leg, {@code "read"} or {@code "overwrite"}
+	 * @param signature   the method signature the agent reports
+	 * @param source      the copied file
+	 * @param destination the new file
+	 * @param options     the copy options
+	 * @throws NoSuchMethodException if the provider has no such {@code copy}
+	 */
+	public static void checkProviderCopyLeg(String action, String signature, Path source, Path destination,
+			CopyOption... options) throws NoSuchMethodException {
+		FileSystemProvider provider = source.getFileSystem().provider();
+		String declaringTypeName = provider.getClass().getMethod("copy", Path.class, Path.class, CopyOption[].class)
+				.getDeclaringClass().getName();
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(action, declaringTypeName, "copy",
+				signature, null, new Object[] { source, destination, options }, provider);
 	}
 
 	/**

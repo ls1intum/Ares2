@@ -22,6 +22,13 @@ class BlacklistParityTest {
 	@TempDir
 	Path temporaryDirectory;
 
+	/**
+	 * The {@code Thread} members the thread rule deliberately permits, in source
+	 * notation. Interrupting stays forbidden, since a stored foreign thread could
+	 * be interrupted just like the current one.
+	 */
+	private static final Set<String> PERMITTED_THREAD_MEMBERS = Set.of("java.lang.Thread.currentThread()");
+
 	private static final List<List<Path>> RESOURCE_PAIRS = List.of(
 			List.of(FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS, FileHandlerConstants.WALA_FILESYSTEM_METHODS),
 			List.of(FileHandlerConstants.ARCHUNIT_NETWORK_METHODS, FileHandlerConstants.WALA_NETWORK_METHODS),
@@ -81,12 +88,17 @@ class BlacklistParityTest {
 				.isInstanceOf(SecurityException.class).hasMessageContaining("System.exit");
 	}
 
+	/**
+	 * Checks that the public members of the sensitive JDK classes are forbidden.
+	 * For {@code Thread} the nested classes count too, and only the members in
+	 * {@link #PERMITTED_THREAD_MEMBERS} may stay out.
+	 */
 	@Test
 	void supportedJdkFacadeSurfaceIsGeneratedAndCovered() {
 		assertPublicSurfaceCovered(java.nio.file.Files.class, FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS,
 				Set.of());
 		assertPublicSurfaceCovered(java.net.Socket.class, FileHandlerConstants.ARCHUNIT_NETWORK_METHODS, Set.of());
-		assertPublicSurfaceCovered(Thread.class, FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS, Set.of());
+		assertThreadSurfaceCoveredExceptPermittedMembers();
 		assertPublicSurfaceCovered(Runtime.class, FileHandlerConstants.ARCHUNIT_COMMAND_EXECUTION_METHODS,
 				Set.of("exec"));
 		assertPublicSurfaceCovered(Runtime.class, FileHandlerConstants.ARCHUNIT_JVM_TERMINATION_METHODS,
@@ -109,6 +121,75 @@ class BlacklistParityTest {
 						actual -> forbidden.stream()
 								.anyMatch(policyEntry -> ForbiddenMethodMatcher.matches(actual, policyEntry)),
 						"every public sensitive member is represented by the versioned policy");
+	}
+
+	/**
+	 * The thread rule permits reading the current thread and nothing more of
+	 * {@code Thread}: interrupting, its nested builders and the members once
+	 * covered only by a bare {@code java.lang.Thread} entry stay forbidden, in the
+	 * notation of either engine.
+	 */
+	@Test
+	void threadRulePermitsReadingTheCurrentThreadOnly() {
+		Set<String> forbidden = ForbiddenMethodMatcher
+				.effectiveMethods(FileHandlerConstants.WALA_THREAD_MANIPULATION_METHODS);
+		assertThat(forbidden).doesNotContain("java.lang.Thread");
+		assertThat(List.of("java.lang.Thread.currentThread()", "java.lang.Thread.currentThread()Ljava/lang/Thread;"))
+				.noneMatch(signature -> isForbidden(signature, forbidden));
+		assertThat(List.of("java.lang.Thread.interrupt()", "java.lang.Thread.interrupt()V",
+				"java.lang.VirtualThread.interrupt()V", "java.lang.Thread.ofVirtual()", "java.lang.Thread.ofPlatform()",
+				"java.lang.Thread$Builder.unstarted(java.lang.Runnable)", "java.lang.Thread$Builder.factory()",
+				"java.lang.Thread$Builder$OfVirtual.start(java.lang.Runnable)",
+				"java.lang.Thread$Builder$OfVirtual.unstarted(java.lang.Runnable)",
+				"java.lang.Thread$Builder$OfPlatform.daemon(boolean)", "java.lang.Thread.stop()",
+				"java.lang.Thread.suspend()", "java.lang.Thread.resume()", "java.lang.Thread.countStackFrames()",
+				"java.lang.Thread.checkAccess()", "java.lang.Thread.clone()", "java.lang.Thread.dumpStack()",
+				"java.lang.Thread.holdsLock(java.lang.Object)", "java.lang.Thread.onSpinWait()",
+				"java.lang.Thread.isVirtual()", "java.lang.Thread$State.values()",
+				"java.lang.Thread$UncaughtExceptionHandler.uncaughtException(java.lang.Thread, java.lang.Throwable)"))
+						.allMatch(signature -> isForbidden(signature, forbidden));
+	}
+
+	/**
+	 * Asserts that every public member of {@code Thread} and of its public nested
+	 * classes on the running JDK is forbidden, apart from
+	 * {@link #PERMITTED_THREAD_MEMBERS}.
+	 */
+	private static void assertThreadSurfaceCoveredExceptPermittedMembers() {
+		Set<String> forbidden = ForbiddenMethodMatcher
+				.effectiveMethods(FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS);
+		List<String> surface = Stream.concat(Stream.of(Thread.class), nestedClassesOf(Thread.class))
+				.flatMap(type -> Stream.concat(Arrays.stream(type.getDeclaredMethods()),
+						Arrays.stream(type.getDeclaredConstructors())))
+				.filter(member -> Modifier.isPublic(member.getModifiers())).map(BlacklistParityTest::signatureOf)
+				.filter(signature -> !PERMITTED_THREAD_MEMBERS.contains(signature)).sorted().toList();
+		assertThat(surface).as("generated JDK Thread surface on Java %s", Runtime.version().feature()).isNotEmpty()
+				.allMatch(signature -> isForbidden(signature, forbidden),
+						"every public Thread member but the permitted ones is forbidden");
+		assertThat(PERMITTED_THREAD_MEMBERS).noneMatch(signature -> isForbidden(signature, forbidden));
+	}
+
+	/**
+	 * Returns the public classes nested in a class, at any depth. Code outside the
+	 * JDK cannot name the private ones.
+	 *
+	 * @param type the outer class
+	 * @return the public nested classes
+	 */
+	private static Stream<Class<?>> nestedClassesOf(Class<?> type) {
+		return Arrays.stream(type.getDeclaredClasses()).filter(nested -> Modifier.isPublic(nested.getModifiers()))
+				.flatMap(nested -> Stream.concat(Stream.of(nested), nestedClassesOf(nested)));
+	}
+
+	/**
+	 * Tells whether a signature matches an entry of a forbidden-method set.
+	 *
+	 * @param signature the signature, in source or descriptor notation
+	 * @param forbidden the effective forbidden methods
+	 * @return {@code true} if an entry matches
+	 */
+	private static boolean isForbidden(String signature, Set<String> forbidden) {
+		return forbidden.stream().anyMatch(entry -> ForbiddenMethodMatcher.matches(signature, entry));
 	}
 
 	private static String signatureOf(Executable executable) {

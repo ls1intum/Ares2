@@ -345,6 +345,135 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 		}
 	}
 
+	/**
+	 * The signature the agent reports for
+	 * {@code FileSystemProvider.copy(Path, Path, CopyOption...)}.
+	 */
+	private static final String PROVIDER_COPY_SIGNATURE = "(java.nio.file.Path,java.nio.file.Path,[Ljava.nio.file.CopyOption;)";
+
+	/**
+	 * Grants one list of paths for one action, under the instrumentation settings.
+	 *
+	 * @param settingKey the allow-list, for example {@code pathsAllowedToBeRead}
+	 * @param paths      the paths it grants
+	 */
+	private static void grant(String settingKey, Path... paths) {
+		JavaAOPTestCase.setJavaAdviceSettingValue(settingKey,
+				java.util.Arrays.stream(paths).map(Path::toString).toArray(String[]::new), "ARCH", "INSTRUMENTATION");
+	}
+
+	/**
+	 * The provider copy that {@code Files.copy} delegates to checks the source for
+	 * reading and the new target for creating, so a source that may only be read
+	 * can be copied into a folder that may only be created in (issue 372).
+	 */
+	@Test
+	void checkFileSystemInteraction_providerCopyChecksSourceForReadingAndTargetForCreating(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path source = Files.writeString(tempDir.resolve("source.txt"), "content");
+			Path targetFolder = Files.createDirectory(tempDir.resolve("target"));
+			Path target = targetFolder.resolve("copy.txt");
+			grant("pathsAllowedToBeRead", source);
+			grant("pathsAllowedToBeOverwritten");
+			grant("pathsAllowedToBeCreated", targetFolder);
+
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkProviderCopyLeg("read", PROVIDER_COPY_SIGNATURE,
+					source, target));
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkProviderCopyLeg("overwrite",
+					PROVIDER_COPY_SIGNATURE, source, target));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * The provider copy still refuses to read a source that may be overwritten but
+	 * not read, even when the target may be written in every way.
+	 */
+	@Test
+	void checkFileSystemInteraction_providerCopyRefusesAnUnreadableSource(@TempDir Path tempDir) throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path source = Files.writeString(tempDir.resolve("secret.txt"), "secret content");
+			Path targetFolder = Files.createDirectory(tempDir.resolve("target"));
+			grant("pathsAllowedToBeRead", targetFolder);
+			grant("pathsAllowedToBeOverwritten", source, targetFolder);
+			grant("pathsAllowedToBeCreated", targetFolder);
+
+			SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+					.checkProviderCopyLeg("read", PROVIDER_COPY_SIGNATURE, source, targetFolder.resolve("copy.txt")));
+			assertTrue(exception.getMessage().contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("read")),
+					() -> "Expected the denial to name the 'read' action, but was:\n" + exception.getMessage());
+			assertTrue(exception.getMessage().contains(source.toString()),
+					() -> "Expected the denial to name the source, but was:\n" + exception.getMessage());
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * Replacing an existing target through the provider copy needs the target to be
+	 * overwritable, not only creatable, and the source is not checked for it.
+	 */
+	@Test
+	void checkFileSystemInteraction_providerCopyReplacingNeedsTheTargetToBeOverwritable(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path source = Files.writeString(tempDir.resolve("source.txt"), "content");
+			Path target = Files.writeString(tempDir.resolve("existing.txt"), "old content");
+			grant("pathsAllowedToBeRead", source);
+			grant("pathsAllowedToBeCreated", target);
+			grant("pathsAllowedToBeOverwritten");
+
+			SecurityException createOnly = assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkProviderCopyLeg("overwrite", PROVIDER_COPY_SIGNATURE,
+							source, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING));
+			assertTrue(
+					createOnly.getMessage()
+							.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("overwrite")),
+					() -> "Expected 'overwrite' with REPLACE_EXISTING, but was:\n" + createOnly.getMessage());
+
+			grant("pathsAllowedToBeOverwritten", target);
+			assertDoesNotThrow(() -> InstrumentationSecurityProbe.checkProviderCopyLeg("overwrite",
+					PROVIDER_COPY_SIGNATURE, source, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING));
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * A provider {@code copy} of any other shape keeps the generic check, which
+	 * also checks the source for overwriting.
+	 */
+	@Test
+	void checkFileSystemInteraction_providerCopyOfAnotherShapeKeepsTheGenericCheck(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path source = Files.writeString(tempDir.resolve("source.txt"), "content");
+			Path targetFolder = Files.createDirectory(tempDir.resolve("target"));
+			grant("pathsAllowedToBeRead", source);
+			grant("pathsAllowedToBeOverwritten", targetFolder);
+			grant("pathsAllowedToBeCreated", targetFolder);
+
+			SecurityException exception = assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkProviderCopyLeg("overwrite",
+							"(java.nio.file.Path,java.nio.file.Path)", source, targetFolder.resolve("copy.txt")));
+			assertTrue(exception.getMessage().contains(source.toString()),
+					() -> "Expected the generic check to refuse overwriting the source, but was:\n"
+							+ exception.getMessage());
+		} finally {
+			resetSettings();
+		}
+	}
+
 	@Test
 	void checkFileSystemInteraction_fileChannelTransferToChecksSourceReceiverAsRead(@TempDir Path tempDir)
 			throws Exception {

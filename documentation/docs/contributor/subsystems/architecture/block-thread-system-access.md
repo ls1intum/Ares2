@@ -130,7 +130,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ## 2. Ares Monitors Thread Methods
 
-Each analysis mode loads its forbidden thread methods from its own template file. The two lists overlap in their core (Thread.start, executors, parallel streams) but differ substantially in size and content: the ArchUnit list contains **378 entries**, the WALA list contains **90 entries** (see [Section 3](#3-monitored-thread-system-methods)).
+Each analysis mode loads its forbidden thread methods from its own template file. The two lists overlap in their core (Thread.start, executors, parallel streams) but differ substantially in size and content: the ArchUnit list contains **393 entries**, the WALA list contains **105 entries** (see [Section 3](#3-monitored-thread-system-methods)).
 
 **Template Locations:**
 - **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt`
@@ -304,10 +304,12 @@ With classification:
 Each mode loads its forbidden methods from its own template file:
 
 **Template Locations:**
-- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt` (378 entries)
-- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/thread-manipulation-methods.txt` (90 entries)
+- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt` (393 entries)
+- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/thread-manipulation-methods.txt` (105 entries)
 
 The lists are **not identical**: the WALA list is a focused set of thread creation and manipulation entry points, while the ArchUnit list covers a large number of thread-adjacent JDK APIs (see the grouped overview in [3.2](#32-thread-system---create-operations-without-parameters)). The entries below are annotated where they are present in only one of the two files.
+
+`Thread.currentThread()` is the one public method of `Thread` that the thread rule permits, so code can read the thread it runs on. Both engines check the union of the two lists. That union names every other public method and constructor of `Thread`, or covers it through the nested-class entries `java.lang.Thread$Builder`, `java.lang.Thread$State` and `java.lang.Thread$UncaughtExceptionHandler`. Each of these entries matches every member of its class and of the builders nested in it. `BlacklistParityTest` checks this against the methods and constructors that `Thread` and its public nested classes declare on the running JDK. `Thread.interrupt()` stays forbidden even on the current thread: a static analysis cannot tell `Thread.currentThread().interrupt()` from interrupting a thread the code stored earlier, such as one that runs the tests.
 
 ---
 
@@ -321,9 +323,9 @@ The lists are **not identical**: the WALA list is a focused set of thread creati
 - `Thread.startVirtualThread(Runnable)`
 - `Thread(...)` constructors (`Thread()`, `Thread(Runnable)`, `Thread(Runnable, String)`, `Thread(String)`, `Thread(ThreadGroup, Runnable)`, `Thread(ThreadGroup, Runnable, String)`, `Thread(ThreadGroup, Runnable, String, long)`, ...)
 
-**java.lang.Thread.Builder (ArchUnit list only):**
-- `Thread.Builder.start(Runnable)`
-- `Thread.Builder.OfPlatform.start(Runnable)`
+**java.lang.Thread.Builder:**
+- `Thread.Builder.start(Runnable)` and `Thread.Builder.OfPlatform.start(Runnable)` (ArchUnit list only, by name)
+- every member of `Thread.Builder`, `Thread.Builder.OfPlatform` and `Thread.Builder.OfVirtual`, through the entry `java.lang.Thread$Builder` (both lists), and `Thread.ofPlatform()`, `Thread.ofVirtual()`
 
 **java.lang.ThreadBuilders (WALA list only):**
 - `ThreadBuilders$PlatformThreadFactory.newThread(Runnable)`
@@ -413,7 +415,7 @@ The lists are **not identical**: the WALA list is a focused set of thread creati
 **java.util.stream.BaseStream:**
 - `BaseStream.parallel()`
 
-**Further ArchUnit-only coverage (grouped overview of the 378-entry list):**
+**Further ArchUnit-only coverage (grouped overview of the 393-entry list):**
 
 The ArchUnit list goes far beyond thread *creation* and flags thread *manipulation* and thread-adjacent APIs:
 - **Thread lifecycle and interrogation**: `Thread.sleep(...)`, `Thread.join(...)`, `Thread.yield()`, `Thread.interrupt()` / `interrupted()` / `isInterrupted()`, `Thread.isAlive()`, `Thread.run()`, priority/daemon/name setters and getters, `Thread.getAllStackTraces()`, `Object.wait(long)`
