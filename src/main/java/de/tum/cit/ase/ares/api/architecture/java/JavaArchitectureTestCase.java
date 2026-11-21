@@ -680,8 +680,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	// <editor-fold desc="Execute architecture test case methods">
 
 	/**
-	 * Executes the architecture test case to validate code against security
-	 * policies. Delegates to the appropriate implementation based on the specified
+	 * Checks the code against the policy with the implementation of the given
 	 * architecture mode.
 	 *
 	 * @since 2.0.0
@@ -697,8 +696,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		ArchitectureTestCaseSupported protectedArchitectureTestCaseSupported = Objects
 				.requireNonNull(architectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
 		if (!(architectureTestCaseSupported instanceof JavaArchitectureTestCaseSupported)) {
-			throw new IllegalArgumentException(
-					"javaArchitecturalTestCaseSupported must be an instance of JavaArchitectureTestCaseSupported");
+			throw new SecurityException(
+					Messages.localized("security.architecture.testcase.type.invalid", architectureTestCaseSupported));
 		}
 		JavaArchitectureTestCaseSupported protectedJavaArchitectureTestCaseSupported = (JavaArchitectureTestCaseSupported) protectedArchitectureTestCaseSupported;
 		Set<PackagePermission> protectedAllowedPackages = Objects.requireNonNull(allowedPackages,

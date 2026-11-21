@@ -65,7 +65,7 @@ public final class Phobos {
 		try {
 			return fileLoader.loadPhobosCopyData();
 		} catch (IOException | CsvException e) {
-			throw new RuntimeException("Failed to load Phobos copy configuration from CSV.", e);
+			throw new SecurityException(Messages.localized("security.phobos.copy.configuration.load.failed"), e);
 		}
 	}
 
@@ -80,7 +80,7 @@ public final class Phobos {
 		try {
 			return fileLoader.loadPhobosEditData();
 		} catch (IOException | CsvException e) {
-			throw new RuntimeException("Failed to load Phobos edit configuration from CSV.", e);
+			throw new SecurityException(Messages.localized("security.phobos.edit.configuration.load.failed"), e);
 		}
 	}
 

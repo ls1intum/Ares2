@@ -19,10 +19,12 @@ import org.mockito.MockedStatic;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseToolbox;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
@@ -177,10 +179,13 @@ public class JavaWriterTest {
 			}
 		}
 
+		/**
+		 * A Maven write into a project without a {@code pom.xml} is refused.
+		 */
 		@Test
 		void rejectsASelectedBuildModeWithoutItsDescriptor() throws IOException {
 			Files.delete(tempDir.resolve("pom.xml"));
-			assertThrows(IllegalStateException.class,
+			assertThrows(SecurityException.class,
 					() -> javaWriter.writeTestCases(BuildMode.MAVEN, architectureMode, aopMode, essentialPackages,
 							essentialClasses, testClasses, packageName, mainClassInPackageName,
 							javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases,
@@ -352,6 +357,35 @@ public class JavaWriterTest {
 			}
 		}
 
+		/**
+		 * The generated settings holder's constructor throws the catalogue message,
+		 * escaped as a Java string literal.
+		 */
+		@Test
+		@DisplayName("Should write a settings holder whose constructor refuses with the Ares error template")
+		void writesASettingsHolderWhoseConstructorRefusesWithTheTemplate() throws IOException {
+			TestBehaviorConfiguration configured = mock(TestBehaviorConfiguration.class);
+			when(configured.literalFieldAssignments())
+					.thenReturn(List.of("public static final int LIMIT = 1;" + System.lineSeparator()));
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+						testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases,
+						javaPhobosTestCases, configured, tempDir);
+
+				String name = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
+				String expected = JavaAOPTestCaseToolbox.escapeJavaString(Messages.localized(
+						"security.writer.settings.holder.instantiation", name.substring(name.lastIndexOf('.') + 1)));
+				assertTrue(Files.readString(generatedSettingsClassPath())
+						.contains("throw new SecurityException(\"" + expected + "\");"));
+			}
+		}
+
 		@Test
 		@DisplayName("Should still write the released outputs when called through the pre-release signature directly")
 		void preReleaseSignatureStillWritesTheReleasedOutputs() {
@@ -424,23 +458,23 @@ public class JavaWriterTest {
 	@Test
 	void constructorRejectsAProjectRootThatIsNotADirectory() throws IOException {
 		Path file = Files.createFile(tempDir.resolve("not-a-directory.txt"));
-		assertThrows(IllegalArgumentException.class, () -> new JavaWriter(file));
+		assertThrows(SecurityException.class, () -> new JavaWriter(file));
 	}
 
 	/**
 	 * Checks that a writer bound to a Maven configuration refuses a Gradle write
-	 * request with an IllegalStateException.
+	 * request with a SecurityException.
 	 */
 	@Test
 	void writeTestCasesRejectsABuildModeThatMismatchesTheConfiguration() {
 		BuildToolConfiguration configuration = new BuildToolConfiguration(BuildMode.MAVEN, tempDir, List.of(tempDir),
 				List.of(tempDir), tempDir.resolve("classes"), tempDir.resolve("test-classes"));
 		JavaWriter configured = new JavaWriter(configuration);
-		IllegalStateException failure = assertThrows(IllegalStateException.class,
+		SecurityException failure = assertThrows(SecurityException.class,
 				() -> configured.writeTestCases(BuildMode.GRADLE, architectureMode, aopMode, essentialPackages,
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 						javaAOPTestCases, javaPhobosTestCases, tempDir));
-		assertEquals("Writer build mode does not match the discovered build configuration", failure.getMessage());
+		assertEquals(Messages.localized("security.writer.build.mode.mismatch"), failure.getMessage());
 	}
 
 	/**
@@ -454,11 +488,13 @@ public class JavaWriterTest {
 				List.of(emptyRoot), List.of(emptyRoot), emptyRoot.resolve("classes"),
 				emptyRoot.resolve("test-classes"));
 		JavaWriter configured = new JavaWriter(configuration);
-		IllegalStateException failure = assertThrows(IllegalStateException.class,
+		SecurityException failure = assertThrows(SecurityException.class,
 				() -> configured.writeTestCases(BuildMode.MAVEN, architectureMode, aopMode, essentialPackages,
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 						javaAOPTestCases, javaPhobosTestCases, emptyRoot));
-		assertTrue(failure.getMessage().contains("has no build descriptor"));
+		assertEquals(
+				Messages.localized("security.writer.build.descriptor.missing", BuildMode.MAVEN, emptyRoot.toRealPath()),
+				failure.getMessage());
 	}
 
 	private void stubArchitectureModeDefaults() {

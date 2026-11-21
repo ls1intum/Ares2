@@ -3,8 +3,10 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -23,6 +25,9 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedStatic;
+
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 import example.nest.NestHostFixture;
 
@@ -371,6 +376,41 @@ class ExemptedClassNestsTest {
 			SecurityException refused = assertThrows(SecurityException.class,
 					() -> ExemptedClassNests.expandFromTestOutput(List.of("x.T$A"), testOutput), variant.name());
 			assertNotNull(refused.getCause(), variant.name());
+		}
+	}
+
+	/**
+	 * The refusal keeps the reader's complaint as its cause, worded with the Ares
+	 * error template from the catalogue.
+	 */
+	@Test
+	void theRefusalKeepsTheTemplatedComplaint(@TempDir Path testOutput) throws Exception {
+		write(testOutput, "x.T$A", minimal(Variant.TWO_NEST_HOSTS));
+		SecurityException refused = assertThrows(SecurityException.class,
+				() -> ExemptedClassNests.expandFromTestOutput(List.of("x.T$A"), testOutput));
+		assertEquals(Messages.localized("security.policy.exempted.class.file.nest.host.malformed"),
+				refused.getCause().getMessage());
+	}
+
+	/**
+	 * A {@link SecurityException} that is not a class-file defect, here one raised
+	 * while the complaint is being worded, escapes the reader unchanged instead of
+	 * being taken for a defect and turned into an empty nest.
+	 */
+	@Test
+	void anUnrelatedSecurityExceptionEscapesTheReader() throws Exception {
+		byte[] wrongMagic = classFile(HOST).clone();
+		wrongMagic[0] = 0;
+		SecurityException sentinel = new SecurityException("sentinel");
+		MockedStatic<Messages> messages = mockStatic(Messages.class, invocation -> {
+			throw sentinel;
+		});
+		try {
+			SecurityException escaped = assertThrows(SecurityException.class,
+					() -> ExemptedClassNests.nestMembersOf(HOST, wrongMagic));
+			assertSame(sentinel, escaped);
+		} finally {
+			messages.close();
 		}
 	}
 

@@ -231,6 +231,9 @@ class JavaProjectScannerPackageFallbackTest {
 				new JavaProjectScanner(configurationWithoutSourceRoots(outputRoot)).scanForBuildMode());
 	}
 
+	/**
+	 * A source folder that cannot be read is refused rather than skipped.
+	 */
 	@Test
 	@DisplayName("Rejects a source root that is not a readable directory")
 	void rejectsUnreadableSourceRoot() throws IOException {
@@ -244,7 +247,7 @@ class JavaProjectScannerPackageFallbackTest {
 		Files.setPosixFilePermissions(sourceRoot, PosixFilePermissions.fromString("--x--x--x"));
 		try {
 			assumeUnreadable(sourceRoot);
-			assertThrows(IllegalStateException.class, () -> new JavaProjectScanner(configuration).scanForPackageName());
+			assertThrows(SecurityException.class, () -> new JavaProjectScanner(configuration).scanForPackageName());
 		} finally {
 			Files.setPosixFilePermissions(sourceRoot, PosixFilePermissions.fromString("rwxr-xr-x"));
 		}

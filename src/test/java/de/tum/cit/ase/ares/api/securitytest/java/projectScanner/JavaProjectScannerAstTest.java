@@ -20,6 +20,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 class JavaProjectScannerAstTest {
 	@TempDir
@@ -111,15 +112,20 @@ class JavaProjectScannerAstTest {
 				scanner.scanForTestClasses());
 	}
 
+	/**
+	 * A source file that cannot be parsed is refused with the Ares error template
+	 * naming the file.
+	 */
 	@Test
 	void reportsMalformedFileWithItsPath() throws IOException {
 		Path production = Files.createDirectories(root.resolve("src/main/java"));
 		Path tests = Files.createDirectories(root.resolve("src/test/java"));
 		Path malformed = production.resolve("Broken.java");
 		Files.writeString(malformed, "class Broken {");
-		IllegalStateException failure = assertThrows(IllegalStateException.class,
+		SecurityException failure = assertThrows(SecurityException.class,
 				() -> new JavaProjectScanner(configuration(production, tests)).scanForPackageName());
-		assertEquals("Cannot parse Java source file: " + malformed.toRealPath(), failure.getMessage());
+		assertEquals(Messages.localized("security.scanner.source.file.parse.failed", malformed.toRealPath()),
+				failure.getMessage());
 	}
 
 	/**
@@ -157,6 +163,10 @@ class JavaProjectScannerAstTest {
 		assertArrayEquals(new String[] { "modern.MainTest" }, scanner.scanForTestClasses());
 	}
 
+	/**
+	 * A configured source root that is a file is refused with the Ares error
+	 * template naming the root.
+	 */
 	@Test
 	void reportsAConfiguredNonDirectorySourceRoot() throws IOException {
 		Path production = root.resolve("not-a-directory");
@@ -164,9 +174,10 @@ class JavaProjectScannerAstTest {
 		Path tests = Files.createDirectories(root.resolve("src/test/java"));
 		BuildToolConfiguration invalid = new BuildToolConfiguration(BuildMode.MAVEN, root, List.of(production),
 				List.of(tests), root.resolve("target/classes"), root.resolve("target/test-classes"));
-		IllegalStateException failure = assertThrows(IllegalStateException.class,
+		SecurityException failure = assertThrows(SecurityException.class,
 				() -> new JavaProjectScanner(invalid).scanForPackageName());
-		assertEquals("Unreadable Java source root: " + production.toRealPath(), failure.getMessage());
+		assertEquals(Messages.localized("security.scanner.source.root.unreadable", production.toRealPath()),
+				failure.getMessage());
 	}
 
 	/**

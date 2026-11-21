@@ -13,6 +13,7 @@ import javax.annotation.Nonnull;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseToolbox;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
@@ -50,12 +51,18 @@ public class JavaWriter implements Writer {
 		this(Path.of(""));
 	}
 
+	/**
+	 * Creates a writer that writes into the given project.
+	 *
+	 * @param projectRoot the project folder; must not be null
+	 * @throws SecurityException if the project root is not a folder
+	 */
 	public JavaWriter(@Nonnull Path projectRoot) {
 		this.buildConfiguration = null;
 		this.projectRoot = BuildToolConfiguration
 				.canonicalise(Objects.requireNonNull(projectRoot, "projectRoot must not be null"));
 		if (!java.nio.file.Files.isDirectory(this.projectRoot)) {
-			throw new IllegalArgumentException("projectRoot must be a directory: " + projectRoot);
+			throw new SecurityException(Messages.localized("security.writer.project.root.not.directory", projectRoot));
 		}
 	}
 
@@ -221,18 +228,16 @@ public class JavaWriter implements Writer {
 	}
 
 	/**
-	 * Writes the generated, compiled settings class named by the released
-	 * {@code TestBehaviorConfiguration.GENERATED_CLASS_NAME}, with one literal
-	 * field per contributed category; writes nothing when no category has
-	 * contributed a field yet, so the class is only ever present on the classpath
-	 * once something is actually configured.
+	 * Writes the settings class named by
+	 * {@code TestBehaviorConfiguration.GENERATED_CLASS_NAME}, one literal field per
+	 * contributed category. Writes nothing while no category contributes a field.
 	 *
 	 * @since 2.2.0
 	 * @author Luka Petrovic
-	 * @param testBehaviorConfiguration the configuration whose literal field
-	 *                                  assignments to write; must not be null.
-	 * @param testFolderPath            the project's source root; must not be null.
-	 * @return the written file's path, or an empty list if nothing was configured.
+	 * @param testBehaviorConfiguration the configuration whose fields to write
+	 * @param testFolderPath            the project's source root
+	 * @return the written file's path, or an empty list if nothing was configured
+	 * @throws SecurityException if the class cannot be written
 	 */
 	@Nonnull
 	private List<Path> createTestBehaviorSettingsFiles(@Nonnull TestBehaviorConfiguration testBehaviorConfiguration,
@@ -250,9 +255,10 @@ public class JavaWriter implements Writer {
 		String content = "package " + settingsPackageName + ";" + System.lineSeparator() + System.lineSeparator()
 				+ "public final class " + simpleClassName + " {" + System.lineSeparator() + System.lineSeparator()
 				+ "\tprivate " + simpleClassName + "() {" + System.lineSeparator()
-				+ "\t\tthrow new SecurityException(\"" + simpleClassName
-				+ " is a generated settings holder and must not be instantiated\");" + System.lineSeparator() + "\t}"
-				+ System.lineSeparator() + System.lineSeparator()
+				+ "\t\tthrow new SecurityException(\""
+				+ JavaAOPTestCaseToolbox.escapeJavaString(
+						Messages.localized("security.writer.settings.holder.instantiation", simpleClassName))
+				+ "\");" + System.lineSeparator() + "\t}" + System.lineSeparator() + System.lineSeparator()
 				+ String.join("", fieldAssignments.stream().map(assignment -> "\t" + assignment).toList()) + "}"
 				+ System.lineSeparator();
 		try {
@@ -260,7 +266,8 @@ public class JavaWriter implements Writer {
 					"generated settings class target has no parent: " + target));
 			Files.writeString(target, content);
 		} catch (IOException failure) {
-			throw new SecurityException("Unable to write generated test-behaviour settings class: " + target, failure);
+			throw new SecurityException(Messages.localized("security.writer.settings.class.write.failed", target),
+					failure);
 		}
 		return List.of(target);
 	}
@@ -291,13 +298,20 @@ public class JavaWriter implements Writer {
 		return targets.stream().map(this::confineToProject).toList();
 	}
 
+	/**
+	 * Resolves a target against the project root and refuses one outside it.
+	 *
+	 * @param targetPath the requested target, absolute or relative to the project
+	 * @return the canonical target inside the project
+	 * @throws SecurityException if the target lies outside the project root
+	 */
 	@Nonnull
 	Path confineToProject(@Nonnull Path targetPath) {
 		Path requested = Objects.requireNonNull(targetPath, "targetPath must not be null");
 		Path resolved = requested.isAbsolute() ? requested : projectRoot.resolve(requested);
 		Path canonical = BuildToolConfiguration.canonicalise(resolved);
 		if (!canonical.startsWith(projectRoot)) {
-			throw new SecurityException("Writer target escapes authorised project root: " + targetPath);
+			throw new SecurityException(Messages.localized("security.writer.target.outside.project", targetPath));
 		}
 		return canonical;
 	}
@@ -324,13 +338,13 @@ public class JavaWriter implements Writer {
 			@Nonnull Path testFolderPath) {
 		Objects.requireNonNull(buildMode, "buildMode must not be null");
 		if (buildConfiguration != null && buildMode != buildConfiguration.buildMode()) {
-			throw new IllegalStateException("Writer build mode does not match the discovered build configuration");
+			throw new SecurityException(Messages.localized("security.writer.build.mode.mismatch"));
 		}
 		boolean descriptorPresent = java.util.Arrays.stream(buildMode.fileName()).map(projectRoot::resolve)
 				.anyMatch(java.nio.file.Files::isRegularFile);
 		if (!descriptorPresent) {
-			throw new IllegalStateException(
-					"Selected " + buildMode + " layout has no build descriptor in " + projectRoot);
+			throw new SecurityException(
+					Messages.localized("security.writer.build.descriptor.missing", buildMode, projectRoot));
 		}
 		Path validatedTestFolderPath = confineToProject(
 				Objects.requireNonNull(testFolderPath, "testFolderPath must not be null"));

@@ -6,6 +6,7 @@ import java.util.Objects;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector;
 import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
@@ -147,16 +148,15 @@ public abstract class SecurityPolicyDirector {
 	 * @param projectRootPath the project root; may be null.
 	 * @param withinPath      the scope; must not be null.
 	 * @return the configured factory.
-	 * @throws UnsupportedOperationException for a non-empty scope.
+	 * @throws SecurityException for a non-empty scope.
 	 */
 	@Nonnull
 	public TestCaseAbstractFactoryAndBuilder createTestCases(@Nullable SecurityPolicy securityPolicy,
 			@Nullable Path projectRootPath, @Nonnull Path withinPath) {
 		Objects.requireNonNull(withinPath, "withinPath must not be null");
 		if (!withinPath.toString().isEmpty()) {
-			throw new UnsupportedOperationException(
-					getClass().getName() + " cannot scope the analysis to a path within the project; override"
-							+ " createTestCases(SecurityPolicy, Path, Path) to honour withinPath");
+			throw new SecurityException(
+					Messages.localized("security.policy.director.scope.unsupported", getClass().getName()));
 		}
 		return createTestCases(securityPolicy, projectRootPath);
 	}
