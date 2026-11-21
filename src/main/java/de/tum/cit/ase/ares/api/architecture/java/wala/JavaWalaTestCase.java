@@ -747,7 +747,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 			}
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw new SecurityException("Interrupted while awaiting WALA rule evaluation", e);
+			throw new SecurityException(Messages.localized("security.architecture.rule.evaluation.interrupted"), e);
 		} catch (ExecutionException e) {
 			Throwable cause = e.getCause();
 			if (cause instanceof RuntimeException runtimeException) {
@@ -756,7 +756,7 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 			if (cause instanceof Error error) {
 				throw error;
 			}
-			throw new SecurityException("WALA rule evaluation failed", cause);
+			throw new SecurityException(Messages.localized("security.architecture.rule.evaluation.failed"), cause);
 		} finally {
 			if (ownsEvaluation) {
 				RULE_EVALUATIONS.remove(key, candidate);
@@ -901,12 +901,21 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 		}
 	}
 
+	/**
+	 * Hashes one compiled Ares class file with SHA-256.
+	 *
+	 * @param path the class file
+	 * @return the digest as hexadecimal text
+	 * @throws SecurityException if the file cannot be read
+	 */
 	@Nonnull
 	private static String hashFile(@Nonnull Path path) {
 		try {
 			return sha256Hex(Files.readAllBytes(path));
 		} catch (IOException unreadableClass) {
-			throw new SecurityException("Could not fingerprint compiled Ares class " + path, unreadableClass); //$NON-NLS-1$
+			throw new SecurityException(
+					Messages.localized("security.architecture.wala.ares.class.fingerprint.failed", path),
+					unreadableClass);
 		}
 	}
 

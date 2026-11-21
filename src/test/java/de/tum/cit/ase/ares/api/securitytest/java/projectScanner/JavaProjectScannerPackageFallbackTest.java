@@ -19,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Covers the supervised-package fallback of {@link JavaProjectScanner}.
@@ -254,6 +255,9 @@ class JavaProjectScannerPackageFallbackTest {
 				new JavaProjectScanner(configurationWithoutSourceRoots(outputRoot)).scanForBuildMode());
 	}
 
+	/**
+	 * A source folder that cannot be read is refused rather than skipped.
+	 */
 	@Test
 	@DisplayName("Rejects a source root that is not a readable directory")
 	void rejectsUnreadableSourceRoot() throws IOException {
@@ -268,9 +272,9 @@ class JavaProjectScannerPackageFallbackTest {
 		Files.setPosixFilePermissions(sourceRoot, PosixFilePermissions.fromString("--x--x--x"));
 		try {
 			assumeUnreadable(sourceRoot);
-			IllegalStateException refusal = assertThrows(IllegalStateException.class,
+			SecurityException refusal = assertThrows(SecurityException.class,
 					() -> new JavaProjectScanner(configuration).scanForPackageName());
-			assertEquals("Unreadable Java source root: " + realRoot, refusal.getMessage());
+			assertEquals(Messages.localized("security.scanner.source.root.unreadable", realRoot), refusal.getMessage());
 			assertNull(refusal.getCause());
 		} finally {
 			Files.setPosixFilePermissions(sourceRoot, PosixFilePermissions.fromString("rwxr-xr-x"));

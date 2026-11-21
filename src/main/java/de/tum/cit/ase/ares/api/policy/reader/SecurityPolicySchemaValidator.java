@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
 import de.tum.cit.ase.ares.api.AresConstants;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.PolicyValueValidator;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.LanguageNameRules;
@@ -56,8 +57,10 @@ public final class SecurityPolicySchemaValidator {
 	private static final Set<String> TIMEOUT_FIELDS = Set.of("timeout");
 	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of();
 
+	/** Prevents instances of this utility. */
 	private SecurityPolicySchemaValidator() {
-		throw new UnsupportedOperationException("SecurityPolicySchemaValidator is a utility class");
+		throw new SecurityException(
+				Messages.localized("security.general.utility.initialization", "SecurityPolicySchemaValidator"));
 	}
 
 	/**

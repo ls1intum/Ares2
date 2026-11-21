@@ -489,8 +489,8 @@ class SecurityPolicyStrictSchemaTest {
 
 	/**
 	 * Checks that calling the private constructor of
-	 * {@link SecurityPolicySchemaValidator} through reflection fails with an
-	 * {@link UnsupportedOperationException}.
+	 * {@link SecurityPolicySchemaValidator} through reflection fails with a
+	 * {@link SecurityException}.
 	 */
 	@Test
 	void schemaValidatorCannotBeInstantiatedReflectively() throws NoSuchMethodException {
@@ -498,7 +498,7 @@ class SecurityPolicyStrictSchemaTest {
 				.getDeclaredConstructor();
 		constructor.setAccessible(true);
 		InvocationTargetException thrown = assertThrows(InvocationTargetException.class, constructor::newInstance);
-		assertInstanceOf(UnsupportedOperationException.class, thrown.getCause());
+		assertInstanceOf(SecurityException.class, thrown.getCause());
 	}
 
 	/**

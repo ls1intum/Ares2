@@ -176,7 +176,8 @@ public class CustomCallgraphBuilder {
 			try {
 				pending.addAll(importer.importPath(entryFile.toPath()));
 			} catch (RuntimeException exception) {
-				throw new SecurityException("Could not import application classpath entry " + entry, exception); //$NON-NLS-1$
+				throw new SecurityException(
+						Messages.localized("security.architecture.wala.classpath.import.failed", entry), exception);
 			}
 		}
 
@@ -205,6 +206,17 @@ public class CustomCallgraphBuilder {
 		return fingerprintAnalysisEntries(entries);
 	}
 
+	/**
+	 * Adds the class path entry of every dependency the project's classes reach,
+	 * skipping JDK classes and trusted framework code.
+	 *
+	 * @param entries            the entries found so far, extended in place
+	 * @param pending            the classes still to follow
+	 * @param importer           the class importer
+	 * @param projectClassRoots  the project's class output folders
+	 * @param trustedCodeSources framework locations left out
+	 * @throws SecurityException if a dependency cannot be located or read
+	 */
 	private static void addReachableDependencies(LinkedHashSet<String> entries, Deque<JavaClass> pending,
 			ClassFileImporter importer, Set<Path> projectClassRoots, Set<Path> trustedCodeSources) {
 		Set<String> visitedClasses = new HashSet<>();
@@ -224,7 +236,8 @@ public class CustomCallgraphBuilder {
 				}
 				URL location = locateClass(targetName, projectClassRoots);
 				if (location == null) {
-					throw new SecurityException("Could not locate reachable application dependency " + targetName); //$NON-NLS-1$
+					throw new SecurityException(
+							Messages.localized("security.architecture.wala.dependency.not.found", targetName));
 				}
 				if ("jrt".equals(location.getProtocol())) { //$NON-NLS-1$
 					// Platform ownership is established by the module-image origin, not by a
@@ -234,13 +247,13 @@ public class CustomCallgraphBuilder {
 					continue;
 				}
 				if (!("file".equals(location.getProtocol()) || "jar".equals(location.getProtocol()))) {
-					throw new SecurityException("Unsupported location for reachable application dependency " //$NON-NLS-1$
-							+ targetName + ": " + location); //$NON-NLS-1$
+					throw new SecurityException(Messages.localized(
+							"security.architecture.wala.dependency.location.unsupported", targetName, location));
 				}
 				Optional<String> classpathEntry = classpathEntryFor(location, targetName);
 				if (classpathEntry.isEmpty()) {
-					throw new SecurityException("Could not derive a classpath entry for reachable dependency " //$NON-NLS-1$
-							+ targetName);
+					throw new SecurityException(Messages
+							.localized("security.architecture.wala.dependency.classpath.entry.missing", targetName));
 				}
 				if (isTrustedFrameworkLocation(location, classpathEntry.get(), trustedCodeSources)) {
 					visitedClasses.add(targetName);
@@ -258,13 +271,23 @@ public class CustomCallgraphBuilder {
 					}
 					pending.addLast(resolved);
 				} catch (RuntimeException exception) {
-					throw new SecurityException("Could not resolve reachable application dependency " + targetName, //$NON-NLS-1$
+					throw new SecurityException(
+							Messages.localized("security.architecture.wala.dependency.resolve.failed", targetName),
 							exception);
 				}
 			}
 		}
 	}
 
+	/**
+	 * Finds where a class is loaded from: first the running class path, then the
+	 * project's class output folders.
+	 *
+	 * @param targetName        the binary class name
+	 * @param projectClassRoots the project's class output folders
+	 * @return the class file's location, or {@code null} if none holds it
+	 * @throws SecurityException if a found class file has no usable URL
+	 */
 	private static URL locateClass(String targetName, Set<Path> projectClassRoots) {
 		URL runtimeLocation = CustomCallgraphBuilder.class.getResource(convertTypeNameToClassName(targetName));
 		if (runtimeLocation != null) {
@@ -277,7 +300,8 @@ public class CustomCallgraphBuilder {
 				try {
 					return candidate.toUri().toURL();
 				} catch (IOException malformedUrl) {
-					throw new SecurityException("Could not address reachable project class " + targetName, //$NON-NLS-1$
+					throw new SecurityException(
+							Messages.localized("security.architecture.wala.project.class.address.failed", targetName),
 							malformedUrl);
 				}
 			}
@@ -304,7 +328,8 @@ public class CustomCallgraphBuilder {
 				candidates.filter(Files::isDirectory).filter(CustomCallgraphBuilder::isConventionalClassRoot)
 						.map(Path::toAbsolutePath).map(Path::normalize).forEach(roots::add);
 			} catch (IOException unreadableProject) {
-				throw new SecurityException("Could not discover project class-output roots below " + projectRoot, //$NON-NLS-1$
+				throw new SecurityException(
+						Messages.localized("security.architecture.wala.class.roots.discovery.failed", projectRoot),
 						unreadableProject);
 			}
 		}
@@ -360,12 +385,20 @@ public class CustomCallgraphBuilder {
 		return className.substring(componentStart + 1, className.length() - 1).replace('/', '.');
 	}
 
+	/**
+	 * Imports all classes of a dependency JAR.
+	 *
+	 * @param importer the importer to use
+	 * @param jarPath  the JAR's path
+	 * @return the imported classes
+	 * @throws SecurityException if the JAR's path has no usable URL
+	 */
 	private static JavaClasses importJar(ClassFileImporter importer, String jarPath) {
 		try {
 			return importer.importUrl(Path.of(jarPath).toUri().toURL());
 		} catch (IOException exception) {
-			throw new SecurityException("Could not create a URL for application dependency JAR " + jarPath, //$NON-NLS-1$
-					exception);
+			throw new SecurityException(
+					Messages.localized("security.architecture.wala.dependency.jar.url.failed", jarPath), exception);
 		}
 	}
 
@@ -512,6 +545,15 @@ public class CustomCallgraphBuilder {
 		return Set.copyOf(locations);
 	}
 
+	/**
+	 * Builds one SHA-256 fingerprint over the content of the given analysis
+	 * entries, so a changed file or JAR gives a different fingerprint.
+	 *
+	 * @param classpathEntries the class path entries the analysis reads
+	 * @return the fingerprint as hexadecimal text
+	 * @throws SecurityException if an entry cannot be read or is neither a file nor
+	 *                           a folder
+	 */
 	static String fingerprintAnalysisEntries(Set<String> classpathEntries) {
 		try {
 			String contentIdentity = classpathEntries.stream().map(CustomCallgraphBuilder::canonicalAnalysisEntry)
@@ -519,7 +561,8 @@ public class CustomCallgraphBuilder {
 			return sha256Hex(contentIdentity.getBytes(StandardCharsets.UTF_8));
 		} catch (RuntimeException unreadableEntry) {
 			if (unreadableEntry.getCause() instanceof IOException ioException) {
-				throw new SecurityException("Could not fingerprint a WALA analysis dependency", ioException); //$NON-NLS-1$
+				throw new SecurityException(Messages.localized("security.architecture.wala.fingerprint.failed"),
+						ioException);
 			}
 			throw unreadableEntry;
 		}
@@ -533,13 +576,22 @@ public class CustomCallgraphBuilder {
 		}
 	}
 
+	/**
+	 * Fingerprints one analysis entry: a file by its bytes, a folder by the bytes
+	 * of every file inside it.
+	 *
+	 * @param entry the canonical entry
+	 * @return the entry's fingerprint text
+	 * @throws SecurityException if the entry is neither a file nor a folder
+	 */
 	private static String analysisEntryFingerprint(Path entry) {
 		try {
 			if (Files.isRegularFile(entry)) {
 				return "file#" + entry + "#" + sha256Hex(Files.readAllBytes(entry)); //$NON-NLS-1$ //$NON-NLS-2$
 			}
 			if (!Files.isDirectory(entry)) {
-				throw new IOException("Analysis entry is neither a file nor a directory: " + entry); //$NON-NLS-1$
+				throw new SecurityException(
+						Messages.localized("security.architecture.wala.analysis.entry.invalid", entry));
 			}
 			try (Stream<Path> files = Files.walk(entry)) {
 				String directoryIdentity = files.filter(Files::isRegularFile).sorted()
@@ -560,6 +612,13 @@ public class CustomCallgraphBuilder {
 		}
 	}
 
+	/**
+	 * Hashes bytes with SHA-256.
+	 *
+	 * @param value the bytes to hash
+	 * @return the digest as lowercase hexadecimal text
+	 * @throws SecurityException if the JVM offers no SHA-256
+	 */
 	private static String sha256Hex(byte[] value) {
 		try {
 			byte[] digest = MessageDigest.getInstance("SHA-256").digest(value); //$NON-NLS-1$
@@ -569,7 +628,8 @@ public class CustomCallgraphBuilder {
 			}
 			return hex.toString();
 		} catch (java.security.NoSuchAlgorithmException unavailableAlgorithm) {
-			throw new SecurityException("SHA-256 is unavailable", unavailableAlgorithm); //$NON-NLS-1$
+			throw new SecurityException(Messages.localized("security.architecture.wala.sha256.unavailable"),
+					unavailableAlgorithm);
 		}
 	}
 

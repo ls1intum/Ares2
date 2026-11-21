@@ -31,8 +31,7 @@ public final class Main {
 	 */
 	public static void main(String[] args) {
 		if (args.length != 2) {
-			throw new IllegalArgumentException(
-					"Usage: Main <path to the security policy YAML file> <path to the project root>");
+			throw new SecurityException(Messages.localized("security.main.usage"));
 		}
 		Path securityPolicyPath = Path.of(args[0]);
 		Path projectRootPath = Path.of(args[1]).toAbsolutePath();

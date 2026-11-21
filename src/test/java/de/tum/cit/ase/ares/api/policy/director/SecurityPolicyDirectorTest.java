@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.director;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -13,6 +14,7 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.director.java.SecurityPolicyJavaDirector;
 import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
@@ -60,7 +62,10 @@ class SecurityPolicyDirectorTest {
 	void inheritedOverloadRefusesARealScopeRatherThanDroppingIt() {
 		LegacyDirector director = new LegacyDirector();
 		Path within = Path.of("src/main/java");
-		assertThrows(UnsupportedOperationException.class, () -> director.createTestCases(null, Path.of("p"), within));
+		SecurityException refused = assertThrows(SecurityException.class,
+				() -> director.createTestCases(null, Path.of("p"), within));
+		assertEquals(Messages.localized("security.policy.director.scope.unsupported", LegacyDirector.class.getName()),
+				refused.getMessage());
 		assertFalse(director.forwarded);
 	}
 
