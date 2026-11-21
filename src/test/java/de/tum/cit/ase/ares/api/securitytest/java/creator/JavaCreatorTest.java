@@ -899,8 +899,12 @@ public class JavaCreatorTest {
 		void refusesAMissingTestScopeWhileTestClassesAreCompiled() throws IOException {
 			Files.createDirectories(tempDir.resolve("classes"));
 			compileFixtureInto(tempDir.resolve("test-classes/example/nest"));
-			createTestCasesFor(tempDir.resolve("test-classes/example/typo"));
-			assertThrows(SecurityException.class, () -> javaCreator.requireSupervisedClasses(buildMode));
+			Path scope = tempDir.resolve("test-classes/example/typo");
+			createTestCasesFor(scope);
+			SecurityException refused = assertThrows(SecurityException.class,
+					() -> javaCreator.requireSupervisedClasses(buildMode));
+			assertEquals(Messages.localized("security.policy.supervised.classes.missing", scope.toString(),
+					tempDir.resolve("test-classes")), refused.getMessage());
 		}
 
 		/**

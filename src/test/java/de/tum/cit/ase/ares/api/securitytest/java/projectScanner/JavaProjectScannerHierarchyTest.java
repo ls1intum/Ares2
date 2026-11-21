@@ -218,7 +218,7 @@ class JavaProjectScannerHierarchyTest {
 	}
 
 	/**
-	 * With nothing declared, a group that is no package or lies inside a trusted
+	 * With nothing declared, a group that is no package or lies inside a reserved
 	 * namespace is still passed over, while a usable group is taken.
 	 */
 	@Test

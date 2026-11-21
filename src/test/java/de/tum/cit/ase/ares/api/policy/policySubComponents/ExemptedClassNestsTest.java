@@ -627,8 +627,9 @@ class ExemptedClassNestsTest {
 		/** A NestMembers attribute declaring length 0, followed by one entry. */
 		NEST_MEMBERS_LENGTH_ZERO,
 		/**
-		 * A field-reading handle (kind 1) to a field named {@code <init>}, a name only
-		 * method handles may not use.
+		 * A field-reading handle (kind 1) to a field named {@code <init>}. Only the
+		 * method-handle kinds 5, 6, 7 and 9 may not name {@code <init>} and kind 8
+		 * must; field handles are not restricted.
 		 */
 		FIELD_HANDLE_NAMED_INIT,
 		/**

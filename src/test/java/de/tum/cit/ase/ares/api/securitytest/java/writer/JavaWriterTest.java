@@ -204,8 +204,8 @@ public class JavaWriterTest {
 		/**
 		 * A test folder three names below the file-system root gets its resources
 		 * folder beside it, not inside it. The Phobos helper three folders up is then
-		 * refused, after the bundles are written. It needs a project root two names
-		 * deep, as a temporary folder under /tmp on Linux, and is skipped elsewhere.
+		 * refused, after the files are written. It needs a project root two names deep,
+		 * as a temporary folder under /tmp on Linux, and is skipped elsewhere.
 		 */
 		@Test
 		void placesTheResourcesBesideATestFolderThreeNamesDeep() throws IOException {
@@ -220,8 +220,8 @@ public class JavaWriterTest {
 		}
 
 		/**
-		 * A test folder at most two names below the file-system root gets its resources
-		 * folder inside it, since it has no parent to place it beside. The Phobos
+		 * A test folder with fewer than three names gets its resources folder inside
+		 * it, as the writer then does not step up to the parent folder. The Phobos
 		 * helper three folders up is then refused, after the bundles are written. It
 		 * needs such a shallow project root and is skipped elsewhere.
 		 */
