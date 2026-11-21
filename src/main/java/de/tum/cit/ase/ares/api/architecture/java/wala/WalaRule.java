@@ -149,6 +149,18 @@ public class WalaRule {
 		return matchesInheritedTarget(access, forbidden, null);
 	}
 
+	/**
+	 * Tells whether an access reaches a forbidden method through a subclass or
+	 * subinterface of the forbidden method's class.
+	 *
+	 * @param access         the access to check
+	 * @param forbidden      the forbidden method's full name
+	 * @param classHierarchy WALA's class hierarchy, or {@code null} if there is
+	 *                       none
+	 * @return {@code true} if the access reaches the forbidden method
+	 * @throws SecurityException if the target's class hierarchy cannot be
+	 *                           classified
+	 */
 	static boolean matchesInheritedTarget(JavaAccess<?> access, String forbidden, IClassHierarchy classHierarchy) {
 		String target = access.getTarget().getFullName();
 		int targetParenthesis = target.indexOf('(');
@@ -176,8 +188,8 @@ public class WalaRule {
 		try {
 			assignableTypes = targetOwner.getAllClassesSelfIsAssignableTo();
 		} catch (RuntimeException incompleteHierarchy) {
-			throw new SecurityException("Could not classify inherited target " + targetOwner.getFullName(), //$NON-NLS-1$
-					incompleteHierarchy);
+			throw new SecurityException(Messages.localized("security.architecture.wala.inherited.target.unclassifiable",
+					targetOwner.getFullName()), incompleteHierarchy);
 		}
 		if (assignableTypes.stream().map(JavaClass::getFullName).anyMatch(forbiddenOwner::equals)) {
 			return true;
@@ -188,6 +200,17 @@ public class WalaRule {
 		return matchesUsingWalaHierarchy(targetOwner.getFullName(), forbiddenOwner, classHierarchy);
 	}
 
+	/**
+	 * Decides inheritance with the runtime classes, and with WALA's class hierarchy
+	 * where the runtime does not know the target.
+	 *
+	 * @param targetOwner    the class the access targets
+	 * @param forbiddenOwner the class of the forbidden method
+	 * @param classHierarchy WALA's class hierarchy, or {@code null} if there is
+	 *                       none
+	 * @return {@code true} if the target class inherits from the forbidden one
+	 * @throws SecurityException if neither hierarchy can classify the target
+	 */
 	private static boolean matchesUsingWalaHierarchy(String targetOwner, String forbiddenOwner,
 			IClassHierarchy classHierarchy) {
 		Optional<Boolean> runtimeMatch = matchesUsingRuntimeHierarchy(targetOwner, forbiddenOwner);
@@ -195,15 +218,16 @@ public class WalaRule {
 			return runtimeMatch.get();
 		}
 		if (classHierarchy == null) {
-			throw new SecurityException(
-					"Incomplete hierarchy for inherited target " + targetOwner + " against " + forbiddenOwner); //$NON-NLS-1$ //$NON-NLS-2$
+			throw new SecurityException(Messages.localized(
+					"security.architecture.wala.inherited.target.hierarchy.incomplete", targetOwner, forbiddenOwner));
 		}
 		try {
 			IClass targetClass = lookupClass(classHierarchy, targetOwner);
 			IClass forbiddenClass = lookupClass(classHierarchy, forbiddenOwner);
 			if (targetClass == null) {
 				throw new SecurityException(
-						"Incomplete hierarchy for inherited target " + targetOwner + " against " + forbiddenOwner); //$NON-NLS-1$ //$NON-NLS-2$
+						Messages.localized("security.architecture.wala.inherited.target.hierarchy.incomplete",
+								targetOwner, forbiddenOwner));
 			}
 			if (forbiddenClass == null) {
 				// Versioned blocklists intentionally contain APIs from several supported JDKs.
@@ -215,7 +239,9 @@ public class WalaRule {
 		} catch (SecurityException exception) {
 			throw exception;
 		} catch (RuntimeException incompleteHierarchy) {
-			throw new SecurityException("Could not classify inherited target " + targetOwner, incompleteHierarchy); //$NON-NLS-1$
+			throw new SecurityException(
+					Messages.localized("security.architecture.wala.inherited.target.unclassifiable", targetOwner),
+					incompleteHierarchy);
 		}
 	}
 
@@ -231,13 +257,21 @@ public class WalaRule {
 		return Optional.of(hasNamedSupertype(targetClass.get(), forbiddenOwner));
 	}
 
+	/**
+	 * Loads a class through the system class loader without initialising it.
+	 *
+	 * @param className the binary class name
+	 * @return the class, or empty if the runtime does not know it
+	 * @throws SecurityException if the class exists but cannot be linked
+	 */
 	private static Optional<Class<?>> loadRuntimeClass(String className) {
 		try {
 			return Optional.of(Class.forName(className, false, ClassLoader.getSystemClassLoader()));
 		} catch (ClassNotFoundException unavailableToRuntime) {
 			return Optional.empty();
 		} catch (LinkageError invalidRuntimeType) {
-			throw new SecurityException("Could not load runtime type while classifying inherited target " + className, //$NON-NLS-1$
+			throw new SecurityException(
+					Messages.localized("security.architecture.wala.inherited.target.runtime.type.invalid", className),
 					invalidRuntimeType);
 		}
 	}

@@ -124,12 +124,13 @@ public final class TypeAnnotationDependencies {
 	 *
 	 * @param javaClass the class to read
 	 * @return the fully qualified names of the named types, sorted
-	 * @throws IOException if the class has no class file or it cannot be read
+	 * @throws IOException       if the class file cannot be read
+	 * @throws SecurityException if the class has no class file
 	 */
 	@Nonnull
 	static Set<String> typesNamedByTypeAnnotations(@Nonnull JavaClass javaClass) throws IOException {
-		URI classFile = javaClass.getSource().map(Source::getUri)
-				.orElseThrow(() -> new IOException("no class file for " + javaClass.getName()));
+		URI classFile = javaClass.getSource().map(Source::getUri).orElseThrow(() -> new SecurityException(
+				Messages.localized("security.architecture.class.file.missing", javaClass.getName())));
 		try (InputStream input = classFile.toURL().openStream()) {
 			return typesNamedByTypeAnnotations(input.readAllBytes());
 		}

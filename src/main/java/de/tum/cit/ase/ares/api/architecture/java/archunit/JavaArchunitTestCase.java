@@ -264,13 +264,23 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		}
 	}
 
+	/**
+	 * Waits for a rule evaluation and returns its outcome. An unchecked failure of
+	 * the evaluation is rethrown as it is. An interrupt keeps the thread's
+	 * interrupt flag set. Both an interrupt and a checked failure end as a
+	 * {@link SecurityException}.
+	 *
+	 * @param task the running or finished rule evaluation
+	 * @return the violation the rule found, or empty if it found none
+	 */
 	private static java.util.Optional<SecurityException> awaitOutcome(
 			java.util.concurrent.FutureTask<java.util.Optional<SecurityException>> task) {
 		try {
 			return task.get();
 		} catch (InterruptedException interrupted) {
 			Thread.currentThread().interrupt();
-			throw new IllegalStateException("Interrupted while awaiting the architecture rule outcome", interrupted);
+			throw new SecurityException(Messages.localized("security.architecture.rule.evaluation.interrupted"),
+					interrupted);
 		} catch (java.util.concurrent.ExecutionException executionFailure) {
 			Throwable cause = executionFailure.getCause();
 			if (cause instanceof RuntimeException runtimeCause) {
@@ -279,7 +289,8 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 			if (cause instanceof Error errorCause) {
 				throw errorCause;
 			}
-			throw new IllegalStateException("The architecture rule evaluation failed", executionFailure);
+			throw new SecurityException(Messages.localized("security.architecture.rule.evaluation.failed"),
+					executionFailure);
 		}
 	}
 
