@@ -72,8 +72,10 @@ class JceConsumerBuildTest {
 		Files.writeString(project.resolve("allowed.txt"), "permitted fixture");
 		Files.createDirectories(project.resolve("tmp"));
 		Path generated = JceGeneratedExerciseTest.generate(configuration);
-		Files.writeString(project.resolve("policy.yaml"), Files.readString(generated.resolve("policy.yaml"))
-				.replace(generated.resolve("allowed.txt").toString(), project.resolve("allowed.txt").toString()));
+		Files.writeString(project.resolve("policy.yaml"),
+				Files.readString(generated.resolve("policy.yaml")).replace(
+						JceGeneratedExerciseTest.singleQuoted(generated.resolve("allowed.txt")),
+						JceGeneratedExerciseTest.singleQuoted(project.resolve("allowed.txt"))));
 		Path agent = ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
 				.filter(value -> value.startsWith("-javaagent:") && value.endsWith("-agent.jar"))
 				.map(value -> Path.of(value.substring("-javaagent:".length()))).findFirst().orElseThrow();
@@ -225,10 +227,11 @@ class JceConsumerBuildTest {
 	private static ProcessBuilder consumerBuild(Path project, boolean gradle, Path log) {
 		List<String> command = new ArrayList<>();
 		if (gradle) {
-			command.add(Path.of("examples/ares-exercise-gradle/gradlew").toAbsolutePath().toString());
+			command.add(Path.of("examples/ares-exercise-gradle", launcher("gradlew", "gradlew.bat")).toAbsolutePath()
+					.toString());
 			command.addAll(List.of("--no-daemon", "--console=plain", "-p", project.toString(), "test"));
 		} else {
-			command.add("mvn");
+			command.add(launcher("mvn", "mvn.cmd"));
 			command.addAll(List.of("-B", "-f", project.resolve("pom.xml").toString(), "test"));
 		}
 		ProcessBuilder builder = new ProcessBuilder(command).directory(project.toFile()).redirectErrorStream(true)
@@ -236,6 +239,15 @@ class JceConsumerBuildTest {
 		builder.environment().put("JAVA_HOME",
 				Path.of(JceGeneratedExerciseTest.javaExecutable()).getParent().getParent().toString());
 		return builder;
+	}
+
+	/**
+	 * Picks the name of a build tool's start script for this operating system.
+	 * Windows cannot start the shell script, so it gets the batch file named second
+	 * instead.
+	 */
+	private static String launcher(String unixName, String windowsName) {
+		return System.getProperty("os.name").startsWith("Windows") ? windowsName : unixName;
 	}
 
 	/**

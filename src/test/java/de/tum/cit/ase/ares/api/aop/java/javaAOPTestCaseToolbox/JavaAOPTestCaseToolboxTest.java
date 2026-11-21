@@ -11,7 +11,7 @@ public class JavaAOPTestCaseToolboxTest {
 	@Test
 	public void testGetStringAssignmentWithValidValue() {
 		String result = JavaAOPTestCaseToolbox.getStringAssignment("myString", "hello");
-		Assertions.assertEquals("private static String myString = \"hello\";\n", result);
+		Assertions.assertEquals("private static String myString = \"hello\";" + System.lineSeparator(), result);
 	}
 
 	@Test
@@ -24,7 +24,7 @@ public class JavaAOPTestCaseToolboxTest {
 	@Test
 	public void testGetIntegerAssignmentWithValidValue() {
 		String result = JavaAOPTestCaseToolbox.getIntegerAssignment("myInt", 42);
-		Assertions.assertEquals("private static int myInt = 42;\n", result);
+		Assertions.assertEquals("private static int myInt = 42;" + System.lineSeparator(), result);
 	}
 
 	@Test
@@ -38,7 +38,8 @@ public class JavaAOPTestCaseToolboxTest {
 	public void testGetStringOneDArrayAssignmentWithValidValue() {
 		List<String> values = Arrays.asList("foo", "bar");
 		String result = JavaAOPTestCaseToolbox.getStringOneDArrayAssignment("myArray", values);
-		Assertions.assertEquals("private static String[] myArray = new String[] {\"foo\", \"bar\"};\n", result);
+		Assertions.assertEquals(
+				"private static String[] myArray = new String[] {\"foo\", \"bar\"};" + System.lineSeparator(), result);
 	}
 
 	@Test
@@ -52,7 +53,8 @@ public class JavaAOPTestCaseToolboxTest {
 	public void testGetIntegerOneDArrayAssignmentWithValidValue() {
 		List<Integer> values = Arrays.asList(1, 2, 3);
 		String result = JavaAOPTestCaseToolbox.getIntegerOneDArrayAssignment("intArray", values);
-		Assertions.assertEquals("private static int[] intArray = new int[] {1, 2, 3};\n", result);
+		Assertions.assertEquals("private static int[] intArray = new int[] {1, 2, 3};" + System.lineSeparator(),
+				result);
 	}
 
 	@Test
@@ -67,7 +69,8 @@ public class JavaAOPTestCaseToolboxTest {
 		List<List<String>> values = Arrays.asList(Arrays.asList("a", "b"), Arrays.asList("c", "d"));
 		String result = JavaAOPTestCaseToolbox.getStringTwoDArrayAssignment("twoDArray", values);
 		Assertions.assertEquals(
-				"private static String[][] twoDArray = new String[][] {new String[] {\"a\", \"b\"}, new String[] {\"c\", \"d\"}};\n",
+				"private static String[][] twoDArray = new String[][] {new String[] {\"a\", \"b\"}, new String[] {\"c\", \"d\"}};"
+						+ System.lineSeparator(),
 				result);
 	}
 
@@ -82,8 +85,8 @@ public class JavaAOPTestCaseToolboxTest {
 	public void testGetIntegerTwoDArrayAssignmentWithValidValue() {
 		List<List<Integer>> values = Arrays.asList(Arrays.asList(1, 2), Arrays.asList(3, 4));
 		String result = JavaAOPTestCaseToolbox.getIntegerTwoDArrayAssignment("twoIntArray", values);
-		Assertions.assertEquals(
-				"private static int[][] twoIntArray = new int[][] {new int[]{1, 2}, new int[]{3, 4}};\n", result);
+		Assertions.assertEquals("private static int[][] twoIntArray = new int[][] {new int[]{1, 2}, new int[]{3, 4}};"
+				+ System.lineSeparator(), result);
 	}
 
 	@Test
@@ -96,7 +99,7 @@ public class JavaAOPTestCaseToolboxTest {
 	@Test
 	public void testGetPublicStaticFinalStringAssignmentWithValidValue() {
 		String result = JavaAOPTestCaseToolbox.getPublicStaticFinalStringAssignment("myString", "hello");
-		Assertions.assertEquals("public static final String myString = \"hello\";\n", result);
+		Assertions.assertEquals("public static final String myString = \"hello\";" + System.lineSeparator(), result);
 	}
 
 	@Test
@@ -109,7 +112,7 @@ public class JavaAOPTestCaseToolboxTest {
 	@Test
 	public void testGetPublicStaticFinalBooleanAssignmentWithValidValue() {
 		String result = JavaAOPTestCaseToolbox.getPublicStaticFinalBooleanAssignment("myBoolean", true);
-		Assertions.assertEquals("public static final boolean myBoolean = true;\n", result);
+		Assertions.assertEquals("public static final boolean myBoolean = true;" + System.lineSeparator(), result);
 	}
 
 	@Test
@@ -124,12 +127,15 @@ public class JavaAOPTestCaseToolboxTest {
 		// A Windows path and an embedded quote must not break out of the generated
 		// string literal.
 		String result = JavaAOPTestCaseToolbox.getStringAssignment("path", "C:\\Users\\\"x\"");
-		Assertions.assertEquals("private static String path = \"C:\\\\Users\\\\\\\"x\\\"\";\n", result);
+		Assertions.assertEquals("private static String path = \"C:\\\\Users\\\\\\\"x\\\"\";" + System.lineSeparator(),
+				result);
 	}
 
 	@Test
 	public void testGetStringOneDArrayAssignmentEscapesElements() {
 		String result = JavaAOPTestCaseToolbox.getStringOneDArrayAssignment("paths", Arrays.asList("C:\\tmp", "a\"b"));
-		Assertions.assertEquals("private static String[] paths = new String[] {\"C:\\\\tmp\", \"a\\\"b\"};\n", result);
+		Assertions.assertEquals(
+				"private static String[] paths = new String[] {\"C:\\\\tmp\", \"a\\\"b\"};" + System.lineSeparator(),
+				result);
 	}
 }

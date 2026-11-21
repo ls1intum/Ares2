@@ -14,6 +14,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.UnixDomainSocketAddress;
+import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +39,7 @@ class JavaAspectJNetworkSystemAdviceDefinitionsTest {
 
 		Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
 		toDisplayString.setAccessible(true);
-		assertEquals("/tmp/ares-audit.sock:-1", toDisplayString.invoke(target));
+		assertEquals(Path.of("/tmp/ares-audit.sock") + ":-1", toDisplayString.invoke(target));
 	}
 
 	@Test
