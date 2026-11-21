@@ -208,10 +208,9 @@ class UnwantedNodesAssertTest {
 	 */
 	@Test
 	void projectSourcesComeFromTheBuildFile() throws IOException {
-		Path sources = directory.resolve("my-sources");
+		Path sources = directory.resolve("Research & Teaching");
 		AstSourceFiles.write(sources, "A.java", LOOP_SOURCE);
-		Path pom = AstSourceFiles.write(directory, "pom.xml",
-				"<project><build><sourceDirectory>" + sources + "</sourceDirectory></build></project>");
+		Path pom = AstSourceFiles.writePomWithSourceDirectory(directory, sources);
 		AresConfiguration.setPomXmlPath(pom.toString());
 		AresConfiguration.setBuildGradlePath(directory.resolve("absent.gradle").toString());
 		assertThatThrownBy(() -> UnwantedNodesAssert.assertThatProjectSources().withLanguageLevel(LanguageLevel.JAVA_17)

@@ -30,4 +30,20 @@ public final class AstSourceFiles {
 		Files.createDirectories(file.getParent());
 		return Files.writeString(file, source, StandardCharsets.UTF_8);
 	}
+
+	/**
+	 * Writes {@code pom.xml} below the root with the source folder as its source
+	 * directory. The folder is XML-escaped, so a name with an ampersand works.
+	 *
+	 * @param root            the folder the pom goes into
+	 * @param sourceDirectory the folder to name in the pom
+	 * @return the written pom
+	 * @throws IOException if the file cannot be written
+	 */
+	public static Path writePomWithSourceDirectory(Path root, Path sourceDirectory) throws IOException {
+		String escaped = sourceDirectory.toString().replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+				.replace("\"", "&quot;").replace("'", "&apos;");
+		return write(root, "pom.xml",
+				"<project><build><sourceDirectory>" + escaped + "</sourceDirectory></build></project>");
+	}
 }

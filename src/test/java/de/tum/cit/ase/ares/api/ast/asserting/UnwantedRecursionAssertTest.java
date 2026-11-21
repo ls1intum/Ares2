@@ -225,8 +225,7 @@ class UnwantedRecursionAssertTest {
 	void projectSourcesComeFromTheBuildFile() throws IOException {
 		Path sources = directory.resolve("my-sources");
 		AstSourceFiles.write(sources, "p/A.java", SELF_SOURCE);
-		Path pom = AstSourceFiles.write(directory, "pom.xml",
-				"<project><build><sourceDirectory>" + sources + "</sourceDirectory></build></project>");
+		Path pom = AstSourceFiles.writePomWithSourceDirectory(directory, sources);
 		AresConfiguration.setPomXmlPath(pom.toString());
 		AresConfiguration.setBuildGradlePath(directory.resolve("absent.gradle").toString());
 		assertThatThrownBy(() -> UnwantedRecursionAssert.assertThatProjectSources()
