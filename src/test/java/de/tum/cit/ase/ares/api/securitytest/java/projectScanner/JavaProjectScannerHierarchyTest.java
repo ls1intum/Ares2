@@ -217,6 +217,23 @@ class JavaProjectScannerHierarchyTest {
 		}
 	}
 
+	/**
+	 * With nothing declared, a group that is no package or lies inside a trusted
+	 * namespace is still passed over, while a usable group is taken.
+	 */
+	@Test
+	void passesOverUnusableGroupsInAnEmptyProject() throws IOException {
+		Files.createDirectories(projectRoot.resolve("src/main/java"));
+		for (String group : new String[] { "my-group", "org.junit.fake" }) {
+			maven(group);
+
+			assertEquals("", scanner().scanForPackageName(), group);
+		}
+		maven("de.tum.cit.aet.valid");
+
+		assertEquals("de.tum.cit.aet.valid", scanner().scanForPackageName());
+	}
+
 	/** Without any declared package the group still beats the fixed default. */
 	@Test
 	void prefersTheGroupOverTheDefaultInAnEmptyProject() throws IOException {
