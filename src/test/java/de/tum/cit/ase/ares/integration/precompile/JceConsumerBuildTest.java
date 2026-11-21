@@ -72,8 +72,10 @@ class JceConsumerBuildTest {
 		Files.writeString(project.resolve("allowed.txt"), "permitted fixture");
 		Files.createDirectories(project.resolve("tmp"));
 		Path generated = JceGeneratedExerciseTest.generate(configuration);
-		Files.writeString(project.resolve("policy.yaml"), Files.readString(generated.resolve("policy.yaml"))
-				.replace(generated.resolve("allowed.txt").toString(), project.resolve("allowed.txt").toString()));
+		Files.writeString(project.resolve("policy.yaml"),
+				Files.readString(generated.resolve("policy.yaml")).replace(
+						JceGeneratedExerciseTest.singleQuoted(generated.resolve("allowed.txt")),
+						JceGeneratedExerciseTest.singleQuoted(project.resolve("allowed.txt"))));
 		Path agent = ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
 				.filter(value -> value.startsWith("-javaagent:") && value.endsWith("-agent.jar"))
 				.map(value -> Path.of(value.substring("-javaagent:".length()))).findFirst().orElseThrow();

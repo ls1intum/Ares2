@@ -593,7 +593,7 @@ class JceGeneratedExerciseTest {
 	 * @param path the path to write
 	 * @return the quoted path
 	 */
-	private static String singleQuoted(Path path) {
+	static String singleQuoted(Path path) {
 		return "'" + path.toString().replace("'", "''") + "'";
 	}
 
