@@ -899,8 +899,12 @@ public class JavaCreatorTest {
 		void refusesAMissingTestScopeWhileTestClassesAreCompiled() throws IOException {
 			Files.createDirectories(tempDir.resolve("classes"));
 			compileFixtureInto(tempDir.resolve("test-classes/example/nest"));
-			createTestCasesFor(tempDir.resolve("test-classes/example/typo"));
-			assertThrows(SecurityException.class, () -> javaCreator.requireSupervisedClasses(buildMode));
+			Path scope = tempDir.resolve("test-classes/example/typo");
+			createTestCasesFor(scope);
+			SecurityException refused = assertThrows(SecurityException.class,
+					() -> javaCreator.requireSupervisedClasses(buildMode));
+			assertEquals(Messages.localized("security.policy.supervised.classes.missing", scope.toString(),
+					tempDir.resolve("test-classes")), refused.getMessage());
 		}
 
 		/**
@@ -962,6 +966,21 @@ public class JavaCreatorTest {
 		@DisplayName("Accepts an exercise with nothing compiled yet")
 		void acceptsAnExerciseWithNothingCompiledYet() throws IOException {
 			Files.createDirectories(tempDir.resolve("classes"));
+			createTestCasesFor(tempDir.resolve("classes/example/nest"));
+			assertDoesNotThrow(() -> javaCreator.requireSupervisedClasses(buildMode));
+		}
+
+		/**
+		 * A production scope never looks at the test output: an empty production output
+		 * is accepted although the test output holds the instructor's compiled tests.
+		 * The same outputs under a test scope are refused, which the missing test scope
+		 * case above checks.
+		 */
+		@Test
+		@DisplayName("Ignores the test output for a production scope")
+		void ignoresTheTestOutputForAProductionScope() throws IOException {
+			Files.createDirectories(tempDir.resolve("classes"));
+			compileFixtureInto(tempDir.resolve("test-classes/example/nest"));
 			createTestCasesFor(tempDir.resolve("classes/example/nest"));
 			assertDoesNotThrow(() -> javaCreator.requireSupervisedClasses(buildMode));
 		}

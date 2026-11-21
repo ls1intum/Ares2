@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.reader;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -9,7 +10,10 @@ import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 
 /**
@@ -38,5 +42,19 @@ class SecurityPolicyReaderTest {
 		Path noFileName = Path.of("/");
 		assertThrows(IllegalArgumentException.class,
 				() -> SecurityPolicyReader.selectSecurityPolicyReader(noFileName, tempDir));
+	}
+
+	/**
+	 * A file named only like an extension has no extension, so it is refused with
+	 * the empty extension in the message. Both cases pair with a real extension.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "yaml", "YML" })
+	void selectSecurityPolicyReaderRefusesAFileNamedOnlyLikeAnExtension(String name) {
+		assertThatThrownBy(() -> SecurityPolicyReader.selectSecurityPolicyReader(Path.of(name)))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessage(Messages.localized("policy.reader.unsupported.format", ""));
+		assertInstanceOf(SecurityPolicyYAMLReader.class,
+				SecurityPolicyReader.selectSecurityPolicyReader(Path.of("policy." + name)));
 	}
 }

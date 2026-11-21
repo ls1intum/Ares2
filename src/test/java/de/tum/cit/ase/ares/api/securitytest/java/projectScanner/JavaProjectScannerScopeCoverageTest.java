@@ -139,9 +139,9 @@ class JavaProjectScannerScopeCoverageTest {
 		SecurityException refusal = assertThrows(SecurityException.class,
 				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
 
-		assertTrue(refusal.getMessage().contains("Unpackaged"),
-				"a class in the default package lies outside every scope, and the diagnostic must name it: "
-						+ refusal.getMessage());
+		assertEquals(
+				Messages.localized("security.scope.default.package", "Unpackaged", outputRoot.toRealPath().toString()),
+				refusal.getMessage());
 	}
 
 	/**
@@ -264,7 +264,11 @@ class JavaProjectScannerScopeCoverageTest {
 				}
 				""", "de/tum/cit/aet/Assignment.java");
 
-		assertThrows(SecurityException.class, () -> scanner(outputRoot).requireDerivedScopeToCoverTheProject(""));
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject(""));
+
+		assertEquals(Messages.localized("security.scope.blank", outputRoot.toRealPath().toString()),
+				refusal.getMessage());
 	}
 
 	@Test
@@ -278,6 +282,7 @@ class JavaProjectScannerScopeCoverageTest {
 				public class Assignment {
 				}
 				""", "de/tum/cit/aet/Assignment.java");
+		Path realRoot = outputRoot.toRealPath();
 		Files.setPosixFilePermissions(outputRoot, PosixFilePermissions.fromString("---------"));
 		try {
 			// Permission bits do not bind a superuser, so clearing them is not by itself
@@ -285,8 +290,11 @@ class JavaProjectScannerScopeCoverageTest {
 			// fixture is what could not be established.
 			assumeTrue(!Files.isReadable(outputRoot), () -> "cannot make " + outputRoot + " unreadable here");
 
-			assertThrows(SecurityException.class,
-					() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+			SecurityException refusal = assertThrows(SecurityException.class,
+					() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit"));
+
+			assertEquals(Messages.localized("security.scope.output.unreadable", realRoot.toString()),
+					refusal.getMessage());
 		} finally {
 			Files.setPosixFilePermissions(outputRoot, PosixFilePermissions.fromString("rwxr-xr-x"));
 		}
@@ -419,6 +427,7 @@ class JavaProjectScannerScopeCoverageTest {
 				""", "de/tum/cit/aet/package-info.java");
 
 		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("decoy"));
+		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject(""));
 	}
 
 	/**
