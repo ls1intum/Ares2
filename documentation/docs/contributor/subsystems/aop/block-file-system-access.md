@@ -1425,7 +1425,7 @@ throw new SecurityException(localize(
 ));
 ```
 
-This is the AspectJ form for a path found in the parameters; a path found in the receiver or the attributes is reported the same way. The instrumentation toolbox passes the same arguments, except that it writes the call with `describeSignature(fullMethodSignature)`, without the resolved runtime declaration that `describeDeniedCall(...)` can add. The signature is in Java source notation (`(byte[], int, int)`, not `([B,int,int)`), and the reason is its own fifth argument, a lower-case clause the sentence ends with.
+This is the AspectJ form for a path found in the parameters; Ares reports a path found in the receiver or the attributes the same way. The instrumentation toolbox passes the same arguments, except that it writes the call with `describeSignature(fullMethodSignature)`, without the resolved runtime declaration that `describeDeniedCall(...)` can add. The signature is in Java source notation (`(byte[], int, int)`, not `([B,int,int)`), and the reason is its own fifth argument, a lower-case clause the sentence ends with.
 
 **3. Used variables**
 
@@ -1435,7 +1435,7 @@ This is the AspectJ form for a path found in the parameters; a path found in the
 - **`fullMethodSignature`** (String): From section 4.1 - complete method signature showing exactly which method was called (e.g., `"java.nio.file.Files.readString(java.nio.file.Path)"`)
 - **`studentCalledMethod`** (String): From 5.2.3 - the test method that invoked the student code (e.g., `"org.junit.TestClass.testStudent"`); omitted from the message when null
 - **`noAllowRuleConfigured`** (boolean): `true` when the policy allows the checked action for no path at all
-- **`buildDenialReason()`** (method): Returns why the access was denied, as one of three clauses: "the policy has no rule for files" when no file rule of any action exists (`security.advice.denial.reason.no.rule.file`), "the policy has no rule that allows" followed by the action and "for files" when file rules exist but none for this action (`security.advice.denial.reason.no.action.rule.file`), and "no rule in the policy allows this file" when a rule for this action exists but does not cover the path (`security.advice.denial.reason.target.not.allowed.file`)
+- **`buildDenialReason()`** (method): Returns why the access was denied, as one of three clauses. When no file rule of any action exists, it returns "the policy has no rule for files" (`security.advice.denial.reason.no.rule.file`). When file rules exist but none for this action, it returns "the policy has no rule that allows" followed by the action and "for files" (`security.advice.denial.reason.no.action.rule.file`). When a rule for this action exists but does not cover the path, it returns "no rule in the policy allows this file" (`security.advice.denial.reason.target.not.allowed.file`)
 - **`localize()`** (method): Translates the error message to the configured language
 
 **4. Result**

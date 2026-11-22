@@ -895,7 +895,7 @@ throw new SecurityException(localize(
 ));
 ```
 
-This is the AspectJ form for a command found in the parameters; a command found in the attributes is reported the same way. The instrumentation toolbox passes the same arguments, except that it writes the call with `describeSignature(fullMethodSignature)`, without the resolved runtime declaration that `describeDeniedCall(...)` can add. The signature is in Java source notation (`java.lang.String[]`, not `[Ljava.lang.String;`), and the reason is its own fifth argument, a lower-case clause the sentence ends with. Executable-path violations (5.3.4) use the key `security.advice.illegal.file.execution` instead, so the sentence names the file, with the reason `security.advice.denial.reason.command.executable.path.not.allowed`: "the command is allowed, but its executable file is not in the execute list".
+This is the AspectJ form for a command found in the parameters; Ares reports a command found in the attributes the same way. The instrumentation toolbox passes the same arguments, except that it writes the call with `describeSignature(fullMethodSignature)`, without the resolved runtime declaration that `describeDeniedCall(...)` can add. The signature is in Java source notation (`java.lang.String[]`, not `[Ljava.lang.String;`), and the reason is its own fifth argument, a lower-case clause the sentence ends with. Executable-path violations (5.3.4) use the key `security.advice.illegal.file.execution` instead, so the sentence names the file, with the reason `security.advice.denial.reason.command.executable.path.not.allowed`: "the command is allowed, but its executable file is not in the execute list".
 
 **3. Used variables**
 
