@@ -240,7 +240,7 @@ class UnwantedRecursionAssertTest {
 	void failsClearlyWithoutABuildFile() {
 		AresConfiguration.setPomXmlPath(directory.resolve("absent.xml").toString());
 		AresConfiguration.setBuildGradlePath(directory.resolve("absent.gradle").toString());
-		assertThatThrownBy(UnwantedRecursionAssert::assertThatProjectSources).isInstanceOf(AssertionError.class)
-				.hasMessageStartingWith("Could not find project sources folder.");
+		assertThatThrownBy(UnwantedRecursionAssert::assertThatProjectSources).isInstanceOf(SecurityException.class)
+				.hasMessage(localized("security.ast.project.sources.not.found"));
 	}
 }

@@ -16,6 +16,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /** Checks bytecode scopes for both build tools and both classpath APIs. */
 class BuildToolConfigurationTest {
 
@@ -135,6 +137,32 @@ class BuildToolConfigurationTest {
 		Path inside = configuration.productionOutputRoot().resolve("org/example");
 		assertEquals(inside.toString(), configuration.classpath(inside, "ignored"));
 		assertThrows(SecurityException.class, () -> BuildMode.GRADLE.getClasspath(inside, "ignored"));
+	}
+
+	/**
+	 * A rooted scope is refused by its form, with the Ares error template naming
+	 * the scope.
+	 */
+	@Test
+	void refusesARootedScopeWithTheTemplate() {
+		Path rooted = projectRoot.toAbsolutePath().resolve("org/example");
+		SecurityException refused = assertThrows(SecurityException.class,
+				() -> BuildMode.GRADLE.getClasspath(rooted, "ignored"));
+		assertEquals(Messages.localized("security.build.mode.bytecode.scope.absolute", rooted), refused.getMessage());
+	}
+
+	/**
+	 * A scope outside the project is refused with the Ares error template naming
+	 * the path and what it was given for.
+	 */
+	@Test
+	void refusesAScopeOutsideTheProjectWithTheTemplate() {
+		var configuration = configuration(BuildMode.GRADLE);
+		Path outside = projectRoot.toAbsolutePath().getParent().resolve("outside/org/example");
+		SecurityException refused = assertThrows(SecurityException.class,
+				() -> configuration.classpath(outside, "ignored"));
+		assertEquals(Messages.localized("security.build.tool.path.outside.project", "withinPath", outside),
+				refused.getMessage());
 	}
 
 	/** An absolute scope that names a folder outside the project is refused. */

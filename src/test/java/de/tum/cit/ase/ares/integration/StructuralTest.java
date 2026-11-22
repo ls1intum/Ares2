@@ -109,8 +109,10 @@ class StructuralTest {
 
 	@TestTest
 	void test_testAttributesSomeFailingClass() {
-		tests.assertThatEvents().haveExactly(COUNT, testFailedWith(testAttributesSomeFailingClass,
-				IllegalArgumentException.class, "Invalid entry for modifier: 'penguin: final'"));
+		tests.assertThatEvents().haveExactly(COUNT,
+				testFailedWith(testAttributesSomeFailingClass, SecurityException.class,
+						"Ares Security Error (Reason: Ares-Code; Stage: Execution):"
+								+ " The structure oracle names the invalid modifier entry 'penguin: final'."));
 	}
 
 	@TestTest

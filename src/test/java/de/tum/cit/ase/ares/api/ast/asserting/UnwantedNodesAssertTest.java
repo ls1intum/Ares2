@@ -226,7 +226,7 @@ class UnwantedNodesAssertTest {
 	void failsClearlyWithoutABuildFile() {
 		AresConfiguration.setPomXmlPath(directory.resolve("absent.xml").toString());
 		AresConfiguration.setBuildGradlePath(directory.resolve("absent.gradle").toString());
-		assertThatThrownBy(UnwantedNodesAssert::assertThatProjectSources).isInstanceOf(AssertionError.class)
-				.hasMessageStartingWith("Could not find project sources folder.");
+		assertThatThrownBy(UnwantedNodesAssert::assertThatProjectSources).isInstanceOf(SecurityException.class)
+				.hasMessage(localized("security.ast.project.sources.not.found"));
 	}
 }

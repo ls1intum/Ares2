@@ -61,9 +61,11 @@ public class JavaFile {
 	 * Turns the Java-file into an AST in case the provided path points to a
 	 * Java-file
 	 *
-	 * @param pathOfFile Path to the Java-file
+	 * @param pathOfFile        Path to the Java-file
+	 * @param excludeMainMethod whether the main method is left out of the analysis
 	 * @return The information of the Java-file packed into a JavaFile object (null
 	 *         if the file is not a Java-file)
+	 * @throws SecurityException if the file cannot be read
 	 */
 	public static JavaFile convertFromFile(Path pathOfFile, boolean excludeMainMethod) {
 		if (!JAVAFILEMATCHER.matches(pathOfFile.getFileName())) {
@@ -73,17 +75,19 @@ public class JavaFile {
 			return new JavaFile(pathOfFile, StaticJavaParser.parse(pathOfFile), excludeMainMethod);
 		} catch (IOException e) {
 			LOG.error("Error reading Java file '{}'", pathOfFile.toAbsolutePath(), e); //$NON-NLS-1$
-			throw new AssertionError(localized("ast.method.convert_from_file", pathOfFile.toAbsolutePath()));
+			throw new SecurityException(localized("ast.method.convert_from_file", pathOfFile.toAbsolutePath()));
 		}
 	}
 
 	/**
 	 * Turns all Java-file below a certain path into ASTs
 	 *
-	 * @param pathOfDirectory Path to the highest analysis level
+	 * @param pathOfDirectory   Path to the highest analysis level
+	 * @param excludeMainMethod whether the main method is left out of the analysis
 	 * @return List of Java-file information packed into JavaFile objects (empty
-	 *         list if the directory does not exist or if none of the files in the
-	 *         directory or its subdirectories is a Java-file)
+	 *         list if none of the files in the directory or its subdirectories is a
+	 *         Java-file)
+	 * @throws SecurityException if the folder or a file in it cannot be read
 	 */
 	public static List<JavaFile> readFromDirectory(Path pathOfDirectory, boolean excludeMainMethod) {
 		try (Stream<Path> directoryContentStream = Files.walk(pathOfDirectory)) {
@@ -91,7 +95,7 @@ public class JavaFile {
 					.toList();
 		} catch (IOException e) {
 			LOG.error("Error reading Java files in '{}'", pathOfDirectory.toAbsolutePath(), e); //$NON-NLS-1$
-			throw new AssertionError(localized("ast.method.read_from_directory", pathOfDirectory.toAbsolutePath()));
+			throw new SecurityException(localized("ast.method.read_from_directory", pathOfDirectory.toAbsolutePath()));
 		}
 	}
 }

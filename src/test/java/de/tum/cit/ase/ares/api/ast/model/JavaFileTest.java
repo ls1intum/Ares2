@@ -156,7 +156,7 @@ class JavaFileTest {
 	@Test
 	void reportsAFileThatCannotBeRead() {
 		Path missing = directory.resolve("Gone.java");
-		assertThatThrownBy(() -> JavaFile.convertFromFile(missing, false)).isInstanceOf(AssertionError.class)
+		assertThatThrownBy(() -> JavaFile.convertFromFile(missing, false)).isInstanceOf(SecurityException.class)
 				.hasMessage(localized("ast.method.convert_from_file", missing.toAbsolutePath()));
 	}
 
@@ -166,7 +166,7 @@ class JavaFileTest {
 	@Test
 	void reportsAFolderThatCannotBeRead() {
 		Path missing = directory.resolve("gone");
-		assertThatThrownBy(() -> JavaFile.readFromDirectory(missing, false)).isInstanceOf(AssertionError.class)
+		assertThatThrownBy(() -> JavaFile.readFromDirectory(missing, false)).isInstanceOf(SecurityException.class)
 				.hasMessage(localized("ast.method.read_from_directory", missing.toAbsolutePath()));
 	}
 }
