@@ -11,9 +11,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * Renders every violation template in English and German and compares whole
- * sentences. The German templates used to receive English action words and put
- * their verb after the denial reason; these sentences pin the corrected word
- * order and that the translated action lands in the right slot.
+ * sentences. They pin the one denial sentence, which ends with the reason after
+ * "but was blocked by Ares", and that the translated action lands in the right
+ * slot.
  */
 class ViolationTemplateRenderingTest {
 
@@ -31,25 +31,34 @@ class ViolationTemplateRenderingTest {
 	 */
 	static Stream<Arguments> violations() {
 		return Stream.of(
-				Arguments.of(Locale.ENGLISH, "security.advice.illegal.file.execution", "read", "/p",
-						EN + "S tried to illegally read File /p via CALL but was blocked by Ares."),
+				Arguments.of(Locale.ENGLISH, "security.advice.illegal.file.execution", "read", "/p", EN
+						+ "S tried to illegally read the file /p via CALL, but was blocked by Ares, because REASON."),
 				Arguments.of(Locale.GERMAN, "security.advice.illegal.file.execution", "read", "/p", DE
-						+ "S hat versucht, die Datei /p illegal zu lesen, wurde jedoch von Ares blockiert. Aufruf: CALL"),
-				Arguments.of(Locale.ENGLISH, "security.advice.illegal.command.execution", "execute", "ls",
-						EN + "S tried to illegally execute Command ls via CALL but was blocked by Ares."),
-				Arguments.of(Locale.GERMAN, "security.advice.illegal.command.execution", "execute", "ls",
-						DE + "S hat versucht, das Kommando ls illegal auszuführen, wurde jedoch von Ares blockiert. "
-								+ "Aufruf: CALL"),
-				Arguments.of(Locale.ENGLISH, "security.advice.illegal.thread.execution", "create", "T",
-						EN + "S tried to illegally create Thread T via CALL but was blocked by Ares."),
+						+ "S hat versucht, die Datei /p über CALL illegal zu lesen, wurde jedoch von Ares blockiert, "
+						+ "weil REASON."),
+				Arguments.of(Locale.ENGLISH, "security.advice.illegal.command.execution", "execute", "\"ls\"",
+						EN + "S tried to illegally execute the command \"ls\" via CALL, but was blocked by Ares, "
+								+ "because REASON."),
+				Arguments.of(Locale.GERMAN, "security.advice.illegal.command.execution", "execute", "\"ls\"",
+						DE + "S hat versucht, den Befehl \"ls\" über CALL illegal auszuführen, wurde jedoch von Ares "
+								+ "blockiert, weil REASON."),
+				Arguments.of(Locale.ENGLISH, "security.advice.illegal.thread.execution", "create", "T", EN
+						+ "S tried to illegally create the thread T via CALL, but was blocked by Ares, because REASON."),
 				Arguments.of(Locale.GERMAN, "security.advice.illegal.thread.execution", "create", "T",
-						DE + "S hat versucht, den Thread T illegal zu erstellen, wurde jedoch von Ares blockiert. "
-								+ "Aufruf: CALL"),
+						DE + "S hat versucht, den Thread T über CALL illegal zu erstellen, wurde jedoch von Ares "
+								+ "blockiert, weil REASON."),
+				Arguments.of(Locale.ENGLISH, "security.advice.illegal.method.execution", "manipulate", "T",
+						EN + "S tried to illegally manipulate the thread T via CALL, but was blocked by Ares, "
+								+ "because REASON."),
+				Arguments.of(Locale.GERMAN, "security.advice.illegal.method.execution", "manipulate", "T",
+						DE + "S hat versucht, den Thread T über CALL illegal zu manipulieren, wurde jedoch von Ares "
+								+ "blockiert, weil REASON."),
 				Arguments.of(Locale.ENGLISH, "security.advice.illegal.network.execution", "connect", "host:80",
-						EN + "S tried to illegally connect Network host:80 via CALL but was blocked by Ares."),
+						EN + "S tried to illegally connect the network address host:80 via CALL, but was blocked by "
+								+ "Ares, because REASON."),
 				Arguments.of(Locale.GERMAN, "security.advice.illegal.network.execution", "connect", "host:80",
-						DE + "S hat versucht, illegal eine Verbindung aufzubauen (Netzwerkziel host:80), wurde jedoch "
-								+ "von Ares blockiert. Aufruf: CALL"));
+						DE + "S hat versucht, mit der Netzwerkadresse host:80 über CALL illegal eine Verbindung "
+								+ "aufzubauen, wurde jedoch von Ares blockiert, weil REASON."));
 	}
 
 	/**
@@ -67,7 +76,7 @@ class ViolationTemplateRenderingTest {
 	void adviceViolationRendersACompleteSentence(Locale locale, String key, String action, String resource,
 			String expected) {
 		String rendered = AdviceActionWording.inLocale(locale, () -> Messages.localized(key, "S",
-				Messages.localized("security.advice.action." + action), resource, "CALL"));
+				Messages.localized("security.advice.action." + action), resource, "CALL", "REASON"));
 		assertEquals(expected, rendered);
 	}
 
@@ -79,7 +88,7 @@ class ViolationTemplateRenderingTest {
 	static Stream<Arguments> architectureViolations() {
 		return Stream.of(
 				Arguments.of(Locale.ENGLISH,
-						EN + "S tried to illegally access the file system via TARGET (called by P) but was blocked by "
+						EN + "S tried to illegally access the file system via TARGET (called by P), but was blocked by "
 								+ "Ares."),
 				Arguments.of(Locale.GERMAN, DE + "S hat versucht, über TARGET (aufgerufen von P) illegal auf das "
 						+ "Dateisystem zuzugreifen, wurde jedoch von Ares blockiert."));

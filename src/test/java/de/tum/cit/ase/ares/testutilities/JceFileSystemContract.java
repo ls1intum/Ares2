@@ -129,8 +129,8 @@ public abstract class JceFileSystemContract {
 		Locale.setDefault(Locale.forLanguageTag(language));
 		Path file = Files.writeString(directory.resolve("default_local.policy"), "protected");
 		for (boolean empty : new boolean[] { true, false }) {
-			String key = empty ? "security.advice.denial.reason.no.allowlist"
-					: "security.advice.denial.reason.not.in.allowlist";
+			String key = empty ? "security.advice.denial.reason.no.rule.file"
+					: "security.advice.denial.reason.target.not.allowed.file";
 			String reason = Messages.localized(key);
 			configure(empty ? null : directory.resolve("unrelated"));
 			SecurityException denied = requireDenied("read", "parameter", file, null);

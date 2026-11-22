@@ -1415,31 +1415,34 @@ Block the forbidden file operation and provide a comprehensive error message. Wh
 ```java
 throw new SecurityException(localize(
     "security.advice.illegal.file.execution",
-    violatingMethod,           // de.student.StudentCode.exploit
-    localizeAction(messageAction), // "read" (the reported verb; "create" is aliased to
-                               // "overwrite" for truncating writers, see below)
-    violatingPath,             // "/etc/passwd"
-    fullMethodSignature        // "java.io.FileInputStream.<init>(Ljava/lang/String;)V"
-        + describeCaller(studentCalledMethod)
-        + " | " + buildDenialReason(noAllowRuleConfigured)
+    systemMethodToCheck,                                       // de.student.StudentCode.exploit
+    localizeAction(messageAction),                             // "read" (the reported verb; "create" is aliased to
+                                                               // "overwrite" for truncating writers, see below)
+    illegallyInteractedThroughParameter,                       // "/etc/passwd"
+    describeDeniedCall(thisJoinPoint, fullMethodSignature)     // "java.nio.file.Files.readString(java.nio.file.Path)"
+        + describeCaller(studentCalledMethod),                 // " (called by org.junit.TestClass.testStudent)"
+    buildDenialReason("file", actionToCheck, noAllowRuleConfigured)
 ));
 ```
 
+This is the AspectJ form for a path found in the parameters; a path found in the receiver or the attributes is reported the same way. The instrumentation toolbox passes the same arguments, except that it writes the call with `describeSignature(fullMethodSignature)`, without the resolved runtime declaration that `describeDeniedCall(...)` can add. The signature is in Java source notation (`(byte[], int, int)`, not `([B,int,int)`), and the reason is its own fifth argument, a lower-case clause the sentence ends with.
+
 **3. Used variables**
 
-- **`violatingMethod`** (String): From 5.2.2 - the student method that attempted the file access (e.g., `"de.student.StudentCode.exploit"`)
+- **`systemMethodToCheck`** (String): From 5.2.2 - the student method that attempted the file access (e.g., `"de.student.StudentCode.exploit"`)
 - **`messageAction`** (String): The reported operation verb. Usually the checked action from 5.3, but when a "create" pointcut intercepts a class/method that semantically truncates/overwrites (`FileOutputStream`, `FileWriter`, `PrintWriter`, or `Files.newBufferedWriter`/`newOutputStream` without `append=true`), "create" is aliased to `"overwrite"` in the message
-- **`violatingPath`** (String): From 5.4.3/5.4.4 - the forbidden file path that was accessed (e.g., `"/etc/passwd"`)
-- **`fullMethodSignature`** (String): From section 4.1 - complete method signature showing exactly which method was called (e.g., `"java.io.FileInputStream.<init>(Ljava/lang/String;)V"`)
+- **`illegallyInteractedThroughParameter`** (String): From 5.4.3/5.4.4 - the forbidden file path that was accessed (e.g., `"/etc/passwd"`)
+- **`fullMethodSignature`** (String): From section 4.1 - complete method signature showing exactly which method was called (e.g., `"java.nio.file.Files.readString(java.nio.file.Path)"`)
 - **`studentCalledMethod`** (String): From 5.2.3 - the test method that invoked the student code (e.g., `"org.junit.TestClass.testStudent"`); omitted from the message when null
-- **`buildDenialReason()`** (method): Appends why the access was denied - either no allow rule was configured for this action at all, or a rule exists but does not permit this path
+- **`noAllowRuleConfigured`** (boolean): `true` when the policy allows the checked action for no path at all
+- **`buildDenialReason()`** (method): Returns why the access was denied, as one of three clauses: "the policy has no rule for files" when no file rule of any action exists (`security.advice.denial.reason.no.rule.file`), "the policy has no rule that allows" followed by the action and "for files" when file rules exist but none for this action (`security.advice.denial.reason.no.action.rule.file`), and "no rule in the policy allows this file" when a rule for this action exists but does not cover the path (`security.advice.denial.reason.target.not.allowed.file`)
 - **`localize()`** (method): Translates the error message to the configured language
 
 **4. Result**
 
-**Example Error Message** (a single line, from the `security.advice.illegal.file.execution` template `"... %s tried to illegally %s File %s via %s but was blocked by Ares."`):
+**Example Error Message** (a single line, from the `security.advice.illegal.file.execution` template `"... %s tried to illegally %s the file %s via %s, but was blocked by Ares, because %s."`):
 ```
-Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.exploit tried to illegally read File /etc/passwd via java.nio.file.Files.readString(java.nio.file.Path) (called by org.junit.TestClass.testStudent) | <denial reason> but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.exploit tried to illegally read the file /etc/passwd via java.nio.file.Files.readString(java.nio.file.Path) (called by org.junit.TestClass.testStudent), but was blocked by Ares, because no rule in the policy allows this file.
 ```
 
 🔴 **SecurityException thrown** - Analysis terminated, file operation blocked

@@ -38,7 +38,7 @@ class JavaInstrumentationLibraryLoadCheckTest {
 	private static final String LOAD_LIBRARY0 = "(Ljava/lang/Class;Ljava/lang/String;)V";
 
 	/** How the check's messages name {@code Runtime.loadLibrary0}. */
-	private static final String LOAD_LIBRARY0_SIGNATURE = "java.lang.Runtime.loadLibrary0(java.lang.Class,java.lang.String)";
+	private static final String LOAD_LIBRARY0_SIGNATURE = "java.lang.Runtime.loadLibrary0(java.lang.Class, java.lang.String)";
 
 	/** The property the JVM's library folder is read from. */
 	private static final String BOOT_LIBRARY_PATH = "sun.boot.library.path";
@@ -49,8 +49,8 @@ class JavaInstrumentationLibraryLoadCheckTest {
 	 */
 	@BeforeAll
 	static void warmLocalizationBundle() {
-		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.no.allowlist");
-		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.not.in.allowlist");
+		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.no.rule.file");
+		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.target.not.allowed.file");
 		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.file.execution");
 	}
 
@@ -95,7 +95,7 @@ class JavaInstrumentationLibraryLoadCheckTest {
 		assertThatThrownBy(
 				() -> InstrumentationSecurityProbe.checkLibraryLoad0(InstrumentationSecurityProbe.class, "net"))
 						.isInstanceOf(SecurityException.class).hasMessageContaining(path)
-						.hasMessageContaining("java.lang.Runtime.loadLibrary0(java.lang.Class,java.lang.String)");
+						.hasMessageContaining("java.lang.Runtime.loadLibrary0(java.lang.Class, java.lang.String)");
 	}
 
 	/**
@@ -223,7 +223,7 @@ class JavaInstrumentationLibraryLoadCheckTest {
 				() -> InstrumentationSecurityProbe.checkLibraryLoad0(InstrumentationSecurityProbe.class, "net\0"))
 						.isInstanceOf(SecurityException.class)
 						.hasMessageContaining(JavaInstrumentationAdviceAbstractToolbox
-								.localize("security.advice.denial.reason.no.allowlist"))
+								.localize("security.advice.denial.reason.no.rule.file"))
 						.hasMessageContaining("loadLibrary0");
 		configure(new String[] { "*" });
 		assertThatCode(
@@ -515,11 +515,12 @@ class JavaInstrumentationLibraryLoadCheckTest {
 	 * Returns the words of the illegal-file message between the student method and
 	 * the file, for the action {@code execute}, in the current language.
 	 *
-	 * @return those words, such as {@code tried to illegally execute File}
+	 * @return those words, such as {@code tried to illegally execute the file}
 	 */
 	private static String illegalExecuteWording() {
 		String message = JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.file.execution",
-				"\u0001", "execute", "\u0002", "\u0003");
+				"\u0001", JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.action.execute"), "\u0002",
+				"\u0003", "\u0004");
 		return message.substring(message.indexOf('\u0001') + 1, message.indexOf('\u0002'));
 	}
 

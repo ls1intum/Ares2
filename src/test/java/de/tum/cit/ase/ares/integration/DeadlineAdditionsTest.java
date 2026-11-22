@@ -2,10 +2,7 @@ package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 
-import java.lang.annotation.AnnotationFormatError;
-
 import org.junit.platform.testkit.engine.Events;
-import org.opentest4j.AssertionFailedError;
 
 import de.tum.cit.ase.ares.integration.testuser.DeadlineAdditionsUser;
 import de.tum.cit.ase.ares.testutilities.TestTest;
@@ -48,19 +45,19 @@ class DeadlineAdditionsTest {
 	@TestTest
 	void test_testHidden_CustomDeadlineFutureExtendedInactive() {
 		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(testHidden_CustomDeadlineFutureExtendedInactive, AssertionFailedError.class));
+				testFailedWith(testHidden_CustomDeadlineFutureExtendedInactive, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testHidden_CustomDeadlineFutureExtendedNormal() {
 		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(testHidden_CustomDeadlineFutureExtendedNormal, AssertionFailedError.class));
+				testFailedWith(testHidden_CustomDeadlineFutureExtendedNormal, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testHidden_CustomDeadlineFutureInactive() {
 		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(testHidden_CustomDeadlineFutureInactive, AssertionFailedError.class));
+				testFailedWith(testHidden_CustomDeadlineFutureInactive, SecurityException.class));
 	}
 
 	@TestTest
@@ -71,18 +68,18 @@ class DeadlineAdditionsTest {
 	@TestTest
 	void test_testHidden_CustomDeadlinePastExtendedInactive() {
 		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(testHidden_CustomDeadlinePastExtendedInactive, AssertionFailedError.class));
+				testFailedWith(testHidden_CustomDeadlinePastExtendedInactive, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testHidden_CustomDeadlinePastExtendedNormal() {
 		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(testHidden_CustomDeadlinePastExtendedNormal, AssertionFailedError.class));
+				testFailedWith(testHidden_CustomDeadlinePastExtendedNormal, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testHiddenActive() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenActive, AnnotationFormatError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenActive, SecurityException.class));
 	}
 
 	@TestTest
@@ -92,31 +89,31 @@ class DeadlineAdditionsTest {
 
 	@TestTest
 	void test_testHiddenExtendedInactive() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenExtendedInactive, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenExtendedInactive, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testHiddenExtendedNormal() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenExtendedNormal, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenExtendedNormal, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testHiddenInactive() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenInactive, AnnotationFormatError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenInactive, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testHiddenNormal() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenNormal, AnnotationFormatError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenNormal, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testPublicActive() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicActive, AnnotationFormatError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicActive, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testPublicExtended() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicExtended, AnnotationFormatError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicExtended, SecurityException.class));
 	}
 }

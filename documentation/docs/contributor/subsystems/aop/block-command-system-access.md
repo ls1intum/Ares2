@@ -886,32 +886,34 @@ Block the forbidden command operation and provide a comprehensive error message.
 ```java
 throw new SecurityException(localize(
     "security.advice.illegal.command.execution",
-    violatingMethod,           // de.student.StudentCode.exploit
-    localizeAction(action),    // "execute", worded in the active language
-    violatingCommand,          // "rm -rf /"
-    fullMethodSignature        // "java.lang.Runtime.exec(java.lang.String)"
-        + describeCaller(studentCalledMethod)  // " (called by org.junit.TestClass.testStudent)"
-        + " | " + buildDenialReason(noAllowRuleConfigured)  // " | Reason: No configured allow rule permits this access."
+    commandSystemMethodToCheck,                                  // de.student.StudentCode.exploit
+    localizeAction(action),                                      // "execute", worded in the active language
+    quoteCommand(commandIllegallyExecutedThroughParameter),      // "\"rm -rf /\""
+    describeDeniedCall(thisJoinPoint, fullMethodSignature)       // "java.lang.Runtime.exec(java.lang.String)"
+        + describeCaller(studentCalledMethod),                   // " (called by org.junit.TestClass.testStudent)"
+    buildDenialReason("command", action, noAllowRuleConfigured)  // "no rule in the policy allows this command"
 ));
 ```
 
-The trailing `buildDenialReason(...)` suffix distinguishes between "no allow rule configured at all" and "an allow rule exists but does not permit this access". Executable-path violations (5.3.4) use the separate key `security.advice.illegal.file.execution` with their own denial reason instead.
+This is the AspectJ form for a command found in the parameters; a command found in the attributes is reported the same way. The instrumentation toolbox passes the same arguments, except that it writes the call with `describeSignature(fullMethodSignature)`, without the resolved runtime declaration that `describeDeniedCall(...)` can add. The signature is in Java source notation (`java.lang.String[]`, not `[Ljava.lang.String;`), and the reason is its own fifth argument, a lower-case clause the sentence ends with. Executable-path violations (5.3.4) use the key `security.advice.illegal.file.execution` instead, so the sentence names the file, with the reason `security.advice.denial.reason.command.executable.path.not.allowed`: "the command is allowed, but its executable file is not in the execute list".
 
 **3. Used variables**
 
-- **`violatingMethod`** (String): From 5.2.2 - the student method that attempted the command execution (e.g., `"de.student.StudentCode.exploit"`)
+- **`commandSystemMethodToCheck`** (String): From 5.2.2 - the student method that attempted the command execution (e.g., `"de.student.StudentCode.exploit"`)
 - **`action`** (String): From section 4.4 - the type of operation attempted (always `"execute"` for command system)
-- **`violatingCommand`** (String): From 5.3.3/5.4 - the forbidden command that was attempted (e.g., `"rm -rf /"`)
+- **`commandIllegallyExecutedThroughParameter`** (String): From 5.3.3/5.4 - the forbidden command that was attempted (e.g., `rm -rf /`)
+- **`quoteCommand()`** (method): Puts the command in double quotes, so a command with spaces reads as one thing
 - **`fullMethodSignature`** (String): From section 4.1 - complete method signature showing exactly which method was called (e.g., `"java.lang.Runtime.exec(java.lang.String)"`)
 - **`studentCalledMethod`** (String): From 5.2.3 - the test method that invoked the student code (e.g., `"org.junit.TestClass.testStudent"`)
-- **`noAllowRuleConfigured`** (boolean): Whether the command allow-lists are null or empty; determines which denial reason `buildDenialReason()` appends
+- **`noAllowRuleConfigured`** (boolean): Whether the allowed commands or the allowed arguments are null or empty; selects the denial reason
+- **`buildDenialReason()`** (method): Returns the reason clause. Commands have one rule list, so it returns "the policy has no rule for commands" (`security.advice.denial.reason.no.rule.command`) when `noAllowRuleConfigured` is `true`, and "no rule in the policy allows this command" (`security.advice.denial.reason.target.not.allowed.command`) otherwise
 - **`localize()`** (method): Translates the error message to the configured language
 
 **4. Result**
 
-**Example Error Message** (format defined by the localised key `security.advice.illegal.command.execution`: `"Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s Command %s via %s but was blocked by Ares."`):
+**Example Error Message** (format defined by the localised key `security.advice.illegal.command.execution`: `"Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s the command %s via %s, but was blocked by Ares, because %s."`):
 ```
-Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.exploit tried to illegally execute Command rm -rf / via java.lang.Runtime.exec(java.lang.String) (called by org.junit.TestClass.testStudent) | Reason: No configured allow rule permits this access. but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.exploit tried to illegally execute the command "rm -rf /" via java.lang.Runtime.exec(java.lang.String) (called by org.junit.TestClass.testStudent), but was blocked by Ares, because no rule in the policy allows this command.
 ```
 
 🔴 **SecurityException thrown** - Analysis terminated, command operation blocked

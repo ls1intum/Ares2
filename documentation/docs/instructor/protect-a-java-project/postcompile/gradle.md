@@ -342,8 +342,7 @@ void testPenguinPublic() {
 With Ares 2 active, the violation now produces:
 
 ```text
-Ares Security Error (Reason: Student-Code; Stage: Execution): org.example.Penguin.getName tried to illegally overwrite File
-/// target file location: secret.txt via java.io.FileOutputStream.write([B,int,int) but was blocked by Ares. ///
+Ares Security Error (Reason: Student-Code; Stage: Execution): org.example.Penguin.getName tried to illegally overwrite the file secret.txt via java.io.FileOutputStream.<init>(java.lang.String) (called by org.example.PenguinTest.testPenguinPublic), but was blocked by Ares, because no rule in the policy allows this file.
 ```
 
 ## Reject student classes in reserved packages

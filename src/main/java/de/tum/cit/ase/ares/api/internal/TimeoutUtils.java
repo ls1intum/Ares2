@@ -1,7 +1,7 @@
 package de.tum.cit.ase.ares.api.internal;
 
 import static de.tum.cit.ase.ares.api.internal.BlacklistedInvoker.invokeChecked;
-import static de.tum.cit.ase.ares.api.localization.Messages.localizedFailure;
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
 import java.time.Duration;
 import java.util.*;
@@ -12,7 +12,6 @@ import java.util.function.IntConsumer;
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
 import org.junit.jupiter.api.function.ThrowingSupplier;
-import org.opentest4j.AssertionFailedError;
 
 import de.tum.cit.ase.ares.api.*;
 import de.tum.cit.ase.ares.api.context.*;
@@ -131,8 +130,19 @@ public final class TimeoutUtils {
 		}
 	}
 
-	private static AssertionFailedError generateTimeoutFailure(Duration timeout, TestContext context) {
-		var failure = localizedFailure("timeout.failure_message", formatDuration(timeout)); //$NON-NLS-1$
+	/**
+	 * Builds the failure for a test that ran past its strict timeout. It is a
+	 * {@link SecurityException} with the Ares prefix, blaming the student code. The
+	 * English text keeps the words "timed out after" because Artemis looks for
+	 * them. Under privileged-only reporting it is thrown wrapped, so it is still
+	 * shown.
+	 *
+	 * @param timeout the timeout that was exceeded
+	 * @param context the context of the timed-out test
+	 * @return the failure to throw
+	 */
+	private static SecurityException generateTimeoutFailure(Duration timeout, TestContext context) {
+		var failure = new SecurityException(localized("timeout.failure_message", formatDuration(timeout))); //$NON-NLS-1$
 		if (TestContextUtils.findAnnotationIn(context, PrivilegedExceptionsOnly.class).isPresent()) {
 			throw new PrivilegedException(failure);
 		}

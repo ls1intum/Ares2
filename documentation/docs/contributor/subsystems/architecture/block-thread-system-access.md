@@ -554,13 +554,13 @@ Architecture Violation [Priority: MEDIUM] - Rule 'Manipulates threads' was viola
 Method <de.student.StudentCode.processAsync()> calls method <java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable)> in (StudentCode.java:15) accesses <java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable)>
 ```
 
-**The error is converted** by `parseErrorMessage` into a `SecurityException` using the format from `messages.properties` (key `security.archunit.violation.error`, line 97):
+**The error is converted** by `parseErrorMessage` into a `SecurityException` using the format from `messages.properties` (key `security.archunit.violation.error`):
 ```
-Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s via %s (called by %s) but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s via %s (called by %s), but was blocked by Ares.
 ```
 For the thread rule, the action placeholder is `manipulate threads` (mapped from the rule name "Manipulates threads"), e.g.:
 ```
-Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.processAsync() tried to illegally manipulate threads via java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable) (called by de.student.StudentCode) but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.processAsync() tried to illegally manipulate threads via java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable) (called by de.student.StudentCode), but was blocked by Ares.
 ```
 
 The outcome (pass or the parsed `SecurityException`) is cached in-memory per (rule category, allow-list, `JavaClasses` instance), so repeated executions in the same Java Virtual Machine (JVM) replay the cached verdict instead of re-scanning.
@@ -718,7 +718,7 @@ The rule check is implemented in `WalaRule.check(CallGraph, Set<ClassPermission>
 
 **Violation Message:**
 
-A genuine violation raises an `AssertionError` with the localised format (`messages.properties` key `security.architecture.method.call.message`, line 115):
+A genuine violation raises an `AssertionError` with the localised format (`messages.properties` key `security.architecture.method.call.message`):
 ```
 '%s'\n Method <%s> calls method <%s> in (%s.java:%d) accesses <%s>
 ```
@@ -958,7 +958,7 @@ try {
 } catch (SecurityException e) {
     // Already in the Ares error format:
     // "Ares Security Error (Reason: Student-Code; Stage: Execution):
-    //  <caller> tried to illegally manipulate threads via <target> (called by <class>)
+    //  <caller> tried to illegally manipulate threads via <target> (called by <class>),
     //  but was blocked by Ares."
 }
 ```

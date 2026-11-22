@@ -4,10 +4,7 @@ import static de.tum.cit.ase.ares.testutilities.CustomConditions.finishedSuccess
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.testFailedWith;
 import static org.junit.platform.testkit.engine.EventConditions.*;
 
-import java.lang.annotation.AnnotationFormatError;
-
 import org.junit.platform.testkit.engine.Events;
-import org.opentest4j.AssertionFailedError;
 
 import de.tum.cit.ase.ares.integration.testuser.HiddenPublicUser;
 import de.tum.cit.ase.ares.testutilities.TestTest;
@@ -31,7 +28,7 @@ class HiddenPublicTest {
 	@TestTest
 	void test_testHiddenCustomDeadlineFuture() {
 		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(testHiddenCustomDeadlineFuture, AssertionFailedError.class));
+				testFailedWith(testHiddenCustomDeadlineFuture, SecurityException.class));
 	}
 
 	@TestTest
@@ -46,12 +43,12 @@ class HiddenPublicTest {
 
 	@TestTest
 	void test_testHiddenNormal() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenNormal, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenNormal, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testPublicCustomDeadline() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicCustomDeadline, AnnotationFormatError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicCustomDeadline, SecurityException.class));
 	}
 
 	@TestTest
@@ -61,6 +58,6 @@ class HiddenPublicTest {
 
 	@TestTest
 	void test_testPublicNormal() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicNormal, AnnotationFormatError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicNormal, SecurityException.class));
 	}
 }

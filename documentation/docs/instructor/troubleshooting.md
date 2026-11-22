@@ -37,9 +37,9 @@ Ares Sicherheitsfehler (Grund: Student-Code; Phase: Ausführung): ...
   report a bug.
 - **`Stage: Creation`** (`Erstellung`): Ares stopped while preparing its checks, for example
   while reading the policy.
-- **`Stage: Execution`** (`Ausführung`): Ares stopped while a test was running. A few
-  messages carry this stage although Ares raised them while preparing, so treat the stage as
-  a hint rather than a certainty.
+- **`Stage: Execution`** (`Ausführung`): Ares stopped while a test was running. No test
+  checks that a message's stage matches where Ares raised it, so treat the stage as a hint
+  rather than a certainty.
 
 The [error message template](/contributor/subsystems/package-overview#error-message-template)
 lists every part and the rules for writing a new message.

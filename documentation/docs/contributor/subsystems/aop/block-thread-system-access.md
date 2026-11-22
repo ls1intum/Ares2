@@ -1015,42 +1015,43 @@ Block the forbidden thread operation and provide a comprehensive error message. 
 ```java
 throw new SecurityException(localize(
     "security.advice.illegal.thread.execution",
-    violatingMethod,           // de.student.StudentCode.exploit
-    localizeAction(action),    // "create", worded in the active language
-    violatingThreadClass,      // "Lambda-Expression" or "com.example.MaliciousRunnable"
-    fullMethodSignature        // "java.util.concurrent.ExecutorService.submit(java.lang.Runnable)"
-        + describeCaller(studentCalledMethod)
-        + " | " + buildDenialReason(noAllowRuleConfigured)
+    systemMethodToCheck,                                        // de.student.StudentCode.exploit
+    localizeAction(action),                                     // "create", worded in the active language
+    describeThreadTarget(threadClassName, systemMethodToCheck), // "com.example.MaliciousRunnable", or "a lambda in de.student.StudentCode.exploit"
+    describeDeniedCall(thisJoinPoint, fullMethodSignature)      // "java.util.concurrent.ExecutorService.submit(java.lang.Runnable)"
+        + describeCaller(studentCalledMethod),                  // " (called by org.junit.TestClass.testStudent)"
+    buildDenialReason("thread", action, noAllowRuleConfigured)  // "no rule in the policy allows this thread"
 ));
 ```
 
-The fourth argument is composed of the full method signature, the caller note from `describeCaller(...)` (empty when the caller is unknown), and a denial reason appended after `" | "`. `buildDenialReason(...)` distinguishes "no allow rule configured at all" from "an allow rule exists but does not permit this access".
+This is the AspectJ form. The instrumentation toolbox passes the same arguments, except that it writes the call with `describeSignature(fullMethodSignature)`, without the resolved runtime declaration that `describeDeniedCall(...)` can add. The fourth argument is the signature in Java source notation (`java.lang.String[]`, not `[Ljava.lang.String;`), followed by the caller note from `describeCaller(...)`, which is empty when the caller is unknown. The reason is its own fifth argument, a lower-case clause the sentence ends with.
 
 **3. Used variables**
 
-- **`violatingMethod`** (String): From 5.2.2 - the student method that attempted the thread creation (e.g., `"de.student.StudentCode.exploit"`)
+- **`systemMethodToCheck`** (String): From 5.2.2 - the student method that attempted the thread creation (e.g., `"de.student.StudentCode.exploit"`)
 - **`action`** (String): From section 4.4 - the type of operation attempted (always `"create"` for thread system)
-- **`violatingThreadClass`** (String): From 5.3.3/5.4 - the forbidden thread class or the class that exceeded its quota (e.g., `"Lambda-Expression"`)
+- **`threadClassName`** (String): From 5.3.3/5.4 - the forbidden thread class or the class that exceeded its quota (e.g., `"Lambda-Expression"`)
+- **`describeThreadTarget()`** (method): Names the thread for the message. A `"Lambda-Expression"` becomes "a lambda in" followed by the student method (key `security.advice.thread.lambda`); any other class keeps its name
 - **`fullMethodSignature`** (String): From section 4.1 - complete method signature showing exactly which method was called
 - **`studentCalledMethod`** (String): From 5.2.3 - the test method that invoked the student code (e.g., `"org.junit.TestClass.testStudent"`)
-- **`noAllowRuleConfigured`** (boolean): `true` when no thread allow rule is configured at all; selects the denial reason text
-- **`buildDenialReason()`** (method): Returns the appended reason string ("No allow rule configured for this resource type." or "No configured allow rule permits this access.")
+- **`noAllowRuleConfigured`** (boolean): `true` when the allowed thread classes or the allowed thread numbers are missing or empty; selects the denial reason
+- **`buildDenialReason()`** (method): Returns the reason clause. Threads have one rule list, so it returns "the policy has no rule for threads" (`security.advice.denial.reason.no.rule.thread`) when `noAllowRuleConfigured` is `true`, and "no rule in the policy allows this thread" (`security.advice.denial.reason.target.not.allowed.thread`) otherwise
 - **`localize()`** (method): Translates the error message to the configured language
 
 **4. Result**
 
 **Example Error Messages:**
 
-The message template is a **single line** (`messages.properties`, key `security.advice.illegal.thread.execution`): `Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s Thread %s via %s but was blocked by Ares.` The same key is used for both denial causes; they are distinguished only by the appended denial reason.
+The message template is a **single line** (`messages.properties`, key `security.advice.illegal.thread.execution`): `Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s the thread %s via %s, but was blocked by Ares, because %s.` The same key is used for every denial cause; they are distinguished only by the reason clause at the end.
 
-**Thread Class Not Allowed:**
+**Thread Class Not Allowed or Thread Quota Exhausted:**
 ```
-Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.exploit tried to illegally create Thread com.example.MaliciousRunnable via java.util.concurrent.ExecutorService.submit(java.lang.Runnable) (called by org.junit.TestClass.testStudent) | Reason: No configured allow rule permits this access. but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.exploit tried to illegally create the thread com.example.MaliciousRunnable via java.util.concurrent.ExecutorService.submit(java.lang.Runnable) (called by org.junit.TestClass.testStudent), but was blocked by Ares, because no rule in the policy allows this thread.
 ```
 
-**Thread Quota Exhausted / No Allow Rule Configured:**
+**No Thread Rule Configured:**
 ```
-Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.createManyThreads tried to illegally create Thread Lambda-Expression via java.util.concurrent.ExecutorService.submit(java.lang.Runnable) (called by org.junit.TestClass.testStudent) | Reason: No allow rule configured for this resource type. but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.createManyThreads tried to illegally create the thread a lambda in de.student.StudentCode.createManyThreads via java.util.concurrent.ExecutorService.submit(java.lang.Runnable) (called by org.junit.TestClass.testStudent), but was blocked by Ares, because the policy has no rule for threads.
 ```
 
 🔴 **SecurityException thrown** - Analysis terminated, thread operation blocked

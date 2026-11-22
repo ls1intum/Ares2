@@ -9,7 +9,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
@@ -53,6 +55,25 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 */
 	@Nonnull
 	private static final ConcurrentHashMap<String, Field> SETTINGS_FIELD_CACHE = new ConcurrentHashMap<>();
+
+	/**
+	 * The policy rule lists of each resource type that has more than one action,
+	 * read only to choose the reason a denial message gives. Commands and threads
+	 * are missing on purpose because each has one rule list.
+	 */
+	@Nonnull
+	private static final Map<String, List<String>> RULE_SETTINGS_BY_RESOURCE_TYPE = Map.of("file",
+			List.of("pathsAllowedToBeRead", "pathsAllowedToBeOverwritten", "pathsAllowedToBeCreated",
+					"pathsAllowedToBeExecuted", "pathsAllowedToBeDeleted"),
+			"network", List.of("hostsAllowedToBeConnectedTo", "hostsAllowedToBeSentTo", "hostsAllowedToBeReceivedFrom"));
+
+	/**
+	 * The primitive element types of JVM array names, such as {@code I} in
+	 * {@code [I}, mapped to their Java source names for denial messages.
+	 */
+	@Nonnull
+	private static final Map<String, String> PRIMITIVE_DESCRIPTORS = Map.of("Z", "boolean", "B", "byte", "C", "char",
+			"S", "short", "I", "int", "J", "long", "F", "float", "D", "double");
 
 	/**
 	 * Single canonical settings lock, cached once so every caller synchronises on
@@ -306,23 +327,104 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	}
 
 	/**
-	 * Returns a human-readable denial reason that explains why a resource access
-	 * was blocked, distinguishing between "no allow rule configured at all" and "an
-	 * allow rule exists but does not permit this access".
+	 * Says why an access was denied, as a lower-case clause in the active language
+	 * that the denial sentence ends with. It tells apart three cases: the policy
+	 * has no rule of this resource type at all, it has rules of this type but none
+	 * for this action, or it has a rule for this action that does not cover the
+	 * target. Only the message uses this; the decision is already made.
 	 *
-	 * @param noAllowRuleConfigured {@code true} if no allow rule was configured for
-	 *                              the resource type at all; {@code false} if a
-	 *                              rule exists but does not permit this particular
-	 *                              access
-	 * @return a non-null reason string suitable for appending to SecurityException
-	 *         messages
+	 * @param resourceType          {@code file}, {@code command}, {@code network}
+	 *                              or {@code thread}
+	 * @param action                the raw action name that was checked
+	 * @param noAllowRuleForAction  {@code true} if the policy allows this action
+	 *                              for no target at all
+	 * @return the reason clause, without a final full stop
 	 */
 	@Nonnull
-	static String buildDenialReason(boolean noAllowRuleConfigured) {
-		if (noAllowRuleConfigured) {
-			return localize("security.advice.denial.reason.no.allowlist");
+	static String buildDenialReason(@Nonnull String resourceType, @Nonnull String action,
+			boolean noAllowRuleForAction) {
+		if (!noAllowRuleForAction) {
+			return localize("security.advice.denial.reason.target.not.allowed." + resourceType);
 		}
-		return localize("security.advice.denial.reason.not.in.allowlist");
+		if (hasAnyRuleForResourceType(resourceType)) {
+			return localize("security.advice.denial.reason.no.action.rule." + resourceType, localizeAction(action));
+		}
+		return localize("security.advice.denial.reason.no.rule." + resourceType);
+	}
+
+	/**
+	 * Tells whether the policy allows any action at all for a resource type that
+	 * has more than one action, files and network access. Commands and threads have
+	 * one rule list each, so for them this is always {@code false}, which makes
+	 * "no rule for this action" read as "no rule for this type".
+	 *
+	 * @param resourceType the resource type of the denied access
+	 * @return {@code true} if at least one rule list of that type is not empty
+	 */
+	private static boolean hasAnyRuleForResourceType(@Nonnull String resourceType) {
+		for (@Nonnull
+		String settingsField : RULE_SETTINGS_BY_RESOURCE_TYPE.getOrDefault(resourceType, List.of())) {
+			@Nullable
+			String[] rules = getValueFromSettings(settingsField);
+			if (rules != null && rules.length > 0) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Writes a method signature for a denial message as Java source would: array
+	 * types such as {@code [Ljava.lang.String;} become {@code java.lang.String[]},
+	 * and the parameter types are separated by a comma and one space. A text with
+	 * no parameter list is returned unchanged. Only the message uses this.
+	 *
+	 * @param signature the signature as the advice sees it
+	 * @return the signature in Java source notation
+	 */
+	@Nonnull
+	static String describeSignature(@Nonnull String signature) {
+		int open = signature.indexOf('(');
+		int close = signature.lastIndexOf(')');
+		if (open < 0 || close < open) {
+			return signature;
+		}
+		@Nonnull
+		String parameters = signature.substring(open + 1, close);
+		@Nonnull
+		StringJoiner sourceParameters = new StringJoiner(", ");
+		if (!parameters.isBlank()) {
+			for (@Nonnull
+			String parameter : parameters.split(",")) {
+				sourceParameters.add(describeTypeName(parameter.trim()));
+			}
+		}
+		return signature.substring(0, open + 1) + sourceParameters + signature.substring(close);
+	}
+
+	/**
+	 * Writes one type name as Java source would, turning a JVM array name such as
+	 * {@code [[I} into {@code int[][]}. Any other name is returned unchanged.
+	 *
+	 * @param typeName the type name as {@link Class#getName()} returns it
+	 * @return the type name in Java source notation
+	 */
+	@Nonnull
+	static String describeTypeName(@Nonnull String typeName) {
+		int dimensions = 0;
+		while (dimensions < typeName.length() && typeName.charAt(dimensions) == '[') {
+			dimensions++;
+		}
+		if (dimensions == 0) {
+			return typeName;
+		}
+		@Nonnull
+		String element = typeName.substring(dimensions);
+		@Nullable
+		String elementType = element.length() > 2 && element.charAt(0) == 'L' && element.endsWith(";")
+				? element.substring(1, element.length() - 1)
+				: PRIMITIVE_DESCRIPTORS.get(element);
+		return elementType == null ? typeName : elementType + "[]".repeat(dimensions);
 	}
 
 	/**
@@ -644,9 +746,9 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 		ClassLoader loader = value.getClass().getClassLoader();
 		if (loader != null && loader != ClassLoader.getPlatformClassLoader()) {
 			throw new SecurityException(
-					"Ares Security Error (Reason: Student-Code; Stage: Execution): Ares cannot safely inspect an"
-							+ " argument of untrusted type " + value.getClass().getName()
-							+ " (not a JDK type) but was blocked by Ares.");
+					"Ares Security Error (Reason: Student-Code; Stage: Execution): The supervised code passed an"
+							+ " argument of the type " + describeTypeName(value.getClass().getName())
+							+ ", which is not a JDK type, so Ares cannot inspect it safely and blocked the call.");
 		}
 	}
 
@@ -746,16 +848,17 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	 * @param joinPoint           the join point of the denied call
 	 * @param fullMethodSignature the static signature already used for enforcement
 	 * @return the static signature, optionally followed by the resolved runtime
-	 *         declaration
+	 *         declaration, both in Java source notation
 	 */
 	@Nonnull
 	protected static String describeDeniedCall(@Nonnull JoinPoint joinPoint, @Nonnull String fullMethodSignature) {
 		@Nullable
 		String runtimeDeclaration = resolveRuntimeDeclaration(joinPoint);
 		if (runtimeDeclaration == null || runtimeDeclaration.equals(fullMethodSignature)) {
-			return fullMethodSignature;
+			return describeSignature(fullMethodSignature);
 		}
-		return fullMethodSignature + " " + localize("security.advice.resolved.runtime.declaration", runtimeDeclaration);
+		return describeSignature(fullMethodSignature) + " "
+				+ localize("security.advice.resolved.runtime.declaration", describeSignature(runtimeDeclaration));
 	}
 
 	/**

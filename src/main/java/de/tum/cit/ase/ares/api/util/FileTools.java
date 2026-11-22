@@ -165,8 +165,9 @@ public final class FileTools {
 		try {
 			JarEntry entry = jar.getJarEntry(jarMatcher.group(2).replace('\\', '/'));
 			if (entry == null) {
-				throw new SecurityException("Jar entry not found: " + jarMatcher.group(2).replace('\\', '/') + " in "
-						+ Path.of(jarMatcher.group(1)));
+				throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The jar entry "
+						+ jarMatcher.group(2).replace('\\', '/') + " was not found in " + Path.of(jarMatcher.group(1))
+						+ ".");
 			}
 			InputStream entryStream = jar.getInputStream(entry);
 			return new FilterInputStream(entryStream) {
@@ -247,18 +248,19 @@ public final class FileTools {
 					e);
 		} catch (IllegalFormatException e) {
 			throw new SecurityException(
-					"Ares Security Error (Reason: Ares-Code; Stage: Creation): An illegal format in content.", e);
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): The content has an illegal format.", e);
 		} catch (NullPointerException e) {
 			throw new SecurityException(
-					"Ares Security Error (Reason: Ares-Code; Stage: Creation): A null pointer encountered while reading file.",
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): A null pointer was encountered while reading the file.",
 					e);
 		} catch (UnsupportedOperationException e) {
 			throw new SecurityException(
-					"Ares Security Error (Reason: Ares-Code; Stage: Creation): Unsupported operation while reading file.",
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): An unsupported operation occurred while reading the file.",
 					e);
 		} catch (IOException e) {
 			throw new SecurityException(
-					"Ares Security Error (Reason: Ares-Code; Stage: Creation): I/O error while reading file.", e);
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): An I/O error occurred while reading the file.",
+					e);
 		}
 	}
 
@@ -335,12 +337,11 @@ public final class FileTools {
 				JsonParser parser = objectMapper.getFactory().createParser(inputStream)) {
 			JsonNode root = objectMapper.readTree(parser);
 			if (root == null || root.isNull()) {
-				throw JsonMappingException.from(parser, "A security policy YAML document must have a non-null root");
+				throw JsonMappingException.from(parser, localized("security.file-tools.yaml.root.null"));
 			}
 			JsonToken trailingToken = parser.nextToken();
 			if (trailingToken != null) {
-				throw JsonMappingException.from(parser,
-						"A security policy file must contain exactly one YAML document");
+				throw JsonMappingException.from(parser, localized("security.file-tools.yaml.multiple.documents"));
 			}
 			return root;
 		}
@@ -428,19 +429,19 @@ public final class FileTools {
 			return Files.writeString(targetPath, content, options).toFile();
 		} catch (IllegalArgumentException e) {
 			throw new SecurityException(
-					"Ares Security Error (Reason: Ares-Code; Stage: Creation): Illegal argument provided for targetPath writing.",
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): An illegal argument was given for writing the target file.",
 					e);
 		} catch (IOException e) {
 			throw new SecurityException(
-					"Ares Security Error (Reason: Ares-Code; Stage: Creation): IO error occurred during targetPath writing.",
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): An I/O error occurred while writing the target file.",
 					e);
 		} catch (NullPointerException e) {
 			throw new SecurityException(
-					"Ares Security Error (Reason: Ares-Code; Stage: Creation): A null pointer encountered during targetPath writing.",
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): A null pointer was encountered while writing the target file.",
 					e);
 		} catch (UnsupportedOperationException e) {
 			throw new SecurityException(
-					"Ares Security Error (Reason: Ares-Code; Stage: Creation): Unsupported operation during targetPath writing.",
+					"Ares Security Error (Reason: Ares-Code; Stage: Creation): An unsupported operation occurred while writing the target file.",
 					e);
 		}
 	}
@@ -476,19 +477,19 @@ public final class FileTools {
 						StandardCopyOption.REPLACE_EXISTING);
 			} catch (InvalidPathException e) {
 				throw new SecurityException(
-						"Ares Security Error (Reason: Ares-Code; Stage: Creation): Invalid path provided during file copy.",
+						"Ares Security Error (Reason: Ares-Code; Stage: Creation): An invalid path was given while copying a file.",
 						e);
 			} catch (UnsupportedOperationException e) {
 				throw new SecurityException(
-						"Ares Security Error (Reason: Ares-Code; Stage: Creation): Unsupported operation during file copy.",
+						"Ares Security Error (Reason: Ares-Code; Stage: Creation): An unsupported operation occurred while copying a file.",
 						e);
 			} catch (FileAlreadyExistsException e) {
 				throw new SecurityException(
-						"Ares Security Error (Reason: Ares-Code; Stage: Creation): File already exists at target location.",
+						"Ares Security Error (Reason: Ares-Code; Stage: Creation): A file already exists at the target location.",
 						e);
 			} catch (IOException e) {
 				throw new SecurityException(
-						"Ares Security Error (Reason: Ares-Code; Stage: Creation): IO error occurred during file copy.",
+						"Ares Security Error (Reason: Ares-Code; Stage: Creation): An I/O error occurred while copying a file.",
 						e);
 			}
 			return targetFilePaths.get(i);
@@ -567,8 +568,8 @@ public final class FileTools {
 		try {
 			return String.format(template, (Object[]) values);
 		} catch (IllegalFormatException e) {
-			throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): Illegal format in "
-					+ pathForError.toAbsolutePath() + ".", e);
+			throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The file "
+					+ pathForError.toAbsolutePath() + " has an illegal format.", e);
 		}
 	}
 

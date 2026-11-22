@@ -752,7 +752,7 @@ The reader refuses a policy file that breaks one of these rules with a `Security
 When a student's code violates a policy at runtime, Ares throws a `SecurityException` with a descriptive single-line message such as:
 
 ```text
-Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read File /etc/passwd via java.nio.file.Files.readString(java.nio.file.Path) | Reason: No allow rule configured for this resource type. but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read the file /etc/passwd via java.nio.file.Files.readString(java.nio.file.Path) (called by com.student.MainTest.testMain), but was blocked by Ares, because the policy has no rule for files.
 ```
 
 ### Common Mistakes
@@ -781,16 +781,16 @@ regardingFileSystemInteractions:
     deleteAllFiles: false
 ```
 
-If a student's code calls `new FileWriter("data/output.txt")`, the test fails because `overwriteAllFiles` is `false` (the message is a single line):
+If a student's code calls `Files.writeString(Path.of("data/output.txt"), "text")`, the test fails because `overwriteAllFiles` is `false` (the message is a single line):
 
 ```text
-java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.writeOutput tried to illegally overwrite File data/output.txt via java.io.FileWriter.<init>(java.lang.String) | Reason: No allow rule configured for this resource type. but was blocked by Ares.
+java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.writeOutput tried to illegally overwrite the file data/output.txt via java.nio.file.Files.writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.file.OpenOption[]) (called by com.student.MainTest.testMain), but was blocked by Ares, because the policy has no rule that allows overwrite for files.
 ```
 
 If the student's code calls `Files.readString(Path.of("/etc/shadow"))`, the test fails because `/etc/shadow` is not under the allowed path `data` (the message is a single line):
 
 ```text
-java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read File /etc/shadow via java.nio.file.Files.readString(java.nio.file.Path) | Reason: No configured allow rule permits this access. but was blocked by Ares.
+java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read the file /etc/shadow via java.nio.file.Files.readString(java.nio.file.Path) (called by com.student.MainTest.testMain), but was blocked by Ares, because no rule in the policy allows this file.
 ```
 
 ### Diagnosis Guide

@@ -210,7 +210,7 @@ This package manages **internationalisation** for error messages and test output
 | `@UseLocale` | Annotation to pin the locale for a test class (e.g. `@UseLocale("de")`) |
 | `Localisation` | Utility for copying localisation files into target projects |
 
-`Messages` provides factory methods that return localised `AssertionFailedError` instances, ensuring that all error messages shown to students are presented in the configured language.
+`Messages.localized(key, args)` returns the localised text, which Ares throws as its own failures, such as a blocked access, a timeout or a hidden test run before its deadline, inside a `SecurityException`. `Messages.localizedFailure(key, args)` returns a localised `AssertionFailedError`; the structural and dynamic test helpers use it for assertions about the student's code, which are not Ares failures.
 
 ### Error message template
 
@@ -228,7 +228,7 @@ Ares Sicherheitsfehler (Grund: <Ares-Code | Student-Code>; Phase: <Erstellung | 
 | Stage | `Creation` (`Erstellung`) | Ares was preparing the checks: reading the policy, scanning the project or creating the security test cases |
 | Stage | `Execution` (`Ausführung`) | A security test case or a test method was running |
 
-Reason and stage are labels a person chose for each message. `MessagesCatalogueTest` checks that each label is one of the allowed values and that both languages agree, but no test checks whether a label is right for the code that throws it. A few messages carry a stage that does not match the code that throws them. `security.policy.read.failed`, for example, says `Execution`, although Ares throws it while reading the policy.
+Reason and stage are labels a person chose for each message. `MessagesCatalogueTest` checks that each label is one of the allowed values and that both languages agree, but no test checks whether a label is right for the code that throws it. A label that does not match the code that throws it therefore passes the test.
 
 Ares throws these messages as `java.lang.SecurityException`. A few checks on the setup throw `IllegalArgumentException` or `IllegalStateException` with the same prefix. Every `Student-Code` message is a `SecurityException`. Not every error follows the template: some messages sit straight in the Java code without the prefix, and a key missing from the catalogue shows up as `!key!`. If the advice cannot reach `Messages` at all, it shows the bare key.
 
