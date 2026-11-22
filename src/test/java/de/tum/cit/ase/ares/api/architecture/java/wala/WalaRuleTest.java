@@ -457,6 +457,12 @@ class WalaRuleTest {
 	// Each variant uses a realistic full WALA signature beginning with the literal.
 	// ----------------------------------------------------------------
 
+	/**
+	 * An API that student code once could call unreported now raises a violation,
+	 * whose text names caller and target and opens with the Ares error template.
+	 *
+	 * @param apiPrefix the forbidden API
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "java.lang.Thread.<init>", "java.lang.Thread.interrupt",
 			"java.lang.ClassLoader.getSystemClassLoader", "java.lang.ClassLoader.loadLibrary", "java.lang.Runtime.load",
@@ -483,6 +489,8 @@ class WalaRuleTest {
 		String forbiddenName = fullSig.substring(0, fullSig.indexOf('('));
 		assertThat(err.getMessage()).contains("Method <org.example.Student.callApi()>")
 				.contains("calls method <" + forbiddenName + "(");
+		assertThat(err.getMessage()).matches("(?s)(Ares Security Error \\(Reason: Student-Code; Stage: Execution\\)"
+				+ "|Ares Sicherheitsfehler \\(Grund: Student-Code; Phase: Ausf\u00fchrung\\)): '.*");
 	}
 
 	// ----------------------------------------------------------------

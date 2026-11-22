@@ -6,7 +6,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +18,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
@@ -240,5 +244,58 @@ public class JavaArchunitTestCaseTest {
 		String tiny = Tiny.class.getName();
 		assertThrows(SecurityException.class, () -> runPackageImport(javaClasses, Set.of(), Set.of(tiny + ",x.Other")));
 		assertDoesNotThrow(() -> runPackageImport(javaClasses, Set.of(), Set.of(tiny, "x.Other")));
+	}
+
+	/**
+	 * Waiting for a rule evaluation that is interrupted fails closed with the Ares
+	 * error template and keeps the thread's interrupt flag set.
+	 *
+	 * @throws ReflectiveOperationException if the private method cannot be found
+	 */
+	@Test
+	void anInterruptedWaitFailsClosedAndKeepsTheInterrupt() throws ReflectiveOperationException {
+		FutureTask<Optional<SecurityException>> unfinished = new FutureTask<>(Optional::empty);
+		Thread.currentThread().interrupt();
+		try {
+			SecurityException refused = awaitOutcomeFailure(unfinished);
+			assertEquals(Messages.localized("security.architecture.rule.evaluation.interrupted"), refused.getMessage());
+			assertInstanceOf(InterruptedException.class, refused.getCause());
+			assertTrue(Thread.currentThread().isInterrupted());
+		} finally {
+			Thread.interrupted();
+		}
+	}
+
+	/**
+	 * A rule evaluation that ends with a checked exception fails closed with the
+	 * Ares error template and keeps the failure as its cause.
+	 *
+	 * @throws ReflectiveOperationException if the private method cannot be found
+	 */
+	@Test
+	void aCheckedEvaluationFailureFailsClosed() throws ReflectiveOperationException {
+		FutureTask<Optional<SecurityException>> failing = new FutureTask<>(() -> {
+			throw new java.io.IOException("checked");
+		});
+		failing.run();
+		SecurityException refused = awaitOutcomeFailure(failing);
+		assertEquals(Messages.localized("security.architecture.rule.evaluation.failed"), refused.getMessage());
+		assertInstanceOf(ExecutionException.class, refused.getCause());
+	}
+
+	/**
+	 * Calls the private wait for a rule outcome and returns what it threw.
+	 *
+	 * @param task the rule evaluation to wait for
+	 * @return the exception the wait threw
+	 * @throws ReflectiveOperationException if the private method cannot be found
+	 */
+	private static SecurityException awaitOutcomeFailure(FutureTask<Optional<SecurityException>> task)
+			throws ReflectiveOperationException {
+		Method await = JavaArchunitTestCase.class.getDeclaredMethod("awaitOutcome", FutureTask.class);
+		await.setAccessible(true);
+		InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
+				() -> await.invoke(null, task));
+		return assertInstanceOf(SecurityException.class, thrown.getCause());
 	}
 }

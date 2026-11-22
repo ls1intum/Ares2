@@ -18,14 +18,18 @@ import java.util.Optional;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /** Signed, atomic and process-safe persistence for WALA rule outcomes. */
 final class WalaOutcomeCacheStore {
 
 	private static final String HMAC_ALGORITHM = "HmacSHA256";
 	private static final java.util.concurrent.ConcurrentHashMap<Path, Object> JVM_LOCKS = new java.util.concurrent.ConcurrentHashMap<>();
 
+	/** Prevents instances of this utility. */
 	private WalaOutcomeCacheStore() {
-		throw new SecurityException("WalaOutcomeCacheStore is a utility class");
+		throw new SecurityException(
+				Messages.localized("security.general.utility.initialization", "WalaOutcomeCacheStore"));
 	}
 
 	static Map<String, Optional<String>> load(Path cacheFile, byte[] secret) {

@@ -3,8 +3,10 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedStatic;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
 
@@ -374,8 +377,8 @@ class ExemptedClassNestsTest {
 		for (Variant variant : List.of(Variant.TWO_NEST_HOSTS, Variant.NEST_HOST_WRONG_LENGTH,
 				Variant.NEST_HOST_LENGTH_ZERO)) {
 			write(testOutput, "x.T$A", minimal(variant));
-			assertEquals("java.lang.IllegalArgumentException: malformed NestHost",
-					causeOfRefusal(testOutput, "x.T$A").toString(), variant.name());
+			assertEquals(Messages.localized("security.policy.exempted.class.file.nest.host.malformed"),
+					causeOfRefusal(testOutput, "x.T$A").getMessage(), variant.name());
 		}
 	}
 
@@ -388,8 +391,8 @@ class ExemptedClassNestsTest {
 		write(testOutput, "x.T", minimal(Variant.VALID));
 		assertEquals(List.of("x.T", "x.T$A"), ExemptedClassNests.expandFromTestOutput(List.of("x.T"), testOutput));
 		write(testOutput, "x.T", minimal(Variant.NEST_HOST_TOO));
-		assertEquals("java.lang.IllegalArgumentException: both NestHost and NestMembers",
-				causeOfRefusal(testOutput, "x.T").toString());
+		assertEquals(Messages.localized("security.policy.exempted.class.file.nest.host.and.members"),
+				causeOfRefusal(testOutput, "x.T").getMessage());
 	}
 
 	/**
@@ -403,14 +406,36 @@ class ExemptedClassNestsTest {
 		write(testOutput, "x.T", valid);
 		assertEquals(List.of("x.T", "x.T$A"), ExemptedClassNests.expandFromTestOutput(List.of("x.T"), testOutput));
 		write(testOutput, "x.T", minimal(Variant.EMPTY_CONSTANT_POOL));
-		assertEquals("java.lang.IllegalArgumentException: empty constant pool",
-				causeOfRefusal(testOutput, "x.T").toString());
+		assertEquals(Messages.localized("security.policy.exempted.class.file.constant.pool.empty"),
+				causeOfRefusal(testOutput, "x.T").getMessage());
 		write(testOutput, "x.T", Arrays.copyOf(valid, valid.length - 1));
-		assertEquals("java.lang.IllegalArgumentException: an attribute runs past the end of the file",
-				causeOfRefusal(testOutput, "x.T").toString());
+		assertEquals(Messages.localized("security.policy.exempted.class.file.attribute.overrun"),
+				causeOfRefusal(testOutput, "x.T").getMessage());
 		write(testOutput, "x.T", minimal(Variant.SUPERCLASS_IS_TEXT));
-		assertEquals("java.lang.IllegalArgumentException: index 1 is not a class constant",
-				causeOfRefusal(testOutput, "x.T").toString());
+		assertEquals(Messages.localized("security.policy.exempted.class.file.class.constant.invalid", 1),
+				causeOfRefusal(testOutput, "x.T").getMessage());
+	}
+
+	/**
+	 * A {@link SecurityException} that is not a class-file defect, here one raised
+	 * while the complaint is being worded, escapes the reader unchanged instead of
+	 * being taken for a defect and turned into an empty nest.
+	 */
+	@Test
+	void anUnrelatedSecurityExceptionEscapesTheReader() throws Exception {
+		byte[] wrongMagic = classFile(HOST).clone();
+		wrongMagic[0] = 0;
+		SecurityException sentinel = new SecurityException("sentinel");
+		MockedStatic<Messages> messages = mockStatic(Messages.class, invocation -> {
+			throw sentinel;
+		});
+		try {
+			SecurityException escaped = assertThrows(SecurityException.class,
+					() -> ExemptedClassNests.nestMembersOf(HOST, wrongMagic));
+			assertSame(sentinel, escaped);
+		} finally {
+			messages.close();
+		}
 	}
 
 	/** A scan without a production output folder fails closed. */

@@ -38,7 +38,8 @@ public final class AresConstants {
 
 	static {
 		if (MINIMUM_POLICY_VERSION > MAXIMUM_POLICY_VERSION) {
-			throw new ExceptionInInitializerError("MINIMUM_POLICY_VERSION must not exceed MAXIMUM_POLICY_VERSION");
+			throw new SecurityException(Messages.localized("security.policy.version.bounds.invalid",
+					MINIMUM_POLICY_VERSION, MAXIMUM_POLICY_VERSION));
 		}
 	}
 

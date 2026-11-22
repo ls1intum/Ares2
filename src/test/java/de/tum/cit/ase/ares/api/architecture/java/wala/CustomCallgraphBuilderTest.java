@@ -17,6 +17,7 @@ import javax.activation.FileDataSource;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,6 +30,7 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 
 public class CustomCallgraphBuilderTest {
@@ -608,5 +610,23 @@ public class CustomCallgraphBuilderTest {
 	 */
 	private static String writeSource(Path directory, String className, String source) throws IOException {
 		return Files.writeString(directory.resolve(className + ".java"), source).toString();
+	}
+
+	/**
+	 * An analysis entry that is neither a file nor a folder, such as a device file,
+	 * is refused with the Ares error template rather than fingerprinted.
+	 *
+	 * @throws IOException if the device file cannot be resolved
+	 */
+	@Test
+	void testAnalysisEntryThatIsNeitherFileNorFolderIsRefused() throws IOException {
+		Path device = Path.of("/dev/null");
+		Assumptions.assumeTrue(Files.exists(device) && !Files.isRegularFile(device) && !Files.isDirectory(device),
+				"needs a device file such as /dev/null");
+		SecurityException refused = Assertions.assertThrows(SecurityException.class,
+				() -> CustomCallgraphBuilder.fingerprintAnalysisEntries(Set.of(device.toString())));
+		Assertions.assertEquals(
+				Messages.localized("security.architecture.wala.analysis.entry.invalid", device.toRealPath()),
+				refused.getMessage());
 	}
 }
