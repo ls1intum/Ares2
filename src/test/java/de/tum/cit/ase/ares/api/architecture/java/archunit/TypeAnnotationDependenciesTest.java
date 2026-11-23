@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -627,17 +626,7 @@ class TypeAnnotationDependenciesTest {
 	private static JavaClasses compileFixture(Path directory, String fixture) throws IOException {
 		Map<String, String> sources = Map.of("p/Allowed.java", ALLOWED_ANNOTATION, "p/Inner.java", INNER_ANNOTATION,
 				"p/Forbidden.java", FORBIDDEN_TYPE, "p/Fixture.java", fixture);
-		Path sourceRoot = directory.resolve("src");
-		Path classRoot = Files.createDirectories(directory.resolve("classes"));
-		List<Path> files = new ArrayList<>();
-		for (Map.Entry<String, String> source : sources.entrySet()) {
-			Path file = sourceRoot.resolve(source.getKey());
-			Files.createDirectories(file.getParent());
-			Files.writeString(file, source.getValue());
-			files.add(file);
-		}
-		JavacFixtures.compileSources(JavacFixtures.testClasses().toString(), classRoot, files);
-		return new ClassFileImporter().importPath(classRoot);
+		return new ClassFileImporter().importPath(JavacFixtures.compileSourceTexts(directory, sources));
 	}
 
 	/**

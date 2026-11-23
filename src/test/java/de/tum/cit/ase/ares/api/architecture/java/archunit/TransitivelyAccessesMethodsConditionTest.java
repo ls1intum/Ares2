@@ -8,9 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -398,17 +396,7 @@ public class TransitivelyAccessesMethodsConditionTest {
 	 * @throws IOException if a source file cannot be written
 	 */
 	private static JavaClasses compileAndImport(Path directory, Map<String, String> sources) throws IOException {
-		Path sourceRoot = directory.resolve("src");
-		Path classRoot = Files.createDirectories(directory.resolve("classes"));
-		List<Path> files = new ArrayList<>();
-		for (Map.Entry<String, String> source : sources.entrySet()) {
-			Path file = sourceRoot.resolve(source.getKey());
-			Files.createDirectories(file.getParent());
-			Files.writeString(file, source.getValue());
-			files.add(file);
-		}
-		JavacFixtures.compileSources(JavacFixtures.testClasses().toString(), classRoot, files);
-		return new ClassFileImporter().importPath(classRoot);
+		return new ClassFileImporter().importPath(JavacFixtures.compileSourceTexts(directory, sources));
 	}
 
 	/**

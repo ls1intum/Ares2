@@ -7,10 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -206,28 +204,6 @@ public class JavaArchunitTestCaseCollectionTest {
 			""";
 
 	/**
-	 * Compiles the sources with {@code javac} below the directory and returns the
-	 * folder holding the class files.
-	 *
-	 * @param directory the directory to work in
-	 * @param sources   the source files, by their path below the source folder
-	 * @return the folder with the class files
-	 * @throws IOException if a source file cannot be written
-	 */
-	private static Path compile(Path directory, Map<String, String> sources) throws IOException {
-		Path sourceRoot = directory.resolve("src");
-		Path classRoot = Files.createDirectories(directory.resolve("classes"));
-		List<Path> files = new ArrayList<>();
-		for (Map.Entry<String, String> source : sources.entrySet()) {
-			Path file = sourceRoot.resolve(source.getKey());
-			Files.createDirectories(file.getParent());
-			Files.writeString(file, source.getValue());
-			files.add(file);
-		}
-		return JavacFixtures.compileSources(JavacFixtures.testClasses().toString(), classRoot, files);
-	}
-
-	/**
 	 * Compiles one source file with {@code javac} and imports the result.
 	 *
 	 * @param directory the directory to work in
@@ -237,7 +213,7 @@ public class JavaArchunitTestCaseCollectionTest {
 	 * @throws IOException if the source file cannot be written
 	 */
 	private static JavaClasses compileAndImport(Path directory, String path, String source) throws IOException {
-		return new ClassFileImporter().importPath(compile(directory, Map.of(path, source)));
+		return new ClassFileImporter().importPath(JavacFixtures.compileSourceTexts(directory, Map.of(path, source)));
 	}
 
 	/**
@@ -324,7 +300,7 @@ public class JavaArchunitTestCaseCollectionTest {
 	 */
 	@Test
 	void leavesTheDefaultPackageAndTheJdkOutOfTheOwnPackages(@TempDir Path directory) throws IOException {
-		Path classRoot = compile(directory, Map.of("Plain.java", "public class Plain {\n}\n"));
+		Path classRoot = JavacFixtures.compileSourceTexts(directory, Map.of("Plain.java", "public class Plain {\n}\n"));
 		Set<Location> locations = new HashSet<>(Locations.ofClass(String.class));
 		locations.add(Location.of(classRoot));
 		JavaClasses classes = new ClassFileImporter().importLocations(locations);

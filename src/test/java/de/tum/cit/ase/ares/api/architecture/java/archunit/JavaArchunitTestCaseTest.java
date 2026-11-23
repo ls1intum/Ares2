@@ -5,12 +5,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -355,14 +353,7 @@ public class JavaArchunitTestCaseTest {
 	 * @throws IOException if the source file cannot be written
 	 */
 	private static JavaClasses compileAndImport(Path directory, String path, String source) throws IOException {
-		Path file = directory.resolve("src").resolve(path);
-		Files.createDirectories(file.getParent());
-		Files.writeString(file, source);
-		Path classRoot = Files.createDirectories(directory.resolve("classes"));
-		List<Path> files = new ArrayList<>();
-		files.add(file);
-		JavacFixtures.compileSources(JavacFixtures.testClasses().toString(), classRoot, files);
-		return new ClassFileImporter().importPath(classRoot);
+		return new ClassFileImporter().importPath(JavacFixtures.compileSourceTexts(directory, Map.of(path, source)));
 	}
 
 	/**
