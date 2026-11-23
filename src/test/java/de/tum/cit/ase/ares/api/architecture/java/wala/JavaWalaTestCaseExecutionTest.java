@@ -42,6 +42,8 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
+import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.ForeignCallBytecode;
+import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.UsesManagement;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.testutilities.JavacFixtures;
@@ -368,6 +370,42 @@ class JavaWalaTestCaseExecutionTest {
 				() -> testCase.executeArchitectureTestCase("WALA", ""));
 
 		assertTrue(thrown.getMessage().contains(LoadingFixture.class.getName()), thrown.getMessage());
+	}
+
+	/**
+	 * In WALA mode the native-code check refuses a call that reinterprets a memory
+	 * segment, a raw memory access reachable below the java.lang baseline.
+	 *
+	 * @param folder where the calling class is written
+	 * @throws IOException if the class cannot be written
+	 */
+	@Test
+	void refusesAForeignMemoryReinterpretation(@TempDir Path folder) throws IOException {
+		JavaClasses caller = ForeignCallBytecode.importCallTo(folder, "java/lang/foreign/MemorySegment", "reinterpret",
+				"(J)Ljava/lang/foreign/MemorySegment;");
+		JavaWalaTestCase testCase = testCase(JavaArchitectureTestCaseSupported.NATIVE_CODE, caller,
+				countingSupplier(new AtomicInteger()), uniquePermission());
+
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> testCase.executeArchitectureTestCase("WALA", ""));
+
+		assertTrue(thrown.getMessage().contains(ForeignCallBytecode.CLASS_NAME), thrown.getMessage());
+	}
+
+	/**
+	 * In WALA mode the environment check refuses reading the class path through
+	 * java.lang.management, which lies below the java.lang baseline.
+	 */
+	@Test
+	void refusesTheManagementRouteToTheClassPath() {
+		JavaWalaTestCase testCase = testCase(JavaArchitectureTestCaseSupported.ENVIRONMENT_ACCESS,
+				new ClassFileImporter().importClasses(UsesManagement.class), countingSupplier(new AtomicInteger()),
+				uniquePermission());
+
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> testCase.executeArchitectureTestCase("WALA", ""));
+
+		assertTrue(thrown.getMessage().contains(UsesManagement.class.getName()), thrown.getMessage());
 	}
 
 	/**

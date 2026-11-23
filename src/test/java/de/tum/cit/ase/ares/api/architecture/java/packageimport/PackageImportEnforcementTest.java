@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -17,6 +18,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -32,12 +35,18 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCaseCollection;
+import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.ForeignCallBytecode;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.OnlyJavaLang;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.PrintsAndUsesLambdas;
+import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.UsesCleaner;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.UsesCollections;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.UsesConcurrent;
+import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.UsesConstantResolution;
+import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.UsesEnumDescResolution;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.UsesForbidden;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.UsesJavaxAndThirdParty;
+import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.UsesManagement;
+import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.UsesSuppliedBean;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.own.OwnSibling;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.own.OwnSubUser;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.own.OwnUser;
@@ -114,10 +123,18 @@ class PackageImportEnforcementTest {
 	 * given packages permitted, or an empty string.
 	 */
 	private static String violationsFor(Set<PackagePermission> allowedPackages) {
+		return violationsFor(allowedPackages, fixtures);
+	}
+
+	/**
+	 * Returns the violations of the rule over the given classes with only the given
+	 * packages permitted, or an empty string.
+	 */
+	private static String violationsFor(Set<PackagePermission> allowedPackages, JavaClasses classes) {
 		ArchRule rule = JavaArchunitTestCaseCollection.noClassMustImportForbiddenPackages(allowedPackages,
 				Set.<ClassPermission>of());
 		try {
-			rule.check(fixtures);
+			rule.check(classes);
 			return "";
 		} catch (AssertionError violation) {
 			return violation.getMessage();
@@ -154,6 +171,130 @@ class PackageImportEnforcementTest {
 		assertThrows(AssertionError.class,
 				() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(usesReflection),
 				"covering java.lang.reflect for imports must not permit reflection");
+	}
+
+	/**
+	 * The native-code rule refuses the public foreign-memory entry points that
+	 * reach raw memory or native code, which the java.lang baseline now lets a
+	 * class import.
+	 *
+	 * @param owner      the internal name of the called interface
+	 * @param method     the called method
+	 * @param descriptor its descriptor
+	 * @param folder     where the calling class is written
+	 * @throws IOException if the class cannot be written
+	 */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = {
+			"java/lang/foreign/MemorySegment|reinterpret|(J)Ljava/lang/foreign/MemorySegment;",
+			"java/lang/foreign/AddressLayout|withTargetLayout|(Ljava/lang/foreign/MemoryLayout;)Ljava/lang/foreign/AddressLayout;",
+			"java/lang/foreign/Linker|upcallStub|(Ljava/lang/invoke/MethodHandle;Ljava/lang/foreign/FunctionDescriptor;Ljava/lang/foreign/Arena;[Ljava/lang/foreign/Linker$Option;)Ljava/lang/foreign/MemorySegment;" })
+	void nativeCodeRuleRefusesForeignMemoryEntryPoints(String owner, String method, String descriptor,
+			@TempDir Path folder) throws IOException {
+		JavaClasses caller = ForeignCallBytecode.importCallTo(folder, owner, method, descriptor);
+		assertTrue(violationsFor(Set.of(JDK_BASELINE), caller).isEmpty(),
+				"the import rule must allow java.lang.foreign below the baseline");
+		assertThrows(AssertionError.class,
+				() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_NATIVE_CODE.check(caller),
+				"the native-code rule must refuse " + method);
+	}
+
+	/**
+	 * The environment rule refuses reading the class path through
+	 * java.lang.management, which the java.lang baseline now lets a class import.
+	 */
+	@Test
+	@DisplayName("The environment rule refuses the management route to the class path")
+	void environmentRuleRefusesTheManagementFactory() {
+		JavaClasses usesManagement = new ClassFileImporter().importClasses(UsesManagement.class);
+		assertTrue(violationsFor(Set.of(JDK_BASELINE, FIXTURE_PACKAGE), usesManagement).isEmpty(),
+				"the import rule must allow java.lang.management below the baseline");
+		assertThrows(AssertionError.class,
+				() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_ENVIRONMENT.check(usesManagement),
+				"the environment rule must refuse the management route to the class path");
+	}
+
+	/**
+	 * The environment rule also refuses reading the class path from a management
+	 * bean the class is handed rather than obtains itself.
+	 */
+	@Test
+	@DisplayName("The environment rule refuses a handed-in management bean")
+	void environmentRuleRefusesAHandedInManagementBean() {
+		JavaClasses usesBean = new ClassFileImporter().importClasses(UsesSuppliedBean.class);
+		assertThrows(AssertionError.class,
+				() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_ENVIRONMENT.check(usesBean),
+				"the environment rule must refuse the operations of a management bean");
+	}
+
+	/**
+	 * The reflection rule refuses resolving a constant descriptor, which loads a
+	 * class through a lookup without a call into java.lang.invoke.
+	 */
+	@Test
+	@DisplayName("The reflection rule refuses resolving a constant descriptor")
+	void reflectionRuleRefusesConstantResolution() {
+		JavaClasses resolves = new ClassFileImporter().importClasses(UsesConstantResolution.class);
+		assertThrows(AssertionError.class,
+				() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(resolves),
+				"the reflection rule must refuse resolving a constant descriptor");
+	}
+
+	/**
+	 * The reflection rule refuses resolving an enum constant descriptor, whose type
+	 * lies in java.lang rather than in java.lang.constant.
+	 */
+	@Test
+	@DisplayName("The reflection rule refuses resolving an enum constant descriptor")
+	void reflectionRuleRefusesEnumDescResolution() {
+		JavaClasses resolves = new ClassFileImporter().importClasses(UsesEnumDescResolution.class);
+		assertThrows(AssertionError.class,
+				() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(resolves),
+				"the reflection rule must refuse resolving an enum constant descriptor");
+	}
+
+	/**
+	 * The reflection rule passes ordinary code with records, enums, a switch,
+	 * lambdas and string concatenation, so the java.lang.constant prefix does not
+	 * catch what the compiler emits for them.
+	 *
+	 * @throws ClassNotFoundException if a nested fixture class is missing
+	 */
+	@Test
+	@DisplayName("The reflection rule passes records, enums, switches and lambdas")
+	void reflectionRulePassesOrdinaryLanguageFeatures() throws ClassNotFoundException {
+		JavaClasses ordinary = new ClassFileImporter().importClasses(PrintsAndUsesLambdas.class,
+				Class.forName(FIXTURES + ".PrintsAndUsesLambdas$Point"),
+				Class.forName(FIXTURES + ".PrintsAndUsesLambdas$Colour"));
+		assertDoesNotThrow(() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(ordinary));
+	}
+
+	/**
+	 * The thread rule refuses creating a cleaner, which starts a thread inside the
+	 * JDK and which the java.lang baseline now lets a class import.
+	 */
+	@Test
+	@DisplayName("The thread rule refuses creating a cleaner")
+	void threadRuleRefusesCreatingACleaner() {
+		JavaClasses usesCleaner = new ClassFileImporter().importClasses(UsesCleaner.class);
+		assertTrue(violationsFor(Set.of(JDK_BASELINE, FIXTURE_PACKAGE), usesCleaner).isEmpty(),
+				"the import rule must allow java.lang.ref below the baseline");
+		assertThrows(AssertionError.class,
+				() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(usesCleaner),
+				"the thread rule must refuse creating a cleaner");
+	}
+
+	/**
+	 * Code using java.lang alone passes the native-code, environment and thread
+	 * rules, so the refusals above are not a refusal of everything.
+	 */
+	@Test
+	@DisplayName("Plain java.lang code passes the native-code, environment and thread rules")
+	void plainJavaLangCodePassesTheTightenedRules() {
+		JavaClasses plain = new ClassFileImporter().importClasses(OnlyJavaLang.class);
+		assertDoesNotThrow(() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_NATIVE_CODE.check(plain));
+		assertDoesNotThrow(() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_ACCESS_ENVIRONMENT.check(plain));
+		assertDoesNotThrow(() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_CREATE_THREADS.check(plain));
 	}
 
 	/**

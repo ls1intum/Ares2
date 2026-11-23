@@ -377,3 +377,4 @@ java.util.stream.BaseStream.parallel()
 java.lang.Thread.notify()
 java.util.Timer.<init>
 java.lang.Thread
+java.lang.ref.Cleaner.create

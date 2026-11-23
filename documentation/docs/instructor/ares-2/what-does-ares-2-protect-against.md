@@ -65,15 +65,15 @@ These have no policy field. There is no syntax for permitting them, narrowly or 
 
 | Category | What it covers |
 | --- | --- |
-| Reflection | `java.lang.reflect.*`, `java.lang.invoke.*`, `Method.invoke`, `Field.set`, `Proxy`, `setAccessible` |
-| Native code | `System.loadLibrary`, `System.load`, `sun.misc.Unsafe`, and the foreign function entry points `Linker.nativeLinker`, `Linker.downcallHandle` and `SymbolLookup.libraryLookup` |
+| Reflection | `java.lang.reflect.*`, `java.lang.invoke.*`, `java.lang.constant.*`, `Method.invoke`, `Field.set`, `Proxy`, `setAccessible` |
+| Native code | `System.loadLibrary`, `System.load`, `sun.misc.Unsafe`, and the foreign function entry points `Linker.nativeLinker`, `Linker.downcallHandle`, `Linker.upcallStub` and `SymbolLookup.libraryLookup`, and the raw memory access of `MemorySegment.reinterpret` and `AddressLayout.withTargetLayout` |
 | Class loading | `Class.forName` and dynamic loading through `ClassLoader` and its subclasses |
 | Java Virtual Machine (JVM) termination | `System.exit`, `Runtime.exit`, `Runtime.halt` |
 | Agent attach | `Instrumentation` access, class redefinition, `VirtualMachine.attach` |
 | Module system | `implAddOpens`, `implAddExports`, `privateLookupIn` |
 | Serialisation | `ObjectInputStream` and `ObjectOutputStream` |
 | JNDI | Lookups through `InitialContext` and `InitialDirContext` |
-| Environment access | `System.getenv`, `System.getProperty` and `setProperty`, `ProcessHandle` metadata |
+| Environment access | `System.getenv`, `System.getProperty` and `setProperty`, `ProcessHandle` metadata, `java.lang.management.*` |
 
 ### Why these are not grantable
 

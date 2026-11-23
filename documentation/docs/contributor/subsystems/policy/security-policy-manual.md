@@ -215,7 +215,7 @@ The security policy does not cover the following resource types. They are enforc
 | Resource Type | What It Controls | Example |
 |---------------|------------------|---------|
 | Class Loading | Dynamic loading of classes via `java.lang.ClassLoader` and subclasses | Block `URLClassLoader.loadClass()` |
-| Environment | Reading/writing environment variables (`System.getenv`), system properties (`System.getProperty`/`setProperty`), and `ProcessHandle` metadata | Block `System.getenv("SECRET")` |
+| Environment | Reading/writing environment variables (`System.getenv`), system properties (`System.getProperty`/`setProperty`), `ProcessHandle` metadata, and `java.lang.management` | Block `System.getenv("SECRET")` |
 | Exhaustion | Denial-of-service attacks through resource exhaustion: memory, CPU, file handles, threads, disk space, infinite loops, stack overflow, fork bombs, log flooding | Block `new byte[Integer.MAX_VALUE]` |
 | JNDI | JNDI lookup access via `InitialContext` and `InitialDirContext`, which are the LDAP, RMI and Domain Name System (DNS) injection paths | Block `new InitialContext().lookup("ldap://...")` |
 | Java Virtual Machine (JVM) Termination | Terminating the JVM via `System.exit()`, `Runtime.exit()`, `Runtime.halt()`, and Java Development Kit (JDK) tool `main()` methods | Block `System.exit(0)` |

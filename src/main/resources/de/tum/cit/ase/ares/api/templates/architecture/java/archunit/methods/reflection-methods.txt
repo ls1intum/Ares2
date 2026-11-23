@@ -190,3 +190,5 @@ sun.reflect.ReflectionFactory.hasStaticInitializerForSerialization(java.lang.Cla
 java.lang.System.setErr
 java.lang.System.setIn
 java.lang.System.setOut
+java.lang.constant
+java.lang.Enum$EnumDesc.resolveConstantDesc
