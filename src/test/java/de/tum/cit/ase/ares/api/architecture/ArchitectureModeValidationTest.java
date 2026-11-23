@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -127,7 +128,7 @@ class ArchitectureModeValidationTest {
 
 	/**
 	 * Checks that a missing table is refused as empty and that a load failure of
-	 * each of the three tables keeps its cause.
+	 * the filesystem copy table and of the edit table keeps its cause.
 	 */
 	@Test
 	void refusesAMissingTableAndWrapsLoadFailures() throws Exception {
@@ -166,7 +167,7 @@ class ArchitectureModeValidationTest {
 		when(loader.loadCopyData(ArchitectureMode.ARCHUNIT, true)).thenReturn(rows);
 		when(loader.loadCopyData(ArchitectureMode.ARCHUNIT, false)).thenReturn(rows);
 		ArchitectureMode.setFileLoader(loader);
-		List<java.nio.file.Path> expectedFiles = List.of(FileTools.resolveFileOnSourceDirectory("templates", "a.txt"),
+		List<Path> expectedFiles = List.of(FileTools.resolveFileOnSourceDirectory("templates", "a.txt"),
 				FileTools.resolveFileOnSourceDirectory("templates", "c.txt"));
 
 		assertThat(ArchitectureMode.ARCHUNIT.fsFilesToCopy()).isEqualTo(expectedFiles);
