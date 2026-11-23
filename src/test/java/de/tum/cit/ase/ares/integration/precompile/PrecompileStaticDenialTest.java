@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Map;
 
 import org.junit.jupiter.api.condition.EnabledForJreRange;
@@ -144,13 +143,14 @@ class PrecompileStaticDenialTest {
 	}
 
 	/**
-	 * Returns the line the launcher printed for a generated test method.
+	 * Returns the line the launcher printed for a generated test method, without
+	 * its line break, which is two characters on Windows.
 	 *
 	 * @param output the output of the run
 	 * @param method the generated test method
 	 * @return the line, or an empty string if there is none
 	 */
 	private static String lineOf(String output, String method) {
-		return Arrays.stream(output.split("\n")).filter(line -> line.startsWith(method + " ")).findFirst().orElse("");
+		return output.lines().filter(line -> line.startsWith(method + " ")).findFirst().orElse("");
 	}
 }
