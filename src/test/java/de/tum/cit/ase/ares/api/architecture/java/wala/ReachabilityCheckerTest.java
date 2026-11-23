@@ -127,6 +127,7 @@ public class ReachabilityCheckerTest {
 		when(resolved.getReference()).thenReturn(applicationMethod);
 		ClassHierarchy hierarchy = mock(ClassHierarchy.class);
 		when(hierarchy.resolveMethod(applicationMethod)).thenReturn(resolved);
+		when(hierarchy.resolveMethod(jdkMethod)).thenReturn(mock(IMethod.class));
 		when(hierarchy.spliterator()).thenReturn(List.of(applicationClass, jdkClass).spliterator());
 		List<DefaultEntrypoint> entryPoints = ReachabilityChecker.getEntryPointsFromStudentSubmission("some/path",
 				hierarchy);
