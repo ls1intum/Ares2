@@ -18,6 +18,8 @@ import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.types.TypeName;
 import com.ibm.wala.types.TypeReference;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 class WalaPathClassificationTest {
 
 	// ----------------------------------------------------------------
@@ -274,12 +276,14 @@ class WalaPathClassificationTest {
 	void refusesANodeItCannotClassify() {
 		CGNode noReference = mockNode(null, ref(ClassLoaderReference.Application, "Lanonymous/Student;"));
 		assertThatThrownBy(() -> WalaPathClassification.isInfraFrame(noReference)).isInstanceOf(SecurityException.class)
-				.hasMessageContaining("missing class-loader identity");
+				.hasMessage(Messages.localized("security.architecture.wala.unclassifiable.node",
+						"missing class-loader identity"));
 		CGNode noLoader = mockNode(ClassLoaderReference.Application,
 				ref(ClassLoaderReference.Application, "Lanonymous/Student;"));
 		when(noLoader.getMethod().getDeclaringClass().getClassLoader()).thenReturn(null);
 		assertThatThrownBy(() -> WalaPathClassification.isInfraFrame(noLoader)).isInstanceOf(SecurityException.class)
-				.hasMessageContaining("missing class-loader identity");
+				.hasMessage(Messages.localized("security.architecture.wala.unclassifiable.node",
+						"missing class-loader identity"));
 	}
 
 	/** Primitive arrays and the default package have no package name. */

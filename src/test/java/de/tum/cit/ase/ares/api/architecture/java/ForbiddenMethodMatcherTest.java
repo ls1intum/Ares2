@@ -108,6 +108,7 @@ class ForbiddenMethodMatcherTest {
 
 	/**
 	 * An entry that opens with a parenthesis is compared exactly, never by prefix.
+	 * These are parser-edge inputs, not entries a real policy file holds.
 	 */
 	@Test
 	void treatsAForbiddenEntryOpeningWithAParenthesisAsExact() {
