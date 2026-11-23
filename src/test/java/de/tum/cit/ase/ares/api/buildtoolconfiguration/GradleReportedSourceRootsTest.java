@@ -20,6 +20,8 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /**
  * How Ares reads the source-root report that {@code GradleSourceRoots.gradle}
  * hands a test run: which reports it takes, and which it refuses.
@@ -221,5 +223,35 @@ class GradleReportedSourceRootsTest {
 			assertEquals(GradleReportedSourceRoots.Outcome.MALFORMED, report.outcome(), values.toString());
 			assertThrows(SecurityException.class, () -> report.requireValid(root));
 		}
+	}
+
+	/**
+	 * A malformed report names its defect through the catalogue, so the detail is
+	 * in the language of the run like the message around it.
+	 */
+	@Test
+	void namesTheDefectOfAMalformedReportThroughTheCatalogue() {
+		Map<String, String> unknownVersion = validReport();
+		unknownVersion.put("ares.gradle.sourceRoots.version", "2");
+		Map<String, String> missingValue = validReport();
+		missingValue.remove("ares.gradle.testSet");
+		Map<String, String> relativePath = validReport();
+		relativePath.put("ares.gradle.testSourceRoots", "checks");
+		Map<String, String> brokenEscape = validReport();
+		brokenEscape.put("ares.gradle.mainSourceRoots", "%zz");
+		String notUtf8 = encode(root.toString()) + "%2F%C3";
+		Map<String, String> brokenUtf8 = validReport();
+		brokenUtf8.put("ares.gradle.testOutputRoot", notUtf8);
+
+		assertEquals(Messages.localized("security.gradle.sourceroots.detail.version", "2"),
+				GradleReportedSourceRoots.parse(unknownVersion, root).detail());
+		assertEquals(Messages.localized("security.gradle.sourceroots.detail.missing", "ares.gradle.testSet"),
+				GradleReportedSourceRoots.parse(missingValue, root).detail());
+		assertEquals(Messages.localized("security.gradle.sourceroots.detail.relative", "checks"),
+				GradleReportedSourceRoots.parse(relativePath, root).detail());
+		assertEquals(Messages.localized("security.gradle.sourceroots.detail.encoding", "%zz"),
+				GradleReportedSourceRoots.parse(brokenEscape, root).detail());
+		assertEquals(Messages.localized("security.gradle.sourceroots.detail.charset", notUtf8),
+				GradleReportedSourceRoots.parse(brokenUtf8, root).detail());
 	}
 }

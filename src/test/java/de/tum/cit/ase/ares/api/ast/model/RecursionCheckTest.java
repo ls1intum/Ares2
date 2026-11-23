@@ -67,7 +67,7 @@ class RecursionCheckTest {
 		constructor.setAccessible(true);
 
 		assertThatThrownBy(constructor::newInstance).isInstanceOf(InvocationTargetException.class).cause()
-				.isInstanceOf(IllegalStateException.class).hasMessage(localized("ast.hide.implicit.constructor"));
+				.isInstanceOf(SecurityException.class).hasMessage(localized("ast.hide.implicit.constructor"));
 	}
 
 	/**
@@ -144,7 +144,8 @@ class RecursionCheckTest {
 	}
 
 	/**
-	 * A file that cannot be read stops the check with an error message.
+	 * A file that cannot be read stops the check with a refusal that names the
+	 * source folder and keeps the cause.
 	 */
 	@Test
 	void reportsASourceFolderThatCannotBeRead() throws IOException {
@@ -157,8 +158,9 @@ class RecursionCheckTest {
 			Assumptions.assumeFalse(Files.isReadable(file));
 
 			assertThatThrownBy(() -> RecursionCheck.parseFromSourceRoot(directory, LEVEL))
-					.isInstanceOf(AssertionError.class).message().startsWith("The file ")
-					.endsWith(" could not be read:");
+					.isInstanceOf(SecurityException.class)
+					.hasMessage(localized("security.ast.source.root.unreadable", directory)).cause()
+					.isInstanceOf(IOException.class);
 		} finally {
 			Files.setPosixFilePermissions(file, before);
 		}
@@ -218,6 +220,6 @@ class RecursionCheckTest {
 		graph.getGraph().addVertex("p.A.a()");
 
 		assertThatThrownBy(() -> RecursionCheck.formatVertexInfoWithinCycle("p.A.a()", graph, directory))
-				.isInstanceOf(IllegalStateException.class).hasMessage(localized("ast.node.position.not.determined"));
+				.isInstanceOf(SecurityException.class).hasMessage(localized("ast.node.position.not.determined"));
 	}
 }

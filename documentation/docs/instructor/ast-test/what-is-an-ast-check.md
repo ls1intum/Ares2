@@ -79,8 +79,9 @@ UnwantedNodesAssert.assertThatProjectSources()
 | Gradle, only `build.gradle.kts` | Call `AresConfiguration.setBuildGradlePath("build.gradle.kts")` first. Without that call, the check tries `build.gradle` and fails. |
 | Both `pom.xml` and a Gradle file | Maven wins. |
 
-When the check finds no folder, it fails with "Could not find project sources folder." For that
-case, and for any layout the table does not cover, name the folder yourself:
+When the check finds no folder, it stops with an Ares error that says "Could not find project
+sources folder." For that case, and for any layout the table does not cover, name the folder
+yourself:
 
 ```java
 import java.nio.file.Path;

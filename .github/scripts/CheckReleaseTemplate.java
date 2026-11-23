@@ -174,8 +174,8 @@ public class CheckReleaseTemplate {
         int lines = nonBlankLineCount(prose);
         if (lines > OPENING_MAX_LINES) {
             return List.of("The opening summary paragraph is " + lines + " lines long and the limit "
-                    + "is " + OPENING_MAX_LINES + ". Keep it to what a reader of a reproducibility "
-                    + "artefact needs first, and leave the detail to the sections below.");
+                    + "is " + OPENING_MAX_LINES + ". Keep it to what a reader of the release "
+                    + "needs first, and leave the detail to the sections below.");
         }
         return List.of();
     }

@@ -6,6 +6,8 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /**
  * Enum representing the Java build tools supported by Ares.
  * <p>
@@ -124,11 +126,15 @@ public enum BuildMode {
 	 * starts at a root or a drive, on every host, since resolving it would replace
 	 * the output root. The text checks run first, so such a path is refused before
 	 * the host gets to parse it.
+	 *
+	 * @param original the scope or package path as configured
+	 * @return the path relative to the build output
+	 * @throws SecurityException if the path starts at a root or a drive
 	 */
 	private static Path relativeScope(String original) {
 		String scope = original.replace('\\', '/');
 		if (scope.startsWith("/") || DRIVE_PREFIX.matcher(scope).lookingAt() || Path.of(scope).getRoot() != null) {
-			throw new SecurityException("Bytecode scope must be relative to the build output: " + original);
+			throw new SecurityException(Messages.localized("security.build.mode.bytecode.scope.absolute", original));
 		}
 		return Path.of(scope);
 	}
