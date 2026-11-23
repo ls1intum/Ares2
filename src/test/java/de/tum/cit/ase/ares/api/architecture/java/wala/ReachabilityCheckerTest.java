@@ -10,9 +10,16 @@ import java.util.function.Predicate;
 
 import org.junit.jupiter.api.Test;
 
+import com.ibm.wala.classLoader.IClass;
+import com.ibm.wala.classLoader.IClassLoader;
+import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
 import com.ibm.wala.ipa.cha.ClassHierarchy;
+import com.ibm.wala.types.ClassLoaderReference;
+import com.ibm.wala.types.MethodReference;
+import com.ibm.wala.types.TypeReference;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
 
@@ -103,5 +110,45 @@ public class ReachabilityCheckerTest {
 				() -> ReachabilityChecker.getEntryPointsFromStudentSubmission("  ", dummyHierarchy));
 		assertEquals(Messages.localized("security.common.not.null", "classPath", "getEntryPointsFromStudentSubmission"),
 				ex.getMessage());
+	}
+
+	/**
+	 * Only classes loaded by the application loader give entry points. A class from
+	 * the primordial loader is left out.
+	 */
+	@Test
+	void takesEntryPointsOnlyFromApplicationClasses() {
+		MethodReference applicationMethod = MethodReference.findOrCreate(
+				TypeReference.findOrCreate(ClassLoaderReference.Application, "Lanonymous/Student"), "run", "()V");
+		MethodReference jdkMethod = MethodReference.findOrCreate(TypeReference.JavaLangObject, "hashCode", "()I");
+		IClass applicationClass = classWith(ClassLoaderReference.Application, applicationMethod);
+		IClass jdkClass = classWith(ClassLoaderReference.Primordial, jdkMethod);
+		IMethod resolved = mock(IMethod.class);
+		when(resolved.getReference()).thenReturn(applicationMethod);
+		ClassHierarchy hierarchy = mock(ClassHierarchy.class);
+		when(hierarchy.resolveMethod(applicationMethod)).thenReturn(resolved);
+		when(hierarchy.spliterator()).thenReturn(List.of(applicationClass, jdkClass).spliterator());
+		List<DefaultEntrypoint> entryPoints = ReachabilityChecker.getEntryPointsFromStudentSubmission("some/path",
+				hierarchy);
+		assertEquals(1, entryPoints.size());
+		assertEquals(applicationMethod, entryPoints.get(0).getMethod().getReference());
+	}
+
+	/**
+	 * Builds a mock class from one loader with one declared method.
+	 *
+	 * @param loaderReference the loader that owns the class
+	 * @param method          the reference of its only method
+	 * @return the mock class
+	 */
+	private static IClass classWith(ClassLoaderReference loaderReference, MethodReference method) {
+		IClass cls = mock(IClass.class);
+		IClassLoader loader = mock(IClassLoader.class);
+		IMethod declared = mock(IMethod.class);
+		when(cls.getClassLoader()).thenReturn(loader);
+		when(loader.getReference()).thenReturn(loaderReference);
+		when(declared.getReference()).thenReturn(method);
+		doReturn(List.of(declared)).when(cls).getDeclaredMethods();
+		return cls;
 	}
 }
