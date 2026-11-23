@@ -1,6 +1,10 @@
 package de.tum.cit.ase.ares.api.architecture.java;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,7 +33,6 @@ class JavaArchitectureTestCaseExecutionTest {
 
 		/** Does nothing. */
 		void idle() {
-			// intentionally empty
 		}
 	}
 
@@ -59,11 +62,11 @@ class JavaArchitectureTestCaseExecutionTest {
 	 * Builds a file-system test case over the given classes for the given engine.
 	 */
 	private static JavaArchitectureTestCase fileSystemCase(JavaClasses classes, Set<PackagePermission> allowed,
-			CallGraph graph, boolean lazy) {
+			CallGraph graph, boolean useSupplier) {
 		JavaArchitectureTestCase.Builder builder = JavaArchitectureTestCase.builder()
 				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION)
 				.allowedPackages(allowed).javaClasses(classes);
-		if (lazy) {
+		if (useSupplier) {
 			builder.callGraphSupplier(() -> graph);
 		} else {
 			builder.callGraph(graph);
