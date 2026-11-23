@@ -259,7 +259,8 @@ class WalaPathClassificationTest {
 	}
 
 	/**
-	 * A JDK frame between the student and the sink makes the path a false positive.
+	 * A JDK frame between the student and the sink makes the path a false positive,
+	 * and a frame of the exercise in between does not.
 	 */
 	@Test
 	void checksEveryFrameStrictlyBetweenStudentAndSink() {
@@ -268,6 +269,8 @@ class WalaPathClassificationTest {
 		CGNode sink = applicationNode("Lorg/example/Sink;");
 		assertThat(WalaPathClassification.isTransitiveFalsePositiveFrame(sink)).isFalse();
 		assertThat(WalaPathClassification.isFalsePositiveTransitivePath(List.of(student, jdk, sink), 0)).isTrue();
+		CGNode exercise = applicationNode("Lorg/example/Other;");
+		assertThat(WalaPathClassification.isFalsePositiveTransitivePath(List.of(student, exercise, sink), 0)).isFalse();
 	}
 
 	/**
@@ -289,6 +292,8 @@ class WalaPathClassificationTest {
 		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(noLoader)).isFalse();
 		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(noReference)).isFalse();
 		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(applicationNode("Lnet/bytebuddy/Helper;")))
+				.isFalse();
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(applicationNode("Lorg/example/Student;")))
 				.isFalse();
 	}
 
