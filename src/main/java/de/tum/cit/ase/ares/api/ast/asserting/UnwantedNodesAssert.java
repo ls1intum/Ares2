@@ -52,19 +52,16 @@ public final class UnwantedNodesAssert extends AbstractAssert<UnwantedNodesAsser
 	/**
 	 * Creates an unwanted node assertion object for all project source files.
 	 * <p>
-	 * The project source directory gets extracted from the build configuration, and
-	 * a <code>pom.xml</code> or <code>build.gradle</code> in the execution path is
-	 * the default build configuration location. The configuration here is the same
-	 * as the one in the structural tests and uses {@link AresConfiguration}.
+	 * The source folder comes from the build file, by default a
+	 * <code>pom.xml</code> or <code>build.gradle</code> in the execution folder, as
+	 * set in {@link AresConfiguration}.
 	 *
 	 * @return An unwanted node assertion object (for chaining)
+	 * @throws SecurityException if no project source folder can be found
 	 */
 	public static UnwantedNodesAssert assertThatProjectSources() {
 		Path path = ProjectSourcesFinder.findProjectSourcesPath()
-				.orElseThrow(() -> new AssertionError("Could not find project sources folder." //$NON-NLS-1$
-						+ " Make sure the build file is configured correctly." //$NON-NLS-1$
-						+ " If it is not located in the execution folder directly," //$NON-NLS-1$
-						+ " set the location using AresConfiguration methods.")); //$NON-NLS-1$
+				.orElseThrow(() -> new SecurityException(localized("security.ast.project.sources.not.found")));
 		return new UnwantedNodesAssert(path, null, false);
 	}
 
