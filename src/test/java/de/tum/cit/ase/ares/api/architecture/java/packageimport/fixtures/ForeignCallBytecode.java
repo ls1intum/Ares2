@@ -13,10 +13,10 @@ import net.bytebuddy.jar.asm.Opcodes;
 import net.bytebuddy.jar.asm.Type;
 
 /**
- * Writes a class whose only method calls one interface method of
- * {@code java.lang.foreign}. The foreign API cannot be compiled against Java
- * 17, so the call is written as bytecode; the static rules read bytecode, so
- * they see it as they would see compiled student code.
+ * Writes classes whose only method calls into {@code java.lang.foreign}. The
+ * foreign API cannot be compiled against Java 17, so the call is written as
+ * bytecode; the static rules read bytecode, so they see it as they would see
+ * compiled student code.
  */
 public final class ForeignCallBytecode {
 
@@ -44,6 +44,37 @@ public final class ForeignCallBytecode {
 		Path classFile = Files.createDirectories(folder.resolve("com").resolve("example")).resolve("ForeignUser.class");
 		Files.write(classFile, bytecode(owner, method, descriptor));
 		return new ClassFileImporter().importPath(folder);
+	}
+
+	/**
+	 * Writes a class whose static method {@code run} makes a memory segment for an
+	 * address and widens it, as a chained call, into a class folder.
+	 *
+	 * @param classesRoot the root of the class folder
+	 * @param className   the fully qualified name of the class to write
+	 * @return the written class file
+	 * @throws IOException if the class file cannot be written
+	 */
+	public static Path writeChainedReinterpret(Path classesRoot, String className) throws IOException {
+		String internalName = className.replace('.', '/');
+		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+		writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC, internalName, null, "java/lang/Object", null);
+		MethodVisitor visitor = writer.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "run", "()V", null, null);
+		visitor.visitCode();
+		visitor.visitInsn(Opcodes.LCONST_1);
+		visitor.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/foreign/MemorySegment", "ofAddress",
+				"(J)Ljava/lang/foreign/MemorySegment;", true);
+		visitor.visitLdcInsn(8L);
+		visitor.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/lang/foreign/MemorySegment", "reinterpret",
+				"(J)Ljava/lang/foreign/MemorySegment;", true);
+		visitor.visitInsn(Opcodes.POP);
+		visitor.visitInsn(Opcodes.RETURN);
+		visitor.visitMaxs(0, 0);
+		visitor.visitEnd();
+		writer.visitEnd();
+		Path classFile = classesRoot.resolve(internalName + ".class");
+		Files.createDirectories(classFile.getParent());
+		return Files.write(classFile, writer.toByteArray());
 	}
 
 	/**

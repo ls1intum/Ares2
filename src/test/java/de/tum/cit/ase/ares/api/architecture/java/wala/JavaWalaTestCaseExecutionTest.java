@@ -745,4 +745,28 @@ class JavaWalaTestCaseExecutionTest {
 				written);
 		assertEquals(Messages.localized("security.architecture.scope.missing"), refused.getMessage());
 	}
+
+	/**
+	 * A generated test checks what Postcompile checks: a delegated category runs
+	 * the ArchUnit rule over the classes, and a call-graph category checks the
+	 * direct calls before the graph, so a call the graph leaves out is still seen.
+	 *
+	 * @param supported the category
+	 */
+	@ParameterizedTest
+	@EnumSource(value = JavaArchitectureTestCaseSupported.class, names = "PACKAGE_IMPORT", mode = EnumSource.Mode.EXCLUDE)
+	void writesTheChecksPostcompileRuns(JavaArchitectureTestCaseSupported supported) {
+		String written = testCase(supported, new ClassFileImporter().importClasses(CleanFixture.class),
+				countingSupplier(new AtomicInteger())).writeArchitectureTestCase("WALA", "");
+
+		if (DELEGATED.contains(supported)) {
+			assertTrue(written.contains("JavaArchunitTestCaseCollection.") && written.contains(".check(javaClasses);")
+					&& !written.contains("callGraph"), written);
+		} else {
+			assertTrue(
+					written.indexOf(".checkDirectAccesses(javaClasses, Set.of(), callGraph.getClassHierarchy());") >= 0
+							&& written.indexOf(".checkDirectAccesses(") < written.indexOf(".check(callGraph);"),
+					written);
+		}
+	}
 }
