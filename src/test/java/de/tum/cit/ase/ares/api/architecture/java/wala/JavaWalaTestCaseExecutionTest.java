@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.FileSystems;
@@ -27,9 +26,6 @@ import java.util.UUID;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.jar.JarOutputStream;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -54,8 +50,8 @@ import de.tum.cit.ase.ares.testutilities.JavacFixtures;
  * Runs the WALA architecture test case against small fixtures and checks which
  * rule it runs, when it builds the call graph, how it caches a verdict, how it
  * reports a failure, and what it writes into a generated test. Every run of a
- * cached category carries a package permission no other run used, so no verdict
- * saved on disk by an earlier test run applies.
+ * cached category carries a package permission no other test used, so no
+ * verdict saved on disk by an earlier test run applies.
  */
 class JavaWalaTestCaseExecutionTest {
 
@@ -498,8 +494,9 @@ class JavaWalaTestCaseExecutionTest {
 	}
 
 	/**
-	 * A violation without a message is cached and thrown with an empty message
-	 * rather than read as a pass.
+	 * A violation without a message is thrown with an empty message rather than
+	 * read as a pass, on the first run and again when the second run is served from
+	 * the cache.
 	 */
 	@Test
 	void keepsAnEmptyViolationMessage() {
@@ -508,10 +505,13 @@ class JavaWalaTestCaseExecutionTest {
 					throw new SecurityException((String) null);
 				}, uniquePermission());
 
-		SecurityException thrown = assertThrows(SecurityException.class,
+		SecurityException first = assertThrows(SecurityException.class,
+				() -> testCase.executeArchitectureTestCase("WALA", ""));
+		SecurityException second = assertThrows(SecurityException.class,
 				() -> testCase.executeArchitectureTestCase("WALA", ""));
 
-		assertEquals("", thrown.getMessage());
+		assertEquals("", first.getMessage());
+		assertEquals("", second.getMessage());
 	}
 
 	/**
@@ -612,45 +612,26 @@ class JavaWalaTestCaseExecutionTest {
 	}
 
 	/**
-	 * Compiles one class {@code p.A} whose method returns the given expression and
-	 * writes it into a jar of its own.
+	 * Compiles one class {@code p.A} whose method returns the given expression into
+	 * a folder of its own.
 	 *
-	 * @param name       the name of the jar and of its folders
+	 * @param name       the name of the folders
 	 * @param expression the expression the method returns
-	 * @return the jar
+	 * @return the folder that holds {@code p/A.class}
 	 * @throws IOException if a file cannot be written
 	 */
-	private Path jarWithClassA(String name, String expression) throws IOException {
+	private Path classFolderWithClassA(String name, String expression) throws IOException {
 		Path sources = Files.createDirectories(temporaryDirectory.resolve(name + "-src").resolve("p"));
 		Path source = Files.writeString(sources.resolve("A.java"),
 				"package p;\npublic class A {\n\tpublic Object m() {\n\t\treturn " + expression + ";\n\t}\n}\n");
-		Path classes = JavacFixtures.compileSources(JavacFixtures.testClasses().toString(),
+		return JavacFixtures.compileSources(JavacFixtures.testClasses().toString(),
 				Files.createDirectory(temporaryDirectory.resolve(name + "-classes")), List.of(source));
-		Path jar = temporaryDirectory.resolve(name + ".jar");
-		try (OutputStream out = Files.newOutputStream(jar); JarOutputStream jarStream = new JarOutputStream(out)) {
-			jarStream.putNextEntry(new JarEntry("p/A.class"));
-			jarStream.write(Files.readAllBytes(classes.resolve("p").resolve("A.class")));
-			jarStream.closeEntry();
-		}
-		return jar;
 	}
 
 	/**
-	 * Imports the classes of a jar and closes the jar again.
-	 *
-	 * @param jar the jar
-	 * @return the imported classes
-	 * @throws IOException if the jar cannot be opened
-	 */
-	private static JavaClasses importJar(Path jar) throws IOException {
-		try (JarFile jarFile = new JarFile(jar.toFile())) {
-			return new ClassFileImporter().importJar(jarFile);
-		}
-	}
-
-	/**
-	 * Two classes from jars, which give no bytecode hash, with the same name but
-	 * different calls have different keys.
+	 * Two classes with the same name but different calls have different keys. Their
+	 * class files are deleted after the import and before the keys are read, so
+	 * each key holds an empty bytecode hash and the keys differ only by the calls.
 	 *
 	 * @throws ReflectiveOperationException if a private member is missing
 	 * @throws IOException                  if a file cannot be written
@@ -659,8 +640,12 @@ class JavaWalaTestCaseExecutionTest {
 	void separatesClassesThatOnlyDifferInTheirAccesses() throws ReflectiveOperationException, IOException {
 		PackagePermission unique = uniquePermission();
 		Supplier<CallGraph> supplier = countingSupplier(new AtomicInteger());
-		JavaClasses listing = importJar(jarWithClassA("list", "java.util.List.of()"));
-		JavaClasses setting = importJar(jarWithClassA("set", "java.util.Set.of()"));
+		Path listingFolder = classFolderWithClassA("list", "java.util.List.of()");
+		Path settingFolder = classFolderWithClassA("set", "java.util.Set.of()");
+		JavaClasses listing = new ClassFileImporter().importPath(listingFolder);
+		JavaClasses setting = new ClassFileImporter().importPath(settingFolder);
+		Files.delete(listingFolder.resolve("p").resolve("A.class"));
+		Files.delete(settingFolder.resolve("p").resolve("A.class"));
 
 		assertTrue(listing.contain("p.A"));
 		assertTrue(setting.contain("p.A"));
