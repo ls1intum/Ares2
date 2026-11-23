@@ -71,10 +71,26 @@ public final class SecurityPolicySchemaValidator {
 	private static final Set<String> TIMEOUT_FIELDS = Set.of("timeout");
 	/** The fields allowed under theFollowingTestBehaviorIsConfigured; none yet. */
 	private static final Set<String> TEST_BEHAVIOR_FIELDS = Set.of();
+	/** The required fields that hold a list, so a null there gets the [] hint. */
+	private static final Set<String> LIST_FIELDS = Set.of("theFollowingClassesAreTestClasses",
+			"regardingFileSystemInteractions", "regardingNetworkConnections", "regardingCommandExecutions",
+			"regardingThreadCreations", "regardingPackageImports", "regardingTimeouts", "withTheseArguments");
 	/** The path prefix of a field written directly inside a wrapper object. */
 	private static final String TOP = "";
-	/** The longest rejected value quoted in full; a longer one is cut short. */
+	/**
+	 * The longest rejected value, in code points as written in JSON, quoted in
+	 * full; a longer one is cut short.
+	 */
 	private static final int QUOTED_VALUE_LIMIT = 100;
+	/** How many code points of a cut value are kept from its beginning. */
+	private static final int QUOTED_HEAD = 40;
+	/**
+	 * How many code points of a cut value are kept from its end, so head, dots and
+	 * tail together stay within the limit.
+	 */
+	private static final int QUOTED_TAIL = QUOTED_VALUE_LIMIT - QUOTED_HEAD - 3;
+	/** The highest port; 0, the lowest, means every port. */
+	private static final long MAXIMUM_PORT = 65_535L;
 
 	/** Prevents instances of this utility. */
 	private SecurityPolicySchemaValidator() {
@@ -111,7 +127,8 @@ public final class SecurityPolicySchemaValidator {
 		validateObjectArray(resources.get("regardingTimeouts"), "regardingTimeouts", TIMEOUT_FIELDS, TIMEOUT_FIELDS);
 		int index = 0;
 		for (JsonNode permission : resources.get("regardingTimeouts")) {
-			requireIntegral(permission, "timeout", entry("regardingTimeouts", index++));
+			requireWholeNumberWithin(permission, "timeout", entry("regardingTimeouts", index++), 1L, Long.MAX_VALUE,
+					"policy.schema.timeout");
 		}
 		JsonNode testBehavior = supervisedCode.get("theFollowingTestBehaviorIsConfigured");
 		if (testBehavior != null) {
@@ -238,7 +255,7 @@ public final class SecurityPolicySchemaValidator {
 			String path = entry(list, index++);
 			requireText(permission, "onTheHost", path);
 			requirePattern(permission, "onTheHost", path, PolicyValueValidator.HOST_PATTERN, "policy.schema.host");
-			requireIntegral(permission, "onThePort", path);
+			requireWholeNumberWithin(permission, "onThePort", path, 0L, MAXIMUM_PORT, "policy.schema.port");
 			requireBooleans(permission, NETWORK_FIELDS, Set.of("onTheHost", "onThePort"), path);
 		}
 	}
@@ -257,7 +274,8 @@ public final class SecurityPolicySchemaValidator {
 		int index = 0;
 		for (JsonNode permission : permissions) {
 			String path = entry(list, index++);
-			requireIntegral(permission, "createTheFollowingNumberOfThreads", path);
+			requireWholeNumberWithin(permission, "createTheFollowingNumberOfThreads", path, 0L, Integer.MAX_VALUE,
+					"policy.schema.thread.count");
 			requireText(permission, "ofThisClass", path);
 			JsonNode threadClass = permission.get("ofThisClass");
 			if (!nameRules.matchesThreadConstruct(threadClass.textValue())) {
@@ -397,7 +415,8 @@ public final class SecurityPolicySchemaValidator {
 		}
 		for (String requiredField : new TreeSet<>(requiredFields)) {
 			if (node.get(requiredField).isNull()) {
-				fail("policy.schema.null", child(prefix, requiredField));
+				fail(LIST_FIELDS.contains(requiredField) ? "policy.schema.null.list" : "policy.schema.null",
+						child(prefix, requiredField));
 			}
 		}
 	}
@@ -468,6 +487,30 @@ public final class SecurityPolicySchemaValidator {
 	}
 
 	/**
+	 * Requires a field to be a whole number within a range.
+	 * <p>
+	 * The whole-number check runs first, so a decimal such as 1.0 is refused as
+	 * one. The range is checked on the exact value, so a huge number is never cut
+	 * down to a small one that would pass.
+	 *
+	 * @param parent  the object holding the field.
+	 * @param field   the field name.
+	 * @param path    the short path of the object.
+	 * @param minimum the lowest allowed value.
+	 * @param maximum the highest allowed value.
+	 * @param key     the message that names the range.
+	 * @throws MismatchedInputException if it is not such a number.
+	 */
+	private static void requireWholeNumberWithin(JsonNode parent, String field, String path, long minimum, long maximum,
+			String key) throws MismatchedInputException {
+		requireIntegral(parent, field, path);
+		JsonNode node = parent.get(field);
+		if (!node.canConvertToLong() || node.longValue() < minimum || node.longValue() > maximum) {
+			fail(key, child(path, field), quote(node));
+		}
+	}
+
+	/**
 	 * Requires every listed field but the excluded ones to be true or false.
 	 *
 	 * @param parent   the object holding the fields.
@@ -527,14 +570,20 @@ public final class SecurityPolicySchemaValidator {
 
 	/**
 	 * Writes a rejected value as it reads in JSON, a text in double quotes; a
-	 * missing value as null. A very long value is cut short.
+	 * missing value as null. A very long value keeps its beginning and its end
+	 * around three dots, cut between whole characters.
 	 *
 	 * @param node the value; may be null.
 	 * @return the value for the message.
 	 */
 	private static String quote(@Nullable JsonNode node) {
 		String written = node == null ? "null" : node.toString();
-		return written.length() <= QUOTED_VALUE_LIMIT ? written : written.substring(0, QUOTED_VALUE_LIMIT) + "...";
+		if (written.codePointCount(0, written.length()) <= QUOTED_VALUE_LIMIT) {
+			return written;
+		}
+		int headEnd = written.offsetByCodePoints(0, QUOTED_HEAD);
+		int tailStart = written.offsetByCodePoints(written.length(), -QUOTED_TAIL);
+		return written.substring(0, headEnd) + "..." + written.substring(tailStart);
 	}
 
 	/**
