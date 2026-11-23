@@ -85,7 +85,7 @@ class ExceptionFailureTest {
 	@TestTest
 	void test_faultyGetCauseException() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(faultyGetCauseException, SecurityException.class, //
-				"java.lang.AssertionError" + //
+				"Ares Security Error (Reason: Ares-Code; Stage: Execution): java.lang.AssertionError" + //
 						" thrown, but cannot be displayed: " + //
 						"class de.tum.cit.ase.ares.integration.testuser.ExceptionFailureUser$FaultyGetCauseException" + //
 						" threw an exception when retrieving information about it. (java.lang.NullPointerException: Faulty)",
@@ -95,7 +95,8 @@ class ExceptionFailureTest {
 	@TestTest
 	void test_faultyToStringException() {
 		tests.assertThatEvents().haveExactly(1, testFailedWith(faultyToStringException, SecurityException.class, //
-				"de.tum.cit.ase.ares.integration.testuser.ExceptionFailureUser$FaultyToStringException" + //
+				"Ares Security Error (Reason: Ares-Code; Stage: Execution): "
+						+ "de.tum.cit.ase.ares.integration.testuser.ExceptionFailureUser$FaultyToStringException" + //
 						" thrown, but cannot be displayed:" + //
 						" class de.tum.cit.ase.ares.integration.testuser.ExceptionFailureUser$FaultyToStringException"
 						+ " threw an exception when retrieving information about it. (java.lang.IllegalStateException: Faulty)",

@@ -898,12 +898,13 @@ public final class ProjectSourcesFinder {
 	 * @param root      the project root
 	 * @param candidate the path the descriptor named
 	 * @return the candidate in canonical form
+	 * @throws SecurityException if the candidate lies outside the project
 	 */
 	private static Path canonicaliseSourceRoot(Path root, Path candidate) {
 		Path canonical = BuildToolConfiguration
 				.canonicalise(candidate.isAbsolute() ? candidate : root.resolve(candidate));
 		if (!canonical.startsWith(root)) {
-			throw new SecurityException("Configured source root escapes project root: " + candidate);
+			throw new SecurityException(Messages.localized("security.sources.root.outside.project", candidate));
 		}
 		return canonical;
 	}

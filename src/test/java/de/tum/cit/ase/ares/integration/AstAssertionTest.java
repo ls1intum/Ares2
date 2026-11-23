@@ -612,21 +612,22 @@ public class AstAssertionTest {
 		@TestTest
 		void test_testBuildGradleFileDoesNotExist() {
 			String testBuildGradleFileDoesNotExist = "testBuildGradleFileDoesNotExist";
-			tests.assertThatEvents().haveExactly(1,
-					testFailedWith(testBuildGradleFileDoesNotExist, AssertionError.class,
-							"Could not find project sources folder. Make sure the build file is configured correctly."
-									+ " If it is not located in the execution folder directly,"
-									+ " set the location using AresConfiguration methods."));
+			tests.assertThatEvents().haveExactly(1, testFailedWith(testBuildGradleFileDoesNotExist,
+					SecurityException.class,
+					"Ares Security Error (Reason: Ares-Code; Stage: Execution): Could not find project sources folder."
+							+ " Make sure the build file is configured correctly."
+							+ " If it is not located in the execution folder directly,"
+							+ " set the location using AresConfiguration methods."));
 		}
 
 		@TestTest
 		void test_testBuildGradleFileIsNull() {
 			String testBuildGradleFileIsNull = "testBuildGradleFileIsNull";
-			tests.assertThatEvents().haveExactly(1,
-					testFailedWith(testBuildGradleFileIsNull, AssertionError.class,
-							"Could not find project sources folder. Make sure the build file is configured correctly."
-									+ " If it is not located in the execution folder directly,"
-									+ " set the location using AresConfiguration methods."));
+			tests.assertThatEvents().haveExactly(1, testFailedWith(testBuildGradleFileIsNull, SecurityException.class,
+					"Ares Security Error (Reason: Ares-Code; Stage: Execution): Could not find project sources folder."
+							+ " Make sure the build file is configured correctly."
+							+ " If it is not located in the execution folder directly,"
+							+ " set the location using AresConfiguration methods."));
 		}
 
 		@TestTest

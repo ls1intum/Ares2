@@ -137,7 +137,8 @@ public final class GradleReportedSourceRoots {
 			return failed(Outcome.ABSENT, "");
 		}
 		if (!VERSION.equals(values.get(PREFIX + "sourceRoots.version"))) {
-			return failed(Outcome.MALFORMED, "report version " + values.get(PREFIX + "sourceRoots.version"));
+			return failed(Outcome.MALFORMED, Messages.localized("security.gradle.sourceroots.detail.version",
+					values.get(PREFIX + "sourceRoots.version")));
 		}
 		try {
 			Path reported = absolute(required(values, "projectDir"));
@@ -171,7 +172,8 @@ public final class GradleReportedSourceRoots {
 	private static String required(@Nonnull Map<String, String> values, @Nonnull String key) {
 		String raw = values.get(PREFIX + key);
 		if (raw == null) {
-			throw new IllegalArgumentException("missing " + PREFIX + key);
+			throw new IllegalArgumentException(
+					Messages.localized("security.gradle.sourceroots.detail.missing", PREFIX + key));
 		}
 		return decode(raw);
 	}
@@ -185,7 +187,8 @@ public final class GradleReportedSourceRoots {
 	private static List<Path> list(@Nonnull Map<String, String> values, @Nonnull String key) {
 		String raw = values.get(PREFIX + key);
 		if (raw == null) {
-			throw new IllegalArgumentException("missing " + PREFIX + key);
+			throw new IllegalArgumentException(
+					Messages.localized("security.gradle.sourceroots.detail.missing", PREFIX + key));
 		}
 		List<Path> paths = new ArrayList<>();
 		for (String entry : raw.isEmpty() ? List.<String>of() : Arrays.asList(raw.split(",", -1))) {
@@ -214,7 +217,8 @@ public final class GradleReportedSourceRoots {
 			} else if (character < 0x80 && character != '%') {
 				bytes.write(character);
 			} else {
-				throw new IllegalArgumentException("not percent-encoded: " + raw);
+				throw new IllegalArgumentException(
+						Messages.localized("security.gradle.sourceroots.detail.encoding", raw));
 			}
 		}
 		try {
@@ -222,7 +226,8 @@ public final class GradleReportedSourceRoots {
 					.onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes.toByteArray()))
 					.toString();
 		} catch (CharacterCodingException notUtf8) {
-			throw new IllegalArgumentException("not UTF-8: " + raw, notUtf8);
+			throw new IllegalArgumentException(Messages.localized("security.gradle.sourceroots.detail.charset", raw),
+					notUtf8);
 		}
 	}
 
@@ -241,7 +246,8 @@ public final class GradleReportedSourceRoots {
 	private static Path absolute(@Nonnull String value) {
 		Path path = Path.of(value);
 		if (!path.isAbsolute()) {
-			throw new IllegalArgumentException("relative path " + value);
+			throw new IllegalArgumentException(
+					Messages.localized("security.gradle.sourceroots.detail.relative", value));
 		}
 		return path;
 	}

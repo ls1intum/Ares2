@@ -15,7 +15,7 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 /**
  * Verifies the reserved-package guard rejects exactly the trusted
  * infrastructure namespaces and leaves legitimate supervised packages
- * (including the reproducibility test subjects under
+ * (including Ares' own integration-test subjects under
  * {@code de.tum.cit.ase.ares.integration.*} and the pinned
  * {@code de.tum.cit.ase.ares}) untouched.
  */
@@ -85,9 +85,7 @@ class ReservedPackageGuardTest {
 		assertThat(ReservedPackageGuard.reservedPrefixOf("de.tum.cit.ase.ares.integration.testuser.subject")).isNull();
 		assertThat(ReservedPackageGuard.reservedPrefixOf("de.tum.cit.ase.ares")).isNull();
 		assertThat(ReservedPackageGuard.reservedPrefixOf("com.example.student")).isNull();
-		// "anonymous." alone is the analysed-student namespace; only the toolclasses
-		// sub-namespace is reserved.
-		assertThat(ReservedPackageGuard.reservedPrefixOf("anonymous.classloadingsystem")).isNull();
+		assertThat(ReservedPackageGuard.reservedPrefixOf("org.example.classloadingsystem")).isNull();
 		assertThat(ReservedPackageGuard.reservedPrefixOf(null)).isNull();
 		assertThat(ReservedPackageGuard.reservedPrefixOf("")).isNull();
 	}
@@ -169,17 +167,15 @@ class ReservedPackageGuardTest {
 		assertThat(ReservedPackageGuard.reservedPrefixOf("jdk")).isEqualTo("jdk.");
 	}
 
+	/**
+	 * Ordinary helper-package names an exercise may choose are not reserved, so no
+	 * project is refused for naming its helpers like this.
+	 */
 	@Test
-	void noLongerReservesTheReproducibilityPackagesOwnTestHelpers() {
-		// anonymous.toolclasses. and metatest. were reserved for one downstream
-		// consumer, so every Ares user refused two ordinary package names on its
-		// behalf, with a diagnostic about trusted namespaces that meant nothing in
-		// their project. They stay in WalaPathClassification.INFRA_PREFIXES, which
-		// answers a different question: which frames are the harness rather than the
-		// subject.
-		assertThat(ReservedPackageGuard.reservedPrefixOf("anonymous.toolclasses.Helper")).isNull();
-		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest.Foo")).isNull();
-		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest")).isNull();
+	void doesNotReserveOrdinaryHelperPackageNames() {
+		assertThat(ReservedPackageGuard.reservedPrefixOf("org.example.helpers.Helper")).isNull();
+		assertThat(ReservedPackageGuard.reservedPrefixOf("helpers.Foo")).isNull();
+		assertThat(ReservedPackageGuard.reservedPrefixOf("helpers")).isNull();
 	}
 
 	/**

@@ -113,7 +113,7 @@ public final class FileTools {
 			return resolveOnPath(classesDir,
 					Stream.concat(Arrays.stream(packageParts), Arrays.stream(furtherPathParts)).toArray(String[]::new));
 		} catch (ClassNotFoundException | URISyntaxException e) {
-			throw new SecurityException(e.getMessage());
+			throw new SecurityException(localized("security.file-tools.source.directory.unresolved"), e);
 		}
 	}
 
@@ -155,6 +155,14 @@ public final class FileTools {
 
 	// <editor-fold desc="Read">
 
+	/**
+	 * Opens a file for reading, also when the path points into a JAR file.
+	 *
+	 * @param path the file, or a JAR file followed by the entry inside it
+	 * @return a stream that also closes the JAR file
+	 * @throws IOException       if the file cannot be opened
+	 * @throws SecurityException if the JAR file has no such entry
+	 */
 	@Nonnull
 	private static InputStream createInputStream(@Nonnull Path path) throws IOException {
 		Matcher jarMatcher = JAR_PATH_PATTERN.matcher(path.normalize().toString());
@@ -165,9 +173,8 @@ public final class FileTools {
 		try {
 			JarEntry entry = jar.getJarEntry(jarMatcher.group(2).replace('\\', '/'));
 			if (entry == null) {
-				throw new SecurityException("Ares Security Error (Reason: Ares-Code; Stage: Creation): The jar entry "
-						+ jarMatcher.group(2).replace('\\', '/') + " was not found in " + Path.of(jarMatcher.group(1))
-						+ ".");
+				throw new SecurityException(localized("security.file-tools.jar.entry.missing",
+						jarMatcher.group(2).replace('\\', '/'), Path.of(jarMatcher.group(1))));
 			}
 			InputStream entryStream = jar.getInputStream(entry);
 			return new FilterInputStream(entryStream) {

@@ -20,8 +20,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.ibm.wala.ipa.cha.ClassHierarchy;
+import com.ibm.wala.types.ClassLoaderReference;
+import com.ibm.wala.types.TypeReference;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -214,7 +218,7 @@ public class CustomCallgraphBuilderTest {
 		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("classpathEntryFor", java.net.URL.class,
 				String.class);
 		method.setAccessible(true);
-		String siblingName = "anonymous.sibling.SiblingFileHelper";
+		String siblingName = "example.sibling.SiblingFileHelper";
 		java.net.URL siblingClass = CustomCallgraphBuilder.class
 				.getResource("/" + siblingName.replace('.', '/') + ".class");
 		@SuppressWarnings("unchecked")
@@ -463,6 +467,149 @@ public class CustomCallgraphBuilderTest {
 				() -> new WalaRule("Manipulates threads", Set.of("java.util.Collection.parallelStream()"))
 						.checkDirectAccesses(classes, Set.of(new ClassPermission(
 								"de.tum.cit.ase.ares.integration.wala.fixture.ParallelStreamUser"))));
+	}
+
+	/**
+	 * A forbidden call reached from the analysed package through a class in a
+	 * sibling package is found in a Maven and in a Gradle output layout: an
+	 * inherited implementation, a call through the supertype and a static helper.
+	 */
+	@ParameterizedTest
+	@CsvSource({ "pom.xml, target/classes, inherit", "pom.xml, target/classes, supertype",
+			"pom.xml, target/classes, tool", "settings.gradle, build/classes/java/main, inherit",
+			"settings.gradle, build/classes/java/main, supertype", "settings.gradle, build/classes/java/main, tool" })
+	void testSiblingPackageForbiddenCallIsFoundInBothLayouts(String projectFile, String outputRoot, String task)
+			throws IOException {
+		Path output = compileSiblingLayoutProject(projectFile, outputRoot);
+		String narrowPackage = output.resolve(Path.of("example", "task", task)).toString();
+
+		CustomCallgraphBuilder builder = new CustomCallgraphBuilder(narrowPackage);
+		AssertionError reported = Assertions.assertThrows(AssertionError.class,
+				() -> new WalaRule("Accesses file system", Set.of("java.nio.file.Files.readString"))
+						.check(builder.buildCallGraph(narrowPackage)));
+		Assertions.assertTrue(reported.getMessage().contains("<example.task." + task + "."), reported.getMessage());
+	}
+
+	/**
+	 * A call into a sibling package brings that package's whole output root into
+	 * the hierarchy, in a Maven and in a Gradle layout, yet the classes of that
+	 * root the analysed package never reaches do not become entry points, so their
+	 * forbidden calls are not blamed on it.
+	 */
+	@ParameterizedTest
+	@CsvSource({ "pom.xml, target/classes", "settings.gradle, build/classes/java/main" })
+	void testUnreachedClassesOfTheSameRootAreNotEntryPoints(String projectFile, String outputRoot) throws IOException {
+		Path output = compileSiblingLayoutProject(projectFile, outputRoot);
+		String narrowPackage = output.resolve(Path.of("example", "task", "harmless")).toString();
+
+		CustomCallgraphBuilder builder = new CustomCallgraphBuilder(narrowPackage);
+		com.ibm.wala.ipa.callgraph.CallGraph callGraph = builder.buildCallGraph(narrowPackage);
+
+		Assertions.assertNotNull(callGraph.getClassHierarchy()
+				.lookupClass(TypeReference.findOrCreate(ClassLoaderReference.Application, "Lexample/other/Unrelated")));
+		Assertions.assertDoesNotThrow(
+				() -> new WalaRule("Accesses file system", Set.of("java.nio.file.Files.readString")).check(callGraph));
+		Assertions.assertDoesNotThrow(
+				() -> new WalaRule("Executes commands", Set.of("java.lang.Runtime.exec")).check(callGraph));
+		Assertions.assertTrue(callGraph.getEntrypointNodes().stream().allMatch(node -> node.getMethod()
+				.getDeclaringClass().getName().toString().startsWith("Lexample/task/harmless/")));
+	}
+
+	/**
+	 * Compiles a small project into a temporary directory: helper classes in
+	 * {@code example.helpers}, one analysed package per case under
+	 * {@code example.task}, and an unrelated class in {@code example.other}. The
+	 * classes are not on the test class path, so only the given layout can resolve
+	 * them.
+	 */
+	private Path compileSiblingLayoutProject(String projectFile, String outputRoot) throws IOException {
+		Path project = Files.createDirectory(temporaryDirectory.resolve("layout-project"));
+		Files.writeString(project.resolve(projectFile), "");
+		Path output = Files.createDirectories(project.resolve(outputRoot));
+		Path sources = Files.createDirectories(project.resolve("sources"));
+		List<String> arguments = new java.util.ArrayList<>(List.of("-d", output.toString()));
+		arguments.add(writeSource(sources, "Base", """
+				package example.helpers;
+				public abstract class Base {
+				  public String readIt(java.nio.file.Path path) throws java.io.IOException {
+				    return java.nio.file.Files.readString(path);
+				  }
+				}
+				"""));
+		arguments.add(writeSource(sources, "ConcreteReader", """
+				package example.helpers;
+				public final class ConcreteReader extends Base {
+				}
+				"""));
+		arguments.add(writeSource(sources, "Tool", """
+				package example.helpers;
+				public final class Tool {
+				  public static String read(java.nio.file.Path path) throws java.io.IOException {
+				    return java.nio.file.Files.readString(path);
+				  }
+				}
+				"""));
+		arguments.add(writeSource(sources, "Inheriting", """
+				package example.task.inherit;
+				public final class Inheriting extends example.helpers.Base {
+				  public String run(java.nio.file.Path path) throws java.io.IOException {
+				    return readIt(path);
+				  }
+				}
+				"""));
+		arguments.add(writeSource(sources, "ViaSupertype", """
+				package example.task.supertype;
+				public final class ViaSupertype {
+				  public static String run(java.nio.file.Path path) throws java.io.IOException {
+				    example.helpers.Base base = new example.helpers.ConcreteReader();
+				    return base.readIt(path);
+				  }
+				}
+				"""));
+		arguments.add(writeSource(sources, "UsesTool", """
+				package example.task.tool;
+				public final class UsesTool {
+				  public static String run(java.nio.file.Path path) throws java.io.IOException {
+				    return example.helpers.Tool.read(path);
+				  }
+				}
+				"""));
+		arguments.add(writeSource(sources, "Harmless", """
+				package example.task.harmless;
+				public final class Harmless {
+				  public static String run(int value) {
+				    return example.other.Benign.label(value);
+				  }
+				}
+				"""));
+		arguments.add(writeSource(sources, "Benign", """
+				package example.other;
+				public final class Benign {
+				  public static String label(int value) {
+				    return String.valueOf(value);
+				  }
+				}
+				"""));
+		arguments.add(writeSource(sources, "Unrelated", """
+				package example.other;
+				public final class Unrelated {
+				  public static String run(java.nio.file.Path path) throws java.io.IOException {
+				    Runtime.getRuntime().exec(new String[] { "true" });
+				    return java.nio.file.Files.readString(path);
+				  }
+				}
+				"""));
+		javax.tools.JavaCompiler compiler = javax.tools.ToolProvider.getSystemJavaCompiler();
+		Assertions.assertNotNull(compiler, "The layout tests require a JDK");
+		Assertions.assertEquals(0, compiler.run(null, null, null, arguments.toArray(String[]::new)));
+		return output;
+	}
+
+	/**
+	 * Writes one Java source file named after its class and returns its path.
+	 */
+	private static String writeSource(Path directory, String className, String source) throws IOException {
+		return Files.writeString(directory.resolve(className + ".java"), source).toString();
 	}
 
 	/**

@@ -2,17 +2,22 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -21,6 +26,7 @@ import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupport
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
+import de.tum.cit.ase.ares.testutilities.JavacFixtures;
 
 public class JavaArchunitTestCaseTest {
 
@@ -297,5 +303,201 @@ public class JavaArchunitTestCaseTest {
 		InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
 				() -> await.invoke(null, task));
 		return assertInstanceOf(SecurityException.class, thrown.getCause());
+	}
+
+	/**
+	 * A class that deletes a file, which the file system rule refuses.
+	 */
+	private static final String DELETING_FIXTURE = """
+			package p;
+			public class DeletingFixture {
+				public boolean run(java.io.File f) {
+					return f.delete();
+				}
+			}
+			""";
+
+	/**
+	 * A class that calls nothing forbidden.
+	 */
+	private static final String CLEAN_FIXTURE = """
+			package p;
+			public class CleanFixture {
+				public int run() {
+					return 1;
+				}
+			}
+			""";
+
+	/**
+	 * A class whose only dependencies are {@code java.lang} and
+	 * {@code java.util.List}.
+	 */
+	private static final String LIST_FIXTURE = """
+			package p;
+			public class ListFixture {
+				public java.util.List<String> items() {
+					return null;
+				}
+			}
+			""";
+
+	/**
+	 * Compiles one source file with {@code javac} and imports the result, so each
+	 * test owns an import that no other test has cached a verdict for.
+	 *
+	 * @param directory the directory to work in
+	 * @param path      the path of the source file below the source folder
+	 * @param source    the source text
+	 * @return the imported classes
+	 * @throws IOException if the source file cannot be written
+	 */
+	private static JavaClasses compileAndImport(Path directory, String path, String source) throws IOException {
+		return new ClassFileImporter().importPath(JavacFixtures.compileSourceTexts(directory, Map.of(path, source)));
+	}
+
+	/**
+	 * Builds a test case for one category over the given classes.
+	 *
+	 * @param supported the category
+	 * @param packages  the permitted package names
+	 * @param classes   the analysed classes
+	 * @return the test case
+	 */
+	private static JavaArchunitTestCase testCase(JavaArchitectureTestCaseSupported supported, Set<String> packages,
+			JavaClasses classes) {
+		Set<PackagePermission> allowedPackages = new HashSet<>();
+		packages.forEach(name -> allowedPackages.add(new PackagePermission(name)));
+		return JavaArchunitTestCase.archunitBuilder().javaArchitectureTestCaseSupported(supported)
+				.allowedPackages(allowedPackages).javaClasses(classes).build();
+	}
+
+	/**
+	 * A method rule refuses a class that deletes a file and passes a clean one, and
+	 * a second run over the same classes gives the same verdict.
+	 *
+	 * @param directory the directory the fixtures are compiled in
+	 * @throws IOException if a fixture cannot be written
+	 */
+	@Test
+	void executesAMethodRuleAndCachesItsVerdict(@TempDir Path directory) throws IOException {
+		JavaClasses deleting = compileAndImport(directory.resolve("deleting"), "p/DeletingFixture.java",
+				DELETING_FIXTURE);
+		JavaClasses clean = compileAndImport(directory.resolve("clean"), "p/CleanFixture.java", CLEAN_FIXTURE);
+		JavaArchunitTestCase refused = testCase(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION, Set.of(),
+				deleting);
+		JavaArchunitTestCase passed = testCase(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION, Set.of(),
+				clean);
+
+		SecurityException first = assertThrows(SecurityException.class,
+				() -> refused.executeArchitectureTestCase("ARCHUNIT", "ASPECTJ"));
+		SecurityException second = assertThrows(SecurityException.class,
+				() -> refused.executeArchitectureTestCase("ARCHUNIT", "ASPECTJ"));
+
+		assertSame(first, second);
+		assertDoesNotThrow(() -> passed.executeArchitectureTestCase("ARCHUNIT", "ASPECTJ"));
+		assertDoesNotThrow(() -> passed.executeArchitectureTestCase("ARCHUNIT", "ASPECTJ"));
+	}
+
+	/**
+	 * The verdict of the package rule is kept per set of permitted names, so the
+	 * same classes are refused once the permitted name no longer covers them.
+	 *
+	 * @param directory the directory the fixture is compiled in
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void keysThePackageVerdictByThePermittedNames(@TempDir Path directory) throws IOException {
+		JavaClasses classes = compileAndImport(directory, "p/ListFixture.java", LIST_FIXTURE);
+		JavaArchunitTestCase covered = testCase(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT,
+				Set.of("java.util", "java.lang"), classes);
+		JavaArchunitTestCase uncovered = testCase(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT,
+				Set.of("java.utilx", "java.lang"), classes);
+
+		assertDoesNotThrow(() -> covered.executeArchitectureTestCase("ARCHUNIT", "ASPECTJ"));
+		assertThrows(SecurityException.class, () -> uncovered.executeArchitectureTestCase("ARCHUNIT", "ASPECTJ"));
+	}
+
+	/**
+	 * A supervised package of blanks is refused when the test file is written.
+	 */
+	@Test
+	void refusesABlankScope() {
+		JavaClasses classes = new ClassFileImporter().importClasses(Tiny.class);
+		JavaArchunitTestCase testCase = JavaArchunitTestCase.archunitBuilder()
+				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION)
+				.allowedPackages(Set.of()).javaClasses(classes).supervisedPackage("  ").build();
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> testCase.writeArchitectureTestCase("ARCHUNIT", "ASPECTJ"));
+
+		assertEquals(Messages.localized("security.architecture.scope.missing"), refusal.getMessage());
+	}
+
+	/**
+	 * An unchecked failure of the rule evaluation is rethrown as the same object.
+	 *
+	 * @throws ReflectiveOperationException if the private method cannot be found
+	 */
+	@Test
+	void anUncheckedEvaluationFailureIsRethrownAsItIs() throws ReflectiveOperationException {
+		IllegalStateException failure = new IllegalStateException("unchecked");
+		FutureTask<Optional<SecurityException>> failing = new FutureTask<>(() -> {
+			throw failure;
+		});
+		failing.run();
+
+		assertSame(failure, awaitOutcomeCause(failing));
+	}
+
+	/**
+	 * An error raised by the rule evaluation is rethrown as the same object.
+	 *
+	 * @throws ReflectiveOperationException if the private method cannot be found
+	 */
+	@Test
+	void anErrorInTheEvaluationIsRethrownAsItIs() throws ReflectiveOperationException {
+		LinkageError failure = new LinkageError("linkage");
+		FutureTask<Optional<SecurityException>> failing = new FutureTask<>(() -> {
+			throw failure;
+		});
+		failing.run();
+
+		assertSame(failure, awaitOutcomeCause(failing));
+	}
+
+	/**
+	 * A plain checked exception from the rule evaluation ends as a failed
+	 * evaluation.
+	 *
+	 * @throws ReflectiveOperationException if the private method cannot be found
+	 */
+	@Test
+	void aPlainExceptionInTheEvaluationFailsClosed() throws ReflectiveOperationException {
+		Callable<Optional<SecurityException>> failing = () -> {
+			throw new Exception("checked");
+		};
+		FutureTask<Optional<SecurityException>> task = new FutureTask<>(failing);
+		task.run();
+
+		Throwable thrown = awaitOutcomeCause(task);
+
+		assertEquals(Messages.localized("security.architecture.rule.evaluation.failed"), thrown.getMessage());
+	}
+
+	/**
+	 * Calls the private wait for a rule outcome and returns what it threw.
+	 *
+	 * @param task the rule evaluation to wait for
+	 * @return the throwable the wait threw
+	 * @throws ReflectiveOperationException if the private method cannot be found
+	 */
+	private static Throwable awaitOutcomeCause(FutureTask<Optional<SecurityException>> task)
+			throws ReflectiveOperationException {
+		Method await = JavaArchunitTestCase.class.getDeclaredMethod("awaitOutcome", FutureTask.class);
+		await.setAccessible(true);
+		InvocationTargetException thrown = assertThrows(InvocationTargetException.class,
+				() -> await.invoke(null, task));
+		return thrown.getCause();
 	}
 }

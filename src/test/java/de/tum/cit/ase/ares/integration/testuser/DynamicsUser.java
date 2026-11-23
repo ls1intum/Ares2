@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.integration.testuser;
 
+import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -62,8 +63,10 @@ public class DynamicsUser {
 
 	@Test
 	void class_isClass() {
-		assertThrows(NullPointerException.class, () -> SomeClass.isClass(null));
-		assertThrows(IllegalArgumentException.class, () -> SomeClass.isClass(new Object()));
+		assertEquals(localized("security.dynamic.argument.null", "isClass"),
+				assertThrows(SecurityException.class, () -> SomeClass.isClass(null)).getMessage());
+		assertEquals(localized("security.dynamic.argument.type.invalid", "isClass", Object.class),
+				assertThrows(SecurityException.class, () -> SomeClass.isClass(new Object())).getMessage());
 		assertThat(SomeClass.isClass(SomeClass.class)).isTrue();
 		assertThat(SomeClass.isClass(SUBJECT_PACKAGE + ".SomeClass")).isTrue();
 		assertThat(SomeClass.isClass(DynamicClass.toDynamic(SomeClass.class))).isTrue();
