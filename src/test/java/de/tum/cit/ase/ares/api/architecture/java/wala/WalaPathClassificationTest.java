@@ -235,4 +235,58 @@ class WalaPathClassificationTest {
 		CGNode ares = applicationNode("Lde/tum/cit/ase/ares/api/SomeHelper;");
 		assertThat(WalaPathClassification.nearestStudentFrame(List.of(primordial, ares)).isEmpty()).isTrue();
 	}
+
+	/**
+	 * A JDK frame between the student and the sink makes the path a false positive.
+	 */
+	@Test
+	void checksEveryFrameStrictlyBetweenStudentAndSink() {
+		CGNode student = applicationNode("Lanonymous/Student;");
+		CGNode jdk = primordialNode("Lsun/nio/ch/SomeImpl;");
+		CGNode sink = applicationNode("Lanonymous/Sink;");
+		assertThat(WalaPathClassification.isTransitiveFalsePositiveFrame(sink)).isFalse();
+		assertThat(WalaPathClassification.isFalsePositiveTransitivePath(List.of(student, jdk, sink), 0)).isTrue();
+	}
+
+	/**
+	 * A frame that cannot be classified is never called unreserved infrastructure.
+	 */
+	@Test
+	void answersNoForAnUnclassifiableFrame() {
+		CGNode noMethod = mock(CGNode.class);
+		CGNode throwing = mock(CGNode.class);
+		when(throwing.getMethod()).thenThrow(new IllegalStateException("simulated WALA error"));
+		CGNode noLoader = mockNode(ClassLoaderReference.Application,
+				ref(ClassLoaderReference.Application, "Lanonymous/toolclasses/Helper;"));
+		when(noLoader.getMethod().getDeclaringClass().getClassLoader()).thenReturn(null);
+		CGNode noReference = mockNode(null, ref(ClassLoaderReference.Application, "Lanonymous/toolclasses/Helper;"));
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(null)).isFalse();
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(noMethod)).isFalse();
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(throwing)).isFalse();
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(noLoader)).isFalse();
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(noReference)).isFalse();
+		assertThat(WalaPathClassification
+				.isUnreservedInfrastructureFrame(applicationNode("Lanonymous/toolclasses/Helper;"))).isTrue();
+	}
+
+	/** A node without a class loader identity is refused. */
+	@Test
+	void refusesANodeItCannotClassify() {
+		CGNode noReference = mockNode(null, ref(ClassLoaderReference.Application, "Lanonymous/Student;"));
+		assertThatThrownBy(() -> WalaPathClassification.isInfraFrame(noReference)).isInstanceOf(SecurityException.class)
+				.hasMessageContaining("missing class-loader identity");
+		CGNode noLoader = mockNode(ClassLoaderReference.Application,
+				ref(ClassLoaderReference.Application, "Lanonymous/Student;"));
+		when(noLoader.getMethod().getDeclaringClass().getClassLoader()).thenReturn(null);
+		assertThatThrownBy(() -> WalaPathClassification.isInfraFrame(noLoader)).isInstanceOf(SecurityException.class)
+				.hasMessageContaining("missing class-loader identity");
+	}
+
+	/** Primitive arrays and the default package have no package name. */
+	@Test
+	void namesNoPackageForPrimitiveArraysAndTheDefaultPackage() {
+		assertThat(WalaPathClassification.packageNameOf(TypeReference.IntArray)).isEqualTo("");
+		assertThat(WalaPathClassification
+				.packageNameOf(TypeReference.findOrCreate(ClassLoaderReference.Application, "LFoo"))).isEqualTo("");
+	}
 }
