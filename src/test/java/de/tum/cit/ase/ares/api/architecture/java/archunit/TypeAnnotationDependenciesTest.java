@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.architecture.java.archunit;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -9,23 +10,36 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
 import com.ibm.wala.ipa.callgraph.CallGraph;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.Source;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.thirdparty.org.objectweb.asm.AnnotationVisitor;
 import com.tngtech.archunit.thirdparty.org.objectweb.asm.ClassWriter;
 import com.tngtech.archunit.thirdparty.org.objectweb.asm.FieldVisitor;
 import com.tngtech.archunit.thirdparty.org.objectweb.asm.Opcodes;
+import com.tngtech.archunit.thirdparty.org.objectweb.asm.RecordComponentVisitor;
+import com.tngtech.archunit.thirdparty.org.objectweb.asm.Type;
 import com.tngtech.archunit.thirdparty.org.objectweb.asm.TypeReference;
 
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
@@ -73,6 +87,7 @@ import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
+import de.tum.cit.ase.ares.testutilities.CustomConditionEvents;
 import de.tum.cit.ase.ares.testutilities.JavacFixtures;
 
 /**
@@ -492,5 +507,257 @@ class TypeAnnotationDependenciesTest {
 	 */
 	private static void assertMessage(String where, String expected, String actual) {
 		assertTrue(expected.equals(actual), () -> where + ": expected <" + expected + "> but was <" + actual + ">");
+	}
+
+	/**
+	 * A type annotation that may sit on any type use and carries a class, a nested
+	 * annotation and a number as values.
+	 */
+	private static final String ALLOWED_ANNOTATION = """
+			package p;
+			import java.lang.annotation.ElementType;
+			import java.lang.annotation.Retention;
+			import java.lang.annotation.RetentionPolicy;
+			import java.lang.annotation.Target;
+			@Retention(RetentionPolicy.RUNTIME)
+			@Target(ElementType.TYPE_USE)
+			public @interface Allowed {
+				Class<?> value() default Object.class;
+				Inner inner() default @Inner;
+				int number() default 0;
+			}
+			""";
+
+	/**
+	 * The annotation that is nested as a value of {@link #ALLOWED_ANNOTATION}.
+	 */
+	private static final String INNER_ANNOTATION = """
+			package p;
+			public @interface Inner {
+				Class<?> value() default Object.class;
+			}
+			""";
+
+	/**
+	 * The type that only ever appears inside annotation values.
+	 */
+	private static final String FORBIDDEN_TYPE = """
+			package p;
+			public class Forbidden {
+			}
+			""";
+
+	/**
+	 * Names the positions a type annotation can hold a forbidden type in, each with
+	 * the source of a class {@code p.Fixture} that puts it there.
+	 *
+	 * @return the position names and the sources
+	 */
+	static Stream<Arguments> typeUsePositions() {
+		return Stream.of(Arguments.of("extends", """
+				package p;
+				public class Fixture extends @Allowed(Forbidden.class) Base {
+				}
+				class Base {
+				}
+				"""), Arguments.of("return type", """
+				package p;
+				public class Fixture {
+					public @Allowed(Forbidden.class) String give() {
+						return "";
+					}
+				}
+				"""), Arguments.of("cast", """
+				package p;
+				public class Fixture {
+					public String cast(Object value) {
+						return (@Allowed(Forbidden.class) String) value;
+					}
+				}
+				"""), Arguments.of("catch parameter", """
+				package p;
+				public class Fixture {
+					public int parse(String text) {
+						try {
+							return Integer.parseInt(text);
+						} catch (@Allowed(Forbidden.class) NumberFormatException exception) {
+							return 0;
+						}
+					}
+				}
+				"""), Arguments.of("local variable", """
+				package p;
+				public class Fixture {
+					public int local() {
+						@Allowed(Forbidden.class)
+						String value = "local";
+						return value.length();
+					}
+				}
+				"""), Arguments.of("nested annotation", """
+				package p;
+				public class Fixture {
+					@Allowed(inner = @Inner(Forbidden.class))
+					String name = "";
+				}
+				"""));
+	}
+
+	/**
+	 * A class whose only type annotation is allowed and carries a forbidden class
+	 * in its value.
+	 */
+	private static final String FIELD_WITH_VALUE = """
+			package p;
+			public class Fixture {
+				@Allowed(Forbidden.class)
+				String name = "";
+			}
+			""";
+
+	/**
+	 * Compiles the annotation fixtures and the given class {@code p.Fixture} with
+	 * {@code javac} and imports the class files.
+	 *
+	 * @param directory the directory to work in
+	 * @param fixture   the source of {@code p.Fixture}
+	 * @return the imported classes
+	 * @throws IOException if a source file cannot be written
+	 */
+	private static JavaClasses compileFixture(Path directory, String fixture) throws IOException {
+		Map<String, String> sources = Map.of("p/Allowed.java", ALLOWED_ANNOTATION, "p/Inner.java", INNER_ANNOTATION,
+				"p/Forbidden.java", FORBIDDEN_TYPE, "p/Fixture.java", fixture);
+		Path sourceRoot = directory.resolve("src");
+		Path classRoot = Files.createDirectories(directory.resolve("classes"));
+		List<Path> files = new ArrayList<>();
+		for (Map.Entry<String, String> source : sources.entrySet()) {
+			Path file = sourceRoot.resolve(source.getKey());
+			Files.createDirectories(file.getParent());
+			Files.writeString(file, source.getValue());
+			files.add(file);
+		}
+		JavacFixtures.compileSources(JavacFixtures.testClasses().toString(), classRoot, files);
+		return new ClassFileImporter().importPath(classRoot);
+	}
+
+	/**
+	 * A forbidden type that sits only in the value of an allowed type annotation is
+	 * found at every position that has its own visitor.
+	 *
+	 * @param position  the name of the position
+	 * @param fixture   the source of {@code p.Fixture}
+	 * @param directory the directory the fixtures are compiled in
+	 * @throws IOException if a fixture cannot be written
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("typeUsePositions")
+	void findsAForbiddenTypeInTheValueOfATypeAnnotation(String position, String fixture, @TempDir Path directory)
+			throws IOException {
+		compileFixture(directory, fixture);
+		byte[] bytes = Files.readAllBytes(directory.resolve("classes").resolve("p").resolve("Fixture.class"));
+
+		Set<String> namedTypes = TypeAnnotationDependencies.typesNamedByTypeAnnotations(bytes);
+
+		assertTrue(namedTypes.contains("p.Allowed"), position + ": " + namedTypes);
+		assertTrue(namedTypes.contains("p.Forbidden"), position + ": " + namedTypes);
+	}
+
+	/**
+	 * A class without a forbidden type annotation is reported as one violated
+	 * event.
+	 *
+	 * @param directory the directory the fixture is compiled in
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void reportsACleanClassAsAViolatedEvent(@TempDir Path directory) throws IOException {
+		JavaClasses classes = compileFixture(directory, "package p;\npublic class Fixture {\n}\n");
+		ConditionEvents events = ConditionEvents.Factory.create();
+
+		TypeAnnotationDependencies.reportTypeAnnotations(classes.get("p.Fixture"), typeName -> true, events);
+
+		List<String> lines = events.getViolating().stream().flatMap(event -> event.getDescriptionLines().stream())
+				.toList();
+		assertEquals(List.of("Class <p.Fixture> uses no forbidden type annotation"), lines);
+	}
+
+	/**
+	 * A class that has no class file to read is refused with its own message.
+	 */
+	@Test
+	void refusesAClassWithoutAClassFile() {
+		JavaClass withoutSource = Mockito.mock(JavaClass.class);
+		Mockito.when(withoutSource.getName()).thenReturn("p.Missing");
+		Mockito.when(withoutSource.getSource()).thenReturn(Optional.<Source>empty());
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> TypeAnnotationDependencies.typesNamedByTypeAnnotations(withoutSource));
+
+		assertEquals(Messages.localized("security.architecture.class.file.missing", "p.Missing"), refusal.getMessage());
+	}
+
+	/**
+	 * The event for a forbidden type names the source file the class was compiled
+	 * from.
+	 *
+	 * @param directory the directory the fixture is compiled in
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void namesTheSourceFileInTheEvent(@TempDir Path directory) throws IOException {
+		JavaClasses classes = compileFixture(directory, FIELD_WITH_VALUE);
+		CustomConditionEvents events = new CustomConditionEvents();
+
+		TypeAnnotationDependencies.reportTypeAnnotations(classes.get("p.Fixture"), "p.Forbidden"::equals, events);
+
+		List<String> lines = events.getViolating().stream().flatMap(event -> event.getDescriptionLines().stream())
+				.toList();
+		assertEquals(
+				List.of("Class <p.Fixture> depends on <p.Forbidden> through a type annotation in (Fixture.java:0)"),
+				lines);
+	}
+
+	/**
+	 * A type annotation on a record component is read, and so is the forbidden
+	 * class in its value.
+	 */
+	@Test
+	void readsARecordComponentAnnotationOnItsOwn() {
+		ClassWriter writer = new ClassWriter(0);
+		writer.visit(Opcodes.V17, Opcodes.ACC_PUBLIC | Opcodes.ACC_FINAL | Opcodes.ACC_SUPER, "p/Point", null,
+				"java/lang/Record", null);
+		RecordComponentVisitor component = writer.visitRecordComponent("name", "Ljava/lang/String;", null);
+		AnnotationVisitor annotation = component.visitTypeAnnotation(
+				TypeReference.newTypeReference(TypeReference.FIELD).getValue(), null, "Lp/Allowed;", true);
+		annotation.visit("value", Type.getType("Lp/Forbidden;"));
+		annotation.visitEnd();
+		component.visitEnd();
+		writer.visitEnd();
+
+		Set<String> namedTypes = TypeAnnotationDependencies.typesNamedByTypeAnnotations(writer.toByteArray());
+
+		assertTrue(namedTypes.contains("p.Allowed"), namedTypes::toString);
+		assertTrue(namedTypes.contains("p.Forbidden"), namedTypes::toString);
+	}
+
+	/**
+	 * A number in an annotation value names no type, so only the annotation itself
+	 * is named.
+	 *
+	 * @param directory the directory the fixture is compiled in
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void ignoresAScalarAnnotationValue(@TempDir Path directory) throws IOException {
+		compileFixture(directory, """
+				package p;
+				public class Fixture {
+					@Allowed(number = 1)
+					String name = "";
+				}
+				""");
+		byte[] bytes = Files.readAllBytes(directory.resolve("classes").resolve("p").resolve("Fixture.class"));
+
+		assertEquals(Set.of("p.Allowed"), TypeAnnotationDependencies.typesNamedByTypeAnnotations(bytes));
 	}
 }
