@@ -22,7 +22,8 @@ make sure that the rule sheet on the desk is the head teacher's.
    `JAVA_USING_GRADLE_*` configurations.
 5. **Apply `@Policy` to the tests**, below.
 6. **Reject student classes in reserved packages**, below. This step is **not optional**.
-7. **Verify with both controls**, below.
+7. **Report the source folders**, below, if any test runs without a policy.
+8. **Verify with both controls**, below.
 
 ## Add the Ares dependency and the agent
 
@@ -341,8 +342,7 @@ void testPenguinPublic() {
 With Ares 2 active, the violation now produces:
 
 ```text
-Ares Security Error (Reason: Student-Code; Stage: Execution): org.example.Penguin.getName tried to illegally overwrite File
-/// target file location: secret.txt via java.io.FileOutputStream.write([B,int,int) but was blocked by Ares. ///
+Ares Security Error (Reason: Student-Code; Stage: Execution): org.example.Penguin.getName tried to illegally overwrite the file secret.txt via java.io.FileOutputStream.<init>(java.lang.String) (called by org.example.PenguinTest.testPenguinPublic), but was blocked by Ares, because no rule in the policy allows this file.
 ```
 
 ## Reject student classes in reserved packages
@@ -401,6 +401,51 @@ and complete working exercises are in
 The build descriptor and the command that invokes it are **trusted instructor configuration**. The failure message says "No bypass flag is supported", and that is a statement about the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV2`, can remove the boundary outright.
 
 The threat this addresses is student **code** that declares a reserved package, not student control over the build. Your exercise template and its CI must own the build files and the invocation, and must fail visibly if either is altered.
+
+## Report the source folders for tests without a policy
+
+A test that runs without a security policy, an Ares test without `@Policy` or with an empty
+`value`, takes no exempt test classes from a policy. Ares exempts the test classes it finds in
+the test source folders instead, and for Gradle it takes those folders, and the main ones, from
+Gradle itself. Apply the shipped `GradleSourceRoots.gradle`, which the Gradle example carries as
+`gradle/AresSourceRoots.gradle`:
+
+```groovy
+// Ares source-root report, version 1.
+apply from: 'gradle/AresSourceRoots.gradle'
+```
+
+For every Test task, the snippet hands each test JVM the source and output folders of `main` and
+of the source set the task runs, as Gradle uses them after all configuration. Where Gradle cannot
+name them exactly, the snippet reports the problem instead, and Ares refuses the run. Three
+things lead there:
+
+- The task runs anything but the Java output of one source set.
+- `main` or that source set keeps classes elsewhere, or compiles other than exactly the Java files
+  in its source folders, for example through `exclude` or an extra `source`.
+- The test class path holds anything but their outputs and the modules that source set resolves
+  from a repository, such as another project of the build or a local jar.
+
+Without the snippet, or without `--add-exports java.base/jdk.internal.misc=ALL-UNNAMED` on the
+test JVM, Ares refuses a test without a policy and names the fix. Tests with a policy are never
+refused for a missing report; where a valid one for the project is there, Ares still reads the
+folders from it. Ares
+copies the values the test JVM started with when it first needs them, so setting a system
+property does not change them. Code that tampers with the JVM's internals before that copy is
+outside this protection.
+
+The exempt test classes are the ones Ares recognises across the reported test source set,
+whatever `--tests`, includes or tags select for the run.
+
+The snippet has two costs. Every Test task of the project runs every time: it is never up to date
+and never taken from the build cache. And the sources and outputs must not change between
+compilation and the test run. Apply it to every project whose tests run Ares, since it covers only
+its own project. Measurements cover Gradle 9.2.0 and 9.9.1.
+
+The build descriptor, the settings and init scripts, the plugins, the command line and the
+environment are trusted instructor configuration, as for the reserved-package boundary. A build
+that applies or includes build logic from the student's submission breaks that trust, and the
+report then proves nothing.
 
 ## Verify your setup
 

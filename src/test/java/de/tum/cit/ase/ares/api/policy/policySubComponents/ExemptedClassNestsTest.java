@@ -3,13 +3,17 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -18,8 +22,12 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedStatic;
+
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 import example.nest.NestHostFixture;
 
@@ -223,19 +231,71 @@ class ExemptedClassNestsTest {
 	 */
 	@Test
 	void wellFormedMethodHandlesAreAccepted() throws Exception {
-		for (Variant variant : List.of(Variant.FIELD_HANDLE, Variant.CONSTRUCTOR_HANDLE)) {
+		for (Variant variant : List.of(Variant.FIELD_HANDLE, Variant.CONSTRUCTOR_HANDLE,
+				Variant.VIRTUAL_HANDLE_TO_METHOD, Variant.SPECIAL_HANDLE_TO_METHOD,
+				Variant.SPECIAL_HANDLE_TO_INTERFACE_METHOD_FROM_52, Variant.FIELD_HANDLE_NAMED_INIT,
+				Variant.INTERFACE_HANDLE_TO_INTERFACE_METHOD)) {
 			assertEquals(List.of("x.T$A"), ExemptedClassNests.nestMembersOf("x.T", minimal(variant)), variant.name());
 		}
 	}
 
-	/** Malformed nest attributes and constants grant nothing. */
+	/**
+	 * Number constants, including the two-slot {@code Long} and {@code Double}, and
+	 * a declared interface are accepted, the control for the defects below.
+	 */
+	@Test
+	void wellFormedConstantsAndInterfacesAreAccepted() throws Exception {
+		for (Variant variant : List.of(Variant.LONG_CONSTANT, Variant.DOUBLE_CONSTANT, Variant.INTEGER_CONSTANT,
+				Variant.WITH_INTERFACE)) {
+			assertEquals(List.of("x.T$A"), ExemptedClassNests.nestMembersOf("x.T", minimal(variant)), variant.name());
+		}
+	}
+
+	/** Malformed class files grant nothing. */
 	@Test
 	void malformedAttributesGrantNothing() throws Exception {
 		for (Variant variant : List.of(Variant.TWO_NEST_MEMBERS, Variant.WRONG_LENGTH, Variant.NEST_HOST_TOO,
 				Variant.MEMBER_IS_TEXT, Variant.UNKNOWN_TAG, Variant.DANGLING_REFERENCE, Variant.METHOD_HANDLE_TO_FIELD,
-				Variant.VIRTUAL_HANDLE_TO_CONSTRUCTOR, Variant.INTERFACE_HANDLE_TO_CLASS_METHOD)) {
+				Variant.VIRTUAL_HANDLE_TO_CONSTRUCTOR, Variant.INTERFACE_HANDLE_TO_CLASS_METHOD, Variant.LONG_ENDS_POOL,
+				Variant.FIELDREF_CLASS_IS_TEXT, Variant.FIELDREF_NAME_AND_TYPE_IS_TEXT,
+				Variant.INVOKEDYNAMIC_NAME_AND_TYPE_IS_TEXT, Variant.SPECIAL_HANDLE_TO_INTERFACE_METHOD_BEFORE_52,
+				Variant.SPECIAL_HANDLE_TO_FIELD, Variant.CLASS_INITIALISER_HANDLE, Variant.SUPERCLASS_IS_TEXT,
+				Variant.SUPERCLASS_NAME_STARTS_WITH_DOT, Variant.INDEX_PAST_POOL_FOR_TEXT,
+				Variant.INDEX_PAST_POOL_FOR_TAG, Variant.INDEX_PAST_POOL_FOR_HANDLE, Variant.INDEX_PAST_POOL_FOR_CLASS,
+				Variant.HANDLE_BEFORE_ITS_TARGET, Variant.EMPTY_CONSTANT_POOL, Variant.HANDLE_KIND_ZERO,
+				Variant.HANDLE_KIND_TEN, Variant.CONSTRUCTOR_HANDLE_TO_METHOD, Variant.FIELD_HANDLE_TO_METHOD,
+				Variant.SUPERCLASS_NAME_EMPTY, Variant.SUPERCLASS_IS_ARRAY, Variant.STRING_NAMES_A_CLASS,
+				Variant.HANDLE_TO_ZERO, Variant.FIELDREF_CLASS_ZERO, Variant.INTERFACE_ZERO,
+				Variant.NEST_MEMBERS_LENGTH_ZERO)) {
 			assertEquals(List.of(), ExemptedClassNests.nestMembersOf("x.T", minimal(variant)), variant.name());
 		}
+	}
+
+	/**
+	 * A nest listing a class from outside the exempted class, beside a real member,
+	 * extends the exemption to the real member only.
+	 */
+	@Test
+	void aNestListingAForeignClassGrantsNothingForIt() throws Exception {
+		assertEquals(List.of("x.T$A"), ExemptedClassNests.nestMembersOf("x.T", minimal(Variant.FOREIGN_MEMBER)));
+	}
+
+	/** A test class file of exactly the size limit is still read and expanded. */
+	@Test
+	void aClassFileOfExactlyTheCapIsRead(@TempDir Path testOutput) throws Exception {
+		write(testOutput, "x.T", padded(ExemptedClassNests.MAX_CLASS_FILE_BYTES));
+		assertEquals(List.of("x.T", "x.T$A"), ExemptedClassNests.expandFromTestOutput(List.of("x.T"), testOutput));
+	}
+
+	/**
+	 * A test class file one byte over the size limit is refused, although it is
+	 * otherwise well formed.
+	 */
+	@Test
+	void aClassFileOneByteOverTheCapIsRefused(@TempDir Path testOutput) throws Exception {
+		write(testOutput, "x.T", padded(ExemptedClassNests.MAX_CLASS_FILE_BYTES + 1));
+		assertThrows(SecurityException.class,
+				() -> ExemptedClassNests.expandFromTestOutput(List.of("x.T"), testOutput));
 	}
 
 	/**
@@ -281,6 +341,159 @@ class ExemptedClassNestsTest {
 						"example.nest", List.of(HOST)));
 	}
 
+	/** Without a loader, only the exact name of an exempted class is kept. */
+	@Test
+	void withoutALoaderOnlyTheExactNameIsKept() {
+		assertEquals(List.of(HOST), ExemptedClassNests.expandThroughLoader(List.of(HOST), null));
+	}
+
+	/**
+	 * A class file the loader finds but cannot read keeps only the exact name of
+	 * the exempted class, without any exception.
+	 */
+	@Test
+	void aClassFileTheLoaderCannotReadKeepsOnlyItsExactName() {
+		assertEquals(List.of(HOST), ExemptedClassNests.expandThroughLoader(List.of(HOST), new UnreadableLoader()));
+	}
+
+	/**
+	 * A hand-built class that is itself nested passes by its exact name and lists
+	 * no members, the control for the malformed nest hosts below.
+	 */
+	@Test
+	void aHandBuiltNestedClassPassesByItsExactName(@TempDir Path testOutput) throws Exception {
+		write(testOutput, "x.T$A", minimal(Variant.NESTED));
+		assertEquals(List.of("x.T$A"), ExemptedClassNests.expandFromTestOutput(List.of("x.T$A"), testOutput));
+		assertEquals(List.of(), ExemptedClassNests.nestMembersOf("x.T$A", minimal(Variant.NESTED)));
+	}
+
+	/**
+	 * A nested class with two NestHost attributes, or with one whose length is four
+	 * or zero instead of two, is refused, with the reader's complaint kept as the
+	 * cause.
+	 */
+	@Test
+	void aMalformedNestHostIsRefused(@TempDir Path testOutput) throws Exception {
+		for (Variant variant : List.of(Variant.TWO_NEST_HOSTS, Variant.NEST_HOST_WRONG_LENGTH,
+				Variant.NEST_HOST_LENGTH_ZERO)) {
+			write(testOutput, "x.T$A", minimal(variant));
+			assertEquals(Messages.localized("security.policy.exempted.class.file.nest.host.malformed"),
+					causeOfRefusal(testOutput, "x.T$A").getMessage(), variant.name());
+		}
+	}
+
+	/**
+	 * A test class whose file carries both NestMembers and NestHost is refused,
+	 * while the same class with NestMembers alone passes with its member.
+	 */
+	@Test
+	void aClassWithBothNestHostAndNestMembersIsRefusedAsATestClass(@TempDir Path testOutput) throws Exception {
+		write(testOutput, "x.T", minimal(Variant.VALID));
+		assertEquals(List.of("x.T", "x.T$A"), ExemptedClassNests.expandFromTestOutput(List.of("x.T"), testOutput));
+		write(testOutput, "x.T", minimal(Variant.NEST_HOST_TOO));
+		assertEquals(Messages.localized("security.policy.exempted.class.file.nest.host.and.members"),
+				causeOfRefusal(testOutput, "x.T").getMessage());
+	}
+
+	/**
+	 * The refusal of an unusable test class keeps the reader's own reason as its
+	 * cause: an empty constant pool, an attribute longer than the bytes left, or a
+	 * superclass index that names a text. The intact file passes.
+	 */
+	@Test
+	void theRefusalKeepsTheReadersReason(@TempDir Path testOutput) throws Exception {
+		byte[] valid = minimal(Variant.VALID);
+		write(testOutput, "x.T", valid);
+		assertEquals(List.of("x.T", "x.T$A"), ExemptedClassNests.expandFromTestOutput(List.of("x.T"), testOutput));
+		write(testOutput, "x.T", minimal(Variant.EMPTY_CONSTANT_POOL));
+		assertEquals(Messages.localized("security.policy.exempted.class.file.constant.pool.empty"),
+				causeOfRefusal(testOutput, "x.T").getMessage());
+		write(testOutput, "x.T", Arrays.copyOf(valid, valid.length - 1));
+		assertEquals(Messages.localized("security.policy.exempted.class.file.attribute.overrun"),
+				causeOfRefusal(testOutput, "x.T").getMessage());
+		write(testOutput, "x.T", minimal(Variant.SUPERCLASS_IS_TEXT));
+		assertEquals(Messages.localized("security.policy.exempted.class.file.class.constant.invalid", 1),
+				causeOfRefusal(testOutput, "x.T").getMessage());
+	}
+
+	/**
+	 * A {@link SecurityException} that is not a class-file defect, here one raised
+	 * while the complaint is being worded, escapes the reader unchanged instead of
+	 * being taken for a defect and turned into an empty nest.
+	 */
+	@Test
+	void anUnrelatedSecurityExceptionEscapesTheReader() throws Exception {
+		byte[] wrongMagic = classFile(HOST).clone();
+		wrongMagic[0] = 0;
+		SecurityException sentinel = new SecurityException("sentinel");
+		MockedStatic<Messages> messages = mockStatic(Messages.class, invocation -> {
+			throw sentinel;
+		});
+		try {
+			SecurityException escaped = assertThrows(SecurityException.class,
+					() -> ExemptedClassNests.nestMembersOf(HOST, wrongMagic));
+			assertSame(sentinel, escaped);
+		} finally {
+			messages.close();
+		}
+	}
+
+	/** A scan without a production output folder fails closed. */
+	@Test
+	void withoutAProductionOutputTheScanFailsClosed() {
+		assertThrows(SecurityException.class, () -> ExemptedClassNests
+				.requireNoProductionClassNamedLikeAnExemptedOne(null, "example.nest", List.of(HOST)));
+	}
+
+	/**
+	 * A production output that is a regular file, not a folder, fails closed, while
+	 * the folder holding that file passes.
+	 */
+	@Test
+	void refusesARegularFileAsTheProductionOutput(@TempDir Path production) throws Exception {
+		Path archive = production.resolve("classes.jar");
+		Files.write(archive, new byte[] { 1 });
+		SecurityException refused = assertThrows(SecurityException.class,
+				() -> ExemptedClassNests.requireNoProductionClassNamedLikeAnExemptedOne(archive, "x", List.of("x.T")));
+		assertEquals(Messages.localized("security.policy.exempted.class.output.unreadable", archive),
+				refused.getMessage());
+		ExemptedClassNests.requireNoProductionClassNamedLikeAnExemptedOne(production, "x", List.of("x.T"));
+	}
+
+	/**
+	 * The one class Java allows without a superclass, {@code java.lang.Object},
+	 * passes by its exact name, and the foreign member its file lists is dropped.
+	 */
+	@Test
+	void theClassWithoutASuperclassPassesByItsExactName(@TempDir Path testOutput) throws Exception {
+		write(testOutput, "java.lang.Object", minimal(Variant.OBJECT_WITHOUT_SUPERCLASS));
+		assertEquals(List.of("java.lang.Object"),
+				ExemptedClassNests.expandFromTestOutput(List.of("java.lang.Object"), testOutput));
+	}
+
+	/**
+	 * A test class name that leads outside the output folder is refused, although
+	 * the file there is accepted when the folder is the root, so only its place is
+	 * at fault. Needs a POSIX path without a dot. The control relies on the reader
+	 * not refusing a name that starts with a dot, so tightening its name rules
+	 * would leave the folder check without a test.
+	 */
+	@Test
+	void aTestClassNameLeavingTheOutputFolderIsRefused(@TempDir Path root) throws Exception {
+		Path base = root.toRealPath();
+		Path out = base.resolve("out");
+		Path outside = base.resolve("outside");
+		Files.createDirectories(out);
+		Files.createDirectories(outside);
+		Assumptions.assumeTrue(File.separatorChar == '/' && outside.toString().indexOf('.') < 0,
+				"Needs a POSIX path without a dot: " + outside);
+		String internal = outside + "/T";
+		String name = internal.replace('/', '.');
+		Files.write(Path.of(internal + ".class"), minimal(Variant.VALID, internal));
+		assertThrows(SecurityException.class, () -> ExemptedClassNests.expandFromTestOutput(List.of(name), out));
+		assertEquals(List.of(name), ExemptedClassNests.expandFromTestOutput(List.of(name), Path.of("/")));
+	}
+
 	/** Reads a compiled fixture's bytes. */
 	private static byte[] classFile(String className) throws IOException {
 		try (InputStream input = LOADER.getResourceAsStream(className.replace('.', '/') + ".class")) {
@@ -301,7 +514,7 @@ class ExemptedClassNestsTest {
 				() -> ExemptedClassNests.expandFromTestOutput(List.of(HOST), testOutput)).getMessage();
 	}
 
-	/** The defects a hand-built class file can carry. */
+	/** The well-formed and defective shapes a hand-built class file can take. */
 	private enum Variant {
 		/** A well-formed file. */
 		VALID,
@@ -326,24 +539,198 @@ class ExemptedClassNestsTest {
 		/** A virtual-method handle to a method named {@code <init>}. */
 		VIRTUAL_HANDLE_TO_CONSTRUCTOR,
 		/** An interface-method handle to a class method. */
-		INTERFACE_HANDLE_TO_CLASS_METHOD
+		INTERFACE_HANDLE_TO_CLASS_METHOD,
+		/** A {@code Long} constant, which takes two slots of the constant pool. */
+		LONG_CONSTANT,
+		/** A {@code Double} constant, which takes two slots of the constant pool. */
+		DOUBLE_CONSTANT,
+		/** An {@code Integer} constant. */
+		INTEGER_CONSTANT,
+		/** A class that declares the interface {@code java.lang.Runnable}. */
+		WITH_INTERFACE,
+		/** A virtual-method handle to an ordinary method. */
+		VIRTUAL_HANDLE_TO_METHOD,
+		/** A special-method handle to an ordinary class method. */
+		SPECIAL_HANDLE_TO_METHOD,
+		/**
+		 * A special-method handle to the interface method {@code Runnable.run} in a
+		 * version 52 file, the first version that allows it.
+		 */
+		SPECIAL_HANDLE_TO_INTERFACE_METHOD_FROM_52,
+		/**
+		 * A {@code Long} constant in the last slot, with no room for its second slot.
+		 */
+		LONG_ENDS_POOL,
+		/** A field reference whose class index points at a text. */
+		FIELDREF_CLASS_IS_TEXT,
+		/** A field reference whose name-and-type index points at a text. */
+		FIELDREF_NAME_AND_TYPE_IS_TEXT,
+		/** An invokedynamic constant whose name-and-type index points at a text. */
+		INVOKEDYNAMIC_NAME_AND_TYPE_IS_TEXT,
+		/**
+		 * A special-method handle to the interface method {@code Runnable.run} in a
+		 * version 51 file, which does not allow it.
+		 */
+		SPECIAL_HANDLE_TO_INTERFACE_METHOD_BEFORE_52,
+		/** A special-method handle to a field. */
+		SPECIAL_HANDLE_TO_FIELD,
+		/** A virtual-method handle to the class initialiser {@code <clinit>}. */
+		CLASS_INITIALISER_HANDLE,
+		/** A superclass index pointing at a text instead of a class constant. */
+		SUPERCLASS_IS_TEXT,
+		/** A superclass whose name starts with a dot. */
+		SUPERCLASS_NAME_STARTS_WITH_DOT,
+		/** A string constant referring to the index just past the constant pool. */
+		INDEX_PAST_POOL_FOR_TEXT,
+		/** A field reference whose name-and-type index is just past the pool. */
+		INDEX_PAST_POOL_FOR_TAG,
+		/** A method handle whose target is just past the constant pool. */
+		INDEX_PAST_POOL_FOR_HANDLE,
+		/** A superclass index just past the constant pool. */
+		INDEX_PAST_POOL_FOR_CLASS,
+		/**
+		 * A method handle placed before the field reference it targets, whose
+		 * name-and-type index is past the constant pool.
+		 */
+		HANDLE_BEFORE_ITS_TARGET,
+		/** A nest listing {@code x.T$A} and the unrelated class {@code y.Other}. */
+		FOREIGN_MEMBER,
+		/**
+		 * A well-formed file ending in an empty extra attribute named {@code Padding}.
+		 */
+		PADDED,
+		/** The {@code VALID} file with its constant-pool count written as 0. */
+		EMPTY_CONSTANT_POOL,
+		/** A field handle of kind 0, a kind no method handle may have. */
+		HANDLE_KIND_ZERO,
+		/** A field handle of kind 10, a kind no method handle may have. */
+		HANDLE_KIND_TEN,
+		/** A class {@code x.T$A} with one NestHost attribute naming {@code x.T}. */
+		NESTED,
+		/** A class {@code x.T$A} with two NestHost attributes naming {@code x.T}. */
+		TWO_NEST_HOSTS,
+		/** A class {@code x.T$A} with a NestHost attribute of length 4. */
+		NEST_HOST_WRONG_LENGTH,
+		/**
+		 * A constructor handle (kind 8) to a method that is not named {@code <init>}.
+		 */
+		CONSTRUCTOR_HANDLE_TO_METHOD,
+		/** A field handle (kind 1) to a method reference instead of a field one. */
+		FIELD_HANDLE_TO_METHOD,
+		/** A superclass whose class constant names the empty text. */
+		SUPERCLASS_NAME_EMPTY,
+		/** A superclass whose class constant names an array type. */
+		SUPERCLASS_IS_ARRAY,
+		/** A string constant referring to a class constant instead of a text. */
+		STRING_NAMES_A_CLASS,
+		/**
+		 * A method handle whose target index is 0. Refused by the same rule as any
+		 * non-member target, so it only takes the zero branch.
+		 */
+		HANDLE_TO_ZERO,
+		/**
+		 * A field reference whose class index is 0. Refused by the same rule as any
+		 * non-class index, so it only takes the zero branch.
+		 */
+		FIELDREF_CLASS_ZERO,
+		/**
+		 * A declared interface with index 0. Refused by the same rule as any non-class
+		 * index, so it only takes the zero branch.
+		 */
+		INTERFACE_ZERO,
+		/**
+		 * A class {@code java.lang.Object} with superclass index 0, the one case Java
+		 * allows. The file still lists the foreign {@code x.T$A}, which the reader
+		 * drops.
+		 */
+		OBJECT_WITHOUT_SUPERCLASS,
+		/**
+		 * A class {@code x.T$A} whose NestHost declares length 0 but is followed by the
+		 * two-byte host index.
+		 */
+		NEST_HOST_LENGTH_ZERO,
+		/** A NestMembers attribute declaring length 0, followed by one entry. */
+		NEST_MEMBERS_LENGTH_ZERO,
+		/**
+		 * A field-reading handle (kind 1) to a field named {@code <init>}. Only the
+		 * method-handle kinds 5, 6, 7 and 9 may not name {@code <init>} and kind 8
+		 * must; field handles are not restricted.
+		 */
+		FIELD_HANDLE_NAMED_INIT,
+		/**
+		 * An interface-method handle (kind 9) to the interface method
+		 * {@code Runnable.run}.
+		 */
+		INTERFACE_HANDLE_TO_INTERFACE_METHOD
+	}
+
+	/**
+	 * Returns the cause of the refusal of the named test class from the given
+	 * output, after checking the refusal's own localised message.
+	 */
+	private static Throwable causeOfRefusal(Path testOutput, String className) {
+		SecurityException refused = assertThrows(SecurityException.class,
+				() -> ExemptedClassNests.expandFromTestOutput(List.of(className), testOutput));
+		assertEquals(Messages.localized("security.policy.exempted.test.class.unverified", className, testOutput),
+				refused.getMessage());
+		return refused.getCause();
+	}
+
+	/**
+	 * A loader without a parent that returns, for every name, a stream that fails
+	 * when it is read.
+	 */
+	private static final class UnreadableLoader extends ClassLoader {
+
+		/** Creates the loader without a parent. */
+		private UnreadableLoader() {
+			super(null);
+		}
+
+		/** Returns a stream that fails on every read, whatever the name. */
+		@Override
+		public InputStream getResourceAsStream(String name) {
+			return new FailingStream();
+		}
+	}
+
+	/** A stream whose reads always fail. */
+	private static final class FailingStream extends InputStream {
+
+		/** Always fails with an {@link IOException}. */
+		@Override
+		public int read() throws IOException {
+			throw new IOException("unreadable");
+		}
 	}
 
 	/**
 	 * Builds a minimal class file for {@code x.T} whose nest lists {@code x.T$A},
-	 * with the given defect.
+	 * with the version, superclass, interface, extra constants and attributes the
+	 * variant asks for. The four NestHost variants build {@code x.T$A} naming
+	 * {@code x.T} as host, and {@code OBJECT_WITHOUT_SUPERCLASS} builds
+	 * {@code java.lang.Object}.
 	 */
 	private static byte[] minimal(Variant variant) throws IOException {
+		return minimal(variant, "x/T");
+	}
+
+	/**
+	 * Builds what {@link #minimal(Variant)} builds, with the given internal name in
+	 * constant 1, the one {@code x/T} fills, which is the host's name except for
+	 * {@code OBJECT_WITHOUT_SUPERCLASS}, whose own class is constant 7.
+	 */
+	private static byte[] minimal(Variant variant, String hostInternalName) throws IOException {
 		ByteArrayOutputStream bytes = new ByteArrayOutputStream();
 		DataOutputStream out = new DataOutputStream(bytes);
 		out.writeInt(0xCAFEBABE);
 		out.writeShort(0);
-		out.writeShort(61);
+		out.writeShort(majorVersionOf(variant));
 		ByteArrayOutputStream extraBytes = new ByteArrayOutputStream();
 		int extraSlots = writeExtraConstants(new DataOutputStream(extraBytes), variant);
-		out.writeShort(9 + extraSlots);
+		out.writeShort(variant == Variant.EMPTY_CONSTANT_POOL ? 0 : 9 + extraSlots);
 		out.writeByte(1);
-		out.writeUTF("x/T");
+		out.writeUTF(hostInternalName);
 		out.writeByte(7);
 		out.writeShort(1);
 		out.writeByte(1);
@@ -360,13 +747,26 @@ class ExemptedClassNestsTest {
 		out.writeUTF("NestHost");
 		out.write(extraBytes.toByteArray());
 		out.writeShort(0x21);
-		out.writeShort(2);
-		out.writeShort(7);
+		out.writeShort(thisClassOf(variant));
+		out.writeShort(superclassOf(variant));
+		boolean declaresInterface = variant == Variant.WITH_INTERFACE || variant == Variant.INTERFACE_ZERO;
+		out.writeShort(declaresInterface ? 1 : 0);
+		if (declaresInterface) {
+			out.writeShort(variant == Variant.WITH_INTERFACE ? 10 : 0);
+		}
 		out.writeShort(0);
 		out.writeShort(0);
-		out.writeShort(0);
-		int attributes = variant == Variant.TWO_NEST_MEMBERS || variant == Variant.NEST_HOST_TOO ? 2 : 1;
+		int attributes = variant == Variant.TWO_NEST_MEMBERS || variant == Variant.NEST_HOST_TOO
+				|| variant == Variant.PADDED || variant == Variant.TWO_NEST_HOSTS ? 2 : 1;
 		out.writeShort(attributes);
+		if (isNestHostVariant(variant)) {
+			writeNestHost(out, variant);
+			if (variant == Variant.TWO_NEST_HOSTS) {
+				writeNestHost(out, variant);
+			}
+			out.flush();
+			return bytes.toByteArray();
+		}
 		writeNestMembers(out, variant);
 		if (variant == Variant.TWO_NEST_MEMBERS) {
 			writeNestMembers(out, Variant.VALID);
@@ -376,64 +776,248 @@ class ExemptedClassNestsTest {
 			out.writeInt(2);
 			out.writeShort(2);
 		}
+		if (variant == Variant.PADDED) {
+			out.writeShort(9);
+			out.writeInt(0);
+		}
 		out.flush();
 		return bytes.toByteArray();
 	}
 
 	/**
-	 * Writes the constants a variant adds from index 9 on and returns how many
-	 * slots they take.
+	 * Returns the class file version a variant declares: 52 or 51 for the two
+	 * variants that test the version rule, 61 otherwise.
 	 */
-	private static int writeExtraConstants(DataOutputStream out, Variant variant) throws IOException {
-		switch (variant) {
-		case UNKNOWN_TAG -> out.writeByte(99);
-		case DANGLING_REFERENCE -> {
-			out.writeByte(8);
+	private static int majorVersionOf(Variant variant) {
+		return switch (variant) {
+		case SPECIAL_HANDLE_TO_INTERFACE_METHOD_FROM_52 -> 52;
+		case SPECIAL_HANDLE_TO_INTERFACE_METHOD_BEFORE_52 -> 51;
+		default -> 61;
+		};
+	}
+
+	/**
+	 * Returns the constant-pool index a variant names as its own class: 4, the
+	 * class constant for {@code x.T$A}, for the four NestHost variants, 7, the one
+	 * for {@code java.lang.Object}, for {@link Variant#OBJECT_WITHOUT_SUPERCLASS},
+	 * and 2, the one for the host, otherwise.
+	 */
+	private static int thisClassOf(Variant variant) {
+		if (isNestHostVariant(variant)) {
+			return 4;
+		}
+		return variant == Variant.OBJECT_WITHOUT_SUPERCLASS ? 7 : 2;
+	}
+
+	/** Tells whether a variant is a nested class with NestHost attributes. */
+	private static boolean isNestHostVariant(Variant variant) {
+		return variant == Variant.NESTED || variant == Variant.TWO_NEST_HOSTS
+				|| variant == Variant.NEST_HOST_WRONG_LENGTH || variant == Variant.NEST_HOST_LENGTH_ZERO;
+	}
+
+	/**
+	 * Writes one NestHost attribute naming {@code x.T}, with a length of 4 and two
+	 * extra bytes for {@link Variant#NEST_HOST_WRONG_LENGTH}, a length of 0 for
+	 * {@link Variant#NEST_HOST_LENGTH_ZERO}, and of 2 otherwise.
+	 */
+	private static void writeNestHost(DataOutputStream out, Variant variant) throws IOException {
+		out.writeShort(8);
+		out.writeInt(switch (variant) {
+		case NEST_HOST_WRONG_LENGTH -> 4;
+		case NEST_HOST_LENGTH_ZERO -> 0;
+		default -> 2;
+		});
+		out.writeShort(2);
+		if (variant == Variant.NEST_HOST_WRONG_LENGTH) {
 			out.writeShort(0);
 		}
-		case FIELD_HANDLE, METHOD_HANDLE_TO_FIELD -> writeHandle(out, 9, "f", "I",
-				variant == Variant.FIELD_HANDLE ? 1 : 5);
-		case CONSTRUCTOR_HANDLE, VIRTUAL_HANDLE_TO_CONSTRUCTOR -> writeHandle(out, 10, "<init>", "()V",
-				variant == Variant.CONSTRUCTOR_HANDLE ? 8 : 5);
+	}
+
+	/**
+	 * Returns the constant-pool index a variant names as the superclass, normally
+	 * 7, the class constant for {@code java.lang.Object}, and 0, meaning none, for
+	 * {@link Variant#OBJECT_WITHOUT_SUPERCLASS}.
+	 */
+	private static int superclassOf(Variant variant) {
+		return switch (variant) {
+		case SUPERCLASS_IS_TEXT -> 1;
+		case INDEX_PAST_POOL_FOR_CLASS -> 9;
+		case SUPERCLASS_NAME_STARTS_WITH_DOT, SUPERCLASS_NAME_EMPTY, SUPERCLASS_IS_ARRAY -> 10;
+		case OBJECT_WITHOUT_SUPERCLASS -> 0;
+		default -> 7;
+		};
+	}
+
+	/**
+	 * Builds the {@link Variant#PADDED} file and fills its padding attribute with
+	 * zero bytes, so the whole file is exactly the given size.
+	 */
+	private static byte[] padded(int totalBytes) throws IOException {
+		byte[] unpadded = minimal(Variant.PADDED);
+		byte[] file = Arrays.copyOf(unpadded, totalBytes);
+		ByteBuffer.wrap(file).putInt(unpadded.length - Integer.BYTES, totalBytes - unpadded.length);
+		return file;
+	}
+
+	/**
+	 * Writes the constants a variant adds from index 9 on and returns how many
+	 * slots the pool count gives them.
+	 */
+	private static int writeExtraConstants(DataOutputStream out, Variant variant) throws IOException {
+		return switch (variant) {
+		case UNKNOWN_TAG -> {
+			out.writeByte(99);
+			yield 1;
+		}
+		case DANGLING_REFERENCE, STRING_NAMES_A_CLASS -> {
+			out.writeByte(8);
+			out.writeShort(variant == Variant.DANGLING_REFERENCE ? 0 : 2);
+			yield 1;
+		}
+		case INDEX_PAST_POOL_FOR_TEXT -> {
+			out.writeByte(8);
+			out.writeShort(10);
+			yield 1;
+		}
+		case LONG_CONSTANT, LONG_ENDS_POOL -> {
+			out.writeByte(5);
+			out.writeLong(1);
+			yield variant == Variant.LONG_CONSTANT ? 2 : 1;
+		}
+		case DOUBLE_CONSTANT -> {
+			out.writeByte(6);
+			out.writeDouble(1);
+			yield 2;
+		}
+		case INTEGER_CONSTANT -> {
+			out.writeByte(3);
+			out.writeInt(1);
+			yield 1;
+		}
+		case WITH_INTERFACE -> writeNamedClass(out, 9, "java/lang/Runnable");
+		case FIELD_HANDLE -> writeHandle(out, 9, "f", "I", 1);
+		case HANDLE_KIND_ZERO -> writeHandle(out, 9, "f", "I", 0);
+		case HANDLE_KIND_TEN -> writeHandle(out, 9, "f", "I", 10);
+		case METHOD_HANDLE_TO_FIELD -> writeHandle(out, 9, "f", "I", 5);
+		case SPECIAL_HANDLE_TO_FIELD -> writeHandle(out, 9, "f", "I", 7);
+		case CONSTRUCTOR_HANDLE -> writeHandle(out, 10, "<init>", "()V", 8);
+		case VIRTUAL_HANDLE_TO_CONSTRUCTOR -> writeHandle(out, 10, "<init>", "()V", 5);
+		case CLASS_INITIALISER_HANDLE -> writeHandle(out, 10, "<clinit>", "()V", 5);
 		case INTERFACE_HANDLE_TO_CLASS_METHOD -> writeHandle(out, 10, "run", "()V", 9);
-		default -> {
-			return 0;
-		}
-		}
-		return variant == Variant.UNKNOWN_TAG || variant == Variant.DANGLING_REFERENCE ? 1 : 5;
+		case VIRTUAL_HANDLE_TO_METHOD -> writeHandle(out, 10, "run", "()V", 5);
+		case SPECIAL_HANDLE_TO_METHOD -> writeHandle(out, 10, "run", "()V", 7);
+		case SPECIAL_HANDLE_TO_INTERFACE_METHOD_FROM_52, SPECIAL_HANDLE_TO_INTERFACE_METHOD_BEFORE_52 -> writeRunnableHandle(
+				out, 7);
+		case INTERFACE_HANDLE_TO_INTERFACE_METHOD -> writeRunnableHandle(out, 9);
+		case FIELD_HANDLE_NAMED_INIT -> writeHandle(out, 9, "<init>", "I", 1);
+		case FIELDREF_CLASS_IS_TEXT -> writeMember(out, 9, 1, "f", "I");
+		case FIELDREF_NAME_AND_TYPE_IS_TEXT -> writeReferences(out, 9, 2, 1);
+		case INVOKEDYNAMIC_NAME_AND_TYPE_IS_TEXT -> writeReferences(out, 18, 0, 1);
+		case INDEX_PAST_POOL_FOR_TAG -> writeReferences(out, 9, 2, 10);
+		case INDEX_PAST_POOL_FOR_HANDLE -> writeHandleConstant(out, 1, 10);
+		case HANDLE_BEFORE_ITS_TARGET -> writeHandleConstant(out, 1, 10) + writeReferences(out, 9, 2, 11);
+		case SUPERCLASS_NAME_STARTS_WITH_DOT -> writeNamedClass(out, 9, ".Object");
+		case SUPERCLASS_NAME_EMPTY -> writeNamedClass(out, 9, "");
+		case SUPERCLASS_IS_ARRAY -> writeNamedClass(out, 9, "[Ljava/lang/Object;");
+		case CONSTRUCTOR_HANDLE_TO_METHOD -> writeHandle(out, 10, "run", "()V", 8);
+		case FIELD_HANDLE_TO_METHOD -> writeHandle(out, 10, "run", "()V", 1);
+		case HANDLE_TO_ZERO -> writeHandleConstant(out, 1, 0);
+		case FIELDREF_CLASS_ZERO -> writeMember(out, 9, 0, "f", "I");
+		case FOREIGN_MEMBER -> writeNamedClass(out, 9, "y/Other");
+		case PADDED -> writeText(out, "Padding");
+		default -> 0;
+		};
 	}
 
 	/**
 	 * Writes a name, a descriptor, their pairing, a member reference with the given
 	 * tag on class {@code x.T}, and a method handle of the given kind to it, at
-	 * indices 9 to 13.
+	 * indices 9 to 13, and returns the five slots they take.
 	 */
-	private static void writeHandle(DataOutputStream out, int memberTag, String name, String descriptor, int kind)
+	private static int writeHandle(DataOutputStream out, int memberTag, String name, String descriptor, int kind)
 			throws IOException {
-		out.writeByte(1);
-		out.writeUTF(name);
-		out.writeByte(1);
-		out.writeUTF(descriptor);
-		out.writeByte(12);
-		out.writeShort(9);
-		out.writeShort(10);
-		out.writeByte(memberTag);
-		out.writeShort(2);
-		out.writeShort(11);
-		out.writeByte(15);
-		out.writeByte(kind);
-		out.writeShort(12);
+		return writeMember(out, memberTag, 2, name, descriptor) + writeHandleConstant(out, kind, 12);
 	}
 
 	/**
-	 * Writes one NestMembers attribute listing {@code x.T$A}, with the variant's
-	 * defect.
+	 * Writes the name {@code run}, its descriptor and their pairing at indices 9 to
+	 * 11, an interface-method reference to {@code Runnable.run} at 12, a method
+	 * handle of the given kind to it at 13, and the text {@code java/lang/Runnable}
+	 * with its class constant at 14 and 15, and returns the seven slots they take.
+	 */
+	private static int writeRunnableHandle(DataOutputStream out, int kind) throws IOException {
+		return writeMember(out, 11, 15, "run", "()V") + writeHandleConstant(out, kind, 12)
+				+ writeNamedClass(out, 14, "java/lang/Runnable");
+	}
+
+	/**
+	 * Writes a name, a descriptor, their pairing, and a member reference with the
+	 * given tag and class index, at indices 9 to 12, and returns the four slots
+	 * they take.
+	 */
+	private static int writeMember(DataOutputStream out, int memberTag, int classIndex, String name, String descriptor)
+			throws IOException {
+		return writeText(out, name) + writeText(out, descriptor) + writeReferences(out, 12, 9, 10)
+				+ writeReferences(out, memberTag, classIndex, 11);
+	}
+
+	/** Writes one text constant and returns the one slot it takes. */
+	private static int writeText(DataOutputStream out, String text) throws IOException {
+		out.writeByte(1);
+		out.writeUTF(text);
+		return 1;
+	}
+
+	/**
+	 * Writes a text at the given index and a class constant naming it right after,
+	 * and returns the two slots they take.
+	 */
+	private static int writeNamedClass(DataOutputStream out, int textIndex, String internalName) throws IOException {
+		writeText(out, internalName);
+		out.writeByte(7);
+		out.writeShort(textIndex);
+		return 2;
+	}
+
+	/**
+	 * Writes one constant with the given tag and two two-byte indices, such as a
+	 * field reference, and returns the one slot it takes.
+	 */
+	private static int writeReferences(DataOutputStream out, int tag, int first, int second) throws IOException {
+		out.writeByte(tag);
+		out.writeShort(first);
+		out.writeShort(second);
+		return 1;
+	}
+
+	/**
+	 * Writes one method handle of the given kind to the given index and returns the
+	 * one slot it takes.
+	 */
+	private static int writeHandleConstant(DataOutputStream out, int kind, int target) throws IOException {
+		out.writeByte(15);
+		out.writeByte(kind);
+		out.writeShort(target);
+		return 1;
+	}
+
+	/**
+	 * Writes one NestMembers attribute listing {@code x.T$A}, plus {@code y.Other}
+	 * for {@link Variant#FOREIGN_MEMBER}, with the variant's defect.
 	 */
 	private static void writeNestMembers(DataOutputStream out, Variant variant) throws IOException {
+		List<Integer> members = switch (variant) {
+		case MEMBER_IS_TEXT -> List.of(3);
+		case FOREIGN_MEMBER -> List.of(4, 10);
+		default -> List.of(4);
+		};
 		out.writeShort(5);
-		out.writeInt(variant == Variant.WRONG_LENGTH ? 6 : 4);
-		out.writeShort(1);
-		out.writeShort(variant == Variant.MEMBER_IS_TEXT ? 3 : 4);
+		out.writeInt(variant == Variant.NEST_MEMBERS_LENGTH_ZERO ? 0
+				: 2 + 2 * members.size() + (variant == Variant.WRONG_LENGTH ? 2 : 0));
+		out.writeShort(members.size());
+		for (int member : members) {
+			out.writeShort(member);
+		}
 		if (variant == Variant.WRONG_LENGTH) {
 			out.writeShort(0);
 		}

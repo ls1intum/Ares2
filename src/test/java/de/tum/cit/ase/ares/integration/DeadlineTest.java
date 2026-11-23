@@ -2,10 +2,7 @@ package de.tum.cit.ase.ares.integration;
 
 import static de.tum.cit.ase.ares.testutilities.CustomConditions.*;
 
-import java.lang.annotation.AnnotationFormatError;
-
 import org.junit.platform.testkit.engine.Events;
-import org.opentest4j.AssertionFailedError;
 
 import de.tum.cit.ase.ares.integration.testuser.DeadlineUser;
 import de.tum.cit.ase.ares.testutilities.TestTest;
@@ -29,7 +26,7 @@ class DeadlineTest {
 	@TestTest
 	void test_testHiddenCustomDeadlineFuture() {
 		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(testHiddenCustomDeadlineFuture, AssertionFailedError.class));
+				testFailedWith(testHiddenCustomDeadlineFuture, SecurityException.class));
 	}
 
 	@TestTest
@@ -39,7 +36,7 @@ class DeadlineTest {
 
 	@TestTest
 	void test_testHiddenNormal() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenNormal, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testHiddenNormal, SecurityException.class));
 	}
 
 	@TestTest
@@ -54,11 +51,11 @@ class DeadlineTest {
 
 	@TestTest
 	void test_testPublicCustomDeadline() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicCustomDeadline, AnnotationFormatError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicCustomDeadline, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testPublicNormal() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicNormal, AnnotationFormatError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testPublicNormal, SecurityException.class));
 	}
 }

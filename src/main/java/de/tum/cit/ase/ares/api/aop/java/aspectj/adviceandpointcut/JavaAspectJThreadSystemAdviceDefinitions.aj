@@ -538,6 +538,24 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	}
 
 	/**
+	 * Names a denied thread for the denial message. A lambda task is named as a
+	 * lambda requested by the student method that made the denied call; the lambda
+	 * itself may be written elsewhere. Any other thread keeps its class name. Only
+	 * the message uses this.
+	 *
+	 * @param threadClassName     the thread class name enforcement checked
+	 * @param systemMethodToCheck the student method that made the denied call
+	 * @return the thread as the message names it
+	 */
+	@Nonnull
+	private static String describeThreadTarget(@Nonnull String threadClassName, @Nonnull String systemMethodToCheck) {
+		if ("Lambda-Expression".equals(threadClassName)) {
+			return localize("security.advice.thread.lambda", systemMethodToCheck);
+		}
+		return threadClassName;
+	}
+
+	/**
 	 * Returns the class name of the Runnable task carried by a {@link Thread}, or
 	 * {@code null} when the thread has no task (an overridden {@code run()}). An
 	 * unreadable task fails closed. Lambda tasks resolve to
@@ -880,9 +898,10 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		for (String threadClassName : threadClassNames) {
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers, decrementQuota)) {
 				throw new SecurityException(localize(
-						"security.advice.illegal.thread.execution", systemMethodToCheck, localizeAction(action), threadClassName,
-						describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
-								+ " | " + buildDenialReason(noAllowRuleConfigured)));
+						"security.advice.illegal.thread.execution", systemMethodToCheck, localizeAction(action),
+						describeThreadTarget(threadClassName, systemMethodToCheck),
+						describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod),
+						buildDenialReason("thread", action, noAllowRuleConfigured)));
 			}
 		}
 		if (decrementQuota && instance instanceof Thread) {

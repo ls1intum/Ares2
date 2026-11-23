@@ -5,10 +5,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mockito;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 
+import de.tum.cit.ase.ares.api.architecture.java.archunit.TypeAnnotationDependencies;
 import de.tum.cit.ase.ares.api.localization.Messages;
 
 public class JavaArchitectureTestCaseTest {
@@ -89,10 +92,12 @@ public class JavaArchitectureTestCaseTest {
 				"Builder should throw NullPointerException if required fields are missing");
 	}
 
+	/**
+	 * Two forbidden packages imported by one class are both named, together with
+	 * that class.
+	 */
 	@Test
 	void testParseErrorMessage_withPackageImportViolation_extractsForbiddenPackages() {
-		// Test that parseErrorMessage correctly extracts forbidden packages from
-		// package import violation messages
 		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Imports forbidden packages' was violated (2 times):\n"
 				+ "Class <com.example.Test> depends on <java.io.File> in (Test.java:0)\n"
 				+ "Class <com.example.Test> depends on <java.nio.file.Path> in (Test.java:0)";
@@ -100,13 +105,41 @@ public class JavaArchitectureTestCaseTest {
 		SecurityException thrown = assertThrows(SecurityException.class,
 				() -> JavaArchitectureTestCase.parseErrorMessage(error),
 				"parseErrorMessage should throw SecurityException for package import violations");
-		// The message should contain the forbidden packages
-		assertTrue(thrown.getMessage().contains("java.io") || thrown.getMessage().contains("java.nio.file"),
-				"Exception message should include the forbidden packages from the violation");
-		assertTrue(
-				thrown.getMessage().contains("Ares Security Error")
-						|| thrown.getMessage().contains("Ares Sicherheitsfehler"),
-				"Exception message should contain Ares Security Error prefix");
+		assertEquals(Messages.localized("security.archunit.package.import.violation.plural", "com.example.Test",
+				"java.io, java.nio.file"), thrown.getMessage());
+	}
+
+	/**
+	 * An import report naming no package is passed on whole rather than as a
+	 * refusal naming a made-up package.
+	 */
+	@Test
+	void testParseErrorMessage_withPackageImportViolationNamingNoPackage_passesTheReportOn() {
+		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Imports forbidden packages' was violated (1 times):\n"
+				+ "Class <com.example.Test> depends on <Unnamed> in (Test.java:0)";
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(new AssertionError(message)));
+		assertEquals(Messages.localized("security.archunit.illegal.execution", message), thrown.getMessage());
+	}
+
+	/**
+	 * An ArchUnit array parameter, written as a JVM descriptor, is reported as a
+	 * source type, with parameters split by {@code ", "} as WALA reports them.
+	 */
+	@Test
+	void testParseErrorMessage_withArrayParameter_writesTheSourceType() {
+		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Accesses file system' was violated (1 times):\n"
+				+ "Method <com.example.Sender.send([Ljava.lang.String;, int)> "
+				+ "calls method <java.nio.file.Files.write(java.nio.file.Path, [B, [Ljava.nio.file.OpenOption;)> "
+				+ "in (Sender.java:1)";
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(new AssertionError(message)));
+		String expected = Messages.localized("security.archunit.violation.error",
+				"com.example.Sender.send(java.lang.String[], int)",
+				Messages.localized("security.archunit.action.file.system.access"),
+				"java.nio.file.Files.write(java.nio.file.Path, byte[], java.nio.file.OpenOption[])",
+				"com.example.Sender");
+		assertEquals(expected, thrown.getMessage());
 	}
 
 	/**
@@ -207,5 +240,119 @@ public class JavaArchitectureTestCaseTest {
 
 		assertTrue(written.contains("JavaArchunitSupervisedClasses.pinned(\"de.tum.cit.aet\")"),
 				"the delegate must be given the scope, or the generated file analyses nothing: " + written);
+	}
+
+	/**
+	 * Parses a violation whose first line names the file-system rule and whose
+	 * second line is the given detail, and returns the message that was thrown.
+	 */
+	private static String parseFileSystemDetail(String detail) {
+		String rule = Messages.localized("security.architecture.file.system.access");
+		String message = "Architecture Violation [Priority: MEDIUM] - Rule '" + rule + "' was violated (1 times):\n"
+				+ detail;
+		return assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(new AssertionError(message))).getMessage();
+	}
+
+	/**
+	 * Builds the message the parser is expected to throw for a file-system rule.
+	 */
+	private static String expectedFileSystemMessage(String caller, String target, String parent) {
+		return Messages.localized("security.archunit.violation.error", caller,
+				Messages.localized("security.archunit.action.file.system.access"), target, parent);
+	}
+
+	/** A marker at the very start of the message names the class between angles. */
+	@Test
+	void reportsTheClassWhoseTypeAnnotationsWereUnreadable() {
+		AssertionError error = new AssertionError(TypeAnnotationDependencies.UNREADABLE_MARKER + " <a.B>: x");
+
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error));
+
+		assertEquals(Messages.localized("security.archunit.type.annotation.unreadable", "a.B"), thrown.getMessage());
+	}
+
+	/** A marker with no opening angle leaves the class unknown. */
+	@Test
+	void reportsAnUnknownClassWhenTheMarkerHasNoOpeningAngle() {
+		AssertionError error = new AssertionError(TypeAnnotationDependencies.UNREADABLE_MARKER + " a.B: x");
+
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error));
+
+		assertEquals(Messages.localized("security.archunit.type.annotation.unreadable", "unknown class"),
+				thrown.getMessage());
+	}
+
+	/**
+	 * A marker with an opening angle but no closing one leaves the class unknown.
+	 */
+	@Test
+	void reportsAnUnknownClassWhenTheMarkerHasNoClosingAngle() {
+		AssertionError error = new AssertionError(TypeAnnotationDependencies.UNREADABLE_MARKER + " <a.B: x");
+
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(error));
+
+		assertEquals(Messages.localized("security.archunit.type.annotation.unreadable", "unknown class"),
+				thrown.getMessage());
+	}
+
+	/**
+	 * A dependency on a package without a class segment names that whole package.
+	 */
+	@Test
+	void namesAPackageWithoutAClassSegment() {
+		String rule = Messages.localized("security.architecture.package.import");
+		String message = "Architecture Violation [Priority: MEDIUM] - Rule '" + rule + "' was violated (1 times):\n"
+				+ "Class <a.B> depends on <a.b.c> in (B.java:0)";
+
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(new AssertionError(message)));
+
+		assertEquals(Messages.localized("security.archunit.package.import.violation", "a.B", "a.b.c"),
+				thrown.getMessage());
+	}
+
+	/** With no keyword before the target, the first angle names the caller. */
+	@Test
+	void takesTheCallerFromTheFirstAngleWhenNoKeywordNamesIt() {
+		String thrown = parseFileSystemDetail("<a.B.m()> calls method <x.Y.z()> in (B.java:1)");
+
+		assertEquals(expectedFileSystemMessage("a.B.m()", "x.Y.z()", "a.B"), thrown);
+	}
+
+	/** With no keyword before the target, the last angle names the target. */
+	@Test
+	void takesTheTargetFromTheLastAngleWhenNoKeywordNamesIt() {
+		String thrown = parseFileSystemDetail("Method <a.B.m()> touches <x.Y.z()> in (B.java:1)");
+
+		assertEquals(expectedFileSystemMessage("a.B.m()", "x.Y.z()", "a.B"), thrown);
+	}
+
+	/** A single angle serves as caller and as target. */
+	@Test
+	void usesASingleAngleForBothSides() {
+		String thrown = parseFileSystemDetail("touches <x.Y.z()> in (B.java:1)");
+
+		assertEquals(expectedFileSystemMessage("x.Y.z()", "x.Y.z()", "x.Y"), thrown);
+	}
+
+	/** A target found by its keyword is kept when a later angle also exists. */
+	@Test
+	void keepsTheKeywordTargetWhenTheCallerCameFromTheFallback() {
+		String thrown = parseFileSystemDetail("<a.B.m()> calls method <x.Y.z()> via <p.Q.r()> in (B.java:1)");
+
+		assertEquals(expectedFileSystemMessage("a.B.m()", "x.Y.z()", "a.B"), thrown);
+	}
+
+	/** The declaring type is cut before the parameter list, at the last dot. */
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', value = { "(x)|(x)", "(a.b)|(a.b)", "a.B.m(.x)|a.B", ".(x)|''", ".m|''" })
+	void takesTheDeclaringTypeFromBeforeTheParameterList(String caller, String expectedParent) {
+		String thrown = parseFileSystemDetail("Method <" + caller + "> calls method <x.Y.z()> in (B.java:1)");
+
+		assertEquals(expectedFileSystemMessage(caller, "x.Y.z()", expectedParent), thrown);
 	}
 }

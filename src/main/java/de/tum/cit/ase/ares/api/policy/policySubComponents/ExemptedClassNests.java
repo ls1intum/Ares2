@@ -86,7 +86,7 @@ public final class ExemptedClassNests {
 				.orElseThrow(() -> unverifiedTestClass(className, testOutputRoot, null));
 		try {
 			return new ClassFileNest(classFile).membersOf(className);
-		} catch (IOException | IllegalArgumentException malformed) {
+		} catch (IOException | MalformedClassFileException malformed) {
 			throw unverifiedTestClass(className, testOutputRoot, malformed);
 		}
 	}
@@ -169,7 +169,7 @@ public final class ExemptedClassNests {
 	public static List<String> nestMembersOf(@Nonnull String className, @Nonnull byte[] classFile) {
 		try {
 			return new ClassFileNest(classFile).membersOf(className);
-		} catch (IOException | IllegalArgumentException malformed) {
+		} catch (IOException | MalformedClassFileException malformed) {
 			LOG.warn("Ares ignores the nest of {} because its class file is not usable: {}", className,
 					malformed.getMessage());
 			return List.of();
@@ -316,6 +316,38 @@ public final class ExemptedClassNests {
 	}
 
 	/**
+	 * Raised by the class-file reader for a defect in the bytes it reads. A type of
+	 * its own lets the two callers catch exactly these defects, so a
+	 * {@link SecurityException} from Ares' own enforcement still escapes them.
+	 */
+	private static final class MalformedClassFileException extends SecurityException {
+
+		/** Serialisation version, required because the superclass is serialisable. */
+		private static final long serialVersionUID = 1L;
+
+		/**
+		 * Creates the exception with its localised message.
+		 *
+		 * @param message the localised description of the defect
+		 */
+		private MalformedClassFileException(@Nonnull String message) {
+			super(message);
+		}
+	}
+
+	/**
+	 * Builds the exception for one class-file defect from its catalogue key.
+	 *
+	 * @param key  the catalogue key of the defect
+	 * @param args the values the message names
+	 * @return the exception to throw
+	 */
+	@Nonnull
+	private static MalformedClassFileException malformed(@Nonnull String key, @Nonnull Object... args) {
+		return new MalformedClassFileException(Messages.localized(key, args));
+	}
+
+	/**
 	 * A strict reader of the parts of a class file that name its nest: the constant
 	 * pool, the declared class and the class-level attributes. It walks the whole
 	 * file before answering, so a defect anywhere yields no members.
@@ -362,7 +394,7 @@ public final class ExemptedClassNests {
 		@Nonnull
 		private List<String> membersOf(@Nonnull String className) throws IOException {
 			if (input.readInt() != 0xCAFEBABE) {
-				throw new IllegalArgumentException("not a class file");
+				throw malformed("security.policy.exempted.class.file.not.class.file");
 			}
 			input.readUnsignedShort();
 			majorVersion = input.readUnsignedShort();
@@ -371,7 +403,7 @@ public final class ExemptedClassNests {
 			input.readUnsignedShort();
 			String declared = className(input.readUnsignedShort());
 			if (!declared.equals(className)) {
-				throw new IllegalArgumentException("the file declares " + declared);
+				throw malformed("security.policy.exempted.class.file.declares.other", declared);
 			}
 			int superclass = input.readUnsignedShort();
 			if (superclass != 0) {
@@ -385,7 +417,7 @@ public final class ExemptedClassNests {
 			skipFieldsOrMethods();
 			List<String> members = readClassAttributes();
 			if (input.available() != 0) {
-				throw new IllegalArgumentException("trailing bytes");
+				throw malformed("security.policy.exempted.class.file.trailing.bytes");
 			}
 			String prefix = className + "$";
 			return members.stream().filter(member -> member.startsWith(prefix)).distinct().toList();
@@ -399,7 +431,7 @@ public final class ExemptedClassNests {
 		private void readConstantPool() throws IOException {
 			int count = input.readUnsignedShort();
 			if (count == 0) {
-				throw new IllegalArgumentException("empty constant pool");
+				throw malformed("security.policy.exempted.class.file.constant.pool.empty");
 			}
 			tags = new int[count];
 			texts = new String[count];
@@ -441,11 +473,11 @@ public final class ExemptedClassNests {
 			case 5, 6 -> {
 				input.readLong();
 				if (index + 1 >= count) {
-					throw new IllegalArgumentException("a two-slot constant ends the pool");
+					throw malformed("security.policy.exempted.class.file.two.slot.constant.at.end");
 				}
 				return index + 1;
 			}
-			default -> throw new IllegalArgumentException("unknown constant tag " + tag);
+			default -> throw malformed("security.policy.exempted.class.file.constant.tag.unknown", tag);
 			}
 			return index;
 		}
@@ -453,8 +485,8 @@ public final class ExemptedClassNests {
 		/**
 		 * Checks that every constant refers to constants of the kind it needs.
 		 *
-		 * @throws IllegalArgumentException if a reference is out of range or of the
-		 *                                  wrong kind
+		 * @throws MalformedClassFileException if a reference is out of range or of the
+		 *                                     wrong kind
 		 */
 		private void checkConstantReferences() {
 			for (int index = 1; index < tags.length; index++) {
@@ -486,13 +518,13 @@ public final class ExemptedClassNests {
 			int kind = firstReferences[index];
 			int target = secondReferences[index];
 			if (target <= 0 || target >= tags.length || !methodHandleMayReferTo(kind, tags[target])) {
-				throw new IllegalArgumentException("malformed method handle at " + index);
+				throw malformed("security.policy.exempted.class.file.method.handle.malformed", index);
 			}
 			requireTag(secondReferences[target], 12);
 			String name = text(firstReferences[secondReferences[target]]);
 			boolean constructor = "<init>".equals(name);
 			if (kind == 8 ? !constructor : kind >= 5 && (constructor || "<clinit>".equals(name))) {
-				throw new IllegalArgumentException("method handle names the wrong member at " + index);
+				throw malformed("security.policy.exempted.class.file.method.handle.wrong.member", index);
 			}
 		}
 
@@ -524,7 +556,7 @@ public final class ExemptedClassNests {
 		private void requireKnownOrUnusedSlot(int index) {
 			int tag = tags[index];
 			if (tag != 0 && tag != 1 && (tag < 3 || tag > 6)) {
-				throw new IllegalArgumentException("unknown constant tag " + tag);
+				throw malformed("security.policy.exempted.class.file.constant.tag.unknown", tag);
 			}
 		}
 
@@ -536,7 +568,7 @@ public final class ExemptedClassNests {
 		 */
 		private void requireTag(int index, int tag) {
 			if (index <= 0 || index >= tags.length || tags[index] != tag) {
-				throw new IllegalArgumentException("index " + index + " is not a constant with tag " + tag);
+				throw malformed("security.policy.exempted.class.file.constant.tag.mismatch", index, tag);
 			}
 		}
 
@@ -576,12 +608,12 @@ public final class ExemptedClassNests {
 				long length = attributeLength();
 				if ("NestMembers".equals(name)) {
 					if (members != null) {
-						throw new IllegalArgumentException("two NestMembers attributes");
+						throw malformed("security.policy.exempted.class.file.nest.members.twice");
 					}
 					members = readNestMembers(length);
 				} else if ("NestHost".equals(name)) {
 					if (nested || length != 2) {
-						throw new IllegalArgumentException("malformed NestHost");
+						throw malformed("security.policy.exempted.class.file.nest.host.malformed");
 					}
 					className(input.readUnsignedShort());
 					nested = true;
@@ -590,7 +622,7 @@ public final class ExemptedClassNests {
 				}
 			}
 			if (nested && members != null) {
-				throw new IllegalArgumentException("both NestHost and NestMembers");
+				throw malformed("security.policy.exempted.class.file.nest.host.and.members");
 			}
 			return nested || members == null ? List.of() : members;
 		}
@@ -606,7 +638,7 @@ public final class ExemptedClassNests {
 		private List<String> readNestMembers(long length) throws IOException {
 			int count = input.readUnsignedShort();
 			if (length != 2L + 2L * count) {
-				throw new IllegalArgumentException("NestMembers length does not match its entries");
+				throw malformed("security.policy.exempted.class.file.nest.members.length");
 			}
 			List<String> members = new ArrayList<>(count);
 			for (int member = 0; member < count; member++) {
@@ -625,7 +657,7 @@ public final class ExemptedClassNests {
 		private long attributeLength() throws IOException {
 			long length = Integer.toUnsignedLong(input.readInt());
 			if (length > input.available()) {
-				throw new IllegalArgumentException("an attribute runs past the end of the file");
+				throw malformed("security.policy.exempted.class.file.attribute.overrun");
 			}
 			return length;
 		}
@@ -639,11 +671,11 @@ public final class ExemptedClassNests {
 		@Nonnull
 		private String className(int index) {
 			if (index <= 0 || index >= tags.length || tags[index] != 7) {
-				throw new IllegalArgumentException("index " + index + " is not a class constant");
+				throw malformed("security.policy.exempted.class.file.class.constant.invalid", index);
 			}
 			String internal = text(classNameIndices[index]);
 			if (internal.isEmpty() || internal.startsWith("[") || internal.indexOf('.') >= 0) {
-				throw new IllegalArgumentException("malformed class name " + internal);
+				throw malformed("security.policy.exempted.class.file.class.name.malformed", internal);
 			}
 			return internal.replace('/', '.');
 		}
@@ -657,7 +689,7 @@ public final class ExemptedClassNests {
 		@Nonnull
 		private String text(int index) {
 			if (index <= 0 || index >= tags.length || tags[index] != 1) {
-				throw new IllegalArgumentException("index " + index + " is not a text constant");
+				throw malformed("security.policy.exempted.class.file.text.constant.invalid", index);
 			}
 			return texts[index];
 		}

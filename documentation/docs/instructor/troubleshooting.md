@@ -14,8 +14,35 @@ One case shows nothing: every answer passes, and nobody notices that the watchin
 [Who is who](/instructor/who-is-who)
 :::
 
-The two tables below are the fastest route: find the message you saw. The sections
-after them cover the failures that show up as wrong behaviour rather than as a message.
+The first section shows how to read an Ares error. The two tables after it are the fastest
+route: find the message you saw. The sections after them cover the failures that show up as
+wrong behaviour rather than as a message.
+
+## Reading an Ares error message
+
+When Ares stops a test, the message usually opens with a prefix that says who caused the
+problem and when. If the tests run in German, the same prefix appears in German:
+
+```text
+Ares Security Error (Reason: Student-Code; Stage: Execution): ...
+Ares Sicherheitsfehler (Grund: Student-Code; Phase: Ausführung): ...
+```
+
+- **`Reason: Student-Code`**: Ares blames the student's code. Usually it tried something the
+  policy forbids, and the test fails on purpose. Change the policy only if you want to allow
+  the operation. Some of these messages instead report something the student has to change,
+  such as a class that takes the name of a test class.
+- **`Reason: Ares-Code`**: the student is not at fault. Ares itself, the policy or the build
+  setup is wrong. Check the policy and the setup against the tables below. If both look right,
+  report a bug.
+- **`Stage: Creation`** (`Erstellung`): Ares stopped while preparing its checks, for example
+  while reading the policy.
+- **`Stage: Execution`** (`Ausführung`): Ares stopped while a test was running. No test
+  checks that a message's stage matches where Ares raised it, so treat the stage as a hint
+  rather than a certainty.
+
+The [error message template](/contributor/subsystems/package-overview#error-message-template)
+lists every part and the rules for writing a new message.
 
 ## Symptom table: setting Ares 2 up
 

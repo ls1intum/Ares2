@@ -478,6 +478,25 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
+	 * Names a denied thread for the denial message. A lambda task is named as a
+	 * lambda requested by the student method that made the denied call; the lambda
+	 * itself may be written elsewhere. Any other thread keeps its class name. Only
+	 * the message uses this.
+	 *
+	 * @param threadClassName           the thread class name enforcement checked
+	 * @param threadSystemMethodToCheck the student method that made the denied call
+	 * @return the thread as the message names it
+	 */
+	@Nonnull
+	private static String describeThreadTarget(@Nonnull String threadClassName,
+			@Nonnull String threadSystemMethodToCheck) {
+		if ("Lambda-Expression".equals(threadClassName)) {
+			return localize("security.advice.thread.lambda", threadSystemMethodToCheck);
+		}
+		return threadClassName;
+	}
+
+	/**
 	 * Returns the class name of the Runnable task carried by a {@link Thread}, or
 	 * {@code null} when the thread has no task (an overridden {@code run()}). An
 	 * unreadable task fails closed. Lambda tasks resolve to
@@ -746,7 +765,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		// for process I/O handling. These threads should not be blocked by the Thread
 		// subsystem
 		// because the Command/Execute subsystem will check these operations.
-		if (isThreadCreationFromCommandExecution() || isThreadCreationFromAresTimeout(restrictedPackage)) {
+		if (isThreadCreationFromCommandExecution() || isThreadCreationFromAresTimeout(restrictedPackage)
+				|| isJdkShellFolderHandOffWithoutStudentCode()) {
 			return;
 		}
 		// </editor-fold>
@@ -809,9 +829,10 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), threadClassAllowedToBeCreated,
 					threadNumberAllowedToBeCreated, decrementQuota)) {
 				throw new SecurityException(localize("security.advice.illegal.thread.execution",
-						threadSystemMethodToCheck, localizeAction(action), threadClassName,
-						fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-								+ buildDenialReason(noAllowRuleConfigured)));
+						threadSystemMethodToCheck, localizeAction(action),
+						describeThreadTarget(threadClassName, threadSystemMethodToCheck),
+						describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+						buildDenialReason("thread", action, noAllowRuleConfigured)));
 			}
 		}
 		if (decrementQuota && instance instanceof Thread) {

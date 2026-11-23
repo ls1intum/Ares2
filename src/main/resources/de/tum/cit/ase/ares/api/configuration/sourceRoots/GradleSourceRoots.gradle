@@ -1,0 +1,180 @@
+// Ares source-root report, version 1. Apply from the exercise build when tests
+// run without a security policy.
+//
+// Without a policy, Ares exempts the test classes it finds in the test source
+// folders. This snippet tells each test run which folders Gradle really compiles
+// and runs, after all configuration, so Ares does not have to guess them from the
+// build file. Where Gradle cannot say so exactly, the report names the problem and
+// Ares refuses a run without a policy. The snippet never fails a task itself.
+//
+// The build descriptor, the settings and init scripts, the plugins, the Gradle
+// command line and the environment are trusted instructor configuration. This is
+// no defence against someone who edits them.
+//
+// Every Test task of the project runs every time once this is applied: it is
+// never up to date and never taken from the build cache. Apply it to every project
+// whose tests run Ares; it covers only the project it is applied to.
+import java.nio.charset.StandardCharsets
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.tasks.testing.Test
+
+/**
+ * The JVM properties one Test task hands its workers: the source and output
+ * folders of main and of the source set the task runs, or the reason Gradle
+ * cannot name them. Checked when each worker starts, after compilation.
+ */
+abstract class AresSourceRootArguments implements CommandLineArgumentProvider {
+    /** The project directory, which Ares compares with the project it checks. */
+    @Input abstract Property<String> getProjectDirectory()
+
+    /** The repository modules the task's source set resolves, as id|file. */
+    @Internal abstract ListProperty<String> getModules()
+
+    /** For every source set: its name, outputs, source folders and compiler input. */
+    @Internal abstract ListProperty<Object> getSets()
+
+    /** The class folders the task runs as tests. */
+    @Internal abstract ConfigurableFileCollection getRunsClasses()
+
+    /** The task's class path. */
+    @Internal abstract ConfigurableFileCollection getRuntime()
+
+    /** A value as the report writes it, percent-encoded so commas stay inside it. */
+    static String encode(String value) {
+        URLEncoder.encode(value, StandardCharsets.UTF_8)
+    }
+
+    /** A file's canonical path, which every comparison here uses. */
+    static String canonical(File file) {
+        file.canonicalFile.path
+    }
+
+    /** The Java files under the folders that exist. */
+    static Set<String> javaFilesUnder(Collection<File> roots) {
+        def found = [] as Set
+        roots.findAll { it.isDirectory() }.each { root ->
+            root.eachFileRecurse { if (it.isFile() && it.name.endsWith('.java')) found << canonical(it) }
+        }
+        found
+    }
+
+    /** Whether a folder holds a class file anywhere below it. */
+    static boolean holdsClassFiles(File folder) {
+        if (!folder.isDirectory()) {
+            return false
+        }
+        def any = false
+        folder.eachFileRecurse { if (it.isFile() && it.name.endsWith('.class')) any = true }
+        any
+    }
+
+    /** The properties, each as -Dname=value. */
+    @Override
+    Iterable<String> asArguments() {
+        def head = ['ares.gradle.sourceRoots.version=1', 'ares.gradle.projectDir=' + encode(projectDirectory.get())]
+        def report = reportOrProblem()
+        def lines = head + (report instanceof CharSequence
+                ? ['ares.gradle.sourceRoots.problem=' + encode(report.toString())] : report)
+        lines.collect { '-D' + it }
+    }
+
+    /**
+     * The folders, or the first reason they cannot be named: the task runs other
+     * than one non-main Java output; main or that set keeps classes elsewhere or
+     * compiles other than the Java files in its folders; or the class path holds
+     * anything but their outputs and repository modules of that set.
+     */
+    Object reportOrProblem() {
+        def sets = sets.get()
+        def runs = runsClasses.files.collect { canonical(it) } as Set
+        def owners = sets.findAll { runs == ([canonical(it.output.get().asFile)] as Set) }
+        if (owners.size() != 1) {
+            return "this task runs ${runs.size()} class folder(s), not the Java output of exactly one source set"
+        }
+        def test = owners[0]
+        if (test.name == 'main') {
+            return 'this task runs the main output as tests'
+        }
+        def main = sets.find { it.name == 'main' }
+        if (main == null) {
+            return 'this project has no main source set'
+        }
+        for (set in [main, test]) {
+            def output = canonical(set.output.get().asFile)
+            if ((set.classes.files.collect { canonical(it) } as Set) != ([output] as Set)) {
+                return "${set.name} keeps classes outside its Java output"
+            }
+            if (canonical(set.compileOutput.get().asFile) != output) {
+                return "${set.name} is compiled into another folder than its Java output"
+            }
+            def compiled = set.compiled.get().files.findAll { it.name.endsWith('.java') }
+                    .collect { canonical(it) } as Set
+            if (compiled != javaFilesUnder(set.roots.files)) {
+                return "the compiler of ${set.name} does not read exactly the Java files in its source folders"
+            }
+        }
+        def allowedClasses = [main, test].collect { canonical(it.output.get().asFile) } as Set
+        def allowedResources = [main, test].collect { it.resources.getOrNull() }.findAll { it != null }
+                .collect { canonical(it) } as Set
+        def provenance = modules.get()
+        if (provenance.any { it.startsWith('!') }) {
+            return 'the dependencies of the test set cannot be resolved'
+        }
+        def moduleFiles = provenance.collect { it.substring(it.indexOf('|') + 1) } as Set
+        for (entry in runtime.files) {
+            def path = canonical(entry)
+            if (allowedClasses.contains(path) || allowedResources.contains(path) && !holdsClassFiles(entry)) {
+                continue
+            }
+            if (!(entry.isFile() && moduleFiles.contains(path))) {
+                return 'this task puts something on its class path that is neither main, the test set, ' +
+                        'nor a module the test set resolves from a repository'
+            }
+        }
+        def roots = { set -> set.roots.files.collect { encode(it.absolutePath) }.sort().join(',') }
+        ['ares.gradle.testSet=' + encode(test.name),
+         'ares.gradle.testSourceRoots=' + roots(test),
+         'ares.gradle.testOutputRoot=' + encode(test.output.get().asFile.absolutePath),
+         'ares.gradle.mainSourceRoots=' + roots(main),
+         'ares.gradle.mainOutputRoot=' + encode(main.output.get().asFile.absolutePath)]
+    }
+}
+
+/** Every source set as the report reads it, resolved after all configuration. */
+def aresSourceSets = providers.provider {
+    sourceSets.collect { set ->
+        [name         : set.name,
+         output       : set.java.destinationDirectory,
+         compileOutput: tasks.named(set.compileJavaTaskName).flatMap { it.destinationDirectory },
+         classes      : set.output.classesDirs,
+         resources    : providers.provider { set.output.resourcesDir },
+         roots        : set.java.sourceDirectories,
+         compiled     : tasks.named(set.compileJavaTaskName).map { it.source }]
+    }
+}
+
+tasks.withType(Test).configureEach { Test testTask ->
+    def arguments = objects.newInstance(AresSourceRootArguments)
+    arguments.projectDirectory.set(projectDir.absolutePath)
+    arguments.sets.set(aresSourceSets)
+    arguments.modules.set(providers.provider {
+        try {
+            def runs = testTask.testClassesDirs.files.collect { it.canonicalPath } as Set
+            def owner = sourceSets.find { runs == ([it.java.destinationDirectory.get().asFile.canonicalPath] as Set) }
+            if (owner == null) {
+                return []
+            }
+            configurations.getByName(owner.runtimeClasspathConfigurationName).incoming
+                    .artifactView { it.lenient(true) }.artifacts.artifacts
+                    .findAll { it.id.componentIdentifier instanceof ModuleComponentIdentifier }
+                    .collect { it.id.componentIdentifier.displayName + '|' + it.file.canonicalPath }.sort()
+        } catch (Exception unresolvable) {
+            ['!' + unresolvable.class.name]
+        }
+    })
+    arguments.runsClasses.from(providers.provider { testTask.testClassesDirs })
+    arguments.runtime.from(providers.provider { testTask.classpath })
+    testTask.jvmArgumentProviders.add(arguments)
+    testTask.outputs.upToDateWhen { false }
+    testTask.outputs.cacheIf { false }
+}

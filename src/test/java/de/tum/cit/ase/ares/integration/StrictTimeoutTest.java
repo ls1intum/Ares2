@@ -5,7 +5,6 @@ import static de.tum.cit.ase.ares.testutilities.CustomConditions.finishedSuccess
 import static org.junit.platform.testkit.engine.EventConditions.*;
 
 import org.junit.platform.testkit.engine.Events;
-import org.opentest4j.AssertionFailedError;
 
 import de.tum.cit.ase.ares.integration.testuser.StrictTimeoutUser;
 import de.tum.cit.ase.ares.testutilities.TestTest;
@@ -29,12 +28,12 @@ class StrictTimeoutTest {
 
 	@TestTest
 	void test_testClassFailLoop() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testClassFailLoop, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testClassFailLoop, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testClassFailNormal() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testClassFailNormal, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testClassFailNormal, SecurityException.class));
 	}
 
 	@TestTest
@@ -44,12 +43,12 @@ class StrictTimeoutTest {
 
 	@TestTest
 	void test_testMethodFailLoop() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testMethodFailLoop, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testMethodFailLoop, SecurityException.class));
 	}
 
 	@TestTest
 	void test_testMethodFailNormal() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testMethodFailNormal, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testMethodFailNormal, SecurityException.class));
 	}
 
 	@TestTest
@@ -59,7 +58,7 @@ class StrictTimeoutTest {
 
 	@TestTest
 	void test_testOneSecondFail() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(testOneSecondFail, AssertionFailedError.class));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(testOneSecondFail, SecurityException.class));
 	}
 
 	@TestTest

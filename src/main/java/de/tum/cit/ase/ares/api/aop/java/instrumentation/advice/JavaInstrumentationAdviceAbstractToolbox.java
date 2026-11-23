@@ -10,9 +10,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -46,11 +49,68 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * A stack walker that also reports each frame's class, so a trusted-looking
 	 * frame can be checked for having been loaded by the JVM itself. Kept apart
 	 * from {@link #STACK_WALKER} because this is slower and needed only for the
-	 * random-seed and temp-file exemptions.
+	 * random-seed, temp-file and Windows shell-folder exemptions.
 	 */
 	@Nonnull
 	private static final StackWalker STACK_WALKER_WITH_CLASS_REFERENCE = StackWalker
 			.getInstance(Set.of(StackWalker.Option.RETAIN_CLASS_REFERENCE));
+
+	/**
+	 * The feature release of the running JDK, such as 21, read once at start-up.
+	 */
+	private static final int RUNNING_FEATURE_RELEASE = Runtime.version().feature();
+
+	/**
+	 * The JDK feature releases whose Windows shell-folder code was audited for the
+	 * hand-off exemption, together with {@link #AUDITED_SHELL_FOLDER_PRODUCERS}.
+	 */
+	@Nonnull
+	private static final Set<Integer> SHELL_FOLDER_AUDITED_FEATURE_RELEASES = Set.of(17, 21, 25);
+
+	/**
+	 * The JDK's private executor that runs Windows shell-folder tasks on its own
+	 * COM thread and waits for the result.
+	 */
+	@Nonnull
+	private static final String SHELL_FOLDER_COM_INVOKER = "sun.awt.shell.Win32ShellFolderManager2$ComInvoker";
+
+	/**
+	 * The JDK class whose {@code invoke} methods pass a shell-folder task on to
+	 * {@link #SHELL_FOLDER_COM_INVOKER}.
+	 */
+	@Nonnull
+	private static final String SHELL_FOLDER = "sun.awt.shell.ShellFolder";
+
+	/**
+	 * The JDK's Windows shell-folder class, which builds the tasks handed to the
+	 * COM thread.
+	 */
+	@Nonnull
+	private static final String WIN32_SHELL_FOLDER = "sun.awt.shell.Win32ShellFolder2";
+
+	/**
+	 * The methods of {@link #WIN32_SHELL_FOLDER} whose tasks were audited to use
+	 * only JDK objects, strings and numbers. The sorting methods are left out on
+	 * purpose: their tasks call methods of files a student can hand in.
+	 */
+	@Nonnull
+	private static final Set<String> AUDITED_SHELL_FOLDER_PRODUCERS = Set.of("<init>", "getFileSystemPath",
+			"parseDisplayName", "createShellFolder", "getIShellFolder", "hasAttribute", "pidlsEqual", "listFiles",
+			"getChildByPath", "getLinkLocation", "getLibraries");
+
+	/**
+	 * The JDK class whose file methods in {@link #CHECKED_FILE_SYSTEM_VIEW_ENTRIES}
+	 * Ares already checks as a read of their folder.
+	 */
+	@Nonnull
+	private static final String FILE_SYSTEM_VIEW = "javax.swing.filechooser.FileSystemView";
+
+	/**
+	 * The methods of {@link #FILE_SYSTEM_VIEW} whose folder argument Ares checks
+	 * before the JDK reaches its shell folders.
+	 */
+	@Nonnull
+	private static final Set<String> CHECKED_FILE_SYSTEM_VIEW_ENTRIES = Set.of("getFiles", "getChild", "isParent");
 
 	/**
 	 * Lazily resolved Class&lt;?&gt; reference for the AOP settings holder, cached
@@ -65,6 +125,26 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 */
 	@Nonnull
 	private static final ConcurrentHashMap<String, Field> SETTINGS_FIELD_CACHE = new ConcurrentHashMap<>();
+
+	/**
+	 * The policy rule lists of each resource type that has more than one action,
+	 * read only to choose the reason a denial message gives. Commands and threads
+	 * are missing on purpose because each has one rule list.
+	 */
+	@Nonnull
+	private static final Map<String, List<String>> RULE_SETTINGS_BY_RESOURCE_TYPE = Map.of("file",
+			List.of("pathsAllowedToBeRead", "pathsAllowedToBeOverwritten", "pathsAllowedToBeCreated",
+					"pathsAllowedToBeExecuted", "pathsAllowedToBeDeleted"),
+			"network",
+			List.of("hostsAllowedToBeConnectedTo", "hostsAllowedToBeSentTo", "hostsAllowedToBeReceivedFrom"));
+
+	/**
+	 * The primitive element types of JVM array names, such as {@code I} in
+	 * {@code [I}, mapped to their Java source names for denial messages.
+	 */
+	@Nonnull
+	private static final Map<String, String> PRIMITIVE_DESCRIPTORS = Map.of("Z", "boolean", "B", "byte", "C", "char",
+			"S", "short", "I", "int", "J", "long", "F", "float", "D", "double");
 
 	/**
 	 * Single canonical settings lock, cached once so every caller synchronises on
@@ -306,23 +386,104 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
-	 * Returns a human-readable denial reason that explains why a resource access
-	 * was blocked, distinguishing between "no allow rule configured at all" and "an
-	 * allow rule exists but does not permit this access".
+	 * Says why an access was denied, as a lower-case clause in the active language
+	 * that the denial sentence ends with. It tells apart three cases: the policy
+	 * has no rule of this resource type at all, it has rules of this type but none
+	 * for this action, or it has a rule for this action that does not cover the
+	 * target. Only the message uses this; the decision is already made.
 	 *
-	 * @param noAllowRuleConfigured {@code true} if no allow rule was configured for
-	 *                              the resource type at all; {@code false} if a
-	 *                              rule exists but does not permit this particular
-	 *                              access
-	 * @return a non-null reason string suitable for appending to SecurityException
-	 *         messages
+	 * @param resourceType         {@code file}, {@code command}, {@code network} or
+	 *                             {@code thread}
+	 * @param action               the raw action name that was checked
+	 * @param noAllowRuleForAction {@code true} if the policy allows this action for
+	 *                             no target at all
+	 * @return the reason clause, without a final full stop
 	 */
 	@Nonnull
-	static String buildDenialReason(boolean noAllowRuleConfigured) {
-		if (noAllowRuleConfigured) {
-			return localize("security.advice.denial.reason.no.allowlist");
+	static String buildDenialReason(@Nonnull String resourceType, @Nonnull String action,
+			boolean noAllowRuleForAction) {
+		if (!noAllowRuleForAction) {
+			return localize("security.advice.denial.reason.target.not.allowed." + resourceType);
 		}
-		return localize("security.advice.denial.reason.not.in.allowlist");
+		if (hasAnyRuleForResourceType(resourceType)) {
+			return localize("security.advice.denial.reason.no.action.rule." + resourceType, localizeAction(action));
+		}
+		return localize("security.advice.denial.reason.no.rule." + resourceType);
+	}
+
+	/**
+	 * Tells whether the policy allows any action at all for a resource type that
+	 * has more than one action, files and network access. Commands and threads have
+	 * one rule list each, so for them this is always {@code false}, which makes "no
+	 * rule for this action" read as "no rule for this type".
+	 *
+	 * @param resourceType the resource type of the denied access
+	 * @return {@code true} if at least one rule list of that type is not empty
+	 */
+	private static boolean hasAnyRuleForResourceType(@Nonnull String resourceType) {
+		for (@Nonnull
+		String settingsField : RULE_SETTINGS_BY_RESOURCE_TYPE.getOrDefault(resourceType, List.of())) {
+			@Nullable
+			String[] rules = getValueFromSettings(settingsField);
+			if (rules != null && rules.length > 0) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Writes a method signature for a denial message as Java source would: array
+	 * types such as {@code [Ljava.lang.String;} become {@code java.lang.String[]},
+	 * and the parameter types are separated by a comma and one space. A text with
+	 * no parameter list is returned unchanged. Only the message uses this.
+	 *
+	 * @param signature the signature as the advice sees it
+	 * @return the signature in Java source notation
+	 */
+	@Nonnull
+	static String describeSignature(@Nonnull String signature) {
+		int open = signature.indexOf('(');
+		int close = signature.lastIndexOf(')');
+		if (open < 0 || close < open) {
+			return signature;
+		}
+		@Nonnull
+		String parameters = signature.substring(open + 1, close);
+		@Nonnull
+		StringJoiner sourceParameters = new StringJoiner(", ");
+		if (!parameters.isBlank()) {
+			for (@Nonnull
+			String parameter : parameters.split(",")) {
+				sourceParameters.add(describeTypeName(parameter.trim()));
+			}
+		}
+		return signature.substring(0, open + 1) + sourceParameters + signature.substring(close);
+	}
+
+	/**
+	 * Writes one type name as Java source would, turning a JVM array name such as
+	 * {@code [[I} into {@code int[][]}. Any other name is returned unchanged.
+	 *
+	 * @param typeName the type name as {@link Class#getName()} returns it
+	 * @return the type name in Java source notation
+	 */
+	@Nonnull
+	static String describeTypeName(@Nonnull String typeName) {
+		int dimensions = 0;
+		while (dimensions < typeName.length() && typeName.charAt(dimensions) == '[') {
+			dimensions++;
+		}
+		if (dimensions == 0) {
+			return typeName;
+		}
+		@Nonnull
+		String element = typeName.substring(dimensions);
+		@Nullable
+		String elementType = element.length() > 2 && element.charAt(0) == 'L' && element.endsWith(";")
+				? element.substring(1, element.length() - 1)
+				: PRIMITIVE_DESCRIPTORS.get(element);
+		return elementType == null ? typeName : elementType + "[]".repeat(dimensions);
 	}
 
 	/**
@@ -440,6 +601,96 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			}
 			return Boolean.FALSE;
 		});
+	}
+
+	/**
+	 * Tells whether the JDK on Windows is handing one of its own shell-folder tasks
+	 * to its COM thread, for a {@code FileSystemView} method Ares already checks as
+	 * a file read, with only JDK code on the way. The thread check lets exactly
+	 * that hand-off pass, because the student starts no thread of their own.
+	 *
+	 * @return {@code true} for such a hand-off
+	 */
+	static boolean isJdkShellFolderHandOffWithoutStudentCode() {
+		return STACK_WALKER_WITH_CLASS_REFERENCE
+				.walk(frames -> Boolean.valueOf(isJdkShellFolderHandOff(frames.iterator(), RUNNING_FEATURE_RELEASE)));
+	}
+
+	/**
+	 * Reads a call stack, newest frame first, as that hand-off: JDK frames to
+	 * {@code ComInvoker.invoke}, then {@code ShellFolder.invoke}, one audited
+	 * {@code Win32ShellFolder2} method and JDK frames to a checked
+	 * {@code FileSystemView} method. A frame before it that the JVM did not load
+	 * itself means {@code false}.
+	 *
+	 * @param frames         the stack, newest first
+	 * @param featureRelease the JDK's feature release
+	 * @return {@code true} for exactly that shape
+	 */
+	static boolean isJdkShellFolderHandOff(@Nonnull Iterator<StackWalker.StackFrame> frames, int featureRelease) {
+		if (!SHELL_FOLDER_AUDITED_FEATURE_RELEASES.contains(featureRelease)
+				|| nextJvmFrameMatching(frames, frame -> isMethod(frame, SHELL_FOLDER_COM_INVOKER, "invoke")) == null) {
+			return false;
+		}
+		StackWalker.StackFrame forwarder = nextJvmFrame(frames);
+		if (forwarder == null || !isMethod(forwarder, SHELL_FOLDER, "invoke")) {
+			return false;
+		}
+		StackWalker.StackFrame producer = nextJvmFrameMatching(frames,
+				frame -> !isMethod(frame, SHELL_FOLDER, "invoke"));
+		if (producer == null || !WIN32_SHELL_FOLDER.equals(producer.getClassName())
+				|| !AUDITED_SHELL_FOLDER_PRODUCERS.contains(producer.getMethodName())) {
+			return false;
+		}
+		return nextJvmFrameMatching(frames, frame -> FILE_SYSTEM_VIEW.equals(frame.getClassName())
+				&& CHECKED_FILE_SYSTEM_VIEW_ENTRIES.contains(frame.getMethodName())) != null;
+	}
+
+	/**
+	 * Takes the next frame of a call stack if the JVM itself loaded its class.
+	 *
+	 * @param frames the rest of the call stack
+	 * @return that frame, or {@code null} at the end of the stack or for a frame of
+	 *         any other class loader
+	 */
+	@Nullable
+	private static StackWalker.StackFrame nextJvmFrame(@Nonnull Iterator<StackWalker.StackFrame> frames) {
+		if (!frames.hasNext()) {
+			return null;
+		}
+		StackWalker.StackFrame frame = frames.next();
+		return frame.getDeclaringClass().getClassLoader() == null ? frame : null;
+	}
+
+	/**
+	 * Takes frames loaded by the JVM itself until one is wanted.
+	 *
+	 * @param frames the rest of the call stack
+	 * @param wanted the frame to stop at
+	 * @return the wanted frame, or {@code null} if the stack ends or a frame of
+	 *         another class loader comes first
+	 */
+	@Nullable
+	private static StackWalker.StackFrame nextJvmFrameMatching(@Nonnull Iterator<StackWalker.StackFrame> frames,
+			@Nonnull Predicate<StackWalker.StackFrame> wanted) {
+		StackWalker.StackFrame frame = nextJvmFrame(frames);
+		while (frame != null && !wanted.test(frame)) {
+			frame = nextJvmFrame(frames);
+		}
+		return frame;
+	}
+
+	/**
+	 * Tells whether a frame runs a given method of a given class.
+	 *
+	 * @param frame      the frame
+	 * @param className  the class, by its binary name
+	 * @param methodName the method
+	 * @return {@code true} for exactly that method
+	 */
+	private static boolean isMethod(@Nonnull StackWalker.StackFrame frame, @Nonnull String className,
+			@Nonnull String methodName) {
+		return className.equals(frame.getClassName()) && methodName.equals(frame.getMethodName());
 	}
 
 	/**
@@ -746,9 +997,9 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 		// cannot be spoofed.
 		if (loader != null && loader != ClassLoader.getPlatformClassLoader()) {
 			throw new SecurityException(
-					"Ares Security Error (Reason: Student-Code; Stage: Execution): Ares cannot safely inspect an"
-							+ " argument of untrusted type " + value.getClass().getName()
-							+ " (not a JDK type) but was blocked by Ares.");
+					"Ares Security Error (Reason: Student-Code; Stage: Execution): The supervised code passed an"
+							+ " argument of the type " + describeTypeName(value.getClass().getName())
+							+ ", which is not a JDK type, so Ares cannot inspect it safely and blocked the call.");
 		}
 	}
 

@@ -3,9 +3,19 @@ package de.tum.cit.ase.ares.api.policy.policySubComponents;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Verifies how {@link CommandPermission} binds from a policy file.
@@ -16,8 +26,10 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
  * <p>
  * These tests use a bare mapper, one layer below
  * {@code SecurityPolicyYAMLReader}, which checks the schema first. What the
- * schema rejects, such as a numeric argument, is covered by
- * {@code SecurityPolicyStrictSchemaTest}.
+ * schema rejects, such as a numeric argument, is covered through the reader by
+ * {@code SecurityPolicyStrictSchemaTest}. The deprecated {@code fromJson} is
+ * also called directly here with malformed nodes, a numeric argument among
+ * them, to check its own refusals.
  */
 class CommandPermissionTest {
 
@@ -77,6 +89,42 @@ class CommandPermissionTest {
 		assertThatThrownBy(() -> CommandPermission.fromJson(new YAMLMapper().readTree("[git]")))
 				.isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> CommandPermission.fromJson(null)).isInstanceOf(IllegalArgumentException.class);
+	}
+
+	/**
+	 * Gives each malformed command node together with the message key of the
+	 * refusal it must cause.
+	 */
+	private static Stream<Arguments> malformedCommandNodes() throws Exception {
+		YAMLMapper mapper = new YAMLMapper();
+		return Stream.of(Arguments.of(NullNode.getInstance(), "policy.permission.command.blank"),
+				Arguments.of(TextNode.valueOf(" "), "policy.permission.command.blank"),
+				Arguments.of(mapper.readTree("[git]"), "policy.permission.command.blank"),
+				Arguments.of(mapper.readTree("{executeTheCommand: \" \", withTheseArguments: status}"),
+						"policy.permission.command.blank"),
+				Arguments.of(mapper.readTree("{executeTheCommand: git, somethingElse: []}"),
+						"policy.permission.command.mapping.fields"),
+				Arguments.of(mapper.readTree("{somethingElse: git, withTheseArguments: []}"),
+						"policy.permission.command.mapping.fields"),
+				Arguments.of(mapper.readTree("{executeTheCommand: 5, withTheseArguments: []}"),
+						"policy.permission.command.blank"),
+				Arguments.of(mapper.readTree("{executeTheCommand: git, withTheseArguments: status}"),
+						"policy.permission.command.arguments.array"),
+				Arguments.of(mapper.readTree("{executeTheCommand: git, withTheseArguments: [5]}"),
+						"policy.permission.command.arguments.strings"));
+	}
+
+	/**
+	 * Checks that fromJson refuses each malformed command node itself, with the
+	 * message for that mistake. The schema check normally catches these first, so
+	 * this covers the layer below it.
+	 */
+	@ParameterizedTest
+	@MethodSource("malformedCommandNodes")
+	@SuppressWarnings("removal")
+	void fromJsonRefusesEachMalformedNodeItself(JsonNode node, String messageKey) {
+		assertThatThrownBy(() -> CommandPermission.fromJson(node)).isInstanceOf(IllegalArgumentException.class)
+				.hasMessage(Messages.localized(messageKey));
 	}
 
 	/**

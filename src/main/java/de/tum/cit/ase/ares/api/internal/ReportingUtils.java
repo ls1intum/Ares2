@@ -39,22 +39,28 @@ public final class ReportingUtils {
 		}
 	}
 
+	/**
+	 * Turns a failure into what the report shows. A hidden test shows only a fixed
+	 * text, also for an internal Ares fault, which is always logged. Otherwise an
+	 * internal fault shows a fixed text asking to contact the instructor. Both are
+	 * a new prefixed {@link SecurityException} without the original. Any other
+	 * failure is cleaned, or replaced by the instructor text under privileged-only
+	 * reporting.
+	 *
+	 * @param t       the failure the test threw
+	 * @param context the context of the test
+	 * @return the failure to report
+	 */
 	public static Throwable processThrowable(Throwable t, TestContext context) {
 		boolean aresInternalError = isAresInternalError(t);
-		// Always surface genuine framework faults to instructors via the server log,
-		// even when the failure occurs inside a hidden test.
 		if (aresInternalError) {
 			LOG.error("Ares internal error during test execution", t); //$NON-NLS-1$
-			// Hidden tests must never reveal why they failed, so their uniform message
-			// takes
-			// precedence over the more specific internal-error message for the student
-			// view.
 		}
 		if (context.findTestType().orElse(null) == TestType.HIDDEN) {
-			return new AssertionError(localized("test_guard.hidden_test_failed")); //$NON-NLS-1$
+			return new SecurityException(localized("test_guard.hidden_test_failed")); //$NON-NLS-1$
 		}
 		if (aresInternalError) {
-			return new AssertionError(localized("reporting.ares_internal_error")); //$NON-NLS-1$
+			return new SecurityException(localized("reporting.ares_internal_error")); //$NON-NLS-1$
 		}
 		Optional<String> nonprivilegedFailureMessage = ConfigurationUtils.getNonprivilegedFailureMessage(context);
 		if (nonprivilegedFailureMessage.isPresent()) {

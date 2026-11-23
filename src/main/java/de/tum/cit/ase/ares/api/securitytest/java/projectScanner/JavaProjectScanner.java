@@ -163,22 +163,37 @@ public class JavaProjectScanner implements ProjectScanner {
 		return List.of();
 	}
 
+	/**
+	 * Lists every Java source file below the given roots, sorted per root.
+	 *
+	 * @param roots the source roots to walk
+	 * @return the Java source files
+	 * @throws SecurityException if a root cannot be read or walked
+	 */
 	private List<Path> javaFiles(List<Path> roots) {
 		List<Path> files = new ArrayList<>();
 		for (Path root : roots) {
 			if (!Files.isDirectory(root) || !Files.isReadable(root)) {
-				throw new IllegalStateException("Unreadable Java source root: " + root);
+				throw new SecurityException(Messages.localized("security.scanner.source.root.unreadable", root));
 			}
 			try (Stream<Path> stream = Files.walk(root)) {
 				stream.filter(Files::isRegularFile).filter(path -> path.toString().endsWith(".java")).sorted()
 						.forEach(files::add);
 			} catch (IOException exception) {
-				throw new IllegalStateException("Cannot scan Java source root: " + root, exception);
+				throw new SecurityException(Messages.localized("security.scanner.source.root.scan.failed", root),
+						exception);
 			}
 		}
 		return List.copyOf(files);
 	}
 
+	/**
+	 * Parses one Java source file.
+	 *
+	 * @param file the source file
+	 * @return its compilation unit
+	 * @throws SecurityException if the file cannot be read or parsed
+	 */
 	private CompilationUnit parse(Path file) {
 		try {
 			var result = parser.parse(file);
@@ -187,7 +202,8 @@ public class JavaProjectScanner implements ProjectScanner {
 			}
 			return result.getResult().orElseThrow(() -> new ParseProblemException(result.getProblems()));
 		} catch (IOException | ParseProblemException exception) {
-			throw new IllegalStateException("Cannot parse Java source file: " + file, exception);
+			throw new SecurityException(Messages.localized("security.scanner.source.file.parse.failed", file),
+					exception);
 		}
 	}
 

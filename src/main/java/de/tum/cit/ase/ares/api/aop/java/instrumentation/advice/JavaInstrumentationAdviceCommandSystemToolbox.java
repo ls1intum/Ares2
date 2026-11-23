@@ -628,6 +628,19 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 	}
 
 	/**
+	 * Puts a denied command in double quotes for the denial message, so a command
+	 * with spaces such as {@code echo hi} reads as one thing. Only the message uses
+	 * this.
+	 *
+	 * @param command the denied command as shown to the reader
+	 * @return the command in double quotes
+	 */
+	@Nonnull
+	private static String quoteCommand(@Nonnull String command) {
+		return "\"" + command + "\"";
+	}
+
+	/**
 	 * Checks an array of observedVariables against the allowed commands whitelist.
 	 * <p>
 	 * Description: Iterates through the filtered observedVariables (excluding those
@@ -790,10 +803,11 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughParameter != null) {
-			throw new SecurityException(localize("security.advice.illegal.command.execution",
-					commandSystemMethodToCheck, localizeAction(action), commandIllegallyExecutedThroughParameter,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+			throw new SecurityException(
+					localize("security.advice.illegal.command.execution", commandSystemMethodToCheck,
+							localizeAction(action), quoteCommand(commandIllegallyExecutedThroughParameter),
+							describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+							buildDenialReason("command", action, noAllowRuleConfigured)));
 		}
 		@Nullable
 		String pathIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null
@@ -809,8 +823,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// generic "no allow rule configured" reason.
 			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
 					localizeAction(action), pathIllegallyExecutedThroughParameter,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
+					describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+					localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -820,10 +834,11 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 						COMMAND_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
 								IgnoreValues.NONE));
 		if (commandIllegallyExecutedThroughAttribute != null) {
-			throw new SecurityException(localize("security.advice.illegal.command.execution",
-					commandSystemMethodToCheck, localizeAction(action), commandIllegallyExecutedThroughAttribute,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+			throw new SecurityException(
+					localize("security.advice.illegal.command.execution", commandSystemMethodToCheck,
+							localizeAction(action), quoteCommand(commandIllegallyExecutedThroughAttribute),
+							describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+							buildDenialReason("command", action, noAllowRuleConfigured)));
 		}
 		@Nullable
 		String pathIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null
@@ -839,8 +854,8 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 			// generic "no allow rule configured" reason.
 			throw new SecurityException(localize("security.advice.illegal.file.execution", commandSystemMethodToCheck,
 					localizeAction(action), pathIllegallyExecutedThroughAttribute,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ localize("security.advice.denial.reason.command.executable.path.not.allowed")));
+					describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+					localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
 	}

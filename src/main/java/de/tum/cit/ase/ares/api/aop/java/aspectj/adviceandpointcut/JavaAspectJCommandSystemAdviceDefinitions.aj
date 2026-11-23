@@ -679,6 +679,19 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		}
 		return null;
 	}
+
+	/**
+	 * Puts a denied command in double quotes for the denial message, so a command
+	 * with spaces such as {@code echo hi} reads as one thing. Only the message uses
+	 * this.
+	 *
+	 * @param command the denied command as shown to the reader
+	 * @return the command in double quotes
+	 */
+	@Nonnull
+	private static String quoteCommand(@Nonnull String command) {
+		return "\"" + command + "\"";
+	}
 	// </editor-fold>
 
 	// </editor-fold>
@@ -813,8 +826,8 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		if (criticalCommandFieldUnreadable) {
 			throw new SecurityException(localize(
 					"security.advice.illegal.command.execution", commandSystemMethodToCheck, localizeAction(action), "<unknown>",
-					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
-							+ " | " + buildDenialReason(noAllowRuleConfigured)));
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod),
+					buildDenialReason("command", action, noAllowRuleConfigured)));
 		}
 		// <editor-fold desc="Check parameters">
 		@Nullable
@@ -825,9 +838,9 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		if (commandIllegallyExecutedThroughParameter != null) {
 			throw new SecurityException(localize(
 					"security.advice.illegal.command.execution", commandSystemMethodToCheck, localizeAction(action),
-					commandIllegallyExecutedThroughParameter,
-					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
-							+ " | " + buildDenialReason(noAllowRuleConfigured)));
+					quoteCommand(commandIllegallyExecutedThroughParameter),
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod),
+					buildDenialReason("command", action, noAllowRuleConfigured)));
 		}
 		@Nullable
 		String pathIllegallyExecutedThroughParameter = (parameters == null || parameters.length == 0) ? null
@@ -842,8 +855,8 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			throw new SecurityException(localize(
 					"security.advice.illegal.file.execution", commandSystemMethodToCheck, localizeAction(action),
 					pathIllegallyExecutedThroughParameter,
-					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
-							+ " | " + localize("security.advice.denial.reason.command.executable.path.not.allowed")));
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod),
+					localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -855,9 +868,9 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 		if (commandIllegallyExecutedThroughAttribute != null) {
 			throw new SecurityException(localize(
 					"security.advice.illegal.command.execution", commandSystemMethodToCheck, localizeAction(action),
-					commandIllegallyExecutedThroughAttribute,
-					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
-							+ " | " + buildDenialReason(noAllowRuleConfigured)));
+					quoteCommand(commandIllegallyExecutedThroughAttribute),
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod),
+					buildDenialReason("command", action, noAllowRuleConfigured)));
 		}
 		@Nullable
 		String pathIllegallyExecutedThroughAttribute = (attributes == null || attributes.length == 0) ? null
@@ -872,8 +885,8 @@ public aspect JavaAspectJCommandSystemAdviceDefinitions extends JavaAspectJAbstr
 			throw new SecurityException(localize(
 					"security.advice.illegal.file.execution", commandSystemMethodToCheck, localizeAction(action),
 					pathIllegallyExecutedThroughAttribute,
-					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod)
-							+ " | " + localize("security.advice.denial.reason.command.executable.path.not.allowed")));
+					describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod),
+					localize("security.advice.denial.reason.command.executable.path.not.allowed")));
 		}
 		// </editor-fold>
 	}

@@ -2,6 +2,7 @@ package de.tum.cit.ase.ares.api.architecture.java;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Locale;
@@ -88,7 +89,7 @@ class JavaArchitectureTestCaseLocaleTest {
 
 	/**
 	 * The forbidden-import rule is recognised in either language and reports the
-	 * forbidden package.
+	 * importing class and the forbidden package.
 	 *
 	 * @param naming    the language the rule was named in
 	 * @param reporting the language the violation is reported in
@@ -103,7 +104,49 @@ class JavaArchitectureTestCaseLocaleTest {
 				() -> assertThrows(SecurityException.class, () -> JavaArchitectureTestCase.parseErrorMessage(violation))
 						.getMessage());
 		String expected = AdviceActionWording.inLocale(reporting,
-				() -> Messages.localized("security.archunit.package.import.violation", "java.io"));
+				() -> Messages.localized("security.archunit.package.import.violation", "com.example.A", "java.io"));
 		assertEquals(expected, reported);
+	}
+
+	/**
+	 * A WALA violation worded by the catalogue, which now opens with the Ares error
+	 * template, is still parsed. In English the caller, the action and the
+	 * forbidden target come out unchanged. The German wording does not match the
+	 * English target pattern, a known gap, so there only the prefix, the caller and
+	 * the action are checked.
+	 *
+	 * @param locale the language the violation is worded and reported in
+	 */
+	@ParameterizedTest
+	@MethodSource("languages")
+	void walaViolationWithTheTemplatePrefixIsStillParsed(Locale locale) {
+		AssertionError violation = new AssertionError(AdviceActionWording.inLocale(locale,
+				() -> Messages.localized("security.architecture.method.call.message",
+						ruleName("file.system.access", locale), "com.example.A.m()", "java.io.File.delete()", "File", 7,
+						"com.example.Entry.main()")));
+		String reported = AdviceActionWording.inLocale(locale,
+				() -> assertThrows(SecurityException.class, () -> JavaArchitectureTestCase.parseErrorMessage(violation))
+						.getMessage());
+		String action = AdviceActionWording.inLocale(locale,
+				() -> Messages.localized("security.archunit.action.file.system.access"));
+		if (Locale.ENGLISH.equals(locale)) {
+			assertEquals(
+					AdviceActionWording.inLocale(locale, () -> Messages.localized("security.archunit.violation.error",
+							"com.example.A.m()", action, "java.io.File.delete()", "com.example.A")),
+					reported);
+		} else {
+			assertTrue(reported.startsWith("Ares Sicherheitsfehler (Grund: Student-Code; Phase: Ausf\u00fchrung): "));
+			assertTrue(reported.contains("com.example.A.m()"));
+			assertTrue(reported.contains(action));
+		}
+	}
+
+	/**
+	 * The two languages a WALA violation can be worded in.
+	 *
+	 * @return one row per language
+	 */
+	static Stream<Arguments> languages() {
+		return LOCALES.stream().map(Arguments::of);
 	}
 }

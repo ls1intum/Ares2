@@ -92,6 +92,8 @@ A permission for `de.tum.cit.ase` therefore covers `de.tum.cit.ase.exercise`, bu
 
 `*` is accepted as a whole value by `matchesPackageImport`, which checks for it before falling through to the package pattern. It is not a general glob: `java.*` is not valid. Unlike a package name, it covers the reserved namespaces, because it states outright that every package is permitted.
 
+**Type annotations count as imports.** Ares checks a type that the code names only through a type annotation, such as `@NonNull` in `@NonNull String`, like any other import. It checks the classes, enums and annotations written inside the values of such an annotation in the same way. The Checker Framework's `@NonNull` therefore needs `importTheFollowingPackage: "org.checkerframework.checker.nullness.qual"`. Ares reads these annotations from the compiled class, so it sees only what the compiler kept there. An annotation with source retention never reaches the compiled class, so Ares neither sees it nor needs permission for it. In AspectJ 1.9.26, the compiler keeps no type annotation on `extends` or on a local variable. Where that version compiles the supervised code, as the `compile` goal of the `aspectj-maven-plugin` does, Ares cannot see those annotations. With Ares on its aspect path, that goal weaves every supervised class. AspectJ 1.9.27 then drops every type annotation inside a method body as well, such as on a cast, an `instanceof` or a `new`. It keeps those on a field, a return type or a parameter. The woven class no longer depends on the package of a dropped annotation, so Ares neither sees it nor needs permission for it.
+
 ### What is permitted without an entry
 
 With a policy, Ares permits three things whether or not the list names them:

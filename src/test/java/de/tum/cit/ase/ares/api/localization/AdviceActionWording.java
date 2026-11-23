@@ -29,9 +29,9 @@ public final class AdviceActionWording {
 				Arguments.of("overwrite", "overwrite", "zu überschreiben"),
 				Arguments.of("create", "create", "zu erstellen"), Arguments.of("delete", "delete", "zu löschen"),
 				Arguments.of("execute", "execute", "auszuführen"),
-				Arguments.of("connect", "connect", "eine Verbindung aufzubauen"),
-				Arguments.of("send", "send", "Daten zu senden"),
-				Arguments.of("receive", "receive", "Daten zu empfangen"),
+				Arguments.of("connect", "connect to", "eine Verbindung aufzubauen"),
+				Arguments.of("send", "send data to", "Daten zu senden"),
+				Arguments.of("receive", "receive data from", "Daten zu empfangen"),
 				Arguments.of("manipulate", "manipulate", "zu manipulieren"),
 				Arguments.of("teleport", "teleport", "teleport"));
 	}
@@ -48,8 +48,8 @@ public final class AdviceActionWording {
 	}
 
 	/**
-	 * Runs a step with both the default and the display locale set, then restores
-	 * them.
+	 * Runs a step with the default, display and format locale set, then restores
+	 * all three.
 	 *
 	 * @param locale the locale to run in
 	 * @param step   the step to run
@@ -58,6 +58,7 @@ public final class AdviceActionWording {
 	public static String inLocale(Locale locale, Supplier<String> step) {
 		Locale originalDefault = Locale.getDefault();
 		Locale originalDisplay = Locale.getDefault(Locale.Category.DISPLAY);
+		Locale originalFormat = Locale.getDefault(Locale.Category.FORMAT);
 		try {
 			Locale.setDefault(locale);
 			Locale.setDefault(Locale.Category.DISPLAY, locale);
@@ -65,6 +66,7 @@ public final class AdviceActionWording {
 		} finally {
 			Locale.setDefault(originalDefault);
 			Locale.setDefault(Locale.Category.DISPLAY, originalDisplay);
+			Locale.setDefault(Locale.Category.FORMAT, originalFormat);
 		}
 	}
 }

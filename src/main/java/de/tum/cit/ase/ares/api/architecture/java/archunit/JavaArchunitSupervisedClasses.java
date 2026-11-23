@@ -17,6 +17,7 @@ import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 //</editor-fold>
 
@@ -98,9 +99,10 @@ public final class JavaArchunitSupervisedClasses {
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
+	/** Prevents instances of this utility. */
 	private JavaArchunitSupervisedClasses() {
-		throw new IllegalStateException(
-				"JavaArchunitSupervisedClasses is a utility class and should not be instantiated");
+		throw new SecurityException(
+				Messages.localized("security.general.utility.initialization", "JavaArchunitSupervisedClasses"));
 	}
 	// </editor-fold>
 
@@ -278,7 +280,7 @@ public final class JavaArchunitSupervisedClasses {
 				throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): "
 						+ "The compiled class " + javaClass.getName() + " under " + outputRoot
 						+ " declares the reserved package " + declared + ", which lies inside the trusted "
-						+ "namespace " + reserved + ". Supervised code may not be named into a trusted "
+						+ "namespace " + reserved + ". Supervised code may not be placed in a trusted "
 						+ "namespace, because the analysers and the runtime both treat those frames as the "
 						+ "framework's own.");
 			}

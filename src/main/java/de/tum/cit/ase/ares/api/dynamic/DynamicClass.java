@@ -79,9 +79,17 @@ public class DynamicClass<T> implements Checkable {
 		return true;
 	}
 
+	/**
+	 * Whether this is the given class, named by its name, its class object or a
+	 * dynamic class.
+	 *
+	 * @param classOrStringOrDynamicClass the class to compare with
+	 * @return whether both name the same class
+	 * @throws SecurityException if the argument is null or of another type
+	 */
 	public boolean isClass(Object classOrStringOrDynamicClass) {
 		if (classOrStringOrDynamicClass == null) {
-			throw new NullPointerException("Internal Test Error, isClass supplied with null"); //$NON-NLS-1$
+			throw new SecurityException(localized("security.dynamic.argument.null", "isClass")); //$NON-NLS-1$
 		}
 		if (classOrStringOrDynamicClass instanceof String) {
 			return name.equals(classOrStringOrDynamicClass);
@@ -95,10 +103,17 @@ public class DynamicClass<T> implements Checkable {
 		if (classOrStringOrDynamicClass instanceof DynamicClass) {
 			return name.equals(((DynamicClass<?>) classOrStringOrDynamicClass).name);
 		}
-		throw new IllegalArgumentException(
-				"Internal Test Error, isClass supplied with " + classOrStringOrDynamicClass.getClass()); //$NON-NLS-1$
+		throw new SecurityException(localized("security.dynamic.argument.type.invalid", "isClass", //$NON-NLS-1$
+				classOrStringOrDynamicClass.getClass()));
 	}
 
+	/**
+	 * Casts a value to this class, accepting the wrapper of a primitive class.
+	 *
+	 * @param obj the value to cast
+	 * @return the value as this class
+	 * @throws SecurityException if the value is null and this class is primitive
+	 */
 	@SuppressWarnings("unchecked")
 	public T cast(Object obj) {
 		Class<T> rClass = toClass();
@@ -107,7 +122,7 @@ public class DynamicClass<T> implements Checkable {
 		}
 		if (rClass.isPrimitive()) {
 			if (obj == null) {
-				throw new NullPointerException(localized("dynamics.class.null", getName())); //$NON-NLS-1$
+				throw new SecurityException(localized("dynamics.class.null", getName())); //$NON-NLS-1$
 			}
 			Class<?> objClass = obj.getClass();
 			Class<?> wrapper = PRIMITIVE_WRAPPERS.get(rClass);
@@ -142,9 +157,17 @@ public class DynamicClass<T> implements Checkable {
 		return new DynamicClass<>(Objects.requireNonNull(clazz, "class must not be null")); //$NON-NLS-1$
 	}
 
+	/**
+	 * The dynamic class for a class named by its name, its class object or a
+	 * dynamic class.
+	 *
+	 * @param classOrStringOrDynamicClass the class to wrap
+	 * @return the dynamic class
+	 * @throws SecurityException if the argument is null or of another type
+	 */
 	public static DynamicClass<?> toDynamic(Object classOrStringOrDynamicClass) { // NOSONAR
 		if (classOrStringOrDynamicClass == null) {
-			throw new NullPointerException("Internal Test Error, toDynamic supplied with null"); //$NON-NLS-1$
+			throw new SecurityException(localized("security.dynamic.argument.null", "toDynamic")); //$NON-NLS-1$
 		}
 		if (classOrStringOrDynamicClass instanceof String) {
 			return new DynamicClass<>((String) classOrStringOrDynamicClass);
@@ -155,8 +178,8 @@ public class DynamicClass<T> implements Checkable {
 		if (classOrStringOrDynamicClass instanceof DynamicClass) {
 			return (DynamicClass<?>) classOrStringOrDynamicClass;
 		}
-		throw new IllegalArgumentException(
-				"Internal Test Error, toDynamic supplied with " + classOrStringOrDynamicClass.getClass()); //$NON-NLS-1$
+		throw new SecurityException(localized("security.dynamic.argument.type.invalid", "toDynamic", //$NON-NLS-1$
+				classOrStringOrDynamicClass.getClass()));
 	}
 
 	public static DynamicClass<?>[] toDynamic(Object[] classesOrStringsOrDynamicClasses) { // NOSONAR

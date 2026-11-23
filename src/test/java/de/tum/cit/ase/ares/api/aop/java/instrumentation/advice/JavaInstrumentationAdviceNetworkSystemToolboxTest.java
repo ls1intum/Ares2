@@ -27,6 +27,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.nio.channels.DatagramChannel;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.BitSet;
 import java.util.List;
@@ -56,8 +57,8 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 	 */
 	@BeforeAll
 	static void warmLocalizationBundle() {
-		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.no.allowlist");
-		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.not.in.allowlist");
+		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.no.rule.network");
+		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.target.not.allowed.network");
 		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.network.execution");
 	}
 
@@ -82,15 +83,11 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 					"INSTRUMENTATION");
 			JavaAOPTestCase.setJavaAdviceSettingValue("portsAllowedToBeConnectedTo", new int[0], "ARCH",
 					"INSTRUMENTATION");
+			allowSendingAndReceivingNothing();
 
 			SecurityException exception = assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkNetworkConnect("evil.example.com", 443));
-			assertTrue(exception.getMessage().contains(" | Reason:") || exception.getMessage().contains(" | Grund:"),
-					() -> "Network exception should carry a denial reason suffix, but was:\n" + exception.getMessage());
-			assertTrue(
-					exception.getMessage().contains("No allow rule configured")
-							|| exception.getMessage().contains("Keine Erlaubnisregel"),
-					() -> "Expected the no-allowlist reason, but was:\n" + exception.getMessage());
+			assertDenialReason(exception, "security.advice.denial.reason.no.rule.network");
 		} finally {
 			resetSettings();
 		}
@@ -108,15 +105,24 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 			SecurityException exception = assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkNetworkConnect("evil.example.com", 443));
-			assertTrue(exception.getMessage().contains(" | Reason:") || exception.getMessage().contains(" | Grund:"),
-					() -> "Network exception should carry a denial reason suffix, but was:\n" + exception.getMessage());
-			assertTrue(
-					exception.getMessage().contains("No configured allow rule permits this access") || exception
-							.getMessage().contains("Keine konfigurierte Erlaubnisregel gestattet diesen Zugriff"),
-					() -> "Expected the not-permitted reason, but was:\n" + exception.getMessage());
+			assertDenialReason(exception, "security.advice.denial.reason.target.not.allowed.network");
 		} finally {
 			resetSettings();
 		}
+	}
+
+	/**
+	 * Empties the send and receive rules. The reset only clears the settings copy
+	 * the test loaded, not the one the advice reads, so a rule an earlier test set
+	 * would otherwise remain and change the reason.
+	 */
+	private static void allowSendingAndReceivingNothing() {
+		JavaAOPTestCase.setJavaAdviceSettingValue("hostsAllowedToBeSentTo", new String[0], "ARCH", "INSTRUMENTATION");
+		JavaAOPTestCase.setJavaAdviceSettingValue("portsAllowedToBeSentTo", new int[0], "ARCH", "INSTRUMENTATION");
+		JavaAOPTestCase.setJavaAdviceSettingValue("hostsAllowedToBeReceivedFrom", new String[0], "ARCH",
+				"INSTRUMENTATION");
+		JavaAOPTestCase.setJavaAdviceSettingValue("portsAllowedToBeReceivedFrom", new int[0], "ARCH",
+				"INSTRUMENTATION");
 	}
 
 	/**
@@ -637,7 +643,7 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 		Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
 		toDisplayString.setAccessible(true);
-		assertEquals("/tmp/ares-audit.sock:-1", toDisplayString.invoke(target));
+		assertEquals(Path.of("/tmp/ares-audit.sock") + ":-1", toDisplayString.invoke(target));
 	}
 
 	@Test
@@ -862,5 +868,22 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 		public HttpHeaders headers() {
 			throw new IllegalStateException("student code must never be asked");
 		}
+	}
+
+	/**
+	 * Requires the denial to be the one denial sentence ending with the given
+	 * reason, with no raw message key and no old reason splice left in it, which
+	 * would show that instrumentation could not translate the message.
+	 *
+	 * @param exception the denial
+	 * @param reasonKey the key of the expected reason clause
+	 */
+	private static void assertDenialReason(SecurityException exception, String reasonKey) {
+		String message = exception.getMessage();
+		String reason = JavaInstrumentationAdviceAbstractToolbox.localize(reasonKey);
+		assertTrue(message.endsWith(reason + "."), () -> "Expected the reason '" + reason + "', but was:\n" + message);
+		assertFalse(message.contains(" | "), () -> "Did not expect the old reason splice, but was:\n" + message);
+		assertFalse(message.contains("security.advice."),
+				() -> "Did not expect a raw message key, but was:\n" + message);
 	}
 }

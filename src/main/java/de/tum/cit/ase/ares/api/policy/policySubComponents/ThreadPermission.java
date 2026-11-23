@@ -33,7 +33,8 @@ public record ThreadPermission(int createTheFollowingNumberOfThreads, @Nonnull S
 	public ThreadPermission {
 		Objects.requireNonNull(ofThisClass, "Thread class must not be null");
 		if (createTheFollowingNumberOfThreads < 0) {
-			throw new IllegalArgumentException(Messages.localized("policy.permission.thread.count.negative"));
+			throw new IllegalArgumentException(
+					Messages.localized("policy.permission.thread.count.negative", createTheFollowingNumberOfThreads));
 		}
 	}
 

@@ -4,16 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
 import de.tum.cit.ase.ares.api.architecture.java.wala.WalaPathClassification;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 /**
  * Verifies the reserved-package guard rejects exactly the trusted
  * infrastructure namespaces and leaves legitimate supervised packages
- * (including the reproducibility test subjects under
+ * (including Ares' own integration-test subjects under
  * {@code de.tum.cit.ase.ares.integration.*} and the pinned
  * {@code de.tum.cit.ase.ares}) untouched.
  */
@@ -83,9 +85,7 @@ class ReservedPackageGuardTest {
 		assertThat(ReservedPackageGuard.reservedPrefixOf("de.tum.cit.ase.ares.integration.testuser.subject")).isNull();
 		assertThat(ReservedPackageGuard.reservedPrefixOf("de.tum.cit.ase.ares")).isNull();
 		assertThat(ReservedPackageGuard.reservedPrefixOf("com.example.student")).isNull();
-		// "anonymous." alone is the analysed-student namespace; only the toolclasses
-		// sub-namespace is reserved.
-		assertThat(ReservedPackageGuard.reservedPrefixOf("anonymous.classloadingsystem")).isNull();
+		assertThat(ReservedPackageGuard.reservedPrefixOf("org.example.classloadingsystem")).isNull();
 		assertThat(ReservedPackageGuard.reservedPrefixOf(null)).isNull();
 		assertThat(ReservedPackageGuard.reservedPrefixOf("")).isNull();
 	}
@@ -167,16 +167,55 @@ class ReservedPackageGuardTest {
 		assertThat(ReservedPackageGuard.reservedPrefixOf("jdk")).isEqualTo("jdk.");
 	}
 
+	/**
+	 * Ordinary helper-package names an exercise may choose are not reserved, so no
+	 * project is refused for naming its helpers like this.
+	 */
 	@Test
-	void noLongerReservesTheReproducibilityPackagesOwnTestHelpers() {
-		// anonymous.toolclasses. and metatest. were reserved for one downstream
-		// consumer, so every Ares user refused two ordinary package names on its
-		// behalf, with a diagnostic about trusted namespaces that meant nothing in
-		// their project. They stay in WalaPathClassification.INFRA_PREFIXES, which
-		// answers a different question: which frames are the harness rather than the
-		// subject.
-		assertThat(ReservedPackageGuard.reservedPrefixOf("anonymous.toolclasses.Helper")).isNull();
-		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest.Foo")).isNull();
-		assertThat(ReservedPackageGuard.reservedPrefixOf("metatest")).isNull();
+	void doesNotReserveOrdinaryHelperPackageNames() {
+		assertThat(ReservedPackageGuard.reservedPrefixOf("org.example.helpers.Helper")).isNull();
+		assertThat(ReservedPackageGuard.reservedPrefixOf("helpers.Foo")).isNull();
+		assertThat(ReservedPackageGuard.reservedPrefixOf("helpers")).isNull();
+	}
+
+	/**
+	 * A missing list of class names is accepted, since there is nothing to check.
+	 */
+	@Test
+	void validateClassNamesAcceptsNothing() {
+		assertThatCode(() -> ReservedPackageGuard.validateClassNames(null)).doesNotThrowAnyException();
+	}
+
+	/**
+	 * A null entry is skipped and the names after it are still checked: an allowed
+	 * one passes and a reserved one is refused with the reserved-package message.
+	 */
+	@Test
+	void validateClassNamesSkipsANullName() {
+		assertThatCode(() -> ReservedPackageGuard.validateClassNames(Arrays.asList(null, "com.example.Main")))
+				.doesNotThrowAnyException();
+		assertThatThrownBy(
+				() -> ReservedPackageGuard.validateClassNames(Arrays.asList(null, "de.tum.cit.ase.ares.api.evil.X")))
+						.isInstanceOf(SecurityException.class)
+						.hasMessage(Messages.localized("security.policy.reserved.package",
+								"de.tum.cit.ase.ares.api.evil", "de.tum.cit.ase.ares.api."));
+	}
+
+	/**
+	 * A class in the default package has no package to check and is accepted.
+	 */
+	@Test
+	void validateClassNamesAcceptsAClassWithoutAPackage() {
+		assertThatCode(() -> ReservedPackageGuard.validateClassNames(List.of("Main"))).doesNotThrowAnyException();
+	}
+
+	/**
+	 * A package written with a trailing dot is reserved exactly like the same
+	 * package without it.
+	 */
+	@Test
+	void reservedPrefixOfAcceptsATrailingDot() {
+		assertThat(ReservedPackageGuard.reservedPrefixOf("jdk.")).isNotNull()
+				.isEqualTo(ReservedPackageGuard.reservedPrefixOf("jdk"));
 	}
 }

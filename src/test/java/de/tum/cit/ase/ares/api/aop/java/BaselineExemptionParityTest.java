@@ -245,11 +245,11 @@ class BaselineExemptionParityTest {
 			configure(mode, new String[0]);
 			SecurityException denied = denial(mode, "read", read(file));
 			assertThat(denied.getMessage()).as(mode + " " + language).contains(file.toString())
-					.contains(Messages.localized("security.advice.denial.reason.no.allowlist"));
+					.contains(Messages.localized("security.advice.denial.reason.no.rule.file"));
 			configure(mode, new String[] { directory.resolve("unrelated").toString() });
 			denied = denial(mode, "read", read(file));
 			assertThat(denied.getMessage()).as(mode + " " + language)
-					.contains(Messages.localized("security.advice.denial.reason.not.in.allowlist"));
+					.contains(Messages.localized("security.advice.denial.reason.target.not.allowed.file"));
 		}
 	}
 
@@ -496,7 +496,36 @@ class BaselineExemptionParityTest {
 				row("java.home other file execute", "execute", none(), dir -> read(javaHomeFile), Verdict.DENY,
 						Verdict.DENY),
 				row("native library by bare name", "execute", none(), dir -> read(workingDirectory.resolve("net")),
-						Verdict.ALLOW, Verdict.ALLOW),
+						Verdict.DENY, Verdict.DENY),
+				row("extensionless file in the test folder", "execute", none(), dir -> read(file(dir, "net")),
+						Verdict.DENY, Verdict.DENY),
+				row("extensionless file in a sub folder", "execute", none(), dir -> read(nestedFile(dir, "zip")),
+						Verdict.DENY, Verdict.DENY),
+				row("System.load in the test folder", "execute", none(),
+						dir -> loadCall(System.class, "load", file(dir, "net").toString()), Verdict.DENY, Verdict.DENY),
+				row("System.load in the working directory", "execute", none(),
+						dir -> loadCall(System.class, "load", workingDirectory.resolve("net").toString()), Verdict.DENY,
+						Verdict.DENY),
+				row("Runtime.load in the test folder", "execute", none(),
+						dir -> loadCall(Runtime.class, "load", file(dir, "net").toString()), Verdict.DENY,
+						Verdict.DENY),
+				row("Runtime.load in the working directory", "execute", none(),
+						dir -> loadCall(Runtime.class, "load", workingDirectory.resolve("net").toString()),
+						Verdict.DENY, Verdict.DENY),
+				row("System.loadLibrary by bare name", "execute", none(),
+						dir -> loadCall(System.class, "loadLibrary", "net"), Verdict.DENY, Verdict.DENY),
+				row("Runtime.loadLibrary by bare name", "execute", none(),
+						dir -> loadCall(Runtime.class, "loadLibrary", "net"), Verdict.DENY, Verdict.DENY),
+				row("Desktop.open of an extensionless file", "execute", none(),
+						dir -> desktopFileCall("open", file(dir, "net")), Verdict.DENY, Verdict.DENY),
+				row("Desktop.edit of an extensionless file", "execute", none(),
+						dir -> desktopFileCall("edit", file(dir, "net")), Verdict.DENY, Verdict.DENY),
+				row("Desktop.print of an extensionless file", "execute", none(),
+						dir -> desktopFileCall("print", file(dir, "net")), Verdict.DENY, Verdict.DENY),
+				row("Desktop.browseFileDirectory of an extensionless file", "execute", none(),
+						dir -> desktopFileCall("browseFileDirectory", file(dir, "net")), Verdict.DENY, Verdict.DENY),
+				row("Desktop.browse of an extensionless file URI", "execute", none(),
+						dir -> desktopBrowseCall(file(dir, "net")), Verdict.DENY, Verdict.DENY),
 				row("native library by file name", "execute", none(),
 						dir -> read(workingDirectory.resolve(System.mapLibraryName("net"))), Verdict.DENY,
 						Verdict.DENY),
@@ -666,7 +695,8 @@ class BaselineExemptionParityTest {
 	 */
 	private static Pattern filePolicyDenialShape() {
 		String marker = "\0";
-		String template = Messages.localized("security.advice.illegal.file.execution", marker, marker, marker, marker);
+		String template = Messages.localized("security.advice.illegal.file.execution", marker, marker, marker, marker,
+				marker);
 		return Pattern.compile(
 				Stream.of(template.split(marker, -1)).map(Pattern::quote).collect(Collectors.joining(".*")),
 				Pattern.DOTALL);
@@ -715,6 +745,59 @@ class BaselineExemptionParityTest {
 	private static Call read(Path path) {
 		return new Call(Files.class, "readAllBytes", "(Ljava/nio/file/Path;)[B", new Class<?>[] { Path.class },
 				new Object[] { path }, null);
+	}
+
+	/**
+	 * Writes an extensionless file one folder below the test folder.
+	 *
+	 * @param directory the test folder
+	 * @param name      the file name
+	 * @return the file
+	 */
+	private static Path nestedFile(Path directory, String name) {
+		try {
+			return file(Files.createDirectories(directory.resolve("sub")), name);
+		} catch (IOException exception) {
+			throw new IllegalStateException(exception);
+		}
+	}
+
+	/**
+	 * A call to a static method of {@code System} or {@code Runtime} that takes one
+	 * string: a path for {@code load}, a bare library name for {@code loadLibrary}.
+	 *
+	 * @param owner    the class declaring the method
+	 * @param method   the method name
+	 * @param argument the string argument
+	 * @return the call
+	 */
+	private static Call loadCall(Class<?> owner, String method, String argument) {
+		return new Call(owner, method, "(Ljava/lang/String;)V", new Class<?>[] { String.class },
+				new Object[] { argument }, null);
+	}
+
+	/**
+	 * A call to a {@code java.awt.Desktop} method that takes one file.
+	 *
+	 * @param method the method name
+	 * @param target the file
+	 * @return the call
+	 */
+	private static Call desktopFileCall(String method, Path target) {
+		return new Call(java.awt.Desktop.class, method, "(Ljava/io/File;)V", new Class<?>[] { File.class },
+				new Object[] { target.toFile() }, null);
+	}
+
+	/**
+	 * A call to {@code java.awt.Desktop.browse} with the {@code file:} URI of a
+	 * file.
+	 *
+	 * @param target the file
+	 * @return the call
+	 */
+	private static Call desktopBrowseCall(Path target) {
+		return new Call(java.awt.Desktop.class, "browse", "(Ljava/net/URI;)V", new Class<?>[] { URI.class },
+				new Object[] { target.toUri() }, null);
 	}
 
 	/**

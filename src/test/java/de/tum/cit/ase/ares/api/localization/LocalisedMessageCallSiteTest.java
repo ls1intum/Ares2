@@ -121,8 +121,10 @@ class LocalisedMessageCallSiteTest {
 	 */
 	@Test
 	void templatesRenderTheArgumentsTheirCallersPass() {
-		assertTrue(
-				Messages.localized("security.policy.unsupported.operation", "policy.yaml").contains("'policy.yaml'"));
+		String unsupportedOperation = Messages.localized("security.policy.unsupported.operation", "policy.yaml",
+				"the cause");
+		assertTrue(unsupportedOperation.contains("'policy.yaml'"), unsupportedOperation);
+		assertTrue(unsupportedOperation.endsWith(": the cause"), unsupportedOperation);
 		String unsupportedMode = Messages.localized("security.architecture.testcase.mode.not.supported", "SOME_MODE");
 		assertFalse(unsupportedMode.startsWith("!"), unsupportedMode);
 		assertTrue(unsupportedMode.contains("SOME_MODE"), unsupportedMode);

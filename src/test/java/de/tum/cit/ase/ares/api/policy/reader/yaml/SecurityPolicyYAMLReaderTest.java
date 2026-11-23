@@ -13,6 +13,12 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +30,9 @@ import org.junit.jupiter.api.io.TempDir;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
+import de.tum.cit.ase.ares.api.AresConstants;
+import de.tum.cit.ase.ares.api.localization.AdviceActionWording;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 
@@ -114,12 +123,20 @@ public class SecurityPolicyYAMLReaderTest {
 	@DisplayName("readSecurityPolicyFrom() Tests")
 	class ReadSecurityPolicyFromTests {
 
+		/**
+		 * Checked-in policies that are broken on purpose, so that a test can show the
+		 * refusal Ares gives for them.
+		 */
+		private static final Set<String> DELIBERATELY_BROKEN_POLICIES = Set
+				.of("PolicyFailureMessageShapeMisspelledField.yaml");
+
 		@Test
 		void shouldReadEveryCheckedInSecurityPolicy() throws IOException {
 			Path examplePolicy = Path.of("src/main/resources/ExampleConfiguration.yaml");
 			Path testPolicies = Path.of("src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies");
 			try (Stream<Path> files = Stream.concat(Stream.of(examplePolicy), Files.walk(testPolicies))) {
 				files.filter(Files::isRegularFile).filter(path -> path.getFileName().toString().endsWith(".yaml"))
+						.filter(path -> !DELIBERATELY_BROKEN_POLICIES.contains(path.getFileName().toString()))
 						.forEach(path -> assertDoesNotThrow(() -> reader.readSecurityPolicyFrom(path), path::toString));
 			}
 		}
@@ -476,6 +493,189 @@ public class SecurityPolicyYAMLReaderTest {
 					minimalPolicy().stripTrailing() + "\n  theFollowingTestBehaviorIsConfigured: null\n");
 
 			assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policyFile));
+		}
+	}
+
+	/**
+	 * Checks that every error raised while reading or validating the policy names
+	 * the file and the concrete cause in its first line, with stage Creation, one
+	 * prefix only, short field paths, and the original exception kept as cause.
+	 */
+	@Nested
+	@DisplayName("First line names the cause")
+	class FirstLineCauseTests {
+
+		/** The English start of a reader error. */
+		private static final String ENGLISH_PREFIX = "Ares Security Error (Reason: Ares-Code; Stage: Creation): ";
+
+		/** The German start of a reader error. */
+		private static final String GERMAN_PREFIX = "Ares Sicherheitsfehler (Grund: Ares-Code; Phase: Erstellung): ";
+
+		/** Any Ares prefix, used to count them in one message. */
+		private static final Pattern ANY_PREFIX = Pattern.compile("Ares (Security Error|Sicherheitsfehler) \\(");
+
+		/**
+		 * Reads the policy, which must be refused, in the given language.
+		 *
+		 * @param policy the policy file.
+		 * @param locale the language.
+		 * @return the refusal.
+		 */
+		private SecurityException refusal(Path policy, Locale locale) {
+			SecurityException[] refused = new SecurityException[1];
+			AdviceActionWording.inLocale(locale, () -> {
+				refused[0] = assertThrows(SecurityException.class, () -> reader.readSecurityPolicyFrom(policy));
+				return refused[0].getMessage();
+			});
+			return refused[0];
+		}
+
+		/**
+		 * Checks what every reader error shares: the prefix with stage Creation in the
+		 * language, a single prefix, no {@code $.} paths and a kept cause.
+		 *
+		 * @param refused the refusal.
+		 * @param locale  the language it was raised in.
+		 */
+		private void assertShape(SecurityException refused, Locale locale) {
+			String message = refused.getMessage();
+			assertTrue(message.startsWith(Locale.GERMAN.equals(locale) ? GERMAN_PREFIX : ENGLISH_PREFIX), message);
+			Matcher prefixes = ANY_PREFIX.matcher(message);
+			int count = 0;
+			while (prefixes.find()) {
+				count++;
+			}
+			assertEquals(1, count, message);
+			assertFalse(message.contains("$."), message);
+			assertFalse(message.contains("regardingTheSupervisedCode."), message);
+			assertNotNull(refused.getCause(), message);
+		}
+
+		/**
+		 * Checks, in English and German, that the refusal of the policy reads exactly
+		 * as the reader key with the file and the given cause.
+		 *
+		 * @param policy the policy file.
+		 * @param key    the reader's {@code security.policy.*} key.
+		 * @param cause  computes the expected cause in the current language.
+		 */
+		private void assertFirstLine(Path policy, String key, Supplier<String> cause) {
+			for (Locale locale : List.of(Locale.ENGLISH, Locale.GERMAN)) {
+				SecurityException refused = refusal(policy, locale);
+				String expected = AdviceActionWording.inLocale(locale,
+						() -> Messages.localized(key, policy.toString(), cause.get()));
+				assertEquals(expected, refused.getMessage(), locale.toString());
+				assertShape(refused, locale);
+			}
+		}
+
+		/**
+		 * Writes a policy file.
+		 *
+		 * @param folder  where to write it.
+		 * @param content the YAML text.
+		 * @return the file.
+		 * @throws IOException if it cannot be written.
+		 */
+		private Path policy(Path folder, String content) throws IOException {
+			return Files.writeString(folder.resolve("policy.yaml"), content);
+		}
+
+		@Test
+		void anUnknownFieldIsNamedWithTheKnownFields(@TempDir Path tempDir) throws IOException {
+			Path policy = policy(tempDir,
+					minimalPolicy().replace("regardingFileSystemInteractions:", "regardingFileSystemInteraction:"));
+			assertFirstLine(policy, "security.policy.data.bind.failed",
+					() -> Messages.localized("policy.schema.unknown.field", "theFollowingResourceAccessesArePermitted",
+							"regardingFileSystemInteraction",
+							"regardingCommandExecutions, regardingFileSystemInteractions, "
+									+ "regardingNetworkConnections, regardingPackageImports, "
+									+ "regardingThreadCreations, regardingTimeouts"));
+		}
+
+		@Test
+		void aWrongTypeQuotesTheValueUnderItsShortPath(@TempDir Path tempDir) throws IOException {
+			Path policy = policy(tempDir, minimalPolicy().replace("regardingFileSystemInteractions: []", """
+					regardingFileSystemInteractions:
+					      - onThisPathAndAllPathsBelow: /tmp/data
+					        readAllFiles: "yes"
+					        overwriteAllFiles: false
+					        createAllFiles: false
+					        executeAllFiles: false
+					        deleteAllFiles: false"""));
+			assertFirstLine(policy, "security.policy.data.bind.failed", () -> Messages
+					.localized("policy.schema.boolean", "regardingFileSystemInteractions[0].readAllFiles", "\"yes\""));
+		}
+
+		@Test
+		void aMissingRequiredFieldNamesTheFieldAndItsObject(@TempDir Path tempDir) throws IOException {
+			Path policy = policy(tempDir, minimalPolicy().replace("  theFollowingClassesAreTestClasses: []\n", ""));
+			assertFirstLine(policy, "security.policy.data.bind.failed",
+					() -> Messages.localized("policy.schema.missing.field", "regardingTheSupervisedCode",
+							"theFollowingClassesAreTestClasses"));
+		}
+
+		@Test
+		void aNegativeThreadCountLosesJacksonsFramingAndTheInnerPrefix(@TempDir Path tempDir) throws IOException {
+			Path policy = policy(tempDir, minimalPolicy().replace("regardingThreadCreations: []", """
+					regardingThreadCreations:
+					      - createTheFollowingNumberOfThreads: -1
+					        ofThisClass: java.lang.Thread"""));
+			assertFirstLine(policy, "security.policy.data.bind.failed", () -> {
+				String inner = Messages.localized("policy.permission.thread.count.negative", -1);
+				return inner.substring(inner.indexOf("): ") + 3);
+			});
+			String message = refusal(policy, Locale.ENGLISH).getMessage();
+			assertFalse(message.contains("Cannot construct instance"), message);
+			assertFalse(message.contains("problem:"), message);
+		}
+
+		@Test
+		void anUnknownLanguageConfigurationListsTheKnownOnes(@TempDir Path tempDir) throws IOException {
+			Path policy = policy(tempDir, minimalPolicy().replace("JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ",
+					"JAVA_USING_GRADLE_ARCHUNIT_AND_SPRINGAOP"));
+			String known = Stream.of(ProgrammingLanguageConfiguration.values()).map(Enum::name)
+					.collect(Collectors.joining(", "));
+			assertFirstLine(policy, "security.policy.data.bind.failed",
+					() -> Messages.localized("policy.schema.configuration",
+							"theFollowingProgrammingLanguageConfigurationIsUsed",
+							"\"JAVA_USING_GRADLE_ARCHUNIT_AND_SPRINGAOP\"", known));
+		}
+
+		@Test
+		void aWrongVersionNamesTheSupportedOne(@TempDir Path tempDir) throws IOException {
+			org.junit.jupiter.api.Assumptions.assumeTrue(
+					AresConstants.MINIMUM_POLICY_VERSION == AresConstants.MAXIMUM_POLICY_VERSION,
+					"Ares supports more than one policy version");
+			Path policy = policy(tempDir, minimalPolicy().replace("thisPolicyFileCompliesToThePolicyVersion: 1",
+					"thisPolicyFileCompliesToThePolicyVersion: 7"));
+			assertFirstLine(policy, "security.policy.data.bind.failed",
+					() -> Messages.localized("policy.schema.version.single", "7",
+							String.valueOf(AresConstants.MAXIMUM_POLICY_VERSION)));
+		}
+
+		@Test
+		void malformedYamlNamesTheParserErrorAndItsLine(@TempDir Path tempDir) throws IOException {
+			Path policy = policy(tempDir, "regardingTheSupervisedCode: [unterminated\n");
+			for (Locale locale : List.of(Locale.ENGLISH, Locale.GERMAN)) {
+				SecurityException refused = refusal(policy, locale);
+				String start = AdviceActionWording.inLocale(locale,
+						() -> Messages.localized("security.policy.read.failed", policy.toString(), ""));
+				String message = refused.getMessage();
+				assertTrue(message.startsWith(start), message);
+				String cause = message.substring(start.length());
+				assertTrue(cause.matches("(?s)\\w+Exception: .+"), cause);
+				assertTrue(cause.contains("line"), cause);
+				assertShape(refused, locale);
+			}
+		}
+
+		@Test
+		void aMissingFileNamesTheExceptionAndThePath(@TempDir Path tempDir) {
+			Path absent = tempDir.resolve("guaranteed-absent-policy.yaml");
+			assertFalse(Files.exists(absent));
+			assertFirstLine(absent, "security.policy.io.exception.cause",
+					() -> "NoSuchFileException: " + absent.normalize());
 		}
 	}
 

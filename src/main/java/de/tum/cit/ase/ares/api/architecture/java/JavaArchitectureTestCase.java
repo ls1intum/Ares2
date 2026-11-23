@@ -18,6 +18,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.archunit.TypeAnnotationDependencies;
 import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
@@ -316,9 +317,29 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	// TODO Markus: Move to better fitting class
 
 	/**
-	 * Parses the error message of an assertion error to provide more descriptive
-	 * security violation messages. Extracts relevant information from Archunit's
-	 * error messages and creates a standardized security exception.
+	 * Throws the dedicated error when the type-annotation check could not read a
+	 * class file. The check marks that case with a text that is never translated,
+	 * so it is found before the rule is told apart by its translated description.
+	 *
+	 * @param message the message of the rule violation
+	 * @throws SecurityException naming the unreadable class, if the marker is there
+	 */
+	private static void throwIfTypeAnnotationsWereUnreadable(@Nonnull String message) {
+		int marker = message.indexOf(TypeAnnotationDependencies.UNREADABLE_MARKER);
+		if (marker < 0) {
+			return;
+		}
+		int start = message.indexOf('<', marker);
+		int end = start < 0 ? -1 : message.indexOf('>', start);
+		String className = start < 0 || end < 0 ? "unknown class" : message.substring(start + 1, end);
+		throw new SecurityException(Messages.localized("security.archunit.type.annotation.unreadable", className));
+	}
+
+	/**
+	 * Turns the report of a broken architecture rule into the Ares refusal. A
+	 * forbidden import names the importing class and its forbidden packages; any
+	 * other rule names the caller and the target, with method parameters written as
+	 * source types split by {@code ", "}, the same for ArchUnit and WALA.
 	 *
 	 * @since 2.0.0
 	 * @author Sarp Sahinalp
@@ -331,6 +352,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nullable
 		String message = e.getMessage();
 		Objects.requireNonNull(message, "message must not be null");
+		throwIfTypeAnnotationsWereUnreadable(message);
 		@Nullable
 		String[] messageParts = e.getMessage().split("\n");
 		Objects.requireNonNull(messageParts, "messageParts must not be null");
@@ -344,66 +366,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		@Nonnull
 		String ruleName = messageParts[0].replaceAll(ruleNamePattern, "$1").trim();
 
-		// Check if this is a package import violation (different message format)
 		if (isImportRule(ruleName)) {
-			// Extract all forbidden packages from the message
-			// The message can have multiple formats:
-			// 1. "Class <class> depends on <forbidden.package.Class> in (File.java:0)" -
-			// direct dependency
-			// 2. "Class <class> extends class <forbidden.package.Class> in (File.java:0)" -
-			// inheritance
-			// 3. "Constructor <class.method()> calls constructor
-			// <forbidden.package.Class.method()> in (File.java:0)" - constructor call
-			// 4. "Method <class.method()> gets field <forbidden.package.Class.field> in
-			// (File.java:0)" - field access
-			// 5. "Method <class.method()> calls method <forbidden.package.Class.method()>
-			// in (File.java:0)" - method call
-			java.util.Set<String> forbiddenPackages = new java.util.TreeSet<>();
-
-			// Pattern to match any of: "depends on <X>", "extends class <X>", "calls
-			// constructor <X>", "calls method <X>", "gets field <X>"
-			@Nonnull
-			String accessPattern = "(?:depends on|extends class|calls constructor|calls method|gets field) <([^>]+)>";
-			java.util.regex.Pattern accessRegex = java.util.regex.Pattern.compile(accessPattern);
-
-			for (int i = 1; i < messageParts.length; i++) {
-				java.util.regex.Matcher accessMatcher = accessRegex.matcher(messageParts[i]);
-				while (accessMatcher.find()) {
-					String fullName = accessMatcher.group(1);
-					// Extract package name from fully qualified class/method/field name
-					// For methods/fields like "package.Class.method", we want "package"
-					// For classes like "package.Class", we want "package"
-					if (fullName.contains(".")) {
-						// Remove method/field part if present (last part after the class name)
-						// Class names start with uppercase, packages with lowercase
-						String[] parts = fullName.split("\\.");
-						StringBuilder packageBuilder = new StringBuilder();
-						for (int j = 0; j < parts.length; j++) {
-							// Stop when we hit the class name (starts with uppercase)
-							if (!parts[j].isEmpty() && Character.isUpperCase(parts[j].charAt(0))) {
-								break;
-							}
-							if (!packageBuilder.isEmpty()) {
-								packageBuilder.append(".");
-							}
-							packageBuilder.append(parts[j]);
-						}
-						String packageName = packageBuilder.toString();
-						if (!packageName.isEmpty()) {
-							forbiddenPackages.add(packageName);
-						}
-					}
-				}
-			}
-
-			if (forbiddenPackages.isEmpty()) {
-				// Fallback if no packages could be extracted
-				throw new SecurityException(
-						Messages.localized("security.archunit.package.import.violation", "unknown package"));
-			}
-
-			String firstPackage = forbiddenPackages.iterator().next();
-			throw new SecurityException(Messages.localized("security.archunit.package.import.violation", firstPackage));
+			throw importViolation(messageParts, message);
 		}
 
 		// Parse the detail line to extract caller and target method info.
@@ -448,9 +412,9 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		}
 
 		@Nonnull
-		String callerResolved = caller != null ? caller : "unknown";
+		String callerResolved = caller != null ? sourceForm(caller) : "unknown";
 		@Nonnull
-		String targetResolved = target != null ? target : "unknown";
+		String targetResolved = target != null ? sourceForm(target) : "unknown";
 
 		// Extract parent caller from the caller (class.method -> extract class).
 		//
@@ -468,6 +432,140 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
 		throw new SecurityException(Messages.localized("security.archunit.violation.error", callerResolved, action,
 				targetResolved, parentCaller));
+	}
+
+	/**
+	 * Writes the array parameters of a method name as source types, so ArchUnit's
+	 * {@code [Ljava.lang.String;} reads {@code java.lang.String[]} as WALA's does.
+	 * A name without an array is returned unchanged, since a lone parameter such as
+	 * {@code Data} would otherwise be misread as a JVM descriptor.
+	 *
+	 * @param reference the rendered method, constructor or field name
+	 * @return the name in source notation
+	 */
+	@Nonnull
+	private static String sourceForm(@Nonnull String reference) {
+		return reference.indexOf('[') < 0 ? reference
+				: Objects.requireNonNull(ForbiddenMethodMatcher.canonicalise(reference));
+	}
+
+	/**
+	 * Builds the refusal for a forbidden import from the rule's report. It names
+	 * the class of the first reported line and every forbidden package that class
+	 * imports. A line naming no class gives the text without a class. A report
+	 * naming no package is passed on whole.
+	 *
+	 * @param messageParts the report, split into lines
+	 * @param message      the whole report
+	 * @return the refusal to throw
+	 */
+	@Nonnull
+	private static SecurityException importViolation(@Nonnull String[] messageParts, @Nonnull String message) {
+		String importingClass = null;
+		Set<String> forbiddenPackages = new java.util.TreeSet<>();
+		for (int i = 1; i < messageParts.length; i++) {
+			List<String> names = angleBracketedNames(messageParts[i]);
+			if (names.size() < 2) {
+				continue;
+			}
+			String lineClass = importingClassOf(messageParts[i], names.get(0));
+			if (importingClass == null) {
+				importingClass = lineClass;
+			}
+			String packageName = packageOf(names.get(names.size() - 1));
+			if (importingClass.equals(lineClass) && !packageName.isEmpty()) {
+				forbiddenPackages.add(packageName);
+			}
+		}
+		if (forbiddenPackages.isEmpty()) {
+			return new SecurityException(Messages.localized("security.archunit.illegal.execution", message));
+		}
+		return new SecurityException(importMessage(Objects.requireNonNullElse(importingClass, ""), forbiddenPackages));
+	}
+
+	/**
+	 * Words the import refusal, agreeing in number with the packages and leaving
+	 * out the class when none is known.
+	 *
+	 * @param importingClass    the class that imported them, or an empty string
+	 * @param forbiddenPackages the forbidden packages, at least one
+	 * @return the localised message
+	 */
+	@Nonnull
+	private static String importMessage(@Nonnull String importingClass, @Nonnull Set<String> forbiddenPackages) {
+		String packages = String.join(", ", forbiddenPackages);
+		boolean plural = forbiddenPackages.size() > 1;
+		if (importingClass.isEmpty()) {
+			return plural
+					? Messages.localized("security.archunit.package.import.violation.without.class.plural", packages)
+					: Messages.localized("security.archunit.package.import.violation.without.class", packages);
+		}
+		return plural
+				? Messages.localized("security.archunit.package.import.violation.plural", importingClass, packages)
+				: Messages.localized("security.archunit.package.import.violation", importingClass, packages);
+	}
+
+	/**
+	 * Reads the class a report line starts from. A line opening with {@code Class}
+	 * names it directly; a method, constructor or field line names a member, whose
+	 * declaring type is taken.
+	 *
+	 * @param line   the report line
+	 * @param origin the first name in angle brackets on that line
+	 * @return the class, or an empty string when the origin names none
+	 */
+	@Nonnull
+	private static String importingClassOf(@Nonnull String line, @Nonnull String origin) {
+		if (line.strip().startsWith("Class <")) { //$NON-NLS-1$
+			return origin;
+		}
+		String declaringType = extractDeclaringType(origin);
+		return declaringType.equals(origin) ? "" : declaringType;
+	}
+
+	/**
+	 * Lists the names a report line puts in angle brackets, in order. Brackets are
+	 * counted, so a constructor such as {@code a.B.<init>()} stays one name.
+	 *
+	 * @param line the report line
+	 * @return the names, possibly none
+	 */
+	@Nonnull
+	private static List<String> angleBracketedNames(@Nonnull String line) {
+		List<String> names = new java.util.ArrayList<>();
+		int depth = 0;
+		int start = -1;
+		for (int i = 0; i < line.length(); i++) {
+			char character = line.charAt(i);
+			if (character == '<' && depth++ == 0) {
+				start = i + 1;
+			} else if (character == '>' && depth > 0 && --depth == 0) {
+				names.add(line.substring(start, i));
+			}
+		}
+		return names;
+	}
+
+	/**
+	 * Takes the package from a class, method or field name: every segment before
+	 * the first one starting with an upper-case letter, as the report gives no
+	 * other sign of where the package ends. An array type such as
+	 * {@code [Ljava.io.File;} is read as its element type.
+	 *
+	 * @param name the rendered name
+	 * @return the package, empty when the name starts with a class
+	 */
+	@Nonnull
+	private static String packageOf(@Nonnull String name) {
+		String elementName = name.startsWith("[") ? name.replaceFirst("^\\[+L?", "") : name; //$NON-NLS-1$ //$NON-NLS-2$
+		List<String> segments = new java.util.ArrayList<>();
+		for (String segment : elementName.split("\\.")) { //$NON-NLS-1$
+			if (!segment.isEmpty() && Character.isUpperCase(segment.charAt(0))) {
+				break;
+			}
+			segments.add(segment);
+		}
+		return String.join(".", segments); //$NON-NLS-1$
 	}
 
 	/**
@@ -659,8 +757,7 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	// <editor-fold desc="Execute architecture test case methods">
 
 	/**
-	 * Executes the architecture test case to validate code against security
-	 * policies. Delegates to the appropriate implementation based on the specified
+	 * Checks the code against the policy with the implementation of the given
 	 * architecture mode.
 	 *
 	 * @since 2.0.0
@@ -676,8 +773,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		ArchitectureTestCaseSupported protectedArchitectureTestCaseSupported = Objects
 				.requireNonNull(architectureTestCaseSupported, "javaArchitecturalTestCaseSupported must not be null");
 		if (!(architectureTestCaseSupported instanceof JavaArchitectureTestCaseSupported)) {
-			throw new IllegalArgumentException(
-					"javaArchitecturalTestCaseSupported must be an instance of JavaArchitectureTestCaseSupported");
+			throw new SecurityException(
+					Messages.localized("security.architecture.testcase.type.invalid", architectureTestCaseSupported));
 		}
 		JavaArchitectureTestCaseSupported protectedJavaArchitectureTestCaseSupported = (JavaArchitectureTestCaseSupported) protectedArchitectureTestCaseSupported;
 		Set<PackagePermission> protectedAllowedPackages = Objects.requireNonNull(allowedPackages,

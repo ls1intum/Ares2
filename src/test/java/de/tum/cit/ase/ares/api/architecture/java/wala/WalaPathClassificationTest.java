@@ -18,6 +18,8 @@ import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.types.TypeName;
 import com.ibm.wala.types.TypeReference;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 class WalaPathClassificationTest {
 
 	// ----------------------------------------------------------------
@@ -61,12 +63,28 @@ class WalaPathClassificationTest {
 	@Test
 	void applicationStudentClassIsNotInfra() {
 		assertThat(WalaPathClassification
-				.isInfraFrame(applicationNode("Lanonymous/classloadingsystem/ClassLoadingAccess;"))).isFalse();
+				.isInfraFrame(applicationNode("Lorg/example/classloadingsystem/ClassLoadingAccess;"))).isFalse();
 	}
 
+	/**
+	 * A helper class of the exercise is code the student is examined with, not
+	 * infrastructure, whatever its package is called.
+	 */
 	@Test
-	void applicationToolclassIsInfra() {
-		assertThat(WalaPathClassification.isInfraFrame(applicationNode("Lanonymous/toolclasses/Helper;"))).isTrue();
+	void applicationHelperOfTheExerciseIsNotInfra() {
+		assertThat(WalaPathClassification.isInfraFrame(applicationNode("Lorg/example/helpers/Helper;"))).isFalse();
+	}
+
+	/**
+	 * Skipping a package while looking for the student frame is only safe while no
+	 * student class can be declared there, so every infrastructure prefix must lie
+	 * inside a reserved one.
+	 */
+	@Test
+	void everyInfrastructurePrefixIsReserved() {
+		assertThat(WalaPathClassification.INFRA_PREFIXES).allSatisfy(infra -> assertThat(
+				WalaPathClassification.RESERVED_PACKAGE_PREFIXES.stream().anyMatch(infra::startsWith))
+						.as("%s must be reserved", infra).isTrue());
 	}
 
 	@Test
@@ -83,7 +101,7 @@ class WalaPathClassificationTest {
 	@Test
 	void applicationArrayOfStudentClassIsNotInfra() {
 		CGNode node = mockNode(ClassLoaderReference.Application,
-				ref(ClassLoaderReference.Application, "[Lanonymous/Student;"));
+				ref(ClassLoaderReference.Application, "[Lorg/example/Student;"));
 		assertThat(WalaPathClassification.isInfraFrame(node)).isFalse();
 	}
 
@@ -98,7 +116,7 @@ class WalaPathClassificationTest {
 
 	@Test
 	void singleStudentNodeReturnsZero() {
-		CGNode student = applicationNode("Lanonymous/Student;");
+		CGNode student = applicationNode("Lorg/example/Student;");
 		assertThat(WalaPathClassification.nearestStudentFrame(List.of(student))).isEqualTo(OptionalInt.of(0));
 	}
 
@@ -110,14 +128,14 @@ class WalaPathClassificationTest {
 
 	@Test
 	void studentThenInfraSinkReturnsZero() {
-		CGNode student = applicationNode("Lanonymous/Student;");
+		CGNode student = applicationNode("Lorg/example/Student;");
 		CGNode sink = primordialNode("Ljava/lang/Class;");
 		assertThat(WalaPathClassification.nearestStudentFrame(List.of(student, sink))).isEqualTo(OptionalInt.of(0));
 	}
 
 	@Test
 	void studentThenMultipleInfraSinksReturnsZero() {
-		CGNode student = applicationNode("Lanonymous/Student;");
+		CGNode student = applicationNode("Lorg/example/Student;");
 		CGNode infra1 = primordialNode("Lsun/nio/ch/DatagramChannelImpl;");
 		CGNode infra2 = primordialNode("Lsun/nio/ch/DatagramChannelImpl;");
 		CGNode sink = primordialNode("Ljava/net/InetAddress;");
@@ -127,22 +145,26 @@ class WalaPathClassificationTest {
 
 	@Test
 	void nearestStudentIsReturnedWhenMultipleStudentFrames() {
-		CGNode studentA = applicationNode("Lanonymous/A;");
+		CGNode studentA = applicationNode("Lorg/example/A;");
 		CGNode infra = primordialNode("Lsun/nio/ch/SomeImpl;");
-		CGNode studentB = applicationNode("Lanonymous/B;");
+		CGNode studentB = applicationNode("Lorg/example/B;");
 		CGNode sink = primordialNode("Ljava/lang/Thread;");
 		assertThat(WalaPathClassification.nearestStudentFrame(List.of(studentA, infra, studentB, sink)))
 				.isEqualTo(OptionalInt.of(2));
 	}
 
+	/**
+	 * A helper class that calls the forbidden method itself is the frame the
+	 * violation is blamed on, not the student class that called the helper.
+	 */
 	@Test
-	void toolclassHelperTreatedAsInfraNotStudent() {
-		CGNode studentA = applicationNode("Lanonymous/A;");
-		CGNode toolclass = applicationNode("Lanonymous/toolclasses/Helper;");
-		CGNode studentB = applicationNode("Lanonymous/B;");
+	void aHelperOfTheExerciseIsTheNearestStudentFrame() {
+		CGNode student = applicationNode("Lorg/example/A;");
+		CGNode helper = applicationNode("Lorg/example/helpers/Helper;");
 		CGNode sink = primordialNode("Ljava/lang/Thread;");
-		assertThat(WalaPathClassification.nearestStudentFrame(List.of(studentA, toolclass, studentB, sink)))
-				.isEqualTo(OptionalInt.of(2));
+		List<CGNode> path = List.of(student, helper, sink);
+		assertThat(WalaPathClassification.nearestStudentFrame(path)).isEqualTo(OptionalInt.of(1));
+		assertThat(WalaPathClassification.isFalsePositiveTransitivePath(path, 1)).isFalse();
 	}
 
 	// ----------------------------------------------------------------
@@ -166,8 +188,8 @@ class WalaPathClassificationTest {
 	@Test
 	void packageNameOfTwoDimensionalStudentArray() {
 		IClass cls = mock(IClass.class);
-		when(cls.getReference()).thenReturn(ref(ClassLoaderReference.Application, "[[Lanonymous/Student;"));
-		assertThat(WalaPathClassification.packageNameOf(cls)).isEqualTo("anonymous.");
+		when(cls.getReference()).thenReturn(ref(ClassLoaderReference.Application, "[[Lorg/example/Student;"));
+		assertThat(WalaPathClassification.packageNameOf(cls)).isEqualTo("org.example.");
 	}
 
 	@Test
@@ -234,5 +256,62 @@ class WalaPathClassificationTest {
 		CGNode primordial = primordialNode("Ljava/lang/String;");
 		CGNode ares = applicationNode("Lde/tum/cit/ase/ares/api/SomeHelper;");
 		assertThat(WalaPathClassification.nearestStudentFrame(List.of(primordial, ares)).isEmpty()).isTrue();
+	}
+
+	/**
+	 * A JDK frame between the student and the sink makes the path a false positive.
+	 */
+	@Test
+	void checksEveryFrameStrictlyBetweenStudentAndSink() {
+		CGNode student = applicationNode("Lorg/example/Student;");
+		CGNode jdk = primordialNode("Lsun/nio/ch/SomeImpl;");
+		CGNode sink = applicationNode("Lorg/example/Sink;");
+		assertThat(WalaPathClassification.isTransitiveFalsePositiveFrame(sink)).isFalse();
+		assertThat(WalaPathClassification.isFalsePositiveTransitivePath(List.of(student, jdk, sink), 0)).isTrue();
+	}
+
+	/**
+	 * No frame is called unreserved infrastructure: one that cannot be classified
+	 * is refused, and every infrastructure prefix is also reserved.
+	 */
+	@Test
+	void answersNoForAnUnclassifiableFrame() {
+		CGNode noMethod = mock(CGNode.class);
+		CGNode throwing = mock(CGNode.class);
+		when(throwing.getMethod()).thenThrow(new IllegalStateException("simulated WALA error"));
+		CGNode noLoader = mockNode(ClassLoaderReference.Application,
+				ref(ClassLoaderReference.Application, "Lnet/bytebuddy/Helper;"));
+		when(noLoader.getMethod().getDeclaringClass().getClassLoader()).thenReturn(null);
+		CGNode noReference = mockNode(null, ref(ClassLoaderReference.Application, "Lnet/bytebuddy/Helper;"));
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(null)).isFalse();
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(noMethod)).isFalse();
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(throwing)).isFalse();
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(noLoader)).isFalse();
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(noReference)).isFalse();
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(applicationNode("Lnet/bytebuddy/Helper;")))
+				.isFalse();
+	}
+
+	/** A node without a class loader identity is refused. */
+	@Test
+	void refusesANodeItCannotClassify() {
+		CGNode noReference = mockNode(null, ref(ClassLoaderReference.Application, "Lorg/example/Student;"));
+		assertThatThrownBy(() -> WalaPathClassification.isInfraFrame(noReference)).isInstanceOf(SecurityException.class)
+				.hasMessage(Messages.localized("security.architecture.wala.unclassifiable.node",
+						"missing class-loader identity"));
+		CGNode noLoader = mockNode(ClassLoaderReference.Application,
+				ref(ClassLoaderReference.Application, "Lorg/example/Student;"));
+		when(noLoader.getMethod().getDeclaringClass().getClassLoader()).thenReturn(null);
+		assertThatThrownBy(() -> WalaPathClassification.isInfraFrame(noLoader)).isInstanceOf(SecurityException.class)
+				.hasMessage(Messages.localized("security.architecture.wala.unclassifiable.node",
+						"missing class-loader identity"));
+	}
+
+	/** Primitive arrays and the default package have no package name. */
+	@Test
+	void namesNoPackageForPrimitiveArraysAndTheDefaultPackage() {
+		assertThat(WalaPathClassification.packageNameOf(TypeReference.IntArray)).isEqualTo("");
+		assertThat(WalaPathClassification
+				.packageNameOf(TypeReference.findOrCreate(ClassLoaderReference.Application, "LFoo"))).isEqualTo("");
 	}
 }

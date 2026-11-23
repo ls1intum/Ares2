@@ -114,7 +114,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 **Test Code (No Restrictions):**
 - Ares internal code (`de.tum.cit.ase.ares.api.*` is excluded from the ArchUnit import and classified as infrastructure by WALA)
-- In WALA mode: all packages on the `WalaPathClassification.INFRA_PREFIXES` list (`java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, `net.bytebuddy.`, `org.aspectj.`, `com.ibm.wala.`, `com.tngtech.archunit.`, plus the reproducibility test-helper packages `anonymous.toolclasses.` and `metatest.`) and all classes loaded by the Java Development Kit (JDK) boot/extension class loaders
+- In WALA mode: all packages on the `WalaPathClassification.INFRA_PREFIXES` list (`java.`, `javax.`, `sun.`, `jdk.`, `com.sun.`, `net.bytebuddy.`, `org.aspectj.`, `com.ibm.wala.`, `com.tngtech.archunit.`) and all classes loaded by the Java Development Kit (JDK) boot/extension class loaders
 - Classes on the `allowedClasses` allow-list
 
 **Student Code (Subject to Security Checks):**
@@ -272,8 +272,7 @@ Thread creation is extensively used by JDK internals (file I/O, networking, clas
 public static final List<String> INFRA_PREFIXES = List.of(
     "java.", "javax.", "sun.", "jdk.", "com.sun.",
     "de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.",
-    "com.ibm.wala.", "com.tngtech.archunit.",
-    "anonymous.toolclasses.", "metatest.");
+    "com.ibm.wala.", "com.tngtech.archunit.");
 
 static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of(
     "java.", "javax.", "sun.", "jdk.", "com.sun.",
@@ -284,7 +283,7 @@ static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of(
 - **`nearestStudentFrame(path)`** scans the path from the forbidden sink back towards the entry point and returns the first frame that is *not* infrastructure (not in `INFRA_PREFIXES` and not loaded by the JDK boot/extension class loader). If the entire path is infrastructure, the path is dropped.
 - **`isFalsePositiveTransitivePath(path, studentIdx)`** suppresses the path when every frame strictly between the nearest student frame and the sink is a transitive-false-positive frame (JDK or framework internals). This is the case when student code calls a permitted JDK application programming interface (API) (e.g. `BufferedReader`) whose internal implementation transitively reaches a forbidden method such as `Thread.start()`.
 - **Direct violations are never suppressed**: if the student frame is immediately adjacent to the forbidden sink, the path is always reported.
-- The two project test-helper packages (`anonymous.toolclasses.`, `metatest.`) count as infrastructure for frame attribution but deliberately **not** for false-positive suppression, so a student call routed through such a helper into a forbidden JDK API is still reported.
+- A helper class of the exercise counts as student code, whatever its package is called, so a forbidden JDK API it calls itself is reported with the helper as the caller.
 
 **Why This Classification Is Critical:**
 
@@ -554,13 +553,13 @@ Architecture Violation [Priority: MEDIUM] - Rule 'Manipulates threads' was viola
 Method <de.student.StudentCode.processAsync()> calls method <java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable)> in (StudentCode.java:15) accesses <java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable)>
 ```
 
-**The error is converted** by `parseErrorMessage` into a `SecurityException` using the format from `messages.properties` (key `security.archunit.violation.error`, line 97):
+**The error is converted** by `parseErrorMessage` into a `SecurityException` using the format from `messages.properties` (key `security.archunit.violation.error`):
 ```
-Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s via %s (called by %s) but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s via %s (called by %s), but was blocked by Ares.
 ```
 For the thread rule, the action placeholder is `manipulate threads` (mapped from the rule name "Manipulates threads"), e.g.:
 ```
-Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.processAsync() tried to illegally manipulate threads via java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable) (called by de.student.StudentCode) but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.processAsync() tried to illegally manipulate threads via java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable) (called by de.student.StudentCode), but was blocked by Ares.
 ```
 
 The outcome (pass or the parsed `SecurityException`) is cached in-memory per (rule category, allow-list, `JavaClasses` instance), so repeated executions in the same Java Virtual Machine (JVM) replay the cached verdict instead of re-scanning.
@@ -614,7 +613,7 @@ All steps below are implemented in `CustomCallgraphBuilder`.
 
 **Step 1: Filter the Classpath and Create the Analysis Scope**
 
-Before WALA sees the classpath, `filterClassPath` drops entries matching `CLASSPATH_EXCLUDE_SUBSTRINGS`: compiled test outputs, JUnit/test-platform libraries, Mockito, AssertJ/Hamcrest, JaCoCo, Gradle test-runner infrastructure, static-analysis tooling, Ares' own jar, the WALA runtime, and the AspectJ runtime. It widens the scope with the verified helper subdirectory (`anonymous/toolclasses`) so student superclasses can be resolved without pulling in every other category's classes.
+Before WALA sees the classpath, `filterClassPath` drops entries matching `CLASSPATH_EXCLUDE_SUBSTRINGS`: compiled test outputs, JUnit/test-platform libraries, Mockito, AssertJ/Hamcrest, JaCoCo, Gradle test-runner infrastructure, static-analysis tooling, Ares' own jar, the WALA runtime, and the AspectJ runtime. Classes the analysed package references are then resolved by adding the whole output root they live in, so student superclasses and helpers in other packages resolve too; only the analysed package supplies entry points.
 
 ```java
 AnalysisScope scope = Java9AnalysisScopeReader.instance.makeJavaBinaryAnalysisScope(
@@ -679,7 +678,7 @@ CallGraph:
 
 `ReachabilityChecker.getEntryPointsFromStudentSubmission(classPath, classHierarchy)` turns **every declared method** of every class loaded by the Application class loader into a `DefaultEntrypoint`. There is **no** special-casing of `main`; it becomes an entry point like any other method.
 
-The narrowing happens afterwards in `CustomCallgraphBuilder.buildCallGraph`: the entry points are filtered to the package directory derived from the analysed classpath (e.g. `build/classes/java/main/anonymous/foo/bar` → prefix `Lanonymous/foo/bar/`), so each architecture rule only flags violations in the classes under test rather than spilling into unrelated categories that share the wider scope:
+The narrowing happens afterwards in `CustomCallgraphBuilder.buildCallGraph`: the entry points are filtered to the package directory derived from the analysed classpath (e.g. `build/classes/java/main/org/example/bar` → prefix `Lorg/example/bar/`), so each architecture rule only flags violations in the classes under test rather than spilling into unrelated packages that share the wider scope:
 
 ```java
 String narrowPackagePrefix = derivePackagePrefix(classPathToAnalyze);
@@ -718,7 +717,7 @@ The rule check is implemented in `WalaRule.check(CallGraph, Set<ClassPermission>
 
 **Violation Message:**
 
-A genuine violation raises an `AssertionError` with the localised format (`messages.properties` key `security.architecture.method.call.message`, line 115):
+A genuine violation raises an `AssertionError` with the localised format (`messages.properties` key `security.architecture.method.call.message`):
 ```
 '%s'\n Method <%s> calls method <%s> in (%s.java:%d) accesses <%s>
 ```
@@ -757,8 +756,7 @@ Result: AssertionError → parsed into a SecurityException
 public static final List<String> INFRA_PREFIXES = List.of(
     "java.", "javax.", "sun.", "jdk.", "com.sun.",
     "de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.",
-    "com.ibm.wala.", "com.tngtech.archunit.",
-    "anonymous.toolclasses.", "metatest.");
+    "com.ibm.wala.", "com.tngtech.archunit.");
 
 static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of(
     "java.", "javax.", "sun.", "jdk.", "com.sun.",
@@ -807,17 +805,16 @@ java.util.concurrent.ExecutorService.submit(...)  (forbidden sink)
 Result: VIOLATION — the forbidden API is the call the student wrote
 ```
 
-**Path 4 (Detected - Routed Through a Project Test Helper):**
+**Path 4 (Detected - Routed Through a Helper Class):**
 ```
-StudentCode.trickyCall()              (nearest non-helper student caller)
+StudentCode.trickyCall()              (student caller)
   ↓
-anonymous.toolclasses.Helper.spawn()  (infra for attribution, but NOT a
-  ↓                                    transitive-false-positive frame)
+org.example.helpers.Helper.spawn()    (helper class of the exercise, so
+  ↓                                    student code: the nearest student frame)
 java.lang.Thread.start()              (forbidden sink)
 
-Result: VIOLATION — project test helpers are deliberately excluded from
-        TRANSITIVE_FALSE_POSITIVE_PREFIXES, so routing through them does
-        not launder a forbidden call
+Result: VIOLATION — the helper calls the forbidden API itself, so the call
+        is reported with the helper as the caller
 ```
 
 **Legacy false-positives file:** the older DFS-based path finder (`CustomDFSPathFinder`) skipped the method signatures listed in `templates/architecture/java/wala/false-positives/false-positives-file.txt` (`FileHandlerConstants.FALSE_POSITIVES_FILE_SYSTEM_INTERACTIONS`). That mechanism is superseded by the prefix-based classification above for rule checking; the file's content still feeds into the WALA disk-cache fingerprint so edits invalidate cached verdicts.
@@ -958,7 +955,7 @@ try {
 } catch (SecurityException e) {
     // Already in the Ares error format:
     // "Ares Security Error (Reason: Student-Code; Stage: Execution):
-    //  <caller> tried to illegally manipulate threads via <target> (called by <class>)
+    //  <caller> tried to illegally manipulate threads via <target> (called by <class>),
     //  but was blocked by Ares."
 }
 ```

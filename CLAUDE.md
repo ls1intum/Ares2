@@ -36,7 +36,7 @@ utilities for improved feedback.
 
 ## Tech Stack
 
-- **Language**: Java, built with **JDK 21**, targeting **Java 17**
+- **Language**: Java, built with **JDK 25**, targeting **Java 17**
   (`maven.compiler.source` / `maven.compiler.target`), so exercises on Java 17 stay supported
 - **Build**: Maven 3.9+
 - **Testing**: JUnit Jupiter (JUnit 6)

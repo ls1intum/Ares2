@@ -3,6 +3,8 @@ package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
@@ -103,6 +106,49 @@ public class JavaProjectScannerTest {
 			// For now, verify the method executes without errors
 			assertDoesNotThrow(() -> scanner.scanForTestClasses());
 		}
+
+		/**
+		 * Name of a class in Ares' own test tree that holds direct test methods.
+		 */
+		private static final String OWN_TEST_CLASS = JavaProjectScannerDiagnosticsTest.class.getName();
+
+		/**
+		 * Scans with the given build file answers and checks that Ares' own test tree
+		 * is read from the conventional root.
+		 *
+		 * @param maven  whether the project counts as a Maven project
+		 * @param gradle whether the project counts as a Gradle project
+		 */
+		private void assertScansOwnTestTree(boolean maven, boolean gradle) {
+			try (MockedStatic<ProjectSourcesFinder> mockedFinder = mockStatic(ProjectSourcesFinder.class)) {
+				mockedFinder.when(ProjectSourcesFinder::isMavenProject).thenReturn(maven);
+				mockedFinder.when(ProjectSourcesFinder::isGradleProject).thenReturn(gradle);
+
+				String[] result = scanner.scanForTestClasses();
+
+				assertTrue(java.util.Arrays.asList(result).contains(OWN_TEST_CLASS));
+			}
+		}
+
+		/**
+		 * A project that only counts as a Maven project is still scanned in its
+		 * conventional test folder.
+		 */
+		@Test
+		@DisplayName("Should read src/test/java of a Maven project without a build configuration")
+		void testScanForTestClasses_MavenConventionalRoot() {
+			assertScansOwnTestTree(true, false);
+		}
+
+		/**
+		 * A project that only counts as a Gradle project is still scanned in its
+		 * conventional test folder.
+		 */
+		@Test
+		@DisplayName("Should read src/test/java of a Gradle project without a build configuration")
+		void testScanForTestClasses_GradleConventionalRoot() {
+			assertScansOwnTestTree(false, true);
+		}
 	}
 
 	@Nested
@@ -151,6 +197,22 @@ public class JavaProjectScannerTest {
 				// Then
 				assertNotNull(result);
 				assertEquals("Main", result); // Default main class
+			}
+		}
+
+		/**
+		 * Without a build configuration the sources come from the folder the finder
+		 * reports, and the class with a main method in it is found.
+		 */
+		@Test
+		@DisplayName("Should scan the sources the finder reports")
+		void scansTheSourcesTheFinderReports(@TempDir Path sources) throws IOException {
+			Files.writeString(sources.resolve("Tool.java"),
+					"package tools;\nclass Tool { public static void main(String[] arguments) {} }\n");
+			try (MockedStatic<ProjectSourcesFinder> mockedFinder = mockStatic(ProjectSourcesFinder.class)) {
+				mockedFinder.when(ProjectSourcesFinder::findProjectSourcesPath).thenReturn(Optional.of(sources));
+
+				assertEquals("Tool", scanner.scanForMainClassInPackage());
 			}
 		}
 
