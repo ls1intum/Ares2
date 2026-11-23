@@ -59,7 +59,9 @@ class JavaArchitectureTestCaseExecutionTest {
 	}
 
 	/**
-	 * Builds a file-system test case over the given classes for the given engine.
+	 * Builds a file-system test case over the given classes. When
+	 * {@code useSupplier} is true, the call graph is handed on through a supplier,
+	 * otherwise directly.
 	 */
 	private static JavaArchitectureTestCase fileSystemCase(JavaClasses classes, Set<PackagePermission> allowed,
 			CallGraph graph, boolean useSupplier) {
