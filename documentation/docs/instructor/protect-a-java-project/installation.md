@@ -19,7 +19,7 @@ Ares 2 is published to Maven Central as a Maven and Gradle dependency.
 
 ## Prerequisites
 
-- **Java 17** or later
+- **Java 17** or later; with `_INSTRUMENTATION`, Ares trusts native library loads of the Java Development Kit (JDK) itself beneath student code only on 17, 21 and 25 (see [the note on native loads](/contributor/subsystems/aop/block-file-system-access#26-what-are-the-monitored-execute-operations))
 - **Gradle** in a version compatible with the chosen freefair AspectJ plugin (the freefair 9.x line used in this guide requires Gradle 9; older Gradle versions need an older freefair line) or **Maven 3.8+**
 - **JUnit 5** (Jupiter) for test execution
 
@@ -31,7 +31,7 @@ Add the following to the `dependencies` section of your `pom.xml`:
 <dependency>
     <groupId>de.tum.cit.ase</groupId>
     <artifactId>ares</artifactId>
-    <version>2.2.1</version>
+    <version>2.2.2</version>
 </dependency>
 ```
 
@@ -40,7 +40,7 @@ Add the following to the `dependencies` section of your `pom.xml`:
 Add the following to the `dependencies` section of your `build.gradle`:
 
 ```groovy
-implementation("de.tum.cit.ase:ares:2.2.1")
+implementation("de.tum.cit.ase:ares:2.2.2")
 ```
 
 ## Related dependencies

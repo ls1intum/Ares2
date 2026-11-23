@@ -307,6 +307,8 @@ Read APIs listed below access file contents or metadata without modifying them.
 | java.util.Properties | load | ✅ | ✅ |
 | java.util.Properties | loadFromXML | ✅ | ✅ |
 
+> **Note:** `java.util.prefs.Preferences` is file access too, through its backing store. Reads: `get…`, `keys`, `childrenNames`, `nodeExists`, `export…`, `userRoot`, `systemRoot`. Overwrites: `put…`, `remove`, `clear`, `flush`, `sync`, `importPreferences`. Creates: `node`, `userNodeForPackage`, `systemNodeForPackage`, `userRoot`, `systemRoot`, `importPreferences`. Deletes: `removeNode`. The method lists name them all.
+
 **Reads only specific parts of a file**
 
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |

@@ -20,7 +20,7 @@ own work grading instructions and escape every check.
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `de.tum.cit.ase.ares.api.securitytest` — the abstract factory/builder, the Java-specific factory, and the `creator`, `essentialModel`, `executer`, `writer`, `projectScanner`, and `specific` sub-packages.
-> **Ares Version:** 2.2.1
+> **Ares Version:** 2.2.2
 
 **Related documentation:**
 - [Security Policy Manual](../policy/security-policy-manual.md) — how to write a security policy YAML file

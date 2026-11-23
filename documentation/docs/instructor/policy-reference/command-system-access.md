@@ -72,11 +72,11 @@ Implemented by `CommandPermission` in
 
 | Field | Datatype | Explanation | Example | Regex or Range |
 | --- | --- | --- | --- | --- |
-| `executeTheCommand` | `String` | The command this entry permits. | `ls` | Must not be `null` and must not be blank. No pattern is applied: a command name is an operating-system concept, not a Java one. |
-| `withTheseArguments` | `List<String>` | The arguments the command may be executed with. Stored as an unmodifiable defensive copy. | `["-l"]` | Must not be `null`. An empty list means the command may be run without arguments; `allowWithoutArguments` is the shorthand for that. |
+| `executeTheCommand` | `String` | The command this entry permits. | `ls` | Must not be `null`. Either `*`, or a command without control characters or line or paragraph separators, and without a space at either end. |
+| `withTheseArguments` | `List<String>` | The arguments the command may be executed with. Stored as an unmodifiable defensive copy. | `["-l"]` | Must not be `null`. An argument must not contain a control character or a line or paragraph separator. An empty list means the command may be run without arguments; `allowWithoutArguments` is the shorthand for that. |
 
 ## Notes
 
-`CommandPermission` accepts a plain string as well through a delegating `@JsonCreator`, so a policy may write a bare command instead of the mapping form. It is not a shorthand for a command line: `fromString` delegates to `allowWithoutArguments`, which takes the scalar as the executable in full and leaves the argument list empty. A bare `"ls -l"` therefore permits an executable literally named `ls -l`, and denies `ls` invoked with `-l`. Use the mapping form whenever arguments are involved.
+`CommandPermission` accepts a plain string as well through a delegating `@JsonCreator`, so a policy may write a bare command instead of the mapping form. It is not a shorthand for a command line: `fromJson` hands a plain string to `allowWithoutArguments`, which takes the scalar as the executable in full and leaves the argument list empty. A bare `"ls -l"` therefore permits an executable literally named `ls -l`, and denies `ls` invoked with `-l`. Use the mapping form whenever arguments are involved.
 
 The argument list is copied defensively and wrapped unmodifiable, so the record is genuinely immutable and a caller cannot widen a permission after construction.
