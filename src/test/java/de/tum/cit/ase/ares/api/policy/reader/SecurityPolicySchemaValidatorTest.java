@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -359,13 +360,97 @@ class SecurityPolicySchemaValidatorTest {
 		}
 	}
 
-	/** Checks that a very long rejected value is cut short in the message. */
+	/**
+	 * Checks that each boundary value of a number field is accepted.
+	 *
+	 * @param caseName what is checked, used as the test name.
+	 * @param tree     the policy tree with the boundary value.
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("acceptedBoundaries")
+	void acceptsEachBoundaryValue(String caseName, JsonNode tree) {
+		assertDoesNotThrow(() -> SecurityPolicySchemaValidator.validate(tree));
+	}
+
+	/**
+	 * Lists policies whose port, thread count or timeout sits exactly on a boundary
+	 * of its range, including a number Jackson keeps as a big integer.
+	 *
+	 * @return the cases for the parameterised test.
+	 */
+	static Stream<Arguments> acceptedBoundaries() {
+		String network = ACCESSES + "/regardingNetworkConnections/0";
+		String threads = ACCESSES + "/regardingThreadCreations/0";
+		String timeouts = ACCESSES + "/regardingTimeouts/0";
+		String count = "createTheFollowingNumberOfThreads";
+		return Stream.of(Arguments.of("port 0", changed(network, "onThePort", NODES.numberNode(0))),
+				Arguments.of("port 65535", changed(network, "onThePort", NODES.numberNode(65535))),
+				Arguments.of("port as big integer",
+						changed(network, "onThePort", NODES.numberNode(BigInteger.valueOf(443)))),
+				Arguments.of("thread count 0", changed(threads, count, NODES.numberNode(0))),
+				Arguments.of("thread count int maximum", changed(threads, count, NODES.numberNode(Integer.MAX_VALUE))),
+				Arguments.of("timeout 1", changed(timeouts, "timeout", NODES.numberNode(1))),
+				Arguments.of("timeout long maximum", changed(timeouts, "timeout", NODES.numberNode(Long.MAX_VALUE))));
+	}
+
+	/**
+	 * Cuts a rendered value the way the message is expected to: its first 40 and
+	 * last 57 code points around three dots, computed on code points directly.
+	 *
+	 * @param rendered the value as written in JSON.
+	 * @return the expected quotation.
+	 */
+	private static String cutOnCodePoints(String rendered) {
+		int[] codePoints = rendered.codePoints().toArray();
+		if (codePoints.length <= 100) {
+			return rendered;
+		}
+		return new String(codePoints, 0, 40) + "..." + new String(codePoints, codePoints.length - 57, 57);
+	}
+
+	/**
+	 * Checks that a rejected value is quoted in full up to 100 code points, and
+	 * that a longer one keeps its beginning and its end.
+	 *
+	 * @param renderedLength the length of the rendered value, quotes included.
+	 */
+	@ParameterizedTest(name = "rendered length {0}")
+	@MethodSource("renderedLengths")
+	void quotesUpToOneHundredCodePointsAndKeepsBothEndsOfALongerValue(int renderedLength) {
+		String name = "1" + "b".repeat(renderedLength - 4) + "z";
+		String rendered = NODES.textNode(name).toString();
+		assertEquals(renderedLength, rendered.codePointCount(0, rendered.length()));
+		JsonNode tree = changed(SUPERVISED, "theSupervisedCodeUsesTheFollowingPackage", NODES.textNode(name));
+		assertRejected(tree, cutOnCodePoints(rendered), "policy.schema.package",
+				"theSupervisedCodeUsesTheFollowingPackage", VALUE);
+	}
+
+	/**
+	 * Lists the rendered lengths around the cut.
+	 *
+	 * @return 99, 100, 101 and a much longer value.
+	 */
+	static Stream<Integer> renderedLengths() {
+		return Stream.of(99, 100, 101, 300);
+	}
+
+	/**
+	 * Checks that the cut never splits a character outside the Basic Multilingual
+	 * Plane, at the end of the kept beginning or at the start of the kept end.
+	 */
 	@Test
-	void cutsAVeryLongRejectedValueShort() {
-		String longName = "1" + "a".repeat(200);
-		JsonNode tree = changed(SUPERVISED, "theSupervisedCodeUsesTheFollowingPackage", NODES.textNode(longName));
-		String quoted = NODES.textNode(longName).toString().substring(0, 100) + "...";
-		assertRejected(tree, quoted, "policy.schema.package", "theSupervisedCodeUsesTheFollowingPackage", VALUE);
+	void cutsALongValueOnlyBetweenWholeCharacters() {
+		String smile = new String(Character.toChars(0x1F600));
+		String name = "1" + "a".repeat(37) + smile + "b".repeat(100) + smile + "c".repeat(55);
+		String rendered = NODES.textNode(name).toString();
+		int[] codePoints = rendered.codePoints().toArray();
+		assertEquals(0x1F600, codePoints[39]);
+		assertEquals(0x1F600, codePoints[codePoints.length - 57]);
+		JsonNode tree = changed(SUPERVISED, "theSupervisedCodeUsesTheFollowingPackage", NODES.textNode(name));
+		String quotation = cutOnCodePoints(rendered);
+		assertTrue(quotation.startsWith("\"1" + "a".repeat(37) + smile + "..."), quotation);
+		assertTrue(quotation.endsWith("..." + smile + "c".repeat(55) + "\""), quotation);
+		assertRejected(tree, quotation, "policy.schema.package", "theSupervisedCodeUsesTheFollowingPackage", VALUE);
 	}
 
 	/**
@@ -428,7 +513,7 @@ class SecurityPolicySchemaValidatorTest {
 		String import0 = "regardingPackageImports[0]";
 		String command0 = "regardingCommandExecutions[0]";
 		String arguments = command0 + ".withTheseArguments";
-		return Stream.of(
+		return Stream.concat(Stream.of(
 				broken("root unknown field", "", "extra", text, "", "policy.schema.unknown.field", ROOT, "extra",
 						"regardingTheSupervisedCode, " + version),
 				broken("root missing field", "", version, null, "", "policy.schema.missing.field", ROOT, version),
@@ -525,6 +610,82 @@ class SecurityPolicySchemaValidatorTest {
 						arguments + "[0]", VALUE),
 				broken("argument with control character", command, "withTheseArguments",
 						array(NODES.textNode("\u0001")), NODES.textNode("\u0001").toString(),
-						"policy.schema.command.argument", arguments + "[0]", VALUE));
+						"policy.schema.command.argument", arguments + "[0]", VALUE)),
+				Stream.concat(brokenRanges(), brokenNullLists()));
+	}
+
+	/**
+	 * Lists ports, thread counts and timeouts outside their range or not whole
+	 * numbers, including values whose narrowed form would look valid.
+	 *
+	 * @return the cases for the parameterised test.
+	 */
+	static Stream<Arguments> brokenRanges() {
+		String network = ACCESSES + "/regardingNetworkConnections/0";
+		String threads = ACCESSES + "/regardingThreadCreations/0";
+		String timeouts = ACCESSES + "/regardingTimeouts/0";
+		String count = "createTheFollowingNumberOfThreads";
+		String port = "regardingNetworkConnections[0].onThePort";
+		String threadCount = "regardingThreadCreations[0]." + count;
+		String timeout = "regardingTimeouts[0].timeout";
+		BigInteger twoToThe32 = BigInteger.ONE.shiftLeft(32);
+		BigInteger twoToThe64PlusOne = BigInteger.ONE.shiftLeft(64).add(BigInteger.ONE);
+		return Stream.of(
+				broken("port negative", network, "onThePort", NODES.numberNode(-1), "-1", "policy.schema.port", port,
+						VALUE),
+				broken("port above range", network, "onThePort", NODES.numberNode(65536), "65536", "policy.schema.port",
+						port, VALUE),
+				broken("port narrowing to 0", network, "onThePort", NODES.numberNode(twoToThe32), "4294967296",
+						"policy.schema.port", port, VALUE),
+				broken("port narrowing to 1", network, "onThePort", NODES.numberNode(twoToThe64PlusOne),
+						"18446744073709551617", "policy.schema.port", port, VALUE),
+				broken("port decimal", network, "onThePort", NODES.numberNode(1.0d), "1.0", "policy.schema.integer",
+						port, VALUE),
+				broken("port negative zero decimal", network, "onThePort", NODES.numberNode(-0.0d), "-0.0",
+						"policy.schema.integer", port, VALUE),
+				broken("thread count negative", threads, count, NODES.numberNode(-1), "-1",
+						"policy.schema.thread.count", threadCount, VALUE),
+				broken("thread count above int", threads, count, NODES.numberNode(2147483648L), "2147483648",
+						"policy.schema.thread.count", threadCount, VALUE),
+				broken("thread count narrowing to 0", threads, count, NODES.numberNode(twoToThe32), "4294967296",
+						"policy.schema.thread.count", threadCount, VALUE),
+				broken("thread count decimal", threads, count, NODES.numberNode(1.5d), "1.5", "policy.schema.integer",
+						threadCount, VALUE),
+				broken("timeout zero", timeouts, "timeout", NODES.numberNode(0), "0", "policy.schema.timeout", timeout,
+						VALUE),
+				broken("timeout negative", timeouts, "timeout", NODES.numberNode(-1), "-1", "policy.schema.timeout",
+						timeout, VALUE),
+				broken("timeout above long", timeouts, "timeout",
+						NODES.numberNode(BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE)), "9223372036854775808",
+						"policy.schema.timeout", timeout, VALUE),
+				broken("timeout narrowing to 1", timeouts, "timeout", NODES.numberNode(twoToThe64PlusOne),
+						"18446744073709551617", "policy.schema.timeout", timeout, VALUE),
+				broken("timeout decimal", timeouts, "timeout", NODES.numberNode(1e3d), "1000.0",
+						"policy.schema.integer", timeout, VALUE));
+	}
+
+	/**
+	 * Lists required fields left null: a list field gets the hint to write [], any
+	 * other field the general message.
+	 *
+	 * @return the cases for the parameterised test.
+	 */
+	static Stream<Arguments> brokenNullLists() {
+		String command = ACCESSES + "/regardingCommandExecutions/0";
+		String testClasses = "theFollowingClassesAreTestClasses";
+		Stream<Arguments> resourceLists = Stream
+				.of("regardingFileSystemInteractions", "regardingNetworkConnections", "regardingCommandExecutions",
+						"regardingThreadCreations", "regardingPackageImports", "regardingTimeouts")
+				.map(list -> broken(list + " null", ACCESSES, list, NODES.nullNode(), "", "policy.schema.null.list",
+						list));
+		return Stream.concat(resourceLists,
+				Stream.of(
+						broken("test classes null", SUPERVISED, testClasses, NODES.nullNode(), "",
+								"policy.schema.null.list", testClasses),
+						broken("arguments null", command, "withTheseArguments", NODES.nullNode(), "",
+								"policy.schema.null.list", "regardingCommandExecutions[0].withTheseArguments"),
+						broken("file flag null", ACCESSES + "/regardingFileSystemInteractions/0", "readAllFiles",
+								NODES.nullNode(), "", "policy.schema.null",
+								"regardingFileSystemInteractions[0].readAllFiles")));
 	}
 }
