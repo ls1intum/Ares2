@@ -1,8 +1,8 @@
 package de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.own.sub;
 
 /**
- * Fixture in a package below {@code fixtures.own}, standing for code that is
- * not supervised.
+ * Fixture in a package below {@code fixtures.own}, standing for code there,
+ * such as a test class.
  */
 public class SubHelper {
 

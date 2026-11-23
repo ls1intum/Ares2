@@ -34,7 +34,8 @@ These have a field in `security-policy.yaml`. Beyond a small implicit allowance,
 permitted until you write it down, and what you write down is then checked value by value.
 
 The implicit part matters for package imports: Ares always permits its own essential packages,
-the supervised package itself and the packages of your test classes, whatever your list says.
+`java.lang` and `java.io` among them, and the packages of the supervised code, each with the
+packages beneath it, whatever your list says. Your test classes add no package.
 
 | Category | Policy field | What you grant, and how narrowly |
 | --- | --- | --- |

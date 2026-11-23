@@ -103,9 +103,9 @@ class MessagesCatalogueTest {
 	 */
 	private static final List<String> SCHEMA_KEYS = List.of("root", "object", "unknown.field", "unknown.fields",
 			"unknown.field.none", "unknown.fields.none", "missing.field", "missing.fields", "null", "text",
-			"text.optional", "text.any", "text.list", "list", "integer", "boolean", "boolean.optional",
-			"version.single", "version.range", "configuration", "package", "main.class", "test.class", "file.path",
-			"host", "command", "command.argument", "thread.class", "package.import");
+			"text.optional", "text.any", "text.list", "list", "integer", "boolean", "version.single", "version.range",
+			"configuration", "package", "main.class", "test.class", "file.path", "host", "command", "command.argument",
+			"thread.class", "package.import");
 
 	/**
 	 * Ares 1 texts that no source references any more; kept until a later pull

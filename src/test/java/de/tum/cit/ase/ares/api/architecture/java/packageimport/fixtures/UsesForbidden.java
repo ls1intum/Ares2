@@ -6,9 +6,8 @@ import java.net.Socket;
 
 /**
  * Fixture reaching into packages a security policy is expected to be able to
- * forbid. {@code java.lang.reflect} is deliberately included: it is a
- * subpackage of the unavoidable {@code java.lang} baseline and must stay
- * blocked.
+ * forbid, and into {@code java.lang.reflect}, which the {@code java.lang}
+ * baseline covers for imports while the reflection rule still refuses it.
  */
 public class UsesForbidden {
 

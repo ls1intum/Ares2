@@ -4,7 +4,7 @@ import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.own.sub.
 
 /**
  * Fixture using a class in a package below its own, which its own package
- * permission does not cover because it is exact.
+ * permission covers.
  */
 public class OwnSubUser {
 

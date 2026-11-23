@@ -3,7 +3,6 @@ package de.tum.cit.ase.ares.api.architecture.java.packageimport;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -42,6 +41,7 @@ import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.UsesJava
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.own.OwnSibling;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.own.OwnSubUser;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.own.OwnUser;
+import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.own.sub.SubHelper;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.testcode.InstructorCheck;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.testcode.UsesInstructorCheck;
 import de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures.testcode.UsesInstructorCheckEvil;
@@ -59,8 +59,8 @@ import de.tum.cit.ase.ares.api.policy.policySubComponents.ResourceAccesses;
  * <p>
  * The rule previously had no behavioural tests at all, which is why an
  * essential entry of the bare root {@code java} silently whitelisted the whole
- * JDK. These tests pin the two properties that failure depended on: the JDK
- * baseline is exact-matched, and policy grants stay subpackage-inclusive.
+ * JDK. These tests pin what the baseline permits, and that every grant covers
+ * the packages below it.
  *
  * @author Markus Paulsen
  */
@@ -70,15 +70,15 @@ class PackageImportEnforcementTest {
 	private static final String FIXTURES = "de.tum.cit.ase.ares.api.architecture.java.packageimport.fixtures";
 
 	/**
-	 * java.lang, exact-matched, as the shipped configuration grants it.
+	 * java.lang, as the shipped configuration grants it.
 	 */
-	private static final PackagePermission JDK_BASELINE = new PackagePermission("java.lang", true);
+	private static final PackagePermission JDK_BASELINE = new PackagePermission("java.lang");
 
 	/**
-	 * java.io, exact-matched, which the shipped configuration also grants because
-	 * printing depends on java.io.PrintStream.
+	 * java.io, which the shipped configuration also grants because printing depends
+	 * on java.io.PrintStream.
 	 */
-	private static final PackagePermission JAVA_IO_BASELINE = new PackagePermission("java.io", true);
+	private static final PackagePermission JAVA_IO_BASELINE = new PackagePermission("java.io");
 
 	/**
 	 * The infrastructure packages the shipped configuration always grants. The test
@@ -135,13 +135,25 @@ class PackageImportEnforcementTest {
 		assertFalse(violations.contains("java.io."), "java.io belongs to the shipped baseline");
 	}
 
-	/** An exact java.lang baseline does not admit java.lang.reflect. */
+	/** The java.lang baseline covers java.lang.reflect for the import rule. */
 	@Test
-	@DisplayName("An exact java.lang baseline does not admit java.lang.reflect")
-	void exactBaselineDoesNotLeakIntoSubpackages() {
+	@DisplayName("The java.lang baseline covers java.lang.reflect for the import rule")
+	void baselineCoversSubpackagesOfJavaLang() {
 		String violations = violationsFor(Set.of(JDK_BASELINE, FIXTURE_PACKAGE));
-		assertTrue(violations.contains("java.lang.reflect"),
-				"java.lang.reflect is a subpackage of the baseline and must stay forbidden");
+		assertFalse(violations.contains("java.lang.reflect"),
+				"java.lang.reflect lies below the baseline java.lang and must be covered");
+	}
+
+	/**
+	 * The reflection rule still refuses a reflective call the import rule allows.
+	 */
+	@Test
+	@DisplayName("The reflection rule still refuses a reflective call the import rule allows")
+	void reflectionRuleStillRefusesReflection() {
+		JavaClasses usesReflection = new ClassFileImporter().importClasses(UsesForbidden.class);
+		assertThrows(AssertionError.class,
+				() -> JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_REFLECTION.check(usesReflection),
+				"covering java.lang.reflect for imports must not permit reflection");
 	}
 
 	/**
@@ -173,17 +185,16 @@ class PackageImportEnforcementTest {
 	// <editor-fold desc="Defence in depth against a widened essential list">
 
 	/**
-	 * Re-adding the bare root {@code java} to the essential list cannot re-open the
-	 * JDK: JavaCreator grants every essential JDK package exactly, so {@code java}
-	 * covers only the package of that name, which declares no classes.
+	 * A grant of the bare root {@code java} covers every {@code java.*} package, so
+	 * the essential list must never contain it.
 	 */
 	@Test
-	@DisplayName("Re-adding the bare root 'java' to the essential list cannot re-open the JDK")
-	void bareJavaRootGrantedExactlyDoesNotReopenTheJdk() {
-		String violations = violationsFor(Set.of(new PackagePermission("java", true), FIXTURE_PACKAGE));
-		assertTrue(violations.contains("java.io"), "java.io must remain forbidden");
-		assertTrue(violations.contains("java.net"), "java.net must remain forbidden");
-		assertTrue(violations.contains("java.lang.reflect"), "java.lang.reflect must remain forbidden");
+	@DisplayName("A grant of the bare root 'java' covers every java.* package")
+	void bareJavaRootCoversTheWholeJdk() {
+		String violations = violationsFor(Set.of(new PackagePermission("java"), FIXTURE_PACKAGE));
+		assertFalse(violations.contains("java.io"), "java.io lies below java");
+		assertFalse(violations.contains("java.net"), "java.net lies below java");
+		assertFalse(violations.contains("java.lang.reflect"), "java.lang.reflect lies below java");
 	}
 
 	// </editor-fold>
@@ -198,16 +209,6 @@ class PackageImportEnforcementTest {
 				new PackagePermission("java.util.stream")));
 		assertFalse(violations.contains("java.util.concurrent"),
 				"a subpackage-inclusive grant of java.util must cover java.util.concurrent");
-	}
-
-	/** An exact grant of java.util does not cover java.util.concurrent. */
-	@Test
-	@DisplayName("An exact grant of java.util does not cover java.util.concurrent")
-	void exactGrantsDoNotCoverSubpackages() {
-		String violations = violationsFor(
-				Set.of(JDK_BASELINE, FIXTURE_PACKAGE, new PackagePermission("java.util", true)));
-		assertTrue(violations.contains("java.util.concurrent"),
-				"an exact grant must not extend to java.util.concurrent");
 	}
 
 	/**
@@ -243,40 +244,27 @@ class PackageImportEnforcementTest {
 				"both engines must report identical package-import violations");
 	}
 
-	/** The single-argument constructor keeps the subpackage-inclusive default. */
+	/** A package entry binds from policy YAML to the permission it names. */
 	@Test
-	@DisplayName("The single-argument constructor keeps the subpackage-inclusive default")
-	void singleArgumentConstructorDefaultsToSubtree() {
-		assertFalse(new PackagePermission("java.util").exactMatchOnly(),
-				"policy-facing construction must stay subpackage-inclusive");
-		assertTrue(new PackagePermission("java.lang", true).exactMatchOnly());
-		assertTrue(PackagePermission.builder().importTheFollowingPackage("a.b").exactMatchOnly(true).build()
-				.exactMatchOnly(), "the builder must carry the flag through");
+	@DisplayName("A package entry binds from policy YAML to the permission it names")
+	void policyYamlBindsThePackage() throws Exception {
+		String yaml = "regardingPackageImports:\n" + "  - importTheFollowingPackage: \"java.util\"\n";
+		LegacyPolicyFragment fragment = new ObjectMapper(new YAMLFactory()).readValue(yaml, LegacyPolicyFragment.class);
+		assertEquals(List.of(new PackagePermission("java.util")), fragment.regardingPackageImports());
 	}
 
-	/**
-	 * Exactness participates in equality, so both forms can coexist in the
-	 * allow-list.
-	 */
+	/** A permission written out names only its package, and reads back equal. */
 	@Test
-	@DisplayName("Exactness participates in equality, so both forms can coexist in the allow-list")
-	void exactnessParticipatesInEquality() {
-		assertNotEquals(new PackagePermission("java.lang", true), new PackagePermission("java.lang", false));
-	}
-
-	/**
-	 * Policy YAML written before the flag existed still reads as
-	 * subpackage-inclusive.
-	 */
-	@Test
-	@DisplayName("Policy YAML written before the flag existed still deserialises as subpackage-inclusive")
-	void legacyPolicyYamlRemainsSubpackageInclusive() throws Exception {
-		String legacyYaml = "regardingPackageImports:\n" + "  - importTheFollowingPackage: \"java.util\"\n";
-		LegacyPolicyFragment fragment = new ObjectMapper(new YAMLFactory()).readValue(legacyYaml,
-				LegacyPolicyFragment.class);
-		assertEquals(1, fragment.regardingPackageImports().size());
-		assertFalse(fragment.regardingPackageImports().get(0).exactMatchOnly(),
-				"an absent exactMatchOnly key must keep the original subpackage-inclusive meaning");
+	@DisplayName("A permission written out names only its package, and reads back equal")
+	void permissionRoundTripsWithOnlyItsPackage() throws Exception {
+		ObjectMapper json = new ObjectMapper();
+		String written = json.writeValueAsString(new PackagePermission("java.util"));
+		assertEquals("{\"importTheFollowingPackage\":\"java.util\"}", written);
+		assertEquals(new PackagePermission("java.util"), json.readValue(written, PackagePermission.class));
+		ObjectMapper yaml = new ObjectMapper(new YAMLFactory());
+		String writtenYaml = yaml.writeValueAsString(new PackagePermission("java.util"));
+		assertEquals("---\nimportTheFollowingPackage: \"java.util\"\n", writtenYaml);
+		assertEquals(new PackagePermission("java.util"), yaml.readValue(writtenYaml, PackagePermission.class));
 	}
 
 	/** Minimal stand-in for the package-import section of a security policy. */
@@ -367,12 +355,20 @@ class PackageImportEnforcementTest {
 		assertEquals("", violationsOf(Set.of(JDK_BASELINE), Set.of(), OwnUser.class, OwnSibling.class));
 	}
 
-	/** An own package is exact and does not cover the packages below it. */
+	/** An own package covers the packages below it. */
 	@Test
-	@DisplayName("An own package is exact and does not cover the packages below it")
-	void ownPackageIsExact() {
-		assertTrue(violationsOf(Set.of(JDK_BASELINE), Set.of(), OwnSubUser.class).contains(FIXTURES + ".own.sub"),
-				"a class below the own package is not supervised and must not be importable");
+	@DisplayName("An own package covers the packages below it")
+	void ownPackageCoversItsSubpackages() {
+		assertFalse(violationsOf(Set.of(JDK_BASELINE), Set.of(), OwnSubUser.class).contains(FIXTURES + ".own.sub"),
+				"a class below the own package must be importable");
+	}
+
+	/** A named test class below an own package stays forbidden. */
+	@Test
+	@DisplayName("A named test class below an own package stays forbidden")
+	void testClassBelowAnOwnPackageIsForbidden() {
+		assertTrue(violationsOf(Set.of(JDK_BASELINE), Set.of(SubHelper.class.getName()), OwnSubUser.class)
+				.contains(SubHelper.class.getName()), "the own package must not open a test class below it");
 	}
 
 	/** Classes in the JDK namespace never add an own package. */
@@ -411,7 +407,7 @@ class PackageImportEnforcementTest {
 		assertThrows(SecurityException.class,
 				() -> JavaArchunitTestCaseCollection.withOwnPackages(Set.of(), invalid, Set.of()));
 		JavaClasses valid = new ClassFileImporter().importClasses(OwnUser.class);
-		assertEquals(Set.of(new PackagePermission(FIXTURES + ".own", true)),
+		assertEquals(Set.of(new PackagePermission(FIXTURES + ".own")),
 				JavaArchunitTestCaseCollection.withOwnPackages(Set.of(), valid, Set.of()));
 	}
 
@@ -538,7 +534,7 @@ class PackageImportEnforcementTest {
 	void generatedRulesCarryTheTestClassesThroughTheConversion() {
 		JavaArchitectureTestCase testCase = JavaArchitectureTestCase.builder()
 				.javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT)
-				.allowedPackages(Set.of(JDK_BASELINE, new PackagePermission("java.util", true)))
+				.allowedPackages(Set.of(JDK_BASELINE, new PackagePermission("java.util")))
 				.javaClasses(new ClassFileImporter().importPackages()).testClassNames(Set.of(INSTRUCTOR_CHECK))
 				.supervisedPackage("de.tum.cit.aet").callGraphSupplier(() -> {
 					throw new AssertionError("writing must not build a call graph");
@@ -546,8 +542,7 @@ class PackageImportEnforcementTest {
 		for (ArchitectureMode mode : ArchitectureMode.values()) {
 			String written = mode.threePartedFileBody(List.of(testCase));
 			assertTrue(written.contains("Set.of(\"" + INSTRUCTOR_CHECK + "\")"), mode + " must name the test class");
-			assertTrue(written.contains("new PackagePermission(\"java.util\", true)"),
-					mode + " must keep an exact grant exact");
+			assertTrue(written.contains("new PackagePermission(\"java.util\")"), mode + " must write the grant");
 			assertTrue(written.contains("JavaArchunitTestCaseCollection.withOwnPackages(allowedPackages, javaClasses"),
 					mode + " must read the own packages from the checked classes");
 		}
