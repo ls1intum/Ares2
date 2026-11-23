@@ -858,13 +858,13 @@ Architecture Violation [Priority: MEDIUM] - Rule 'Accesses file system' was viol
 Method <de.student.StudentCode.readFile()> transitively accesses <java.nio.file.Files.readString(java.nio.file.Path)> by [de.student.StudentCode.readFile()->de.student.Helper.loadFile()] in (StudentCode.java:12)
 ```
 
-**Error is converted to** (via `JavaArchitectureTestCase.parseErrorMessage`, using the `security.archunit.violation.error` message format `%s tried to illegally %s via %s (called by %s)`):
+**Error is converted to** (via `JavaArchitectureTestCase.parseErrorMessage`, using the `security.archunit.violation.error` message format `%s tried to illegally %s via %s (called by %s), but was blocked by Ares.`):
 ```java
 throw new SecurityException(
     "Ares Security Error (Reason: Student-Code; Stage: Execution): " +
     "de.student.StudentCode.readFile() tried to illegally access the file system " +
     "via java.nio.file.Files.readString(java.nio.file.Path) " +
-    "(called by de.student.StudentCode) but was blocked by Ares."
+    "(called by de.student.StudentCode), but was blocked by Ares."
 );
 ```
 

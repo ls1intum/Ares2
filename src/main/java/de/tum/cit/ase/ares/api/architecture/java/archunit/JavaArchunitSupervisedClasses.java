@@ -280,7 +280,7 @@ public final class JavaArchunitSupervisedClasses {
 				throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): "
 						+ "The compiled class " + javaClass.getName() + " under " + outputRoot
 						+ " declares the reserved package " + declared + ", which lies inside the trusted "
-						+ "namespace " + reserved + ". Supervised code may not be named into a trusted "
+						+ "namespace " + reserved + ". Supervised code may not be placed in a trusted "
 						+ "namespace, because the analysers and the runtime both treat those frames as the "
 						+ "framework's own.");
 			}

@@ -39,30 +39,45 @@ public final class TestGuardUtils {
 	private TestGuardUtils() {
 	}
 
+	/**
+	 * Decides whether a test may run now. A hidden test runs only after its
+	 * deadline, with extensions, or before its activation time. Otherwise, and for
+	 * a public test that names a deadline, it throws a {@link SecurityException}
+	 * with the Ares prefix.
+	 *
+	 * @param context the context of the test
+	 * @throws SecurityException if the test is set up wrongly or a hidden test may
+	 *                           not run yet
+	 */
 	public static void checkForHidden(TestContext context) {
 		if (hasAnnotationType(context, TestType.HIDDEN)) {
-			// check if there are both, that would be a mistake
 			if (hasAnnotationType(context, TestType.PUBLIC)) {
-				throw new AnnotationFormatError(
-						localized("test_guard.test_cannot_be_public_and_hidden", context.displayName())); //$NON-NLS-1$
+				throw new SecurityException(localized("test_guard.test_cannot_be_public_and_hidden", nameOf(context))); //$NON-NLS-1$
 			}
 			var now = ZonedDateTime.now();
 			var finalDeadline = extractDeadline(context);
-			// check if now is after the deadline including extensions
 			if (now.isAfter(finalDeadline)) {
 				return;
 			}
-			// check if now is in the activate hidden tests period
 			Optional<ZonedDateTime> activationBefore = extractActivationBefore(context);
 			if (activationBefore.map(now::isBefore).orElse(false)) {
 				return;
 			}
-			throw localizedFailure("test_guard.hidden_test_before_deadline_message"); //$NON-NLS-1$
+			throw new SecurityException(localized("test_guard.hidden_test_before_deadline_message")); //$NON-NLS-1$
 		}
 		if (resolveDeadlineAnnotations(context).hasAnyDeadlineAnnotation()) {
-			throw new AnnotationFormatError(
-					localized("test_guard.public_test_cannot_have_deadline", context.displayName())); //$NON-NLS-1$
+			throw new SecurityException(localized("test_guard.public_test_cannot_have_deadline", nameOf(context))); //$NON-NLS-1$
 		}
+	}
+
+	/**
+	 * Names a test for a setup error: its display name, or else its method name.
+	 *
+	 * @param context the context of the test
+	 * @return the name of the test, never {@code null}
+	 */
+	private static String nameOf(TestContext context) {
+		return context.displayName().or(() -> context.testMethod().map(Method::getName)).orElse("?"); //$NON-NLS-1$
 	}
 
 	public static boolean hasAnnotation(TestContext context, Class<? extends Annotation> type) {
@@ -95,12 +110,19 @@ public final class TestGuardUtils {
 		return context.findTestType().orElse(null) == type;
 	}
 
+	/**
+	 * Finds the deadline of a hidden test, with its extensions.
+	 *
+	 * @param context the context of the hidden test
+	 * @return the deadline, never {@code null}
+	 * @throws SecurityException if the test has no deadline
+	 */
 	public static ZonedDateTime extractDeadline(TestContext context) {
 		var deadline = extractDeadline(context.testClass(), context.testMethod());
 		if (deadline.isPresent()) {
 			return deadline.get();
 		}
-		throw new AnnotationFormatError(localized("test_guard.hidden_test_missing_deadline", context.displayName())); //$NON-NLS-1$
+		throw new SecurityException(localized("test_guard.hidden_test_missing_deadline", nameOf(context))); //$NON-NLS-1$
 	}
 
 	public static Optional<ZonedDateTime> extractDeadline(Optional<Class<?>> testClass, Optional<Method> testMethod) {
@@ -140,7 +162,7 @@ public final class TestGuardUtils {
 	/**
 	 * @param deadlineString a String of format like described in {@link Deadline}
 	 * @return the {@link LocalDateTime}, never <code>null</code>
-	 * @throws AnnotationFormatError if the given String's format is invalid
+	 * @throws SecurityException if the given String's format is invalid
 	 * @author Christian Femers
 	 */
 	@API(status = Status.INTERNAL)
@@ -161,7 +183,7 @@ public final class TestGuardUtils {
 			}
 			return dateTime.atZone(zone);
 		} catch (DateTimeParseException e) {
-			throw new AnnotationFormatError(localized("test_guard.invalid_deadline_format", deadlineString), //$NON-NLS-1$
+			throw new SecurityException(localized("test_guard.invalid_deadline_format", deadlineString), //$NON-NLS-1$
 					e);
 		}
 	}
@@ -196,21 +218,22 @@ public final class TestGuardUtils {
 	 * @param durationString a String of format like described in
 	 *                       {@link ExtendedDeadline}
 	 * @return the {@link Duration}, never <code>null</code>
-	 * @throws AnnotationFormatError if the given String's format is invalid
+	 * @throws SecurityException if the given String's format is invalid, or the
+	 *                           extension is zero or negative
 	 * @author Christian Femers
 	 */
 	@API(status = Status.INTERNAL)
 	public static Duration parseDuration(String durationString) {
 		var matcher = DURATION_PATTERN.matcher(durationString);
 		if (!matcher.matches()) {
-			throw new AnnotationFormatError(localized("test_guard.invalid_extended_deadline_format", durationString)); //$NON-NLS-1$
+			throw new SecurityException(localized("test_guard.invalid_extended_deadline_format", durationString)); //$NON-NLS-1$
 		}
 		int d = Optional.ofNullable(matcher.group("d")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
 		int h = Optional.ofNullable(matcher.group("h")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
 		int m = Optional.ofNullable(matcher.group("m")).map(Integer::parseInt).orElse(0); //$NON-NLS-1$
 		var duration = Duration.ofDays(d).plusHours(h).plusMinutes(m);
 		if (duration.isZero() || duration.isNegative()) {
-			throw new AnnotationFormatError(localized("test_guard.extended_deadline_zero_or_negative", durationString)); //$NON-NLS-1$
+			throw new SecurityException(localized("test_guard.extended_deadline_zero_or_negative", durationString)); //$NON-NLS-1$
 		}
 		return duration;
 	}

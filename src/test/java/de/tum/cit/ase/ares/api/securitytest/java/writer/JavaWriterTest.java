@@ -11,7 +11,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,10 +30,12 @@ import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.AdviceActionWording;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
+import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
 import de.tum.cit.ase.ares.api.util.FileTools;
@@ -91,7 +96,7 @@ public class JavaWriterTest {
 			assertNotNull(messages.getProperty("security.advice.trusted.startup.missing"));
 			assertNotNull(messages.getProperty("security.advice.startup.properties.unavailable"));
 			assertNotNull(messages.getProperty("security.advice.temp.directory.holder.unreadable"));
-			assertNotNull(messages.getProperty("security.advice.denial.reason.not.in.allowlist"));
+			assertNotNull(messages.getProperty("security.advice.denial.reason.target.not.allowed.file"));
 		}
 	}
 
@@ -136,6 +141,63 @@ public class JavaWriterTest {
 						List.of(), List.of(), escaping, "Main", List.of(), List.of(), List.of(), sourceRoot));
 		assertFalse(Files.exists(tempDir.resolve("src/test/resources")));
 		assertFalse(Files.exists(tempDir.resolve("src/main")));
+	}
+
+	/**
+	 * A misspelled field in a policy without test behaviour stops precompile before
+	 * anything is written. The refusal has stage Creation and names the unknown
+	 * field and the known ones in its first line, in English and German.
+	 */
+	@Test
+	void refusesAMisspelledPolicyFieldWithItsCauseAndWritesNoFiles() throws IOException {
+		Path policy = Files.writeString(tempDir.resolve("SecurityPolicy.yaml"), """
+				thisPolicyFileCompliesToThePolicyVersion: 1
+				regardingTheSupervisedCode:
+				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+				  theSupervisedCodeUsesTheFollowingPackage: com.example
+				  theFollowingClassesAreTestClasses: []
+				  theFollowingResourceAccessesArePermitted:
+				    regardingFileSystemInteraction: []
+				    regardingNetworkConnections: []
+				    regardingCommandExecutions: []
+				    regardingThreadCreations: []
+				    regardingPackageImports: []
+				    regardingTimeouts: []
+				""");
+		Path testFolder = Files.createDirectories(tempDir.resolve("src/test/java"));
+		Set<Path> before = filesBelow(tempDir);
+		for (Locale locale : List.of(Locale.ENGLISH, Locale.GERMAN)) {
+			String message = AdviceActionWording.inLocale(locale,
+					() -> assertThrows(SecurityException.class,
+							() -> new SecurityPolicyReaderAndDirector(policy, tempDir).createTestCases()
+									.writeTestCases(testFolder)).getMessage());
+			String expected = AdviceActionWording.inLocale(locale,
+					() -> Messages.localized("security.policy.data.bind.failed", policy.toString(),
+							Messages.localized("policy.schema.unknown.field",
+									"theFollowingResourceAccessesArePermitted", "regardingFileSystemInteraction",
+									"regardingCommandExecutions, regardingFileSystemInteractions, "
+											+ "regardingNetworkConnections, regardingPackageImports, "
+											+ "regardingThreadCreations, regardingTimeouts")));
+			assertEquals(expected, message, locale.toString());
+			assertTrue(message.startsWith(
+					Locale.GERMAN.equals(locale) ? "Ares Sicherheitsfehler (Grund: Ares-Code; Phase: Erstellung): "
+							: "Ares Security Error (Reason: Ares-Code; Stage: Creation): "),
+					message);
+		}
+		assertEquals(before, filesBelow(tempDir));
+	}
+
+	/**
+	 * Lists every regular file below a folder.
+	 *
+	 * @param folder the folder.
+	 * @return the files.
+	 * @throws IOException if the folder cannot be walked.
+	 */
+	private static Set<Path> filesBelow(Path folder) throws IOException {
+		try (Stream<Path> walk = Files.walk(folder)) {
+			return walk.filter(Files::isRegularFile).collect(Collectors.toSet());
+		}
 	}
 
 	/**

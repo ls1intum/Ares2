@@ -19,6 +19,7 @@ import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.integration.jce.JceTraceAgent;
+import de.tum.cit.ase.ares.testutilities.MessageTemplates;
 
 /**
  * Exercises the generated AspectJ startup boundary before exemptions can be
@@ -45,8 +46,9 @@ class JceGeneratedExerciseTest {
 	 * Generates and compiles actual advice, then tries poisoning its home before
 	 * first use. Instrumentation initialises its checks before the change; AspectJ
 	 * initialises its aspect after it and still trusts only the start-up home. The
-	 * control denial carries a reason from the generated copy of Ares's messages,
-	 * which it reads without any exemption for Ares's own file names.
+	 * control denial is the file denial sentence with a reason from the generated
+	 * copy of Ares's messages, which it reads without any exemption for Ares's own
+	 * file names.
 	 */
 	@ParameterizedTest
 	@EnumSource(ProgrammingLanguageConfiguration.class)
@@ -56,9 +58,13 @@ class JceGeneratedExerciseTest {
 		String control = launch(configuration, project, "control");
 		assertTrue(control.contains("GENERATED_READ_DENIED"), control);
 		assertTrue(
-				control.contains(Messages.localized("security.advice.denial.reason.no.allowlist"))
-						|| control.contains(Messages.localized("security.advice.denial.reason.not.in.allowlist")),
+				control.contains(Messages.localized("security.advice.denial.reason.no.rule.file"))
+						|| control.contains(Messages.localized("security.advice.denial.reason.no.action.rule.file",
+								Messages.localized("security.advice.action.read")))
+						|| control
+								.contains(Messages.localized("security.advice.denial.reason.target.not.allowed.file")),
 				control);
+		assertWrittenAsTheDenialSentence(value(control, "GENERATED_READ_DENIED: "));
 		String output = launch(configuration, project, "snapshot");
 		assertFalse(output.contains("GENERATED_READ_RETURNED"), output);
 		assertTrue(output.contains("GENERATED_READ_DENIED"), output);
@@ -348,6 +354,24 @@ class JceGeneratedExerciseTest {
 		String unavailable = Messages.localized("security.advice.startup.properties.unavailable");
 		assertEquals(unavailable, value(output, "GENERATED_TEMP_IO_DENIED="), output);
 		assertEquals(unavailable, value(output, "GENERATED_TEMP_NIO_DENIED="), output);
+	}
+
+	/**
+	 * Requires a denial printed by the copied, compiled advice to be the one file
+	 * denial sentence of Ares's catalogue, read back value by value, with the
+	 * reason as its own last value. That shows the copied catalogue and advice
+	 * carry the new template, not only the reason texts.
+	 */
+	private static void assertWrittenAsTheDenialSentence(String denial) {
+		List<String> values = MessageTemplates.argumentsOf("security.advice.illegal.file.execution", 5, denial)
+				.orElseThrow(() -> new AssertionError("Not the file denial sentence: " + denial));
+		assertTrue(List
+				.of(Messages.localized("security.advice.denial.reason.no.rule.file"),
+						Messages.localized("security.advice.denial.reason.no.action.rule.file",
+								Messages.localized("security.advice.action.read")),
+						Messages.localized("security.advice.denial.reason.target.not.allowed.file"))
+				.contains(values.get(4)), denial);
+		assertFalse(denial.contains("security.advice."), denial);
 	}
 
 	/** Returns the rest of the first output line that starts with a label. */

@@ -22,6 +22,9 @@ import de.tum.cit.ase.ares.testutilities.UserTestResults;
 @UserBased(InternalErrorLeakageTemporaryUser.class)
 class InternalErrorLeakageTemporaryTest {
 
+	/** The fixed English text a failed hidden test shows, prefix included. */
+	private static final String HIDDEN_TEST_FAILED = "Ares Security Error (Reason: Student-Code; Stage: Execution): Hidden test failed.";
+
 	@UserTestResults
 	private static Events tests;
 
@@ -45,7 +48,7 @@ class InternalErrorLeakageTemporaryTest {
 	@TestTest
 	void test_hiddenTestLeakingSecret() {
 		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(hiddenTestLeakingSecret, AssertionError.class, "Hidden test failed."));
+				testFailedWith(hiddenTestLeakingSecret, SecurityException.class, HIDDEN_TEST_FAILED));
 	}
 
 	/**
@@ -78,8 +81,8 @@ class InternalErrorLeakageTemporaryTest {
 	 */
 	@TestTest
 	void test_publicTestWithInternalAresError() {
-		tests.assertThatEvents().haveExactly(1, testFailedWith(publicTestWithInternalAresError, AssertionError.class,
-				"An internal Ares error occurred during test execution. Please contact your instructor."));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(publicTestWithInternalAresError, SecurityException.class,
+				"Ares Security Error (Reason: Ares-Code; Stage: Execution): An internal Ares error occurred during test execution. Please contact your instructor."));
 	}
 
 	/**
@@ -103,6 +106,6 @@ class InternalErrorLeakageTemporaryTest {
 	@TestTest
 	void test_hiddenTestWithInternalAresError() {
 		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(hiddenTestWithInternalAresError, AssertionError.class, "Hidden test failed."));
+				testFailedWith(hiddenTestWithInternalAresError, SecurityException.class, HIDDEN_TEST_FAILED));
 	}
 }

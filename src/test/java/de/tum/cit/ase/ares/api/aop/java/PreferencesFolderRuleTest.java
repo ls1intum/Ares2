@@ -33,8 +33,11 @@ class PreferencesFolderRuleTest {
 	/** The name Ares reports for the Preferences store when it refuses a call. */
 	private static final String PREFERENCES_STORE = "<java.util.prefs backing store>";
 
-	/** The reason Ares gives when allow rules exist but none of them matches. */
-	private static final String NO_MATCHING_RULE = "No configured allow rule permits this access.";
+	/**
+	 * The reason Ares gives when a rule for the action exists but none of them
+	 * covers the file.
+	 */
+	private static final String NO_MATCHING_RULE = "no rule in the policy allows this file";
 
 	/** Clears the policy values before each test. */
 	@BeforeEach

@@ -444,7 +444,7 @@ Method <de.student.StudentCode.exploit()> transitively accesses method <java.lan
 throw new SecurityException(
     "Ares Security Error (Reason: Student-Code; Stage: Execution): " +
     "de.student.StudentCode.exploit() tried to illegally execute a command " +
-    "via java.lang.Runtime.exec(java.lang.String) (called by de.student.StudentCode) " +
+    "via java.lang.Runtime.exec(java.lang.String) (called by de.student.StudentCode), " +
     "but was blocked by Ares."
 );
 ```

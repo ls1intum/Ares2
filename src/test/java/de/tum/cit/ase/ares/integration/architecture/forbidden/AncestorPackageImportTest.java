@@ -568,7 +568,9 @@ public class AncestorPackageImportTest {
 		Assertions.assertTrue(message.contains(forbiddenPackage),
 				() -> "The refusal should name " + forbiddenPackage + ", but was:\n" + message);
 		Assertions.assertTrue(message.contains("illegally import the forbidden package")
-				|| message.contains("illegal die verbotenen Pakete") || message.contains("Importiert verbotene Pakete"),
+				|| message.contains("illegally import the forbidden packages")
+				|| message.contains("illegal das verbotene Paket") || message.contains("illegal die verbotenen Pakete")
+				|| message.contains("Importiert verbotene Pakete"),
 				() -> "The refusal should come from the import rule, but was:\n" + message);
 	}
 

@@ -92,10 +92,12 @@ public class JavaArchitectureTestCaseTest {
 				"Builder should throw NullPointerException if required fields are missing");
 	}
 
+	/**
+	 * Two forbidden packages imported by one class are both named, together with
+	 * that class.
+	 */
 	@Test
 	void testParseErrorMessage_withPackageImportViolation_extractsForbiddenPackages() {
-		// Test that parseErrorMessage correctly extracts forbidden packages from
-		// package import violation messages
 		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Imports forbidden packages' was violated (2 times):\n"
 				+ "Class <com.example.Test> depends on <java.io.File> in (Test.java:0)\n"
 				+ "Class <com.example.Test> depends on <java.nio.file.Path> in (Test.java:0)";
@@ -103,13 +105,41 @@ public class JavaArchitectureTestCaseTest {
 		SecurityException thrown = assertThrows(SecurityException.class,
 				() -> JavaArchitectureTestCase.parseErrorMessage(error),
 				"parseErrorMessage should throw SecurityException for package import violations");
-		// The message should contain the forbidden packages
-		assertTrue(thrown.getMessage().contains("java.io") || thrown.getMessage().contains("java.nio.file"),
-				"Exception message should include the forbidden packages from the violation");
-		assertTrue(
-				thrown.getMessage().contains("Ares Security Error")
-						|| thrown.getMessage().contains("Ares Sicherheitsfehler"),
-				"Exception message should contain Ares Security Error prefix");
+		assertEquals(Messages.localized("security.archunit.package.import.violation.plural", "com.example.Test",
+				"java.io, java.nio.file"), thrown.getMessage());
+	}
+
+	/**
+	 * An import report naming no package is passed on whole rather than as a
+	 * refusal naming a made-up package.
+	 */
+	@Test
+	void testParseErrorMessage_withPackageImportViolationNamingNoPackage_passesTheReportOn() {
+		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Imports forbidden packages' was violated (1 times):\n"
+				+ "Class <com.example.Test> depends on <Unnamed> in (Test.java:0)";
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(new AssertionError(message)));
+		assertEquals(Messages.localized("security.archunit.illegal.execution", message), thrown.getMessage());
+	}
+
+	/**
+	 * An ArchUnit array parameter, written as a JVM descriptor, is reported as a
+	 * source type, with parameters split by {@code ", "} as WALA reports them.
+	 */
+	@Test
+	void testParseErrorMessage_withArrayParameter_writesTheSourceType() {
+		String message = "Architecture Violation [Priority: MEDIUM] - Rule 'Accesses file system' was violated (1 times):\n"
+				+ "Method <com.example.Sender.send([Ljava.lang.String;, int)> "
+				+ "calls method <java.nio.file.Files.write(java.nio.file.Path, [B, [Ljava.nio.file.OpenOption;)> "
+				+ "in (Sender.java:1)";
+		SecurityException thrown = assertThrows(SecurityException.class,
+				() -> JavaArchitectureTestCase.parseErrorMessage(new AssertionError(message)));
+		String expected = Messages.localized("security.archunit.violation.error",
+				"com.example.Sender.send(java.lang.String[], int)",
+				Messages.localized("security.archunit.action.file.system.access"),
+				"java.nio.file.Files.write(java.nio.file.Path, byte[], java.nio.file.OpenOption[])",
+				"com.example.Sender");
+		assertEquals(expected, thrown.getMessage());
 	}
 
 	/**
@@ -281,7 +311,8 @@ public class JavaArchitectureTestCaseTest {
 		SecurityException thrown = assertThrows(SecurityException.class,
 				() -> JavaArchitectureTestCase.parseErrorMessage(new AssertionError(message)));
 
-		assertEquals(Messages.localized("security.archunit.package.import.violation", "a.b.c"), thrown.getMessage());
+		assertEquals(Messages.localized("security.archunit.package.import.violation", "a.B", "a.b.c"),
+				thrown.getMessage());
 	}
 
 	/** With no keyword before the target, the first angle names the caller. */

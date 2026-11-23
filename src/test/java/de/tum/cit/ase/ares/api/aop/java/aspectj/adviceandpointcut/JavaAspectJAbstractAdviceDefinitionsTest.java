@@ -82,7 +82,7 @@ class JavaAspectJAbstractAdviceDefinitionsTest {
 		String described = describe(SocketFactory.getDefault(), "javax.net.SocketFactory", "createSocket", String.class,
 				int.class);
 
-		assertTrue(described.startsWith("javax.net.SocketFactory.createSocket(java.lang.String,int)"),
+		assertTrue(described.startsWith("javax.net.SocketFactory.createSocket(java.lang.String, int)"),
 				"the guaranteed static signature must stay first: " + described);
 		assertTrue(described.contains("javax.net.DefaultSocketFactory.createSocket"),
 				"the resolved implementation must be appended: " + described);
@@ -263,7 +263,7 @@ class JavaAspectJAbstractAdviceDefinitionsTest {
 	 */
 	@Test
 	void describeDeniedCall_wordsTheSuffixInTheActiveLanguage() {
-		String staticPart = "javax.net.SocketFactory.createSocket(java.lang.String,int) ";
+		String staticPart = "javax.net.SocketFactory.createSocket(java.lang.String, int) ";
 		String english = AdviceActionWording.inLocale(Locale.ENGLISH, () -> describe(SocketFactory.getDefault(),
 				"javax.net.SocketFactory", "createSocket", String.class, int.class));
 		String german = AdviceActionWording.inLocale(Locale.GERMAN, () -> describe(SocketFactory.getDefault(),
@@ -308,5 +308,21 @@ class JavaAspectJAbstractAdviceDefinitionsTest {
 				() -> JavaAspectJAbstractAdviceDefinitions.describeCaller(caller)));
 		assertEquals(german, AdviceActionWording.inLocale(Locale.GERMAN,
 				() -> JavaAspectJAbstractAdviceDefinitions.describeCaller(caller)));
+	}
+
+	/**
+	 * Signatures in a denial message are written as Java source, the same way as
+	 * the instrumentation copy writes them: JVM array names become {@code []} and
+	 * parameters are separated by a comma and one space.
+	 */
+	@Test
+	void describeSignature_writesJavaSourceNotation() {
+		assertEquals("java.lang.Runtime.exec(java.lang.String[])",
+				JavaAspectJAbstractAdviceDefinitions.describeSignature("java.lang.Runtime.exec([Ljava.lang.String;)"));
+		assertEquals("java.net.Socket.<init>(java.lang.String, int, int[][])", JavaAspectJAbstractAdviceDefinitions
+				.describeSignature("java.net.Socket.<init>(java.lang.String,int,[[I)"));
+		assertEquals("java.lang.Thread.start()",
+				JavaAspectJAbstractAdviceDefinitions.describeSignature("java.lang.Thread.start()"));
+		assertEquals("example.Student[]", JavaAspectJAbstractAdviceDefinitions.describeTypeName("[Lexample.Student;"));
 	}
 }

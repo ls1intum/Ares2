@@ -40,7 +40,7 @@ class NativeLibraryJdkLoadTest {
 	 * The JDK method whose check decides every library load in instrumentation
 	 * mode, as the refusal names it.
 	 */
-	private static final String DECIDING_METHOD = "java.lang.Runtime.loadLibrary0(java.lang.Class,java.lang.String)";
+	private static final String DECIDING_METHOD = "java.lang.Runtime.loadLibrary0(java.lang.Class, java.lang.String)";
 
 	/**
 	 * The JDK loads {@code jaas} for the student under ArchUnit and
