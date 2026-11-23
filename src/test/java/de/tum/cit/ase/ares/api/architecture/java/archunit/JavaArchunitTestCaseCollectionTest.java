@@ -9,22 +9,29 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.Location;
+import com.tngtech.archunit.core.importer.Locations;
 import com.tngtech.archunit.lang.ArchRule;
 
 import de.tum.cit.ase.AncestorPackageAresImport;
 import de.tum.cit.ase.AncestorPackageAspectJImport;
 import de.tum.cit.ase.AncestorPackageByteBuddyImport;
 import de.tum.cit.ase.AncestorPackageExercise;
+import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
+import de.tum.cit.ase.ares.testutilities.JavacFixtures;
 
 public class JavaArchunitTestCaseCollectionTest {
 
@@ -143,5 +150,163 @@ public class JavaArchunitTestCaseCollectionTest {
 		assertNotNull(JavaArchunitTestCaseCollection.NO_CLASS_MUST_TERMINATE_JVM);
 		assertNotNull(JavaArchunitTestCaseCollection.NO_CLASS_MUST_SERIALIZE);
 		assertNotNull(JavaArchunitTestCaseCollection.NO_CLASS_MUST_USE_CLASSLOADERS);
+	}
+
+	/**
+	 * A class that writes bytes with {@code Files.write}, whose forbidden signature
+	 * holds an array.
+	 */
+	private static final String WRITES_BYTES = """
+			package p;
+			public class WritesBytes {
+				public void run(java.nio.file.Path path) throws java.io.IOException {
+					java.nio.file.Files.write(path, new byte[0]);
+				}
+			}
+			""";
+
+	/**
+	 * A class that flushes the preferences, which the forbidden list names only by
+	 * a prefix.
+	 */
+	private static final String FLUSHES_PREFERENCES = """
+			package p;
+			public class FlushesPreferences {
+				public void run() throws Exception {
+					java.util.prefs.Preferences.userRoot().flush();
+				}
+			}
+			""";
+
+	/**
+	 * A class that calls nothing forbidden.
+	 */
+	private static final String CLEAN = """
+			package p;
+			public class Clean {
+				public int run() {
+					return 1;
+				}
+			}
+			""";
+
+	/**
+	 * A class whose only dependencies are {@code java.lang} and
+	 * {@code java.util.List}.
+	 */
+	private static final String USES_LIST = """
+			package p;
+			public class UsesList {
+				public java.util.List<String> items() {
+					return null;
+				}
+			}
+			""";
+
+	/**
+	 * Compiles one source file with {@code javac} and imports the result.
+	 *
+	 * @param directory the directory to work in
+	 * @param path      the path of the source file below the source folder
+	 * @param source    the source text
+	 * @return the imported classes
+	 * @throws IOException if the source file cannot be written
+	 */
+	private static JavaClasses compileAndImport(Path directory, String path, String source) throws IOException {
+		return new ClassFileImporter().importPath(JavacFixtures.compileSourceTexts(directory, Map.of(path, source)));
+	}
+
+	/**
+	 * A call to {@code Files.write} with a byte array is refused, although the
+	 * forbidden list spells the array as {@code byte[]}.
+	 *
+	 * @param directory the directory the fixture is compiled in
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void refusesAnExactForbiddenSignatureWithArrays(@TempDir Path directory) throws IOException {
+		JavaClasses classes = compileAndImport(directory, "p/WritesBytes.java", WRITES_BYTES);
+		ArchRule rule = JavaArchunitTestCaseCollection
+				.allowAwareRuleFor(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION, Set.of(), Set.of());
+
+		AssertionError refusal = assertThrows(AssertionError.class, () -> rule.check(classes));
+
+		assertTrue(refusal.getMessage().contains("java.nio.file.Files.write"), refusal.getMessage());
+	}
+
+	/**
+	 * A call to a method below a forbidden prefix is refused.
+	 *
+	 * @param directory the directory the fixture is compiled in
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void refusesAMethodBelowAForbiddenPrefix(@TempDir Path directory) throws IOException {
+		JavaClasses classes = compileAndImport(directory, "p/FlushesPreferences.java", FLUSHES_PREFERENCES);
+		ArchRule rule = JavaArchunitTestCaseCollection
+				.allowAwareRuleFor(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION, Set.of(), Set.of());
+
+		AssertionError refusal = assertThrows(AssertionError.class, () -> rule.check(classes));
+
+		assertTrue(refusal.getMessage().contains("java.util.prefs.Preferences.flush"), refusal.getMessage());
+	}
+
+	/**
+	 * A class that calls nothing forbidden passes the file system rule.
+	 *
+	 * @param directory the directory the fixture is compiled in
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void passesACleanClass(@TempDir Path directory) throws IOException {
+		JavaClasses classes = compileAndImport(directory, "p/Clean.java", CLEAN);
+		ArchRule rule = JavaArchunitTestCaseCollection
+				.allowAwareRuleFor(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION, Set.of(), Set.of());
+
+		assertDoesNotThrow(() -> rule.check(classes));
+	}
+
+	/**
+	 * A permission written with a trailing dot covers its own package, and a
+	 * misspelled one does not.
+	 *
+	 * @param directory the directory the fixture is compiled in
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void acceptsAPermissionWrittenWithATrailingDot(@TempDir Path directory) throws IOException {
+		JavaClasses classes = compileAndImport(directory, "p/UsesList.java", USES_LIST);
+		Set<PackagePermission> spelledRight = Set.of(new PackagePermission("java.util."),
+				new PackagePermission("java.lang"));
+		Set<PackagePermission> spelledWrong = Set.of(new PackagePermission("java.utilx."),
+				new PackagePermission("java.lang"));
+
+		assertDoesNotThrow(() -> JavaArchunitTestCaseCollection
+				.allowAwareRuleFor(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT, Set.of(),
+						JavaArchunitTestCaseCollection.withOwnPackages(spelledRight, classes, Set.of()), Set.of())
+				.check(classes));
+		assertThrows(AssertionError.class, () -> JavaArchunitTestCaseCollection
+				.allowAwareRuleFor(JavaArchitectureTestCaseSupported.PACKAGE_IMPORT, Set.of(),
+						JavaArchunitTestCaseCollection.withOwnPackages(spelledWrong, classes, Set.of()), Set.of())
+				.check(classes));
+	}
+
+	/**
+	 * A class in the default package and a class of the JDK add no permission for
+	 * their own package.
+	 *
+	 * @param directory the directory the fixture is compiled in
+	 * @throws IOException if the fixture cannot be written
+	 */
+	@Test
+	void leavesTheDefaultPackageAndTheJdkOutOfTheOwnPackages(@TempDir Path directory) throws IOException {
+		Path classRoot = JavacFixtures.compileSourceTexts(directory, Map.of("Plain.java", "public class Plain {\n}\n"));
+		Set<Location> locations = new HashSet<>(Locations.ofClass(String.class));
+		locations.add(Location.of(classRoot));
+		JavaClasses classes = new ClassFileImporter().importLocations(locations);
+
+		assertTrue(classes.contain("Plain"));
+		assertTrue(classes.contain(String.class));
+		assertEquals(Set.of(), JavaArchunitTestCaseCollection.withOwnPackages(Set.of(), classes, Set.of()));
 	}
 }

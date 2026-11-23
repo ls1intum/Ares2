@@ -33,4 +33,15 @@ public class JavaArchitectureTestCaseSupportedTest {
 		assertIterableEquals(expectedDynamic, dynamicCases,
 				"getDynamic should return the correct dynamic test case list");
 	}
+
+	/** The four priority cases come back in a fixed order. */
+	@Test
+	void testGetPriority_returnsCorrectValues() {
+		List<ArchitectureTestCaseSupported> priorityCases = JavaArchitectureTestCaseSupported.NATIVE_CODE.getPriority();
+		assertIterableEquals(
+				List.of(JavaArchitectureTestCaseSupported.NATIVE_CODE, JavaArchitectureTestCaseSupported.AGENT_ATTACH,
+						JavaArchitectureTestCaseSupported.ENVIRONMENT_ACCESS,
+						JavaArchitectureTestCaseSupported.MODULE_SYSTEM),
+				priorityCases, "getPriority should return the four priority test cases in order");
+	}
 }

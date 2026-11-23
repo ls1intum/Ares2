@@ -1,9 +1,12 @@
 package de.tum.cit.ase.ares.testutilities;
 
+import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.tools.ToolProvider;
 
@@ -72,5 +75,28 @@ public final class JavacFixtures {
 			throw new IllegalStateException("javac could not compile the generated sources");
 		}
 		return output;
+	}
+
+	/**
+	 * Writes the source texts below {@code directory/src} and compiles them into
+	 * {@code directory/classes} against the compiled test classes, failing when
+	 * {@code javac} reports an error.
+	 *
+	 * @param directory the directory to work in
+	 * @param sources   the source texts, by their path below the source folder
+	 * @return the folder with the class files
+	 * @throws IOException if a source file cannot be written
+	 */
+	public static Path compileSourceTexts(Path directory, Map<String, String> sources) throws IOException {
+		Path sourceRoot = directory.resolve("src");
+		Path classRoot = Files.createDirectories(directory.resolve("classes"));
+		List<Path> files = new ArrayList<>();
+		for (Map.Entry<String, String> source : sources.entrySet()) {
+			Path file = sourceRoot.resolve(source.getKey());
+			Files.createDirectories(file.getParent());
+			Files.writeString(file, source.getValue());
+			files.add(file);
+		}
+		return compileSources(testClasses().toString(), classRoot, files);
 	}
 }
