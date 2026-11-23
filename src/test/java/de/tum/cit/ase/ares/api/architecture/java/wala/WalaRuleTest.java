@@ -59,7 +59,7 @@ class WalaRuleTest {
 
 	/**
 	 * Creates a student-code CGNode classified as Application-loaded in the
-	 * anonymous.Student class. isInfraFrame returns false for this node.
+	 * org.example.Student class. isInfraFrame returns false for this node.
 	 */
 	private static CGNode applicationNode(String signature, String walaType) {
 		CGNode node = mock(CGNode.class);
@@ -77,7 +77,7 @@ class WalaRuleTest {
 	}
 
 	private static CGNode studentNode(String signature) {
-		return applicationNode(signature, "Lanonymous/Student;");
+		return applicationNode(signature, "Lorg/example/Student;");
 	}
 
 	/**
@@ -139,33 +139,27 @@ class WalaRuleTest {
 	}
 
 	// ----------------------------------------------------------------
-	// A path with no student frame at all.
+	// A path through a helper class of the exercise.
 	//
-	// anonymous.toolclasses. and metatest. are skipped when looking for the student
-	// frame, but supervised code may be named into them: they were removed from the
-	// reserved list because they are one downstream consumer's helpers rather than
-	// something Ares could be confused with. That left a blind spot. A supervised
-	// class declaring package metatest made every frame on its path infrastructure,
-	// no approach was ever evaluated, and the sink was dropped: the forbidden call
-	// was found and then reported to nobody.
-	//
-	// The two cases are told apart by whether supervised code was free to declare
-	// the namespace that was skipped. Ares' own api is skipped and reserved, so a
-	// path through it stays a silent drop, as the infra-only test below pins.
+	// A helper class is code the student is examined with, whatever its package is
+	// called, so it is judged like any other student frame. Only a path made of
+	// JDK or framework frames alone is dropped silently, as the test below pins.
 	// ----------------------------------------------------------------
 
+	/**
+	 * A helper class that calls the forbidden method itself is reported, and the
+	 * report names the helper.
+	 */
 	@Test
-	void allInfrastructurePathEnteredByNameIsRefusedRatherThanDropped() {
-		CGNode helper = applicationInfraByNameNode("metatest.Helper.run()V", "Lmetatest/Helper;");
+	void aHelperThatCallsTheSinkItselfIsReported() {
+		CGNode helper = applicationNode("org.example.helpers.Helper.run()V", "Lorg/example/helpers/Helper;");
 		CGNode forbidden = jdkForbiddenNode("java.lang.Thread.<init>(Ljava/lang/Runnable;)V", "Thread");
-		WalaRule rule = new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)"));
 
-		SecurityException refused = org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class,
-				() -> rule.check(buildMockCg(List.of(helper, forbidden))),
-				"a supervised scope inside a skipped namespace must not silently drop its violations");
+		AssertionError err = runAndExpectError(List.of(helper, forbidden),
+				new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)")));
 
-		assertThat(refused.getMessage()).as("the refusal must name the frame that was stepped over")
-				.contains("metatest.Helper.run()");
+		assertThat(err).as("a helper class of the exercise must not hide its own forbidden call").isNotNull();
+		assertThat(err.getMessage()).contains("Method <org.example.helpers.Helper.run()>");
 	}
 
 	@Test
@@ -180,16 +174,17 @@ class WalaRuleTest {
 		org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> rule.check(buildMockCg(List.of(entry, forbidden))));
 	}
 
+	/**
+	 * Two ways into one sink: a student call through Ares code, which is a harmless
+	 * detour and reports nothing, and a helper class calling the sink itself. The
+	 * harmless branch must not excuse the helper. The predecessors list the helper
+	 * first, so the walk, a stack, evaluates the harmless branch before it.
+	 */
 	@Test
-	void aBranchThroughNameableInfrastructureIsRefusedEvenWhenAnotherBranchEvaluates() {
-		// Two ways into one sink. One ends in an ordinary student caller and is a
-		// false-positive transitive path, so it evaluates and reports nothing. The
-		// other consists only of a frame supervised code may declare for itself.
-		// Deciding per sink let the first silently excuse the second: any approach
-		// that evaluates without throwing was enough to suppress the refusal.
-		CGNode student = studentNode("anonymous.Student.run()V");
+	void aHarmlessBranchDoesNotExcuseAHelperBranchIntoTheSameSink() {
+		CGNode student = studentNode("org.example.Student.run()V");
 		CGNode aresInfra = aresInfraNode("de.tum.cit.ase.ares.api.Helper.help()V");
-		CGNode helper = applicationInfraByNameNode("metatest.Helper.run()V", "Lmetatest/Helper;");
+		CGNode helper = applicationNode("org.example.helpers.Helper.run()V", "Lorg/example/helpers/Helper;");
 		CGNode forbidden = jdkForbiddenNode("java.lang.Thread.<init>(Ljava/lang/Runnable;)V", "Thread");
 
 		java.util.Map<CGNode, List<CGNode>> successors = new java.util.HashMap<>();
@@ -198,21 +193,16 @@ class WalaRuleTest {
 		successors.put(helper, List.of(forbidden));
 		java.util.Map<CGNode, List<CGNode>> predecessors = new java.util.HashMap<>();
 		predecessors.put(aresInfra, List.of(student));
-		// The order is load-bearing for what this test is about. The walk is a stack,
-		// so listing the helper first makes the ordinary branch pop first and evaluate
-		// before the nameable-infrastructure branch is examined at all. Reversed, the
-		// refusal would happen before anything evaluated and the test would pass
-		// without exercising the case it exists for.
 		predecessors.put(forbidden, List.of(helper, aresInfra));
 
 		CallGraph cg = buildBranchingCg(List.of(student, aresInfra, helper, forbidden), List.of(student, helper),
 				successors, predecessors);
 		WalaRule rule = new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)"));
 
-		SecurityException refused = org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class,
-				() -> rule.check(cg), "an evaluated branch must not excuse a parallel nameable-infrastructure branch");
+		AssertionError reported = org.junit.jupiter.api.Assertions.assertThrows(AssertionError.class,
+				() -> rule.check(cg), "a harmless branch must not excuse a parallel helper branch");
 
-		assertThat(refused.getMessage()).contains("metatest.Helper.run()");
+		assertThat(reported.getMessage()).contains("Method <org.example.helpers.Helper.run()>");
 	}
 
 	/**
@@ -229,14 +219,6 @@ class WalaRuleTest {
 		when(cg.getPredNodes(any())).thenAnswer(
 				inv -> new java.util.ArrayList<>(predecessors.getOrDefault(inv.getArgument(0), List.of())).iterator());
 		return cg;
-	}
-
-	/**
-	 * An application-loaded frame that is infrastructure only because of its
-	 * package name, which is the shape supervised code can produce for itself.
-	 */
-	private static CGNode applicationInfraByNameNode(String signature, String walaType) {
-		return applicationNode(signature, walaType);
 	}
 
 	private static AssertionError runAndExpectError(List<CGNode> path, WalaRule rule) {
@@ -309,9 +291,9 @@ class WalaRuleTest {
 
 	@Test
 	void compilerGeneratedLambdaMetafactoryNodeIsNotReportedAsReflection() {
-		CGNode student = studentNode("anonymous.Student.lambda()V");
+		CGNode student = studentNode("org.example.Student.lambda()V");
 		CGNode bootstrap = jdkForbiddenNode(
-				"java.lang.invoke.LambdaMetafactory.call$anonymous$Student$0()Ljava/lang/Runnable;",
+				"java.lang.invoke.LambdaMetafactory.call$org$example$Student$0()Ljava/lang/Runnable;",
 				"LambdaMetafactory");
 		runAndExpectNoError(List.of(student, bootstrap), new WalaRule("Uses reflection", Set.of("java.lang.invoke")));
 	}
@@ -322,14 +304,14 @@ class WalaRuleTest {
 
 	@Test
 	void studentRootedShallowPathThrowsWithStudentCaller() {
-		CGNode student = studentNode("anonymous.Student.callForbidden()V");
+		CGNode student = studentNode("org.example.Student.callForbidden()V");
 		CGNode forbidden = jdkForbiddenNode("java.lang.Class.forName(Ljava/lang/String;)Ljava/lang/Class;", "Class");
 		AssertionError err = runAndExpectError(List.of(student, forbidden),
 				new WalaRule("Manipulates class loading", Set.of("java.lang.Class.forName(Ljava/lang/String;)")));
 		assertThat(err).isNotNull();
 		// WalaRule renders signatures in ArchUnit source-form, dropping the JVM
 		// return-type descriptor, so the caller appears as callForbidden() not ()V.
-		assertThat(err.getMessage()).contains("Method <anonymous.Student.callForbidden()>");
+		assertThat(err.getMessage()).contains("Method <org.example.Student.callForbidden()>");
 	}
 
 	// ----------------------------------------------------------------
@@ -342,8 +324,8 @@ class WalaRuleTest {
 
 	@Test
 	void deepPathReportsNearestStudentFrameToForbiddenSink() {
-		CGNode studentOuter = studentNode("anonymous.Student.outerCall()V");
-		CGNode studentInner = studentNode("anonymous.Student.innerCall()V");
+		CGNode studentOuter = studentNode("org.example.Student.outerCall()V");
+		CGNode studentInner = studentNode("org.example.Student.innerCall()V");
 		CGNode forbidden = jdkForbiddenNode(
 				"sun.nio.ch.DatagramChannelImpl.connect(Ljava/net/SocketAddress;Z)Ljava/nio/channels/DatagramChannel;",
 				"DatagramChannelImpl");
@@ -353,39 +335,49 @@ class WalaRuleTest {
 		// innerCall is the nearest student frame and must appear as the Method
 		// <caller>,
 		// rendered in ArchUnit source-form without the JVM return-type descriptor.
-		assertThat(err.getMessage()).contains("Method <anonymous.Student.innerCall()>");
+		assertThat(err.getMessage()).contains("Method <org.example.Student.innerCall()>");
 	}
 
 	// ----------------------------------------------------------------
-	// Test 4: student → project-test-helper (anonymous.toolclasses.) → forbidden
-	// JDK.
-	// The toolclasses helper is in INFRA_PREFIXES (so it is not reported as the
-	// student frame) but is deliberately NOT in TRANSITIVE_FALSE_POSITIVE_PREFIXES.
-	// A student routing into a forbidden API through such a helper is therefore a
-	// REAL violation: the rule fires and attributes it to the nearest student
-	// frame.
+	// Test 4: student → helper class of the exercise → forbidden JDK method.
+	// The helper is a student frame like any other, so the violation is reported
+	// and blamed on the helper, the frame closest to the forbidden call.
 	// ----------------------------------------------------------------
 
+	/**
+	 * A student call that reaches the forbidden method through a helper class is
+	 * reported, and the report names the helper as the caller.
+	 */
 	@Test
 	void transitiveHelperPathToForbiddenFires() {
-		CGNode studentA = studentNode("anonymous.Student.runTask()V");
-		CGNode toolHelper = mock(CGNode.class);
-		IMethod toolMethod = mock(IMethod.class);
-		IClass toolCls = mock(IClass.class);
-		IClassLoader toolLoader = mock(IClassLoader.class);
-		when(toolHelper.getMethod()).thenReturn(toolMethod);
-		when(toolMethod.getSignature()).thenReturn("anonymous.toolclasses.TaskHelper.run()V");
-		when(toolMethod.getDeclaringClass()).thenReturn(toolCls);
-		when(toolCls.getClassLoader()).thenReturn(toolLoader);
-		when(toolLoader.getReference()).thenReturn(ClassLoaderReference.Application);
-		when(toolCls.getReference()).thenReturn(TypeReference.findOrCreate(ClassLoaderReference.Application,
-				TypeName.findOrCreate("Lanonymous/toolclasses/TaskHelper;")));
+		CGNode studentA = studentNode("org.example.Student.runTask()V");
+		CGNode toolHelper = applicationNode("org.example.helpers.TaskHelper.run()V",
+				"Lorg/example/helpers/TaskHelper;");
 		CGNode forbidden = jdkForbiddenNode("java.lang.Thread.<init>(Ljava/lang/Runnable;)V", "Thread");
 
 		AssertionError err = runAndExpectError(List.of(studentA, toolHelper, forbidden),
 				new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)")));
-		assertThat(err).as("path through a project test helper into a forbidden API must fire").isNotNull();
-		assertThat(err.getMessage()).contains("Method <anonymous.Student.runTask()>");
+		assertThat(err).as("path through a helper class into a forbidden API must fire").isNotNull();
+		assertThat(err.getMessage()).contains("Method <org.example.helpers.TaskHelper.run()>");
+	}
+
+	/**
+	 * A path through a helper class is judged from the helper on, exactly as if the
+	 * helper had started it: a helper that reaches the forbidden method only
+	 * through JDK code is the same harmless detour as a student class doing so.
+	 */
+	@Test
+	void aPathThroughAHelperIsJudgedLikeOneStartingAtTheHelper() {
+		CGNode student = studentNode("org.example.Student.runTask()V");
+		CGNode helper = applicationNode("org.example.helpers.TaskHelper.run()V", "Lorg/example/helpers/TaskHelper;");
+		CGNode executors = jdkForbiddenNode(
+				"java.util.concurrent.Executors.newCachedThreadPool()Ljava/util/concurrent/ExecutorService;",
+				"Executors");
+		CGNode thread = jdkForbiddenNode("java.lang.Thread.<init>(Ljava/lang/Runnable;)V", "Thread");
+		WalaRule rule = new WalaRule("Manipulates threads", Set.of("java.lang.Thread.<init>(Ljava/lang/Runnable;)"));
+
+		runAndExpectNoError(List.of(helper, executors, thread), rule);
+		runAndExpectNoError(List.of(student, helper, executors, thread), rule);
 	}
 
 	// ----------------------------------------------------------------
@@ -400,7 +392,7 @@ class WalaRuleTest {
 		// A student method is itself listed as forbidden. This is a theoretical edge
 		// case
 		// (production forbidden methods are always JDK), but we must pin the behaviour.
-		CGNode selfForbidden = studentNode("anonymous.Student.selfForbidden()V");
+		CGNode selfForbidden = studentNode("org.example.Student.selfForbidden()V");
 		// Override the mock to also supply getName() for WalaRule.check's
 		// declaringClass line
 		IMethod selfMethod = selfForbidden.getMethod();
@@ -415,10 +407,10 @@ class WalaRuleTest {
 		when(typeName.getClassName()).thenReturn(Atom.findOrCreateAsciiAtom("Student"));
 
 		AssertionError err = runAndExpectError(List.of(selfForbidden),
-				new WalaRule("Test rule", Set.of("anonymous.Student.selfForbidden")));
+				new WalaRule("Test rule", Set.of("org.example.Student.selfForbidden")));
 		assertThat(err).as("size==1 student-self must fire AssertionError").isNotNull();
 		// callerIdx == 0 == size-1: fallback uses path.get(0) which is the same frame.
-		assertThat(err.getMessage()).contains("anonymous.Student.selfForbidden");
+		assertThat(err.getMessage()).contains("org.example.Student.selfForbidden");
 
 		SecurityException parsed = null;
 		try {
@@ -451,7 +443,7 @@ class WalaRuleTest {
 
 	@Test
 	void transitiveJdkExecutorToThreadIsSuppressed() {
-		CGNode student = studentNode("anonymous.Student.callForbidden()V");
+		CGNode student = studentNode("org.example.Student.callForbidden()V");
 		CGNode executors = jdkForbiddenNode(
 				"java.util.concurrent.Executors.newCachedThreadPool()Ljava/util/concurrent/ExecutorService;",
 				"Executors");
@@ -465,6 +457,12 @@ class WalaRuleTest {
 	// Each variant uses a realistic full WALA signature beginning with the literal.
 	// ----------------------------------------------------------------
 
+	/**
+	 * An API that student code once could call unreported now raises a violation,
+	 * whose text names caller and target and opens with the Ares error template.
+	 *
+	 * @param apiPrefix the forbidden API
+	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "java.lang.Thread.<init>", "java.lang.Thread.interrupt",
 			"java.lang.ClassLoader.getSystemClassLoader", "java.lang.ClassLoader.loadLibrary", "java.lang.Runtime.load",
@@ -478,7 +476,7 @@ class WalaRuleTest {
 		String fullSig = sigAndClass[0];
 		String simpleClass = sigAndClass[1];
 
-		CGNode student = studentNode("anonymous.Student.callApi()V");
+		CGNode student = studentNode("org.example.Student.callApi()V");
 		CGNode forbidden = jdkForbiddenNode(fullSig, simpleClass);
 
 		AssertionError err = runAndExpectError(List.of(student, forbidden),
@@ -489,8 +487,10 @@ class WalaRuleTest {
 		// type), so assert on the descriptor-free caller and the forbidden class+method
 		// name rather than the raw WALA signature held in REALISTIC_SIGNATURES.
 		String forbiddenName = fullSig.substring(0, fullSig.indexOf('('));
-		assertThat(err.getMessage()).contains("Method <anonymous.Student.callApi()>")
+		assertThat(err.getMessage()).contains("Method <org.example.Student.callApi()>")
 				.contains("calls method <" + forbiddenName + "(");
+		assertThat(err.getMessage()).matches("(?s)(Ares Security Error \\(Reason: Student-Code; Stage: Execution\\)"
+				+ "|Ares Sicherheitsfehler \\(Grund: Student-Code; Phase: Ausf\u00fchrung\\)): '.*");
 	}
 
 	// ----------------------------------------------------------------
@@ -515,7 +515,7 @@ class WalaRuleTest {
 		// When nearestStudentFrame returns size-1 (student is the forbidden node),
 		// WalaRule falls back to path[0] as callerSignature. For size==1 this is the
 		// same frame, so callerSig == forbiddenSig == studentSig.
-		CGNode selfForbidden = studentNode("anonymous.Student.selfForbidden()V");
+		CGNode selfForbidden = studentNode("org.example.Student.selfForbidden()V");
 		IMethod selfMethod2 = selfForbidden.getMethod();
 		IClass cls2 = selfMethod2.getDeclaringClass();
 		com.ibm.wala.types.TypeName typeName2 = mock(com.ibm.wala.types.TypeName.class);
@@ -528,9 +528,9 @@ class WalaRuleTest {
 		when(typeName2.getClassName()).thenReturn(Atom.findOrCreateAsciiAtom("Student"));
 
 		AssertionError err = runAndExpectError(List.of(selfForbidden),
-				new WalaRule("Test rule", Set.of("anonymous.Student.selfForbidden")));
+				new WalaRule("Test rule", Set.of("org.example.Student.selfForbidden")));
 		assertThat(err).isNotNull();
-		assertThat(err.getMessage()).contains("anonymous.Student.selfForbidden");
+		assertThat(err.getMessage()).contains("org.example.Student.selfForbidden");
 	}
 
 	// ----------------------------------------------------------------
@@ -544,7 +544,7 @@ class WalaRuleTest {
 	/**
 	 * Student CGNode in an arbitrary declaring class (for distinct allow-list
 	 * identities). {@code walaType} is the WALA class TypeName form WITHOUT a
-	 * trailing {@code ';'} (e.g. {@code Lanonymous/Allowed}), matching what real
+	 * trailing {@code ';'} (e.g. {@code Lorg/example/Allowed}), matching what real
 	 * {@code IClass.getName().toString()} returns.
 	 */
 	private static CGNode studentNodeInClass(String signature, String walaType) {
@@ -556,8 +556,8 @@ class WalaRuleTest {
 
 	@Test
 	void allowListedCallerDoesNotMaskNonAllowedCallerOfSameSink() {
-		CGNode allowedCaller = studentNodeInClass("anonymous.Allowed.help()V", "Lanonymous/Allowed");
-		CGNode evilCaller = studentNodeInClass("anonymous.Evil.attack()V", "Lanonymous/Evil");
+		CGNode allowedCaller = studentNodeInClass("org.example.Allowed.help()V", "Lorg/example/Allowed");
+		CGNode evilCaller = studentNodeInClass("org.example.Evil.attack()V", "Lorg/example/Evil");
 		CGNode forbidden = jdkForbiddenNode("java.lang.Class.forName(Ljava/lang/String;)Ljava/lang/Class;", "Class");
 
 		CallGraph cg = mock(CallGraph.class);
@@ -575,13 +575,13 @@ class WalaRuleTest {
 
 		AssertionError thrown = null;
 		try {
-			rule.check(cg, Set.of(new ClassPermission("anonymous.Allowed")));
+			rule.check(cg, Set.of(new ClassPermission("org.example.Allowed")));
 		} catch (AssertionError ae) {
 			thrown = ae;
 		}
 		assertThat(thrown).as("non-allowed caller of a shared sink must not be masked by an allow-listed caller")
 				.isNotNull();
-		assertThat(thrown.getMessage()).contains("Method <anonymous.Evil.attack()>");
+		assertThat(thrown.getMessage()).contains("Method <org.example.Evil.attack()>");
 	}
 
 	// ----------------------------------------------------------------
@@ -625,7 +625,7 @@ class WalaRuleTest {
 		List<CGNode> callers = new java.util.ArrayList<>();
 		Set<ClassPermission> allowedClasses = new java.util.HashSet<>();
 		for (int i = 0; i < 64; i++) {
-			String className = "anonymous.Allowed" + i;
+			String className = "org.example.Allowed" + i;
 			callers.add(studentNodeInClass(className + ".help()V", "L" + className.replace('.', '/')));
 			allowedClasses.add(new ClassPermission(className));
 		}

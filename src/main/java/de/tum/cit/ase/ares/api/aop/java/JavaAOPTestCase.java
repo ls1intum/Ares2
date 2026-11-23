@@ -25,6 +25,7 @@ import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPAdviceSett
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseToolbox;
 import de.tum.cit.ase.ares.api.aop.networkSystem.java.JavaNetworkSystemExtractor;
 import de.tum.cit.ase.ares.api.aop.threadSystem.java.JavaThreadSystemExtractor;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ClassPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.CommandPermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.FilePermission;
@@ -289,7 +290,8 @@ public class JavaAOPTestCase extends AOPTestCase {
 		case NETWORK_CONNECTION -> networkSettings(permissions.stream().map(NetworkPermission.class::cast).toList());
 		case COMMAND_EXECUTION -> commandSettings(permissions.stream().map(CommandPermission.class::cast).toList());
 		case THREAD_CREATION -> threadSettings(permissions.stream().map(ThreadPermission.class::cast).toList());
-		default -> throw new IllegalStateException("Unsupported Java AOP test case: " + aopTestCaseSupported);
+		default -> throw new SecurityException(
+				Messages.localized("security.aop.testcase.unsupported", aopTestCaseSupported));
 		};
 		StringBuilder content = new StringBuilder();
 		settings.map(JavaAOPTestCase::generateAdviceSettingValue).forEach(content::append);

@@ -21,29 +21,22 @@ public final class JavaInstrumentationExecutePathMethodAdvice {
 	}
 
 	/**
-	 * This method is called when a method executing files is entered. It performs
-	 * security checks to determine whether the method execution is allowed
-	 * according to file system security policies. If the method execution is not
-	 * permitted, a SecurityException is thrown, blocking the execution.
-	 * <p>
-	 * The checkFileSystemInteraction method from
-	 * JavaInstrumentationAdviceFileSystemToolbox is called to perform these checks,
-	 * ensuring that both the method's parameters and the instance fields adhere to
-	 * the security restrictions.
+	 * Runs before a method that executes a file and throws if the policy forbids
+	 * it. A public {@code loadLibrary} call may be left to the check one step
+	 * deeper.
 	 *
-	 * @param declaringTypeName The name of the class that declares the method.
-	 * @param methodName        The name of the method being executed.
-	 * @param methodSignature   The signature of the method being executed.
-	 * @param instance          The instance of the class that declares the method
-	 *                          (if applicable).
-	 * @param parameters        The parameters passed to the method being executed.
-	 * @throws SecurityException If the method execution is not allowed based on
-	 *                           security policies.
+	 * @param declaringTypeName the class
+	 * @param methodName        the method
+	 * @param methodSignature   for messages
+	 * @param methodDescriptor  JVM descriptor
+	 * @param instance          receiver, or {@code null}
+	 * @param parameters        arguments
+	 * @throws SecurityException if forbidden
 	 */
 	@Advice.OnMethodEnter
 	public static void onEnter(@Advice.Origin("#t") String declaringTypeName, @Advice.Origin("#m") String methodName,
-			@Advice.Origin("#s") String methodSignature, @Advice.This(optional = true) Object instance,
-			@Advice.AllArguments Object... parameters) {
+			@Advice.Origin("#s") String methodSignature, @Advice.Origin("#d") String methodDescriptor,
+			@Advice.This(optional = true) Object instance, @Advice.AllArguments Object... parameters) {
 		// <editor-fold desc="Attributes">
 		final Field[] fields = instance != null ? instance.getClass().getDeclaredFields() : new Field[0];
 		final Object[] attributes = new Object[fields.length];
@@ -69,8 +62,8 @@ public final class JavaInstrumentationExecutePathMethodAdvice {
 		// </editor-fold>
 
 		// <editor-fold desc="Check">
-		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("execute", declaringTypeName, methodName,
-				methodSignature, attributes, parameters, instance);
+		JavaInstrumentationAdviceFileSystemToolbox.checkExecuteInteraction(declaringTypeName, methodName,
+				methodSignature, methodDescriptor, attributes, parameters, instance);
 		// </editor-fold>
 	}
 }

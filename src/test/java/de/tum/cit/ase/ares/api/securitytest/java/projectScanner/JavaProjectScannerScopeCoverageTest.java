@@ -21,6 +21,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.util.ProjectSourcesFinder;
 
 /**
@@ -137,9 +139,9 @@ class JavaProjectScannerScopeCoverageTest {
 		SecurityException refusal = assertThrows(SecurityException.class,
 				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
 
-		assertTrue(refusal.getMessage().contains("Unpackaged"),
-				"a class in the default package lies outside every scope, and the diagnostic must name it: "
-						+ refusal.getMessage());
+		assertEquals(
+				Messages.localized("security.scope.default.package", "Unpackaged", outputRoot.toRealPath().toString()),
+				refusal.getMessage());
 	}
 
 	/**
@@ -262,7 +264,11 @@ class JavaProjectScannerScopeCoverageTest {
 				}
 				""", "de/tum/cit/aet/Assignment.java");
 
-		assertThrows(SecurityException.class, () -> scanner(outputRoot).requireDerivedScopeToCoverTheProject(""));
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject(""));
+
+		assertEquals(Messages.localized("security.scope.blank", outputRoot.toRealPath().toString()),
+				refusal.getMessage());
 	}
 
 	@Test
@@ -276,6 +282,7 @@ class JavaProjectScannerScopeCoverageTest {
 				public class Assignment {
 				}
 				""", "de/tum/cit/aet/Assignment.java");
+		Path realRoot = outputRoot.toRealPath();
 		Files.setPosixFilePermissions(outputRoot, PosixFilePermissions.fromString("---------"));
 		try {
 			// Permission bits do not bind a superuser, so clearing them is not by itself
@@ -283,8 +290,11 @@ class JavaProjectScannerScopeCoverageTest {
 			// fixture is what could not be established.
 			assumeTrue(!Files.isReadable(outputRoot), () -> "cannot make " + outputRoot + " unreadable here");
 
-			assertThrows(SecurityException.class,
-					() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+			SecurityException refusal = assertThrows(SecurityException.class,
+					() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit"));
+
+			assertEquals(Messages.localized("security.scope.output.unreadable", realRoot.toString()),
+					refusal.getMessage());
 		} finally {
 			Files.setPosixFilePermissions(outputRoot, PosixFilePermissions.fromString("rwxr-xr-x"));
 		}
@@ -417,6 +427,7 @@ class JavaProjectScannerScopeCoverageTest {
 				""", "de/tum/cit/aet/package-info.java");
 
 		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("decoy"));
+		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject(""));
 	}
 
 	/**
@@ -590,6 +601,115 @@ class JavaProjectScannerScopeCoverageTest {
 				() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
 
 		assertTrue(refusal.getMessage().contains("META-INF"), refusal.getMessage());
+	}
+
+	/**
+	 * A project that has not been built has no output folder yet. That is absence,
+	 * which is accepted, unlike a folder that exists and cannot be read.
+	 */
+	@Test
+	@DisplayName("Accepts an output root that does not exist")
+	void acceptsAnAbsentOutputRoot() throws IOException {
+		Path outputRoot = projectRoot.resolve(ScannerFixtures.PRODUCTION_OUTPUT);
+
+		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+	}
+
+	/**
+	 * The folder is an ordinary one while the configuration is built, because the
+	 * configuration resolves links then. The link replaces it afterwards, and the
+	 * walk must refuse it rather than read what it points to. The test is skipped
+	 * where a symbolic link cannot be created.
+	 */
+	@Test
+	@DisplayName("Refuses an output root that is a symbolic link")
+	void refusesAnOutputRootThatIsASymbolicLink() throws IOException {
+		Path ordinary = Files.createDirectories(projectRoot.resolve(ScannerFixtures.PRODUCTION_OUTPUT));
+		BuildToolConfiguration configuration = ScannerFixtures.gradleConfigurationWithoutSourceRoots(projectRoot,
+				ordinary);
+		Path outputRoot = configuration.productionOutputRoot();
+		Path elsewhere = Files.createDirectories(projectRoot.resolve("elsewhere"));
+		compileInto(elsewhere, "package de.tum.cit.aet; public class Assignment { }", "de/tum/cit/aet/Assignment.java");
+		Files.delete(outputRoot);
+		link(outputRoot, elsewhere);
+
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> new JavaProjectScanner(configuration).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+		assertEquals(Messages.localized("security.scope.output.link", outputRoot.toString(), outputRoot.toString()),
+				refusal.getMessage());
+	}
+
+	/**
+	 * A resource file beside the classes is not a class file. It is not counted as
+	 * one, so it cannot be refused as unreadable.
+	 */
+	@Test
+	@DisplayName("Ignores a resource file in the output")
+	void ignoresAResourceFileInTheOutput() throws IOException {
+		Path outputRoot = assignmentOutput();
+		Path resource = Files.createDirectories(outputRoot.resolve("config")).resolve("app.properties");
+		Files.writeString(resource, "key=value");
+
+		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+	}
+
+	/**
+	 * Only a regular file counts as a class file, so an empty folder that happens
+	 * to be named like one is not refused as an unreadable class.
+	 */
+	@Test
+	@DisplayName("Ignores a folder named like a class file")
+	void ignoresAFolderNamedLikeAClassFile() throws IOException {
+		Path outputRoot = assignmentOutput();
+		Files.createDirectories(outputRoot.resolve("cache.class"));
+
+		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+	}
+
+	/**
+	 * A module descriptor is not code that can run, even under another file name.
+	 * An output holding nothing else is accepted as empty, like one holding only a
+	 * package descriptor.
+	 */
+	@Test
+	@DisplayName("Accepts a module descriptor stored under another file name")
+	void acceptsAModuleDescriptorUnderAnotherFileName() throws IOException {
+		Path moduleOutput = Files.createDirectories(projectRoot.resolve("module-output"));
+		Path moduleSource = Files.writeString(projectRoot.resolve("module-info.java"), "module fixture { }");
+		assertEquals(0, ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d", moduleOutput.toString(),
+				moduleSource.toString()), "the fixture did not compile");
+		Path outputRoot = Files.createDirectories(projectRoot.resolve(ScannerFixtures.PRODUCTION_OUTPUT));
+		Files.copy(moduleOutput.resolve("module-info.class"), outputRoot.resolve("Renamed.class"));
+
+		assertDoesNotThrow(() -> scanner(outputRoot).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+	}
+
+	/**
+	 * A folder below the output root that cannot be listed makes the inventory
+	 * incomplete, so the output is refused as unreadable. The test is skipped where
+	 * the file system ignores permissions, as it does for a superuser.
+	 */
+	@Test
+	@DisplayName("Refuses an output holding a folder it cannot read")
+	void refusesAnOutputWithAnUnreadableFolder() throws IOException {
+		ScannerFixtures.assumePosix();
+		Path outputRoot = assignmentOutput();
+		Path locked = Files.createDirectories(outputRoot.resolve("locked"));
+		BuildToolConfiguration configuration = ScannerFixtures.gradleConfigurationWithoutSourceRoots(projectRoot,
+				outputRoot);
+		Files.setPosixFilePermissions(locked, PosixFilePermissions.fromString("---------"));
+		try {
+			ScannerFixtures.assumeUnreadable(locked);
+
+			SecurityException refusal = assertThrows(SecurityException.class,
+					() -> new JavaProjectScanner(configuration).requireDerivedScopeToCoverTheProject("de.tum.cit.aet"));
+
+			assertEquals(Messages.localized("security.scope.output.unreadable",
+					configuration.productionOutputRoot().toString()), refusal.getMessage());
+		} finally {
+			Files.setPosixFilePermissions(locked, PosixFilePermissions.fromString("rwxr-xr-x"));
+		}
 	}
 
 	/**

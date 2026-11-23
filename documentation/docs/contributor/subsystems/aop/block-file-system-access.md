@@ -189,118 +189,116 @@ Some APIs can appear under multiple actions because they imply more than one per
 
 Read APIs listed below access file contents or metadata without modifying them.
 
-> **Note on "Tested by RP" column:** A ✅ means that this application programming interface (API) is the **primary target** of a dedicated test in the Reproducibility Package. For example, if a test uses `BufferedInputStream` to wrap a `FileInputStream`, only the wrapper (`BufferedInputStream.<new>`) is marked as ✅, not the underlying `FileInputStream.<new>` which is merely a helper call in that context.
-
 **Reads any formatted file fully**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.FileInputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.BufferedInputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
-| java.nio.channels.AsynchronousFileChannel | read | ✅ | ✅ | ❌ (triggers Thread security) |
-| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ (triggers Thread security) |
-| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
-| java.nio.channels.FileChannel | map | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newByteChannel | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newInputStream | ✅ | ✅ | ✅ |
-| java.nio.file.Files | readAllBytes | ✅ | ✅ | ✅ |
-| java.nio.file.spi.FileSystemProvider | copy (the source; the target counts as created, or as overwritten when replaced) | ✅ | ✅ | ❌ |
-| java.lang.ClassLoader | getResourceAsStream | ✅ | ✅ | ❌ (triggers Reflection security) |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.FileInputStream | `<new>` | ✅ | ✅ |
+| java.io.BufferedInputStream | `<new>` | ✅ | ✅ |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | read | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ |
+| java.nio.channels.FileChannel | open | ✅ | ✅ |
+| java.nio.channels.FileChannel | map | ✅ | ✅ |
+| java.nio.file.Files | newByteChannel | ✅ | ✅ |
+| java.nio.file.Files | newInputStream | ✅ | ✅ |
+| java.nio.file.Files | readAllBytes | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | copy (the source; the target counts as created, or as overwritten when replaced) | ✅ | ✅ |
+| java.lang.ClassLoader | getResourceAsStream | ✅ | ✅ |
 
 **Reads UTF-8 text/tokens fully**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.Reader | `<new>` | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newBufferedReader | ✅ | ✅ | ✅ |
-| java.nio.file.Files | readString | ✅ | ✅ | ✅ |
-| java.nio.file.Files | lines | ✅ | ✅ | ✅ |
-| java.nio.file.Files | readAllLines | ✅ | ✅ | ✅ |
-| java.util.Scanner | `<new>` | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.Reader | `<new>` | ✅ | ✅ |
+| java.nio.file.Files | newBufferedReader | ✅ | ✅ |
+| java.nio.file.Files | readString | ✅ | ✅ |
+| java.nio.file.Files | lines | ✅ | ✅ |
+| java.nio.file.Files | readAllLines | ✅ | ✅ |
+| java.util.Scanner | `<new>` | ✅ | ✅ |
 
 **Reads only specifically formatted files fully**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.DataInput | read | ✅ | ✅ | ❌ |
-| java.io.DataInput | readBoolean | ✅ | ✅ | ❌ |
-| java.io.DataInput | readByte | ✅ | ✅ | ❌ |
-| java.io.DataInput | readChar | ✅ | ✅ | ❌ |
-| java.io.DataInput | readDouble | ✅ | ✅ | ❌ |
-| java.io.DataInput | readFloat | ✅ | ✅ | ❌ |
-| java.io.DataInput | readFully | ✅ | ✅ | ❌ |
-| java.io.DataInput | readInt | ✅ | ✅ | ❌ |
-| java.io.DataInput | readLine | ✅ | ✅ | ❌ |
-| java.io.DataInput | readLong | ✅ | ✅ | ❌ |
-| java.io.DataInput | readShort | ✅ | ✅ | ❌ |
-| java.io.DataInput | readUTF | ✅ | ✅ | ❌ |
-| java.io.DataInput | readUnsignedByte | ✅ | ✅ | ❌ |
-| java.io.DataInput | readUnsignedShort | ✅ | ✅ | ❌ |
-| javax.imageio.ImageIO | createImageInputStream | ✅ | ✅ | ❌ |
-| javax.imageio.ImageIO | read | ✅ | ✅ | ❌ |
-| javax.sound.sampled.AudioSystem | getAudioInputStream | ✅ | ✅ | ❌ |
-| javax.xml.bind.Unmarshaller | unmarshal | ✅ | ✅ | ❌ |
-| javax.xml.parsers.DocumentBuilder | parse | ✅ | ✅ | ❌ |
-| javax.xml.parsers.SAXParser | parse | ✅ | ✅ | ❌ |
-| java.awt.Toolkit | createImage | ✅ | ✅ | ❌ |
-| java.awt.Toolkit | getImage | ✅ | ✅ | ❌ |
-| javax.imageio.ImageIO | getImageReaders | ✅ | ✅ | ❌ |
-| javax.sound.midi.MidiSystem | getSoundbank | ✅ | ✅ | ❌ |
-| java.awt.Font | createFont | ✅ | ✅ | ❌ |
-| java.awt.Font | createFonts | ✅ | ✅ | ❌ |
-| javax.imageio.stream.FileCacheImageInputStream | `<new>` | ✅ | ✅ | ❌ |
-| javax.imageio.stream.FileImageInputStream | `<new>` | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.DataInput | read | ✅ | ✅ |
+| java.io.DataInput | readBoolean | ✅ | ✅ |
+| java.io.DataInput | readByte | ✅ | ✅ |
+| java.io.DataInput | readChar | ✅ | ✅ |
+| java.io.DataInput | readDouble | ✅ | ✅ |
+| java.io.DataInput | readFloat | ✅ | ✅ |
+| java.io.DataInput | readFully | ✅ | ✅ |
+| java.io.DataInput | readInt | ✅ | ✅ |
+| java.io.DataInput | readLine | ✅ | ✅ |
+| java.io.DataInput | readLong | ✅ | ✅ |
+| java.io.DataInput | readShort | ✅ | ✅ |
+| java.io.DataInput | readUTF | ✅ | ✅ |
+| java.io.DataInput | readUnsignedByte | ✅ | ✅ |
+| java.io.DataInput | readUnsignedShort | ✅ | ✅ |
+| javax.imageio.ImageIO | createImageInputStream | ✅ | ✅ |
+| javax.imageio.ImageIO | read | ✅ | ✅ |
+| javax.sound.sampled.AudioSystem | getAudioInputStream | ✅ | ✅ |
+| javax.xml.bind.Unmarshaller | unmarshal | ✅ | ✅ |
+| javax.xml.parsers.DocumentBuilder | parse | ✅ | ✅ |
+| javax.xml.parsers.SAXParser | parse | ✅ | ✅ |
+| java.awt.Toolkit | createImage | ✅ | ✅ |
+| java.awt.Toolkit | getImage | ✅ | ✅ |
+| javax.imageio.ImageIO | getImageReaders | ✅ | ✅ |
+| javax.sound.midi.MidiSystem | getSoundbank | ✅ | ✅ |
+| java.awt.Font | createFont | ✅ | ✅ |
+| java.awt.Font | createFonts | ✅ | ✅ |
+| javax.imageio.stream.FileCacheImageInputStream | `<new>` | ✅ | ✅ |
+| javax.imageio.stream.FileImageInputStream | `<new>` | ✅ | ✅ |
 
 **Reads archive files (ZIP/JAR/GZIP)**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.util.zip.ZipInputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.zip.ZipInputStream | getNextEntry | ✅ | ✅ | ❌ |
-| java.util.jar.JarInputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.jar.JarInputStream | getNextJarEntry | ✅ | ✅ | ❌ |
-| java.util.zip.GZIPInputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.zip.ZipFile | `<new>` | ✅ | ✅ | ❌ |
-| java.util.zip.ZipFile | entries | ✅ | ✅ | ❌ |
-| java.util.zip.ZipFile | getInputStream | ✅ | ✅ | ❌ |
-| java.util.jar.JarFile | `<new>` | ✅ | ✅ | ❌ |
-| java.util.jar.JarFile | entries | ✅ | ✅ | ❌ |
-| java.util.jar.JarFile | getInputStream | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.util.zip.ZipInputStream | `<new>` | ✅ | ✅ |
+| java.util.zip.ZipInputStream | getNextEntry | ✅ | ✅ |
+| java.util.jar.JarInputStream | `<new>` | ✅ | ✅ |
+| java.util.jar.JarInputStream | getNextJarEntry | ✅ | ✅ |
+| java.util.zip.GZIPInputStream | `<new>` | ✅ | ✅ |
+| java.util.zip.ZipFile | `<new>` | ✅ | ✅ |
+| java.util.zip.ZipFile | entries | ✅ | ✅ |
+| java.util.zip.ZipFile | getInputStream | ✅ | ✅ |
+| java.util.jar.JarFile | `<new>` | ✅ | ✅ |
+| java.util.jar.JarFile | entries | ✅ | ✅ |
+| java.util.jar.JarFile | getInputStream | ✅ | ✅ |
 
 **Reads configuration/properties files**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.util.Properties | load | ✅ | ✅ | ❌ |
-| java.util.Properties | loadFromXML | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.util.Properties | load | ✅ | ✅ |
+| java.util.Properties | loadFromXML | ✅ | ✅ |
 
 **Reads only specific parts of a file**
 
 > **Note:** Generic `InputStream.read()` and `Reader.read()` calls are **not** monitored by either backend. These streams/readers are already validated at construction time (`FileInputStream.<new>`, `Reader.<new>`), so monitoring every subsequent `read()` call would be redundant. `RandomAccessFile.read` is intercepted by AspectJ, but Byte Buddy explicitly **excludes** it via `ignoredMethodsByClass` to avoid recursive self-interception during class and JAR loading in instrumentation mode; the `RandomAccessFile.<new>` constructor pointcut still covers the access in both backends.
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.RandomAccessFile | read | ✅ | ❌ (excluded, covered by `<new>`) | ❌ |
-| java.nio.channels.SeekableByteChannel | read | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.RandomAccessFile | read | ✅ | ❌ (excluded, covered by `<new>`) |
+| java.nio.channels.SeekableByteChannel | read | ✅ | ✅ |
 
 **Only reads the file hierarchy**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | normalizedList | ✅ | ✅ | ❌ |
-| java.io.File | list | ✅ | ✅ | ❌ |
-| java.io.File | listFiles | ✅ | ✅ | ❌ |
-| java.io.File | listRoots | ✅ | ✅ | ❌ |
-| java.nio.file.Files | find | ✅ | ✅ | ❌ |
-| java.nio.file.Files | list | ✅ | ✅ | ❌ |
-| java.nio.file.Files | newDirectoryStream | ✅ | ✅ | ❌ |
-| java.nio.file.Files | walk | ✅ | ✅ | ❌ |
-| java.nio.file.Files | walkFileTree | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | newDirectoryStream | ✅ | ✅ | ❌ |
-| javax.swing.filechooser.FileSystemView | getFiles | ✅ | ✅ | ❌ |
-| javax.swing.filechooser.FileSystemView | getChild | ✅ | ✅ | ❌ |
-| javax.swing.filechooser.FileSystemView | isParent | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.File | normalizedList | ✅ | ✅ |
+| java.io.File | list | ✅ | ✅ |
+| java.io.File | listFiles | ✅ | ✅ |
+| java.io.File | listRoots | ✅ | ✅ |
+| java.nio.file.Files | find | ✅ | ✅ |
+| java.nio.file.Files | list | ✅ | ✅ |
+| java.nio.file.Files | newDirectoryStream | ✅ | ✅ |
+| java.nio.file.Files | walk | ✅ | ✅ |
+| java.nio.file.Files | walkFileTree | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newDirectoryStream | ✅ | ✅ |
+| javax.swing.filechooser.FileSystemView | getFiles | ✅ | ✅ |
+| javax.swing.filechooser.FileSystemView | getChild | ✅ | ✅ |
+| javax.swing.filechooser.FileSystemView | isParent | ✅ | ✅ |
 
 ---
 
@@ -313,8 +311,6 @@ Read APIs listed below access file contents or metadata without modifying them.
 
 Write APIs listed below modify existing content or attributes.
 
-> **Note on "Tested by RP" column:** A ✅ means that this API is the **primary target** of a dedicated test in the Reproducibility Package. For example, if a test uses `BufferedWriter` to wrap a `FileWriter`, only the wrapper (`BufferedWriter.<new>`) is marked as ✅, not the underlying `FileWriter.<new>` which is merely a helper call in that context.
-
 **Writes any format fully to a file**
 
 > **Note:** `FileChannel.open`, `AsynchronousFileChannel.open`, and `FileChannel.map` do NOT have dedicated WRITE pointcuts. These methods are monitored via READ pointcuts, and the actual operation type is determined dynamically:
@@ -323,103 +319,103 @@ Write APIs listed below modify existing content or attributes.
 
 > **Note on generic write/close/flush methods:** Generic `write()`, `close()`, and `flush()` methods on stream classes (e.g., `OutputStream.write()`, `Writer.flush()`) are intentionally **NOT monitored**. Reason: `System.out` and `System.err` internally call these methods, which would cause false positives. File access is already blocked at the constructor level, making these further checks redundant.
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
-| java.nio.channels.AsynchronousFileChannel | write | ✅ | ✅ | ❌ |
-| java.nio.channels.AsynchronousFileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) | ❌ |
-| java.nio.channels.FileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) | ✅ |
-| java.nio.channels.FileChannel | map | ❌ (via MapMode) | ❌ (via MapMode) | ✅ |
-| java.nio.channels.FileChannel | write | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newByteChannel | ❌ (via OpenOptions) | ❌ (via OpenOptions) | ✅ |
-| java.nio.file.Files | newOutputStream | ✅ | ✅ | ✅ |
-| java.nio.file.Files | write | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.FileOutputStream | `<new>` | ✅ | ✅ |
+| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | write | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) |
+| java.nio.channels.FileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) |
+| java.nio.channels.FileChannel | map | ❌ (via MapMode) | ❌ (via MapMode) |
+| java.nio.channels.FileChannel | write | ✅ | ✅ |
+| java.nio.file.Files | newByteChannel | ❌ (via OpenOptions) | ❌ (via OpenOptions) |
+| java.nio.file.Files | newOutputStream | ✅ | ✅ |
+| java.nio.file.Files | write | ✅ | ✅ |
 
 **Writes UTF-8 text/tokens fully**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.Writer | `<new>` | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
-| java.nio.file.Files | writeString | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.Writer | `<new>` | ✅ | ✅ |
+| java.nio.file.Files | newBufferedWriter | ✅ | ✅ |
+| java.nio.file.Files | writeString | ✅ | ✅ |
 
 **Writes only specifically formatted files fully**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.DataOutput | writeBoolean | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeByte | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeBytes | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeChar | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeChars | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeDouble | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeFloat | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeInt | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeLong | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeShort | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeUTF | ✅ | ✅ | ❌ |
-| javax.imageio.ImageIO | write | ✅ | ✅ | ❌ |
-| javax.imageio.ImageIO | createImageOutputStream | ✅ | ✅ | ❌ |
-| javax.sound.sampled.AudioSystem | write | ✅ | ✅ | ❌ |
-| javax.xml.bind.Marshaller | marshal | ✅ | ✅ | ❌ |
-| javax.xml.transform.Transformer | transform | ✅ | ✅ | ❌ |
-| java.io.PrintStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.logging.FileHandler | `<new>` | ✅ | ✅ | ❌ |
-| java.util.logging.FileHandler | publish | ✅ | ✅ | ❌ |
-| java.util.logging.FileHandler | close | ✅ | ✅ | ❌ |
-| java.util.zip.InflaterOutputStream | `<new>` | ✅ | ✅ | ❌ |
-| javax.print.DocPrintJob | print | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.DataOutput | writeBoolean | ✅ | ✅ |
+| java.io.DataOutput | writeByte | ✅ | ✅ |
+| java.io.DataOutput | writeBytes | ✅ | ✅ |
+| java.io.DataOutput | writeChar | ✅ | ✅ |
+| java.io.DataOutput | writeChars | ✅ | ✅ |
+| java.io.DataOutput | writeDouble | ✅ | ✅ |
+| java.io.DataOutput | writeFloat | ✅ | ✅ |
+| java.io.DataOutput | writeInt | ✅ | ✅ |
+| java.io.DataOutput | writeLong | ✅ | ✅ |
+| java.io.DataOutput | writeShort | ✅ | ✅ |
+| java.io.DataOutput | writeUTF | ✅ | ✅ |
+| javax.imageio.ImageIO | write | ✅ | ✅ |
+| javax.imageio.ImageIO | createImageOutputStream | ✅ | ✅ |
+| javax.sound.sampled.AudioSystem | write | ✅ | ✅ |
+| javax.xml.bind.Marshaller | marshal | ✅ | ✅ |
+| javax.xml.transform.Transformer | transform | ✅ | ✅ |
+| java.io.PrintStream | `<new>` | ✅ | ✅ |
+| java.util.logging.FileHandler | `<new>` | ✅ | ✅ |
+| java.util.logging.FileHandler | publish | ✅ | ✅ |
+| java.util.logging.FileHandler | close | ✅ | ✅ |
+| java.util.zip.InflaterOutputStream | `<new>` | ✅ | ✅ |
+| javax.print.DocPrintJob | print | ✅ | ✅ |
 
 **Writes archive files (ZIP/JAR/GZIP)**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.util.zip.ZipOutputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.zip.ZipOutputStream | putNextEntry | ✅ | ✅ | ❌ |
-| java.util.jar.JarOutputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.jar.JarOutputStream | putNextEntry | ✅ | ✅ | ❌ |
-| java.util.zip.GZIPOutputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.zip.ZipOutputStream | closeEntry | ✅ | ✅ | ❌ |
-| java.util.jar.JarOutputStream | closeEntry | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.util.zip.ZipOutputStream | `<new>` | ✅ | ✅ |
+| java.util.zip.ZipOutputStream | putNextEntry | ✅ | ✅ |
+| java.util.jar.JarOutputStream | `<new>` | ✅ | ✅ |
+| java.util.jar.JarOutputStream | putNextEntry | ✅ | ✅ |
+| java.util.zip.GZIPOutputStream | `<new>` | ✅ | ✅ |
+| java.util.zip.ZipOutputStream | closeEntry | ✅ | ✅ |
+| java.util.jar.JarOutputStream | closeEntry | ✅ | ✅ |
 
 **Writes configuration/properties files**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.util.Properties | store | ✅ | ✅ | ❌ |
-| java.util.Properties | storeToXML | ✅ | ✅ | ❌ |
-| java.util.Formatter | `<new>` | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.util.Properties | store | ✅ | ✅ |
+| java.util.Properties | storeToXML | ✅ | ✅ |
+| java.util.Formatter | `<new>` | ✅ | ✅ |
 
 **Writes only specific parts to a file**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.nio.channels.AsynchronousFileChannel | truncate | ✅ | ✅ | ❌ |
-| java.nio.channels.FileChannel | truncate | ✅ | ✅ | ❌ |
-| java.nio.channels.FileChannel | transferTo | ✅ | ✅ | ❌ |
-| java.nio.file.attribute.UserDefinedFileAttributeView | write | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.nio.channels.AsynchronousFileChannel | truncate | ✅ | ✅ |
+| java.nio.channels.FileChannel | truncate | ✅ | ✅ |
+| java.nio.channels.FileChannel | transferTo | ✅ | ✅ |
+| java.nio.file.attribute.UserDefinedFileAttributeView | write | ✅ | ✅ |
 
 **Only writes the file hierarchy (metadata/attributes)**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | setExecutable | ✅ | ✅ | ❌ |
-| java.io.File | setLastModified | ✅ | ✅ | ❌ |
-| java.io.File | setReadOnly | ✅ | ✅ | ❌ |
-| java.io.File | setReadable | ✅ | ✅ | ❌ |
-| java.io.File | setWritable | ✅ | ✅ | ❌ |
-| java.io.File | renameTo | ✅ | ✅ | ❌ |
-| java.nio.file.Files | copy | ✅ | ✅ | ❌ |
-| java.nio.file.Files | move | ✅ | ✅ | ❌ |
-| java.nio.file.Files | setAttribute | ✅ | ✅ | ❌ |
-| java.nio.file.Files | setLastModifiedTime | ✅ | ✅ | ❌ |
-| java.nio.file.Files | setOwner | ✅ | ✅ | ❌ |
-| java.nio.file.Files | setPosixFilePermissions | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | copy | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | move | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | setAttribute | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.File | setExecutable | ✅ | ✅ |
+| java.io.File | setLastModified | ✅ | ✅ |
+| java.io.File | setReadOnly | ✅ | ✅ |
+| java.io.File | setReadable | ✅ | ✅ |
+| java.io.File | setWritable | ✅ | ✅ |
+| java.io.File | renameTo | ✅ | ✅ |
+| java.nio.file.Files | copy | ✅ | ✅ |
+| java.nio.file.Files | move | ✅ | ✅ |
+| java.nio.file.Files | setAttribute | ✅ | ✅ |
+| java.nio.file.Files | setLastModifiedTime | ✅ | ✅ |
+| java.nio.file.Files | setOwner | ✅ | ✅ |
+| java.nio.file.Files | setPosixFilePermissions | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | copy | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | move | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | setAttribute | ✅ | ✅ |
 
 ---
 
@@ -438,36 +434,36 @@ Link creation APIs and conditional creates (e.g., `FileChannel.open` with create
 
 > **Note:** The two backends differ for buffered wrappers: AspectJ has `BufferedOutputStream.<new>` in its `fileCreateMethods` pointcut, whereas Byte Buddy monitors it only via the OVERWRITE map. `BufferedWriter.<new>` has no dedicated CREATE pointcut in either backend; it is intercepted through the `Writer.<new>` OVERWRITE pointcut (`BufferedWriter` extends `Writer`).
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | createNewFile | ✅ | ✅ | ✅ |
-| java.io.File | createTempFile | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createFile | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createTempFile | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createLink | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createSymbolicLink | ✅ | ✅ | ✅ |
-| java.io.BufferedOutputStream | `<new>` | ✅ | ❌ (via OVERWRITE pointcut) | ✅ |
-| java.io.BufferedWriter | `<new>` | ❌ (via `Writer.<new>` OVERWRITE pointcut) | ❌ (via `Writer.<new>` OVERWRITE pointcut) | ✅ |
-| javax.swing.filechooser.FileSystemView | createNewFolder | ✅ | ✅ | ❌ |
-| java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.FileWriter | `<new>` | ✅ | ✅ | ✅ |
-| java.io.PrintWriter | `<new>` | ✅ | ✅ | ✅ |
-| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newOutputStream | ✅ | ✅ | ✅ |
-| java.nio.channels.AsynchronousFileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) | ❌ |
-| java.nio.channels.FileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) | ✅ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.File | createNewFile | ✅ | ✅ |
+| java.io.File | createTempFile | ✅ | ✅ |
+| java.nio.file.Files | createFile | ✅ | ✅ |
+| java.nio.file.Files | createTempFile | ✅ | ✅ |
+| java.nio.file.Files | createLink | ✅ | ✅ |
+| java.nio.file.Files | createSymbolicLink | ✅ | ✅ |
+| java.io.BufferedOutputStream | `<new>` | ✅ | ❌ (via OVERWRITE pointcut) |
+| java.io.BufferedWriter | `<new>` | ❌ (via `Writer.<new>` OVERWRITE pointcut) | ❌ (via `Writer.<new>` OVERWRITE pointcut) |
+| javax.swing.filechooser.FileSystemView | createNewFolder | ✅ | ✅ |
+| java.io.FileOutputStream | `<new>` | ✅ | ✅ |
+| java.io.FileWriter | `<new>` | ✅ | ✅ |
+| java.io.PrintWriter | `<new>` | ✅ | ✅ |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ |
+| java.nio.file.Files | newBufferedWriter | ✅ | ✅ |
+| java.nio.file.Files | newOutputStream | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) |
+| java.nio.channels.FileChannel | open | ❌ (via OpenOptions) | ❌ (via OpenOptions) |
 
 **Creates folders**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | mkdir | ✅ | ✅ | ✅ |
-| java.io.File | mkdirs | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createDirectories | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createDirectory | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createTempDirectory | ✅ | ✅ | ✅ |
-| java.nio.file.spi.FileSystemProvider | createDirectory | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.File | mkdir | ✅ | ✅ |
+| java.io.File | mkdirs | ✅ | ✅ |
+| java.nio.file.Files | createDirectories | ✅ | ✅ |
+| java.nio.file.Files | createDirectory | ✅ | ✅ |
+| java.nio.file.Files | createTempDirectory | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | createDirectory | ✅ | ✅ |
 
 ---
 
@@ -482,35 +478,35 @@ Delete APIs listed below can remove files and empty directories.
 
 **Delete files**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | delete | ✅ | ✅ | ✅ |
-| java.nio.file.Files | delete | ✅ | ✅ | ✅ |
-| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
-| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
-| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ | ❌ |
-| java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
-| java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.File | delete | ✅ | ✅ |
+| java.nio.file.Files | delete | ✅ | ✅ |
+| java.nio.file.Files | deleteIfExists | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ |
+| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ |
+| java.awt.Desktop | moveToTrash | ✅ | ✅ |
+| java.io.File | deleteOnExit | ✅ | ✅ |
 
 **Delete folders**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | delete | ✅ | ✅ | ✅ |
-| java.nio.file.Files | delete | ✅ | ✅ | ✅ |
-| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
-| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
-| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ | ❌ |
-| java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
-| java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.io.File | delete | ✅ | ✅ |
+| java.nio.file.Files | delete | ✅ | ✅ |
+| java.nio.file.Files | deleteIfExists | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ |
+| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ |
+| java.awt.Desktop | moveToTrash | ✅ | ✅ |
+| java.io.File | deleteOnExit | ✅ | ✅ |
 
 **Monitored in delete pointcuts too (can delete source file)**
 
 > **Note:** `Files.move` is monitored under both WRITE and DELETE because it writes the destination **and** deletes the source. `Files.copy` is intentionally **not** in the delete pointcuts of either backend, because copying does not delete the source; it is monitored under WRITE only.
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.nio.file.Files | move | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.nio.file.Files | move | ✅ | ✅ |
 
 ---
 
@@ -529,22 +525,25 @@ Execute APIs listed below trigger execution-like behaviour on files.
 
 > **Note:** `ProcessBuilder.start()` and `Runtime.exec()` are handled by the **Command System** rather than the File System in both AspectJ and Byte Buddy modes, as they execute commands rather than individual files. `ProcessBuilder.startPipeline()` has no direct pointcut in either the file system or the command system; it is only caught indirectly (an attribute-filter rule exists for it, and its internal thread creation triggers the Thread system). The File System pointcuts for execute only cover library loading (`load`/`loadLibrary`) and Desktop launches.
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.lang.Runtime | load | ✅ | ✅ | ❌ |
-| java.lang.Runtime | loadLibrary | ✅ | ✅ | ❌ |
-| java.lang.System | load | ✅ | ✅ | ❌ |
-| java.lang.System | loadLibrary | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.lang.Runtime | load | ✅ | ✅ |
+| java.lang.Runtime | loadLibrary | ✅ | ✅ |
+| java.lang.System | load | ✅ | ✅ |
+| java.lang.System | loadLibrary | ✅ | ✅ |
+| java.lang.Runtime | loadLibrary0 | ❌ | ✅ |
+
+> **Note:** Both public `loadLibrary` methods reach `Runtime.loadLibrary0` of the Java Development Kit (JDK), and Byte Buddy weaves a check into it. That check allows the JDK loading its own library. It needs a caller from the Java Virtual Machine (JVM)'s own or the platform class loader, a plain name, and a file directly in the JDK's library folder. It checks every other load as executing the name in the working directory. The public `loadLibrary` checks defer to it on JDK 17, 21 and 25 only, once the agent has recorded that it wove the check in. On any other feature release (18 to 20, 22 to 24, 26, 27 and later), instrumentation mode does not defer. There the public check refuses the JDK's own first loads beneath student code as an illegal execute, such as `awt` for `BufferedImage`, `Toolkit` or fonts, and `prefs` for `Preferences`. AspectJ does not weave the JDK's own call sites, so it never sees these loads.
 
 **Opens files with default applications (Desktop integration)**
 
-| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.awt.Desktop | open | ✅ | ✅ | ❌ |
-| java.awt.Desktop | edit | ✅ | ✅ | ❌ |
-| java.awt.Desktop | print | ✅ | ✅ | ❌ |
-| java.awt.Desktop | browse | ✅ | ✅ | ❌ |
-| java.awt.Desktop | browseFileDirectory | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
+| --- | --- | --- | --- |
+| java.awt.Desktop | open | ✅ | ✅ |
+| java.awt.Desktop | edit | ✅ | ✅ |
+| java.awt.Desktop | print | ✅ | ✅ |
+| java.awt.Desktop | browse | ✅ | ✅ |
+| java.awt.Desktop | browseFileDirectory | ✅ | ✅ |
 
 > **Note:** Other `Desktop` methods such as `mail`, `openHelpViewer`, `setDefaultMenuBar`, `setOpenFileHandler`, and `setOpenURIHandler` are **not** intercepted by either backend. Both backends monitor exactly `open`, `edit`, `print`, `browse`, and `browseFileDirectory` (plus `moveToTrash` under DELETE).
 
@@ -629,7 +628,7 @@ File paths can appear in **different places** depending on how the method is use
 > - `java.nio.file.Path` = Parameter of type `Path`, by its full class name
 > - `)` = Parameter list ends
 >
-> Byte Buddy writes this form for `@Advice.Origin("#s")`. The return type is not part of it. The Java Virtual Machine (JVM) descriptor form, such as `(Ljava/nio/file/Path;)Ljava/lang/String;`, belongs to `#d`, which Ares does not use here.
+> Byte Buddy writes this form for `@Advice.Origin("#s")`. The return type is not part of it. The JVM descriptor form, such as `(Ljava/nio/file/Path;)Ljava/lang/String;`, belongs to `#d`, which Ares does not use here.
 
 **2. How Do We Collect This Information:**
 
@@ -1237,7 +1236,7 @@ Object[] filteredParameters = filterVariables(parameters, parameterIgnoreRule);
 | `DataOutputStream.writeUTF/writeChars/writeBytes(String)` | Nothing (all parameters ignored) | The argument is payload, never a path; the underlying file was validated when the `FileOutputStream` was opened |
 | `PrintStream.<new>(sink, ...)` | Only parameter 0 (the sink) | A charset name like `"UTF-8"` is not a path |
 
-**`checkTempFileCreationSpecialCase` decides `createTempFile` on its own.** Its overloads put either a directory or a name prefix at the same position, so no fixed parameter index fits. A call without a directory is `File.createTempFile(prefix, suffix)`, the same with `null` as directory, or `Files.createTempFile(prefix, suffix, ...)`. The instrumentation backend allows such a call once its agent has fixed the default temp directory at start-up, and refuses it otherwise. The AspectJ aspect instead finds the directory the Java Development Kit (JDK) writes to, as [5.4.6](#546-allow-the-secure-baselines-standard-operations) describes, and checks it like a named one. A named or found directory needs an entry in `pathsAllowedToBeCreated`, or must be exactly the default temp directory fixed at start-up, with links followed. A folder inside the temp directory, or a link out of it, does not count. Ares refuses arguments that fit neither overload.
+**`checkTempFileCreationSpecialCase` decides `createTempFile` on its own.** Its overloads put either a directory or a name prefix at the same position, so no fixed parameter index fits. A call without a directory is `File.createTempFile(prefix, suffix)`, the same with `null` as directory, or `Files.createTempFile(prefix, suffix, ...)`. The instrumentation backend allows such a call once its agent has fixed the default temp directory at start-up, and refuses it otherwise. The AspectJ aspect instead finds the directory the JDK writes to, as [5.4.6](#546-allow-the-secure-baselines-standard-operations) describes, and checks it like a named one. A named or found directory needs an entry in `pathsAllowedToBeCreated`, or must be exactly the default temp directory fixed at start-up, with links followed. A folder inside the temp directory, or a link out of it, does not count. Ares refuses arguments that fit neither overload.
 
 **4. Result**
 
@@ -1447,7 +1446,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 <a id="6-ares-2-aop-file-system-access-control-operation-type-classification"></a>
 ## 6. Ares 2 AOP File System Access Control: Operation Type Classification
 
-This section explains why the **detected operation type** may differ from the **intuitively expected operation** based on the API being tested. Understanding these categories is essential for correctly configuring security expectations in test scenarios.
+This section explains why the **detected operation type** may differ from the **intuitively expected operation** based on the application programming interface (API) being tested. Understanding these categories is essential for correctly configuring security expectations in test scenarios.
 
 <a id="61-category-a-openoptions-prioritisation"></a>
 ### 6.1 Category A: OpenOptions Prioritisation

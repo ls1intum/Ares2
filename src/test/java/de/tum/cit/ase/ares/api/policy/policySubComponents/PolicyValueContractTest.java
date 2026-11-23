@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.policy.policySubComponents;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,6 +12,8 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import de.tum.cit.ase.ares.api.AresConstants;
 import de.tum.cit.ase.ares.api.localization.Messages;
@@ -76,6 +79,18 @@ class PolicyValueContractTest {
 		assertEquals(0, ThreadPermission.createRestrictive("java.lang.Thread").createTheFollowingNumberOfThreads());
 		assertEquals("java.util", PackagePermission.allowPackage("java.util").importTheFollowingPackage());
 		assertEquals(List.of(), CommandPermission.allowWithoutArguments("java").withTheseArguments());
+	}
+
+	/**
+	 * Checks that each bare JDK root counts as a JDK package, as the packages below
+	 * it do, while a name that only starts with a root's letters does not.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "java", "javax", "jdk", "sun", "com.sun" })
+	void aBareJdkRootIsInTheJdkNamespace(String root) {
+		assertTrue(PackagePermission.isInJdkNamespace(root));
+		assertTrue(PackagePermission.isInJdkNamespace(root + ".util"));
+		assertFalse(PackagePermission.isInJdkNamespace(root + "z"));
 	}
 
 	@Test
@@ -253,6 +268,47 @@ class PolicyValueContractTest {
 		assertEquals("bareidentifier",
 				supervisedCodeAllowingImport("bareidentifier").theFollowingResourceAccessesArePermitted()
 						.regardingPackageImports().get(0).importTheFollowingPackage());
+	}
+
+	/**
+	 * Checks that each of the five file flags reaches its own part of the
+	 * permission. Only the named flag is switched on, so a flag read from, or
+	 * written to, the wrong part shows up as a wrong answer.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "read", "overwrite", "create", "execute", "delete" })
+	void fileBuilderCarriesEachFlagToItsOwnComponent(String flag) {
+		FilePermission.Builder builder = FilePermission.builder().onThisPathAndAllPathsBelow("/tmp");
+		switch (flag) {
+		case "read" -> builder.readAllFiles(true);
+		case "overwrite" -> builder.overwriteAllFiles(true);
+		case "create" -> builder.createAllFiles(true);
+		case "execute" -> builder.executeAllFiles(true);
+		default -> builder.deleteAllFiles(true);
+		}
+		FilePermission permission = builder.build();
+		assertEquals("read".equals(flag), permission.readAllFiles());
+		assertEquals("overwrite".equals(flag), permission.overwriteAllFiles());
+		assertEquals("create".equals(flag), permission.createAllFiles());
+		assertEquals("execute".equals(flag), permission.executeAllFiles());
+		assertEquals("delete".equals(flag), permission.deleteAllFiles());
+	}
+
+	/**
+	 * Checks that a network permission refuses a host that is not a name, an
+	 * address, localhost or the wildcard, and still accepts each of those.
+	 */
+	@Test
+	@SuppressWarnings("PMD.AvoidUsingHardCodedIP")
+	void networkPermissionRefusesAHostOutsideTheHostRule() {
+		assertThrows(IllegalArgumentException.class, () -> new NetworkPermission("bad host", 80, true, false, false));
+		assertThrows(IllegalArgumentException.class,
+				() -> new NetworkPermission("exa_mple.com", 80, true, false, false));
+		assertDoesNotThrow(() -> new NetworkPermission("example.com", 80, true, false, false));
+		assertDoesNotThrow(() -> new NetworkPermission("127.0.0.1", 80, true, false, false));
+		assertDoesNotThrow(() -> new NetworkPermission("::1", 80, true, false, false));
+		assertDoesNotThrow(() -> new NetworkPermission("localhost", 80, true, false, false));
+		assertDoesNotThrow(() -> new NetworkPermission("*", 80, true, false, false));
 	}
 
 	private SupervisedCode supervisedCode(List<String> testClasses) {

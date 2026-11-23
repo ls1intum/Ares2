@@ -9,6 +9,8 @@ import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /**
  * Immutable, shared description of a discovered Java build. All paths are
  * absolute, normalised and confined to the canonical project root.
@@ -83,12 +85,21 @@ public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List
 		return roots.stream().map(root -> validateContained(projectRoot, root, name)).distinct().sorted().toList();
 	}
 
+	/**
+	 * The canonical form of a path that has to stay inside the project.
+	 *
+	 * @param projectRoot the canonical project root
+	 * @param path        the path to check, relative to the project or absolute
+	 * @param name        what the path is for, as the refusal names it
+	 * @return the path in canonical form
+	 * @throws SecurityException if the path leaves the project
+	 */
 	private static Path validateContained(Path projectRoot, Path path, String name) {
 		Path candidate = Objects.requireNonNull(path, name + " must not contain null");
 		Path resolved = candidate.isAbsolute() ? candidate : projectRoot.resolve(candidate);
 		Path canonical = canonicalise(resolved);
 		if (!canonical.startsWith(projectRoot)) {
-			throw new SecurityException(name + " escapes project root: " + path);
+			throw new SecurityException(Messages.localized("security.build.tool.path.outside.project", name, path));
 		}
 		return canonical;
 	}
@@ -98,6 +109,8 @@ public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List
 	 *
 	 * @param path the path to canonicalise
 	 * @return the canonical path
+	 * @throws SecurityException if no part of the path exists, or if the real
+	 *                           location of the part that exists cannot be read
 	 */
 	public static Path canonicalise(Path path) {
 		Path absolute = path.toAbsolutePath().normalize();
@@ -106,13 +119,14 @@ public record BuildToolConfiguration(BuildMode buildMode, Path projectRoot, List
 			existing = existing.getParent();
 		}
 		if (existing == null) {
-			throw new SecurityException("Path has no existing ancestor: " + path);
+			throw new SecurityException(Messages.localized("security.build.tool.path.ancestor.missing", path));
 		}
 		try {
 			Path realExisting = existing.toRealPath();
 			return realExisting.resolve(existing.relativize(absolute)).normalize();
 		} catch (IOException exception) {
-			throw new SecurityException("Cannot canonicalise path: " + path, exception);
+			throw new SecurityException(Messages.localized("security.build.tool.path.canonicalise.failed", path),
+					exception);
 		}
 	}
 }

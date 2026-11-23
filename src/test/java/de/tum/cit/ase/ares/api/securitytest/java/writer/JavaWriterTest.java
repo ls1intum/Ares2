@@ -1,12 +1,17 @@
 package de.tum.cit.ase.ares.api.securitytest.java.writer;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,10 +22,12 @@ import org.mockito.MockedStatic;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
+import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseToolbox;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.phobos.java.JavaPhobosTestCaseSupported;
@@ -89,6 +96,33 @@ public class JavaWriterTest {
 	}
 
 	/**
+	 * Requires the returned paths to name every localisation bundle written below
+	 * the resources folder, so the caller can list or clean them up.
+	 */
+	@Test
+	void returnsTheCopiedLocalisationBundles() throws IOException {
+		Path sourceRoot = Files.createDirectories(tempDir.resolve("src/test/java"));
+		List<Path> returned = javaWriter.writeTestCases(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ,
+				List.of(), List.of(), List.of(), "exercise.security", "Main", List.of(), List.of(), List.of(),
+				sourceRoot);
+		List<Path> bundles;
+		try (var walk = Files.walk(tempDir.resolve("src/test/resources/exercise/security"))) {
+			bundles = walk.filter(Files::isRegularFile).toList();
+		}
+		assertFalse(bundles.isEmpty());
+		Set<Path> returnedReal = new HashSet<>();
+		for (Path path : returned) {
+			if (path.toString().contains("localization")) {
+				assertTrue(Files.exists(path), path.toString());
+				returnedReal.add(path.toRealPath());
+			}
+		}
+		for (Path bundle : bundles) {
+			assertTrue(returnedReal.contains(bundle.toRealPath()), bundle.toString());
+		}
+	}
+
+	/**
 	 * A package name that is not a Java package, such as an absolute path inside
 	 * the project, is refused before anything is written, so it cannot steer the
 	 * generated files out of their directories.
@@ -129,6 +163,13 @@ public class JavaWriterTest {
 	@Nested
 	@DisplayName("writeTestCases() Tests")
 	class WriteTestCasesTests {
+
+		/**
+		 * The English bundle below a resources folder, for the package
+		 * exercise.security.
+		 */
+		private static final String LOCALISATION_BUNDLE = "resources/exercise/security/ares/api/localization/messages.properties";
+
 		@Test
 		void confinesRelativeAbsoluteTraversalSiblingAndSymlinkTargets() throws IOException {
 			Path inside = Files.createDirectories(tempDir.resolve("inside"));
@@ -148,10 +189,75 @@ public class JavaWriterTest {
 			}
 		}
 
+		/**
+		 * A path of another file system, here the Java runtime image, is refused as
+		 * escaping the project, while an absolute path inside the project is accepted.
+		 */
+		@Test
+		void refusesAPathOfAnotherFileSystem() throws IOException {
+			Path inside = Files.createDirectories(tempDir.resolve("inside"));
+			assertEquals(inside.toRealPath(), javaWriter.confineToProject(inside.toAbsolutePath()));
+			Path runtimeImage = FileSystems.getFileSystem(URI.create("jrt:/")).getPath("/modules");
+			SecurityException refused = assertThrows(SecurityException.class,
+					() -> javaWriter.confineToProject(runtimeImage));
+			assertEquals(Messages.localized("security.writer.target.outside.project", "/modules"),
+					refused.getMessage());
+		}
+
+		/**
+		 * A test folder three names below the file-system root gets its resources
+		 * folder beside it, not inside it. The Phobos helper three folders up is then
+		 * refused, after the files are written. It needs a project root two names deep,
+		 * as a temporary folder under /tmp on Linux, and is skipped elsewhere.
+		 */
+		@Test
+		void placesTheResourcesBesideATestFolderThreeNamesDeep() throws IOException {
+			Path projectRoot = tempDir.toRealPath();
+			assumeTrue(projectRoot.getNameCount() == 2, "needs a project root two names below the file-system root");
+			Path testFolder = Files.createDirectories(projectRoot.resolve("src"));
+			SecurityException refused = assertThrows(SecurityException.class, () -> writeRealFilesInto(testFolder));
+			assertEquals(Messages.localized("security.writer.target.outside.project",
+					testFolder.resolve("../../../PhobosCopyTool.sh")), refused.getMessage());
+			assertTrue(Files.isRegularFile(projectRoot.resolve(LOCALISATION_BUNDLE)));
+			assertFalse(Files.exists(testFolder.resolve("resources")));
+		}
+
+		/**
+		 * A test folder with fewer than three names gets its resources folder inside
+		 * it, as the writer then does not step up to the parent folder. The Phobos
+		 * helper three folders up is then refused, after the bundles are written. It
+		 * needs such a shallow project root and is skipped elsewhere.
+		 */
+		@Test
+		void placesTheResourcesInsideATestFolderAtMostTwoNamesDeep() throws IOException {
+			Path projectRoot = tempDir.toRealPath();
+			assumeTrue(projectRoot.getNameCount() <= 2,
+					"needs a project root at most two names below the file-system root");
+			SecurityException refused = assertThrows(SecurityException.class, () -> writeRealFilesInto(projectRoot));
+			assertEquals(Messages.localized("security.writer.target.outside.project",
+					projectRoot.resolve("../../../PhobosCopyTool.sh")), refused.getMessage());
+			assertTrue(Files.isRegularFile(projectRoot.resolve(LOCALISATION_BUNDLE)));
+		}
+
+		/**
+		 * Writes the real ArchUnit and AspectJ files of the package
+		 * {@code exercise.security} into the given test folder.
+		 *
+		 * @param testFolder the test folder to write into
+		 * @return the written files
+		 */
+		private List<Path> writeRealFilesInto(Path testFolder) {
+			return javaWriter.writeTestCases(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ, List.of(),
+					List.of(), List.of(), "exercise.security", "Main", List.of(), List.of(), List.of(), testFolder);
+		}
+
+		/**
+		 * A Maven write into a project without a {@code pom.xml} is refused.
+		 */
 		@Test
 		void rejectsASelectedBuildModeWithoutItsDescriptor() throws IOException {
 			Files.delete(tempDir.resolve("pom.xml"));
-			assertThrows(IllegalStateException.class,
+			assertThrows(SecurityException.class,
 					() -> javaWriter.writeTestCases(BuildMode.MAVEN, architectureMode, aopMode, essentialPackages,
 							essentialClasses, testClasses, packageName, mainClassInPackageName,
 							javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases,
@@ -323,6 +429,35 @@ public class JavaWriterTest {
 			}
 		}
 
+		/**
+		 * The generated settings holder's constructor throws the catalogue message,
+		 * escaped as a Java string literal.
+		 */
+		@Test
+		@DisplayName("Should write a settings holder whose constructor refuses with the Ares error template")
+		void writesASettingsHolderWhoseConstructorRefusesWithTheTemplate() throws IOException {
+			TestBehaviorConfiguration configured = mock(TestBehaviorConfiguration.class);
+			when(configured.literalFieldAssignments())
+					.thenReturn(List.of("public static final int LIMIT = 1;" + System.lineSeparator()));
+			try (MockedStatic<FileTools> mockedFileTools = mockStatic(FileTools.class);
+					MockedStatic<Phobos> mockedPhobos = mockStatic(Phobos.class)) {
+				stubArchitectureModeDefaults();
+				stubAopModeDefaults();
+				stubFileToolsDefaults(mockedFileTools);
+				stubPhobosDefaults(mockedPhobos);
+
+				javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
+						testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases,
+						javaPhobosTestCases, configured, tempDir);
+
+				String name = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
+				String expected = JavaAOPTestCaseToolbox.escapeJavaString(Messages.localized(
+						"security.writer.settings.holder.instantiation", name.substring(name.lastIndexOf('.') + 1)));
+				assertTrue(Files.readString(generatedSettingsClassPath())
+						.contains("throw new SecurityException(\"" + expected + "\");"));
+			}
+		}
+
 		@Test
 		@DisplayName("Should still write the released outputs when called through the pre-release signature directly")
 		void preReleaseSignatureStillWritesTheReleasedOutputs() {
@@ -395,23 +530,23 @@ public class JavaWriterTest {
 	@Test
 	void constructorRejectsAProjectRootThatIsNotADirectory() throws IOException {
 		Path file = Files.createFile(tempDir.resolve("not-a-directory.txt"));
-		assertThrows(IllegalArgumentException.class, () -> new JavaWriter(file));
+		assertThrows(SecurityException.class, () -> new JavaWriter(file));
 	}
 
 	/**
 	 * Checks that a writer bound to a Maven configuration refuses a Gradle write
-	 * request with an IllegalStateException.
+	 * request with a SecurityException.
 	 */
 	@Test
 	void writeTestCasesRejectsABuildModeThatMismatchesTheConfiguration() {
 		BuildToolConfiguration configuration = new BuildToolConfiguration(BuildMode.MAVEN, tempDir, List.of(tempDir),
 				List.of(tempDir), tempDir.resolve("classes"), tempDir.resolve("test-classes"));
 		JavaWriter configured = new JavaWriter(configuration);
-		IllegalStateException failure = assertThrows(IllegalStateException.class,
+		SecurityException failure = assertThrows(SecurityException.class,
 				() -> configured.writeTestCases(BuildMode.GRADLE, architectureMode, aopMode, essentialPackages,
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 						javaAOPTestCases, javaPhobosTestCases, tempDir));
-		assertEquals("Writer build mode does not match the discovered build configuration", failure.getMessage());
+		assertEquals(Messages.localized("security.writer.build.mode.mismatch"), failure.getMessage());
 	}
 
 	/**
@@ -425,11 +560,13 @@ public class JavaWriterTest {
 				List.of(emptyRoot), List.of(emptyRoot), emptyRoot.resolve("classes"),
 				emptyRoot.resolve("test-classes"));
 		JavaWriter configured = new JavaWriter(configuration);
-		IllegalStateException failure = assertThrows(IllegalStateException.class,
+		SecurityException failure = assertThrows(SecurityException.class,
 				() -> configured.writeTestCases(BuildMode.MAVEN, architectureMode, aopMode, essentialPackages,
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 						javaAOPTestCases, javaPhobosTestCases, emptyRoot));
-		assertTrue(failure.getMessage().contains("has no build descriptor"));
+		assertEquals(
+				Messages.localized("security.writer.build.descriptor.missing", BuildMode.MAVEN, emptyRoot.toRealPath()),
+				failure.getMessage());
 	}
 
 	private void stubArchitectureModeDefaults() {

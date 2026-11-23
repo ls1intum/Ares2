@@ -27,6 +27,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.nio.channels.DatagramChannel;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.BitSet;
 import java.util.List;
@@ -637,7 +638,7 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 
 		Method toDisplayString = target.getClass().getDeclaredMethod("toDisplayString");
 		toDisplayString.setAccessible(true);
-		assertEquals("/tmp/ares-audit.sock:-1", toDisplayString.invoke(target));
+		assertEquals(Path.of("/tmp/ares-audit.sock") + ":-1", toDisplayString.invoke(target));
 	}
 
 	@Test

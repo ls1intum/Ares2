@@ -559,13 +559,13 @@ class JceGeneratedExerciseTest {
 				        createAllFiles: false
 				        executeAllFiles: false
 				        deleteAllFiles: false
-				        onThisPathAndAllPathsBelow: "%s"
+				        onThisPathAndAllPathsBelow: %s
 				      - readAllFiles: false
 				        overwriteAllFiles: false
 				        createAllFiles: true
 				        executeAllFiles: false
 				        deleteAllFiles: false
-				        onThisPathAndAllPathsBelow: "%s"
+				        onThisPathAndAllPathsBelow: %s
 				    regardingNetworkConnections:
 				              - onTheHost: "localhost"
 				                onThePort: 1
@@ -581,8 +581,20 @@ class JceGeneratedExerciseTest {
 				              - importTheFollowingPackage: "java.security"
 				              - importTheFollowingPackage: "java.util"
 				    regardingTimeouts: []
-				""".formatted(configuration, project.resolve("allowed.txt").toString(),
-				project.resolve("allowed-temp").toString());
+				""".formatted(configuration, singleQuoted(project.resolve("allowed.txt")),
+				singleQuoted(project.resolve("allowed-temp")));
+	}
+
+	/**
+	 * Writes a path as a single-quoted YAML string, where a backslash is an
+	 * ordinary character, so a Windows path is read back unchanged. A single quote
+	 * inside is doubled, the only escape such a string has.
+	 *
+	 * @param path the path to write
+	 * @return the quoted path
+	 */
+	static String singleQuoted(Path path) {
+		return "'" + path.toString().replace("'", "''") + "'";
 	}
 
 	/**
@@ -594,8 +606,12 @@ class JceGeneratedExerciseTest {
 				package fixture;
 				/** Changes a property before entering the woven student fixture. */
 				public final class GeneratedCaptureLauncher {
-				    /** Tries the first student read against a fake JDK home, or creates temporary files. */
+				    /**
+				     * Opens the whole class path first, then tries the first student read against a fake JDK home,
+				     * or creates temporary files.
+				     */
 				    public static void main(String[] arguments) throws Exception {
+				        openClassPath();
 				        java.nio.file.Path file = java.nio.file.Path.of(arguments[0]);
 				        long agents = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
 				                .filter(argument -> argument.startsWith("-javaagent:")).count();
@@ -649,6 +665,19 @@ class JceGeneratedExerciseTest {
 				            System.out.println("GENERATED_READ_DENIED: " + denied.getMessage());
 				        } finally {
 				            System.setProperty("java.home", original);
+				        }
+				    }
+				    /**
+				     * Looks up the JUnit engine list in every class-path entry before student code runs, as a real
+				     * JUnit run does first. Without it the JDK opens a late jar, such as the trace agent's, inside a
+				     * student call, where Ares refuses it. Java 17 and 21 then skip that jar; Java 25 lets the refusal
+				     * fail the JDK's own work, such as setting up a cipher.
+				     */
+				    private static void openClassPath() throws Exception {
+				        java.util.Enumeration<java.net.URL> engines = ClassLoader.getSystemClassLoader()
+				                .getResources("META-INF/services/org.junit.platform.engine.TestEngine");
+				        while (engines.hasMoreElements()) {
+				            engines.nextElement();
 				        }
 				    }
 				    /** Names a later Maven repository and home, then reads a jar from each and from the start-up one. */

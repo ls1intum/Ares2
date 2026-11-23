@@ -225,24 +225,13 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 	}
 
 	/**
-	 * Collects allowed network hosts from the provided JavaNetworkSystemExtractor.
-	 * <p>
-	 * The extractor must deliver <em>parallel</em> host- and port-lists:<br>
-	 * first host = first port<br>
-	 * Any other configuration is considered invalid and triggers an
-	 * {@link IllegalStateException}.
-	 * </p>
-	 * <p>
-	 * The resulting set contains strings of the form {@code "host"} (when the
-	 * mapped port is {@code 0}) or {@code "host:port"}; order is preserved so that
-	 * later code that relies on declaration order (e.g. an <code>LD_PRELOAD</code>
-	 * helper) still works.
-	 * </p>
+	 * Lists every permitted network host with its port, in policy order:
+	 * {@code "host"} for port 0, otherwise {@code "host:port"}.
 	 *
-	 * @param net the JavaNetworkSystemExtractor, must not be {@code null}
-	 * @return an ordered set of <code>host[:port]</code> strings
-	 * @throws IllegalStateException if the host and port lists differ in length
-	 * @throws NullPointerException  if {@code net} is {@code null}
+	 * @param net the network extractor; must not be {@code null}
+	 * @return the ordered {@code host[:port]} entries
+	 * @throws SecurityException    if the host and port lists differ in length
+	 * @throws NullPointerException if {@code net} is {@code null}
 	 */
 	private static Set<String> collectAllowHostsAndPorts(JavaNetworkSystemExtractor net) {
 		Objects.requireNonNull(net, "extractor must not be null");
@@ -254,8 +243,8 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 			List<Integer> ports = net.getPermittedNetworkPorts(verb);
 
 			if (hosts.size() != ports.size()) {
-				throw new IllegalStateException(String.format(
-						"Mismatching host/port lists for '%s' (hosts=%d, ports=%d)", verb, hosts.size(), ports.size()));
+				throw new SecurityException(
+						Messages.localized("security.phobos.network.allowed.size", verb, hosts.size(), ports.size()));
 			}
 
 			for (int i = 0; i < hosts.size(); i++) {
@@ -357,7 +346,8 @@ public class JavaPhobosTestCase extends PhobosTestCase {
 		case FILESYSTEM_INTERACTION -> files = permissions.stream().map(FilePermission.class::cast).toList();
 		case NETWORK_CONNECTION -> networks = permissions.stream().map(NetworkPermission.class::cast).toList();
 		case TIMEOUT -> limits = permissions.stream().map(ResourceLimitsPermission.class::cast).toList();
-		default -> throw new IllegalStateException("Unsupported Java Phobos test case: " + phobosTestCaseSupported);
+		default -> throw new SecurityException(
+				Messages.localized("security.phobos.testcase.unsupported", phobosTestCaseSupported));
 		}
 		return writePhobosSecurityTestCaseFile(files, networks, limits);
 	}

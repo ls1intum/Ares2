@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -46,11 +47,68 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	 * A stack walker that also reports each frame's class, so a trusted-looking
 	 * frame can be checked for having been loaded by the JVM itself. Kept apart
 	 * from {@link #STACK_WALKER} because this is slower and needed only for the
-	 * random-seed and temp-file exemptions.
+	 * random-seed, temp-file and Windows shell-folder exemptions.
 	 */
 	@Nonnull
 	private static final StackWalker STACK_WALKER_WITH_CLASS_REFERENCE = StackWalker
 			.getInstance(Set.of(StackWalker.Option.RETAIN_CLASS_REFERENCE));
+
+	/**
+	 * The feature release of the running JDK, such as 21, read once at start-up.
+	 */
+	private static final int RUNNING_FEATURE_RELEASE = Runtime.version().feature();
+
+	/**
+	 * The JDK feature releases whose Windows shell-folder code was audited for the
+	 * hand-off exemption, together with {@link #AUDITED_SHELL_FOLDER_PRODUCERS}.
+	 */
+	@Nonnull
+	private static final Set<Integer> SHELL_FOLDER_AUDITED_FEATURE_RELEASES = Set.of(17, 21, 25);
+
+	/**
+	 * The JDK's private executor that runs Windows shell-folder tasks on its own
+	 * COM thread and waits for the result.
+	 */
+	@Nonnull
+	private static final String SHELL_FOLDER_COM_INVOKER = "sun.awt.shell.Win32ShellFolderManager2$ComInvoker";
+
+	/**
+	 * The JDK class whose {@code invoke} methods pass a shell-folder task on to
+	 * {@link #SHELL_FOLDER_COM_INVOKER}.
+	 */
+	@Nonnull
+	private static final String SHELL_FOLDER = "sun.awt.shell.ShellFolder";
+
+	/**
+	 * The JDK's Windows shell-folder class, which builds the tasks handed to the
+	 * COM thread.
+	 */
+	@Nonnull
+	private static final String WIN32_SHELL_FOLDER = "sun.awt.shell.Win32ShellFolder2";
+
+	/**
+	 * The methods of {@link #WIN32_SHELL_FOLDER} whose tasks were audited to use
+	 * only JDK objects, strings and numbers. The sorting methods are left out on
+	 * purpose: their tasks call methods of files a student can hand in.
+	 */
+	@Nonnull
+	private static final Set<String> AUDITED_SHELL_FOLDER_PRODUCERS = Set.of("<init>", "getFileSystemPath",
+			"parseDisplayName", "createShellFolder", "getIShellFolder", "hasAttribute", "pidlsEqual", "listFiles",
+			"getChildByPath", "getLinkLocation", "getLibraries");
+
+	/**
+	 * The JDK class whose file methods in {@link #CHECKED_FILE_SYSTEM_VIEW_ENTRIES}
+	 * Ares already checks as a read of their folder.
+	 */
+	@Nonnull
+	private static final String FILE_SYSTEM_VIEW = "javax.swing.filechooser.FileSystemView";
+
+	/**
+	 * The methods of {@link #FILE_SYSTEM_VIEW} whose folder argument Ares checks
+	 * before the JDK reaches its shell folders.
+	 */
+	@Nonnull
+	private static final Set<String> CHECKED_FILE_SYSTEM_VIEW_ENTRIES = Set.of("getFiles", "getChild", "isParent");
 
 	/**
 	 * Lazily resolved Class&lt;?&gt; reference for the AOP settings holder, cached
@@ -440,6 +498,96 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			}
 			return Boolean.FALSE;
 		});
+	}
+
+	/**
+	 * Tells whether the JDK on Windows is handing one of its own shell-folder tasks
+	 * to its COM thread, for a {@code FileSystemView} method Ares already checks as
+	 * a file read, with only JDK code on the way. The thread check lets exactly
+	 * that hand-off pass, because the student starts no thread of their own.
+	 *
+	 * @return {@code true} for such a hand-off
+	 */
+	static boolean isJdkShellFolderHandOffWithoutStudentCode() {
+		return STACK_WALKER_WITH_CLASS_REFERENCE
+				.walk(frames -> Boolean.valueOf(isJdkShellFolderHandOff(frames.iterator(), RUNNING_FEATURE_RELEASE)));
+	}
+
+	/**
+	 * Reads a call stack, newest frame first, as that hand-off: JDK frames to
+	 * {@code ComInvoker.invoke}, then {@code ShellFolder.invoke}, one audited
+	 * {@code Win32ShellFolder2} method and JDK frames to a checked
+	 * {@code FileSystemView} method. A frame before it that the JVM did not load
+	 * itself means {@code false}.
+	 *
+	 * @param frames         the stack, newest first
+	 * @param featureRelease the JDK's feature release
+	 * @return {@code true} for exactly that shape
+	 */
+	static boolean isJdkShellFolderHandOff(@Nonnull Iterator<StackWalker.StackFrame> frames, int featureRelease) {
+		if (!SHELL_FOLDER_AUDITED_FEATURE_RELEASES.contains(featureRelease)
+				|| nextJvmFrameMatching(frames, frame -> isMethod(frame, SHELL_FOLDER_COM_INVOKER, "invoke")) == null) {
+			return false;
+		}
+		StackWalker.StackFrame forwarder = nextJvmFrame(frames);
+		if (forwarder == null || !isMethod(forwarder, SHELL_FOLDER, "invoke")) {
+			return false;
+		}
+		StackWalker.StackFrame producer = nextJvmFrameMatching(frames,
+				frame -> !isMethod(frame, SHELL_FOLDER, "invoke"));
+		if (producer == null || !WIN32_SHELL_FOLDER.equals(producer.getClassName())
+				|| !AUDITED_SHELL_FOLDER_PRODUCERS.contains(producer.getMethodName())) {
+			return false;
+		}
+		return nextJvmFrameMatching(frames, frame -> FILE_SYSTEM_VIEW.equals(frame.getClassName())
+				&& CHECKED_FILE_SYSTEM_VIEW_ENTRIES.contains(frame.getMethodName())) != null;
+	}
+
+	/**
+	 * Takes the next frame of a call stack if the JVM itself loaded its class.
+	 *
+	 * @param frames the rest of the call stack
+	 * @return that frame, or {@code null} at the end of the stack or for a frame of
+	 *         any other class loader
+	 */
+	@Nullable
+	private static StackWalker.StackFrame nextJvmFrame(@Nonnull Iterator<StackWalker.StackFrame> frames) {
+		if (!frames.hasNext()) {
+			return null;
+		}
+		StackWalker.StackFrame frame = frames.next();
+		return frame.getDeclaringClass().getClassLoader() == null ? frame : null;
+	}
+
+	/**
+	 * Takes frames loaded by the JVM itself until one is wanted.
+	 *
+	 * @param frames the rest of the call stack
+	 * @param wanted the frame to stop at
+	 * @return the wanted frame, or {@code null} if the stack ends or a frame of
+	 *         another class loader comes first
+	 */
+	@Nullable
+	private static StackWalker.StackFrame nextJvmFrameMatching(@Nonnull Iterator<StackWalker.StackFrame> frames,
+			@Nonnull Predicate<StackWalker.StackFrame> wanted) {
+		StackWalker.StackFrame frame = nextJvmFrame(frames);
+		while (frame != null && !wanted.test(frame)) {
+			frame = nextJvmFrame(frames);
+		}
+		return frame;
+	}
+
+	/**
+	 * Tells whether a frame runs a given method of a given class.
+	 *
+	 * @param frame      the frame
+	 * @param className  the class, by its binary name
+	 * @param methodName the method
+	 * @return {@code true} for exactly that method
+	 */
+	private static boolean isMethod(@Nonnull StackWalker.StackFrame frame, @Nonnull String className,
+			@Nonnull String methodName) {
+		return className.equals(frame.getClassName()) && methodName.equals(frame.getMethodName());
 	}
 
 	/**

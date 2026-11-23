@@ -1,4 +1,4 @@
-package anonymous.sibling;
+package example.sibling;
 
 import java.io.IOException;
 import java.nio.file.Files;

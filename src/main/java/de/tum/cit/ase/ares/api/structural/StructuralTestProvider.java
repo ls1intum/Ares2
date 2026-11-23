@@ -102,12 +102,13 @@ public abstract class StructuralTestProvider {
 	 *
 	 * @param json the JSON string to parse
 	 * @return the parsed JSON tree
+	 * @throws SecurityException if the string is not valid JSON
 	 */
 	protected static JsonNode parseJsonArray(String json) {
 		try {
 			return OBJECT_MAPPER.readTree(json);
 		} catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-			throw new IllegalStateException("Failed to parse JSON", e); //$NON-NLS-1$
+			throw new SecurityException(localized("security.structural.oracle.json.invalid"), e); //$NON-NLS-1$
 		}
 	}
 
@@ -152,6 +153,7 @@ public abstract class StructuralTestProvider {
 	 *                        object element
 	 * @param jsonPropertyKey the key used in JSON
 	 * @return a JSON array of the elements (can be empty)
+	 * @throws SecurityException if the property is present but not an array
 	 */
 	protected static JsonNode getExpectedJsonProperty(JsonNode element, String jsonPropertyKey) {
 		if (!element.has(jsonPropertyKey)) {
@@ -162,8 +164,8 @@ public abstract class StructuralTestProvider {
 		// on
 		// a non-array) rather than silently treating a scalar as an empty array.
 		if (!property.isArray()) {
-			throw new IllegalStateException("Expected a JSON array for structure-oracle property '" + jsonPropertyKey
-					+ "' but found: " + property.getNodeType());
+			throw new SecurityException(localized("security.structural.oracle.property.not.array", jsonPropertyKey,
+					property.getNodeType()));
 		}
 		return property;
 	}
@@ -175,6 +177,7 @@ public abstract class StructuralTestProvider {
 	 *                        object element
 	 * @param jsonPropertyKey the key used in JSON
 	 * @return a boolean as specified in the JSON or false if not present
+	 * @throws SecurityException if the property is present but not a boolean
 	 */
 	protected static boolean getExpectedJsonBooleanProperty(JsonNode element, String jsonPropertyKey) {
 		if (!element.has(jsonPropertyKey)) {
@@ -185,8 +188,8 @@ public abstract class StructuralTestProvider {
 		// a
 		// non-boolean) rather than silently coercing via asBoolean().
 		if (!property.isBoolean()) {
-			throw new IllegalStateException("Expected a JSON boolean for structure-oracle property '" + jsonPropertyKey
-					+ "' but found: " + property.getNodeType());
+			throw new SecurityException(localized("security.structural.oracle.property.not.boolean", jsonPropertyKey,
+					property.getNodeType()));
 		}
 		return property.booleanValue();
 	}
@@ -246,6 +249,15 @@ public abstract class StructuralTestProvider {
 			return !optional;
 		}
 
+		/**
+		 * Reads a modifier entry of the oracle, either a bare modifier or one marked
+		 * optional.
+		 *
+		 * @param jsonString the entry as the oracle writes it
+		 * @return the modifier and whether it is required
+		 * @throws SecurityException if the entry holds a colon but does not start with
+		 *                           the optional marker
+		 */
 		static ModifierSpecification getModifierForJsonString(String jsonString) {
 			String[] sections = jsonString.split(":", -1); //$NON-NLS-1$
 			if (sections.length == 1) {
@@ -254,7 +266,7 @@ public abstract class StructuralTestProvider {
 			if (JSON_PROPERTY_OPTIONAL.equals(sections[0])) {
 				return new ModifierSpecification(sections[1].trim(), true);
 			}
-			throw new IllegalArgumentException("Invalid entry for modifier: '" + jsonString + "'"); //$NON-NLS-1$ //$NON-NLS-2$
+			throw new SecurityException(localized("security.structural.oracle.modifier.invalid", jsonString)); //$NON-NLS-1$
 		}
 	}
 

@@ -156,10 +156,8 @@ public class CustomCallgraphBuilder {
 	 * supervised package. Entry points remain restricted to that original package,
 	 * but WALA can follow calls into helpers and third-party classes outside it.
 	 * <p>
-	 * Adding only the packages that contain reachable dependencies avoids widening
-	 * the hierarchy to the complete build output, which previously made virtual
-	 * dispatch over every unrelated {@link Runnable} implementation prohibitively
-	 * expensive.
+	 * Each referenced class adds the whole classpath root it was found in, such as
+	 * {@code build/classes/java/main}, so its supertypes and helpers resolve too.
 	 */
 	private static String expandClassPathWithReachableDependencies(String classPath, Set<Path> trustedCodeSources) {
 		LinkedHashSet<String> entries = Arrays.stream(classPath.split(File.pathSeparator))
@@ -176,7 +174,8 @@ public class CustomCallgraphBuilder {
 			try {
 				pending.addAll(importer.importPath(entryFile.toPath()));
 			} catch (RuntimeException exception) {
-				throw new SecurityException("Could not import application classpath entry " + entry, exception); //$NON-NLS-1$
+				throw new SecurityException(
+						Messages.localized("security.architecture.wala.classpath.import.failed", entry), exception);
 			}
 		}
 
@@ -205,6 +204,17 @@ public class CustomCallgraphBuilder {
 		return fingerprintAnalysisEntries(entries);
 	}
 
+	/**
+	 * Adds the class path entry of every dependency the project's classes reach,
+	 * skipping JDK classes and trusted framework code.
+	 *
+	 * @param entries            the entries found so far, extended in place
+	 * @param pending            the classes still to follow
+	 * @param importer           the class importer
+	 * @param projectClassRoots  the project's class output folders
+	 * @param trustedCodeSources framework locations left out
+	 * @throws SecurityException if a dependency cannot be located or read
+	 */
 	private static void addReachableDependencies(LinkedHashSet<String> entries, Deque<JavaClass> pending,
 			ClassFileImporter importer, Set<Path> projectClassRoots, Set<Path> trustedCodeSources) {
 		Set<String> visitedClasses = new HashSet<>();
@@ -224,7 +234,8 @@ public class CustomCallgraphBuilder {
 				}
 				URL location = locateClass(targetName, projectClassRoots);
 				if (location == null) {
-					throw new SecurityException("Could not locate reachable application dependency " + targetName); //$NON-NLS-1$
+					throw new SecurityException(
+							Messages.localized("security.architecture.wala.dependency.not.found", targetName));
 				}
 				if ("jrt".equals(location.getProtocol())) { //$NON-NLS-1$
 					// Platform ownership is established by the module-image origin, not by a
@@ -234,13 +245,13 @@ public class CustomCallgraphBuilder {
 					continue;
 				}
 				if (!("file".equals(location.getProtocol()) || "jar".equals(location.getProtocol()))) {
-					throw new SecurityException("Unsupported location for reachable application dependency " //$NON-NLS-1$
-							+ targetName + ": " + location); //$NON-NLS-1$
+					throw new SecurityException(Messages.localized(
+							"security.architecture.wala.dependency.location.unsupported", targetName, location));
 				}
 				Optional<String> classpathEntry = classpathEntryFor(location, targetName);
 				if (classpathEntry.isEmpty()) {
-					throw new SecurityException("Could not derive a classpath entry for reachable dependency " //$NON-NLS-1$
-							+ targetName);
+					throw new SecurityException(Messages
+							.localized("security.architecture.wala.dependency.classpath.entry.missing", targetName));
 				}
 				if (isTrustedFrameworkLocation(location, classpathEntry.get(), trustedCodeSources)) {
 					visitedClasses.add(targetName);
@@ -258,13 +269,23 @@ public class CustomCallgraphBuilder {
 					}
 					pending.addLast(resolved);
 				} catch (RuntimeException exception) {
-					throw new SecurityException("Could not resolve reachable application dependency " + targetName, //$NON-NLS-1$
+					throw new SecurityException(
+							Messages.localized("security.architecture.wala.dependency.resolve.failed", targetName),
 							exception);
 				}
 			}
 		}
 	}
 
+	/**
+	 * Finds where a class is loaded from: first the running class path, then the
+	 * project's class output folders.
+	 *
+	 * @param targetName        the binary class name
+	 * @param projectClassRoots the project's class output folders
+	 * @return the class file's location, or {@code null} if none holds it
+	 * @throws SecurityException if a found class file has no usable URL
+	 */
 	private static URL locateClass(String targetName, Set<Path> projectClassRoots) {
 		URL runtimeLocation = CustomCallgraphBuilder.class.getResource(convertTypeNameToClassName(targetName));
 		if (runtimeLocation != null) {
@@ -277,7 +298,8 @@ public class CustomCallgraphBuilder {
 				try {
 					return candidate.toUri().toURL();
 				} catch (IOException malformedUrl) {
-					throw new SecurityException("Could not address reachable project class " + targetName, //$NON-NLS-1$
+					throw new SecurityException(
+							Messages.localized("security.architecture.wala.project.class.address.failed", targetName),
 							malformedUrl);
 				}
 			}
@@ -304,7 +326,8 @@ public class CustomCallgraphBuilder {
 				candidates.filter(Files::isDirectory).filter(CustomCallgraphBuilder::isConventionalClassRoot)
 						.map(Path::toAbsolutePath).map(Path::normalize).forEach(roots::add);
 			} catch (IOException unreadableProject) {
-				throw new SecurityException("Could not discover project class-output roots below " + projectRoot, //$NON-NLS-1$
+				throw new SecurityException(
+						Messages.localized("security.architecture.wala.class.roots.discovery.failed", projectRoot),
 						unreadableProject);
 			}
 		}
@@ -360,12 +383,20 @@ public class CustomCallgraphBuilder {
 		return className.substring(componentStart + 1, className.length() - 1).replace('/', '.');
 	}
 
+	/**
+	 * Imports all classes of a dependency JAR.
+	 *
+	 * @param importer the importer to use
+	 * @param jarPath  the JAR's path
+	 * @return the imported classes
+	 * @throws SecurityException if the JAR's path has no usable URL
+	 */
 	private static JavaClasses importJar(ClassFileImporter importer, String jarPath) {
 		try {
 			return importer.importUrl(Path.of(jarPath).toUri().toURL());
 		} catch (IOException exception) {
-			throw new SecurityException("Could not create a URL for application dependency JAR " + jarPath, //$NON-NLS-1$
-					exception);
+			throw new SecurityException(
+					Messages.localized("security.architecture.wala.dependency.jar.url.failed", jarPath), exception);
 		}
 	}
 
@@ -512,6 +543,15 @@ public class CustomCallgraphBuilder {
 		return Set.copyOf(locations);
 	}
 
+	/**
+	 * Builds one SHA-256 fingerprint over the content of the given analysis
+	 * entries, so a changed file or JAR gives a different fingerprint.
+	 *
+	 * @param classpathEntries the class path entries the analysis reads
+	 * @return the fingerprint as hexadecimal text
+	 * @throws SecurityException if an entry cannot be read or is neither a file nor
+	 *                           a folder
+	 */
 	static String fingerprintAnalysisEntries(Set<String> classpathEntries) {
 		try {
 			String contentIdentity = classpathEntries.stream().map(CustomCallgraphBuilder::canonicalAnalysisEntry)
@@ -519,7 +559,8 @@ public class CustomCallgraphBuilder {
 			return sha256Hex(contentIdentity.getBytes(StandardCharsets.UTF_8));
 		} catch (RuntimeException unreadableEntry) {
 			if (unreadableEntry.getCause() instanceof IOException ioException) {
-				throw new SecurityException("Could not fingerprint a WALA analysis dependency", ioException); //$NON-NLS-1$
+				throw new SecurityException(Messages.localized("security.architecture.wala.fingerprint.failed"),
+						ioException);
 			}
 			throw unreadableEntry;
 		}
@@ -533,13 +574,22 @@ public class CustomCallgraphBuilder {
 		}
 	}
 
+	/**
+	 * Fingerprints one analysis entry: a file by its bytes, a folder by the bytes
+	 * of every file inside it.
+	 *
+	 * @param entry the canonical entry
+	 * @return the entry's fingerprint text
+	 * @throws SecurityException if the entry is neither a file nor a folder
+	 */
 	private static String analysisEntryFingerprint(Path entry) {
 		try {
 			if (Files.isRegularFile(entry)) {
 				return "file#" + entry + "#" + sha256Hex(Files.readAllBytes(entry)); //$NON-NLS-1$ //$NON-NLS-2$
 			}
 			if (!Files.isDirectory(entry)) {
-				throw new IOException("Analysis entry is neither a file nor a directory: " + entry); //$NON-NLS-1$
+				throw new SecurityException(
+						Messages.localized("security.architecture.wala.analysis.entry.invalid", entry));
 			}
 			try (Stream<Path> files = Files.walk(entry)) {
 				String directoryIdentity = files.filter(Files::isRegularFile).sorted()
@@ -560,6 +610,13 @@ public class CustomCallgraphBuilder {
 		}
 	}
 
+	/**
+	 * Hashes bytes with SHA-256.
+	 *
+	 * @param value the bytes to hash
+	 * @return the digest as lowercase hexadecimal text
+	 * @throws SecurityException if the JVM offers no SHA-256
+	 */
 	private static String sha256Hex(byte[] value) {
 		try {
 			byte[] digest = MessageDigest.getInstance("SHA-256").digest(value); //$NON-NLS-1$
@@ -569,7 +626,8 @@ public class CustomCallgraphBuilder {
 			}
 			return hex.toString();
 		} catch (java.security.NoSuchAlgorithmException unavailableAlgorithm) {
-			throw new SecurityException("SHA-256 is unavailable", unavailableAlgorithm); //$NON-NLS-1$
+			throw new SecurityException(Messages.localized("security.architecture.wala.sha256.unavailable"),
+					unavailableAlgorithm);
 		}
 	}
 
@@ -610,59 +668,7 @@ public class CustomCallgraphBuilder {
 		LinkedHashSet<String> kept = Arrays.stream(entries).filter(entry -> !entry.isBlank())
 				.filter(entry -> !isTrustedFrameworkLocation(entry, trustedCodeSources))
 				.collect(Collectors.toCollection(LinkedHashSet::new));
-
-		// Ares' BuildMode.getClasspath narrows the analysis classpath to a single
-		// package subdirectory (e.g. build/classes/java/main/anonymous/foo/bar) so
-		// WALA's analysis stays tractable. The cost of that narrowing is severe:
-		// any student class whose superclass, helper class or returned-collection
-		// type lives outside that package directory (e.g. extending a base class in
-		// anonymous.toolclasses) cannot be resolved by the WALA class hierarchy and
-		// gets silently dropped, leaving its methods out of the entry-point set and
-		// hiding every forbidden API call inside them.
-		//
-		// Earlier revisions widened the scope to the entire build-root (e.g.
-		// build/classes/java/main) which fixed the resolution problem but pulled in
-		// every other category's classes — Thread.start() then dispatched via CHA
-		// across all student Runnable subclasses, exploding the call graph
-		// (ThreadSystemCreate Permitted: 343 s for the first invocation, JVM crash).
-		// Add only the verified helper subdirectory (anonymous/toolclasses) instead
-		// of the whole build-root.
-		LinkedHashSet<String> widened = new LinkedHashSet<>(kept);
-		for (String entry : kept) {
-			String normalized = entry.replace(File.separatorChar, '/');
-			String mainMarker = "build/classes/java/main";
-			int idx = normalized.indexOf(mainMarker);
-			if (idx >= 0) {
-				String mainRoot = entry.substring(0, idx + mainMarker.length());
-				addHelperRoots(widened, mainRoot);
-				continue;
-			}
-			String mavenMarker = "target/classes";
-			idx = normalized.indexOf(mavenMarker);
-			if (idx >= 0) {
-				String mavenMain = entry.substring(0, idx + mavenMarker.length());
-				addHelperRoots(widened, mavenMain);
-			}
-		}
-		return String.join(File.pathSeparator, widened);
-	}
-
-	/**
-	 * Helper subpackages that hold base classes / utilities shared across student
-	 * categories. Listed explicitly (instead of widening the whole build root) so
-	 * WALA's class hierarchy can resolve supertypes without dragging in every other
-	 * category's Runnable / Thread / Executor implementations, which would blow up
-	 * CHA-based dispatch resolution for Thread.start() and friends.
-	 */
-	private static final List<String> HELPER_SUBPACKAGES = List.of("anonymous/toolclasses");
-
-	private static void addHelperRoots(LinkedHashSet<String> target, String classRoot) {
-		for (String subPackage : HELPER_SUBPACKAGES) {
-			File helperDir = new File(classRoot, subPackage);
-			if (helperDir.isDirectory()) {
-				target.add(helperDir.getPath());
-			}
-		}
+		return String.join(File.pathSeparator, kept);
 	}
 
 	private static String convertTypeNameToClassName(String typeName) {
@@ -714,7 +720,10 @@ public class CustomCallgraphBuilder {
 	/**
 	 * Builds the call graph for the given classpath. Repeated calls on this builder
 	 * for the same path return its session-local graph; a builder cannot be reused
-	 * for a different analysis target.
+	 * for a different analysis target. Entry points are the methods of the
+	 * application classes in the widened hierarchy that lie inside the package
+	 * being analysed. The widening is what lets a class whose supertype sits
+	 * elsewhere into the hierarchy at all.
 	 *
 	 * @param classPathToAnalyze the classpath to analyse
 	 * @return the constructed or cached call graph
@@ -733,14 +742,6 @@ public class CustomCallgraphBuilder {
 			return callGraph;
 		}
 		try {
-			// Build entry points from this session's widened hierarchy so it can fully
-			// resolve student class supertypes
-			// (anonymous.toolclasses.ProtectedResourceAccess, …); without that step,
-			// the outer student classes are silently dropped and only standalone
-			// helpers (inner enums) become entry points. After collection, restrict
-			// the entry points to the test's own package directory so each
-			// architecture rule only flags violations in the class under test rather
-			// than spilling into unrelated category classes that share the wider scope.
 			String narrowPackagePrefix = derivePackagePrefix(classPathToAnalyze);
 			List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker
 					.getEntryPointsFromStudentSubmission(filteredClassPathToAnalyse, classHierarchy).stream()
@@ -786,11 +787,11 @@ public class CustomCallgraphBuilder {
 
 	/**
 	 * Convert a classpath entry like
-	 * {@code build/classes/java/main/anonymous/foo/bar} into the WALA TypeName
-	 * prefix {@code Lanonymous/foo/bar/} so we can keep entry points limited to the
-	 * test's package without re-deriving it from the policy. Returns {@code null}
-	 * if the path doesn't look like a build-output package directory (in which case
-	 * no narrowing is applied).
+	 * {@code build/classes/java/main/org/example/bar} into the WALA TypeName prefix
+	 * {@code Lorg/example/bar/} so we can keep entry points limited to the test's
+	 * package without re-deriving it from the policy. Returns {@code null} if the
+	 * path doesn't look like a build-output package directory (in which case no
+	 * narrowing is applied).
 	 */
 	private static String derivePackagePrefix(String classPath) {
 		if (classPath == null) {

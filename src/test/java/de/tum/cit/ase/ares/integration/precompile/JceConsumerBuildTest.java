@@ -15,6 +15,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.integration.ConventionalGradleReport;
 
 /**
  * Builds actual emitted exercises with Maven and Gradle and executes Jupiter
@@ -71,8 +72,10 @@ class JceConsumerBuildTest {
 		Files.writeString(project.resolve("allowed.txt"), "permitted fixture");
 		Files.createDirectories(project.resolve("tmp"));
 		Path generated = JceGeneratedExerciseTest.generate(configuration);
-		Files.writeString(project.resolve("policy.yaml"), Files.readString(generated.resolve("policy.yaml"))
-				.replace(generated.resolve("allowed.txt").toString(), project.resolve("allowed.txt").toString()));
+		Files.writeString(project.resolve("policy.yaml"),
+				Files.readString(generated.resolve("policy.yaml")).replace(
+						JceGeneratedExerciseTest.singleQuoted(generated.resolve("allowed.txt")),
+						JceGeneratedExerciseTest.singleQuoted(project.resolve("allowed.txt"))));
 		Path agent = ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
 				.filter(value -> value.startsWith("-javaagent:") && value.endsWith("-agent.jar"))
 				.map(value -> Path.of(value.substring("-javaagent:".length()))).findFirst().orElseThrow();
@@ -89,12 +92,12 @@ class JceConsumerBuildTest {
 	}
 
 	/**
-	 * Runs an exercise without a policy through each consumer tool, so Ares derives
-	 * the supervised package and checks it against the compiled output in the real
-	 * test JVM, in the director's ArchUnit and AspectJ modes. The assignment alone
-	 * passes, so does it with a busier child package or, under a group covering
-	 * both, beside a busier unrelated package; two decoy classes are refused before
-	 * any check is armed. Only the grouped variant sets a group that fits.
+	 * Runs an exercise without a policy through each tool, so Ares derives the
+	 * supervised package and checks it against the compiled output in a real test
+	 * JVM. The assignment passes alone, beside a busier child package and, under a
+	 * fitting group, beside a busier unrelated one; two decoys are refused before
+	 * any check is armed. The Gradle test JVM gets the report of a conventional
+	 * layout, which its hand-written build cannot produce itself.
 	 */
 	@ParameterizedTest
 	@CsvSource({ "MAVEN,PLAIN", "MAVEN,NESTED", "MAVEN,GROUPED", "MAVEN,DECOY", "GRADLE,PLAIN", "GRADLE,NESTED",
@@ -224,10 +227,11 @@ class JceConsumerBuildTest {
 	private static ProcessBuilder consumerBuild(Path project, boolean gradle, Path log) {
 		List<String> command = new ArrayList<>();
 		if (gradle) {
-			command.add(Path.of("examples/ares-exercise-gradle/gradlew").toAbsolutePath().toString());
+			command.add(Path.of("examples/ares-exercise-gradle", launcher("gradlew", "gradlew.bat")).toAbsolutePath()
+					.toString());
 			command.addAll(List.of("--no-daemon", "--console=plain", "-p", project.toString(), "test"));
 		} else {
-			command.add("mvn");
+			command.add(launcher("mvn", "mvn.cmd"));
 			command.addAll(List.of("-B", "-f", project.resolve("pom.xml").toString(), "test"));
 		}
 		ProcessBuilder builder = new ProcessBuilder(command).directory(project.toFile()).redirectErrorStream(true)
@@ -235,6 +239,15 @@ class JceConsumerBuildTest {
 		builder.environment().put("JAVA_HOME",
 				Path.of(JceGeneratedExerciseTest.javaExecutable()).getParent().getParent().toString());
 		return builder;
+	}
+
+	/**
+	 * Picks the name of a build tool's start script for this operating system.
+	 * Windows cannot start the shell script, so it gets the batch file named second
+	 * instead.
+	 */
+	private static String launcher(String unixName, String windowsName) {
+		return System.getProperty("os.name").startsWith("Windows") ? windowsName : unixName;
 	}
 
 	/**
@@ -358,7 +371,9 @@ class JceConsumerBuildTest {
 	private static String gradleBuild(Path project, boolean generated, boolean agent) {
 		String files = buildDependencies(project, generated).stream().map(path -> groovy(path.toString()))
 				.collect(java.util.stream.Collectors.joining(","));
-		String arguments = runtimeArguments(project, agent).stream().map(JceConsumerBuildTest::groovy)
+		List<String> gradleArguments = new ArrayList<>(runtimeArguments(project, agent));
+		gradleArguments.addAll(ConventionalGradleReport.arguments(project));
+		String arguments = gradleArguments.stream().map(JceConsumerBuildTest::groovy)
 				.collect(java.util.stream.Collectors.joining(","));
 		return """
 				plugins { id 'java' }

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 class ProjectSourcesFinderTest {
 	@TempDir
@@ -122,8 +123,12 @@ class ProjectSourcesFinderTest {
 		Files.createDirectory(escape);
 		Files.writeString(temporaryDirectory.resolve("build.gradle"),
 				"sourceSets { main { java { srcDir '../" + escape.getFileName() + "' } } }");
-		assertThrows(SecurityException.class,
+		SecurityException refused = assertThrows(SecurityException.class,
 				() -> ProjectSourcesFinder.discover(temporaryDirectory, BuildMode.GRADLE));
+		assertEquals(
+				Messages.localized("security.sources.root.outside.project",
+						temporaryDirectory.toRealPath().resolve(Path.of("..", escape.getFileName().toString()))),
+				refused.getMessage());
 	}
 
 	/**

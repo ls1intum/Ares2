@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /**
  * Manages dependencies and plugins in build configuration files such as pom.xml
  * and build.gradle. Provides methods to add and remove dependencies and plugins
@@ -36,11 +38,11 @@ public class DependencyManager {
 	 * Constructs a DependencyManager for the specified file.
 	 *
 	 * @param filePath the path to the file (pom.xml or build.gradle)
-	 * @throws IllegalArgumentException if the filePath is null or empty
+	 * @throws SecurityException if the file path is null or empty
 	 */
 	public DependencyManager(String filePath) {
 		if (filePath == null || filePath.isEmpty()) {
-			throw new SecurityException("File path must not be null or empty.");
+			throw new SecurityException(Messages.localized("security.dependency.manager.path.empty"));
 		}
 		this.filePath = filePath;
 	}

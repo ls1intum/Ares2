@@ -16,11 +16,20 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
+import de.tum.cit.ase.ares.integration.ConventionalGradleReport;
 
 /**
  * Runs prerequisite proofs in fresh JVMs with the real agent and woven subject.
  */
 class JceCryptoPolicyReadTest {
+
+	/**
+	 * Extra options of a child that runs a first library use: the JVM's log of
+	 * every library it loads, no display, and an English locale so the messages
+	 * read the same everywhere.
+	 */
+	private static final List<String> LIBRARY_PROBE_OPTIONS = List.of("-Xlog:library=info", "-Djava.awt.headless=true",
+			"-Duser.language=en", "-Duser.country=US");
 
 	/**
 	 * Distinguishes restrictive discovery before crypto from an active runtime
@@ -113,22 +122,25 @@ class JceCryptoPolicyReadTest {
 	 * Writes fixtures in the parent, then launches the child with the current test
 	 * JVM's agent.
 	 */
-	private static String runProbe(ProgrammingLanguageConfiguration configuration, String operation, Path directory)
+	static String runProbe(ProgrammingLanguageConfiguration configuration, String operation, Path directory)
 			throws Exception {
-		Path compiled = prepareProject(configuration, directory, "environment".equals(operation));
+		String subjectPackage = subjectPackage(operation);
+		Path compiled = prepareProject(configuration, directory, subjectPackage);
 		Path file = directory.resolve("default_local.policy");
 		Files.writeString(file, "protected fixture");
 		Path policy = directory.resolve("policy.yaml");
-		String policyContents = policy(configuration, directory.resolve("allowed.txt"));
-		if ("environment".equals(operation)) {
-			policyContents = policyContents.replace("example.jce", "example.environment").replace("JceCryptoSubject",
-					"JceEnvironmentSubject");
-		}
+		String policyContents = policy(configuration, directory.resolve("allowed.txt"), "preferences".equals(operation))
+				.replace("example.jce", "example." + subjectPackage)
+				.replace("JceCryptoSubject", subjects(subjectPackage)[0].getSimpleName());
 		Files.writeString(policy, policyContents);
 		Files.writeString(directory.resolve("allowed.txt"), "permitted fixture");
 		Path log = directory.resolve(operation + ".log");
-		Process child = new ProcessBuilder(command(operation, policy, file, directory, compiled))
-				.directory(directory.toFile()).redirectErrorStream(true).redirectOutput(log.toFile()).start();
+		List<String> command = command(operation, policy, file, directory, compiled);
+		if (configuration.name().contains("GRADLE")) {
+			command.addAll(1, ConventionalGradleReport.arguments(directory));
+		}
+		Process child = new ProcessBuilder(command).directory(directory.toFile()).redirectErrorStream(true)
+				.redirectOutput(log.toFile()).start();
 		try {
 			assertTrue(child.waitFor(90, TimeUnit.SECONDS), "The isolated JCE proof timed out: " + log);
 			String output = Files.readString(log);
@@ -159,40 +171,64 @@ class JceCryptoPolicyReadTest {
 		command.add("-Djava.io.tmpdir=" + Files.createDirectories(project.resolve("tmp")));
 		command.add("-javaagent:" + JceTraceAgent.packageAgent());
 		command.add("-Xlog:class+init=info");
+		boolean libraryProbe = "nativelibrary".equals(subjectPackage(operation));
+		if (libraryProbe) {
+			command.addAll(LIBRARY_PROBE_OPTIONS);
+		}
 		command.add("-cp");
 		command.add(compiled + java.io.File.pathSeparator
 				+ System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
-		command.add(JceForkProbe.class.getName());
+		command.add(libraryProbe ? NativeLibraryForkProbe.class.getName() : JceForkProbe.class.getName());
 		command.add(operation);
 		command.add(policy.toAbsolutePath().toString());
 		command.add(file.toAbsolutePath().toString());
 		command.add(project.toAbsolutePath().toString());
-		command.add(compiled.resolve("environment".equals(operation) ? "example/environment" : "example/jce")
-				.toAbsolutePath().toString());
+		command.add(compiled.resolve("example/" + subjectPackage(operation)).toAbsolutePath().toString());
 		return command;
+	}
+
+	/**
+	 * Names the package below {@code example} that holds the student fixture of an
+	 * operation.
+	 */
+	private static String subjectPackage(String operation) {
+		return switch (operation) {
+		case "environment" -> "environment";
+		case "image", "preferences" -> "nativelibrary";
+		default -> "jce";
+		};
+	}
+
+	/**
+	 * Lists the student classes of a fixture package, the policy's main class
+	 * first.
+	 */
+	private static Class<?>[] subjects(String subjectPackage) {
+		return switch (subjectPackage) {
+		case "environment" -> new Class<?>[] { example.environment.JceEnvironmentSubject.class };
+		case "nativelibrary" -> new Class<?>[] { example.nativelibrary.NativeLibraryFirstUser.class };
+		default -> new Class<?>[] { example.jce.JceCryptoSubject.class, example.jce.JceProviderService.class };
+		};
 	}
 
 	/**
 	 * Prepares the selected build layout with the real compiled student fixture.
 	 */
 	private static Path prepareProject(ProgrammingLanguageConfiguration configuration, Path project,
-			boolean environment) throws Exception {
+			String subjectPackage) throws Exception {
 		boolean gradle = configuration.name().contains("GRADLE");
 		Files.writeString(project.resolve(gradle ? "build.gradle" : "pom.xml"),
 				gradle ? "plugins { id 'java' }" : "<project/>");
 		if (gradle) {
 			Files.writeString(project.resolve("settings.gradle"), "rootProject.name = 'jce-proof'");
 		}
-		Path sources = Files.createDirectories(
-				project.resolve(environment ? "src/main/java/example/environment" : "src/main/java/example/jce"));
+		Path sources = Files.createDirectories(project.resolve("src/main/java/example/" + subjectPackage));
 		Path classes = Files.createDirectories(project.resolve(gradle ? "build/classes/java/main" : "target/classes"));
-		Class<?>[] subjects = environment ? new Class<?>[] { example.environment.JceEnvironmentSubject.class }
-				: new Class<?>[] { example.jce.JceCryptoSubject.class, example.jce.JceProviderService.class };
-		for (Class<?> subject : subjects) {
+		for (Class<?> subject : subjects(subjectPackage)) {
 			String name = subject.getSimpleName();
-			Files.writeString(sources.resolve(name + ".java"), Files
-					.readString(Path.of("src/test/java/example", environment ? "environment" : "jce", name + ".java")));
-			Path destination = classes.resolve("example/" + (environment ? "environment/" : "jce/") + name + ".class");
+			Files.writeString(sources.resolve(name + ".java"),
+					Files.readString(Path.of("src/test/java/example", subjectPackage, name + ".java")));
+			Path destination = classes.resolve("example/" + subjectPackage + "/" + name + ".class");
 			Files.createDirectories(destination.getParent());
 			try (var input = subject.getResourceAsStream(name + ".class")) {
 				Files.copy(java.util.Objects.requireNonNull(input), destination);
@@ -203,9 +239,12 @@ class JceCryptoPolicyReadTest {
 
 	/**
 	 * Produces a real policy whose unrelated allowance leaves filesystem checks to
-	 * AOP.
+	 * AOP. It allows reading the fixture file, or, for a probe that opens the
+	 * preferences, reading and creating on every path ({@code *}), the only rule
+	 * under which Ares lets student code open them.
 	 */
-	private static String policy(ProgrammingLanguageConfiguration configuration, Path allowed) {
+	private static String policy(ProgrammingLanguageConfiguration configuration, Path allowed,
+			boolean opensPreferences) {
 		return """
 				thisPolicyFileCompliesToThePolicyVersion: 1
 				regardingTheSupervisedCode:
@@ -217,7 +256,7 @@ class JceCryptoPolicyReadTest {
 				    regardingFileSystemInteractions:
 				      - readAllFiles: true
 				        overwriteAllFiles: false
-				        createAllFiles: false
+				        createAllFiles: %s
 				        executeAllFiles: false
 				        deleteAllFiles: false
 				        onThisPathAndAllPathsBelow: "%s"
@@ -232,11 +271,13 @@ class JceCryptoPolicyReadTest {
 				    regardingPackageImports:
 				      - importTheFollowingPackage: "javax.crypto"
 				      - importTheFollowingPackage: "javax.net.ssl"
+				      - importTheFollowingPackage: "java.awt.image"
 				      - importTheFollowingPackage: "java.nio.file"
 				      - importTheFollowingPackage: "java.security"
 				      - importTheFollowingPackage: "java.util"
 				    regardingTimeouts: []
-				""".formatted(configuration, allowed.toAbsolutePath().toString().replace("\\", "/"));
+				""".formatted(configuration, opensPreferences,
+				opensPreferences ? "*" : allowed.toAbsolutePath().toString().replace("\\", "/"));
 	}
 
 	/**
@@ -250,11 +291,10 @@ class JceCryptoPolicyReadTest {
 	 * Keeps failures readable while full JVM evidence remains under
 	 * target/jce-proofs.
 	 */
-	private static String summary(String output) {
-		return output.lines()
-				.filter(line -> line.contains("JCE_") || line.contains("JceSecurity")
-						|| line.contains("FileSystemAdviceDefinitions") || line.contains("AdviceFileSystemToolbox")
-						|| line.contains("Exception") || line.startsWith("\tat "))
+	static String summary(String output) {
+		return output.lines().filter(line -> line.contains("JCE_") || line.contains("NATIVE_LIBRARY_")
+				|| line.contains("JceSecurity") || line.contains("FileSystemAdviceDefinitions")
+				|| line.contains("AdviceFileSystemToolbox") || line.contains("Exception") || line.startsWith("\tat "))
 				.collect(java.util.stream.Collectors.joining(System.lineSeparator()));
 	}
 

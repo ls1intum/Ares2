@@ -36,7 +36,7 @@ public final class JavaAOPTestCaseToolbox {
 	 * @return the escaped literal body
 	 */
 	@Nonnull
-	private static String escapeJavaString(@Nonnull String raw) {
+	public static String escapeJavaString(@Nonnull String raw) {
 		StringBuilder escaped = new StringBuilder(raw.length() + 8);
 		for (int index = 0; index < raw.length(); index++) {
 			char character = raw.charAt(index);

@@ -38,8 +38,13 @@ public final class RecursionCheck {
 
 	private static final Logger LOG = LoggerFactory.getLogger(RecursionCheck.class);
 
+	/**
+	 * Not instantiable: it only offers static methods.
+	 *
+	 * @throws SecurityException always
+	 */
 	private RecursionCheck() {
-		throw new IllegalStateException(localized("ast.hide.implicit.constructor"));
+		throw new SecurityException(localized("ast.hide.implicit.constructor"));
 	}
 
 	/**
@@ -97,9 +102,11 @@ public final class RecursionCheck {
 	/**
 	 * Format the vertex information within a cycle
 	 *
-	 * @param vertexName Vertex name
-	 * @param graph      Method call graph
+	 * @param vertexName       Vertex name
+	 * @param graph            Method call graph
+	 * @param pathOfSourceRoot Path to the source root
 	 * @return Formatted vertex information
+	 * @throws SecurityException if the graph knows no position for the vertex
 	 */
 	public static String formatVertexInfoWithinCycle(String vertexName, MethodCallGraph graph, Path pathOfSourceRoot) {
 		// Retrieve the position of the vertex from the graph's position map
@@ -110,8 +117,7 @@ public final class RecursionCheck {
 			// Log an error message
 			LOG.error("Error in MethodCallGraph: Vertex position not found for vertex: {}", vertexName);
 
-			// Throw an IllegalStateException with a descriptive message
-			throw new IllegalStateException(localized("ast.node.position.not.determined"));
+			throw new SecurityException(localized("ast.node.position.not.determined"));
 		}
 
 		return localized("ast.method.get_formatted_file_string_prefix",
@@ -128,6 +134,7 @@ public final class RecursionCheck {
 	 * @param pathToSourceRoot Path to the source root
 	 * @param level            JavaParser Language Level
 	 * @return List of CompilationUnit
+	 * @throws SecurityException if the source root cannot be read
 	 */
 	public static List<Optional<CompilationUnit>> parseFromSourceRoot(Path pathToSourceRoot,
 			ParserConfiguration.LanguageLevel level) {
@@ -165,7 +172,7 @@ public final class RecursionCheck {
 		try {
 			parseResults = sourceRoot.tryToParse();
 		} catch (IOException e) {
-			throw new AssertionError(String.format("The file %s could not be read:", e));
+			throw new SecurityException(localized("security.ast.source.root.unreadable", pathToSourceRoot), e);
 		}
 
 		return parseResults.stream().map(ParseResult::getResult).toList();

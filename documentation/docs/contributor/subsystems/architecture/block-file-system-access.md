@@ -221,117 +221,115 @@ ArchUnit and WALA modes monitor largely overlapping, but not identical, sets of 
 
 Read APIs listed below access file contents or metadata without modifying them.
 
-> **Note on "Tested by RP" column:** A ✅ means that this application programming interface (API) is the **primary target** of a dedicated test in the Reproducibility Package. For example, if a test uses `BufferedInputStream` to wrap a `FileInputStream`, only the wrapper (`BufferedInputStream.<new>`) is marked as ✅, not the underlying `FileInputStream.<new>` which is merely a helper call in that context.
-
 **Reads any formatted file fully**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.FileInputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.BufferedInputStream | `<new>` | ✅ | ❌ (only in the ArchUnit list) | ✅ |
-| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
-| java.nio.channels.AsynchronousFileChannel | read | ✅ | ✅ | ❌ (triggers Thread security) |
-| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ (triggers Thread security) |
-| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
-| java.nio.channels.FileChannel | map | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newByteChannel | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newInputStream | ✅ | ✅ | ✅ |
-| java.nio.file.Files | readAllBytes | ✅ | ✅ | ✅ |
-| java.lang.ClassLoader | getResourceAsStream | ✅ | ✅ | ❌ (triggers Reflection security) |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.FileInputStream | `<new>` | ✅ | ✅ |
+| java.io.BufferedInputStream | `<new>` | ✅ | ❌ (only in the ArchUnit list) |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | read | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ |
+| java.nio.channels.FileChannel | open | ✅ | ✅ |
+| java.nio.channels.FileChannel | map | ✅ | ✅ |
+| java.nio.file.Files | newByteChannel | ✅ | ✅ |
+| java.nio.file.Files | newInputStream | ✅ | ✅ |
+| java.nio.file.Files | readAllBytes | ✅ | ✅ |
+| java.lang.ClassLoader | getResourceAsStream | ✅ | ✅ |
 
 **Reads UTF-8 text/tokens fully**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.Reader | `<new>` | ✅ | ✅ | ✅ |
-| java.io.FileReader | `<new>` | ✅ | ✅ | ❌ |
-| java.nio.file.Files | newBufferedReader | ✅ | ✅ | ✅ |
-| java.nio.file.Files | readString | ✅ | ✅ | ✅ |
-| java.nio.file.Files | lines | ✅ | ✅ | ✅ |
-| java.nio.file.Files | readAllLines | ✅ | ✅ | ✅ |
-| java.util.Scanner | `<new>` | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.Reader | `<new>` | ✅ | ✅ |
+| java.io.FileReader | `<new>` | ✅ | ✅ |
+| java.nio.file.Files | newBufferedReader | ✅ | ✅ |
+| java.nio.file.Files | readString | ✅ | ✅ |
+| java.nio.file.Files | lines | ✅ | ✅ |
+| java.nio.file.Files | readAllLines | ✅ | ✅ |
+| java.util.Scanner | `<new>` | ✅ | ✅ |
 
 **Reads only specifically formatted files fully**
 
 > **Note:** `java.io.DataInputStream.<new>` is in NEITHER methods file. Detection of data-stream reads happens via the `java.io.DataInput.read*` interface methods listed below; the WALA false-positives file even excludes `java.io.DataInputStream` explicitly to suppress JDK-internal usage.
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.DataInput | read | ✅ | ✅ | ❌ |
-| java.io.DataInput | readBoolean | ✅ | ✅ | ❌ |
-| java.io.DataInput | readByte | ✅ | ✅ | ❌ |
-| java.io.DataInput | readChar | ✅ | ✅ | ❌ |
-| java.io.DataInput | readDouble | ✅ | ✅ | ❌ |
-| java.io.DataInput | readFloat | ✅ | ✅ | ❌ |
-| java.io.DataInput | readFully | ✅ | ✅ | ❌ |
-| java.io.DataInput | readInt | ✅ | ✅ | ❌ |
-| java.io.DataInput | readLine | ✅ | ✅ | ❌ |
-| java.io.DataInput | readLong | ✅ | ✅ | ❌ |
-| java.io.DataInput | readShort | ✅ | ✅ | ❌ |
-| java.io.DataInput | readUTF | ✅ | ✅ | ❌ |
-| java.io.DataInput | readUnsignedByte | ✅ | ✅ | ❌ |
-| java.io.DataInput | readUnsignedShort | ✅ | ✅ | ❌ |
-| javax.imageio.ImageIO | createImageInputStream | ✅ | ✅ | ❌ |
-| javax.imageio.ImageIO | read | ✅ | ✅ | ❌ |
-| javax.sound.sampled.AudioSystem | getAudioInputStream | ✅ | ✅ | ❌ |
-| javax.xml.bind.Unmarshaller | unmarshal | ✅ | ✅ | ❌ |
-| javax.xml.parsers.DocumentBuilder | parse | ✅ | ✅ | ❌ |
-| javax.xml.parsers.SAXParser | parse | ✅ | ✅ | ❌ |
-| java.awt.Toolkit | createImage | ✅ | ✅ | ❌ |
-| java.awt.Toolkit | getImage | ✅ | ✅ | ❌ |
-| javax.imageio.ImageIO | getImageReaders | ✅ | ✅ | ❌ |
-| javax.sound.midi.MidiSystem | getSoundbank | ✅ | ✅ | ❌ |
-| java.awt.Font | createFont | ✅ | ✅ | ❌ |
-| java.awt.Font | createFonts | ✅ | ✅ | ❌ |
-| javax.imageio.stream.FileCacheImageInputStream | `<new>` | ✅ | ✅ | ❌ |
-| javax.imageio.stream.FileImageInputStream | `<new>` | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.DataInput | read | ✅ | ✅ |
+| java.io.DataInput | readBoolean | ✅ | ✅ |
+| java.io.DataInput | readByte | ✅ | ✅ |
+| java.io.DataInput | readChar | ✅ | ✅ |
+| java.io.DataInput | readDouble | ✅ | ✅ |
+| java.io.DataInput | readFloat | ✅ | ✅ |
+| java.io.DataInput | readFully | ✅ | ✅ |
+| java.io.DataInput | readInt | ✅ | ✅ |
+| java.io.DataInput | readLine | ✅ | ✅ |
+| java.io.DataInput | readLong | ✅ | ✅ |
+| java.io.DataInput | readShort | ✅ | ✅ |
+| java.io.DataInput | readUTF | ✅ | ✅ |
+| java.io.DataInput | readUnsignedByte | ✅ | ✅ |
+| java.io.DataInput | readUnsignedShort | ✅ | ✅ |
+| javax.imageio.ImageIO | createImageInputStream | ✅ | ✅ |
+| javax.imageio.ImageIO | read | ✅ | ✅ |
+| javax.sound.sampled.AudioSystem | getAudioInputStream | ✅ | ✅ |
+| javax.xml.bind.Unmarshaller | unmarshal | ✅ | ✅ |
+| javax.xml.parsers.DocumentBuilder | parse | ✅ | ✅ |
+| javax.xml.parsers.SAXParser | parse | ✅ | ✅ |
+| java.awt.Toolkit | createImage | ✅ | ✅ |
+| java.awt.Toolkit | getImage | ✅ | ✅ |
+| javax.imageio.ImageIO | getImageReaders | ✅ | ✅ |
+| javax.sound.midi.MidiSystem | getSoundbank | ✅ | ✅ |
+| java.awt.Font | createFont | ✅ | ✅ |
+| java.awt.Font | createFonts | ✅ | ✅ |
+| javax.imageio.stream.FileCacheImageInputStream | `<new>` | ✅ | ✅ |
+| javax.imageio.stream.FileImageInputStream | `<new>` | ✅ | ✅ |
 
 **Reads archive files (ZIP/JAR/GZIP)**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.util.zip.ZipInputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.zip.ZipInputStream | getNextEntry | ✅ | ✅ | ❌ |
-| java.util.jar.JarInputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.jar.JarInputStream | getNextJarEntry | ✅ | ✅ | ❌ |
-| java.util.zip.GZIPInputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.zip.ZipFile | `<new>` | ✅ | ✅ | ❌ |
-| java.util.zip.ZipFile | entries | ✅ | ✅ | ❌ |
-| java.util.zip.ZipFile | getInputStream | ✅ | ✅ | ❌ |
-| java.util.jar.JarFile | `<new>` | ✅ | ✅ | ❌ |
-| java.util.jar.JarFile | entries | ✅ | ✅ | ❌ |
-| java.util.jar.JarFile | getInputStream | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.util.zip.ZipInputStream | `<new>` | ✅ | ✅ |
+| java.util.zip.ZipInputStream | getNextEntry | ✅ | ✅ |
+| java.util.jar.JarInputStream | `<new>` | ✅ | ✅ |
+| java.util.jar.JarInputStream | getNextJarEntry | ✅ | ✅ |
+| java.util.zip.GZIPInputStream | `<new>` | ✅ | ✅ |
+| java.util.zip.ZipFile | `<new>` | ✅ | ✅ |
+| java.util.zip.ZipFile | entries | ✅ | ✅ |
+| java.util.zip.ZipFile | getInputStream | ✅ | ✅ |
+| java.util.jar.JarFile | `<new>` | ✅ | ✅ |
+| java.util.jar.JarFile | entries | ✅ | ✅ |
+| java.util.jar.JarFile | getInputStream | ✅ | ✅ |
 
 **Reads configuration/properties files**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.util.Properties | load | ✅ | ✅ | ❌ |
-| java.util.Properties | loadFromXML | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.util.Properties | load | ✅ | ✅ |
+| java.util.Properties | loadFromXML | ✅ | ✅ |
 
 **Reads only specific parts of a file**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.RandomAccessFile | read | ✅ | ✅ | ❌ |
-| java.io.InputStream | read | ✅ | ❌ (only in the ArchUnit list) | ❌ |
-| java.io.Reader | read | ✅ | ✅ | ❌ |
-| java.nio.channels.SeekableByteChannel | read | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.RandomAccessFile | read | ✅ | ✅ |
+| java.io.InputStream | read | ✅ | ❌ (only in the ArchUnit list) |
+| java.io.Reader | read | ✅ | ✅ |
+| java.nio.channels.SeekableByteChannel | read | ✅ | ✅ |
 
 **Only reads the file hierarchy**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | normalizedList | ✅ | ✅ | ❌ |
-| java.io.File | list | ✅ | ✅ | ❌ |
-| java.io.File | listFiles | ✅ | ✅ | ❌ |
-| java.io.File | listRoots | ✅ | ✅ | ❌ |
-| java.nio.file.Files | find | ✅ | ✅ | ❌ |
-| java.nio.file.Files | list | ✅ | ✅ | ❌ |
-| java.nio.file.Files | newDirectoryStream | ✅ | ✅ | ❌ |
-| java.nio.file.Files | walk | ✅ | ✅ | ❌ |
-| java.nio.file.Files | walkFileTree | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | newDirectoryStream | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.File | normalizedList | ✅ | ✅ |
+| java.io.File | list | ✅ | ✅ |
+| java.io.File | listFiles | ✅ | ✅ |
+| java.io.File | listRoots | ✅ | ✅ |
+| java.nio.file.Files | find | ✅ | ✅ |
+| java.nio.file.Files | list | ✅ | ✅ |
+| java.nio.file.Files | newDirectoryStream | ✅ | ✅ |
+| java.nio.file.Files | walk | ✅ | ✅ |
+| java.nio.file.Files | walkFileTree | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newDirectoryStream | ✅ | ✅ |
 
 ---
 
@@ -344,111 +342,109 @@ Read APIs listed below access file contents or metadata without modifying them.
 
 Write APIs listed below modify existing content or attributes.
 
-> **Note on "Tested by RP" column:** A ✅ means that this API is the **primary target** of a dedicated test in the Reproducibility Package. For example, if a test uses `BufferedWriter` to wrap a `FileWriter`, only the wrapper (`BufferedWriter.<new>`) is marked as ✅, not the underlying `FileWriter.<new>` which is merely a helper call in that context.
-
 **Writes any format fully to a file**
 
 > **Note:** Unlike AOP mode, architecture testing cannot inspect `OpenOption` or `MapMode` parameters at analysis time. Methods like `FileChannel.open` and `Files.newByteChannel` are detected regardless of the options used. The operation classification is based on method signatures, not runtime parameters.
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
-| java.nio.channels.AsynchronousFileChannel | write | ✅ | ✅ | ❌ |
-| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ |
-| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
-| java.nio.channels.FileChannel | map | ✅ | ✅ | ✅ |
-| java.nio.channels.FileChannel | write | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newByteChannel | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newOutputStream | ✅ | ✅ | ✅ |
-| java.nio.file.Files | write | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.FileOutputStream | `<new>` | ✅ | ✅ |
+| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | write | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ |
+| java.nio.channels.FileChannel | open | ✅ | ✅ |
+| java.nio.channels.FileChannel | map | ✅ | ✅ |
+| java.nio.channels.FileChannel | write | ✅ | ✅ |
+| java.nio.file.Files | newByteChannel | ✅ | ✅ |
+| java.nio.file.Files | newOutputStream | ✅ | ✅ |
+| java.nio.file.Files | write | ✅ | ✅ |
 
 **Writes UTF-8 text/tokens fully**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.Writer | `<new>` | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
-| java.nio.file.Files | writeString | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.Writer | `<new>` | ✅ | ✅ |
+| java.nio.file.Files | newBufferedWriter | ✅ | ✅ |
+| java.nio.file.Files | writeString | ✅ | ✅ |
 
 **Writes only specifically formatted files fully**
 
 > **Note:** `java.io.DataOutputStream.<new>` is in NEITHER methods file. Detection of data-stream writes happens via the `java.io.DataOutput.write*` interface methods listed below; the WALA false-positives file even excludes `java.io.DataOutputStream` explicitly to suppress JDK-internal usage.
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.DataOutput | writeBoolean | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeByte | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeBytes | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeChar | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeChars | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeDouble | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeFloat | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeInt | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeLong | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeShort | ✅ | ✅ | ❌ |
-| java.io.DataOutput | writeUTF | ✅ | ✅ | ❌ |
-| javax.imageio.ImageIO | write | ✅ | ✅ | ❌ |
-| javax.imageio.ImageIO | createImageOutputStream | ✅ | ✅ | ❌ |
-| javax.sound.sampled.AudioSystem | write | ✅ | ✅ | ❌ |
-| javax.xml.bind.Marshaller | marshal | ✅ | ✅ | ❌ |
-| javax.xml.transform.Transformer | transform | ✅ | ✅ | ❌ |
-| java.io.PrintStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.logging.FileHandler | `<new>` | ✅ | ✅ | ❌ |
-| java.util.logging.FileHandler | publish | ✅ | ✅ | ❌ |
-| java.util.logging.FileHandler | close | ✅ | ✅ | ❌ |
-| java.util.zip.InflaterOutputStream | `<new>` | ✅ | ✅ | ❌ |
-| javax.print.DocPrintJob | print | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.DataOutput | writeBoolean | ✅ | ✅ |
+| java.io.DataOutput | writeByte | ✅ | ✅ |
+| java.io.DataOutput | writeBytes | ✅ | ✅ |
+| java.io.DataOutput | writeChar | ✅ | ✅ |
+| java.io.DataOutput | writeChars | ✅ | ✅ |
+| java.io.DataOutput | writeDouble | ✅ | ✅ |
+| java.io.DataOutput | writeFloat | ✅ | ✅ |
+| java.io.DataOutput | writeInt | ✅ | ✅ |
+| java.io.DataOutput | writeLong | ✅ | ✅ |
+| java.io.DataOutput | writeShort | ✅ | ✅ |
+| java.io.DataOutput | writeUTF | ✅ | ✅ |
+| javax.imageio.ImageIO | write | ✅ | ✅ |
+| javax.imageio.ImageIO | createImageOutputStream | ✅ | ✅ |
+| javax.sound.sampled.AudioSystem | write | ✅ | ✅ |
+| javax.xml.bind.Marshaller | marshal | ✅ | ✅ |
+| javax.xml.transform.Transformer | transform | ✅ | ✅ |
+| java.io.PrintStream | `<new>` | ✅ | ✅ |
+| java.util.logging.FileHandler | `<new>` | ✅ | ✅ |
+| java.util.logging.FileHandler | publish | ✅ | ✅ |
+| java.util.logging.FileHandler | close | ✅ | ✅ |
+| java.util.zip.InflaterOutputStream | `<new>` | ✅ | ✅ |
+| javax.print.DocPrintJob | print | ✅ | ✅ |
 
 **Writes archive files (ZIP/JAR/GZIP)**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.util.zip.ZipOutputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.zip.ZipOutputStream | putNextEntry | ✅ | ✅ | ❌ |
-| java.util.jar.JarOutputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.jar.JarOutputStream | putNextEntry | ✅ | ✅ | ❌ |
-| java.util.zip.GZIPOutputStream | `<new>` | ✅ | ✅ | ❌ |
-| java.util.zip.ZipOutputStream | closeEntry | ✅ | ✅ | ❌ |
-| java.util.jar.JarOutputStream | closeEntry | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.util.zip.ZipOutputStream | `<new>` | ✅ | ✅ |
+| java.util.zip.ZipOutputStream | putNextEntry | ✅ | ✅ |
+| java.util.jar.JarOutputStream | `<new>` | ✅ | ✅ |
+| java.util.jar.JarOutputStream | putNextEntry | ✅ | ✅ |
+| java.util.zip.GZIPOutputStream | `<new>` | ✅ | ✅ |
+| java.util.zip.ZipOutputStream | closeEntry | ✅ | ✅ |
+| java.util.jar.JarOutputStream | closeEntry | ✅ | ✅ |
 
 **Writes configuration/properties files**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.util.Properties | store | ✅ | ✅ | ❌ |
-| java.util.Properties | storeToXML | ✅ | ✅ | ❌ |
-| java.util.Formatter | `<new>` | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.util.Properties | store | ✅ | ✅ |
+| java.util.Properties | storeToXML | ✅ | ✅ |
+| java.util.Formatter | `<new>` | ✅ | ✅ |
 
 **Writes only specific parts to a file**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.nio.channels.AsynchronousFileChannel | truncate | ✅ | ✅ | ❌ |
-| java.nio.channels.FileChannel | truncate | ✅ | ✅ | ❌ |
-| java.nio.channels.FileChannel | transferTo | ✅ | ✅ | ❌ |
-| java.nio.file.attribute.UserDefinedFileAttributeView | write | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.nio.channels.AsynchronousFileChannel | truncate | ✅ | ✅ |
+| java.nio.channels.FileChannel | truncate | ✅ | ✅ |
+| java.nio.channels.FileChannel | transferTo | ✅ | ✅ |
+| java.nio.file.attribute.UserDefinedFileAttributeView | write | ✅ | ✅ |
 
 **Only writes the file hierarchy (metadata/attributes)**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | setExecutable | ✅ | ✅ | ❌ |
-| java.io.File | setLastModified | ✅ | ✅ | ❌ |
-| java.io.File | setReadOnly | ✅ | ✅ | ❌ |
-| java.io.File | setReadable | ✅ | ✅ | ❌ |
-| java.io.File | setWritable | ✅ | ✅ | ❌ |
-| java.io.File | renameTo | ✅ | ✅ | ❌ |
-| java.nio.file.Files | copy | ✅ | ✅ | ❌ |
-| java.nio.file.Files | move | ✅ | ✅ | ❌ |
-| java.nio.file.Files | setAttribute | ✅ | ✅ | ❌ |
-| java.nio.file.Files | setLastModifiedTime | ✅ | ✅ | ❌ |
-| java.nio.file.Files | setOwner | ✅ | ✅ | ❌ |
-| java.nio.file.Files | setPosixFilePermissions | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | copy | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | move | ✅ | ✅ | ❌ |
-| java.nio.file.spi.FileSystemProvider | setAttribute | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.File | setExecutable | ✅ | ✅ |
+| java.io.File | setLastModified | ✅ | ✅ |
+| java.io.File | setReadOnly | ✅ | ✅ |
+| java.io.File | setReadable | ✅ | ✅ |
+| java.io.File | setWritable | ✅ | ✅ |
+| java.io.File | renameTo | ✅ | ✅ |
+| java.nio.file.Files | copy | ✅ | ✅ |
+| java.nio.file.Files | move | ✅ | ✅ |
+| java.nio.file.Files | setAttribute | ✅ | ✅ |
+| java.nio.file.Files | setLastModifiedTime | ✅ | ✅ |
+| java.nio.file.Files | setOwner | ✅ | ✅ |
+| java.nio.file.Files | setPosixFilePermissions | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | copy | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | move | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | setAttribute | ✅ | ✅ |
 
 ---
 
@@ -465,35 +461,35 @@ Link creation APIs and conditional creates are listed under Creates files.
 
 > **Note:** Unlike AOP mode, architecture testing cannot inspect `OpenOption` parameters to determine if CREATE or CREATE_NEW is used. Methods like `FileChannel.open` are detected as potentially creating files regardless of the actual options passed.
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | createNewFile | ✅ | ✅ | ✅ |
-| java.io.File | createTempFile | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createFile | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createTempFile | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createLink | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createSymbolicLink | ✅ | ✅ | ✅ |
-| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.BufferedWriter | `<new>` | ✅ | ✅ | ✅ |
-| java.io.FileOutputStream | `<new>` | ✅ | ✅ | ✅ |
-| java.io.FileWriter | `<new>` | ✅ | ✅ | ✅ |
-| java.io.PrintWriter | `<new>` | ✅ | ✅ | ✅ |
-| java.io.RandomAccessFile | `<new>` | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newBufferedWriter | ✅ | ✅ | ✅ |
-| java.nio.file.Files | newOutputStream | ✅ | ✅ | ✅ |
-| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ | ❌ |
-| java.nio.channels.FileChannel | open | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.File | createNewFile | ✅ | ✅ |
+| java.io.File | createTempFile | ✅ | ✅ |
+| java.nio.file.Files | createFile | ✅ | ✅ |
+| java.nio.file.Files | createTempFile | ✅ | ✅ |
+| java.nio.file.Files | createLink | ✅ | ✅ |
+| java.nio.file.Files | createSymbolicLink | ✅ | ✅ |
+| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ |
+| java.io.BufferedWriter | `<new>` | ✅ | ✅ |
+| java.io.FileOutputStream | `<new>` | ✅ | ✅ |
+| java.io.FileWriter | `<new>` | ✅ | ✅ |
+| java.io.PrintWriter | `<new>` | ✅ | ✅ |
+| java.io.RandomAccessFile | `<new>` | ✅ | ✅ |
+| java.nio.file.Files | newBufferedWriter | ✅ | ✅ |
+| java.nio.file.Files | newOutputStream | ✅ | ✅ |
+| java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ |
+| java.nio.channels.FileChannel | open | ✅ | ✅ |
 
 **Creates folders**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | mkdir | ✅ | ✅ | ✅ |
-| java.io.File | mkdirs | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createDirectories | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createDirectory | ✅ | ✅ | ✅ |
-| java.nio.file.Files | createTempDirectory | ✅ | ✅ | ✅ |
-| java.nio.file.spi.FileSystemProvider | createDirectory | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.File | mkdir | ✅ | ✅ |
+| java.io.File | mkdirs | ✅ | ✅ |
+| java.nio.file.Files | createDirectories | ✅ | ✅ |
+| java.nio.file.Files | createDirectory | ✅ | ✅ |
+| java.nio.file.Files | createTempDirectory | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | createDirectory | ✅ | ✅ |
 
 ---
 
@@ -508,34 +504,34 @@ Delete APIs listed below can remove files and empty directories.
 
 **Delete files**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | delete | ✅ | ✅ | ✅ |
-| java.nio.file.Files | delete | ✅ | ✅ | ✅ |
-| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
-| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
-| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ | ❌ |
-| java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
-| java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.File | delete | ✅ | ✅ |
+| java.nio.file.Files | delete | ✅ | ✅ |
+| java.nio.file.Files | deleteIfExists | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ |
+| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ |
+| java.awt.Desktop | moveToTrash | ✅ | ✅ |
+| java.io.File | deleteOnExit | ✅ | ✅ |
 
 **Delete folders**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.io.File | delete | ✅ | ✅ | ✅ |
-| java.nio.file.Files | delete | ✅ | ✅ | ✅ |
-| java.nio.file.Files | deleteIfExists | ✅ | ✅ | ✅ |
-| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ | ❌ |
-| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ | ❌ |
-| java.awt.Desktop | moveToTrash | ✅ | ✅ | ❌ |
-| java.io.File | deleteOnExit | ✅ | ✅ | ✅ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.io.File | delete | ✅ | ✅ |
+| java.nio.file.Files | delete | ✅ | ✅ |
+| java.nio.file.Files | deleteIfExists | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | delete | ✅ | ✅ |
+| org.apache.commons.io.FileUtils | forceDelete | ✅ | ✅ |
+| java.awt.Desktop | moveToTrash | ✅ | ✅ |
+| java.io.File | deleteOnExit | ✅ | ✅ |
 
 **Monitored in delete analysis too (can delete source file)**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.nio.file.Files | copy | ✅ | ✅ | ❌ |
-| java.nio.file.Files | move | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.nio.file.Files | copy | ✅ | ✅ |
+| java.nio.file.Files | move | ✅ | ✅ |
 
 ---
 
@@ -554,25 +550,25 @@ Execute APIs listed below trigger execution-like behaviour on files.
 
 > **Note:** `ProcessBuilder.start()`, `ProcessBuilder.startPipeline()`, and `Runtime.exec()` are handled by the **Command System** rather than the File System in architecture testing, as they execute commands rather than individual files. The File System detection for execute only covers library loading via `java.lang.System.load`/`loadLibrary`. The `java.lang.Runtime.load`/`loadLibrary` counterparts are NOT in the file-system methods lists; they are covered by the separate **NATIVE_CODE** rule (`native-code-access-methods.txt`) and the **COMMAND_EXECUTION** rule (`command-execution-methods.txt`).
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.lang.System | load | ✅ | ✅ | ❌ |
-| java.lang.System | loadLibrary | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.lang.System | load | ✅ | ✅ |
+| java.lang.System | loadLibrary | ✅ | ✅ |
 
 **Opens files with default applications (Desktop integration)**
 
-| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA | Tested by RP |
-| --- | --- | --- | --- | --- |
-| java.awt.Desktop | open | ✅ | ✅ | ❌ |
-| java.awt.Desktop | edit | ✅ | ✅ | ❌ |
-| java.awt.Desktop | print | ✅ | ✅ | ❌ |
-| java.awt.Desktop | browse | ✅ | ✅ | ❌ |
-| java.awt.Desktop | browseFileDirectory | ✅ | ✅ | ❌ |
-| java.awt.Desktop | mail | ✅ | ✅ | ❌ |
-| java.awt.Desktop | openHelpViewer | ✅ | ✅ | ❌ |
-| java.awt.Desktop | setDefaultMenuBar | ✅ | ✅ | ❌ |
-| java.awt.Desktop | setOpenFileHandler | ✅ | ✅ | ❌ |
-| java.awt.Desktop | setOpenURIHandler | ✅ | ✅ | ❌ |
+| Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
+| --- | --- | --- | --- |
+| java.awt.Desktop | open | ✅ | ✅ |
+| java.awt.Desktop | edit | ✅ | ✅ |
+| java.awt.Desktop | print | ✅ | ✅ |
+| java.awt.Desktop | browse | ✅ | ✅ |
+| java.awt.Desktop | browseFileDirectory | ✅ | ✅ |
+| java.awt.Desktop | mail | ✅ | ✅ |
+| java.awt.Desktop | openHelpViewer | ✅ | ✅ |
+| java.awt.Desktop | setDefaultMenuBar | ✅ | ✅ |
+| java.awt.Desktop | setOpenFileHandler | ✅ | ✅ |
+| java.awt.Desktop | setOpenURIHandler | ✅ | ✅ |
 
 ---
 
@@ -909,7 +905,7 @@ Method <de.student.StudentCode.exploit()> transitively accesses <java.io.FileInp
 
 **How it works:**
 
-Production validation runs through `WalaRule.check(CallGraph, Set<ClassPermission>)` (`WalaRule.java`). The older forward-DFS API (`ReachabilityChecker.findReachableMethods` with `CustomDFSPathFinder`) is legacy: its global visited-set meant each forbidden sink was reported on exactly one path, so an allow-listed or false-positive caller discovered first could mask a genuine violation by a different caller of the same sink (see the `WalaRule.check` Javadoc).
+Production validation runs through `WalaRule.check(CallGraph, Set<ClassPermission>)` (`WalaRule.java`). The older forward-DFS application programming interface (API), `ReachabilityChecker.findReachableMethods` with `CustomDFSPathFinder`, is legacy: its global visited-set meant each forbidden sink was reported on exactly one path, so an allow-listed or false-positive caller discovered first could mask a genuine violation by a different caller of the same sink (see the `WalaRule.check` Javadoc).
 
 ```java
 // Build call graph
@@ -1073,12 +1069,10 @@ Two prefix lists drive the classification:
 // Package prefixes that belong to infrastructure and must not be attributed
 // as student code (mirrors the exclusions in AspectJ's studentScope() pointcut)
 public static final List<String> INFRA_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.", "com.sun.",
-    "de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.",
-    "anonymous.toolclasses.", "metatest.");
+    "de.tum.cit.ase.ares.api.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.");
 
-// Subset that genuinely indicates a transitive false positive; the project
-// test-helper packages (anonymous.toolclasses., metatest.) are deliberately
-// omitted so violations routed through such helpers are still reported
+// Subset that genuinely indicates a transitive false positive; helper classes
+// of the exercise are student code and never belong here
 static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of("java.", "javax.", "sun.", "jdk.",
     "com.sun.", "de.tum.cit.ase.ares.", "net.bytebuddy.", "org.aspectj.", "com.ibm.wala.",
     "com.tngtech.archunit.");
@@ -1118,7 +1112,7 @@ Result: VIOLATION (direct call, never suppressed)
 **Special WALA Features:**
 
 **Infrastructure-Aware Attribution:**
-Because `nearestStudentFrame` scans from the sink backwards, the reported caller is always the student method closest to the forbidden call, even when the actual invocation happens several JDK frames deeper. Paths routed through project test helpers (`anonymous.toolclasses.`, `metatest.`) are NOT treated as false positives: those helpers exist to exercise forbidden APIs, so suppressing them would silently disable detection.
+Because `nearestStudentFrame` scans from the sink backwards, the reported caller is always the student method closest to the forbidden call, even when the actual invocation happens several JDK frames deeper. A helper class of the exercise is student code like any other, whatever its package is called: a forbidden call it makes itself is reported with the helper as the caller.
 
 <a id="6-ares-2-architecture-file-system-access-control-operation-type-classification"></a>
 ## 6. Ares 2 Architecture File System Access Control: Operation Type Classification

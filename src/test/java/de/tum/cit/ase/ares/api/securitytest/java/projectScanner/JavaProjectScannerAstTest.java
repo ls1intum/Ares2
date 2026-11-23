@@ -3,8 +3,10 @@ package de.tum.cit.ase.ares.api.securitytest.java.projectScanner;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -18,6 +20,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildToolConfiguration;
+import de.tum.cit.ase.ares.api.localization.Messages;
 
 class JavaProjectScannerAstTest {
 	@TempDir
@@ -109,15 +112,20 @@ class JavaProjectScannerAstTest {
 				scanner.scanForTestClasses());
 	}
 
+	/**
+	 * A source file that cannot be parsed is refused with the Ares error template
+	 * naming the file.
+	 */
 	@Test
 	void reportsMalformedFileWithItsPath() throws IOException {
 		Path production = Files.createDirectories(root.resolve("src/main/java"));
 		Path tests = Files.createDirectories(root.resolve("src/test/java"));
 		Path malformed = production.resolve("Broken.java");
 		Files.writeString(malformed, "class Broken {");
-		IllegalStateException failure = assertThrows(IllegalStateException.class,
+		SecurityException failure = assertThrows(SecurityException.class,
 				() -> new JavaProjectScanner(configuration(production, tests)).scanForPackageName());
-		assertEquals("Cannot parse Java source file: " + malformed.toRealPath(), failure.getMessage());
+		assertEquals(Messages.localized("security.scanner.source.file.parse.failed", malformed.toRealPath()),
+				failure.getMessage());
 	}
 
 	/**
@@ -155,6 +163,10 @@ class JavaProjectScannerAstTest {
 		assertArrayEquals(new String[] { "modern.MainTest" }, scanner.scanForTestClasses());
 	}
 
+	/**
+	 * A configured source root that is a file is refused with the Ares error
+	 * template naming the root.
+	 */
 	@Test
 	void reportsAConfiguredNonDirectorySourceRoot() throws IOException {
 		Path production = root.resolve("not-a-directory");
@@ -162,9 +174,10 @@ class JavaProjectScannerAstTest {
 		Path tests = Files.createDirectories(root.resolve("src/test/java"));
 		BuildToolConfiguration invalid = new BuildToolConfiguration(BuildMode.MAVEN, root, List.of(production),
 				List.of(tests), root.resolve("target/classes"), root.resolve("target/test-classes"));
-		IllegalStateException failure = assertThrows(IllegalStateException.class,
+		SecurityException failure = assertThrows(SecurityException.class,
 				() -> new JavaProjectScanner(invalid).scanForPackageName());
-		assertEquals("Unreadable Java source root: " + production.toRealPath(), failure.getMessage());
+		assertEquals(Messages.localized("security.scanner.source.root.unreadable", production.toRealPath()),
+				failure.getMessage());
 	}
 
 	/**
@@ -436,6 +449,80 @@ class JavaProjectScannerAstTest {
 		assertArrayEquals(new String[] { "checks.GenuineCase" }, scanner.scanForTestClasses());
 	}
 
+	/**
+	 * An annotation the scan cannot place, such as {@code @Override}, is not a test
+	 * annotation. A helper class that carries only such an annotation must not be
+	 * recognised as a test class, while a genuine test beside it still is.
+	 */
+	@Test
+	void doesNotTrustAnAnnotationThatResolvesToNothing() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.writeString(tests.resolve("Helper.java"), """
+				package p;
+				class Helper { @Override public String toString() { return ""; } }
+				""");
+		Files.writeString(tests.resolve("RealTest.java"), """
+				package p;
+				import org.junit.jupiter.api.Test;
+				class RealTest { @Test void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "p.RealTest" }, scanner.scanForTestClasses());
+	}
+
+	/**
+	 * An annotation type declared inside the class shadows an imported annotation
+	 * of the same name, so {@code @Test} there means the local type, not JUnit's.
+	 * That class is not a test class. The same class without the local type uses
+	 * JUnit's annotation and is recognised.
+	 */
+	@Test
+	void rejectsAnImportedNameShadowedByAMemberAnnotation() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.writeString(tests.resolve("Shadowed.java"), """
+				package p;
+				import org.junit.jupiter.api.Test;
+				class Shadowed { @interface Test {} @Test void looksLikeATest() {} }
+				""");
+		Files.writeString(tests.resolve("Unshadowed.java"), """
+				package p;
+				import org.junit.jupiter.api.Test;
+				class Unshadowed { @Test void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "p.Unshadowed" }, scanner.scanForTestClasses());
+	}
+
+	/**
+	 * In {@code @Markers.Fast}, {@code Markers} is the class declared in the same
+	 * file, even though a static import brings in a field of that name. Fast there
+	 * carries a JUnit test annotation, so the class using it is a test class. The
+	 * scan must read the file's own classes before its imports.
+	 */
+	@Test
+	void readsTheLeftmostSegmentAsTheFilesOwnClassBeforeAStaticImport() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.writeString(tests.resolve("Utility.java"), """
+				package p;
+				public class Utility { public static final Object Markers = new Object(); }
+				""");
+		Files.writeString(tests.resolve("Marked.java"), """
+				package p;
+				import static p.Utility.Markers;
+				import org.junit.jupiter.api.Test;
+				class Markers { @Test @interface Fast {} }
+				class MarkedCase { @Markers.Fast void real() {} }
+				""");
+		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
+		assertArrayEquals(new String[] { "p.MarkedCase" }, scanner.scanForTestClasses());
+	}
+
 	@Test
 	void ignoresLookalikesOfAComposedAnnotationDeclaredInAnotherPackage() throws IOException {
 		Path production = Files.createDirectories(root.resolve("src/main/java"));
@@ -642,6 +729,115 @@ class JavaProjectScannerAstTest {
 		JavaProjectScanner scanner = new JavaProjectScanner(configuration(production, tests));
 		assertArrayEquals(new String[] { "legacy.ImportedLegacy", "legacy.QualifiedLegacy", "wildcard.WildcardLegacy" },
 				scanner.scanForTestClasses());
+	}
+
+	/**
+	 * The outer annotation sorts first in the walk, so it is read before the inner
+	 * one that carries the test annotation. It is still trusted, because trust is
+	 * repeated until nothing changes.
+	 */
+	@Test
+	void trustsAnAnnotationComposedTwoLevelsDeep() throws IOException {
+		JavaProjectScanner scanner = scannerOverAnnotationChain("org.junit.jupiter.api.Test");
+
+		assertArrayEquals(new String[] { "checks.Cases" }, scanner.scanForTestClasses());
+	}
+
+	/**
+	 * The same chain without a test annotation at the end marks nothing, so the
+	 * repeated trust does not reach classes it should not.
+	 */
+	@Test
+	void doesNotTrustAnAnnotationComposedFromANonTestAnnotation() throws IOException {
+		JavaProjectScanner scanner = scannerOverAnnotationChain("java.lang.Deprecated");
+
+		assertArrayEquals(new String[0], scanner.scanForTestClasses());
+	}
+
+	/**
+	 * Writes a test tree where a class uses {@code Outer}, which carries
+	 * {@code Inner}, which carries the given annotation. The folders make the walk
+	 * read {@code Outer} before {@code Inner}.
+	 *
+	 * @param innerAnnotation the fully qualified annotation placed on {@code Inner}
+	 * @return a scanner over that tree
+	 * @throws IOException if the fixture cannot be written
+	 */
+	private JavaProjectScanner scannerOverAnnotationChain(String innerAnnotation) throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Solution.java"), "package sol; class Solution {}\n");
+		Files.createDirectories(tests.resolve("a"));
+		Files.createDirectories(tests.resolve("m"));
+		Files.createDirectories(tests.resolve("z"));
+		Files.writeString(tests.resolve("a/Outer.java"), "package checks;\n@Inner @interface Outer {}\n");
+		Files.writeString(tests.resolve("z/Inner.java"),
+				"package checks;\n@" + innerAnnotation + " @interface Inner {}\n");
+		Files.writeString(tests.resolve("m/Cases.java"), "package checks;\nclass Cases { @Outer void real() {} }\n");
+		return new JavaProjectScanner(configuration(production, tests));
+	}
+
+	/**
+	 * A folder is not a source file whatever its name ends with. The scan must skip
+	 * it and still read the real class beside it. JavaParser reads a folder as an
+	 * empty unit on some systems, so the link test below is what pins the filter.
+	 */
+	@Test
+	void ignoresAFolderNamedLikeASourceFile() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.createDirectories(production.resolve("Weird.java"));
+		Files.writeString(production.resolve("Real.java"), "package real;\nclass Real {}\n");
+
+		assertEquals("real", new JavaProjectScanner(configuration(production, tests)).scanForPackageName());
+	}
+
+	/**
+	 * A link to a file that does not exist is not a source file either. The scan
+	 * must skip it and still read the real class beside it, not fail while opening
+	 * it. The test is skipped where links cannot be created.
+	 */
+	@Test
+	void ignoresADanglingLinkNamedLikeASourceFile() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Real.java"), "package real;\nclass Real {}\n");
+		link(production.resolve("Missing.java"), root.resolve("does-not-exist.java"));
+
+		assertEquals("real", new JavaProjectScanner(configuration(production, tests)).scanForPackageName());
+	}
+
+	/**
+	 * Creates a symbolic link, or skips the calling test where the file system
+	 * cannot express one. Any other I/O failure propagates.
+	 *
+	 * @param link   the link to create
+	 * @param target what it points to
+	 * @throws IOException if the link fails for a reason other than missing support
+	 */
+	private static void link(Path link, Path target) throws IOException {
+		try {
+			Files.createSymbolicLink(link, target);
+		} catch (FileSystemException | UnsupportedOperationException exception) {
+			assumeTrue(false, () -> "cannot create a symbolic link here: " + exception);
+		}
+	}
+
+	/**
+	 * With no class called Main, the one called Application is chosen even though
+	 * another class with a main method sorts before it by name.
+	 */
+	@Test
+	void prefersApplicationOverAnEarlierName() throws IOException {
+		Path production = Files.createDirectories(root.resolve("src/main/java"));
+		Path tests = Files.createDirectories(root.resolve("src/test/java"));
+		Files.writeString(production.resolve("Alpha.java"),
+				"package app;\nclass Alpha { public static void main(String[] arguments) {} }\n");
+		Files.writeString(production.resolve("Application.java"),
+				"package app;\nclass Application { public static void main(String[] arguments) {} }\n");
+
+		assertEquals("Application",
+				new JavaProjectScanner(configuration(production, tests)).scanForMainClassInPackage());
 	}
 
 	private BuildToolConfiguration configuration(Path production, Path tests) {
