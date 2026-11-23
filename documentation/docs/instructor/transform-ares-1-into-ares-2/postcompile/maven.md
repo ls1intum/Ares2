@@ -49,7 +49,7 @@ Declare the versions and an empty `argLine` property:
 <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <ares.version>2.2.1</ares.version>
+    <ares.version>2.2.2</ares.version>
     <aspectj.version>1.9.25.1</aspectj.version>
     <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
     <argLine></argLine>
@@ -351,7 +351,7 @@ What it restricts:
 
 - **File system, network, command execution and thread creation: denied.** No allowance exists.
 - **Package imports: restricted, not eliminated.** Without a policy, Ares permits every `java.*` package, the essential packages it ships, and each package of the supervised code with the packages below it. A recognised test class opens no package.
-- **No default execution timeout yet.** A 3,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.2.1 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
+- **No default execution timeout yet.** A 3,000 ms limit is constructed, but timeouts belong to the Phobos test-case family, which Ares 2.2.2 generates without yet dispatching in-process. Add `@StrictTimeout` where a test needs a deadline.
 
 It fixes the modes: always ArchUnit for static analysis and AspectJ for the runtime layer, with the build tool discovered from the project. So the AspectJ weaving of the step named in section 4 of this guide is what enforces at runtime here, and without the weaving Ares refuses the project. Every test then fails with a message naming a class that lacks the Ares aspects.
 
@@ -362,7 +362,7 @@ That discovery step has to succeed before any of this applies. Without a policy 
 The second reason for caution is that without a policy, Ares derives from the project what a policy would have pinned:
 
 - **The supervised package** is the build file's own group where it contains every declared package. Otherwise it is the topmost package the production sources declare, or the compiled classes where the sources cannot be read. Where the project declares no package and the build file no usable group, a configured default applies. Between unrelated packages the one whose package tree holds the most files wins. A submission with an unexpected file distribution can therefore still shift the enforcement scope. Ares then refuses the run if a class in `target/classes` lies outside the derived scope, so a decoy package cannot move the scope away from an assignment class in that folder. A decoy in a parent package can still widen it. That check reads only that folder, and an empty folder passes with a warning. A wide scope can fail correct tests too, because Ares compares class names with it as a plain prefix.
-- **The exempt test classes** are found by scanning the discovered test source roots for annotated test classes. If students can add files beneath a test source root, they can obtain that exemption. Note that a nested test class is covered only when its enclosing class is recognised too: the scanner reports nested types in source notation (`Outer.Inner`), whereas the exemption check matches binary notation (`Outer$Inner`), so an independently detected nested class is not exempt on its own.
+- **The exempt test classes** are found by scanning the discovered test source roots for annotated test classes. If students can add files beneath a test source root, they can obtain that exemption. The scanner names a nested test class as its class file is named (`Outer$Inner`), and every class it reports has to be compiled in the test output, or Ares stops with an error.
 
 For a graded exercise, prefer a policy with six empty lists over no policy at all. It is equally strict and pins the scope, the exempt set and the mode.
 
@@ -380,8 +380,8 @@ Two details decide whether this proves anything:
 
 A correct run is therefore **green** and contains an asserted rejection. Then break the setup deliberately and confirm each break is detected:
 
-- Remove the `aspect` dependency (Gradle) or `<aspectLibraries>` (Maven) from an `_ASPECTJ` exercise. The negative control must stop rejecting.
-- Remove `-javaagent` from an `_INSTRUMENTATION` exercise. Same expectation. Removing it from an `_ASPECTJ` exercise correctly changes nothing, because the aspects were woven at compile time.
+- Remove the `aspect` dependency (Gradle) or `<aspectLibraries>` (Maven) from an `_ASPECTJ` exercise. Every test must now fail with a message naming a supervised class that lacks the Ares aspects.
+- Remove `-javaagent` from an `_INSTRUMENTATION` exercise. Every test must now fail with a message that the Ares instrumentation agent is not attached. Removing it from an `_ASPECTJ` exercise correctly changes nothing, because the aspects were woven at compile time.
 - Add a class declaring `package de.tum.cit.ase.ares.api;` to the student sources. The build must fail with the reserved-package diagnostic.
 
 :::note[`adviceDidNotMatch` warnings are expected]
@@ -410,7 +410,7 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <ares.version>2.2.1</ares.version>
+        <ares.version>2.2.2</ares.version>
         <aspectj.version>1.9.25.1</aspectj.version>
         <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
         <argLine></argLine>

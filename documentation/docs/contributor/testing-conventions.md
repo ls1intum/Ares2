@@ -107,5 +107,5 @@ What they cannot see is whether a page renders. The Playwright suite under
 
 - Static analysis (`spotless`, `checkstyle`, `pmd`, `spotbugs`) is a build failure, not a
   warning. Run it before pushing; see [CONTRIBUTING.md](https://github.com/ls1intum/Ares2/blob/main/CONTRIBUTING.md).
-- Build with Java Development Kit (JDK) 21 to match CI, even though Ares 2 targets Java 17 so that it stays consumable
+- Build with Java Development Kit (JDK) 25 to match CI, even though Ares 2 targets Java 17 so that it stays consumable
   by exercises on Java 17.

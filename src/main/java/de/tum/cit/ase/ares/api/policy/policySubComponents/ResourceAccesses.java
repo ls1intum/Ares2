@@ -82,7 +82,7 @@ public record ResourceAccesses(@Nonnull List<FilePermission> regardingFileSystem
 	 * {@code java.*} package may be imported. Whether a forbidden JDK operation is
 	 * actually used stays the business of the other rules.
 	 *
-	 * @since 2.3.0
+	 * @since 2.2.2
 	 * @author Markus Paulsen
 	 * @return a new ResourceAccesses instance for a test without a policy
 	 */

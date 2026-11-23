@@ -53,7 +53,7 @@ Each break below must be detected. Make them in a **copy**, not in the example i
 
 | Break | Expected consequence |
 |---|---|
-| Delete the `aspect` dependency (Gradle) or `<aspectLibraries>` (Maven) | `rejectsTheForbiddenFile` fails: nothing is woven, so nothing is enforced |
+| Delete the `aspect` dependency (Gradle) or `<aspectLibraries>` (Maven) | Every test fails with a message naming a supervised class that lacks the Ares aspects |
 | Add a class in package `de.tum.cit.ase.ares.api` to `src/main/java` | The build fails with `Ares reserved-package validation 2 rejected student output` |
 | Remove the permitted-file entry from the policy | `readsThePermittedFile` fails, and the negative control stops proving anything, because static deny-all now covers the whole domain |
 

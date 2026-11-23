@@ -73,7 +73,7 @@ Implemented by `FilePermission` in
 
 | Field | Datatype | Explanation | Example | Regex or Range |
 | --- | --- | --- | --- | --- |
-| `onThisPathAndAllPathsBelow` | `String` | The path this entry governs, and everything beneath it. | `something.txt` | `FILE_PATH_PATTERN`: either `*`, or a non-blank path containing no `*` and no NUL byte, which must not traverse upwards with `..`. The placeholders `${PROJECT_ROOT}`, `${java.home}`, `${user.home}` and `${java.io.tmpdir}` are recognised; any other `${...}` is rejected. |
+| `onThisPathAndAllPathsBelow` | `String` | The path this entry governs, and everything beneath it. | `something.txt` | `FILE_PATH_PATTERN`: either `*`, or a non-blank path containing no `*`, no control character and no line or paragraph separator, which must not traverse upwards with `..`. The placeholders `${PROJECT_ROOT}`, `${java.home}`, `${user.home}` and `${java.io.tmpdir}` are recognised; any other `${...}` is rejected. Precompile refuses three more kinds of path: one containing `#` or a carriage return, one with spaces at either end, and a whole bracketed section name such as `[write]`. |
 | `readAllFiles` | `boolean` | Permits reading below the path. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
 | `overwriteAllFiles` | `boolean` | Permits replacing the contents of existing files below the path. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
 | `createAllFiles` | `boolean` | Permits creating new files below the path. | `true` | `true` or `false`. Required: an entry that omits it is rejected on load. |
@@ -92,9 +92,11 @@ Some file accesses are part of what ordinary Java code does and carry no risk, s
 | Formats numbers, dates or text for a locale, or uses a charset | Their data lies inside the Java installation too. |
 | Creates a temporary file without naming a directory: `File.createTempFile(prefix, suffix)` or `Files.createTempFile(prefix, suffix)` | The file always lands in the default temp directory, which Ares fixes when the tests start. |
 
-A temporary file in a directory the code names still needs an entry for that directory, even for a folder inside the temp directory, and so does `Files.createTempDirectory`.
+A temporary file in a directory the code names still needs an entry for that directory, unless the list has an entry and the directory is exactly the default temp directory. A folder inside the temp directory does not count, and `Files.createTempDirectory` needs an entry too.
 
 Ares takes the temp directory from the values the Java Virtual Machine (JVM) started with, so code that changes `java.io.tmpdir` later cannot move it. With instrumentation the Ares agent records them at start-up. With AspectJ no agent is needed, but the test JVM needs the arguments the documented build files pass: `--add-exports java.base/jdk.internal.misc=ALL-UNNAMED`, and, for `File.createTempFile`, `--add-opens java.base/java.io=ALL-UNNAMED`. Without them Ares refuses the temporary file, and its message names the missing argument.
+
+`java.util.prefs.Preferences` counts as file access, but its backing store has no path to name, so only an entry `"*"` for the action concerned permits it.
 
 Ares's own files, such as its messages, need no entry either. Ares reads them itself, not on behalf of the student code, so no rule about their names is needed. A file that merely has the same name as one of Ares's files gets the same check as any other.
 

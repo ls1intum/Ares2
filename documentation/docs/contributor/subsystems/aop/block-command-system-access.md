@@ -746,7 +746,7 @@ private static CommandTarget variableToCommand(Object variableValue) {
             parts = ((List<String>) variableValue).toArray(new String[0]);  // All elements must be Strings
         }
     } else if (variableValue instanceof String) {
-        parts = parseCommandString((String) variableValue);  // Quote-aware shell-like parsing, NOT split-by-space
+        parts = parseCommandString((String) variableValue);  // Split at whitespace with StringTokenizer, as the JDK does
     }
     if (parts == null || parts.length == 0) {
         return null;
@@ -758,7 +758,7 @@ private static CommandTarget variableToCommand(Object variableValue) {
 ```
 
 Key points:
-- Strings are parsed with `parseCommandString()`, a **quote-aware** parser that handles single quotes, double quotes and backslash escapes like a shell. A naive split-by-space would let quoted arguments manipulate argument boundaries.
+- Strings are split with `parseCommandString()` at whitespace with `StringTokenizer`, exactly as the JDK splits `Runtime.exec(String)`, so quotes and backslashes have no meaning and the check sees the arguments the process receives.
 - **`requireTrustedRuntimeType()` fails closed** for `List` values whose runtime class was not loaded by the bootstrap or platform class loader: Ares would otherwise have to invoke overridable methods (`stream()`, `toArray()`) on an attacker-supplied subclass while the re-entrancy guard is active, so untrusted `List` subtypes are blocked with a SecurityException instead of being inspected.
 - Lists containing non-String elements and empty `String[]` arrays yield no command (`null`), as does an empty parse result.
 
