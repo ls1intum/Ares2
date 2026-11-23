@@ -71,7 +71,7 @@ class PrecompileTypeAnnotationImportTest {
 			            } catch (java.lang.reflect.InvocationTargetException failure) {
 			                failed = true;
 			                System.out.println(arguments[index] + " FAILED "
-			                        + String.valueOf(failure.getCause()).replace('\\n', ' '));
+			                        + String.valueOf(failure.getCause()).replaceAll("\\\\R", " "));
 			                failure.getCause().printStackTrace(System.out);
 			            }
 			        }
