@@ -263,15 +263,16 @@ class WalaPathClassificationTest {
 	 */
 	@Test
 	void checksEveryFrameStrictlyBetweenStudentAndSink() {
-		CGNode student = applicationNode("Lanonymous/Student;");
+		CGNode student = applicationNode("Lorg/example/Student;");
 		CGNode jdk = primordialNode("Lsun/nio/ch/SomeImpl;");
-		CGNode sink = applicationNode("Lanonymous/Sink;");
+		CGNode sink = applicationNode("Lorg/example/Sink;");
 		assertThat(WalaPathClassification.isTransitiveFalsePositiveFrame(sink)).isFalse();
 		assertThat(WalaPathClassification.isFalsePositiveTransitivePath(List.of(student, jdk, sink), 0)).isTrue();
 	}
 
 	/**
-	 * A frame that cannot be classified is never called unreserved infrastructure.
+	 * No frame is called unreserved infrastructure: one that cannot be classified
+	 * is refused, and every infrastructure prefix is also reserved.
 	 */
 	@Test
 	void answersNoForAnUnclassifiableFrame() {
@@ -279,27 +280,27 @@ class WalaPathClassificationTest {
 		CGNode throwing = mock(CGNode.class);
 		when(throwing.getMethod()).thenThrow(new IllegalStateException("simulated WALA error"));
 		CGNode noLoader = mockNode(ClassLoaderReference.Application,
-				ref(ClassLoaderReference.Application, "Lanonymous/toolclasses/Helper;"));
+				ref(ClassLoaderReference.Application, "Lnet/bytebuddy/Helper;"));
 		when(noLoader.getMethod().getDeclaringClass().getClassLoader()).thenReturn(null);
-		CGNode noReference = mockNode(null, ref(ClassLoaderReference.Application, "Lanonymous/toolclasses/Helper;"));
+		CGNode noReference = mockNode(null, ref(ClassLoaderReference.Application, "Lnet/bytebuddy/Helper;"));
 		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(null)).isFalse();
 		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(noMethod)).isFalse();
 		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(throwing)).isFalse();
 		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(noLoader)).isFalse();
 		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(noReference)).isFalse();
-		assertThat(WalaPathClassification
-				.isUnreservedInfrastructureFrame(applicationNode("Lanonymous/toolclasses/Helper;"))).isTrue();
+		assertThat(WalaPathClassification.isUnreservedInfrastructureFrame(applicationNode("Lnet/bytebuddy/Helper;")))
+				.isFalse();
 	}
 
 	/** A node without a class loader identity is refused. */
 	@Test
 	void refusesANodeItCannotClassify() {
-		CGNode noReference = mockNode(null, ref(ClassLoaderReference.Application, "Lanonymous/Student;"));
+		CGNode noReference = mockNode(null, ref(ClassLoaderReference.Application, "Lorg/example/Student;"));
 		assertThatThrownBy(() -> WalaPathClassification.isInfraFrame(noReference)).isInstanceOf(SecurityException.class)
 				.hasMessage(Messages.localized("security.architecture.wala.unclassifiable.node",
 						"missing class-loader identity"));
 		CGNode noLoader = mockNode(ClassLoaderReference.Application,
-				ref(ClassLoaderReference.Application, "Lanonymous/Student;"));
+				ref(ClassLoaderReference.Application, "Lorg/example/Student;"));
 		when(noLoader.getMethod().getDeclaringClass().getClassLoader()).thenReturn(null);
 		assertThatThrownBy(() -> WalaPathClassification.isInfraFrame(noLoader)).isInstanceOf(SecurityException.class)
 				.hasMessage(Messages.localized("security.architecture.wala.unclassifiable.node",

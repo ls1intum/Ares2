@@ -119,7 +119,7 @@ public class ReachabilityCheckerTest {
 	@Test
 	void takesEntryPointsOnlyFromApplicationClasses() {
 		MethodReference applicationMethod = MethodReference.findOrCreate(
-				TypeReference.findOrCreate(ClassLoaderReference.Application, "Lanonymous/Student"), "run", "()V");
+				TypeReference.findOrCreate(ClassLoaderReference.Application, "Lorg/example/Student"), "run", "()V");
 		MethodReference jdkMethod = MethodReference.findOrCreate(TypeReference.JavaLangObject, "hashCode", "()I");
 		IClass applicationClass = classWith(ClassLoaderReference.Application, applicationMethod);
 		IClass jdkClass = classWith(ClassLoaderReference.Primordial, jdkMethod);
