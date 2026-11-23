@@ -29,9 +29,9 @@ public final class AdviceActionWording {
 				Arguments.of("overwrite", "overwrite", "zu überschreiben"),
 				Arguments.of("create", "create", "zu erstellen"), Arguments.of("delete", "delete", "zu löschen"),
 				Arguments.of("execute", "execute", "auszuführen"),
-				Arguments.of("connect", "connect", "eine Verbindung aufzubauen"),
-				Arguments.of("send", "send", "Daten zu senden"),
-				Arguments.of("receive", "receive", "Daten zu empfangen"),
+				Arguments.of("connect", "connect to", "eine Verbindung aufzubauen"),
+				Arguments.of("send", "send data to", "Daten zu senden"),
+				Arguments.of("receive", "receive data from", "Daten zu empfangen"),
 				Arguments.of("manipulate", "manipulate", "zu manipulieren"),
 				Arguments.of("teleport", "teleport", "teleport"));
 	}

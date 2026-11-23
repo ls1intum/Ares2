@@ -54,11 +54,88 @@ class ViolationTemplateRenderingTest {
 						DE + "S hat versucht, den Thread T über CALL illegal zu manipulieren, wurde jedoch von Ares "
 								+ "blockiert, weil REASON."),
 				Arguments.of(Locale.ENGLISH, "security.advice.illegal.network.execution", "connect", "host:80",
-						EN + "S tried to illegally connect the network address host:80 via CALL, but was blocked by "
+						EN + "S tried to illegally connect to the network address host:80 via CALL, but was blocked by "
 								+ "Ares, because REASON."),
 				Arguments.of(Locale.GERMAN, "security.advice.illegal.network.execution", "connect", "host:80",
-						DE + "S hat versucht, mit der Netzwerkadresse host:80 über CALL illegal eine Verbindung "
-								+ "aufzubauen, wurde jedoch von Ares blockiert, weil REASON."));
+						DE + "S hat versucht, über CALL illegal eine Verbindung aufzubauen (Netzwerkadresse: host:80), "
+								+ "wurde jedoch von Ares blockiert, weil REASON."),
+				Arguments.of(Locale.ENGLISH, "security.advice.illegal.network.execution", "send", "host:80",
+						EN + "S tried to illegally send data to the network address host:80 via CALL, but was blocked "
+								+ "by Ares, because REASON."),
+				Arguments.of(Locale.GERMAN, "security.advice.illegal.network.execution", "send", "host:80",
+						DE + "S hat versucht, über CALL illegal Daten zu senden (Netzwerkadresse: host:80), wurde "
+								+ "jedoch von Ares blockiert, weil REASON."),
+				Arguments.of(Locale.ENGLISH, "security.advice.illegal.network.execution", "receive", "host:80",
+						EN + "S tried to illegally receive data from the network address host:80 via CALL, but was "
+								+ "blocked by Ares, because REASON."),
+				Arguments.of(Locale.GERMAN, "security.advice.illegal.network.execution", "receive", "host:80",
+						DE + "S hat versucht, über CALL illegal Daten zu empfangen (Netzwerkadresse: host:80), wurde "
+								+ "jedoch von Ares blockiert, weil REASON."));
+	}
+
+	/**
+	 * The thread template with a lambda task, in both languages.
+	 *
+	 * @return rows of language and expected sentence
+	 */
+	static Stream<Arguments> lambdaThreadViolations() {
+		return Stream.of(
+				Arguments.of(Locale.ENGLISH,
+						EN + "S tried to illegally create the thread for a lambda requested by M via CALL, but was "
+								+ "blocked by Ares, because REASON."),
+				Arguments.of(Locale.GERMAN, DE + "S hat versucht, den Thread für ein Lambda, angefordert von M, über "
+						+ "CALL illegal zu erstellen, wurde jedoch von Ares blockiert, weil REASON."));
+	}
+
+	/**
+	 * A thread that runs a lambda is named after the method that asked for it, and
+	 * the sentence stays grammatical in both languages.
+	 *
+	 * @param locale   the language to render in
+	 * @param expected the complete expected sentence
+	 */
+	@ParameterizedTest
+	@MethodSource("lambdaThreadViolations")
+	void lambdaThreadViolationRendersACompleteSentence(Locale locale, String expected) {
+		String rendered = AdviceActionWording.inLocale(locale,
+				() -> Messages.localized("security.advice.illegal.thread.execution", "S",
+						Messages.localized("security.advice.action.create"),
+						Messages.localized("security.advice.thread.lambda", "M"), "CALL", "REASON"));
+		assertEquals(expected, rendered);
+	}
+
+	/**
+	 * The reasons for an action without any rule, in both languages.
+	 *
+	 * @return rows of language, reason key, raw action and expected reason
+	 */
+	static Stream<Arguments> missingActionRuleReasons() {
+		return Stream.of(
+				Arguments.of(Locale.ENGLISH, "security.advice.denial.reason.no.action.rule.file", "overwrite",
+						"the policy has no rule that allows the code to overwrite any file"),
+				Arguments.of(Locale.GERMAN, "security.advice.denial.reason.no.action.rule.file", "overwrite",
+						"die Richtlinie keine Regel enthält, die es erlaubt, Dateien zu überschreiben"),
+				Arguments.of(Locale.ENGLISH, "security.advice.denial.reason.no.action.rule.network", "receive",
+						"the policy has no rule that allows the code to receive data from any network address"),
+				Arguments.of(Locale.GERMAN, "security.advice.denial.reason.no.action.rule.network", "receive",
+						"die Richtlinie keine Regel enthält, die es erlaubt, über das Netzwerk Daten zu empfangen"));
+	}
+
+	/**
+	 * The reason for a missing action rule reads as a grammatical clause with the
+	 * translated action in it.
+	 *
+	 * @param locale   the language to render in
+	 * @param key      the reason's key
+	 * @param action   the raw action name
+	 * @param expected the expected reason clause
+	 */
+	@ParameterizedTest
+	@MethodSource("missingActionRuleReasons")
+	void missingActionRuleReasonReadsAsAClause(Locale locale, String key, String action, String expected) {
+		String rendered = AdviceActionWording.inLocale(locale,
+				() -> Messages.localized(key, Messages.localized("security.advice.action." + action)));
+		assertEquals(expected, rendered);
 	}
 
 	/**

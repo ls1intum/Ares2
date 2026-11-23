@@ -539,9 +539,9 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	/**
 	 * Names a denied thread for the denial message. A lambda task is named as a
-	 * lambda in the student method that made the denied call, since its class name
-	 * tells a reader nothing. Any other thread keeps its class name. Only the
-	 * message uses this.
+	 * lambda requested by the student method that made the denied call; the lambda
+	 * itself may be written elsewhere. Any other thread keeps its class name. Only
+	 * the message uses this.
 	 *
 	 * @param threadClassName     the thread class name enforcement checked
 	 * @param systemMethodToCheck the student method that made the denied call

@@ -1017,7 +1017,7 @@ throw new SecurityException(localize(
     "security.advice.illegal.thread.execution",
     systemMethodToCheck,                                        // de.student.StudentCode.exploit
     localizeAction(action),                                     // "create", worded in the active language
-    describeThreadTarget(threadClassName, systemMethodToCheck), // "com.example.MaliciousRunnable", or "a lambda in de.student.StudentCode.exploit"
+    describeThreadTarget(threadClassName, systemMethodToCheck), // "com.example.MaliciousRunnable", or "for a lambda requested by de.student.StudentCode.exploit"
     describeDeniedCall(thisJoinPoint, fullMethodSignature)      // "java.util.concurrent.ExecutorService.submit(java.lang.Runnable)"
         + describeCaller(studentCalledMethod),                  // " (called by org.junit.TestClass.testStudent)"
     buildDenialReason("thread", action, noAllowRuleConfigured)  // "no rule in the policy allows this thread"
@@ -1031,7 +1031,7 @@ This is the AspectJ form. The instrumentation toolbox passes the same arguments,
 - **`systemMethodToCheck`** (String): From 5.2.2 - the student method that attempted the thread creation (e.g., `"de.student.StudentCode.exploit"`)
 - **`action`** (String): From section 4.4 - the type of operation attempted (always `"create"` for thread system)
 - **`threadClassName`** (String): From 5.3.3/5.4 - the forbidden thread class or the class that exceeded its quota (e.g., `"Lambda-Expression"`)
-- **`describeThreadTarget()`** (method): Names the thread for the message. A `"Lambda-Expression"` becomes "a lambda in" followed by the student method (key `security.advice.thread.lambda`); any other class keeps its name
+- **`describeThreadTarget()`** (method): Names the thread for the message. A `"Lambda-Expression"` becomes "for a lambda requested by" followed by the student method (key `security.advice.thread.lambda`); any other class keeps its name
 - **`fullMethodSignature`** (String): From section 4.1 - complete method signature showing exactly which method was called
 - **`studentCalledMethod`** (String): From 5.2.3 - the test method that invoked the student code (e.g., `"org.junit.TestClass.testStudent"`)
 - **`noAllowRuleConfigured`** (boolean): `true` when the allowed thread classes or the allowed thread numbers are missing or empty; selects the denial reason
@@ -1051,7 +1051,7 @@ Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.Student
 
 **No Thread Rule Configured:**
 ```
-Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.createManyThreads tried to illegally create the thread a lambda in de.student.StudentCode.createManyThreads via java.util.concurrent.ExecutorService.submit(java.lang.Runnable) (called by org.junit.TestClass.testStudent), but was blocked by Ares, because the policy has no rule for threads.
+Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.createManyThreads tried to illegally create the thread for a lambda requested by de.student.StudentCode.createManyThreads via java.util.concurrent.ExecutorService.submit(java.lang.Runnable) (called by org.junit.TestClass.testStudent), but was blocked by Ares, because the policy has no rule for threads.
 ```
 
 🔴 **SecurityException thrown** - Analysis terminated, thread operation blocked

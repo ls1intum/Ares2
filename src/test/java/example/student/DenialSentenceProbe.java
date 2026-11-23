@@ -65,7 +65,7 @@ public final class DenialSentenceProbe {
 
 	/**
 	 * Judges {@code new Thread(Runnable)} with a lambda written in this method, so
-	 * the denial sentence can name it as a lambda in this method.
+	 * the denial sentence can name it as a lambda requested by this method.
 	 *
 	 * @param mode the backend
 	 * @throws SecurityException if the backend denies the call

@@ -784,7 +784,7 @@ regardingFileSystemInteractions:
 If a student's code calls `Files.writeString(Path.of("data/output.txt"), "text")`, the test fails because `overwriteAllFiles` is `false` (the message is a single line):
 
 ```text
-java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.writeOutput tried to illegally overwrite the file data/output.txt via java.nio.file.Files.writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.file.OpenOption[]) (called by com.student.MainTest.testMain), but was blocked by Ares, because the policy has no rule that allows overwrite for files.
+java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.writeOutput tried to illegally overwrite the file data/output.txt via java.nio.file.Files.writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.file.OpenOption[]) (called by com.student.MainTest.testMain), but was blocked by Ares, because the policy has no rule that allows the code to overwrite any file.
 ```
 
 If the student's code calls `Files.readString(Path.of("/etc/shadow"))`, the test fails because `/etc/shadow` is not under the allowed path `data` (the message is a single line):
