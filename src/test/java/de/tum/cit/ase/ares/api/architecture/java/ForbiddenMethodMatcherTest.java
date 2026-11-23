@@ -128,7 +128,7 @@ class ForbiddenMethodMatcherTest {
 				.isInstanceOf(SecurityException.class).hasMessage(malformed(bareFile, "exit"));
 	}
 
-	/** An entry whose first character is the only dot is refused. */
+	/** An entry that starts with a dot is refused. */
 	@Test
 	void refusesAnEntryOpeningWithADot() throws IOException {
 		String entry = ".java.lang.System.exit";

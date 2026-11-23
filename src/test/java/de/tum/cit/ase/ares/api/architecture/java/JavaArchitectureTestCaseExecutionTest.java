@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
@@ -19,6 +20,8 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 
+import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCaseCollection;
+import de.tum.cit.ase.ares.api.architecture.java.wala.WalaRule;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 
@@ -59,6 +62,19 @@ class JavaArchitectureTestCaseExecutionTest {
 	}
 
 	/**
+	 * The label the WALA file-system rule captured when it was initialised, which
+	 * is what the entry-point message uses.
+	 *
+	 * @return the rule label
+	 * @throws ReflectiveOperationException if the package-private field is missing
+	 */
+	private static String initialisedFileSystemRuleLabel() throws ReflectiveOperationException {
+		Field label = WalaRule.class.getDeclaredField("ruleName");
+		label.setAccessible(true);
+		return (String) label.get(JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM);
+	}
+
+	/**
 	 * Builds a file-system test case over the given classes. When
 	 * {@code useSupplier} is true, the call graph is handed on through a supplier,
 	 * otherwise directly.
@@ -92,7 +108,7 @@ class JavaArchitectureTestCaseExecutionTest {
 
 	/** The WALA engine reads the call graph from the supplier when one is given. */
 	@Test
-	void executesTheWalaRuleWithTheCallGraphSupplier() {
+	void executesTheWalaRuleWithTheCallGraphSupplier() throws ReflectiveOperationException {
 		JavaClasses clean = new ClassFileImporter().importClasses(CleanFixture.class);
 		CallGraph graph = Mockito.mock(CallGraph.class);
 
@@ -100,15 +116,16 @@ class JavaArchitectureTestCaseExecutionTest {
 				() -> fileSystemCase(clean, Set.of(uniquePermission()), graph, true).executeArchitectureTestCase("WALA",
 						""));
 
-		assertEquals(Messages.localized("security.architecture.wala.entrypoints.empty",
-				Messages.localized("security.architecture.file.system.access")), thrown.getMessage());
+		assertEquals(
+				Messages.localized("security.architecture.wala.entrypoints.empty", initialisedFileSystemRuleLabel()),
+				thrown.getMessage());
 	}
 
 	/**
 	 * The WALA engine uses the call graph given directly when there is no supplier.
 	 */
 	@Test
-	void executesTheWalaRuleWithTheEagerCallGraph() {
+	void executesTheWalaRuleWithTheEagerCallGraph() throws ReflectiveOperationException {
 		JavaClasses clean = new ClassFileImporter().importClasses(CleanFixture.class);
 		CallGraph graph = Mockito.mock(CallGraph.class);
 
@@ -116,8 +133,9 @@ class JavaArchitectureTestCaseExecutionTest {
 				() -> fileSystemCase(clean, Set.of(uniquePermission()), graph, false)
 						.executeArchitectureTestCase("WALA", ""));
 
-		assertEquals(Messages.localized("security.architecture.wala.entrypoints.empty",
-				Messages.localized("security.architecture.file.system.access")), thrown.getMessage());
+		assertEquals(
+				Messages.localized("security.architecture.wala.entrypoints.empty", initialisedFileSystemRuleLabel()),
+				thrown.getMessage());
 	}
 
 	/**

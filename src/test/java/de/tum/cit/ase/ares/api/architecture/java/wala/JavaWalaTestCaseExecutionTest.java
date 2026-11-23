@@ -329,7 +329,7 @@ class JavaWalaTestCaseExecutionTest {
 		assertTrue(reported.startsWith(violationPrefix()), reported);
 		assertTrue(reported.contains(caller), reported);
 		assertTrue(reported.contains(action), reported);
-		if (Locale.ENGLISH.getLanguage().equals(Locale.getDefault().getLanguage())) {
+		if (Locale.ENGLISH.getLanguage().equals(Locale.getDefault(Locale.Category.DISPLAY).getLanguage())) {
 			assertEquals(
 					Messages.localized("security.archunit.violation.error", caller, action,
 							"java.nio.file.Files.delete(java.nio.file.Path)", DeletingFixture.class.getName()),
