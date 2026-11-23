@@ -68,7 +68,7 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage, boole
 	 * {@code exactMatchOnly} means {@code false}, as in policies written before the
 	 * flag existed.
 	 *
-	 * @since 2.3.0
+	 * @since 2.2.2
 	 * @author Markus Paulsen
 	 * @param importTheFollowingPackage the package that is permitted
 	 * @param exactMatchOnly            whether only this exact package is covered,
@@ -88,7 +88,7 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage, boole
 	 * Whether a package lies in the namespace the JDK controls: {@code java},
 	 * {@code javax}, {@code jdk}, {@code sun}, {@code com.sun} or below them.
 	 *
-	 * @since 2.3.0
+	 * @since 2.2.2
 	 * @author Markus Paulsen
 	 * @param packageName the package name; must not be null
 	 * @return true if the package is in the JDK namespace
@@ -172,7 +172,7 @@ public record PackagePermission(@Nonnull String importTheFollowingPackage, boole
 		/**
 		 * Sets whether only the exact package is covered.
 		 *
-		 * @since 2.3.0
+		 * @since 2.2.2
 		 * @author Markus Paulsen
 		 * @param exactMatchOnly true to exclude subpackages.
 		 * @return the updated Builder.

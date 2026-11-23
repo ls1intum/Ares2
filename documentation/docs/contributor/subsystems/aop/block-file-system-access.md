@@ -272,6 +272,8 @@ Read APIs listed below access file contents or metadata without modifying them.
 | java.util.Properties | load | ✅ | ✅ |
 | java.util.Properties | loadFromXML | ✅ | ✅ |
 
+> **Note:** `java.util.prefs.Preferences` is file access too, through its backing store. Reads: `get…`, `keys`, `childrenNames`, `nodeExists`, `export…`, `userRoot`, `systemRoot`. Overwrites: `put…`, `remove`, `clear`, `flush`, `sync`, `importPreferences`. Creates: `node`, `userNodeForPackage`, `systemNodeForPackage`, `userRoot`, `systemRoot`, `importPreferences`. Deletes: `removeNode`. Both backends check them, and allow them only where the action's list holds `*`, since the backing store has no path to compare.
+
 **Reads only specific parts of a file**
 
 > **Note:** Generic `InputStream.read()` and `Reader.read()` calls are **not** monitored by either backend. These streams/readers are already validated at construction time (`FileInputStream.<new>`, `Reader.<new>`), so monitoring every subsequent `read()` call would be redundant. `RandomAccessFile.read` is intercepted by AspectJ, but Byte Buddy explicitly **excludes** it via `ignoredMethodsByClass` to avoid recursive self-interception during class and JAR loading in instrumentation mode; the `RandomAccessFile.<new>` constructor pointcut still covers the access in both backends.
