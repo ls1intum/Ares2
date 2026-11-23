@@ -32,30 +32,16 @@ public final class WalaPathClassification {
 	// <editor-fold desc="Constants">
 
 	/**
-	 * Application-loaded package prefixes (with trailing dot) that belong to Ares
-	 * or its test infrastructure and must not be attributed as student code.
-	 * Platform classes are deliberately absent: they are classified by their WALA
-	 * classloader origin, because a third-party JAR may legally use a
-	 * {@code javax.*} or {@code com.sun.*} namespace.
-	 * <p>
-	 * The Ares prefix is the narrow {@code de.tum.cit.ase.ares.api.}, matching the
-	 * ArchUnit importer exclusion ({@code /de/tum/cit/ase/ares/api/}) and the
-	 * runtime AOP ignored-frame prefix. The broader {@code de.tum.cit.ase.ares.}
-	 * would also classify the reproducibility test subjects (which live under
-	 * {@code de.tum.cit.ase.ares.integration.*}) as infrastructure, which would
-	 * wrongly suppress their violations; all Ares production code is under
-	 * {@code .api.}, so narrowing loses no genuine infrastructure frame.
-	 * <p>
-	 * The two reproducibility-repo helper packages ({@code anonymous.toolclasses.}
-	 * and {@code metatest.}) are included here intentionally: they are
-	 * test-framework helpers, not student-authored code under test. If a future
-	 * Ares consumer uses different helper packages, this list will need to be made
-	 * configurable.
-	 * <p>
-	 * </p>
+	 * Package prefixes of application-loaded code that belongs to Ares or to a
+	 * library Ares supervises with, so a frame there is never blamed as student
+	 * code. JDK classes are absent: they are recognised by the class loader WALA
+	 * gives them. The Ares prefix stops at {@code .api.} because Ares' own
+	 * integration-test subjects, under {@code de.tum.cit.ase.ares.integration},
+	 * must stay supervised. Every prefix here must also be reserved, so no student
+	 * class can be named into it.
 	 */
 	public static final List<String> INFRA_PREFIXES = List.of("de.tum.cit.ase.ares.api.", "net.bytebuddy.",
-			"org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.", "anonymous.toolclasses.", "metatest.");
+			"org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.");
 
 	/**
 	 * Package prefixes supervised code may not declare, so a student cannot land a
@@ -103,19 +89,12 @@ public final class WalaPathClassification {
 	public static final String RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = "2";
 
 	/**
-	 * Application-loaded subset of {@link #INFRA_PREFIXES} that genuinely indicates
-	 * a transitive false-positive path: the student called a permitted JDK or
-	 * framework API and the JDK or framework internally invoked a forbidden one.
-	 * JDK frames are classified separately by their primordial/extension loader;
-	 * this list covers Ares, AspectJ, ByteBuddy, WALA and ArchUnit packages.
-	 * <p>
-	 * Project-specific test helpers ({@code anonymous.toolclasses.} and
-	 * {@code metatest.}) are deliberately omitted: when student code routes through
-	 * such a helper into a forbidden JDK API, the helper exists for the sole
-	 * purpose of exercising that API. Treating those paths as false positives
-	 * silently disabled BLOCKED_ALL detection for every Network / FileSystem /
-	 * Command call placed inside a project test helper.
-	 * </p>
+	 * Package prefixes of application-loaded framework code (Ares, AspectJ, Byte
+	 * Buddy, WALA, ArchUnit) that mark a harmless detour: the student called a
+	 * permitted framework or JDK API, and that code went on to reach the forbidden
+	 * one. JDK frames are recognised by their class loader instead. Helper classes
+	 * of the exercise itself never belong here, since a call routed through them is
+	 * the student's own.
 	 */
 	static final List<String> TRANSITIVE_FALSE_POSITIVE_PREFIXES = List.of("de.tum.cit.ase.ares.", "net.bytebuddy.",
 			"org.aspectj.", "com.ibm.wala.", "com.tngtech.archunit.");
@@ -189,12 +168,10 @@ public final class WalaPathClassification {
 	}
 
 	/**
-	 * Returns {@code true} when the given CGNode counts as transitive
-	 * infrastructure for the purpose of {@link #isFalsePositiveTransitivePath}
-	 * only. Project test helpers ({@code anonymous.toolclasses.} /
-	 * {@code metatest.}) explicitly do NOT count here, so a student call that
-	 * routes through such a helper into a forbidden JDK API is reported as a real
-	 * violation.
+	 * Returns {@code true} when the given CGNode is JDK code or framework code
+	 * under {@link #TRANSITIVE_FALSE_POSITIVE_PREFIXES}, the only frames
+	 * {@link #isFalsePositiveTransitivePath} accepts between the student frame and
+	 * the forbidden sink.
 	 */
 	static boolean isTransitiveFalsePositiveFrame(CGNode node) {
 		return hasInfrastructureOrigin(node, TRANSITIVE_FALSE_POSITIVE_PREFIXES);
@@ -244,29 +221,14 @@ public final class WalaPathClassification {
 	 * </p>
 	 */
 	/**
-	 * Whether this frame is skipped as infrastructure although supervised code is
-	 * permitted to declare that package: application-loaded, inside
-	 * {@link #INFRA_PREFIXES} and outside {@link #RESERVED_PACKAGE_PREFIXES}.
-	 * <p>
-	 * The two lists answer different questions, but the safety of the first rests
-	 * on the second. Skipping a namespace while looking for the student frame is
-	 * only sound while supervised code cannot be named into it, and that no longer
-	 * holds for every entry: {@code anonymous.toolclasses.} and {@code metatest.}
-	 * are skipped here and nameable there, because they are one downstream
-	 * consumer's helpers rather than something Ares could be mistaken for. A
-	 * supervised class declaring one of them makes every frame on its path
-	 * infrastructure and its violations attributable to nobody.
-	 * <p>
-	 * Rather than couple the lists again, which would take back a decision made for
-	 * a good reason, the gap between them is named. The one decision that depended
-	 * on the coupling consults this, so it holds for whatever the two lists say
-	 * next: an entry added to {@link #INFRA_PREFIXES} without being reserved is
-	 * refused rather than turned into a blind spot, and reserving it again makes
-	 * the refusal disappear on its own.
+	 * Whether this frame is skipped as infrastructure although supervised code may
+	 * declare its package: application-loaded, inside {@link #INFRA_PREFIXES} and
+	 * outside {@link #RESERVED_PACKAGE_PREFIXES}. Its violations would be blamed on
+	 * nobody, so such a path is refused. Every infrastructure prefix is reserved
+	 * today, so this answers {@code false}.
 	 *
 	 * @param node the call-graph node to classify
-	 * @return whether the frame is skipped as infrastructure but nameable by
-	 *         supervised code
+	 * @return whether the frame is skipped but nameable by supervised code
 	 */
 	static boolean isUnreservedInfrastructureFrame(CGNode node) {
 		try {

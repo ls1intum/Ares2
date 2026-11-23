@@ -156,10 +156,8 @@ public class CustomCallgraphBuilder {
 	 * supervised package. Entry points remain restricted to that original package,
 	 * but WALA can follow calls into helpers and third-party classes outside it.
 	 * <p>
-	 * Adding only the packages that contain reachable dependencies avoids widening
-	 * the hierarchy to the complete build output, which previously made virtual
-	 * dispatch over every unrelated {@link Runnable} implementation prohibitively
-	 * expensive.
+	 * Each referenced class adds the whole classpath root it was found in, such as
+	 * {@code build/classes/java/main}, so its supertypes and helpers resolve too.
 	 */
 	private static String expandClassPathWithReachableDependencies(String classPath, Set<Path> trustedCodeSources) {
 		LinkedHashSet<String> entries = Arrays.stream(classPath.split(File.pathSeparator))
@@ -670,59 +668,7 @@ public class CustomCallgraphBuilder {
 		LinkedHashSet<String> kept = Arrays.stream(entries).filter(entry -> !entry.isBlank())
 				.filter(entry -> !isTrustedFrameworkLocation(entry, trustedCodeSources))
 				.collect(Collectors.toCollection(LinkedHashSet::new));
-
-		// Ares' BuildMode.getClasspath narrows the analysis classpath to a single
-		// package subdirectory (e.g. build/classes/java/main/anonymous/foo/bar) so
-		// WALA's analysis stays tractable. The cost of that narrowing is severe:
-		// any student class whose superclass, helper class or returned-collection
-		// type lives outside that package directory (e.g. extending a base class in
-		// anonymous.toolclasses) cannot be resolved by the WALA class hierarchy and
-		// gets silently dropped, leaving its methods out of the entry-point set and
-		// hiding every forbidden API call inside them.
-		//
-		// Earlier revisions widened the scope to the entire build-root (e.g.
-		// build/classes/java/main) which fixed the resolution problem but pulled in
-		// every other category's classes — Thread.start() then dispatched via CHA
-		// across all student Runnable subclasses, exploding the call graph
-		// (ThreadSystemCreate Permitted: 343 s for the first invocation, JVM crash).
-		// Add only the verified helper subdirectory (anonymous/toolclasses) instead
-		// of the whole build-root.
-		LinkedHashSet<String> widened = new LinkedHashSet<>(kept);
-		for (String entry : kept) {
-			String normalized = entry.replace(File.separatorChar, '/');
-			String mainMarker = "build/classes/java/main";
-			int idx = normalized.indexOf(mainMarker);
-			if (idx >= 0) {
-				String mainRoot = entry.substring(0, idx + mainMarker.length());
-				addHelperRoots(widened, mainRoot);
-				continue;
-			}
-			String mavenMarker = "target/classes";
-			idx = normalized.indexOf(mavenMarker);
-			if (idx >= 0) {
-				String mavenMain = entry.substring(0, idx + mavenMarker.length());
-				addHelperRoots(widened, mavenMain);
-			}
-		}
-		return String.join(File.pathSeparator, widened);
-	}
-
-	/**
-	 * Helper subpackages that hold base classes / utilities shared across student
-	 * categories. Listed explicitly (instead of widening the whole build root) so
-	 * WALA's class hierarchy can resolve supertypes without dragging in every other
-	 * category's Runnable / Thread / Executor implementations, which would blow up
-	 * CHA-based dispatch resolution for Thread.start() and friends.
-	 */
-	private static final List<String> HELPER_SUBPACKAGES = List.of("anonymous/toolclasses");
-
-	private static void addHelperRoots(LinkedHashSet<String> target, String classRoot) {
-		for (String subPackage : HELPER_SUBPACKAGES) {
-			File helperDir = new File(classRoot, subPackage);
-			if (helperDir.isDirectory()) {
-				target.add(helperDir.getPath());
-			}
-		}
+		return String.join(File.pathSeparator, kept);
 	}
 
 	private static String convertTypeNameToClassName(String typeName) {
@@ -774,7 +720,10 @@ public class CustomCallgraphBuilder {
 	/**
 	 * Builds the call graph for the given classpath. Repeated calls on this builder
 	 * for the same path return its session-local graph; a builder cannot be reused
-	 * for a different analysis target.
+	 * for a different analysis target. Entry points are the methods of the
+	 * application classes in the widened hierarchy that lie inside the package
+	 * being analysed. The widening is what lets a class whose supertype sits
+	 * elsewhere into the hierarchy at all.
 	 *
 	 * @param classPathToAnalyze the classpath to analyse
 	 * @return the constructed or cached call graph
@@ -793,14 +742,6 @@ public class CustomCallgraphBuilder {
 			return callGraph;
 		}
 		try {
-			// Build entry points from this session's widened hierarchy so it can fully
-			// resolve student class supertypes
-			// (anonymous.toolclasses.ProtectedResourceAccess, …); without that step,
-			// the outer student classes are silently dropped and only standalone
-			// helpers (inner enums) become entry points. After collection, restrict
-			// the entry points to the test's own package directory so each
-			// architecture rule only flags violations in the class under test rather
-			// than spilling into unrelated category classes that share the wider scope.
 			String narrowPackagePrefix = derivePackagePrefix(classPathToAnalyze);
 			List<DefaultEntrypoint> customEntryPoints = ReachabilityChecker
 					.getEntryPointsFromStudentSubmission(filteredClassPathToAnalyse, classHierarchy).stream()
@@ -846,11 +787,11 @@ public class CustomCallgraphBuilder {
 
 	/**
 	 * Convert a classpath entry like
-	 * {@code build/classes/java/main/anonymous/foo/bar} into the WALA TypeName
-	 * prefix {@code Lanonymous/foo/bar/} so we can keep entry points limited to the
-	 * test's package without re-deriving it from the policy. Returns {@code null}
-	 * if the path doesn't look like a build-output package directory (in which case
-	 * no narrowing is applied).
+	 * {@code build/classes/java/main/org/example/bar} into the WALA TypeName prefix
+	 * {@code Lorg/example/bar/} so we can keep entry points limited to the test's
+	 * package without re-deriving it from the policy. Returns {@code null} if the
+	 * path doesn't look like a build-output package directory (in which case no
+	 * narrowing is applied).
 	 */
 	private static String derivePackagePrefix(String classPath) {
 		if (classPath == null) {

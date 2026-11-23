@@ -88,8 +88,8 @@ The educator provides a YAML file such as `SecurityConfiguration.yaml`. Its stru
 thisPolicyFileCompliesToThePolicyVersion: 1
 regardingTheSupervisedCode:
   theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_GRADLE_ARCHUNIT_AND_INSTRUMENTATION
-  theSupervisedCodeUsesTheFollowingPackage: anonymous
-  theMainClassInsideThisPackageIs: "ReproducibilityCli"
+  theSupervisedCodeUsesTheFollowingPackage: org.example
+  theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses: []
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: []
