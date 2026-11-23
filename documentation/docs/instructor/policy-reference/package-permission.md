@@ -10,7 +10,7 @@ them. Only a few aids are always allowed, whatever it says, such as the pupils' 
 the two simplest aids every pupil needs to write and to print. No line on the rule sheet lets a
 pupil lean on the grading instructions.
 
-Allowing an aid allows every part that belongs to it, unless the line says that one aid only.
+Allowing an aid allows every part that belongs to it.
 One short line can therefore let in far more than it seems to. Some parts with names of their
 own still need a line of their own.
 
