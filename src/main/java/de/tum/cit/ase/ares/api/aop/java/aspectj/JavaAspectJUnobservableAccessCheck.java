@@ -26,6 +26,7 @@ import net.bytebuddy.jar.asm.ClassReader;
 import net.bytebuddy.jar.asm.ClassVisitor;
 import net.bytebuddy.jar.asm.MethodVisitor;
 import net.bytebuddy.jar.asm.Opcodes;
+import net.bytebuddy.jar.asm.Type;
 
 import de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher;
 import de.tum.cit.ase.ares.api.localization.Messages;
@@ -106,8 +107,7 @@ public final class JavaAspectJUnobservableAccessCheck {
 			@Nonnull Set<String> referenced) {
 		for (JavaCodeUnitReference<?> reference : javaClass.getCodeUnitReferencesFromSelf()) {
 			AccessTarget.CodeUnitReferenceTarget target = reference.getTarget();
-			String parameters = target.getRawParameterTypes().stream().map(JavaClass::getName)
-					.collect(Collectors.joining(", ", "(", ")"));
+			List<String> parameters = target.getRawParameterTypes().stream().map(JavaClass::getName).toList();
 			Optional<String> listed = firstListed(target.getOwner().getName(), target.getName(), parameters, classes,
 					referenced);
 			if (listed.isPresent()) {
@@ -133,10 +133,10 @@ public final class JavaAspectJUnobservableAccessCheck {
 			@Nonnull Set<String> referenced, @Nonnull Set<String> constructed) {
 		for (SuperCall call : superCallsOf(javaClass)) {
 			boolean constructor = "<init>".equals(call.name());
-			if (constructor && "()".equals(call.descriptorParameters())) {
+			if (constructor && call.parameterTypes().isEmpty()) {
 				continue;
 			}
-			Optional<String> listed = firstListed(call.owner(), call.name(), call.descriptorParameters(), classes,
+			Optional<String> listed = firstListed(call.owner(), call.name(), call.parameterTypes(), classes,
 					constructor ? constructed : referenced);
 			if (listed.isPresent()) {
 				throw new SecurityException(
@@ -149,24 +149,50 @@ public final class JavaAspectJUnobservableAccessCheck {
 	}
 
 	/**
-	 * Returns the first listed method that the named method is, on its own class or
-	 * on any class or interface above it among the supervised classes.
+	 * Returns the first listed method the named method is, looking at its own class
+	 * and then up the hierarchy. A supervised class declaring it on the way, such
+	 * as the method holding a lambda's body, ends the search: its code is woven and
+	 * checked like any other student code.
 	 *
-	 * @param ownerName  the binary name of the class the code names
-	 * @param name       the method name
-	 * @param parameters the parameter list, in source or descriptor form
-	 * @param classes    all supervised classes
-	 * @param listed     the listed methods
+	 * @param ownerName      the binary name of the class the code names
+	 * @param name           the method name
+	 * @param parameterTypes the binary names of the parameter types
+	 * @param classes        all supervised classes
+	 * @param listed         the listed methods
 	 * @return the matching listed signature, if any
 	 */
 	@Nonnull
 	private static Optional<String> firstListed(@Nonnull String ownerName, @Nonnull String name,
-			@Nonnull String parameters, @Nonnull JavaClasses classes, @Nonnull Set<String> listed) {
+			@Nonnull List<String> parameterTypes, @Nonnull JavaClasses classes, @Nonnull Set<String> listed) {
 		if (listed.isEmpty()) {
 			return Optional.empty();
 		}
-		return ownerAndSupertypes(ownerName, classes).map(owner -> owner + "." + name + parameters)
-				.map(ForbiddenMethodMatcher::canonicalise).filter(signature -> isListed(signature, listed)).findFirst();
+		String parameters = "(" + String.join(", ", parameterTypes) + ")";
+		for (String typeName : ownerAndSupertypes(ownerName, classes).toList()) {
+			if (classes.contain(typeName) && declares(classes.get(typeName), name, parameterTypes)) {
+				return Optional.empty();
+			}
+			String signature = ForbiddenMethodMatcher.canonicalise(typeName + "." + name + parameters);
+			if (isListed(signature, listed)) {
+				return Optional.of(signature);
+			}
+		}
+		return Optional.empty();
+	}
+
+	/**
+	 * Whether a class declares a method or constructor of the given name and
+	 * parameter types itself.
+	 *
+	 * @param javaClass      the class
+	 * @param name           the name, {@code <init>} for a constructor
+	 * @param parameterTypes the binary names of the parameter types
+	 * @return {@code true} if it declares one
+	 */
+	private static boolean declares(@Nonnull JavaClass javaClass, @Nonnull String name,
+			@Nonnull List<String> parameterTypes) {
+		return javaClass.getCodeUnits().stream().anyMatch(unit -> unit.getName().equals(name)
+				&& unit.getRawParameterTypes().stream().map(JavaClass::getName).toList().equals(parameterTypes));
 	}
 
 	/**
@@ -243,11 +269,11 @@ public final class JavaAspectJUnobservableAccessCheck {
 	/**
 	 * One call through {@code super}.
 	 *
-	 * @param owner                the binary name of the class the call names
-	 * @param name                 the method name, {@code <init>} for a constructor
-	 * @param descriptorParameters the parameter list in descriptor form
+	 * @param owner          the binary name of the class the call names
+	 * @param name           the method name, {@code <init>} for a constructor
+	 * @param parameterTypes the binary names of the parameter types
 	 */
-	record SuperCall(@Nonnull String owner, @Nonnull String name, @Nonnull String descriptorParameters) {
+	record SuperCall(@Nonnull String owner, @Nonnull String name, @Nonnull List<String> parameterTypes) {
 	}
 
 	/** Collects the calls through {@code super} while ASM reads a class file. */
@@ -339,7 +365,7 @@ public final class JavaAspectJUnobservableAccessCheck {
 				}
 				if (!"<init>".equals(name)) {
 					if (!isOverrideHandingOn(name, descriptor)) {
-						calls.add(new SuperCall(owner.replace('/', '.'), name, parametersOf(descriptor)));
+						calls.add(new SuperCall(owner.replace('/', '.'), name, parameterTypesOf(descriptor)));
 					}
 				} else if ("<init>".equals(methodName) && owner.equals(superName)) {
 					superclassConstructors.add(descriptor);
@@ -350,21 +376,26 @@ public final class JavaAspectJUnobservableAccessCheck {
 			public void visitEnd() {
 				if (superclassConstructors.size() > superclassObjectsCreated) {
 					superclassConstructors.forEach(descriptor -> calls
-							.add(new SuperCall(superName.replace('/', '.'), "<init>", parametersOf(descriptor))));
+							.add(new SuperCall(superName.replace('/', '.'), "<init>", parameterTypesOf(descriptor))));
 				}
 			}
 		}
 	}
 
 	/**
-	 * Returns the parameter part of a method descriptor, such as
-	 * {@code (Ljava/lang/String;I)}.
+	 * Returns the binary names of the parameter types of a method descriptor, as
+	 * ArchUnit names classes: {@code java.lang.String}, {@code int},
+	 * {@code [Ljava.lang.String;}.
 	 *
 	 * @param descriptor the method descriptor
-	 * @return its parameter part
+	 * @return the names
 	 */
 	@Nonnull
-	private static String parametersOf(@Nonnull String descriptor) {
-		return descriptor.substring(0, descriptor.indexOf(')') + 1);
+	private static List<String> parameterTypesOf(@Nonnull String descriptor) {
+		List<String> names = new ArrayList<>();
+		for (Type type : Type.getArgumentTypes(descriptor)) {
+			names.add(type.getSort() == Type.ARRAY ? type.getDescriptor().replace('/', '.') : type.getClassName());
+		}
+		return names;
 	}
 }

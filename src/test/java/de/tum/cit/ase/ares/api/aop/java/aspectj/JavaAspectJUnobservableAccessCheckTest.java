@@ -237,6 +237,54 @@ class JavaAspectJUnobservableAccessCheckTest {
 				() -> JavaAspectJUnobservableAccessCheck.requireObservable(starter, List.of(), THREADS, List.of()));
 	}
 
+	/**
+	 * A lambda in a thread subclass passes: its body is a method of that class,
+	 * woven like the rest of it, although ArchUnit lists it as a reference.
+	 */
+	@Test
+	void aLambdaInAThreadSubclassPasses() throws IOException {
+		JavaClasses classes = compile("Lambdas", """
+				public class Lambdas extends Thread {
+					@Override public void run() { Runnable r = () -> Math.sqrt(2); r.run(); }
+				}
+				""");
+		assertDoesNotThrow(
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), THREADS, List.of()));
+	}
+
+	/**
+	 * A call through super to a method the student's own superclass declares
+	 * passes.
+	 */
+	@Test
+	void aSuperCallToAMethodOfAStudentClassPasses() throws IOException {
+		JavaClasses classes = compile("Family", """
+				public class Family {
+					static class Parent extends Thread { void helper() { Math.sqrt(2); } }
+					static class Child extends Parent { void go() { super.helper(); } }
+				}
+				""");
+		assertDoesNotThrow(
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), THREADS, List.of()));
+	}
+
+	/**
+	 * A student overload of the same name does not hide a reference to the
+	 * inherited checked method.
+	 */
+	@Test
+	void anOverloadDoesNotHideAReferenceToTheInheritedMethod() throws IOException {
+		JavaClasses classes = compile("Overloading", """
+				public class Overloading extends java.io.File {
+					public Overloading(String p) { super(p); }
+					public String[] list(int ignored) { return new String[0]; }
+					public Object names() { java.util.function.Supplier<String[]> s = this::list; return s.get(); }
+				}
+				""");
+		assertThrows(SecurityException.class,
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), FILES, List.of()));
+	}
+
 	/** A constructor reference to a socket is refused with the network list. */
 	@Test
 	void aSocketConstructorReferenceIsRefused() throws IOException {
