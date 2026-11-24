@@ -139,6 +139,65 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 	}
 
 	/**
+	 * Checks whether a URL names something on this machine rather than a host:
+	 * {@code jrt}, {@code file} without a host other than {@code localhost} or
+	 * {@code ~}, as the JDK reads it, and {@code jar} when its archive is such a
+	 * URL. Ares leaves a file to the file check; a remote file or archive stays a
+	 * network target.
+	 *
+	 * @param scheme             the scheme, or {@code null}
+	 * @param schemeSpecificPart the rest of the URL after the scheme
+	 * @return {@code true} for such a local URL
+	 */
+	private static boolean isLocalUrl(@Nullable String scheme, @Nullable String schemeSpecificPart) {
+		if ("jrt".equalsIgnoreCase(scheme)) {
+			return true;
+		}
+		if ("file".equalsIgnoreCase(scheme)) {
+			return hasLocalFileAuthority(schemeSpecificPart);
+		}
+		if (!"jar".equalsIgnoreCase(scheme) || schemeSpecificPart == null) {
+			return false;
+		}
+		int colon = schemeSpecificPart.indexOf(':');
+		return colon > 0 && isLocalUrl(schemeSpecificPart.substring(0, colon), schemeSpecificPart.substring(colon + 1));
+	}
+
+	/**
+	 * Checks whether the rest of a {@code file} URL names no host, or one the JDK
+	 * reads as this machine, and a path that is no share such as {@code //host/x}.
+	 * Any other host makes the JDK reach out to it, on Windows as a network share,
+	 * before a file check could see it.
+	 *
+	 * @param schemeSpecificPart the rest of the URL after {@code file:}, or
+	 *                           {@code null}
+	 * @return {@code true} without a remote host
+	 */
+	private static boolean hasLocalFileAuthority(@Nullable String schemeSpecificPart) {
+		if (schemeSpecificPart == null) {
+			return false;
+		}
+		if (!schemeSpecificPart.startsWith("//")) {
+			return !isSharePath(schemeSpecificPart);
+		}
+		int end = schemeSpecificPart.indexOf('/', 2);
+		String host = end < 0 ? schemeSpecificPart.substring(2) : schemeSpecificPart.substring(2, end);
+		boolean localHost = host.isEmpty() || "localhost".equalsIgnoreCase(host) || "~".equals(host);
+		return localHost && (end < 0 || !isSharePath(schemeSpecificPart.substring(end)));
+	}
+
+	/**
+	 * Checks whether a path names a network share, {@code //host/x} or
+	 * {@code \\host\x}, which the JDK opens on Windows by contacting that host.
+	 *
+	 * @param path the path of a {@code file} URL
+	 * @return {@code true} for such a path
+	 */
+	private static boolean isSharePath(@Nonnull String path) {
+		return path.startsWith("//") || path.startsWith("\\\\") || path.startsWith("/\\") || path.startsWith("\\/");
+	}
+
+	/**
 	 * Checks whether a class opens a socket that waits for incoming connections.
 	 *
 	 * @param declaringTypeName the class of the called method
@@ -443,9 +502,15 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			// reflection failure — skip
 		}
 		if (value instanceof URI uri) {
+			if (isLocalUrl(uri.getScheme(), uri.getRawSchemeSpecificPart())) {
+				return null;
+			}
 			return new NetworkTarget(uri.getHost(), effectivePort(uri.getPort(), uri.getScheme()));
 		}
 		if (value instanceof URL url) {
+			if (isLocalUrl(url.getProtocol(), url.toExternalForm().substring(url.getProtocol().length() + 1))) {
+				return null;
+			}
 			int defaultPort = url.getDefaultPort();
 			int port = url.getPort() >= 0 ? url.getPort() : defaultPort;
 			return new NetworkTarget(url.getHost(), port >= 0 ? port : -1);
