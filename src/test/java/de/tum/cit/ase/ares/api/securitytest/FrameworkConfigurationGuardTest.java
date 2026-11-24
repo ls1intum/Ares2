@@ -33,7 +33,8 @@ class FrameworkConfigurationGuardTest {
 	 */
 	@ParameterizedTest
 	@ValueSource(strings = { "archunit.properties", "junit-platform.properties", "logback.xml", "logback-test.xml",
-			"logback.groovy" })
+			"logback.groovy", "archunit_ignore_patterns.txt", "logback.scmo", "logback-test.scmo",
+			"jacoco-agent.properties" })
 	void findsASettingsFile(String name) throws IOException {
 		Files.writeString(output.resolve(name), "x");
 		assertThat(FrameworkConfigurationGuard.firstSettingsFileIn(output)).contains(output.resolve(name));
@@ -52,6 +53,19 @@ class FrameworkConfigurationGuardTest {
 		Path services = Files.createDirectories(output.resolve("META-INF/services"));
 		Files.writeString(services.resolve(service), "org.example.Evil");
 		assertThat(FrameworkConfigurationGuard.firstSettingsFileIn(output)).contains(services.resolve(service));
+	}
+
+	/**
+	 * A Mockito plugin file is found.
+	 *
+	 * @throws IOException if the file cannot be written
+	 */
+	@Test
+	void findsAMockitoPluginFile() throws IOException {
+		Path plugins = Files.createDirectories(output.resolve("mockito-extensions"));
+		Files.writeString(plugins.resolve("org.mockito.plugins.MockMaker"), "org.example.Evil");
+		assertThat(FrameworkConfigurationGuard.firstSettingsFileIn(output))
+				.contains(plugins.resolve("org.mockito.plugins.MockMaker"));
 	}
 
 	/**
