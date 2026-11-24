@@ -19,6 +19,7 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings;
 import de.tum.cit.ase.ares.api.architecture.java.archunit.JavaArchunitSupervisedClasses;
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.securitytest.FrameworkConfigurationGuard;
 
 /**
  * Stops a Precompile exercise before its first test when Ares would not enforce
@@ -72,6 +73,7 @@ public final class PrecompileGuard implements LauncherSessionListener {
 	 * @throws SecurityException naming the first check that failed
 	 */
 	public static void verify() {
+		FrameworkConfigurationGuard.requireNone();
 		requireRuntimeEnforcement(generatedAopMode());
 		Class<?> checks = architectureChecks();
 		if (JavaArchunitSupervisedClasses.pinned(SUPERVISED_PACKAGE).iterator().hasNext()) {

@@ -14,3 +14,4 @@ architecture/java/ForbiddenMethodMatcher.java,3,ares/api/architecture/java/Forbi
 policy/policySubComponents/ClassPermission.java,2,ares/api/policy/policySubComponents/ClassPermission.java
 util/YamlPlaceholderResolver.java,2,ares/api/util/YamlPlaceholderResolver.java
 securitytest/java/PrecompileGuard.java,9,ares/api/securitytest/java/PrecompileGuard.java
+securitytest/FrameworkConfigurationGuard.java,2,ares/api/securitytest/FrameworkConfigurationGuard.java
