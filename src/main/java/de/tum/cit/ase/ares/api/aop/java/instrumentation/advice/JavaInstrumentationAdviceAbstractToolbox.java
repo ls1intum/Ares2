@@ -45,6 +45,10 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	@Nonnull
 	private static final StackWalker STACK_WALKER = StackWalker.getInstance();
 
+	/** The Byte Buddy class that runs a class transformation. */
+	@Nonnull
+	private static final String BYTE_BUDDY_EXECUTING_TRANSFORMER = "net.bytebuddy.agent.builder.AgentBuilder$Default$ExecutingTransformer";
+
 	/**
 	 * A stack walker that also reports each frame's class, so a trusted-looking
 	 * frame can be checked for having been loaded by the JVM itself. Kept apart
@@ -751,23 +755,55 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
-	 * Returns whether the current thread is resolving bytecode for an active Byte
-	 * Buddy class transformation.
-	 * <p>
-	 * Byte Buddy's class-file locator obtains application bytecode through
-	 * {@code ClassLoader.getResourceAsStream}, which reaches
-	 * {@code URL.openStream}. Treating that trusted lookup as a student network
-	 * connection aborts the transformer and lets the original, unprotected class
-	 * load. The executing transformer frame is a stronger signal than a generic
-	 * class-loader frame: it cannot occur around an ordinary student-initiated URL
-	 * access.
+	 * Returns whether the current call is Byte Buddy resolving bytecode for a class
+	 * it transforms, through {@code ClassLoader.getResourceAsStream}. Refusing that
+	 * lookup aborts the transformer. It counts only if every frame between the call
+	 * and the transformer is the JDK, Byte Buddy or the Ares agent, so a student
+	 * class loader or URL handler in between keeps the call checked.
 	 *
-	 * @return {@code true} while Byte Buddy is executing a class transformer
+	 * @return {@code true} for such a lookup
 	 */
 	static boolean isByteBuddyTransformationInProgress() {
-		return STACK_WALKER
-				.walk(frames -> frames.map(StackWalker.StackFrame::getClassName).anyMatch(className -> className
-						.startsWith("net.bytebuddy.agent.builder.AgentBuilder$Default$ExecutingTransformer")));
+		return STACK_WALKER_WITH_CLASS_REFERENCE.walk(frames -> {
+			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
+			while (iterator.hasNext()) {
+				Class<?> declaringClass = iterator.next().getDeclaringClass();
+				if (declaringClass.getName().startsWith(BYTE_BUDDY_EXECUTING_TRANSFORMER)) {
+					return isOnSystemClassLoader(declaringClass);
+				}
+				if (!isTrustedTransformationFrame(declaringClass)) {
+					return Boolean.FALSE;
+				}
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
+	 * Whether a class may stand between a checked call and the Byte Buddy
+	 * transformer: a JDK class, or a Byte Buddy or Ares agent class of the system
+	 * class loader.
+	 *
+	 * @param declaringClass the class of the frame
+	 * @return {@code true} if it may
+	 */
+	private static boolean isTrustedTransformationFrame(@Nonnull Class<?> declaringClass) {
+		ClassLoader loader = declaringClass.getClassLoader();
+		String className = declaringClass.getName();
+		return loader == null || loader == ClassLoader.getPlatformClassLoader()
+				|| isOnSystemClassLoader(declaringClass) && (className.startsWith("net.bytebuddy.")
+						|| className.startsWith("de.tum.cit.ase.ares.api.aop.java.instrumentation."));
+	}
+
+	/**
+	 * Whether a class was loaded by the system class loader, not by a loader the
+	 * supervised code created.
+	 *
+	 * @param declaringClass the class
+	 * @return {@code true} if the system class loader loaded it
+	 */
+	private static boolean isOnSystemClassLoader(@Nonnull Class<?> declaringClass) {
+		return declaringClass.getClassLoader() == ClassLoader.getSystemClassLoader();
 	}
 
 	/**

@@ -1783,6 +1783,19 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
+	 * Whether Byte Buddy is reading the bytecode of a class it is instrumenting,
+	 * for instance from a JAR on the boot class path, the first time a student
+	 * class of another package loads. Refusing that read fails the transformation
+	 * and stops all enforcement, and no student code runs inside the transformer.
+	 *
+	 * @param action the file action being checked
+	 * @return {@code true} for such a read
+	 */
+	private static boolean isTransformerReadingBytecode(@Nonnull String action) {
+		return "read".equals(action) && isByteBuddyTransformationInProgress();
+	}
+
+	/**
 	 * Checks one file-system call against the policy. A call without a method or
 	 * class name is refused.
 	 *
@@ -1819,7 +1832,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (restrictedPackage == null || restrictedPackage.isEmpty()) {
 				return;
 			}
-			if (isProjectSourcesFinderInProgress()) {
+			if (isProjectSourcesFinderInProgress() || isTransformerReadingBytecode(action)) {
 				return;
 			}
 			if (methodName == null || methodName.isBlank() || declaringTypeName == null
