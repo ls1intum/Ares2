@@ -309,7 +309,8 @@ package prefixes listed in `ReservedPackagePrefixes.txt`, which student code mus
 Boundary version 3 further rejects every file under `META-INF/services/` and
 `mockito-extensions/`, and the JUnit, ArchUnit, Logback and JaCoCo configuration files at the
 root of the student's output, such as `junit-platform.properties`, `archunit.properties` and
-`logback.xml`. It compares names ignoring case. Those frameworks read such a
+`logback.xml`. It rejects a `module-info.class` in any folder too, because its `provides`
+clauses make Java run a student class. It compares names ignoring case. Those frameworks read such a
 file from the test class path before Ares is active, so it could run a student class
 unsupervised or hide ArchUnit findings. Keep your own files of this kind in `src/test/resources`, which the check does not scan.
 
