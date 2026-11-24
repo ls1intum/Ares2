@@ -229,6 +229,7 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 		this.essentialDataReader = Objects.requireNonNull(essentialDataReader);
 		this.projectScanner = Objects.requireNonNull(projectScanner);
 		// </editor-fold>
+		FrameworkConfigurationGuard.requireNone();
 
 		// <editor-fold desc="Modes and Project Paths">
 		this.buildMode = Objects.requireNonNullElse(buildMode, projectScanner.scanForBuildMode());
