@@ -524,6 +524,8 @@ Delete APIs listed below can remove files and empty directories.
 | java.nio.file.spi.FileSystemProvider | move | ✅ | ✅ |
 | java.nio.file.SecureDirectoryStream | move | ✅ | ✅ |
 
+> **Note:** Both backends check a process redirect where the code names the file. `ProcessBuilder.redirectOutput`, `redirectError`, `Redirect.to` and `Redirect.appendTo` count as a write: a create for a missing file, an overwrite for an existing one. `redirectInput` and `Redirect.from` count as a read. On Windows the Java runtime opens a redirect file natively when the process starts, so no later check sees it.
+
 > **Note:** A `SecureDirectoryStream` reads a relative path against its own folder, which Ares cannot see. Both backends refuse a relative path given to its `newByteChannel`, `newDirectoryStream`, `move`, `deleteFile` and `deleteDirectory`, unless the policy allows the action for every path. They check an absolute path like any other.
 
 ---
@@ -1229,6 +1231,7 @@ Object[] filteredParameters = filterVariables(parameters, parameterIgnoreRule);
 | `File.createNewFile()` | Only the `path` field of the `File` object | The path is stored in the `File` object, not passed as a parameter |
 | `ProcessBuilder.start()` | Only the `command` field | Only the command field carries the executable path; other fields (environment, redirects) are irrelevant |
 | `ProcessBuilder.startPipeline()` | Only the `command` field | Same as `ProcessBuilder.start()` |
+| `ProcessBuilder.redirectOutput/redirectError/redirectInput(File)` | Only the `File` argument | The command strings in the builder are not paths |
 
 **Current file system special cases (parameter-based, `FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT`):**
 

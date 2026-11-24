@@ -249,6 +249,41 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
+	 * The JDK class that starts one clean-up thread for image streams and native
+	 * graphics resources the first time any of them is made.
+	 */
+	private static final String JDK_IMAGE_DISPOSER_CLASS = "sun.java2d.Disposer";
+
+	/**
+	 * Tells whether the JDK sets up its image clean-up thread, with only JDK code
+	 * between that set-up and this check. The first {@code ImageIO} or image stream
+	 * a student makes triggers it, but the thread is the JDK's own. Student code in
+	 * between means {@code false}.
+	 *
+	 * @return whether the JDK's image clean-up set-up acts
+	 */
+	private static boolean isJdkImageDisposerSetUp() {
+		return CLASS_STACK_WALKER.walk(frames -> {
+			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			boolean jdkFrameSeen = false;
+			while (iterator.hasNext()) {
+				java.lang.StackWalker.StackFrame frame = iterator.next();
+				if (!jdkFrameSeen && frame.getClassName().startsWith("de.tum.cit.ase.ares.api.")) {
+					continue;
+				}
+				if (jdkModuleName(frame.getDeclaringClass()) == null) {
+					return Boolean.FALSE;
+				}
+				if (JDK_IMAGE_DISPOSER_CLASS.equals(frame.getClassName())) {
+					return Boolean.TRUE;
+				}
+				jdkFrameSeen = true;
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
 	 * Tells whether a class name belongs to the JDK.
 	 *
 	 * @param className the binary class name
@@ -917,7 +952,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		// because the Command/Execute subsystem will check these operations.
 		if (isThreadCreationFromCommandExecution() || isThreadCreationFromAresTimeout(restrictedPackage)
 				|| isJdkShellFolderHandOffWithoutStudentCode() || isInsideCountedThreadOperation()
-				|| isHttpClientOwnThreadOperation() && !isHttpClientOwnThread(instance)) {
+				|| isHttpClientOwnThreadOperation() && !isHttpClientOwnThread(instance) || isJdkImageDisposerSetUp()) {
 			return;
 		}
 		// </editor-fold>

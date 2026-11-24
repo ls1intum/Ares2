@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -123,21 +122,6 @@ class FileOpeningRolesTest {
 	 * The policy for WalaInstrumentation.
 	 */
 	private static final String WALAINSTRUMENTATION = POLICY_BASE + "wala/instrumentation/PolicyFileOpeningRoles.yaml";
-
-	/**
-	 * Starts the JDK's image-stream clean-up thread as the test class. The JDK
-	 * starts it the first time any file image stream is made, which would otherwise
-	 * charge the subject with creating a thread.
-	 *
-	 * @throws IOException if the warm-up file cannot be written
-	 */
-	@BeforeAll
-	static void startImageStreamCleanUpThread() throws IOException {
-		Files.createDirectories(FOLDER);
-		Path warmUp = FOLDER.resolve("warm-up.img");
-		new javax.imageio.stream.FileImageOutputStream(warmUp.toFile()).close();
-		Files.delete(warmUp);
-	}
 
 	/**
 	 * Gives every test the subfolders, empty.
@@ -260,7 +244,9 @@ class FileOpeningRolesTest {
 				"filesMoveReplaceWithoutCreate", "providerMove", "providerCopy", "printWriterCharset",
 				"printWriterFileCharset", "formatterCharset", "formatterFileCharset", "formatterWithoutFile",
 				"providerSymbolicLink", "providerHardLink", "providerDeleteIfExists", "secureDirectoryReadAbsolute",
-				"secureDirectoryMove", "secureDirectoryList", "transferToFile", "transferFromFile");
+				"secureDirectoryMove", "secureDirectoryList", "transferToFile", "transferFromFile", "redirectToNew",
+				"redirectAppendToExisting", "redirectFromReadable", "processBuilderRedirectOutput",
+				"processBuilderRedirectInput");
 	}
 
 	/**
@@ -279,7 +265,9 @@ class FileOpeningRolesTest {
 				"providerSymbolicLinkReadOnly", "providerHardLinkReadOnly", "providerDeleteIfExistsReadOnly",
 				"secureDirectoryReadUnreadable", "secureDirectoryReadRelative", "secureDirectoryMoveUnreadableSource",
 				"secureDirectoryListUnreadable", "transferToUnreadableSource", "transferToReadOnlyTarget",
-				"transferToDatagram", "transferFromUnreadableSource", "transferFromDatagram");
+				"transferToDatagram", "transferFromUnreadableSource", "transferFromDatagram", "redirectToReadOnly",
+				"redirectAppendToReadOnly", "redirectFromUnreadable", "processBuilderRedirectOutputReadOnly",
+				"processBuilderRedirectInputUnreadable");
 	}
 
 	/**
@@ -500,6 +488,16 @@ class FileOpeningRolesTest {
 			assertDoesNotThrow(() -> transferFromFile(source, WRITE_NO_READ.resolve("new.txt")));
 			assertEquals(OLD_CONTENT, content(WRITE_NO_READ.resolve("new.txt")));
 		}
+		case "redirectToNew" -> assertDoesNotThrow(
+				() -> FileOpeningRolesMain.redirectTo(WRITE_NO_READ.resolve("new.txt").toFile()));
+		case "redirectAppendToExisting" -> assertDoesNotThrow(
+				() -> FileOpeningRolesMain.redirectAppendTo(existing(WRITE_NO_READ.resolve("old.txt")).toFile()));
+		case "redirectFromReadable" -> assertDoesNotThrow(
+				() -> FileOpeningRolesMain.redirectFrom(existing(READ_ONLY.resolve("in.txt")).toFile()));
+		case "processBuilderRedirectOutput" -> assertDoesNotThrow(() -> FileOpeningRolesMain
+				.redirectOutput(new ProcessBuilder("echo", "hello"), WRITE_NO_READ.resolve("new.txt").toFile()));
+		case "processBuilderRedirectInput" -> assertDoesNotThrow(() -> FileOpeningRolesMain
+				.redirectInput(new ProcessBuilder("cat"), existing(READ_ONLY.resolve("in.txt")).toFile()));
 		default -> throw new IllegalArgumentException(scenario);
 		}
 	}
@@ -637,6 +635,16 @@ class FileOpeningRolesTest {
 				FileOpeningRolesMain.transferFrom(out, in);
 			}
 		});
+		case "redirectToReadOnly" -> assertThrows(SecurityException.class,
+				() -> FileOpeningRolesMain.redirectTo(READ_ONLY.resolve("new.txt").toFile()));
+		case "redirectAppendToReadOnly" -> assertThrows(SecurityException.class,
+				() -> FileOpeningRolesMain.redirectAppendTo(existing(READ_ONLY.resolve("old.txt")).toFile()));
+		case "redirectFromUnreadable" -> assertThrows(SecurityException.class,
+				() -> FileOpeningRolesMain.redirectFrom(existing(WRITE_NO_READ.resolve("secret.txt")).toFile()));
+		case "processBuilderRedirectOutputReadOnly" -> assertThrows(SecurityException.class, () -> FileOpeningRolesMain
+				.redirectOutput(new ProcessBuilder("echo", "hello"), READ_ONLY.resolve("new.txt").toFile()));
+		case "processBuilderRedirectInputUnreadable" -> assertThrows(SecurityException.class, () -> FileOpeningRolesMain
+				.redirectInput(new ProcessBuilder("cat"), existing(WRITE_NO_READ.resolve("secret.txt")).toFile()));
 		case "newInputStreamDeleteOnCloseUnreadable" -> assertRefusedUnchanged(
 				() -> FileOpeningRolesMain.newInputStreamDeleteOnClose(existing(WRITE_NO_READ.resolve("secret.txt"))),
 				WRITE_NO_READ.resolve("secret.txt"));
@@ -751,7 +759,8 @@ class FileOpeningRolesTest {
 	/**
 	 * Runs one image-output call and checks its effect: a new file in the folder
 	 * without read is allowed, an existing one there is refused, since the stream
-	 * could read it.
+	 * could read it. The first image stream also starts the JDK's own clean-up
+	 * thread, which the policy without threads must not charge to the subject.
 	 *
 	 * @param scenario the name of the call
 	 */
