@@ -121,6 +121,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			// PrintStream(OutputStream|File|String, [boolean], [String charset]) - keep
 			// only index 0 (the sink); a charset name like "UTF-8" is not a path.
 			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)),
+			// PrintWriter(String|File, String charset) and Formatter(String|File, String
+			// charset, [Locale]) - only the file (index 0); the charset name is not a path.
+			Map.entry("java.io.PrintWriter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.util.Formatter.<init>", IgnoreValues.allExcept(0)),
 			// Scanner(File|Path, [String charset]) - only the file (index 0); a charset
 			// name like "UTF-8" is not a path.
 			Map.entry("java.util.Scanner.<init>", IgnoreValues.allExcept(0)),
@@ -642,16 +646,57 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	@Nonnull
 	private static final Set<String> WRITE_OPENING_METHODS = Set.of("java.nio.file.Files.write",
 			"java.nio.file.Files.writeString", "java.nio.file.Files.newOutputStream",
-			"java.nio.file.Files.newBufferedWriter");
+			"java.nio.file.Files.newBufferedWriter", "java.nio.file.spi.FileSystemProvider.newOutputStream");
 
 	/**
-	 * The methods that open a channel for reading, writing or both, decided by the
-	 * options alone. Without {@code WRITE} or {@code APPEND} the JDK opens the
-	 * channel for reading.
+	 * The methods that open a file for reading, writing or both, decided by the
+	 * options alone. Without {@code WRITE} or {@code APPEND} the JDK opens the file
+	 * for reading, so an option such as {@code DELETE_ON_CLOSE} never replaces the
+	 * read check.
 	 */
 	@Nonnull
 	private static final Set<String> CHANNEL_OPENING_METHODS = Set.of("java.nio.file.Files.newByteChannel",
-			"java.nio.channels.FileChannel.open", "java.nio.channels.AsynchronousFileChannel.open");
+			"java.nio.file.Files.newInputStream", "java.nio.channels.FileChannel.open",
+			"java.nio.channels.AsynchronousFileChannel.open", "java.nio.file.spi.FileSystemProvider.newInputStream",
+			"java.nio.file.spi.FileSystemProvider.newByteChannel", "java.nio.file.spi.FileSystemProvider.newFileChannel",
+			"java.nio.file.spi.FileSystemProvider.newAsynchronousFileChannel");
+
+	/**
+	 * The class every file system provider extends. Its methods open, copy and move
+	 * files directly, without going through {@code Files}.
+	 */
+	@Nonnull
+	private static final String FILE_SYSTEM_PROVIDER = "java.nio.file.spi.FileSystemProvider";
+
+	/**
+	 * Tells whether a call is made on a file system provider, by the class named at
+	 * the call or by the receiver.
+	 *
+	 * @param declaringTypeName the called method's class
+	 * @param instance          the receiver, or {@code null} for a static call
+	 * @return whether the call is a provider method
+	 */
+	private static boolean isFileSystemProviderCall(@Nonnull String declaringTypeName, @Nullable Object instance) {
+		return FILE_SYSTEM_PROVIDER.equals(declaringTypeName)
+				|| instance instanceof java.nio.file.spi.FileSystemProvider;
+	}
+
+	/**
+	 * Returns the called method as class and name, naming a provider method after
+	 * {@code FileSystemProvider} whichever provider class runs it, so the opening
+	 * rules above apply to every provider.
+	 *
+	 * @param declaringTypeName the called method's class
+	 * @param methodName        the called method
+	 * @param instance          the receiver, or {@code null} for a static call
+	 * @return the key the opening rules are looked up by
+	 */
+	@Nonnull
+	private static String openingMethodKey(@Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nullable Object instance) {
+		return (isFileSystemProviderCall(declaringTypeName, instance) ? FILE_SYSTEM_PROVIDER : declaringTypeName) + "."
+				+ methodName;
+	}
 
 	/**
 	 * The classes whose constructors open a named file for writing, creating it if
@@ -671,22 +716,25 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	private static final String WRITE_ACTION = "write";
 
 	/**
-	 * Returns the action a {@code RandomAccessFile} constructor stands for: a read
-	 * for mode {@code "r"}, an opening for writing for the other modes.
+	 * Returns the actions a {@code RandomAccessFile} constructor stands for: a read
+	 * for mode {@code "r"}, and an opening for writing plus a read for the
+	 * {@code "rw"} modes, since a file opened so can be read as well.
 	 *
 	 * @param parameters the constructor arguments, the mode second
-	 * @return {@code read}, {@link #WRITE_ACTION}, or {@code null} without a known
-	 *         mode
+	 * @return each action with whether a missing path is checked, or {@code null}
+	 *         without a known mode
 	 */
 	@Nullable
-	private static String getRandomAccessFileModeAction(@Nullable Object[] parameters) {
+	private static List<Map.Entry<String, Boolean>> getRandomAccessFileModeActions(@Nullable Object[] parameters) {
 		if (parameters == null || parameters.length < 2 || !(parameters[1] instanceof String mode)) {
 			return null;
 		}
 		if ("r".equals(mode)) {
-			return "read";
+			return List.of(Map.entry("read", false));
 		}
-		return "rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode) ? WRITE_ACTION : null;
+		return "rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode)
+				? List.of(Map.entry(WRITE_ACTION, true), Map.entry("read", false))
+				: null;
 	}
 
 	/**
@@ -747,7 +795,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	/**
 	 * Decides how an opening for writing is checked: as an overwrite when the first
 	 * checked argument that names a path names an existing file, otherwise as a
-	 * create.
+	 * create. A call without arguments, such as {@code new Formatter()}, names no
+	 * path.
 	 *
 	 * @param parameters      the call arguments
 	 * @param ignoreVariables which arguments are not paths
@@ -755,7 +804,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 */
 	@Nonnull
 	private static String resolveWriteAction(@Nullable Object[] parameters, @Nonnull IgnoreValues ignoreVariables) {
-		if (parameters == null) {
+		if (parameters == null || parameters.length == 0) {
 			return "create";
 		}
 		for (Object parameter : filterVariables(parameters, ignoreVariables)) {
@@ -861,37 +910,27 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	// <editor-fold desc="Copy/transfer per-parameter role special case (I-114)">
 
 	/**
-	 * Special-cases {@code java.nio.file.Files.copy} and
-	 * {@code FileChannel.transferTo}/{@code transferFrom}, which the generic
-	 * {@link #deriveActionChecks} path would otherwise validate as ONE uniform
-	 * action applied to the whole parameters array. That would let a policy
-	 * granting only {@code pathsAllowedToBeOverwritten} authorise reading the
-	 * SOURCE side too, since {@code copy}'s source path was checked against the
-	 * OVERWRITE allow-list instead of READ (I-114/TD-063) — a real
-	 * privilege-escalation path, not just a misclassification.
-	 * <p>
-	 * Each of these methods is registered in both {@code filesReadMethods()} (or
-	 * {@code fileChannelReadMethods()}) and {@code filesWriteMethods()} (or
-	 * {@code fileChannelWriteMethods()}), so this advice fires once per action;
-	 * this method independently checks only the parameter/receiver relevant to
-	 * the currently-firing action, and reports {@code true} once it has fully
-	 * handled the call (the caller must not additionally run the generic path).
-	 * <p>
-	 * A destination that is itself a channel (not a {@link Path}/{@link File}) is
-	 * not resolvable to a checkable path with the existing machinery (the same
-	 * limitation the generic "receiver instance" check already has for any
-	 * channel-typed value) — that side is intentionally left unchecked here,
-	 * since a channel obtained via {@code FileChannel.open(path, ...)} was
-	 * already subject to a create/overwrite check at the point it was opened.
+	 * Checks a copy, a move or a channel transfer side by side, since each side
+	 * needs its own permission: the source is read, and deleted by a move, and the
+	 * target is written. Each method is registered under every action it stands
+	 * for, so each firing checks only its own side. A channel on the other side of
+	 * a transfer is not checked here, since opening it was checked.
 	 *
-	 * @return {@code true} if the call was one of the special-cased methods and
-	 *         has been fully handled (the generic path must be skipped)
+	 * @return {@code true} if the call was one of these methods and is fully
+	 *         handled
 	 */
 	private boolean checkCopyOrTransferSpecialCase(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nullable Object[] parameters, @Nullable Object instance,
 			@Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature, @Nonnull JoinPoint thisJoinPoint) {
-		if ("java.nio.file.Files".equals(declaringTypeName) && "copy".equals(methodName)) {
+		boolean filesOrProvider = "java.nio.file.Files".equals(declaringTypeName)
+				|| isFileSystemProviderCall(declaringTypeName, instance);
+		if (filesOrProvider && "move".equals(methodName)) {
+			checkMoveRole(action, parameters, systemMethodToCheck, studentCalledMethod, fullMethodSignature,
+					thisJoinPoint);
+			return true;
+		}
+		if (filesOrProvider && "copy".equals(methodName)) {
 			if ("read".equals(action)) {
 				// source (index 0). The other overloads' index-0 argument
 				// (InputStream) is not Path-shaped and resolves to no target, so this
@@ -939,6 +978,40 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Checks the side of a move that the firing action stands for: reading and
+	 * deleting the source, and writing the target, which is an overwrite when the
+	 * target exists and a create when it does not.
+	 *
+	 * @param action              the firing action: read, delete or overwrite
+	 * @param parameters          the move's arguments, source first, target second
+	 * @param systemMethodToCheck the method named in a refusal
+	 * @param studentCalledMethod the student method that made the call
+	 * @param fullMethodSignature the called method's signature
+	 * @param thisJoinPoint       the intercepted call
+	 * @throws SecurityException if the policy forbids that side
+	 */
+	private void checkMoveRole(@Nonnull String action, @Nullable Object[] parameters,
+			@Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature, @Nonnull JoinPoint thisJoinPoint) {
+		Object[] source = isolateParameter(parameters, 0);
+		switch (action) {
+		case "read" -> checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"), source, false,
+				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+		case "delete" -> checkSinglePathRole("delete", getValueFromSettings("pathsAllowedToBeDeleted"), source, true,
+				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+		case "overwrite" -> {
+			Object[] target = isolateParameter(parameters, 1);
+			String targetAction = resolveWriteAction(target, IgnoreValues.NONE);
+			String settingKey = "overwrite".equals(targetAction) ? "pathsAllowedToBeOverwritten"
+					: "pathsAllowedToBeCreated";
+			checkSinglePathRole(targetAction, getValueFromSettings(settingKey), target, true, systemMethodToCheck,
+					studentCalledMethod, fullMethodSignature, thisJoinPoint);
+		}
+		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+		}
 	}
 
 	/**
@@ -1243,15 +1316,17 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * @param declaringTypeName the called method's class
 	 * @param methodName        the called method
 	 * @param parameters        the call arguments
+	 * @param instance          the receiver, or {@code null} for a static call
 	 * @return each action with whether a missing path is checked
 	 */
 	private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction,
-			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nullable Object[] parameters) {
+			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nullable Object[] parameters,
+			@Nullable Object instance) {
 		FileChannel.MapMode mapMode = extractMapMode(parameters);
 		if (mapMode != null) {
 			return List.of(Map.entry(mapMode == FileChannel.MapMode.READ_ONLY ? "read" : "overwrite", false));
 		}
-		String methodKey = declaringTypeName + "." + methodName;
+		String methodKey = openingMethodKey(declaringTypeName, methodName, instance);
 		Set<StandardOpenOption> options = extractStandardOpenOptions(parameters);
 		if (WRITE_OPENING_METHODS.contains(methodKey) || CHANNEL_OPENING_METHODS.contains(methodKey)) {
 			return openOptionActions(effectiveOpenOptions(methodKey, options));
@@ -1261,9 +1336,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			return optionActions;
 		}
 		if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
-			String modeAction = getRandomAccessFileModeAction(parameters);
-			if (modeAction != null) {
-				return List.of(Map.entry(modeAction, !"read".equals(modeAction)));
+			List<Map.Entry<String, Boolean>> modeActions = getRandomAccessFileModeActions(parameters);
+			if (modeActions != null) {
+				return modeActions;
 			}
 		} else if ("<init>".equals(methodName) && WRITE_OPENING_CONSTRUCTORS.contains(declaringTypeName)) {
 			return List.of(Map.entry(WRITE_ACTION, true));
@@ -1751,7 +1826,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			return;
 		}
 		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, methodName,
-				parameters);
+				parameters, instance);
 		@Nonnull
 		IgnoreValues ignoredParameters = parameterIgnoreValues(extractMethodNameWithoutModifiers(fullMethodSignature),
 				methodName, instance);

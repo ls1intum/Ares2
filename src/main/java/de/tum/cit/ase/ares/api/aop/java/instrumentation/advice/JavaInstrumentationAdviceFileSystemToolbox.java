@@ -125,6 +125,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			// socket/stream is not a path. File/String-named PrintStreams still validate
 			// their path at index 0.
 			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)),
+			// PrintWriter(String|File, String charset) and Formatter(String|File, String
+			// charset, [Locale]) - only the file (index 0); the charset name is not a path.
+			Map.entry("java.io.PrintWriter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.util.Formatter.<init>", IgnoreValues.allExcept(0)),
 			// FileSystemView.getChild(File dir, String name) and isParent(File dir, File
 			// file) list dir; only dir is checked, the name is not a path and the file is
 			// not listed.
@@ -212,8 +216,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * The {@code Files} methods the JDK calls to create a temp file:
-	 * {@code createFile}, which opens it through {@code newByteChannel}. Creating a
-	 * temp directory goes through {@code createDirectory} and is not listed.
+	 * {@code createFile}, which opens it through {@code newByteChannel} of
+	 * {@code Files} and then of the provider. Creating a temp directory goes
+	 * through {@code createDirectory} and is not listed.
 	 */
 	@Nonnull
 	private static final Set<String> JDK_TEMP_FILE_STEPS = Set.of("createFile", "newByteChannel");
@@ -675,16 +680,58 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	@Nonnull
 	private static final Set<String> WRITE_OPENING_METHODS = Set.of("java.nio.file.Files.write",
 			"java.nio.file.Files.writeString", "java.nio.file.Files.newOutputStream",
-			"java.nio.file.Files.newBufferedWriter");
+			"java.nio.file.Files.newBufferedWriter", "java.nio.file.spi.FileSystemProvider.newOutputStream");
 
 	/**
-	 * The methods that open a channel for reading, writing or both, decided by the
-	 * options alone. Without {@code WRITE} or {@code APPEND} the JDK opens the
-	 * channel for reading.
+	 * The methods that open a file for reading, writing or both, decided by the
+	 * options alone. Without {@code WRITE} or {@code APPEND} the JDK opens the file
+	 * for reading, so an option such as {@code DELETE_ON_CLOSE} never replaces the
+	 * read check.
 	 */
 	@Nonnull
 	private static final Set<String> CHANNEL_OPENING_METHODS = Set.of("java.nio.file.Files.newByteChannel",
-			"java.nio.channels.FileChannel.open", "java.nio.channels.AsynchronousFileChannel.open");
+			"java.nio.file.Files.newInputStream", "java.nio.channels.FileChannel.open",
+			"java.nio.channels.AsynchronousFileChannel.open", "java.nio.file.spi.FileSystemProvider.newInputStream",
+			"java.nio.file.spi.FileSystemProvider.newByteChannel",
+			"java.nio.file.spi.FileSystemProvider.newFileChannel",
+			"java.nio.file.spi.FileSystemProvider.newAsynchronousFileChannel");
+
+	/**
+	 * The class every file system provider extends. Its methods open, copy and move
+	 * files directly, without going through {@code Files}.
+	 */
+	@Nonnull
+	private static final String FILE_SYSTEM_PROVIDER = "java.nio.file.spi.FileSystemProvider";
+
+	/**
+	 * Tells whether a call is made on a file system provider. The instrumented
+	 * method belongs to the provider class that runs it, so the receiver decides.
+	 *
+	 * @param declaringTypeName the called method's class
+	 * @param instance          the receiver, or {@code null} for a static call
+	 * @return whether the call is a provider method
+	 */
+	private static boolean isFileSystemProviderCall(@Nonnull String declaringTypeName, @Nullable Object instance) {
+		return FILE_SYSTEM_PROVIDER.equals(declaringTypeName)
+				|| instance instanceof java.nio.file.spi.FileSystemProvider;
+	}
+
+	/**
+	 * Returns the called method as class and name, naming a provider method after
+	 * {@code FileSystemProvider} whichever provider class runs it, so the opening
+	 * rules above apply to every provider.
+	 *
+	 * @param declaringTypeName the called method's class
+	 * @param methodName        the called method
+	 * @param instance          the receiver, or {@code null} for a static call
+	 * @return the key the opening rules are looked up by
+	 */
+	@Nonnull
+	private static String openingMethodKey(@Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nullable Object instance) {
+		return (isFileSystemProviderCall(declaringTypeName, instance) ? FILE_SYSTEM_PROVIDER : declaringTypeName) + "."
+				+ methodName;
+	}
 
 	/**
 	 * The classes whose constructors open a named file for writing, creating it if
@@ -704,22 +751,25 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	private static final String WRITE_ACTION = "write";
 
 	/**
-	 * Returns the action a {@code RandomAccessFile} constructor stands for: a read
-	 * for mode {@code "r"}, an opening for writing for the other modes.
+	 * Returns the actions a {@code RandomAccessFile} constructor stands for: a read
+	 * for mode {@code "r"}, and an opening for writing plus a read for the
+	 * {@code "rw"} modes, since a file opened so can be read as well.
 	 *
 	 * @param parameters the constructor arguments, the mode second
-	 * @return {@code read}, {@link #WRITE_ACTION}, or {@code null} without a known
-	 *         mode
+	 * @return each action with whether a missing path is checked, or {@code null}
+	 *         without a known mode
 	 */
 	@Nullable
-	private static String getRandomAccessFileModeAction(@Nullable Object[] parameters) {
+	private static List<Map.Entry<String, Boolean>> getRandomAccessFileModeActions(@Nullable Object[] parameters) {
 		if (parameters == null || parameters.length < 2 || !(parameters[1] instanceof String mode)) {
 			return null;
 		}
 		if ("r".equals(mode)) {
-			return "read";
+			return List.of(Map.entry("read", false));
 		}
-		return "rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode) ? WRITE_ACTION : null;
+		return "rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode)
+				? List.of(Map.entry(WRITE_ACTION, true), Map.entry("read", false))
+				: null;
 	}
 
 	/**
@@ -780,7 +830,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	/**
 	 * Decides how an opening for writing is checked: as an overwrite when the first
 	 * checked argument that names a path names an existing file, otherwise as a
-	 * create.
+	 * create. A call without arguments, such as {@code new Formatter()}, names no
+	 * path.
 	 *
 	 * @param parameters      the call arguments
 	 * @param ignoreVariables which arguments are not paths
@@ -788,7 +839,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 */
 	@Nonnull
 	private static String resolveWriteAction(@Nullable Object[] parameters, @Nonnull IgnoreValues ignoreVariables) {
-		if (parameters == null) {
+		if (parameters == null || parameters.length == 0) {
 			return "create";
 		}
 		for (Object parameter : filterVariables(parameters, ignoreVariables)) {
@@ -894,37 +945,26 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	// <editor-fold desc="Copy/transfer per-parameter role special case (I-114)">
 
 	/**
-	 * Special-cases {@code java.nio.file.Files.copy} and
-	 * {@code FileChannel.transferTo}/{@code transferFrom}, which the generic
-	 * {@link #deriveActionChecks} path would otherwise validate as ONE uniform
-	 * action applied to the whole parameters array. That would let a policy
-	 * granting only {@code pathsAllowedToBeOverwritten} authorise reading the
-	 * SOURCE side too, since {@code copy}'s source path was checked against the
-	 * OVERWRITE allow-list instead of READ (I-114/TD-063) — a real
-	 * privilege-escalation path, not just a misclassification.
-	 * <p>
-	 * Each of these methods is registered in both
-	 * {@code METHODS_WHICH_CAN_READ_FILES} and
-	 * {@code METHODS_WHICH_CAN_OVERWRITE_FILES}, so this advice fires once per
-	 * action; this method independently checks only the parameter/receiver relevant
-	 * to the currently-firing action, and reports {@code true} once it has fully
-	 * handled the call (the caller must not additionally run the generic path).
-	 * <p>
-	 * A destination that is itself a channel (not a {@link Path}/{@link File}) is
-	 * not resolvable to a checkable path with the existing machinery (the same
-	 * limitation the generic "receiver instance" check already has for any
-	 * channel-typed value) — that side is intentionally left unchecked here, since
-	 * a channel obtained via {@code FileChannel.open(path, ...)} was already
-	 * subject to a create/overwrite check at the point it was opened.
+	 * Checks a copy, a move or a channel transfer side by side, since each side
+	 * needs its own permission: the source is read, and deleted by a move, and the
+	 * target is written. Each method is registered under every action it stands
+	 * for, so each firing checks only its own side. A channel on the other side of
+	 * a transfer is not checked here, since opening it was checked.
 	 *
-	 * @return {@code true} if the call was one of the special-cased methods and has
-	 *         been fully handled (the generic path must be skipped)
+	 * @return {@code true} if the call was one of these methods and is fully
+	 *         handled
 	 */
 	private static boolean checkCopyOrTransferSpecialCase(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nullable Object[] parameters, @Nullable Object instance,
 			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature) {
-		if ("java.nio.file.Files".equals(declaringTypeName) && "copy".equals(methodName)) {
+		boolean filesOrProvider = "java.nio.file.Files".equals(declaringTypeName)
+				|| isFileSystemProviderCall(declaringTypeName, instance);
+		if (filesOrProvider && "move".equals(methodName)) {
+			checkMoveRole(action, parameters, fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+			return true;
+		}
+		if (filesOrProvider && "copy".equals(methodName)) {
 			if ("read".equals(action)) {
 				// source (index 0). The other overloads' index-0 argument (InputStream) is
 				// not Path-shaped and resolves to no target, so this is a safe no-op for them.
@@ -1135,6 +1175,40 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
+	 * Checks the side of a move that the firing action stands for: reading and
+	 * deleting the source, and writing the target, which is an overwrite when the
+	 * target exists and a create when it does not.
+	 *
+	 * @param action                  the firing action: read, delete or overwrite
+	 * @param parameters              the move's arguments, source first, target
+	 *                                second
+	 * @param fileSystemMethodToCheck the method named in a refusal
+	 * @param studentCalledMethod     the student method that made the call
+	 * @param fullMethodSignature     the called method's signature
+	 * @throws SecurityException if the policy forbids that side
+	 */
+	private static void checkMoveRole(@Nonnull String action, @Nullable Object[] parameters,
+			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature) {
+		Object[] source = isolateParameter(parameters, 0);
+		switch (action) {
+		case "read" -> checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"), source, false,
+				fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+		case "delete" -> checkSinglePathRole("delete", getValueFromSettings("pathsAllowedToBeDeleted"), source, true,
+				fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+		case "overwrite" -> {
+			Object[] target = isolateParameter(parameters, 1);
+			String targetAction = resolveWriteAction(target, IgnoreValues.NONE);
+			String settingKey = "overwrite".equals(targetAction) ? "pathsAllowedToBeOverwritten"
+					: "pathsAllowedToBeCreated";
+			checkSinglePathRole(targetAction, getValueFromSettings(settingKey), target, true, fileSystemMethodToCheck,
+					studentCalledMethod, fullMethodSignature);
+		}
+		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+		}
+	}
+
+	/**
 	 * Checks one side of a student's file copy or transfer against the given
 	 * allow-list and throws a {@code SecurityException} on a violation. No
 	 * exemption applies: the student names both paths, so neither is Ares or the
@@ -1217,15 +1291,17 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @param declaringTypeName the called method's class
 	 * @param methodName        the called method
 	 * @param parameters        the call arguments
+	 * @param instance          the receiver, or {@code null} for a static call
 	 * @return each action with whether a missing path is checked
 	 */
 	private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction,
-			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nullable Object[] parameters) {
+			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nullable Object[] parameters,
+			@Nullable Object instance) {
 		FileChannel.MapMode mapMode = extractMapMode(parameters);
 		if (mapMode != null) {
 			return List.of(Map.entry("READ_ONLY".equals(mapMode.toString()) ? "read" : "overwrite", false));
 		}
-		String methodKey = declaringTypeName + "." + methodName;
+		String methodKey = openingMethodKey(declaringTypeName, methodName, instance);
 		Set<StandardOpenOption> options = extractStandardOpenOptions(parameters);
 		if (WRITE_OPENING_METHODS.contains(methodKey) || CHANNEL_OPENING_METHODS.contains(methodKey)) {
 			return openOptionActions(effectiveOpenOptions(methodKey, options));
@@ -1235,9 +1311,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			return optionActions;
 		}
 		if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
-			String modeAction = getRandomAccessFileModeAction(parameters);
-			if (modeAction != null) {
-				return List.of(Map.entry(modeAction, !"read".equals(modeAction)));
+			List<Map.Entry<String, Boolean>> modeActions = getRandomAccessFileModeActions(parameters);
+			if (modeActions != null) {
+				return modeActions;
 			}
 		} else if ("<init>".equals(methodName) && WRITE_OPENING_CONSTRUCTORS.contains(declaringTypeName)) {
 			return List.of(Map.entry(WRITE_ACTION, true));
@@ -1464,20 +1540,24 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	/**
 	 * Tells whether the JDK's own temp-file code is creating a file directly in the
 	 * default temp directory fixed at start-up, as the inner steps of
-	 * {@code Files.createTempFile} without a directory. A temp directory does not
-	 * count, and any student code between that JDK code and this check, such as a
-	 * file attribute's method, makes it student access.
+	 * {@code Files.createTempFile} without a directory, in {@code Files} or in the
+	 * provider below it. A temp directory does not count, and any student code
+	 * between that JDK code and this check, such as a file attribute's method,
+	 * makes it student access.
 	 *
 	 * @param action            the file-system action being checked
 	 * @param declaringTypeName the class of the intercepted method
 	 * @param methodName        the intercepted method
+	 * @param instance          the receiver, or {@code null} for a static call
 	 * @param path              the path being created
 	 * @return {@code true} only for that inner step
 	 */
 	private static boolean isJdkTempFileCreation(@Nonnull String action, @Nonnull String declaringTypeName,
-			@Nonnull String methodName, @Nullable String path) {
-		if (!("create".equals(action) || "overwrite".equals(action)) || path == null
-				|| !"java.nio.file.Files".equals(declaringTypeName) || !JDK_TEMP_FILE_STEPS.contains(methodName)) {
+			@Nonnull String methodName, @Nullable Object instance, @Nullable String path) {
+		boolean filesOrProvider = "java.nio.file.Files".equals(declaringTypeName)
+				|| isFileSystemProviderCall(declaringTypeName, instance);
+		if (!("create".equals(action) || "overwrite".equals(action)) || path == null || !filesOrProvider
+				|| !JDK_TEMP_FILE_STEPS.contains(methodName)) {
 			return false;
 		}
 		@Nullable
@@ -1642,7 +1722,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			boolean isExemptSystemFileAccess = isExemptSystemFileAccess(action,
 					pathIllegallyInteractedThroughParameter);
 			boolean isEntropySourceRead = isEntropySourceRead(action, pathIllegallyInteractedThroughParameter);
-			boolean isJdkTempFileCreation = isJdkTempFileCreation(action, declaringTypeName, methodName,
+			boolean isJdkTempFileCreation = isJdkTempFileCreation(action, declaringTypeName, methodName, instance,
 					pathIllegallyInteractedThroughParameter);
 			if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess && !isJarResourceRead
 					&& !isEntropySourceRead && !isJdkTempFileCreation) {
@@ -1822,7 +1902,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				return;
 			}
 			List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName,
-					methodName, parameters);
+					methodName, parameters, instance);
 			for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
 				String actionToCheck = WRITE_ACTION.equals(actionCheck.getKey())
 						? resolveWriteAction(parameters,
