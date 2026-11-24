@@ -5,6 +5,7 @@ regardingTheSupervisedCode:
   theMainClassInsideThisPackageIs: "Main"
   theFollowingClassesAreTestClasses:
     - "de.tum.cit.ase.ares.integration.aop.allowed.SupervisionLifecycleTest"
+    - "de.tum.cit.ase.ares.integration.aop.allowed.SupervisionJupiterPhasesTest"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions:
       - readAllFiles: true
