@@ -83,7 +83,7 @@ regardingTheSupervisedCode:
 | --- | --- |
 | `thisPolicyFileCompliesToThePolicyVersion` | The policy format the file is written against. A root field rather than a member of `regardingTheSupervisedCode`. Must be exactly `1`; a file that omits it is rejected on load. |
 | `theFollowingProgrammingLanguageConfigurationIsUsed` | Selects the processing pipeline (build system, static analysis tool and dynamic analysis backend). See the table below. |
-| `theSupervisedCodeUsesTheFollowingPackage` | The root package containing all student code to be supervised. |
+| `theSupervisedCodeUsesTheFollowingPackage` | The root package containing all student code to be supervised. It must hold every class below the `withinPath` of `@Policy`, and `withinPath` must hold every compiled student class of this package. Ares refuses a run where the two differ, since one of its two checks then sees nothing. |
 | `theMainClassInsideThisPackageIs` | The entrypoint class used to construct the call graph of the student program. |
 | `theFollowingClassesAreTestClasses` | Test classes that execute student code. These are trusted and not sandboxed. Ares sandboxes an unlisted test class, helper class or superclass inside the supervised package like student code, constructor and setup and teardown methods included. |
 | `regardingFileSystemInteractions` | Which paths the student code may interact with, and which operations (read, create, overwrite, execute, delete) are allowed. |
