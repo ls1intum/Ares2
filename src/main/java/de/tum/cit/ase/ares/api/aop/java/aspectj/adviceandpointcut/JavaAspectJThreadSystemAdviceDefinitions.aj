@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import javax.annotation.Nonnull;
 
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.reflect.ConstructorSignature;
 //</editor-fold>
 
 @SuppressWarnings("AopLanguageInspection")
@@ -220,6 +221,25 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 */
 	private static final Set<String> PARALLEL_ARRAY_OPERATIONS = Set.of("parallelSort", "parallelPrefix",
 			"parallelSetAll");
+
+	/**
+	 * The class of the thread a {@code java.util.Timer} starts when it is built. A
+	 * new timer counts as one thread of this class, as instrumentation sees that
+	 * thread start; the tasks scheduled on it start no thread.
+	 */
+	private static final String TIMER_THREAD_CLASS = "java.util.TimerThread";
+
+	/**
+	 * Tells whether a join point builds a {@code java.util.Timer} or a subclass,
+	 * which starts the timer's thread at once.
+	 *
+	 * @param joinPoint the intercepted call
+	 * @return whether it builds a timer
+	 */
+	private static boolean isTimerConstruction(@Nonnull JoinPoint joinPoint) {
+		return joinPoint.getSignature() instanceof ConstructorSignature constructor
+				&& java.util.Timer.class.isAssignableFrom(constructor.getDeclaringType());
+	}
 
 
 	/**
@@ -911,6 +931,10 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		if (ARRAYS_CLASS.equals(declaringTypeName)) {
 			threadClassNames.clear();
 		}
+		if (isTimerConstruction(thisJoinPoint)) {
+			threadClassNames.clear();
+			threadClassNames.add(TIMER_THREAD_CLASS);
+		}
 		if (threadClassNames.isEmpty()) {
 			@Nullable
 			String implicitOperationToken = implicitThreadOperationToken(declaringTypeName, methodName);
@@ -939,7 +963,8 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	before():
 			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithParameters() ||
-					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithoutParameters() {
+					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithoutParameters() ||
+					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.timerCreateConstructors() {
 		checkThreadSystemInteraction("create", thisJoinPoint, true);
 	}
 
