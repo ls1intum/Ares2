@@ -1,0 +1,26 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.allowed.ThreadHttpClientTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: [ ]
+    regardingNetworkConnections:
+      - onTheHost: "127.0.0.1"
+        onThePort: 25565
+        openConnections: true
+        sendData: true
+        receiveData: true
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations:
+      - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "<implicit-thread-op:parallel>"
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.net"
+      - importTheFollowingPackage: "java.net.http"
+      - importTheFollowingPackage: "java.time"
+      - importTheFollowingPackage: "java.util.concurrent"
+    regardingTimeouts:
+      - timeout: 3000

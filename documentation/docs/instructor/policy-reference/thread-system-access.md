@@ -81,3 +81,17 @@ Implemented by `ThreadPermission` in
 The implicit tokens exist because not every thread is created by name. A parallel stream, a `Thread.sleep` or a `SubmissionPublisher` submission all reach the threading machinery without the student ever writing `new Thread(...)`, so each needs a token a policy can refer to.
 
 `Lambda-Expression` covers a thread body supplied as a lambda, which has no nameable class.
+
+A task handed to an executor or to `CompletableFuture` counts against the class of the task,
+in both runtime modes. The pool threads that then run it are not counted again. `Arrays.parallelSort`,
+`Arrays.parallelPrefix` and `Arrays.parallelSetAll` count as `<implicit-thread-op:parallel>`.
+
+A new `java.util.Timer` starts its thread at once, so each timer counts as one thread of the class
+`java.util.TimerThread`, in both runtime modes. The tasks scheduled on a timer run on that thread
+and are not counted again.
+
+The threads `java.net.http.HttpClient` starts for itself, such as its selector thread and the
+threads of its own pool, do not count against the policy. The network policy still decides which
+hosts and ports the client reaches. A thread that student code starts for the client, for example in an
+executor handed to `HttpClient.newBuilder().executor(...)`, still counts.
+
