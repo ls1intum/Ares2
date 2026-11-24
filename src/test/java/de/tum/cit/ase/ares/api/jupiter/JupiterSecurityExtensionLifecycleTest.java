@@ -99,16 +99,18 @@ class JupiterSecurityExtensionLifecycleTest {
 	/**
 	 * Every invocation of an ordinary, a repeated and a parameterised test prepares
 	 * once for its constructor and once for its test, and the container of each of
-	 * the two template tests once before its arguments are built.
+	 * the two template tests once before its arguments are built and again each
+	 * time the constructor or the test of one of its invocations has ended.
 	 */
 	@Test
 	void engineTestKitPreparesOrdinaryRepeatedAndParameterisedInvocationsExactlyOnce() {
 		ENGINE_PREPARATIONS.set(0);
 		EngineTestKit.engine("junit-jupiter").selectors(selectClass(EngineFixture.class)).execute().testEvents()
 				.assertStatistics(statistics -> statistics.started(7).succeeded(7).failed(0));
-		assertEquals(16, ENGINE_PREPARATIONS.get(),
-				"each of the 7 invocations prepares once for its constructor and once for its test, and each of"
-						+ " the 2 template containers once for its arguments");
+		assertEquals(28, ENGINE_PREPARATIONS.get(),
+				"each of the 7 invocations prepares once for its constructor and once for its test, each of the"
+						+ " 2 template containers once for its arguments, and again after each of the 12 closes of"
+						+ " its 6 invocations");
 	}
 
 	@Test
