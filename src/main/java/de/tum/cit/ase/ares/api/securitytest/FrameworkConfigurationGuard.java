@@ -50,6 +50,16 @@ public final class FrameworkConfigurationGuard {
 			"logback-test.scmo", "jacoco-agent.properties");
 
 	/**
+	 * The name of the module descriptor the compiler writes for a module.
+	 */
+	private static final String MODULE_DESCRIPTOR = "module-info.class";
+
+	/**
+	 * The folder of a multi-release output that holds one folder per Java version.
+	 */
+	private static final Path VERSIONS_FOLDER = Path.of("META-INF", "versions");
+
+	/**
 	 * Prevents instantiation, since the class only offers a static check.
 	 */
 	private FrameworkConfigurationGuard() {
@@ -78,8 +88,8 @@ public final class FrameworkConfigurationGuard {
 	}
 
 	/**
-	 * Returns the first settings file, service file or plugin file in an output, if
-	 * any.
+	 * Returns the first settings file, service file, plugin file or module
+	 * descriptor in an output, if any.
 	 *
 	 * @param output the output folder
 	 * @return the file found
@@ -88,9 +98,38 @@ public final class FrameworkConfigurationGuard {
 	static Optional<Path> firstSettingsFileIn(@Nonnull Path output) {
 		Optional<Path> settings = SETTINGS_FILES.stream().sorted().map(output::resolve)
 				.filter(file -> Files.exists(file, LinkOption.NOFOLLOW_LINKS)).findFirst();
-		return settings.isPresent() ? settings
-				: SERVICE_FOLDERS.stream().map(output::resolve).map(FrameworkConfigurationGuard::firstServiceFileIn)
-						.flatMap(Optional::stream).findFirst();
+		if (settings.isPresent()) {
+			return settings;
+		}
+		Optional<Path> service = SERVICE_FOLDERS.stream().map(output::resolve)
+				.map(FrameworkConfigurationGuard::firstServiceFileIn).flatMap(Optional::stream).findFirst();
+		return service.isPresent() ? service : firstModuleDescriptorIn(output);
+	}
+
+	/**
+	 * Returns a module descriptor at the top of an output or below its versioned
+	 * folders, if any. Its {@code provides} lines make the JDK create a class the
+	 * student wrote, for example when Logback asks for an XML parser.
+	 *
+	 * @param output the output folder
+	 * @return the descriptor found
+	 */
+	@Nonnull
+	private static Optional<Path> firstModuleDescriptorIn(@Nonnull Path output) {
+		Path descriptor = output.resolve(MODULE_DESCRIPTOR);
+		if (Files.exists(descriptor, LinkOption.NOFOLLOW_LINKS)) {
+			return Optional.of(descriptor);
+		}
+		Path versions = output.resolve(VERSIONS_FOLDER);
+		if (!Files.isDirectory(versions, LinkOption.NOFOLLOW_LINKS)) {
+			return Optional.empty();
+		}
+		try (Stream<Path> entries = Files.list(versions)) {
+			return entries.map(version -> version.resolve(MODULE_DESCRIPTOR))
+					.filter(file -> Files.exists(file, LinkOption.NOFOLLOW_LINKS)).sorted().findFirst();
+		} catch (IOException | UncheckedIOException unreadable) {
+			return Optional.of(versions);
+		}
 	}
 
 	/**
