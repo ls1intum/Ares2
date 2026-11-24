@@ -77,7 +77,7 @@ public class JavaExecuterTest {
 			}).when(testCase).executeArchitectureTestCase("ARCHUNIT", "INSTRUMENTATION"));
 			mockedAgent.when(() -> JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage(packageName))
 					.thenAnswer(invocation -> {
-						assertEquals(7, appliedSettings.get());
+						assertEquals(8, appliedSettings.get());
 						assertEquals(javaAOPTestCases.size(), executedAopCases.get());
 						assertEquals(javaArchitectureTestCases.size(), executedArchitectureCases.get());
 						assertTrue(restrictedPackagePublished.get());

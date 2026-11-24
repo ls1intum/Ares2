@@ -92,7 +92,8 @@ class MessagesCatalogueTest {
 	 */
 	private static final List<String> FRAGMENT_KEYS = List.of("security.advice.called.by",
 			"security.advice.resolved.runtime.declaration", "security.advice.thread.lambda",
-			"security.advice.denial.reason.command.executable.path.not.allowed", "reporting.problem_location_hint",
+			"security.advice.denial.reason.command.executable.path.not.allowed",
+			"security.advice.denial.reason.test.ended", "reporting.problem_location_hint",
 			"security.gradle.sourceroots.detail.version", "security.gradle.sourceroots.detail.missing",
 			"security.gradle.sourceroots.detail.encoding", "security.gradle.sourceroots.detail.charset",
 			"security.gradle.sourceroots.detail.relative");

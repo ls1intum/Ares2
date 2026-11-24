@@ -1,7 +1,7 @@
 package de.tum.cit.ase.ares.api.jupiter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;
@@ -98,19 +98,21 @@ class JupiterSecurityExtensionLifecycleTest {
 
 	/**
 	 * Every invocation of an ordinary, a repeated and a parameterised test prepares
-	 * once for its constructor and once for its test.
+	 * once for its constructor and once for its test, and the container of each of
+	 * the two template tests once before its arguments are built.
 	 */
 	@Test
 	void engineTestKitPreparesOrdinaryRepeatedAndParameterisedInvocationsExactlyOnce() {
 		ENGINE_PREPARATIONS.set(0);
 		EngineTestKit.engine("junit-jupiter").selectors(selectClass(EngineFixture.class)).execute().testEvents()
 				.assertStatistics(statistics -> statistics.started(7).succeeded(7).failed(0));
-		assertEquals(14, ENGINE_PREPARATIONS.get(),
-				"each of the 7 invocations prepares once for its constructor and once for its test");
+		assertEquals(16, ENGINE_PREPARATIONS.get(),
+				"each of the 7 invocations prepares once for its constructor and once for its test, and each of"
+						+ " the 2 template containers once for its arguments");
 	}
 
 	@Test
-	void failedPreparationResetsPartiallyPublishedSecuritySettings() throws ReflectiveOperationException {
+	void failedPreparationLeavesPartiallyPublishedSecuritySettingsUnarmed() throws ReflectiveOperationException {
 		JupiterSecurityExtension extension = new JupiterSecurityExtension() {
 			@Override
 			void prepareSecurity(ExtensionContext context) {
@@ -120,7 +122,7 @@ class JupiterSecurityExtensionLifecycleTest {
 		};
 
 		assertThrows(IllegalStateException.class, () -> extension.beforeTestExecution(contextWithStore()));
-		assertNull(restrictedPackageField().get(null));
+		assertFalse(isGuardArmed());
 	}
 
 	/** JUnit setting that lets tests run in several threads at once. */
@@ -146,7 +148,7 @@ class JupiterSecurityExtensionLifecycleTest {
 	/** Records whether the guard is armed during the named phase. */
 	private static void observe(String phase) {
 		try {
-			OBSERVATIONS.add(phase + "=" + (restrictedPackageField().get(null) != null));
+			OBSERVATIONS.add(phase + "=" + isGuardArmed());
 		} catch (ReflectiveOperationException exception) {
 			throw new AssertionError(exception);
 		}
@@ -422,7 +424,7 @@ class JupiterSecurityExtensionLifecycleTest {
 
 		assertEquals(List.of("beforeAll=true", "constructor=true", "beforeEach=true", "test=true", "afterEach=true",
 				"afterAll=true"), OBSERVATIONS);
-		assertNull(restrictedPackageField().get(null), "the guard must be closed once the class has finished");
+		assertFalse(isGuardArmed(), "the guard must be closed once the class has finished");
 	}
 
 	/** A shared instance must not leave later tests unguarded. */
@@ -435,7 +437,7 @@ class JupiterSecurityExtensionLifecycleTest {
 		assertEquals(2, OBSERVATIONS.stream().filter("beforeEach=true"::equals).count(), OBSERVATIONS.toString());
 		assertTrue(OBSERVATIONS.contains("first=true"), OBSERVATIONS.toString());
 		assertTrue(OBSERVATIONS.contains("second=true"), OBSERVATIONS.toString());
-		assertNull(restrictedPackageField().get(null));
+		assertFalse(isGuardArmed());
 	}
 
 	/** A failing setup method must close the guard. */
@@ -445,7 +447,7 @@ class JupiterSecurityExtensionLifecycleTest {
 				.assertStatistics(statistics -> statistics.started(1).failed(1));
 
 		assertEquals(List.of("beforeEach=true"), OBSERVATIONS);
-		assertNull(restrictedPackageField().get(null), "a failed setup method must still close the guard");
+		assertFalse(isGuardArmed(), "a failed setup method must still close the guard");
 	}
 
 	/** An aborted setup method must close the guard. */
@@ -456,7 +458,7 @@ class JupiterSecurityExtensionLifecycleTest {
 
 		assertEquals(List.of(), OBSERVATIONS);
 		assertEquals(2, ENGINE_PREPARATIONS.get(), "the constructor and the setup method must both have been armed");
-		assertNull(restrictedPackageField().get(null), "an aborted setup method must still close the guard");
+		assertFalse(isGuardArmed(), "an aborted setup method must still close the guard");
 	}
 
 	/** The test method reuses the preparation done for its setup method. */
@@ -477,7 +479,7 @@ class JupiterSecurityExtensionLifecycleTest {
 				.assertStatistics(statistics -> statistics.skipped(0).failed(1));
 
 		assertEquals(List.of(), OBSERVATIONS);
-		assertNull(restrictedPackageField().get(null));
+		assertFalse(isGuardArmed());
 	}
 
 	/**
@@ -490,7 +492,7 @@ class JupiterSecurityExtensionLifecycleTest {
 				.assertStatistics(statistics -> statistics.started(1).failed(1));
 
 		assertEquals(List.of(), OBSERVATIONS);
-		assertNull(restrictedPackageField().get(null));
+		assertFalse(isGuardArmed());
 	}
 
 	/**
@@ -503,7 +505,7 @@ class JupiterSecurityExtensionLifecycleTest {
 				.assertStatistics(statistics -> statistics.started(1).failed(1));
 
 		assertEquals(List.of("beforeEach=true"), OBSERVATIONS);
-		assertNull(restrictedPackageField().get(null), "the guard must be closed after the test has failed");
+		assertFalse(isGuardArmed(), "the guard must be closed after the test has failed");
 	}
 
 	/**
@@ -517,7 +519,7 @@ class JupiterSecurityExtensionLifecycleTest {
 		assertEquals(List.of("inheritedSetup=true", "ownSetup=true", "test=true"), OBSERVATIONS);
 		assertEquals(2, ENGINE_PREPARATIONS.get(),
 				"one for the constructor, one shared by the setup methods and the test");
-		assertNull(restrictedPackageField().get(null));
+		assertFalse(isGuardArmed());
 	}
 
 	/**
@@ -528,7 +530,7 @@ class JupiterSecurityExtensionLifecycleTest {
 		runFixture(NestedFixture.class).testEvents().assertStatistics(statistics -> statistics.succeeded(1));
 
 		assertEquals(List.of("innerBeforeEach=true", "innerTest=true"), OBSERVATIONS);
-		assertNull(restrictedPackageField().get(null));
+		assertFalse(isGuardArmed());
 	}
 
 	/**
@@ -604,20 +606,36 @@ class JupiterSecurityExtensionLifecycleTest {
 
 		assertEquals(List.of("beforeAll=true", "constructor=true", "beforeEach=true", "test=true", "afterEach=true",
 				"afterAll=true"), OBSERVATIONS);
-		assertNull(restrictedPackageField().get(null));
+		assertFalse(isGuardArmed());
 	}
 
+	/** Arms the marker setting as a prepared test would, ending no test. */
 	private static void setRestrictedPackage(String value) {
 		try {
 			restrictedPackageField().set(null, value);
+			settingsField("supervisionEndedOnThread").set(null, null);
 		} catch (ReflectiveOperationException exception) {
 			throw new AssertionError(exception);
 		}
 	}
 
+	/**
+	 * Whether the guard is armed: a package is set, no test has ended since, and
+	 * the checks are not suspended.
+	 */
+	private static boolean isGuardArmed() throws ReflectiveOperationException {
+		return restrictedPackageField().get(null) != null && settingsField("supervisionEndedOnThread").get(null) == null
+				&& !Boolean.TRUE.equals(settingsField("supervisionSuspended").get(null));
+	}
+
 	private static Field restrictedPackageField() throws ReflectiveOperationException {
+		return settingsField("restrictedPackage");
+	}
+
+	/** One field of the settings that the guard arms, made accessible. */
+	private static Field settingsField(String name) throws ReflectiveOperationException {
 		Class<?> settings = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings");
-		Field field = settings.getDeclaredField("restrictedPackage");
+		Field field = settings.getDeclaredField(name);
 		field.setAccessible(true);
 		return field;
 	}

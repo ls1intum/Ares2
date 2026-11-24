@@ -179,32 +179,47 @@ public final class JavaAOPTestCaseSettings {
 	private static volatile String frozenDefaultTempDirectory = null;
 
 	/**
-	 * Resets the configuration settings to their default values.
-	 * <p>
-	 * This method is called via reflection from
-	 * {@link de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension} when a test
-	 * does not have a {@link de.tum.cit.ase.ares.api.Policy} annotation or when the
-	 * policy is explicitly deactivated with {@code @Policy(activated = false)}.
-	 * This ensures that AOP advices from previous tests do not affect subsequent
-	 * tests running in the same JVM instance.
-	 * </p>
-	 * <p>
-	 * Design Rationale (I-032, scoped): synchronises on {@link #SETTINGS_LOCK} so
-	 * this whole-set reset cannot interleave, field by field, with a concurrent
-	 * {@link de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase#setJavaAdviceSettingValue}
-	 * call (which synchronises on the same lock — see that class). This closes the
-	 * race between concurrent <em>writers</em> (two security-test-case setup/reset
-	 * sequences interleaving on the same JVM). It deliberately does
-	 * <strong>not</strong> attempt the full fix the audit describes (a single
-	 * immutable policy object behind one atomically-swapped reference): that would
-	 * also require every <em>reader</em> — the settings-reading prelude of all
-	 * eight {@code check*InteractionImpl} methods across both AOP backends — to
-	 * synchronise on the same lock for its whole multi-field read sequence, a much
-	 * larger change this session cannot safely verify without running the full
-	 * test/architecture matrix. See the audit write-up for the full reasoning; this
-	 * is the "scope the first commit to the swap mechanism" fallback it explicitly
-	 * permits.
-	 * </p>
+	 * The thread that ended the last supervised test, or {@code null} while a test
+	 * runs supervised. Only this thread, which runs JUnit and Ares, goes unchecked
+	 * after a test has ended; any other thread the test left running, such as a
+	 * shutdown hook, keeps being checked against no allowance at all.
+	 */
+	private static volatile Thread supervisionEndedOnThread = null;
+
+	/**
+	 * Whether no thread is checked at all, because Ares does not guard what runs
+	 * now: a test whose policy is deactivated, or a class phase without a policy.
+	 */
+	private static volatile boolean supervisionSuspended = false;
+
+	/**
+	 * Ends a supervised test. Every allowance goes, but the package, the test
+	 * classes and the modes stay, so code the test left running is refused from now
+	 * on. The calling thread goes unchecked until the next test is armed. The
+	 * package is never cleared here, since a moment without it would check nothing.
+	 */
+	public static void endSupervision() {
+		synchronized (SETTINGS_LOCK) {
+			clearAllowances();
+			JavaAOPTestCaseSettings.supervisionEndedOnThread = Thread.currentThread();
+			JavaAOPTestCaseSettings.supervisionSuspended = false;
+		}
+	}
+
+	/**
+	 * Lifts every check until {@link #endSupervision()} runs, for a phase Ares does
+	 * not guard.
+	 */
+	public static void suspendSupervision() {
+		supervisionSuspended = true;
+	}
+
+	/**
+	 * Resets every setting to its default, so nothing is checked at all, except the
+	 * frozen temp directory, which holds for the whole JVM. Writers synchronise on
+	 * {@link #SETTINGS_LOCK}, so a reset never interleaves field by field with a
+	 * write of {@code JavaAOPTestCase}; readers do not, so it is not atomic for
+	 * them.
 	 */
 	public static void reset() {
 		synchronized (SETTINGS_LOCK) {
@@ -215,21 +230,31 @@ public final class JavaAOPTestCaseSettings {
 			JavaAOPTestCaseSettings.mainClass = null;
 			JavaAOPTestCaseSettings.allowedListedPackages = null;
 			JavaAOPTestCaseSettings.allowedListedClasses = null;
-			JavaAOPTestCaseSettings.pathsAllowedToBeRead = null;
-			JavaAOPTestCaseSettings.pathsAllowedToBeOverwritten = null;
-			JavaAOPTestCaseSettings.pathsAllowedToBeCreated = null;
-			JavaAOPTestCaseSettings.pathsAllowedToBeExecuted = null;
-			JavaAOPTestCaseSettings.pathsAllowedToBeDeleted = null;
-			JavaAOPTestCaseSettings.hostsAllowedToBeConnectedTo = null;
-			JavaAOPTestCaseSettings.portsAllowedToBeConnectedTo = null;
-			JavaAOPTestCaseSettings.hostsAllowedToBeSentTo = null;
-			JavaAOPTestCaseSettings.portsAllowedToBeSentTo = null;
-			JavaAOPTestCaseSettings.hostsAllowedToBeReceivedFrom = null;
-			JavaAOPTestCaseSettings.portsAllowedToBeReceivedFrom = null;
-			JavaAOPTestCaseSettings.commandsAllowedToBeExecuted = null;
-			JavaAOPTestCaseSettings.argumentsAllowedToBePassed = null;
-			JavaAOPTestCaseSettings.threadClassAllowedToBeCreated = null;
-			JavaAOPTestCaseSettings.threadNumberAllowedToBeCreated = null;
+			clearAllowances();
+			JavaAOPTestCaseSettings.supervisionEndedOnThread = null;
+			JavaAOPTestCaseSettings.supervisionSuspended = false;
 		}
+	}
+
+	/**
+	 * Removes every allowance of the policy, for files, network, commands and
+	 * threads. The caller holds {@link #SETTINGS_LOCK}.
+	 */
+	private static void clearAllowances() {
+		JavaAOPTestCaseSettings.pathsAllowedToBeRead = null;
+		JavaAOPTestCaseSettings.pathsAllowedToBeOverwritten = null;
+		JavaAOPTestCaseSettings.pathsAllowedToBeCreated = null;
+		JavaAOPTestCaseSettings.pathsAllowedToBeExecuted = null;
+		JavaAOPTestCaseSettings.pathsAllowedToBeDeleted = null;
+		JavaAOPTestCaseSettings.hostsAllowedToBeConnectedTo = null;
+		JavaAOPTestCaseSettings.portsAllowedToBeConnectedTo = null;
+		JavaAOPTestCaseSettings.hostsAllowedToBeSentTo = null;
+		JavaAOPTestCaseSettings.portsAllowedToBeSentTo = null;
+		JavaAOPTestCaseSettings.hostsAllowedToBeReceivedFrom = null;
+		JavaAOPTestCaseSettings.portsAllowedToBeReceivedFrom = null;
+		JavaAOPTestCaseSettings.commandsAllowedToBeExecuted = null;
+		JavaAOPTestCaseSettings.argumentsAllowedToBePassed = null;
+		JavaAOPTestCaseSettings.threadClassAllowedToBeCreated = null;
+		JavaAOPTestCaseSettings.threadNumberAllowedToBeCreated = null;
 	}
 }
