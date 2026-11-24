@@ -23,11 +23,11 @@ import de.tum.cit.ase.ares.api.context.TestContextUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
 /**
- * Arms the security guard for a test method, the code around it, and what JUnit
- * builds or closes around a template, factory or parameterised class. Class
- * phases, the static initialiser too, are guarded only if the class carries
- * {@code @Policy}. Between tests, code a test left running is allowed nothing;
- * only the thread that ended it goes unchecked. It refuses parallel execution.
+ * Arms the guard for a test method, the code around it, and what JUnit builds
+ * or closes around a template, factory or parameterised class. Class phases are
+ * guarded only if the class carries {@code @Policy}. After a test, code it left
+ * running gets the allowances of an enclosing container, or none; the thread
+ * that ended it goes unchecked. It refuses parallel execution.
  */
 @API(status = Status.INTERNAL)
 public class JupiterSecurityExtension
@@ -105,14 +105,14 @@ public class JupiterSecurityExtension
 	}
 
 	/**
-	 * Arms the guard for a container before JUnit runs anything in it, since an
-	 * argument source, a factory's stream or a closed argument can run student
-	 * code. The guard closes when the container ends. A class with a policy is then
-	 * initialised under it. It never disables anything.
+	 * Arms the guard for a container with a policy before JUnit runs anything in
+	 * it, since an argument source, a factory's stream or a closed argument can run
+	 * student code. The guard closes when the container ends. A class with a policy
+	 * is then initialised under it. It never disables anything.
 	 */
 	@Override
 	public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext extensionContext) {
-		if (isContainer(extensionContext)) {
+		if (isContainer(extensionContext) && armsAPolicy(extensionContext)) {
 			ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
 			prepareSecurityOnce(extensionContext, containerKey(extensionContext));
 			store.put(ARMED_CONTAINER_KEY, new ArmedContainer(extensionContext));
@@ -148,9 +148,9 @@ public class JupiterSecurityExtension
 
 	/**
 	 * Initialises the test class of a class context under the class's policy, so
-	 * its static initialiser runs under it, whatever JUnit or another extension
-	 * would touch the class first. A class without a policy is left alone, as its
-	 * class phases are not guarded.
+	 * its static initialiser runs under it if nothing initialised the class
+	 * earlier, as JUnit does for static extension fields. A class without a policy
+	 * is left alone, as its class phases are not guarded.
 	 */
 	private void initialiseTestClassUnderItsPolicy(ExtensionContext extensionContext) {
 		Optional<Class<?>> testClass = extensionContext.getTestClass();
@@ -297,13 +297,9 @@ public class JupiterSecurityExtension
 	 * check until the phase ends, as such a phase is documented to run unguarded.
 	 */
 	void prepareSecurity(ExtensionContext extensionContext) {
-		JupiterContext testContext = JupiterContext.of(extensionContext);
-		Optional<Policy> policyOpt = TestContextUtils.findAnnotationIn(testContext, Policy.class);
-		boolean hasPolicyAnnotation = policyOpt.isPresent();
-		boolean isAresActivated = policyOpt.map(Policy::activated).orElse(true);
-		boolean isTestMethodPresent = testContext.testMethod().isPresent();
-
-		if (isAresActivated && (hasPolicyAnnotation || isTestMethodPresent)) {
+		Optional<Policy> policyOpt = TestContextUtils.findAnnotationIn(JupiterContext.of(extensionContext),
+				Policy.class);
+		if (armsAPolicy(extensionContext)) {
 			Path policyPath = policyOpt.filter(p -> !p.value().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
@@ -369,7 +365,8 @@ public class JupiterSecurityExtension
 	/**
 	 * Arms the innermost armed container around a context again, after a test in it
 	 * or the container's own phase has ended. A container that itself ends looks
-	 * for the one around it.
+	 * for the one around it. It never suspends the checks: a container that arms no
+	 * policy leaves the test ended, so code left running is refused.
 	 */
 	private void rearmEnclosingContainer(ExtensionContext extensionContext, String closedKey) {
 		Optional<ExtensionContext> searchFrom = closedKey.equals(containerKey(extensionContext))
@@ -378,10 +375,22 @@ public class JupiterSecurityExtension
 		Optional<ExtensionContext> container = searchFrom
 				.map(context -> context.getStore(NAMESPACE).get(ARMED_CONTAINER_KEY, ArmedContainer.class))
 				.map(ArmedContainer::context);
-		if (container.isPresent() && container.get().getStore(NAMESPACE).get(containerKey(container.get()),
-				LifecycleState.class) == LifecycleState.PREPARED) {
+		if (container.isPresent() && armsAPolicy(container.get()) && container.get().getStore(NAMESPACE)
+				.get(containerKey(container.get()), LifecycleState.class) == LifecycleState.PREPARED) {
 			prepareSecurity(container.get());
 		}
+	}
+
+	/**
+	 * Whether preparing a context arms a policy rather than suspending the checks:
+	 * its policy is not deactivated, and it is a test method or has a
+	 * {@code @Policy}.
+	 */
+	private static boolean armsAPolicy(ExtensionContext extensionContext) {
+		JupiterContext testContext = JupiterContext.of(extensionContext);
+		Optional<Policy> policyOpt = TestContextUtils.findAnnotationIn(testContext, Policy.class);
+		return policyOpt.map(Policy::activated).orElse(true)
+				&& (policyOpt.isPresent() || testContext.testMethod().isPresent());
 	}
 
 	/**

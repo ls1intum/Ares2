@@ -111,9 +111,14 @@ policy of that test, even for arguments it builds between two invocations. The s
 arguments JUnit closes after an invocation and for the tests a `@TestFactory` stream builds after
 the factory has returned. The argument source of a `@ParameterizedClass` and the static
 initialiser of a test class are class phases: Ares restricts them under the `@Policy` of the
-class when the class carries `@Public` or `@Hidden` as well. Once a test has ended, Ares refuses
-everything the policy restricts to code the test left running, such as a thread or a shutdown
-hook.
+class when the class carries `@Public` or `@Hidden` as well. The static initialiser escapes this
+if something initialises the class before Ares sees it. JUnit does so for a class with a static
+`@RegisterExtension` or `@ExtendWith` field, and an extension registered before Ares can too.
+
+Once a test has ended, Ares refuses everything the policy restricts to code the test left running,
+such as a thread or a shutdown hook. Between two tests of a parameterised test, a parameterised
+class or a test factory with a policy, such code gets the allowances of that container instead,
+until the container ends.
 :::
 
 ## Supported programming language configurations
