@@ -67,7 +67,7 @@ class SupervisedPackageMismatchTest {
 	private static void assertRefused(Class<?> fixture) {
 		EngineTestKit.engine("junit-jupiter").selectors(selectClass(fixture)).execute().testEvents().assertThatEvents()
 				.haveExactly(1, event(test(), finishedWithFailure(instanceOf(SecurityException.class),
-						message(text -> text.contains("lifecycle.LingeringReader")))));
+						message(text -> text.contains("aop.allowed.subject.lifecycle.")))));
 	}
 
 	/** Refused under ArchUnit and AspectJ. */

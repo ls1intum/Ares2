@@ -188,6 +188,65 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
+	 * The JDK module of {@code java.net.http.HttpClient} and its implementation.
+	 */
+	private static final String HTTP_CLIENT_MODULE = "java.net.http";
+
+	/**
+	 * Reports the class of each frame, so its module and class loader can be read,
+	 * which code outside the JDK cannot fake the way it can a class name.
+	 */
+	private static final StackWalker CLASS_STACK_WALKER = StackWalker
+			.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
+
+	/**
+	 * Tells whether the JDK's {@code HttpClient} starts this thread or hands this
+	 * task over itself, with only JDK code between it and this check, such as its
+	 * selector thread or a task for its pool. AspectJ does not see these, so
+	 * neither mode counts them. Student code in between, such as a student
+	 * executor, means {@code false}, so what it does is still counted.
+	 *
+	 * @return whether the HTTP client itself acts
+	 */
+	private static boolean isHttpClientOwnThreadOperation() {
+		return CLASS_STACK_WALKER.walk(frames -> {
+			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			boolean jdkFrameSeen = false;
+			while (iterator.hasNext()) {
+				java.lang.StackWalker.StackFrame frame = iterator.next();
+				if (!jdkFrameSeen && frame.getClassName().startsWith("de.tum.cit.ase.ares.api.")) {
+					continue;
+				}
+				String moduleName = jdkModuleName(frame.getDeclaringClass());
+				if (HTTP_CLIENT_MODULE.equals(moduleName)) {
+					return Boolean.TRUE;
+				}
+				if (moduleName == null) {
+					return Boolean.FALSE;
+				}
+				jdkFrameSeen = true;
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
+	 * Names the JDK module of a class the JVM's own class loaders defined.
+	 *
+	 * @param type the class of a frame
+	 * @return the module name, or {@code null} for a class outside the JDK
+	 */
+	@Nullable
+	private static String jdkModuleName(@Nonnull Class<?> type) {
+		ClassLoader loader = type.getClassLoader();
+		String moduleName = type.getModule().getName();
+		boolean jdkLoader = loader == null || loader == ClassLoader.getPlatformClassLoader();
+		return jdkLoader && moduleName != null && (moduleName.startsWith("java.") || moduleName.startsWith("jdk."))
+				? moduleName
+				: null;
+	}
+
+	/**
 	 * Tells whether a class name belongs to the JDK.
 	 *
 	 * @param className the binary class name
@@ -855,7 +914,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		// subsystem
 		// because the Command/Execute subsystem will check these operations.
 		if (isThreadCreationFromCommandExecution() || isThreadCreationFromAresTimeout(restrictedPackage)
-				|| isJdkShellFolderHandOffWithoutStudentCode() || isInsideCountedThreadOperation()) {
+				|| isJdkShellFolderHandOffWithoutStudentCode() || isInsideCountedThreadOperation()
+				|| isHttpClientOwnThreadOperation()) {
 			return;
 		}
 		// </editor-fold>

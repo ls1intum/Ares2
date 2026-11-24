@@ -10,6 +10,8 @@ import java.util.Optional;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
+import org.junit.jupiter.api.ClassTemplate;
+import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.function.Try;
@@ -21,11 +23,11 @@ import de.tum.cit.ase.ares.api.context.TestContextUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
 /**
- * Arms the security guard for a test method, the code around it and the
- * argument sources of a template test. Class phases are guarded only if the
- * class carries {@code @Policy}. Between tests, code a test left running is
- * allowed nothing; only the thread that ended it goes unchecked. It refuses to
- * run while JUnit parallel execution is enabled.
+ * Arms the security guard for a test method, the code around it, and what JUnit
+ * builds or closes around a template, factory or parameterised class. Class
+ * phases, the static initialiser too, are guarded only if the class carries
+ * {@code @Policy}. Between tests, code a test left running is allowed nothing;
+ * only the thread that ended it goes unchecked. It refuses parallel execution.
  */
 @API(status = Status.INTERNAL)
 public class JupiterSecurityExtension
@@ -43,17 +45,37 @@ public class JupiterSecurityExtension
 	 */
 	private static final String CLASS_POLICY_PREPARED_KEY = "class-policy-prepared";
 	/**
-	 * Store key for the guard state of a template test's container, armed while
-	 * JUnit builds its arguments. It differs from the method key, which the
-	 * invocations below the container would otherwise read as their own.
+	 * Store key prefix for the guard state of a container, armed while JUnit builds
+	 * or closes what it runs. The container's unique ID completes it, as a store
+	 * lookup also reads the entries of enclosing containers.
 	 */
-	private static final String TEMPLATE_POLICY_PREPARED_KEY = "template-policy-prepared";
-	/** Store key for the resource that closes the guard of a template container. */
+	private static final String TEMPLATE_POLICY_PREPARED_KEY = "template-policy-prepared:";
+	/** Store key for the resource that closes the guard of a container. */
 	private static final String TEMPLATE_CLOSER_KEY = "template-guard-closer";
+	/**
+	 * Store key for the innermost armed container, read from below, so ending a
+	 * test inside it arms the container again.
+	 */
+	private static final String ARMED_CONTAINER_KEY = "armed-container";
+	/**
+	 * Store key prefix for the guard state while a class with a policy is
+	 * initialised; the class context's unique ID completes it.
+	 */
+	private static final String CLASS_INITIALISATION_KEY = "class-initialisation:";
 	/** The settings class whose two copies hold the armed policy. */
 	private static final String SETTINGS_CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings";
 	/** JUnit setting that lets tests run in several threads at once. */
 	private static final String PARALLEL_EXECUTION_ENABLED_KEY = "junit.jupiter.execution.parallel.enabled";
+
+	/**
+	 * Holds the innermost armed container in a store. The store closes what it
+	 * holds that can be closed, and a context can, so the context is not stored
+	 * itself.
+	 *
+	 * @param context the armed container
+	 */
+	private record ArmedContainer(ExtensionContext context) {
+	}
 
 	private enum LifecycleState {
 		PREPARING,
@@ -83,29 +105,80 @@ public class JupiterSecurityExtension
 	}
 
 	/**
-	 * Arms the guard for the container of a template test, such as a parameterised
-	 * one, before JUnit builds its arguments, since an argument source like a
-	 * {@code @MethodSource} method can run student code. The guard closes when the
-	 * container ends. It never disables anything.
+	 * Arms the guard for a container before JUnit runs anything in it, since an
+	 * argument source, a factory's stream or a closed argument can run student
+	 * code. The guard closes when the container ends. A class with a policy is then
+	 * initialised under it. It never disables anything.
 	 */
 	@Override
 	public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext extensionContext) {
-		if (isTemplateContainer(extensionContext)) {
-			prepareSecurityOnce(extensionContext, TEMPLATE_POLICY_PREPARED_KEY);
-			extensionContext.getStore(NAMESPACE).put(TEMPLATE_CLOSER_KEY,
-					(AutoCloseable) () -> closeSecurityOnce(extensionContext, TEMPLATE_POLICY_PREPARED_KEY));
+		if (isContainer(extensionContext)) {
+			ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
+			prepareSecurityOnce(extensionContext, containerKey(extensionContext));
+			store.put(ARMED_CONTAINER_KEY, new ArmedContainer(extensionContext));
+			store.put(TEMPLATE_CLOSER_KEY,
+					(AutoCloseable) () -> closeSecurityOnce(extensionContext, containerKey(extensionContext)));
 		}
-		return ConditionEvaluationResult.enabled("Ares guards the arguments of a template test");
+		initialiseTestClassUnderItsPolicy(extensionContext);
+		return ConditionEvaluationResult.enabled("Ares guards what JUnit runs in this container");
 	}
 
 	/**
-	 * Whether a context is the container of a template test rather than one of its
-	 * invocations, whose parent context has the same test method.
+	 * Whether a context is a container in which JUnit runs student code between its
+	 * tests: a template test or a parameterised class, not one of their
+	 * invocations, or a test factory.
 	 */
-	private static boolean isTemplateContainer(ExtensionContext extensionContext) {
-		return extensionContext.getTestMethod()
-				.filter(method -> AnnotationSupport.isAnnotated(method, TestTemplate.class)).isPresent()
-				&& extensionContext.getParent().flatMap(ExtensionContext::getTestMethod).isEmpty();
+	private static boolean isContainer(ExtensionContext extensionContext) {
+		Optional<Method> testMethod = extensionContext.getTestMethod();
+		if (testMethod.isPresent()) {
+			return AnnotationSupport.isAnnotated(testMethod.get(), TestFactory.class)
+					|| AnnotationSupport.isAnnotated(testMethod.get(), TestTemplate.class)
+							&& extensionContext.getParent().flatMap(ExtensionContext::getTestMethod).isEmpty();
+		}
+		return extensionContext.getTestClass()
+				.filter(testClass -> AnnotationSupport.isAnnotated(testClass, ClassTemplate.class)).isPresent();
+	}
+
+	/**
+	 * Names the state key of a container, unique to it.
+	 */
+	private static String containerKey(ExtensionContext extensionContext) {
+		return TEMPLATE_POLICY_PREPARED_KEY + extensionContext.getUniqueId();
+	}
+
+	/**
+	 * Initialises the test class of a class context under the class's policy, so
+	 * its static initialiser runs under it, whatever JUnit or another extension
+	 * would touch the class first. A class without a policy is left alone, as its
+	 * class phases are not guarded.
+	 */
+	private void initialiseTestClassUnderItsPolicy(ExtensionContext extensionContext) {
+		Optional<Class<?>> testClass = extensionContext.getTestClass();
+		if (extensionContext.getTestMethod().isPresent() || testClass.isEmpty() || !hasActivePolicy(extensionContext)) {
+			return;
+		}
+		boolean armedAsContainer = isContainer(extensionContext);
+		String stateKey = CLASS_INITIALISATION_KEY + extensionContext.getUniqueId();
+		if (!armedAsContainer) {
+			prepareSecurityOnce(extensionContext, stateKey);
+		}
+		try {
+			Class.forName(testClass.get().getName(), true, testClass.get().getClassLoader());
+		} catch (ClassNotFoundException e) {
+			throw new IllegalStateException(e);
+		} finally {
+			if (!armedAsContainer) {
+				closeSecurityOnce(extensionContext, stateKey);
+			}
+		}
+	}
+
+	/**
+	 * Whether an activated {@code @Policy} applies to the given context.
+	 */
+	private static boolean hasActivePolicy(ExtensionContext extensionContext) {
+		return TestContextUtils.findAnnotationIn(JupiterContext.of(extensionContext), Policy.class)
+				.filter(Policy::activated).isPresent();
 	}
 
 	/**
@@ -189,7 +262,8 @@ public class JupiterSecurityExtension
 	 * Reads the policy and arms the guard once for the given context and key. It
 	 * first ends the previous test, so code that test left running stays refused
 	 * while this one is prepared. A second call does nothing, and a failure leaves
-	 * the test ended. Enabled parallel execution is refused before anything else.
+	 * the test ended and an enclosing container armed again. Enabled parallel
+	 * execution is refused before anything else.
 	 */
 	private void prepareSecurityOnce(ExtensionContext extensionContext, String stateKey) {
 		refuseParallelExecution(extensionContext);
@@ -209,6 +283,7 @@ public class JupiterSecurityExtension
 			store.remove(stateKey);
 			try {
 				endSupervisionInBothClassLoaders();
+				rearmEnclosingContainer(extensionContext, stateKey);
 			} catch (RuntimeException | Error resetFailure) {
 				failure.addSuppressed(resetFailure);
 			}
@@ -263,16 +338,17 @@ public class JupiterSecurityExtension
 	 * Closes the guard once for the given context, under the store key of its
 	 * level.
 	 */
-	private static void closeSecurityOnce(ExtensionContext extensionContext) {
+	private void closeSecurityOnce(ExtensionContext extensionContext) {
 		closeSecurityOnce(extensionContext, stateKey(extensionContext));
 	}
 
 	/**
 	 * Ends the test once for the given context and key: its allowances go, so code
-	 * it left running is refused. It also reports a failed class transformation of
-	 * the instrumentation agent.
+	 * it left running is refused. Inside an armed container, the container's guard
+	 * is then armed again for what JUnit runs next. It also reports a failed class
+	 * transformation of the instrumentation agent.
 	 */
-	private static void closeSecurityOnce(ExtensionContext extensionContext, String stateKey) {
+	private void closeSecurityOnce(ExtensionContext extensionContext, String stateKey) {
 		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
 		synchronized (store) {
 			LifecycleState state = store.get(stateKey, LifecycleState.class);
@@ -286,6 +362,25 @@ public class JupiterSecurityExtension
 		} finally {
 			endSupervisionInBothClassLoaders();
 			store.remove(stateKey);
+			rearmEnclosingContainer(extensionContext, stateKey);
+		}
+	}
+
+	/**
+	 * Arms the innermost armed container around a context again, after a test in it
+	 * or the container's own phase has ended. A container that itself ends looks
+	 * for the one around it.
+	 */
+	private void rearmEnclosingContainer(ExtensionContext extensionContext, String closedKey) {
+		Optional<ExtensionContext> searchFrom = closedKey.equals(containerKey(extensionContext))
+				? extensionContext.getParent()
+				: Optional.of(extensionContext);
+		Optional<ExtensionContext> container = searchFrom
+				.map(context -> context.getStore(NAMESPACE).get(ARMED_CONTAINER_KEY, ArmedContainer.class))
+				.map(ArmedContainer::context);
+		if (container.isPresent() && container.get().getStore(NAMESPACE).get(containerKey(container.get()),
+				LifecycleState.class) == LifecycleState.PREPARED) {
+			prepareSecurity(container.get());
 		}
 	}
 

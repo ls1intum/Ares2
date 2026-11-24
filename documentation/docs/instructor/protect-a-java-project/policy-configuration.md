@@ -107,8 +107,13 @@ them only when the test class itself carries `@Policy`. `@BeforeAll` and `@After
 `@Public` or `@Hidden` on the class as well.
 
 The argument source of a parameterised test, such as a `@MethodSource` method, runs under the
-policy of that test. Once a test has ended, Ares refuses everything the policy restricts to code
-the test left running, such as a thread or a shutdown hook.
+policy of that test, even for arguments it builds between two invocations. The same holds for
+arguments JUnit closes after an invocation and for the tests a `@TestFactory` stream builds after
+the factory has returned. The argument source of a `@ParameterizedClass` and the static
+initialiser of a test class are class phases: Ares restricts them under the `@Policy` of the
+class when the class carries `@Public` or `@Hidden` as well. Once a test has ended, Ares refuses
+everything the policy restricts to code the test left running, such as a thread or a shutdown
+hook.
 :::
 
 ## Supported programming language configurations
