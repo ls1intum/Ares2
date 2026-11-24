@@ -202,6 +202,10 @@ Read APIs listed below access file contents or metadata without modifying them.
 | java.nio.channels.FileChannel | map | ✅ | ✅ |
 | java.nio.file.Files | newByteChannel | ✅ | ✅ |
 | java.nio.file.Files | newInputStream | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newInputStream | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newByteChannel | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newFileChannel | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newAsynchronousFileChannel | ✅ | ✅ |
 | java.nio.file.Files | readAllBytes | ✅ | ✅ |
 | java.lang.ClassLoader | getResourceAsStream | ✅ | ✅ |
 
@@ -332,6 +336,7 @@ Write APIs listed below modify existing content or attributes.
 | java.nio.channels.FileChannel | write | ✅ | ✅ |
 | java.nio.file.Files | newByteChannel | ❌ (via OpenOptions) | ❌ (via OpenOptions) |
 | java.nio.file.Files | newOutputStream | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newOutputStream | ✅ | ✅ |
 | java.nio.file.Files | write | ✅ | ✅ |
 
 **Writes UTF-8 text/tokens fully**
@@ -503,11 +508,12 @@ Delete APIs listed below can remove files and empty directories.
 
 **Monitored in delete pointcuts too (can delete source file)**
 
-> **Note:** `Files.move` is monitored under both WRITE and DELETE because it writes the destination **and** deletes the source. `Files.copy` is intentionally **not** in the delete pointcuts of either backend, because copying does not delete the source; it is monitored under WRITE only.
+> **Note:** Both backends monitor `Files.move` and `FileSystemProvider.move` under READ, WRITE and DELETE, since a move reads and deletes its source and writes its target. Each firing checks only its own side. The source needs read and delete. The target needs create when it is missing and overwrite when it exists. `copy` stays out of the delete pointcuts of both backends, because copying does not delete the source.
 
 | Class (fully qualified) | Method | Pointcut in AspectJ | Pointcut in Byte Buddy |
 | --- | --- | --- | --- |
 | java.nio.file.Files | move | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | move | ✅ | ✅ |
 
 ---
 
@@ -1080,14 +1086,14 @@ Most methods need just one permission (e.g., "read"), but some need multiple (e.
 
 ```java
 List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, methodName,
-		parameters);
+		parameters, instance);
 ```
 
 **How It Works:**
 
-1. **A method that opens a file with options** (`Files.write`, `writeString`, `newOutputStream`, `newBufferedWriter`, `newByteChannel`, `FileChannel.open`, `AsynchronousFileChannel.open`): Ares first completes the options the way the JDK does. The four write methods add `WRITE`, and use `CREATE`, `TRUNCATE_EXISTING`, `WRITE` when given no option. The JDK opens a channel for reading when its options hold neither `WRITE` nor `APPEND`, so Ares adds `READ`.
+1. **A method that opens a file with options** (`Files.write`, `writeString`, `newOutputStream`, `newBufferedWriter`, `newByteChannel`, `newInputStream`, `FileChannel.open`, `AsynchronousFileChannel.open`, and the provider's `newInputStream`, `newOutputStream`, `newByteChannel`, `newFileChannel`, `newAsynchronousFileChannel`): Ares first completes the options the way the JDK does. The write methods add `WRITE`, and use `CREATE`, `TRUNCATE_EXISTING`, `WRITE` when given no option. The JDK opens a file for reading when its options hold neither `WRITE` nor `APPEND`, so Ares adds `READ`. A provider method counts as one of `FileSystemProvider`, whichever provider class runs it.
 2. **The options decide the checks:** `DELETE_ON_CLOSE` adds `("delete", false)`, `READ` adds `("read", false)`, and writing (`WRITE` or `APPEND`) adds `("create", true)` with `CREATE_NEW`, the write action with `CREATE`, and `("overwrite", false)` without either. Ares maps the options of any other method the same way.
-3. **Without options:** a constructor that opens a named file for writing (`FileOutputStream`, `FileWriter`, `PrintWriter`, `PrintStream`, `Formatter`) yields the write action. So does `RandomAccessFile` in a write mode, while mode `"r"` yields `("read", false)`. Every other call uses the `action` of the advice that fired.
+3. **Without options:** a constructor that opens a named file for writing (`FileOutputStream`, `FileWriter`, `PrintWriter`, `PrintStream`, `Formatter`) yields the write action. `RandomAccessFile` in a write mode yields the write action and `("read", false)`, since code can read such a file as well. Mode `"r"` yields `("read", false)` alone. Every other call uses the `action` of the advice that fired.
 4. **Ares resolves the write action when it checks it:** the action becomes `"overwrite"` when the first argument that names a path names an existing file, and `"create"` otherwise. A policy therefore needs `createAllFiles` to write a new file and `overwriteAllFiles` to write an existing one, whatever class the code writes with.
 5. **A write through a file that is already open** counts against the paths allowed to be overwritten and those allowed to be created together. This covers `FileChannel.write`/`truncate`/`transferFrom`, `AsynchronousFileChannel.write`/`truncate` and the `write…` methods of a `RandomAccessFile`. Ares checked the opening of that file for writing already.
 
@@ -1225,6 +1231,7 @@ Object[] filteredParameters = filterVariables(parameters, parameterIgnoreRule);
 | `RandomAccessFile.<new>(file, mode)` | Only parameter 0 (the file) | The mode string (`"r"`/`"rw"`/...) is not a path |
 | `DataOutputStream.writeUTF/writeChars/writeBytes(String)` | Nothing (all parameters ignored) | The argument is payload, never a path; the underlying file was validated when the `FileOutputStream` was opened |
 | `PrintStream.<new>(sink, ...)` | Only parameter 0 (the sink) | A charset name like `"UTF-8"` is not a path |
+| `PrintWriter.<new>(file, csn)`, `Formatter.<new>(file, csn, ...)` | Only parameter 0 (the file) | A charset name like `"UTF-8"` is not a path |
 
 **`checkTempFileCreationSpecialCase` decides `createTempFile` on its own.** Its overloads put either a directory or a name prefix at the same position, so no fixed parameter index fits. A call without a directory is `File.createTempFile(prefix, suffix)`, the same with `null` as directory, or `Files.createTempFile(prefix, suffix, ...)`. The instrumentation backend allows such a call once its agent has fixed the default temp directory at start-up, and refuses it otherwise. The AspectJ aspect instead finds the directory the JDK writes to, as [5.4.6](#546-allow-the-secure-baselines-standard-operations) describes, and checks it like a named one. A named or found directory needs an entry in `pathsAllowedToBeCreated`, or must be exactly the default temp directory fixed at start-up, with links followed. A folder inside the temp directory, or a link out of it, does not count. Ares refuses arguments that fit neither overload.
 
@@ -1467,7 +1474,7 @@ This section explains why the **detected operation type** may differ from the **
 **Problem:** `RandomAccessFile` uses mode strings (`"r"`, `"rw"`, `"rws"`, `"rwd"`) instead of `StandardOpenOption`, requiring special handling.
 
 **Technical Background:**
-The `getRandomAccessFileModeAction()` method maps mode strings to security actions. It returns `"read"` for `"r"` and the write action for `"rw"`, `"rws"` and `"rwd"`, which Ares resolves like every other opening for writing. The listing below is the earlier version, which returned `"overwrite"`:
+The `getRandomAccessFileModeActions()` method maps mode strings to security actions. It returns `"read"` for `"r"`. For `"rw"`, `"rws"` and `"rwd"` it returns the write action, which Ares resolves like every other opening for writing, and `"read"`, since code can read such a file too. The listing below is the earlier version, which returned `"overwrite"` alone:
 
 ```java
 private static String getRandomAccessFileModeAction(Object[] parameters, String defaultAction) {
@@ -1491,7 +1498,7 @@ private static String getRandomAccessFileModeAction(Object[] parameters, String 
 }
 ```
 
-**Consequence:** Ares checks a write mode as a create when the file does not exist and as an overwrite when it does.
+**Consequence:** Ares checks a write mode as a create when the file does not exist and as an overwrite when it does, and as a read in both cases.
 
 **Affected Test Cases:**
 

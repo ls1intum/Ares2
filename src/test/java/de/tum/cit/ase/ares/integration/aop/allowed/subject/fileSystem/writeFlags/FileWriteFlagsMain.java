@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
@@ -28,7 +27,7 @@ public final class FileWriteFlagsMain {
 	 */
 	public static final String[] WRITERS = { "writeString", "filesWrite", "fileWriter", "fileWriterFile", "printWriter",
 			"printWriterFile", "printStream", "bufferedWriterNio", "bufferedWriterIo", "newOutputStream",
-			"fileOutputStream", "fileOutputStreamFile", "randomAccessFile", "fileChannel" };
+			"fileOutputStream", "fileOutputStreamFile", "fileChannel" };
 
 	/**
 	 * Hidden constructor of a utility class.
@@ -61,7 +60,6 @@ public final class FileWriteFlagsMain {
 		case "newOutputStream" -> writeAndClose(Files.newOutputStream(file), bytes);
 		case "fileOutputStream" -> writeAndClose(new FileOutputStream(file.toString()), bytes);
 		case "fileOutputStreamFile" -> writeAndClose(new FileOutputStream(new File(file.toString())), bytes);
-		case "randomAccessFile" -> writeRandomAccessFile(file, text);
 		case "fileChannel" -> writeFileChannel(file, bytes);
 		default -> throw new IllegalArgumentException(how);
 		}
@@ -90,21 +88,6 @@ public final class FileWriteFlagsMain {
 	private static void writeAndClose(OutputStream stream, byte[] bytes) throws IOException {
 		try (stream) {
 			stream.write(bytes);
-		}
-	}
-
-	/**
-	 * Replaces the file's content through a {@code RandomAccessFile} opened in mode
-	 * {@code "rw"}, writing through the open file with {@code writeBytes}.
-	 *
-	 * @param file the file to write
-	 * @param text the text to write
-	 * @throws IOException if writing fails
-	 */
-	private static void writeRandomAccessFile(Path file, String text) throws IOException {
-		try (RandomAccessFile randomAccessFile = new RandomAccessFile(file.toString(), "rw")) {
-			randomAccessFile.setLength(0);
-			randomAccessFile.writeBytes(text);
 		}
 	}
 
