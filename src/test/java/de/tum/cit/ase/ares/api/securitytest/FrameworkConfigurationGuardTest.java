@@ -69,6 +69,21 @@ class FrameworkConfigurationGuardTest {
 	}
 
 	/**
+	 * A module descriptor at the top or below a versioned folder is found.
+	 *
+	 * @param location where the descriptor lies
+	 * @throws IOException if the file cannot be written
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "module-info.class", "META-INF/versions/17/module-info.class" })
+	void findsAModuleDescriptor(String location) throws IOException {
+		Path descriptor = output.resolve(location);
+		Files.createDirectories(descriptor.getParent());
+		Files.writeString(descriptor, "x");
+		assertThat(FrameworkConfigurationGuard.firstSettingsFileIn(output)).contains(descriptor);
+	}
+
+	/**
 	 * A file standing where the service folder belongs is found too.
 	 *
 	 * @throws IOException if the file cannot be written
@@ -95,6 +110,9 @@ class FrameworkConfigurationGuardTest {
 		Files.createDirectories(output.resolve("META-INF"));
 		Files.writeString(output.resolve("META-INF/MANIFEST.MF"), "x");
 		Files.writeString(output.resolve("META-INF/other.txt"), "x");
+		Files.writeString(output.resolve("module-info.txt"), "x");
+		Files.createDirectories(output.resolve("org/example"));
+		Files.writeString(output.resolve("org/example/module-info.class"), "x");
 		assertThat(FrameworkConfigurationGuard.firstSettingsFileIn(output)).isEmpty();
 	}
 
