@@ -89,7 +89,7 @@ class JavaArchitectureTestCaseLocaleTest {
 
 	/**
 	 * The forbidden-import rule is recognised in either language and reports the
-	 * forbidden package.
+	 * importing class and the forbidden package.
 	 *
 	 * @param naming    the language the rule was named in
 	 * @param reporting the language the violation is reported in
@@ -104,7 +104,7 @@ class JavaArchitectureTestCaseLocaleTest {
 				() -> assertThrows(SecurityException.class, () -> JavaArchitectureTestCase.parseErrorMessage(violation))
 						.getMessage());
 		String expected = AdviceActionWording.inLocale(reporting,
-				() -> Messages.localized("security.archunit.package.import.violation", "java.io"));
+				() -> Messages.localized("security.archunit.package.import.violation", "com.example.A", "java.io"));
 		assertEquals(expected, reported);
 	}
 

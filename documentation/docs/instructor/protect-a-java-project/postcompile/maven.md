@@ -46,7 +46,7 @@ There is no repository step for Maven: the super-POM already defines Central at 
 <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <ares.version>2.2.1</ares.version>
+    <ares.version>2.2.2</ares.version>
     <aspectj.version>1.9.25.1</aspectj.version>
     <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
     <argLine></argLine>
@@ -279,8 +279,7 @@ void testPenguinPublic() {
 With Ares 2 active, the violation now produces:
 
 ```text
-Ares Security Error (Reason: Student-Code; Stage: Execution): org.example.Penguin.getName tried to illegally overwrite File
-/// target file location: secret.txt via java.io.FileOutputStream.write([B,int,int) but was blocked by Ares. ///
+Ares Security Error (Reason: Student-Code; Stage: Execution): org.example.Penguin.getName tried to illegally overwrite the file secret.txt via java.io.FileOutputStream.<init>(java.lang.String) (called by org.example.PenguinTest.testPenguinPublic), but was blocked by Ares, because no rule in the policy allows this file.
 ```
 
 ## Reject student classes in reserved packages
@@ -390,7 +389,7 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-        <ares.version>2.2.1</ares.version>
+        <ares.version>2.2.2</ares.version>
         <aspectj.version>1.9.25.1</aspectj.version>
         <!-- Keeps @{argLine} resolvable when JaCoCo is not part of the run. -->
         <argLine></argLine>

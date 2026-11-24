@@ -103,3 +103,4 @@ java.lang.Thread.dumpStack()
 java.lang.Thread.holdsLock(Ljava/lang/Object;)
 java.lang.Thread.onSpinWait()
 java.lang.Thread.isVirtual()
+java.lang.ref.Cleaner.create

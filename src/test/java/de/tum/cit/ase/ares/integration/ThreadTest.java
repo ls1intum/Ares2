@@ -36,8 +36,9 @@ class ThreadTest {
 	 * parameter that the body never read and that the Javadoc claimed was checked.
 	 * Wiring it up was tried and is wrong: the callers pass console output such as
 	 * "Task 2 executed", while the message names the intercepted call, for instance
-	 * "tried to illegally create Thread ... via ExecutorService.submit(...)". The
-	 * two were never the same thing, so the parameter is gone rather than honoured.
+	 * "tried to illegally create the thread ... via ExecutorService.submit(...)".
+	 * The two were never the same thing, so the parameter is gone rather than
+	 * honoured.
 	 *
 	 * @param actualMessage The actual exception message to be verified.
 	 */
@@ -51,10 +52,10 @@ class ThreadTest {
 		assertTrue(actualMessage.contains("ThreadPenguin"),
 				"Exception message should contain the class name 'ThreadPenguin'" + System.lineSeparator()
 						+ actualMessage);
-		assertTrue(actualMessage.contains("create Thread"),
+		assertTrue(actualMessage.contains("create the thread"),
 				"Exception message should indicate an illegal thread creation" + System.lineSeparator()
 						+ actualMessage);
-		assertTrue(actualMessage.contains("blocked by Ares"),
+		assertTrue(actualMessage.contains("but was blocked by Ares, because "),
 				"Exception message should indicate the operation was blocked by Ares" + System.lineSeparator()
 						+ actualMessage);
 	}

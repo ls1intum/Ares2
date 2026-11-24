@@ -6,7 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -18,6 +21,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -55,6 +59,93 @@ class MessagesCatalogueTest {
 			"terminate.jvm", "reflection.uses", "execute.command", "manipulate.threads", "package.import", "serialize",
 			"class.loading", "native.code.access", "agent.attach", "environment.access", "module.system.access",
 			"jndi.injection");
+
+	/**
+	 * The key families whose values are Ares's own failures and so must carry the
+	 * prefix.
+	 */
+	private static final List<String> PREFIXED_FAMILIES = List.of("security.", "policy.", "timeout.", "test_guard.",
+			"reporting.");
+
+	/**
+	 * Keys outside those families that are Ares failures too and so must carry the
+	 * prefix.
+	 */
+	private static final List<String> PREFIXED_KEYS = List.of("output_tester.output_maxExceeded",
+			"io_tester.parameter_not_provided", "io_tester.manager_creation_failed");
+
+	/**
+	 * The reason clauses the advice builds per resource type and inserts after
+	 * "because".
+	 */
+	private static final List<String> DENIAL_REASON_RESOURCES = List.of("file", "command", "network", "thread");
+
+	/**
+	 * The resource types that have a rule list per action, so "no rule for this
+	 * action" exists.
+	 */
+	private static final List<String> DENIAL_REASON_ACTION_RESOURCES = List.of("file", "network");
+
+	/**
+	 * Fragments inserted into other messages, which therefore carry no prefix of
+	 * their own.
+	 */
+	private static final List<String> FRAGMENT_KEYS = List.of("security.advice.called.by",
+			"security.advice.resolved.runtime.declaration", "security.advice.thread.lambda",
+			"security.advice.denial.reason.command.executable.path.not.allowed", "reporting.problem_location_hint",
+			"security.gradle.sourceroots.detail.version", "security.gradle.sourceroots.detail.missing",
+			"security.gradle.sourceroots.detail.encoding", "security.gradle.sourceroots.detail.charset",
+			"security.gradle.sourceroots.detail.relative");
+
+	/**
+	 * Validator messages, which the policy reader's first line prefixes once for
+	 * all of them.
+	 */
+	private static final List<String> SCHEMA_KEYS = List.of("root", "object", "unknown.field", "unknown.fields",
+			"unknown.field.none", "unknown.fields.none", "missing.field", "missing.fields", "null", "text",
+			"text.optional", "text.any", "text.list", "list", "integer", "boolean", "version.single", "version.range",
+			"configuration", "package", "main.class", "test.class", "file.path", "host", "command", "command.argument",
+			"thread.class", "package.import", "port", "thread.count", "timeout", "null.list");
+
+	/**
+	 * Ares 1 texts that no source references any more; kept until a later pull
+	 * request removes them.
+	 */
+	private static final List<String> UNUSED_ARES_1_KEYS = List.of("security.access_token_invalid",
+			"security.already_created", "security.already_disabled", "security.already_installed",
+			"security.not_installed", "security.error_awt", "security.error_blacklist", "security.error_classloader",
+			"security.error_disallowed_package", "security.error_execute", "security.error_link",
+			"security.error_management", "security.error_modify_auth", "security.error_modify_security",
+			"security.error_modify_serialization", "security.error_modify_ssl", "security.error_network_accept",
+			"security.error_network_connect", "security.error_network_connect_with_context",
+			"security.error_network_listen", "security.error_network_multicast", "security.error_networking",
+			"security.error_printer", "security.error_security_manager", "security.error_system_exit",
+			"security.error_threads_still_active", "security.error_threads_not_stoppable",
+			"security.error_thread_whitelisting_failed", "security.error_path_access", "security.error_thread_access",
+			"security.error_thread_maxExceeded", "security.error_threadgroup_access",
+			"security.error_package_definition", "security.stackframe_add_info",
+			"security.privileged_throw_not_allowed", "security.configuration_invalid_negative_threads",
+			"security.configuration_invalid_port_rule_intersection", "security.configuration_invalid_port_negative",
+			"security.configuration_invalid_port_over_max", "security.configuration_invalid_port_allowed_in_rage",
+			"security.configuration_invalid_port_exclude_outside_rage");
+
+	/**
+	 * Where the production sources live, relative to the project root the tests run
+	 * in.
+	 */
+	private static final Path MAIN_SOURCES = Path.of("src", "main", "java");
+
+	/** A string literal that starts like an Ares prefix, in either language. */
+	private static final Pattern PREFIX_LITERAL = Pattern
+			.compile("\"(Ares (?:Security Error|Sicherheitsfehler)[^\"]*)\"");
+
+	/**
+	 * A prefix literal that is complete, alone or followed by more text in the same
+	 * literal.
+	 */
+	private static final Pattern PREFIX_LITERAL_SHAPE = Pattern
+			.compile("^Ares Security Error \\(Reason: (Ares-Code|Student-Code); Stage: (Creation|Execution)\\): .*"
+					+ "|^Ares Sicherheitsfehler \\(Grund: (Ares-Code|Student-Code); Phase: (Erstellung|Ausf\u00fchrung)\\): .*");
 
 	/**
 	 * Reads a catalogue's raw bytes.
@@ -124,6 +215,86 @@ class MessagesCatalogueTest {
 			highest = Math.max(highest, position);
 		}
 		return highest;
+	}
+
+	/**
+	 * Lists every key exempt from the required prefix, by name.
+	 *
+	 * @return the exempt keys
+	 */
+	private static Set<String> exemptKeys() {
+		Set<String> exempt = new TreeSet<>(FRAGMENT_KEYS);
+		ADVICE_ACTIONS.forEach(action -> exempt.add("security.advice.action." + action));
+		ARCHITECTURE_RULES.forEach(rule -> {
+			exempt.add("security.architecture." + rule);
+			exempt.add("security.archunit.action." + rule);
+		});
+		exempt.addAll(denialReasonKeys());
+		SCHEMA_KEYS.forEach(key -> exempt.add("policy.schema." + key));
+		exempt.addAll(UNUSED_ARES_1_KEYS);
+		return exempt;
+	}
+
+	/**
+	 * Lists the denial reason keys the advice builds from a resource type.
+	 *
+	 * @return the reason keys
+	 */
+	private static List<String> denialReasonKeys() {
+		List<String> keys = new ArrayList<>();
+		DENIAL_REASON_RESOURCES.forEach(resource -> {
+			keys.add("security.advice.denial.reason.no.rule." + resource);
+			keys.add("security.advice.denial.reason.target.not.allowed." + resource);
+		});
+		DENIAL_REASON_ACTION_RESOURCES
+				.forEach(resource -> keys.add("security.advice.denial.reason.no.action.rule." + resource));
+		return keys;
+	}
+
+	/**
+	 * Lists the keys that must carry the prefix but do not.
+	 *
+	 * @param catalogue the decoded catalogue
+	 * @param exempt    the keys exempt by name
+	 * @return the offending keys
+	 */
+	static List<String> keysMissingThePrefix(Map<String, String> catalogue, Set<String> exempt) {
+		return catalogue.entrySet().stream()
+				.filter(entry -> PREFIXED_FAMILIES.stream().anyMatch(entry.getKey()::startsWith)
+						|| PREFIXED_KEYS.contains(entry.getKey()))
+				.filter(entry -> !exempt.contains(entry.getKey()))
+				.filter(entry -> !entry.getValue().startsWith("Ares Security Error")).map(Map.Entry::getKey).toList();
+	}
+
+	/**
+	 * Lists the prefix literals in a source text whose prefix is malformed.
+	 *
+	 * @param source the source text
+	 * @return the malformed literals
+	 */
+	static List<String> malformedPrefixLiterals(String source) {
+		List<String> malformed = new ArrayList<>();
+		Matcher literal = PREFIX_LITERAL.matcher(source);
+		while (literal.find()) {
+			if (!PREFIX_LITERAL_SHAPE.matcher(literal.group(1)).matches()) {
+				malformed.add(literal.group(1));
+			}
+		}
+		return malformed;
+	}
+
+	/**
+	 * Reads a source file as text.
+	 *
+	 * @param file the source file
+	 * @return its content
+	 */
+	private static String readSource(Path file) {
+		try {
+			return Files.readString(file, StandardCharsets.UTF_8);
+		} catch (IOException exception) {
+			throw new UncheckedIOException(exception);
+		}
 	}
 
 	/**
@@ -234,6 +405,67 @@ class MessagesCatalogueTest {
 	}
 
 	/**
+	 * Every key Ares uses for its own failures carries the prefix, unless the test
+	 * names it as a fragment, a validator message or an unused Ares 1 text. Exempt
+	 * keys must exist, so the list cannot hide a typo.
+	 *
+	 * @throws IOException if a catalogue cannot be read
+	 */
+	@Test
+	void everyAresFailureKeyCarriesThePrefix() throws IOException {
+		Map<String, String> english = values("messages.properties");
+		Set<String> exempt = exemptKeys();
+		assertEquals(List.of(), keysMissingThePrefix(english, exempt), "Ares failure keys without the prefix");
+		assertEquals(List.of(), exempt.stream().filter(key -> !english.containsKey(key)).toList(),
+				"exempt keys that do not exist");
+	}
+
+	/**
+	 * The prefix check reports an unprefixed failure key and lets an exempt one
+	 * pass, so a green run means the rule really ran.
+	 */
+	@Test
+	void anUnprefixedFailureKeyIsReported() {
+		Map<String, String> catalogue = Map.of("security.x", "Something failed.", "security.y",
+				"Ares Security Error (Reason: Ares-Code; Stage: Creation): Something failed.", "security.z", "a part",
+				"io_tester.other", "not an Ares failure");
+		assertEquals(List.of("security.x"), keysMissingThePrefix(catalogue, Set.of("security.z")));
+	}
+
+	/**
+	 * Every string literal in the production sources that starts like an Ares
+	 * prefix is a complete one. It checks literals, not the concatenated message,
+	 * so a literal that is only the prefix passes.
+	 *
+	 * @throws IOException if the sources cannot be listed
+	 */
+	@Test
+	void everyPrefixLiteralInTheSourcesMatchesThePattern() throws IOException {
+		List<String> problems = new ArrayList<>();
+		try (Stream<Path> files = Files.walk(MAIN_SOURCES)) {
+			files.filter(file -> file.toString().endsWith(".java") || file.toString().endsWith(".aj"))
+					.forEach(file -> malformedPrefixLiterals(readSource(file))
+							.forEach(literal -> problems.add(file + ": " + literal)));
+		}
+		assertEquals(List.of(), problems, "malformed Ares prefix literals");
+	}
+
+	/**
+	 * The literal scan accepts a literal that is only the prefix and one that goes
+	 * on, and reports a malformed one.
+	 */
+	@Test
+	void aMalformedPrefixLiteralIsReported() {
+		String source = """
+				String a = "Ares Security Error (Reason: Student-Code; Stage: Execution): ";
+				String b = "Ares Security Error (Reason: Ares-Code; Stage: Creation): The file is missing.";
+				String c = "Ares Security Error (Reason: Student Code; Stage: Execution): broken";
+				""";
+		assertEquals(List.of("Ares Security Error (Reason: Student Code; Stage: Execution): broken"),
+				malformedPrefixLiterals(source));
+	}
+
+	/**
 	 * Every action and architecture rule the code translates has its keys in both
 	 * catalogues, since those keys are built at run time and would otherwise only
 	 * fail when a violation is reported.
@@ -250,6 +482,8 @@ class MessagesCatalogueTest {
 		});
 		expected.add("security.advice.called.by");
 		expected.add("security.advice.resolved.runtime.declaration");
+		expected.add("security.advice.thread.lambda");
+		expected.addAll(denialReasonKeys());
 		for (String fileName : List.of("messages.properties", "messages_de.properties")) {
 			Set<String> keys = new HashSet<>(rawKeys(fileName));
 			List<String> missing = expected.stream().filter(key -> !keys.contains(key)).toList();

@@ -68,7 +68,7 @@ Hidden tests require a deadline. If a test method is marked `@Hidden` (or `@Hidd
 no deadline is given on the class or on the method itself, JUnit reports:
 
 ```text
-java.lang.annotation.AnnotationFormatError: cannot find a deadline for hidden test testPenguinHidden()
+java.lang.SecurityException: Ares Security Error (Reason: Ares-Code; Stage: Creation): Cannot find a deadline for the hidden test testPenguinHidden().
 ```
 
 Tell Ares 2 the deadline with another annotation:
@@ -90,7 +90,7 @@ code shown in [Setup](setup.md), passes. If the deadline has not passed, the tes
 pass either. It fails with
 
 ```text
-org.opentest4j.AssertionFailedError: hidden tests will be executed after the deadline.
+java.lang.SecurityException: Ares Security Error (Reason: Ares-Code; Stage: Execution): Hidden tests will be executed after the deadline.
 ```
 
 and the test was not executed, because the deadline is always checked before any hidden test

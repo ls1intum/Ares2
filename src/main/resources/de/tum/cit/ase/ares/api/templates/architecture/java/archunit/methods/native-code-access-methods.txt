@@ -8,3 +8,6 @@ java.nio.ByteBuffer.allocateDirect
 java.lang.foreign.Linker.nativeLinker
 java.lang.foreign.Linker.downcallHandle
 java.lang.foreign.SymbolLookup.libraryLookup
+java.lang.foreign.MemorySegment.reinterpret
+java.lang.foreign.AddressLayout.withTargetLayout
+java.lang.foreign.Linker.upcallStub

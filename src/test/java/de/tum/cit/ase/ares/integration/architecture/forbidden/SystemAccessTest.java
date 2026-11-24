@@ -15,6 +15,8 @@ import org.junit.jupiter.api.function.Executable;
 import org.junit.platform.testkit.engine.EngineTestKit;
 import org.junit.platform.testkit.engine.Events;
 
+import de.tum.cit.ase.ares.api.localization.Messages;
+
 /**
  * Base class for system access tests providing common constants and helper
  * methods for testing security policies across different system operations
@@ -346,12 +348,66 @@ public abstract class SystemAccessTest {
 	 * @param methodName The name of the test method to execute
 	 */
 	protected void executeTestAndExpectSecurityException(Class<?> clazz, String methodName) {
+		expectFailure(clazz, methodName, expectedDenial());
+	}
+
+	/**
+	 * Checks that a probe reports student code, the expected rule action and the
+	 * named call, so that a refusal by another rule does not pass.
+	 *
+	 * @param clazz      the test class containing the method
+	 * @param methodName the name of the test method to execute
+	 * @param ruleKey    the rule's key under {@code security.archunit.action.}
+	 * @param namedCall  text the failure or one of its causes has to contain
+	 */
+	protected void executeTestAndExpectSecurityException(Class<?> clazz, String methodName, String ruleKey,
+			String namedCall) {
+		expectFailure(clazz, methodName, expectedDenial(),
+				namesTheCall(Messages.localized("security.archunit.action." + ruleKey)), namesTheCall(namedCall));
+	}
+
+	/**
+	 * Runs one disabled probe and checks that it alone failed, meeting every given
+	 * condition.
+	 *
+	 * @param clazz      the test class containing the method
+	 * @param methodName the name of the test method to execute
+	 * @param conditions what the failure has to meet
+	 */
+	@SafeVarargs
+	private static void expectFailure(Class<?> clazz, String methodName, Condition<Throwable>... conditions) {
 		Events testEvents = EngineTestKit.engine("junit-jupiter")
 				.configurationParameter("junit.jupiter.conditions.deactivate", "org.junit.*DisabledCondition")
 				.selectors(selectMethod(clazz, methodName)).execute().testEvents();
 
 		testEvents.assertStatistics(stats -> stats.failed(1).aborted(0).succeeded(0));
-		testEvents.assertThatEvents().haveExactly(1, event(test(methodName), finishedWithFailure(expectedDenial())));
+		testEvents.assertThatEvents().haveExactly(1, event(test(methodName), finishedWithFailure(conditions)));
+	}
+
+	/**
+	 * Builds the condition that a failure or one of its causes names a call.
+	 *
+	 * @param namedCall the text to look for
+	 * @return the condition, described for the failure message
+	 */
+	private static Condition<Throwable> namesTheCall(String namedCall) {
+		return new Condition<>(throwable -> mentions(throwable, namedCall), "failure naming " + namedCall);
+	}
+
+	/**
+	 * Says whether a failure or one of its causes contains a text in its message.
+	 *
+	 * @param throwable the failure to look at
+	 * @param text      the text to look for
+	 * @return whether some message in the chain contains it
+	 */
+	private static boolean mentions(Throwable throwable, String text) {
+		for (Throwable current = throwable; current != null; current = current.getCause()) {
+			if (current.getMessage() != null && current.getMessage().contains(text)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

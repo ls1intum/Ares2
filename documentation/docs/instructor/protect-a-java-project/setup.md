@@ -32,7 +32,7 @@ Assume a Maven project whose `pom.xml` looks like this:
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.2.1</version>
+        <version>2.2.2</version>
     </dependency>
 </dependencies>
 ```

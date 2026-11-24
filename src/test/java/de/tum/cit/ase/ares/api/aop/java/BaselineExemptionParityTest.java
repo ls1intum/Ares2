@@ -245,11 +245,11 @@ class BaselineExemptionParityTest {
 			configure(mode, new String[0]);
 			SecurityException denied = denial(mode, "read", read(file));
 			assertThat(denied.getMessage()).as(mode + " " + language).contains(file.toString())
-					.contains(Messages.localized("security.advice.denial.reason.no.allowlist"));
+					.contains(Messages.localized("security.advice.denial.reason.no.rule.file"));
 			configure(mode, new String[] { directory.resolve("unrelated").toString() });
 			denied = denial(mode, "read", read(file));
 			assertThat(denied.getMessage()).as(mode + " " + language)
-					.contains(Messages.localized("security.advice.denial.reason.not.in.allowlist"));
+					.contains(Messages.localized("security.advice.denial.reason.target.not.allowed.file"));
 		}
 	}
 
@@ -695,7 +695,8 @@ class BaselineExemptionParityTest {
 	 */
 	private static Pattern filePolicyDenialShape() {
 		String marker = "\0";
-		String template = Messages.localized("security.advice.illegal.file.execution", marker, marker, marker, marker);
+		String template = Messages.localized("security.advice.illegal.file.execution", marker, marker, marker, marker,
+				marker);
 		return Pattern.compile(
 				Stream.of(template.split(marker, -1)).map(Pattern::quote).collect(Collectors.joining(".*")),
 				Pattern.DOTALL);

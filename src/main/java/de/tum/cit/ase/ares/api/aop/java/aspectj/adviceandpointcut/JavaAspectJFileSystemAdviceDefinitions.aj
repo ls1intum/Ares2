@@ -849,8 +849,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
 				localizeAction(actionLabel), violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
-						+ describeCaller(studentCalledMethod) + " | "
-						+ buildDenialReason(noAllowRuleConfigured)));
+						+ describeCaller(studentCalledMethod),
+						buildDenialReason("file", actionLabel, noAllowRuleConfigured)));
 	}
 
 	/**
@@ -1090,8 +1090,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
 				localizeAction("create"), violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
-						+ describeCaller(studentCalledMethod) + " | "
-						+ buildDenialReason(noAllowRuleConfigured)));
+						+ describeCaller(studentCalledMethod),
+						buildDenialReason("file", "create", noAllowRuleConfigured)));
 	}
 
 	/**
@@ -1750,8 +1750,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			if (!allowsAllPaths(allowedPreferencePaths)) {
 				throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
 						localizeAction(action), PREFERENCES_BACKING_STORE,
-						describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod) + " | "
-								+ buildDenialReason(allowedPreferencePaths == null || allowedPreferencePaths.length == 0)));
+						describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod),
+						buildDenialReason("file", action, allowedPreferencePaths == null || allowedPreferencePaths.length == 0)));
 			}
 			return;
 		}
@@ -1802,8 +1802,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
 							illegallyInteractedThroughParameter,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ describeCaller(studentCalledMethod)
-									+ " | " + buildDenialReason(noAllowRuleConfigured)));
+									+ describeCaller(studentCalledMethod),
+									buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
 				}
 			}
 			@Nullable
@@ -1827,8 +1827,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
 							illegallyInteractedThroughReceiver,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ describeCaller(studentCalledMethod)
-									+ " | " + buildDenialReason(noAllowRuleConfigured)));
+									+ describeCaller(studentCalledMethod),
+									buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
 				}
 			}
 			@Nullable
@@ -1861,8 +1861,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
 							illegallyInteractedThroughAttribute,
 							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ describeCaller(studentCalledMethod)
-									+ " | " + buildDenialReason(noAllowRuleConfigured)));
+									+ describeCaller(studentCalledMethod),
+									buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
 				}
 			}
 		}

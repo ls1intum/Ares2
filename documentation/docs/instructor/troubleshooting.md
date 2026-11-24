@@ -37,9 +37,9 @@ Ares Sicherheitsfehler (Grund: Student-Code; Phase: Ausführung): ...
   report a bug.
 - **`Stage: Creation`** (`Erstellung`): Ares stopped while preparing its checks, for example
   while reading the policy.
-- **`Stage: Execution`** (`Ausführung`): Ares stopped while a test was running. A few
-  messages carry this stage although Ares raised them while preparing, so treat the stage as
-  a hint rather than a certainty.
+- **`Stage: Execution`** (`Ausführung`): Ares stopped while a test was running. No test
+  checks that a message's stage matches where Ares raised it, so treat the stage as a hint
+  rather than a certainty.
 
 The [error message template](/contributor/subsystems/package-overview#error-message-template)
 lists every part and the rules for writing a new message.
@@ -53,7 +53,6 @@ lists every part and the rules for writing a new message.
 | A test asserting on the violation text fails, although the operation was blocked | Ares localises its violation messages, so "blocked by Ares" reads "von Ares blockiert" on a German Java Virtual Machine (JVM) | Assert on locale-stable content, such as the file name or the offending method, rather than on the prose |
 | `Could not find de.tum.cit.ase:ares:<version>` | The version does not exist on Maven Central, or a mirror has not synchronised it | Check the coordinate against Maven Central; only released versions resolve |
 | `Failed to find premain agent`, or agent-related errors | Agent JAR not found, or wrong classifier | Ensure the dependency uses the `:agent` classifier (Gradle) or the `<classifier>agent</classifier>` artefact item (Maven) |
-| Tests pass but student code is not restricted | `-javaagent` missing **and** no weaving | Check the argument provider (Gradle) or `<argLine>` (Maven), and that the `aspect` / `<aspectLibraries>` entry is present |
 | **The build succeeds but nothing is woven** | The Ares JAR is on the compile classpath but not on the **aspect path** | Add `aspect "de.tum.cit.ase:ares:..."` (Gradle) or the `<aspectLibraries>` entry (Maven). `ajc` ignores binary aspects that are not on the aspect path. Ares then refuses every test and names a class that lacks the Ares aspects |
 | `InaccessibleObjectException` at runtime | Missing `--add-opens` / `--add-exports` flags | Ensure the complete list from the agent step above / the agent step above is present. A partial list fails only once a policy exercises the corresponding advice |
 | Coverage reports nothing after adding Ares | A plain `<argLine>` overwrote the property JaCoCo sets | Prefix the Surefire `<argLine>` with `@{argLine}` and declare an empty `<argLine>` property |
@@ -77,12 +76,12 @@ lists every part and the rules for writing a new message.
 | `cannot find symbol: class WhitelistPath` (and similar) | These annotations do not exist in Ares 2 | Translate them into the policy file, then delete them |
 | The build succeeds but every test is refused as not woven | The Ares JAR is on the compile classpath but not on the **aspect path** | Add `aspect "de.tum.cit.ase:ares:..."` (Gradle) or the `<aspectLibraries>` entry (Maven). `ajc` ignores binary aspects that are not on the aspect path. Ares then refuses every test and names a class that lacks the Ares aspects |
 | Tests pass, and nothing is restricted, and no error appears | The test carries a plain `@Test` and `@Policy` but no Ares test annotation, so the extension was never registered | Add `@Public`, `@Hidden`, `@PublicTest` or `@HiddenTest` (the step named in section 7 of this guide) |
-| Your own test code is blocked by the policy | `theFollowingClassesAreTestClasses` names a package instead of exact class names | List every test class by its fully qualified name (the step named in section 6.4 of this guide) |
+| `Ares could not verify the compiled test class` | `theFollowingClassesAreTestClasses` names a package instead of exact class names | List every test class by its fully qualified name (the step named in section 6.4 of this guide) |
 | A policy is rejected on load | `thisPolicyFileCompliesToThePolicyVersion` is missing or is not `1`, or one of the six lists is absent | All six lists must be present even when empty (the step named in section 6.1 of this guide) |
 | A policy loads but the run fails with a supervised-code error | `theSupervisedCodeUsesTheFollowingPackage` is missing or blank. The schema tolerates that, but a **present** policy must name the package, and Ares fails closed rather than guessing it | Set the supervised package (the step named in section 6.1 of this guide) |
 | A `timeout` value of `0` is rejected | `timeout` must be strictly positive | Use a positive value, or leave the list empty |
 | Policy seems to have no effect | Wrong `withinPath` | Gradle: `classes/java/main/<package/path>`; Maven: `classes/<package/path>` |
-| A `@StrictTimeout` was replaced by `regardingTimeouts` and no longer bounds anything | Timeouts are Phobos cases; Ares 2.2.1 generates the Phobos stage but does not yet dispatch it in-process | Restore `@StrictTimeout` (the step named in section 6.2 of this guide) |
+| A `@StrictTimeout` was replaced by `regardingTimeouts` and no longer bounds anything | Timeouts are Phobos cases; Ares 2.2.2 generates the Phobos stage but does not yet dispatch it in-process | Restore `@StrictTimeout` (the step named in section 6.2 of this guide) |
 | `InaccessibleObjectException` at runtime | An incomplete list of module-access flags | Use the complete list from the step named in section 4.1 of this guide or the step named in section 4.2 of this guide |
 | Coverage reports nothing after the migration | A plain `<argLine>` overwrote the property JaCoCo sets | Prefix Surefire's `<argLine>` with `@{argLine}` and declare an empty `<argLine>` property |
 | `[Xlint:adviceDidNotMatch]` warnings during compilation | An `_ASPECTJ` build reports each Ares advice that found no matching join point in the woven code | Expected and non-fatal when the exercise performs none of those operations. Their presence shows the weaver processed the Ares aspects, so do not suppress the category |

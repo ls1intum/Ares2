@@ -30,11 +30,25 @@ what you opened. The rest are **refused outright**, with no policy field to open
 
 ## Categories you can grant
 
-These have a field in `security-policy.yaml`. Beyond a small implicit allowance, nothing is
+These have a field in `security-policy.yaml`. Beyond an implicit allowance, nothing is
 permitted until you write it down, and what you write down is then checked value by value.
 
-The implicit part matters for package imports: Ares always permits its own essential packages,
-the supervised package itself and the packages of your test classes, whatever your list says.
+The implicit part matters for package imports. Whatever your list says, Ares always permits:
+
+- `java.lang` and `java.io` from the Java standard library, each with the packages beneath
+  it, so `java.lang` includes `java.lang.reflect`, whose use the method rules still refuse
+- AspectJ (`org.aspectj`) and one internal Ares package
+- the packages your compiled student code is in, again with the packages beneath them
+
+Your list can add to these but cannot remove any of them. With a policy, every other package of
+the standard library, `java.util` included, needs an entry in your list. Without a policy, Ares
+permits every package under `java`.
+
+Your test classes add no package. On top of that, the import check rejects any dependency
+of the student code on a class named in `theFollowingClassesAreTestClasses`, or on a class
+nested in one, whatever package it sits in. It knows only the names listed there, so list every
+test class by its fully qualified name, with `$` before a nested class, as in
+`com.example.Outer$Nested`.
 
 | Category | Policy field | What you grant, and how narrowly |
 | --- | --- | --- |
@@ -42,7 +56,7 @@ the supervised package itself and the packages of your test classes, whatever yo
 | Network | `regardingNetworkConnections` | A named host and port, and separately whether the code may connect, send and receive |
 | Command execution | `regardingCommandExecutions` | Named executables together with the exact arguments they may be given |
 | Thread creation | `regardingThreadCreations` | Which class of worker may be started, and how many at most |
-| Package imports | `regardingPackageImports` | Which packages the submission may import. Naming a package covers everything beneath it |
+| Package imports | `regardingPackageImports` | Which packages the submission may import. An entry naming a package covers the packages beneath it, but never a reserved namespace it does not name. Only `*` permits every package |
 
 :::warning[Granting anything changes how the category is enforced]
 For the first four, the two layers do not both apply. While a category's list is **empty**,
@@ -64,15 +78,15 @@ These have no policy field. There is no syntax for permitting them, narrowly or 
 
 | Category | What it covers |
 | --- | --- |
-| Reflection | `java.lang.reflect.*`, `java.lang.invoke.*`, `Method.invoke`, `Field.set`, `Proxy`, `setAccessible` |
-| Native code | `System.loadLibrary`, `System.load`, `sun.misc.Unsafe`, and the foreign function entry points `Linker.nativeLinker`, `Linker.downcallHandle` and `SymbolLookup.libraryLookup` |
+| Reflection | `java.lang.reflect.*`, `java.lang.invoke.*`, `java.lang.constant.*`, `Method.invoke`, `Field.set`, `Proxy`, `setAccessible` |
+| Native code | `System.loadLibrary`, `System.load`, `sun.misc.Unsafe`, and the foreign function entry points `Linker.nativeLinker`, `Linker.downcallHandle`, `Linker.upcallStub` and `SymbolLookup.libraryLookup`, and the raw memory access of `MemorySegment.reinterpret` and `AddressLayout.withTargetLayout` |
 | Class loading | `Class.forName` and dynamic loading through `ClassLoader` and its subclasses |
 | Java Virtual Machine (JVM) termination | `System.exit`, `Runtime.exit`, `Runtime.halt` |
 | Agent attach | `Instrumentation` access, class redefinition, `VirtualMachine.attach` |
 | Module system | `implAddOpens`, `implAddExports`, `privateLookupIn` |
 | Serialisation | `ObjectInputStream` and `ObjectOutputStream` |
 | JNDI | Lookups through `InitialContext` and `InitialDirContext` |
-| Environment access | `System.getenv`, `System.getProperty` and `setProperty`, `ProcessHandle` metadata |
+| Environment access | `System.getenv`, `System.getProperty` and `setProperty`, `ProcessHandle` metadata, `java.lang.management.*` |
 
 ### Why these are not grantable
 
@@ -112,19 +126,12 @@ creates:
 
 - architecture test cases using ArchUnit or T. J. Watson Libraries for Analysis (WALA)
 - aspect-oriented programming (AOP) configuration files for AspectJ or instrumentation
-- build system modifications (Maven and Gradle plugins and dependencies)
+- copies of the Ares classes these files need
 - test infrastructure for enforcing security policies
 
 This mode runs once during exercise setup and produces test files that are committed to the
 repository. When students submit their code, these pre-generated tests run automatically and
 enforce the security policy.
-
-**Key advantages:**
-
-- tests are versioned and can be reviewed before deployment
-- no runtime configuration parsing overhead
-- clear separation between policy definition and enforcement
-- exercise creators can validate the generated tests before release
 
 See [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md) for the integration steps.
 
@@ -155,28 +162,35 @@ The interception mechanism comes from the policy's
 configuration needs the aspects woven into the bytecode by the AspectJ compiler during the
 build; an `_INSTRUMENTATION` configuration needs the Byte Buddy agent attached to the test Java Virtual Machine (JVM).
 Both work in Postcompile, and the two shipped examples run Postcompile with AspectJ. Setting up
-only the agent leaves an `_ASPECTJ` policy with nothing to intercept with, and the run stays
-green while enforcing nothing. [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md)
+only the agent leaves an `_ASPECTJ` policy with nothing to intercept with, and in Postcompile
+Ares then refuses every test, naming a class that lacks the Ares aspects. [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md)
 sets out the same distinction and lists which combination needs which build step.
 :::
-
-**Key advantages:**
-
-- dynamic enforcement at runtime
-- no repository modifications needed
-- easy policy updates without regenerating tests
-- fine-grained control over individual test methods
-- detailed security violation messages
 
 See [Precompile or Postcompile](../protect-a-java-project/precompile-or-postcompile.md) for the integration steps.
 
 ### Both modes together
 
-The two modes work together. Ares 2 provides both steps to achieve strong isolation and
-predictable, student-friendly feedback.
+The two modes are alternatives, so an exercise uses one of them.
+[How to choose](../protect-a-java-project/precompile-or-postcompile.md#how-to-choose) helps you
+pick.
 
 Both rely on the same configuration file, which is introduced in
 [Policy Configuration](../protect-a-java-project/policy-configuration.md).
+
+The table sets the two modes side by side. Each of them needs the build set-up that
+[What both modes require](../protect-a-java-project/precompile-or-postcompile.md#what-both-modes-require)
+describes.
+
+| Point | Precompile | Postcompile |
+| --- | --- | --- |
+| When Ares reads the policy | Once, when it generates the security test cases | Each time a test runs |
+| What Ares generates into the repository | The security test cases, aspects, configuration and the Ares classes they need, which you can review and commit like any other code | Nothing |
+| Ares as a dependency of the exercise | Not needed, though the libraries the copied classes use are | Needed |
+| Which tests a policy covers | One generated set covers every test in the project | Each test method can carry its own `@Policy` |
+| Changing the policy | Regenerate and rebuild | Edit the policy file. The build stays as it is, as long as it already sets up the interception the policy names |
+| Runtime interception | AspectJ or instrumentation, as `theFollowingProgrammingLanguageConfigurationIsUsed` says | The same as in Precompile |
+| Runnable example | None yet | `examples/ares-exercise-gradle` and `examples/ares-exercise-maven` |
 
 :::info[How it works internally]
 The developer guide describes the enforcement machinery itself: the

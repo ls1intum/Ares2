@@ -74,8 +74,8 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 	 */
 	@BeforeAll
 	static void warmLocalizationBundle() {
-		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.no.allowlist");
-		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.not.in.allowlist");
+		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.no.rule.file");
+		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.denial.reason.target.not.allowed.file");
 		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.file.execution");
 	}
 
@@ -200,16 +200,7 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 
 			SecurityException exception = assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkFileUrlOpenStream(forbiddenFile.toUri().toURL()));
-			assertTrue(exception.getMessage().contains(" | Reason:") || exception.getMessage().contains(" | Grund:"),
-					() -> "File exception should carry a denial reason suffix, but was:\n" + exception.getMessage());
-			assertTrue(
-					exception.getMessage().contains("No allow rule configured")
-							|| exception.getMessage().contains("Keine Erlaubnisregel"),
-					() -> "Expected the no-allowlist reason, but was:\n" + exception.getMessage());
-			assertFalse(
-					exception.getMessage().contains("No configured allow rule permits this access") || exception
-							.getMessage().contains("Keine konfigurierte Erlaubnisregel gestattet diesen Zugriff"),
-					() -> "Did not expect the not-permitted reason, but was:\n" + exception.getMessage());
+			assertDenialReason(exception, "security.advice.denial.reason.no.rule.file");
 		} finally {
 			resetSettings();
 		}
@@ -220,12 +211,7 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 			throws Exception {
 		try {
 			SecurityException exception = triggerBlockedFileUrlOpenStream(tempDir);
-			assertTrue(exception.getMessage().contains(" | Reason:") || exception.getMessage().contains(" | Grund:"),
-					() -> "File exception should carry a denial reason suffix, but was:\n" + exception.getMessage());
-			assertTrue(
-					exception.getMessage().contains("No configured allow rule permits this access") || exception
-							.getMessage().contains("Keine konfigurierte Erlaubnisregel gestattet diesen Zugriff"),
-					() -> "Expected the not-permitted reason, but was:\n" + exception.getMessage());
+			assertDenialReason(exception, "security.advice.denial.reason.target.not.allowed.file");
 		} finally {
 			resetSettings();
 		}
@@ -239,26 +225,48 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 		assertEquals(key, result);
 	}
 
+	/**
+	 * The reason clause tells apart a policy with no file rule at all, one with
+	 * file rules but none for the action, and one whose rule for the action does
+	 * not cover the target, and each is real text, not a key.
+	 */
 	@Test
-	void testBuildDenialReason_distinguishesNoAllowlistFromNotPermitted() {
-		String noAllowlist = JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(true);
-		String notPermitted = JavaInstrumentationAdviceAbstractToolbox.buildDenialReason(false);
+	void testBuildDenialReason_distinguishesTheThreeFileCases() throws Exception {
+		try {
+			resetSettings();
+			String noFileRule = JavaInstrumentationAdviceAbstractToolbox.buildDenialReason("file", "overwrite", true);
+			JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { "/allowed" }, "ARCH",
+					"INSTRUMENTATION");
+			String noOverwriteRule = JavaInstrumentationAdviceAbstractToolbox.buildDenialReason("file", "overwrite",
+					true);
+			String notThisFile = JavaInstrumentationAdviceAbstractToolbox.buildDenialReason("file", "read", false);
 
-		assertNotNull(noAllowlist);
-		assertNotNull(notPermitted);
-		assertFalse(noAllowlist.isBlank());
-		assertFalse(notPermitted.isBlank());
-		// The two branches must map to distinct, non-fallback (non-key) messages.
-		assertNotEquals(noAllowlist, notPermitted);
-		assertNotEquals("security.advice.denial.reason.no.allowlist", noAllowlist);
-		assertNotEquals("security.advice.denial.reason.not.in.allowlist", notPermitted);
-		// Locale-tolerant content checks (English or German bundle).
-		assertTrue(noAllowlist.contains("No allow rule configured") || noAllowlist.contains("Keine Erlaubnisregel"),
-				() -> "Unexpected no-allowlist reason: " + noAllowlist);
-		assertTrue(
-				notPermitted.contains("No configured allow rule permits this access")
-						|| notPermitted.contains("Keine konfigurierte Erlaubnisregel gestattet diesen Zugriff"),
-				() -> "Unexpected not-permitted reason: " + notPermitted);
+			assertEquals(Messages.localized("security.advice.denial.reason.no.rule.file"), noFileRule);
+			assertEquals(Messages.localized("security.advice.denial.reason.no.action.rule.file",
+					Messages.localized("security.advice.action.overwrite")), noOverwriteRule);
+			assertEquals(Messages.localized("security.advice.denial.reason.target.not.allowed.file"), notThisFile);
+			for (String reason : List.of(noFileRule, noOverwriteRule, notThisFile)) {
+				assertFalse(reason.contains("security.advice."), () -> "Unexpected raw key: " + reason);
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * Signatures are written as Java source: JVM array names become {@code []} and
+	 * parameters are separated by a comma and one space.
+	 */
+	@Test
+	void testDescribeSignature_writesJavaSourceNotation() {
+		assertEquals("java.lang.Runtime.exec(java.lang.String[])", JavaInstrumentationAdviceAbstractToolbox
+				.describeSignature("java.lang.Runtime.exec([Ljava.lang.String;)"));
+		assertEquals("java.net.Socket.<init>(java.lang.String, int, int[][])", JavaInstrumentationAdviceAbstractToolbox
+				.describeSignature("java.net.Socket.<init>(java.lang.String,int,[[I)"));
+		assertEquals("java.lang.Thread.<init>",
+				JavaInstrumentationAdviceAbstractToolbox.describeSignature("java.lang.Thread.<init>"));
+		assertEquals("java.lang.Thread.start()",
+				JavaInstrumentationAdviceAbstractToolbox.describeSignature("java.lang.Thread.start()"));
 	}
 
 	// <editor-fold desc="I-114: Files.copy / FileChannel.transferTo/transferFrom
@@ -1035,5 +1043,22 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 				"ARCH", "INSTRUMENTATION");
 		return assertThrows(SecurityException.class,
 				() -> InstrumentationSecurityProbe.checkFileUrlOpenStream(forbiddenFile.toUri().toURL()));
+	}
+
+	/**
+	 * Requires the denial to be the one denial sentence ending with the given
+	 * reason, with no raw message key and no old reason splice left in it, which
+	 * would show that instrumentation could not translate the message.
+	 *
+	 * @param exception the denial
+	 * @param reasonKey the key of the expected reason clause
+	 */
+	private static void assertDenialReason(SecurityException exception, String reasonKey) {
+		String message = exception.getMessage();
+		String reason = JavaInstrumentationAdviceAbstractToolbox.localize(reasonKey);
+		assertTrue(message.endsWith(reason + "."), () -> "Expected the reason '" + reason + "', but was:\n" + message);
+		assertFalse(message.contains(" | "), () -> "Did not expect the old reason splice, but was:\n" + message);
+		assertFalse(message.contains("security.advice."),
+				() -> "Did not expect a raw message key, but was:\n" + message);
 	}
 }

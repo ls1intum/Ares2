@@ -60,7 +60,7 @@ class NativeLibraryLoadDeniedTest extends SystemAccessTest {
 	 * The JDK method whose check decides every library load in instrumentation
 	 * mode, as the refusal names it.
 	 */
-	private static final String DECIDING_METHOD = "java.lang.Runtime.loadLibrary0(java.lang.Class,java.lang.String)";
+	private static final String DECIDING_METHOD = "java.lang.Runtime.loadLibrary0(java.lang.Class, java.lang.String)";
 
 	/**
 	 * The public entry of {@code System}, as an AspectJ refusal names it.

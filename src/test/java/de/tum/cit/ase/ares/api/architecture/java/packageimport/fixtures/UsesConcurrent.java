@@ -4,8 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Fixture depending on a subpackage of {@code java.util}, used to verify that a
- * policy grant keeps its subpackage-inclusive meaning while an exact grant does
- * not.
+ * policy grant of {@code java.util} covers it.
  */
 public class UsesConcurrent {
 

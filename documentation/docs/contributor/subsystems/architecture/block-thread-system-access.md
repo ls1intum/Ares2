@@ -130,7 +130,7 @@ Access is **BLOCKED** 🔴 when **ALL** conditions are true:
 
 ## 2. Ares Monitors Thread Methods
 
-Each analysis mode loads its forbidden thread methods from its own template file. The two lists overlap in their core (Thread.start, executors, parallel streams) but differ substantially in size and content: the ArchUnit list contains **393 entries**, the WALA list contains **105 entries** (see [Section 3](#3-monitored-thread-system-methods)).
+Each analysis mode loads its forbidden thread methods from its own template file. The two lists overlap in their core (Thread.start, executors, parallel streams) but differ substantially in size and content: the ArchUnit list contains **394 entries**, the WALA list contains **106 entries** (see [Section 3](#3-monitored-thread-system-methods)).
 
 **Template Locations:**
 - **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt`
@@ -303,8 +303,8 @@ With classification:
 Each mode loads its forbidden methods from its own template file:
 
 **Template Locations:**
-- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt` (393 entries)
-- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/thread-manipulation-methods.txt` (105 entries)
+- **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/thread-manipulation-methods.txt` (394 entries)
+- **WALA**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/wala/methods/thread-manipulation-methods.txt` (106 entries)
 
 The lists are **not identical**: the WALA list is a focused set of thread creation and manipulation entry points, while the ArchUnit list covers a large number of thread-adjacent JDK APIs (see the grouped overview in [3.2](#32-thread-system---create-operations-without-parameters)). The entries below are annotated where they are present in only one of the two files.
 
@@ -414,7 +414,7 @@ The lists are **not identical**: the WALA list is a focused set of thread creati
 **java.util.stream.BaseStream:**
 - `BaseStream.parallel()`
 
-**Further ArchUnit-only coverage (grouped overview of the 393-entry list):**
+**Further ArchUnit-only coverage (grouped overview of the 394-entry list):**
 
 The ArchUnit list goes far beyond thread *creation* and flags thread *manipulation* and thread-adjacent APIs:
 - **Thread lifecycle and interrogation**: `Thread.sleep(...)`, `Thread.join(...)`, `Thread.yield()`, `Thread.interrupt()` / `interrupted()` / `isInterrupted()`, `Thread.isAlive()`, `Thread.run()`, priority/daemon/name setters and getters, `Thread.getAllStackTraces()`, `Object.wait(long)`
@@ -555,13 +555,13 @@ Architecture Violation [Priority: MEDIUM] - Rule 'Manipulates threads' was viola
 Method <de.student.StudentCode.processAsync()> calls method <java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable)> in (StudentCode.java:15) accesses <java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable)>
 ```
 
-**The error is converted** by `parseErrorMessage` into a `SecurityException` using the format from `messages.properties` (key `security.archunit.violation.error`, line 97):
+**The error is converted** by `parseErrorMessage` into a `SecurityException` using the format from `messages.properties` (key `security.archunit.violation.error`):
 ```
-Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s via %s (called by %s) but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): %s tried to illegally %s via %s (called by %s), but was blocked by Ares.
 ```
 For the thread rule, the action placeholder is `manipulate threads` (mapped from the rule name "Manipulates threads"), e.g.:
 ```
-Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.processAsync() tried to illegally manipulate threads via java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable) (called by de.student.StudentCode) but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): de.student.StudentCode.processAsync() tried to illegally manipulate threads via java.util.concurrent.ExecutorService.submit(java.util.concurrent.Callable) (called by de.student.StudentCode), but was blocked by Ares.
 ```
 
 The outcome (pass or the parsed `SecurityException`) is cached in-memory per (rule category, allow-list, `JavaClasses` instance), so repeated executions in the same Java Virtual Machine (JVM) replay the cached verdict instead of re-scanning.
@@ -719,7 +719,7 @@ The rule check is implemented in `WalaRule.check(CallGraph, Set<ClassPermission>
 
 **Violation Message:**
 
-A genuine violation raises an `AssertionError` with the localised format (`messages.properties` key `security.architecture.method.call.message`, line 115):
+A genuine violation raises an `AssertionError` with the localised format (`messages.properties` key `security.architecture.method.call.message`):
 ```
 '%s'\n Method <%s> calls method <%s> in (%s.java:%d) accesses <%s>
 ```
@@ -957,7 +957,7 @@ try {
 } catch (SecurityException e) {
     // Already in the Ares error format:
     // "Ares Security Error (Reason: Student-Code; Stage: Execution):
-    //  <caller> tried to illegally manipulate threads via <target> (called by <class>)
+    //  <caller> tried to illegally manipulate threads via <target> (called by <class>),
     //  but was blocked by Ares."
 }
 ```
@@ -1095,7 +1095,7 @@ java.util.Collection.parallelStream()
     <dependency>
         <groupId>de.tum.cit.ase</groupId>
         <artifactId>ares</artifactId>
-        <version>2.2.1</version>
+        <version>2.2.2</version>
     </dependency>
 </dependencies>
 ```

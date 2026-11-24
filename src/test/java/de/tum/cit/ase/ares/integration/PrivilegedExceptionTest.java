@@ -54,7 +54,7 @@ class PrivilegedExceptionTest {
 
 	@TestTest
 	void test_privilegedTimeout() {
-		tests.assertThatEvents().haveExactly(1,
-				testFailedWith(privilegedTimeout, AssertionError.class, "execution timed out after 300 ms"));
+		tests.assertThatEvents().haveExactly(1, testFailedWith(privilegedTimeout, SecurityException.class,
+				"Ares Security Error (Reason: Student-Code; Stage: Execution): The execution timed out after 300 ms."));
 	}
 }

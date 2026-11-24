@@ -8,7 +8,7 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.networkSystem.conne
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.executorService.CreateExecutorServiceMain;
 
 /**
- * Integration tests that verify the informative denial-reason suffix of Ares
+ * Integration tests that verify the informative denial reason of Ares
  * {@code SecurityException} messages end-to-end (real policy, weaving and
  * subject execution), for the {@code NOT_PERMITTED} reason: a rule is
  * configured for the resource type, but it does not cover the requested
@@ -23,7 +23,7 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create
  * The {@code NO_ALLOWLIST} reason (no rule configured at all) is intentionally
  * not covered here: with an empty permission list the static architecture layer
  * (ArchUnit/WALA) rejects the forbidden capability before the runtime AOP layer
- * runs, so the denial-reason suffix is never produced end-to-end. That reason
+ * runs, so the runtime denial reason is never produced end-to-end. That reason
  * is covered at the toolbox/unit level instead (see
  * {@code JavaInstrumentationAdvice*SystemToolboxTest}).
  */

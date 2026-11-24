@@ -20,7 +20,7 @@ own work grading instructions and escape every check.
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `de.tum.cit.ase.ares.api.securitytest` — the abstract factory/builder, the Java-specific factory, and the `creator`, `essentialModel`, `executer`, `writer`, `projectScanner`, and `specific` sub-packages.
-> **Ares Version:** 2.2.1
+> **Ares Version:** 2.2.2
 
 **Related documentation:**
 - [Security Policy Manual](../policy/security-policy-manual.md) — how to write a security policy YAML file
@@ -303,10 +303,10 @@ Each invocation proceeds through two phases — extraction (reading class data f
 
    | Source | Rationale |
    |---|---|
-   | Essential packages (from YAML) | `java.lang` and `java.io`, each matched as that package only, and Ares infrastructure such as `org.aspectj`, which must never be blocked |
+   | Essential packages (from YAML) | `java.lang` and `java.io`, each with the packages below it, and Ares infrastructure such as `org.aspectj`, which must never be blocked |
    | Policy-permitted packages | Packages the instructor explicitly allows via `regardingPackageImports`; without a policy, `java` and every package below it |
 
-   The student's own packages are not part of this set. The `PACKAGE_IMPORT` rule adds them when it runs, each matched as that package only, from the classes it checks. A test class does not grant its package, and the supervised code must never depend on a test class or on a class named like one nested in it.
+   The student's own packages are not part of this set. The `PACKAGE_IMPORT` rule adds them when it runs, each with the packages below it, from the classes it checks. A test class does not grant its package, and the supervised code must never depend on a test class or on a class named like one nested in it.
 
 3. **Preparation — computing allowed classes:**
    Two sources are merged: `essentialClasses` ∪ `testClasses`, each wrapped in a `ClassPermission`. These classes are exempt from all restrictions.
@@ -335,7 +335,7 @@ Both are isomorphic Java Records with seven sub-lists:
 
 | Sub-list | Example content (`EssentialClasses.yaml`) | Example content (`EssentialPackages.yaml`) |
 |---|---|---|
-| `essentialJava*` | *(empty)* | `java.lang`, `java.io` (each matched as that package only) |
+| `essentialJava*` | *(empty)* | `java.lang`, `java.io` (each with the packages below it) |
 | `essentialArchunit*` | `de.tum.cit.ase.ares.api.architecture.java.archunit` | *(empty)* |
 | `essentialWala*` | `de.tum.cit.ase.ares.api.architecture.java.wala` | *(empty)* |
 | `essentialAspectJ*` | `de.tum.cit.ase.ares.api.aop.java.aspectj` | `org.aspectj` |

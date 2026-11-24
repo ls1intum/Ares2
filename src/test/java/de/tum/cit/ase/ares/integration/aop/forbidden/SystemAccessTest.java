@@ -25,27 +25,27 @@ abstract class SystemAccessTest {
 	protected static final String REASON_DE = "(Grund: Student-Code; Phase: Ausführung)";
 	protected static final String TRIED_EN = "tried";
 	protected static final String TRIED_DE = "hat versucht,";
-	protected static final String BLOCKED_EN = "was blocked by Ares.";
-	protected static final String BLOCKED_DE = "wurde jedoch von Ares blockiert.";
-	protected static final String DENIAL_REASON_SUFFIX_EN = " | Reason:";
-	protected static final String DENIAL_REASON_SUFFIX_DE = " | Grund:";
+	protected static final String BLOCKED_EN = ", but was blocked by Ares, because ";
+	protected static final String BLOCKED_DE = ", wurde jedoch von Ares blockiert, weil ";
+	/** The old reason splice, which the one denial sentence no longer contains. */
+	protected static final String OLD_DENIAL_REASON_SPLICE = " | ";
 
-	/** Distinctive text of the "no allow rule configured" denial reason. */
-	protected static final String DENIAL_REASON_NO_ALLOWLIST_EN = "No allow rule configured";
-	protected static final String DENIAL_REASON_NO_ALLOWLIST_DE = "Keine Erlaubnisregel";
+	/** Distinctive text of the "no rule of this resource type at all" reason. */
+	protected static final String DENIAL_REASON_NO_ALLOWLIST_EN = "the policy has no rule for ";
+	protected static final String DENIAL_REASON_NO_ALLOWLIST_DE = "die Richtlinie keine Regel für ";
 
 	/**
-	 * Distinctive text of the "resource not covered by any allow rule" denial
+	 * Distinctive text of the "a rule exists, but it does not cover this target"
 	 * reason.
 	 */
-	protected static final String DENIAL_REASON_NOT_IN_ALLOWLIST_EN = "No configured allow rule permits";
-	protected static final String DENIAL_REASON_NOT_IN_ALLOWLIST_DE = "Keine konfigurierte Erlaubnisregel gestattet";
+	protected static final String DENIAL_REASON_NOT_IN_ALLOWLIST_EN = "no rule in the policy allows this ";
+	protected static final String DENIAL_REASON_NOT_IN_ALLOWLIST_DE = "keine Regel der Richtlinie ";
 	// </editor-fold>
 
 	// <editor-fold desc="Denial Reason">
 	/**
 	 * The kind of denial reason that an Ares SecurityException message is expected
-	 * to carry as its " | Reason:" / " | Grund:" suffix.
+	 * to end with, after "because" / "weil".
 	 */
 	protected enum DenialReason {
 		/** No allow rule was configured for the resource type at all. */
@@ -341,11 +341,9 @@ abstract class SystemAccessTest {
 				() -> String.format("Exception message should contain '%s' or '%s', but was:%n%s", BLOCKED_EN,
 						BLOCKED_DE, actualMessage));
 
-		Assertions.assertTrue(
-				actualMessage.contains(DENIAL_REASON_SUFFIX_EN) || actualMessage.contains(DENIAL_REASON_SUFFIX_DE),
-				() -> String.format(
-						"Exception message should contain a denial reason suffix '%s' or '%s', but was:%n%s",
-						DENIAL_REASON_SUFFIX_EN, DENIAL_REASON_SUFFIX_DE, actualMessage));
+		Assertions.assertFalse(actualMessage.contains(OLD_DENIAL_REASON_SPLICE),
+				() -> String.format("Exception message should not contain the old reason splice '%s', but was:%n%s",
+						OLD_DENIAL_REASON_SPLICE, actualMessage));
 	}
 	// </editor-fold>
 
@@ -634,8 +632,8 @@ abstract class SystemAccessTest {
 		assertGeneralErrorMessage(actualMessage, operationTextEN, operationTextDE, clazz);
 
 		// Additional network-specific validation
-		Assertions.assertTrue(actualMessage.contains("Network") || actualMessage.contains("Netzwerk"), () -> String
-				.format("Exception message should contain 'Network' or 'Netzwerk', but was:%n%s", actualMessage));
+		Assertions.assertTrue(actualMessage.contains("network") || actualMessage.contains("Netzwerk"), () -> String
+				.format("Exception message should contain 'network' or 'Netzwerk', but was:%n%s", actualMessage));
 	}
 
 	/**

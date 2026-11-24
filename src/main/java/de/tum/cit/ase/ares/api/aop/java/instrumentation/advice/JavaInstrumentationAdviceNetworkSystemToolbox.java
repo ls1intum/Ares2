@@ -886,8 +886,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 				&& checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
 			throw new SecurityException(localize("security.advice.illegal.network.execution",
 					networkSystemMethodToCheck, localizeAction(action), targetFromParameters.toDisplayString(),
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+					describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+					buildDenialReason("network", action, noAllowRuleConfigured)));
 		}
 		// Mask out indices already consumed by parametersToTarget so the per-parameter
 		// scan does not re-resolve the same host (or local-bind host) as a port=-1
@@ -912,8 +912,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		if (networkIllegallyInteractedThroughParameter != null) {
 			throw new SecurityException(localize("security.advice.illegal.network.execution",
 					networkSystemMethodToCheck, localizeAction(action), networkIllegallyInteractedThroughParameter,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+					describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+					buildDenialReason("network", action, noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check receiver instance">
@@ -922,8 +922,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		if (targetFromReceiver != null && checkIfNetworkIsForbidden(targetFromReceiver, allowedHosts, allowedPorts)) {
 			throw new SecurityException(localize("security.advice.illegal.network.execution",
 					networkSystemMethodToCheck, localizeAction(action), targetFromReceiver.toDisplayString(),
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+					describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+					buildDenialReason("network", action, noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 		// <editor-fold desc="Check attributes">
@@ -938,8 +938,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		if (networkIllegallyInteractedThroughAttribute != null) {
 			throw new SecurityException(localize("security.advice.illegal.network.execution",
 					networkSystemMethodToCheck, localizeAction(action), networkIllegallyInteractedThroughAttribute,
-					fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-							+ buildDenialReason(noAllowRuleConfigured)));
+					describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+					buildDenialReason("network", action, noAllowRuleConfigured)));
 		}
 		// </editor-fold>
 	}

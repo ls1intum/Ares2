@@ -57,6 +57,6 @@ class FileToolsThreePartedFileTest {
 
 		assertThatThrownBy(() -> FileTools.createThreePartedFormatStringFile(header, "", footer,
 				tmp.resolve("Settings.java"), new String[] { "org.example" })).isInstanceOf(SecurityException.class)
-						.hasMessageContaining("Illegal format").hasMessageContaining("Header.txt");
+						.hasMessageContaining("has an illegal format").hasMessageContaining("Header.txt");
 	}
 }

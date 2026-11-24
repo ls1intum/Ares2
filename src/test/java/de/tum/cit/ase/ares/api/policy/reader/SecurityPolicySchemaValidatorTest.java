@@ -2,12 +2,18 @@ package de.tum.cit.ase.ares.api.policy.reader;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -25,12 +31,15 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import de.tum.cit.ase.ares.api.AresConstants;
+import de.tum.cit.ase.ares.api.localization.AdviceActionWording;
+import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 
 /**
  * Checks each rule of the policy schema validator on its own. Every rejection
- * case breaks exactly one rule of an otherwise valid policy and expects the
- * message that names the field to fix. Messages are compared literally, as they
- * are not translated.
+ * case breaks exactly one rule of an otherwise valid policy and expects, in
+ * English and in German, the catalogue message that names the field by its
+ * short path, quotes the rejected value and says what to write.
  */
 class SecurityPolicySchemaValidatorTest {
 
@@ -43,8 +52,18 @@ class SecurityPolicySchemaValidatorTest {
 	/** The factory that builds the replacement values of the cases. */
 	private static final JsonNodeFactory NODES = JsonNodeFactory.instance;
 
-	/** An expected message ending in this text is compared only as a prefix. */
-	private static final String PATTERN_MESSAGE_ENDING = "must match ";
+	/** The two languages every rejection is checked in. */
+	private static final List<Locale> LOCALES = List.of(Locale.ENGLISH, Locale.GERMAN);
+
+	/** Stands in an expected argument for the localised name of the top level. */
+	private static final String ROOT = "<root>";
+
+	/** Stands in an expected argument for the replacement value written as JSON. */
+	private static final String VALUE = "<value>";
+
+	/** The fields of a file permission, as the unknown-field message lists them. */
+	private static final String FILE_FIELDS = "createAllFiles, deleteAllFiles, executeAllFiles, "
+			+ "onThisPathAndAllPathsBelow, overwriteAllFiles, readAllFiles";
 
 	/**
 	 * Parses a fully populated, valid policy into a fresh tree.
@@ -121,20 +140,63 @@ class SecurityPolicySchemaValidatorTest {
 	}
 
 	/**
-	 * Checks that the validator refuses the tree with the expected message. A
-	 * message that ends at the pattern marker is compared only up to it.
+	 * Validates a tree that must be refused and returns the refusal's message.
 	 *
-	 * @param tree            the policy tree to validate.
-	 * @param expectedMessage the message the refusal must carry.
+	 * @param tree the policy tree to validate.
+	 * @return the message of the refusal, without Jackson's location.
 	 */
-	private static void assertRejected(JsonNode tree, String expectedMessage) {
+	private static String rejection(@Nullable JsonNode tree) {
 		MismatchedInputException thrown = assertThrows(MismatchedInputException.class,
 				() -> SecurityPolicySchemaValidator.validate(tree));
-		if (expectedMessage.endsWith(PATTERN_MESSAGE_ENDING)) {
-			assertTrue(thrown.getOriginalMessage().startsWith(expectedMessage), thrown.getOriginalMessage());
-		} else {
-			assertEquals(expectedMessage, thrown.getOriginalMessage());
+		assertInstanceOf(SecurityPolicySchemaValidator.PolicySchemaViolation.class, thrown);
+		return thrown.getOriginalMessage();
+	}
+
+	/**
+	 * Checks, in English and German, that the validator refuses the tree with the
+	 * catalogue message of the key, and that the message uses short paths only.
+	 *
+	 * @param tree      the policy tree to validate.
+	 * @param value     the rejected value as JSON, put in for {@link #VALUE}.
+	 * @param key       the expected {@code policy.schema.*} key.
+	 * @param arguments the expected arguments; {@link #ROOT} and {@link #VALUE} are
+	 *                  replaced.
+	 */
+	private static void assertRejected(@Nullable JsonNode tree, String value, String key, Object... arguments) {
+		for (Locale locale : LOCALES) {
+			String actual = AdviceActionWording.inLocale(locale, () -> rejection(tree));
+			String expected = AdviceActionWording
+					.inLocale(locale,
+							() -> Messages.localized(key,
+									Arrays.stream(arguments)
+											.map(argument -> ROOT.equals(argument)
+													? Messages.localized("policy.schema.root")
+													: VALUE.equals(argument) ? value : argument)
+											.toArray()));
+			assertEquals(expected, actual, locale.toString());
+			assertFalse(actual.startsWith("!"), actual);
+			assertFalse(actual.contains("$."), actual);
+			assertFalse(actual.contains("regardingTheSupervisedCode."), actual);
+			assertFalse(actual.contains("theFollowingResourceAccessesArePermitted."), actual);
+			assertFalse(actual.contains("theFollowingTestBehaviorIsConfigured."), actual);
 		}
+	}
+
+	/**
+	 * Returns the expected message key and arguments for a version Ares does not
+	 * support: "must be 1" while one version exists, a range once there are more.
+	 *
+	 * @param version the rejected version as written.
+	 * @return the key followed by its arguments.
+	 */
+	private static Object[] unsupportedVersion(String version) {
+		if (AresConstants.MINIMUM_POLICY_VERSION == AresConstants.MAXIMUM_POLICY_VERSION) {
+			return new Object[] { "policy.schema.version.single", version,
+					String.valueOf(AresConstants.MAXIMUM_POLICY_VERSION) };
+		}
+		return new Object[] { "policy.schema.version.range", version,
+				String.valueOf(AresConstants.MINIMUM_POLICY_VERSION),
+				String.valueOf(AresConstants.MAXIMUM_POLICY_VERSION) };
 	}
 
 	/** Checks that a fully populated policy is accepted. */
@@ -184,7 +246,7 @@ class SecurityPolicySchemaValidatorTest {
 	/** Checks that a root that is not an object is refused. */
 	@Test
 	void rejectsARootThatIsNotAnObject() {
-		assertRejected(NODES.textNode("a bare scalar"), "$ must be a non-null object");
+		assertRejected(NODES.textNode("a bare scalar"), "\"a bare scalar\"", "policy.schema.object", ROOT, VALUE);
 	}
 
 	/**
@@ -192,34 +254,236 @@ class SecurityPolicySchemaValidatorTest {
 	 */
 	@Test
 	void rejectsAMissingRoot() {
-		assertRejected(null, "$ must be a non-null object");
+		assertRejected(null, "null", "policy.schema.object", ROOT, VALUE);
 	}
 
-	/** Checks that an unknown field in the test behaviour object is refused. */
+	/**
+	 * Checks that an unknown field in the test behaviour object is refused with the
+	 * hint that the object takes no fields yet.
+	 */
 	@Test
 	void rejectsAnUnknownFieldInTheTestBehavior() {
 		ObjectNode tree = validTree();
 		ObjectNode behavior = NODES.objectNode();
 		behavior.set("extra", NODES.textNode("x"));
 		((ObjectNode) tree.at(SUPERVISED)).set("theFollowingTestBehaviorIsConfigured", behavior);
-		assertRejected(tree,
-				"$.regardingTheSupervisedCode.theFollowingTestBehaviorIsConfigured contains unknown fields [extra]");
+		assertRejected(tree, "", "policy.schema.unknown.field.none", "theFollowingTestBehaviorIsConfigured", "extra");
+	}
+
+	/** Checks that two unknown fields are named together, in order. */
+	@Test
+	void rejectsSeveralUnknownFieldsTogether() {
+		ObjectNode tree = validTree();
+		ObjectNode file = (ObjectNode) tree.at(ACCESSES + "/regardingFileSystemInteractions/0");
+		file.set("readAllFile", NODES.booleanNode(true));
+		file.set("deleteAllFile", NODES.booleanNode(true));
+		assertRejected(tree, "", "policy.schema.unknown.fields", "regardingFileSystemInteractions[0]",
+				"deleteAllFile, readAllFile", FILE_FIELDS);
+	}
+
+	/** Checks that two missing fields are named together, in order. */
+	@Test
+	void rejectsSeveralMissingFieldsTogether() {
+		ObjectNode tree = validTree();
+		ObjectNode network = (ObjectNode) tree.at(ACCESSES + "/regardingNetworkConnections/0");
+		network.remove("sendData");
+		network.remove("onThePort");
+		assertRejected(tree, "", "policy.schema.missing.fields", "regardingNetworkConnections[0]",
+				"onThePort, sendData");
+	}
+
+	/**
+	 * Checks the English wording a typo in a file rule produces: the entry, the
+	 * unknown field and every known field, so the right spelling is in sight.
+	 */
+	@Test
+	void namesTheKnownFieldsOfAMisspelledFileRuleInEnglish() {
+		ObjectNode tree = validTree();
+		((ObjectNode) tree.at(ACCESSES + "/regardingFileSystemInteractions/0")).set("readAllFile",
+				NODES.booleanNode(true));
+		assertEquals(
+				"regardingFileSystemInteractions[0] contains the unknown field readAllFile. Correct or remove "
+						+ "it; the known fields are " + FILE_FIELDS + ".",
+				AdviceActionWording.inLocale(Locale.ENGLISH, () -> rejection(tree)));
+	}
+
+	/** Checks the German wording of the same typo. */
+	@Test
+	void namesTheKnownFieldsOfAMisspelledFileRuleInGerman() {
+		ObjectNode tree = validTree();
+		((ObjectNode) tree.at(ACCESSES + "/regardingFileSystemInteractions/0")).set("readAllFile",
+				NODES.booleanNode(true));
+		assertEquals(
+				"regardingFileSystemInteractions[0] enthält das unbekannte Feld readAllFile. Korrigieren oder "
+						+ "entfernen Sie es; die bekannten Felder sind " + FILE_FIELDS + ".",
+				AdviceActionWording.inLocale(Locale.GERMAN, () -> rejection(tree)));
+	}
+
+	/**
+	 * Checks the English wording of a quoted flag: the YAML path, not an internal
+	 * label, the value as written, and the fix.
+	 */
+	@Test
+	void quotesAQuotedFlagWithItsPathInEnglish() {
+		JsonNode tree = changed(ACCESSES + "/regardingFileSystemInteractions/0", "readAllFiles", NODES.textNode("yes"));
+		assertEquals("regardingFileSystemInteractions[0].readAllFiles is \"yes\", but must be true or false, written "
+				+ "without quotes.", AdviceActionWording.inLocale(Locale.ENGLISH, () -> rejection(tree)));
+	}
+
+	/**
+	 * Checks that while Ares supports one policy version, the message names that
+	 * version and how to set it, rather than a range from it to itself.
+	 */
+	@Test
+	void namesTheOnlySupportedVersionWithoutADegenerateRange() {
+		org.junit.jupiter.api.Assumptions.assumeTrue(
+				AresConstants.MINIMUM_POLICY_VERSION == AresConstants.MAXIMUM_POLICY_VERSION,
+				"Ares supports more than one policy version");
+		JsonNode tree = changed("", "thisPolicyFileCompliesToThePolicyVersion", NODES.numberNode(7));
+		String only = String.valueOf(AresConstants.MAXIMUM_POLICY_VERSION);
+		String message = AdviceActionWording.inLocale(Locale.ENGLISH, () -> rejection(tree));
+		assertEquals("thisPolicyFileCompliesToThePolicyVersion is 7, but must be " + only
+				+ ". Set thisPolicyFileCompliesToThePolicyVersion: " + only + ".", message);
+		assertFalse(message.contains("between"), message);
+		assertFalse(message.contains("inclusive"), message);
+	}
+
+	/** Checks that an unknown configuration is quoted and the known ones listed. */
+	@Test
+	void listsTheKnownConfigurationsForAnUnknownOne() {
+		JsonNode tree = changed(SUPERVISED, "theFollowingProgrammingLanguageConfigurationIsUsed",
+				NODES.textNode("JAVA_USING_GRADLE_ARCHUNIT_AND_SPRINGAOP"));
+		String message = AdviceActionWording.inLocale(Locale.ENGLISH, () -> rejection(tree));
+		assertTrue(message.contains("\"JAVA_USING_GRADLE_ARCHUNIT_AND_SPRINGAOP\""), message);
+		for (ProgrammingLanguageConfiguration configuration : ProgrammingLanguageConfiguration.values()) {
+			assertTrue(message.contains(configuration.name()), message);
+		}
+	}
+
+	/**
+	 * Checks that each boundary value of a number field is accepted.
+	 *
+	 * @param caseName what is checked, used as the test name.
+	 * @param tree     the policy tree with the boundary value.
+	 */
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("acceptedBoundaries")
+	void acceptsEachBoundaryValue(String caseName, JsonNode tree) {
+		assertDoesNotThrow(() -> SecurityPolicySchemaValidator.validate(tree));
+	}
+
+	/**
+	 * Lists policies whose port, thread count or timeout sits exactly on a boundary
+	 * of its range, including a number Jackson keeps as a big integer.
+	 *
+	 * @return the cases for the parameterised test.
+	 */
+	static Stream<Arguments> acceptedBoundaries() {
+		String network = ACCESSES + "/regardingNetworkConnections/0";
+		String threads = ACCESSES + "/regardingThreadCreations/0";
+		String timeouts = ACCESSES + "/regardingTimeouts/0";
+		String count = "createTheFollowingNumberOfThreads";
+		return Stream.of(Arguments.of("port 0", changed(network, "onThePort", NODES.numberNode(0))),
+				Arguments.of("port 65535", changed(network, "onThePort", NODES.numberNode(65535))),
+				Arguments.of("port as big integer",
+						changed(network, "onThePort", NODES.numberNode(BigInteger.valueOf(443)))),
+				Arguments.of("thread count 0", changed(threads, count, NODES.numberNode(0))),
+				Arguments.of("thread count int maximum", changed(threads, count, NODES.numberNode(Integer.MAX_VALUE))),
+				Arguments.of("timeout 1", changed(timeouts, "timeout", NODES.numberNode(1))),
+				Arguments.of("timeout long maximum", changed(timeouts, "timeout", NODES.numberNode(Long.MAX_VALUE))));
+	}
+
+	/**
+	 * Cuts a rendered value the way the message is expected to: its first 40 and
+	 * last 57 code points around three dots, computed on code points directly.
+	 *
+	 * @param rendered the value as written in JSON.
+	 * @return the expected quotation.
+	 */
+	private static String cutOnCodePoints(String rendered) {
+		int[] codePoints = rendered.codePoints().toArray();
+		if (codePoints.length <= 100) {
+			return rendered;
+		}
+		return new String(codePoints, 0, 40) + "..." + new String(codePoints, codePoints.length - 57, 57);
+	}
+
+	/**
+	 * Checks that a rejected value is quoted in full up to 100 code points, and
+	 * that a longer one keeps its beginning and its end.
+	 *
+	 * @param renderedLength the length of the rendered value, quotes included.
+	 */
+	@ParameterizedTest(name = "rendered length {0}")
+	@MethodSource("renderedLengths")
+	void quotesUpToOneHundredCodePointsAndKeepsBothEndsOfALongerValue(int renderedLength) {
+		String name = "1" + "b".repeat(renderedLength - 4) + "z";
+		String rendered = NODES.textNode(name).toString();
+		assertEquals(renderedLength, rendered.codePointCount(0, rendered.length()));
+		JsonNode tree = changed(SUPERVISED, "theSupervisedCodeUsesTheFollowingPackage", NODES.textNode(name));
+		assertRejected(tree, cutOnCodePoints(rendered), "policy.schema.package",
+				"theSupervisedCodeUsesTheFollowingPackage", VALUE);
+	}
+
+	/**
+	 * Lists the rendered lengths around the cut.
+	 *
+	 * @return 99, 100, 101 and a much longer value.
+	 */
+	static Stream<Integer> renderedLengths() {
+		return Stream.of(99, 100, 101, 300);
+	}
+
+	/**
+	 * Checks that the cut never splits a character outside the Basic Multilingual
+	 * Plane, at the end of the kept beginning or at the start of the kept end.
+	 */
+	@Test
+	void cutsALongValueOnlyBetweenWholeCharacters() {
+		String smile = new String(Character.toChars(0x1F600));
+		String name = "1" + "a".repeat(37) + smile + "b".repeat(100) + smile + "c".repeat(55);
+		String rendered = NODES.textNode(name).toString();
+		int[] codePoints = rendered.codePoints().toArray();
+		assertEquals(0x1F600, codePoints[39]);
+		assertEquals(0x1F600, codePoints[codePoints.length - 57]);
+		JsonNode tree = changed(SUPERVISED, "theSupervisedCodeUsesTheFollowingPackage", NODES.textNode(name));
+		String quotation = cutOnCodePoints(rendered);
+		assertTrue(quotation.startsWith("\"1" + "a".repeat(37) + smile + "..."), quotation);
+		assertTrue(quotation.endsWith("..." + smile + "c".repeat(55) + "\""), quotation);
+		assertRejected(tree, quotation, "policy.schema.package", "theSupervisedCodeUsesTheFollowingPackage", VALUE);
 	}
 
 	/**
 	 * Checks that each broken rule is refused with the message of that rule.
 	 *
-	 * @param caseName        what is broken, used as the test name.
-	 * @param parentPointer   where the broken field sits.
-	 * @param field           the broken field.
-	 * @param replacement     the broken value, or null to remove the field.
-	 * @param expectedMessage the message the refusal must carry.
+	 * @param caseName  what is broken, used as the test name.
+	 * @param tree      the policy tree with the defect.
+	 * @param value     the rejected value as JSON, for {@link #VALUE}.
+	 * @param key       the expected message key.
+	 * @param arguments the expected arguments of that message.
 	 */
 	@ParameterizedTest(name = "{0}")
 	@MethodSource("brokenRules")
-	void rejectsEachBrokenRuleWithItsOwnMessage(String caseName, String parentPointer, String field,
-			@Nullable JsonNode replacement, String expectedMessage) {
-		assertRejected(changed(parentPointer, field, replacement), expectedMessage);
+	void rejectsEachBrokenRuleWithItsOwnMessage(String caseName, JsonNode tree, String value, String key,
+			Object[] arguments) {
+		assertRejected(tree, value, key, arguments);
+	}
+
+	/**
+	 * Builds one case: a valid policy with one field changed.
+	 *
+	 * @param caseName      what is broken.
+	 * @param parentPointer where the broken field sits.
+	 * @param field         the broken field.
+	 * @param replacement   the broken value, or null to remove the field.
+	 * @param value         the rejected value as JSON, for {@link #VALUE}.
+	 * @param keyAndArgs    the expected key followed by its arguments.
+	 * @return the case.
+	 */
+	private static Arguments broken(String caseName, String parentPointer, String field, @Nullable JsonNode replacement,
+			String value, Object... keyAndArgs) {
+		return Arguments.of(caseName, changed(parentPointer, field, replacement), value, keyAndArgs[0],
+				Arrays.copyOfRange(keyAndArgs, 1, keyAndArgs.length));
 	}
 
 	/**
@@ -230,113 +494,195 @@ class SecurityPolicySchemaValidatorTest {
 	static Stream<Arguments> brokenRules() {
 		String version = "thisPolicyFileCompliesToThePolicyVersion";
 		String language = "theFollowingProgrammingLanguageConfigurationIsUsed";
-		String supervised = "$.regardingTheSupervisedCode";
+		String packageField = "theSupervisedCodeUsesTheFollowingPackage";
+		String mainClass = "theMainClassInsideThisPackageIs";
 		String testClasses = "theFollowingClassesAreTestClasses";
-		String versionRange = "$.thisPolicyFileCompliesToThePolicyVersion must be between "
-				+ AresConstants.MINIMUM_POLICY_VERSION + " and " + AresConstants.MAXIMUM_POLICY_VERSION
-				+ " (inclusive), but was ";
+		String resources = "theFollowingResourceAccessesArePermitted";
+		String knownConfigurations = Arrays.stream(ProgrammingLanguageConfiguration.values()).map(Enum::name)
+				.collect(Collectors.joining(", "));
 		JsonNode text = NODES.textNode("x");
 		JsonNode five = NODES.numberNode(5);
 		JsonNode invalidName = NODES.textNode("1bad");
 		JsonNode invalidCommand = NODES.textNode("echo ");
 		String files = ACCESSES + "/regardingFileSystemInteractions/0";
 		String network = ACCESSES + "/regardingNetworkConnections/0";
-		String commands = ACCESSES + "/regardingCommandExecutions";
-		String command = commands + "/0";
-		String entry = "regardingCommandExecutions entry";
-		return Stream.of(Arguments.of("root unknown field", "", "extra", text, "$ contains unknown fields [extra]"),
-				Arguments.of("root missing field", "", version, null, "$ is missing required fields [" + version + "]"),
-				Arguments.of("root null field", "", "regardingTheSupervisedCode", NODES.nullNode(),
-						"$.regardingTheSupervisedCode must not be null"),
-				Arguments.of("version decimal", "", version, NODES.numberNode(1.5d),
-						"$." + version + " must be an integer"),
-				Arguments.of("version beyond int", "", version, NODES.numberNode(3000000000L),
-						"$." + version + " must fit into an int"),
-				Arguments.of("version above range", "", version,
-						NODES.numberNode(AresConstants.MAXIMUM_POLICY_VERSION + 1),
-						versionRange + (AresConstants.MAXIMUM_POLICY_VERSION + 1)),
-				Arguments.of("version below range", "", version,
-						NODES.numberNode(AresConstants.MINIMUM_POLICY_VERSION - 1),
-						versionRange + (AresConstants.MINIMUM_POLICY_VERSION - 1)),
-				Arguments.of("supervised code not an object", "", "regardingTheSupervisedCode", text,
-						supervised + " must be a non-null object"),
-				Arguments.of("supervised code unknown field", SUPERVISED, "extra", text,
-						supervised + " contains unknown fields [extra]"),
-				Arguments.of("configuration not text", SUPERVISED, language, five,
-						supervised + "." + language + " must be a non-blank string"),
-				Arguments.of("configuration unknown", SUPERVISED, language, NODES.textNode("NO_SUCH_CONFIGURATION"),
-						supervised + "." + language + " must be a known configuration"),
-				Arguments.of("package not text", SUPERVISED, "theSupervisedCodeUsesTheFollowingPackage", five,
-						supervised + ".theSupervisedCodeUsesTheFollowingPackage must be a non-blank string or null"),
-				Arguments.of("main class blank", SUPERVISED, "theMainClassInsideThisPackageIs", NODES.textNode("  "),
-						supervised + ".theMainClassInsideThisPackageIs must be a non-blank string or null"),
-				Arguments.of("package invalid", SUPERVISED, "theSupervisedCodeUsesTheFollowingPackage", invalidName,
-						supervised + ".theSupervisedCodeUsesTheFollowingPackage must be a valid package name or null"),
-				Arguments.of("main class invalid", SUPERVISED, "theMainClassInsideThisPackageIs",
-						NODES.textNode("Main Class"),
-						supervised + ".theMainClassInsideThisPackageIs must be a valid class name or null"),
-				Arguments.of("test classes not an array", SUPERVISED, testClasses,
-						NODES.textNode("com.example.MainTest"),
-						supervised + "." + testClasses + " must be an array of strings"),
-				Arguments.of("test class not text", SUPERVISED, testClasses, array(five),
-						supervised + "." + testClasses + " must contain only non-blank strings"),
-				Arguments.of("test class blank", SUPERVISED, testClasses, array(NODES.textNode("  ")),
-						supervised + "." + testClasses + " must contain only non-blank strings"),
-				Arguments.of("test class invalid", SUPERVISED, testClasses, array(invalidName),
-						supervised + "." + testClasses + " entries must be valid class names"),
-				Arguments.of("resources not an object", SUPERVISED, "theFollowingResourceAccessesArePermitted", text,
-						supervised + ".theFollowingResourceAccessesArePermitted must be a non-null object"),
-				Arguments.of("file list not an array", ACCESSES, "regardingFileSystemInteractions", text,
-						"regardingFileSystemInteractions must be an array"),
-				Arguments.of("file entry not an object", ACCESSES, "regardingFileSystemInteractions", array(text),
-						"regardingFileSystemInteractions entry must be a non-null object"),
-				Arguments.of("network entry missing port", network, "onThePort", null,
-						"regardingNetworkConnections entry is missing required fields [onThePort]"),
-				Arguments.of("file path not text", files, "onThisPathAndAllPathsBelow", five,
-						"file permission.onThisPathAndAllPathsBelow must be a non-blank string"),
-				Arguments.of("file path blank", files, "onThisPathAndAllPathsBelow", NODES.textNode("  "),
-						"file permission.onThisPathAndAllPathsBelow must be a non-blank string"),
-				Arguments.of("file path only a Unicode space", files, "onThisPathAndAllPathsBelow",
-						NODES.textNode("\u2003"),
-						"file permission.onThisPathAndAllPathsBelow must be a non-blank string"),
-				Arguments.of("file path walks up", files, "onThisPathAndAllPathsBelow", NODES.textNode("../x"),
-						"file permission.onThisPathAndAllPathsBelow must match "),
-				Arguments.of("file flag quoted", files, "createAllFiles", NODES.textNode("true"),
-						"file permission.createAllFiles must be a boolean"),
-				Arguments.of("host not text", network, "onTheHost", five,
-						"network permission.onTheHost must be a non-blank string"),
-				Arguments.of("host invalid", network, "onTheHost", NODES.textNode("bad host"),
-						"network permission.onTheHost must match "),
-				Arguments.of("port not integral", network, "onThePort", NODES.textNode("80"),
-						"network permission.onThePort must be an integer"),
-				Arguments.of("thread class not text", ACCESSES + "/regardingThreadCreations/0", "ofThisClass", five,
-						"thread permission.ofThisClass must be a non-blank string"),
-				Arguments.of("thread class invalid", ACCESSES + "/regardingThreadCreations/0", "ofThisClass",
-						invalidName, "thread permission.ofThisClass must be a valid thread construct"),
-				Arguments.of("import not text", ACCESSES + "/regardingPackageImports/0", "importTheFollowingPackage",
-						five, "package permission.importTheFollowingPackage must be a non-blank string"),
-				Arguments.of("import invalid", ACCESSES + "/regardingPackageImports/0", "importTheFollowingPackage",
-						invalidName, "package permission.importTheFollowingPackage must be a valid package name or *"),
-				Arguments.of("exactMatchOnly quoted", ACCESSES + "/regardingPackageImports/0", "exactMatchOnly",
-						NODES.textNode("true"), "package permission.exactMatchOnly must be a boolean when present"),
-				Arguments.of("timeout not integral", ACCESSES + "/regardingTimeouts/0", "timeout", NODES.textNode("30"),
-						"timeout permission.timeout must be an integer"),
-				Arguments.of("commands not an array", ACCESSES, "regardingCommandExecutions", NODES.textNode("java"),
-						"regardingCommandExecutions must be an array"),
-				Arguments.of("bare command invalid", ACCESSES, "regardingCommandExecutions", array(invalidCommand),
-						entry + " must match "),
-				Arguments.of("command entry neither text nor object", ACCESSES, "regardingCommandExecutions",
-						array(five), entry + " must be a non-null object"),
-				Arguments.of("command name not text", command, "executeTheCommand", five,
-						entry + ".executeTheCommand must be a non-blank string"),
-				Arguments.of("command name invalid", command, "executeTheCommand", invalidCommand,
-						entry + ".executeTheCommand must match "),
-				Arguments.of("arguments not an array", command, "withTheseArguments", NODES.textNode("--version"),
-						entry + ".withTheseArguments must be an array of strings"),
-				Arguments.of("argument not text", command, "withTheseArguments", array(five),
-						entry + ".withTheseArguments must contain only strings"),
-				Arguments.of("argument with control character", command, "withTheseArguments",
-						array(NODES.textNode("\u0001")),
-						entry + ".withTheseArguments must not contain control characters"));
+		String command = ACCESSES + "/regardingCommandExecutions/0";
+		String file0 = "regardingFileSystemInteractions[0]";
+		String network0 = "regardingNetworkConnections[0]";
+		String thread0 = "regardingThreadCreations[0]";
+		String import0 = "regardingPackageImports[0]";
+		String command0 = "regardingCommandExecutions[0]";
+		String arguments = command0 + ".withTheseArguments";
+		return Stream.concat(Stream.of(
+				broken("root unknown field", "", "extra", text, "", "policy.schema.unknown.field", ROOT, "extra",
+						"regardingTheSupervisedCode, " + version),
+				broken("root missing field", "", version, null, "", "policy.schema.missing.field", ROOT, version),
+				broken("root null field", "", "regardingTheSupervisedCode", NODES.nullNode(), "", "policy.schema.null",
+						"regardingTheSupervisedCode"),
+				broken("version decimal", "", version, NODES.numberNode(1.5d), "1.5", "policy.schema.integer", version,
+						VALUE),
+				broken("version beyond int", "", version, NODES.numberNode(3000000000L), "",
+						unsupportedVersion("3000000000")),
+				broken("version above range", "", version, NODES.numberNode(AresConstants.MAXIMUM_POLICY_VERSION + 1),
+						"", unsupportedVersion(String.valueOf(AresConstants.MAXIMUM_POLICY_VERSION + 1))),
+				broken("version below range", "", version, NODES.numberNode(AresConstants.MINIMUM_POLICY_VERSION - 1),
+						"", unsupportedVersion(String.valueOf(AresConstants.MINIMUM_POLICY_VERSION - 1))),
+				broken("supervised code not an object", "", "regardingTheSupervisedCode", text, "\"x\"",
+						"policy.schema.object", "regardingTheSupervisedCode", VALUE),
+				broken("supervised code unknown field", SUPERVISED, "extra", text, "", "policy.schema.unknown.field",
+						"regardingTheSupervisedCode", "extra",
+						String.join(", ", testClasses, language, resources, "theFollowingTestBehaviorIsConfigured",
+								mainClass, packageField)),
+				broken("configuration not text", SUPERVISED, language, five, "5", "policy.schema.text", language,
+						VALUE),
+				broken("configuration unknown", SUPERVISED, language, NODES.textNode("NO_SUCH_CONFIGURATION"),
+						"\"NO_SUCH_CONFIGURATION\"", "policy.schema.configuration", language, VALUE,
+						knownConfigurations),
+				broken("package not text", SUPERVISED, packageField, five, "5", "policy.schema.text.optional",
+						packageField, VALUE),
+				broken("main class blank", SUPERVISED, mainClass, NODES.textNode("  "), "\"  \"",
+						"policy.schema.text.optional", mainClass, VALUE),
+				broken("package invalid", SUPERVISED, packageField, invalidName, "\"1bad\"", "policy.schema.package",
+						packageField, VALUE),
+				broken("main class invalid", SUPERVISED, mainClass, NODES.textNode("Main Class"), "\"Main Class\"",
+						"policy.schema.main.class", mainClass, VALUE),
+				broken("test classes not an array", SUPERVISED, testClasses, NODES.textNode("com.example.MainTest"),
+						"\"com.example.MainTest\"", "policy.schema.text.list", testClasses, VALUE,
+						"com.example.MainTest"),
+				broken("test class not text", SUPERVISED, testClasses, array(five), "5", "policy.schema.text",
+						testClasses + "[0]", VALUE),
+				broken("test class blank", SUPERVISED, testClasses, array(NODES.textNode("  ")), "\"  \"",
+						"policy.schema.text", testClasses + "[0]", VALUE),
+				broken("test class invalid", SUPERVISED, testClasses, array(invalidName), "\"1bad\"",
+						"policy.schema.test.class", testClasses + "[0]", VALUE),
+				broken("resources not an object", SUPERVISED, resources, text, "\"x\"", "policy.schema.object",
+						resources, VALUE),
+				broken("file list not an array", ACCESSES, "regardingFileSystemInteractions", text, "\"x\"",
+						"policy.schema.list", "regardingFileSystemInteractions", VALUE),
+				broken("file entry not an object", ACCESSES, "regardingFileSystemInteractions", array(text), "\"x\"",
+						"policy.schema.object", file0, VALUE),
+				broken("network entry missing port", network, "onThePort", null, "", "policy.schema.missing.field",
+						network0, "onThePort"),
+				broken("file path not text", files, "onThisPathAndAllPathsBelow", five, "5", "policy.schema.text",
+						file0 + ".onThisPathAndAllPathsBelow", VALUE),
+				broken("file path blank", files, "onThisPathAndAllPathsBelow", NODES.textNode("  "), "\"  \"",
+						"policy.schema.text", file0 + ".onThisPathAndAllPathsBelow", VALUE),
+				broken("file path only a Unicode space", files, "onThisPathAndAllPathsBelow", NODES.textNode(" "),
+						NODES.textNode(" ").toString(), "policy.schema.text", file0 + ".onThisPathAndAllPathsBelow",
+						VALUE),
+				broken("file path walks up", files, "onThisPathAndAllPathsBelow", NODES.textNode("../x"), "\"../x\"",
+						"policy.schema.file.path", file0 + ".onThisPathAndAllPathsBelow", VALUE),
+				broken("file flag quoted", files, "createAllFiles", NODES.textNode("true"), "\"true\"",
+						"policy.schema.boolean", file0 + ".createAllFiles", VALUE),
+				broken("host not text", network, "onTheHost", five, "5", "policy.schema.text", network0 + ".onTheHost",
+						VALUE),
+				broken("host invalid", network, "onTheHost", NODES.textNode("bad host"), "\"bad host\"",
+						"policy.schema.host", network0 + ".onTheHost", VALUE),
+				broken("port not integral", network, "onThePort", NODES.textNode("80"), "\"80\"",
+						"policy.schema.integer", network0 + ".onThePort", VALUE),
+				broken("thread class not text", ACCESSES + "/regardingThreadCreations/0", "ofThisClass", five, "5",
+						"policy.schema.text", thread0 + ".ofThisClass", VALUE),
+				broken("thread class invalid", ACCESSES + "/regardingThreadCreations/0", "ofThisClass", invalidName,
+						"\"1bad\"", "policy.schema.thread.class", thread0 + ".ofThisClass", VALUE),
+				broken("import not text", ACCESSES + "/regardingPackageImports/0", "importTheFollowingPackage", five,
+						"5", "policy.schema.text", import0 + ".importTheFollowingPackage", VALUE),
+				broken("import invalid", ACCESSES + "/regardingPackageImports/0", "importTheFollowingPackage",
+						invalidName, "\"1bad\"", "policy.schema.package.import", import0 + ".importTheFollowingPackage",
+						VALUE),
+				broken("timeout not integral", ACCESSES + "/regardingTimeouts/0", "timeout", NODES.textNode("30"),
+						"\"30\"", "policy.schema.integer", "regardingTimeouts[0].timeout", VALUE),
+				broken("commands not an array", ACCESSES, "regardingCommandExecutions", NODES.textNode("java"),
+						"\"java\"", "policy.schema.list", "regardingCommandExecutions", VALUE),
+				broken("bare command invalid", ACCESSES, "regardingCommandExecutions", array(invalidCommand),
+						"\"echo \"", "policy.schema.command", command0, VALUE),
+				broken("command entry neither text nor object", ACCESSES, "regardingCommandExecutions", array(five),
+						"5", "policy.schema.object", command0, VALUE),
+				broken("command name not text", command, "executeTheCommand", five, "5", "policy.schema.text",
+						command0 + ".executeTheCommand", VALUE),
+				broken("command name invalid", command, "executeTheCommand", invalidCommand, "\"echo \"",
+						"policy.schema.command", command0 + ".executeTheCommand", VALUE),
+				broken("arguments not an array", command, "withTheseArguments", NODES.textNode("--version"),
+						"\"--version\"", "policy.schema.text.list", arguments, VALUE, "--version"),
+				broken("argument not text", command, "withTheseArguments", array(five), "5", "policy.schema.text.any",
+						arguments + "[0]", VALUE),
+				broken("argument with control character", command, "withTheseArguments",
+						array(NODES.textNode("\u0001")), NODES.textNode("\u0001").toString(),
+						"policy.schema.command.argument", arguments + "[0]", VALUE)),
+				Stream.concat(brokenRanges(), brokenNullLists()));
+	}
+
+	/**
+	 * Lists ports, thread counts and timeouts outside their range or not whole
+	 * numbers, including values whose narrowed form would look valid.
+	 *
+	 * @return the cases for the parameterised test.
+	 */
+	static Stream<Arguments> brokenRanges() {
+		String network = ACCESSES + "/regardingNetworkConnections/0";
+		String threads = ACCESSES + "/regardingThreadCreations/0";
+		String timeouts = ACCESSES + "/regardingTimeouts/0";
+		String count = "createTheFollowingNumberOfThreads";
+		String port = "regardingNetworkConnections[0].onThePort";
+		String threadCount = "regardingThreadCreations[0]." + count;
+		String timeout = "regardingTimeouts[0].timeout";
+		BigInteger twoToThe32 = BigInteger.ONE.shiftLeft(32);
+		BigInteger twoToThe64PlusOne = BigInteger.ONE.shiftLeft(64).add(BigInteger.ONE);
+		return Stream.of(
+				broken("port negative", network, "onThePort", NODES.numberNode(-1), "-1", "policy.schema.port", port,
+						VALUE),
+				broken("port above range", network, "onThePort", NODES.numberNode(65536), "65536", "policy.schema.port",
+						port, VALUE),
+				broken("port narrowing to 0", network, "onThePort", NODES.numberNode(twoToThe32), "4294967296",
+						"policy.schema.port", port, VALUE),
+				broken("port narrowing to 1", network, "onThePort", NODES.numberNode(twoToThe64PlusOne),
+						"18446744073709551617", "policy.schema.port", port, VALUE),
+				broken("port decimal", network, "onThePort", NODES.numberNode(1.0d), "1.0", "policy.schema.integer",
+						port, VALUE),
+				broken("port negative zero decimal", network, "onThePort", NODES.numberNode(-0.0d), "-0.0",
+						"policy.schema.integer", port, VALUE),
+				broken("thread count negative", threads, count, NODES.numberNode(-1), "-1",
+						"policy.schema.thread.count", threadCount, VALUE),
+				broken("thread count above int", threads, count, NODES.numberNode(2147483648L), "2147483648",
+						"policy.schema.thread.count", threadCount, VALUE),
+				broken("thread count narrowing to 0", threads, count, NODES.numberNode(twoToThe32), "4294967296",
+						"policy.schema.thread.count", threadCount, VALUE),
+				broken("thread count decimal", threads, count, NODES.numberNode(1.5d), "1.5", "policy.schema.integer",
+						threadCount, VALUE),
+				broken("timeout zero", timeouts, "timeout", NODES.numberNode(0), "0", "policy.schema.timeout", timeout,
+						VALUE),
+				broken("timeout negative", timeouts, "timeout", NODES.numberNode(-1), "-1", "policy.schema.timeout",
+						timeout, VALUE),
+				broken("timeout above long", timeouts, "timeout",
+						NODES.numberNode(BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE)), "9223372036854775808",
+						"policy.schema.timeout", timeout, VALUE),
+				broken("timeout narrowing to 1", timeouts, "timeout", NODES.numberNode(twoToThe64PlusOne),
+						"18446744073709551617", "policy.schema.timeout", timeout, VALUE),
+				broken("timeout decimal", timeouts, "timeout", NODES.numberNode(1e3d), "1000.0",
+						"policy.schema.integer", timeout, VALUE));
+	}
+
+	/**
+	 * Lists required fields left null: a list field gets the hint to write [], any
+	 * other field the general message.
+	 *
+	 * @return the cases for the parameterised test.
+	 */
+	static Stream<Arguments> brokenNullLists() {
+		String command = ACCESSES + "/regardingCommandExecutions/0";
+		String testClasses = "theFollowingClassesAreTestClasses";
+		Stream<Arguments> resourceLists = Stream
+				.of("regardingFileSystemInteractions", "regardingNetworkConnections", "regardingCommandExecutions",
+						"regardingThreadCreations", "regardingPackageImports", "regardingTimeouts")
+				.map(list -> broken(list + " null", ACCESSES, list, NODES.nullNode(), "", "policy.schema.null.list",
+						list));
+		return Stream.concat(resourceLists,
+				Stream.of(
+						broken("test classes null", SUPERVISED, testClasses, NODES.nullNode(), "",
+								"policy.schema.null.list", testClasses),
+						broken("arguments null", command, "withTheseArguments", NODES.nullNode(), "",
+								"policy.schema.null.list", "regardingCommandExecutions[0].withTheseArguments"),
+						broken("file flag null", ACCESSES + "/regardingFileSystemInteractions/0", "readAllFiles",
+								NODES.nullNode(), "", "policy.schema.null",
+								"regardingFileSystemInteractions[0].readAllFiles")));
 	}
 }

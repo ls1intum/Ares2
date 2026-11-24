@@ -959,9 +959,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			return;
 		}
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
-		throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
-				localizeAction("create"), violation, fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-						+ buildDenialReason(noAllowRuleConfigured)));
+		throw new SecurityException(
+				localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, localizeAction("create"),
+						violation, describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+						buildDenialReason("file", "create", noAllowRuleConfigured)));
 	}
 
 	/**
@@ -1021,9 +1022,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		if (violation == null) {
 			return;
 		}
-		throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
-				localizeAction(actionLabel), violation, fullMethodSignature + describeCaller(studentCalledMethod)
-						+ " | " + buildDenialReason(noAllowRuleConfigured)));
+		throw new SecurityException(
+				localize("security.advice.illegal.file.execution", fileSystemMethodToCheck, localizeAction(actionLabel),
+						violation, describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+						buildDenialReason("file", actionLabel, noAllowRuleConfigured)));
 	}
 
 	/**
@@ -1671,8 +1673,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		if (isPreferencesBackingStore(declaringTypeName) && !allowsAllPaths(allowedPaths)) {
 			throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
-					localizeAction(action), PREFERENCES_BACKING_STORE, fullMethodSignature
-							+ describeCaller(studentCalledMethod) + " | " + buildDenialReason(noAllowRuleConfigured)));
+					localizeAction(action), PREFERENCES_BACKING_STORE,
+					describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+					buildDenialReason("file", action, noAllowRuleConfigured)));
 		}
 		if (isPreferencesBackingStore(declaringTypeName)) {
 			return;
@@ -1708,8 +1711,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					&& !isEntropySourceRead && !isJdkTempFileCreation) {
 				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
 						localizeAction(messageAction), pathIllegallyInteractedThroughParameter,
-						fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-								+ buildDenialReason(noAllowRuleConfigured)));
+						describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+						buildDenialReason("file", action, noAllowRuleConfigured)));
 			}
 		}
 		@Nullable
@@ -1738,8 +1741,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (!isInternalAllowed) {
 				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
 						localizeAction(messageAction), pathIllegallyInteractedThroughReceiver,
-						fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-								+ buildDenialReason(noAllowRuleConfigured)));
+						describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+						buildDenialReason("file", action, noAllowRuleConfigured)));
 			}
 		}
 		@Nullable
@@ -1777,8 +1780,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if (!isInternalAllowed) {
 				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
 						localizeAction(messageAction), pathIllegallyInteractedThroughAttribute,
-						fullMethodSignature + describeCaller(studentCalledMethod) + " | "
-								+ buildDenialReason(noAllowRuleConfigured)));
+						describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+						buildDenialReason("file", action, noAllowRuleConfigured)));
 			}
 		}
 	}
@@ -2145,11 +2148,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			@Nullable
 			String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
-			throw new SecurityException(localize("security.advice.illegal.file.execution", violatingMethod, "execute",
-					libraryName.replace("\0", "\\0"),
-					declaringTypeName + "." + methodName + methodSignature
-							+ (studentCalledMethod == null ? "" : " (called by " + studentCalledMethod + ")") + " | "
-							+ buildDenialReason(allowedPaths == null || allowedPaths.length == 0)));
+			throw new SecurityException(localize("security.advice.illegal.file.execution", violatingMethod,
+					localizeAction("execute"), libraryName.replace("\0", "\\0"),
+					describeSignature(declaringTypeName + "." + methodName + methodSignature)
+							+ describeCaller(studentCalledMethod),
+					buildDenialReason("file", "execute", allowedPaths == null || allowedPaths.length == 0)));
 		} finally {
 			exitAdvice();
 		}

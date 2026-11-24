@@ -19,7 +19,7 @@ the rule sheet bounds nothing yet; the teacher's stopwatch does.
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `SecurityPolicy.java`, and the `policySubComponents` package.
-> **Ares Version:** 2.2.1
+> **Ares Version:** 2.2.2
 
 **Related documentation:**
 - [Precompile or Postcompile](/instructor/protect-a-java-project/precompile-or-postcompile), and from there the walkthrough for your build tool
@@ -117,7 +117,7 @@ This policy forbids all file, network, command and thread operations.
 
 > **`thisPolicyFileCompliesToThePolicyVersion` is required** and must be exactly `1`. A policy file that omits it, or that declares any other value, is rejected on load.
 
-> **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.2.1. Use [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
+> **On timeouts:** `regardingTimeouts` is parsed and validated into the policy model, but timeouts belong to the Phobos test-case family, whose in-process execution has not been migrated across yet, so a value there does not bound test execution in Ares 2.2.2. Use [`@StrictTimeout`](#12-glossary) where a test needs a deadline. The list must still be present, because all six lists are structurally required. See [Section 8.6](#86-timeout-permissions).
 
 ### 5.2 Step 2: Apply the Policy to Your Test
 
@@ -169,7 +169,7 @@ The interaction between test annotations (`@Public`, `@Hidden`, `@Test`, `@Publi
 | Scenario | Annotations | Resource Access |
 |----------|-------------|-----------------|
 | **No Supervision** | No Ares test annotation (a plain JUnit `@Test` alone counts as none), with or without `@Policy` | No Ares security code is activated at all, student code runs with no restrictions |
-| **Supervision Without Policy** | `@PublicTest`/`@HiddenTest`, or `@Public`/`@Hidden` alongside a JUnit `@Test`, but **no** `@Policy` | Ares enforces a **restrictive default configuration**: file, network, command and thread access is denied. Package imports are restricted to every `java.*` package, the essential packages and each package of the supervised code as that package alone. No execution timeout applies yet, see [Section 8.6](#86-timeout-permissions) |
+| **Supervision Without Policy** | `@PublicTest`/`@HiddenTest`, or `@Public`/`@Hidden` alongside a JUnit `@Test`, but **no** `@Policy` | Ares enforces a **restrictive default configuration**: file, network, command and thread access is denied. Package imports are restricted to every `java.*` package, the essential packages and each package of the supervised code with the packages below it. No execution timeout applies yet, see [Section 8.6](#86-timeout-permissions) |
 | **Supervision With Policy** | `@PublicTest`/`@HiddenTest`, or `@Public`/`@Hidden` alongside a JUnit `@Test`, **and** `@Policy` | Student code can access **only allowed** supervised resources (explicit allowlist via policy) |
 
 > **Opting out:** Once an Ares test annotation has registered the extension, the only way to disable enforcement is an explicit `@Policy(activated = false)`.
@@ -192,7 +192,7 @@ When you run the tests, Ares 2 will automatically enforce the security policy. I
 Ares 2's behaviour depends on whether test supervision is active and whether a `@Policy` annotation is present. Supervision is activated by an **Ares** test annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`), which carries the `@JupiterAresTest` meta-annotation that registers the extension. A plain JUnit `@Test` does **not** activate Ares, and neither does `@Policy`, which carries no `@ExtendWith` and registers nothing:
 
 - **Without supervision** (no Ares test annotation present): Student code runs freely with no restrictions, whether or not a `@Policy` is present.
-- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **restrictive default configuration**. It detects Maven or Gradle from the project root, uses ArchUnit and AspectJ as the analysis and enforcement modes, derives the supervised scope by scanning the project, and applies `ResourceAccesses.createRestrictiveWithoutPolicy()`, which denies file, network, command and thread access outright. Package imports are **restricted rather than eliminated**: Ares permits every `java.*` package, the essential packages it ships and each package of the supervised code as that package alone. The recognised test classes open no package. The fallback constructs a 3,000 ms limit, but that becomes a Phobos test case, and the Phobos stage is not yet dispatched in-process, so no execution timeout applies today; use `@StrictTimeout` where a deadline is needed. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so code that is not AspectJ-woven is covered by the static checks only. The only opt-out is an explicit `@Policy(activated = false)`.
+- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **restrictive default configuration**. It detects Maven or Gradle from the project root, uses ArchUnit and AspectJ as the analysis and enforcement modes, derives the supervised scope by scanning the project, and applies `ResourceAccesses.createRestrictiveWithoutPolicy()`, which denies file, network, command and thread access outright. Package imports are **restricted rather than eliminated**: Ares permits every `java.*` package, the essential packages it ships and the supervised code's packages, each with the packages below it. The recognised test classes open no package. The fallback constructs a 3,000 ms limit, but that becomes a Phobos test case, and the Phobos stage is not yet dispatched in-process, so no execution timeout applies today; use `@StrictTimeout` where a deadline is needed. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so Ares refuses the run if a supervised class is not AspectJ-woven. The only opt-out is an explicit `@Policy(activated = false)`.
 - **With supervision and a policy** (test annotation present, policy annotation present): Ares 2 enforces only the permissions explicitly listed in the policy file. Everything else is forbidden.
 
 When you define a security policy file, you start with maximum security (everything forbidden) and selectively allow only what the exercise absolutely requires. Specifying an explicit `@Policy` annotation with a restrictive policy object (for example, `theFollowingResourceAccessesArePermitted` containing six empty lists) enforces default-deny for policy-controlled resources. This is stricter than supervision without a policy, which permits every `java.*` package. An explicit `@Policy` further lets you choose the configuration (build tool, analysis framework, enforcement mechanism) and selectively grant permissions.
@@ -206,7 +206,7 @@ When you define a security policy file, you start with maximum security (everyth
 | Commands | Executing system commands with specific arguments | Allow running `python --version` |
 | Threads | Which thread classes can be created and how many of each | Allow up to 10 `java.lang.Thread` instances |
 | Packages | Importing Java packages | Allow `java.util` (including subpackages via prefix match) |
-| Timeouts | Declared maximum execution time. **Not enforced by the JUnit extension path in Ares 2.2.1**; use `@StrictTimeout` for an actual deadline | Record an intended limit of 10 seconds |
+| Timeouts | Declared maximum execution time. **Not enforced by the JUnit extension path in Ares 2.2.2**; use `@StrictTimeout` for an actual deadline | Record an intended limit of 10 seconds |
 
 ### 6.3 What Cannot Be Controlled?
 
@@ -215,7 +215,7 @@ The security policy does not cover the following resource types. They are enforc
 | Resource Type | What It Controls | Example |
 |---------------|------------------|---------|
 | Class Loading | Dynamic loading of classes via `java.lang.ClassLoader` and subclasses | Block `URLClassLoader.loadClass()` |
-| Environment | Reading/writing environment variables (`System.getenv`), system properties (`System.getProperty`/`setProperty`), and `ProcessHandle` metadata | Block `System.getenv("SECRET")` |
+| Environment | Reading/writing environment variables (`System.getenv`), system properties (`System.getProperty`/`setProperty`), `ProcessHandle` metadata, and `java.lang.management` | Block `System.getenv("SECRET")` |
 | Exhaustion | Denial-of-service attacks through resource exhaustion: memory, CPU, file handles, threads, disk space, infinite loops, stack overflow, fork bombs, log flooding | Block `new byte[Integer.MAX_VALUE]` |
 | JNDI | JNDI lookup access via `InitialContext` and `InitialDirContext`, which are the LDAP, RMI and Domain Name System (DNS) injection paths | Block `new InitialContext().lookup("ldap://...")` |
 | Java Virtual Machine (JVM) Termination | Terminating the JVM via `System.exit()`, `Runtime.exit()`, `Runtime.halt()`, and Java Development Kit (JDK) tool `main()` methods | Block `System.exit(0)` |
@@ -571,7 +571,7 @@ regardingPackageImports:
 |----------|------|-------------|
 | `importTheFollowingPackage` | text | Fully qualified package name to allow importing |
 
-> **Matching semantics:** Package matching uses a **prefix match** (`startsWith`). Listing `"java.util"` automatically permits all subpackages such as `java.util.concurrent`, `java.util.stream`, `java.util.function`, etc. You do **not** need to list subpackages separately. Be careful with short prefixes, e.g., `"java"` would permit all standard library packages.
+> **Matching semantics:** An entry covers its package and the packages beneath it, compared at package boundaries, but never a reserved namespace beneath it that the entry does not name. Listing `"java.util"` thus permits all subpackages such as `java.util.concurrent`, `java.util.stream`, `java.util.function`, etc. You do **not** need to list subpackages separately. Be careful with short prefixes, e.g., `"java"` would permit all standard library packages.
 
 **Example 1: Allow common standard library packages**
 
@@ -593,7 +593,7 @@ regardingPackageImports:
 
 ### 8.6 Timeout Permissions
 
-Declares an intended maximum execution time in milliseconds. **In Ares 2.2.1 this declaration does not yet take effect**; see the note below.
+Declares an intended maximum execution time in milliseconds. **In Ares 2.2.2 this declaration does not yet take effect**; see the note below.
 
 ```yaml
 regardingTimeouts:
@@ -618,7 +618,7 @@ regardingTimeouts:
   - timeout: 60000
 ```
 
-> **Not in effect yet.** `regardingTimeouts` is parsed and validated into the policy model, but the resulting limit becomes a **Phobos** test case. Phobos is the test-case family covering the file-system, network and timeout domains, and in Ares 2.2.1 it is a generation-only stage: Ares writes those cases out, but the in-process execution path used by the JUnit extension does not dispatch them yet. That migration is still in progress. A timeout expressed here therefore does not bound test execution today, whether the list is populated or empty. Use `@StrictTimeout` on the test class or method wherever a deadline is required. The list must still be present in the file, because all six resource-access lists are structurally required; `regardingTimeouts: []` is the clearest form unless you want to record an intended value for a later release.
+> **Not in effect yet.** `regardingTimeouts` is parsed and validated into the policy model, but the resulting limit becomes a **Phobos** test case. Phobos is the test-case family covering the file-system, network and timeout domains, and in Ares 2.2.2 it is a generation-only stage: Ares writes those cases out, but the in-process execution path used by the JUnit extension does not dispatch them yet. That migration is still in progress. A timeout expressed here therefore does not bound test execution today, whether the list is populated or empty. Use `@StrictTimeout` on the test class or method wherever a deadline is required. The list must still be present in the file, because all six resource-access lists are structurally required; `regardingTimeouts: []` is the clearest form unless you want to record an intended value for a later release.
 
 ### 8.7 Internal Record: `ClassPermission`
 
@@ -752,7 +752,7 @@ The reader refuses a policy file that breaks one of these rules with a `Security
 When a student's code violates a policy at runtime, Ares throws a `SecurityException` with a descriptive single-line message such as:
 
 ```text
-Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read File /etc/passwd via java.nio.file.Files.readString(java.nio.file.Path) | Reason: No allow rule configured for this resource type. but was blocked by Ares.
+Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read the file /etc/passwd via java.nio.file.Files.readString(java.nio.file.Path) (called by com.student.MainTest.testMain), but was blocked by Ares, because the policy has no rule for files.
 ```
 
 ### Common Mistakes
@@ -781,16 +781,16 @@ regardingFileSystemInteractions:
     deleteAllFiles: false
 ```
 
-If a student's code calls `new FileWriter("data/output.txt")`, the test fails because `overwriteAllFiles` is `false` (the message is a single line):
+If a student's code calls `Files.writeString(Path.of("data/output.txt"), "text")`, the test fails because `overwriteAllFiles` is `false` (the message is a single line):
 
 ```text
-java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.writeOutput tried to illegally overwrite File data/output.txt via java.io.FileWriter.<init>(java.lang.String) | Reason: No allow rule configured for this resource type. but was blocked by Ares.
+java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.writeOutput tried to illegally overwrite the file data/output.txt via java.nio.file.Files.writeString(java.nio.file.Path, java.lang.CharSequence, java.nio.file.OpenOption[]) (called by com.student.MainTest.testMain), but was blocked by Ares, because the policy has no rule that allows the code to overwrite any file.
 ```
 
 If the student's code calls `Files.readString(Path.of("/etc/shadow"))`, the test fails because `/etc/shadow` is not under the allowed path `data` (the message is a single line):
 
 ```text
-java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read File /etc/shadow via java.nio.file.Files.readString(java.nio.file.Path) | Reason: No configured allow rule permits this access. but was blocked by Ares.
+java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): com.student.Main.readSecrets tried to illegally read the file /etc/shadow via java.nio.file.Files.readString(java.nio.file.Path) (called by com.student.MainTest.testMain), but was blocked by Ares, because no rule in the policy allows this file.
 ```
 
 ### Diagnosis Guide
@@ -824,7 +824,7 @@ java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: E
 | **WALA** | A static analysis framework that builds inter-procedural call graphs to detect forbidden API usage through chains of method calls. |
 | **AspectJ** | A compile-time AOP framework that weaves interception code directly into bytecode. |
 | **Instrumentation (ByteBuddy)** | A runtime AOP approach using the `java.lang.instrument` API and ByteBuddy to modify class bytecode at load time. |
-| **Prefix Match** | The matching strategy used by `PackagePermission`. A permitted package `"java.util"` matches any package whose name starts with that string (e.g., `java.util.concurrent`, `java.util.stream`). |
+| **Prefix Match** | The matching strategy used by `PackagePermission`. A permitted package `"java.util"` matches itself and the packages beneath it (e.g., `java.util.concurrent`, `java.util.stream`), and never an unnamed reserved namespace. |
 
 ## Further reading
 

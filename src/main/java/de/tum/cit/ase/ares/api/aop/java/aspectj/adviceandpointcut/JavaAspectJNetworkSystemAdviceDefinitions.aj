@@ -820,8 +820,8 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 					localizeAction(action),
 					targetFromParameters.toDisplayString(),
 					describeDeniedCall(thisJoinPoint, fullMethodSignature)
-							+ describeCaller(studentCalledMethod)
-							+ " | " + buildDenialReason(noAllowRuleConfigured)
+							+ describeCaller(studentCalledMethod),
+							buildDenialReason("network", action, noAllowRuleConfigured)
 			));
 		}
 		// Mask out indices already consumed by parametersToTarget so the per-parameter
@@ -851,8 +851,8 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 					localizeAction(action),
 					networkIllegallyInteractedThroughParameter,
 					describeDeniedCall(thisJoinPoint, fullMethodSignature)
-							+ describeCaller(studentCalledMethod)
-							+ " | " + buildDenialReason(noAllowRuleConfigured)
+							+ describeCaller(studentCalledMethod),
+							buildDenialReason("network", action, noAllowRuleConfigured)
 			));
 		}
 		// </editor-fold>
@@ -868,8 +868,8 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 					localizeAction(action),
 					networkIllegallyInteractedThroughReceiver,
 					describeDeniedCall(thisJoinPoint, fullMethodSignature)
-							+ describeCaller(studentCalledMethod)
-							+ " | " + buildDenialReason(noAllowRuleConfigured)
+							+ describeCaller(studentCalledMethod),
+							buildDenialReason("network", action, noAllowRuleConfigured)
 			));
 		}
 		// </editor-fold>
@@ -889,8 +889,8 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 					localizeAction(action),
 					networkIllegallyInteractedThroughAttribute,
 					describeDeniedCall(thisJoinPoint, fullMethodSignature)
-							+ describeCaller(studentCalledMethod)
-							+ " | " + buildDenialReason(noAllowRuleConfigured)
+							+ describeCaller(studentCalledMethod),
+							buildDenialReason("network", action, noAllowRuleConfigured)
 			));
 		}
 		// </editor-fold>

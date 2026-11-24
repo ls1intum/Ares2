@@ -39,6 +39,7 @@ regardingTheSupervisedCode:
     - "de.tum.cit.ase.ares.integration.testuser.DeadlineUser"
     - "de.tum.cit.ase.ares.integration.testuser.DeadlineAdditionsUser"
     - "de.tum.cit.ase.ares.integration.testuser.HiddenPublicUser"
+    - "de.tum.cit.ase.ares.integration.testuser.FailureMessageShapeUser"
   theFollowingResourceAccessesArePermitted:
     regardingFileSystemInteractions: []
     regardingNetworkConnections: []

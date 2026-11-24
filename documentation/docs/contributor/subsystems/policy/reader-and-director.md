@@ -19,7 +19,7 @@ of school this is, nothing starts at all.
 
 > **Audience:** IT-Education experts with no security background.
 > **Scope:** All classes inside `SecurityPolicyReaderAndDirector.java`, the `reader` and `director` packages.
-> **Ares Version:** 2.2.1
+> **Ares Version:** 2.2.2
 
 **Related documentation:**
 - [Security Policy Manual](security-policy-manual.md), how to write a security policy YAML file
@@ -252,7 +252,7 @@ The class uses a plain null-and-empty check (`if (securityPolicyFilePath != null
 - `SecurityPolicyDirector.selectSecurityPolicyDirector(null)` is still called and returns the default `SecurityPolicyJavaDirector`.
 - The director's `createTestCases(null, …)` first calls `ProjectSourcesFinder.discover(root, null)`, so the build mode is **discovered from the project** rather than defaulted, and it then builds a factory with `ArchitectureMode.ARCHUNIT` and `AOPMode.ASPECTJ`. For a Gradle project it first requires the report of `GradleSourceRoots.gradle`, which `GradleReportedSourceRoots` reads from the values the Java Virtual Machine started with. Ares takes the exempt test classes from the reported folders, so the director refuses with a `SecurityException` naming the cause where the report is absent, unreadable, malformed, from another project, or names a problem.
 - **Discovery can fail, and it runs before any enforcement is configured.** With no policy there is no explicitly selected build mode, so a project root containing both a `pom.xml` and a Gradle descriptor is rejected as ambiguous, and one containing neither is rejected as unsupported. Both throw an `IllegalStateException` out of `discover`, which pre-empts everything below: no factory is built and the restrictive fallback is never reached. The remaining bullets therefore describe what happens **after** discovery succeeds.
-- The factory then falls back to `ResourceAccesses.createRestrictiveWithoutPolicy()`: file system, network, command execution and thread creation are denied outright, and package imports are restricted to every `java.*` package, the essential packages and each package of the supervised code as that package alone. A test class opens no package. A 3,000 ms limit is constructed as well, but it becomes a Phobos test case, and `executeTestCases()` does not dispatch the Phobos family yet, so **no execution timeout applies today**; use `@StrictTimeout` where a deadline is required.
+- The factory then falls back to `ResourceAccesses.createRestrictiveWithoutPolicy()`: file system, network, command execution and thread creation are denied outright. Package imports are restricted to every `java.*` package, the essential packages and each package of the supervised code with the packages below it. A test class opens no package. A 3,000 ms limit is constructed as well, but it becomes a Phobos test case, and `executeTestCases()` does not dispatch the Phobos family yet, so **no execution timeout applies today**; use `@StrictTimeout` where a deadline is required.
 - The supervised package, main class, and test classes are derived by scanning the project instead of the policy.
 
 In other words, a missing policy path does **not** disable enforcement. Provided the project is discoverable, it results in the restrictive default enforcement, so that a forgotten or misconfigured policy path fails closed rather than open. An undiscoverable project fails earlier and louder, which is closed too.

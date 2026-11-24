@@ -10,7 +10,7 @@ them. Only a few aids are always allowed, whatever it says, such as the pupils' 
 the two simplest aids every pupil needs to write and to print. No line on the rule sheet lets a
 pupil lean on the grading instructions.
 
-Allowing an aid allows every part that belongs to it, unless the line says that one aid only.
+Allowing an aid allows every part that belongs to it.
 One short line can therefore let in far more than it seems to. Some parts with names of their
 own still need a line of their own.
 
@@ -74,12 +74,11 @@ Implemented by `PackagePermission` in
 
 | Field | Datatype | Explanation | Example | Regex or Range |
 | --- | --- | --- | --- | --- |
-| `importTheFollowingPackage` | `String` | The package this entry permits, and every package beneath it unless `exactMatchOnly` is `true`, but never a reserved namespace that the entry does not name (see the notes below). | `java.util` | Either the wildcard `*`, or `JAVA_PACKAGE_PATTERN`: a dot-separated Java package name, each segment a Java identifier that is not a reserved word (`\p{javaJavaIdentifierStart}\p{javaJavaIdentifierPart}*`). |
-| `exactMatchOnly` | `Boolean`, optional | Whether the entry permits only this package and none beneath it. Leaving it out means `false`. It changes nothing for `*`. | `true` | `true` or `false`; the reader refuses quoted values and `null`. |
+| `importTheFollowingPackage` | `String` | The package this entry permits, and every package beneath it, but never a reserved namespace that the entry does not name (see the notes below). | `java.util` | Either the wildcard `*`, or `JAVA_PACKAGE_PATTERN`: a dot-separated Java package name, each segment a Java identifier that is not a reserved word (`\p{javaJavaIdentifierStart}\p{javaJavaIdentifierPart}*`). |
 
 ## Notes
 
-Matching is by **prefix**. A permitted package `java.util` matches itself and every package below it, so `java.util.concurrent` and `java.util.stream` are covered by the single entry above. With `exactMatchOnly: true`, the same entry permits `java.util` alone, and `java.util.concurrent` needs an entry of its own.
+Matching is by **prefix**. A permitted package `java.util` matches itself and every package below it, so `java.util.concurrent` and `java.util.stream` are covered by the single entry above. A package cannot be permitted without the packages below it.
 
 A reserved namespace is never covered by a package above it. The reserved namespaces are:
 
@@ -98,11 +97,11 @@ A permission for `de.tum.cit.ase` therefore covers `de.tum.cit.ase.exercise`, bu
 
 With a policy, Ares permits three things whether or not the list names them:
 
-- `java.lang` and `java.io`, each as that package only. Every class extends `java.lang.Object`, and `System.out.println` depends on `java.io.PrintStream`. Their subpackages, such as `java.lang.reflect`, need an entry.
-- The packages the supervised code's own compiled classes declare, each as that package only. Ares reads them from the classes it checks when the rule runs.
+- `java.lang` and `java.io`, each with the packages beneath it. Every class extends `java.lang.Object`, and `System.out.println` depends on `java.io.PrintStream`. So the supervised code can import `java.lang.reflect`, `java.lang.invoke` and, on newer JDKs, `java.lang.foreign` too, but the method rules, such as the one for reflection, still apply.
+- The packages the supervised code's own compiled classes declare, each with the packages beneath it. Ares reads them from the classes it checks when the rule runs.
 - The packages Ares itself weaves into the supervised code: `org.aspectj` and `de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut`.
 
-Every other `java.*` package, all of `javax`, `jdk`, `sun` and `com.sun`, and every third-party library needs an entry.
+Every other `java.*` package, all of `javax`, `jdk`, `sun` and `com.sun`, and every third-party library outside those packages needs an entry. Below the supervised code's own packages, a class needs no entry, unless it is a named test class. The checks on reflection and the other refused categories run on the compiled code, with no general check while it runs.
 
 ### Test classes are never importable
 

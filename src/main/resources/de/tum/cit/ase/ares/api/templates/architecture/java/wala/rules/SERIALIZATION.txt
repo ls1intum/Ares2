@@ -1,5 +1,7 @@
 @Test
 public void serialisationNotBeAccessed() {
+    javaClasses = ${javaClasses};
     callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_SERIALIZE.checkDirectAccesses(javaClasses, Set.of(), callGraph.getClassHierarchy());
     JavaWalaTestCaseCollection.NO_CLASS_MUST_SERIALIZE.check(callGraph);
 }
