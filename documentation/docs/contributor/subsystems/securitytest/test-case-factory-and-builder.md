@@ -202,7 +202,7 @@ The constructor distinguishes **two modes**, depending on whether a `SecurityPol
 |---|---|
 | `regardingTheSupervisedCode` is `null` | `SecurityException` (`security.policy.supervised.code.required`) — no scanner fallback |
 | `theSupervisedCodeUsesTheFollowingPackage` is `null`/blank | `SecurityException` (`security.policy.supervised.package.required`) — no scanner fallback |
-| `theMainClassInsideThisPackageIs` is `null`/blank | Falls back to `projectScanner.scanForMainClassInPackage()` — the **only** remaining scanner fallback, safe because the main class is used only for code generation, not as an enforcement boundary |
+| `theMainClassInsideThisPackageIs` is `null`/blank | Falls back to `projectScanner.scanForMainClassInPackage()` — the **only** remaining scanner fallback, safe because no check reads the main class |
 | `theFollowingClassesAreTestClasses` | Used as-is — test classes come **only** from the policy. Deriving the exempt set from the project would let a student add an `@Test` class to obtain a blanket exemption from every check |
 | `theFollowingResourceAccessesArePermitted` | Used as-is from the policy |
 
@@ -445,7 +445,7 @@ The execution happens in three ordered steps: agent configuration first, archite
    | `allowedListedPackages` | `String[]` of essential packages | Packages the agent must never intercept |
    | `allowedListedClasses` | `String[]` of essential + test classes | Classes the agent must never intercept |
    | `restrictedPackage` | Student's package name | The package whose code the agent should monitor |
-   | `mainClass` | Student's main class name | The entry point the agent should focus on |
+   | `mainClass` | Student's main class name | Stored only; no advice reads it |
 
 2. **Execute architecture tests.** Each `JavaArchitectureTestCase` is executed in order, performing static bytecode analysis. If the student code imports or calls a forbidden API, the test fails immediately.
 
