@@ -158,6 +158,7 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 		}
 		javaCreator.requireNoProductionClassNamedLikeAnExemptedOne(buildMode);
 		javaCreator.requireWovenSupervisedClasses(aopMode);
+		javaCreator.requireObservableUnderAspectJ(aopMode);
 		executer.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 				javaCreator.exemptedClassNames(), packageName, mainClassInPackageName,
 				this.architectureTestCases.stream()
