@@ -294,7 +294,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	private static boolean isImmediateCallerWithinRestrictedPackage(@Nullable String restrictedPackage) {
-		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+		if (restrictedPackage == null || restrictedPackage.isEmpty() || isUncheckedOutsideASupervisedTest()) {
 			return false;
 		}
 		return java.lang.StackWalker.getInstance().walk(frames -> frames
@@ -823,7 +823,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		}
 		@Nullable
 		final String restrictedPackage = getValueFromSettings("restrictedPackage");
-		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+		if (restrictedPackage == null || restrictedPackage.isEmpty() || isUncheckedOutsideASupervisedTest()) {
 			return;
 		}
 		@Nullable

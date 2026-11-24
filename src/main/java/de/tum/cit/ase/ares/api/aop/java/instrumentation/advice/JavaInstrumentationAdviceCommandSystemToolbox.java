@@ -759,7 +759,7 @@ public final class JavaInstrumentationAdviceCommandSystemToolbox extends JavaIns
 		}
 		@Nullable
 		final String restrictedPackage = getValueFromSettings("restrictedPackage");
-		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+		if (restrictedPackage == null || restrictedPackage.isEmpty() || isUncheckedOutsideASupervisedTest()) {
 			return;
 		}
 		@Nullable
