@@ -131,6 +131,15 @@ thread. There Ares ends the whole test JVM, and Maven or Gradle reports a
 crashed fork without any test results. Run the tests on Java 17 if students are likely to write
 such loops.
 
+## The run stops because the submission contains a settings file
+
+A file in `src/main/resources` can make JUnit, ArchUnit, Logback or Mockito create a class the
+student wrote before Ares supervises anything. Ares therefore refuses a compiled submission that
+holds a file below `META-INF/services` or `mockito-extensions`, or a root `archunit.properties`,
+`junit-platform.properties`, Logback file or `jacoco-agent.properties`. The message names the
+file. An exercise that needs such a file keeps it in `src/test/resources`, which belongs to the
+instructor. The build boundary rejects the same files before the tests start.
+
 ## Notes
 
 - Before filing a bug, record which of the four combinations you ran. A failure that appears in

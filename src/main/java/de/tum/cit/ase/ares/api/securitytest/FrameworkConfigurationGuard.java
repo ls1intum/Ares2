@@ -21,8 +21,9 @@ import de.tum.cit.ase.ares.api.localization.Messages;
  * Refuses a compiled submission that carries a settings file a test library
  * reads, such as a service file or {@code archunit.properties}. Such a file can
  * make JUnit, ArchUnit or Logback create a class the student wrote before Ares
- * supervises anything. The build boundary rejects these files first; this check
- * catches an exercise whose build does not.
+ * supervises anything. The build boundary rejects these files first. This check
+ * looks only in the default output folders and runs when JUnit opens the run,
+ * too late for a JUnit listener or the JaCoCo agent, which read theirs before.
  */
 public final class FrameworkConfigurationGuard {
 
