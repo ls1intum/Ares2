@@ -19,3 +19,4 @@ policy/policySubComponents/ClassPermission.java,2,ares/api/policy/policySubCompo
 util/YamlPlaceholderResolver.java,2,ares/api/util/YamlPlaceholderResolver.java
 architecture/java/wala/WalaPathClassification.java,8,ares/api/architecture/java/wala/WalaPathClassification.java
 architecture/java/archunit/TransitivelyAccessesMethodsCondition.java,1,ares/api/architecture/java/archunit/TransitivelyAccessesMethodsCondition.java
+securitytest/java/PrecompileGuard.java,9,ares/api/securitytest/java/PrecompileGuard.java

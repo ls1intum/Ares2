@@ -130,15 +130,15 @@ public final class JavaArchunitSupervisedClasses {
 	/**
 	 * The supervised classes for a scope an instructor pinned in a policy.
 	 * <p>
-	 * No whole-project check is made: a pinned policy may deliberately supervise
-	 * part of the output, which is a decision rather than a mistake. Narrowing to
-	 * <em>nothing</em> is not, so a scope matching no compiled class while classes
-	 * exist is refused.
+	 * A pinned policy may supervise part of the output on purpose. A scope matching
+	 * no compiled class while classes exist is refused, and so is a class in the
+	 * scope that lies in a trusted namespace, such as the copied API.
 	 *
 	 * @param supervisedPackage the pinned scope
 	 * @return the classes to analyse
-	 * @throws SecurityException if the output cannot be identified or the scope
-	 *                           matches none of the compiled classes
+	 * @throws SecurityException if the output cannot be identified, the scope
+	 *                           matches none of the compiled classes, or one of
+	 *                           them lies in a trusted namespace
 	 */
 	public static JavaClasses pinned(String supervisedPackage) {
 		return CACHE.computeIfAbsent("pinned|" + supervisedPackage, key -> importProduction(supervisedPackage, false));
@@ -253,6 +253,9 @@ public final class JavaArchunitSupervisedClasses {
 					+ "the architecture rules would be checked against nothing. Correct "
 					+ "theSupervisedCodeUsesTheFollowingPackage in the security policy.");
 		}
+		for (JavaClass javaClass : narrowed) {
+			requireNotReserved(javaClass, outputRoot);
+		}
 		return narrowed;
 	}
 
@@ -288,15 +291,7 @@ public final class JavaArchunitSupervisedClasses {
 						+ "scope. Declare a package for it, or pin theSupervisedCodeUsesTheFollowingPackage in "
 						+ "a security policy.");
 			}
-			String reserved = reservedPrefixOf(declared);
-			if (reserved != null) {
-				throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): "
-						+ "The compiled class " + javaClass.getName() + " under " + outputRoot
-						+ " declares the reserved package " + declared + ", which lies inside the trusted "
-						+ "namespace " + reserved + ". Supervised code may not be placed in a trusted "
-						+ "namespace, because the analysers and the runtime both treat those frames as the "
-						+ "framework's own.");
-			}
+			requireNotReserved(javaClass, outputRoot);
 			if (!isWithinScope(declared, supervisedPackage)) {
 				throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): "
 						+ "The supervised scope derived from the project is " + supervisedPackage
@@ -306,6 +301,28 @@ public final class JavaArchunitSupervisedClasses {
 						+ "enforce over part of the output. Declare theSupervisedCodeUsesTheFollowingPackage in "
 						+ "a security policy to state the scope authoritatively.");
 			}
+		}
+	}
+
+	/**
+	 * Refuses a compiled class in a trusted namespace, the copied API included.
+	 * Ares trusts such a class by its name at runtime, so a student class there
+	 * would be trusted too.
+	 *
+	 * @param javaClass  the compiled class
+	 * @param outputRoot the folder it was read from, named in the refusal
+	 * @throws SecurityException if its package lies in a trusted namespace
+	 */
+	private static void requireNotReserved(JavaClass javaClass, Path outputRoot) {
+		String declared = javaClass.getPackageName();
+		String reserved = reservedPrefixOf(declared);
+		if (reserved != null) {
+			throw new SecurityException("Ares Security Error (Reason: Student-Code; Stage: Execution): "
+					+ "The compiled class " + javaClass.getName() + " under " + outputRoot
+					+ " declares the reserved package " + declared + ", which lies inside the trusted " + "namespace "
+					+ reserved + ". Supervised code may not be placed in a trusted "
+					+ "namespace, because the analysers and the runtime both treat those frames as the "
+					+ "framework's own.");
 		}
 	}
 

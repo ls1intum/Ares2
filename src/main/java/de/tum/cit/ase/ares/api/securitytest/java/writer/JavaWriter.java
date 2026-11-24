@@ -11,6 +11,8 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import org.junit.platform.launcher.LauncherSessionListener;
+
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.javaAOPTestCaseToolbox.JavaAOPTestCaseToolbox;
@@ -24,6 +26,7 @@ import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
+import de.tum.cit.ase.ares.api.securitytest.java.PrecompileGuard;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
@@ -293,6 +296,36 @@ public class JavaWriter implements Writer {
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 
+	/**
+	 * Registers the copied {@link PrecompileGuard} with JUnit in the resources
+	 * folder beside the test sources, so that it runs before every test run. Lines
+	 * an existing registration file already holds are kept.
+	 *
+	 * @param packageName    the exercise package the guard was copied into
+	 * @param testFolderPath the test source root
+	 * @return the registration file
+	 * @throws SecurityException if the file cannot be read or written
+	 */
+	@Nonnull
+	private List<Path> createPrecompileGuardRegistration(@Nonnull String packageName, @Nonnull Path testFolderPath) {
+		Path target = confineToProject(resolveResourcesFolderPath(testFolderPath)
+				.resolve(Path.of("META-INF", "services", LauncherSessionListener.class.getName())));
+		String guard = packageName + PrecompileGuard.class.getName().substring("de.tum.cit.ase".length());
+		try {
+			List<String> lines = new ArrayList<>(Files.isRegularFile(target) ? Files.readAllLines(target) : List.of());
+			if (lines.stream().map(String::trim).noneMatch(guard::equals)) {
+				lines.add(guard);
+				Files.createDirectories(Objects.requireNonNull(target.getParent(),
+						"guard registration target has no parent: " + target));
+				Files.write(target, lines);
+			}
+		} catch (IOException failure) {
+			throw new SecurityException(Messages.localized("security.writer.guard.registration.failed", target),
+					failure);
+		}
+		return List.of(target);
+	}
+
 	@Nonnull
 	private List<Path> confineTargets(@Nonnull List<Path> targets) {
 		return targets.stream().map(this::confineToProject).toList();
@@ -355,7 +388,8 @@ public class JavaWriter implements Writer {
 						createJavaAOPFiles(aopMode, essentialPackages, essentialClasses, testClasses, packageName,
 								mainClassInPackageName, javaAOPTestCases, validatedTestFolderPath).stream(),
 						createLocalisationFiles(packageName, validatedTestFolderPath).stream(),
-						createPhobosFiles(javaPhobosTestCases, validatedTestFolderPath).stream())
+						createPhobosFiles(javaPhobosTestCases, validatedTestFolderPath).stream(),
+						createPrecompileGuardRegistration(packageName, validatedTestFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 
