@@ -81,6 +81,11 @@ Instrumentation rewrites the target class and catches it regardless of the calle
 [honest comparison](/contributor/subsystems/aop/aspectj-vs-instrumentation-weaknesses) lists
 what the weaker mode misses.
 
+**File metadata is not checked.** `readAllFiles` governs what a file contains and what a
+folder lists. Ares does not check a question about a file. `Files.exists`, `Files.size`,
+`Files.isDirectory`, `File.length` and `File.lastModified` therefore tell the code whether a
+file exists, how large it is and when it changed, even without a read permission for it.
+
 **A policy timeout does not bound anything today.** `regardingTimeouts` parses and is written
 into the generated configuration, but the JUnit extension path does not enforce it. Use
 `@StrictTimeout` for an actual deadline. See

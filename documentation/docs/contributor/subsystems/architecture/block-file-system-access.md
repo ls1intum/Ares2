@@ -204,7 +204,7 @@ Some APIs can appear under multiple actions because they imply more than one per
 
 ---
 
-ArchUnit and WALA modes monitor largely overlapping, but not identical, sets of file system methods, loaded from separate template files. The formats differ (ArchUnit uses source-form signatures like `java.io.FileWriter.<init>(java.io.File)`, WALA uses JVM-descriptor form like `java.io.FileWriter.<init>(Ljava/io/File;)`), and a few entries exist only in the ArchUnit list (for example `java.io.BufferedInputStream.<init>` and `java.io.InputStream.read`):
+ArchUnit and WALA modes monitor largely overlapping, but not identical, sets of file system methods, loaded from separate template files. The formats differ (ArchUnit uses source-form signatures like `java.io.FileWriter.<init>(java.io.File)`, WALA uses JVM-descriptor form like `java.io.FileWriter.<init>(Ljava/io/File;)`), and both engines check the union of the two lists. Neither lists a wrapper that only reads or writes through another stream or reader, such as `BufferedReader`, `InputStream.read` or `Properties.load`. The lists name the constructor or method that opens the file, so Ares refuses a wrapper over a file there, and a wrapper over memory or `System.in` passes:
 
 **Template Locations:**
 - **ArchUnit**: `src/main/resources/de/tum/cit/ase/ares/api/templates/architecture/java/archunit/methods/file-system-access-methods.txt`
@@ -226,8 +226,12 @@ Read APIs listed below access file contents or metadata without modifying them.
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
 | --- | --- | --- | --- |
 | java.io.FileInputStream | `<new>` | ✅ | ✅ |
-| java.io.BufferedInputStream | `<new>` | ✅ | ❌ (only in the ArchUnit list) |
 | java.io.RandomAccessFile | `<new>` | ✅ | ✅ |
+| java.lang.Class | getResourceAsStream | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newInputStream | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newByteChannel | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newFileChannel | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newAsynchronousFileChannel | ✅ | ✅ |
 | java.nio.channels.AsynchronousFileChannel | read | ✅ | ✅ |
 | java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ |
 | java.nio.channels.FileChannel | open | ✅ | ✅ |
@@ -241,7 +245,6 @@ Read APIs listed below access file contents or metadata without modifying them.
 
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
 | --- | --- | --- | --- |
-| java.io.Reader | `<new>` | ✅ | ✅ |
 | java.io.FileReader | `<new>` | ✅ | ✅ |
 | java.nio.file.Files | newBufferedReader | ✅ | ✅ |
 | java.nio.file.Files | readString | ✅ | ✅ |
@@ -304,7 +307,6 @@ Read APIs listed below access file contents or metadata without modifying them.
 
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
 | --- | --- | --- | --- |
-| java.util.Properties | load | ✅ | ✅ |
 | java.util.Properties | loadFromXML | ✅ | ✅ |
 
 > **Note:** `java.util.prefs.Preferences` is file access too, through its backing store. Reads: `get…`, `keys`, `childrenNames`, `nodeExists`, `export…`, `userRoot`, `systemRoot`. Overwrites: `put…`, `remove`, `clear`, `flush`, `sync`, `importPreferences`. Creates: `node`, `userNodeForPackage`, `systemNodeForPackage`, `userRoot`, `systemRoot`, `importPreferences`. Deletes: `removeNode`. The method lists name them all.
@@ -314,8 +316,6 @@ Read APIs listed below access file contents or metadata without modifying them.
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
 | --- | --- | --- | --- |
 | java.io.RandomAccessFile | read | ✅ | ✅ |
-| java.io.InputStream | read | ✅ | ❌ (only in the ArchUnit list) |
-| java.io.Reader | read | ✅ | ✅ |
 | java.nio.channels.SeekableByteChannel | read | ✅ | ✅ |
 
 **Only reads the file hierarchy**
@@ -351,7 +351,6 @@ Write APIs listed below modify existing content or attributes.
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
 | --- | --- | --- | --- |
 | java.io.FileOutputStream | `<new>` | ✅ | ✅ |
-| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ |
 | java.io.RandomAccessFile | `<new>` | ✅ | ✅ |
 | java.nio.channels.AsynchronousFileChannel | write | ✅ | ✅ |
 | java.nio.channels.AsynchronousFileChannel | open | ✅ | ✅ |
@@ -366,7 +365,6 @@ Write APIs listed below modify existing content or attributes.
 
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
 | --- | --- | --- | --- |
-| java.io.Writer | `<new>` | ✅ | ✅ |
 | java.nio.file.Files | newBufferedWriter | ✅ | ✅ |
 | java.nio.file.Files | writeString | ✅ | ✅ |
 
@@ -415,7 +413,6 @@ Write APIs listed below modify existing content or attributes.
 
 | Class (fully qualified) | Method | Detected by ArchUnit | Detected by WALA |
 | --- | --- | --- | --- |
-| java.util.Properties | store | ✅ | ✅ |
 | java.util.Properties | storeToXML | ✅ | ✅ |
 | java.util.Formatter | `<new>` | ✅ | ✅ |
 
@@ -447,6 +444,7 @@ Write APIs listed below modify existing content or attributes.
 | java.nio.file.spi.FileSystemProvider | copy | ✅ | ✅ |
 | java.nio.file.spi.FileSystemProvider | move | ✅ | ✅ |
 | java.nio.file.spi.FileSystemProvider | setAttribute | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | newOutputStream | ✅ | ✅ |
 
 ---
 
@@ -471,8 +469,6 @@ Link creation APIs and conditional creates are listed under Creates files.
 | java.nio.file.Files | createTempFile | ✅ | ✅ |
 | java.nio.file.Files | createLink | ✅ | ✅ |
 | java.nio.file.Files | createSymbolicLink | ✅ | ✅ |
-| java.io.BufferedOutputStream | `<new>` | ✅ | ✅ |
-| java.io.BufferedWriter | `<new>` | ✅ | ✅ |
 | java.io.FileOutputStream | `<new>` | ✅ | ✅ |
 | java.io.FileWriter | `<new>` | ✅ | ✅ |
 | java.io.PrintWriter | `<new>` | ✅ | ✅ |

@@ -1079,35 +1079,23 @@ Most methods need just one permission (e.g., "read"), but some need multiple (e.
 **2. How it works**
 
 ```java
-List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, parameters);
+List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, methodName,
+		parameters);
 ```
 
 **How It Works:**
 
-1. **Search for StandardOpenOption in parameters:**
-   - If found, map each option to corresponding actions
-   - Apply semantic prioritisation rules (see below) so the checked actions match the caller's intent
-
-2. **If no StandardOpenOption found:**
-   - Use the `action` parameter from the advice class (e.g., "read", "overwrite")
-   - Special handling: `RandomAccessFile` mode strings (see Section 6.2) and legacy append=false booleans (`FileWriter`, `FileOutputStream`, `PrintWriter`), which turn "create" into "overwrite"
-
-3. **Return list of actions with non-existence flags:**
-   - Each entry: `(action, canBeNonExistent)`
-   - Example: `[("overwrite", true)]`
-
-**Semantic prioritisation rules:**
-
-- **`DELETE_ON_CLOSE` always wins:** whenever it is present, the operation is treated as a pure `("delete", false)` check, regardless of any other options or of which pointcut intercepted the call.
-- **`CREATE_NEW` + write option → create only:** the primary intent is creating a new file; the `WRITE` option is just an implementation detail, so the result is `[("create", true)]` and no "overwrite" check is added.
-- **`CREATE` + write option → single overwrite check:** "write to file, creating it if absent" is semantically an overwrite, so "create" and "overwrite" are merged into one `("overwrite", true)` check (the `true` keeps non-existing paths validated).
-- **`READ` is always validated separately:** a `READ`+`WRITE` channel can read file contents, so a file that is overwrite-allowed but not read-allowed must not be readable through it.
+1. **A method that opens a file with options** (`Files.write`, `writeString`, `newOutputStream`, `newBufferedWriter`, `newByteChannel`, `FileChannel.open`, `AsynchronousFileChannel.open`): Ares first completes the options the way the JDK does. The four write methods add `WRITE`, and use `CREATE`, `TRUNCATE_EXISTING`, `WRITE` when given no option. The JDK opens a channel for reading when its options hold neither `WRITE` nor `APPEND`, so Ares adds `READ`.
+2. **The options decide the checks:** `DELETE_ON_CLOSE` adds `("delete", false)`, `READ` adds `("read", false)`, and writing (`WRITE` or `APPEND`) adds `("create", true)` with `CREATE_NEW`, the write action with `CREATE`, and `("overwrite", false)` without either. Ares maps the options of any other method the same way.
+3. **Without options:** a constructor that opens a named file for writing (`FileOutputStream`, `FileWriter`, `PrintWriter`, `PrintStream`, `Formatter`) yields the write action. So does `RandomAccessFile` in a write mode, while mode `"r"` yields `("read", false)`. Every other call uses the `action` of the advice that fired.
+4. **Ares resolves the write action when it checks it:** the action becomes `"overwrite"` when the first argument that names a path names an existing file, and `"create"` otherwise. A policy therefore needs `createAllFiles` to write a new file and `overwriteAllFiles` to write an existing one, whatever class the code writes with.
+5. **A write through a file that is already open** counts against the paths allowed to be overwritten and those allowed to be created together. This covers `FileChannel.write`/`truncate`/`transferFrom`, `AsynchronousFileChannel.write`/`truncate` and the `write…` methods of a `RandomAccessFile`. Ares checked the opening of that file for writing already.
 
 **Example with StandardOpenOption:**
 ```java
 Files.write(path, data, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
 ```
-`CREATE` and `WRITE` are first mapped to "create" and "overwrite", then merged into a **single** `("overwrite", true)` check by the create+overwrite rule above.
+This yields the write action, checked as an overwrite if `path` exists and as a create if it does not.
 
 **Example without StandardOpenOption:**
 ```java
@@ -1119,12 +1107,13 @@ This uses the default action "read" from `JavaInstrumentationReadPathMethodAdvic
 
 **Mapping Rules with Everyday Examples:**
 
-| File Opening Mode | Permission Needed | Can Path Be Non-Existent? | Everyday Example |
-|--------------------|----------------|--------------------------|-----------------|
-| `CREATE`, `CREATE_NEW` | `"create"` | Yes | Create new Word file |
-| `WRITE`, `APPEND`, `TRUNCATE_EXISTING` | `"overwrite"` | No | Edit/overwrite existing file |
-| `READ` | `"read"` | No | Open file for reading |
-| `DELETE_ON_CLOSE` | `"delete"` | No | Temporary file deleted on close |
+| File Opening Mode | Permission Needed | Everyday Example |
+|--------------------|----------------|-----------------|
+| `CREATE_NEW` with writing | `"create"` | Create a new Word file, failing if it exists |
+| `CREATE` with writing, or a write constructor | `"create"` if the file is missing, `"overwrite"` if it exists | Save a Word file |
+| `WRITE`, `APPEND`, `TRUNCATE_EXISTING` without `CREATE` | `"overwrite"` | Edit an existing file |
+| `READ`, or a channel without a write option | `"read"` | Open a file for reading |
+| `DELETE_ON_CLOSE` | `"delete"`, besides the others | Temporary file deleted on close |
 
 **Why Can CREATE Paths Be Non-Existent?**
 When creating a new file, the file does not exist yet. The security check must validate the path before the file is created.
@@ -1428,7 +1417,7 @@ This is the AspectJ form for a path found in the parameters; Ares reports a path
 **3. Used variables**
 
 - **`systemMethodToCheck`** (String): From 5.2.2 - the student method that attempted the file access (e.g., `"de.student.StudentCode.exploit"`)
-- **`messageAction`** (String): The reported operation verb. Usually the checked action from 5.3, but when a "create" pointcut intercepts a class/method that semantically truncates/overwrites (`FileOutputStream`, `FileWriter`, `PrintWriter`, or `Files.newBufferedWriter`/`newOutputStream` without `append=true`), "create" is aliased to `"overwrite"` in the message
+- **`messageAction`** (String): The reported operation verb, the checked action from 5.3. An opening for writing reports `"create"` for a missing file and `"overwrite"` for an existing one
 - **`illegallyInteractedThroughParameter`** (String): From 5.4.3/5.4.4 - the forbidden file path that was accessed (e.g., `"/etc/passwd"`)
 - **`fullMethodSignature`** (String): From section 4.1 - complete method signature showing exactly which method was called (e.g., `"java.nio.file.Files.readString(java.nio.file.Path)"`)
 - **`studentCalledMethod`** (String): From 5.2.3 - the test method that invoked the student code (e.g., `"org.junit.TestClass.testStudent"`); omitted from the message when null
@@ -1458,41 +1447,9 @@ This section explains why the **detected operation type** may differ from the **
 **Problem:** When multiple `StandardOpenOption` values are passed to NIO methods, certain options take precedence over others in the `deriveActionChecks()` method.
 
 **Technical Background:**
-The `deriveActionChecks()` method first applies two overriding rules, then maps the remaining options individually:
+`deriveActionChecks()` first completes the options the way the JDK does (see 5.3). It then maps them: `DELETE_ON_CLOSE` adds a "delete" check and `READ` a "read" check. Writing adds a "create" check with `CREATE_NEW`, the write action with `CREATE` and an "overwrite" check otherwise. The write action becomes "overwrite" or "create" by whether the file exists. Both backends implement this with `EnumSet` lookups only, so the instrumentation agent needs no synthetic `SwitchMap` or lambda classes.
 
-1. **`DELETE_ON_CLOSE` has the highest priority:** when present, the operation is always classified as `("delete", false)`, regardless of any other options or of which pointcut intercepted the call.
-2. **`CREATE_NEW` + a write option (`WRITE`/`APPEND`/`TRUNCATE_EXISTING`) → create only:** the primary intent is creating a new file, so the result is `[("create", true)]`.
-3. Otherwise, each option is mapped individually: `CREATE`/`CREATE_NEW` → "create" (non-existing allowed), `WRITE`/`APPEND`/`TRUNCATE_EXISTING` → "overwrite", `READ` → "read", `DELETE_ON_CLOSE` → "delete". Afterwards, a resulting create+overwrite combination (e.g. from plain `CREATE`+`WRITE`) is merged into a single `("overwrite", true)` check.
-
-The AspectJ backend (`JavaAspectJFileSystemAdviceDefinitions.aj`) implements the per-option mapping with a switch statement and `Map.merge`:
-
-```java
-for (StandardOpenOption option : options) {
-    switch (option) {
-        case CREATE:
-        case CREATE_NEW:
-            actions.merge("create", true, Boolean::logicalOr);
-            break;
-        case WRITE:
-        case APPEND:
-        case TRUNCATE_EXISTING:
-            actions.merge("overwrite", false, Boolean::logicalOr);
-            break;
-        case READ:
-            actions.merge("read", false, Boolean::logicalOr);
-            break;
-        case DELETE_ON_CLOSE:
-            actions.merge("delete", false, Boolean::logicalOr);
-            break;
-        default:
-            break;
-    }
-}
-```
-
-The Byte Buddy backend (`JavaInstrumentationAdviceFileSystemToolbox.java`) implements the identical logic with an if-else chain over `option.name()` plus a `mergeBoolean()` helper instead of switch/`Map.merge`. This is deliberate: a switch on an enum and method references would generate synthetic inner classes (`SwitchMap`, lambda classes) that may not be present in the agent JAR and would cause `NoClassDefFoundError` at runtime.
-
-**Consequence:** The reported operation reflects the derived intent, not the raw options. `CREATE_NEW`+`WRITE` yields only a "create" check; plain `CREATE`+`WRITE` yields a single "overwrite" check (with non-existing paths still validated); `DELETE_ON_CLOSE` always yields a "delete" check.
+**Consequence:** `CREATE_NEW`+`WRITE` yields only a "create" check; `CREATE`+`WRITE` yields a "create" check for a new file and an "overwrite" check for an existing one; `DELETE_ON_CLOSE` adds a "delete" check, which is made first.
 
 **Affected Test Cases:**
 
@@ -1510,7 +1467,7 @@ The Byte Buddy backend (`JavaInstrumentationAdviceFileSystemToolbox.java`) imple
 **Problem:** `RandomAccessFile` uses mode strings (`"r"`, `"rw"`, `"rws"`, `"rwd"`) instead of `StandardOpenOption`, requiring special handling.
 
 **Technical Background:**
-The `getRandomAccessFileModeAction()` method maps mode strings to security actions:
+The `getRandomAccessFileModeAction()` method maps mode strings to security actions. It returns `"read"` for `"r"` and the write action for `"rw"`, `"rws"` and `"rwd"`, which Ares resolves like every other opening for writing. The listing below is the earlier version, which returned `"overwrite"`:
 
 ```java
 private static String getRandomAccessFileModeAction(Object[] parameters, String defaultAction) {
@@ -1534,13 +1491,13 @@ private static String getRandomAccessFileModeAction(Object[] parameters, String 
 }
 ```
 
-**Consequence:** Any mode containing write capability (`"rw"`, `"rws"`, `"rwd"`) is classified as "overwrite", regardless of whether the file already exists or will be created.
+**Consequence:** Ares checks a write mode as a create when the file does not exist and as an overwrite when it does.
 
 **Affected Test Cases:**
 
 | Test | Expected Intent | Detected Operation | Reason |
 |------|-----------------|-------------------|--------|
-| FileSystemCreateAccess#11 | create | overwrite | `new RandomAccessFile(file, "rw")` - "rw" mode → overwrite |
+| FileSystemCreateAccess#11 | create | create | `new RandomAccessFile(file, "rw")` on a missing file → create |
 | FileSystemDeleteAccess#11 | delete | overwrite | `RandomAccessFile` with "rw" blocks before delete can occur |
 
 <a id="63-category-c-preparatory-operations"></a>
