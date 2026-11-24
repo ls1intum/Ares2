@@ -780,6 +780,11 @@ public final class JavaInstrumentationPointcutDefinitions {
 	 */
 	public static final Map<String, List<String>> METHODS_WHICH_CAN_CONNECT_TO_NETWORK = Map.ofEntries(
 			Map.entry("java.net.Socket", List.of("connect", "<init>")),
+			// A server socket opens a port others connect to, so binding one needs the
+			// same allowance as connecting to that host and port.
+			Map.entry("java.net.ServerSocket", List.of("bind")),
+			Map.entry("sun.nio.ch.ServerSocketChannelImpl", List.of("bind")),
+			Map.entry("sun.nio.ch.AsynchronousServerSocketChannelImpl", List.of("bind")),
 			Map.entry("java.net.DatagramSocket", List.of("connect", "<init>")),
 			Map.entry("java.net.NetMulticastSocket", List.of("connect", "connectInternal", "<init>")),
 			Map.entry("java.nio.channels.DatagramChannel", List.of("connect", "<init>", "open")),

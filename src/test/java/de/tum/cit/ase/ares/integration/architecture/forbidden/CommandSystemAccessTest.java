@@ -6,6 +6,7 @@ import org.junit.jupiter.api.TestInstance;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.environment.EnvironmentReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.execute.processBuilder.ProcessBuilderExecuteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.execute.runtime.RuntimeExecuteMain;
 
@@ -282,6 +283,81 @@ class CommandSystemAccessTest extends SystemAccessTest {
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeArrayWithArgsMavenWalaInstrumentation() throws Exception {
 		RuntimeExecuteMain.executeCommandViaRuntimeArrayWithArgs();
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="ProcessBuilder.environment()">
+	/**
+	 * Folder of the student code reading the environment through a ProcessBuilder.
+	 */
+	private static final String ENVIRONMENT_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/commandSystem/environment";
+
+	/**
+	 * Reading the environment through a ProcessBuilder is refused, like
+	 * System.getenv.
+	 */
+	@Test
+	void test_readEnvironmentThroughProcessBuilderMavenArchunitAspectJ_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_readEnvironmentThroughProcessBuilderMavenArchunitAspectJ");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = ENVIRONMENT_PATH)
+	void test_readEnvironmentThroughProcessBuilderMavenArchunitAspectJ() {
+		EnvironmentReadMain.readHome();
+	}
+
+	/**
+	 * Reading the environment through a ProcessBuilder is refused, like
+	 * System.getenv.
+	 */
+	@Test
+	void test_readEnvironmentThroughProcessBuilderMavenArchunitInstrumentation_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_readEnvironmentThroughProcessBuilderMavenArchunitInstrumentation");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = ENVIRONMENT_PATH)
+	void test_readEnvironmentThroughProcessBuilderMavenArchunitInstrumentation() {
+		EnvironmentReadMain.readHome();
+	}
+
+	/**
+	 * Reading the environment through a ProcessBuilder is refused, like
+	 * System.getenv.
+	 */
+	@Test
+	void test_readEnvironmentThroughProcessBuilderMavenWalaAspectJ_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_readEnvironmentThroughProcessBuilderMavenWalaAspectJ");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = ENVIRONMENT_PATH)
+	void test_readEnvironmentThroughProcessBuilderMavenWalaAspectJ() {
+		EnvironmentReadMain.readHome();
+	}
+
+	/**
+	 * Reading the environment through a ProcessBuilder is refused, like
+	 * System.getenv.
+	 */
+	@Test
+	void test_readEnvironmentThroughProcessBuilderMavenWalaInstrumentation_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_readEnvironmentThroughProcessBuilderMavenWalaInstrumentation");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = ENVIRONMENT_PATH)
+	void test_readEnvironmentThroughProcessBuilderMavenWalaInstrumentation() {
+		EnvironmentReadMain.readHome();
 	}
 	// </editor-fold>
 }
