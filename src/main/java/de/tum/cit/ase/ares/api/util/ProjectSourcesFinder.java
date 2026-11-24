@@ -140,10 +140,10 @@ public final class ProjectSourcesFinder {
 			mode = maven ? BuildMode.MAVEN : BuildMode.GRADLE;
 		}
 		if (mode == BuildMode.MAVEN && !maven) {
-			throw new IllegalStateException("Maven was selected but pom.xml is absent in " + root);
+			throw new IllegalStateException(Messages.localized("security.writer.build.descriptor.missing", mode, root));
 		}
 		if (mode == BuildMode.GRADLE && !gradle) {
-			throw new IllegalStateException("Gradle was selected but no Gradle descriptor is present in " + root);
+			throw new IllegalStateException(Messages.localized("security.writer.build.descriptor.missing", mode, root));
 		}
 		if (mode == BuildMode.MAVEN) {
 			MavenSourceRoots production = discoverMavenRoots(root, false);
