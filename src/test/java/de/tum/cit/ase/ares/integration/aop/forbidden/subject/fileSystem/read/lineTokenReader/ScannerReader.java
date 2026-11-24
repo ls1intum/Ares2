@@ -25,4 +25,41 @@ public class ScannerReader {
 			}
 		}
 	}
+
+	/**
+	 * Reads the file through Scanner(File), so the Scanner opens it itself.
+	 *
+	 * @throws IOException if the file cannot be read
+	 */
+	public static void accessFileSystemViaScannerFile() throws IOException {
+		try (java.util.Scanner scanner = new java.util.Scanner(
+				new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"))) {
+			scanner.hasNextLine();
+		}
+	}
+
+	/**
+	 * Reads the file through Scanner(File, String), whose charset name is no path.
+	 *
+	 * @throws IOException if the file cannot be read
+	 */
+	public static void accessFileSystemViaScannerFileCharsetName() throws IOException {
+		try (java.util.Scanner scanner = new java.util.Scanner(
+				new File("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"),
+				"UTF-8")) {
+			scanner.hasNextLine();
+		}
+	}
+
+	/**
+	 * Reads the file through Scanner(Path), so the Scanner opens it itself.
+	 *
+	 * @throws IOException if the file cannot be read
+	 */
+	public static void accessFileSystemViaScannerPath() throws IOException {
+		try (java.util.Scanner scanner = new java.util.Scanner(java.nio.file.Path
+				.of("src/test/java/de/tum/cit/ase/ares/integration/aop/forbidden/subject/nottrusted.txt"))) {
+			scanner.hasNextLine();
+		}
+	}
 }

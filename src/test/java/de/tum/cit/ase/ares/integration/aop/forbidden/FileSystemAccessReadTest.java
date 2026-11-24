@@ -363,6 +363,87 @@ class FileSystemAccessReadTest extends SystemAccessTest {
 	}
 	// </editor-fold>
 
+	// <editor-fold desc="accessFileSystemViaScannerFile">
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerFileMavenArchunitAspectJ() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerFile, ScannerReader.class);
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerFileMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerFile, ScannerReader.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerFileMavenWalaAspectJ() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerFile, ScannerReader.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerFileMavenWalaInstrumentation() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerFile, ScannerReader.class);
+	}
+
+	// </editor-fold>
+
+	// <editor-fold desc="accessFileSystemViaScannerFileCharsetName">
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerFileCharsetNameMavenArchunitAspectJ() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerFileCharsetName, ScannerReader.class);
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerFileCharsetNameMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerFileCharsetName, ScannerReader.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerFileCharsetNameMavenWalaAspectJ() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerFileCharsetName, ScannerReader.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerFileCharsetNameMavenWalaInstrumentation() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerFileCharsetName, ScannerReader.class);
+	}
+
+	// </editor-fold>
+
+	// <editor-fold desc="accessFileSystemViaScannerPath">
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerPathMavenArchunitAspectJ() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerPath, ScannerReader.class);
+	}
+
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerPathMavenArchunitInstrumentation() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerPath, ScannerReader.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerPathMavenWalaAspectJ() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerPath, ScannerReader.class);
+	}
+
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = LINE_TOKEN_READER_WITHIN_PATH)
+	void test_accessFileSystemViaScannerPathMavenWalaInstrumentation() {
+		assertAresSecurityExceptionRead(ScannerReader::accessFileSystemViaScannerPath, ScannerReader.class);
+	}
+
+	// </editor-fold>
+
 	// </editor-fold>
 
 	// <editor-fold desc="Files.readAllBytes Tests">

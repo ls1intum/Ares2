@@ -355,7 +355,9 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
     pointcut fileSystemProviderDeleteMethods():
             call(* java.nio.file.spi.FileSystemProvider+.delete(..));
 
-    pointcut scannerInitMethods(): call(java.util.Scanner+.new(..));
+    pointcut scannerInitMethods():
+            (call(java.util.Scanner+.new(java.io.File, ..)) ||
+                    call(java.util.Scanner+.new(java.nio.file.Path, ..)));
 
     pointcut desktopExecuteMethods():
             (call(* java.awt.Desktop+.open(..)) ||

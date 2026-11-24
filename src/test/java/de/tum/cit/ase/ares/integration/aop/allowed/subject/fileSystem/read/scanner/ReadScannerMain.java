@@ -27,4 +27,41 @@ public class ReadScannerMain {
 			return content.toString();
 		}
 	}
+
+	/**
+	 * Reads the permitted file through Scanner(File, String), whose charset name is
+	 * no path.
+	 *
+	 * @return The content of the trusted file
+	 * @throws IOException if the file cannot be read
+	 */
+	public static String accessFileSystemViaScannerFileCharsetName() throws IOException {
+		try (Scanner scanner = new Scanner(
+				new File("src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"), "UTF-8")) {
+			return scanner.nextLine();
+		}
+	}
+
+	/**
+	 * Scans a text through Scanner(String), which opens no file at all.
+	 *
+	 * @return the sum of the two numbers in the text
+	 */
+	public static int scanText() {
+		try (Scanner scanner = new Scanner("4 5")) {
+			return scanner.nextInt() + scanner.nextInt();
+		}
+	}
+
+	/**
+	 * Reads a text through a StringReader, which opens no file at all.
+	 *
+	 * @return the first line of the text
+	 * @throws IOException never, as the text is in memory
+	 */
+	public static String readText() throws IOException {
+		try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.StringReader("4 5"))) {
+			return reader.readLine();
+		}
+	}
 }

@@ -119,6 +119,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			// PrintStream(OutputStream|File|String, [boolean], [String charset]) - keep
 			// only index 0 (the sink); a charset name like "UTF-8" is not a path.
 			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)),
+			// Scanner(File|Path, [String charset]) - only the file (index 0); a charset
+			// name like "UTF-8" is not a path.
+			Map.entry("java.util.Scanner.<init>", IgnoreValues.allExcept(0)),
+			// StringReader(String) - the argument is the text it reads, never a path.
+			Map.entry("java.io.StringReader.<init>", IgnoreValues.ALL),
 			// FileSystemView.getChild(File dir, String name) and isParent(File dir, File
 			// file) list dir; only dir is checked, the name is not a path and the file is
 			// not listed.
