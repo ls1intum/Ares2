@@ -524,7 +524,7 @@ Delete APIs listed below can remove files and empty directories.
 | java.nio.file.spi.FileSystemProvider | move | ✅ | ✅ |
 | java.nio.file.SecureDirectoryStream | move | ✅ | ✅ |
 
-> **Note:** Both backends check a process redirect where the code names the file. `ProcessBuilder.redirectOutput`, `redirectError`, `Redirect.to` and `Redirect.appendTo` count as a write: a create for a missing file, an overwrite for an existing one. `redirectInput` and `Redirect.from` count as a read. On Windows the Java runtime opens a redirect file natively when the process starts, so no later check sees it.
+> **Note:** Both backends check a process redirect where the code names the file. `ProcessBuilder.redirectOutput`, `redirectError`, `Redirect.to` and `Redirect.appendTo` count as a write: a create for a missing file, an overwrite for an existing one. `redirectInput` and `Redirect.from` count as a read. On Windows the Java runtime opens a redirect file natively when the process starts, so no later check sees it. A file that `Redirect.appendTo` names before it exists is therefore checked only as a create on Windows, even when a later start of the same builder appends to it. The static checks list these methods too, so a policy without any file rule refuses them before the tests run.
 
 > **Note:** A `SecureDirectoryStream` reads a relative path against its own folder, which Ares cannot see. Both backends refuse a relative path given to its `newByteChannel`, `newDirectoryStream`, `move`, `deleteFile` and `deleteDirectory`, unless the policy allows the action for every path. They check an absolute path like any other.
 
