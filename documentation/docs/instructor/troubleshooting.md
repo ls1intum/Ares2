@@ -126,8 +126,8 @@ mechanism that applies there.
 A file in `src/main/resources` can make JUnit, ArchUnit, Logback or Mockito create a class the
 student wrote before Ares supervises anything. Ares therefore refuses a compiled submission that
 holds a file below `META-INF/services` or `mockito-extensions`, or a root `archunit.properties`,
-`junit-platform.properties`, Logback file or `jacoco-agent.properties`. It also refuses a
-`module-info.class`, since the `provides` lines of a module can do the same. The message names
+`junit-platform.properties`, Logback file or `jacoco-agent.properties`, and a
+`module-info.class`, whose `provides` lines can do the same. The message names
 the file. An exercise that needs such a file keeps it in `src/test/resources`, which belongs to the
 instructor. The build boundary rejects the same files before the tests start.
 
