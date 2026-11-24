@@ -71,13 +71,13 @@ public final class WalaPathClassification {
 	public static final String RESERVED_PACKAGE_PREFIX_VERSION = "3";
 
 	/**
-	 * Version of the build check that enforces {@link #RESERVED_PACKAGE_PREFIXES},
-	 * kept apart from the prefix data. Version 3 matches packages ignoring case and
-	 * rejects every file under META-INF/services or mockito-extensions plus root
-	 * files a framework reads before Ares is active: archunit.properties,
-	 * archunit_ignore_patterns.txt, junit-platform.properties,
+	 * Version of the build check for {@link #RESERVED_PACKAGE_PREFIXES}. Version 3
+	 * matches packages ignoring case and rejects what makes a framework or the JDK
+	 * run student code before Ares is active: any module-info.class, every file
+	 * under META-INF/services or mockito-extensions, and the root files
+	 * archunit.properties, archunit_ignore_patterns.txt, junit-platform.properties,
 	 * jacoco-agent.properties and the Logback files. Version 2 gates every Gradle
-	 * Test task. An older snippet is bypassable.
+	 * Test task. Older snippets are bypassable.
 	 */
 	public static final String RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = "3";
 
