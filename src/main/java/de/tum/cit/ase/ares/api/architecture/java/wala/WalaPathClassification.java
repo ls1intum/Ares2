@@ -71,22 +71,15 @@ public final class WalaPathClassification {
 	public static final String RESERVED_PACKAGE_PREFIX_VERSION = "3";
 
 	/**
-	 * Version of the build-side contract that enforces
-	 * {@link #RESERVED_PACKAGE_PREFIXES}, which is versioned separately from the
-	 * prefix data because the two change for different reasons.
-	 * <p>
-	 * Version 2 gates every Gradle {@code Test} task, not only {@code check}.
-	 * Version 1 attached the validation to {@code check} alone, and Gradle's Java
-	 * plugin defines {@code check.dependsOn test} rather than the reverse, so
-	 * {@code gradlew test} never ran it: a grading run that invoked only
-	 * {@code test} accepted student classes under a reserved package. An exercise
-	 * carrying a version 1 snippet is bypassable and must be migrated, which is why
-	 * it must not keep the same identifier. The prefix data is versioned separately
-	 * by {@link #RESERVED_PACKAGE_PREFIX_VERSION} and moved to 2 for its own,
-	 * unrelated reason.
-	 * </p>
+	 * Version of the build check that enforces {@link #RESERVED_PACKAGE_PREFIXES},
+	 * kept apart from the prefix data. Version 3 matches packages ignoring case and
+	 * rejects every file under META-INF/services or mockito-extensions plus root
+	 * files a framework reads before Ares is active: archunit.properties,
+	 * archunit_ignore_patterns.txt, junit-platform.properties,
+	 * jacoco-agent.properties and the Logback files. Version 2 gates every Gradle
+	 * Test task. An older snippet is bypassable.
 	 */
-	public static final String RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = "2";
+	public static final String RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = "3";
 
 	/**
 	 * Package prefixes of application-loaded framework code (Ares, AspectJ, Byte

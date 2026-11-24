@@ -357,15 +357,15 @@ and live in the repository at
 - `MavenReservedPackages.xml`
 - `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
-Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
+Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
 
 ### Gradle
 
-Apply the shipped `GradleReservedPackages.gradle`, which registers `verifyAresReservedPackagesV2` over `sourceSets.main.output.classesDirs` and then attaches it in **two** places:
+Apply the shipped `GradleReservedPackages.gradle`, which registers `verifyAresReservedPackagesV3` over the whole `sourceSets.main.output`, resources included, and then attaches it in **two** places:
 
 ```gradle
-tasks.named('check') { dependsOn tasks.named('verifyAresReservedPackagesV2') }
-tasks.withType(Test).configureEach { dependsOn tasks.named('verifyAresReservedPackagesV2') }
+tasks.named('check') { dependsOn tasks.named('verifyAresReservedPackagesV3') }
+tasks.withType(Test).configureEach { dependsOn tasks.named('verifyAresReservedPackagesV3') }
 ```
 
 Both are required, and the second is the one that is easy to get wrong. Gradle's Java plugin defines `check.dependsOn test`, **not** the reverse. A snippet that hangs the validation off `check` alone is therefore never executed by `gradlew test`, which is the command this manual gives you and the command a grading run invokes. That was the defect in boundary version 1: an exercise carrying it accepted student classes in reserved packages. If your exercise still contains a `verifyAresReservedPackagesV1` task, migrate it.
@@ -376,6 +376,12 @@ In a multi-project build, apply the snippet to **every** project that compiles s
 
 The shipped snippets are the versioned reserved-package boundary. They reject exactly the
 package prefixes listed in `ReservedPackagePrefixes.txt`, which student code must not declare.
+Boundary version 3 further rejects every file under `META-INF/services/` and
+`mockito-extensions/`, and the JUnit, ArchUnit, Logback and JaCoCo configuration files at the
+root of the student's output, such as `junit-platform.properties`, `archunit.properties` and
+`logback.xml`. It compares names ignoring case. Those frameworks read such a
+file from the test class path before Ares is active, so it could run a student class
+unsupervised or hide ArchUnit findings. Keep your own files of this kind in `src/test/resources`, which the check does not scan.
 
 Keep it aligned with `WalaPathClassification.RESERVED_PACKAGE_PREFIX_VERSION` (the prefix data)
 and `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION` (the build-side contract), and do not disable it.
@@ -400,7 +406,7 @@ student class there stops the run before the first test, with a message naming t
 
 ### What this boundary does not defend against
 
-The build descriptor and the command that invokes it are **trusted instructor configuration**. The failure message says "No bypass flag is supported", and that is a statement about the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV2`, can remove the boundary outright.
+The build descriptor and the command that invokes it are **trusted instructor configuration**. The failure message says "No bypass flag is supported", and that is a statement about the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV3`, can remove the boundary outright.
 
 The threat this addresses is student **code** that declares a reserved package, not student control over the build. Your exercise template and its CI must own the build files and the invocation, and must fail visibly if either is altered.
 

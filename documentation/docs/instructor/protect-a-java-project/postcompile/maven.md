@@ -298,16 +298,22 @@ and live in the repository at
 - `MavenReservedPackages.xml`
 - `ReservedPackagePrefixes.txt` (the machine-readable prefix list)
 
-Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
+Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side contract that enforces it. Your exercise and its continuous integration (CI) must pin both.
 
 ### Maven
 
-Apply the shipped `MavenReservedPackages.xml`, a `maven-antrun-plugin` execution bound to `process-classes` that scans `${project.build.outputDirectory}`. `process-classes` precedes `test`, so `mvn test` runs it. The Maven binding was already correct at boundary version 1; it carries version 2 only so that both build tools name the same contract.
+Apply the shipped `MavenReservedPackages.xml`, a `maven-antrun-plugin` execution bound to `process-classes` that scans `${project.build.outputDirectory}`. `process-classes` precedes `test`, so `mvn test` runs it. The Maven binding was already correct at boundary version 1, so version 2 changed nothing for Maven. Version 3 adds the framework files described below.
 
 ### About the forbidden package list
 
 The shipped snippets are the versioned reserved-package boundary. They reject exactly the
 package prefixes listed in `ReservedPackagePrefixes.txt`, which student code must not declare.
+Boundary version 3 further rejects every file under `META-INF/services/` and
+`mockito-extensions/`, and the JUnit, ArchUnit, Logback and JaCoCo configuration files at the
+root of the student's output, such as `junit-platform.properties`, `archunit.properties` and
+`logback.xml`. It compares names ignoring case. Those frameworks read such a
+file from the test class path before Ares is active, so it could run a student class
+unsupervised or hide ArchUnit findings. Keep your own files of this kind in `src/test/resources`, which the check does not scan.
 
 Keep it aligned with `WalaPathClassification.RESERVED_PACKAGE_PREFIX_VERSION` (the prefix data)
 and `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION` (the build-side contract), and do not disable it.
@@ -328,7 +334,7 @@ and complete working exercises are in
 
 ### What this boundary does not defend against
 
-The build descriptor and the command that invokes it are **trusted instructor configuration**. The failure message says "No bypass flag is supported", and that is a statement about the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV2`, can remove the boundary outright.
+The build descriptor and the command that invokes it are **trusted instructor configuration**. The failure message says "No bypass flag is supported", and that is a statement about the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV3`, can remove the boundary outright.
 
 The threat this addresses is student **code** that declares a reserved package, not student control over the build. Your exercise template and its CI must own the build files and the invocation, and must fail visibly if either is altered.
 
@@ -451,7 +457,7 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
                 </executions>
             </plugin>
 
-            <!-- 2. Reserved-package build boundary, version 2. See Section 4. -->
+            <!-- 2. Reserved-package build boundary, version 3. See Section 4. -->
             <!--    Copy the body of configuration/reservedPackages/MavenReservedPackages.xml here. -->
 
             <!-- 3. Put the agent and the AspectJ runtime at a known path. -->
