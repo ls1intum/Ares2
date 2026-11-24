@@ -68,10 +68,10 @@ regardingTheSupervisedCode:
 
     regardingThreadCreations:
       - createTheFollowingNumberOfThreads: 10
-        ofThisClass: "instrumentation.lang.Thread"
+        ofThisClass: "java.lang.Thread"
 
     regardingPackageImports:
-      - importTheFollowingPackage: "instrumentation.util"
+      - importTheFollowingPackage: "java.util"
 
     regardingTimeouts:
       - timeout: 120000
