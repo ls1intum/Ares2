@@ -90,8 +90,9 @@ A new `java.util.Timer` starts its thread at once, so each timer counts as one t
 `java.util.TimerThread`, in both runtime modes. The tasks scheduled on a timer run on that thread
 and are not counted again.
 
-The threads `java.net.http.HttpClient` starts for itself, such as its selector thread and the
-threads of its own pool, do not count against the policy. The network policy still decides which
-hosts and ports the client reaches. A thread that student code starts for the client, for example in an
-executor handed to `HttpClient.newBuilder().executor(...)`, still counts.
-
+A new `java.net.http.HttpClient` starts a selector thread at once, so each client counts as one
+thread of the class `java.net.http.HttpClient`, in both runtime modes. Ares counts neither the
+tasks the client hands to its pool nor the pool threads that run them. That holds even for a
+Java Development Kit (JDK) executor the student built and handed to
+`HttpClient.newBuilder().executor(...)`. Only an executor the student implements counts what its
+own code starts. The network policy still decides which hosts and ports the client reaches.
