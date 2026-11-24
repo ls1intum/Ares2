@@ -221,15 +221,25 @@ class TimeoutUtilsTest {
 				.hasMessage(Messages.localized("timeout.failure_message", "20 ms")); //$NON-NLS-1$ //$NON-NLS-2$
 	}
 
+	/**
+	 * In a child JVM running the production terminator, a loop that ignores its
+	 * interruption is stopped on Java 19 and older, so the timeout reaches the
+	 * caller, and ends the JVM with code 124 on newer Java.
+	 */
 	@Test
-	void productionTerminatorStopsAContaminatedChildJvm() throws Exception {
+	void productionTerminatorStopsTheLoopOrEndsTheChildJvm() throws Exception {
 		String javaExecutable = Path.of(System.getProperty("java.home"), "bin", "java").toString(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 		String classPath = System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")); //$NON-NLS-1$ //$NON-NLS-2$
 		Process process = new ProcessBuilder(javaExecutable, "-cp", classPath, TimeoutUtilsForkProbe.class.getName()) //$NON-NLS-1$
 				.redirectErrorStream(true).start();
 		try {
 			assertThat(process.waitFor(10, TimeUnit.SECONDS)).isTrue();
+			String output = new String(process.getInputStream().readAllBytes(),
+					java.nio.charset.StandardCharsets.UTF_8);
 			assertThat(process.exitValue()).isEqualTo(threadStopWorks() ? 1 : 124);
+			if (threadStopWorks()) {
+				assertThat(output).contains("java.lang.SecurityException").contains("20 ms");
+			}
 		} finally {
 			process.destroyForcibly();
 		}

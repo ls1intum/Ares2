@@ -100,8 +100,9 @@ public final class JavaAspectJWeavingCheck {
 	 * Whether a class is the table javac writes for a switch over an enum. The
 	 * Maven setup compiles twice into one folder: javac writes this class, ajc then
 	 * builds the switch another way and leaves it behind, unwoven but never used.
-	 * Only the exact javac shape counts, down to its constant pool, so the class
-	 * can run no code of its own.
+	 * Only the exact javac shape counts: its initializer may only fill its own
+	 * tables from {@code values()}, {@code ordinal()} and constants, and its
+	 * constant pool may hold no method handle or dynamic call.
 	 *
 	 * @param javaClass the class to look at
 	 * @return {@code true} if the class has exactly that shape
@@ -117,7 +118,7 @@ public final class JavaAspectJWeavingCheck {
 	/**
 	 * Whether the class file of a class holds no dynamic constant, so every call it
 	 * can make is one ArchUnit lists. A class without a readable class file does
-	 * not pass.
+	 * not pass, nor does one ASM cannot parse.
 	 *
 	 * @param javaClass the class to read
 	 * @return {@code true} if its class file holds none
@@ -129,7 +130,7 @@ public final class JavaAspectJWeavingCheck {
 		}
 		try (InputStream input = classFile.get().toURL().openStream()) {
 			return holdsNoDynamicConstants(input.readAllBytes());
-		} catch (IOException unreadable) {
+		} catch (IOException | RuntimeException unreadable) {
 			return false;
 		}
 	}

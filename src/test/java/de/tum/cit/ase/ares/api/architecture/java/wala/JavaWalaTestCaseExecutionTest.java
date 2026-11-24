@@ -553,6 +553,33 @@ class JavaWalaTestCaseExecutionTest {
 	}
 
 	/**
+	 * A rule violation without a message is thrown with an empty message rather
+	 * than read as a pass, on the first run and again when the second run is served
+	 * from the cache, which asks for the graph only once.
+	 */
+	@Test
+	void keepsAnEmptyViolationMessage() {
+		AtomicInteger calls = new AtomicInteger();
+		CallGraph refusingGraph = org.mockito.Mockito.mock(CallGraph.class, invocation -> {
+			throw new SecurityException((String) null);
+		});
+		JavaWalaTestCase testCase = testCase(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION,
+				new ClassFileImporter().importClasses(CleanFixture.class), () -> {
+					calls.incrementAndGet();
+					return refusingGraph;
+				}, uniquePermission());
+
+		SecurityException first = assertThrows(SecurityException.class,
+				() -> testCase.executeArchitectureTestCase("WALA", ""));
+		SecurityException second = assertThrows(SecurityException.class,
+				() -> testCase.executeArchitectureTestCase("WALA", ""));
+
+		assertEquals("", first.getMessage());
+		assertEquals("", second.getMessage());
+		assertEquals(1, calls.get());
+	}
+
+	/**
 	 * A graph failure without a message is never read as a pass: every run throws
 	 * it as it is, and none is served from the cache.
 	 */
