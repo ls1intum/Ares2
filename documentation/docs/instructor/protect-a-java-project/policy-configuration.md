@@ -105,6 +105,10 @@ instance created for that method. A `@BeforeAll`, an `@AfterAll` and an instance
 whole class (`@TestInstance(PER_CLASS)`) run before any method policy is known, so Ares restricts
 them only when the test class itself carries `@Policy`. `@BeforeAll` and `@AfterAll` need
 `@Public` or `@Hidden` on the class as well.
+
+The argument source of a parameterised test, such as a `@MethodSource` method, runs under the
+policy of that test. Once a test has ended, Ares refuses everything the policy restricts to code
+the test left running, such as a thread or a shutdown hook.
 :::
 
 ## Supported programming language configurations
