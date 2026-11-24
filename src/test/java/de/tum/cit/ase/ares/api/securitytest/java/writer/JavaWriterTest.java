@@ -101,6 +101,49 @@ public class JavaWriterTest {
 	}
 
 	/**
+	 * Writes the ArchUnit settings the generated checks rely on at the root of the
+	 * test resources, which the build puts at the root of the test class path, the
+	 * one place ArchUnit reads them from.
+	 */
+	@Test
+	void writesTheArchunitSettingsWhereArchunitReadsThem() throws IOException {
+		Path sourceRoot = Files.createDirectories(tempDir.resolve("src/test/java"));
+		List<Path> returned = javaWriter.writeTestCases(BuildMode.MAVEN, ArchitectureMode.ARCHUNIT, AOPMode.ASPECTJ,
+				List.of(), List.of(), List.of(), "exercise.security", "Main", List.of(), List.of(), List.of(),
+				sourceRoot);
+		Path settings = tempDir.resolve("src/test/resources/archunit.properties");
+		java.util.Properties written = new java.util.Properties();
+		try (var input = Files.newInputStream(settings)) {
+			written.load(input);
+		}
+		assertEquals("false", written.getProperty("archRule.failOnEmptyShould"));
+		assertEquals("false", written.getProperty("resolveMissingDependenciesFromClassPath"));
+		assertTrue(returned.contains(settings.toRealPath()), returned.toString());
+		assertFalse(Files.exists(tempDir.resolve("src/test/java/exercise/security/ares/api/archunit.properties")));
+	}
+
+	/**
+	 * An instructor's own ArchUnit settings are kept line for line, their own value
+	 * included, and only the settings the file does not name are added.
+	 */
+	@Test
+	void keepsTheInstructorsArchunitSettingsAndAddsOnlyMissingOnes() throws IOException {
+		Path sourceRoot = Files.createDirectories(tempDir.resolve("src/test/java"));
+		Path settings = Files.createDirectories(tempDir.resolve("src/test/resources")).resolve("archunit.properties");
+		List<String> instructorLines = List.of("# the instructor's own settings", "archRule.failOnEmptyShould=true",
+				"freeze.store.default.path=frozen");
+		Files.write(settings, instructorLines);
+		for (int run = 0; run < 2; run++) {
+			javaWriter.writeTestCases(BuildMode.MAVEN, ArchitectureMode.WALA, AOPMode.INSTRUMENTATION, List.of(),
+					List.of(), List.of(), "exercise.security", "Main", List.of(), List.of(), List.of(), sourceRoot);
+		}
+		List<String> lines = Files.readAllLines(settings);
+		assertEquals(instructorLines, lines.subList(0, instructorLines.size()));
+		assertEquals(List.of("resolveMissingDependenciesFromClassPath=false"),
+				lines.subList(instructorLines.size(), lines.size()));
+	}
+
+	/**
 	 * Requires the returned paths to name every localisation bundle written below
 	 * the resources folder, so the caller can list or clean them up.
 	 */
@@ -363,7 +406,7 @@ public class JavaWriterTest {
 
 				// Assert
 				assertNotNull(result);
-				assertEquals(4, result.size()); // arch, AOP, Phobos and the guard registration
+				assertEquals(5, result.size()); // arch, AOP, Phobos, the guard registration and the ArchUnit settings
 
 				// Verify mocks were called correctly
 				verify(architectureMode).fsFilesToCopy();
@@ -486,7 +529,7 @@ public class JavaWriterTest {
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 						javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration, testSourceRoot());
 
-				assertEquals(4, result.size());
+				assertEquals(5, result.size());
 				assertFalse(Files.exists(generatedSettingsClassPath()));
 			}
 		}
@@ -534,7 +577,7 @@ public class JavaWriterTest {
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
 						javaAOPTestCases, javaPhobosTestCases, testSourceRoot());
 
-				assertEquals(4, result.size());
+				assertEquals(5, result.size());
 				assertFalse(Files.exists(generatedSettingsClassPath()));
 			}
 		}

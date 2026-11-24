@@ -71,9 +71,13 @@ class PrecompileGuardTest {
 			}
 			""";
 
+	/** A package the policy may name although no student class lies in it. */
+	private static final String FOREIGN = "de.tum.cit.aet.foreign";
+
 	/**
 	 * Opens a JUnit run, which calls every registered session listener, and prints
-	 * whether it opened or which security error refused it.
+	 * whether it opened or which security error refused it, then the two ArchUnit
+	 * settings the generated checks rely on, as ArchUnit read them.
 	 */
 	private static final String LAUNCHER = """
 			package launcher;
@@ -86,6 +90,9 @@ class PrecompileGuardTest {
 			        } catch (SecurityException refused) {
 			            System.out.println("GUARD_REFUSED " + refused.getMessage());
 			        }
+			        com.tngtech.archunit.ArchConfiguration settings = com.tngtech.archunit.ArchConfiguration.get();
+			        System.out.println("ARCHUNIT_SETTINGS " + settings.resolveMissingDependenciesFromClassPath() + " "
+			                + settings.getPropertyOrDefault("archRule.failOnEmptyShould", "true"));
 			    }
 			}
 			""";
@@ -151,6 +158,43 @@ class PrecompileGuardTest {
 	}
 
 	/**
+	 * The generated checks run with the ArchUnit settings Ares relies on: missing
+	 * classes are not fetched from the class path, and a rule left with no class to
+	 * check passes. ArchUnit reads them from the root of the test class path.
+	 *
+	 * @param analysis the engine, {@code ARCHUNIT} or {@code WALA}
+	 * @param tempDir  the folder for the made-up exercise
+	 * @throws Exception if a step fails to start
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "ARCHUNIT", "WALA" })
+	void theGeneratedChecksRunWithTheAresArchunitSettings(String analysis, @TempDir Path tempDir) throws Exception {
+		String output = run(analysis, "INSTRUMENTATION", tempDir, Map.of("Main", MAIN), true, false);
+
+		assertTrue(output.contains("GUARD_PASSED"), output);
+		assertTrue(output.contains("ARCHUNIT_SETTINGS false false"), output);
+	}
+
+	/**
+	 * A policy naming a package that holds none of the compiled student classes
+	 * stops the run in both engines, since neither the generated checks nor the
+	 * runtime checks would look at the student code. The same code passes under its
+	 * own package in the tests above.
+	 *
+	 * @param analysis the engine, {@code ARCHUNIT} or {@code WALA}
+	 * @param tempDir  the folder for the made-up exercise
+	 * @throws Exception if a step fails to start
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "ARCHUNIT", "WALA" })
+	void aPolicyPackageHoldingNoStudentClassStopsTheRun(String analysis, @TempDir Path tempDir) throws Exception {
+		String output = run(analysis, "INSTRUMENTATION", tempDir, Map.of("Main", MAIN), true, false, FOREIGN);
+
+		assertTrue(output.contains("GUARD_REFUSED"), output);
+		assertTrue(output.contains("\"" + FOREIGN + "\" matches no compiled production class"), output);
+	}
+
+	/**
 	 * An instrumentation exercise started without the agent runs no test.
 	 *
 	 * @param tempDir the folder for the made-up exercise
@@ -201,6 +245,29 @@ class PrecompileGuardTest {
 	 */
 	private static String run(String analysis, String aop, Path root, Map<String, String> sources, boolean withAgent,
 			boolean weave) throws Exception {
+		return run(analysis, aop, root, sources, withAgent, weave, EXERCISE);
+	}
+
+	/**
+	 * Builds the exercise as
+	 * {@link #run(String, String, Path, Map, boolean, boolean)} does, with the
+	 * student sources in the exercise package and the policy naming the given
+	 * package.
+	 *
+	 * @param analysis      the engine
+	 * @param aop           the runtime enforcement
+	 * @param root          the folder for this exercise
+	 * @param sources       the student sources, by class name below the exercise
+	 *                      package
+	 * @param withAgent     whether to start the run with the generated agent
+	 * @param weave         whether to compile the student classes with the
+	 *                      generated aspects
+	 * @param policyPackage the package the policy supervises
+	 * @return what the run printed
+	 * @throws Exception if a step fails
+	 */
+	private static String run(String analysis, String aop, Path root, Map<String, String> sources, boolean withAgent,
+			boolean weave, String policyPackage) throws Exception {
 		Path project = Files.createDirectories(root.resolve("project"));
 		Files.writeString(project.resolve("pom.xml"), "<project/>");
 		Path mainSources = project.resolve("src/main/java");
@@ -212,7 +279,7 @@ class PrecompileGuardTest {
 			compileWithAjc(studentClasses, libraries(), List.of("-sourceroots", mainSources.toString()), root);
 		}
 		Path testSources = Files.createDirectories(project.resolve("src/test/java"));
-		Path policy = Files.writeString(root.resolve("policy.yaml"), policy(analysis, aop));
+		Path policy = Files.writeString(root.resolve("policy.yaml"), policy(analysis, aop, policyPackage));
 		SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policy).projectFolderPath(project).build()
 				.createTestCases().writeTestCases(testSources);
 		write(testSources, "launcher.OpenSession", LAUNCHER);
@@ -227,7 +294,7 @@ class PrecompileGuardTest {
 		List<String> command = new ArrayList<>(List.of(java(), "-Duser.language=" + Locale.getDefault().getLanguage(),
 				"-Duser.country=" + Locale.getDefault().getCountry()));
 		if (withAgent) {
-			command.add("-javaagent:" + agentJar(testSources, compiled, root.resolve("agent.jar")));
+			command.add("-javaagent:" + agentJar(testSources, compiled, root.resolve("agent.jar"), policyPackage));
 		}
 		command.addAll(List
 				.of("--add-opens", "java.base/java.lang=ALL-UNNAMED", "--add-opens", "java.base/java.io=ALL-UNNAMED",
@@ -242,14 +309,15 @@ class PrecompileGuardTest {
 	 * Returns the policy of the made-up exercise: one readable file, so the file
 	 * domain is left to the runtime checks, and nothing else.
 	 *
-	 * @param analysis the engine
-	 * @param aop      the runtime enforcement
+	 * @param analysis      the engine
+	 * @param aop           the runtime enforcement
+	 * @param policyPackage the package the policy supervises
 	 * @return the policy text
 	 */
-	private static String policy(String analysis, String aop) {
+	private static String policy(String analysis, String aop, String policyPackage) {
 		return String.join("\n", "thisPolicyFileCompliesToThePolicyVersion: 1", "regardingTheSupervisedCode:",
 				"  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_" + analysis + "_AND_" + aop,
-				"  theSupervisedCodeUsesTheFollowingPackage: \"" + EXERCISE + "\"",
+				"  theSupervisedCodeUsesTheFollowingPackage: \"" + policyPackage + "\"",
 				"  theMainClassInsideThisPackageIs: \"Main\"", "  theFollowingClassesAreTestClasses: [ ]",
 				"  theFollowingResourceAccessesArePermitted:", "    regardingFileSystemInteractions:",
 				"      - readAllFiles: true", "        overwriteAllFiles: false", "        createAllFiles: false",
@@ -303,16 +371,19 @@ class PrecompileGuardTest {
 	 * Packs the compiled classes with the manifest Precompile wrote into the agent
 	 * the exercise starts with.
 	 *
-	 * @param testSources the generated test sources
-	 * @param compiled    the compiled test classes
-	 * @param destination the agent file
+	 * @param testSources   the generated test sources
+	 * @param compiled      the compiled test classes
+	 * @param destination   the agent file
+	 * @param policyPackage the package the policy supervises, below which the
+	 *                      manifest was written
 	 * @return the agent file
 	 * @throws IOException if the agent cannot be written
 	 */
-	private static Path agentJar(Path testSources, Path compiled, Path destination) throws IOException {
+	private static Path agentJar(Path testSources, Path compiled, Path destination, String policyPackage)
+			throws IOException {
 		Manifest manifest;
 		try (var input = Files
-				.newInputStream(testSources.resolve(EXERCISE.replace('.', '/') + "/META-INF/MANIFEST.MF"))) {
+				.newInputStream(testSources.resolve(policyPackage.replace('.', '/') + "/META-INF/MANIFEST.MF"))) {
 			manifest = new Manifest(input);
 		}
 		try (var output = new JarOutputStream(Files.newOutputStream(destination), manifest);
