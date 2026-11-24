@@ -359,11 +359,11 @@ public class JavaWriterTest {
 				// Act
 				List<Path> result = javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
-						javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration, tempDir);
+						javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration, testSourceRoot());
 
 				// Assert
 				assertNotNull(result);
-				assertEquals(3, result.size()); // One from arch, one from AOP, one from Phobos
+				assertEquals(4, result.size()); // arch, AOP, Phobos and the guard registration
 
 				// Verify mocks were called correctly
 				verify(architectureMode).fsFilesToCopy();
@@ -416,7 +416,7 @@ public class JavaWriterTest {
 				// Act
 				List<Path> result = javaWriter.writeTestCases(buildMode, architectureMode, aopMode, emptyPackages,
 						emptyClasses, emptyTestClasses, packageName, mainClassInPackageName, emptyArchTestCases,
-						emptyAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration, tempDir);
+						emptyAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration, testSourceRoot());
 
 				// Assert
 				assertNotNull(result);
@@ -439,7 +439,7 @@ public class JavaWriterTest {
 				// Act
 				javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 						testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases,
-						javaPhobosTestCases, emptyTestBehaviorConfiguration, tempDir);
+						javaPhobosTestCases, emptyTestBehaviorConfiguration, testSourceRoot());
 
 				verify(aopMode).threePartedFileBody(eq("INSTRUMENTATION"), eq(packageName), eq(essentialPackages),
 						argThat(list -> {
@@ -467,7 +467,7 @@ public class JavaWriterTest {
 					javaWriter.writeTestCases(BuildMode.GRADLE, architectureMode, aopMode, essentialPackages,
 							essentialClasses, testClasses, packageName, mainClassInPackageName,
 							javaArchitectureTestCases, javaAOPTestCases, javaPhobosTestCases,
-							emptyTestBehaviorConfiguration, tempDir);
+							emptyTestBehaviorConfiguration, testSourceRoot());
 				});
 			}
 		}
@@ -484,9 +484,9 @@ public class JavaWriterTest {
 
 				List<Path> result = javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
-						javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration, tempDir);
+						javaAOPTestCases, javaPhobosTestCases, emptyTestBehaviorConfiguration, testSourceRoot());
 
-				assertEquals(3, result.size());
+				assertEquals(4, result.size());
 				assertFalse(Files.exists(generatedSettingsClassPath()));
 			}
 		}
@@ -510,7 +510,7 @@ public class JavaWriterTest {
 
 				javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
 						testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases, javaAOPTestCases,
-						javaPhobosTestCases, configured, tempDir);
+						javaPhobosTestCases, configured, testSourceRoot());
 
 				String name = TestBehaviorConfiguration.GENERATED_CLASS_NAME;
 				String expected = JavaAOPTestCaseToolbox.escapeJavaString(Messages.localized(
@@ -532,9 +532,9 @@ public class JavaWriterTest {
 
 				List<Path> result = javaWriter.writeTestCases(buildMode, architectureMode, aopMode, essentialPackages,
 						essentialClasses, testClasses, packageName, mainClassInPackageName, javaArchitectureTestCases,
-						javaAOPTestCases, javaPhobosTestCases, tempDir);
+						javaAOPTestCases, javaPhobosTestCases, testSourceRoot());
 
-				assertEquals(3, result.size());
+				assertEquals(4, result.size());
 				assertFalse(Files.exists(generatedSettingsClassPath()));
 			}
 		}
@@ -544,7 +544,17 @@ public class JavaWriterTest {
 			int lastDot = fullyQualifiedName.lastIndexOf('.');
 			String settingsPackagePath = fullyQualifiedName.substring(0, lastDot).replace('.', '/');
 			String simpleClassName = fullyQualifiedName.substring(lastDot + 1);
-			return tempDir.resolve(settingsPackagePath).resolve(simpleClassName + ".java");
+			return testSourceRoot().resolve(settingsPackagePath).resolve(simpleClassName + ".java");
+		}
+
+		/**
+		 * Returns the test source root of the made-up project, whose resources folder,
+		 * where the guard registration goes, lies inside the project.
+		 *
+		 * @return the test source root
+		 */
+		private Path testSourceRoot() {
+			return tempDir.resolve("src/test/java");
 		}
 
 		@Test

@@ -13,3 +13,6 @@ aop/java/aspectj/adviceandpointcut/ThreadTarget.java,2,ares/api/aop/java/aspectj
 aop/java/aspectj/adviceandpointcut/NetworkTarget.java,2,ares/api/aop/java/aspectj/adviceandpointcut/NetworkTarget.java
 aop/java/aspectj/adviceandpointcut/JavaAspectJNetworkSystemAdviceDefinitions.aj,4,ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJNetworkSystemAdviceDefinitions.aj
 aop/java/aspectj/adviceandpointcut/JavaAspectJNetworkSystemPointcutDefinitions.aj,1,ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJNetworkSystemPointcutDefinitions.aj
+aop/java/aspectj/adviceandpointcut/JavaAspectJWoven.java,1,ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJWoven.java
+aop/java/aspectj/adviceandpointcut/JavaAspectJWovenMarkerDefinitions.aj,2,ares/api/aop/java/aspectj/adviceandpointcut/JavaAspectJWovenMarkerDefinitions.aj
+aop/java/aspectj/JavaAspectJWeavingCheck.java,3,ares/api/aop/java/aspectj/JavaAspectJWeavingCheck.java
