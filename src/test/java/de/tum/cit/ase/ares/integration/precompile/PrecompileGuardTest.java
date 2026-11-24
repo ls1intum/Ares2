@@ -135,6 +135,22 @@ class PrecompileGuardTest {
 	}
 
 	/**
+	 * An exercise whose supervised package has no compiled class yet starts in both
+	 * engines: there is nothing the generated checks could judge.
+	 *
+	 * @param analysis the engine, {@code ARCHUNIT} or {@code WALA}
+	 * @param tempDir  the folder for the made-up exercise
+	 * @throws Exception if a step fails to start
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "ARCHUNIT", "WALA" })
+	void anExerciseWithoutStudentClassesStarts(String analysis, @TempDir Path tempDir) throws Exception {
+		String output = run(analysis, "INSTRUMENTATION", tempDir, Map.of(), true, false);
+
+		assertTrue(output.contains("GUARD_PASSED"), output);
+	}
+
+	/**
 	 * An instrumentation exercise started without the agent runs no test.
 	 *
 	 * @param tempDir the folder for the made-up exercise
@@ -192,7 +208,7 @@ class PrecompileGuardTest {
 			write(mainSources, EXERCISE + "." + source.getKey(), source.getValue());
 		}
 		Path studentClasses = Files.createDirectories(project.resolve("target/classes"));
-		if (!weave) {
+		if (!weave && !sources.isEmpty()) {
 			compileWithAjc(studentClasses, libraries(), List.of("-sourceroots", mainSources.toString()), root);
 		}
 		Path testSources = Files.createDirectories(project.resolve("src/test/java"));

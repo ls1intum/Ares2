@@ -65,13 +65,18 @@ public final class PrecompileGuard implements LauncherSessionListener {
 
 	/**
 	 * Checks that the runtime checks the policy chose are in place, then runs each
-	 * generated architecture check once.
+	 * generated architecture check once. With no compiled supervised class there is
+	 * nothing those checks could judge, so they are skipped, as the copied class
+	 * that reads the compiled output intends.
 	 *
 	 * @throws SecurityException naming the first check that failed
 	 */
 	public static void verify() {
 		requireRuntimeEnforcement(generatedAopMode());
-		runArchitectureChecks(architectureChecks());
+		Class<?> checks = architectureChecks();
+		if (JavaArchunitSupervisedClasses.pinned(SUPERVISED_PACKAGE).iterator().hasNext()) {
+			runArchitectureChecks(checks);
+		}
 	}
 
 	/**
