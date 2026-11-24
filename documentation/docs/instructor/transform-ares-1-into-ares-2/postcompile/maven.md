@@ -284,7 +284,7 @@ They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reser
 
 Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side contract that enforces it.
 
-Boundary version 3 further rejects every file under `META-INF/services/` and `mockito-extensions/`, and the JUnit, ArchUnit, Logback and JaCoCo configuration files at the root of the student's output, such as `junit-platform.properties`, `archunit.properties` and `logback.xml`. It compares names ignoring case. Those frameworks read such a file from the test class path before Ares is active, so it could run a student class unsupervised or hide ArchUnit findings. Keep your own files of this kind in `src/test/resources`, which the check does not scan.
+Boundary version 3 further rejects every file under `META-INF/services/` and `mockito-extensions/`, and the JUnit, ArchUnit, Logback and JaCoCo configuration files at the root of the student's output, such as `junit-platform.properties`, `archunit.properties` and `logback.xml`. It rejects a `module-info.class` in any folder too, because its `provides` clauses make Java run a student class. It compares names ignoring case. Those frameworks read such a file from the test class path before Ares is active, so it could run a student class unsupervised or hide ArchUnit findings. Keep your own files of this kind in `src/test/resources`, which the check does not scan.
 
 Prefix version 3 widened the list to the Ares 1 breadth. A version 1 or 2 snippet now reserves too little rather than too much: it omits the test harness (JUnit, AssertJ) and Ares' other dependencies. A submission that places a class in one of those shadows the code that grades it. Upgrading the Ares dependency does not rewrite a build guard you copied earlier, so refresh any snippet below prefix version 3 from the shipped files. Regenerate any previously generated helper sources too, since the upgrade does not replace their embedded reserved-package list either. This is a breaking change for an affected exercise: the build now rejects a submission that compiled before if it takes a reserved package.
 
@@ -331,6 +331,7 @@ Delete the `maven-enforcer-plugin` execution with the `requireFilesDontExist` ru
               <include name="logback.xml"/><include name="logback-test.xml"/><include name="logback.groovy"/>
               <include name="logback.scmo"/><include name="logback-test.scmo"/>
               <include name="mockito-extensions/**"/><include name="jacoco-agent.properties"/>
+              <include name="**/module-info.class"/>
             </fileset>
           </resourcecount>
           <fail message="Ares reserved-package validation 3 rejected student output. No bypass flag is supported.">
@@ -522,6 +523,7 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
                                         <include name="logback.xml"/><include name="logback-test.xml"/><include name="logback.groovy"/>
                                         <include name="logback.scmo"/><include name="logback-test.scmo"/>
                                         <include name="mockito-extensions/**"/><include name="jacoco-agent.properties"/>
+                                        <include name="**/module-info.class"/>
                                     </fileset>
                                 </resourcecount>
                                 <fail message="Ares reserved-package validation 3 rejected student output. No bypass flag is supported.">

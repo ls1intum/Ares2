@@ -22,12 +22,13 @@ class ReservedPackageBuildBoundaryTest {
 	/**
 	 * Files a student must not put into the output, since a test framework reads
 	 * them from the test class path before Ares is active. A pattern ending in a
-	 * slash and two stars covers every file below that folder.
+	 * slash and two stars covers every file below that folder, one starting with
+	 * two stars and a slash that file name in any folder.
 	 */
 	private static final List<String> RESERVED_RESOURCE_PATTERNS = List.of("META-INF/services/**",
 			"archunit.properties", "archunit_ignore_patterns.txt", "junit-platform.properties", "logback.xml",
 			"logback-test.xml", "logback.groovy", "logback.scmo", "logback-test.scmo", "mockito-extensions/**",
-			"jacoco-agent.properties");
+			"jacoco-agent.properties", "**/module-info.class");
 
 	/**
 	 * The package fileset of the Maven snippet, whose includes are the rejected
@@ -75,7 +76,8 @@ class ReservedPackageBuildBoundaryTest {
 			"archunit.properties", "archunit_ignore_patterns.txt", "junit-platform.properties",
 			"JUnit-Platform.Properties", "logback.xml", "logback-test.xml", "logback.groovy", "logback.scmo",
 			"logback-test.scmo", "LOGBACK.XML", "mockito-extensions/org.mockito.plugins.MockMaker",
-			"Mockito-Extensions/x.Y", "jacoco-agent.properties", "JaCoCo-Agent.Properties");
+			"Mockito-Extensions/x.Y", "jacoco-agent.properties", "JaCoCo-Agent.Properties", "module-info.class",
+			"Module-Info.CLASS", "META-INF/versions/9/module-info.class", "org/example/module-info.class");
 
 	/**
 	 * The failure condition of the Maven snippet, which fails on a reserved package
@@ -93,7 +95,8 @@ class ReservedPackageBuildBoundaryTest {
 	private static final Pattern GRADLE_DECISION = Pattern
 			.compile("if \\(reservedPrefixes\\.any \\{ lowered\\.startsWith\\(it\\) \\}\\s*"
 					+ "\\|\\| reservedResourcePrefixes\\.any \\{ lowered\\.startsWith\\(it\\) \\}\\s*"
-					+ "\\|\\| reservedResourceFiles\\.contains\\(lowered\\)\\) \\{");
+					+ "\\|\\| reservedResourceFiles\\.contains\\(lowered\\)\\s*"
+					+ "\\|\\| reservedResourceNames\\.any \\{ lowered == it \\|\\| lowered\\.endsWith\\('/' \\+ it\\) \\}\\) \\{");
 
 	/** How the Gradle snippet case-folds the reserved package prefixes. */
 	private static final Pattern GRADLE_FOLDED_PREFIXES = Pattern.compile(
@@ -119,7 +122,8 @@ class ReservedPackageBuildBoundaryTest {
 			"META-INF/MANIFEST.MF", "META-INF/servicesList.txt", "data/META-INF/services/x.Y",
 			"data/archunit.properties", "config/junit-platform.properties", "logback.xml.txt", "my-logback.xml",
 			"org/example/Penguin.class", "data/jacoco-agent.properties", "mockito-extensionsList.txt",
-			"data/mockito-extensions/x.Y");
+			"data/mockito-extensions/x.Y", "module-info.txt", "module-info.java", "my-module-info.class",
+			"META-INF/versions/9/org/example/Penguin.class");
 
 	/**
 	 * The prefix list, its versions and both build snippets agree with the code.
@@ -273,14 +277,24 @@ class ReservedPackageBuildBoundaryTest {
 
 	/**
 	 * Whether a reserved resource pattern covers the output path, as both snippets
-	 * decide it: ignoring case, a folder pattern covers every file below the folder
-	 * and a file pattern only that file at the root of the output.
+	 * decide it: ignoring case, a folder pattern covers every file below the
+	 * folder, a name pattern that name in any folder, and a file pattern only that
+	 * file at the root of the output.
 	 */
 	private static boolean rejectsResource(String path) {
 		String lowered = path.toLowerCase(Locale.ROOT);
 		return RESERVED_RESOURCE_PATTERNS.stream().map(pattern -> pattern.toLowerCase(Locale.ROOT))
-				.anyMatch(pattern -> pattern.endsWith("/**")
-						? lowered.startsWith(pattern.substring(0, pattern.length() - 2))
-						: lowered.equals(pattern));
+				.anyMatch(pattern -> coversResource(pattern, lowered));
+	}
+
+	/** Whether one lower-case pattern covers one lower-case output path. */
+	private static boolean coversResource(String pattern, String lowered) {
+		if (pattern.endsWith("/**")) {
+			return lowered.startsWith(pattern.substring(0, pattern.length() - 2));
+		}
+		if (pattern.startsWith("**/")) {
+			return lowered.equals(pattern.substring(3)) || lowered.endsWith(pattern.substring(2));
+		}
+		return lowered.equals(pattern);
 	}
 }

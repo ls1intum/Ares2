@@ -4,7 +4,9 @@
 // file under META-INF/services/, and the JUnit, ArchUnit, Logback, Mockito and
 // JaCoCo configuration files at the root of the output. Those frameworks read them
 // from the test class path before Ares is active, so a student file there could
-// run a student class unsupervised or hide ArchUnit findings. Version 3 scans
+// run a student class unsupervised or hide ArchUnit findings. A module-info.class
+// anywhere in the output is rejected too: it puts the student code on the module
+// path, where its `provides` clauses make the JDK run a student class. Version 3 scans
 // the whole main output, the processed resources included, not only the
 // compiled classes. Names are compared ignoring case, as a case-insensitive
 // file system would find them.
@@ -39,7 +41,8 @@ def aresReservedPackagePatterns = [
 def aresReservedResourcePatterns = [
         'META-INF/services/**', 'archunit.properties', 'archunit_ignore_patterns.txt',
         'junit-platform.properties', 'logback.xml', 'logback-test.xml', 'logback.groovy',
-        'logback.scmo', 'logback-test.scmo', 'mockito-extensions/**', 'jacoco-agent.properties'
+        'logback.scmo', 'logback-test.scmo', 'mockito-extensions/**', 'jacoco-agent.properties',
+        '**/module-info.class'
 ]
 
 tasks.register('verifyAresReservedPackagesV3') {
@@ -52,8 +55,10 @@ tasks.register('verifyAresReservedPackagesV3') {
             .collect { it.substring(0, it.length() - 2).toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT) }
     def reservedResourcePrefixes = aresReservedResourcePatterns.findAll { it.endsWith('/**') }
             .collect { it.substring(0, it.length() - 2).toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT) }
-    def reservedResourceFiles = aresReservedResourcePatterns.findAll { !it.endsWith('/**') }
+    def reservedResourceFiles = aresReservedResourcePatterns.findAll { !it.endsWith('/**') && !it.startsWith('**/') }
             .collect { it.toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT) }
+    def reservedResourceNames = aresReservedResourcePatterns.findAll { it.startsWith('**/') }
+            .collect { it.substring(3).toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT) }
     def boundaryVersion = aresReservedPackageBoundaryVersion
     inputs.files(studentOutput).withPropertyName('studentOutput')
     doLast {
@@ -73,7 +78,8 @@ tasks.register('verifyAresReservedPackagesV3') {
                 def lowered = relative.toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT)
                 if (reservedPrefixes.any { lowered.startsWith(it) }
                         || reservedResourcePrefixes.any { lowered.startsWith(it) }
-                        || reservedResourceFiles.contains(lowered)) {
+                        || reservedResourceFiles.contains(lowered)
+                        || reservedResourceNames.any { lowered == it || lowered.endsWith('/' + it) }) {
                     forbidden << relative
                 }
             }

@@ -127,6 +127,7 @@
                                         <include name="logback.xml"/><include name="logback-test.xml"/><include name="logback.groovy"/>
                                         <include name="logback.scmo"/><include name="logback-test.scmo"/>
                                         <include name="mockito-extensions/**"/><include name="jacoco-agent.properties"/>
+                                        <include name="**/module-info.class"/>
                                     </fileset>
                                 </resourcecount>
                                 <fail message="Ares reserved-package validation 3 rejected student output. No bypass flag is supported.">

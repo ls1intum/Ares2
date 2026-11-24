@@ -86,7 +86,10 @@ Boundary version 3 further rejects every file under `META-INF/services/` and
 `logback.scmo` and `logback-test.scmo` at the root of the student's output.
 JUnit, ArchUnit, Logback, Mockito and the JaCoCo agent read these files from
 the test class path before Ares is active, so a student file there could run
-student code without supervision or hide ArchUnit findings. Version 3 compares
+student code without supervision or hide ArchUnit findings. Version 3 rejects a
+`module-info.class` in any folder of the output as well, because it puts the
+student code on the module path, where its `provides` clauses make Java run a
+student class. Version 3 compares
 every name ignoring case, the reserved package prefixes included, because a
 case-insensitive file system finds a file under any case.
 A boundary version 2 snippet lets these files through and must be migrated.
