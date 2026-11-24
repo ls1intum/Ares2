@@ -354,6 +354,23 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
+	 * Refuses a run whose withinPath and supervised package name different classes,
+	 * see {@link SupervisedScopeCheck}. A creator that has read no classes yet
+	 * passes. Run before arming.
+	 *
+	 * @param buildMode the build mode used when no configuration was discovered
+	 * @throws SecurityException if the scope and the package do not match
+	 */
+	public void requireScopeToMatchSupervisedPackage(@Nonnull BuildMode buildMode) {
+		if (importedSupervisedClasses == null || supervisedPackage == null) {
+			return;
+		}
+		SupervisedScopeCheck.requireScopeToMatchPackage(
+				importedSupervisedClasses.stream().map(JavaClass::getName).toList(), Path.of(supervisedClassPath),
+				productionOutputRoot(buildMode), supervisedPackage, exemptedClassNames);
+	}
+
+	/**
 	 * Refuses an AspectJ run whose supervised classes were not woven with the Ares
 	 * aspects, as instrumentation refuses a run without its agent. Other modes need
 	 * no weaving and pass, and so does a creator that has read no classes yet. Run

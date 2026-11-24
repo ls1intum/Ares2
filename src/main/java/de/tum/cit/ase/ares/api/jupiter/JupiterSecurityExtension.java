@@ -10,8 +10,10 @@ import java.util.Optional;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
+import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.*;
 import org.junit.platform.commons.function.Try;
+import org.junit.platform.commons.support.AnnotationSupport;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent;
@@ -19,16 +21,16 @@ import de.tum.cit.ase.ares.api.context.TestContextUtils;
 import de.tum.cit.ase.ares.api.policy.SecurityPolicyReaderAndDirector;
 
 /**
- * Arms the security guard for a test method and for the constructor,
- * {@code @BeforeEach}, {@code @AfterEach}, {@code @BeforeAll} and
- * {@code @AfterAll} code around it. The class phases are guarded only if the
- * class itself carries {@code @Policy}. A per-method test instance is built
- * under the policy of its test method. It refuses to run while JUnit parallel
- * execution is enabled.
+ * Arms the security guard for a test method, the code around it and the
+ * argument sources of a template test. Class phases are guarded only if the
+ * class carries {@code @Policy}. Between tests, code a test left running is
+ * allowed nothing; only the thread that ended it goes unchecked. It refuses to
+ * run while JUnit parallel execution is enabled.
  */
 @API(status = Status.INTERNAL)
-public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, TestInstantiationAwareExtension,
-		TestInstancePreConstructCallback, BeforeTestExecutionCallback, AfterTestExecutionCallback, AfterEachCallback {
+public class JupiterSecurityExtension
+		implements UnifiedInvocationInterceptor, TestInstantiationAwareExtension, TestInstancePreConstructCallback,
+		BeforeTestExecutionCallback, AfterTestExecutionCallback, AfterEachCallback, ExecutionCondition {
 	/** Namespace of the guard state in the extension store. */
 	private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace
 			.create(JupiterSecurityExtension.class);
@@ -40,6 +42,16 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	 * entries, and a method must never see a state of the class.
 	 */
 	private static final String CLASS_POLICY_PREPARED_KEY = "class-policy-prepared";
+	/**
+	 * Store key for the guard state of a template test's container, armed while
+	 * JUnit builds its arguments. It differs from the method key, which the
+	 * invocations below the container would otherwise read as their own.
+	 */
+	private static final String TEMPLATE_POLICY_PREPARED_KEY = "template-policy-prepared";
+	/** Store key for the resource that closes the guard of a template container. */
+	private static final String TEMPLATE_CLOSER_KEY = "template-guard-closer";
+	/** The settings class whose two copies hold the armed policy. */
+	private static final String SETTINGS_CLASS_NAME = "de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings";
 	/** JUnit setting that lets tests run in several threads at once. */
 	private static final String PARALLEL_EXECUTION_ENABLED_KEY = "junit.jupiter.execution.parallel.enabled";
 
@@ -68,6 +80,32 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	@Override
 	public void preConstructTestInstance(TestInstanceFactoryContext factoryContext, ExtensionContext extensionContext) {
 		refuseParallelExecution(extensionContext);
+	}
+
+	/**
+	 * Arms the guard for the container of a template test, such as a parameterised
+	 * one, before JUnit builds its arguments, since an argument source like a
+	 * {@code @MethodSource} method can run student code. The guard closes when the
+	 * container ends. It never disables anything.
+	 */
+	@Override
+	public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext extensionContext) {
+		if (isTemplateContainer(extensionContext)) {
+			prepareSecurityOnce(extensionContext, TEMPLATE_POLICY_PREPARED_KEY);
+			extensionContext.getStore(NAMESPACE).put(TEMPLATE_CLOSER_KEY,
+					(AutoCloseable) () -> closeSecurityOnce(extensionContext, TEMPLATE_POLICY_PREPARED_KEY));
+		}
+		return ConditionEvaluationResult.enabled("Ares guards the arguments of a template test");
+	}
+
+	/**
+	 * Whether a context is the container of a template test rather than one of its
+	 * invocations, whose parent context has the same test method.
+	 */
+	private static boolean isTemplateContainer(ExtensionContext extensionContext) {
+		return extensionContext.getTestMethod()
+				.filter(method -> AnnotationSupport.isAnnotated(method, TestTemplate.class)).isPresent()
+				&& extensionContext.getParent().flatMap(ExtensionContext::getTestMethod).isEmpty();
 	}
 
 	/**
@@ -141,14 +179,21 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	}
 
 	/**
-	 * Reads the policy and arms the guard once for the given context. A second call
-	 * for the same context does nothing, and a failure leaves the guard reset.
-	 * Enabled parallel execution is refused before anything is reset or armed.
+	 * Arms the guard once for the given context, under the store key of its level.
 	 */
 	private void prepareSecurityOnce(ExtensionContext extensionContext) {
+		prepareSecurityOnce(extensionContext, stateKey(extensionContext));
+	}
+
+	/**
+	 * Reads the policy and arms the guard once for the given context and key. It
+	 * first ends the previous test, so code that test left running stays refused
+	 * while this one is prepared. A second call does nothing, and a failure leaves
+	 * the test ended. Enabled parallel execution is refused before anything else.
+	 */
+	private void prepareSecurityOnce(ExtensionContext extensionContext, String stateKey) {
 		refuseParallelExecution(extensionContext);
 		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
-		String stateKey = stateKey(extensionContext);
 		synchronized (store) {
 			LifecycleState state = store.get(stateKey, LifecycleState.class);
 			if (state == LifecycleState.PREPARED || state == LifecycleState.PREPARING) {
@@ -157,15 +202,13 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 			store.put(stateKey, LifecycleState.PREPARING);
 		}
 		try {
-			resetSettingsInStandardClassLoader();
-			resetSettingsInBootstrapClassLoader();
+			endSupervisionInBothClassLoaders();
 			prepareSecurity(extensionContext);
 			store.put(stateKey, LifecycleState.PREPARED);
 		} catch (RuntimeException | Error failure) {
 			store.remove(stateKey);
 			try {
-				resetSettingsInStandardClassLoader();
-				resetSettingsInBootstrapClassLoader();
+				endSupervisionInBothClassLoaders();
 			} catch (RuntimeException | Error resetFailure) {
 				failure.addSuppressed(resetFailure);
 			}
@@ -173,6 +216,11 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 		}
 	}
 
+	/**
+	 * Arms the policy that applies to the given context. Where Ares guards nothing,
+	 * for a deactivated policy or a class phase without one, it suspends every
+	 * check until the phase ends, as such a phase is documented to run unguarded.
+	 */
 	void prepareSecurity(ExtensionContext extensionContext) {
 		JupiterContext testContext = JupiterContext.of(extensionContext);
 		Optional<Policy> policyOpt = TestContextUtils.findAnnotationIn(testContext, Policy.class);
@@ -188,6 +236,8 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath)
 					.projectFolderPath(Path.of("").toAbsolutePath()).withinPath(withinPath).build().createTestCases()
 					.executeTestCases();
+		} else {
+			invokeInBothClassLoaders("suspendSupervision");
 		}
 	}
 
@@ -210,12 +260,20 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	}
 
 	/**
-	 * Resets the guard once for the given context. It also reports a failed class
-	 * transformation of the instrumentation agent.
+	 * Closes the guard once for the given context, under the store key of its
+	 * level.
 	 */
 	private static void closeSecurityOnce(ExtensionContext extensionContext) {
+		closeSecurityOnce(extensionContext, stateKey(extensionContext));
+	}
+
+	/**
+	 * Ends the test once for the given context and key: its allowances go, so code
+	 * it left running is refused. It also reports a failed class transformation of
+	 * the instrumentation agent.
+	 */
+	private static void closeSecurityOnce(ExtensionContext extensionContext, String stateKey) {
 		ExtensionContext.Store store = extensionContext.getStore(NAMESPACE);
-		String stateKey = stateKey(extensionContext);
 		synchronized (store) {
 			LifecycleState state = store.get(stateKey, LifecycleState.class);
 			if (state == null || state == LifecycleState.CLOSED) {
@@ -226,8 +284,7 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 		try {
 			JavaInstrumentationAgent.throwIfTransformationFailed();
 		} finally {
-			resetSettingsInStandardClassLoader();
-			resetSettingsInBootstrapClassLoader();
+			endSupervisionInBothClassLoaders();
 			store.remove(stateKey);
 		}
 	}
@@ -277,6 +334,38 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 			throw failure;
 		}
 		return result;
+	}
+
+	/**
+	 * Ends the current test in both copies of the settings, see
+	 * {@code JavaAOPTestCaseSettings.endSupervision}.
+	 */
+	static void endSupervisionInBothClassLoaders() {
+		invokeInBothClassLoaders("endSupervision");
+	}
+
+	/**
+	 * Runs a static method of the settings class, by name, in the copy of the
+	 * standard class loader and in that of the boot class loader. A copy that is
+	 * not loaded has nothing to change.
+	 */
+	private static void invokeInBothClassLoaders(String methodName) {
+		Try.call(() -> Class.forName(SETTINGS_CLASS_NAME, true, Thread.currentThread().getContextClassLoader()))
+				.ifSuccess(settingsClass -> invokeSettingsMethod(settingsClass, methodName));
+		Try.call(() -> Class.forName(SETTINGS_CLASS_NAME, false, null))
+				.ifSuccess(settingsClass -> invokeSettingsMethod(settingsClass, methodName));
+	}
+
+	/**
+	 * Runs a static method of one copy of the settings class. A missing method
+	 * fails closed, so no test inherits the settings of the one before.
+	 */
+	private static void invokeSettingsMethod(Class<?> settingsClass, String methodName) {
+		try {
+			resetSettingsWithMethod(settingsClass.getDeclaredMethod(methodName));
+		} catch (NoSuchMethodException e) {
+			throw new SecurityException(localize("security.settings.reset.method.not.found"), e);
+		}
 	}
 
 	public static void resetSettings(Class<?> javaTestCaseSettingsClass) {

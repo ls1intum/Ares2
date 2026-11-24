@@ -406,6 +406,9 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	@Nonnull
 	static String buildDenialReason(@Nonnull String resourceType, @Nonnull String action,
 			boolean noAllowRuleForAction) {
+		if (getValueFromSettings("supervisionEndedOnThread") != null) {
+			return localize("security.advice.denial.reason.test.ended");
+		}
 		if (!noAllowRuleForAction) {
 			return localize("security.advice.denial.reason.target.not.allowed." + resourceType);
 		}
@@ -719,39 +722,44 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
-	 * Returns {@code true} only while Ares itself is reading framework support
-	 * files for structural and architecture test setup through one of its trusted
-	 * utilities ({@code ProjectSourcesFinder}, {@code ClassNameScanner},
-	 * {@code FileTools}, {@code CustomCallgraphBuilder}).
-	 * <p>
-	 * The exemption is granted only when the trusted utility was invoked by Ares
-	 * internal code: walking towards the callers, all consecutive trusted-utility
-	 * frames are skipped and the first real initiator above them must be an Ares
-	 * ({@code de.tum.cit.ase.ares.api.*}) frame. Any other initiator (student code,
-	 * an external helper, or a reflection trampoline) is not exempt, which closes
-	 * the bypass where user code could route forbidden file access through e.g.
-	 * {@code FileTools.readFile(...)}, including via the utilities' own internal
-	 * call chains.
+	 * Whether Ares itself reads one of its support files through a trusted utility
+	 * such as {@code FileTools}, for structural and architecture setup. See
+	 * {@link #isTrustedUtilityReadForAres} for the rule.
 	 *
-	 * @return {@code true} if an internal Ares utility is performing the access
+	 * @return {@code true} if an Ares utility performs the access for Ares
 	 */
 	static boolean isProjectSourcesFinderInProgress() {
-		return STACK_WALKER.walk(frames -> {
-			boolean trustedSeen = false;
-			Iterator<StackWalker.StackFrame> iterator = frames.iterator();
-			while (iterator.hasNext()) {
-				String className = iterator.next().getClassName();
-				if (isTrustedSetupUtility(className)) {
-					trustedSeen = true;
-					continue;
-				}
-				if (trustedSeen) {
-					// First non-utility frame above the trusted utilities is the initiator.
-					return className.startsWith("de.tum.cit.ase.ares.api.") ? Boolean.TRUE : Boolean.FALSE;
-				}
+		@Nullable
+		String restrictedPackage = getValueFromSettings("restrictedPackage");
+		return STACK_WALKER.walk(frames -> Boolean.valueOf(isTrustedUtilityReadForAres(
+				frames.map(StackWalker.StackFrame::getClassName).iterator(), restrictedPackage)));
+	}
+
+	/**
+	 * Reads a call stack, newest frame first, as a read by a trusted Ares utility
+	 * that Ares code called: the first frame after the utility frames must be Ares
+	 * code. A student frame before any utility frame means the student is reading,
+	 * so the walk stops there and its cost does not grow with the depth of a
+	 * student recursion.
+	 *
+	 * @param classNames        the class of each frame, newest first
+	 * @param restrictedPackage the package holding the student code
+	 * @return {@code true} for such a read
+	 */
+	static boolean isTrustedUtilityReadForAres(@Nonnull Iterator<String> classNames,
+			@Nullable String restrictedPackage) {
+		boolean trustedSeen = false;
+		while (classNames.hasNext()) {
+			String className = classNames.next();
+			if (isTrustedSetupUtility(className)) {
+				trustedSeen = true;
+			} else if (trustedSeen) {
+				return className.startsWith("de.tum.cit.ase.ares.api.");
+			} else if (isStudentFrame(className, restrictedPackage)) {
+				return false;
 			}
-			return Boolean.FALSE;
-		});
+		}
+		return false;
 	}
 
 	/**
@@ -822,45 +830,44 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	// <editor-fold desc="Callstack criteria methods">
 
 	/**
-	 * Checks the current call stack for violations of restricted packages.
-	 * <p>
-	 * Description: First checks if the direct caller of the intercepted method is
-	 * in IGNORE_CALLSTACK (e.g., ClassLoader). If so, the operation is allowed.
-	 * Otherwise, examines the stack trace to find the first element whose class
-	 * name starts with the restricted package but is not in the allowed classes
-	 * list, skipping any classes in the ignore list.
+	 * Finds the first student frame on the call stack that is not an allowed class,
+	 * skipping the frames in {@link #IGNORE_CALLSTACK}. Nothing is checked on a
+	 * thread {@link #isUncheckedOutsideASupervisedTest} lets pass.
 	 *
-	 * @param restrictedPackage the prefix of restricted package names
-	 * @param allowedClasses    the array of allowed class name prefixes
-	 * @param declaringTypeName the class name of the intercepted method
-	 * @param methodName        the name of the intercepted method
-	 * @return the fully qualified method name that violates criteria, or null if
-	 *         none
-	 * @since 2.0.0
-	 * @author Markus Paulsen
+	 * @param restrictedPackage the package holding the student code
+	 * @param allowedClasses    the classes allowed by exact name
+	 * @param declaringTypeName the class of the intercepted method
+	 * @param methodName        the intercepted method
+	 * @return the student method found, or {@code null} for none
 	 */
 	@Nullable
 	static String checkIfCallstackCriteriaIsViolated(String restrictedPackage, String[] allowedClasses,
 			String declaringTypeName, String methodName) {
-		// Stream the stack lazily so the walk stops once both the violation and the
-		// caller above the first restricted frame are known (or the stack is
-		// exhausted).
-		// Skip ignorable frames (Ares internals, class loading, reflection trampolines)
-		// to prevent reflective dispatch from bypassing the check simply because
-		// jdk.internal.reflect.* appears as an intermediate caller.
-		// Inspect once and cache the matching frame plus the first non-ignored caller
-		// directly above it so the companion findFirstMethodOutsideOfRestrictedPackage
-		// call that immediately follows can read from the thread-local cache instead
-		// of walking the stack a second time.
+		if (isUncheckedOutsideASupervisedTest()) {
+			CALLSTACK_INSPECTION_CACHE.remove();
+			return null;
+		}
 		String[] allowedPackages = getValueFromSettings("allowedListedPackages");
 		String[] inspection = inspectCallstackOnce(restrictedPackage, allowedPackages, allowedClasses);
 		if (inspection != null) {
 			CALLSTACK_INSPECTION_CACHE.set(inspection);
 		} else {
-			// Avoid leaving a stale per-thread entry behind when there is no violation.
 			CALLSTACK_INSPECTION_CACHE.remove();
 		}
 		return inspection == null ? null : inspection[0];
+	}
+
+	/**
+	 * Whether the current thread goes unchecked outside a supervised test: every
+	 * thread while Ares guards nothing, such as during a deactivated policy, and
+	 * the thread that ended the last test, which runs JUnit and Ares, until the
+	 * next test is armed. Every other thread stays checked.
+	 *
+	 * @return {@code true} if the current thread is not checked
+	 */
+	static boolean isUncheckedOutsideASupervisedTest() {
+		return Boolean.TRUE.equals(getValueFromSettings("supervisionSuspended"))
+				|| getValueFromSettings("supervisionEndedOnThread") == Thread.currentThread();
 	}
 
 	/**

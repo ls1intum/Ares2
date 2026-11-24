@@ -50,7 +50,11 @@ public class JavaExecuter implements Executer {
 	// <editor-fold desc="Execute test cases methods">
 
 	/**
-	 * Executes the generated security test cases.
+	 * Executes the generated security test cases: the architecture checks run and
+	 * the allowances are published first, and the package that switches on the
+	 * call-stack checks comes last, so nothing observes a half-armed policy. Only
+	 * then does the thread that ended the last test lose its exemption. Nothing
+	 * here runs supervised code.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -77,9 +81,6 @@ public class JavaExecuter implements Executer {
 		String architectureModeString = architectureMode.toString();
 		@Nonnull
 		String aopModeString = aopMode.toString();
-		// Install allow-lists and descriptive settings before restrictedPackage. The
-		// latter activates call-stack enforcement, so publishing it last prevents an
-		// instrumented class-loading operation from observing a partially armed policy.
 		setJavaAdviceSettingValue("allowedListedPackages", essentialPackages.toArray(String[]::new), architectureMode,
 				aopMode);
 		setJavaAdviceSettingValue("allowedListedClasses",
@@ -89,12 +90,6 @@ public class JavaExecuter implements Executer {
 		setJavaAdviceSettingValue("architectureMode", architectureModeString, architectureMode, aopMode);
 		setJavaAdviceSettingValue("aopMode", aopModeString, architectureMode, aopMode);
 		setJavaAdviceSettingValue("mainClass", mainClassInPackageName, architectureMode, aopMode);
-		// These calls prepare enforcement: architecture cases statically inspect the
-		// bytecode and AOP cases publish the remaining domain allow-lists. Neither call
-		// executes supervised code. Keep runtime interception disarmed until both have
-		// completed, otherwise the analyser can block its own resource loading while
-		// the
-		// policy is still only partially installed.
 		javaArchitectureTestCases.forEach(javaArchitectureTestCase -> javaArchitectureTestCase
 				.executeArchitectureTestCase(architectureModeString, aopModeString));
 		javaAOPTestCases
@@ -103,10 +98,8 @@ public class JavaExecuter implements Executer {
 			JavaInstrumentationAgent.activate();
 		}
 		setJavaAdviceSettingValue("restrictedPackage", packageName, architectureMode, aopMode);
+		setJavaAdviceSettingValue("supervisionEndedOnThread", null, architectureMode, aopMode);
 		if (aopMode == AOPMode.INSTRUMENTATION) {
-			// Object's final monitor methods require application call-site rewriting.
-			// Activate that transformer only after the complete policy is installed, so
-			// retransformed classes can never observe a partially configured policy.
 			JavaInstrumentationAgent.registerThreadMonitorRestrictedPackage(packageName);
 		}
 	}

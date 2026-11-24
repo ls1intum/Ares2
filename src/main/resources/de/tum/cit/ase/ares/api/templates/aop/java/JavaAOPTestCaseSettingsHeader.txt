@@ -24,3 +24,16 @@ public final class JavaAOPTestCaseSettings {
      * temp file without a named directory is then refused.
      */
     private static volatile String frozenDefaultTempDirectory = null;
+
+    /**
+     * Read by the shared runtime advice, which a test run ends through this field;
+     * a generated set has no such end, so it stays {@code null} and every thread
+     * is checked.
+     */
+    private static volatile Thread supervisionEndedOnThread = null;
+
+    /**
+     * Read by the shared runtime advice to lift every check for an unguarded phase;
+     * a generated set has no such phase, so it stays {@code false}.
+     */
+    private static volatile boolean supervisionSuspended = false;
