@@ -499,6 +499,27 @@ class JavaWalaTestCaseExecutionTest {
 	}
 
 	/**
+	 * A graph that cannot be built, which Ares reports as a SecurityException, is
+	 * not kept as a verdict on the submission, so the next run tries again.
+	 */
+	@Test
+	void retriesAGraphThatCouldNotBeBuilt() {
+		AtomicInteger calls = new AtomicInteger();
+		JavaWalaTestCase testCase = testCase(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION,
+				new ClassFileImporter().importClasses(CleanFixture.class), () -> {
+					calls.incrementAndGet();
+					throw new SecurityException("graph");
+				}, uniquePermission());
+
+		assertEquals("graph",
+				assertThrows(SecurityException.class, () -> testCase.executeArchitectureTestCase("WALA", ""))
+						.getMessage());
+		assertThrows(SecurityException.class, () -> testCase.executeArchitectureTestCase("WALA", ""));
+
+		assertEquals(2, calls.get());
+	}
+
+	/**
 	 * A run interrupted while it waits for another evaluation of the same key fails
 	 * closed and keeps the thread's interrupt flag set. The key is read after the
 	 * interrupt, as the run itself reads it.
@@ -532,24 +553,24 @@ class JavaWalaTestCaseExecutionTest {
 	}
 
 	/**
-	 * A violation without a message is thrown with an empty message rather than
-	 * read as a pass, on the first run and again when the second run is served from
-	 * the cache.
+	 * A graph failure without a message is never read as a pass: every run throws
+	 * it as it is, and none is served from the cache.
 	 */
 	@Test
-	void keepsAnEmptyViolationMessage() {
+	void neverPassesAGraphFailureWithoutAMessage() {
+		AtomicInteger calls = new AtomicInteger();
+		SecurityException failure = new SecurityException((String) null);
 		JavaWalaTestCase testCase = testCase(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION,
 				new ClassFileImporter().importClasses(CleanFixture.class), () -> {
-					throw new SecurityException((String) null);
+					calls.incrementAndGet();
+					throw failure;
 				}, uniquePermission());
 
-		SecurityException first = assertThrows(SecurityException.class,
-				() -> testCase.executeArchitectureTestCase("WALA", ""));
-		SecurityException second = assertThrows(SecurityException.class,
-				() -> testCase.executeArchitectureTestCase("WALA", ""));
-
-		assertEquals("", first.getMessage());
-		assertEquals("", second.getMessage());
+		assertSame(failure,
+				assertThrows(SecurityException.class, () -> testCase.executeArchitectureTestCase("WALA", "")));
+		assertSame(failure,
+				assertThrows(SecurityException.class, () -> testCase.executeArchitectureTestCase("WALA", "")));
+		assertEquals(2, calls.get());
 	}
 
 	/**
