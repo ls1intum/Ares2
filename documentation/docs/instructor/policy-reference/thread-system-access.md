@@ -86,6 +86,15 @@ A task handed to an executor or to `CompletableFuture` counts against the class 
 in both runtime modes. The pool threads that then run it are not counted again. `Arrays.parallelSort`,
 `Arrays.parallelPrefix` and `Arrays.parallelSetAll` count as `<implicit-thread-op:parallel>`.
 
+A new `java.util.Timer` starts its thread at once, so each timer counts as one thread of the class
+`java.util.TimerThread`, in both runtime modes. The tasks scheduled on a timer run on that thread
+and are not counted again.
+
+The threads `java.net.http.HttpClient` starts for itself, such as its selector thread and the
+threads of its own pool, do not count against the policy. The network policy still decides which
+hosts and ports the client reaches. A thread that student code starts for the client, for example in an
+executor handed to `HttpClient.newBuilder().executor(...)`, still counts.
+
 Asking a thread about itself needs no entry: `Thread.currentThread()`, `getName()`,
 `isInterrupted()` and the other getters are allowed under any policy. Starting, renaming,
 interrupting or waiting for a thread still is not, while the list is empty.
