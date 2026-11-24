@@ -355,6 +355,16 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
     pointcut fileSystemProviderDeleteMethods():
             call(* java.nio.file.spi.FileSystemProvider+.delete(..));
 
+    pointcut processBuilderRedirectReadMethods():
+            (call(* java.lang.ProcessBuilder.redirectInput(java.io.File)) ||
+                    call(* java.lang.ProcessBuilder.Redirect.from(java.io.File)));
+
+    pointcut processBuilderRedirectWriteMethods():
+            (call(* java.lang.ProcessBuilder.redirectOutput(java.io.File)) ||
+                    call(* java.lang.ProcessBuilder.redirectError(java.io.File)) ||
+                    call(* java.lang.ProcessBuilder.Redirect.to(java.io.File)) ||
+                    call(* java.lang.ProcessBuilder.Redirect.appendTo(java.io.File)));
+
     pointcut scannerInitMethods():
             (call(java.util.Scanner+.new(java.io.File, ..)) ||
                     call(java.util.Scanner+.new(java.nio.file.Path, ..)));
