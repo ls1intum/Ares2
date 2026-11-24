@@ -82,7 +82,7 @@
                 </executions>
             </plugin>
 
-            <!-- 2. Ares reserved-package build boundary, version 2.
+            <!-- 2. Ares reserved-package build boundary, version 3.
                  Copied verbatim from
                  src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/MavenReservedPackages.xml.
                  process-classes precedes test, so `mvn test` runs it. -->
@@ -92,13 +92,13 @@
                 <version>3.2.0</version>
                 <executions>
                     <execution>
-                        <id>verify-ares-reserved-packages-v2</id>
+                        <id>verify-ares-reserved-packages-v3</id>
                         <phase>process-classes</phase>
                         <goals><goal>run</goal></goals>
                         <configuration>
                             <target>
                                 <resourcecount property="ares.reserved.package.count">
-                                    <fileset dir="${project.build.outputDirectory}">
+                                    <fileset dir="${project.build.outputDirectory}" defaultexcludes="no">
                                         <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
                                         <include name="jdk/**"/><include name="com/sun/**"/>
                                         <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
@@ -117,8 +117,19 @@
                                         <include name="de/tum/in/test/api/**"/>
                                     </fileset>
                                 </resourcecount>
-                                <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">
-                                    <condition><not><equals arg1="${ares.reserved.package.count}" arg2="0"/></not></condition>
+                                <resourcecount property="ares.reserved.resource.count">
+                                    <fileset dir="${project.build.outputDirectory}" defaultexcludes="no" casesensitive="false">
+                                        <include name="META-INF/services/**"/><include name="archunit.properties"/>
+                                        <include name="archunit_ignore_patterns.txt"/><include name="junit-platform.properties"/>
+                                        <include name="logback.xml"/><include name="logback-test.xml"/><include name="logback.groovy"/>
+                                        <include name="logback.scmo"/><include name="logback-test.scmo"/>
+                                    </fileset>
+                                </resourcecount>
+                                <fail message="Ares reserved-package validation 3 rejected student output. No bypass flag is supported.">
+                                    <condition><or>
+                                        <not><equals arg1="${ares.reserved.package.count}" arg2="0"/></not>
+                                        <not><equals arg1="${ares.reserved.resource.count}" arg2="0"/></not>
+                                    </or></condition>
                                 </fail>
                             </target>
                         </configuration>

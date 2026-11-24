@@ -248,7 +248,9 @@ Ares 2 trusts a different set of identities by name, including its own `de.tum.c
 
 They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reservedPackages/`, and live in the Ares repository at `src/main/resources/de/tum/cit/ase/ares/api/configuration/reservedPackages/`. Both are reproduced in full below, so you can complete the migration without extracting them.
 
-Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side contract that enforces it.
+Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side contract that enforces it.
+
+Boundary version 3 further rejects every file under `META-INF/services/` and the JUnit, ArchUnit and Logback configuration files at the root of the student's output, such as `junit-platform.properties`, `archunit.properties` and `logback.xml`. Those frameworks read such a file from the test class path before Ares is active, so it could run a student class unsupervised or hide ArchUnit findings. Keep your own files of this kind in `src/test/resources`, which the check does not scan.
 
 Prefix version 3 widened the list to the Ares 1 breadth. A version 1 or 2 snippet now reserves too little rather than too much: it omits the test harness (JUnit, AssertJ) and Ares' other dependencies. A submission that places a class in one of those shadows the code that grades it. Upgrading the Ares dependency does not rewrite a build guard you copied earlier, so refresh any snippet below prefix version 3 from the shipped files. Regenerate any previously generated helper sources too, since the upgrade does not replace their embedded reserved-package list either. This is a breaking change for an affected exercise: the build now rejects a submission that compiled before if it takes a reserved package.
 
@@ -257,13 +259,22 @@ Prefix version 3 widened the list to the Ares 1 breadth. A version 1 or 2 snippe
 Delete the Ares 1 `forbiddenPackageFolders` list and its `test { doFirst { ... } }` assertion. Create `gradle/AresReservedPackages.gradle` with the shipped content, reproduced here in full:
 
 ```gradle
-// Ares reserved-package build boundary, version 2. Apply from the exercise build.
+// Ares reserved-package build boundary, version 3. Apply from the exercise build.
 //
-// Boundary version 2 supersedes version 1, which attached the validation to
+// Boundary version 3 also rejects files that steer a test framework: every
+// file under META-INF/services/, and the JUnit, ArchUnit and Logback
+// configuration files at the root of the output. Those frameworks read them
+// from the test class path before Ares is active, so a student file there could
+// run a student class unsupervised or hide ArchUnit findings. Version 3 scans
+// the whole main output, the processed resources included, not only the
+// compiled classes. Resource names are compared ignoring case, as a
+// case-insensitive file system would find them.
+//
+// Boundary version 2 superseded version 1, which attached the validation to
 // `check` alone. Gradle's Java plugin defines `check.dependsOn test`, not the
 // reverse, so `gradlew test` never ran it and a student class under a reserved
 // package survived a grading run that only invoked `test`. Every Test task is
-// gated as well now. An exercise still carrying a version 1 snippet is
+// gated as well now. An exercise still carrying a version 1 or 2 snippet is
 // bypassable and must be migrated.
 //
 // The build descriptor and the command used to invoke it are trusted instructor
@@ -274,7 +285,7 @@ Delete the Ares 1 `forbiddenPackageFolders` list and its `test { doFirst { ... }
 // code: `tasks.withType(Test)` covers only the project it is applied to.
 import org.gradle.api.tasks.testing.Test
 
-def aresReservedPackageBoundaryVersion = '2'
+def aresReservedPackageBoundaryVersion = '3'
 def aresReservedPackagePatterns = [
         'java/**', 'javax/**', 'sun/**', 'jdk/**', 'com/sun/**',
         'de/tum/cit/ase/ares/api/**', 'net/bytebuddy/**', 'org/aspectj/**',
@@ -286,18 +297,28 @@ def aresReservedPackagePatterns = [
         'org/jacoco/**', 'com/intellij/**', 'worker/org/gradle/**',
         'de/tum/in/test/api/**'
 ]
+def aresReservedResourcePatterns = [
+        'META-INF/services/**', 'archunit.properties', 'archunit_ignore_patterns.txt',
+        'junit-platform.properties', 'logback.xml', 'logback-test.xml', 'logback.groovy',
+        'logback.scmo', 'logback-test.scmo'
+]
 
-tasks.register('verifyAresReservedPackagesV2') {
+tasks.register('verifyAresReservedPackagesV3') {
     dependsOn tasks.named('classes')
     // Resolved at configuration time and declared as an input, so the task body
     // touches no Project API and the build stays configuration-cache compatible.
-    def studentClassesDirs = sourceSets.main.output.classesDirs
+    // The whole main output: the compiled classes and the processed resources.
+    def studentOutput = sourceSets.main.output
     def reservedPrefixes = aresReservedPackagePatterns.collect { it.substring(0, it.length() - 2) }
+    def reservedResourcePrefixes = aresReservedResourcePatterns.findAll { it.endsWith('/**') }
+            .collect { it.substring(0, it.length() - 2).toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT) }
+    def reservedResourceFiles = aresReservedResourcePatterns.findAll { !it.endsWith('/**') }
+            .collect { it.toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT) }
     def boundaryVersion = aresReservedPackageBoundaryVersion
-    inputs.files(studentClassesDirs).withPropertyName('studentClasses')
+    inputs.files(studentOutput).withPropertyName('studentOutput')
     doLast {
         def forbidden = []
-        studentClassesDirs.files.each { root ->
+        studentOutput.files.each { root ->
             if (!root.isDirectory()) {
                 return
             }
@@ -309,7 +330,10 @@ tasks.register('verifyAresReservedPackagesV2') {
                 // Compared as a '/'-separated relative path, so the same prefixes
                 // apply on Windows as on Linux and macOS.
                 def relative = rootPath.relativize(candidate.toPath()).toString().replace(File.separator, '/')
-                if (reservedPrefixes.any { relative.startsWith(it) }) {
+                def lowered = relative.toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT)
+                if (reservedPrefixes.any { relative.startsWith(it) }
+                        || reservedResourcePrefixes.any { lowered.startsWith(it) }
+                        || reservedResourceFiles.contains(lowered)) {
                     forbidden << relative
                 }
             }
@@ -324,22 +348,22 @@ tasks.register('verifyAresReservedPackagesV2') {
 // Both hooks are required. `check` covers `gradlew check` and `gradlew build`;
 // the Test hook covers `gradlew test` and any custom Test task, which is what a
 // grading run actually invokes.
-tasks.named('check') { dependsOn tasks.named('verifyAresReservedPackagesV2') }
-tasks.withType(Test).configureEach { dependsOn tasks.named('verifyAresReservedPackagesV2') }
+tasks.named('check') { dependsOn tasks.named('verifyAresReservedPackagesV3') }
+tasks.withType(Test).configureEach { dependsOn tasks.named('verifyAresReservedPackagesV3') }
 ```
 
 Then apply it from your `build.gradle`:
 
 ```gradle
-// Ares reserved-package build boundary, version 2.
+// Ares reserved-package build boundary, version 3.
 apply from: 'gradle/AresReservedPackages.gradle'
 ```
 
-It registers `verifyAresReservedPackagesV2` over `sourceSets.main.output.classesDirs` and attaches it in **two** places, on the last two lines above:
+It registers `verifyAresReservedPackagesV3` over the whole `sourceSets.main.output`, resources included, and attaches it in **two** places, on the last two lines above:
 
 ```gradle
-tasks.named('check') { dependsOn tasks.named('verifyAresReservedPackagesV2') }
-tasks.withType(Test).configureEach { dependsOn tasks.named('verifyAresReservedPackagesV2') }
+tasks.named('check') { dependsOn tasks.named('verifyAresReservedPackagesV3') }
+tasks.withType(Test).configureEach { dependsOn tasks.named('verifyAresReservedPackagesV3') }
 ```
 
 Both are required. Gradle's Java plugin defines `check.dependsOn test`, **not** the reverse, so a validation hung off `check` alone is never executed by `gradlew test`, which is what a grading run invokes. That was the defect in boundary version 1.
@@ -497,6 +521,6 @@ tasks.withType(Test).configureEach {
     jvmArgumentProviders.add(aresJvmArguments)
 }
 
-// Ares reserved-package build boundary, version 2. See Section 8.1.
+// Ares reserved-package build boundary, version 3. See Section 8.1.
 apply from: 'gradle/AresReservedPackages.gradle'
 ```

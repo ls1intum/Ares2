@@ -113,7 +113,7 @@ tasks.withType(Test).configureEach {
     jvmArgumentProviders.add(aresJvmArguments)
 }
 
-// Ares reserved-package build boundary, version 2. Required; see Section 4 of
+// Ares reserved-package build boundary, version 3. Required; see Section 4 of
 // the manual. It gates every Test task as well as check, because
 // check.dependsOn test and not the reverse.
 apply from: 'gradle/AresReservedPackages.gradle'

@@ -269,7 +269,7 @@ jobs:
               fi
               # A non-zero status alone is not enough: any compile error would produce
               # one. Require the boundary's own diagnostic.
-              if ! grep -q 'Ares reserved-package validation 2 rejected student output' output.log; then
+              if ! grep -q 'Ares reserved-package validation 3 rejected student output' output.log; then
                 echo "::error::The ${pkg_decl} build failed, but not with the reserved-package diagnostic, so something else broke."
                 tail -50 output.log
                 exit 1

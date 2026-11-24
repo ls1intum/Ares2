@@ -67,7 +67,7 @@ Neither depends on a platform feature that is going away. The cost is that the b
 | Combining configuration | The whitelist and blacklist annotations are repeatable and additive across class and method; others, such as `@AllowLocalPort` and `@AllowThreads`, resolve nearest-first | The **nearest** `@Policy` wins; policies are never merged |
 | Default without configuration | Denies file paths; most package access permitted | Denies file, network, command and thread access; package imports restricted to an implicit allowlist |
 | Build requirements | A dependency | A dependency, AspectJ weaving, an agent attachment, JVM module-access flags |
-| Class-shadowing guard | `maven-enforcer-plugin`, or a Gradle `doFirst` assertion, with the Ares 1 prefix list | The shipped reserved-package boundary, version 2, with the Ares 2 prefix list |
+| Class-shadowing guard | `maven-enforcer-plugin`, or a Gradle `doFirst` assertion, with the Ares 1 prefix list | The shipped reserved-package boundary, version 3, with the Ares 2 prefix list |
 | Test-type annotations | `@Public`, `@Hidden`, `@Deadline`, `@StrictTimeout`, … | The same, with new imports |
 | Property-based tests | jqwik `@Property` or `@Example` with `@Public` or `@Hidden` | Not supported; rewrite them as JUnit Jupiter tests, see [Move jqwik tests to JUnit Jupiter](#move-jqwik-tests-to-junit-jupiter) |
 
