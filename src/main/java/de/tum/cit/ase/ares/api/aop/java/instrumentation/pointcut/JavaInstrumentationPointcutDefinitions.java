@@ -492,8 +492,10 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// source path must be checked as READ, not OVERWRITE (I-114/TD-063) - the
 			// advice's
 			// checkCopyOrTransferSpecialCase splits each firing to the correct parameter.
+			// "move" is also registered as an overwrite and a delete: it reads and deletes
+			// its source and writes its target, and each firing checks its own side.
 			Map.entry("java.nio.file.Files",
-					List.of("copy", "find", "lines", "list", "mismatch", "newBufferedReader", "newByteChannel",
+					List.of("copy", "find", "lines", "list", "mismatch", "move", "newBufferedReader", "newByteChannel",
 							"newDirectoryStream", "newInputStream", "readAllBytes", "readAllLines", "readString",
 							"walk", "walkFileTree")),
 			// Note: "transferTo" is also registered in METHODS_WHICH_CAN_OVERWRITE_FILES
@@ -503,7 +505,11 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.channels.FileChannel", List.of("map", "open", "transferTo")),
 			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("open", "read")),
 			Map.entry("java.nio.channels.SeekableByteChannel", List.of("read")),
-			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newDirectoryStream")),
+			// The provider methods that open a file are read here; their options decide
+			// whether they read, write or create. copy and move are split by side.
+			Map.entry("java.nio.file.spi.FileSystemProvider",
+					List.of("copy", "move", "newAsynchronousFileChannel", "newByteChannel", "newDirectoryStream",
+							"newFileChannel", "newInputStream")),
 			// java.lang
 			Map.entry("java.lang.ClassLoader", List.of("getResourceAsStream")),
 			// java.net.URL.openStream is a network fetch, not a file read; it is bound to
@@ -608,7 +614,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// Note: newByteChannel is intentionally NOT included here - it's in
 			// METHODS_WHICH_CAN_READ_FILES.
 			// The actual operation is determined by OpenOptions via deriveActionChecks().
-			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("copy", "move", "setAttribute")),
+			Map.entry("java.nio.file.spi.FileSystemProvider",
+					List.of("copy", "move", "newOutputStream", "setAttribute")),
 			// javax.print
 			Map.entry("javax.print.DocPrintJob", List.of("print")),
 			// javax.imageio
@@ -675,7 +682,7 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
 			// java.nio
 			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move")),
-			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete")),
+			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete", "move")),
 			Map.entry("java.nio.file.SecureDirectoryStream", List.of("deleteFile", "deleteDirectory")),
 			// Preferences.removeNode removes the node from the backing store, so it is a
 			// delete and is checked against the delete allow-list, not overwrite.

@@ -175,6 +175,10 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     // checked as READ, not OVERWRITE (I-114/TD-063) - the advice's
                     // checkCopyOrTransferSpecialCase splits each firing to the correct parameter.
                     call(* java.nio.file.Files+.copy(..)) ||
+                    // Also registered in filesWriteMethods() and filesDeleteMethods() below:
+                    // move reads and deletes its source and writes its target, and
+                    // checkCopyOrTransferSpecialCase checks each firing against its own side.
+                    call(* java.nio.file.Files+.move(..)) ||
                     call(* java.nio.file.Files+.walk(..)) ||
                     call(* java.nio.file.Files+.walkFileTree(..)) ||
                     call(* java.nio.file.Files+.lines(..)) ||
@@ -235,8 +239,8 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
     // is determined by the OpenOptions passed to it. The deriveActionChecks() method handles
     // the semantic classification based on the options. Methods like Files.readString() and
     // Files.readAllLines() internally call newByteChannel() with default READ-only options.
-    // Note: Files.move is included here AND in filesDeleteMethods because it both
-    // writes to the destination and deletes the source. Files.copy does not delete the
+    // Note: Files.move is included here, in filesReadMethods and in filesDeleteMethods
+    // because it reads and deletes the source and writes the target. Files.copy does not delete the
     // source, but IS also registered in filesReadMethods above: its source path must be
     // checked as READ, not OVERWRITE (I-114/TD-063) - see checkCopyOrTransferSpecialCase.
     pointcut filesWriteMethods():
@@ -340,8 +344,17 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
     pointcut defaultFileSystemExecuteMethods(): if(false);
 
+    // The provider methods that open a file are read here. Their options decide
+    // whether they read, write or create, as for Files.newByteChannel. copy and move
+    // are also registered below; checkCopyOrTransferSpecialCase splits them by side.
     pointcut fileSystemProviderReadMethods():
-            (call(* java.nio.file.spi.FileSystemProvider+.newDirectoryStream(..)));
+            (call(* java.nio.file.spi.FileSystemProvider+.newDirectoryStream(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.newInputStream(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.newByteChannel(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.newFileChannel(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.newAsynchronousFileChannel(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.copy(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.move(..)));
 
     pointcut fileSystemProviderCreateMethods():
             call(* java.nio.file.spi.FileSystemProvider+.createDirectory(..));
@@ -349,12 +362,14 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
     pointcut fileSystemProviderWriteMethods():
             (call(* java.nio.file.spi.FileSystemProvider+.copy(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider+.move(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.newOutputStream(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider+.setAttribute(..)));
 
     pointcut fileSystemProviderExecuteMethods(): if(false);
 
     pointcut fileSystemProviderDeleteMethods():
-            call(* java.nio.file.spi.FileSystemProvider+.delete(..));
+            (call(* java.nio.file.spi.FileSystemProvider+.delete(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.move(..)));
 
     pointcut processBuilderRedirectReadMethods():
             (call(* java.lang.ProcessBuilder.redirectInput(java.io.File)) ||

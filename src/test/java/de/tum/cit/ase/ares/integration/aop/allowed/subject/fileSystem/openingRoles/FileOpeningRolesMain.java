@@ -1,0 +1,271 @@
+package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.openingRoles;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.spi.FileSystemProvider;
+import java.util.EnumSet;
+import java.util.Formatter;
+import java.util.Set;
+
+/**
+ * Supervised code that opens, moves and copies files through the APIs whose
+ * checks depend on what the call really does to each file: the file system
+ * provider, {@code RandomAccessFile} in mode {@code "rw"}, {@code Files.move},
+ * and the writers that take a charset name.
+ */
+public final class FileOpeningRolesMain {
+
+	/**
+	 * The charset name the writers are given, which is not a path.
+	 */
+	private static final String CHARSET = "UTF-8";
+
+	/**
+	 * Hidden constructor of a utility class.
+	 */
+	private FileOpeningRolesMain() {
+		throw new UnsupportedOperationException("Utility class");
+	}
+
+	/**
+	 * Returns the provider of the file's file system, as a student reaches it.
+	 *
+	 * @param file the file
+	 * @return its provider
+	 */
+	private static FileSystemProvider provider(Path file) {
+		return file.getFileSystem().provider();
+	}
+
+	/**
+	 * Reads the first byte through the provider's input stream.
+	 *
+	 * @param file the file to read
+	 * @return the byte
+	 * @throws IOException if reading fails
+	 */
+	public static int providerRead(Path file) throws IOException {
+		try (InputStream input = provider(file).newInputStream(file)) {
+			return input.read();
+		}
+	}
+
+	/**
+	 * Writes the text through the provider's output stream, replacing the content.
+	 *
+	 * @param file the file to write
+	 * @param text the text
+	 * @throws IOException if writing fails
+	 */
+	public static void providerWrite(Path file, String text) throws IOException {
+		try (OutputStream output = provider(file).newOutputStream(file)) {
+			output.write(text.getBytes(StandardCharsets.UTF_8));
+		}
+	}
+
+	/**
+	 * Writes the text through a byte channel the provider opens with create, write
+	 * and truncate.
+	 *
+	 * @param file the file to write
+	 * @param text the text
+	 * @throws IOException if writing fails
+	 */
+	public static void providerByteChannelWrite(Path file, String text) throws IOException {
+		try (SeekableByteChannel channel = provider(file).newByteChannel(file, EnumSet.of(StandardOpenOption.CREATE,
+				StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING))) {
+			channel.write(ByteBuffer.wrap(text.getBytes(StandardCharsets.UTF_8)));
+		}
+	}
+
+	/**
+	 * Reads the first byte through a byte channel the provider opens without
+	 * options, which the JDK opens for reading.
+	 *
+	 * @param file the file to read
+	 * @return the byte
+	 * @throws IOException if reading fails
+	 */
+	public static int providerByteChannelRead(Path file) throws IOException {
+		try (SeekableByteChannel channel = provider(file).newByteChannel(file, Set.of())) {
+			return readOneByte(channel);
+		}
+	}
+
+	/**
+	 * Reads the first byte through a file channel the provider opens for reading.
+	 *
+	 * @param file the file to read
+	 * @return the byte
+	 * @throws IOException if reading fails
+	 */
+	public static int providerFileChannelRead(Path file) throws IOException {
+		try (FileChannel channel = provider(file).newFileChannel(file, Set.of(StandardOpenOption.READ))) {
+			return readOneByte(channel);
+		}
+	}
+
+	/**
+	 * Reads one byte from a channel.
+	 *
+	 * @param channel the channel
+	 * @return the byte
+	 * @throws IOException if reading fails
+	 */
+	private static int readOneByte(SeekableByteChannel channel) throws IOException {
+		ByteBuffer buffer = ByteBuffer.allocate(1);
+		channel.read(buffer);
+		return buffer.get(0);
+	}
+
+	/**
+	 * Replaces the content through a {@code RandomAccessFile} opened in mode
+	 * {@code "rw"}.
+	 *
+	 * @param file the file to write
+	 * @param text the text
+	 * @throws IOException if writing fails
+	 */
+	public static void randomAccessFileWrite(Path file, String text) throws IOException {
+		try (RandomAccessFile randomAccessFile = new RandomAccessFile(file.toString(), "rw")) {
+			randomAccessFile.setLength(0);
+			randomAccessFile.writeBytes(text);
+		}
+	}
+
+	/**
+	 * Moves a file with {@code Files.move}.
+	 *
+	 * @param source  the file to move
+	 * @param target  where it goes
+	 * @param replace whether an existing target is replaced
+	 * @throws IOException if moving fails
+	 */
+	public static void filesMove(Path source, Path target, boolean replace) throws IOException {
+		Files.move(source, target, copyOptions(replace));
+	}
+
+	/**
+	 * Moves a file through the provider.
+	 *
+	 * @param source  the file to move
+	 * @param target  where it goes
+	 * @param replace whether an existing target is replaced
+	 * @throws IOException if moving fails
+	 */
+	public static void providerMove(Path source, Path target, boolean replace) throws IOException {
+		provider(source).move(source, target, copyOptions(replace));
+	}
+
+	/**
+	 * Copies a file through the provider.
+	 *
+	 * @param source the file to copy
+	 * @param target where the copy goes
+	 * @throws IOException if copying fails
+	 */
+	public static void providerCopy(Path source, Path target) throws IOException {
+		provider(source).copy(source, target);
+	}
+
+	/**
+	 * Returns the copy options of a move.
+	 *
+	 * @param replace whether an existing target is replaced
+	 * @return the options
+	 */
+	private static CopyOption[] copyOptions(boolean replace) {
+		return replace ? new CopyOption[] { StandardCopyOption.REPLACE_EXISTING } : new CopyOption[0];
+	}
+
+	/**
+	 * Writes the text with {@code PrintWriter(String, String charset)}.
+	 *
+	 * @param file the file to write
+	 * @param text the text
+	 * @throws IOException if writing fails
+	 */
+	public static void printWriterCharset(Path file, String text) throws IOException {
+		try (PrintWriter writer = new PrintWriter(file.toString(), CHARSET)) {
+			writer.print(text);
+		}
+	}
+
+	/**
+	 * Writes the text with {@code PrintWriter(File, String charset)}.
+	 *
+	 * @param file the file to write
+	 * @param text the text
+	 * @throws IOException if writing fails
+	 */
+	public static void printWriterFileCharset(Path file, String text) throws IOException {
+		try (PrintWriter writer = new PrintWriter(new File(file.toString()), CHARSET)) {
+			writer.print(text);
+		}
+	}
+
+	/**
+	 * Writes the text with {@code Formatter(String, String charset)}.
+	 *
+	 * @param file the file to write
+	 * @param text the text
+	 * @throws IOException if writing fails
+	 */
+	public static void formatterCharset(Path file, String text) throws IOException {
+		try (Formatter formatter = new Formatter(file.toString(), CHARSET)) {
+			formatter.format("%s", text);
+		}
+	}
+
+	/**
+	 * Writes the text with {@code Formatter(File, String charset)}.
+	 *
+	 * @param file the file to write
+	 * @param text the text
+	 * @throws IOException if writing fails
+	 */
+	public static void formatterFileCharset(Path file, String text) throws IOException {
+		try (Formatter formatter = new Formatter(new File(file.toString()), CHARSET)) {
+			formatter.format("%s", text);
+		}
+	}
+
+	/**
+	 * Formats the text with {@code new Formatter()}, which writes to no file.
+	 *
+	 * @param text the text
+	 * @return the formatted text
+	 */
+	public static String formatterWithoutFile(String text) {
+		try (Formatter formatter = new Formatter()) {
+			return formatter.format("%s", text).toString();
+		}
+	}
+
+	/**
+	 * Reads the first byte through {@code Files.newInputStream} with
+	 * {@code DELETE_ON_CLOSE}, which still reads the file.
+	 *
+	 * @param file the file to read
+	 * @return the byte
+	 * @throws IOException if reading fails
+	 */
+	public static int newInputStreamDeleteOnClose(Path file) throws IOException {
+		try (InputStream input = Files.newInputStream(file, StandardOpenOption.DELETE_ON_CLOSE)) {
+			return input.read();
+		}
+	}
+}
