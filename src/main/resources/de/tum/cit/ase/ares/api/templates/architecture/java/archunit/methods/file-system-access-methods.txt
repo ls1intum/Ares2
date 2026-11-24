@@ -308,3 +308,9 @@ java.nio.file.Files.delete(Ljava/nio/file/Path)
 java.io.FileReader.<init>
 java.nio.file.Files
 java.lang.Class.getResourceAsStream(java.lang.String)
+java.lang.ProcessBuilder.redirectError(java.io.File)
+java.lang.ProcessBuilder.redirectInput(java.io.File)
+java.lang.ProcessBuilder.redirectOutput(java.io.File)
+java.lang.ProcessBuilder$Redirect.appendTo(java.io.File)
+java.lang.ProcessBuilder$Redirect.from(java.io.File)
+java.lang.ProcessBuilder$Redirect.to(java.io.File)
