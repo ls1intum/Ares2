@@ -19,9 +19,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -112,6 +110,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			Map.entry("java.io.DataOutputStream.writeUTF", IgnoreValues.ALL),
 			Map.entry("java.io.DataOutputStream.writeChars", IgnoreValues.ALL),
 			Map.entry("java.io.DataOutputStream.writeBytes", IgnoreValues.ALL),
+			// The same three on a RandomAccessFile write to the file it has open.
+			Map.entry("java.io.RandomAccessFile.writeUTF", IgnoreValues.ALL),
+			Map.entry("java.io.RandomAccessFile.writeChars", IgnoreValues.ALL),
+			Map.entry("java.io.RandomAccessFile.writeBytes", IgnoreValues.ALL),
 			// Scanner(String) scans that text, Scanner(InputStream) a stream. A File or
 			// Path is checked where the Scanner opens the stream underneath, so no
 			// argument here is read as a path.
@@ -654,115 +656,227 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	// <editor-fold desc="Check methods">
 	/**
-	 * Map of class names to the parameter index containing the append boolean.
-	 * <p>
-	 * Description: For classes that use a boolean append parameter in their
-	 * constructors, this map specifies which parameter index holds the append flag.
-	 * When append is false, the operation should be treated as "overwrite" rather
-	 * than "create" for existing files.
-	 * </p>
+	 * The {@code Files} methods that always open their file for writing. Given no
+	 * options they create a missing file or empty an existing one; given options,
+	 * the JDK adds {@code WRITE} to them.
 	 */
 	@Nonnull
-	private static final Map<String, Integer> APPEND_PARAMETER_INDEX = Map.ofEntries(
-			Map.entry("java.io.FileWriter", -1), // Variable position, check all booleans
-			Map.entry("java.io.FileOutputStream", -1), // Variable position, check all booleans
-			Map.entry("java.io.PrintWriter", -1) // Variable position, check all booleans
-	);
+	private static final Set<String> WRITE_OPENING_METHODS = Set.of("java.nio.file.Files.write",
+			"java.nio.file.Files.writeString", "java.nio.file.Files.newOutputStream",
+			"java.nio.file.Files.newBufferedWriter");
 
 	/**
-	 * Checks if the parameters contain an append=false boolean, indicating
-	 * overwrite behaviour.
-	 * <p>
-	 * Description: For legacy I/O classes like FileWriter and FileOutputStream, the
-	 * append behaviour is controlled by a boolean parameter. When this parameter is
-	 * false, the file is truncated/overwritten rather than appended to, which
-	 * should be reported as "overwrite" instead of "create".
-	 * </p>
-	 *
-	 * @param declaringTypeName the fully qualified class name being invoked
-	 * @param parameters        the constructor/method parameters
-	 * @return true if append=false was found, indicating overwrite behaviour
-	 * @since 2.0.0
+	 * The methods that open a channel for reading, writing or both, decided by the
+	 * options alone. Without {@code WRITE} or {@code APPEND} the JDK opens the
+	 * channel for reading.
 	 */
-	private static boolean hasAppendFalseParameter(@Nonnull String declaringTypeName, @Nullable Object[] parameters) {
-		if (parameters == null || parameters.length == 0) {
-			return false;
-		}
-
-		Integer appendIndex = APPEND_PARAMETER_INDEX.get(declaringTypeName);
-		if (appendIndex == null) {
-			return false;
-		}
-
-		// For variable position (-1), check all boolean parameters
-		// The append parameter is typically the last boolean in the constructor
-		if (appendIndex == -1) {
-			for (int i = parameters.length - 1; i >= 0; i--) {
-				Object param = parameters[i];
-				if (param instanceof Boolean) {
-					// Found a boolean parameter - if it's false, this indicates non-append mode
-					return Boolean.FALSE.equals(param);
-				}
-			}
-			return false;
-		}
-
-		// For fixed position, check the specific index
-		if (appendIndex < parameters.length) {
-			Object param = parameters[appendIndex];
-			if (param instanceof Boolean) {
-				return Boolean.FALSE.equals(param);
-			}
-		}
-		return false;
-	}
+	@Nonnull
+	private static final Set<String> CHANNEL_OPENING_METHODS = Set.of("java.nio.file.Files.newByteChannel",
+			"java.nio.channels.FileChannel.open", "java.nio.channels.AsynchronousFileChannel.open");
 
 	/**
-	 * Determines the effective action for RandomAccessFile based on its mode
-	 * string.
-	 * <p>
-	 * Description: RandomAccessFile uses mode strings ("r", "rw", "rws", "rwd")
-	 * instead of boolean parameters. This method maps the mode to the appropriate
-	 * action:
-	 * <ul>
-	 * <li>"r" - read-only mode → "read" action</li>
-	 * <li>"rw", "rws", "rwd" - read-write modes → "overwrite" action
-	 * <p>
-	 * Note: RandomAccessFile with write modes is primarily used for modifying
-	 * existing files. While it CAN create a file if it doesn't exist, the semantic
-	 * intent when opening with "rw" mode is typically to write/modify content, not
-	 * to create a new file. The "create" action is reserved for APIs specifically
-	 * designed for file creation (like File.createNewFile, Files.createFile, etc.).
-	 * </p>
-	 * </li>
-	 * </ul>
-	 * </p>
+	 * The classes whose constructors open a named file for writing, creating it if
+	 * it is missing. A constructor that is given a stream instead names no file, so
+	 * nothing is checked for it.
+	 */
+	@Nonnull
+	private static final Set<String> WRITE_OPENING_CONSTRUCTORS = Set.of("java.io.FileOutputStream",
+			"java.io.FileWriter", "java.io.PrintWriter", "java.io.PrintStream", "java.util.Formatter");
+
+	/**
+	 * The action that stands for opening a file for writing. It is checked as
+	 * {@code overwrite} when the file exists and as {@code create} when it does
+	 * not, so the policy decides by what the call really does to the file.
+	 */
+	@Nonnull
+	private static final String WRITE_ACTION = "write";
+
+	/**
+	 * Returns the action a {@code RandomAccessFile} constructor stands for: a read
+	 * for mode {@code "r"}, an opening for writing for the other modes.
 	 *
-	 * @param parameters the constructor parameters (File/String, mode)
-	 * @return the effective action based on the mode, or null if no mode string
-	 *         found
-	 * @since 2.0.0
+	 * @param parameters the constructor arguments, the mode second
+	 * @return {@code read}, {@link #WRITE_ACTION}, or {@code null} without a known
+	 *         mode
 	 */
 	@Nullable
 	private static String getRandomAccessFileModeAction(@Nullable Object[] parameters) {
-		if (parameters == null || parameters.length < 2) {
+		if (parameters == null || parameters.length < 2 || !(parameters[1] instanceof String mode)) {
 			return null;
 		}
-		// RandomAccessFile constructor: (File/String file, String mode)
-		// The mode is always the second parameter
-		Object modeParam = parameters[1];
-		if (modeParam instanceof String) {
-			String mode = (String) modeParam;
-			if ("r".equals(mode)) {
-				return "read";
-			} else if ("rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode)) {
-				// Write modes always result in "overwrite" action.
-				// The mode parameter takes priority over the pointcut context because
-				// it explicitly declares the user's intent at runtime.
-				return "overwrite";
+		if ("r".equals(mode)) {
+			return "read";
+		}
+		return "rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode) ? WRITE_ACTION : null;
+	}
+
+	/**
+	 * Returns the options a call really opens its file with, as the JDK sets them.
+	 * The write methods add {@code WRITE}, or use create, truncate and write when
+	 * given none; a channel opened without a write option is opened for reading.
+	 *
+	 * @param methodKey the called method as declaring type and name
+	 * @param options   the options found among the arguments
+	 * @return the options the file is opened with
+	 */
+	@Nonnull
+	private static Set<StandardOpenOption> effectiveOpenOptions(@Nonnull String methodKey,
+			@Nonnull Set<StandardOpenOption> options) {
+		EnumSet<StandardOpenOption> effective = options.isEmpty() ? EnumSet.noneOf(StandardOpenOption.class)
+				: EnumSet.copyOf(options);
+		if (WRITE_OPENING_METHODS.contains(methodKey)) {
+			if (effective.isEmpty()) {
+				effective.add(StandardOpenOption.CREATE);
+				effective.add(StandardOpenOption.TRUNCATE_EXISTING);
+			}
+			effective.add(StandardOpenOption.WRITE);
+		} else if (!effective.contains(StandardOpenOption.WRITE) && !effective.contains(StandardOpenOption.APPEND)) {
+			effective.add(StandardOpenOption.READ);
+		}
+		return effective;
+	}
+
+	/**
+	 * Turns the options a file is opened with into the actions to check. Writing
+	 * with {@code CREATE_NEW} is a create, with {@code CREATE} an opening for
+	 * writing decided by whether the file exists, and without either an overwrite.
+	 *
+	 * @param options the options the file is opened with
+	 * @return the actions to check, each with whether a missing path is checked
+	 */
+	@Nonnull
+	private static List<Map.Entry<String, Boolean>> openOptionActions(@Nonnull Set<StandardOpenOption> options) {
+		List<Map.Entry<String, Boolean>> actions = new ArrayList<>();
+		if (options.contains(StandardOpenOption.DELETE_ON_CLOSE)) {
+			actions.add(Map.entry("delete", false));
+		}
+		if (options.contains(StandardOpenOption.READ)) {
+			actions.add(Map.entry("read", false));
+		}
+		if (options.contains(StandardOpenOption.WRITE) || options.contains(StandardOpenOption.APPEND)) {
+			if (options.contains(StandardOpenOption.CREATE_NEW)) {
+				actions.add(Map.entry("create", true));
+			} else if (options.contains(StandardOpenOption.CREATE)) {
+				actions.add(Map.entry(WRITE_ACTION, true));
+			} else {
+				actions.add(Map.entry("overwrite", false));
 			}
 		}
+		return actions;
+	}
+
+	/**
+	 * Decides how an opening for writing is checked: as an overwrite when the first
+	 * checked argument that names a path names an existing file, otherwise as a
+	 * create.
+	 *
+	 * @param parameters      the call arguments
+	 * @param ignoreVariables which arguments are not paths
+	 * @return {@code overwrite} or {@code create}
+	 */
+	@Nonnull
+	private static String resolveWriteAction(@Nullable Object[] parameters, @Nonnull IgnoreValues ignoreVariables) {
+		if (parameters == null) {
+			return "create";
+		}
+		for (Object parameter : filterVariables(parameters, ignoreVariables)) {
+			FileTarget target = variableToTarget(parameter, true);
+			if (target != null) {
+				return Files.exists(target.path()) ? "overwrite" : "create";
+			}
+		}
+		return "create";
+	}
+
+	/**
+	 * Tells whether a call writes through a file the code already opened: a file
+	 * channel or a {@code RandomAccessFile}. Opening it for writing was checked, so
+	 * such a write is allowed where the policy lets the file be overwritten or
+	 * created.
+	 *
+	 * @param action   the action being checked
+	 * @param instance the receiver of the call
+	 * @return whether the call writes through an open file
+	 */
+	private static boolean isWriteThroughOpenFile(@Nonnull String action, @Nullable Object instance) {
+		return "overwrite".equals(action)
+				&& (instance instanceof FileChannel || instance instanceof java.nio.channels.AsynchronousFileChannel
+						|| instance instanceof java.io.RandomAccessFile);
+	}
+
+	/**
+	 * Returns the paths the policy lets be overwritten together with those it lets
+	 * be created, for a write through a file that is already open.
+	 *
+	 * @return both lists in one, or {@code null} if neither is set
+	 */
+	@Nullable
+	private static String[] pathsAllowedToBeOverwrittenOrCreated() {
+		@Nullable
+		String[] overwrite = getValueFromSettings("pathsAllowedToBeOverwritten");
+		@Nullable
+		String[] create = getValueFromSettings("pathsAllowedToBeCreated");
+		if (overwrite == null || create == null) {
+			return overwrite == null ? create : overwrite;
+		}
+		String[] both = new String[overwrite.length + create.length];
+		System.arraycopy(overwrite, 0, both, 0, overwrite.length);
+		System.arraycopy(create, 0, both, overwrite.length, create.length);
+		return both;
+	}
+
+	/**
+	 * Finds the file a {@code getResourceAsStream} call would read, so that file is
+	 * checked instead of the resource name. A resource in a JAR stands for that
+	 * JAR, one in the Java runtime image needs no check, and a missing resource
+	 * reads nothing.
+	 *
+	 * @param instance   the {@code Class} or JDK class loader the call is made on
+	 * @param parameters the call arguments, the resource name first
+	 * @return the values to check as paths, or {@code null} to check the call as it
+	 *         is
+	 */
+	@Nullable
+	private static Object[] resourceReadTargets(@Nullable Object instance, @Nullable Object[] parameters) {
+		if (parameters == null || parameters.length != 1 || !(parameters[0] instanceof String name)) {
+			return null;
+		}
+		URL resource;
+		if (instance instanceof Class<?> type) {
+			resource = type.getResource(name);
+		} else if (instance instanceof ClassLoader loader && isJdkClassLoader(loader)) {
+			resource = loader.getResource(name);
+		} else {
+			return null;
+		}
+		if (resource == null || "jrt".equals(resource.getProtocol())) {
+			return new Object[0];
+		}
+		try {
+			if ("file".equals(resource.getProtocol())) {
+				return new Object[] { Path.of(resource.toURI()) };
+			}
+			if ("jar".equals(resource.getProtocol())) {
+				String location = resource.getPath();
+				int separator = location.indexOf("!/");
+				return new Object[] { Path.of(new URI(separator < 0 ? location : location.substring(0, separator))) };
+			}
+		} catch (URISyntaxException | IllegalArgumentException | java.nio.file.FileSystemNotFoundException e) {
+			return null;
+		}
 		return null;
+	}
+
+	/**
+	 * Tells whether a class loader belongs to the JDK, so asking it where a
+	 * resource lies runs no supervised code.
+	 *
+	 * @param loader the class loader
+	 * @return whether its class was loaded by the bootstrap or platform loader
+	 */
+	private static boolean isJdkClassLoader(@Nonnull ClassLoader loader) {
+		ClassLoader definingLoader = loader.getClass().getClassLoader();
+		return definingLoader == null || definingLoader == ClassLoader.getPlatformClassLoader();
 	}
 
 	// <editor-fold desc="Copy/transfer per-parameter role special case (I-114)">
@@ -802,14 +916,18 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if ("read".equals(action)) {
 				// source (index 0). The other overloads' index-0 argument (InputStream) is
 				// not Path-shaped and resolves to no target, so this is a safe no-op for them.
-				checkSinglePathRole("read", "pathsAllowedToBeRead", isolateParameter(parameters, 0), false,
-						fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+				checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"),
+						isolateParameter(parameters, 0), false, fileSystemMethodToCheck, studentCalledMethod,
+						fullMethodSignature);
 			} else if ("overwrite".equals(action)) {
-				// destination (index 1): create or overwrite depending on REPLACE_EXISTING.
-				boolean replaceExisting = hasReplaceExisting(parameters);
-				String resolvedAction = replaceExisting ? "overwrite" : "create";
-				String settingKey = replaceExisting ? "pathsAllowedToBeOverwritten" : "pathsAllowedToBeCreated";
-				checkSinglePathRole(resolvedAction, settingKey, isolateParameter(parameters, 1), true,
+				// destination (index 1): an existing file is overwritten only with
+				// REPLACE_EXISTING; any other destination is created.
+				Object[] destination = isolateParameter(parameters, 1);
+				boolean overwritesExisting = hasReplaceExisting(parameters)
+						&& "overwrite".equals(resolveWriteAction(destination, IgnoreValues.NONE));
+				String resolvedAction = overwritesExisting ? "overwrite" : "create";
+				String settingKey = overwritesExisting ? "pathsAllowedToBeOverwritten" : "pathsAllowedToBeCreated";
+				checkSinglePathRole(resolvedAction, getValueFromSettings(settingKey), destination, true,
 						fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 			}
 			return true;
@@ -818,7 +936,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if ("read".equals(action)) {
 				// receiver (the channel being read FROM); the target argument (index 2) is
 				// itself a channel and is not checked here — see class-level Javadoc above.
-				checkSinglePathRole("read", "pathsAllowedToBeRead",
+				checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"),
 						instance == null ? new Object[0] : new Object[] { instance }, false, fileSystemMethodToCheck,
 						studentCalledMethod, fullMethodSignature);
 				Object target = parameterAt(parameters, 2);
@@ -835,7 +953,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			if ("overwrite".equals(action)) {
 				// receiver (the channel being written TO); the src argument (index 0) is
 				// itself a channel and is not checked here — see class-level Javadoc above.
-				checkSinglePathRole("overwrite", "pathsAllowedToBeOverwritten",
+				checkSinglePathRole("overwrite", pathsAllowedToBeOverwrittenOrCreated(),
 						instance == null ? new Object[0] : new Object[] { instance }, false, fileSystemMethodToCheck,
 						studentCalledMethod, fullMethodSignature);
 				Object source = parameterAt(parameters, 0);
@@ -1005,18 +1123,17 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
-	 * Checks one side of a student's file copy or transfer against one allow-list
-	 * and throws a {@code SecurityException} on a violation. No exemption applies:
-	 * the student names both paths, so neither is Ares or the JDK at work.
+	 * Checks one side of a student's file copy or transfer against the given
+	 * allow-list and throws a {@code SecurityException} on a violation. No
+	 * exemption applies: the student names both paths, so neither is Ares or the
+	 * JDK at work.
 	 */
-	private static void checkSinglePathRole(@Nonnull String actionLabel, @Nonnull String allowedPathsSettingKey,
+	private static void checkSinglePathRole(@Nonnull String actionLabel, @Nullable String[] allowedPaths,
 			@Nonnull Object[] candidates, boolean allowNonExistingPaths, @Nonnull String fileSystemMethodToCheck,
 			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature) {
 		if (candidates.length == 0) {
 			return;
 		}
-		@Nullable
-		String[] allowedPaths = getValueFromSettings(allowedPathsSettingKey);
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		@Nullable
 		String violation = checkIfVariableCriteriaIsViolated(candidates, allowedPaths, IgnoreValues.NONE,
@@ -1080,229 +1197,40 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	// </editor-fold>
 
 	/**
-	 * Derives the list of file-system actions that need to be validated for a given
-	 * invocation.
-	 * <p>
-	 * Description: Inspects the intercepted method arguments for
-	 * {@link StandardOpenOption} instances and maps them onto the corresponding
-	 * security actions (read, overwrite, create, delete). Also handles legacy I/O
-	 * classes that use boolean append parameters. When append=false is detected for
-	 * classes like FileWriter or FileOutputStream, the action is changed from
-	 * "create" to "overwrite" since the file will be truncated rather than created
-	 * anew. The returned list preserves insertion order and collapses duplicate
-	 * actions while tracking whether non-existing paths should be allowed for each
-	 * action.
-	 * </p>
-	 * <p>
-	 * <b>Semantic Prioritization:</b> When {@code CREATE_NEW} is combined with
-	 * {@code WRITE}, the method returns only "create" as the action. This reflects
-	 * the user's primary intent: creating a new file. The {@code WRITE} option is
-	 * technically required to write content to the newly created file, but it is an
-	 * implementation detail rather than a separate security-relevant operation.
-	 * Without this prioritization, Ares would generate both "create" and
-	 * "overwrite" actions, requiring the policy to allow both operations even
-	 * though the user only intends to create a file. This design allows policy
-	 * files to express intent clearly: {@code pathsAllowedToBeCreated} grants
-	 * permission to create new files (which implicitly includes initial writes),
-	 * while {@code pathsAllowedToBeOverwritten} controls modifications to existing
-	 * files.
-	 * </p>
+	 * Derives the file actions to check for one call. Opening a file for writing
+	 * yields {@link #WRITE_ACTION}. Options decide where a method takes them, the
+	 * mode for {@code RandomAccessFile}, and the pointcut's action otherwise.
 	 *
-	 * @param defaultAction     action associated with the pointcut configuration
-	 *                          (e.g., {@code overwrite})
-	 * @param declaringTypeName the fully qualified class name being invoked
-	 * @param parameters        intercepted method arguments that may contain
-	 *                          {@link StandardOpenOption}s
-	 * @return ordered list of action/allow-non-existing pairs to validate
-	 * @since 2.0.0
+	 * @param defaultAction     the pointcut's action
+	 * @param declaringTypeName the called method's class
+	 * @param methodName        the called method
+	 * @param parameters        the call arguments
+	 * @return each action with whether a missing path is checked
 	 */
 	private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction,
-			@Nonnull String declaringTypeName, @Nullable Object[] parameters) {
-		Set<StandardOpenOption> options = extractStandardOpenOptions(parameters);
-		Map<String, Boolean> actions = new LinkedHashMap<>();
-
-		// Check for FileChannel.MapMode first - this handles FileChannel.map() calls
-		// Note: Using string comparison to avoid creating additional class references
-		// that may not be in the agent JAR
-		java.nio.channels.FileChannel.MapMode mapMode = extractMapMode(parameters);
+			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nullable Object[] parameters) {
+		FileChannel.MapMode mapMode = extractMapMode(parameters);
 		if (mapMode != null) {
-			// Compare using the name() method to avoid switch on enum which creates
-			// synthetic classes
-			String mapModeName = mapMode.toString();
-			if ("READ_ONLY".equals(mapModeName)) {
-				// READ_ONLY mapping is just a read operation
-				actions.put("read", false);
-			} else {
-				// READ_WRITE or PRIVATE mapping can modify the file
-				actions.put("overwrite", false);
+			return List.of(Map.entry("READ_ONLY".equals(mapMode.toString()) ? "read" : "overwrite", false));
+		}
+		String methodKey = declaringTypeName + "." + methodName;
+		Set<StandardOpenOption> options = extractStandardOpenOptions(parameters);
+		if (WRITE_OPENING_METHODS.contains(methodKey) || CHANNEL_OPENING_METHODS.contains(methodKey)) {
+			return openOptionActions(effectiveOpenOptions(methodKey, options));
+		}
+		List<Map.Entry<String, Boolean>> optionActions = openOptionActions(options);
+		if (!optionActions.isEmpty()) {
+			return optionActions;
+		}
+		if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
+			String modeAction = getRandomAccessFileModeAction(parameters);
+			if (modeAction != null) {
+				return List.of(Map.entry(modeAction, !"read".equals(modeAction)));
 			}
-			List<Map.Entry<String, Boolean>> result = new ArrayList<>(actions.size());
-			for (Map.Entry<String, Boolean> entry : actions.entrySet()) {
-				result.add(Map.entry(entry.getKey(), entry.getValue()));
-			}
-			return result;
+		} else if ("<init>".equals(methodName) && WRITE_OPENING_CONSTRUCTORS.contains(declaringTypeName)) {
+			return List.of(Map.entry(WRITE_ACTION, true));
 		}
-
-		// Check for DELETE_ON_CLOSE first - this takes highest priority regardless of
-		// the pointcut's defaultAction. The user's primary intent is to delete the
-		// file.
-		// Note: DELETE_ON_CLOSE is often used with WRITE to open the channel, but the
-		// semantic intent is deletion, not writing.
-		boolean hasDeleteOnClose = options.contains(StandardOpenOption.DELETE_ON_CLOSE);
-
-		// Semantic prioritization for DELETE_ON_CLOSE:
-		// When DELETE_ON_CLOSE is present, we ALWAYS treat this as a "delete"
-		// operation,
-		// regardless of what pointcut caught it (create, overwrite, etc.)
-		if (hasDeleteOnClose) {
-			actions.put("delete", false);
-		}
-		// Semantic prioritization: CREATE_NEW indicates the primary intent is file
-		// creation.
-		// When CREATE_NEW is present with WRITE, we treat this as a pure "create"
-		// operation.
-		// The WRITE option is technically required to write content to the new file,
-		// but it
-		// does not represent a separate "overwrite" intent - the file doesn't exist
-		// yet.
-		// This allows policies to grant "create" permission without also requiring
-		// "overwrite".
-		else {
-			boolean hasCreateNew = options.contains(StandardOpenOption.CREATE_NEW);
-			boolean hasWrite = options.contains(StandardOpenOption.WRITE) || options.contains(StandardOpenOption.APPEND)
-					|| options.contains(StandardOpenOption.TRUNCATE_EXISTING);
-
-			if (hasCreateNew && hasWrite) {
-				// Primary intent is file creation; WRITE is just an implementation detail
-				actions.put("create", true);
-			} else {
-				// Standard processing for other option combinations
-				// Note: Using if-else chain instead of switch on enum to avoid creating
-				// synthetic SwitchMap inner classes that may not be in the agent JAR
-
-				for (StandardOpenOption option : options) {
-					String optionName = option.name();
-					if ("CREATE".equals(optionName) || "CREATE_NEW".equals(optionName)) {
-						mergeBoolean(actions, "create", true);
-					} else if ("WRITE".equals(optionName) || "APPEND".equals(optionName)
-							|| "TRUNCATE_EXISTING".equals(optionName)) {
-						mergeBoolean(actions, "overwrite", false);
-					} else if ("READ".equals(optionName)) {
-						// Validate read against the read allow-list even when write options are
-						// also present: a READ+WRITE channel can read the file's contents, so a
-						// file that is overwrite-allowed but not read-allowed must not be
-						// readable through it. The "overwrite" check above is added separately.
-						mergeBoolean(actions, "read", false);
-					} else if ("DELETE_ON_CLOSE".equals(optionName)) {
-						mergeBoolean(actions, "delete", false);
-					}
-					// Ignore other options like SYNC, DSYNC, SPARSE, NOFOLLOW_LINKS
-				}
-			}
-		}
-
-		// Semantic rule 1: when both "create" (from CREATE option) and "overwrite"
-		// (from WRITE option)
-		// are present, the primary intent is "write to file, creating if not exists" =
-		// overwrite.
-		// Merge into a single "overwrite" check with allowNonExisting=true so that
-		// non-existing
-		// paths are also validated (they will be created-by-write, not truly "created"
-		// as a new
-		// entity). This prevents spurious "illegal create" messages on write-open
-		// calls.
-		if (actions.containsKey("create") && actions.containsKey("overwrite")) {
-			Boolean createAllows = actions.get("create");
-			Boolean overwriteAllows = actions.get("overwrite");
-			actions.remove("create");
-			// Keep allowNonExisting=true from "create" so non-existing paths are checked
-			actions.put("overwrite",
-					(createAllows != null && createAllows) || (overwriteAllows != null && overwriteAllows));
-		}
-
-		// Semantic rule 2: when the method is in the "overwrite" pointcut
-		// (defaultAction="overwrite")
-		// but OpenOptions only produced "create" (e.g. Files.writeString(path, s,
-		// CREATE) — no WRITE
-		// option), the operation is still semantically "write data to file" =
-		// overwrite.
-		// Exception: CREATE_NEW genuinely means "create a new file; fail if it already
-		// exists", so
-		// we leave that as "create". Only plain CREATE (create-if-absent) is
-		// reclassified.
-		if ("overwrite".equals(defaultAction) && actions.size() == 1 && actions.containsKey("create")
-				&& !options.contains(StandardOpenOption.CREATE_NEW)) {
-			Boolean allowNonExisting = actions.get("create");
-			actions.remove("create");
-			actions.put("overwrite", allowNonExisting);
-		}
-
-		if (actions.isEmpty()) {
-			// If OpenOptions were found but none matched the expected actions for this
-			// pointcut,
-			// this pointcut is not responsible for this call - return empty list to skip
-			// validation.
-			// This prevents multiple pointcuts from all trying to validate the same call.
-			if (!options.isEmpty()) {
-				return Collections.emptyList();
-			}
-			// Check for RandomAccessFile mode string first
-			if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
-				String modeAction = getRandomAccessFileModeAction(parameters);
-				if (modeAction != null) {
-					// RandomAccessFile write modes can create files that don't exist yet,
-					// so always check the path even when the file is absent.
-					boolean allowNonExisting = !"read".equals(modeAction);
-					actions.put(modeAction, allowNonExisting);
-				} else {
-					actions.put(defaultAction, shouldAllowNonExistingByDefault(defaultAction));
-				}
-			}
-			// Check for legacy I/O classes with boolean append parameter
-			// If append=false is detected, change "create" to "overwrite" since the file
-			// will be truncated
-			else {
-				String effectiveAction = defaultAction;
-				if ("create".equals(defaultAction) && hasAppendFalseParameter(declaringTypeName, parameters)) {
-					effectiveAction = "overwrite";
-				}
-				actions.put(effectiveAction, shouldAllowNonExistingByDefault(effectiveAction));
-			}
-		}
-
-		// Convert the LinkedHashMap entries to a list
-		// Note: Avoid using lambda expressions here as they create anonymous inner
-		// classes
-		// that may not be included in the agent JAR and cause NoClassDefFoundError at
-		// runtime
-		List<Map.Entry<String, Boolean>> result = new ArrayList<>(actions.size());
-		for (Map.Entry<String, Boolean> entry : actions.entrySet()) {
-			result.add(Map.entry(entry.getKey(), entry.getValue()));
-		}
-		return result;
-	}
-
-	/**
-	 * Merge a boolean value into the actions map using logical OR.
-	 * <p>
-	 * Description: This helper method replaces Map.merge with Boolean::logicalOr to
-	 * avoid creating lambda/method-reference inner classes that may not be included
-	 * in the agent JAR and cause NoClassDefFoundError at runtime.
-	 * </p>
-	 *
-	 * @param actions the map to update
-	 * @param key     the key to merge
-	 * @param value   the value to merge (true = allow non-existing paths)
-	 * @since 2.0.0
-	 */
-	private static void mergeBoolean(Map<String, Boolean> actions, String key, Boolean value) {
-		Boolean existing = actions.get(key);
-		if (existing == null) {
-			actions.put(key, value);
-		} else {
-			// Logical OR: if either existing or new value is true, result is true
-			actions.put(key, existing || value);
-		}
+		return List.of(Map.entry(defaultAction, shouldAllowNonExistingByDefault(defaultAction)));
 	}
 
 	/**
@@ -1664,14 +1592,15 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			@Nullable Object instance, @Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature) {
 		@Nullable
-		final String[] allowedPaths = getValueFromSettings(switch (action) {
-		case "read" -> "pathsAllowedToBeRead";
-		case "overwrite" -> "pathsAllowedToBeOverwritten";
-		case "create" -> "pathsAllowedToBeCreated";
-		case "execute" -> "pathsAllowedToBeExecuted";
-		case "delete" -> "pathsAllowedToBeDeleted";
-		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
-		});
+		final String[] allowedPaths = isWriteThroughOpenFile(action, instance) ? pathsAllowedToBeOverwrittenOrCreated()
+				: getValueFromSettings(switch (action) {
+				case "read" -> "pathsAllowedToBeRead";
+				case "overwrite" -> "pathsAllowedToBeOverwritten";
+				case "create" -> "pathsAllowedToBeCreated";
+				case "execute" -> "pathsAllowedToBeExecuted";
+				case "delete" -> "pathsAllowedToBeDeleted";
+				default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+				});
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		if (isPreferencesBackingStore(declaringTypeName) && !allowsAllPaths(allowedPaths)) {
 			throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
@@ -1687,13 +1616,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				: checkIfVariableCriteriaIsViolated(parameters, allowedPaths,
 						parameterIgnoreValues(declaringTypeName + "." + methodName, methodName, instance),
 						allowNonExistingPathsToBeConsidered);
-		boolean isWriteAliasedAsCreate = "create".equals(action)
-				&& ("java.io.FileOutputStream".equals(declaringTypeName)
-						|| "java.io.FileWriter".equals(declaringTypeName)
-						|| "java.io.PrintWriter".equals(declaringTypeName)
-						|| ("java.nio.file.Files".equals(declaringTypeName)
-								&& ("newBufferedWriter".equals(methodName) || "newOutputStream".equals(methodName))));
-		String messageAction = isWriteAliasedAsCreate ? "overwrite" : action;
+		String messageAction = action;
 		boolean isJarResourceRead = isEntryReadOnOpenArchive(action, declaringTypeName, methodName, methodSignature,
 				parameters, instance);
 		if (pathIllegallyInteractedThroughParameter != null) {
@@ -1869,6 +1792,15 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 			// </editor-fold>
 
+			if ("getResourceAsStream".equals(methodName)) {
+				@Nullable
+				Object[] resourceTargets = resourceReadTargets(instance, parameters);
+				if (resourceTargets != null) {
+					parameters = resourceTargets;
+					instance = null;
+					attributes = new Object[0];
+				}
+			}
 			if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
 					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature)) {
 				return;
@@ -1878,9 +1810,13 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				return;
 			}
 			List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName,
-					parameters);
+					methodName, parameters);
 			for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
-				checkFileSystemInteractionForAction(actionCheck.getKey(), Boolean.TRUE.equals(actionCheck.getValue()),
+				String actionToCheck = WRITE_ACTION.equals(actionCheck.getKey())
+						? resolveWriteAction(parameters,
+								parameterIgnoreValues(declaringTypeName + "." + methodName, methodName, instance))
+						: actionCheck.getKey();
+				checkFileSystemInteractionForAction(actionToCheck, Boolean.TRUE.equals(actionCheck.getValue()),
 						declaringTypeName, methodName, methodSignature, attributes, parameters, instance,
 						fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 			}
