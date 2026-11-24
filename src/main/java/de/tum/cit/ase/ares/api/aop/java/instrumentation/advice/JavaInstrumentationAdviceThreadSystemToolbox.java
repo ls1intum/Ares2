@@ -249,22 +249,6 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
-	 * Names the JDK module of a class the JVM's own class loaders defined.
-	 *
-	 * @param type the class of a frame
-	 * @return the module name, or {@code null} for a class outside the JDK
-	 */
-	@Nullable
-	private static String jdkModuleName(@Nonnull Class<?> type) {
-		ClassLoader loader = type.getClassLoader();
-		String moduleName = type.getModule().getName();
-		boolean jdkLoader = loader == null || loader == ClassLoader.getPlatformClassLoader();
-		return jdkLoader && moduleName != null && (moduleName.startsWith("java.") || moduleName.startsWith("jdk."))
-				? moduleName
-				: null;
-	}
-
-	/**
 	 * Tells whether a class name belongs to the JDK.
 	 *
 	 * @param className the binary class name
