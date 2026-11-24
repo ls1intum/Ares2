@@ -588,6 +588,94 @@ class FileSystemAccessTest {
 		}
 		// </editor-fold>
 
+		// <editor-fold desc="accessFileSystemViaScannerFileCharsetName">
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_accessFileSystemViaScannerFileCharsetNameMavenArchunitAspectJ() {
+			assertFileReadAllowedAndContentMatches(ReadScannerMain::accessFileSystemViaScannerFileCharsetName);
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_accessFileSystemViaScannerFileCharsetNameMavenArchunitInstrumentation() {
+			assertFileReadAllowedAndContentMatches(ReadScannerMain::accessFileSystemViaScannerFileCharsetName);
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_accessFileSystemViaScannerFileCharsetNameMavenWalaAspectJ() {
+			assertFileReadAllowedAndContentMatches(ReadScannerMain::accessFileSystemViaScannerFileCharsetName);
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_accessFileSystemViaScannerFileCharsetNameMavenWalaInstrumentation() {
+			assertFileReadAllowedAndContentMatches(ReadScannerMain::accessFileSystemViaScannerFileCharsetName);
+		}
+
+		// </editor-fold>
+
+		// <editor-fold desc="scanText">
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_scanTextMavenArchunitAspectJ() {
+			Assertions.assertEquals(9,
+					Assertions.assertDoesNotThrow(ReadScannerMain::scanText, ERROR_SECURITY_EXCEPTION));
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_scanTextMavenArchunitInstrumentation() {
+			Assertions.assertEquals(9,
+					Assertions.assertDoesNotThrow(ReadScannerMain::scanText, ERROR_SECURITY_EXCEPTION));
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_scanTextMavenWalaAspectJ() {
+			Assertions.assertEquals(9,
+					Assertions.assertDoesNotThrow(ReadScannerMain::scanText, ERROR_SECURITY_EXCEPTION));
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_scanTextMavenWalaInstrumentation() {
+			Assertions.assertEquals(9,
+					Assertions.assertDoesNotThrow(ReadScannerMain::scanText, ERROR_SECURITY_EXCEPTION));
+		}
+		// </editor-fold>
+
+		// <editor-fold desc="readText">
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_readTextMavenArchunitAspectJ() {
+			Assertions.assertEquals("4 5",
+					Assertions.assertDoesNotThrow(ReadScannerMain::readText, ERROR_SECURITY_EXCEPTION));
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_readTextMavenArchunitInstrumentation() {
+			Assertions.assertEquals("4 5",
+					Assertions.assertDoesNotThrow(ReadScannerMain::readText, ERROR_SECURITY_EXCEPTION));
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_readTextMavenWalaAspectJ() {
+			Assertions.assertEquals("4 5",
+					Assertions.assertDoesNotThrow(ReadScannerMain::readText, ERROR_SECURITY_EXCEPTION));
+		}
+
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedRead.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/read/scanner")
+		void test_readTextMavenWalaInstrumentation() {
+			Assertions.assertEquals("4 5",
+					Assertions.assertDoesNotThrow(ReadScannerMain::readText, ERROR_SECURITY_EXCEPTION));
+		}
+
+		// </editor-fold>
+
 		// <editor-fold desc="accessFileSystemViaThirdPartyPackage
 		// (ThirdPartyPackageClass)">
 		@PublicTest

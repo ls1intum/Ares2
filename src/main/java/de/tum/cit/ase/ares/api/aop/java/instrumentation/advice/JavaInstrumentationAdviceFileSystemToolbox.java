@@ -112,6 +112,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			Map.entry("java.io.DataOutputStream.writeUTF", IgnoreValues.ALL),
 			Map.entry("java.io.DataOutputStream.writeChars", IgnoreValues.ALL),
 			Map.entry("java.io.DataOutputStream.writeBytes", IgnoreValues.ALL),
+			// Scanner(String) scans that text, Scanner(InputStream) a stream. A File or
+			// Path is checked where the Scanner opens the stream underneath, so no
+			// argument here is read as a path.
+			Map.entry("java.util.Scanner.<init>", IgnoreValues.ALL),
+			// StringReader(String) - the argument is the text it reads, never a path.
+			Map.entry("java.io.StringReader.<init>", IgnoreValues.ALL),
 			// PrintStream(OutputStream|File|String, [boolean], [String charset]) - keep
 			// only index 0 (the sink); a charset name like "UTF-8" passed when wrapping a
 			// socket/stream is not a path. File/String-named PrintStreams still validate
