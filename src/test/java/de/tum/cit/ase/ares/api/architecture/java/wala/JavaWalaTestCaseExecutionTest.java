@@ -746,7 +746,7 @@ class JavaWalaTestCaseExecutionTest {
 	}
 
 	/**
-	 * A generated file-system test builds its call graph from the class path; a
+	 * A generated file-system test asks for the shared call graph of its scope; a
 	 * test case without a scope refuses to write one.
 	 */
 	@Test
@@ -761,9 +761,7 @@ class JavaWalaTestCaseExecutionTest {
 		SecurityException refused = assertThrows(SecurityException.class,
 				() -> unscoped.writeArchitectureTestCase("WALA", ""));
 
-		assertTrue(written.contains(
-				"new CustomCallgraphBuilder(System.getProperty(\"java.class.path\")).buildCallGraph(System.getProperty(\"java.class.path\"))"),
-				written);
+		assertTrue(written.contains("callGraph = supervisedCallGraph(\"" + SCOPE + "\");"), written);
 		assertEquals(Messages.localized("security.architecture.scope.missing"), refused.getMessage());
 	}
 

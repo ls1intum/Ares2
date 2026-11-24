@@ -634,11 +634,12 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	/**
-	 * Builds a call graph with the class copied beside the generated WALA test.
+	 * Asks the generated WALA test for the call graph of the supervised package,
+	 * which it builds once from the compiled supervised classes and shares between
+	 * its checks.
 	 */
 	private String callGraphAsCode() {
-		String classPathExpr = "System.getProperty(\"java.class.path\")";
-		return "new CustomCallgraphBuilder(" + classPathExpr + ")" + ".buildCallGraph(" + classPathExpr + ")";
+		return "supervisedCallGraph(\"" + getSupervisedPackage() + "\")";
 	}
 
 	/**

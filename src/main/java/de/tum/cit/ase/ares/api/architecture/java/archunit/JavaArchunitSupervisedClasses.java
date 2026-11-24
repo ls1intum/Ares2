@@ -145,6 +145,19 @@ public final class JavaArchunitSupervisedClasses {
 	}
 
 	/**
+	 * The folder holding the compiled classes of the supervised package, which a
+	 * generated WALA check builds its call graph from. As in Postcompile, only
+	 * these classes are analysed, not the whole test class path.
+	 *
+	 * @param supervisedPackage the supervised scope
+	 * @return the folder, as an absolute path
+	 * @throws SecurityException if the compiled output cannot be identified
+	 */
+	public static String supervisedClassPath(String supervisedPackage) {
+		return productionOutputRoot().resolve(supervisedPackage.replace('.', '/')).toString();
+	}
+
+	/**
 	 * The packages the supervised code may import from itself, read from the
 	 * compiled output, not the wider scope. A reserved package is skipped. One
 	 * above a trusted namespace is kept: {@link #isReservedBelow(String, String)}
