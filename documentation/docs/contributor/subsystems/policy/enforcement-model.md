@@ -79,13 +79,16 @@ Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
 every pattern in `ReservedPackagePrefixes.txt`. `process-classes` precedes
 `test`, so `mvn test` runs it.
 
-Boundary version 3 further rejects every file under `META-INF/services/` and the
-files `archunit.properties`, `archunit_ignore_patterns.txt`,
-`junit-platform.properties`, `logback.xml`, `logback-test.xml`, `logback.groovy`,
-`logback.scmo` and `logback-test.scmo` at the root of the student's output,
-ignoring case. JUnit, ArchUnit and Logback read these files from the test class
-path before Ares is active, so a student file there could run student code
-without supervision or hide ArchUnit findings.
+Boundary version 3 further rejects every file under `META-INF/services/` and
+`mockito-extensions/`, and the files `archunit.properties`,
+`archunit_ignore_patterns.txt`, `junit-platform.properties`,
+`jacoco-agent.properties`, `logback.xml`, `logback-test.xml`, `logback.groovy`,
+`logback.scmo` and `logback-test.scmo` at the root of the student's output.
+JUnit, ArchUnit, Logback, Mockito and the JaCoCo agent read these files from
+the test class path before Ares is active, so a student file there could run
+student code without supervision or hide ArchUnit findings. Version 3 compares
+every name ignoring case, the reserved package prefixes included, because a
+case-insensitive file system finds a file under any case.
 A boundary version 2 snippet lets these files through and must be migrated.
 
 Canonical Gradle configuration registers a `verifyAresReservedPackagesV3` task

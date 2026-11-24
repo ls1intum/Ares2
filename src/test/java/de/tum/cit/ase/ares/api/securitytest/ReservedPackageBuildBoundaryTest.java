@@ -26,23 +26,24 @@ class ReservedPackageBuildBoundaryTest {
 	 */
 	private static final List<String> RESERVED_RESOURCE_PATTERNS = List.of("META-INF/services/**",
 			"archunit.properties", "archunit_ignore_patterns.txt", "junit-platform.properties", "logback.xml",
-			"logback-test.xml", "logback.groovy", "logback.scmo", "logback-test.scmo");
+			"logback-test.xml", "logback.groovy", "logback.scmo", "logback-test.scmo", "mockito-extensions/**",
+			"jacoco-agent.properties");
 
 	/**
 	 * The package fileset of the Maven snippet, whose includes are the rejected
-	 * package patterns. It compares names with their case and switches off Ant's
-	 * default excludes, which would skip package folders such as {@code CVS}.
+	 * package patterns. Like the resource fileset, it ignores case, as a
+	 * case-insensitive file system would, and switches off Ant's default excludes,
+	 * which would skip package folders such as {@code CVS}.
 	 */
 	private static final Pattern MAVEN_FILESET = Pattern.compile(
-			"<fileset dir=\"\\$\\{project\\.build\\.outputDirectory\\}\" defaultexcludes=\"no\">(.*?)</fileset>",
+			"<resourcecount property=\"ares\\.reserved\\.package\\.count\">\\s*"
+					+ "<fileset dir=\"\\$\\{project\\.build\\.outputDirectory\\}\" defaultexcludes=\"no\" casesensitive=\"false\">(.*?)</fileset>",
 			Pattern.DOTALL);
 
-	/**
-	 * The resource fileset of the Maven snippet, which ignores case, as a
-	 * case-insensitive file system would.
-	 */
+	/** The resource fileset of the Maven snippet. */
 	private static final Pattern MAVEN_RESOURCE_FILESET = Pattern.compile(
-			"<fileset dir=\"\\$\\{project\\.build\\.outputDirectory\\}\" defaultexcludes=\"no\" casesensitive=\"false\">(.*?)</fileset>",
+			"<resourcecount property=\"ares\\.reserved\\.resource\\.count\">\\s*"
+					+ "<fileset dir=\"\\$\\{project\\.build\\.outputDirectory\\}\" defaultexcludes=\"no\" casesensitive=\"false\">(.*?)</fileset>",
 			Pattern.DOTALL);
 
 	/** One include of that fileset, capturing its pattern. */
@@ -73,7 +74,8 @@ class ReservedPackageBuildBoundaryTest {
 			"META-INF/services/com.tngtech.archunit.lang.extension.ArchUnitExtension", "meta-inf/Services/x.Y",
 			"archunit.properties", "archunit_ignore_patterns.txt", "junit-platform.properties",
 			"JUnit-Platform.Properties", "logback.xml", "logback-test.xml", "logback.groovy", "logback.scmo",
-			"logback-test.scmo", "LOGBACK.XML");
+			"logback-test.scmo", "LOGBACK.XML", "mockito-extensions/org.mockito.plugins.MockMaker",
+			"Mockito-Extensions/x.Y", "jacoco-agent.properties", "JaCoCo-Agent.Properties");
 
 	/**
 	 * The failure condition of the Maven snippet, which fails on a reserved package
@@ -85,19 +87,39 @@ class ReservedPackageBuildBoundaryTest {
 			+ "</or>\\s*</condition>");
 
 	/**
-	 * The decision of the Gradle snippet: a reserved package by its exact path, a
-	 * reserved resource by its case-folded path.
+	 * The decision of the Gradle snippet, which compares the case-folded path with
+	 * the reserved packages and the reserved resources.
 	 */
 	private static final Pattern GRADLE_DECISION = Pattern
-			.compile("if \\(reservedPrefixes\\.any \\{ relative\\.startsWith\\(it\\) \\}\\s*"
+			.compile("if \\(reservedPrefixes\\.any \\{ lowered\\.startsWith\\(it\\) \\}\\s*"
 					+ "\\|\\| reservedResourcePrefixes\\.any \\{ lowered\\.startsWith\\(it\\) \\}\\s*"
 					+ "\\|\\| reservedResourceFiles\\.contains\\(lowered\\)\\) \\{");
+
+	/** How the Gradle snippet case-folds the reserved package prefixes. */
+	private static final Pattern GRADLE_FOLDED_PREFIXES = Pattern.compile(
+			"def reservedPrefixes = aresReservedPackagePatterns\\s*\\.collect \\{ it\\.substring\\(0, it\\.length\\(\\) - 2\\)"
+					+ "\\.toUpperCase\\(Locale\\.ROOT\\)\\.toLowerCase\\(Locale\\.ROOT\\) \\}");
+
+	/**
+	 * Class files under a reserved package, in any case, since a case-insensitive
+	 * file system lets the class loader find {@code ORG/junit/Evil.class} as
+	 * {@code org/junit/Evil.class}.
+	 */
+	private static final List<String> REJECTED_PACKAGE_PATHS = List.of("org/junit/Evil.class", "ORG/junit/Evil.class",
+			"Org/JUnit/jupiter/api/Evil.class", "Java/lang/Evil.class", "De/Tum/Cit/Ase/Ares/Api/Evil.class",
+			"org/junit/CVS/Evil.class");
+
+	/** Class files of ordinary student packages, which must still pass. */
+	private static final List<String> ACCEPTED_PACKAGE_PATHS = List.of("org/example/Penguin.class",
+			"Org/Example/Penguin.class", "de/tum/student/Penguin.class", "org/junitx/Penguin.class",
+			"sunflower/Penguin.class", "javafx/Penguin.class", "de/tum/cit/ase/ares/integration/Penguin.class");
 
 	/** Ordinary output files that must still pass the check. */
 	private static final List<String> ACCEPTED_RESOURCES = List.of("allowed.txt", "data/x.txt", "META-INF/other.txt",
 			"META-INF/MANIFEST.MF", "META-INF/servicesList.txt", "data/META-INF/services/x.Y",
 			"data/archunit.properties", "config/junit-platform.properties", "logback.xml.txt", "my-logback.xml",
-			"org/example/Penguin.class");
+			"org/example/Penguin.class", "data/jacoco-agent.properties", "mockito-extensionsList.txt",
+			"data/mockito-extensions/x.Y");
 
 	/**
 	 * The prefix list, its versions and both build snippets agree with the code.
@@ -169,6 +191,8 @@ class ReservedPackageBuildBoundaryTest {
 				"Gradle fixture must compare resource names ignoring case");
 		assertTrue(GRADLE_DECISION.matcher(gradle).find(),
 				"Gradle fixture must reject a reserved package or a reserved resource");
+		assertTrue(GRADLE_FOLDED_PREFIXES.matcher(gradle).find(),
+				"Gradle fixture must compare package prefixes ignoring case");
 	}
 
 	/**
@@ -182,6 +206,20 @@ class ReservedPackageBuildBoundaryTest {
 		}
 		for (String accepted : ACCEPTED_RESOURCES) {
 			assertFalse(rejectsResource(accepted), () -> "Fixtures reject the ordinary file " + accepted);
+		}
+	}
+
+	/**
+	 * A class file under a reserved package is rejected whatever the case of its
+	 * folders, and ordinary student packages still pass.
+	 */
+	@Test
+	void reservedPackagesAreRejectedInAnyCaseAndOrdinaryPackagesPass() {
+		for (String rejected : REJECTED_PACKAGE_PATHS) {
+			assertTrue(rejectsPackagePath(rejected), () -> "Fixtures do not reject " + rejected);
+		}
+		for (String accepted : ACCEPTED_PACKAGE_PATHS) {
+			assertFalse(rejectsPackagePath(accepted), () -> "Fixtures reject the ordinary class " + accepted);
 		}
 	}
 
@@ -220,6 +258,17 @@ class ReservedPackageBuildBoundaryTest {
 
 	private boolean matches(String pattern, String classFile) {
 		return classFile.startsWith(pattern.substring(0, pattern.length() - 2));
+	}
+
+	/**
+	 * Whether a reserved package covers the output path, as both snippets decide
+	 * it: the case-folded path starts with a case-folded reserved folder.
+	 */
+	private static boolean rejectsPackagePath(String path) {
+		String folded = path.toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT);
+		return WalaPathClassification.RESERVED_PACKAGE_PREFIXES.stream()
+				.map(prefix -> prefix.replace('.', '/').toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT))
+				.anyMatch(folded::startsWith);
 	}
 
 	/**

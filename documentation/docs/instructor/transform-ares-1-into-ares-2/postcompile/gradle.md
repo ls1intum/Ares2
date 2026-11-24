@@ -250,7 +250,7 @@ They ship inside the Ares JAR under `de/tum/cit/ase/ares/api/configuration/reser
 
 Two versions are pinned, and your exercise and its continuous integration (CI) must pin both. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix data. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side contract that enforces it.
 
-Boundary version 3 further rejects every file under `META-INF/services/` and the JUnit, ArchUnit and Logback configuration files at the root of the student's output, such as `junit-platform.properties`, `archunit.properties` and `logback.xml`. Those frameworks read such a file from the test class path before Ares is active, so it could run a student class unsupervised or hide ArchUnit findings. Keep your own files of this kind in `src/test/resources`, which the check does not scan.
+Boundary version 3 further rejects every file under `META-INF/services/` and `mockito-extensions/`, and the JUnit, ArchUnit, Logback and JaCoCo configuration files at the root of the student's output, such as `junit-platform.properties`, `archunit.properties` and `logback.xml`. It compares names ignoring case. Those frameworks read such a file from the test class path before Ares is active, so it could run a student class unsupervised or hide ArchUnit findings. Keep your own files of this kind in `src/test/resources`, which the check does not scan.
 
 Prefix version 3 widened the list to the Ares 1 breadth. A version 1 or 2 snippet now reserves too little rather than too much: it omits the test harness (JUnit, AssertJ) and Ares' other dependencies. A submission that places a class in one of those shadows the code that grades it. Upgrading the Ares dependency does not rewrite a build guard you copied earlier, so refresh any snippet below prefix version 3 from the shipped files. Regenerate any previously generated helper sources too, since the upgrade does not replace their embedded reserved-package list either. This is a breaking change for an affected exercise: the build now rejects a submission that compiled before if it takes a reserved package.
 
@@ -262,13 +262,13 @@ Delete the Ares 1 `forbiddenPackageFolders` list and its `test { doFirst { ... }
 // Ares reserved-package build boundary, version 3. Apply from the exercise build.
 //
 // Boundary version 3 also rejects files that steer a test framework: every
-// file under META-INF/services/, and the JUnit, ArchUnit and Logback
-// configuration files at the root of the output. Those frameworks read them
+// file under META-INF/services/, and the JUnit, ArchUnit, Logback, Mockito and
+// JaCoCo configuration files at the root of the output. Those frameworks read them
 // from the test class path before Ares is active, so a student file there could
 // run a student class unsupervised or hide ArchUnit findings. Version 3 scans
 // the whole main output, the processed resources included, not only the
-// compiled classes. Resource names are compared ignoring case, as a
-// case-insensitive file system would find them.
+// compiled classes. Names are compared ignoring case, as a case-insensitive
+// file system would find them.
 //
 // Boundary version 2 superseded version 1, which attached the validation to
 // `check` alone. Gradle's Java plugin defines `check.dependsOn test`, not the
@@ -300,7 +300,7 @@ def aresReservedPackagePatterns = [
 def aresReservedResourcePatterns = [
         'META-INF/services/**', 'archunit.properties', 'archunit_ignore_patterns.txt',
         'junit-platform.properties', 'logback.xml', 'logback-test.xml', 'logback.groovy',
-        'logback.scmo', 'logback-test.scmo'
+        'logback.scmo', 'logback-test.scmo', 'mockito-extensions/**', 'jacoco-agent.properties'
 ]
 
 tasks.register('verifyAresReservedPackagesV3') {
@@ -309,7 +309,8 @@ tasks.register('verifyAresReservedPackagesV3') {
     // touches no Project API and the build stays configuration-cache compatible.
     // The whole main output: the compiled classes and the processed resources.
     def studentOutput = sourceSets.main.output
-    def reservedPrefixes = aresReservedPackagePatterns.collect { it.substring(0, it.length() - 2) }
+    def reservedPrefixes = aresReservedPackagePatterns
+            .collect { it.substring(0, it.length() - 2).toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT) }
     def reservedResourcePrefixes = aresReservedResourcePatterns.findAll { it.endsWith('/**') }
             .collect { it.substring(0, it.length() - 2).toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT) }
     def reservedResourceFiles = aresReservedResourcePatterns.findAll { !it.endsWith('/**') }
@@ -331,7 +332,7 @@ tasks.register('verifyAresReservedPackagesV3') {
                 // apply on Windows as on Linux and macOS.
                 def relative = rootPath.relativize(candidate.toPath()).toString().replace(File.separator, '/')
                 def lowered = relative.toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT)
-                if (reservedPrefixes.any { relative.startsWith(it) }
+                if (reservedPrefixes.any { lowered.startsWith(it) }
                         || reservedResourcePrefixes.any { lowered.startsWith(it) }
                         || reservedResourceFiles.contains(lowered)) {
                     forbidden << relative
