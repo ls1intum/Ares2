@@ -16,7 +16,7 @@ regardingTheSupervisedCode:
     regardingCommandExecutions: [ ]
     regardingThreadCreations:
       - createTheFollowingNumberOfThreads: 1
-        ofThisClass: "<implicit-thread-op:parallel>"
+        ofThisClass: "java.net.http.HttpClient"
     regardingPackageImports:
       - importTheFollowingPackage: "java.net"
       - importTheFollowingPackage: "java.net.http"

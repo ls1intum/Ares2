@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.integration.aop.allowed;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;
 
 import java.io.IOException;
@@ -28,6 +29,7 @@ import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.lifecycle.ClosingReader;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.lifecycle.LingeringReader;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.lifecycle.ProviderReader;
 
 /**
@@ -187,6 +189,59 @@ class SupervisionJupiterPhasesTest {
 		}
 	}
 
+	/**
+	 * A parameterised class whose first run leaves a student thread waiting, which
+	 * its argument source releases before the second run.
+	 */
+	abstract static class LeftoverFixture {
+
+		/** What the leftover thread's read gave between the two runs. */
+		static volatile String outcomeBetweenRuns = "not released";
+
+		/** The number of this run of the class, from one. */
+		@Parameter(0)
+		int run;
+
+		/**
+		 * The argument source, which releases the leftover thread before it builds the
+		 * second run.
+		 *
+		 * @return the run numbers
+		 */
+		static Stream<Arguments> runs() {
+			return Stream.of(1, 2).map(run -> {
+				if (run == 2) {
+					releaseLeftoverThread();
+				}
+				return Arguments.of(run);
+			});
+		}
+
+		/** Lets the leftover thread read and waits until it has. */
+		private static void releaseLeftoverThread() {
+			LingeringReader.release();
+			try {
+				LingeringReader.awaitFinished();
+			} catch (InterruptedException interrupted) {
+				Thread.currentThread().interrupt();
+			}
+			outcomeBetweenRuns = LingeringReader.outcome();
+		}
+
+		/**
+		 * The first run reads under its policy and leaves a thread waiting; the second
+		 * checks that the thread was refused between the runs.
+		 */
+		void checkRun() {
+			if (run == 1) {
+				assertEquals("read", new ProviderReader(TRUSTED_FILE).outcome());
+				LingeringReader.startWaiting();
+			} else {
+				assertTrue(outcomeBetweenRuns.startsWith("refused: "), outcomeBetweenRuns);
+			}
+		}
+	}
+
 	/** Builds student objects lazily, one per run of the class. */
 	abstract static class ParameterizedClassFixture {
 
@@ -237,6 +292,23 @@ class SupervisionJupiterPhasesTest {
 	static class ParameterizedClassArchunitAspectJ extends ParameterizedClassFixture {
 	}
 
+	/**
+	 * The leftover thread case under ArchunitAspectJ, with a policy on the method
+	 * only.
+	 */
+	@Public
+	@ParameterizedClass
+	@MethodSource("runs")
+	static class LeftoverArchunitAspectJ extends LeftoverFixture {
+
+		/** Checks the run of the class it is given. */
+		@PublicTest
+		@Policy(value = POLICIES + "archunit/aspectj" + POLICY, withinPath = WITHIN_PATH)
+		void leftoverThreadIsRefusedBetweenRuns() {
+			checkRun();
+		}
+	}
+
 	/** The static initialiser case under ArchunitAspectJ. */
 	@Policy(value = POLICIES + "archunit/aspectj" + POLICY, withinPath = WITHIN_PATH)
 	@Public
@@ -281,6 +353,23 @@ class SupervisionJupiterPhasesTest {
 	@ParameterizedClass
 	@MethodSource("readers")
 	static class ParameterizedClassArchunitInstrumentation extends ParameterizedClassFixture {
+	}
+
+	/**
+	 * The leftover thread case under ArchunitInstrumentation, with a policy on the
+	 * method only.
+	 */
+	@Public
+	@ParameterizedClass
+	@MethodSource("runs")
+	static class LeftoverArchunitInstrumentation extends LeftoverFixture {
+
+		/** Checks the run of the class it is given. */
+		@PublicTest
+		@Policy(value = POLICIES + "archunit/instrumentation" + POLICY, withinPath = WITHIN_PATH)
+		void leftoverThreadIsRefusedBetweenRuns() {
+			checkRun();
+		}
 	}
 
 	/** The static initialiser case under ArchunitInstrumentation. */
@@ -329,6 +418,22 @@ class SupervisionJupiterPhasesTest {
 	static class ParameterizedClassWalaAspectJ extends ParameterizedClassFixture {
 	}
 
+	/**
+	 * The leftover thread case under WalaAspectJ, with a policy on the method only.
+	 */
+	@Public
+	@ParameterizedClass
+	@MethodSource("runs")
+	static class LeftoverWalaAspectJ extends LeftoverFixture {
+
+		/** Checks the run of the class it is given. */
+		@PublicTest
+		@Policy(value = POLICIES + "wala/aspectj" + POLICY, withinPath = WITHIN_PATH)
+		void leftoverThreadIsRefusedBetweenRuns() {
+			checkRun();
+		}
+	}
+
 	/** The static initialiser case under WalaAspectJ. */
 	@Policy(value = POLICIES + "wala/aspectj" + POLICY, withinPath = WITHIN_PATH)
 	@Public
@@ -373,6 +478,23 @@ class SupervisionJupiterPhasesTest {
 	@ParameterizedClass
 	@MethodSource("readers")
 	static class ParameterizedClassWalaInstrumentation extends ParameterizedClassFixture {
+	}
+
+	/**
+	 * The leftover thread case under WalaInstrumentation, with a policy on the
+	 * method only.
+	 */
+	@Public
+	@ParameterizedClass
+	@MethodSource("runs")
+	static class LeftoverWalaInstrumentation extends LeftoverFixture {
+
+		/** Checks the run of the class it is given. */
+		@PublicTest
+		@Policy(value = POLICIES + "wala/instrumentation" + POLICY, withinPath = WITHIN_PATH)
+		void leftoverThreadIsRefusedBetweenRuns() {
+			checkRun();
+		}
 	}
 
 	/** The static initialiser case under WalaInstrumentation. */
@@ -435,6 +557,15 @@ class SupervisionJupiterPhasesTest {
 	}
 
 	/**
+	 * A thread the first run of a parameterised class without a class policy left
+	 * running is refused between its runs under ArchunitAspectJ.
+	 */
+	@Test
+	void leftoverThreadIsRefusedBetweenClassRunsMavenArchunitAspectJ() {
+		assertAllTestsPass(LeftoverArchunitAspectJ.class, 2);
+	}
+
+	/**
 	 * The static initialiser of a test class is supervised under ArchunitAspectJ.
 	 */
 	@Test
@@ -476,6 +607,15 @@ class SupervisionJupiterPhasesTest {
 	@Test
 	void parameterizedClassSourceIsSupervisedMavenArchunitInstrumentation() {
 		assertAllTestsPass(ParameterizedClassArchunitInstrumentation.class, 3);
+	}
+
+	/**
+	 * A thread the first run of a parameterised class without a class policy left
+	 * running is refused between its runs under ArchunitInstrumentation.
+	 */
+	@Test
+	void leftoverThreadIsRefusedBetweenClassRunsMavenArchunitInstrumentation() {
+		assertAllTestsPass(LeftoverArchunitInstrumentation.class, 2);
 	}
 
 	/**
@@ -522,6 +662,15 @@ class SupervisionJupiterPhasesTest {
 	}
 
 	/**
+	 * A thread the first run of a parameterised class without a class policy left
+	 * running is refused between its runs under WalaAspectJ.
+	 */
+	@Test
+	void leftoverThreadIsRefusedBetweenClassRunsMavenWalaAspectJ() {
+		assertAllTestsPass(LeftoverWalaAspectJ.class, 2);
+	}
+
+	/**
 	 * The static initialiser of a test class is supervised under WalaAspectJ.
 	 */
 	@Test
@@ -563,6 +712,15 @@ class SupervisionJupiterPhasesTest {
 	@Test
 	void parameterizedClassSourceIsSupervisedMavenWalaInstrumentation() {
 		assertAllTestsPass(ParameterizedClassWalaInstrumentation.class, 3);
+	}
+
+	/**
+	 * A thread the first run of a parameterised class without a class policy left
+	 * running is refused between its runs under WalaInstrumentation.
+	 */
+	@Test
+	void leftoverThreadIsRefusedBetweenClassRunsMavenWalaInstrumentation() {
+		assertAllTestsPass(LeftoverWalaInstrumentation.class, 2);
 	}
 
 	/**

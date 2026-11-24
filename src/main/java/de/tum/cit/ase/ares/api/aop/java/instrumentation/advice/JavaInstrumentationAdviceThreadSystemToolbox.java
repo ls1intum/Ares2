@@ -193,6 +193,24 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	private static final String HTTP_CLIENT_MODULE = "java.net.http";
 
 	/**
+	 * The thread class a new {@code HttpClient} counts as. Each client starts one
+	 * selector thread of its own when it is built, so building one counts as one
+	 * thread of this class, as in the AspectJ backend.
+	 */
+	private static final String HTTP_CLIENT_CLASS = "java.net.http.HttpClient";
+
+	/**
+	 * Tells whether a thread belongs to the JDK's {@code HttpClient} itself, such
+	 * as the selector thread every client starts when it is built.
+	 *
+	 * @param instance the receiver of the thread operation
+	 * @return whether it is such a thread
+	 */
+	private static boolean isHttpClientOwnThread(@Nullable Object instance) {
+		return instance instanceof Thread && HTTP_CLIENT_MODULE.equals(jdkModuleName(instance.getClass()));
+	}
+
+	/**
 	 * Reports the class of each frame, so its module and class loader can be read,
 	 * which code outside the JDK cannot fake the way it can a class name.
 	 */
@@ -200,11 +218,11 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
 
 	/**
-	 * Tells whether the JDK's {@code HttpClient} starts this thread or hands this
-	 * task over itself, with only JDK code between it and this check, such as its
-	 * selector thread or a task for its pool. AspectJ does not see these, so
-	 * neither mode counts them. Student code in between, such as a student
-	 * executor, means {@code false}, so what it does is still counted.
+	 * Tells whether the JDK's {@code HttpClient} hands a task over or starts a
+	 * thread itself, with only JDK code between it and this check, such as a task
+	 * for its pool. AspectJ does not see these, so neither mode counts them; the
+	 * caller still counts the selector thread, as the client's creation. Student
+	 * code in between, such as a student executor, means {@code false}.
 	 *
 	 * @return whether the HTTP client itself acts
 	 */
@@ -915,7 +933,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		// because the Command/Execute subsystem will check these operations.
 		if (isThreadCreationFromCommandExecution() || isThreadCreationFromAresTimeout(restrictedPackage)
 				|| isJdkShellFolderHandOffWithoutStudentCode() || isInsideCountedThreadOperation()
-				|| isHttpClientOwnThreadOperation()) {
+				|| isHttpClientOwnThreadOperation() && !isHttpClientOwnThread(instance)) {
 			return;
 		}
 		// </editor-fold>
@@ -969,6 +987,10 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		}
 		if (ARRAYS_CLASS.equals(declaringTypeName)) {
 			threadClassNames.clear();
+		}
+		if (isHttpClientOwnThread(instance)) {
+			threadClassNames.clear();
+			threadClassNames.add(HTTP_CLIENT_CLASS);
 		}
 		if (threadClassNames.isEmpty()) {
 			@Nullable
