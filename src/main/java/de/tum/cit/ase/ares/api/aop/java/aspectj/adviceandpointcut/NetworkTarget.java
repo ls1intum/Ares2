@@ -1,30 +1,29 @@
 package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
+import java.net.InetAddress;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Internal value type representing a resolved network target.
- * <p>
- * Description: Pairs a nullable hostname string with an integer port number.
- * Used throughout the aspect as the canonical representation of a network
- * endpoint, regardless of whether it originated from a {@link java.net.Socket},
- * a {@link java.net.URI}, a {@link java.net.http.HttpRequest}, or another
- * network-capable object.
- * <p>
- * Design Rationale: Kept as its own top-level type (rather than a record nested
- * inside {@link JavaAspectJNetworkSystemAdviceDefinitions}) to mirror the
- * structure of the instrumentation backend's
- * {@code de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.NetworkTarget}.
- * It is package-private because only the same-package aspect references it; the
- * instrumentation counterpart is {@code public} solely because its agent
- * injects it across packages, a constraint that does not apply to AspectJ
- * weaving.
+ * A network endpoint as the network checks compare it: a host name or text, a
+ * port, and the address itself when the call named one.
  *
- * @since 2.0.0
- * @author Kevin Fischer
+ * @param host    the host name or text, or {@code null}
+ * @param port    the port, or -1 if unknown
+ * @param address the address the call named, or {@code null} for a name only
  */
-record NetworkTarget(@Nullable String host, int port) {
+record NetworkTarget(@Nullable String host, int port, @Nullable InetAddress address) {
+
+	/**
+	 * Creates a target given only by name or text, with no address of its own.
+	 *
+	 * @param host the host name or text
+	 * @param port the port, or -1 if unknown
+	 */
+	NetworkTarget(@Nullable String host, int port) {
+		this(host, port, null);
+	}
 
 	/**
 	 * Returns a human-readable string representation of this network target.

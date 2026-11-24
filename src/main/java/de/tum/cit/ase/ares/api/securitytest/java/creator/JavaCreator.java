@@ -322,6 +322,28 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
+	 * Refuses supervised code that supplies its own address resolver, a
+	 * {@code java.net.spi.InetAddressResolverProvider} or resolver. The JDK would
+	 * then ask the student which address a host name stands for, and the network
+	 * checks compare names and addresses by that answer.
+	 *
+	 * @throws SecurityException naming the resolving class
+	 */
+	public void requireNoAddressResolver() {
+		if (importedSupervisedClasses == null) {
+			return;
+		}
+		for (JavaClass javaClass : importedSupervisedClasses) {
+			if (!exemptedClassNames.contains(javaClass.getName())
+					&& (javaClass.isAssignableTo("java.net.spi.InetAddressResolverProvider")
+							|| javaClass.isAssignableTo("java.net.spi.InetAddressResolver"))) {
+				throw new SecurityException(
+						Messages.localized("security.network.address.resolver", javaClass.getName()));
+			}
+		}
+	}
+
+	/**
 	 * Refuses an AspectJ run whose supervised classes were not woven with the Ares
 	 * aspects, as instrumentation refuses a run without its agent. Other modes need
 	 * no weaving and pass, and so does a creator that has read no classes yet. Run
