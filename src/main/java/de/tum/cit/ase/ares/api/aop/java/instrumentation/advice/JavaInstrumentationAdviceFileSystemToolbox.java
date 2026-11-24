@@ -138,9 +138,18 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	private static final String FILE_SYSTEM_VIEW = "javax.swing.filechooser.FileSystemView";
 
 	/**
+	 * The prefix of the JDK's own nested readers, such as the one
+	 * {@code Reader.of(CharSequence)} returns and Java 25 builds a StringReader on.
+	 * Their constructors take text or a stream, never a path.
+	 */
+	@Nonnull
+	private static final String JDK_NESTED_READER_PREFIX = "java.io.Reader$";
+
+	/**
 	 * Returns which arguments of a call are checked as paths. The exact rule wins;
-	 * a receiver whose class extends FileSystemView falls back to that class's
-	 * rule, found by comparing class names, so no desktop class is loaded.
+	 * no argument of a JDK nested reader's constructor is a path; a receiver whose
+	 * class extends FileSystemView falls back to that class's rule, found by
+	 * comparing class names, so no desktop class is loaded.
 	 *
 	 * @param methodKey  the called method as declaring type and name
 	 * @param methodName the called method's name
@@ -154,6 +163,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		IgnoreValues exact = FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.get(methodKey);
 		if (exact != null) {
 			return exact;
+		}
+		if (methodKey.startsWith(JDK_NESTED_READER_PREFIX) && methodKey.endsWith(".<init>")) {
+			return IgnoreValues.ALL;
 		}
 		if (instance == null || !extendsFileSystemView(instance.getClass())) {
 			return IgnoreValues.NONE;
