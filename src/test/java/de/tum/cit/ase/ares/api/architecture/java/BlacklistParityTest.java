@@ -86,7 +86,8 @@ class BlacklistParityTest {
 		assertPublicSurfaceCovered(java.nio.file.Files.class, FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS,
 				Set.of());
 		assertPublicSurfaceCovered(java.net.Socket.class, FileHandlerConstants.ARCHUNIT_NETWORK_METHODS, Set.of());
-		assertPublicSurfaceCovered(Thread.class, FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS, Set.of());
+		assertPublicSurfaceCoveredExcept(Thread.class, FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS,
+				HARMLESS_THREAD_MEMBERS);
 		assertPublicSurfaceCovered(Runtime.class, FileHandlerConstants.ARCHUNIT_COMMAND_EXECUTION_METHODS,
 				Set.of("exec"));
 		assertPublicSurfaceCovered(Runtime.class, FileHandlerConstants.ARCHUNIT_JVM_TERMINATION_METHODS,
@@ -95,7 +96,74 @@ class BlacklistParityTest {
 				Set.of("load", "loadLibrary"));
 	}
 
+	/**
+	 * Members of {@code Thread} that only read the state of a thread or do nothing,
+	 * so they stay allowed under a policy without thread allowances. Everything
+	 * that starts, stops, waits for or reconfigures a thread stays forbidden.
+	 */
+	private static final Set<String> HARMLESS_THREAD_MEMBERS = Set.of("currentThread", "getName", "getId", "threadId",
+			"getPriority", "getState", "isAlive", "isDaemon", "isInterrupted", "isVirtual", "toString", "holdsLock",
+			"onSpinWait", "checkAccess", "dumpStack", "countStackFrames", "hashCode", "equals");
+
+	/**
+	 * Asking a thread about itself is not forbidden, while starting, stopping,
+	 * interrupting or reconfiguring one still is, including through a builder.
+	 */
+	@Test
+	void harmlessThreadMembersAreNotForbiddenButStartingStillIs() {
+		Set<String> forbidden = ForbiddenMethodMatcher
+				.effectiveMethods(FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS);
+		for (String harmless : List.of("java.lang.Thread.currentThread()", "java.lang.Thread.getName()",
+				"java.lang.Thread.isInterrupted()", "java.lang.Thread$State.RUNNABLE")) {
+			assertThat(forbidden).as(harmless)
+					.noneMatch(policyEntry -> ForbiddenMethodMatcher.matches(harmless, policyEntry));
+		}
+		for (String dangerous : List.of("java.lang.Thread.start()", "java.lang.Thread.<init>(java.lang.Runnable)",
+				"java.lang.Thread.interrupt()", "java.lang.Thread.setDaemon(boolean)", "java.lang.Thread.ofPlatform()",
+				"java.lang.Thread$Builder$OfVirtual.start(java.lang.Runnable)",
+				"java.lang.Thread$Builder$OfPlatform.unstarted(java.lang.Runnable)",
+				"java.lang.Thread.setDefaultUncaughtExceptionHandler(java.lang.Thread$UncaughtExceptionHandler)",
+				"java.lang.Thread.getAllStackTraces()", "java.lang.Thread.enumerate(java.lang.Thread[])")) {
+			assertThat(forbidden).as(dangerous)
+					.anyMatch(policyEntry -> ForbiddenMethodMatcher.matches(dangerous, policyEntry));
+		}
+	}
+
+	/**
+	 * Asserts that the policy forbids every public member of a type, or every one
+	 * with a selected name.
+	 *
+	 * @param type          the JDK type
+	 * @param resource      the method list
+	 * @param selectedNames the names to check, or none for all
+	 */
 	private static void assertPublicSurfaceCovered(Class<?> type, Path resource, Set<String> selectedNames) {
+		assertPublicSurfaceCovered(type, resource, selectedNames, Set.of());
+	}
+
+	/**
+	 * Asserts that the policy forbids every public member of a type except the
+	 * named ones.
+	 *
+	 * @param type          the JDK type
+	 * @param resource      the method list
+	 * @param excludedNames the names allowed on purpose
+	 */
+	private static void assertPublicSurfaceCoveredExcept(Class<?> type, Path resource, Set<String> excludedNames) {
+		assertPublicSurfaceCovered(type, resource, Set.of(), excludedNames);
+	}
+
+	/**
+	 * Asserts that the policy forbids every public member of a type that is
+	 * selected and not excluded.
+	 *
+	 * @param type          the JDK type
+	 * @param resource      the method list
+	 * @param selectedNames the names to check, or none for all
+	 * @param excludedNames the names allowed on purpose
+	 */
+	private static void assertPublicSurfaceCovered(Class<?> type, Path resource, Set<String> selectedNames,
+			Set<String> excludedNames) {
 		Set<String> forbidden = ForbiddenMethodMatcher.effectiveMethods(resource);
 		Stream<Executable> methods = Arrays.stream(type.getDeclaredMethods()).map(method -> (Executable) method);
 		Stream<Executable> constructors = Arrays.stream(type.getDeclaredConstructors())
@@ -103,7 +171,8 @@ class BlacklistParityTest {
 		List<String> surface = Stream.concat(methods, constructors)
 				.filter(member -> Modifier.isPublic(member.getModifiers()))
 				.filter(member -> selectedNames.isEmpty() || selectedNames.contains(member.getName()))
-				.map(BlacklistParityTest::signatureOf).sorted().toList();
+				.filter(member -> !excludedNames.contains(member.getName())).map(BlacklistParityTest::signatureOf)
+				.sorted().toList();
 		assertThat(surface).as("generated JDK %s surface on Java %s", type.getName(), Runtime.version().feature())
 				.isNotEmpty().allMatch(
 						actual -> forbidden.stream()

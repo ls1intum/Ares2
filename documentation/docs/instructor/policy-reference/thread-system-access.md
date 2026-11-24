@@ -81,3 +81,11 @@ Implemented by `ThreadPermission` in
 The implicit tokens exist because not every thread is created by name. A parallel stream, a `Thread.sleep` or a `SubmissionPublisher` submission all reach the threading machinery without the student ever writing `new Thread(...)`, so each needs a token a policy can refer to.
 
 `Lambda-Expression` covers a thread body supplied as a lambda, which has no nameable class.
+
+A task handed to an executor or to `CompletableFuture` counts against the class of the task,
+in both runtime modes. The pool threads that then run it are not counted again. `Arrays.parallelSort`,
+`Arrays.parallelPrefix` and `Arrays.parallelSetAll` count as `<implicit-thread-op:parallel>`.
+
+Asking a thread about itself needs no entry: `Thread.currentThread()`, `getName()`,
+`isInterrupted()` and the other getters are allowed under any policy. Starting, renaming,
+interrupting or waiting for a thread still is not, while the list is empty.

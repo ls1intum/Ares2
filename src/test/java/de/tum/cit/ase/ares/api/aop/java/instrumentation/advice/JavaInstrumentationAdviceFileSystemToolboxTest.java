@@ -341,6 +341,16 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 							.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("create")),
 					() -> "Expected 'create' without REPLACE_EXISTING, but was:\n" + withoutReplace.getMessage());
 
+			SecurityException replacingMissing = assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkFilesCopyOverwriteLeg(source, destination,
+							java.nio.file.StandardCopyOption.REPLACE_EXISTING));
+			assertTrue(
+					replacingMissing.getMessage()
+							.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("create")),
+					() -> "Expected 'create' with REPLACE_EXISTING on a missing file, but was:\n"
+							+ replacingMissing.getMessage());
+
+			java.nio.file.Files.writeString(destination, "old");
 			SecurityException withReplace = assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkFilesCopyOverwriteLeg(source, destination,
 							java.nio.file.StandardCopyOption.REPLACE_EXISTING));

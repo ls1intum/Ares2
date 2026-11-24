@@ -759,7 +759,10 @@ public final class JavaInstrumentationPointcutDefinitions {
 					List.of("submit", "invokeAll", "invokeAny")),
 			Map.entry("java.util.concurrent.Executors$DefaultThreadFactory", List.of("newThread")),
 			Map.entry("java.util.concurrent.ExecutorCompletionService", List.of("submit")),
-			Map.entry("java.util.concurrent.SubmissionPublisher", List.of("submit", "offer")));
+			Map.entry("java.util.concurrent.SubmissionPublisher", List.of("submit", "offer")),
+			// The parallel array operations run on the common fork-join pool, so they
+			// count as the implicit parallel operation, as in the AspectJ backend.
+			Map.entry("java.util.Arrays", List.of("parallelSort", "parallelPrefix", "parallelSetAll")));
 	// </editor-fold>
 
 	// <editor-fold desc="Execute command">

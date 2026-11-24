@@ -10,6 +10,7 @@ import java.lang.reflect.Method;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -208,6 +209,20 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	private static final String IMPLICIT_THREAD_OPERATION_PREFIX = "<implicit-thread-op:";
 
 	/**
+	 * The class whose parallel array operations run on the common fork-join pool.
+	 */
+	private static final String ARRAYS_CLASS = "java.util.Arrays";
+
+	/**
+	 * The {@code Arrays} methods that may run on several threads. They count as the
+	 * {@code <implicit-thread-op:parallel>} operation, like {@code Stream.parallel},
+	 * so a policy allows them with the same token.
+	 */
+	private static final Set<String> PARALLEL_ARRAY_OPERATIONS = Set.of("parallelSort", "parallelPrefix",
+			"parallelSetAll");
+
+
+	/**
 	 * Returns the per-operation sentinel token for an implicit thread operation
 	 * intercepted with no resolvable thread-task class
 	 * ({@code Collection.parallelStream}, {@code BaseStream.parallel},
@@ -222,6 +237,10 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	private static String implicitThreadOperationToken(@Nullable String declaringTypeName, @Nullable String methodName) {
 		if (methodName == null) {
 			return null;
+		}
+		if (ARRAYS_CLASS.equals(declaringTypeName)) {
+			return PARALLEL_ARRAY_OPERATIONS.contains(methodName) ? IMPLICIT_THREAD_OPERATION_PREFIX + "parallel>"
+					: null;
 		}
 		switch (methodName) {
 		case "parallelStream":
@@ -691,24 +710,25 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Collects the resolved thread-class names from a variable, recursing into
-	 * arrays and Lists. Used to de-duplicate candidates across parameters, the
-	 * receiver, and attributes so the thread-number quota is consumed at most once
-	 * per distinct class per interception.
+	 * Collects the thread-class names a value resolves to, looking into arrays and
+	 * lists, so the quota is used once per distinct class per call.
 	 *
-	 * @param observedVariable the variable to resolve
-	 * @param out              the accumulator of distinct class names
+	 * @param observedVariable the value to resolve
+	 * @param out              the distinct class names found so far
+	 * @param anyCollection    whether every JDK collection is searched, as for the
+	 *                         tasks given to {@code invokeAll}, not only lists
 	 */
-	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Set<String> out) {
+	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Set<String> out,
+			boolean anyCollection) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return;
 		} else if (observedVariable.getClass().isArray()) {
 			for (int i = 0; i < Array.getLength(observedVariable); i++) {
-				collectThreadClassNames(Array.get(observedVariable, i), out);
+				collectThreadClassNames(Array.get(observedVariable, i), out, anyCollection);
 			}
-		} else if (observedVariable instanceof List<?>) {
-			for (Object element : (List<?>) observedVariable) {
-				collectThreadClassNames(element, out);
+		} else if (observedVariable instanceof List<?> || (anyCollection && observedVariable instanceof Collection<?>)) {
+			for (Object element : (Collection<?>) observedVariable) {
+				collectThreadClassNames(element, out, anyCollection);
 			}
 		} else {
 			String className = variableToClassname(observedVariable);
@@ -869,17 +889,17 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				: null;
 		if (parameters != null) {
 			for (Object parameter : parameters) {
-				collectThreadClassNames(parameter, threadClassNames);
+				collectThreadClassNames(parameter, threadClassNames, true);
 			}
 		}
 		if (recordedThreadClass != null) {
 			threadClassNames.add(recordedThreadClass);
 		} else {
-			collectThreadClassNames(instance, threadClassNames);
+			collectThreadClassNames(instance, threadClassNames, false);
 		}
 		if (attributes != null) {
 			for (Object attribute : attributes) {
-				collectThreadClassNames(attribute, threadClassNames);
+				collectThreadClassNames(attribute, threadClassNames, false);
 			}
 		}
 		// An implicit thread operation (parallelStream/parallel/SubmissionPublisher.submit/
@@ -888,6 +908,9 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		// student invoked it directly (the first non-infrastructure caller is restricted-package code), so
 		// a woven harness or JDK helper that performs the operation under student code is not blamed on the
 		// student.
+		if (ARRAYS_CLASS.equals(declaringTypeName)) {
+			threadClassNames.clear();
+		}
 		if (threadClassNames.isEmpty()) {
 			@Nullable
 			String implicitOperationToken = implicitThreadOperationToken(declaringTypeName, methodName);
