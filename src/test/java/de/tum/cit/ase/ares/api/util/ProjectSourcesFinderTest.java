@@ -116,7 +116,10 @@ class ProjectSourcesFinderTest {
 	void rejectsAmbiguousMissingAndEscapingProjects() throws IOException {
 		Files.writeString(temporaryDirectory.resolve("pom.xml"), "<project/>");
 		Files.writeString(temporaryDirectory.resolve("build.gradle"), "plugins { id 'java' }");
-		assertThrows(IllegalStateException.class, () -> ProjectSourcesFinder.discover(temporaryDirectory));
+		IllegalStateException ambiguous = assertThrows(IllegalStateException.class,
+				() -> ProjectSourcesFinder.discover(temporaryDirectory));
+		assertEquals(Messages.localized("security.sources.project.ambiguous", temporaryDirectory.toRealPath()),
+				ambiguous.getMessage());
 		assertEquals(BuildMode.GRADLE, ProjectSourcesFinder.discover(temporaryDirectory, BuildMode.GRADLE).buildMode());
 		Files.delete(temporaryDirectory.resolve("pom.xml"));
 		Path escape = temporaryDirectory.resolveSibling(temporaryDirectory.getFileName() + "-escape");
@@ -128,6 +131,19 @@ class ProjectSourcesFinderTest {
 		assertEquals(
 				Messages.localized("security.sources.root.outside.project",
 						temporaryDirectory.toRealPath().resolve(Path.of("..", escape.getFileName().toString()))),
+				refused.getMessage());
+	}
+
+	/**
+	 * A project root holding no build descriptor is refused with the Ares message.
+	 *
+	 * @throws IOException if the project root cannot be resolved
+	 */
+	@Test
+	void refusesAProjectWithoutAnyDescriptorInTheAresWording() throws IOException {
+		IllegalStateException refused = assertThrows(IllegalStateException.class,
+				() -> ProjectSourcesFinder.discover(temporaryDirectory));
+		assertEquals(Messages.localized("security.sources.project.unsupported", temporaryDirectory.toRealPath()),
 				refused.getMessage());
 	}
 
