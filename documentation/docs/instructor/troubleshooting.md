@@ -121,6 +121,15 @@ Version gate, unknown fields, and values the enforcement layers cannot honour.
 Policy resource limits are generated but not dispatched in Postcompile. `@StrictTimeout` is the
 mechanism that applies there.
 
+## The build reports a crashed test JVM after a timeout
+
+`@StrictTimeout` first interrupts student code that runs too long. Some code ignores the
+interruption, such as a loop that never calls a blocking method. On Java 19 and older Ares then
+stops that code: the test fails with the timeout, and the other tests still run and report. Java 20
+and newer cannot stop a thread. There Ares ends the whole test JVM, and Maven or Gradle reports a
+crashed fork without any test results. Run the tests on Java 17 if students are likely to write
+such loops.
+
 ## Notes
 
 - Before filing a bug, record which of the four combinations you ran. A failure that appears in
