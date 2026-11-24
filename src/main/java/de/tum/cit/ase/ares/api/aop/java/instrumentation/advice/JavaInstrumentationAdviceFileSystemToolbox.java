@@ -694,7 +694,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			"java.nio.channels.AsynchronousFileChannel.open", "java.nio.file.spi.FileSystemProvider.newInputStream",
 			"java.nio.file.spi.FileSystemProvider.newByteChannel",
 			"java.nio.file.spi.FileSystemProvider.newFileChannel",
-			"java.nio.file.spi.FileSystemProvider.newAsynchronousFileChannel");
+			"java.nio.file.spi.FileSystemProvider.newAsynchronousFileChannel",
+			"java.nio.file.SecureDirectoryStream.newByteChannel");
 
 	/**
 	 * The class every file system provider extends. Its methods open, copy and move
@@ -729,8 +730,44 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	@Nonnull
 	private static String openingMethodKey(@Nonnull String declaringTypeName, @Nonnull String methodName,
 			@Nullable Object instance) {
-		return (isFileSystemProviderCall(declaringTypeName, instance) ? FILE_SYSTEM_PROVIDER : declaringTypeName) + "."
-				+ methodName;
+		if (isFileSystemProviderCall(declaringTypeName, instance)) {
+			return FILE_SYSTEM_PROVIDER + "." + methodName;
+		}
+		if (instance instanceof java.nio.file.SecureDirectoryStream) {
+			return SECURE_DIRECTORY_STREAM + "." + methodName;
+		}
+		return declaringTypeName + "." + methodName;
+	}
+
+	/**
+	 * The interface of a directory stream whose methods open, move and delete files
+	 * by a path relative to its directory.
+	 */
+	@Nonnull
+	private static final String SECURE_DIRECTORY_STREAM = "java.nio.file.SecureDirectoryStream";
+
+	/**
+	 * The methods that open the file they are given for reading and writing, as
+	 * {@code RandomAccessFile} in mode {@code "rw"} does.
+	 */
+	@Nonnull
+	private static final Set<String> READ_WRITE_OPENING_METHODS = Set
+			.of("javax.imageio.ImageIO.createImageOutputStream", "javax.imageio.stream.FileImageOutputStream.<init>");
+
+	/**
+	 * Returns the actions of opening a file for reading and writing: the write
+	 * action, and a read when the file exists already, since a new file holds
+	 * nothing to read.
+	 *
+	 * @param file the file being opened
+	 * @return each action with whether a missing path is checked
+	 */
+	@Nonnull
+	private static List<Map.Entry<String, Boolean>> readWriteOpeningActions(@Nullable Object file) {
+		if ("overwrite".equals(resolveWriteAction(new Object[] { file }, IgnoreValues.NONE))) {
+			return List.of(Map.entry(WRITE_ACTION, true), Map.entry("read", false));
+		}
+		return List.of(Map.entry(WRITE_ACTION, true));
 	}
 
 	/**
@@ -752,8 +789,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Returns the actions a {@code RandomAccessFile} constructor stands for: a read
-	 * for mode {@code "r"}, and an opening for writing plus a read for the
-	 * {@code "rw"} modes, since a file opened so can be read as well.
+	 * for mode {@code "r"}, and for the {@code "rw"} modes an opening for writing
+	 * plus a read when the file exists, see {@link #readWriteOpeningActions}.
 	 *
 	 * @param parameters the constructor arguments, the mode second
 	 * @return each action with whether a missing path is checked, or {@code null}
@@ -767,8 +804,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		if ("r".equals(mode)) {
 			return List.of(Map.entry("read", false));
 		}
-		return "rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode)
-				? List.of(Map.entry(WRITE_ACTION, true), Map.entry("read", false))
+		return "rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode) ? readWriteOpeningActions(parameters[0])
 				: null;
 	}
 
@@ -947,9 +983,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	/**
 	 * Checks a copy, a move or a channel transfer side by side, since each side
 	 * needs its own permission: the source is read, and deleted by a move, and the
-	 * target is written. Each method is registered under every action it stands
-	 * for, so each firing checks only its own side. A channel on the other side of
-	 * a transfer is not checked here, since opening it was checked.
+	 * target is written. Each firing checks the sides its action stands for, see
+	 * {@link #checkMoveRole} and {@link #checkTransferRole}.
 	 *
 	 * @return {@code true} if the call was one of these methods and is fully
 	 *         handled
@@ -960,8 +995,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			@Nonnull String fullMethodSignature) {
 		boolean filesOrProvider = "java.nio.file.Files".equals(declaringTypeName)
 				|| isFileSystemProviderCall(declaringTypeName, instance);
-		if (filesOrProvider && "move".equals(methodName)) {
-			checkMoveRole(action, parameters, fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+		boolean secureDirectory = instance instanceof java.nio.file.SecureDirectoryStream;
+		if ((filesOrProvider || secureDirectory) && "move".equals(methodName)) {
+			checkMoveRole(action, parameters, secureDirectory ? 2 : 1, secureDirectory, fileSystemMethodToCheck,
+					studentCalledMethod, fullMethodSignature);
 			return true;
 		}
 		if (filesOrProvider && "copy".equals(methodName)) {
@@ -984,38 +1021,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			return true;
 		}
-		if ("java.nio.channels.FileChannel".equals(declaringTypeName) && "transferTo".equals(methodName)) {
-			if ("read".equals(action)) {
-				// receiver (the channel being read FROM); the target argument (index 2) is
-				// itself a channel and is not checked here — see class-level Javadoc above.
-				checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"),
-						instance == null ? new Object[0] : new Object[] { instance }, false, fileSystemMethodToCheck,
-						studentCalledMethod, fullMethodSignature);
-				Object target = parameterAt(parameters, 2);
-				if (target instanceof NetworkChannel) {
-					JavaInstrumentationAdviceNetworkSystemToolbox.checkNetworkSystemInteractionWithinAdvice("send",
-							declaringTypeName, methodName, fullMethodSignature, null, null, target);
-				}
-			} else {
-				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
-			}
-			return true;
-		}
-		if ("java.nio.channels.FileChannel".equals(declaringTypeName) && "transferFrom".equals(methodName)) {
-			if ("overwrite".equals(action)) {
-				// receiver (the channel being written TO); the src argument (index 0) is
-				// itself a channel and is not checked here — see class-level Javadoc above.
-				checkSinglePathRole("overwrite", pathsAllowedToBeOverwrittenOrCreated(),
-						instance == null ? new Object[0] : new Object[] { instance }, false, fileSystemMethodToCheck,
-						studentCalledMethod, fullMethodSignature);
-				Object source = parameterAt(parameters, 0);
-				if (source instanceof NetworkChannel) {
-					JavaInstrumentationAdviceNetworkSystemToolbox.checkNetworkSystemInteractionWithinAdvice("receive",
-							declaringTypeName, methodName, fullMethodSignature, null, null, source);
-				}
-			} else {
-				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
-			}
+		if (("java.nio.channels.FileChannel".equals(declaringTypeName) || instance instanceof FileChannel)
+				&& ("transferTo".equals(methodName) || "transferFrom".equals(methodName))) {
+			checkTransferRole(action, "transferTo".equals(methodName), declaringTypeName, methodName, parameters,
+					instance, fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 			return true;
 		}
 		return false;
@@ -1180,24 +1189,30 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * target exists and a create when it does not.
 	 *
 	 * @param action                  the firing action: read, delete or overwrite
-	 * @param parameters              the move's arguments, source first, target
-	 *                                second
+	 * @param parameters              the move's arguments, source first
+	 * @param targetIndex             where the target is among them
+	 * @param secureDirectory         whether a secure directory stream moves, whose
+	 *                                relative paths are refused
 	 * @param fileSystemMethodToCheck the method named in a refusal
 	 * @param studentCalledMethod     the student method that made the call
 	 * @param fullMethodSignature     the called method's signature
 	 * @throws SecurityException if the policy forbids that side
 	 */
-	private static void checkMoveRole(@Nonnull String action, @Nullable Object[] parameters,
-			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
+	private static void checkMoveRole(@Nonnull String action, @Nullable Object[] parameters, int targetIndex,
+			boolean secureDirectory, @Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature) {
 		Object[] source = isolateParameter(parameters, 0);
+		if (secureDirectory) {
+			refuseRelativeSecureDirectoryPaths(action, parameters, fileSystemMethodToCheck, studentCalledMethod,
+					fullMethodSignature);
+		}
 		switch (action) {
 		case "read" -> checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"), source, false,
 				fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 		case "delete" -> checkSinglePathRole("delete", getValueFromSettings("pathsAllowedToBeDeleted"), source, true,
 				fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 		case "overwrite" -> {
-			Object[] target = isolateParameter(parameters, 1);
+			Object[] target = isolateParameter(parameters, targetIndex);
 			String targetAction = resolveWriteAction(target, IgnoreValues.NONE);
 			String settingKey = "overwrite".equals(targetAction) ? "pathsAllowedToBeOverwritten"
 					: "pathsAllowedToBeCreated";
@@ -1206,6 +1221,117 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		}
 		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 		}
+	}
+
+	/**
+	 * Checks the sides of a channel transfer that the firing action stands for.
+	 * {@code transferTo} reads its own file and writes the target channel: the read
+	 * firing checks the read and a network target, the overwrite firing a file
+	 * target. {@code transferFrom} fires as an overwrite only and checks its own
+	 * file, a file source for reading and a network source.
+	 *
+	 * @param action                  the firing action: read or overwrite
+	 * @param transferTo              whether the call is {@code transferTo}
+	 * @param declaringTypeName       the intercepted method's class
+	 * @param methodName              the intercepted method
+	 * @param parameters              the call's arguments
+	 * @param instance                the file channel the call is made on
+	 * @param fileSystemMethodToCheck the method named in a refusal
+	 * @param studentCalledMethod     the student method that made the call
+	 * @param fullMethodSignature     the called method's signature
+	 * @throws SecurityException if the policy forbids a side
+	 */
+	private static void checkTransferRole(@Nonnull String action, boolean transferTo, @Nonnull String declaringTypeName,
+			@Nonnull String methodName, @Nullable Object[] parameters, @Nullable Object instance,
+			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature) {
+		Object[] receiver = instance == null ? new Object[0] : new Object[] { instance };
+		Object other = parameterAt(parameters, transferTo ? 2 : 0);
+		Object[] otherFile = other instanceof FileChannel ? new Object[] { other } : new Object[0];
+		if (transferTo && "read".equals(action)) {
+			checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"), receiver, false,
+					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+			checkNetworkPeer("send", other, declaringTypeName, methodName, fullMethodSignature);
+		} else if (transferTo && "overwrite".equals(action)) {
+			checkSinglePathRole("overwrite", pathsAllowedToBeOverwrittenOrCreated(), otherFile, false,
+					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+		} else if (!transferTo && "overwrite".equals(action)) {
+			checkSinglePathRole("overwrite", pathsAllowedToBeOverwrittenOrCreated(), receiver, false,
+					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+			checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"), otherFile, false,
+					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+			checkNetworkPeer("receive", other, declaringTypeName, methodName, fullMethodSignature);
+		} else {
+			throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+		}
+	}
+
+	/**
+	 * Checks a network channel on the other side of a transfer against the network
+	 * permissions. Anything else is left alone.
+	 *
+	 * @param action              {@code send} or {@code receive}
+	 * @param other               the other side of the transfer
+	 * @param declaringTypeName   the intercepted method's class
+	 * @param methodName          the intercepted method
+	 * @param fullMethodSignature the called method's signature
+	 * @throws SecurityException if the policy forbids that peer
+	 */
+	private static void checkNetworkPeer(@Nonnull String action, @Nullable Object other,
+			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nonnull String fullMethodSignature) {
+		if (other instanceof NetworkChannel) {
+			JavaInstrumentationAdviceNetworkSystemToolbox.checkNetworkSystemInteractionWithinAdvice(action,
+					declaringTypeName, methodName, fullMethodSignature, null, null, other);
+		}
+	}
+
+	/**
+	 * Refuses a relative path given to a secure directory stream, unless the action
+	 * is allowed for every path. Such a path names a file inside the stream's
+	 * directory, which Ares cannot see, so it cannot be checked.
+	 *
+	 * @param action                  the action being checked
+	 * @param parameters              the call's arguments
+	 * @param fileSystemMethodToCheck the method named in a refusal
+	 * @param studentCalledMethod     the student method that made the call
+	 * @param fullMethodSignature     the called method's signature
+	 * @throws SecurityException for a relative path
+	 */
+	private static void refuseRelativeSecureDirectoryPaths(@Nonnull String action, @Nullable Object[] parameters,
+			@Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature) {
+		@Nullable
+		String[] allowedPaths = getValueFromSettings(settingKeyOf(action));
+		if (parameters == null || allowsAllPaths(allowedPaths)) {
+			return;
+		}
+		for (Object parameter : parameters) {
+			if (parameter instanceof Path path && !path.isAbsolute()) {
+				throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
+						localizeAction(action), path.toString(),
+						describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
+						buildDenialReason("file", action, allowedPaths == null || allowedPaths.length == 0)));
+			}
+		}
+	}
+
+	/**
+	 * Returns the setting that lists the paths allowed for an action.
+	 *
+	 * @param action read, overwrite, create, execute or delete
+	 * @return the setting's name
+	 * @throws SecurityException for any other action
+	 */
+	@Nonnull
+	private static String settingKeyOf(@Nonnull String action) {
+		return switch (action) {
+		case "read" -> "pathsAllowedToBeRead";
+		case "overwrite" -> "pathsAllowedToBeOverwritten";
+		case "create" -> "pathsAllowedToBeCreated";
+		case "execute" -> "pathsAllowedToBeExecuted";
+		case "delete" -> "pathsAllowedToBeDeleted";
+		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+		};
 	}
 
 	/**
@@ -1309,6 +1435,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		List<Map.Entry<String, Boolean>> optionActions = openOptionActions(options);
 		if (!optionActions.isEmpty()) {
 			return optionActions;
+		}
+		if (READ_WRITE_OPENING_METHODS.contains(methodKey) && parameters != null && parameters.length > 0
+				&& parameters[0] instanceof File) {
+			return readWriteOpeningActions(parameters[0]);
 		}
 		if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
 			List<Map.Entry<String, Boolean>> modeActions = getRandomAccessFileModeActions(parameters);
@@ -1694,6 +1824,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 				});
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
+		if (instance instanceof java.nio.file.SecureDirectoryStream) {
+			refuseRelativeSecureDirectoryPaths(action, parameters, fileSystemMethodToCheck, studentCalledMethod,
+					fullMethodSignature);
+		}
 		if (isPreferencesBackingStore(declaringTypeName) && !allowsAllPaths(allowedPaths)) {
 			throw new SecurityException(localize("security.advice.illegal.file.execution", fileSystemMethodToCheck,
 					localizeAction(action), PREFERENCES_BACKING_STORE,

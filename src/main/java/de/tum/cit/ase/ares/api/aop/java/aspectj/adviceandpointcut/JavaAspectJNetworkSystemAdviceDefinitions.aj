@@ -1029,6 +1029,26 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 		}
 	}
 
+	/**
+	 * Checks a network channel that a file advice found on the other side of a
+	 * channel transfer, as if the call sent to it or received from it. The file
+	 * advice has already found the student call, so this does not look again.
+	 *
+	 * @param action                     {@code send} or {@code receive}
+	 * @param channel                    the network channel
+	 * @param thisJoinPoint              the intercepted transfer
+	 * @param networkSystemMethodToCheck the method named in a refusal
+	 * @param studentCalledMethod        the student method that made the call
+	 * @throws SecurityException if the policy forbids that peer
+	 */
+	static void checkChannelPeerWithinAdvice(@Nonnull String action, @Nonnull Object channel,
+			@Nonnull JoinPoint thisJoinPoint, @Nonnull String networkSystemMethodToCheck,
+			@Nullable String studentCalledMethod) {
+		checkNetworkSystemInteractionForAction(action, thisJoinPoint, formatSignature(thisJoinPoint.getSignature()),
+				thisJoinPoint.getSignature().getDeclaringTypeName(), thisJoinPoint.getSignature().getName(), null,
+				null, channel, networkSystemMethodToCheck, studentCalledMethod);
+	}
+
 	private static void checkNetworkSystemInteractionImpl(
 			@Nonnull String action,
 			@Nonnull JoinPoint thisJoinPoint

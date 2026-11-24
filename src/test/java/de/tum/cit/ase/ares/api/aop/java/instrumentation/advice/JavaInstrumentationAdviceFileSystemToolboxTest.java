@@ -420,6 +420,45 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 		}
 	}
 
+	/**
+	 * The write side of {@code transferTo}, reported with the class the agent
+	 * really names, is allowed for a target file the policy lets be overwritten and
+	 * refused for one it does not.
+	 *
+	 * @param tempDir a fresh folder
+	 * @throws Exception if the files cannot be prepared
+	 */
+	@Test
+	void checkFileSystemInteraction_fileChannelTransferToChecksTargetFileAsWrite(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path source = tempDir.resolve("source.txt");
+			Files.writeString(source, "content");
+			Path destination = tempDir.resolve("dest.txt");
+			Files.createFile(destination);
+			try (FileChannel sourceChannel = FileChannel.open(source, StandardOpenOption.READ);
+					FileChannel destinationChannel = FileChannel.open(destination, StandardOpenOption.WRITE)) {
+				JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten",
+						new String[] { destination.toString() }, "ARCH", "INSTRUMENTATION");
+				assertDoesNotThrow(() -> InstrumentationSecurityProbe
+						.checkFileChannelTransferToOverwriteLeg(sourceChannel, 0, 10, destinationChannel));
+				JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten", new String[0], "ARCH",
+						"INSTRUMENTATION");
+				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileChannelTransferToOverwriteLeg(sourceChannel, 0, 10, destinationChannel));
+				assertTrue(
+						exception.getMessage()
+								.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("overwrite")),
+						() -> "Expected the denial to name the 'overwrite' action, but was:\n"
+								+ exception.getMessage());
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
 	@Test
 	void checkFileSystemInteraction_fileChannelTransferToDatagramChannelChecksNetworkSend(@TempDir Path tempDir)
 			throws Exception {
