@@ -34,15 +34,19 @@ public final class FrameworkConfigurationGuard {
 			Path.of("build", "classes", "java", "main"), Path.of("build", "resources", "main"));
 
 	/**
-	 * The folder below an output whose every file names classes to create.
+	 * The folders below an output whose every file names classes to create: Java
+	 * services and Mockito plugins.
 	 */
-	private static final Path SERVICE_FOLDER = Path.of("META-INF", "services");
+	private static final List<Path> SERVICE_FOLDERS = List.of(Path.of("META-INF", "services"),
+			Path.of("mockito-extensions"));
 
 	/**
-	 * The settings files at the top of an output that name classes to create.
+	 * The settings files at the top of an output that a test library or agent
+	 * reads: they can name classes to create or hide findings.
 	 */
-	private static final Set<String> SETTINGS_FILES = Set.of("archunit.properties", "junit-platform.properties",
-			"logback.xml", "logback-test.xml", "logback.groovy");
+	private static final Set<String> SETTINGS_FILES = Set.of("archunit.properties", "archunit_ignore_patterns.txt",
+			"junit-platform.properties", "logback.xml", "logback-test.xml", "logback.groovy", "logback.scmo",
+			"logback-test.scmo", "jacoco-agent.properties");
 
 	/**
 	 * Prevents instantiation, since the class only offers a static check.
@@ -73,7 +77,8 @@ public final class FrameworkConfigurationGuard {
 	}
 
 	/**
-	 * Returns the first settings file or service file in an output, if any.
+	 * Returns the first settings file, service file or plugin file in an output, if
+	 * any.
 	 *
 	 * @param output the output folder
 	 * @return the file found
@@ -82,7 +87,9 @@ public final class FrameworkConfigurationGuard {
 	static Optional<Path> firstSettingsFileIn(@Nonnull Path output) {
 		Optional<Path> settings = SETTINGS_FILES.stream().sorted().map(output::resolve)
 				.filter(file -> Files.exists(file, LinkOption.NOFOLLOW_LINKS)).findFirst();
-		return settings.isPresent() ? settings : firstServiceFileIn(output.resolve(SERVICE_FOLDER));
+		return settings.isPresent() ? settings
+				: SERVICE_FOLDERS.stream().map(output::resolve).map(FrameworkConfigurationGuard::firstServiceFileIn)
+						.flatMap(Optional::stream).findFirst();
 	}
 
 	/**
