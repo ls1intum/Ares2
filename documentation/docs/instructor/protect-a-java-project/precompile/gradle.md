@@ -376,9 +376,10 @@ In a multi-project build, apply the snippet to **every** project that compiles s
 
 The shipped snippets are the versioned reserved-package boundary. They reject exactly the
 package prefixes listed in `ReservedPackagePrefixes.txt`, which student code must not declare.
-Boundary version 3 further rejects every file under `META-INF/services/` and the JUnit,
-ArchUnit and Logback configuration files at the root of the student's output, such as
-`junit-platform.properties`, `archunit.properties` and `logback.xml`. Those frameworks read such a
+Boundary version 3 further rejects every file under `META-INF/services/` and
+`mockito-extensions/`, and the JUnit, ArchUnit, Logback and JaCoCo configuration files at the
+root of the student's output, such as `junit-platform.properties`, `archunit.properties` and
+`logback.xml`. It compares names ignoring case. Those frameworks read such a
 file from the test class path before Ares is active, so it could run a student class
 unsupervised or hide ArchUnit findings. Keep your own files of this kind in `src/test/resources`, which the check does not scan.
 

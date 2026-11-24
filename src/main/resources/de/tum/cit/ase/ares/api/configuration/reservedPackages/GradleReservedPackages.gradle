@@ -1,13 +1,13 @@
 // Ares reserved-package build boundary, version 3. Apply from the exercise build.
 //
 // Boundary version 3 also rejects files that steer a test framework: every
-// file under META-INF/services/, and the JUnit, ArchUnit and Logback
-// configuration files at the root of the output. Those frameworks read them
+// file under META-INF/services/, and the JUnit, ArchUnit, Logback, Mockito and
+// JaCoCo configuration files at the root of the output. Those frameworks read them
 // from the test class path before Ares is active, so a student file there could
 // run a student class unsupervised or hide ArchUnit findings. Version 3 scans
 // the whole main output, the processed resources included, not only the
-// compiled classes. Resource names are compared ignoring case, as a
-// case-insensitive file system would find them.
+// compiled classes. Names are compared ignoring case, as a case-insensitive
+// file system would find them.
 //
 // Boundary version 2 superseded version 1, which attached the validation to
 // `check` alone. Gradle's Java plugin defines `check.dependsOn test`, not the
@@ -39,7 +39,7 @@ def aresReservedPackagePatterns = [
 def aresReservedResourcePatterns = [
         'META-INF/services/**', 'archunit.properties', 'archunit_ignore_patterns.txt',
         'junit-platform.properties', 'logback.xml', 'logback-test.xml', 'logback.groovy',
-        'logback.scmo', 'logback-test.scmo'
+        'logback.scmo', 'logback-test.scmo', 'mockito-extensions/**', 'jacoco-agent.properties'
 ]
 
 tasks.register('verifyAresReservedPackagesV3') {
@@ -48,7 +48,8 @@ tasks.register('verifyAresReservedPackagesV3') {
     // touches no Project API and the build stays configuration-cache compatible.
     // The whole main output: the compiled classes and the processed resources.
     def studentOutput = sourceSets.main.output
-    def reservedPrefixes = aresReservedPackagePatterns.collect { it.substring(0, it.length() - 2) }
+    def reservedPrefixes = aresReservedPackagePatterns
+            .collect { it.substring(0, it.length() - 2).toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT) }
     def reservedResourcePrefixes = aresReservedResourcePatterns.findAll { it.endsWith('/**') }
             .collect { it.substring(0, it.length() - 2).toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT) }
     def reservedResourceFiles = aresReservedResourcePatterns.findAll { !it.endsWith('/**') }
@@ -70,7 +71,7 @@ tasks.register('verifyAresReservedPackagesV3') {
                 // apply on Windows as on Linux and macOS.
                 def relative = rootPath.relativize(candidate.toPath()).toString().replace(File.separator, '/')
                 def lowered = relative.toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT)
-                if (reservedPrefixes.any { relative.startsWith(it) }
+                if (reservedPrefixes.any { lowered.startsWith(it) }
                         || reservedResourcePrefixes.any { lowered.startsWith(it) }
                         || reservedResourceFiles.contains(lowered)) {
                     forbidden << relative

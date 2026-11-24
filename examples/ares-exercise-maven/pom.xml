@@ -101,7 +101,7 @@
                         <configuration>
                             <target>
                                 <resourcecount property="ares.reserved.package.count">
-                                    <fileset dir="${project.build.outputDirectory}" defaultexcludes="no">
+                                    <fileset dir="${project.build.outputDirectory}" defaultexcludes="no" casesensitive="false">
                                         <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
                                         <include name="jdk/**"/><include name="com/sun/**"/>
                                         <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
@@ -126,6 +126,7 @@
                                         <include name="archunit_ignore_patterns.txt"/><include name="junit-platform.properties"/>
                                         <include name="logback.xml"/><include name="logback-test.xml"/><include name="logback.groovy"/>
                                         <include name="logback.scmo"/><include name="logback-test.scmo"/>
+                                        <include name="mockito-extensions/**"/><include name="jacoco-agent.properties"/>
                                     </fileset>
                                 </resourcecount>
                                 <fail message="Ares reserved-package validation 3 rejected student output. No bypass flag is supported.">

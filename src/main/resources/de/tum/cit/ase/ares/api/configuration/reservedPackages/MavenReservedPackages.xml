@@ -1,11 +1,11 @@
 <!-- Ares reserved-package build boundary, version 3. Insert this plugin under build/plugins.
      Version 3 also rejects files that steer a test framework: every file under
-     META-INF/services/, and the JUnit, ArchUnit and Logback configuration files at the
-     root of the output. Those frameworks read them from the test class path before Ares
+     META-INF/services/, and the JUnit, ArchUnit, Logback, Mockito and JaCoCo
+     configuration files at the root of the output. Those frameworks read them from the test class path before Ares
      is active, so a student file there could run a student class unsupervised or hide
      ArchUnit findings. The output directory holds the processed resources too, and
-     resource names are compared ignoring case, as a case-insensitive file system would
-     find them.
+     names are compared ignoring case, as a case-insensitive file system would find
+     them.
      Ant's default excludes are switched off, since they would skip folders such as
      CVS or SCCS, which are valid package names.
      The Maven binding was already correct at boundary version 1: process-classes runs
@@ -24,7 +24,7 @@
       <configuration>
         <target>
           <resourcecount property="ares.reserved.package.count">
-            <fileset dir="${project.build.outputDirectory}" defaultexcludes="no">
+            <fileset dir="${project.build.outputDirectory}" defaultexcludes="no" casesensitive="false">
               <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
               <include name="jdk/**"/><include name="com/sun/**"/>
               <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
@@ -49,6 +49,7 @@
               <include name="archunit_ignore_patterns.txt"/><include name="junit-platform.properties"/>
               <include name="logback.xml"/><include name="logback-test.xml"/><include name="logback.groovy"/>
               <include name="logback.scmo"/><include name="logback-test.scmo"/>
+              <include name="mockito-extensions/**"/><include name="jacoco-agent.properties"/>
             </fileset>
           </resourcecount>
           <fail message="Ares reserved-package validation 3 rejected student output. No bypass flag is supported.">
