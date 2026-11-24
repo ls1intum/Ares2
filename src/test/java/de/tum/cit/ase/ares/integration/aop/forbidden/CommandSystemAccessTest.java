@@ -4,6 +4,7 @@ import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.execute.processBuilder.ProcessBuilderExecuteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.execute.runtime.RuntimeExecuteMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.redirect.RedirectMain;
 
 /**
  * Integration tests to verify that command system execution is forbidden when
@@ -14,6 +15,9 @@ class CommandSystemAccessTest extends SystemAccessTest {
 
 	private static final String RUNTIME_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/commandSystem/execute/runtime";
 	private static final String PROCESS_BUILDER_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/commandSystem/execute/processBuilder";
+
+	/** Folder of the student code redirecting an allowed command. */
+	private static final String REDIRECT_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/commandSystem/redirect";
 
 	// <editor-fold desc="accessCommandSystemViaRuntime">
 	@PublicTest
@@ -184,6 +188,125 @@ class CommandSystemAccessTest extends SystemAccessTest {
 	void test_executeCommandViaProcessBuilderStartPipelineMavenWalaInstrumentation() {
 		assertAresSecurityExceptionCommand(ProcessBuilderExecuteMain::executeCommandViaProcessBuilderStartPipeline,
 				ProcessBuilderExecuteMain.class);
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="redirects of an allowed command">
+
+	/**
+	 * The allowed command is refused when writing its output into a file the policy
+	 * does not allow.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_redirectOutputOfAnAllowedCommandMavenArchunitAspectJ() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::redirectOutput);
+	}
+
+	/**
+	 * The allowed command is refused when appending its output to a file the policy
+	 * does not allow.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_appendOutputOfAnAllowedCommandMavenArchunitAspectJ() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::appendOutput);
+	}
+
+	/**
+	 * The allowed command is refused when reading its input from a forbidden file.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_redirectInputOfAnAllowedCommandMavenArchunitAspectJ() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::redirectInput);
+	}
+
+	/**
+	 * The allowed command is refused when writing its output into a file the policy
+	 * does not allow.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_redirectOutputOfAnAllowedCommandMavenArchunitInstrumentation() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::redirectOutput);
+	}
+
+	/**
+	 * The allowed command is refused when appending its output to a file the policy
+	 * does not allow.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_appendOutputOfAnAllowedCommandMavenArchunitInstrumentation() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::appendOutput);
+	}
+
+	/**
+	 * The allowed command is refused when reading its input from a forbidden file.
+	 */
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_redirectInputOfAnAllowedCommandMavenArchunitInstrumentation() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::redirectInput);
+	}
+
+	/**
+	 * The allowed command is refused when writing its output into a file the policy
+	 * does not allow.
+	 */
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_redirectOutputOfAnAllowedCommandMavenWalaAspectJ() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::redirectOutput);
+	}
+
+	/**
+	 * The allowed command is refused when appending its output to a file the policy
+	 * does not allow.
+	 */
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_appendOutputOfAnAllowedCommandMavenWalaAspectJ() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::appendOutput);
+	}
+
+	/**
+	 * The allowed command is refused when reading its input from a forbidden file.
+	 */
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_redirectInputOfAnAllowedCommandMavenWalaAspectJ() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::redirectInput);
+	}
+
+	/**
+	 * The allowed command is refused when writing its output into a file the policy
+	 * does not allow.
+	 */
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_redirectOutputOfAnAllowedCommandMavenWalaInstrumentation() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::redirectOutput);
+	}
+
+	/**
+	 * The allowed command is refused when appending its output to a file the policy
+	 * does not allow.
+	 */
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_appendOutputOfAnAllowedCommandMavenWalaInstrumentation() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::appendOutput);
+	}
+
+	/**
+	 * The allowed command is refused when reading its input from a forbidden file.
+	 */
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_COMMAND_ALLOWED_EXECUTION, withinPath = REDIRECT_WITHIN_PATH)
+	void test_redirectInputOfAnAllowedCommandMavenWalaInstrumentation() {
+		org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, RedirectMain::redirectInput);
 	}
 	// </editor-fold>
 }
