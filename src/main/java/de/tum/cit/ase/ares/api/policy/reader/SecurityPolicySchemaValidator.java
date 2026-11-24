@@ -66,12 +66,7 @@ public final class SecurityPolicySchemaValidator {
 	/** The fields of one thread permission. */
 	private static final Set<String> THREAD_FIELDS = Set.of("createTheFollowingNumberOfThreads", "ofThisClass");
 	/** The fields of one package permission. */
-	private static final Set<String> PACKAGE_FIELDS = Set.of("importTheFollowingPackage", "exactMatchOnly");
-	/**
-	 * The package permission fields a policy must state; exactMatchOnly may be left
-	 * out.
-	 */
-	private static final Set<String> PACKAGE_REQUIRED_FIELDS = Set.of("importTheFollowingPackage");
+	private static final Set<String> PACKAGE_FIELDS = Set.of("importTheFollowingPackage");
 	/** The fields of one timeout permission. */
 	private static final Set<String> TIMEOUT_FIELDS = Set.of("timeout");
 	/** The fields allowed under theFollowingTestBehaviorIsConfigured; none yet. */
@@ -299,12 +294,11 @@ public final class SecurityPolicySchemaValidator {
 	private static void validatePackagePermissions(JsonNode permissions, LanguageNameRules nameRules)
 			throws MismatchedInputException {
 		String list = "regardingPackageImports";
-		validateObjectArray(permissions, list, PACKAGE_FIELDS, PACKAGE_REQUIRED_FIELDS);
+		validateObjectArray(permissions, list, PACKAGE_FIELDS, PACKAGE_FIELDS);
 		int index = 0;
 		for (JsonNode permission : permissions) {
 			String path = entry(list, index++);
 			requireText(permission, "importTheFollowingPackage", path);
-			requireOptionalBoolean(permission, "exactMatchOnly", path);
 			JsonNode imported = permission.get("importTheFollowingPackage");
 			if (!nameRules.matchesPackageImport(imported.textValue())) {
 				fail("policy.schema.package.import", child(path, "importTheFollowingPackage"), quote(imported));
@@ -531,23 +525,6 @@ public final class SecurityPolicySchemaValidator {
 			if (!excluded.contains(field) && !parent.get(field).isBoolean()) {
 				fail("policy.schema.boolean", child(path, field), quote(parent.get(field)));
 			}
-		}
-	}
-
-	/**
-	 * Accepts a field that is absent or a boolean, and refuses anything else,
-	 * including null and a quoted {@code "true"}.
-	 *
-	 * @param parent the object holding the field
-	 * @param field  the field name
-	 * @param path   the short path of the object
-	 * @throws MismatchedInputException if the field is present and not a boolean
-	 */
-	private static void requireOptionalBoolean(JsonNode parent, String field, String path)
-			throws MismatchedInputException {
-		JsonNode node = parent.get(field);
-		if (node != null && !node.isBoolean()) {
-			fail("policy.schema.boolean.optional", child(path, field), quote(node));
 		}
 	}
 

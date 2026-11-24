@@ -35,10 +35,10 @@ permitted until you write it down, and what you write down is then checked value
 
 The implicit part matters for package imports. Whatever your list says, Ares always permits:
 
-- `java.lang` and `java.io` from the Java standard library, each without the packages
-  beneath it, so `java.lang` does not open `java.lang.reflect`
+- `java.lang` and `java.io` from the Java standard library, each with the packages beneath
+  it, so `java.lang` includes `java.lang.reflect`, whose use the method rules still refuse
 - AspectJ (`org.aspectj`) and one internal Ares package
-- the packages your compiled student code is in, again without the packages beneath them
+- the packages your compiled student code is in, again with the packages beneath them
 
 Your list can add to these but cannot remove any of them. With a policy, every other package of
 the standard library, `java.util` included, needs an entry in your list. Without a policy, Ares
@@ -56,7 +56,7 @@ test class by its fully qualified name, with `$` before a nested class, as in
 | Network | `regardingNetworkConnections` | A named host and port, and separately whether the code may connect, send and receive |
 | Command execution | `regardingCommandExecutions` | Named executables together with the exact arguments they may be given |
 | Thread creation | `regardingThreadCreations` | Which class of worker may be started, and how many at most |
-| Package imports | `regardingPackageImports` | Which packages the submission may import. An entry naming a package covers the packages beneath it unless `exactMatchOnly` is `true`, but never a reserved namespace it does not name. Only `*` permits every package |
+| Package imports | `regardingPackageImports` | Which packages the submission may import. An entry naming a package covers the packages beneath it, but never a reserved namespace it does not name. Only `*` permits every package |
 
 :::warning[Granting anything changes how the category is enforced]
 For the first four, the two layers do not both apply. While a category's list is **empty**,
@@ -78,15 +78,15 @@ These have no policy field. There is no syntax for permitting them, narrowly or 
 
 | Category | What it covers |
 | --- | --- |
-| Reflection | `java.lang.reflect.*`, `java.lang.invoke.*`, `Method.invoke`, `Field.set`, `Proxy`, `setAccessible` |
-| Native code | `System.loadLibrary`, `System.load`, `sun.misc.Unsafe`, and the foreign function entry points `Linker.nativeLinker`, `Linker.downcallHandle` and `SymbolLookup.libraryLookup` |
+| Reflection | `java.lang.reflect.*`, `java.lang.invoke.*`, `java.lang.constant.*`, `Method.invoke`, `Field.set`, `Proxy`, `setAccessible` |
+| Native code | `System.loadLibrary`, `System.load`, `sun.misc.Unsafe`, and the foreign function entry points `Linker.nativeLinker`, `Linker.downcallHandle`, `Linker.upcallStub` and `SymbolLookup.libraryLookup`, and the raw memory access of `MemorySegment.reinterpret` and `AddressLayout.withTargetLayout` |
 | Class loading | `Class.forName` and dynamic loading through `ClassLoader` and its subclasses |
 | Java Virtual Machine (JVM) termination | `System.exit`, `Runtime.exit`, `Runtime.halt` |
 | Agent attach | `Instrumentation` access, class redefinition, `VirtualMachine.attach` |
 | Module system | `implAddOpens`, `implAddExports`, `privateLookupIn` |
 | Serialisation | `ObjectInputStream` and `ObjectOutputStream` |
 | JNDI | Lookups through `InitialContext` and `InitialDirContext` |
-| Environment access | `System.getenv`, `System.getProperty` and `setProperty`, `ProcessHandle` metadata |
+| Environment access | `System.getenv`, `System.getProperty` and `setProperty`, `ProcessHandle` metadata, `java.lang.management.*` |
 
 ### Why these are not grantable
 

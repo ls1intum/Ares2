@@ -169,7 +169,7 @@ The interaction between test annotations (`@Public`, `@Hidden`, `@Test`, `@Publi
 | Scenario | Annotations | Resource Access |
 |----------|-------------|-----------------|
 | **No Supervision** | No Ares test annotation (a plain JUnit `@Test` alone counts as none), with or without `@Policy` | No Ares security code is activated at all, student code runs with no restrictions |
-| **Supervision Without Policy** | `@PublicTest`/`@HiddenTest`, or `@Public`/`@Hidden` alongside a JUnit `@Test`, but **no** `@Policy` | Ares enforces a **restrictive default configuration**: file, network, command and thread access is denied. Package imports are restricted to every `java.*` package, the essential packages and each package of the supervised code as that package alone. No execution timeout applies yet, see [Section 8.6](#86-timeout-permissions) |
+| **Supervision Without Policy** | `@PublicTest`/`@HiddenTest`, or `@Public`/`@Hidden` alongside a JUnit `@Test`, but **no** `@Policy` | Ares enforces a **restrictive default configuration**: file, network, command and thread access is denied. Package imports are restricted to every `java.*` package, the essential packages and each package of the supervised code with the packages below it. No execution timeout applies yet, see [Section 8.6](#86-timeout-permissions) |
 | **Supervision With Policy** | `@PublicTest`/`@HiddenTest`, or `@Public`/`@Hidden` alongside a JUnit `@Test`, **and** `@Policy` | Student code can access **only allowed** supervised resources (explicit allowlist via policy) |
 
 > **Opting out:** Once an Ares test annotation has registered the extension, the only way to disable enforcement is an explicit `@Policy(activated = false)`.
@@ -192,7 +192,7 @@ When you run the tests, Ares 2 will automatically enforce the security policy. I
 Ares 2's behaviour depends on whether test supervision is active and whether a `@Policy` annotation is present. Supervision is activated by an **Ares** test annotation (`@Public`, `@Hidden`, `@PublicTest`, `@HiddenTest`), which carries the `@JupiterAresTest` meta-annotation that registers the extension. A plain JUnit `@Test` does **not** activate Ares, and neither does `@Policy`, which carries no `@ExtendWith` and registers nothing:
 
 - **Without supervision** (no Ares test annotation present): Student code runs freely with no restrictions, whether or not a `@Policy` is present.
-- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **restrictive default configuration**. It detects Maven or Gradle from the project root, uses ArchUnit and AspectJ as the analysis and enforcement modes, derives the supervised scope by scanning the project, and applies `ResourceAccesses.createRestrictiveWithoutPolicy()`, which denies file, network, command and thread access outright. Package imports are **restricted rather than eliminated**: Ares permits every `java.*` package, the essential packages it ships and each package of the supervised code as that package alone. The recognised test classes open no package. The fallback constructs a 3,000 ms limit, but that becomes a Phobos test case, and the Phobos stage is not yet dispatched in-process, so no execution timeout applies today; use `@StrictTimeout` where a deadline is needed. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so Ares refuses the run if a supervised class is not AspectJ-woven. The only opt-out is an explicit `@Policy(activated = false)`.
+- **With supervision but no policy** (test annotation present, no policy annotation present): Ares 2 enforces a **restrictive default configuration**. It detects Maven or Gradle from the project root, uses ArchUnit and AspectJ as the analysis and enforcement modes, derives the supervised scope by scanning the project, and applies `ResourceAccesses.createRestrictiveWithoutPolicy()`, which denies file, network, command and thread access outright. Package imports are **restricted rather than eliminated**: Ares permits every `java.*` package, the essential packages it ships and the supervised code's packages, each with the packages below it. The recognised test classes open no package. The fallback constructs a 3,000 ms limit, but that becomes a Phobos test case, and the Phobos stage is not yet dispatched in-process, so no execution timeout applies today; use `@StrictTimeout` where a deadline is needed. Static ArchUnit rules are executed immediately; runtime interception in this mode relies on AspectJ weaving, so Ares refuses the run if a supervised class is not AspectJ-woven. The only opt-out is an explicit `@Policy(activated = false)`.
 - **With supervision and a policy** (test annotation present, policy annotation present): Ares 2 enforces only the permissions explicitly listed in the policy file. Everything else is forbidden.
 
 When you define a security policy file, you start with maximum security (everything forbidden) and selectively allow only what the exercise absolutely requires. Specifying an explicit `@Policy` annotation with a restrictive policy object (for example, `theFollowingResourceAccessesArePermitted` containing six empty lists) enforces default-deny for policy-controlled resources. This is stricter than supervision without a policy, which permits every `java.*` package. An explicit `@Policy` further lets you choose the configuration (build tool, analysis framework, enforcement mechanism) and selectively grant permissions.
@@ -215,7 +215,7 @@ The security policy does not cover the following resource types. They are enforc
 | Resource Type | What It Controls | Example |
 |---------------|------------------|---------|
 | Class Loading | Dynamic loading of classes via `java.lang.ClassLoader` and subclasses | Block `URLClassLoader.loadClass()` |
-| Environment | Reading/writing environment variables (`System.getenv`), system properties (`System.getProperty`/`setProperty`), and `ProcessHandle` metadata | Block `System.getenv("SECRET")` |
+| Environment | Reading/writing environment variables (`System.getenv`), system properties (`System.getProperty`/`setProperty`), `ProcessHandle` metadata, and `java.lang.management` | Block `System.getenv("SECRET")` |
 | Exhaustion | Denial-of-service attacks through resource exhaustion: memory, CPU, file handles, threads, disk space, infinite loops, stack overflow, fork bombs, log flooding | Block `new byte[Integer.MAX_VALUE]` |
 | JNDI | JNDI lookup access via `InitialContext` and `InitialDirContext`, which are the LDAP, RMI and Domain Name System (DNS) injection paths | Block `new InitialContext().lookup("ldap://...")` |
 | Java Virtual Machine (JVM) Termination | Terminating the JVM via `System.exit()`, `Runtime.exit()`, `Runtime.halt()`, and Java Development Kit (JDK) tool `main()` methods | Block `System.exit(0)` |
@@ -570,9 +570,8 @@ regardingPackageImports:
 | Property | Type | Description |
 |----------|------|-------------|
 | `importTheFollowingPackage` | text | Fully qualified package name to allow importing |
-| `exactMatchOnly` | boolean, optional | `true` permits only this package, not the packages beneath it; default `false` |
 
-> **Matching semantics:** An entry covers its package and, unless `exactMatchOnly` is `true`, the packages beneath it, compared at package boundaries, but never a reserved namespace beneath it that the entry does not name. Listing `"java.util"` thus permits all subpackages such as `java.util.concurrent`, `java.util.stream`, `java.util.function`, etc. You do **not** need to list subpackages separately. Be careful with short prefixes, e.g., `"java"` would permit all standard library packages.
+> **Matching semantics:** An entry covers its package and the packages beneath it, compared at package boundaries, but never a reserved namespace beneath it that the entry does not name. Listing `"java.util"` thus permits all subpackages such as `java.util.concurrent`, `java.util.stream`, `java.util.function`, etc. You do **not** need to list subpackages separately. Be careful with short prefixes, e.g., `"java"` would permit all standard library packages.
 
 **Example 1: Allow common standard library packages**
 
@@ -825,7 +824,7 @@ java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: E
 | **WALA** | A static analysis framework that builds inter-procedural call graphs to detect forbidden API usage through chains of method calls. |
 | **AspectJ** | A compile-time AOP framework that weaves interception code directly into bytecode. |
 | **Instrumentation (ByteBuddy)** | A runtime AOP approach using the `java.lang.instrument` API and ByteBuddy to modify class bytecode at load time. |
-| **Prefix Match** | The matching strategy used by `PackagePermission`. A permitted package `"java.util"` matches itself and the packages beneath it (e.g., `java.util.concurrent`, `java.util.stream`), unless `exactMatchOnly` is `true`, and never an unnamed reserved namespace. |
+| **Prefix Match** | The matching strategy used by `PackagePermission`. A permitted package `"java.util"` matches itself and the packages beneath it (e.g., `java.util.concurrent`, `java.util.stream`), and never an unnamed reserved namespace. |
 
 ## Further reading
 

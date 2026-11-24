@@ -1,5 +1,7 @@
 @Test
 public void filesystemsShouldNotBeAccessed() {
+    javaClasses = ${javaClasses};
     callGraph = ${callGraph};
+    JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM.checkDirectAccesses(javaClasses, Set.of(), callGraph.getClassHierarchy());
     JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM.check(callGraph);
 }

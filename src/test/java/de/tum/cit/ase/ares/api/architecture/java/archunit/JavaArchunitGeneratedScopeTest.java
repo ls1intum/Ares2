@@ -75,7 +75,7 @@ class JavaArchunitGeneratedScopeTest {
 		String written = generated(false).writeArchitectureTestCase("ARCHUNIT", "");
 
 		assertTrue(written.contains("JavaArchunitSupervisedClasses.pinned(\"de.tum.cit.aet\")"), written);
-		assertTrue(written.contains("new PackagePermission(\"de.tum.cit.aet\", false)"),
+		assertTrue(written.contains("new PackagePermission(\"de.tum.cit.aet\")"),
 				"a pinned scope's permissions are a declaration and are written as such: " + written);
 		assertTrue(written.contains("JavaArchunitTestCaseCollection.withOwnPackages(allowedPackages, javaClasses"),
 				"the supervised code's own packages are read from the checked classes: " + written);

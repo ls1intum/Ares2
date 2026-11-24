@@ -272,13 +272,14 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	/**
-	 * Builds a stable cache key from the analysis classpath, compiled Ares content,
-	 * the rule name, and a SHA-256 over a STRUCTURAL fingerprint of the analysed
-	 * classes (each class's name plus the sorted full names of the methods it
-	 * calls) and the allowed packages. Hashing the call structure with full SHA-256
-	 * - rather than only class names through a 32-bit {@code hashCode} - both
-	 * removes the trivially-constructible collision and detects a resubmission that
-	 * keeps the class names but changes a body to add a forbidden call.
+	 * Builds the key of a cached verdict from everything that can change it: the
+	 * runtime, Ares's own classes, the rule, each analysed class's call targets and
+	 * bytecode, the permitted packages, the exempt and test classes, the method
+	 * lists and, except for package imports, the content of the dependencies the
+	 * call graph follows. A class changed behind the same name, or a method list
+	 * edited in an unpacked folder, therefore never reuses an old verdict.
+	 *
+	 * @return the key
 	 */
 	@Nonnull
 	private String cacheKey() {
@@ -288,35 +289,16 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 				.map(javaClass -> javaClass.getFullName() + "#" + javaClass.getAccessesFromSelf().stream()
 						.map(access -> access.getTarget().getFullName()).sorted().collect(Collectors.joining(",")))
 				.sorted().collect(Collectors.joining(";"));
-		// Fold the actual compiled bytecode of each analysed class into the key, so two
-		// submissions with the same class names and call-target set but different
-		// bytecode (e.g. different control flow that only reaches a forbidden call in
-		// one) cannot collide to the same cached verdict.
 		String bytecodeFingerprint = javaClasses.stream()
 				.map(javaClass -> javaClass.getFullName() + "#" + classBytecodeHash(javaClass)).sorted()
 				.collect(Collectors.joining(";"));
-		// The call graph also follows reachable application dependencies. Their paths
-		// alone are not identities: a JAR or class directory can be replaced in place,
-		// so hash the complete effective dependency content before consulting a cached
-		// verdict.
 		String dependencyFingerprint = supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT ? ""
 				: CustomCallgraphBuilder.dependencyFingerprint(javaClasses);
-		// The exactness flag changes which imports the rule accepts, so it must be part
-		// of the key; otherwise a cached PASS produced under a subtree grant could be
-		// served to a stricter exact-match configuration.
-		String allowedPackagesFingerprint = unambiguousSignature(allowedPackages.stream()
-				.map(permission -> permission.importTheFollowingPackage() + "#" + permission.exactMatchOnly()));
-		// The allow-listed classes change which violations are exempt, so they must be
-		// part of the key or a run with exemptions could be served a no-exemption
-		// outcome.
+		String allowedPackagesFingerprint = unambiguousSignature(
+				allowedPackages.stream().map(PackagePermission::importTheFollowingPackage));
 		String allowedClassesFingerprint = unambiguousSignature(
 				getAllowedClasses().stream().map(ClassPermission::className));
 		String testClassesFingerprint = unambiguousSignature(getTestClassNames().stream());
-		// Fold the blocklist content into the key: the Ares-jar mtime does not change
-		// when a *-methods.txt or the false-positive file is edited under an exploded
-		// classes directory, so without this a cached PASS could survive a tightening
-		// of
-		// the rules.
 		String blocklistFingerprint = blocklistFingerprint(supported);
 		return CACHE_SCHEMA_VERSION + "|" + environmentFingerprint + "|" + IMPLEMENTATION_FINGERPRINT + "|"
 				+ supported.name() + "|"

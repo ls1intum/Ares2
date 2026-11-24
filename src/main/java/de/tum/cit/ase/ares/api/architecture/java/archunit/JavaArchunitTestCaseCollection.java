@@ -234,11 +234,6 @@ public final class JavaArchunitTestCaseCollection {
 	 * Package-import rule that also exempts the given classes; an empty set changes
 	 * nothing. A type named only through a type annotation, such as
 	 * {@code @NonNull String}, counts as an import too.
-	 * <p>
-	 * A dependency passes once any permission matches its package, so a package
-	 * granted both exactly and with its subpackages counts as granted with them.
-	 * That is intentional: a policy widening the exact JDK baseline this way does
-	 * so on purpose and visibly.
 	 *
 	 * @param allowedPackages the packages that may be imported
 	 * @param allowedClasses  the classes the rule does not check
@@ -307,10 +302,9 @@ public final class JavaArchunitTestCaseCollection {
 
 	/**
 	 * Whether a permission covers a package. The match respects package boundaries,
-	 * so {@code com.foo} never covers {@code com.foobar}, and an exact permission
-	 * covers only its own package: {@code java.lang} as a subtree would re-admit
-	 * {@code java.lang.reflect}. No permission but {@code *} reaches a trusted
-	 * namespace below it that it does not name.
+	 * so {@code com.foo} covers {@code com.foo.bar} but never {@code com.foobar}.
+	 * No permission but {@code *} reaches a trusted namespace below it that it does
+	 * not name.
 	 *
 	 * @param allowedPackage the permission
 	 * @param packageName    the package of the dependency
@@ -322,21 +316,19 @@ public final class JavaArchunitTestCaseCollection {
 			return true;
 		}
 		String normalizedAllowed = allowed.endsWith(".") ? allowed.substring(0, allowed.length() - 1) : allowed;
-		return (packageName.equals(normalizedAllowed)
-				|| !allowedPackage.exactMatchOnly() && packageName.startsWith(normalizedAllowed + "."))
+		return (packageName.equals(normalizedAllowed) || packageName.startsWith(normalizedAllowed + "."))
 				&& !JavaArchunitSupervisedClasses.isReservedBelow(normalizedAllowed, packageName);
 	}
 
 	/**
-	 * Adds the packages the checked classes declare, each as an exact permission,
-	 * so the supervised code may use its own classes but nothing below them. Exempt
-	 * classes and the JDK namespace add nothing, and a package that is not a valid
-	 * Java package is refused.
+	 * Adds the packages the checked classes declare, each with the packages below
+	 * it, so the supervised code may use its own classes. Exempt classes and the
+	 * JDK namespace add nothing; an invalid package is refused.
 	 *
 	 * @param allowedPackages the packages permitted otherwise
 	 * @param javaClasses     the classes the rule checks
 	 * @param allowedClasses  the classes the rule does not check
-	 * @return the permitted packages including the checked classes' own
+	 * @return the combined permissions
 	 * @throws SecurityException when a checked class declares an invalid package
 	 */
 	public static Set<PackagePermission> withOwnPackages(Set<PackagePermission> allowedPackages,
@@ -348,7 +340,7 @@ public final class JavaArchunitTestCaseCollection {
 						&& !PackagePermission.isInJdkNamespace(javaClass.getPackageName()))
 				.forEach(javaClass -> {
 					JavaArchunitSupervisedClasses.requireDeclarablePackage(javaClass, javaClass.getPackageName());
-					permissions.add(new PackagePermission(javaClass.getPackageName(), true));
+					permissions.add(new PackagePermission(javaClass.getPackageName()));
 				});
 		return permissions;
 	}

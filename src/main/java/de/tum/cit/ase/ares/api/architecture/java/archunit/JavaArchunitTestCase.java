@@ -228,21 +228,25 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 		}
 	}
 
+	/**
+	 * Runs the rule once per configuration and replays its outcome afterwards. The
+	 * key holds the rule, the exempt classes, the checked classes and, for package
+	 * imports, the permitted packages and the test classes, so runs that differ in
+	 * any of them never share an outcome.
+	 *
+	 * @param architectureMode the architecture mode
+	 * @param aopMode          the AOP mode
+	 * @throws SecurityException if the rule finds a violation
+	 */
 	@Override
 	public void executeArchitectureTestCase(@Nonnull String architectureMode, @Nonnull String aopMode) {
 		JavaArchitectureTestCaseSupported supported = (JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
-		// The allow-listed classes change which violations are exempt, so they MUST be
-		// part of the cache key; otherwise a run with exemptions could be served a
-		// no-exemption outcome (or vice versa).
 		String allowedClassesSignature = unambiguousSignature(
 				getAllowedClasses().stream().map(ClassPermission::className));
 		java.util.concurrent.FutureTask<java.util.Optional<SecurityException>> task;
 		if (supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT) {
-			// The exactness flag changes which imports the rule accepts, so it belongs in
-			// the key too; two configurations differing only in exactness must not share
-			// a cached outcome.
-			String allowedSignature = unambiguousSignature(allowedPackages.stream()
-					.map(permission -> permission.importTheFollowingPackage() + "#" + permission.exactMatchOnly()));
+			String allowedSignature = unambiguousSignature(
+					allowedPackages.stream().map(PackagePermission::importTheFollowingPackage));
 			String testClassesSignature = unambiguousSignature(getTestClassNames().stream());
 			String pkgKey = allowedSignature + "#" + allowedClassesSignature + "#" + testClassesSignature + "@"
 					+ javaClassesToken(javaClasses);
@@ -253,10 +257,6 @@ public class JavaArchunitTestCase extends JavaArchitectureTestCase {
 			task = RULE_OUTCOME_CACHE.computeIfAbsent(key,
 					unusedKey -> new java.util.concurrent.FutureTask<>(() -> runRuleAndCapture(supported)));
 		}
-		// run() evaluates the rule only for the first caller of this key; for any later
-		// caller the
-		// task is already run, so run() is a no-op and awaitOutcome just returns the
-		// cached result.
 		task.run();
 		java.util.Optional<SecurityException> cached = awaitOutcome(task);
 		if (cached.isPresent()) {

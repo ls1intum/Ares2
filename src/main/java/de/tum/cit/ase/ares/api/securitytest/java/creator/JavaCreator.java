@@ -182,9 +182,9 @@ public class JavaCreator implements Creator {
 	/**
 	 * Prepares the packages the supervised code may import beyond its own.
 	 * <p>
-	 * Ares's essential packages and the policy's grants. A JDK essential covers
-	 * only its own package. The own packages are added when the rule runs; a test
-	 * class does not grant its package.
+	 * Ares's essential packages and the policy's grants, each with the packages
+	 * below it. The own packages are added when the rule runs; a test class does
+	 * not grant its package.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -203,7 +203,7 @@ public class JavaCreator implements Creator {
 
 	/**
 	 * Checks that an essential package is a valid Java package and wraps it in a
-	 * {@link PackagePermission}, exact inside the JDK namespace.
+	 * {@link PackagePermission}.
 	 * <p>
 	 * The permission record only refuses null, so an invalid essential package
 	 * aborts test-case creation here.
@@ -215,7 +215,7 @@ public class JavaCreator implements Creator {
 	@Nonnull
 	private static PackagePermission validatedEssentialPackage(@Nonnull String packageName) {
 		JavaNameRules.INSTANCE.requirePackage("allowed package", packageName);
-		return new PackagePermission(packageName, PackagePermission.isInJdkNamespace(packageName));
+		return new PackagePermission(packageName);
 	}
 
 	/**

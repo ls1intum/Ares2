@@ -46,8 +46,8 @@ class PackageImportMessageTest {
 	 * fixture is woven by AspectJ, so it also depends on the AspectJ packages the
 	 * shipped configuration always grants.
 	 */
-	private static final Set<PackagePermission> BASELINE = Set.of(new PackagePermission("java.lang", true),
-			new PackagePermission("java.io", true), FIXTURE_PACKAGE, new PackagePermission("org.aspectj"),
+	private static final Set<PackagePermission> BASELINE = Set.of(new PackagePermission("java.lang"),
+			new PackagePermission("java.io"), FIXTURE_PACKAGE, new PackagePermission("org.aspectj"),
 			new PackagePermission("de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut"));
 
 	/** The two languages a refusal is reported in. */
@@ -141,10 +141,8 @@ class PackageImportMessageTest {
 	@ParameterizedTest
 	@MethodSource("enginesAndLocales")
 	void oneForbiddenPackageIsNamedWithItsClass(String engine, Locale locale) {
-		Set<PackagePermission> allowed = new java.util.HashSet<>(BASELINE);
-		allowed.add(new PackagePermission("java.lang.reflect"));
 		assertEquals(localized(locale, "security.archunit.package.import.violation", IMPORTING_CLASS, "java.net"),
-				refusalOf(ruleOf(engine, allowed), locale));
+				refusalOf(ruleOf(engine, BASELINE), locale));
 	}
 
 	/**
@@ -156,8 +154,10 @@ class PackageImportMessageTest {
 	@ParameterizedTest
 	@MethodSource("enginesAndLocales")
 	void twoForbiddenPackagesAreNamedTogether(String engine, Locale locale) {
+		Set<PackagePermission> withoutJavaIo = new java.util.HashSet<>(BASELINE);
+		withoutJavaIo.remove(new PackagePermission("java.io"));
 		assertEquals(localized(locale, "security.archunit.package.import.violation.plural", IMPORTING_CLASS,
-				"java.lang.reflect, java.net"), refusalOf(ruleOf(engine, BASELINE), locale));
+				"java.io, java.net"), refusalOf(ruleOf(engine, withoutJavaIo), locale));
 	}
 
 	/**

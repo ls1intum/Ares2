@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,7 +33,7 @@ class PrecompileTypeAnnotationImportTest {
 	 * Package of the made-up exercise. It must not contain {@code de.tum.cit.ase},
 	 * which the copy step rewrites.
 	 */
-	private static final String EXERCISE_PACKAGE = "de.tum.cit.aet.typeuse";
+	static final String EXERCISE_PACKAGE = "de.tum.cit.aet.typeuse";
 
 	/**
 	 * The package of the forbidden annotation.
@@ -51,8 +53,9 @@ class PrecompileTypeAnnotationImportTest {
 			""";
 
 	/**
-	 * A launcher that runs one generated test method by reflection on a new
-	 * instance, and exits with status 3 when the method throws.
+	 * A launcher that runs the named generated test methods by reflection, each on
+	 * a new instance, prints one line per method saying whether it passed, and
+	 * exits with status 3 when any of them threw.
 	 */
 	private static final String LAUNCHER_SOURCE = """
 			package launcher;
@@ -60,13 +63,19 @@ class PrecompileTypeAnnotationImportTest {
 			public final class RunGenerated {
 			    public static void main(String[] arguments) throws Exception {
 			        Class<?> test = Class.forName(arguments[0]);
-			        try {
-			            test.getMethod(arguments[1]).invoke(test.getDeclaredConstructor().newInstance());
-			        } catch (java.lang.reflect.InvocationTargetException failure) {
-			            failure.getCause().printStackTrace(System.out);
-			            System.exit(3);
+			        boolean failed = false;
+			        for (int index = 1; index < arguments.length; index++) {
+			            try {
+			                test.getMethod(arguments[index]).invoke(test.getDeclaredConstructor().newInstance());
+			                System.out.println(arguments[index] + " PASSED");
+			            } catch (java.lang.reflect.InvocationTargetException failure) {
+			                failed = true;
+			                System.out.println(arguments[index] + " FAILED "
+			                        + String.valueOf(failure.getCause()).replaceAll("\\\\R", " "));
+			                failure.getCause().printStackTrace(System.out);
+			            }
 			        }
-			        System.out.println("PASSED");
+			        System.exit(failed ? 3 : 0);
 			    }
 			}
 			""";
@@ -108,9 +117,42 @@ class PrecompileTypeAnnotationImportTest {
 	private static String runGeneratedImportTest(String analysis, String testCase, Path root, String packageImports)
 			throws Exception {
 		Path project = Files.createDirectories(root.resolve("project"));
-		Path studentSource = writeSource(project.resolve("src/main/java"), EXERCISE_PACKAGE + ".Main", STUDENT_SOURCE);
+		compileStudentSources(project, Map.of(EXERCISE_PACKAGE + ".Main", STUDENT_SOURCE));
+		return runGenerated(analysis, testCase, root, project, packageImports, "packageImportShouldNotBeAccessed");
+	}
+
+	/**
+	 * Writes and compiles the student classes of an exercise into its
+	 * {@code target/classes}.
+	 *
+	 * @param project the exercise project
+	 * @param sources the source text of each class, by fully qualified name
+	 * @throws IOException if a source cannot be written
+	 */
+	static void compileStudentSources(Path project, Map<String, String> sources) throws IOException {
+		List<Path> files = new ArrayList<>();
+		for (Map.Entry<String, String> source : sources.entrySet()) {
+			files.add(writeSource(project.resolve("src/main/java"), source.getKey(), source.getValue()));
+		}
 		JavacFixtures.compileSources(JavacFixtures.testClasses().toString(),
-				Files.createDirectories(project.resolve("target/classes")), List.of(studentSource));
+				Files.createDirectories(project.resolve("target/classes")), files);
+	}
+
+	/**
+	 * Generates and compiles the tests of an exercise and runs the named ones in a
+	 * JVM started inside the project.
+	 *
+	 * @param analysis       the engine
+	 * @param testCase       the generated test class
+	 * @param root           the folder for this run
+	 * @param project        the exercise, its classes compiled
+	 * @param packageImports the allowed imports in YAML
+	 * @param methods        the tests to run
+	 * @return the exit status and the output
+	 * @throws Exception if the run fails to start
+	 */
+	static String runGenerated(String analysis, String testCase, Path root, Path project, String packageImports,
+			String... methods) throws Exception {
 		Path generated = generate(analysis, root, project, packageImports);
 		Path compiled = Files.createDirectories(root.resolve("compiled"));
 		List<Path> sources = new ArrayList<>(javaSources(generated));
@@ -118,8 +160,22 @@ class PrecompileTypeAnnotationImportTest {
 		String classPath = System.getProperty("java.class.path");
 		JavacFixtures.compileSources(classPath, compiled, sources);
 		copyResources(generated, compiled.resolve(EXERCISE_PACKAGE.replace('.', '/')).resolve("ares/api"));
-		return run(project, compiled + File.pathSeparator + classPath, EXERCISE_PACKAGE + ".ares.api." + testCase,
-				root.resolve("run.log"));
+		return run(project,
+				project.resolve("target/classes") + File.pathSeparator + project.resolve("src/test/resources")
+						+ File.pathSeparator + compiled + File.pathSeparator + librariesOf(classPath),
+				EXERCISE_PACKAGE + ".ares.api." + testCase, root.resolve("run.log"), methods);
+	}
+
+	/**
+	 * Keeps only the library archives of a class path, leaving out the class
+	 * folders of Ares itself, so that the run sees what an exercise sees.
+	 *
+	 * @param classPath the class path of this test run
+	 * @return the archives, joined as a class path
+	 */
+	private static String librariesOf(String classPath) {
+		return Arrays.stream(classPath.split(File.pathSeparator)).filter(entry -> entry.endsWith(".jar"))
+				.collect(Collectors.joining(File.pathSeparator));
 	}
 
 	/**
@@ -167,22 +223,26 @@ class PrecompileTypeAnnotationImportTest {
 	}
 
 	/**
-	 * Runs the generated import test in a separate JVM inside the project.
+	 * Runs generated test methods in a separate JVM inside the project.
 	 *
 	 * @param project   the exercise project, used as the working directory
 	 * @param classPath the class path of the run
 	 * @param testClass the generated test class
 	 * @param log       the file the output is written to
+	 * @param methods   the generated test methods to run
 	 * @return the exit status, a line break, and the output of the run
 	 * @throws Exception if the run cannot be started or times out
 	 */
-	private static String run(Path project, String classPath, String testClass, Path log) throws Exception {
+	private static String run(Path project, String classPath, String testClass, Path log, String... methods)
+			throws Exception {
 		Path java = Path.of(System.getProperty("java.home"), "bin", "java");
-		Process child = new ProcessBuilder(java.toString(), "-cp", classPath, "launcher.RunGenerated", testClass,
-				"packageImportShouldNotBeAccessed").directory(project.toFile()).redirectErrorStream(true)
-						.redirectOutput(log.toFile()).start();
+		List<String> command = new ArrayList<>(
+				List.of(java.toString(), "-cp", classPath, "launcher.RunGenerated", testClass));
+		command.addAll(List.of(methods));
+		Process child = new ProcessBuilder(command).directory(project.toFile()).redirectErrorStream(true)
+				.redirectOutput(log.toFile()).start();
 		try {
-			assertTrue(child.waitFor(3, TimeUnit.MINUTES), () -> "the generated import test timed out: " + log);
+			assertTrue(child.waitFor(5, TimeUnit.MINUTES), () -> "the generated tests timed out: " + log);
 			return child.exitValue() + "\n" + Files.readString(log);
 		} finally {
 			child.destroyForcibly();

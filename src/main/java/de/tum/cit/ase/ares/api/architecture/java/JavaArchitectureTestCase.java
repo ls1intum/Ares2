@@ -674,10 +674,12 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	 */
 	@Nonnull
 	protected String allowedPackagesAsCopiedCode() {
-		return "Set.of(" + allowedPackages.stream().flatMap(this::withCopiedCounterpart).distinct()
-				.map(pp -> String.format("new %s(\"%s\", %s)", PackagePermission.class.getSimpleName(),
-						pp.importTheFollowingPackage(), pp.exactMatchOnly()))
-				.collect(java.util.stream.Collectors.joining(", ")) + ")";
+		return "Set.of("
+				+ allowedPackages.stream().flatMap(this::withCopiedCounterpart).distinct()
+						.map(pp -> String.format("new %s(\"%s\")", PackagePermission.class.getSimpleName(),
+								pp.importTheFollowingPackage()))
+						.collect(java.util.stream.Collectors.joining(", "))
+				+ ")";
 	}
 
 	/**
@@ -694,8 +696,8 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 				|| !(packageName.equals(COPIED_API) || packageName.startsWith(COPIED_API + "."))) {
 			return java.util.stream.Stream.of(permission);
 		}
-		return java.util.stream.Stream.of(permission, new PackagePermission(
-				supervisedPackage + packageName.substring(ARES_NAMESPACE.length()), permission.exactMatchOnly()));
+		return java.util.stream.Stream.of(permission,
+				new PackagePermission(supervisedPackage + packageName.substring(ARES_NAMESPACE.length())));
 	}
 
 	/**

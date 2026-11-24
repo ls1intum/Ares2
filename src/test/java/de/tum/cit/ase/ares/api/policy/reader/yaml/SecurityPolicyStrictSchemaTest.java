@@ -35,6 +35,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 
 import de.tum.cit.ase.ares.api.policy.SecurityPolicy;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.NetworkPermission;
+import de.tum.cit.ase.ares.api.policy.policySubComponents.PackagePermission;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.ProgrammingLanguageConfiguration;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicySchemaValidator;
@@ -91,35 +92,45 @@ class SecurityPolicyStrictSchemaTest {
 		assertTrue(failure.getCause() != null);
 	}
 
-	/** Values of exactMatchOnly the reader accepts, with what each binds to. */
-	static Stream<Arguments> exactMatchOnlyValues() {
-		return Stream.of(Arguments.of("", false), Arguments.of("\n        exactMatchOnly: true", true),
-				Arguments.of("\n        exactMatchOnly: false", false));
+	/**
+	 * Binds a package entry through the real policy reader to the package it names.
+	 */
+	@Test
+	void bindsThePackageThroughTheRealReader() throws IOException {
+		SecurityPolicy policy = read(validYaml());
+		assertEquals(new PackagePermission("java.util"), policy.regardingTheSupervisedCode()
+				.theFollowingResourceAccessesArePermitted().regardingPackageImports().get(0));
 	}
 
 	/**
-	 * Binds exactMatchOnly through the real policy reader, a missing key as false.
+	 * Lets the schema refuse a package entry with an exactMatchOnly field as an
+	 * unknown field, whatever its value, since every package permission covers the
+	 * packages below it.
+	 *
+	 * @param value the value written for the field
 	 */
 	@ParameterizedTest
 	@MethodSource("exactMatchOnlyValues")
-	void bindsExactMatchOnlyThroughTheRealReader(String field, boolean expected) throws IOException {
-		SecurityPolicy policy = read(validYaml().replace("importTheFollowingPackage: java.util",
-				"importTheFollowingPackage: java.util" + field));
-		assertEquals(expected, policy.regardingTheSupervisedCode().theFollowingResourceAccessesArePermitted()
-				.regardingPackageImports().get(0).exactMatchOnly());
+	void rejectsAnExactMatchOnlyField(String value) {
+		SecurityException failure = assertThrows(SecurityException.class,
+				() -> read(validYaml().replace("importTheFollowingPackage: java.util",
+						"importTheFollowingPackage: java.util\n        exactMatchOnly: " + value)));
+		Throwable violation = failure;
+		while (violation != null && !(violation instanceof SecurityPolicySchemaValidator.PolicySchemaViolation)) {
+			violation = violation.getCause();
+		}
+		assertInstanceOf(SecurityPolicySchemaValidator.PolicySchemaViolation.class, violation,
+				"the schema itself must refuse the field");
+		assertTrue(violation.getMessage().contains("exactMatchOnly"), violation.getMessage());
 	}
 
-	/** Refuses an exactMatchOnly that is not a boolean. */
-	@ParameterizedTest
-	@MethodSource("invalidExactMatchOnlyValues")
-	void rejectsExactMatchOnlyThatIsNotABoolean(String value) {
-		assertThrows(SecurityException.class, () -> read(validYaml().replace("importTheFollowingPackage: java.util",
-				"importTheFollowingPackage: java.util\n        exactMatchOnly: " + value)));
-	}
-
-	/** Values of exactMatchOnly the reader refuses. */
-	static Stream<String> invalidExactMatchOnlyValues() {
-		return Stream.of("null", "\"true\"", "1", "yes");
+	/**
+	 * Values of the removed exactMatchOnly field.
+	 *
+	 * @return the values
+	 */
+	static Stream<String> exactMatchOnlyValues() {
+		return Stream.of("true", "false");
 	}
 
 	@ParameterizedTest

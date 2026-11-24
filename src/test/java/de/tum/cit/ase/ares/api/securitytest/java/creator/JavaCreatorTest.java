@@ -296,8 +296,8 @@ public class JavaCreatorTest {
 
 		/**
 		 * Student code declared in {@code de.tum.cit.ase}, above Ares' own API, is not
-		 * refused. Its own package is not granted here; the rule adds it as an exact
-		 * permission when it runs.
+		 * refused. Its own package is not granted here; the rule adds it, with the
+		 * packages below it, when it runs.
 		 *
 		 * @throws IOException if the fixture cannot be copied
 		 */
@@ -663,9 +663,9 @@ public class JavaCreatorTest {
 
 	/**
 	 * Checks that a malformed essential package is refused while a valid one in the
-	 * JDK namespace is kept as that package alone. The pinned package and the test
-	 * class names are checked elsewhere, and the supervised code's own packages are
-	 * read from the compiled classes when the rule runs.
+	 * JDK namespace is kept, with the packages below it. The pinned package and the
+	 * test class names are checked elsewhere, and the supervised code's own
+	 * packages are read from the compiled classes when the rule runs.
 	 */
 	@Test
 	@SuppressWarnings("unchecked")
@@ -677,7 +677,7 @@ public class JavaCreatorTest {
 		assertInvocationCause(IllegalArgumentException.class,
 				() -> prepare.invoke(null, List.of("com..essential"), restrictive));
 		Set<PackagePermission> valid = (Set<PackagePermission>) prepare.invoke(null, List.of("java.lang"), restrictive);
-		assertEquals(Set.of(new PackagePermission("java.lang", true)), valid);
+		assertEquals(Set.of(new PackagePermission("java.lang")), valid);
 	}
 
 	/** Checks that a wildcard package declared in the policy is kept unchanged. */
@@ -704,7 +704,7 @@ public class JavaCreatorTest {
 		when(resourceAccesses.regardingPackageImports()).thenReturn(List.of());
 		Set<PackagePermission> result = (Set<PackagePermission>) prepare.invoke(null,
 				Arrays.asList(null, " ", "java.lang"), resourceAccesses);
-		assertEquals(Set.of(new PackagePermission("java.lang", true)), result);
+		assertEquals(Set.of(new PackagePermission("java.lang")), result);
 	}
 
 	/**
