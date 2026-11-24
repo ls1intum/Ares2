@@ -28,7 +28,11 @@ enforcement settings are static fields in the bootstrap class loader.
 **Precompile.** Ares runs once as an external tool, reads the policy, and copies a self-contained
 set of security test cases, aspects, configuration and the Ares classes it needs into the
 exercise. The target project then needs no Ares dependency of its own. One generated set applies
-to every test in the project, and changing the policy means regenerating and rebuilding.
+to every test in the project, and changing the policy means regenerating and rebuilding. A copied
+guard runs before the first test and stops the whole run if the runtime checks are missing or a
+generated architecture check fails, so no student code runs unchecked. The Precompile pages
+cover the `_INSTRUMENTATION` configurations; they give no build wiring for `_ASPECTJ`, and an
+`_ASPECTJ` exercise whose student classes were not woven runs no test.
 
 :::note[Precompile and Postcompile are not the same thing as AspectJ and instrumentation]
 The two axes are independent in both directions. `examples/ares-exercise-gradle` runs
@@ -59,7 +63,8 @@ Whichever mode you pick, the build has to do five things:
    artefacts in Precompile.
 2. Weave the Ares security aspects into the compiled bytecode with the AspectJ compiler, if the
    configuration ends in `_ASPECTJ`.
-3. Download and attach the Ares agent JAR at test startup, if it ends in `_INSTRUMENTATION`.
+3. Attach the Ares agent JAR at test startup, if it ends in `_INSTRUMENTATION`. Postcompile
+   downloads it; Precompile builds it from the copied classes.
 4. Grant the agent access to Java internals through the required JVM flags.
 5. **Reject student classes declared in reserved packages**, so that student code cannot
    impersonate code Ares trusts by name.
