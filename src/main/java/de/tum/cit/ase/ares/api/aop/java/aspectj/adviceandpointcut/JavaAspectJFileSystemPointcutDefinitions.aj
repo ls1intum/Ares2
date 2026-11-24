@@ -166,6 +166,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.io.DataInput+.readUnsignedByte(..)) ||
                     call(* java.io.DataInput+.readUnsignedShort(..)) ||
                     call(java.io.Reader+.new(..)) ||
+                    call(* java.lang.Class.getResourceAsStream(..)) ||
                     call(* java.lang.ClassLoader+.getResourceAsStream(..)) ||
                     call(* java.nio.file.Files+.find(..)) ||
                     call(* java.nio.file.Files+.list(..)) ||
