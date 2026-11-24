@@ -25,7 +25,9 @@ import de.tum.cit.ase.ares.integration.aop.forbidden.subject.archive.StudentZipF
 /**
  * Checks real interception of archive calls on student subclasses. The
  * instrumentation cases run first so the shared call-site class loads after its
- * package is registered for rewriting.
+ * package is registered for rewriting. Under AspectJ such a subclass is refused
+ * before the test runs; architecture.forbidden.FileSystemAccessReadTest checks
+ * that.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ArchiveEntryInterceptionTest extends SystemAccessTest {
@@ -71,27 +73,11 @@ class ArchiveEntryInterceptionTest extends SystemAccessTest {
 		Files.deleteIfExists(archivePath);
 	}
 
-	/** Student archive calls are denied through ArchUnit and AspectJ. */
-	@PublicTest
-	@Order(3)
-	@Policy(value = ARCHUNIT_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = WITHIN_PATH)
-	void test_archiveSubclassCallsMavenArchunitAspectJ() {
-		assertArchiveCallsBlocked();
-	}
-
 	/** Student archive calls are denied through ArchUnit and instrumentation. */
 	@PublicTest
 	@Order(2)
 	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_PATH_ALLOWED_READ, withinPath = WITHIN_PATH)
 	void test_archiveSubclassCallsMavenArchunitInstrumentation() {
-		assertArchiveCallsBlocked();
-	}
-
-	/** Student archive calls are denied through WALA and AspectJ. */
-	@PublicTest
-	@Order(4)
-	@Policy(value = WALA_ASPECTJ_POLICY_ONE_PATH_ALLOWED_READ, withinPath = WITHIN_PATH)
-	void test_archiveSubclassCallsMavenWalaAspectJ() {
 		assertArchiveCallsBlocked();
 	}
 

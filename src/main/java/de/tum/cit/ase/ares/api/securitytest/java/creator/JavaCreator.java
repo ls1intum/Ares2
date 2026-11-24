@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,9 +25,11 @@ import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.AOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSupported;
+import de.tum.cit.ase.ares.api.aop.java.aspectj.JavaAspectJUnobservableAccessCheck;
 import de.tum.cit.ase.ares.api.aop.java.aspectj.JavaAspectJWeavingCheck;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.FileHandlerConstants;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCaseSupported;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
@@ -108,6 +111,13 @@ public class JavaCreator implements Creator {
 	 */
 	@Nullable
 	private JavaClasses importedSupervisedClasses;
+
+	/**
+	 * The areas the policy grants something in, which the runtime layer then
+	 * decides alone; filled while test cases are created.
+	 */
+	@Nonnull
+	private Set<JavaAOPTestCaseSupported> areasDecidedAtRuntime = EnumSet.noneOf(JavaAOPTestCaseSupported.class);
 	private final BuildToolConfiguration buildConfiguration;
 
 	public JavaCreator() {
@@ -360,6 +370,44 @@ public class JavaCreator implements Creator {
 	}
 
 	/**
+	 * Refuses an AspectJ run in which supervised code reaches a method of an area
+	 * the runtime layer decides alone in a way AspectJ cannot see: a method
+	 * reference, a call through {@code super}, or, outside threads, a constructor
+	 * reached through {@code super(...)}.
+	 *
+	 * @param aopMode the selected runtime enforcement
+	 * @throws SecurityException naming the class and the method it reaches
+	 */
+	public void requireObservableUnderAspectJ(@Nonnull AOPMode aopMode) {
+		if (aopMode != AOPMode.ASPECTJ || importedSupervisedClasses == null) {
+			return;
+		}
+		List<Path> referenceLists = areasDecidedAtRuntime.stream().map(JavaCreator::methodListOf).toList();
+		List<Path> constructorLists = areasDecidedAtRuntime.stream()
+				.filter(area -> area != JavaAOPTestCaseSupported.THREAD_CREATION).map(JavaCreator::methodListOf)
+				.toList();
+		JavaAspectJUnobservableAccessCheck.requireObservable(importedSupervisedClasses, exemptedClassNames,
+				referenceLists, constructorLists);
+	}
+
+	/**
+	 * Returns the list of checked methods of an area, as the ArchUnit rules read
+	 * it.
+	 *
+	 * @param area the area
+	 * @return the path of its method list
+	 */
+	@Nonnull
+	private static Path methodListOf(@Nonnull JavaAOPTestCaseSupported area) {
+		return switch (area) {
+		case FILESYSTEM_INTERACTION -> FileHandlerConstants.ARCHUNIT_FILESYSTEM_METHODS;
+		case NETWORK_CONNECTION -> FileHandlerConstants.ARCHUNIT_NETWORK_METHODS;
+		case COMMAND_EXECUTION -> FileHandlerConstants.ARCHUNIT_COMMAND_EXECUTION_METHODS;
+		case THREAD_CREATION -> FileHandlerConstants.ARCHUNIT_THREAD_MANIPULATION_METHODS;
+		};
+	}
+
+	/**
 	 * The outputs an empty scope is measured against: always the production output,
 	 * and the test output too when the scope lies in it. A production scope never
 	 * looks at the test output, which holds the instructor's tests even while the
@@ -487,6 +535,9 @@ public class JavaCreator implements Creator {
 		case COMMAND_EXECUTION -> resourceAccesses::regardingCommandExecutions;
 		case THREAD_CREATION -> resourceAccesses::regardingThreadCreations;
 		};
+		if (!resourceAccessSupplier.get().isEmpty()) {
+			areasDecidedAtRuntime.add(supported);
+		}
 		if (resourceAccessSupplier.get().isEmpty()) {
 			javaArchitectureTestCases.add(JavaArchitectureTestCase.builder().supervisedPackage(supervisedPackage)
 					.supervisedScopeWasDerived(supervisedScopeWasDerived)
@@ -612,6 +663,7 @@ public class JavaCreator implements Creator {
 			@Nonnull JavaClasses classes, @Nonnull Supplier<CallGraph> callGraphSupplier,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull Set<ClassPermission> allowedClasses,
 			@Nonnull ResourceAccesses resourceAccesses) {
+		areasDecidedAtRuntime = EnumSet.noneOf(JavaAOPTestCaseSupported.class);
 		javaAOPTestCases.addAll(JavaAOPTestCaseSupported
 				// The choice of using FILESYSTEM_INTERACTION was taken randomly for getting an
 				// instance of JavaAOPTestCaseSupported (otherwise we cannot operate over an
