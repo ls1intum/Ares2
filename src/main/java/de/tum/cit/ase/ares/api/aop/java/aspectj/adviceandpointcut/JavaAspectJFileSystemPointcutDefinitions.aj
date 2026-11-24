@@ -48,6 +48,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.nio.file.attribute.UserDefinedFileAttributeView+.write(..)) ||
                     call(* javax.imageio.ImageIO+.write(..)) ||
                     call(* javax.imageio.ImageIO+.createImageOutputStream(..)) ||
+                    call(javax.imageio.stream.FileImageOutputStream+.new(..)) ||
                     call(* javax.print.DocPrintJob+.print(..)) ||
                     call(* javax.sound.sampled.AudioSystem+.write(..)) ||
                     call(* javax.xml.transform.Transformer+.transform(..)) ||
@@ -179,6 +180,11 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     // move reads and deletes its source and writes its target, and
                     // checkCopyOrTransferSpecialCase checks each firing against its own side.
                     call(* java.nio.file.Files+.move(..)) ||
+                    // A secure directory stream opens, lists and moves files itself; its
+                    // move is registered under write and delete too, like Files.move.
+                    call(* java.nio.file.SecureDirectoryStream+.newByteChannel(..)) ||
+                    call(* java.nio.file.SecureDirectoryStream+.newDirectoryStream(..)) ||
+                    call(* java.nio.file.SecureDirectoryStream+.move(..)) ||
                     call(* java.nio.file.Files+.walk(..)) ||
                     call(* java.nio.file.Files+.walkFileTree(..)) ||
                     call(* java.nio.file.Files+.lines(..)) ||
@@ -250,6 +256,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.nio.file.Files+.newOutputStream(..)) ||
                     call(* java.nio.file.Files+.copy(..)) ||
                     call(* java.nio.file.Files+.move(..)) ||
+                    call(* java.nio.file.SecureDirectoryStream+.move(..)) ||
                     call(* java.nio.file.Files+.setAttribute(..)) ||
                     call(* java.nio.file.Files+.setLastModifiedTime(..)) ||
                     call(* java.nio.file.Files+.setOwner(..)) ||
@@ -280,6 +287,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             (call(* java.nio.file.Files+.delete(..)) ||
                     call(* java.nio.file.Files+.deleteIfExists(..)) ||
                     call(* java.nio.file.Files+.move(..)) ||
+                    call(* java.nio.file.SecureDirectoryStream+.move(..)) ||
                     call(* java.nio.file.SecureDirectoryStream+.deleteFile(..)) ||
                     call(* java.nio.file.SecureDirectoryStream+.deleteDirectory(..)));
 
@@ -315,12 +323,9 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
     // Note: FileChannel.map is intentionally NOT included here. It's in fileChannelReadMethods,
     // and the actual operation is determined by the MapMode parameter. MapMode.READ_ONLY does
     // not modify the file. The deriveActionChecks() method handles semantic classification.
-    // Note: FileChannel.transferFrom was previously not intercepted by either backend at
-    // all (I-114/TD-063). Its receiver (the channel being written TO) is checked as
-    // OVERWRITE here; unlike transferTo it is not also registered in
-    // fileChannelReadMethods, since its src argument is itself a channel and is not
-    // resolvable to a checkable path with the existing machinery - see
-    // checkCopyOrTransferSpecialCase's class-level Javadoc.
+    // Note: FileChannel.transferFrom fires here only. That one firing checks its
+    // receiver for writing and its source channel, a file for reading or a network
+    // peer for receiving - see checkTransferRole.
     pointcut fileChannelWriteMethods():
             (call(* java.nio.channels.AsynchronousFileChannel+.write(..)) ||
                     call(* java.nio.channels.AsynchronousFileChannel+.truncate(..)) ||
@@ -357,7 +362,9 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.nio.file.spi.FileSystemProvider+.move(..)));
 
     pointcut fileSystemProviderCreateMethods():
-            call(* java.nio.file.spi.FileSystemProvider+.createDirectory(..));
+            (call(* java.nio.file.spi.FileSystemProvider+.createDirectory(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.createLink(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.createSymbolicLink(..)));
 
     pointcut fileSystemProviderWriteMethods():
             (call(* java.nio.file.spi.FileSystemProvider+.copy(..)) ||
@@ -369,6 +376,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
 
     pointcut fileSystemProviderDeleteMethods():
             (call(* java.nio.file.spi.FileSystemProvider+.delete(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.deleteIfExists(..)) ||
                     call(* java.nio.file.spi.FileSystemProvider+.move(..)));
 
     pointcut processBuilderRedirectReadMethods():

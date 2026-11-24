@@ -53,5 +53,7 @@ regardingTheSupervisedCode:
       - importTheFollowingPackage: "java.nio.file"
       - importTheFollowingPackage: "java.nio.file.spi"
       - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "javax.imageio"
+      - importTheFollowingPackage: "javax.imageio.stream"
     regardingTimeouts:
       - timeout: 3000

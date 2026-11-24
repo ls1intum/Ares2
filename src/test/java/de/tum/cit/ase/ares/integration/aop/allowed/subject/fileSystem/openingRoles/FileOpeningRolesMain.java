@@ -8,11 +8,15 @@ import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.CopyOption;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SecureDirectoryStream;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.spi.FileSystemProvider;
@@ -267,5 +271,127 @@ public final class FileOpeningRolesMain {
 		try (InputStream input = Files.newInputStream(file, StandardOpenOption.DELETE_ON_CLOSE)) {
 			return input.read();
 		}
+	}
+
+	/**
+	 * Creates a symbolic link through the provider.
+	 *
+	 * @param link   the link to create
+	 * @param target what it points to
+	 * @throws IOException if creating fails
+	 */
+	public static void providerSymbolicLink(Path link, Path target) throws IOException {
+		provider(link).createSymbolicLink(link, target);
+	}
+
+	/**
+	 * Creates a hard link through the provider.
+	 *
+	 * @param link     the link to create
+	 * @param existing the file it names
+	 * @throws IOException if creating fails
+	 */
+	public static void providerHardLink(Path link, Path existing) throws IOException {
+		provider(link).createLink(link, existing);
+	}
+
+	/**
+	 * Deletes a file through the provider's {@code deleteIfExists}.
+	 *
+	 * @param file the file to delete
+	 * @return whether it existed
+	 * @throws IOException if deleting fails
+	 */
+	public static boolean providerDeleteIfExists(Path file) throws IOException {
+		return provider(file).deleteIfExists(file);
+	}
+
+	/**
+	 * Opens a folder as a secure directory stream.
+	 *
+	 * @param folder the folder
+	 * @return the stream
+	 * @throws IOException if opening fails
+	 */
+	@SuppressWarnings("unchecked")
+	private static SecureDirectoryStream<Path> secureDirectory(Path folder) throws IOException {
+		DirectoryStream<Path> stream = Files.newDirectoryStream(folder);
+		if (stream instanceof SecureDirectoryStream<?> secure) {
+			return (SecureDirectoryStream<Path>) secure;
+		}
+		stream.close();
+		throw new UnsupportedOperationException("no secure directory stream");
+	}
+
+	/**
+	 * Reads the first byte of a file through a secure directory stream on a folder.
+	 *
+	 * @param folder the folder the stream is opened on
+	 * @param file   the file, as given to the stream
+	 * @return the byte
+	 * @throws IOException if reading fails
+	 */
+	public static int secureDirectoryRead(Path folder, Path file) throws IOException {
+		try (SecureDirectoryStream<Path> directory = secureDirectory(folder);
+				SeekableByteChannel channel = directory.newByteChannel(file, Set.of(StandardOpenOption.READ))) {
+			return readOneByte(channel);
+		}
+	}
+
+	/**
+	 * Moves a file through a secure directory stream on a folder.
+	 *
+	 * @param folder the folder the stream is opened on
+	 * @param source the file to move
+	 * @param target where it goes
+	 * @throws IOException if moving fails
+	 */
+	public static void secureDirectoryMove(Path folder, Path source, Path target) throws IOException {
+		try (SecureDirectoryStream<Path> directory = secureDirectory(folder)) {
+			directory.move(source, directory, target);
+		}
+	}
+
+	/**
+	 * Counts the entries of a folder listed through a secure directory stream.
+	 *
+	 * @param folder the folder the stream is opened on
+	 * @param listed the folder to list, as given to the stream
+	 * @return the number of entries
+	 * @throws IOException if listing fails
+	 */
+	public static int secureDirectoryList(Path folder, Path listed) throws IOException {
+		int count = 0;
+		try (SecureDirectoryStream<Path> directory = secureDirectory(folder);
+				SecureDirectoryStream<Path> inner = directory.newDirectoryStream(listed)) {
+			for (Path ignored : inner) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	/**
+	 * Moves the bytes of one channel to another with {@code transferTo}.
+	 *
+	 * @param source the file channel read from
+	 * @param target the channel written to
+	 * @return the number of bytes moved
+	 * @throws IOException if moving fails
+	 */
+	public static long transferTo(FileChannel source, WritableByteChannel target) throws IOException {
+		return source.transferTo(0, Long.MAX_VALUE, target);
+	}
+
+	/**
+	 * Moves the bytes of one channel to another with {@code transferFrom}.
+	 *
+	 * @param target the file channel written to
+	 * @param source the channel read from
+	 * @return the number of bytes moved
+	 * @throws IOException if moving fails
+	 */
+	public static long transferFrom(FileChannel target, ReadableByteChannel source) throws IOException {
+		return target.transferFrom(source, 0, Long.MAX_VALUE);
 	}
 }

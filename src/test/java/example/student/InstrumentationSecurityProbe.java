@@ -244,7 +244,24 @@ public final class InstrumentationSecurityProbe {
 	 */
 	public static void checkFileChannelTransferToReadLeg(FileChannel sourceChannel, long position, long count,
 			Object target) {
-		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read", "java.nio.channels.FileChannel",
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read", "sun.nio.ch.FileChannelImpl",
+				"transferTo", "(JJLjava/nio/channels/WritableByteChannel;)J", null,
+				new Object[] { position, count, target }, sourceChannel);
+	}
+
+	/**
+	 * Simulates the "overwrite" leg of a woven {@code FileChannel.transferTo(...)}
+	 * call: the target channel is the one being written TO. The class is the one
+	 * the agent reports, the JDK's channel implementation.
+	 *
+	 * @param sourceChannel the channel read from
+	 * @param position      where reading starts
+	 * @param count         how many bytes are moved
+	 * @param target        the channel written to
+	 */
+	public static void checkFileChannelTransferToOverwriteLeg(FileChannel sourceChannel, long position, long count,
+			Object target) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("overwrite", "sun.nio.ch.FileChannelImpl",
 				"transferTo", "(JJLjava/nio/channels/WritableByteChannel;)J", null,
 				new Object[] { position, count, target }, sourceChannel);
 	}
@@ -257,8 +274,8 @@ public final class InstrumentationSecurityProbe {
 	 */
 	public static void checkFileChannelTransferFromOverwriteLeg(FileChannel destinationChannel, Object source,
 			long position, long count) {
-		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("overwrite",
-				"java.nio.channels.FileChannel", "transferFrom", "(Ljava/nio/channels/ReadableByteChannel;JJ)J", null,
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("overwrite", "sun.nio.ch.FileChannelImpl",
+				"transferFrom", "(Ljava/nio/channels/ReadableByteChannel;JJ)J", null,
 				new Object[] { source, position, count }, destinationChannel);
 	}
 
