@@ -7,21 +7,31 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.SecureDirectoryStream;
+import java.nio.file.StandardOpenOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.openingRoles.FileOpeningRolesMain;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.openingRoles.imageOutput.ImageOutputMain;
 
 /**
  * Checks that a call needs the permission for each thing it really does to each
@@ -83,6 +93,12 @@ class FileOpeningRolesTest {
 	private static final String WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/openingRoles";
 
 	/**
+	 * Where the supervised image-output subject's classes are, kept apart so its
+	 * use of {@code javax.imageio} is analysed on its own.
+	 */
+	private static final String IMAGE_WITHIN_PATH = WITHIN_PATH + "/imageOutput";
+
+	/**
 	 * The folder holding the policies of all four modes.
 	 */
 	private static final String POLICY_BASE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/";
@@ -107,6 +123,21 @@ class FileOpeningRolesTest {
 	 * The policy for WalaInstrumentation.
 	 */
 	private static final String WALAINSTRUMENTATION = POLICY_BASE + "wala/instrumentation/PolicyFileOpeningRoles.yaml";
+
+	/**
+	 * Starts the JDK's image-stream clean-up thread as the test class. The JDK
+	 * starts it the first time any file image stream is made, which would otherwise
+	 * charge the subject with creating a thread.
+	 *
+	 * @throws IOException if the warm-up file cannot be written
+	 */
+	@BeforeAll
+	static void startImageStreamCleanUpThread() throws IOException {
+		Files.createDirectories(FOLDER);
+		Path warmUp = FOLDER.resolve("warm-up.img");
+		new javax.imageio.stream.FileImageOutputStream(warmUp.toFile()).close();
+		Files.delete(warmUp);
+	}
 
 	/**
 	 * Gives every test the subfolders, empty.
@@ -217,11 +248,150 @@ class FileOpeningRolesTest {
 	}
 
 	/**
+	 * Lists the calls the policy allows.
+	 *
+	 * @return their names
+	 */
+	static Stream<String> allowedScenarios() {
+		return Stream.of("providerRead", "providerByteChannelRead", "providerFileChannelRead", "providerWriteNew",
+				"providerWriteExisting", "providerByteChannelWrite", "randomAccessFileAll",
+				"randomAccessFileNewWithReadCreate", "randomAccessFileExistingWithReadOverwrite",
+				"randomAccessFileNewWithoutRead", "filesMove", "filesMoveReplace", "filesMoveNewTargetWithoutOverwrite",
+				"filesMoveReplaceWithoutCreate", "providerMove", "providerCopy", "printWriterCharset",
+				"printWriterFileCharset", "formatterCharset", "formatterFileCharset", "formatterWithoutFile",
+				"providerSymbolicLink", "providerHardLink", "providerDeleteIfExists", "secureDirectoryReadAbsolute",
+				"secureDirectoryMove", "secureDirectoryList", "transferToFile", "transferFromFile");
+	}
+
+	/**
+	 * Lists the calls the policy forbids.
+	 *
+	 * @return their names
+	 */
+	static Stream<String> refusedScenarios() {
+		return Stream.of("providerReadUnreadable", "providerByteChannelReadUnreadable",
+				"providerFileChannelReadUnreadable", "providerWriteNewReadOnly", "providerWriteExistingReadOnly",
+				"providerByteChannelWriteReadOnly", "randomAccessFileUnreadable", "randomAccessFileReadOnly",
+				"randomAccessFileNewWithoutCreate", "randomAccessFileExistingWithoutOverwrite",
+				"filesMoveUnreadableSource", "filesMoveWithoutDelete", "filesMoveNewTargetWithoutCreate",
+				"filesMoveReplaceWithoutOverwrite", "providerMoveUnreadableSource", "providerCopyUnreadableSource",
+				"printWriterCharsetReadOnly", "formatterCharsetReadOnly", "newInputStreamDeleteOnCloseUnreadable",
+				"providerSymbolicLinkReadOnly", "providerHardLinkReadOnly", "providerDeleteIfExistsReadOnly",
+				"secureDirectoryReadUnreadable", "secureDirectoryReadRelative", "secureDirectoryMoveUnreadableSource",
+				"secureDirectoryListUnreadable", "transferToUnreadableSource", "transferToReadOnlyTarget",
+				"transferToDatagram", "transferFromUnreadableSource", "transferFromDatagram");
+	}
+
+	/**
+	 * Lists the image-output calls the policy allows.
+	 *
+	 * @return their names
+	 */
+	static Stream<String> allowedImageScenarios() {
+		return Stream.of("createImageOutputStreamNew", "fileImageOutputStreamNew");
+	}
+
+	/**
+	 * Lists the image-output calls the policy forbids.
+	 *
+	 * @return their names
+	 */
+	static Stream<String> refusedImageScenarios() {
+		return Stream.of("createImageOutputStreamExistingNoRead", "fileImageOutputStreamExistingNoRead");
+	}
+
+	/**
+	 * Opens a file for reading, as the test class, so the subject only moves its
+	 * bytes.
+	 *
+	 * @param file the file
+	 * @return the channel
+	 * @throws IOException if opening fails
+	 */
+	private static FileChannel openForReading(Path file) throws IOException {
+		return FileChannel.open(file, StandardOpenOption.READ);
+	}
+
+	/**
+	 * Opens a file for writing, creating it if it is missing, as the test class.
+	 *
+	 * @param file the file
+	 * @return the channel
+	 * @throws IOException if opening fails
+	 */
+	private static FileChannel openForWriting(Path file) throws IOException {
+		return FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+	}
+
+	/**
+	 * Opens a datagram channel connected to an address reserved for documentation,
+	 * as the test class. Connecting a datagram channel sends nothing, and it does
+	 * not block, so a missed refusal cannot hang the test.
+	 *
+	 * @return the channel
+	 * @throws IOException if opening fails
+	 */
+	@SuppressWarnings("PMD.AvoidUsingHardCodedIP")
+	private static DatagramChannel connectedDatagram() throws IOException {
+		DatagramChannel channel = DatagramChannel.open();
+		channel.connect(new InetSocketAddress("203.0.113.1", 9));
+		channel.configureBlocking(false);
+		return channel;
+	}
+
+	/**
+	 * Moves a file's bytes with the subject's {@code transferTo}, both channels
+	 * opened by the test class.
+	 *
+	 * @param source the file read from
+	 * @param target the file written to, created if it is missing
+	 * @throws IOException if moving fails
+	 */
+	private static void transferToFile(Path source, Path target) throws IOException {
+		try (FileChannel in = openForReading(source); FileChannel out = openForWriting(target)) {
+			FileOpeningRolesMain.transferTo(in, out);
+		}
+	}
+
+	/**
+	 * Moves a file's bytes with the subject's {@code transferFrom}, both channels
+	 * opened by the test class.
+	 *
+	 * @param source the file read from
+	 * @param target the file written to, created if it is missing
+	 * @throws IOException if moving fails
+	 */
+	private static void transferFromFile(Path source, Path target) throws IOException {
+		try (FileChannel in = openForReading(source); FileChannel out = openForWriting(target)) {
+			FileOpeningRolesMain.transferFrom(out, in);
+		}
+	}
+
+	/**
+	 * Skips a secure-directory scenario where the JDK offers no secure directory
+	 * stream, as JDK 17 on macOS does not. Linux and newer JDKs offer one.
+	 *
+	 * @param scenario the name of the call
+	 */
+	private static void assumeSecureDirectoryStreamsFor(String scenario) {
+		if (!scenario.startsWith("secureDirectory")) {
+			return;
+		}
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(FOLDER)) {
+			Assumptions.assumeTrue(stream instanceof SecureDirectoryStream,
+					"This JDK offers no secure directory stream on this system.");
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	/**
 	 * Runs one call the policy allows and checks its effect.
 	 *
 	 * @param scenario the name of the call
 	 */
 	private static void runAllowed(String scenario) {
+		assumeSecureDirectoryStreamsFor(scenario);
 		switch (scenario) {
 		case "providerRead" -> assertEquals('A',
 				assertDoesNotThrow(() -> FileOpeningRolesMain.providerRead(existing(READ_ONLY.resolve("in.txt")))));
@@ -287,6 +457,49 @@ class FileOpeningRolesTest {
 				ALL.resolve("new.txt"));
 		case "formatterWithoutFile" -> assertEquals(NEW_CONTENT,
 				assertDoesNotThrow(() -> FileOpeningRolesMain.formatterWithoutFile(NEW_CONTENT)));
+		case "randomAccessFileNewWithoutRead" -> assertWritten(
+				() -> FileOpeningRolesMain.randomAccessFileWrite(WRITE_NO_READ.resolve("new.txt"), NEW_CONTENT),
+				WRITE_NO_READ.resolve("new.txt"));
+		case "providerSymbolicLink" -> {
+			Path target = existing(READ_CREATE.resolve("target.txt")).toAbsolutePath();
+			assertDoesNotThrow(() -> FileOpeningRolesMain.providerSymbolicLink(READ_CREATE.resolve("link"), target));
+			assertTrue(Files.isSymbolicLink(READ_CREATE.resolve("link")));
+		}
+		case "providerHardLink" -> {
+			Path existingFile = existing(WRITE_NO_READ.resolve("old.txt"));
+			assertDoesNotThrow(
+					() -> FileOpeningRolesMain.providerHardLink(WRITE_NO_READ.resolve("link.txt"), existingFile));
+			assertTrue(Files.exists(WRITE_NO_READ.resolve("link.txt")));
+		}
+		case "providerDeleteIfExists" -> {
+			Path file = existing(WRITE_NO_READ.resolve("old.txt"));
+			assertTrue(assertDoesNotThrow(() -> FileOpeningRolesMain.providerDeleteIfExists(file)));
+			assertFalse(Files.exists(file));
+		}
+		case "secureDirectoryReadAbsolute" -> {
+			Path file = existing(READ_ONLY.resolve("in.txt")).toAbsolutePath();
+			assertEquals('A', assertDoesNotThrow(() -> FileOpeningRolesMain.secureDirectoryRead(READ_ONLY, file)));
+		}
+		case "secureDirectoryMove" -> {
+			Path source = existing(ALL.resolve("src.txt"));
+			assertMoved(() -> FileOpeningRolesMain.secureDirectoryMove(ALL, source.toAbsolutePath(),
+					ALL.resolve("dst.txt").toAbsolutePath()), source, ALL.resolve("dst.txt"));
+		}
+		case "secureDirectoryList" -> {
+			existing(READ_ONLY.resolve("in.txt"));
+			assertEquals(1, assertDoesNotThrow(
+					() -> FileOpeningRolesMain.secureDirectoryList(ALL, READ_ONLY.toAbsolutePath())));
+		}
+		case "transferToFile" -> {
+			Path source = existing(READ_ONLY.resolve("in.txt"));
+			assertDoesNotThrow(() -> transferToFile(source, WRITE_NO_READ.resolve("new.txt")));
+			assertEquals(OLD_CONTENT, content(WRITE_NO_READ.resolve("new.txt")));
+		}
+		case "transferFromFile" -> {
+			Path source = existing(READ_ONLY.resolve("in.txt"));
+			assertDoesNotThrow(() -> transferFromFile(source, WRITE_NO_READ.resolve("new.txt")));
+			assertEquals(OLD_CONTENT, content(WRITE_NO_READ.resolve("new.txt")));
+		}
 		default -> throw new IllegalArgumentException(scenario);
 		}
 	}
@@ -297,6 +510,7 @@ class FileOpeningRolesTest {
 	 * @param scenario the name of the call
 	 */
 	private static void runRefused(String scenario) {
+		assumeSecureDirectoryStreamsFor(scenario);
 		switch (scenario) {
 		case "providerReadUnreadable" -> assertRefusedUnchanged(
 				() -> FileOpeningRolesMain.providerRead(existing(WRITE_NO_READ.resolve("secret.txt"))),
@@ -361,6 +575,68 @@ class FileOpeningRolesTest {
 		case "formatterCharsetReadOnly" -> assertRefusedNotCreated(
 				() -> FileOpeningRolesMain.formatterCharset(READ_ONLY.resolve("new.txt"), NEW_CONTENT),
 				READ_ONLY.resolve("new.txt"));
+		case "providerSymbolicLinkReadOnly" -> {
+			Path target = existing(READ_ONLY.resolve("target.txt")).toAbsolutePath();
+			assertThrows(SecurityException.class,
+					() -> FileOpeningRolesMain.providerSymbolicLink(READ_ONLY.resolve("link"), target));
+			assertFalse(Files.exists(READ_ONLY.resolve("link"), LinkOption.NOFOLLOW_LINKS));
+		}
+		case "providerHardLinkReadOnly" -> {
+			Path existingFile = existing(READ_ONLY.resolve("old.txt"));
+			assertRefusedNotCreated(
+					() -> FileOpeningRolesMain.providerHardLink(READ_ONLY.resolve("link.txt"), existingFile),
+					READ_ONLY.resolve("link.txt"));
+		}
+		case "providerDeleteIfExistsReadOnly" -> assertRefusedUnchanged(
+				() -> FileOpeningRolesMain.providerDeleteIfExists(existing(READ_ONLY.resolve("old.txt"))),
+				READ_ONLY.resolve("old.txt"));
+		case "secureDirectoryReadUnreadable" -> {
+			Path file = existing(WRITE_NO_READ.resolve("secret.txt")).toAbsolutePath();
+			assertThrows(SecurityException.class, () -> FileOpeningRolesMain.secureDirectoryRead(ALL, file));
+		}
+		case "secureDirectoryReadRelative" -> {
+			existing(READ_ONLY.resolve("in.txt"));
+			assertThrows(SecurityException.class,
+					() -> FileOpeningRolesMain.secureDirectoryRead(READ_ONLY, Path.of("in.txt")));
+		}
+		case "secureDirectoryMoveUnreadableSource" -> {
+			Path source = existing(WRITE_NO_READ.resolve("secret.txt"));
+			assertRefusedKeepsBoth(
+					() -> FileOpeningRolesMain.secureDirectoryMove(ALL, source.toAbsolutePath(),
+							WRITE_NO_READ.resolve("moved.txt").toAbsolutePath()),
+					source, WRITE_NO_READ.resolve("moved.txt"));
+		}
+		case "secureDirectoryListUnreadable" -> assertThrows(SecurityException.class,
+				() -> FileOpeningRolesMain.secureDirectoryList(ALL, WRITE_NO_READ.toAbsolutePath()));
+		case "transferToUnreadableSource" -> {
+			Path source = existing(WRITE_NO_READ.resolve("secret.txt"));
+			assertThrows(SecurityException.class, () -> transferToFile(source, ALL.resolve("new.txt")));
+			assertEquals("", content(ALL.resolve("new.txt")));
+		}
+		case "transferToReadOnlyTarget" -> {
+			Path source = existing(READ_ONLY.resolve("in.txt"));
+			Path target = existing(READ_ONLY.resolve("old.txt"));
+			assertRefusedUnchanged(() -> transferToFile(source, target), target);
+		}
+		case "transferToDatagram" -> {
+			Path source = existing(READ_ONLY.resolve("in.txt"));
+			assertThrows(SecurityException.class, () -> {
+				try (FileChannel in = openForReading(source); DatagramChannel out = connectedDatagram()) {
+					FileOpeningRolesMain.transferTo(in, out);
+				}
+			});
+		}
+		case "transferFromUnreadableSource" -> {
+			Path source = existing(WRITE_NO_READ.resolve("secret.txt"));
+			assertThrows(SecurityException.class, () -> transferFromFile(source, ALL.resolve("new.txt")));
+			assertEquals("", content(ALL.resolve("new.txt")));
+		}
+		case "transferFromDatagram" -> assertThrows(SecurityException.class, () -> {
+			try (DatagramChannel in = connectedDatagram();
+					FileChannel out = openForWriting(WRITE_NO_READ.resolve("new.txt"))) {
+				FileOpeningRolesMain.transferFrom(out, in);
+			}
+		});
 		case "newInputStreamDeleteOnCloseUnreadable" -> assertRefusedUnchanged(
 				() -> FileOpeningRolesMain.newInputStreamDeleteOnClose(existing(WRITE_NO_READ.resolve("secret.txt"))),
 				WRITE_NO_READ.resolve("secret.txt"));
@@ -375,12 +651,7 @@ class FileOpeningRolesTest {
 	 */
 	@Public
 	@ParameterizedTest
-	@ValueSource(strings = { "providerRead", "providerByteChannelRead", "providerFileChannelRead", "providerWriteNew",
-			"providerWriteExisting", "providerByteChannelWrite", "randomAccessFileAll",
-			"randomAccessFileNewWithReadCreate", "randomAccessFileExistingWithReadOverwrite", "filesMove",
-			"filesMoveReplace", "filesMoveNewTargetWithoutOverwrite", "filesMoveReplaceWithoutCreate", "providerMove",
-			"providerCopy", "printWriterCharset", "printWriterFileCharset", "formatterCharset", "formatterFileCharset",
-			"formatterWithoutFile" })
+	@MethodSource("allowedScenarios")
 	@Policy(value = ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
 	void allowedMavenArchunitAspectJ(String scenario) {
 		runAllowed(scenario);
@@ -393,13 +664,7 @@ class FileOpeningRolesTest {
 	 */
 	@Public
 	@ParameterizedTest
-	@ValueSource(strings = { "providerReadUnreadable", "providerByteChannelReadUnreadable",
-			"providerFileChannelReadUnreadable", "providerWriteNewReadOnly", "providerWriteExistingReadOnly",
-			"providerByteChannelWriteReadOnly", "randomAccessFileUnreadable", "randomAccessFileReadOnly",
-			"randomAccessFileNewWithoutCreate", "randomAccessFileExistingWithoutOverwrite", "filesMoveUnreadableSource",
-			"filesMoveWithoutDelete", "filesMoveNewTargetWithoutCreate", "filesMoveReplaceWithoutOverwrite",
-			"providerMoveUnreadableSource", "providerCopyUnreadableSource", "printWriterCharsetReadOnly",
-			"formatterCharsetReadOnly", "newInputStreamDeleteOnCloseUnreadable" })
+	@MethodSource("refusedScenarios")
 	@Policy(value = ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
 	void refusedMavenArchunitAspectJ(String scenario) {
 		runRefused(scenario);
@@ -412,12 +677,7 @@ class FileOpeningRolesTest {
 	 */
 	@Public
 	@ParameterizedTest
-	@ValueSource(strings = { "providerRead", "providerByteChannelRead", "providerFileChannelRead", "providerWriteNew",
-			"providerWriteExisting", "providerByteChannelWrite", "randomAccessFileAll",
-			"randomAccessFileNewWithReadCreate", "randomAccessFileExistingWithReadOverwrite", "filesMove",
-			"filesMoveReplace", "filesMoveNewTargetWithoutOverwrite", "filesMoveReplaceWithoutCreate", "providerMove",
-			"providerCopy", "printWriterCharset", "printWriterFileCharset", "formatterCharset", "formatterFileCharset",
-			"formatterWithoutFile" })
+	@MethodSource("allowedScenarios")
 	@Policy(value = ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
 	void allowedMavenArchunitInstrumentation(String scenario) {
 		runAllowed(scenario);
@@ -430,13 +690,7 @@ class FileOpeningRolesTest {
 	 */
 	@Public
 	@ParameterizedTest
-	@ValueSource(strings = { "providerReadUnreadable", "providerByteChannelReadUnreadable",
-			"providerFileChannelReadUnreadable", "providerWriteNewReadOnly", "providerWriteExistingReadOnly",
-			"providerByteChannelWriteReadOnly", "randomAccessFileUnreadable", "randomAccessFileReadOnly",
-			"randomAccessFileNewWithoutCreate", "randomAccessFileExistingWithoutOverwrite", "filesMoveUnreadableSource",
-			"filesMoveWithoutDelete", "filesMoveNewTargetWithoutCreate", "filesMoveReplaceWithoutOverwrite",
-			"providerMoveUnreadableSource", "providerCopyUnreadableSource", "printWriterCharsetReadOnly",
-			"formatterCharsetReadOnly", "newInputStreamDeleteOnCloseUnreadable" })
+	@MethodSource("refusedScenarios")
 	@Policy(value = ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
 	void refusedMavenArchunitInstrumentation(String scenario) {
 		runRefused(scenario);
@@ -449,12 +703,7 @@ class FileOpeningRolesTest {
 	 */
 	@Public
 	@ParameterizedTest
-	@ValueSource(strings = { "providerRead", "providerByteChannelRead", "providerFileChannelRead", "providerWriteNew",
-			"providerWriteExisting", "providerByteChannelWrite", "randomAccessFileAll",
-			"randomAccessFileNewWithReadCreate", "randomAccessFileExistingWithReadOverwrite", "filesMove",
-			"filesMoveReplace", "filesMoveNewTargetWithoutOverwrite", "filesMoveReplaceWithoutCreate", "providerMove",
-			"providerCopy", "printWriterCharset", "printWriterFileCharset", "formatterCharset", "formatterFileCharset",
-			"formatterWithoutFile" })
+	@MethodSource("allowedScenarios")
 	@Policy(value = WALAASPECTJ, withinPath = WITHIN_PATH)
 	void allowedMavenWalaAspectJ(String scenario) {
 		runAllowed(scenario);
@@ -467,13 +716,7 @@ class FileOpeningRolesTest {
 	 */
 	@Public
 	@ParameterizedTest
-	@ValueSource(strings = { "providerReadUnreadable", "providerByteChannelReadUnreadable",
-			"providerFileChannelReadUnreadable", "providerWriteNewReadOnly", "providerWriteExistingReadOnly",
-			"providerByteChannelWriteReadOnly", "randomAccessFileUnreadable", "randomAccessFileReadOnly",
-			"randomAccessFileNewWithoutCreate", "randomAccessFileExistingWithoutOverwrite", "filesMoveUnreadableSource",
-			"filesMoveWithoutDelete", "filesMoveNewTargetWithoutCreate", "filesMoveReplaceWithoutOverwrite",
-			"providerMoveUnreadableSource", "providerCopyUnreadableSource", "printWriterCharsetReadOnly",
-			"formatterCharsetReadOnly", "newInputStreamDeleteOnCloseUnreadable" })
+	@MethodSource("refusedScenarios")
 	@Policy(value = WALAASPECTJ, withinPath = WITHIN_PATH)
 	void refusedMavenWalaAspectJ(String scenario) {
 		runRefused(scenario);
@@ -486,12 +729,7 @@ class FileOpeningRolesTest {
 	 */
 	@Public
 	@ParameterizedTest
-	@ValueSource(strings = { "providerRead", "providerByteChannelRead", "providerFileChannelRead", "providerWriteNew",
-			"providerWriteExisting", "providerByteChannelWrite", "randomAccessFileAll",
-			"randomAccessFileNewWithReadCreate", "randomAccessFileExistingWithReadOverwrite", "filesMove",
-			"filesMoveReplace", "filesMoveNewTargetWithoutOverwrite", "filesMoveReplaceWithoutCreate", "providerMove",
-			"providerCopy", "printWriterCharset", "printWriterFileCharset", "formatterCharset", "formatterFileCharset",
-			"formatterWithoutFile" })
+	@MethodSource("allowedScenarios")
 	@Policy(value = WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
 	void allowedMavenWalaInstrumentation(String scenario) {
 		runAllowed(scenario);
@@ -504,15 +742,141 @@ class FileOpeningRolesTest {
 	 */
 	@Public
 	@ParameterizedTest
-	@ValueSource(strings = { "providerReadUnreadable", "providerByteChannelReadUnreadable",
-			"providerFileChannelReadUnreadable", "providerWriteNewReadOnly", "providerWriteExistingReadOnly",
-			"providerByteChannelWriteReadOnly", "randomAccessFileUnreadable", "randomAccessFileReadOnly",
-			"randomAccessFileNewWithoutCreate", "randomAccessFileExistingWithoutOverwrite", "filesMoveUnreadableSource",
-			"filesMoveWithoutDelete", "filesMoveNewTargetWithoutCreate", "filesMoveReplaceWithoutOverwrite",
-			"providerMoveUnreadableSource", "providerCopyUnreadableSource", "printWriterCharsetReadOnly",
-			"formatterCharsetReadOnly", "newInputStreamDeleteOnCloseUnreadable" })
+	@MethodSource("refusedScenarios")
 	@Policy(value = WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
 	void refusedMavenWalaInstrumentation(String scenario) {
 		runRefused(scenario);
+	}
+
+	/**
+	 * Runs one image-output call and checks its effect: a new file in the folder
+	 * without read is allowed, an existing one there is refused, since the stream
+	 * could read it.
+	 *
+	 * @param scenario the name of the call
+	 */
+	private static void runImage(String scenario) {
+		Path newFile = WRITE_NO_READ.resolve("new.img");
+		Path oldFile = WRITE_NO_READ.resolve("old.txt");
+		switch (scenario) {
+		case "createImageOutputStreamNew" -> {
+			assertDoesNotThrow(() -> ImageOutputMain.createImageOutputStream(newFile.toFile()));
+			assertEquals("n", content(newFile));
+		}
+		case "fileImageOutputStreamNew" -> {
+			assertDoesNotThrow(() -> ImageOutputMain.fileImageOutputStream(newFile.toFile()));
+			assertEquals("n", content(newFile));
+		}
+		case "createImageOutputStreamExistingNoRead" -> assertRefusedUnchanged(
+				() -> ImageOutputMain.createImageOutputStream(existing(oldFile).toFile()), oldFile);
+		case "fileImageOutputStreamExistingNoRead" -> assertRefusedUnchanged(
+				() -> ImageOutputMain.fileImageOutputStream(existing(oldFile).toFile()), oldFile);
+		default -> throw new IllegalArgumentException(scenario);
+		}
+	}
+
+	/**
+	 * ArchunitAspectJ: each image-output call the policy allows works.
+	 *
+	 * @param scenario the call
+	 */
+	@Public
+	@ParameterizedTest
+	@MethodSource("allowedImageScenarios")
+	@Policy(value = ARCHUNITASPECTJ, withinPath = IMAGE_WITHIN_PATH)
+	void allowedImageMavenArchunitAspectJ(String scenario) {
+		runImage(scenario);
+	}
+
+	/**
+	 * ArchunitAspectJ: each image-output call the policy forbids is refused.
+	 *
+	 * @param scenario the call
+	 */
+	@Public
+	@ParameterizedTest
+	@MethodSource("refusedImageScenarios")
+	@Policy(value = ARCHUNITASPECTJ, withinPath = IMAGE_WITHIN_PATH)
+	void refusedImageMavenArchunitAspectJ(String scenario) {
+		runImage(scenario);
+	}
+
+	/**
+	 * ArchunitInstrumentation: each image-output call the policy allows works.
+	 *
+	 * @param scenario the call
+	 */
+	@Public
+	@ParameterizedTest
+	@MethodSource("allowedImageScenarios")
+	@Policy(value = ARCHUNITINSTRUMENTATION, withinPath = IMAGE_WITHIN_PATH)
+	void allowedImageMavenArchunitInstrumentation(String scenario) {
+		runImage(scenario);
+	}
+
+	/**
+	 * ArchunitInstrumentation: each image-output call the policy forbids is
+	 * refused.
+	 *
+	 * @param scenario the call
+	 */
+	@Public
+	@ParameterizedTest
+	@MethodSource("refusedImageScenarios")
+	@Policy(value = ARCHUNITINSTRUMENTATION, withinPath = IMAGE_WITHIN_PATH)
+	void refusedImageMavenArchunitInstrumentation(String scenario) {
+		runImage(scenario);
+	}
+
+	/**
+	 * WalaAspectJ: each image-output call the policy allows works.
+	 *
+	 * @param scenario the call
+	 */
+	@Public
+	@ParameterizedTest
+	@MethodSource("allowedImageScenarios")
+	@Policy(value = WALAASPECTJ, withinPath = IMAGE_WITHIN_PATH)
+	void allowedImageMavenWalaAspectJ(String scenario) {
+		runImage(scenario);
+	}
+
+	/**
+	 * WalaAspectJ: each image-output call the policy forbids is refused.
+	 *
+	 * @param scenario the call
+	 */
+	@Public
+	@ParameterizedTest
+	@MethodSource("refusedImageScenarios")
+	@Policy(value = WALAASPECTJ, withinPath = IMAGE_WITHIN_PATH)
+	void refusedImageMavenWalaAspectJ(String scenario) {
+		runImage(scenario);
+	}
+
+	/**
+	 * WalaInstrumentation: each image-output call the policy allows works.
+	 *
+	 * @param scenario the call
+	 */
+	@Public
+	@ParameterizedTest
+	@MethodSource("allowedImageScenarios")
+	@Policy(value = WALAINSTRUMENTATION, withinPath = IMAGE_WITHIN_PATH)
+	void allowedImageMavenWalaInstrumentation(String scenario) {
+		runImage(scenario);
+	}
+
+	/**
+	 * WalaInstrumentation: each image-output call the policy forbids is refused.
+	 *
+	 * @param scenario the call
+	 */
+	@Public
+	@ParameterizedTest
+	@MethodSource("refusedImageScenarios")
+	@Policy(value = WALAINSTRUMENTATION, withinPath = IMAGE_WITHIN_PATH)
+	void refusedImageMavenWalaInstrumentation(String scenario) {
+		runImage(scenario);
 	}
 }
