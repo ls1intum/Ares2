@@ -1816,7 +1816,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			@Nullable
 			final String restrictedPackage = getValueFromSettings("restrictedPackage");
-			if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+			if (restrictedPackage == null || restrictedPackage.isEmpty() || isUncheckedOutsideASupervisedTest()) {
 				return;
 			}
 			if (isProjectSourcesFinderInProgress()) {
@@ -2131,7 +2131,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			@Nullable
 			String restrictedPackage = getValueFromSettings("restrictedPackage");
 			if (!"INSTRUMENTATION".equals(getValueFromSettings("aopMode")) || restrictedPackage == null
-					|| restrictedPackage.isEmpty() || isProjectSourcesFinderInProgress()) {
+					|| restrictedPackage.isEmpty() || isUncheckedOutsideASupervisedTest()
+					|| isProjectSourcesFinderInProgress()) {
 				return;
 			}
 			@Nullable

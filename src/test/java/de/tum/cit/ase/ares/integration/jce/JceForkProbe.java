@@ -115,7 +115,8 @@ public final class JceForkProbe {
 
 	/**
 	 * Verifies each Jupiter result and the settings copies after the whole
-	 * lifecycle.
+	 * lifecycle. A copy may keep its mode only as an ended test leaves it, with
+	 * this thread recorded as the one that ended it.
 	 *
 	 * @param bootstrapRequired whether the agent's bootstrap copy must exist, which
 	 *                          holds for every mode except AspectJ
@@ -155,7 +156,9 @@ public final class JceForkProbe {
 		for (Class<?> settings : JceRuntimeContract.settingsCopies("de.tum.cit.ase.ares", bootstrapRequired)) {
 			var mode = settings.getDeclaredField("aopMode");
 			mode.setAccessible(true);
-			if (mode.get(null) != null) {
+			var endedOn = settings.getDeclaredField("supervisionEndedOnThread");
+			endedOn.setAccessible(true);
+			if (mode.get(null) != null && endedOn.get(null) != Thread.currentThread()) {
 				throw new AssertionError("Jupiter left an active policy after the lifecycle");
 			}
 		}
