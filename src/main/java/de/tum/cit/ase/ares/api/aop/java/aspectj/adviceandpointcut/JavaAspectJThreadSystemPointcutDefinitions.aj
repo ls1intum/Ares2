@@ -50,7 +50,10 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             call(* java.lang.Thread$Builder+.start(..)) ||
             call(* java.lang.Thread$Builder$OfPlatform+.start(..)) ||
             call(* java.util.concurrent.SubmissionPublisher+.submit(..)) ||
-            call(* java.util.concurrent.SubmissionPublisher+.offer(..))
+            call(* java.util.concurrent.SubmissionPublisher+.offer(..)) ||
+            call(* java.util.Arrays.parallelSort(..)) ||
+            call(* java.util.Arrays.parallelPrefix(..)) ||
+            call(* java.util.Arrays.parallelSetAll(..))
             ) && !within(de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite);
 
     pointcut threadCreateMethodsWithoutParameters(): (

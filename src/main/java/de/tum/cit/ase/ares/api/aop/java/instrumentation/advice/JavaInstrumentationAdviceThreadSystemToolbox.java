@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -60,6 +61,19 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	@Nonnull
 	private static final String IMPLICIT_THREAD_OPERATION_PREFIX = "<implicit-thread-op:";
 
+	/**
+	 * The class whose parallel array operations run on the common fork-join pool.
+	 */
+	private static final String ARRAYS_CLASS = "java.util.Arrays";
+
+	/**
+	 * The {@code Arrays} methods that may run on several threads. They count as the
+	 * {@code <implicit-thread-op:parallel>} operation, like
+	 * {@code Stream.parallel}, so a policy allows them with the same token.
+	 */
+	private static final Set<String> PARALLEL_ARRAY_OPERATIONS = Set.of("parallelSort", "parallelPrefix",
+			"parallelSetAll");
+
 	// </editor-fold>
 
 	// <editor-fold desc="Constructor">
@@ -113,6 +127,75 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			}
 			return "java.lang.Runtime".equals(className) && "exec".equals(methodName);
 		}));
+	}
+
+	/**
+	 * The thread operations, as class and method, whose own check counts the task
+	 * the code hands over. A thread the JDK starts while running one of them only
+	 * runs that task, so it is not counted a second time. AspectJ sees only these
+	 * calls, so both modes count the same thing.
+	 */
+	private static final Set<String> COUNTED_THREAD_OPERATIONS = Set.of(
+			"java.util.concurrent.AbstractExecutorService.submit",
+			"java.util.concurrent.AbstractExecutorService.invokeAll",
+			"java.util.concurrent.AbstractExecutorService.invokeAny", "java.util.concurrent.ThreadPoolExecutor.execute",
+			"java.util.concurrent.ThreadPoolExecutor.submit",
+			"java.util.concurrent.ScheduledThreadPoolExecutor.execute",
+			"java.util.concurrent.ScheduledThreadPoolExecutor.submit",
+			"java.util.concurrent.ScheduledThreadPoolExecutor.schedule",
+			"java.util.concurrent.ScheduledThreadPoolExecutor.scheduleAtFixedRate",
+			"java.util.concurrent.ScheduledThreadPoolExecutor.scheduleWithFixedDelay",
+			"java.util.concurrent.ForkJoinPool.execute", "java.util.concurrent.ForkJoinPool.submit",
+			"java.util.concurrent.CompletableFuture.runAsync", "java.util.concurrent.CompletableFuture.supplyAsync",
+			"java.util.concurrent.CompletableFuture.thenApplyAsync",
+			"java.util.concurrent.CompletableFuture.thenCombineAsync",
+			"java.util.concurrent.Executors$DelegatedExecutorService.submit",
+			"java.util.concurrent.Executors$DelegatedExecutorService.invokeAll",
+			"java.util.concurrent.Executors$DelegatedExecutorService.invokeAny",
+			"java.util.concurrent.Executors$DelegatedExecutorService.execute",
+			"java.util.concurrent.ExecutorCompletionService.submit", "java.util.concurrent.SubmissionPublisher.submit",
+			"java.util.concurrent.SubmissionPublisher.offer", "java.util.Arrays.parallelSort",
+			"java.util.Arrays.parallelPrefix", "java.util.Arrays.parallelSetAll");
+
+	/**
+	 * Tells whether the JDK reached this thread operation while running another one
+	 * whose check already counted the code's task. Only JDK methods between this
+	 * operation and the first supervised or other non-JDK method count, so a thread
+	 * that supervised code starts itself, even from a callback, is still checked.
+	 *
+	 * @return whether an enclosing counted operation exists
+	 */
+	private static boolean isInsideCountedThreadOperation() {
+		return java.lang.StackWalker.getInstance().walk(frames -> {
+			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
+			boolean operationFrameSeen = false;
+			while (iterator.hasNext()) {
+				java.lang.StackWalker.StackFrame frame = iterator.next();
+				String className = frame.getClassName();
+				if (!operationFrameSeen && className.startsWith("de.tum.cit.ase.ares.api.")) {
+					continue;
+				}
+				if (!isJdkClassName(className)) {
+					return Boolean.FALSE;
+				}
+				if (operationFrameSeen && COUNTED_THREAD_OPERATIONS.contains(className + "." + frame.getMethodName())) {
+					return Boolean.TRUE;
+				}
+				operationFrameSeen = true;
+			}
+			return Boolean.FALSE;
+		});
+	}
+
+	/**
+	 * Tells whether a class name belongs to the JDK.
+	 *
+	 * @param className the binary class name
+	 * @return whether it is in a JDK package
+	 */
+	private static boolean isJdkClassName(@Nonnull String className) {
+		return className.startsWith("java.") || className.startsWith("javax.") || className.startsWith("jdk.")
+				|| className.startsWith("sun.") || className.startsWith("com.sun.");
 	}
 
 	/**
@@ -191,6 +274,10 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			@Nullable String methodName) {
 		if (methodName == null) {
 			return null;
+		}
+		if (ARRAYS_CLASS.equals(declaringTypeName)) {
+			return PARALLEL_ARRAY_OPERATIONS.contains(methodName) ? IMPLICIT_THREAD_OPERATION_PREFIX + "parallel>"
+					: null;
 		}
 		switch (methodName) {
 		case "parallelStream":
@@ -639,26 +726,28 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Collects the resolved thread-class names from a variable, recursing into
-	 * arrays and Lists. Used to de-duplicate candidates across parameters, the
-	 * receiver, and attributes so the thread-number quota is consumed at most once
-	 * per distinct class per interception.
+	 * Collects the thread-class names a value resolves to, looking into arrays and
+	 * lists, so the quota is used once per distinct class per call.
 	 *
-	 * @param observedVariable the variable to resolve
-	 * @param out              the accumulator of distinct class names
+	 * @param observedVariable the value to resolve
+	 * @param out              the distinct class names found so far
+	 * @param anyCollection    whether every JDK collection is searched, as for the
+	 *                         tasks given to {@code invokeAll}, not only lists
 	 */
-	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Set<String> out) {
+	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Set<String> out,
+			boolean anyCollection) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return;
 		} else if (observedVariable.getClass().isArray()) {
 			for (int i = 0; i < Array.getLength(observedVariable); i++) {
-				collectThreadClassNames(Array.get(observedVariable, i), out);
+				collectThreadClassNames(Array.get(observedVariable, i), out, anyCollection);
 			}
-		} else if (observedVariable instanceof List<?>) {
-			// List is an interface; only iterate trusted JDK lists.
+		} else if (observedVariable instanceof List<?>
+				|| (anyCollection && observedVariable instanceof Collection<?>)) {
+			// Collection is an interface; only iterate trusted JDK collections.
 			requireTrustedRuntimeType(observedVariable);
-			for (Object element : (List<?>) observedVariable) {
-				collectThreadClassNames(element, out);
+			for (Object element : (Collection<?>) observedVariable) {
+				collectThreadClassNames(element, out, anyCollection);
 			}
 		} else {
 			String className = variableToClassname(observedVariable);
@@ -766,7 +855,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		// subsystem
 		// because the Command/Execute subsystem will check these operations.
 		if (isThreadCreationFromCommandExecution() || isThreadCreationFromAresTimeout(restrictedPackage)
-				|| isJdkShellFolderHandOffWithoutStudentCode()) {
+				|| isJdkShellFolderHandOffWithoutStudentCode() || isInsideCountedThreadOperation()) {
 			return;
 		}
 		// </editor-fold>
@@ -805,18 +894,21 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 				: null;
 		if (parameters != null) {
 			for (Object parameter : parameters) {
-				collectThreadClassNames(parameter, threadClassNames);
+				collectThreadClassNames(parameter, threadClassNames, true);
 			}
 		}
 		if (recordedThreadClass != null) {
 			threadClassNames.add(recordedThreadClass);
 		} else {
-			collectThreadClassNames(instance, threadClassNames);
+			collectThreadClassNames(instance, threadClassNames, false);
 		}
 		if (attributes != null) {
 			for (Object attribute : attributes) {
-				collectThreadClassNames(attribute, threadClassNames);
+				collectThreadClassNames(attribute, threadClassNames, false);
 			}
+		}
+		if (ARRAYS_CLASS.equals(declaringTypeName)) {
+			threadClassNames.clear();
 		}
 		if (threadClassNames.isEmpty()) {
 			@Nullable

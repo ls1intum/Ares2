@@ -1,0 +1,21 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.allowed.ThreadCountedOperationsTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: [ ]
+    regardingNetworkConnections: [ ]
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations:
+      - createTheFollowingNumberOfThreads: 3
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.CountedTask"
+      - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "<implicit-thread-op:parallel>"
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "java.util.concurrent"
+    regardingTimeouts:
+      - timeout: 3000
