@@ -65,7 +65,7 @@ deployment prerequisite, not an optional Ares runtime feature.
 
 Two versions are pinned, because the data and the contract that enforces it
 change for different reasons. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the
-prefix list. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 2` is the build-side
+prefix list. `RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION = 3` is the build-side
 contract. Templates and continuous integration (CI) must pin both.
 
 Version 3 restored the Ares 1 breadth. Besides the platform, Ares' own
@@ -79,8 +79,18 @@ Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
 every pattern in `ReservedPackagePrefixes.txt`. `process-classes` precedes
 `test`, so `mvn test` runs it.
 
-Canonical Gradle configuration registers a `verifyAresReservedPackagesV2` task
-over `sourceSets.main.output.classesDirs` with the same paths, and **both**
+Boundary version 3 further rejects every file under `META-INF/services/` and the
+files `archunit.properties`, `archunit_ignore_patterns.txt`,
+`junit-platform.properties`, `logback.xml`, `logback-test.xml`, `logback.groovy`,
+`logback.scmo` and `logback-test.scmo` at the root of the student's output,
+ignoring case. JUnit, ArchUnit and Logback read these files from the test class
+path before Ares is active, so a student file there could run student code
+without supervision or hide ArchUnit findings.
+A boundary version 2 snippet lets these files through and must be migrated.
+
+Canonical Gradle configuration registers a `verifyAresReservedPackagesV3` task
+over the whole `sourceSets.main.output`, the processed resources included, with
+the same paths, and **both**
 makes `check` depend on it and gates every `Test` task with
 `tasks.withType(Test).configureEach`. Both hooks are required. Boundary
 version 1 hung the validation off `check` alone, and Gradle's Java plugin
@@ -111,7 +121,7 @@ The build descriptor and the command used to invoke it are **trusted instructor
 configuration**, on the same footing as `Policy.withinPath` above. "No bypass
 flag is supported" means the shipped snippets offer no opt-out of their own; it
 does not mean the check survives an adversary who controls the build. Whoever
-can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV2`
+can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV3`
 or `-Dmaven.antrun.skip`, can remove the boundary outright. The threat this
 boundary addresses is student *code* that declares a reserved package, not
 student control over the build. Exercise templates and their CI must therefore
