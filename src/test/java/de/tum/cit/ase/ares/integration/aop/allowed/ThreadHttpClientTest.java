@@ -11,10 +11,11 @@ import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.httpclient.HttpClientMain;
 
 /**
- * Checks that the threads {@code java.net.http.HttpClient} starts for itself do
- * not count against the thread policy in either runtime mode, while the network
- * check and a student executor's threads still do. The request goes to the
- * external echo server; when it is absent, only Ares' verdict is checked.
+ * Checks that both runtime modes count each new
+ * {@code java.net.http.HttpClient} as one thread, do not count the threads of
+ * its own pool, and still apply the network check and count a student
+ * executor's threads. The request goes to the external echo server; when it is
+ * absent, only Ares' verdict is checked.
  */
 class ThreadHttpClientTest {
 
@@ -96,8 +97,9 @@ class ThreadHttpClientTest {
 	}
 
 	/**
-	 * A request to the allowed address is not refused for the threads the client
-	 * starts for itself in ArchunitAspectJ.
+	 * A request to the allowed address is not refused for the threads of the
+	 * client's own pool in ArchunitAspectJ; the client itself uses the one allowed
+	 * client thread.
 	 *
 	 * @throws InterruptedException if waiting is interrupted
 	 */
@@ -119,6 +121,36 @@ class ThreadHttpClientTest {
 	}
 
 	/**
+	 * A request sent without waiting, which the client connects on its own pool, to
+	 * an address the policy does not name is still refused in ArchunitAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "archunit/aspectj" + POLICY, withinPath = WITHIN_PATH)
+	void forbiddenAddressIsRefusedWithoutWaitingMavenArchunitAspectJ() {
+		assertRefused(() -> HttpClientMain.getAsyncWithOwnThreads(ALLOWED_HOST, FORBIDDEN_PORT),
+				String.valueOf(FORBIDDEN_PORT));
+	}
+
+	/**
+	 * One client uses the one allowed client thread in ArchunitAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "archunit/aspectj" + POLICY, withinPath = WITHIN_PATH)
+	void oneClientIsAllowedMavenArchunitAspectJ() {
+		Assertions.assertEquals(1, HttpClientMain.buildClients(1));
+	}
+
+	/**
+	 * A second client exceeds the one allowed client thread in ArchunitAspectJ, as
+	 * each client starts a thread of its own.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "archunit/aspectj" + POLICY, withinPath = WITHIN_PATH)
+	void secondClientIsRefusedMavenArchunitAspectJ() {
+		assertRefused(() -> HttpClientMain.buildClients(2), "java.net.http.HttpClient");
+	}
+
+	/**
 	 * A thread a student executor starts for the client is still counted, and
 	 * refused, in ArchunitAspectJ.
 	 */
@@ -129,8 +161,9 @@ class ThreadHttpClientTest {
 	}
 
 	/**
-	 * A request to the allowed address is not refused for the threads the client
-	 * starts for itself in ArchunitInstrumentation.
+	 * A request to the allowed address is not refused for the threads of the
+	 * client's own pool in ArchunitInstrumentation; the client itself uses the one
+	 * allowed client thread.
 	 *
 	 * @throws InterruptedException if waiting is interrupted
 	 */
@@ -152,6 +185,37 @@ class ThreadHttpClientTest {
 	}
 
 	/**
+	 * A request sent without waiting, which the client connects on its own pool, to
+	 * an address the policy does not name is still refused in
+	 * ArchunitInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "archunit/instrumentation" + POLICY, withinPath = WITHIN_PATH)
+	void forbiddenAddressIsRefusedWithoutWaitingMavenArchunitInstrumentation() {
+		assertRefused(() -> HttpClientMain.getAsyncWithOwnThreads(ALLOWED_HOST, FORBIDDEN_PORT),
+				String.valueOf(FORBIDDEN_PORT));
+	}
+
+	/**
+	 * One client uses the one allowed client thread in ArchunitInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "archunit/instrumentation" + POLICY, withinPath = WITHIN_PATH)
+	void oneClientIsAllowedMavenArchunitInstrumentation() {
+		Assertions.assertEquals(1, HttpClientMain.buildClients(1));
+	}
+
+	/**
+	 * A second client exceeds the one allowed client thread in
+	 * ArchunitInstrumentation, as each client starts a thread of its own.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "archunit/instrumentation" + POLICY, withinPath = WITHIN_PATH)
+	void secondClientIsRefusedMavenArchunitInstrumentation() {
+		assertRefused(() -> HttpClientMain.buildClients(2), "java.net.http.HttpClient");
+	}
+
+	/**
 	 * A thread a student executor starts for the client is still counted, and
 	 * refused, in ArchunitInstrumentation.
 	 */
@@ -162,8 +226,9 @@ class ThreadHttpClientTest {
 	}
 
 	/**
-	 * A request to the allowed address is not refused for the threads the client
-	 * starts for itself in WalaAspectJ.
+	 * A request to the allowed address is not refused for the threads of the
+	 * client's own pool in WalaAspectJ; the client itself uses the one allowed
+	 * client thread.
 	 *
 	 * @throws InterruptedException if waiting is interrupted
 	 */
@@ -185,6 +250,36 @@ class ThreadHttpClientTest {
 	}
 
 	/**
+	 * A request sent without waiting, which the client connects on its own pool, to
+	 * an address the policy does not name is still refused in WalaAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "wala/aspectj" + POLICY, withinPath = WITHIN_PATH)
+	void forbiddenAddressIsRefusedWithoutWaitingMavenWalaAspectJ() {
+		assertRefused(() -> HttpClientMain.getAsyncWithOwnThreads(ALLOWED_HOST, FORBIDDEN_PORT),
+				String.valueOf(FORBIDDEN_PORT));
+	}
+
+	/**
+	 * One client uses the one allowed client thread in WalaAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "wala/aspectj" + POLICY, withinPath = WITHIN_PATH)
+	void oneClientIsAllowedMavenWalaAspectJ() {
+		Assertions.assertEquals(1, HttpClientMain.buildClients(1));
+	}
+
+	/**
+	 * A second client exceeds the one allowed client thread in WalaAspectJ, as each
+	 * client starts a thread of its own.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "wala/aspectj" + POLICY, withinPath = WITHIN_PATH)
+	void secondClientIsRefusedMavenWalaAspectJ() {
+		assertRefused(() -> HttpClientMain.buildClients(2), "java.net.http.HttpClient");
+	}
+
+	/**
 	 * A thread a student executor starts for the client is still counted, and
 	 * refused, in WalaAspectJ.
 	 */
@@ -195,8 +290,9 @@ class ThreadHttpClientTest {
 	}
 
 	/**
-	 * A request to the allowed address is not refused for the threads the client
-	 * starts for itself in WalaInstrumentation.
+	 * A request to the allowed address is not refused for the threads of the
+	 * client's own pool in WalaInstrumentation; the client itself uses the one
+	 * allowed client thread.
 	 *
 	 * @throws InterruptedException if waiting is interrupted
 	 */
@@ -215,6 +311,36 @@ class ThreadHttpClientTest {
 	void forbiddenAddressIsRefusedMavenWalaInstrumentation() {
 		assertRefused(() -> HttpClientMain.getWithOwnThreads(ALLOWED_HOST, FORBIDDEN_PORT),
 				String.valueOf(FORBIDDEN_PORT));
+	}
+
+	/**
+	 * A request sent without waiting, which the client connects on its own pool, to
+	 * an address the policy does not name is still refused in WalaInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "wala/instrumentation" + POLICY, withinPath = WITHIN_PATH)
+	void forbiddenAddressIsRefusedWithoutWaitingMavenWalaInstrumentation() {
+		assertRefused(() -> HttpClientMain.getAsyncWithOwnThreads(ALLOWED_HOST, FORBIDDEN_PORT),
+				String.valueOf(FORBIDDEN_PORT));
+	}
+
+	/**
+	 * One client uses the one allowed client thread in WalaInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "wala/instrumentation" + POLICY, withinPath = WITHIN_PATH)
+	void oneClientIsAllowedMavenWalaInstrumentation() {
+		Assertions.assertEquals(1, HttpClientMain.buildClients(1));
+	}
+
+	/**
+	 * A second client exceeds the one allowed client thread in WalaInstrumentation,
+	 * as each client starts a thread of its own.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_BASE + "wala/instrumentation" + POLICY, withinPath = WITHIN_PATH)
+	void secondClientIsRefusedMavenWalaInstrumentation() {
+		assertRefused(() -> HttpClientMain.buildClients(2), "java.net.http.HttpClient");
 	}
 
 	/**

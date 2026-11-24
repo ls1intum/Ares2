@@ -230,6 +230,30 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	private static final String TIMER_THREAD_CLASS = "java.util.TimerThread";
 
 	/**
+	 * The thread class a new {@code java.net.http.HttpClient} counts as. Each
+	 * client starts one selector thread when it is built, which instrumentation
+	 * sees under this name too.
+	 */
+	private static final String HTTP_CLIENT_CLASS = "java.net.http.HttpClient";
+
+	/**
+	 * Tells whether a join point builds a JDK {@code HttpClient}, through
+	 * {@code HttpClient.newHttpClient()} or the build of a JDK client builder.
+	 *
+	 * @param joinPoint the intercepted call
+	 * @return whether it builds such a client
+	 */
+	private static boolean isHttpClientCreation(@Nonnull JoinPoint joinPoint) {
+		String methodName = joinPoint.getSignature().getName();
+		if ("newHttpClient".equals(methodName)) {
+			return HTTP_CLIENT_CLASS.equals(joinPoint.getSignature().getDeclaringTypeName());
+		}
+		Object builder = joinPoint.getTarget();
+		return "build".equals(methodName) && builder != null
+				&& "java.net.http".equals(builder.getClass().getModule().getName());
+	}
+
+	/**
 	 * Tells whether a join point builds a {@code java.util.Timer} or a subclass,
 	 * which starts the timer's thread at once.
 	 *
@@ -935,6 +959,10 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			threadClassNames.clear();
 			threadClassNames.add(TIMER_THREAD_CLASS);
 		}
+		if (isHttpClientCreation(thisJoinPoint)) {
+			threadClassNames.clear();
+			threadClassNames.add(HTTP_CLIENT_CLASS);
+		}
 		if (threadClassNames.isEmpty()) {
 			@Nullable
 			String implicitOperationToken = implicitThreadOperationToken(declaringTypeName, methodName);
@@ -964,7 +992,8 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	before():
 			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithParameters() ||
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithoutParameters() ||
-					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.timerCreateConstructors() {
+					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.timerCreateConstructors() ||
+					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.httpClientCreateMethods() {
 		checkThreadSystemInteraction("create", thisJoinPoint, true);
 	}
 
