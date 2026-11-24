@@ -5,6 +5,10 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
     pointcut networkConnectMethods(): (
             call(* java.net.Socket+.connect(..)) ||
             call(java.net.Socket+.new(..)) ||
+            call(java.net.ServerSocket+.new(..)) ||
+            call(* java.net.ServerSocket+.bind(..)) ||
+            call(* java.nio.channels.ServerSocketChannel+.bind(..)) ||
+            call(* java.nio.channels.AsynchronousServerSocketChannel+.bind(..)) ||
             call(* java.net.DatagramSocket+.connect(..)) ||
             call(java.net.DatagramSocket+.new(..)) ||
             call(* java.nio.channels.DatagramChannel+.connect(..)) ||
