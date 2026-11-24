@@ -217,11 +217,12 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	/**
 	 * The {@code Files} methods the JDK calls to create a temp file:
 	 * {@code createFile}, which opens it through {@code newByteChannel} of
-	 * {@code Files} and then of the provider. Creating a temp directory goes
-	 * through {@code createDirectory} and is not listed.
+	 * {@code Files} and then of the provider; on Linux the provider goes on to its
+	 * {@code newFileChannel}. Creating a temp directory goes through
+	 * {@code createDirectory} and is not listed.
 	 */
 	@Nonnull
-	private static final Set<String> JDK_TEMP_FILE_STEPS = Set.of("createFile", "newByteChannel");
+	private static final Set<String> JDK_TEMP_FILE_STEPS = Set.of("createFile", "newByteChannel", "newFileChannel");
 
 	/**
 	 * Trusted JVM home captured at class-initialisation time, before student code
