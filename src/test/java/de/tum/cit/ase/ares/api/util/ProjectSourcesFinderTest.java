@@ -132,6 +132,28 @@ class ProjectSourcesFinderTest {
 	}
 
 	/**
+	 * A policy naming a build tool whose descriptor the project lacks is refused
+	 * with the Ares message, in either direction.
+	 *
+	 * @throws IOException if a descriptor cannot be written
+	 */
+	@Test
+	void refusesASelectedBuildToolWithoutItsDescriptorInTheAresWording() throws IOException {
+		Files.writeString(temporaryDirectory.resolve("pom.xml"), "<project/>");
+		IllegalStateException gradle = assertThrows(IllegalStateException.class,
+				() -> ProjectSourcesFinder.discover(temporaryDirectory, BuildMode.GRADLE));
+		Files.delete(temporaryDirectory.resolve("pom.xml"));
+		Files.writeString(temporaryDirectory.resolve("build.gradle"), "plugins { id 'java' }");
+		IllegalStateException maven = assertThrows(IllegalStateException.class,
+				() -> ProjectSourcesFinder.discover(temporaryDirectory, BuildMode.MAVEN));
+		Path root = temporaryDirectory.toRealPath();
+		assertEquals(Messages.localized("security.writer.build.descriptor.missing", BuildMode.GRADLE, root),
+				gradle.getMessage());
+		assertEquals(Messages.localized("security.writer.build.descriptor.missing", BuildMode.MAVEN, root),
+				maven.getMessage());
+	}
+
+	/**
 	 * Regression: an occurrence of srcDirs that Gradle never executes used to be
 	 * read as a declaration. Since a declared root that is not a directory is
 	 * rejected, a commented-out line, or one inside a string, aborted discovery for
