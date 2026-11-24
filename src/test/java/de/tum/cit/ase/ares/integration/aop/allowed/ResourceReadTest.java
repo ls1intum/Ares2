@@ -11,9 +11,7 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.resources.
 /**
  * Checks that a class-path resource is read under the file permission for the
  * place the build copied it to, through the class and through its class loader,
- * and that a resource beside it stays refused. With instrumentation the allowed
- * read is not tested yet: the network check refuses the {@code file:} URL the
- * JDK opens for it.
+ * and that a resource beside it stays refused, in every mode.
  */
 class ResourceReadTest {
 
@@ -169,5 +167,52 @@ class ResourceReadTest {
 	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
 	void otherResourceRefusedThroughClassLoaderMavenWalaInstrumentation() {
 		Assertions.assertThrows(SecurityException.class, () -> ResourceReadMain.readThroughClassLoader("other.txt"));
+	}
+
+	/**
+	 * The allowed resource is readable through the class in
+	 * ArchunitInstrumentation.
+	 *
+	 * @throws IOException if reading fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void allowedResourceThroughClassMavenArchunitInstrumentation() throws IOException {
+		Assertions.assertEquals("resource content", ResourceReadMain.readThroughClass("data.txt"));
+	}
+
+	/**
+	 * The allowed resource is readable through the class loader in
+	 * ArchunitInstrumentation.
+	 *
+	 * @throws IOException if reading fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void allowedResourceThroughClassLoaderMavenArchunitInstrumentation() throws IOException {
+		Assertions.assertEquals("resource content", ResourceReadMain.readThroughClassLoader("data.txt"));
+	}
+
+	/**
+	 * The allowed resource is readable through the class in WalaInstrumentation.
+	 *
+	 * @throws IOException if reading fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void allowedResourceThroughClassMavenWalaInstrumentation() throws IOException {
+		Assertions.assertEquals("resource content", ResourceReadMain.readThroughClass("data.txt"));
+	}
+
+	/**
+	 * The allowed resource is readable through the class loader in
+	 * WalaInstrumentation.
+	 *
+	 * @throws IOException if reading fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void allowedResourceThroughClassLoaderMavenWalaInstrumentation() throws IOException {
+		Assertions.assertEquals("resource content", ResourceReadMain.readThroughClassLoader("data.txt"));
 	}
 }

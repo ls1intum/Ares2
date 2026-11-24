@@ -105,6 +105,27 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	}
 
 	/**
+	 * Checks whether a URL scheme names something on this machine rather than a
+	 * host: {@code file} and {@code jrt}, and {@code jar} when the archive it
+	 * opens is itself local. The file check decides those; a {@code jar} archive
+	 * fetched from a server stays a network target.
+	 *
+	 * @param scheme the scheme, or {@code null}
+	 * @param schemeSpecificPart the rest of the URL, for {@code jar}
+	 * @return {@code true} for such a local URL
+	 */
+	private static boolean isLocalUrl(@Nullable String scheme, @Nullable String schemeSpecificPart) {
+		if ("file".equalsIgnoreCase(scheme) || "jrt".equalsIgnoreCase(scheme)) {
+			return true;
+		}
+		if (!"jar".equalsIgnoreCase(scheme) || schemeSpecificPart == null) {
+			return false;
+		}
+		int colon = schemeSpecificPart.indexOf(':');
+		return colon > 0 && isLocalUrl(schemeSpecificPart.substring(0, colon), schemeSpecificPart.substring(colon + 1));
+	}
+
+	/**
 	 * Checks whether a class opens a socket that waits for incoming connections.
 	 *
 	 * @param declaringTypeName the class of the called method
@@ -397,9 +418,15 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 			return variableToTarget(httpRequest.uri());
 		}
 		if (value instanceof URI uri) {
+			if (isLocalUrl(uri.getScheme(), uri.getRawSchemeSpecificPart())) {
+				return null;
+			}
 			return new NetworkTarget(uri.getHost(), effectivePort(uri.getPort(), uri.getScheme()));
 		}
 		if (value instanceof URL url) {
+			if (isLocalUrl(url.getProtocol(), url.getFile())) {
+				return null;
+			}
 			int defaultPort = url.getDefaultPort();
 			int port = url.getPort() >= 0 ? url.getPort() : defaultPort;
 			return new NetworkTarget(url.getHost(), port >= 0 ? port : -1);
