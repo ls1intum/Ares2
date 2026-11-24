@@ -6,3 +6,7 @@ java.lang.System.setProperties
 java.lang.System.clearProperty
 java.lang.ProcessHandle
 java.lang.management
+java.lang.System.setErr
+java.lang.System.setIn
+java.lang.System.setOut
+java.util.logging.Logger.addHandler(java.util.logging.Handler)
