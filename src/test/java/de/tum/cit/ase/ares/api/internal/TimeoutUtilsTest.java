@@ -50,7 +50,7 @@ class TimeoutUtilsTest {
 		ExecutorService executorService = mock(ExecutorService.class);
 		when(executorService.isTerminated()).thenReturn(true);
 
-		TimeoutUtils.terminateTimedOutExecution(future, executorService, Duration.ofSeconds(1),
+		TimeoutUtils.terminateTimedOutExecution(future, executorService, null, Duration.ofSeconds(1),
 				exitCode -> fail("Interruption-aware execution must not request fatal termination")); //$NON-NLS-1$
 
 		InOrder cancellationOrder = inOrder(executorService, future);
@@ -78,28 +78,94 @@ class TimeoutUtilsTest {
 		assertThat(workerFinished).isTrue();
 	}
 
+	/**
+	 * Code that ignores its interruption is stopped on Java 19 and older, so the
+	 * timeout is reported and the JVM lives on. Newer JVMs cannot stop it, so the
+	 * fork is terminated.
+	 */
 	@Test
-	void interruptionIgnoringExecutionInvalidatesTheCurrentFork() throws Exception {
+	void interruptionIgnoringExecutionIsStoppedOrInvalidatesTheFork() throws Exception {
 		AtomicBoolean releaseWorker = new AtomicBoolean();
 		AtomicInteger requestedExitCode = new AtomicInteger(-1);
 		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
 		try {
-			FatalTermination termination = assertThrows(FatalTermination.class,
-					() -> TimeoutUtils.performTimeoutExecution(() -> {
-						while (!releaseWorker.get()) {
-							Thread.onSpinWait();
-						}
-						return null;
-					}, context, java.time.Duration.ofMillis(10), exitCode -> {
-						requestedExitCode.set(exitCode);
-						throw new FatalTermination();
-					}));
-			assertThat(termination).isNotNull();
+			Throwable outcome = assertThrows(Throwable.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+				while (!releaseWorker.get()) {
+					Thread.onSpinWait();
+				}
+				return null;
+			}, context, java.time.Duration.ofMillis(200), exitCode -> {
+				requestedExitCode.set(exitCode);
+				throw new FatalTermination();
+			}));
+			if (threadStopWorks()) {
+				assertThat(outcome).isInstanceOf(SecurityException.class);
+				assertThat(requestedExitCode).hasValue(-1);
+			} else {
+				assertThat(outcome).isInstanceOf(FatalTermination.class);
+				assertThat(requestedExitCode).hasValue(124);
+			}
 		} finally {
 			releaseWorker.set(true);
 		}
+	}
 
+	/**
+	 * Code that survives being stopped, by catching what the stop throws, still
+	 * invalidates the fork on every Java version.
+	 */
+	@Test
+	void executionSurvivingTheStopInvalidatesTheFork() throws Exception {
+		AtomicBoolean releaseWorker = new AtomicBoolean();
+		AtomicInteger requestedExitCode = new AtomicInteger(-1);
+		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
+		try {
+			assertThrows(FatalTermination.class,
+					() -> TimeoutUtils.performTimeoutExecution(() -> spinThroughStops(releaseWorker), context,
+							java.time.Duration.ofMillis(200), exitCode -> {
+								requestedExitCode.set(exitCode);
+								throw new FatalTermination();
+							}));
+		} finally {
+			releaseWorker.set(true);
+		}
 		assertThat(requestedExitCode).hasValue(124);
+	}
+
+	/**
+	 * Spins until released and keeps spinning after every stop.
+	 *
+	 * @param releaseWorker set to end the spinning
+	 * @return always {@code null}
+	 */
+	@SuppressWarnings("removal")
+	private static Object spinThroughStops(AtomicBoolean releaseWorker) {
+		try {
+			spinUntilReleased(releaseWorker);
+		} catch (ThreadDeath stopped) {
+			spinUntilReleased(releaseWorker);
+		}
+		return null;
+	}
+
+	/**
+	 * Spins until released, ignoring interruption.
+	 *
+	 * @param releaseWorker set to end the spinning
+	 */
+	private static void spinUntilReleased(AtomicBoolean releaseWorker) {
+		while (!releaseWorker.get()) {
+			Thread.onSpinWait();
+		}
+	}
+
+	/**
+	 * Whether this JVM can still stop a thread, as Java 19 and older can.
+	 *
+	 * @return {@code true} on such a JVM
+	 */
+	private static boolean threadStopWorks() {
+		return Runtime.version().feature() < 20;
 	}
 
 	/**
@@ -163,7 +229,7 @@ class TimeoutUtilsTest {
 				.redirectErrorStream(true).start();
 		try {
 			assertThat(process.waitFor(10, TimeUnit.SECONDS)).isTrue();
-			assertThat(process.exitValue()).isEqualTo(124);
+			assertThat(process.exitValue()).isEqualTo(threadStopWorks() ? 1 : 124);
 		} finally {
 			process.destroyForcibly();
 		}
