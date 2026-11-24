@@ -201,6 +201,7 @@ example_project/
 │       │       └── META-INF/        ← the agent manifest, for _INSTRUMENTATION only
 │       └── resources/
 │           ├── META-INF/services/   ← registers the Ares guard with JUnit
+│           ├── archunit.properties  ← the ArchUnit settings the generated checks rely on
 │           └── org/example/ares/api/localization/   ← the Ares messages
 ├── build.gradle
 ├── PhobosCopyTool.sh                ← hands SpecificExercise.cfg to Phobos
@@ -215,6 +216,9 @@ the exercise package, the generated architecture checks (`JavaArchunitTestCase` 
 `JavaWalaTestCase`), the generated settings the runtime checks read, and the `.txt` method lists
 those checks load. The file below `src/test/resources/META-INF/services/` makes JUnit call the
 copied `PrecompileGuard` before the first test; an existing file of the same name keeps its lines.
+`src/test/resources/archunit.properties` holds the ArchUnit settings the generated checks rely on.
+The build puts it at the root of the test class path, where ArchUnit looks for it. An existing file
+of that name keeps its lines and its values, and gains only the settings it does not name.
 
 :::danger[Do not edit the generated files]
 They are produced automatically by the precompile phase and must not be modified by hand.
