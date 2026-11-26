@@ -12,11 +12,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLDecoder;
 import java.net.UnixDomainSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NetworkChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
@@ -188,13 +190,21 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 
 	/**
 	 * Checks whether a path names a network share, {@code //host/x} or
-	 * {@code \\host\x}, which the JDK opens on Windows by contacting that host.
+	 * {@code \\host\x}, once its escapes such as {@code %2f} are decoded as the JDK
+	 * decodes them before it opens the file, on Windows by contacting that host. A
+	 * path whose escapes cannot be decoded counts as a share.
 	 *
-	 * @param path the path of a {@code file} URL
+	 * @param path the path of a {@code file} URL, still encoded
 	 * @return {@code true} for such a path
 	 */
 	private static boolean isSharePath(@Nonnull String path) {
-		return path.startsWith("//") || path.startsWith("\\\\") || path.startsWith("/\\") || path.startsWith("\\/");
+		String decoded;
+		try {
+			decoded = URLDecoder.decode(path.replace("+", "%2B"), StandardCharsets.UTF_8);
+		} catch (IllegalArgumentException malformed) {
+			return true;
+		}
+		return decoded.replace('\\', '/').startsWith("//");
 	}
 
 	/**

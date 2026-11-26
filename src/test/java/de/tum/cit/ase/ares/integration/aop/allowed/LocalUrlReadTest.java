@@ -36,6 +36,9 @@ class LocalUrlReadTest {
 	/** A file URL without a host whose path names a network share. */
 	private static final String SHARE_FILE_URL = "file:////example.invalid/share/secret.txt";
 
+	/** The same share with its separators encoded, as the JDK decodes them. */
+	private static final String ENCODED_SHARE_FILE_URL = "file:/%2fexample.invalid/share/secret.txt";
+
 	/**
 	 * Even the allowed file is refused through its file: URL in ArchunitAspectJ, as
 	 * no file check sees what the URL opens.
@@ -114,7 +117,9 @@ class LocalUrlReadTest {
 	void test_remoteFileUrlRefusedMavenArchunitAspectJ() {
 		assertAll(() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(REMOTE_FILE_URL)),
 				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(REMOTE_JAR_URL)),
-				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(SHARE_FILE_URL)));
+				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(SHARE_FILE_URL)),
+				() -> assertThrows(SecurityException.class,
+						() -> LocalUrlReadMain.readThroughUrl(ENCODED_SHARE_FILE_URL)));
 	}
 
 	/**
@@ -126,7 +131,9 @@ class LocalUrlReadTest {
 	void test_remoteFileUrlRefusedMavenArchunitInstrumentation() {
 		assertAll(() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(REMOTE_FILE_URL)),
 				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(REMOTE_JAR_URL)),
-				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(SHARE_FILE_URL)));
+				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(SHARE_FILE_URL)),
+				() -> assertThrows(SecurityException.class,
+						() -> LocalUrlReadMain.readThroughUrl(ENCODED_SHARE_FILE_URL)));
 	}
 
 	/**
@@ -138,7 +145,9 @@ class LocalUrlReadTest {
 	void test_remoteFileUrlRefusedMavenWalaAspectJ() {
 		assertAll(() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(REMOTE_FILE_URL)),
 				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(REMOTE_JAR_URL)),
-				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(SHARE_FILE_URL)));
+				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(SHARE_FILE_URL)),
+				() -> assertThrows(SecurityException.class,
+						() -> LocalUrlReadMain.readThroughUrl(ENCODED_SHARE_FILE_URL)));
 	}
 
 	/**
@@ -150,6 +159,8 @@ class LocalUrlReadTest {
 	void test_remoteFileUrlRefusedMavenWalaInstrumentation() {
 		assertAll(() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(REMOTE_FILE_URL)),
 				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(REMOTE_JAR_URL)),
-				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(SHARE_FILE_URL)));
+				() -> assertThrows(SecurityException.class, () -> LocalUrlReadMain.readThroughUrl(SHARE_FILE_URL)),
+				() -> assertThrows(SecurityException.class,
+						() -> LocalUrlReadMain.readThroughUrl(ENCODED_SHARE_FILE_URL)));
 	}
 }
