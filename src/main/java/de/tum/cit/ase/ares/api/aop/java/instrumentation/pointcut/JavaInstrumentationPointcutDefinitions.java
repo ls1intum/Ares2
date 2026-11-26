@@ -514,6 +514,10 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// A secure directory stream opens, lists and moves files itself; its move is
 			// registered as an overwrite and a delete too, like Files.move.
 			Map.entry("java.nio.file.SecureDirectoryStream", List.of("move", "newByteChannel", "newDirectoryStream")),
+			// A process redirect names the file at the student's call; on Windows the JDK
+			// opens it natively when the process starts, so nothing else sees it.
+			Map.entry("java.lang.ProcessBuilder", List.of("redirectInput")),
+			Map.entry("java.lang.ProcessBuilder$Redirect", List.of("from")),
 			// java.lang
 			Map.entry("java.lang.ClassLoader", List.of("getResourceAsStream")),
 			// java.net.URL.openStream is a network fetch, not a file read; it is bound to
@@ -616,6 +620,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.file.spi.FileSystemProvider",
 					List.of("copy", "move", "newOutputStream", "setAttribute")),
 			Map.entry("java.nio.file.SecureDirectoryStream", List.of("move")),
+			Map.entry("java.lang.ProcessBuilder", List.of("redirectOutput", "redirectError")),
+			Map.entry("java.lang.ProcessBuilder$Redirect", List.of("to", "appendTo")),
 			Map.entry("javax.imageio.stream.FileImageOutputStream", List.of("<init>")),
 			// javax.print
 			Map.entry("javax.print.DocPrintJob", List.of("print")),

@@ -260,7 +260,9 @@ class FileOpeningRolesTest {
 				"filesMoveReplaceWithoutCreate", "providerMove", "providerCopy", "printWriterCharset",
 				"printWriterFileCharset", "formatterCharset", "formatterFileCharset", "formatterWithoutFile",
 				"providerSymbolicLink", "providerHardLink", "providerDeleteIfExists", "secureDirectoryReadAbsolute",
-				"secureDirectoryMove", "secureDirectoryList", "transferToFile", "transferFromFile");
+				"secureDirectoryMove", "secureDirectoryList", "transferToFile", "transferFromFile", "redirectToNew",
+				"redirectAppendToExisting", "redirectFromReadable", "processBuilderRedirectOutput",
+				"processBuilderRedirectInput");
 	}
 
 	/**
@@ -279,7 +281,9 @@ class FileOpeningRolesTest {
 				"providerSymbolicLinkReadOnly", "providerHardLinkReadOnly", "providerDeleteIfExistsReadOnly",
 				"secureDirectoryReadUnreadable", "secureDirectoryReadRelative", "secureDirectoryMoveUnreadableSource",
 				"secureDirectoryListUnreadable", "transferToUnreadableSource", "transferToReadOnlyTarget",
-				"transferToDatagram", "transferFromUnreadableSource", "transferFromDatagram");
+				"transferToDatagram", "transferFromUnreadableSource", "transferFromDatagram", "redirectToReadOnly",
+				"redirectAppendToReadOnly", "redirectFromUnreadable", "processBuilderRedirectOutputReadOnly",
+				"processBuilderRedirectInputUnreadable");
 	}
 
 	/**
@@ -500,6 +504,16 @@ class FileOpeningRolesTest {
 			assertDoesNotThrow(() -> transferFromFile(source, WRITE_NO_READ.resolve("new.txt")));
 			assertEquals(OLD_CONTENT, content(WRITE_NO_READ.resolve("new.txt")));
 		}
+		case "redirectToNew" -> assertDoesNotThrow(
+				() -> FileOpeningRolesMain.redirectTo(WRITE_NO_READ.resolve("new.txt").toFile()));
+		case "redirectAppendToExisting" -> assertDoesNotThrow(
+				() -> FileOpeningRolesMain.redirectAppendTo(existing(WRITE_NO_READ.resolve("old.txt")).toFile()));
+		case "redirectFromReadable" -> assertDoesNotThrow(
+				() -> FileOpeningRolesMain.redirectFrom(existing(READ_ONLY.resolve("in.txt")).toFile()));
+		case "processBuilderRedirectOutput" -> assertDoesNotThrow(() -> FileOpeningRolesMain
+				.redirectOutput(new ProcessBuilder("echo", "hello"), WRITE_NO_READ.resolve("new.txt").toFile()));
+		case "processBuilderRedirectInput" -> assertDoesNotThrow(() -> FileOpeningRolesMain
+				.redirectInput(new ProcessBuilder("cat"), existing(READ_ONLY.resolve("in.txt")).toFile()));
 		default -> throw new IllegalArgumentException(scenario);
 		}
 	}
@@ -637,6 +651,16 @@ class FileOpeningRolesTest {
 				FileOpeningRolesMain.transferFrom(out, in);
 			}
 		});
+		case "redirectToReadOnly" -> assertThrows(SecurityException.class,
+				() -> FileOpeningRolesMain.redirectTo(READ_ONLY.resolve("new.txt").toFile()));
+		case "redirectAppendToReadOnly" -> assertThrows(SecurityException.class,
+				() -> FileOpeningRolesMain.redirectAppendTo(existing(READ_ONLY.resolve("old.txt")).toFile()));
+		case "redirectFromUnreadable" -> assertThrows(SecurityException.class,
+				() -> FileOpeningRolesMain.redirectFrom(existing(WRITE_NO_READ.resolve("secret.txt")).toFile()));
+		case "processBuilderRedirectOutputReadOnly" -> assertThrows(SecurityException.class, () -> FileOpeningRolesMain
+				.redirectOutput(new ProcessBuilder("echo", "hello"), READ_ONLY.resolve("new.txt").toFile()));
+		case "processBuilderRedirectInputUnreadable" -> assertThrows(SecurityException.class, () -> FileOpeningRolesMain
+				.redirectInput(new ProcessBuilder("cat"), existing(WRITE_NO_READ.resolve("secret.txt")).toFile()));
 		case "newInputStreamDeleteOnCloseUnreadable" -> assertRefusedUnchanged(
 				() -> FileOpeningRolesMain.newInputStreamDeleteOnClose(existing(WRITE_NO_READ.resolve("secret.txt"))),
 				WRITE_NO_READ.resolve("secret.txt"));

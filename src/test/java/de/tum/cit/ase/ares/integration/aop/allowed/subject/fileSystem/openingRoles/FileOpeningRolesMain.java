@@ -394,4 +394,56 @@ public final class FileOpeningRolesMain {
 	public static long transferFrom(FileChannel target, ReadableByteChannel source) throws IOException {
 		return target.transferFrom(source, 0, Long.MAX_VALUE);
 	}
+
+	/**
+	 * Builds a redirect that writes a process's output to a file.
+	 *
+	 * @param file the file
+	 * @return the redirect
+	 */
+	public static ProcessBuilder.Redirect redirectTo(File file) {
+		return ProcessBuilder.Redirect.to(file);
+	}
+
+	/**
+	 * Builds a redirect that appends a process's output to a file.
+	 *
+	 * @param file the file
+	 * @return the redirect
+	 */
+	public static ProcessBuilder.Redirect redirectAppendTo(File file) {
+		return ProcessBuilder.Redirect.appendTo(file);
+	}
+
+	/**
+	 * Builds a redirect that feeds a process's input from a file.
+	 *
+	 * @param file the file
+	 * @return the redirect
+	 */
+	public static ProcessBuilder.Redirect redirectFrom(File file) {
+		return ProcessBuilder.Redirect.from(file);
+	}
+
+	/**
+	 * Sends the output of a process builder made by the caller to a file.
+	 *
+	 * @param builder the process builder
+	 * @param file    the file
+	 * @return the builder
+	 */
+	public static ProcessBuilder redirectOutput(ProcessBuilder builder, File file) {
+		return builder.redirectOutput(file);
+	}
+
+	/**
+	 * Feeds the input of a process builder made by the caller from a file.
+	 *
+	 * @param builder the process builder
+	 * @param file    the file
+	 * @return the builder
+	 */
+	public static ProcessBuilder redirectInput(ProcessBuilder builder, File file) {
+		return builder.redirectInput(file);
+	}
 }

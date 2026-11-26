@@ -78,7 +78,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			Map.entry("java.lang.ProcessBuilder.start",
 					IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))),
 			Map.entry("java.lang.ProcessBuilder.startPipeline",
-					IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))));
+					IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))),
+			// ProcessBuilder.redirectOutput/redirectError/redirectInput(File) - only the
+			// File argument names the file; the command strings are not paths.
+			Map.entry("java.lang.ProcessBuilder.redirectOutput", IgnoreValues.ALL),
+			Map.entry("java.lang.ProcessBuilder.redirectError", IgnoreValues.ALL),
+			Map.entry("java.lang.ProcessBuilder.redirectInput", IgnoreValues.ALL));
 
 	/**
 	 * Map of methods with parameter index exceptions for file system ignore logic.
@@ -762,6 +767,17 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 		return List.of(Map.entry(WRITE_ACTION, true));
 	}
+
+	/**
+	 * The process redirects that send a process's output to a file, creating it
+	 * if it is missing. They are checked like any other opening for writing; the
+	 * JDK opens the file only when the process starts, natively on Windows.
+	 */
+	@Nonnull
+	private static final Set<String> REDIRECT_TARGET_METHODS = Set.of("java.lang.ProcessBuilder.redirectOutput",
+			"java.lang.ProcessBuilder.redirectError", "java.lang.ProcessBuilder$Redirect.to",
+			"java.lang.ProcessBuilder$Redirect.appendTo", "java.lang.ProcessBuilder.Redirect.to",
+			"java.lang.ProcessBuilder.Redirect.appendTo");
 
 	/**
 	 * The classes whose constructors open a named file for writing, creating it if
@@ -1498,6 +1514,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		List<Map.Entry<String, Boolean>> optionActions = openOptionActions(options);
 		if (!optionActions.isEmpty()) {
 			return optionActions;
+		}
+		if (REDIRECT_TARGET_METHODS.contains(methodKey)) {
+			return List.of(Map.entry(WRITE_ACTION, true));
 		}
 		if (READ_WRITE_OPENING_METHODS.contains(methodKey) && parameters != null && parameters.length > 0
 				&& parameters[0] instanceof File) {
