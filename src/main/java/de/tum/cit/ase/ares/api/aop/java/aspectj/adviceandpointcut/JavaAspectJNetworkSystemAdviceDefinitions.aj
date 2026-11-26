@@ -105,13 +105,18 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	}
 
 	/**
-	 * Checks whether a class opens a socket that waits for incoming connections.
+	 * Checks whether a class opens a socket that waits for incoming connections:
+	 * a server socket, a server socket channel, or a factory that creates server
+	 * sockets, whose own {@code new ServerSocket} runs in the JDK, out of sight of
+	 * AspectJ.
 	 *
 	 * @param declaringTypeName the class of the called method
-	 * @return {@code true} for a server socket or server socket channel
+	 * @return {@code true} for such a class
 	 */
 	private static boolean isServerSocketType(@Nonnull String declaringTypeName) {
 		return "java.net.ServerSocket".equals(declaringTypeName)
+				|| "javax.net.ServerSocketFactory".equals(declaringTypeName)
+				|| "javax.net.ssl.SSLServerSocketFactory".equals(declaringTypeName)
 				|| "java.nio.channels.ServerSocketChannel".equals(declaringTypeName)
 				|| "sun.nio.ch.ServerSocketChannelImpl".equals(declaringTypeName)
 				|| "java.nio.channels.AsynchronousServerSocketChannel".equals(declaringTypeName)
@@ -120,8 +125,9 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 
 	/**
 	 * Returns the local endpoint a server socket is about to listen on, where the
-	 * call names no address: a constructor given a port, or a bind given
-	 * {@code null}. Without an address the socket listens on every interface.
+	 * call names no address: a constructor or factory method given a port, or a
+	 * bind given {@code null}. Without an address the socket listens on every
+	 * interface.
 	 *
 	 * @param declaringTypeName the class of the called method
 	 * @param methodName        the called method
@@ -138,7 +144,8 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 		if ("bind".equals(methodName)) {
 			return parameters[0] == null ? everyInterface(0) : null;
 		}
-		if (!"<init>".equals(methodName) || !(parameters[0] instanceof Integer port)) {
+		if (!("<init>".equals(methodName) || "createServerSocket".equals(methodName))
+				|| !(parameters[0] instanceof Integer port)) {
 			return null;
 		}
 		for (Object parameter : parameters) {

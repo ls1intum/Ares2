@@ -19,5 +19,6 @@ regardingTheSupervisedCode:
     regardingPackageImports:
       - importTheFollowingPackage: "java.net"
       - importTheFollowingPackage: "java.nio.channels"
+      - importTheFollowingPackage: "javax.net"
     regardingTimeouts:
       - timeout: 3000

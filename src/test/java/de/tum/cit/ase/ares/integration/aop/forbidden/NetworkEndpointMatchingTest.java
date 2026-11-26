@@ -139,6 +139,27 @@ class NetworkEndpointMatchingTest {
 		assertThrows(SecurityException.class, () -> ListenMain.bindChannelOnLoopback(PORT + 1));
 	}
 
+	/**
+	 * Listening through the server socket factory on the allowed port of the
+	 * loopback address is not refused.
+	 */
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyLocalhostByName.yaml", withinPath = WITHIN_PATH)
+	void test_listenThroughAFactoryOnTheAllowedEndpointMavenArchunitAspectJ() {
+		assertNotRefusedByAres(() -> ListenMain.listenThroughFactoryOnLoopback(PORT));
+	}
+
+	/**
+	 * Listening through the server socket factory on every interface or on another
+	 * port is refused, as through a constructor.
+	 */
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyLocalhostByName.yaml", withinPath = WITHIN_PATH)
+	void test_listenThroughAFactoryElsewhereIsRefusedMavenArchunitAspectJ() {
+		assertThrows(SecurityException.class, () -> ListenMain.listenThroughFactoryOnEveryInterface(PORT));
+		assertThrows(SecurityException.class, () -> ListenMain.listenThroughFactoryOnLoopback(PORT + 1));
+	}
+
 	/** A datagram socket on a port the system picks contacts no one and passes. */
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyLocalhostByName.yaml", withinPath = WITHIN_PATH)
@@ -166,6 +187,27 @@ class NetworkEndpointMatchingTest {
 	void test_listenOnAnotherPortIsRefusedMavenArchunitInstrumentation() {
 		assertThrows(SecurityException.class, () -> ListenMain.listenOnLoopback(PORT + 1));
 		assertThrows(SecurityException.class, () -> ListenMain.bindChannelOnLoopback(PORT + 1));
+	}
+
+	/**
+	 * Listening through the server socket factory on the allowed port of the
+	 * loopback address is not refused.
+	 */
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyLocalhostByName.yaml", withinPath = WITHIN_PATH)
+	void test_listenThroughAFactoryOnTheAllowedEndpointMavenArchunitInstrumentation() {
+		assertNotRefusedByAres(() -> ListenMain.listenThroughFactoryOnLoopback(PORT));
+	}
+
+	/**
+	 * Listening through the server socket factory on every interface or on another
+	 * port is refused, as through a constructor.
+	 */
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyLocalhostByName.yaml", withinPath = WITHIN_PATH)
+	void test_listenThroughAFactoryElsewhereIsRefusedMavenArchunitInstrumentation() {
+		assertThrows(SecurityException.class, () -> ListenMain.listenThroughFactoryOnEveryInterface(PORT));
+		assertThrows(SecurityException.class, () -> ListenMain.listenThroughFactoryOnLoopback(PORT + 1));
 	}
 
 	/** A datagram socket on a port the system picks contacts no one and passes. */
@@ -197,6 +239,27 @@ class NetworkEndpointMatchingTest {
 		assertThrows(SecurityException.class, () -> ListenMain.bindChannelOnLoopback(PORT + 1));
 	}
 
+	/**
+	 * Listening through the server socket factory on the allowed port of the
+	 * loopback address is not refused.
+	 */
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyLocalhostByName.yaml", withinPath = WITHIN_PATH)
+	void test_listenThroughAFactoryOnTheAllowedEndpointMavenWalaAspectJ() {
+		assertNotRefusedByAres(() -> ListenMain.listenThroughFactoryOnLoopback(PORT));
+	}
+
+	/**
+	 * Listening through the server socket factory on every interface or on another
+	 * port is refused, as through a constructor.
+	 */
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyLocalhostByName.yaml", withinPath = WITHIN_PATH)
+	void test_listenThroughAFactoryElsewhereIsRefusedMavenWalaAspectJ() {
+		assertThrows(SecurityException.class, () -> ListenMain.listenThroughFactoryOnEveryInterface(PORT));
+		assertThrows(SecurityException.class, () -> ListenMain.listenThroughFactoryOnLoopback(PORT + 1));
+	}
+
 	/** A datagram socket on a port the system picks contacts no one and passes. */
 	@PublicTest
 	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyLocalhostByName.yaml", withinPath = WITHIN_PATH)
@@ -224,6 +287,27 @@ class NetworkEndpointMatchingTest {
 	void test_listenOnAnotherPortIsRefusedMavenWalaInstrumentation() {
 		assertThrows(SecurityException.class, () -> ListenMain.listenOnLoopback(PORT + 1));
 		assertThrows(SecurityException.class, () -> ListenMain.bindChannelOnLoopback(PORT + 1));
+	}
+
+	/**
+	 * Listening through the server socket factory on the allowed port of the
+	 * loopback address is not refused.
+	 */
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyLocalhostByName.yaml", withinPath = WITHIN_PATH)
+	void test_listenThroughAFactoryOnTheAllowedEndpointMavenWalaInstrumentation() {
+		assertNotRefusedByAres(() -> ListenMain.listenThroughFactoryOnLoopback(PORT));
+	}
+
+	/**
+	 * Listening through the server socket factory on every interface or on another
+	 * port is refused, as through a constructor.
+	 */
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyLocalhostByName.yaml", withinPath = WITHIN_PATH)
+	void test_listenThroughAFactoryElsewhereIsRefusedMavenWalaInstrumentation() {
+		assertThrows(SecurityException.class, () -> ListenMain.listenThroughFactoryOnEveryInterface(PORT));
+		assertThrows(SecurityException.class, () -> ListenMain.listenThroughFactoryOnLoopback(PORT + 1));
 	}
 
 	/** A datagram socket on a port the system picks contacts no one and passes. */

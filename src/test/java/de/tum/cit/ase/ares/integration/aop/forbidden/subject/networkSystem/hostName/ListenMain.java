@@ -7,6 +7,8 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
 
+import javax.net.ServerSocketFactory;
+
 /** Student code that opens server sockets and a client datagram socket. */
 public final class ListenMain {
 
@@ -46,6 +48,28 @@ public final class ListenMain {
 		try (ServerSocketChannel channel = ServerSocketChannel.open()) {
 			channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), port));
 		}
+	}
+
+	/**
+	 * Listens on a port of the loopback address through the default server socket
+	 * factory and stops at once.
+	 *
+	 * @param port the port
+	 * @throws IOException if the port is taken
+	 */
+	public static void listenThroughFactoryOnLoopback(int port) throws IOException {
+		ServerSocketFactory.getDefault().createServerSocket(port, 1, InetAddress.getLoopbackAddress()).close();
+	}
+
+	/**
+	 * Listens on a port of every interface through the default server socket
+	 * factory and stops at once.
+	 *
+	 * @param port the port
+	 * @throws IOException if the port is taken
+	 */
+	public static void listenThroughFactoryOnEveryInterface(int port) throws IOException {
+		ServerSocketFactory.getDefault().createServerSocket(port).close();
 	}
 
 	/**

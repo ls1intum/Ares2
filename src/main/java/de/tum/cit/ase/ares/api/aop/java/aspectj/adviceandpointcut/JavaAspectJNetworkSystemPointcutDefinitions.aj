@@ -7,6 +7,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             call(java.net.Socket+.new(..)) ||
             call(java.net.ServerSocket+.new(..)) ||
             call(* java.net.ServerSocket+.bind(..)) ||
+            call(* javax.net.ServerSocketFactory+.createServerSocket(..)) ||
             call(* java.nio.channels.ServerSocketChannel+.bind(..)) ||
             call(* java.nio.channels.AsynchronousServerSocketChannel+.bind(..)) ||
             call(* java.net.DatagramSocket+.connect(..)) ||
