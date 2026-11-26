@@ -6,6 +6,7 @@ import org.junit.jupiter.api.function.Executable;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.CountedOperationsMain;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.StudentTaskSet;
 
 /**
  * Checks that both runtime modes count a task handed to a thread pool or to
@@ -301,5 +302,215 @@ class ThreadCountedOperationsTest {
 	@Policy(value = POLICY_WALAINSTRUMENTATION_WITHOUT_PARALLEL, withinPath = WITHIN_PATH)
 	void parallelSortRefusedWithoutTokenMavenWalaInstrumentation() {
 		assertRefused(CountedOperationsMain::parallelSort);
+	}
+
+	/**
+	 * A JDK set of tasks handed to {@code invokeAll} runs in ArchunitAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAJdkSetMavenArchunitAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAJdkSet());
+	}
+
+	/**
+	 * A task set the student wrote is refused in ArchunitAspectJ before Ares
+	 * iterates it, so the thread its iterator starts is never started unchecked.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAStudentSetUnreadMavenArchunitAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllFromAStudentSet);
+		Assertions.assertFalse(StudentTaskSet.threadStarted());
+	}
+
+	/**
+	 * Student lists sorted with {@code Arrays.parallelSort} are plain data, allowed
+	 * by the parallel token in ArchunitAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void parallelSortOfStudentListsAllowedByTokenMavenArchunitAspectJ() {
+		Assertions.assertEquals(1, CountedOperationsMain.parallelSortStudentLists());
+	}
+
+	/**
+	 * Sorting student lists in parallel is refused without the parallel token in
+	 * ArchunitAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ_WITHOUT_PARALLEL, withinPath = WITHIN_PATH)
+	void parallelSortOfStudentListsRefusedWithoutTokenMavenArchunitAspectJ() {
+		assertRefused(CountedOperationsMain::parallelSortStudentLists);
+	}
+
+	/**
+	 * An array that holds itself is sorted in parallel under the parallel token in
+	 * ArchunitAspectJ, without Ares looking into it.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void parallelSortOfACyclicArrayAllowedByTokenMavenArchunitAspectJ() {
+		Assertions.assertEquals(2, CountedOperationsMain.parallelSortCyclicArray());
+	}
+
+	/**
+	 * A JDK set of tasks handed to {@code invokeAll} runs in
+	 * ArchunitInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAJdkSetMavenArchunitInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAJdkSet());
+	}
+
+	/**
+	 * A task set the student wrote is refused in ArchunitInstrumentation before
+	 * Ares iterates it, so the thread its iterator starts is never started
+	 * unchecked.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAStudentSetUnreadMavenArchunitInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllFromAStudentSet);
+		Assertions.assertFalse(StudentTaskSet.threadStarted());
+	}
+
+	/**
+	 * Student lists sorted with {@code Arrays.parallelSort} are plain data, allowed
+	 * by the parallel token in ArchunitInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void parallelSortOfStudentListsAllowedByTokenMavenArchunitInstrumentation() {
+		Assertions.assertEquals(1, CountedOperationsMain.parallelSortStudentLists());
+	}
+
+	/**
+	 * Sorting student lists in parallel is refused without the parallel token in
+	 * ArchunitInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION_WITHOUT_PARALLEL, withinPath = WITHIN_PATH)
+	void parallelSortOfStudentListsRefusedWithoutTokenMavenArchunitInstrumentation() {
+		assertRefused(CountedOperationsMain::parallelSortStudentLists);
+	}
+
+	/**
+	 * An array that holds itself is sorted in parallel under the parallel token in
+	 * ArchunitInstrumentation, without Ares looking into it.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void parallelSortOfACyclicArrayAllowedByTokenMavenArchunitInstrumentation() {
+		Assertions.assertEquals(2, CountedOperationsMain.parallelSortCyclicArray());
+	}
+
+	/**
+	 * A JDK set of tasks handed to {@code invokeAll} runs in WalaAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAJdkSetMavenWalaAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAJdkSet());
+	}
+
+	/**
+	 * A task set the student wrote is refused in WalaAspectJ before Ares iterates
+	 * it, so the thread its iterator starts is never started unchecked.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAStudentSetUnreadMavenWalaAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllFromAStudentSet);
+		Assertions.assertFalse(StudentTaskSet.threadStarted());
+	}
+
+	/**
+	 * Student lists sorted with {@code Arrays.parallelSort} are plain data, allowed
+	 * by the parallel token in WalaAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void parallelSortOfStudentListsAllowedByTokenMavenWalaAspectJ() {
+		Assertions.assertEquals(1, CountedOperationsMain.parallelSortStudentLists());
+	}
+
+	/**
+	 * Sorting student lists in parallel is refused without the parallel token in
+	 * WalaAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ_WITHOUT_PARALLEL, withinPath = WITHIN_PATH)
+	void parallelSortOfStudentListsRefusedWithoutTokenMavenWalaAspectJ() {
+		assertRefused(CountedOperationsMain::parallelSortStudentLists);
+	}
+
+	/**
+	 * An array that holds itself is sorted in parallel under the parallel token in
+	 * WalaAspectJ, without Ares looking into it.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void parallelSortOfACyclicArrayAllowedByTokenMavenWalaAspectJ() {
+		Assertions.assertEquals(2, CountedOperationsMain.parallelSortCyclicArray());
+	}
+
+	/**
+	 * A JDK set of tasks handed to {@code invokeAll} runs in WalaInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAJdkSetMavenWalaInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAJdkSet());
+	}
+
+	/**
+	 * A task set the student wrote is refused in WalaInstrumentation before Ares
+	 * iterates it, so the thread its iterator starts is never started unchecked.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAStudentSetUnreadMavenWalaInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllFromAStudentSet);
+		Assertions.assertFalse(StudentTaskSet.threadStarted());
+	}
+
+	/**
+	 * Student lists sorted with {@code Arrays.parallelSort} are plain data, allowed
+	 * by the parallel token in WalaInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void parallelSortOfStudentListsAllowedByTokenMavenWalaInstrumentation() {
+		Assertions.assertEquals(1, CountedOperationsMain.parallelSortStudentLists());
+	}
+
+	/**
+	 * Sorting student lists in parallel is refused without the parallel token in
+	 * WalaInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION_WITHOUT_PARALLEL, withinPath = WITHIN_PATH)
+	void parallelSortOfStudentListsRefusedWithoutTokenMavenWalaInstrumentation() {
+		assertRefused(CountedOperationsMain::parallelSortStudentLists);
+	}
+
+	/**
+	 * An array that holds itself is sorted in parallel under the parallel token in
+	 * WalaInstrumentation, without Ares looking into it.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void parallelSortOfACyclicArrayAllowedByTokenMavenWalaInstrumentation() {
+		Assertions.assertEquals(2, CountedOperationsMain.parallelSortCyclicArray());
 	}
 }

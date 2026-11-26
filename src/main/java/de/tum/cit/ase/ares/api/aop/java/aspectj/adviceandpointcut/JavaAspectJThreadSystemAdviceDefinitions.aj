@@ -755,7 +755,9 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	/**
 	 * Collects the thread-class names a value resolves to, looking into arrays and
-	 * lists, so the quota is used once per distinct class per call.
+	 * lists, so the quota is used once per distinct class per call. A collection
+	 * that is not a JDK class is refused, since iterating it would run student
+	 * code while the checks are paused.
 	 *
 	 * @param observedVariable the value to resolve
 	 * @param out              the distinct class names found so far
@@ -771,6 +773,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				collectThreadClassNames(Array.get(observedVariable, i), out, anyCollection);
 			}
 		} else if (observedVariable instanceof List<?> || (anyCollection && observedVariable instanceof Collection<?>)) {
+			requireTrustedRuntimeType(observedVariable);
 			for (Object element : (Collection<?>) observedVariable) {
 				collectThreadClassNames(element, out, anyCollection);
 			}
@@ -931,17 +934,18 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		String recordedThreadClass = !decrementQuota && instance instanceof Thread
 				? getRecordedThreadClass((Thread) instance)
 				: null;
-		if (parameters != null) {
+		boolean parallelArrayOperation = ARRAYS_CLASS.equals(declaringTypeName);
+		if (parameters != null && !parallelArrayOperation) {
 			for (Object parameter : parameters) {
 				collectThreadClassNames(parameter, threadClassNames, true);
 			}
 		}
 		if (recordedThreadClass != null) {
 			threadClassNames.add(recordedThreadClass);
-		} else {
+		} else if (!parallelArrayOperation) {
 			collectThreadClassNames(instance, threadClassNames, false);
 		}
-		if (attributes != null) {
+		if (attributes != null && !parallelArrayOperation) {
 			for (Object attribute : attributes) {
 				collectThreadClassNames(attribute, threadClassNames, false);
 			}
@@ -952,9 +956,6 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		// student invoked it directly (the first non-infrastructure caller is restricted-package code), so
 		// a woven harness or JDK helper that performs the operation under student code is not blamed on the
 		// student.
-		if (ARRAYS_CLASS.equals(declaringTypeName)) {
-			threadClassNames.clear();
-		}
 		if (isTimerConstruction(thisJoinPoint)) {
 			threadClassNames.clear();
 			threadClassNames.add(TIMER_THREAD_CLASS);

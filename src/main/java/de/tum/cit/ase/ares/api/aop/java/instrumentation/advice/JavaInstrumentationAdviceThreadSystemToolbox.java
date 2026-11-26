@@ -989,23 +989,21 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		String recordedThreadClass = !decrementQuota && instance instanceof Thread
 				? JavaInstrumentationThreadSystemCallSite.getRecordedThreadClass((Thread) instance)
 				: null;
-		if (parameters != null) {
+		boolean parallelArrayOperation = ARRAYS_CLASS.equals(declaringTypeName);
+		if (parameters != null && !parallelArrayOperation) {
 			for (Object parameter : parameters) {
 				collectThreadClassNames(parameter, threadClassNames, true);
 			}
 		}
 		if (recordedThreadClass != null) {
 			threadClassNames.add(recordedThreadClass);
-		} else {
+		} else if (!parallelArrayOperation) {
 			collectThreadClassNames(instance, threadClassNames, false);
 		}
-		if (attributes != null) {
+		if (attributes != null && !parallelArrayOperation) {
 			for (Object attribute : attributes) {
 				collectThreadClassNames(attribute, threadClassNames, false);
 			}
-		}
-		if (ARRAYS_CLASS.equals(declaringTypeName)) {
-			threadClassNames.clear();
 		}
 		if (isHttpClientOwnThread(instance)) {
 			threadClassNames.clear();

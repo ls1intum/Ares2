@@ -12,6 +12,8 @@ regardingTheSupervisedCode:
     regardingThreadCreations:
       - createTheFollowingNumberOfThreads: 3
         ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.CountedTask"
+      - createTheFollowingNumberOfThreads: 3
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.CountedCall"
     regardingPackageImports:
       - importTheFollowingPackage: "java.util"
       - importTheFollowingPackage: "java.util.concurrent"
