@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.implementation.bytecode.assign.Assigner;
 
 /**
  * This class provides advice for the execution of methods creating files. It is
@@ -72,5 +73,19 @@ public final class JavaInstrumentationCreatePathMethodAdvice {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", declaringTypeName, methodName,
 				methodSignature, attributes, parameters, instance);
 		// </editor-fold>
+	}
+
+	/**
+	 * Called when the method ends. Remembers the handle it returned if Ares allowed
+	 * the call to create the file that handle has open; a call that threw grants
+	 * nothing.
+	 *
+	 * @param returned the value the method returned, or {@code null}
+	 * @param thrown   what the method threw, or {@code null}
+	 */
+	@Advice.OnMethodExit(onThrowable = Throwable.class)
+	public static void onExit(@Advice.Return(typing = Assigner.Typing.DYNAMIC) Object returned,
+			@Advice.Thrown Throwable thrown) {
+		JavaInstrumentationAdviceFileSystemToolbox.rememberCreatedHandle(returned, thrown != null);
 	}
 }

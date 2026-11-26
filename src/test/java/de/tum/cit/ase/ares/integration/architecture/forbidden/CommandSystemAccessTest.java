@@ -6,8 +6,10 @@ import org.junit.jupiter.api.TestInstance;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.environment.EnvironmentReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.execute.processBuilder.ProcessBuilderExecuteMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.execute.runtime.RuntimeExecuteMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.commandSystem.redirect.RedirectMain;
 
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class CommandSystemAccessTest extends SystemAccessTest {
@@ -282,6 +284,389 @@ class CommandSystemAccessTest extends SystemAccessTest {
 	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = RUNTIME_PATH)
 	void test_executeCommandViaRuntimeArrayWithArgsMavenWalaInstrumentation() throws Exception {
 		RuntimeExecuteMain.executeCommandViaRuntimeArrayWithArgs();
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="ProcessBuilder.environment()">
+	/**
+	 * Folder of the student code reading the environment through a ProcessBuilder.
+	 */
+	private static final String ENVIRONMENT_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/commandSystem/environment";
+
+	/**
+	 * Reading the environment through a ProcessBuilder is refused, like
+	 * System.getenv.
+	 */
+	@Test
+	void test_readEnvironmentThroughProcessBuilderMavenArchunitAspectJ_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_readEnvironmentThroughProcessBuilderMavenArchunitAspectJ");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ARCHUNIT_ASPECTJ_POLICY, withinPath = ENVIRONMENT_PATH)
+	void test_readEnvironmentThroughProcessBuilderMavenArchunitAspectJ() {
+		EnvironmentReadMain.readHome();
+	}
+
+	/**
+	 * Reading the environment through a ProcessBuilder is refused, like
+	 * System.getenv.
+	 */
+	@Test
+	void test_readEnvironmentThroughProcessBuilderMavenArchunitInstrumentation_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_readEnvironmentThroughProcessBuilderMavenArchunitInstrumentation");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = ENVIRONMENT_PATH)
+	void test_readEnvironmentThroughProcessBuilderMavenArchunitInstrumentation() {
+		EnvironmentReadMain.readHome();
+	}
+
+	/**
+	 * Reading the environment through a ProcessBuilder is refused, like
+	 * System.getenv.
+	 */
+	@Test
+	void test_readEnvironmentThroughProcessBuilderMavenWalaAspectJ_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_readEnvironmentThroughProcessBuilderMavenWalaAspectJ");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = WALA_ASPECTJ_POLICY, withinPath = ENVIRONMENT_PATH)
+	void test_readEnvironmentThroughProcessBuilderMavenWalaAspectJ() {
+		EnvironmentReadMain.readHome();
+	}
+
+	/**
+	 * Reading the environment through a ProcessBuilder is refused, like
+	 * System.getenv.
+	 */
+	@Test
+	void test_readEnvironmentThroughProcessBuilderMavenWalaInstrumentation_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_readEnvironmentThroughProcessBuilderMavenWalaInstrumentation");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = WALA_INSTRUMENTATION_POLICY, withinPath = ENVIRONMENT_PATH)
+	void test_readEnvironmentThroughProcessBuilderMavenWalaInstrumentation() {
+		EnvironmentReadMain.readHome();
+	}
+	// </editor-fold>
+
+	// <editor-fold desc="redirects of an allowed command">
+	/**
+	 * Folder of the student code redirecting an allowed command.
+	 */
+	private static final String REDIRECT_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/commandSystem/redirect";
+
+	/**
+	 * The folder of the policies that allow one command and no file.
+	 */
+	private static final String ONE_COMMAND_POLICY_BASE = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/";
+
+	/**
+	 * The policy allowing one command and no file in ArchunitAspectJ.
+	 */
+	private static final String ONE_COMMAND_ARCHUNIT_ASPECTJ_POLICY = ONE_COMMAND_POLICY_BASE
+			+ "archunit/aspectj/PolicyOneCommandExecutionAllowed.yaml";
+
+	/**
+	 * The policy allowing one command and no file in ArchunitInstrumentation.
+	 */
+	private static final String ONE_COMMAND_ARCHUNIT_INSTRUMENTATION_POLICY = ONE_COMMAND_POLICY_BASE
+			+ "archunit/instrumentation/PolicyOneCommandExecutionAllowed.yaml";
+
+	/**
+	 * The policy allowing one command and no file in WalaAspectJ.
+	 */
+	private static final String ONE_COMMAND_WALA_ASPECTJ_POLICY = ONE_COMMAND_POLICY_BASE
+			+ "wala/aspectj/PolicyOneCommandExecutionAllowed.yaml";
+
+	/**
+	 * The policy allowing one command and no file in WalaInstrumentation.
+	 */
+	private static final String ONE_COMMAND_WALA_INSTRUMENTATION_POLICY = ONE_COMMAND_POLICY_BASE
+			+ "wala/instrumentation/PolicyOneCommandExecutionAllowed.yaml";
+
+	/**
+	 * The allowed command is refused before the test runs when writing its output
+	 * into a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_redirectOutputOfAnAllowedCommandMavenArchunitAspectJ_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_redirectOutputOfAnAllowedCommandMavenArchunitAspectJ");
+	}
+
+	/**
+	 * Runs the allowed command with its output written into a file, in
+	 * ArchunitAspectJ.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_ARCHUNIT_ASPECTJ_POLICY, withinPath = REDIRECT_PATH)
+	void test_redirectOutputOfAnAllowedCommandMavenArchunitAspectJ() throws Exception {
+		RedirectMain.redirectOutput();
+	}
+
+	/**
+	 * The allowed command is refused before the test runs when appending its output
+	 * to a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_appendOutputOfAnAllowedCommandMavenArchunitAspectJ_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_appendOutputOfAnAllowedCommandMavenArchunitAspectJ");
+	}
+
+	/**
+	 * Runs the allowed command with its output appended to a file, in
+	 * ArchunitAspectJ.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_ARCHUNIT_ASPECTJ_POLICY, withinPath = REDIRECT_PATH)
+	void test_appendOutputOfAnAllowedCommandMavenArchunitAspectJ() throws Exception {
+		RedirectMain.appendOutput();
+	}
+
+	/**
+	 * The allowed command is refused before the test runs when reading its input
+	 * from a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_redirectInputOfAnAllowedCommandMavenArchunitAspectJ_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_redirectInputOfAnAllowedCommandMavenArchunitAspectJ");
+	}
+
+	/**
+	 * Runs the allowed command with its input read from a file, in ArchunitAspectJ.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_ARCHUNIT_ASPECTJ_POLICY, withinPath = REDIRECT_PATH)
+	void test_redirectInputOfAnAllowedCommandMavenArchunitAspectJ() throws Exception {
+		RedirectMain.redirectInput();
+	}
+
+	/**
+	 * The allowed command is refused before the test runs when writing its output
+	 * into a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_redirectOutputOfAnAllowedCommandMavenArchunitInstrumentation_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_redirectOutputOfAnAllowedCommandMavenArchunitInstrumentation");
+	}
+
+	/**
+	 * Runs the allowed command with its output written into a file, in
+	 * ArchunitInstrumentation.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = REDIRECT_PATH)
+	void test_redirectOutputOfAnAllowedCommandMavenArchunitInstrumentation() throws Exception {
+		RedirectMain.redirectOutput();
+	}
+
+	/**
+	 * The allowed command is refused before the test runs when appending its output
+	 * to a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_appendOutputOfAnAllowedCommandMavenArchunitInstrumentation_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_appendOutputOfAnAllowedCommandMavenArchunitInstrumentation");
+	}
+
+	/**
+	 * Runs the allowed command with its output appended to a file, in
+	 * ArchunitInstrumentation.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = REDIRECT_PATH)
+	void test_appendOutputOfAnAllowedCommandMavenArchunitInstrumentation() throws Exception {
+		RedirectMain.appendOutput();
+	}
+
+	/**
+	 * The allowed command is refused before the test runs when reading its input
+	 * from a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_redirectInputOfAnAllowedCommandMavenArchunitInstrumentation_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_redirectInputOfAnAllowedCommandMavenArchunitInstrumentation");
+	}
+
+	/**
+	 * Runs the allowed command with its input read from a file, in
+	 * ArchunitInstrumentation.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_ARCHUNIT_INSTRUMENTATION_POLICY, withinPath = REDIRECT_PATH)
+	void test_redirectInputOfAnAllowedCommandMavenArchunitInstrumentation() throws Exception {
+		RedirectMain.redirectInput();
+	}
+
+	/**
+	 * The allowed command is refused before the test runs when writing its output
+	 * into a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_redirectOutputOfAnAllowedCommandMavenWalaAspectJ_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_redirectOutputOfAnAllowedCommandMavenWalaAspectJ");
+	}
+
+	/**
+	 * Runs the allowed command with its output written into a file, in WalaAspectJ.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_WALA_ASPECTJ_POLICY, withinPath = REDIRECT_PATH)
+	void test_redirectOutputOfAnAllowedCommandMavenWalaAspectJ() throws Exception {
+		RedirectMain.redirectOutput();
+	}
+
+	/**
+	 * The allowed command is refused before the test runs when appending its output
+	 * to a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_appendOutputOfAnAllowedCommandMavenWalaAspectJ_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_appendOutputOfAnAllowedCommandMavenWalaAspectJ");
+	}
+
+	/**
+	 * Runs the allowed command with its output appended to a file, in WalaAspectJ.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_WALA_ASPECTJ_POLICY, withinPath = REDIRECT_PATH)
+	void test_appendOutputOfAnAllowedCommandMavenWalaAspectJ() throws Exception {
+		RedirectMain.appendOutput();
+	}
+
+	/**
+	 * The allowed command is refused before the test runs when reading its input
+	 * from a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_redirectInputOfAnAllowedCommandMavenWalaAspectJ_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_redirectInputOfAnAllowedCommandMavenWalaAspectJ");
+	}
+
+	/**
+	 * Runs the allowed command with its input read from a file, in WalaAspectJ.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_WALA_ASPECTJ_POLICY, withinPath = REDIRECT_PATH)
+	void test_redirectInputOfAnAllowedCommandMavenWalaAspectJ() throws Exception {
+		RedirectMain.redirectInput();
+	}
+
+	/**
+	 * The allowed command is refused before the test runs when writing its output
+	 * into a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_redirectOutputOfAnAllowedCommandMavenWalaInstrumentation_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_redirectOutputOfAnAllowedCommandMavenWalaInstrumentation");
+	}
+
+	/**
+	 * Runs the allowed command with its output written into a file, in
+	 * WalaInstrumentation.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_WALA_INSTRUMENTATION_POLICY, withinPath = REDIRECT_PATH)
+	void test_redirectOutputOfAnAllowedCommandMavenWalaInstrumentation() throws Exception {
+		RedirectMain.redirectOutput();
+	}
+
+	/**
+	 * The allowed command is refused before the test runs when appending its output
+	 * to a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_appendOutputOfAnAllowedCommandMavenWalaInstrumentation_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_appendOutputOfAnAllowedCommandMavenWalaInstrumentation");
+	}
+
+	/**
+	 * Runs the allowed command with its output appended to a file, in
+	 * WalaInstrumentation.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_WALA_INSTRUMENTATION_POLICY, withinPath = REDIRECT_PATH)
+	void test_appendOutputOfAnAllowedCommandMavenWalaInstrumentation() throws Exception {
+		RedirectMain.appendOutput();
+	}
+
+	/**
+	 * The allowed command is refused before the test runs when reading its input
+	 * from a file, since the policy allows no file at all.
+	 */
+	@Test
+	void test_redirectInputOfAnAllowedCommandMavenWalaInstrumentation_test() {
+		executeTestAndExpectSecurityException(CommandSystemAccessTest.class,
+				"test_redirectInputOfAnAllowedCommandMavenWalaInstrumentation");
+	}
+
+	/**
+	 * Runs the allowed command with its input read from a file, in
+	 * WalaInstrumentation.
+	 *
+	 * @throws Exception if the command fails
+	 */
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = ONE_COMMAND_WALA_INSTRUMENTATION_POLICY, withinPath = REDIRECT_PATH)
+	void test_redirectInputOfAnAllowedCommandMavenWalaInstrumentation() throws Exception {
+		RedirectMain.redirectInput();
 	}
 	// </editor-fold>
 }

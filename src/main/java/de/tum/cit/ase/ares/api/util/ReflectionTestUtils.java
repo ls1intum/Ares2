@@ -196,23 +196,19 @@ public final class ReflectionTestUtils {
 	}
 
 	/**
-	 * Instantiate an object of a class by using a specific constructor and
-	 * constructor arguments, if applicable.
+	 * Creates an object with the given constructor and arguments.
 	 *
-	 * @param constructor     The constructor that should be used to instantiate an
-	 *                        object.
-	 * @param forceAccess     True, if access to a (package) private or protected
-	 *                        constructor should be forced. Might fail with an
-	 *                        {@link IllegalAccessException} otherwise.
-	 * @param constructorArgs Parameter instances the constructor should be called
-	 *                        with.
-	 * @return The object created by calling the given constructor.
+	 * @param constructor     the constructor to call
+	 * @param forceAccess     whether to call a non-public constructor
+	 * @param constructorArgs the arguments
+	 * @return the new object
+	 * @throws SecurityException unchanged, so a refusal by Ares stays visible
 	 */
 	private static Object newInstanceAccessible(Constructor<?> constructor, boolean forceAccess,
 			Object[] constructorArgs) {
 		try {
 			return newInstanceRethrowingAccessible(constructor, forceAccess, constructorArgs);
-		} catch (AssertionFailedError e) {
+		} catch (AssertionFailedError | SecurityException e) {
 			throw e;
 		} catch (@SuppressWarnings("unused") Throwable e) {
 			throw localizedFailure("reflection_test_utils.constructor_internal_exception", //$NON-NLS-1$
@@ -571,15 +567,14 @@ public final class ReflectionTestUtils {
 	}
 
 	/**
-	 * Invoke a given method of a given object with instances of the parameters.
+	 * Calls the named method of an object with the given arguments.
 	 *
-	 * @param object      The instance of the class that should invoke the method.
-	 * @param methodName  The name of the method that has to get invoked.
-	 * @param forceAccess True, if access to a (package) private or protected method
-	 *                    should be forced. Might fail with an
-	 *                    {@link IllegalAccessException} otherwise.
-	 * @param params      Parameter instances of the method.
-	 * @return The return value of the method.
+	 * @param object      the object, or {@code null} for a static method
+	 * @param methodName  the method's name
+	 * @param forceAccess whether to call a non-public method
+	 * @param params      the arguments
+	 * @return the method's return value
+	 * @throws SecurityException unchanged, so a refusal by Ares stays visible
 	 */
 	private static Object invokeMethodAccessible(Object object, String methodName, boolean forceAccess,
 			Object[] params) {
@@ -589,21 +584,20 @@ public final class ReflectionTestUtils {
 	}
 
 	/**
-	 * Invoke a given method of a given object with instances of the parameters.
+	 * Calls a method of an object with the given arguments.
 	 *
-	 * @param object      The instance of the class that should invoke the method.
-	 * @param method      The method that has to get invoked.
-	 * @param forceAccess True, if access to a (package) private or protected method
-	 *                    should be forced. Might fail with an
-	 *                    {@link IllegalAccessException} otherwise.
-	 * @param params      Parameter instances of the method.
-	 * @return The return value of the method.
+	 * @param object      the object, or {@code null} for a static method
+	 * @param method      the method
+	 * @param forceAccess whether to call a non-public method
+	 * @param params      the arguments
+	 * @return the method's return value
+	 * @throws SecurityException unchanged, so a refusal by Ares stays visible
 	 */
 	private static Object invokeMethodAccessible(Object object, Method method, boolean forceAccess, Object[] params) {
 		// NOTE: object can be null, if method is static
 		try {
 			return invokeMethodRethrowingAccessible(object, method, forceAccess, params);
-		} catch (AssertionFailedError e) {
+		} catch (AssertionFailedError | SecurityException e) {
 			throw e;
 		} catch (Throwable e) {
 			throw localizedFailure("reflection_test_utils.method_internal_exception", method.getName(), //$NON-NLS-1$

@@ -48,7 +48,6 @@ java.lang.Class.newInstance()
 java.lang.Class.getDeclaredFields()
 java.lang.Class.getField(java.lang.String)
 java.lang.Class.getConstructors()
-java.lang.Class.getResourceAsStream(java.lang.String)
 java.lang.Class.getDeclaredConstructors()
 java.lang.Class.getMethod(java.lang.String, [Ljava.lang.Class;)
 java.lang.Class.getDeclaredClasses()
@@ -130,7 +129,6 @@ java.util.concurrent.atomic.AtomicIntegerFieldUpdater.newUpdater(java.lang.Class
 java.util.concurrent.atomic.AtomicLongFieldUpdater.newUpdater(java.lang.Class, java.lang.String)
 java.util.concurrent.atomic.AtomicReferenceFieldUpdater.newUpdater(java.lang.Class, java.lang.Class, java.lang.String)
 java.util.logging.Logger.getAnonymousLogger(java.lang.String)
-java.util.logging.Logger.getLogger(java.lang.String)
 java.util.logging.Logger.getLogger(java.lang.String, java.lang.String)
 javax.sql.rowset.serial.SerialJavaObject.getFields()
 jdk.internal.foreign.AbstractMemorySegmentImpl.reinterpret(long, java.lang.foreign.Arena, java.util.function.Consumer)
@@ -187,8 +185,5 @@ sun.reflect.ReflectionFactory.newOptionalDataExceptionForSerialization(boolean)
 sun.reflect.ReflectionFactory.writeObjectForSerialization(java.lang.Class)
 sun.reflect.ReflectionFactory.newConstructorForSerialization(java.lang.Class)
 sun.reflect.ReflectionFactory.hasStaticInitializerForSerialization(java.lang.Class)
-java.lang.System.setErr
-java.lang.System.setIn
-java.lang.System.setOut
 java.lang.constant
 java.lang.Enum$EnumDesc.resolveConstantDesc

@@ -1,12 +1,14 @@
 package example.student;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.SocketAddress;
 import java.net.URL;
 import java.nio.channels.FileChannel;
 import java.nio.file.CopyOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileAttribute;
 import java.util.List;
 
@@ -244,7 +246,24 @@ public final class InstrumentationSecurityProbe {
 	 */
 	public static void checkFileChannelTransferToReadLeg(FileChannel sourceChannel, long position, long count,
 			Object target) {
-		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read", "java.nio.channels.FileChannel",
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("read", "sun.nio.ch.FileChannelImpl",
+				"transferTo", "(JJLjava/nio/channels/WritableByteChannel;)J", null,
+				new Object[] { position, count, target }, sourceChannel);
+	}
+
+	/**
+	 * Simulates the "overwrite" leg of a woven {@code FileChannel.transferTo(...)}
+	 * call: the target channel is the one being written TO. The class is the one
+	 * the agent reports, the JDK's channel implementation.
+	 *
+	 * @param sourceChannel the channel read from
+	 * @param position      where reading starts
+	 * @param count         how many bytes are moved
+	 * @param target        the channel written to
+	 */
+	public static void checkFileChannelTransferToOverwriteLeg(FileChannel sourceChannel, long position, long count,
+			Object target) {
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("overwrite", "sun.nio.ch.FileChannelImpl",
 				"transferTo", "(JJLjava/nio/channels/WritableByteChannel;)J", null,
 				new Object[] { position, count, target }, sourceChannel);
 	}
@@ -257,9 +276,52 @@ public final class InstrumentationSecurityProbe {
 	 */
 	public static void checkFileChannelTransferFromOverwriteLeg(FileChannel destinationChannel, Object source,
 			long position, long count) {
-		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("overwrite",
-				"java.nio.channels.FileChannel", "transferFrom", "(Ljava/nio/channels/ReadableByteChannel;JJ)J", null,
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("overwrite", "sun.nio.ch.FileChannelImpl",
+				"transferFrom", "(Ljava/nio/channels/ReadableByteChannel;JJ)J", null,
 				new Object[] { source, position, count }, destinationChannel);
+	}
+
+	/**
+	 * Opens a new file for writing as a checked student opening would: the toolbox
+	 * checks and allows the creation, then the opening returns its channel.
+	 *
+	 * @param file the missing file
+	 * @return the channel
+	 * @throws IOException if the file cannot be opened
+	 */
+	public static FileChannel openNewFileChannel(Path file) throws IOException {
+		Object[] parameters = { file,
+				new StandardOpenOption[] { StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE } };
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.nio.channels.FileChannel",
+				"open", "(Ljava/nio/file/Path;[Ljava/nio/file/OpenOption;)Ljava/nio/channels/FileChannel;", null,
+				parameters, null);
+		FileChannel channel = FileChannel.open(file, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+		JavaInstrumentationAdviceFileSystemToolbox.rememberCreatedHandle(channel, false);
+		return channel;
+	}
+
+	/**
+	 * Has the toolbox allow the creation of a new file, then reports the opening as
+	 * failed, as an opening that throws after its check would.
+	 *
+	 * @param file the missing file
+	 */
+	public static void failNewFileChannel(Path file) {
+		Object[] parameters = { file,
+				new StandardOpenOption[] { StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE } };
+		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", "java.nio.channels.FileChannel",
+				"open", "(Ljava/nio/file/Path;[Ljava/nio/file/OpenOption;)Ljava/nio/channels/FileChannel;", null,
+				parameters, null);
+		JavaInstrumentationAdviceFileSystemToolbox.rememberCreatedHandle(null, true);
+	}
+
+	/**
+	 * Reports a handle as the result of an opening, as the exit advice would.
+	 *
+	 * @param handle the handle
+	 */
+	public static void reportOpenedHandle(Object handle) {
+		JavaInstrumentationAdviceFileSystemToolbox.rememberCreatedHandle(handle, false);
 	}
 
 	public static void checkNetworkConnect(String host, int port) {

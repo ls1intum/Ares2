@@ -96,7 +96,7 @@ public class AncestorPackageImportTest {
 	 * and method, then that it tried something.
 	 */
 	private static final Pattern UNRELATED_VIOLATION = Pattern.compile(
-			"Student-Code;[^)]*\\): de\\.tum\\.cit\\.ase\\.ares\\.integration\\.[\\w.]+\\(\\) (tried|hat versucht)");
+			"Student-Code;[^)]*\\): de\\.tum\\.cit\\.ase\\.ares\\.integration\\.[\\w.]+\\([^)]*\\) (tried|hat versucht)");
 
 	/**
 	 * The folder, below the test output, that holds the copied student classes.

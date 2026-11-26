@@ -79,6 +79,75 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.file.execution");
 	}
 
+	/**
+	 * A handle the student's checked opening created keeps the create allowance for
+	 * a transfer into it only while the policy that allowed it stays armed.
+	 *
+	 * @param tempDir the folder the policy governs
+	 * @throws Exception if a file cannot be prepared
+	 */
+	@Test
+	void createdHandleLosesTheCreateAllowanceWhenAPolicyIsArmedAgain(@TempDir Path tempDir) throws Exception {
+		try {
+			resetSettings();
+			configureCreateOnlyFolder(tempDir);
+			Path source = Files.writeString(tempDir.resolve("source.txt"), "new");
+			try (FileChannel created = InstrumentationSecurityProbe.openNewFileChannel(tempDir.resolve("new.txt"));
+					FileChannel in = FileChannel.open(source, StandardOpenOption.READ)) {
+				assertDoesNotThrow(
+						() -> InstrumentationSecurityProbe.checkFileChannelTransferFromOverwriteLeg(created, in, 0, 3));
+				configureCreateOnlyFolder(tempDir);
+				assertThrows(SecurityException.class,
+						() -> InstrumentationSecurityProbe.checkFileChannelTransferFromOverwriteLeg(created, in, 0, 3));
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * An opening whose creation was allowed but which then failed grants nothing to
+	 * a handle opened on that path afterwards.
+	 *
+	 * @param tempDir the folder the policy governs
+	 * @throws Exception if a file cannot be prepared
+	 */
+	@Test
+	void failedCreationGrantsNothingToALaterHandle(@TempDir Path tempDir) throws Exception {
+		try {
+			resetSettings();
+			configureCreateOnlyFolder(tempDir);
+			Path target = tempDir.resolve("new.txt");
+			InstrumentationSecurityProbe.failNewFileChannel(target);
+			Files.writeString(target, "old");
+			Path source = Files.writeString(tempDir.resolve("source.txt"), "new");
+			try (FileChannel out = FileChannel.open(target, StandardOpenOption.WRITE);
+					FileChannel in = FileChannel.open(source, StandardOpenOption.READ)) {
+				InstrumentationSecurityProbe.reportOpenedHandle(out);
+				assertThrows(SecurityException.class,
+						() -> InstrumentationSecurityProbe.checkFileChannelTransferFromOverwriteLeg(out, in, 0, 3));
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * Arms a policy that lets the student read and create files in one folder, but
+	 * not overwrite them. Each call arms it anew, with fresh lists.
+	 *
+	 * @param folder the folder
+	 */
+	private static void configureCreateOnlyFolder(Path folder) {
+		configureInstrumentationMode();
+		JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { folder.toString() }, "ARCH",
+				"INSTRUMENTATION");
+		JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { folder.toString() }, "ARCH",
+				"INSTRUMENTATION");
+		JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten", new String[0], "ARCH",
+				"INSTRUMENTATION");
+	}
+
 	private static void resetSettings() throws Exception {
 		Method reset = JavaAOPTestCaseSettings.class.getDeclaredMethod("reset");
 		reset.setAccessible(true);
@@ -341,6 +410,16 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 							.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("create")),
 					() -> "Expected 'create' without REPLACE_EXISTING, but was:\n" + withoutReplace.getMessage());
 
+			SecurityException replacingMissing = assertThrows(SecurityException.class,
+					() -> InstrumentationSecurityProbe.checkFilesCopyOverwriteLeg(source, destination,
+							java.nio.file.StandardCopyOption.REPLACE_EXISTING));
+			assertTrue(
+					replacingMissing.getMessage()
+							.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("create")),
+					() -> "Expected 'create' with REPLACE_EXISTING on a missing file, but was:\n"
+							+ replacingMissing.getMessage());
+
+			java.nio.file.Files.writeString(destination, "old");
 			SecurityException withReplace = assertThrows(SecurityException.class,
 					() -> InstrumentationSecurityProbe.checkFilesCopyOverwriteLeg(source, destination,
 							java.nio.file.StandardCopyOption.REPLACE_EXISTING));
@@ -399,6 +478,45 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 					FileChannel destinationChannel = FileChannel.open(destination, StandardOpenOption.WRITE)) {
 				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
 						.checkFileChannelTransferFromOverwriteLeg(destinationChannel, sourceChannel, 0, 10));
+				assertTrue(
+						exception.getMessage()
+								.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("overwrite")),
+						() -> "Expected the denial to name the 'overwrite' action, but was:\n"
+								+ exception.getMessage());
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * The write side of {@code transferTo}, reported with the class the agent
+	 * really names, is allowed for a target file the policy lets be overwritten and
+	 * refused for one it does not.
+	 *
+	 * @param tempDir a fresh folder
+	 * @throws Exception if the files cannot be prepared
+	 */
+	@Test
+	void checkFileSystemInteraction_fileChannelTransferToChecksTargetFileAsWrite(@TempDir Path tempDir)
+			throws Exception {
+		try {
+			resetSettings();
+			configureInstrumentationMode();
+			Path source = tempDir.resolve("source.txt");
+			Files.writeString(source, "content");
+			Path destination = tempDir.resolve("dest.txt");
+			Files.createFile(destination);
+			try (FileChannel sourceChannel = FileChannel.open(source, StandardOpenOption.READ);
+					FileChannel destinationChannel = FileChannel.open(destination, StandardOpenOption.WRITE)) {
+				JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten",
+						new String[] { destination.toString() }, "ARCH", "INSTRUMENTATION");
+				assertDoesNotThrow(() -> InstrumentationSecurityProbe
+						.checkFileChannelTransferToOverwriteLeg(sourceChannel, 0, 10, destinationChannel));
+				JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten", new String[0], "ARCH",
+						"INSTRUMENTATION");
+				SecurityException exception = assertThrows(SecurityException.class, () -> InstrumentationSecurityProbe
+						.checkFileChannelTransferToOverwriteLeg(sourceChannel, 0, 10, destinationChannel));
 				assertTrue(
 						exception.getMessage()
 								.contains(JavaInstrumentationAdviceAbstractToolbox.localizeAction("overwrite")),

@@ -17,13 +17,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
-import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.jar.JarFile;
@@ -80,7 +81,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			Map.entry("java.lang.ProcessBuilder.start",
 					IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))),
 			Map.entry("java.lang.ProcessBuilder.startPipeline",
-					IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))));
+					IgnoreValues.allExcept(findFieldIndex(ProcessBuilder.class, "command"))),
+			// ProcessBuilder.redirectOutput/redirectError/redirectInput(File) - only the
+			// File argument names the file; the command strings are not paths.
+			Map.entry("java.lang.ProcessBuilder.redirectOutput", IgnoreValues.ALL),
+			Map.entry("java.lang.ProcessBuilder.redirectError", IgnoreValues.ALL),
+			Map.entry("java.lang.ProcessBuilder.redirectInput", IgnoreValues.ALL));
 
 	/**
 	 * Map of methods with parameter index exceptions for file system ignore logic.
@@ -116,9 +122,22 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			Map.entry("java.io.DataOutputStream.writeUTF", IgnoreValues.ALL),
 			Map.entry("java.io.DataOutputStream.writeChars", IgnoreValues.ALL),
 			Map.entry("java.io.DataOutputStream.writeBytes", IgnoreValues.ALL),
+			// The same three on a RandomAccessFile write to the file it has open.
+			Map.entry("java.io.RandomAccessFile.writeUTF", IgnoreValues.ALL),
+			Map.entry("java.io.RandomAccessFile.writeChars", IgnoreValues.ALL),
+			Map.entry("java.io.RandomAccessFile.writeBytes", IgnoreValues.ALL),
 			// PrintStream(OutputStream|File|String, [boolean], [String charset]) - keep
 			// only index 0 (the sink); a charset name like "UTF-8" is not a path.
 			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)),
+			// PrintWriter(String|File, String charset) and Formatter(String|File, String
+			// charset, [Locale]) - only the file (index 0); the charset name is not a path.
+			Map.entry("java.io.PrintWriter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.util.Formatter.<init>", IgnoreValues.allExcept(0)),
+			// Scanner(File|Path, [String charset]) - only the file (index 0); a charset
+			// name like "UTF-8" is not a path.
+			Map.entry("java.util.Scanner.<init>", IgnoreValues.allExcept(0)),
+			// StringReader(String) - the argument is the text it reads, never a path.
+			Map.entry("java.io.StringReader.<init>", IgnoreValues.ALL),
 			// FileSystemView.getChild(File dir, String name) and isParent(File dir, File
 			// file) list dir; only dir is checked, the name is not a path and the file is
 			// not listed.
@@ -281,7 +300,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * Tells whether a path lies outside every allowed path. A missing or empty
 	 * allow-list allows nothing, so every path is forbidden; a {@code *} entry
 	 * allows everything. Links are resolved first, so a link cannot lead out of an
-	 * allowed folder.
+	 * allowed folder. An entry that exists but cannot be resolved, such as a link
+	 * to a missing file, is forbidden, except where the check acts on the link
+	 * itself, as a deletion or a replacing copy or move does: then the link's own
+	 * place is checked.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -318,13 +340,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				// Do NOT use NOFOLLOW_LINKS here - we want to follow symlinks to see the real
 				// target
 				candidate = actualPath.toRealPath();
-			} catch (IOException e) {
-				// If we can't resolve the real path for an existing file, fail secure
-				if (!allowNonExistingPathsToBeConsidered) {
+			} catch (IOException unresolved) {
+				if (!Boolean.TRUE.equals(LINK_ITSELF_IS_CHECKED.get()) || !Files.isSymbolicLink(actualPath)) {
 					return true;
 				}
-				// Fall back to normalized absolute path if real path resolution fails
-				candidate = actualPath.normalize().toAbsolutePath();
+				candidate = linkLocation(actualPath);
 			}
 		} else {
 			// For non-existing targets, resolve symlinks in the deepest existing ancestor
@@ -355,6 +375,45 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		// bypass the allowlist: doing so would leak file existence and let a
 		// not-yet-created path slip through the rule (TOCTOU).
 		return !hasAllowedPrefix;
+	}
+
+	/**
+	 * Whether the check running on this thread acts on a link itself rather than on
+	 * the file the link points to: a deletion, or a copy or move that replaces the
+	 * link.
+	 */
+	@Nonnull
+	private static final ThreadLocal<Boolean> LINK_ITSELF_IS_CHECKED = new ThreadLocal<>();
+
+	/**
+	 * Tells whether a copy or move with {@code REPLACE_EXISTING} has a link as its
+	 * destination. The JDK then replaces the link itself and does not follow it.
+	 *
+	 * @param parameters  the call arguments
+	 * @param destination the destination, isolated from them
+	 * @return whether the call replaces a link
+	 */
+	private static boolean replacesALink(@Nullable Object[] parameters, @Nonnull Object[] destination) {
+		if (destination.length != 1 || !hasReplaceExisting(parameters)) {
+			return false;
+		}
+		FileTarget target = variableToTarget(destination[0], true);
+		return target != null && Files.isSymbolicLink(target.path());
+	}
+
+	/**
+	 * Returns where a link itself lies: its folder with links resolved, and its own
+	 * name.
+	 *
+	 * @param link the link
+	 * @return the link's own absolute place
+	 */
+	@Nonnull
+	private static Path linkLocation(@Nonnull Path link) {
+		Path absolute = link.normalize().toAbsolutePath();
+		Path folder = absolute.getParent();
+		Path name = absolute.getFileName();
+		return folder == null || name == null ? absolute : resolveExistingAncestorRealPath(folder).resolve(name);
 	}
 
 	/**
@@ -481,12 +540,40 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				// File is not final; a student subclass could run code in toURI().
 				requireTrustedRuntimeType(variableValue);
 				return Path.of(((File) variableValue).toURI()).normalize().toAbsolutePath();
+			} else if (variableValue instanceof FileChannel fileChannel) {
+				requireTrustedRuntimeType(variableValue);
+				return fileChannelPath(fileChannel);
 			} else {
 				return null;
 			}
 		} catch (InvalidPathException | URISyntaxException ignored) {
 			return null;
 		}
+	}
+
+	/**
+	 * Returns the file a JDK file channel was opened on, read from its
+	 * {@code path} field, or {@code null} if the channel does not say.
+	 *
+	 * @param fileChannel the channel
+	 * @return the file's absolute path, or {@code null}
+	 */
+	@Nullable
+	private static Path fileChannelPath(@Nonnull FileChannel fileChannel) {
+		Class<?> currentType = fileChannel.getClass();
+		while (currentType != null) {
+			try {
+				java.lang.reflect.Field pathField = currentType.getDeclaredField("path");
+				pathField.setAccessible(true);
+				Object path = pathField.get(fileChannel);
+				return path instanceof String ? Path.of((String) path).normalize().toAbsolutePath() : null;
+			} catch (NoSuchFieldException missing) {
+				currentType = currentType.getSuperclass();
+			} catch (IllegalAccessException | InaccessibleObjectException inaccessible) {
+				return null;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -628,215 +715,754 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 
 	// <editor-fold desc="Check methods">
 	/**
-	 * Map of class names to the parameter index containing the append boolean.
-	 * <p>
-	 * Description: For classes that use a boolean append parameter in their
-	 * constructors, this map specifies which parameter index holds the append flag.
-	 * When append is false, the operation should be treated as "overwrite" rather
-	 * than "create" for existing files.
-	 * </p>
+	 * The {@code Files} methods that always open their file for writing. Given no
+	 * options they create a missing file or empty an existing one; given options,
+	 * the JDK adds {@code WRITE} to them.
 	 */
 	@Nonnull
-	private static final Map<String, Integer> APPEND_PARAMETER_INDEX = Map.ofEntries(
-			Map.entry("java.io.FileWriter", -1), // Variable position, check all booleans
-			Map.entry("java.io.FileOutputStream", -1), // Variable position, check all booleans
-			Map.entry("java.io.PrintWriter", -1) // Variable position, check all booleans
-	);
+	private static final Set<String> WRITE_OPENING_METHODS = Set.of("java.nio.file.Files.write",
+			"java.nio.file.Files.writeString", "java.nio.file.Files.newOutputStream",
+			"java.nio.file.Files.newBufferedWriter", "java.nio.file.spi.FileSystemProvider.newOutputStream");
 
 	/**
-	 * Checks if the parameters contain an append=false boolean, indicating
-	 * overwrite behaviour.
-	 * <p>
-	 * Description: For legacy I/O classes like FileWriter and FileOutputStream, the
-	 * append behaviour is controlled by a boolean parameter. When this parameter is
-	 * false, the file is truncated/overwritten rather than appended to, which
-	 * should be reported as "overwrite" instead of "create".
-	 * </p>
-	 *
-	 * @param declaringTypeName the fully qualified class name being invoked
-	 * @param parameters        the constructor/method parameters
-	 * @return true if append=false was found, indicating overwrite behaviour
-	 * @since 2.0.0
+	 * The methods that open a file for reading, writing or both, decided by the
+	 * options alone. Without {@code WRITE} or {@code APPEND} the JDK opens the file
+	 * for reading, so an option such as {@code DELETE_ON_CLOSE} never replaces the
+	 * read check.
 	 */
-	private static boolean hasAppendFalseParameter(@Nonnull String declaringTypeName, @Nullable Object[] parameters) {
-		if (parameters == null || parameters.length == 0) {
-			return false;
-		}
+	@Nonnull
+	private static final Set<String> CHANNEL_OPENING_METHODS = Set.of("java.nio.file.Files.newByteChannel",
+			"java.nio.file.Files.newInputStream", "java.nio.channels.FileChannel.open",
+			"java.nio.channels.AsynchronousFileChannel.open", "java.nio.file.spi.FileSystemProvider.newInputStream",
+			"java.nio.file.spi.FileSystemProvider.newByteChannel", "java.nio.file.spi.FileSystemProvider.newFileChannel",
+			"java.nio.file.spi.FileSystemProvider.newAsynchronousFileChannel",
+			"java.nio.file.SecureDirectoryStream.newByteChannel");
 
-		Integer appendIndex = APPEND_PARAMETER_INDEX.get(declaringTypeName);
-		if (appendIndex == null) {
-			return false;
-		}
+	/**
+	 * The class every file system provider extends. Its methods open, copy and move
+	 * files directly, without going through {@code Files}.
+	 */
+	@Nonnull
+	private static final String FILE_SYSTEM_PROVIDER = "java.nio.file.spi.FileSystemProvider";
 
-		// For variable position (-1), check all boolean parameters
-		// The append parameter is typically the last boolean in the constructor
-		if (appendIndex == -1) {
-			for (int i = parameters.length - 1; i >= 0; i--) {
-				Object param = parameters[i];
-				if (param instanceof Boolean) {
-					// Found a boolean parameter - if it's false, this indicates non-append mode
-					return Boolean.FALSE.equals(param);
-				}
-			}
-			return false;
-		}
-
-		// For fixed position, check the specific index
-		if (appendIndex < parameters.length) {
-			Object param = parameters[appendIndex];
-			if (param instanceof Boolean) {
-				return Boolean.FALSE.equals(param);
-			}
-		}
-		return false;
+	/**
+	 * Tells whether a call is made on a file system provider, by the class named at
+	 * the call or by the receiver.
+	 *
+	 * @param declaringTypeName the called method's class
+	 * @param instance          the receiver, or {@code null} for a static call
+	 * @return whether the call is a provider method
+	 */
+	private static boolean isFileSystemProviderCall(@Nonnull String declaringTypeName, @Nullable Object instance) {
+		return FILE_SYSTEM_PROVIDER.equals(declaringTypeName)
+				|| instance instanceof java.nio.file.spi.FileSystemProvider;
 	}
 
 	/**
-	 * Determines the effective action for RandomAccessFile based on its mode string
-	 * and context.
-	 * <p>
-	 * Description: RandomAccessFile uses mode strings ("r", "rw", "rws", "rwd")
-	 * instead of boolean parameters. This method maps the mode to the appropriate
-	 * action, respecting the pointcut context (defaultAction):
-	 * <ul>
-	 * <li>"r" - read-only mode → "read" action</li>
-	 * <li>"rw", "rws", "rwd" - read-write modes:
-	 * <ul>
-	 * <li>If defaultAction is "create" → "create" action (user intends to create a
-	 * file)</li>
-	 * <li>If defaultAction is "delete" → "delete" action (user intends to delete
-	 * after use)</li>
-	 * <li>Otherwise → "overwrite" action (default for write modes)</li>
-	 * </ul>
-	 * </li>
-	 * </ul>
-	 * </p>
+	 * Returns the called method as class and name, naming a provider method after
+	 * {@code FileSystemProvider} whichever provider class runs it, so the opening
+	 * rules above apply to every provider.
 	 *
-	 * @param parameters    the constructor parameters (File/String, mode)
-	 * @param defaultAction the action from the pointcut context
-	 * @return the effective action based on the mode and context, or null if no
-	 *         mode string found
+	 * @param declaringTypeName the called method's class
+	 * @param methodName        the called method
+	 * @param instance          the receiver, or {@code null} for a static call
+	 * @return the key the opening rules are looked up by
+	 */
+	@Nonnull
+	private static String openingMethodKey(@Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nullable Object instance) {
+		if (isFileSystemProviderCall(declaringTypeName, instance)) {
+			return FILE_SYSTEM_PROVIDER + "." + methodName;
+		}
+		if (instance instanceof java.nio.file.SecureDirectoryStream) {
+			return SECURE_DIRECTORY_STREAM + "." + methodName;
+		}
+		return declaringTypeName + "." + methodName;
+	}
+
+	/**
+	 * The interface of a directory stream whose methods open, move and delete
+	 * files by a path relative to its directory.
+	 */
+	@Nonnull
+	private static final String SECURE_DIRECTORY_STREAM = "java.nio.file.SecureDirectoryStream";
+
+	/**
+	 * The methods that open the file they are given for reading and writing, as
+	 * {@code RandomAccessFile} in mode {@code "rw"} does.
+	 */
+	@Nonnull
+	private static final Set<String> READ_WRITE_OPENING_METHODS = Set.of("javax.imageio.ImageIO.createImageOutputStream",
+			"javax.imageio.stream.FileImageOutputStream.<init>");
+
+	/**
+	 * Returns the actions of opening a file for reading and writing: the write
+	 * action, and a read when the file exists already, since a new file holds
+	 * nothing to read.
+	 *
+	 * @param file the file being opened
+	 * @return each action with whether a missing path is checked
+	 */
+	@Nonnull
+	private static List<Map.Entry<String, Boolean>> readWriteOpeningActions(@Nullable Object file) {
+		if ("overwrite".equals(resolveWriteAction(new Object[] { file }, IgnoreValues.NONE))) {
+			return List.of(Map.entry(WRITE_ACTION, true), Map.entry("read", false));
+		}
+		return List.of(Map.entry(WRITE_ACTION, true));
+	}
+
+	/**
+	 * The process redirects that send a process's output to a file, creating it
+	 * if it is missing. They are checked like any other opening for writing; the
+	 * JDK opens the file only when the process starts, natively on Windows.
+	 */
+	@Nonnull
+	private static final Set<String> REDIRECT_TARGET_METHODS = Set.of("java.lang.ProcessBuilder.redirectOutput",
+			"java.lang.ProcessBuilder.redirectError", "java.lang.ProcessBuilder$Redirect.to",
+			"java.lang.ProcessBuilder$Redirect.appendTo", "java.lang.ProcessBuilder.Redirect.to",
+			"java.lang.ProcessBuilder.Redirect.appendTo");
+
+	/**
+	 * The classes whose constructors open a named file for writing, creating it if
+	 * it is missing. A constructor that is given a stream instead names no file, so
+	 * nothing is checked for it.
+	 */
+	@Nonnull
+	private static final Set<String> WRITE_OPENING_CONSTRUCTORS = Set.of("java.io.FileOutputStream",
+			"java.io.FileWriter", "java.io.PrintWriter", "java.io.PrintStream", "java.util.Formatter");
+
+	/**
+	 * The action that stands for opening a file for writing. It is checked as
+	 * {@code overwrite} when the file exists and as {@code create} when it does
+	 * not, so the policy decides by what the call really does to the file.
+	 */
+	@Nonnull
+	private static final String WRITE_ACTION = "write";
+
+	/**
+	 * Returns the actions a {@code RandomAccessFile} constructor stands for: a read
+	 * for mode {@code "r"}, and for the {@code "rw"} modes an opening for writing
+	 * plus a read when the file exists, see {@link #readWriteOpeningActions}.
+	 *
+	 * @param parameters the constructor arguments, the mode second
+	 * @return each action with whether a missing path is checked, or {@code null}
+	 *         without a known mode
 	 */
 	@Nullable
-	private static String getRandomAccessFileModeAction(@Nullable Object[] parameters, @Nonnull String defaultAction) {
-		if (parameters == null || parameters.length < 2) {
+	private static List<Map.Entry<String, Boolean>> getRandomAccessFileModeActions(@Nullable Object[] parameters) {
+		if (parameters == null || parameters.length < 2 || !(parameters[1] instanceof String mode)) {
 			return null;
 		}
-		// RandomAccessFile constructor: (File/String file, String mode)
-		// The mode is always the second parameter
-		Object modeParam = parameters[1];
-		if (modeParam instanceof String) {
-			String mode = (String) modeParam;
-			if ("r".equals(mode)) {
-				return "read";
-			} else if ("rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode)) {
-				// Write modes always map to "overwrite". The pointcut context (create/read/etc.)
-				// is irrelevant for the action classification — what matters is the mode string
-				// that the caller explicitly passed. allowNonExisting is set to true in the
-				// caller (deriveActionChecks) so that non-existing paths are also enforced.
-				return "overwrite";
+		if ("r".equals(mode)) {
+			return List.of(Map.entry("read", false));
+		}
+		return "rw".equals(mode) || "rws".equals(mode) || "rwd".equals(mode) ? readWriteOpeningActions(parameters[0])
+				: null;
+	}
+
+	/**
+	 * Returns the options a call really opens its file with, as the JDK sets them.
+	 * The write methods add {@code WRITE}, or use create, truncate and write when
+	 * given none; a channel opened without a write option is opened for reading.
+	 *
+	 * @param methodKey the called method as declaring type and name
+	 * @param options   the options found among the arguments
+	 * @return the options the file is opened with
+	 */
+	@Nonnull
+	private static Set<StandardOpenOption> effectiveOpenOptions(@Nonnull String methodKey,
+			@Nonnull Set<StandardOpenOption> options) {
+		EnumSet<StandardOpenOption> effective = options.isEmpty() ? EnumSet.noneOf(StandardOpenOption.class)
+				: EnumSet.copyOf(options);
+		if (WRITE_OPENING_METHODS.contains(methodKey)) {
+			if (effective.isEmpty()) {
+				effective.add(StandardOpenOption.CREATE);
+				effective.add(StandardOpenOption.TRUNCATE_EXISTING);
+			}
+			effective.add(StandardOpenOption.WRITE);
+		} else if (!effective.contains(StandardOpenOption.WRITE) && !effective.contains(StandardOpenOption.APPEND)) {
+			effective.add(StandardOpenOption.READ);
+		}
+		return effective;
+	}
+
+	/**
+	 * Turns the options a file is opened with into the actions to check. Writing
+	 * with {@code CREATE_NEW} is a create, with {@code CREATE} an opening for
+	 * writing decided by whether the file exists, and without either an overwrite.
+	 *
+	 * @param options the options the file is opened with
+	 * @return the actions to check, each with whether a missing path is checked
+	 */
+	@Nonnull
+	private static List<Map.Entry<String, Boolean>> openOptionActions(@Nonnull Set<StandardOpenOption> options) {
+		List<Map.Entry<String, Boolean>> actions = new ArrayList<>();
+		if (options.contains(StandardOpenOption.DELETE_ON_CLOSE)) {
+			actions.add(Map.entry("delete", false));
+		}
+		if (options.contains(StandardOpenOption.READ)) {
+			actions.add(Map.entry("read", false));
+		}
+		if (options.contains(StandardOpenOption.WRITE) || options.contains(StandardOpenOption.APPEND)) {
+			if (options.contains(StandardOpenOption.CREATE_NEW)) {
+				actions.add(Map.entry("create", true));
+			} else if (options.contains(StandardOpenOption.CREATE)) {
+				actions.add(Map.entry(WRITE_ACTION, true));
+			} else {
+				actions.add(Map.entry("overwrite", false));
+			}
+		}
+		return actions;
+	}
+
+	/**
+	 * Decides how an opening for writing is checked: as an overwrite when the first
+	 * checked argument that names a path names an existing file, otherwise as a
+	 * create. A call without arguments, such as {@code new Formatter()}, names no
+	 * path.
+	 *
+	 * @param parameters      the call arguments
+	 * @param ignoreVariables which arguments are not paths
+	 * @return {@code overwrite} or {@code create}
+	 */
+	@Nonnull
+	private static String resolveWriteAction(@Nullable Object[] parameters, @Nonnull IgnoreValues ignoreVariables) {
+		if (parameters == null || parameters.length == 0) {
+			return "create";
+		}
+		for (Object parameter : filterVariables(parameters, ignoreVariables)) {
+			FileTarget target = variableToTarget(parameter, true);
+			if (target != null) {
+				return Files.exists(target.path()) ? "overwrite" : "create";
+			}
+		}
+		return "create";
+	}
+
+	/**
+	 * Tells whether a call writes through a file the code already opened: a file
+	 * channel or a {@code RandomAccessFile}. Such a write is allowed where the
+	 * policy lets the file be overwritten, or where a checked opening of the code
+	 * created the file under a create rule.
+	 *
+	 * @param action   the action being checked
+	 * @param instance the receiver of the call
+	 * @return whether the call writes through an open file
+	 */
+	private static boolean isWriteThroughOpenFile(@Nonnull String action, @Nullable Object instance) {
+		return "overwrite".equals(action) && (instance instanceof FileChannel
+				|| instance instanceof java.nio.channels.AsynchronousFileChannel
+				|| instance instanceof java.io.RandomAccessFile);
+	}
+
+	/**
+	 * The new file whose opening Ares allowed on this thread, by its real absolute
+	 * path, until that opening returns or fails.
+	 */
+	@Nonnull
+	private static final ThreadLocal<String> ALLOWED_CREATION = new ThreadLocal<>();
+
+	/**
+	 * The open files whose opening Ares allowed as the creation of a new file, held
+	 * weakly. Only such a handle gets the create allowance for a write through it,
+	 * so a handle the test class opened needs the overwrite rule. Only objects of
+	 * classes the JDK's boot loader defined go in or are looked up, so the map never
+	 * calls a {@code hashCode} the student wrote.
+	 */
+	@Nonnull
+	private static final Map<Object, Boolean> HANDLES_CREATED_UNDER_CHECK = new WeakHashMap<>();
+
+	/**
+	 * The create rules the remembered handles belong to. Arming a policy or
+	 * resetting it sets new rules, and the handles are then forgotten.
+	 */
+	@Nullable
+	private static Object handlesPolicy;
+
+	/**
+	 * Notes the file an allowed opening is about to create: the first path argument
+	 * that names nothing yet, not even a link.
+	 *
+	 * @param parameters      the call arguments
+	 * @param ignoreVariables the arguments that name no file
+	 */
+	static void noteAllowedCreation(@Nullable Object[] parameters, @Nonnull IgnoreValues ignoreVariables) {
+		if (parameters == null || parameters.length == 0) {
+			return;
+		}
+		for (Object parameter : filterVariables(parameters, ignoreVariables)) {
+			FileTarget target = variableToTarget(parameter, true);
+			if (target != null && !Files.exists(target.path(), LinkOption.NOFOLLOW_LINKS)) {
+				ALLOWED_CREATION.set(
+						resolveExistingAncestorRealPath(target.path().normalize().toAbsolutePath()).toString());
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Remembers the handle an opening returned, if Ares allowed that opening on this
+	 * thread to create the very file the handle has open. A failed opening only
+	 * drops the note, so it grants nothing.
+	 *
+	 * @param handle the returned handle or the new object, or {@code null}
+	 * @param failed whether the opening threw
+	 */
+	static void rememberCreatedHandle(@Nullable Object handle, boolean failed) {
+		@Nullable
+		String created = ALLOWED_CREATION.get();
+		if (created == null) {
+			return;
+		}
+		ALLOWED_CREATION.remove();
+		if (failed || !isFileHandle(handle) || !isJdkObject(handle)) {
+			return;
+		}
+		Path handlePath = openFilePath(handle);
+		if (handlePath == null || !created.equals(realPathOrNull(handlePath))) {
+			return;
+		}
+		synchronized (HANDLES_CREATED_UNDER_CHECK) {
+			forgetHandlesOfAnotherPolicy();
+			HANDLES_CREATED_UNDER_CHECK.put(handle, Boolean.TRUE);
+		}
+	}
+
+	/**
+	 * Tells whether an object is a handle a file can be written through: a file
+	 * channel, an asynchronous one, a {@code RandomAccessFile} or a
+	 * {@code FileOutputStream}, whose channel shares its file.
+	 *
+	 * @param handle the object
+	 * @return whether it is such a handle
+	 */
+	private static boolean isFileHandle(@Nullable Object handle) {
+		return handle instanceof FileChannel || handle instanceof java.nio.channels.AsynchronousFileChannel
+				|| handle instanceof java.io.RandomAccessFile || handle instanceof java.io.FileOutputStream;
+	}
+
+	/**
+	 * Returns the real path of an existing file, or {@code null} if it cannot be
+	 * resolved.
+	 *
+	 * @param path the path
+	 * @return the real path as text, or {@code null}
+	 */
+	@Nullable
+	private static String realPathOrNull(@Nonnull Path path) {
+		try {
+			return path.toRealPath().toString();
+		} catch (IOException | SecurityException unresolved) {
+			return null;
+		}
+	}
+
+	/**
+	 * Returns the file a handle has open, from its {@code path} field, or
+	 * {@code null} if the handle does not say.
+	 *
+	 * @param handle the handle
+	 * @return the file's absolute path, or {@code null}
+	 */
+	@Nullable
+	private static Path openFilePath(@Nonnull Object handle) {
+		Object path = declaredFieldValue(handle, "path");
+		return path instanceof String text ? Path.of(text).normalize().toAbsolutePath() : null;
+	}
+
+	/**
+	 * Reads a field of an object, looking in its class and the classes above it.
+	 *
+	 * @param instance the object
+	 * @param name     the field name
+	 * @return the value, or {@code null} if there is no such field or it cannot be
+	 *         read
+	 */
+	@Nullable
+	private static Object declaredFieldValue(@Nonnull Object instance, @Nonnull String name) {
+		Class<?> currentType = instance.getClass();
+		while (currentType != null) {
+			try {
+				java.lang.reflect.Field field = currentType.getDeclaredField(name);
+				field.setAccessible(true);
+				return field.get(instance);
+			} catch (NoSuchFieldException missing) {
+				currentType = currentType.getSuperclass();
+			} catch (IllegalAccessException | InaccessibleObjectException | SecurityException inaccessible) {
+				return null;
 			}
 		}
 		return null;
 	}
 
+	/**
+	 * Forgets every remembered handle once the create rules differ from those the
+	 * handles were remembered under. The caller holds the lock on the handles.
+	 */
+	private static void forgetHandlesOfAnotherPolicy() {
+		Object current = getValueFromSettings("pathsAllowedToBeCreated");
+		if (current != handlesPolicy) {
+			HANDLES_CREATED_UNDER_CHECK.clear();
+			handlesPolicy = current;
+		}
+	}
+
+	/**
+	 * Tells whether a handle, or the stream a file channel belongs to, was
+	 * remembered by {@link #rememberCreatedHandle}.
+	 *
+	 * @param handle the handle written through
+	 * @return whether its opening created the file under a checked create rule
+	 */
+	static boolean isHandleCreatedUnderCheck(@Nullable Object handle) {
+		if (!isJdkObject(handle)) {
+			return false;
+		}
+		Object parent = handle instanceof FileChannel ? declaredFieldValue(handle, "parent") : null;
+		synchronized (HANDLES_CREATED_UNDER_CHECK) {
+			forgetHandlesOfAnotherPolicy();
+			return HANDLES_CREATED_UNDER_CHECK.containsKey(handle)
+					|| isJdkObject(parent) && HANDLES_CREATED_UNDER_CHECK.containsKey(parent);
+		}
+	}
+
+	/**
+	 * Tells whether an object's class was defined by the JDK's boot loader, so its
+	 * {@code hashCode} and {@code equals} are the JDK's own.
+	 *
+	 * @param object the object, or {@code null}
+	 * @return whether it is such an object
+	 */
+	private static boolean isJdkObject(@Nullable Object object) {
+		return object != null && object.getClass().getClassLoader() == null;
+	}
+
+	/**
+	 * Returns the paths a write through an open file may reach: those the policy
+	 * lets be overwritten, and those it lets be created when the handle's own
+	 * opening created the file under that rule.
+	 *
+	 * @param handle the handle written through
+	 * @return the paths, or {@code null} if no rule applies
+	 */
+	@Nullable
+	private static String[] pathsAllowedForWriteThrough(@Nullable Object handle) {
+		@Nullable
+		String[] overwrite = getValueFromSettings("pathsAllowedToBeOverwritten");
+		@Nullable
+		String[] create = getValueFromSettings("pathsAllowedToBeCreated");
+		if (create == null || !isHandleCreatedUnderCheck(handle)) {
+			return overwrite;
+		}
+		if (overwrite == null) {
+			return create;
+		}
+		String[] both = new String[overwrite.length + create.length];
+		System.arraycopy(overwrite, 0, both, 0, overwrite.length);
+		System.arraycopy(create, 0, both, overwrite.length, create.length);
+		return both;
+	}
+
+	/**
+	 * Finds the file a {@code getResourceAsStream} call would read, so that file is
+	 * checked instead of the resource name. A resource in a JAR stands for that
+	 * JAR, one in the Java runtime image needs no check, and a missing resource
+	 * reads nothing.
+	 *
+	 * @param instance   the {@code Class} or JDK class loader the call is made on
+	 * @param parameters the call arguments, the resource name first
+	 * @return the values to check as paths, or {@code null} to check the call as
+	 *         it is
+	 */
+	@Nullable
+	private static Object[] resourceReadTargets(@Nullable Object instance, @Nullable Object[] parameters) {
+		if (parameters == null || parameters.length != 1 || !(parameters[0] instanceof String name)) {
+			return null;
+		}
+		URL resource;
+		if (instance instanceof Class<?> type) {
+			resource = type.getResource(name);
+		} else if (instance instanceof ClassLoader loader && isJdkClassLoader(loader)) {
+			resource = loader.getResource(name);
+		} else {
+			return null;
+		}
+		if (resource == null || "jrt".equals(resource.getProtocol())) {
+			return new Object[0];
+		}
+		try {
+			if ("file".equals(resource.getProtocol())) {
+				return new Object[] { Path.of(resource.toURI()) };
+			}
+			if ("jar".equals(resource.getProtocol())) {
+				String location = resource.getPath();
+				int separator = location.indexOf("!/");
+				return new Object[] { Path.of(new URI(separator < 0 ? location : location.substring(0, separator))) };
+			}
+		} catch (URISyntaxException | IllegalArgumentException | java.nio.file.FileSystemNotFoundException e) {
+			return null;
+		}
+		return null;
+	}
+
+	/**
+	 * Tells whether a class loader belongs to the JDK, so asking it where a
+	 * resource lies runs no supervised code.
+	 *
+	 * @param loader the class loader
+	 * @return whether its class was loaded by the bootstrap or platform loader
+	 */
+	private static boolean isJdkClassLoader(@Nonnull ClassLoader loader) {
+		ClassLoader definingLoader = loader.getClass().getClassLoader();
+		return definingLoader == null || definingLoader == ClassLoader.getPlatformClassLoader();
+	}
+
 	// <editor-fold desc="Copy/transfer per-parameter role special case (I-114)">
 
 	/**
-	 * Special-cases {@code java.nio.file.Files.copy} and
-	 * {@code FileChannel.transferTo}/{@code transferFrom}, which the generic
-	 * {@link #deriveActionChecks} path would otherwise validate as ONE uniform
-	 * action applied to the whole parameters array. That would let a policy
-	 * granting only {@code pathsAllowedToBeOverwritten} authorise reading the
-	 * SOURCE side too, since {@code copy}'s source path was checked against the
-	 * OVERWRITE allow-list instead of READ (I-114/TD-063) — a real
-	 * privilege-escalation path, not just a misclassification.
-	 * <p>
-	 * Each of these methods is registered in both {@code filesReadMethods()} (or
-	 * {@code fileChannelReadMethods()}) and {@code filesWriteMethods()} (or
-	 * {@code fileChannelWriteMethods()}), so this advice fires once per action;
-	 * this method independently checks only the parameter/receiver relevant to
-	 * the currently-firing action, and reports {@code true} once it has fully
-	 * handled the call (the caller must not additionally run the generic path).
-	 * <p>
-	 * A destination that is itself a channel (not a {@link Path}/{@link File}) is
-	 * not resolvable to a checkable path with the existing machinery (the same
-	 * limitation the generic "receiver instance" check already has for any
-	 * channel-typed value) — that side is intentionally left unchecked here,
-	 * since a channel obtained via {@code FileChannel.open(path, ...)} was
-	 * already subject to a create/overwrite check at the point it was opened.
+	 * Checks a copy, a move or a channel transfer side by side, since each side
+	 * needs its own permission: the source is read, and deleted by a move, and the
+	 * target is written. Each firing checks the sides its action stands for, see
+	 * {@link #checkMoveRole} and {@link #checkTransferRole}.
 	 *
-	 * @return {@code true} if the call was one of the special-cased methods and
-	 *         has been fully handled (the generic path must be skipped)
+	 * @return {@code true} if the call was one of these methods and is fully
+	 *         handled
 	 */
 	private boolean checkCopyOrTransferSpecialCase(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nullable Object[] parameters, @Nullable Object instance,
 			@Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature, @Nonnull JoinPoint thisJoinPoint) {
-		if ("java.nio.file.Files".equals(declaringTypeName) && "copy".equals(methodName)) {
+		boolean filesOrProvider = "java.nio.file.Files".equals(declaringTypeName)
+				|| isFileSystemProviderCall(declaringTypeName, instance);
+		boolean secureDirectory = instance instanceof java.nio.file.SecureDirectoryStream;
+		if ((filesOrProvider || secureDirectory) && "move".equals(methodName)) {
+			checkMoveRole(action, parameters, secureDirectory ? 2 : 1, secureDirectory, systemMethodToCheck,
+					studentCalledMethod, fullMethodSignature, thisJoinPoint);
+			return true;
+		}
+		if (filesOrProvider && "copy".equals(methodName)) {
 			if ("read".equals(action)) {
 				// source (index 0). The other overloads' index-0 argument
 				// (InputStream) is not Path-shaped and resolves to no target, so this
 				// is a safe no-op for them.
-				checkSinglePathRole("read", "pathsAllowedToBeRead", isolateParameter(parameters, 0), false,
-						systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+				checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"),
+						isolateParameter(parameters, 0), false, systemMethodToCheck, studentCalledMethod,
+						fullMethodSignature, thisJoinPoint);
 			} else if ("overwrite".equals(action)) {
-				// destination (index 1): create or overwrite depending on REPLACE_EXISTING.
-				boolean replaceExisting = hasReplaceExisting(parameters);
-				String resolvedAction = replaceExisting ? "overwrite" : "create";
-				String settingKey = replaceExisting ? "pathsAllowedToBeOverwritten" : "pathsAllowedToBeCreated";
-				checkSinglePathRole(resolvedAction, settingKey, isolateParameter(parameters, 1), true,
+				// destination (index 1): an existing file is overwritten only with
+				// REPLACE_EXISTING; any other destination is created.
+				Object[] destination = isolateParameter(parameters, 1);
+				boolean replacesLink = replacesALink(parameters, destination);
+				boolean overwritesExisting = replacesLink || hasReplaceExisting(parameters)
+						&& "overwrite".equals(resolveWriteAction(destination, IgnoreValues.NONE));
+				String resolvedAction = overwritesExisting ? "overwrite" : "create";
+				String settingKey = overwritesExisting ? "pathsAllowedToBeOverwritten" : "pathsAllowedToBeCreated";
+				checkSinglePathRole(resolvedAction, getValueFromSettings(settingKey), destination, true, replacesLink,
 						systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
 			} else {
 				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 			}
 			return true;
 		}
-		if ("java.nio.channels.FileChannel".equals(declaringTypeName) && "transferTo".equals(methodName)) {
-			if ("read".equals(action)) {
-				// receiver (the channel being read FROM); the target argument (index 2) is
-				// itself a channel and is not checked here — see class-level Javadoc above.
-				checkSinglePathRole("read", "pathsAllowedToBeRead",
-						instance == null ? new Object[0] : new Object[] { instance }, false, systemMethodToCheck,
-						studentCalledMethod, fullMethodSignature, thisJoinPoint);
-			} else {
-				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
-			}
-			return true;
-		}
-		if ("java.nio.channels.FileChannel".equals(declaringTypeName) && "transferFrom".equals(methodName)) {
-			if ("overwrite".equals(action)) {
-				// receiver (the channel being written TO); the src argument (index 0) is
-				// itself a channel and is not checked here — see class-level Javadoc above.
-				checkSinglePathRole("overwrite", "pathsAllowedToBeOverwritten",
-						instance == null ? new Object[0] : new Object[] { instance }, false, systemMethodToCheck,
-						studentCalledMethod, fullMethodSignature, thisJoinPoint);
-			} else {
-				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
-			}
+		if (("java.nio.channels.FileChannel".equals(declaringTypeName) || instance instanceof FileChannel)
+				&& ("transferTo".equals(methodName) || "transferFrom".equals(methodName))) {
+			checkTransferRole(action, "transferTo".equals(methodName), parameters, instance, systemMethodToCheck,
+					studentCalledMethod, fullMethodSignature, thisJoinPoint);
 			return true;
 		}
 		return false;
 	}
 
 	/**
-	 * Checks one side of a student's file copy or transfer against one allow-list
-	 * and throws a {@code SecurityException} on a violation. No exemption applies:
-	 * the student names both paths, so neither is Ares or the JDK at work.
+	 * Checks the side of a move that the firing action stands for: reading and
+	 * deleting the source, and writing the target, which is an overwrite when the
+	 * target exists and a create when it does not.
+	 *
+	 * @param action              the firing action: read, delete or overwrite
+	 * @param parameters          the move's arguments, source first
+	 * @param targetIndex         where the target is among them
+	 * @param secureDirectory     whether a secure directory stream moves, whose
+	 *                            relative paths are refused
+	 * @param systemMethodToCheck the method named in a refusal
+	 * @param studentCalledMethod the student method that made the call
+	 * @param fullMethodSignature the called method's signature
+	 * @param thisJoinPoint       the intercepted call
+	 * @throws SecurityException if the policy forbids that side
 	 */
-	private void checkSinglePathRole(@Nonnull String actionLabel, @Nonnull String allowedPathsSettingKey,
+	private void checkMoveRole(@Nonnull String action, @Nullable Object[] parameters, int targetIndex,
+			boolean secureDirectory, @Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature, @Nonnull JoinPoint thisJoinPoint) {
+		Object[] source = isolateParameter(parameters, 0);
+		if (secureDirectory) {
+			refuseRelativeSecureDirectoryPaths(action, parameters, systemMethodToCheck, studentCalledMethod,
+					fullMethodSignature, thisJoinPoint);
+		}
+		switch (action) {
+		case "read" -> checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"), source, false,
+				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+		case "delete" -> checkSinglePathRole("delete", getValueFromSettings("pathsAllowedToBeDeleted"), source, true,
+				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+		case "overwrite" -> {
+			Object[] target = isolateParameter(parameters, targetIndex);
+			boolean replacesLink = replacesALink(parameters, target);
+			String targetAction = replacesLink ? "overwrite" : resolveWriteAction(target, IgnoreValues.NONE);
+			String settingKey = "overwrite".equals(targetAction) ? "pathsAllowedToBeOverwritten"
+					: "pathsAllowedToBeCreated";
+			checkSinglePathRole(targetAction, getValueFromSettings(settingKey), target, true, replacesLink,
+					systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+		}
+		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+		}
+	}
+
+	/**
+	 * Checks the sides of a channel transfer that the firing action stands for.
+	 * {@code transferTo} reads its own file and writes the target channel:
+	 * the read firing checks the read and a network target, the overwrite firing
+	 * a file target. {@code transferFrom} fires as an overwrite only and checks
+	 * its own file, a file source for reading and a network source.
+	 *
+	 * @param action              the firing action: read or overwrite
+	 * @param transferTo          whether the call is {@code transferTo}
+	 * @param parameters          the call's arguments
+	 * @param instance            the file channel the call is made on
+	 * @param systemMethodToCheck the method named in a refusal
+	 * @param studentCalledMethod the student method that made the call
+	 * @param fullMethodSignature the called method's signature
+	 * @param thisJoinPoint       the intercepted call
+	 * @throws SecurityException if the policy forbids a side
+	 */
+	private void checkTransferRole(@Nonnull String action, boolean transferTo, @Nullable Object[] parameters,
+			@Nullable Object instance, @Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature, @Nonnull JoinPoint thisJoinPoint) {
+		Object[] receiver = instance == null ? new Object[0] : new Object[] { instance };
+		Object[] other = isolateParameter(parameters, transferTo ? 2 : 0);
+		Object[] otherFile = other.length == 1 && other[0] instanceof FileChannel ? other : new Object[0];
+		if (transferTo && "read".equals(action)) {
+			checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"), receiver, false,
+					systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+			checkNetworkPeer("send", other, systemMethodToCheck, studentCalledMethod, thisJoinPoint);
+		} else if (transferTo && "overwrite".equals(action)) {
+			checkSinglePathRole("overwrite", pathsAllowedForWriteThrough(other.length == 1 ? other[0] : null), otherFile, false,
+					systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+		} else if (!transferTo && "overwrite".equals(action)) {
+			checkSinglePathRole("overwrite", pathsAllowedForWriteThrough(instance), receiver, false,
+					systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+			checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"), otherFile, false,
+					systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+			checkNetworkPeer("receive", other, systemMethodToCheck, studentCalledMethod, thisJoinPoint);
+		} else {
+			throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+		}
+	}
+
+	/**
+	 * Checks a network channel on the other side of a transfer against the
+	 * network permissions. Anything else is left alone.
+	 *
+	 * @param action              {@code send} or {@code receive}
+	 * @param other               the other side, as a one-element array or empty
+	 * @param systemMethodToCheck the method named in a refusal
+	 * @param studentCalledMethod the student method that made the call
+	 * @param thisJoinPoint       the intercepted call
+	 * @throws SecurityException if the policy forbids that peer
+	 */
+	private static void checkNetworkPeer(@Nonnull String action, @Nonnull Object[] other,
+			@Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull JoinPoint thisJoinPoint) {
+		if (other.length == 1 && other[0] instanceof java.nio.channels.NetworkChannel) {
+			JavaAspectJNetworkSystemAdviceDefinitions.checkChannelPeerWithinAdvice(action, other[0], thisJoinPoint,
+					systemMethodToCheck, studentCalledMethod);
+		}
+	}
+
+	/**
+	 * Refuses a relative path given to a secure directory stream, unless the
+	 * action is allowed for every path. Such a path names a file inside the
+	 * stream's directory, which Ares cannot see, so it cannot be checked.
+	 *
+	 * @param action              the action being checked
+	 * @param parameters          the call's arguments
+	 * @param systemMethodToCheck the method named in a refusal
+	 * @param studentCalledMethod the student method that made the call
+	 * @param fullMethodSignature the called method's signature
+	 * @param thisJoinPoint       the intercepted call
+	 * @throws SecurityException for a relative path
+	 */
+	private static void refuseRelativeSecureDirectoryPaths(@Nonnull String action, @Nullable Object[] parameters,
+			@Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature, @Nonnull JoinPoint thisJoinPoint) {
+		@Nullable
+		String[] allowedPaths = getValueFromSettings(settingKeyOf(action));
+		if (parameters == null || allowsAllPaths(allowedPaths)) {
+			return;
+		}
+		for (Object parameter : parameters) {
+			if (parameter instanceof Path path && !path.isAbsolute()) {
+				throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
+						localizeAction(action), path.toString(),
+						describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod),
+						buildDenialReason("file", action, allowedPaths == null || allowedPaths.length == 0)));
+			}
+		}
+	}
+
+	/**
+	 * Returns the setting that lists the paths allowed for an action.
+	 *
+	 * @param action read, overwrite, create, execute or delete
+	 * @return the setting's name
+	 * @throws SecurityException for any other action
+	 */
+	@Nonnull
+	private static String settingKeyOf(@Nonnull String action) {
+		return switch (action) {
+		case "read" -> "pathsAllowedToBeRead";
+		case "overwrite" -> "pathsAllowedToBeOverwritten";
+		case "create" -> "pathsAllowedToBeCreated";
+		case "execute" -> "pathsAllowedToBeExecuted";
+		case "delete" -> "pathsAllowedToBeDeleted";
+		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
+		};
+	}
+
+	/**
+	 * Checks one side of a student's file copy or transfer against the given
+	 * allow-list and throws a {@code SecurityException} on a violation. No
+	 * exemption applies: the student names both paths, so neither is Ares or the
+	 * JDK at work.
+	 */
+	private void checkSinglePathRole(@Nonnull String actionLabel, @Nullable String[] allowedPaths,
 			@Nonnull Object[] candidates, boolean allowNonExistingPaths, @Nonnull String systemMethodToCheck,
+			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature,
+			@Nonnull JoinPoint thisJoinPoint) {
+		checkSinglePathRole(actionLabel, allowedPaths, candidates, allowNonExistingPaths, "delete".equals(actionLabel),
+				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+	}
+
+	/**
+	 * Checks one side of a call against the given allow-list, as the overload
+	 * without {@code linkItself} does, and says whether a link among the
+	 * candidates counts at its own place because the call acts on the link itself.
+	 */
+	private void checkSinglePathRole(@Nonnull String actionLabel, @Nullable String[] allowedPaths,
+			@Nonnull Object[] candidates, boolean allowNonExistingPaths, boolean linkItself,
+			@Nonnull String systemMethodToCheck,
 			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature,
 			@Nonnull JoinPoint thisJoinPoint) {
 		if (candidates.length == 0) {
 			return;
 		}
-		@Nullable
-		String[] allowedPaths = getValueFromSettings(allowedPathsSettingKey);
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		@Nullable
-		String violation = checkIfVariableCriteriaIsViolated(candidates, allowedPaths, IgnoreValues.NONE,
-				allowNonExistingPaths);
+		String violation;
+		LINK_ITSELF_IS_CHECKED.set(Boolean.valueOf(linkItself));
+		try {
+			violation = checkIfVariableCriteriaIsViolated(candidates, allowedPaths, IgnoreValues.NONE,
+					allowNonExistingPaths);
+		} finally {
+			LINK_ITSELF_IS_CHECKED.remove();
+		}
 		if (violation == null) {
 			return;
 		}
@@ -1114,171 +1740,49 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	// </editor-fold>
 
 	/**
-	 * Derives the list of file-system actions that need to be validated for a given
-	 * invocation.
-	 * <p>
-	 * Description: Inspects the intercepted method arguments for
-	 * {@link StandardOpenOption} instances and maps them onto the corresponding
-	 * security actions (read, overwrite, create, delete). Also handles legacy I/O
-	 * classes that use boolean append parameters. When append=false is detected for
-	 * classes like FileWriter or FileOutputStream, the action is changed from
-	 * "create" to "overwrite" since the file will be truncated rather than created
-	 * anew.
-	 * <p>
-	 * <b>Semantic Prioritization:</b> When {@code CREATE_NEW} is combined with
-	 * {@code WRITE}, the method returns only "create" as the action. This reflects
-	 * the user's primary intent: creating a new file. The {@code WRITE} option is
-	 * technically required to write content to the newly created file, but it is an
-	 * implementation detail rather than a separate security-relevant operation.
-	 * Without this prioritization, Ares would generate both "create" and
-	 * "overwrite" actions, requiring the policy to allow both operations even
-	 * though the user only intends to create a file. This design allows policy
-	 * files to express intent clearly: {@code pathsAllowedToBeCreated} grants
-	 * permission to create new files (which implicitly includes initial writes),
-	 * while {@code pathsAllowedToBeOverwritten} controls modifications to existing
-	 * files.
-	 * </p>
+	 * Derives the file actions to check for one call. Opening a file for writing
+	 * yields {@link #WRITE_ACTION}. Options decide where a method takes them, the
+	 * mode for {@code RandomAccessFile}, and the pointcut's action otherwise.
 	 *
-	 * @param defaultAction     action associated with the pointcut configuration
-	 *                          (e.g., {@code overwrite})
-	 * @param declaringTypeName the fully qualified class name being invoked
-	 * @param parameters        intercepted method arguments that may contain
-	 *                          {@link StandardOpenOption}s
-	 * @return ordered list of action/allow-non-existing pairs to validate
+	 * @param defaultAction     the pointcut's action
+	 * @param declaringTypeName the called method's class
+	 * @param methodName        the called method
+	 * @param parameters        the call arguments
+	 * @param instance          the receiver, or {@code null} for a static call
+	 * @return each action with whether a missing path is checked
 	 */
 	private static List<Map.Entry<String, Boolean>> deriveActionChecks(@Nonnull String defaultAction,
-			@Nonnull String declaringTypeName, @Nullable Object[] parameters) {
-		Set<StandardOpenOption> options = extractStandardOpenOptions(parameters);
-		Map<String, Boolean> actions = new LinkedHashMap<>();
-
-		// Check for FileChannel.MapMode first - this handles FileChannel.map() calls
+			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nullable Object[] parameters,
+			@Nullable Object instance) {
 		FileChannel.MapMode mapMode = extractMapMode(parameters);
 		if (mapMode != null) {
-			if (mapMode == FileChannel.MapMode.READ_ONLY) {
-				// READ_ONLY mapping is just a read operation
-				actions.put("read", false);
-			} else {
-				// READ_WRITE or PRIVATE mapping can modify the file
-				actions.put("overwrite", false);
+			return List.of(Map.entry(mapMode == FileChannel.MapMode.READ_ONLY ? "read" : "overwrite", false));
+		}
+		String methodKey = openingMethodKey(declaringTypeName, methodName, instance);
+		Set<StandardOpenOption> options = extractStandardOpenOptions(parameters);
+		if (WRITE_OPENING_METHODS.contains(methodKey) || CHANNEL_OPENING_METHODS.contains(methodKey)) {
+			return openOptionActions(effectiveOpenOptions(methodKey, options));
+		}
+		List<Map.Entry<String, Boolean>> optionActions = openOptionActions(options);
+		if (!optionActions.isEmpty()) {
+			return optionActions;
+		}
+		if (REDIRECT_TARGET_METHODS.contains(methodKey)) {
+			return List.of(Map.entry(WRITE_ACTION, true));
+		}
+		if (READ_WRITE_OPENING_METHODS.contains(methodKey) && parameters != null && parameters.length > 0
+				&& parameters[0] instanceof File) {
+			return readWriteOpeningActions(parameters[0]);
+		}
+		if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
+			List<Map.Entry<String, Boolean>> modeActions = getRandomAccessFileModeActions(parameters);
+			if (modeActions != null) {
+				return modeActions;
 			}
-			List<Map.Entry<String, Boolean>> result = new ArrayList<>(actions.size());
-			actions.forEach((act, allowNonExisting) -> result.add(Map.entry(act, allowNonExisting)));
-			return result;
+		} else if ("<init>".equals(methodName) && WRITE_OPENING_CONSTRUCTORS.contains(declaringTypeName)) {
+			return List.of(Map.entry(WRITE_ACTION, true));
 		}
-
-		// Check for DELETE_ON_CLOSE first - this takes highest priority.
-		// The user's primary intent is to delete the file when using DELETE_ON_CLOSE,
-		// and WRITE is just required to open the channel before deletion.
-		boolean hasDeleteOnClose = options.contains(StandardOpenOption.DELETE_ON_CLOSE);
-
-		// Semantic prioritization for DELETE_ON_CLOSE:
-		// When DELETE_ON_CLOSE is present, we ALWAYS treat this as a "delete" operation
-		// regardless of other options or the default action from the pointcut.
-		// This is because DELETE_ON_CLOSE expresses clear intent: delete the file when done.
-		if (hasDeleteOnClose) {
-			actions.put("delete", false);
-		}
-		// Semantic prioritization: CREATE_NEW indicates the primary intent is file creation.
-		// When CREATE_NEW is present with WRITE, we treat this as a pure "create" operation.
-		// The WRITE option is technically required to write content to the new file, but it
-		// does not represent a separate "overwrite" intent - the file doesn't exist yet.
-		// This allows policies to grant "create" permission without also requiring "overwrite".
-		else {
-			boolean hasCreateNew = options.contains(StandardOpenOption.CREATE_NEW);
-			boolean hasWrite = options.contains(StandardOpenOption.WRITE)
-					|| options.contains(StandardOpenOption.APPEND)
-					|| options.contains(StandardOpenOption.TRUNCATE_EXISTING);
-
-			if (hasCreateNew && hasWrite) {
-				// Primary intent is file creation; WRITE is just an implementation detail
-				actions.put("create", true);
-			} else {
-				// Standard processing for other option combinations
-				for (StandardOpenOption option : options) {
-					switch (option) {
-					case CREATE:
-					case CREATE_NEW:
-						actions.merge("create", true, Boolean::logicalOr);
-						break;
-					case WRITE:
-					case APPEND:
-					case TRUNCATE_EXISTING:
-						actions.merge("overwrite", false, Boolean::logicalOr);
-						break;
-					case READ:
-						// Validate read against the read allow-list even when write options are
-						// also present: a READ+WRITE channel can read the file's contents, so a
-						// file that is overwrite-allowed but not read-allowed must not be
-						// readable through it. The "overwrite" check is added separately above.
-						actions.merge("read", false, Boolean::logicalOr);
-						break;
-					case DELETE_ON_CLOSE:
-						actions.merge("delete", false, Boolean::logicalOr);
-						break;
-					default:
-						break;
-					}
-				}
-			}
-		}
-
-		// Semantic rule 1: when both "create" (from CREATE option) and "overwrite" (from WRITE option)
-		// are present, the primary intent is "write to file, creating if not exists" = overwrite.
-		// Merge into a single "overwrite" check with allowNonExisting=true so that non-existing
-		// paths are also validated.
-		if (actions.containsKey("create") && actions.containsKey("overwrite")) {
-			Boolean createAllows = actions.get("create");
-			Boolean overwriteAllows = actions.get("overwrite");
-			actions.remove("create");
-			actions.put("overwrite",
-					(createAllows != null && createAllows) || (overwriteAllows != null && overwriteAllows));
-		}
-
-		// Semantic rule 2: when the method is in the "overwrite" pointcut (defaultAction="overwrite")
-		// but OpenOptions only produced "create" (e.g. Files.writeString(path, s, CREATE) — no WRITE
-		// option), the operation is still semantically "write data to file" = overwrite.
-		// Exception: CREATE_NEW genuinely means "create a new file; fail if it already exists".
-		if ("overwrite".equals(defaultAction) && actions.size() == 1 && actions.containsKey("create")
-				&& !options.contains(StandardOpenOption.CREATE_NEW)) {
-			Boolean allowNonExisting = actions.get("create");
-			actions.remove("create");
-			actions.put("overwrite", allowNonExisting);
-		}
-
-		if (actions.isEmpty()) {
-			// If OpenOptions were found but none matched the expected actions for this pointcut,
-			// this pointcut is not responsible for this call - return empty list to skip validation.
-			// This prevents multiple pointcuts from all trying to validate the same call.
-			if (!options.isEmpty()) {
-				return Collections.emptyList();
-			}
-			// Check for RandomAccessFile mode string first
-			if ("java.io.RandomAccessFile".equals(declaringTypeName)) {
-				String modeAction = getRandomAccessFileModeAction(parameters, defaultAction);
-				if (modeAction != null) {
-					// RandomAccessFile write modes can create files that don't exist yet,
-					// so always check the path even when the file is absent.
-					boolean allowNonExisting = !"read".equals(modeAction);
-					actions.put(modeAction, allowNonExisting);
-				} else {
-					actions.put(defaultAction, shouldAllowNonExistingByDefault(defaultAction));
-				}
-			}
-			// Check for legacy I/O classes with boolean append parameter
-			// If append=false is detected, change "create" to "overwrite" since the file
-			// will be truncated
-			else {
-				String effectiveAction = defaultAction;
-				if ("create".equals(defaultAction) && hasAppendFalseParameter(declaringTypeName, parameters)) {
-					effectiveAction = "overwrite";
-				}
-				actions.put(effectiveAction, shouldAllowNonExistingByDefault(effectiveAction));
-			}
-		}
-
-		List<Map.Entry<String, Boolean>> result = new ArrayList<>(actions.size());
-		actions.forEach((act, allowNonExistingPathsToBeConsidered) -> result.add(Map.entry(act, allowNonExistingPathsToBeConsidered)));
-		return result;
+		return List.of(Map.entry(defaultAction, shouldAllowNonExistingByDefault(defaultAction)));
 	}
 
 	/**
@@ -1713,6 +2217,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		String systemMethodToCheck = (restrictedPackage == null) ? null
 				: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName, methodName);
 		if (systemMethodToCheck == null) {
+			ALLOWED_CREATION.remove();
 			return;
 		}
 		if (("java.util.jar.JarFile".equals(declaringTypeName) || "java.util.zip.ZipFile".equals(declaringTypeName))
@@ -1722,6 +2227,15 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
+		if ("getResourceAsStream".equals(methodName)) {
+			@Nullable
+			Object[] resourceTargets = resourceReadTargets(instance, parameters);
+			if (resourceTargets != null) {
+				parameters = resourceTargets;
+				instance = null;
+				attributes = new Object[0];
+			}
+		}
 		if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
 				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint)) {
 			return;
@@ -1751,113 +2265,374 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		if (isEntryReadOnOpenArchive(action, declaringTypeName, thisJoinPoint)) {
 			return;
 		}
-		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, parameters);
-		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
-			String actionToCheck = actionCheck.getKey();
-			boolean allowNonExistingPaths = Boolean.TRUE.equals(actionCheck.getValue());
-			boolean isWriteAliasedAsCreate = "create".equals(actionToCheck)
-					&& ("java.io.FileOutputStream".equals(declaringTypeName)
-							|| "java.io.FileWriter".equals(declaringTypeName)
-							|| "java.io.PrintWriter".equals(declaringTypeName)
-							|| ("java.nio.file.Files".equals(declaringTypeName)
-									&& ("newBufferedWriter".equals(methodName)
-											|| "newOutputStream".equals(methodName))));
-			String messageAction = isWriteAliasedAsCreate ? "overwrite" : actionToCheck;
-			@Nullable
-			final String[] allowedPaths = getValueFromSettings(switch (actionToCheck) {
-			case "read" -> "pathsAllowedToBeRead";
-			case "overwrite" -> "pathsAllowedToBeOverwritten";
-			case "create" -> "pathsAllowedToBeCreated";
-			case "execute" -> "pathsAllowedToBeExecuted";
-			case "delete" -> "pathsAllowedToBeDeleted";
-			default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", actionToCheck));
-			});
-			boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
-			@Nullable
-			String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
-					: checkIfVariableCriteriaIsViolated(parameters, allowedPaths,
-							parameterIgnoreValues(extractMethodNameWithoutModifiers(fullMethodSignature), methodName,
-									instance),
-							allowNonExistingPaths);
-			if (illegallyInteractedThroughParameter != null) {
-				boolean isClassLoaderAccess = illegallyInteractedThroughParameter.endsWith(".class")
-						&& (isClassLoadingInProgress()
-								|| (studentCalledMethod != null
-										&& (studentCalledMethod.startsWith("java.lang.Class.forName")
-												|| studentCalledMethod.startsWith("java.lang.ClassLoader")
-												|| studentCalledMethod.startsWith("jdk.internal.loader"))));
-				boolean isSystemJarRead = !isClassLoaderAccess && "read".equals(actionToCheck)
-						&& isSystemJarReadExempt(illegallyInteractedThroughParameter);
-				boolean isExemptSystemFileAccess = !isClassLoaderAccess && !isSystemJarRead
-						&& isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughParameter);
-				if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess) {
-					throw new SecurityException(localize(
-							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
-							illegallyInteractedThroughParameter,
-							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ describeCaller(studentCalledMethod),
-									buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
+		List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName, methodName,
+				parameters, instance);
+		@Nonnull
+		IgnoreValues ignoredParameters = parameterIgnoreValues(extractMethodNameWithoutModifiers(fullMethodSignature),
+				methodName, instance);
+		boolean createsAFile = false;
+		try {
+			for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
+				String actionToCheck = WRITE_ACTION.equals(actionCheck.getKey())
+						? resolveWriteAction(parameters, ignoredParameters)
+						: actionCheck.getKey();
+				LINK_ITSELF_IS_CHECKED.set(Boolean.valueOf("delete".equals(actionToCheck)));
+				createsAFile |= "create".equals(actionToCheck);
+				boolean allowNonExistingPaths = Boolean.TRUE.equals(actionCheck.getValue());
+				String messageAction = actionToCheck;
+				@Nullable
+				final String[] allowedPaths = isWriteThroughOpenFile(actionToCheck, instance)
+						? pathsAllowedForWriteThrough(instance)
+						: getValueFromSettings(switch (actionToCheck) {
+						case "read" -> "pathsAllowedToBeRead";
+						case "overwrite" -> "pathsAllowedToBeOverwritten";
+						case "create" -> "pathsAllowedToBeCreated";
+						case "execute" -> "pathsAllowedToBeExecuted";
+						case "delete" -> "pathsAllowedToBeDeleted";
+						default -> throw new SecurityException(
+								localize("security.advice.file.system.unknown.action", actionToCheck));
+						});
+				boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
+				if (instance instanceof java.nio.file.SecureDirectoryStream) {
+					refuseRelativeSecureDirectoryPaths(actionToCheck, parameters, systemMethodToCheck,
+							studentCalledMethod, fullMethodSignature, thisJoinPoint);
+				}
+				@Nullable
+				String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
+						: checkIfVariableCriteriaIsViolated(parameters, allowedPaths, ignoredParameters,
+								allowNonExistingPaths);
+				if (illegallyInteractedThroughParameter != null) {
+					boolean isClassLoaderAccess = illegallyInteractedThroughParameter.endsWith(".class")
+							&& (isClassLoadingInProgress()
+									|| (studentCalledMethod != null
+											&& (studentCalledMethod.startsWith("java.lang.Class.forName")
+													|| studentCalledMethod.startsWith("java.lang.ClassLoader")
+													|| studentCalledMethod.startsWith("jdk.internal.loader"))));
+					boolean isSystemJarRead = !isClassLoaderAccess && "read".equals(actionToCheck)
+							&& isSystemJarReadExempt(illegallyInteractedThroughParameter);
+					boolean isExemptSystemFileAccess = !isClassLoaderAccess && !isSystemJarRead
+							&& isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughParameter);
+					if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess) {
+						throw new SecurityException(localize(
+								"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
+								illegallyInteractedThroughParameter,
+								describeDeniedCall(thisJoinPoint, fullMethodSignature)
+										+ describeCaller(studentCalledMethod),
+										buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
+					}
+				}
+				@Nullable
+				String illegallyInteractedThroughReceiver = instance == null ? null
+						: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedPaths, IgnoreValues.NONE,
+								allowNonExistingPaths);
+				if (illegallyInteractedThroughReceiver != null) {
+					boolean isInternalAllowed = illegallyInteractedThroughReceiver.endsWith(".class")
+							&& isClassLoadingInProgress();
+
+					if (!isInternalAllowed && "read".equals(actionToCheck)
+							&& isSystemJarReadExempt(illegallyInteractedThroughReceiver)) {
+						isInternalAllowed = true;
+					}
+					if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughReceiver)) {
+						isInternalAllowed = true;
+					}
+
+					if (!isInternalAllowed) {
+						throw new SecurityException(localize(
+								"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
+								illegallyInteractedThroughReceiver,
+								describeDeniedCall(thisJoinPoint, fullMethodSignature)
+										+ describeCaller(studentCalledMethod),
+										buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
+					}
+				}
+				@Nullable
+				String illegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null
+						: checkIfVariableCriteriaIsViolated(attributes, allowedPaths,
+								FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(
+										extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE),
+								allowNonExistingPaths);
+				if (illegallyInteractedThroughAttribute != null) {
+					boolean isInternalAllowed = illegallyInteractedThroughAttribute.equals("/");
+					if (!isInternalAllowed && illegallyInteractedThroughAttribute.endsWith(".class")
+							&& (isClassLoadingInProgress()
+									|| (studentCalledMethod != null
+											&& (studentCalledMethod.startsWith("java.lang.Class.forName")
+													|| studentCalledMethod.startsWith("java.lang.ClassLoader")
+													|| studentCalledMethod.startsWith("jdk.internal.loader"))))) {
+						isInternalAllowed = true;
+					}
+
+					if (!isInternalAllowed && "read".equals(actionToCheck)
+							&& isSystemJarReadExempt(illegallyInteractedThroughAttribute)) {
+						isInternalAllowed = true;
+					}
+					if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughAttribute)) {
+						isInternalAllowed = true;
+					}
+
+					if (!isInternalAllowed) {
+						throw new SecurityException(localize(
+								"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
+								illegallyInteractedThroughAttribute,
+								describeDeniedCall(thisJoinPoint, fullMethodSignature)
+										+ describeCaller(studentCalledMethod),
+										buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
+					}
 				}
 			}
-			@Nullable
-			String illegallyInteractedThroughReceiver = instance == null ? null
-					: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedPaths, IgnoreValues.NONE,
-							allowNonExistingPaths);
-			if (illegallyInteractedThroughReceiver != null) {
-				boolean isInternalAllowed = illegallyInteractedThroughReceiver.endsWith(".class")
-						&& isClassLoadingInProgress();
+		} finally {
+			LINK_ITSELF_IS_CHECKED.remove();
+		}
+		if (createsAFile) {
+			noteAllowedCreation(parameters, ignoredParameters);
+		}
+	}
 
-				if (!isInternalAllowed && "read".equals(actionToCheck)
-						&& isSystemJarReadExempt(illegallyInteractedThroughReceiver)) {
-					isInternalAllowed = true;
-				}
-				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughReceiver)) {
-					isInternalAllowed = true;
-				}
+	/**
+	 * The names of the methods that always open their file for writing, whatever
+	 * class declares them.
+	 */
+	@Nonnull
+	private static final Set<String> WRITE_OPENING_METHOD_NAMES = Set.of("write", "writeString", "newOutputStream",
+			"newBufferedWriter");
 
-				if (!isInternalAllowed) {
-					throw new SecurityException(localize(
-							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
-							illegallyInteractedThroughReceiver,
-							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ describeCaller(studentCalledMethod),
-									buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
-				}
+	/**
+	 * Returns the options an opening should run with so that it cannot replace a
+	 * file that appears after its check. {@code CREATE_NEW} is added where the call
+	 * would create a missing file that the policy lets the code create but not
+	 * overwrite; otherwise the options come back unchanged.
+	 *
+	 * @param writeMethod whether the method always opens for writing
+	 * @param path        the file the call opens
+	 * @param options     the options of the call
+	 * @return the options to run with
+	 */
+	@Nullable
+	static OpenOption[] atomicCreationOptions(boolean writeMethod, @Nullable Object path,
+			@Nullable OpenOption[] options) {
+		if (options == null || !createsAMissingFile(writeMethod, standardOptions(Arrays.asList(options)))
+				|| !onlyCreationIsAllowed(path)) {
+			return options;
+		}
+		OpenOption[] atomic = Arrays.copyOf(options, options.length + 1);
+		atomic[options.length] = StandardOpenOption.CREATE_NEW;
+		return atomic;
+	}
+
+	/**
+	 * Returns the option set an opening should run with, as
+	 * {@link #atomicCreationOptions(boolean, Object, OpenOption[])} does for an
+	 * array. Where it adds {@code CREATE_NEW} it hands the JDK a copy, so the JDK
+	 * does not read the code's own set after the check.
+	 *
+	 * @param path    the file the call opens
+	 * @param options the options of the call
+	 * @return the options to run with
+	 */
+	@Nullable
+	static Set<?> atomicCreationOptions(@Nullable Object path, @Nullable Set<?> options) {
+		if (options == null) {
+			return null;
+		}
+		Set<Object> copy = new HashSet<>(options);
+		if (!createsAMissingFile(false, standardOptions(copy)) || !onlyCreationIsAllowed(path)) {
+			return options;
+		}
+		copy.add(StandardOpenOption.CREATE_NEW);
+		return copy;
+	}
+
+	/**
+	 * Returns the options an opening should run with, for either shape of options
+	 * a call takes: an array, or a set.
+	 *
+	 * @param joinPoint the intercepted call
+	 * @param path      the file the call opens
+	 * @param options   the options of the call
+	 * @return the options to run with
+	 */
+	@Nullable
+	static Object atomicCreationOptions(@Nonnull JoinPoint joinPoint, @Nullable Object path,
+			@Nullable Object options) {
+		if (options instanceof OpenOption[] array) {
+			return atomicCreationOptions(WRITE_OPENING_METHOD_NAMES.contains(joinPoint.getSignature().getName()), path,
+					array);
+		}
+		if (options instanceof Set<?> set) {
+			return atomicCreationOptions(path, set);
+		}
+		return options;
+	}
+
+	/**
+	 * Turns what an opening with added {@code CREATE_NEW} threw into what the
+	 * code gets: a refusal where the JDK found the file already there, the thrown
+	 * exception itself otherwise.
+	 *
+	 * @param thrown    what the opening threw
+	 * @param path      the file
+	 * @param joinPoint the intercepted call
+	 * @param caller    the code that made the call
+	 * @return the refusal, if the file was already there
+	 */
+	@Nonnull
+	static RuntimeException replacementRefusal(@Nonnull Throwable thrown, @Nullable Object path,
+			@Nonnull JoinPoint joinPoint, @Nonnull JoinPoint.StaticPart caller) {
+		if (thrown instanceof java.nio.file.FileAlreadyExistsException) {
+			return refusedReplacement(path, joinPoint, caller);
+		}
+		throw JavaAspectJFileSystemAdviceDefinitions.<RuntimeException>rethrow(thrown);
+	}
+
+	/**
+	 * Throws an exception unchanged, checked or not, so the code sees what the
+	 * JDK threw.
+	 *
+	 * @param <T>    the type the compiler takes it for
+	 * @param thrown the exception
+	 * @return never
+	 * @throws T always
+	 */
+	@SuppressWarnings("unchecked")
+	private static <T extends Throwable> T rethrow(@Nonnull Throwable thrown) throws T {
+		throw (T) thrown;
+	}
+
+	/**
+	 * Picks the standard options out of the options of a call.
+	 *
+	 * @param options the options
+	 * @return the standard ones among them
+	 */
+	@Nonnull
+	private static Set<StandardOpenOption> standardOptions(@Nonnull Iterable<?> options) {
+		EnumSet<StandardOpenOption> standard = EnumSet.noneOf(StandardOpenOption.class);
+		for (Object option : options) {
+			if (option instanceof StandardOpenOption standardOption) {
+				standard.add(standardOption);
 			}
-			@Nullable
-			String illegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null
-					: checkIfVariableCriteriaIsViolated(attributes, allowedPaths,
-							FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(
-									extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE),
-							allowNonExistingPaths);
-			if (illegallyInteractedThroughAttribute != null) {
-				boolean isInternalAllowed = illegallyInteractedThroughAttribute.equals("/");
-				if (!isInternalAllowed && illegallyInteractedThroughAttribute.endsWith(".class")
-						&& (isClassLoadingInProgress()
-								|| (studentCalledMethod != null
-										&& (studentCalledMethod.startsWith("java.lang.Class.forName")
-												|| studentCalledMethod.startsWith("java.lang.ClassLoader")
-												|| studentCalledMethod.startsWith("jdk.internal.loader"))))) {
-					isInternalAllowed = true;
-				}
+		}
+		return standard;
+	}
 
-				if (!isInternalAllowed && "read".equals(actionToCheck)
-						&& isSystemJarReadExempt(illegallyInteractedThroughAttribute)) {
-					isInternalAllowed = true;
-				}
-				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughAttribute)) {
-					isInternalAllowed = true;
-				}
+	/**
+	 * Tells whether options make the JDK create a missing file and write it,
+	 * without {@code CREATE_NEW} already making it refuse an existing one.
+	 *
+	 * @param writeMethod whether the method always opens for writing
+	 * @param options     the standard options of the call
+	 * @return whether the opening creates a missing file
+	 */
+	private static boolean createsAMissingFile(boolean writeMethod, @Nonnull Set<StandardOpenOption> options) {
+		if (options.contains(StandardOpenOption.CREATE_NEW)) {
+			return false;
+		}
+		if (writeMethod && options.isEmpty()) {
+			return true;
+		}
+		boolean writes = writeMethod || options.contains(StandardOpenOption.WRITE)
+				|| options.contains(StandardOpenOption.APPEND);
+		return writes && options.contains(StandardOpenOption.CREATE);
+	}
 
-				if (!isInternalAllowed) {
-					throw new SecurityException(localize(
-							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
-							illegallyInteractedThroughAttribute,
-							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ describeCaller(studentCalledMethod),
-									buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
-				}
-			}
+	/**
+	 * Tells whether Ares supervises the run and the policy lets the code create the
+	 * missing file but not overwrite it.
+	 *
+	 * @param path the file
+	 * @return whether only its creation is allowed
+	 */
+	private static boolean onlyCreationIsAllowed(@Nullable Object path) {
+		@Nullable
+		String aopMode = getValueFromSettings("aopMode");
+		@Nullable
+		String restrictedPackage = getValueFromSettings("restrictedPackage");
+		if (!"ASPECTJ".equals(aopMode) || restrictedPackage == null || restrictedPackage.isEmpty()
+				|| !(path instanceof Path)) {
+			return false;
+		}
+		FileTarget target = variableToTarget(path, true);
+		if (target == null || Files.exists(target.path(), LinkOption.NOFOLLOW_LINKS)) {
+			return false;
+		}
+		return !checkIfPathIsForbidden(target, getValueFromSettings("pathsAllowedToBeCreated"), true)
+				&& checkIfPathIsForbidden(target, getValueFromSettings("pathsAllowedToBeOverwritten"), true);
+	}
+
+	/**
+	 * Builds the refusal of an opening that found a file where the check had found
+	 * none, which it would have replaced although the policy forbids that.
+	 *
+	 * @param path      the file
+	 * @param joinPoint the intercepted call
+	 * @param caller    the code that made the call
+	 * @return the refusal
+	 */
+	@Nonnull
+	static SecurityException refusedReplacement(@Nullable Object path, @Nonnull JoinPoint joinPoint,
+			@Nonnull JoinPoint.StaticPart caller) {
+		@Nullable
+		String[] overwrite = getValueFromSettings("pathsAllowedToBeOverwritten");
+		FileTarget target = variableToTarget(path, true);
+		String fullMethodSignature = formatSignature(joinPoint.getSignature());
+		return new SecurityException(localize("security.advice.illegal.file.execution",
+				caller.getSignature().getDeclaringTypeName() + "." + caller.getSignature().getName(),
+				localizeAction("overwrite"), target == null ? String.valueOf(path) : target.path().toString(),
+				describeDeniedCall(joinPoint, fullMethodSignature) + describeCaller(null),
+				buildDenialReason("file", "overwrite", overwrite == null || overwrite.length == 0)));
+	}
+
+	/**
+	 * Lets an opening with an option array that may only create its file run with
+	 * {@code CREATE_NEW}. The JDK then refuses a file that appears between the
+	 * check and the opening, as one can through a link the code makes while the
+	 * JDK reads the code's text. It runs before the check, which then sees the
+	 * options the JDK gets. Its body calls only helpers of this aspect, since it is
+	 * woven into the code's own class and must not name packages the policy does
+	 * not let that class use.
+	 */
+	Object around(Object path, Object options):
+			(call(* java.nio.file.Files.write(java.nio.file.Path, .., java.nio.file.OpenOption...)) ||
+					call(* java.nio.file.Files.writeString(java.nio.file.Path, .., java.nio.file.OpenOption...)) ||
+					call(* java.nio.file.Files.newOutputStream(java.nio.file.Path, java.nio.file.OpenOption...)) ||
+					call(* java.nio.file.Files.newBufferedWriter(java.nio.file.Path, .., java.nio.file.OpenOption...)) ||
+					call(* java.nio.file.Files.newByteChannel(java.nio.file.Path, java.nio.file.OpenOption...)) ||
+					call(* java.nio.channels.FileChannel.open(java.nio.file.Path, java.nio.file.OpenOption...)) ||
+					call(* java.nio.channels.AsynchronousFileChannel.open(java.nio.file.Path, java.nio.file.OpenOption...)) ||
+					call(* java.nio.file.spi.FileSystemProvider+.newOutputStream(java.nio.file.Path, java.nio.file.OpenOption...)))
+			&& args(path, .., options) {
+		Object atomic = atomicCreationOptions(thisJoinPoint, path, options);
+		if (atomic == options) {
+			return proceed(path, options);
+		}
+		try {
+			return proceed(path, atomic);
+		} catch (Throwable thrown) {
+			throw replacementRefusal(thrown, path, thisJoinPoint, thisEnclosingJoinPointStaticPart);
+		}
+	}
+
+	/**
+	 * Lets an opening with an option set that may only create its file run with
+	 * {@code CREATE_NEW}, as the advice above does for an option array.
+	 */
+	Object around(Object path, Object options):
+			(call(* java.nio.file.Files.newByteChannel(java.nio.file.Path, java.util.Set, ..)) ||
+					call(* java.nio.channels.FileChannel.open(java.nio.file.Path, java.util.Set, ..)) ||
+					call(* java.nio.channels.AsynchronousFileChannel.open(java.nio.file.Path, java.util.Set, ..)) ||
+					call(* java.nio.file.spi.FileSystemProvider+.newByteChannel(java.nio.file.Path, java.util.Set, ..)) ||
+					call(* java.nio.file.spi.FileSystemProvider+.newFileChannel(java.nio.file.Path, java.util.Set, ..)) ||
+					call(* java.nio.file.spi.FileSystemProvider+.newAsynchronousFileChannel(java.nio.file.Path, java.util.Set, ..)))
+			&& args(path, options, ..) {
+		Object atomic = atomicCreationOptions(thisJoinPoint, path, options);
+		if (atomic == options) {
+			return proceed(path, options);
+		}
+		try {
+			return proceed(path, atomic);
+		} catch (Throwable thrown) {
+			throw replacementRefusal(thrown, path, thisJoinPoint, thisEnclosingJoinPointStaticPart);
 		}
 	}
 
@@ -1870,7 +2645,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemsReadMethods() ||
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() ||
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.scannerInitMethods() ||
-					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.randomAccessFileInitMethods() {
+					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.randomAccessFileInitMethods() ||
+					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.processBuilderRedirectReadMethods() {
 		checkFileSystemInteraction("read", thisJoinPoint);
 	}
 
@@ -1881,7 +2657,8 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelWriteMethods() ||
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.writerMethods() ||
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileHandlerMethods() ||
-					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() {
+					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() ||
+					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.processBuilderRedirectWriteMethods() {
 		checkFileSystemInteraction("overwrite", thisJoinPoint);
 	}
 
@@ -1908,6 +2685,50 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesDeleteMethods() ||
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderDeleteMethods() {
 		checkFileSystemInteraction("delete", thisJoinPoint);
+	}
+
+	/**
+	 * The calls the read, overwrite and create advice above check, which include
+	 * every call that opens a file.
+	 */
+	pointcut fileOpeningCalls():
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileReadMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesReadMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileInputStreamInitMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelReadMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.midiSystemMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemsReadMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderReadMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.scannerInitMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.randomAccessFileInitMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.processBuilderRedirectReadMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileWriteMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesWriteMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileOutputStreamInitMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelWriteMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.writerMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileHandlerMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderWriteMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.processBuilderRedirectWriteMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileCreateMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.filesCreateMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderCreateMethods() ||
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileChannelCreateMethods();
+
+	/**
+	 * Remembers the handle a call returned, or the object a constructor made, if
+	 * Ares allowed the call to create the file that handle has open.
+	 */
+	after() returning(Object result): fileOpeningCalls() {
+		rememberCreatedHandle(result, false);
+	}
+
+	/**
+	 * Drops the note of an allowed creation when the call throws, so a failed
+	 * opening grants nothing.
+	 */
+	after() throwing: fileOpeningCalls() {
+		rememberCreatedHandle(null, true);
 	}
 
 }

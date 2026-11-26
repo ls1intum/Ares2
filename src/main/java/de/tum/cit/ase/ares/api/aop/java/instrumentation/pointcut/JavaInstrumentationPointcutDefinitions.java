@@ -90,17 +90,14 @@ public final class JavaInstrumentationPointcutDefinitions {
 		ElementMatcher.Junction<TypeDescription> matcher = new SuperTypeNameMatcher(Set.of(targets), perTargetMatcher);
 
 		// Exclude internal JVM implementation classes that have different method
-		// signatures
-		// than the public API (FileChannel.open dispatches into
-		// sun.nio.ch.FileChannelImpl.open
-		// with extra OpenOption arguments). For NIO socket / datagram / async channels
-		// the
-		// abstract method is implemented by sun.nio.ch.*ChannelImpl with the SAME
-		// signature,
-		// so those impls must remain instrumentable to catch instance-method calls.
-		matcher = matcher.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun.nio.ch.FileChannelImpl"))
-				.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun.nio.ch.AsynchronousFileChannelImpl")))
-				.and(ElementMatchers.not(ElementMatchers.nameStartsWith("jdk.internal."))));
+		// signatures than the public API. sun.nio.ch.FileChannelImpl stays watched
+		// for its transfers only, see IGNORED_METHODS_BY_CLASS. For NIO socket /
+		// datagram / async channels the abstract method is implemented by
+		// sun.nio.ch.*ChannelImpl with the SAME signature, so those impls must remain
+		// instrumentable to catch instance-method calls.
+		matcher = matcher
+				.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun.nio.ch.AsynchronousFileChannelImpl"))
+						.and(ElementMatchers.not(ElementMatchers.nameStartsWith("jdk.internal."))));
 
 		return matcher;
 	}
@@ -370,7 +367,11 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// self-interception during class and JAR loading in instrumentation mode.
 			Map.entry("java.io.RandomAccessFile", List.of("read", "readFully")),
 			Map.entry("java.util.zip.InflaterInputStream", List.of("read")),
-			Map.entry("java.util.zip.ZipFile$ZipFileInputStream", List.of("read")));
+			Map.entry("java.util.zip.ZipFile$ZipFileInputStream", List.of("read")),
+			// The JDK's file channel is watched for transferTo and transferFrom only: its
+			// open has other arguments than FileChannel.open, and reading and writing
+			// through it count as checked when the channel was opened.
+			Map.entry("sun.nio.ch.FileChannelImpl", List.of("map", "open", "read", "truncate", "write")));
 
 	/**
 	 * Creates a method matcher for the given type description and pointcut map.
@@ -492,8 +493,10 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// source path must be checked as READ, not OVERWRITE (I-114/TD-063) - the
 			// advice's
 			// checkCopyOrTransferSpecialCase splits each firing to the correct parameter.
+			// "move" is also registered as an overwrite and a delete: it reads and deletes
+			// its source and writes its target, and each firing checks its own side.
 			Map.entry("java.nio.file.Files",
-					List.of("copy", "find", "lines", "list", "mismatch", "newBufferedReader", "newByteChannel",
+					List.of("copy", "find", "lines", "list", "mismatch", "move", "newBufferedReader", "newByteChannel",
 							"newDirectoryStream", "newInputStream", "readAllBytes", "readAllLines", "readString",
 							"walk", "walkFileTree")),
 			// Note: "transferTo" is also registered in METHODS_WHICH_CAN_OVERWRITE_FILES
@@ -503,7 +506,18 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.channels.FileChannel", List.of("map", "open", "transferTo")),
 			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("open", "read")),
 			Map.entry("java.nio.channels.SeekableByteChannel", List.of("read")),
-			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("newDirectoryStream")),
+			// The provider methods that open a file are read here; their options decide
+			// whether they read, write or create. copy and move are split by side.
+			Map.entry("java.nio.file.spi.FileSystemProvider",
+					List.of("copy", "move", "newAsynchronousFileChannel", "newByteChannel", "newDirectoryStream",
+							"newFileChannel", "newInputStream")),
+			// A secure directory stream opens, lists and moves files itself; its move is
+			// registered as an overwrite and a delete too, like Files.move.
+			Map.entry("java.nio.file.SecureDirectoryStream", List.of("move", "newByteChannel", "newDirectoryStream")),
+			// A process redirect names the file at the student's call; on Windows the JDK
+			// opens it natively when the process starts, so nothing else sees it.
+			Map.entry("java.lang.ProcessBuilder", List.of("redirectInput")),
+			Map.entry("java.lang.ProcessBuilder$Redirect", List.of("from")),
 			// java.lang
 			Map.entry("java.lang.ClassLoader", List.of("getResourceAsStream")),
 			// java.net.URL.openStream is a network fetch, not a file read; it is bound to
@@ -594,21 +608,21 @@ public final class JavaInstrumentationPointcutDefinitions {
 			// Note: "map" is intentionally NOT included here - it's in
 			// METHODS_WHICH_CAN_READ_FILES.
 			// The actual operation is determined by MapMode via deriveActionChecks().
-			// Note: FileChannel.transferFrom was previously not intercepted by either
-			// backend
-			// at all (I-114/TD-063). Its receiver (the channel being written TO) is checked
-			// as
-			// OVERWRITE; unlike transferTo it is not also registered in
-			// METHODS_WHICH_CAN_READ_FILES, since its src argument is itself a channel and
-			// is
-			// not resolvable to a checkable path with the existing machinery - see
-			// checkCopyOrTransferSpecialCase's class-level Javadoc.
+			// Note: FileChannel.transferFrom is registered here only. That one firing
+			// checks
+			// its receiver for writing and its source channel, a file for reading or a
+			// network peer for receiving - see checkTransferRole.
 			Map.entry("java.nio.channels.FileChannel", List.of("truncate", "write", "transferTo", "transferFrom")),
 			Map.entry("java.nio.channels.AsynchronousFileChannel", List.of("truncate", "write")),
 			// Note: newByteChannel is intentionally NOT included here - it's in
 			// METHODS_WHICH_CAN_READ_FILES.
 			// The actual operation is determined by OpenOptions via deriveActionChecks().
-			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("copy", "move", "setAttribute")),
+			Map.entry("java.nio.file.spi.FileSystemProvider",
+					List.of("copy", "move", "newOutputStream", "setAttribute")),
+			Map.entry("java.nio.file.SecureDirectoryStream", List.of("move")),
+			Map.entry("java.lang.ProcessBuilder", List.of("redirectOutput", "redirectError")),
+			Map.entry("java.lang.ProcessBuilder$Redirect", List.of("to", "appendTo")),
+			Map.entry("javax.imageio.stream.FileImageOutputStream", List.of("<init>")),
 			// javax.print
 			Map.entry("javax.print.DocPrintJob", List.of("print")),
 			// javax.imageio
@@ -675,8 +689,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.io.File", List.of("delete", "deleteOnExit")),
 			// java.nio
 			Map.entry("java.nio.file.Files", List.of("delete", "deleteIfExists", "move")),
-			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete")),
-			Map.entry("java.nio.file.SecureDirectoryStream", List.of("deleteFile", "deleteDirectory")),
+			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("delete", "deleteIfExists", "move")),
+			Map.entry("java.nio.file.SecureDirectoryStream", List.of("deleteFile", "deleteDirectory", "move")),
 			// Preferences.removeNode removes the node from the backing store, so it is a
 			// delete and is checked against the delete allow-list, not overwrite.
 			Map.entry("java.util.prefs.Preferences", List.of("removeNode")),
@@ -718,7 +732,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.util.prefs.Preferences",
 					List.of("node", "userNodeForPackage", "systemNodeForPackage", "importPreferences", "userRoot",
 							"systemRoot")),
-			Map.entry("java.nio.file.spi.FileSystemProvider", List.of("createDirectory")));
+			Map.entry("java.nio.file.spi.FileSystemProvider",
+					List.of("createDirectory", "createLink", "createSymbolicLink")));
 	// </editor-fold>
 
 	// <editor-fold desc="Create Thread">

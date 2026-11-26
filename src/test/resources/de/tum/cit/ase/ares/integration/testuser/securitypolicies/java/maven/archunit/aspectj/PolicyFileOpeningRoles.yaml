@@ -1,0 +1,59 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.allowed.FileOpeningRolesTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions:
+      - readAllFiles: true
+        overwriteAllFiles: false
+        createAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "target/ares-opening-roles/readOnly"
+      - readAllFiles: false
+        overwriteAllFiles: true
+        createAllFiles: true
+        executeAllFiles: false
+        deleteAllFiles: true
+        onThisPathAndAllPathsBelow: "target/ares-opening-roles/writeNoRead"
+      - readAllFiles: true
+        overwriteAllFiles: false
+        createAllFiles: true
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "target/ares-opening-roles/readCreate"
+      - readAllFiles: true
+        overwriteAllFiles: true
+        createAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "target/ares-opening-roles/readOverwrite"
+      - readAllFiles: true
+        overwriteAllFiles: false
+        createAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: true
+        onThisPathAndAllPathsBelow: "target/ares-opening-roles/readDelete"
+      - readAllFiles: true
+        overwriteAllFiles: true
+        createAllFiles: true
+        executeAllFiles: false
+        deleteAllFiles: true
+        onThisPathAndAllPathsBelow: "target/ares-opening-roles/all"
+    regardingNetworkConnections: [ ]
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations: [ ]
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.nio"
+      - importTheFollowingPackage: "java.nio.channels"
+      - importTheFollowingPackage: "java.nio.charset"
+      - importTheFollowingPackage: "java.nio.file"
+      - importTheFollowingPackage: "java.nio.file.spi"
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "javax.imageio"
+      - importTheFollowingPackage: "javax.imageio.stream"
+    regardingTimeouts:
+      - timeout: 3000

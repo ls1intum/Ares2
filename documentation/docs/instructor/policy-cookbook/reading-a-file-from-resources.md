@@ -21,7 +21,7 @@ The outline below is the intended structure and is not yet written. Until it is,
 
 ## The situation
 
-A test fixture or the exercise itself needs one file from `src/main/resources` or `src/test/resources`, and the policy must permit exactly that path.
+A test fixture or the exercise itself needs one file from `src/main/resources` or `src/test/resources`, and the policy must permit exactly that path. Ares checks the copy the build puts into its output folder, such as `target/classes/data.txt` with Maven, so that is the path the entry names.
 
 ## The policy fragment
 

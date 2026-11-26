@@ -9,7 +9,6 @@ java.lang.Class.forName(Ljava/lang/Module;Ljava/lang/String;)
 java.lang.Class.forName(Ljava/lang/String;ZLjava/lang/ClassLoader;)
 java.lang.ClassLoader.loadClass(Ljava/lang/String;)
 java.lang.ClassLoader.loadClass(Ljava/lang/String;Z)
-java.lang.Class.getClassLoader()
 java.lang.ClassLoader.getParent()
 java.lang.ClassLoader.getPlatformClassLoader()
 java.lang.ClassLoader.getSystemClassLoader()
@@ -26,9 +25,6 @@ java.beans.PropertyEditorManager.setEditorSearchPath([Ljava/lang/String;)
 java.lang.System.getProperties()
 java.lang.System.setProperties(Ljava/util/Properties;)
 java.util.ResourceBundle.getBundle
-java.lang.System.setErr
-java.lang.System.setIn
-java.lang.System.setOut
 java.lang.Runtime.loadLibrary0
 java.lang.Runtime.load0
 java.lang.ClassLoader.defineClass

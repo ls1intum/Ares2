@@ -39,4 +39,16 @@ public final class JavaInstrumentationCreatePathConstructorAdvice {
 		JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction("create", declaringTypeName, "<init>", "",
 				new Object[0], parameters, null);
 	}
+
+	/**
+	 * Called when the constructor has finished. Remembers the new object if Ares
+	 * allowed the call to create the file it has open. Byte Buddy runs no exit
+	 * advice for a constructor that throws, so a failed one remembers nothing.
+	 *
+	 * @param instance the new object
+	 */
+	@Advice.OnMethodExit
+	public static void onExit(@Advice.This Object instance) {
+		JavaInstrumentationAdviceFileSystemToolbox.rememberCreatedHandle(instance, false);
+	}
 }
