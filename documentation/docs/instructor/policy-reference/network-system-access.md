@@ -80,6 +80,16 @@ Implemented by `NetworkPermission` in
 
 ## Notes
 
+- A host name matches the addresses it resolves to. Ares checks an address by the address itself, so
+  a name that student code attaches to an address without asking the name service does not help.
+  Ares refuses supervised code that brings its own address resolver.
+- The same entry governs listening. Opening a server socket on a host and port needs
+  `openConnections` for them; listening on every interface needs the host `*`. A client socket on a
+  port the system picks contacts no one and needs no entry.
+- A `file:` URL on this machine is no connection. With instrumentation, the file permissions decide
+  whether the read is allowed. AspectJ cannot see the file behind the URL, so it refuses the URL as a
+  connection to an unknown host. A `file:` URL naming another host is a connection in both.
+
 **All five fields are required.** `SecurityPolicySchemaValidator` passes the network field set as both the accepted and the required set, so an entry that leaves a boolean out is rejected when the policy is loaded rather than read as a denial. Write `false` explicitly for every operation the entry does not permit.
 
 Port `0` is the **only** any-port wildcard. There is no range syntax.

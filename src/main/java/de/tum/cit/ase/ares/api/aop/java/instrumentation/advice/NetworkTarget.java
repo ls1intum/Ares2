@@ -1,30 +1,30 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation.advice;
 
+import java.net.InetAddress;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * Internal value type representing a resolved network target.
- * <p>
- * Description: Pairs a nullable hostname string with an integer port number.
- * Used throughout the toolbox as the canonical representation of a network
- * endpoint, regardless of whether it originated from a {@link java.net.Socket},
- * a {@link java.net.URI}, a {@link java.net.http.HttpRequest}, or another
- * network-capable object.
- * <p>
- * Design Rationale: Extracted from
- * {@link JavaInstrumentationAdviceNetworkSystemToolbox} into its own top-level
- * class so that the JVM bootstrap class-loader injection performed by
- * {@link de.tum.cit.ase.ares.api.aop.java.instrumentation.JavaInstrumentationAgent}
- * can load it independently. Inner / nested classes compiled as separate
- * {@code .class} files are not picked up by
- * {@link net.bytebuddy.dynamic.ClassFileLocator.ForClassLoader#read(Class)}
- * when only the enclosing class is specified.
+ * A network endpoint as the network checks compare it: a host name or text, a
+ * port, and the address itself when the call named one. It is a top-level class
+ * so the agent can load it onto the boot class path on its own.
  *
- * @since 2.0.0
- * @author Kevin Fischer
+ * @param host    the host name or text, or {@code null}
+ * @param port    the port, or -1 if unknown
+ * @param address the address the call named, or {@code null} for a name only
  */
-public record NetworkTarget(@Nullable String host, int port) {
+public record NetworkTarget(@Nullable String host, int port, @Nullable InetAddress address) {
+
+	/**
+	 * Creates a target given only by name or text, with no address of its own.
+	 *
+	 * @param host the host name or text
+	 * @param port the port, or -1 if unknown
+	 */
+	public NetworkTarget(@Nullable String host, int port) {
+		this(host, port, null);
+	}
 
 	/**
 	 * Returns a human-readable string representation of this network target.

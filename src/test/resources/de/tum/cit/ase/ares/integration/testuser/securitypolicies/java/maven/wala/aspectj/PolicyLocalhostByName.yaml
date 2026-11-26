@@ -1,0 +1,24 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.forbidden.NetworkEndpointMatchingTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: [ ]
+    # Only the name: the address that localhost resolves to has to match through it.
+    regardingNetworkConnections:
+      - onTheHost: "localhost"
+        onThePort: 47123
+        openConnections: true
+        sendData: true
+        receiveData: true
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations: [ ]
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.net"
+      - importTheFollowingPackage: "java.nio.channels"
+      - importTheFollowingPackage: "javax.net"
+    regardingTimeouts:
+      - timeout: 3000

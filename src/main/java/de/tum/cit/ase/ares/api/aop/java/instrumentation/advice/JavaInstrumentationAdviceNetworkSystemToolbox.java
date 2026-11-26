@@ -12,10 +12,13 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLDecoder;
 import java.net.UnixDomainSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.NetworkChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
@@ -130,11 +133,254 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		for (int i = 0; i < allowedHosts.length; i++) {
 			String allowedHost = allowedHosts[i];
 			int allowedPort = allowedPorts[i];
-			if (hostMatches(target.host(), allowedHost) && portMatches(target.port(), allowedPort)) {
+			if (targetMatches(target, allowedHost) && portMatches(target.port(), allowedPort)) {
 				return false;
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * Checks whether a URL names something on this machine rather than a host:
+	 * {@code jrt}, {@code file} without a host other than {@code localhost} or
+	 * {@code ~}, as the JDK reads it, and {@code jar} when its archive is such a
+	 * URL. Ares leaves a file to the file check; a remote file or archive stays a
+	 * network target.
+	 *
+	 * @param scheme             the scheme, or {@code null}
+	 * @param schemeSpecificPart the rest of the URL after the scheme
+	 * @return {@code true} for such a local URL
+	 */
+	private static boolean isLocalUrl(@Nullable String scheme, @Nullable String schemeSpecificPart) {
+		if ("jrt".equalsIgnoreCase(scheme)) {
+			return true;
+		}
+		if ("file".equalsIgnoreCase(scheme)) {
+			return hasLocalFileAuthority(schemeSpecificPart);
+		}
+		if (!"jar".equalsIgnoreCase(scheme) || schemeSpecificPart == null) {
+			return false;
+		}
+		int colon = schemeSpecificPart.indexOf(':');
+		return colon > 0 && isLocalUrl(schemeSpecificPart.substring(0, colon), schemeSpecificPart.substring(colon + 1));
+	}
+
+	/**
+	 * Checks whether the rest of a {@code file} URL names no host, or one the JDK
+	 * reads as this machine, and a path that is no share such as {@code //host/x}.
+	 * Any other host makes the JDK reach out to it, on Windows as a network share,
+	 * before a file check could see it.
+	 *
+	 * @param schemeSpecificPart the rest of the URL after {@code file:}, or
+	 *                           {@code null}
+	 * @return {@code true} without a remote host
+	 */
+	private static boolean hasLocalFileAuthority(@Nullable String schemeSpecificPart) {
+		if (schemeSpecificPart == null) {
+			return false;
+		}
+		if (!schemeSpecificPart.startsWith("//")) {
+			return !isSharePath(schemeSpecificPart);
+		}
+		int end = schemeSpecificPart.indexOf('/', 2);
+		String host = end < 0 ? schemeSpecificPart.substring(2) : schemeSpecificPart.substring(2, end);
+		boolean localHost = host.isEmpty() || "localhost".equalsIgnoreCase(host) || "~".equals(host);
+		return localHost && (end < 0 || !isSharePath(schemeSpecificPart.substring(end)));
+	}
+
+	/**
+	 * Checks whether a path names a network share, {@code //host/x} or
+	 * {@code \\host\x}, once its escapes such as {@code %2f} are decoded as the JDK
+	 * decodes them before it opens the file, on Windows by contacting that host. A
+	 * path whose escapes cannot be decoded counts as a share.
+	 *
+	 * @param path the path of a {@code file} URL, still encoded
+	 * @return {@code true} for such a path
+	 */
+	private static boolean isSharePath(@Nonnull String path) {
+		String decoded;
+		try {
+			decoded = URLDecoder.decode(path.replace("+", "%2B"), StandardCharsets.UTF_8);
+		} catch (IllegalArgumentException malformed) {
+			return true;
+		}
+		return decoded.replace('\\', '/').startsWith("//");
+	}
+
+	/**
+	 * Checks whether a class opens a socket that waits for incoming connections.
+	 *
+	 * @param declaringTypeName the class of the called method
+	 * @return {@code true} for a server socket or server socket channel
+	 */
+	private static boolean isServerSocketType(@Nonnull String declaringTypeName) {
+		return "java.net.ServerSocket".equals(declaringTypeName)
+				|| "java.nio.channels.ServerSocketChannel".equals(declaringTypeName)
+				|| "sun.nio.ch.ServerSocketChannelImpl".equals(declaringTypeName)
+				|| "java.nio.channels.AsynchronousServerSocketChannel".equals(declaringTypeName)
+				|| "sun.nio.ch.AsynchronousServerSocketChannelImpl".equals(declaringTypeName);
+	}
+
+	/**
+	 * Returns the local endpoint a server socket is about to listen on, where the
+	 * call names no address: a constructor given a port, or a bind given
+	 * {@code null}. Without an address the socket listens on every interface.
+	 *
+	 * @param declaringTypeName the class of the called method
+	 * @param methodName        the called method
+	 * @param parameters        the call arguments
+	 * @return the endpoint, or {@code null} if the call names one itself or binds
+	 *         nothing
+	 */
+	@Nullable
+	private static NetworkTarget serverBindTarget(@Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nullable Object[] parameters) {
+		if (!isServerSocketType(declaringTypeName) || parameters == null || parameters.length == 0) {
+			return null;
+		}
+		if ("bind".equals(methodName)) {
+			return parameters[0] == null ? everyInterface(0) : null;
+		}
+		if (!"<init>".equals(methodName) || !(parameters[0] instanceof Integer port)) {
+			return null;
+		}
+		for (Object parameter : parameters) {
+			if (parameter instanceof InetAddress bindAddress) {
+				return new NetworkTarget(bindAddress.getHostAddress(), port, bindAddress);
+			}
+		}
+		return everyInterface(port);
+	}
+
+	/**
+	 * Returns the endpoint of every interface at a port.
+	 *
+	 * @param port the port
+	 * @return the endpoint
+	 */
+	@Nonnull
+	private static NetworkTarget everyInterface(int port) {
+		InetAddress wildcard = new InetSocketAddress(port).getAddress();
+		return new NetworkTarget(wildcard.getHostAddress(), port, wildcard);
+	}
+
+	/**
+	 * Checks whether a target is only the local side of a client socket on a port
+	 * the system picks, as {@code new DatagramSocket()} binds. No one can be
+	 * contacted through it, so it is not checked against the allowed peers.
+	 *
+	 * @param declaringTypeName the class of the called method
+	 * @param target            the target
+	 * @return {@code true} for such a local binding
+	 */
+	private static boolean isEphemeralClientBind(@Nonnull String declaringTypeName, @Nonnull NetworkTarget target) {
+		return !isServerSocketType(declaringTypeName) && target.port() == 0 && target.address() != null
+				&& target.address().isAnyLocalAddress();
+	}
+
+	/**
+	 * Checks whether a target matches an allowed host. A target given as an address
+	 * matches by that address, a target given only as a name by name, so a host
+	 * name never stands in for an address it does not resolve to.
+	 *
+	 * @param target      the target
+	 * @param allowedHost the allowed host from the policy
+	 * @return {@code true} if the target is covered by the allowed host
+	 */
+	private static boolean targetMatches(@Nonnull NetworkTarget target, @Nullable String allowedHost) {
+		if ("*".equals(allowedHost) || target.address() == null) {
+			return hostMatches(target.host(), allowedHost);
+		}
+		return allowedHost != null && addressMatches(target.address(), allowedHost.trim());
+	}
+
+	/**
+	 * Checks whether an address is covered by an allowed host: equal to it as a
+	 * literal, among its addresses in the Domain Name System (DNS), or carrying a
+	 * name that matches the allowed host and itself resolves to the address. The
+	 * last check stops a name set without DNS, as {@code getByAddress} allows.
+	 *
+	 * @param address     the address being contacted
+	 * @param allowedHost the allowed host from the policy
+	 * @return {@code true} if it is covered
+	 */
+	private static boolean addressMatches(@Nonnull InetAddress address, @Nonnull String allowedHost) {
+		if (isIpLiteral(allowedHost)) {
+			return isAmong(address, resolve(allowedHost));
+		}
+		if (isAmong(address, resolve(allowedHost))) {
+			return true;
+		}
+		String claimedName = claimedName(address);
+		return claimedName != null && hostMatches(claimedName, allowedHost) && isAmong(address, resolve(claimedName));
+	}
+
+	/**
+	 * Checks whether a host is written as an IPv4 or IPv6 address, which resolving
+	 * only parses, without asking the DNS.
+	 *
+	 * @param host the host
+	 * @return {@code true} for an address literal
+	 */
+	private static boolean isIpLiteral(@Nonnull String host) {
+		if (host.indexOf(':') >= 0) {
+			return true;
+		}
+		int dots = 0;
+		for (int i = 0; i < host.length(); i++) {
+			char c = host.charAt(i);
+			if (c == '.') {
+				dots++;
+			} else if (c < '0' || c > '9') {
+				return false;
+			}
+		}
+		return dots == 3;
+	}
+
+	/**
+	 * Returns the addresses a host resolves to, none if it does not resolve.
+	 *
+	 * @param host the host
+	 * @return its addresses
+	 */
+	@Nonnull
+	private static InetAddress[] resolve(@Nonnull String host) {
+		try {
+			return InetAddress.getAllByName(host);
+		} catch (UnknownHostException | SecurityException unresolved) {
+			return new InetAddress[0];
+		}
+	}
+
+	/**
+	 * Checks whether an address is one of the given addresses.
+	 *
+	 * @param address    the address
+	 * @param candidates the addresses to look in
+	 * @return {@code true} if it is among them
+	 */
+	private static boolean isAmong(@Nonnull InetAddress address, @Nonnull InetAddress[] candidates) {
+		for (InetAddress candidate : candidates) {
+			if (candidate.equals(address)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Returns the name an address carries, read without a reverse lookup, or
+	 * {@code null} if it carries none.
+	 *
+	 * @param address the address
+	 * @return the name, or {@code null}
+	 */
+	@Nullable
+	private static String claimedName(@Nonnull InetAddress address) {
+		String text = address.toString();
+		int slash = text.indexOf('/');
+		return slash > 0 ? text.substring(0, slash) : null;
 	}
 
 	/**
@@ -238,7 +484,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 				InetAddress address = inetSocketAddress.getAddress();
 				host = address == null ? null : address.getHostAddress();
 			}
-			return new NetworkTarget(host, inetSocketAddress.getPort());
+			return new NetworkTarget(host, inetSocketAddress.getPort(), inetSocketAddress.getAddress());
 		}
 		if (value instanceof UnixDomainSocketAddress unixDomainSocketAddress) {
 			requireTrustedRuntimeType(value);
@@ -266,9 +512,15 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			// reflection failure — skip
 		}
 		if (value instanceof URI uri) {
+			if (isLocalUrl(uri.getScheme(), uri.getRawSchemeSpecificPart())) {
+				return null;
+			}
 			return new NetworkTarget(uri.getHost(), effectivePort(uri.getPort(), uri.getScheme()));
 		}
 		if (value instanceof URL url) {
+			if (isLocalUrl(url.getProtocol(), url.toExternalForm().substring(url.getProtocol().length() + 1))) {
+				return null;
+			}
 			int defaultPort = url.getDefaultPort();
 			int port = url.getPort() >= 0 ? url.getPort() : defaultPort;
 			return new NetworkTarget(url.getHost(), port >= 0 ? port : -1);
@@ -281,7 +533,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 			requireTrustedRuntimeType(value);
 			InetAddress address = datagramPacket.getAddress();
 			if (address != null && datagramPacket.getPort() > 0) {
-				return new NetworkTarget(address.getHostAddress(), datagramPacket.getPort());
+				return new NetworkTarget(address.getHostAddress(), datagramPacket.getPort(), address);
 			}
 			return null;
 		}
@@ -311,7 +563,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		if (value instanceof InetAddress inetAddress) {
 			requireTrustedRuntimeType(value);
-			return new NetworkTarget(inetAddress.getHostAddress(), -1);
+			return new NetworkTarget(inetAddress.getHostAddress(), -1, inetAddress);
 		}
 		if (value instanceof String str) {
 			try {
@@ -574,7 +826,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		if (hostCandidate instanceof InetAddress inetAddress) {
 			requireTrustedRuntimeType(hostCandidate);
-			return new NetworkTarget(inetAddress.getHostAddress(), port);
+			return new NetworkTarget(inetAddress.getHostAddress(), port, inetAddress);
 		}
 		return null;
 	}
@@ -624,7 +876,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		if (inetAddress == null || port <= 0) {
 			return null;
 		}
-		return new NetworkTarget(inetAddress.getHostAddress(), port);
+		return new NetworkTarget(inetAddress.getHostAddress(), port, inetAddress);
 	}
 
 	/**
@@ -647,7 +899,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		if (inetAddress == null || port <= 0) {
 			return null;
 		}
-		return new NetworkTarget(inetAddress.getHostAddress(), port);
+		return new NetworkTarget(inetAddress.getHostAddress(), port, inetAddress);
 	}
 
 	/**
@@ -880,8 +1132,15 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		@Nonnull
 		final BitSet consumedParameterIndices = new BitSet(hasParameters ? parameters.length : 0);
 		@Nullable
-		NetworkTarget targetFromParameters = hasParameters ? parametersToTarget(parameters, consumedParameterIndices)
-				: null;
+		NetworkTarget targetFromParameters = serverBindTarget(declaringTypeName, methodName, parameters);
+		if (targetFromParameters != null) {
+			consumedParameterIndices.set(0, parameters.length);
+		} else if (hasParameters) {
+			targetFromParameters = parametersToTarget(parameters, consumedParameterIndices);
+		}
+		if (targetFromParameters != null && isEphemeralClientBind(declaringTypeName, targetFromParameters)) {
+			targetFromParameters = null;
+		}
 		if (targetFromParameters != null
 				&& checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
 			throw new SecurityException(localize("security.advice.illegal.network.execution",
@@ -1119,7 +1378,7 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		@Nullable
 		final String restrictedPackage = getValueFromSettings("restrictedPackage");
-		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+		if (restrictedPackage == null || restrictedPackage.isEmpty() || isJdkPipeSetUpWithoutStudentCode()) {
 			return;
 		}
 		@Nullable

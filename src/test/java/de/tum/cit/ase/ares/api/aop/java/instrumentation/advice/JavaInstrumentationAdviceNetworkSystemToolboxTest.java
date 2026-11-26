@@ -316,6 +316,49 @@ class JavaInstrumentationAdviceNetworkSystemToolboxTest {
 	}
 
 	/**
+	 * A URL on this machine is no network target, so the file check alone decides
+	 * on the file the JDK opens behind it.
+	 *
+	 * @throws Exception if the reflective call fails
+	 */
+	@Test
+	void variableToTarget_leavesAUrlOnThisMachineToTheFileCheck() throws Exception {
+		Method variableToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("variableToTarget", Object.class);
+		variableToTarget.setAccessible(true);
+		for (String url : List.of("file:/data/a.txt", "file:///data/a.txt", "file://localhost/data/a.txt",
+				"file:/data/a%20b+c.txt", "file:/data/%2f/a.txt", "jar:file:/data/a.jar!/entry",
+				"jrt:/java.base/java/lang/Object.class")) {
+			assertNull(variableToTarget.invoke(null, new URI(url)), () -> "URI " + url);
+			assertNull(variableToTarget.invoke(null, new URI(url).toURL()), () -> "URL " + url);
+		}
+	}
+
+	/**
+	 * A file or jar URL naming another host, or a path naming a network share,
+	 * plain or with encoded separators, stays a network target: on Windows the JDK
+	 * decodes the path and contacts that host to open it.
+	 *
+	 * @throws Exception if the reflective call fails
+	 */
+	@Test
+	void variableToTarget_keepsARemoteFileUrlANetworkTarget() throws Exception {
+		Method variableToTarget = JavaInstrumentationAdviceNetworkSystemToolbox.class
+				.getDeclaredMethod("variableToTarget", Object.class);
+		variableToTarget.setAccessible(true);
+		for (String url : List.of("file://example.invalid/a.txt", "jar:file://example.invalid/a.jar!/entry",
+				"file:////example.invalid/share/a.txt", "file:/%2fexample.invalid/share/a.txt",
+				"file:/%2Fexample.invalid/share/a.txt", "file:/%5c%5Cexample.invalid/share/a.txt",
+				"file:/%5C/example.invalid/share/a.txt", "file:///%2fexample.invalid/share/a.txt",
+				"file://localhost/%2Fexample.invalid/share/a.txt", "jar:file:/%2fexample.invalid/a.jar!/entry")) {
+			assertNotNull(variableToTarget.invoke(null, new URI(url)), () -> "URI " + url);
+			assertNotNull(variableToTarget.invoke(null, new URI(url).toURL()), () -> "URL " + url);
+		}
+		assertNotNull(variableToTarget.invoke(null, new URL("file:/%zz/a.txt")),
+				"A path whose escapes cannot be decoded must not count as one on this machine");
+	}
+
+	/**
 	 * A connection that cannot report its URL yet must yield no URL, rather than
 	 * letting its own failure surface as a fault of the code under test.
 	 */

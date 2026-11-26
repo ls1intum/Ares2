@@ -1,0 +1,31 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_INSTRUMENTATION
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.allowed.LocalUrlReadTest"
+  theFollowingResourceAccessesArePermitted:
+    # Reading this one file, and one host that no file: URL names, so that the
+    # network check decides at run time rather than before the tests.
+    regardingFileSystemInteractions:
+      - readAllFiles: true
+        overwriteAllFiles: false
+        createAllFiles: false
+        executeAllFiles: false
+        deleteAllFiles: false
+        onThisPathAndAllPathsBelow: "src/test/java/de/tum/cit/ase/ares/integration/aop/allowed/subject/trusted.txt"
+    regardingNetworkConnections:
+      - onTheHost: "localhost"
+        onThePort: 47125
+        openConnections: true
+        sendData: true
+        receiveData: true
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations: [ ]
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.net"
+      - importTheFollowingPackage: "java.nio.charset"
+      - importTheFollowingPackage: "java.nio.file"
+    regardingTimeouts:
+      - timeout: 3000
