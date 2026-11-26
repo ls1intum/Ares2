@@ -298,3 +298,9 @@ javax.xml.parsers.SAXParser.parse(Ljava/io/InputStream;Lorg/xml/sax/HandlerBase;
 javax.xml.transform.Transformer.transform(Ljavax/xml/transform/Source;Ljavax/xml/transform/Result;)
 java.io.FileReader.<init>
 java.nio.file.Files
+java.lang.ProcessBuilder.redirectError(Ljava/io/File;)
+java.lang.ProcessBuilder.redirectInput(Ljava/io/File;)
+java.lang.ProcessBuilder.redirectOutput(Ljava/io/File;)
+java.lang.ProcessBuilder$Redirect.appendTo(Ljava/io/File;)
+java.lang.ProcessBuilder$Redirect.from(Ljava/io/File;)
+java.lang.ProcessBuilder$Redirect.to(Ljava/io/File;)
