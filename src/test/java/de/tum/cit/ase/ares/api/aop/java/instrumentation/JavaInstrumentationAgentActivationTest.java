@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.api.aop.java.instrumentation;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -18,9 +19,12 @@ import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -41,9 +45,9 @@ import de.tum.cit.ase.ares.api.jupiter.JupiterSecurityExtension;
 /**
  * Checks the deferred activation of the agent: the transformers are installed
  * once, on demand, never twice, and a failure keeps every later test from
- * running unguarded. Each test swaps in a stand-in for the JVM's
- * instrumentation and restores the agent's state and the JVM's weave record
- * afterwards.
+ * running unguarded. It also checks how a compiled-in policy registers its
+ * student package. Each test swaps in a stand-in for the JVM's instrumentation
+ * and restores the agent's state and the JVM's weave record afterwards.
  */
 class JavaInstrumentationAgentActivationTest {
 
@@ -72,6 +76,12 @@ class JavaInstrumentationAgentActivationTest {
 	private final List<Object> savedWeaveRecord = new ArrayList<>();
 
 	/**
+	 * The packages registered for call-site rewriting before the test. The set only
+	 * grows in the real agent, so a test that registers one is undone.
+	 */
+	private final List<String> savedCallSitePackages = new ArrayList<>();
+
+	/**
 	 * Saves the agent's activation state and the JVM's weave record.
 	 *
 	 * @throws ReflectiveOperationException If a field cannot be read.
@@ -85,6 +95,7 @@ class JavaInstrumentationAgentActivationTest {
 		for (String name : WEAVE_RECORD_FIELDS) {
 			savedWeaveRecord.add(weaveRecordField(name).get(weaveRecord));
 		}
+		savedCallSitePackages.addAll(callSitePackages());
 	}
 
 	/**
@@ -104,6 +115,79 @@ class JavaInstrumentationAgentActivationTest {
 		}
 		((AtomicReference<?>) field("PERMANENT_FAILURE").get(null)).set(null);
 		((AtomicReference<?>) field("TRANSFORMATION_FAILURE").get(null)).set(null);
+		Set<String> packages = callSitePackages();
+		packages.clear();
+		packages.addAll(savedCallSitePackages);
+	}
+
+	/**
+	 * A policy compiled in by Precompile has exactly its student package, and no
+	 * other, added to the packages whose calls are rewritten, as Postcompile's
+	 * runner does.
+	 *
+	 * @throws ReflectiveOperationException If the agent or the settings cannot be
+	 *                                      reached.
+	 */
+	@Test
+	void compiledInPolicyRegistersItsStudentPackage() throws ReflectiveOperationException {
+		deactivate(standIn(true));
+		String studentPackage = uniquePackage();
+		Set<String> expected = new HashSet<>(callSitePackages());
+		expected.add(studentPackage);
+		try {
+			compileIn("INSTRUMENTATION", studentPackage);
+			registerCompiledRestrictedPackage().invoke(null);
+			assertEquals(expected, Set.copyOf(callSitePackages()));
+		} finally {
+			JupiterSecurityExtension.resetSettingsInBootstrapClassLoader();
+		}
+	}
+
+	/**
+	 * For a compiled-in mode with a blank, whitespace-only or missing package name,
+	 * the start-up step throws a SecurityException and registers nothing.
+	 *
+	 * @throws ReflectiveOperationException If the agent or the settings cannot be
+	 *                                      reached.
+	 */
+	@Test
+	void compiledInPolicyWithoutAPackageFailsStartUp() throws ReflectiveOperationException {
+		deactivate(standIn(true));
+		Set<String> before = Set.copyOf(callSitePackages());
+		try {
+			for (String studentPackage : new String[] { "", "  ", null }) {
+				compileIn("INSTRUMENTATION", studentPackage);
+				InvocationTargetException failure = assertThrows(InvocationTargetException.class,
+						() -> registerCompiledRestrictedPackage().invoke(null));
+				assertTrue(failure.getCause() instanceof SecurityException, String.valueOf(failure.getCause()));
+				assertEquals(before, Set.copyOf(callSitePackages()));
+			}
+		} finally {
+			JupiterSecurityExtension.resetSettingsInBootstrapClassLoader();
+		}
+	}
+
+	/**
+	 * Settings without a mode, or with AspectJ, register nothing. Start-up never
+	 * reaches these cases, because then no instrumentation policy counts as
+	 * compiled in; they guard the method on its own.
+	 *
+	 * @throws ReflectiveOperationException If the agent or the settings cannot be
+	 *                                      reached.
+	 */
+	@Test
+	void settingsWithoutAnInstrumentationModeRegisterNothing() throws ReflectiveOperationException {
+		deactivate(standIn(true));
+		Set<String> before = Set.copyOf(callSitePackages());
+		try {
+			for (String mode : new String[] { null, "ASPECTJ" }) {
+				compileIn(mode, uniquePackage());
+				registerCompiledRestrictedPackage().invoke(null);
+				assertEquals(before, Set.copyOf(callSitePackages()));
+			}
+		} finally {
+			JupiterSecurityExtension.resetSettingsInBootstrapClassLoader();
+		}
 	}
 
 	/**
@@ -333,6 +417,56 @@ class JavaInstrumentationAgentActivationTest {
 		Field field = JavaInstrumentationAgent.class.getDeclaredField(name);
 		field.setAccessible(true);
 		return field;
+	}
+
+	/**
+	 * The agent's live set of packages whose calls are rewritten.
+	 *
+	 * @return The set itself, not a copy.
+	 * @throws ReflectiveOperationException If the field cannot be read.
+	 */
+	@SuppressWarnings("unchecked")
+	private static Set<String> callSitePackages() throws ReflectiveOperationException {
+		return (Set<String>) field("INSTRUMENTED_CALL_SITE_PACKAGES").get(null);
+	}
+
+	/**
+	 * A package name no other test or class uses.
+	 *
+	 * @return The name.
+	 */
+	private static String uniquePackage() {
+		return "example.x." + System.nanoTime();
+	}
+
+	/**
+	 * Writes a mode and a student package into the settings copy on the boot class
+	 * loader, as a policy compiled in by Precompile has them.
+	 *
+	 * @param mode           The AOP mode, or null.
+	 * @param studentPackage The student package, or null.
+	 * @throws ReflectiveOperationException If the settings cannot be reached.
+	 */
+	private static void compileIn(String mode, String studentPackage) throws ReflectiveOperationException {
+		Class<?> settings = Class.forName("de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCaseSettings", true, null);
+		Field aopMode = settings.getDeclaredField("aopMode");
+		aopMode.setAccessible(true);
+		aopMode.set(null, mode);
+		Field restrictedPackage = settings.getDeclaredField("restrictedPackage");
+		restrictedPackage.setAccessible(true);
+		restrictedPackage.set(null, studentPackage);
+	}
+
+	/**
+	 * The agent's start-up step that registers a compiled-in student package.
+	 *
+	 * @return The method, made accessible.
+	 * @throws NoSuchMethodException If the method is missing.
+	 */
+	private static Method registerCompiledRestrictedPackage() throws NoSuchMethodException {
+		Method method = JavaInstrumentationAgent.class.getDeclaredMethod("registerCompiledRestrictedPackage");
+		method.setAccessible(true);
+		return method;
 	}
 
 	/**
