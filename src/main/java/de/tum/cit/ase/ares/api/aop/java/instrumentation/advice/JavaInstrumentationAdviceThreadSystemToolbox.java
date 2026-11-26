@@ -263,24 +263,33 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * @return whether the JDK's image clean-up set-up acts
 	 */
 	private static boolean isJdkImageDisposerSetUp() {
-		return CLASS_STACK_WALKER.walk(frames -> {
-			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
-			boolean jdkFrameSeen = false;
-			while (iterator.hasNext()) {
-				java.lang.StackWalker.StackFrame frame = iterator.next();
-				if (!jdkFrameSeen && frame.getClassName().startsWith("de.tum.cit.ase.ares.api.")) {
-					continue;
-				}
-				if (jdkModuleName(frame.getDeclaringClass()) == null) {
-					return Boolean.FALSE;
-				}
-				if (JDK_IMAGE_DISPOSER_CLASS.equals(frame.getClassName())) {
-					return Boolean.TRUE;
-				}
-				jdkFrameSeen = true;
+		return CLASS_STACK_WALKER.walk(frames -> Boolean.valueOf(isJdkImageDisposerSetUp(frames.iterator())));
+	}
+
+	/**
+	 * Reads a call stack, newest frame first, as the JDK's image clean-up set-up:
+	 * after Ares' own frames, JDK frames only, up to a frame of
+	 * {@code sun.java2d.Disposer}. Any other frame first means {@code false}.
+	 *
+	 * @param frames the stack, newest first
+	 * @return {@code true} for exactly that shape
+	 */
+	static boolean isJdkImageDisposerSetUp(@Nonnull java.util.Iterator<java.lang.StackWalker.StackFrame> frames) {
+		boolean jdkFrameSeen = false;
+		while (frames.hasNext()) {
+			java.lang.StackWalker.StackFrame frame = frames.next();
+			if (!jdkFrameSeen && frame.getClassName().startsWith("de.tum.cit.ase.ares.api.")) {
+				continue;
 			}
-			return Boolean.FALSE;
-		});
+			if (jdkModuleName(frame.getDeclaringClass()) == null) {
+				return false;
+			}
+			if (JDK_IMAGE_DISPOSER_CLASS.equals(frame.getClassName())) {
+				return true;
+			}
+			jdkFrameSeen = true;
+		}
+		return false;
 	}
 
 	/**
