@@ -409,4 +409,45 @@ public final class CountedOperationsMain {
 			pool.shutdownNow();
 		}
 	}
+
+	/**
+	 * Submits one allowed task to the student's pool whose wrapping substitutes a
+	 * task no allowance names.
+	 *
+	 * @return the result of the task that ran
+	 * @throws Exception if the task fails or the wait is interrupted
+	 */
+	public static int submitToASubstitutingPool() throws Exception {
+		SubstitutingPool pool = new SubstitutingPool();
+		try {
+			return pool.submit(new CountedCall()).get();
+		} finally {
+			pool.shutdownNow();
+		}
+	}
+
+	/**
+	 * Hands a batch to a pool whose only thread is busy, so the pool runs each task
+	 * on the calling thread; the first task, allowed once, puts itself in place of
+	 * the second one before the pool reaches it.
+	 *
+	 * @return how many tasks ran
+	 * @throws InterruptedException if a wait is interrupted
+	 */
+	public static int invokeAllWithARepeatingTask() throws InterruptedException {
+		ThreadPoolExecutor pool = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new SynchronousQueue<>(),
+				new ThreadPoolExecutor.CallerRunsPolicy());
+		CountDownLatch started = new CountDownLatch(1);
+		CountDownLatch released = new CountDownLatch(1);
+		try {
+			pool.execute(new LatchedTask(started, released));
+			started.await();
+			List<Callable<Integer>> batch = Arrays.asList(new RepeatingCall(), new CountedCall());
+			RepeatingCall.belongTo(batch);
+			return pool.invokeAll(batch).size();
+		} finally {
+			released.countDown();
+			pool.shutdownNow();
+		}
+	}
 }

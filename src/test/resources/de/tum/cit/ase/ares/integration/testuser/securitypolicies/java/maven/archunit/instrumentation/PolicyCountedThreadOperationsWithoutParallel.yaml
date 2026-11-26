@@ -22,6 +22,8 @@ regardingTheSupervisedCode:
         ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.ReplacingCall"
       - createTheFollowingNumberOfThreads: 1
         ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.LatchedTask"
+      - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.RepeatingCall"
     regardingPackageImports:
       - importTheFollowingPackage: "java.util"
       - importTheFollowingPackage: "java.util.concurrent"

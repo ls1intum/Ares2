@@ -38,7 +38,7 @@ public final class JavaInstrumentationCreateThreadMethodAdvice {
 	 * @param instance          The instance of the class that declares the method
 	 *                          (if applicable).
 	 * @param parameters        The parameters passed to the method being executed.
-	 * @return whether the check recorded the tasks of a batch for this call
+	 * @return whether the check opened a counted operation scope for this call
 	 * @throws SecurityException If the method execution is not allowed based on
 	 *                           security policies.
 	 */
@@ -71,21 +71,21 @@ public final class JavaInstrumentationCreateThreadMethodAdvice {
 		// </editor-fold>
 
 		// <editor-fold desc="Check">
-		return JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteractionRecordingBatch("create",
+		return JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteractionOpeningScope("create",
 				declaringTypeName, methodName, methodSignature, attributes, parameters, instance);
 		// </editor-fold>
 	}
 
 	/**
-	 * Ends the scope of the tasks an {@code invokeAll} or {@code invokeAny} check
-	 * recorded, when that call returns or throws.
+	 * Closes the counted operation scope the entry opened, when the call returns or
+	 * throws.
 	 *
-	 * @param batchRecorded whether the entry recorded a batch for this call
+	 * @param scopeOpened whether the entry opened a scope for this call
 	 */
 	@Advice.OnMethodExit(onThrowable = Throwable.class)
-	public static void onExit(@Advice.Enter boolean batchRecorded) {
-		if (batchRecorded) {
-			JavaInstrumentationAdviceThreadSystemToolbox.closeValidatedBatch();
+	public static void onExit(@Advice.Enter boolean scopeOpened) {
+		if (scopeOpened) {
+			JavaInstrumentationAdviceThreadSystemToolbox.closeCountedOperationScope();
 		}
 	}
 }

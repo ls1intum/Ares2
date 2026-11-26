@@ -1390,4 +1390,89 @@ class ThreadCountedOperationsTest {
 	void invokeAnyRunsABatchMavenWalaInstrumentation() throws Exception {
 		Assertions.assertEquals(1, CountedOperationsMain.invokeAnyBatch());
 	}
+
+	/**
+	 * A task the student's pool substitutes for the one given to {@code submit} is
+	 * refused in ArchunitAspectJ.
+	 */
+	@Disabled("Not covered in this pull request: AspectJ does not see the calls the JDK pool makes inside submit or invokeAll, so a task changed after the check runs unchecked there. This is the case on main already and is followed up separately.")
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void submitRefusesATaskSubstitutedByThePoolMavenArchunitAspectJ() {
+		assertRefused(CountedOperationsMain::submitToASubstitutingPool);
+	}
+
+	/**
+	 * A task allowed once that a running task of the batch puts in place of a later
+	 * one is refused in ArchunitAspectJ the second time the pool reaches it.
+	 */
+	@Disabled("Not covered in this pull request: AspectJ does not see the calls the JDK pool makes inside submit or invokeAll, so a task changed after the check runs unchecked there. This is the case on main already and is followed up separately.")
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskRepeatedByARunningTaskMavenArchunitAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllWithARepeatingTask);
+	}
+
+	/**
+	 * A task the student's pool substitutes for the one given to {@code submit} is
+	 * refused in ArchunitInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void submitRefusesATaskSubstitutedByThePoolMavenArchunitInstrumentation() {
+		assertRefused(CountedOperationsMain::submitToASubstitutingPool);
+	}
+
+	/**
+	 * A task allowed once that a running task of the batch puts in place of a later
+	 * one is refused in ArchunitInstrumentation the second time the pool reaches
+	 * it.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskRepeatedByARunningTaskMavenArchunitInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllWithARepeatingTask);
+	}
+
+	/**
+	 * A task the student's pool substitutes for the one given to {@code submit} is
+	 * refused in WalaAspectJ.
+	 */
+	@Disabled("Not covered in this pull request: AspectJ does not see the calls the JDK pool makes inside submit or invokeAll, so a task changed after the check runs unchecked there. This is the case on main already and is followed up separately.")
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void submitRefusesATaskSubstitutedByThePoolMavenWalaAspectJ() {
+		assertRefused(CountedOperationsMain::submitToASubstitutingPool);
+	}
+
+	/**
+	 * A task allowed once that a running task of the batch puts in place of a later
+	 * one is refused in WalaAspectJ the second time the pool reaches it.
+	 */
+	@Disabled("Not covered in this pull request: AspectJ does not see the calls the JDK pool makes inside submit or invokeAll, so a task changed after the check runs unchecked there. This is the case on main already and is followed up separately.")
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskRepeatedByARunningTaskMavenWalaAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllWithARepeatingTask);
+	}
+
+	/**
+	 * A task the student's pool substitutes for the one given to {@code submit} is
+	 * refused in WalaInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void submitRefusesATaskSubstitutedByThePoolMavenWalaInstrumentation() {
+		assertRefused(CountedOperationsMain::submitToASubstitutingPool);
+	}
+
+	/**
+	 * A task allowed once that a running task of the batch puts in place of a later
+	 * one is refused in WalaInstrumentation the second time the pool reaches it.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskRepeatedByARunningTaskMavenWalaInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllWithARepeatingTask);
+	}
 }
