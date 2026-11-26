@@ -388,9 +388,32 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	}
 
 	/**
-	 * Counts the tasks a check validated, by identity: the entries of the plain JDK
-	 * collections given to {@code invokeAll} or {@code invokeAny}, read safely just
-	 * before, or else each argument that is itself a task.
+	 * Copies each plain JDK collection among the arguments of {@code invokeAll} or
+	 * {@code invokeAny} once, so the classes, the allowances and the tasks recorded
+	 * for the call all come from the same reading, even if another thread changes
+	 * the collection meanwhile. Any other argument is kept as it is.
+	 *
+	 * @param parameters the arguments, or {@code null}
+	 * @return the arguments with each plain collection replaced by its copy
+	 */
+	@Nullable
+	static Object[] snapshotTaskCollections(@Nullable Object[] parameters) {
+		if (parameters == null) {
+			return null;
+		}
+		Object[] snapshot = parameters.clone();
+		for (int i = 0; i < snapshot.length; i++) {
+			if (snapshot[i] instanceof Collection<?> tasks && isPlainCollection(tasks)) {
+				snapshot[i] = new ArrayList<Object>(tasks);
+			}
+		}
+		return snapshot;
+	}
+
+	/**
+	 * Counts the tasks a check validated, by identity: the entries of the copies of
+	 * the collections given to {@code invokeAll} or {@code invokeAny} that the
+	 * check read, or else each argument that is itself a task.
 	 *
 	 * @param parameters              the arguments
 	 * @param taskCollectionOperation whether the call is {@code invokeAll} or
@@ -398,7 +421,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * @return each validated task with how often it was validated
 	 */
 	@Nonnull
-	private static IdentityHashMap<Object, int[]> validatedTasks(@Nullable Object[] parameters,
+	static IdentityHashMap<Object, int[]> validatedTasks(@Nullable Object[] parameters,
 			boolean taskCollectionOperation) {
 		IdentityHashMap<Object, int[]> validated = new IdentityHashMap<>();
 		for (Object parameter : parameters == null ? new Object[0] : parameters) {
@@ -1352,8 +1375,9 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		boolean parallelArrayOperation = ARRAYS_CLASS.equals(declaringTypeName);
 		boolean taskCollectionOperation = TASK_COLLECTION_OPERATIONS.contains(methodName);
 		List<String> taskOccurrences = new ArrayList<>();
-		if (parameters != null && !parallelArrayOperation) {
-			for (Object parameter : parameters) {
+		Object[] checkedParameters = taskCollectionOperation ? snapshotTaskCollections(parameters) : parameters;
+		if (checkedParameters != null && !parallelArrayOperation) {
+			for (Object parameter : checkedParameters) {
 				if (taskCollectionOperation) {
 					collectTaskBatch(parameter, taskOccurrences);
 				} else {
@@ -1394,7 +1418,7 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			}
 		}
 		if (outcome != null) {
-			outcome[OUTCOME_VALIDATED] = validatedTasks(parameters, taskCollectionOperation);
+			outcome[OUTCOME_VALIDATED] = validatedTasks(checkedParameters, taskCollectionOperation);
 		}
 		if (decrementQuota && instance instanceof Thread) {
 			JavaInstrumentationThreadSystemCallSite.recordAllowedThread((Thread) instance,
