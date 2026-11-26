@@ -91,6 +91,7 @@ Some file accesses are part of what ordinary Java code does and carry no risk, s
 | Loads the JDK's trusted certificates, as an encrypted connection does | The certificate file lies inside the Java installation, which is readable anyway. The connection itself still needs a network entry. |
 | Formats numbers, dates or text for a locale, or uses a charset | Their data lies inside the Java installation too. |
 | Creates a temporary file without naming a directory: `File.createTempFile(prefix, suffix)` or `Files.createTempFile(prefix, suffix)` | The file always lands in the default temp directory, which Ares fixes when the tests start. |
+| Reads or writes through a stream or reader that is not a file, for example `new BufferedReader(new InputStreamReader(System.in))`, a `ByteArrayInputStream`, or `Properties.load` from a `StringReader` | Only opening a file needs an entry. Ares still refuses a wrapper over a file where the code opens the file. |
 
 A temporary file in a directory the code names still needs an entry for that directory, unless the list has an entry and the directory is exactly the default temp directory. A folder inside the temp directory does not count, and `Files.createTempDirectory` needs an entry too.
 
@@ -103,6 +104,21 @@ Ares's own files, such as its messages, need no entry either. Ares reads them it
 [The contributor documentation](/contributor/subsystems/aop/baseline-verification) describes how both enforcement backends verify each of these.
 
 ## Notes
+
+**Writing a file needs one flag, chosen by whether the file exists.** Opening a file for
+writing needs `createAllFiles` when the file does not exist yet and `overwriteAllFiles` when it
+does. That holds for every way of writing, from `Files.writeString` and `FileWriter` to
+`FileChannel.open` with `CREATE` and `RandomAccessFile` in mode `"rw"`. `createAllFiles` alone therefore lets the code write a new
+file with its content, and `overwriteAllFiles` alone lets it replace an existing file but not
+make one. `CREATE_NEW` always needs `createAllFiles`, and writing without `CREATE` always needs
+`overwriteAllFiles`. A later write through a file the code already opened, such as
+`FileChannel.write`, is allowed where either flag covers the file.
+
+**A class-path resource is read from where the build put it.** Ares checks
+`Class.getResourceAsStream` and `ClassLoader.getResourceAsStream` as a read of the file that
+holds the resource. That file is the copy in the build output, `target/classes` or
+`target/test-classes` with Maven, not the one in `src/main/resources`, so the entry names the
+copy. Ares checks a resource inside a JAR as a read of that JAR.
 
 `createRestrictive(path)` builds an entry that names a path and grants nothing, which is how a deny-all default is expressed for a path that must still be mentioned.
 
