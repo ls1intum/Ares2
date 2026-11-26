@@ -607,6 +607,22 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 
 	/**
+	 * Names the JDK module of a class the JVM's own class loaders defined.
+	 *
+	 * @param type the class of a frame
+	 * @return the module name, or {@code null} for a class outside the JDK
+	 */
+	@Nullable
+	static String jdkModuleName(@Nonnull Class<?> type) {
+		ClassLoader loader = type.getClassLoader();
+		String moduleName = type.getModule().getName();
+		boolean jdkLoader = loader == null || loader == ClassLoader.getPlatformClassLoader();
+		return jdkLoader && moduleName != null && (moduleName.startsWith("java.") || moduleName.startsWith("jdk."))
+				? moduleName
+				: null;
+	}
+
+	/**
 	 * Tells whether the JDK on Windows is handing one of its own shell-folder tasks
 	 * to its COM thread, for a {@code FileSystemView} method Ares already checks as
 	 * a file read, with only JDK code on the way. The thread check lets exactly
