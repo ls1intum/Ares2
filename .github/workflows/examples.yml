@@ -246,7 +246,9 @@ jobs:
           # (org.junit), which a submission could otherwise shadow to pass every test,
           # and the Gradle worker (worker.org.gradle). A service file and a module
           # descriptor are planted too, since boundary version 3 rejects what makes a
-          # test framework or the JDK run student code before Ares is active.
+          # test framework or the JDK run student code before Ares is active. The
+          # annotation processor service file names a class that is no processor, so under Maven
+          # the compiler fails on it unless the check before compilation rejects it first.
           #
           # Copies the example into a fresh folder named after the planted item, so
           # the canonical example tree is never edited, and prints that folder.
@@ -303,6 +305,7 @@ jobs:
           reject_impostor "org/junit/jupiter/api" "org.junit.jupiter.api" || exit 1
           reject_impostor "worker/org/gradle" "worker.org.gradle" || exit 1
           reject_resource "META-INF/services/org.junit.platform.launcher.TestExecutionListener" || exit 1
+          reject_resource "META-INF/services/javax.annotation.processing.Processor" || exit 1
           reject_module_info() {
             work="$(fresh_copy "module-info")"
             printf 'module example {\n}\n' > "${work}/src/main/java/module-info.java"

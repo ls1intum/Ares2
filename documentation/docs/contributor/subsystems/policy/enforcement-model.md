@@ -74,10 +74,15 @@ reserves the test harness (JUnit, opentest4j, AssertJ, Mockito) and Ares' other
 non-shaded dependencies. A submission therefore cannot shadow a class that runs
 or judges it. The authoritative list is `WalaPathClassification.RESERVED_PACKAGE_PREFIXES`.
 
-Canonical Maven configuration uses a `maven-antrun-plugin` task bound to
-`process-classes` that scans `${project.build.outputDirectory}` and fails for
-every pattern in `ReservedPackagePrefixes.txt`. `process-classes` precedes
-`test`, so `mvn test` runs it.
+Canonical Maven configuration uses a `maven-antrun-plugin` task that scans
+`${project.build.outputDirectory}` and fails for every pattern in
+`ReservedPackagePrefixes.txt`. It runs twice: at `process-resources`, once Maven
+has copied the resources there, and at `process-classes`, once the compiler has
+written the classes. The first run matters because javac and ajc look for annotation
+processors in that folder and run one that a service file there names, before
+any later check. Both phases precede `test`, so `mvn test` runs it. Gradle
+compiles without the processed resources on the class path, so its single task
+after compilation suffices.
 
 Boundary version 3 further rejects every file under `META-INF/services/` and
 `mockito-extensions/`, and the files `archunit.properties`,

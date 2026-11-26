@@ -58,6 +58,16 @@ class ReservedPackageBuildBoundaryTest {
 	/** What may separate the entries of a list: whitespace and commas. */
 	private static final Pattern SEPARATORS = Pattern.compile("[\\s,]+");
 
+	/**
+	 * The executions of the Maven snippet, capturing the id and the phase of each.
+	 * An execution of its own configuration would not run the shared check.
+	 */
+	private static final Pattern MAVEN_EXECUTION = Pattern.compile(
+			"<execution>\\s*<id>([^<]*)</id>\\s*<phase>([^<]*)</phase>\\s*<goals><goal>run</goal></goals>\\s*</execution>");
+
+	/** The executions element of the Maven snippet. */
+	private static final Pattern MAVEN_EXECUTIONS = Pattern.compile("<executions>(.*?)</executions>", Pattern.DOTALL);
+
 	/** The pattern list of the Gradle snippet. */
 	private static final Pattern GRADLE_LIST = Pattern.compile("def aresReservedPackagePatterns = \\[(.*?)\\]",
 			Pattern.DOTALL);
@@ -200,6 +210,30 @@ class ReservedPackageBuildBoundaryTest {
 	}
 
 	/**
+	 * The Maven snippet runs its one check twice: after the resources are copied,
+	 * before javac or ajc can run an annotation processor that a copied service
+	 * file names, and after compilation. The check sits on the plugin, so both
+	 * executions run the same one.
+	 */
+	@Test
+	void mavenFixtureChecksBeforeAndAfterCompilation() throws Exception {
+		String maven = XML_COMMENT.matcher(Files.readString(ROOT.resolve("MavenReservedPackages.xml"))).replaceAll("");
+		String version = WalaPathClassification.RESERVED_PACKAGE_BUILD_BOUNDARY_VERSION;
+		String executions = onlyMatch(MAVEN_EXECUTIONS, maven);
+		List<String> idsAndPhases = MAVEN_EXECUTION.matcher(executions).results()
+				.map(result -> result.group(1) + "@" + result.group(2)).toList();
+		assertEquals(
+				List.of("verify-ares-reserved-resources-v" + version + "@process-resources",
+						"verify-ares-reserved-packages-v" + version + "@process-classes"),
+				idsAndPhases, "the Maven fixture must check before and after compilation");
+		assertEquals("", MAVEN_EXECUTION.matcher(executions).replaceAll("").strip(),
+				"no Maven execution may carry a configuration of its own");
+		assertTrue(maven.indexOf("<configuration>") < maven.indexOf("<executions>"),
+				"the check must be configured on the plugin, so that both executions run it");
+		assertEquals(1, occurrences(maven, "<target>"), "the Maven fixture must hold exactly one check");
+	}
+
+	/**
 	 * Every reserved resource is rejected, in any case, and ordinary resources,
 	 * including reserved names below another folder, still pass.
 	 */
@@ -258,6 +292,15 @@ class ReservedPackageBuildBoundaryTest {
 		String leftover = SEPARATORS.matcher(value.matcher(region).replaceAll("")).replaceAll("");
 		assertTrue(leftover.isEmpty(), () -> "Unrecognised content in a pattern list: " + leftover);
 		return value.matcher(region).results().map(result -> result.group(1)).toList();
+	}
+
+	/** How often the text holds the part. */
+	private static int occurrences(String text, String part) {
+		int count = 0;
+		for (int index = text.indexOf(part); index >= 0; index = text.indexOf(part, index + part.length())) {
+			count++;
+		}
+		return count;
 	}
 
 	private boolean matches(String pattern, String classFile) {

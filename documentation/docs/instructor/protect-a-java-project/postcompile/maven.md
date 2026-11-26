@@ -300,7 +300,7 @@ Two versions are pinned. `RESERVED_PACKAGE_PREFIX_VERSION = 3` is the prefix dat
 
 ### Maven
 
-Apply the shipped `MavenReservedPackages.xml`, a `maven-antrun-plugin` execution bound to `process-classes` that scans `${project.build.outputDirectory}`. `process-classes` precedes `test`, so `mvn test` runs it. The Maven binding was already correct at boundary version 1, so version 2 changed nothing for Maven. Version 3 adds the framework files described below.
+Apply the shipped `MavenReservedPackages.xml`, a `maven-antrun-plugin` check that scans `${project.build.outputDirectory}`. It runs at `process-resources`, after Maven copies the resources and before the compiler runs, and again at `process-classes`, after compilation. The first run stops a service file that makes the compiler run an annotation processor from the submission. Both phases precede `test`, so `mvn test` runs it. Version 2 changed nothing for Maven. Version 3 adds the framework files described below and the run before compilation.
 
 ### About the forbidden package list
 
