@@ -129,21 +129,19 @@ public final class ProjectSourcesFinder {
 		boolean gradle = gradleGroovy || gradleKotlin;
 		BuildMode mode = explicitlySelectedMode;
 		if (mode == null && maven && gradle) {
-			throw new IllegalStateException(
-					"Ambiguous project: both Maven and Gradle descriptors are active in " + root);
+			throw new IllegalStateException(Messages.localized("security.sources.project.ambiguous", root));
 		}
 		if (mode == null && !maven && !gradle) {
-			throw new IllegalStateException(
-					"Unsupported project: no pom.xml, build.gradle or build.gradle.kts in " + root);
+			throw new IllegalStateException(Messages.localized("security.sources.project.unsupported", root));
 		}
 		if (mode == null) {
 			mode = maven ? BuildMode.MAVEN : BuildMode.GRADLE;
 		}
 		if (mode == BuildMode.MAVEN && !maven) {
-			throw new IllegalStateException("Maven was selected but pom.xml is absent in " + root);
+			throw new IllegalStateException(Messages.localized("security.writer.build.descriptor.missing", mode, root));
 		}
 		if (mode == BuildMode.GRADLE && !gradle) {
-			throw new IllegalStateException("Gradle was selected but no Gradle descriptor is present in " + root);
+			throw new IllegalStateException(Messages.localized("security.writer.build.descriptor.missing", mode, root));
 		}
 		if (mode == BuildMode.MAVEN) {
 			MavenSourceRoots production = discoverMavenRoots(root, false);

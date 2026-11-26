@@ -1,5 +1,4 @@
 Source,Value,Target
-configuration/archunit.properties,0,ares/api/archunit.properties
 templates/architecture/java/exclusions.txt,0,ares/api/templates/architecture/java/exclusions.txt
 templates/architecture/java/archunit/rules/FILESYSTEM_INTERACTION.txt,0,ares/api/templates/architecture/java/archunit/rules/FILESYSTEM_INTERACTION.txt
 templates/architecture/java/archunit/rules/NETWORK_CONNECTION.txt,0,ares/api/templates/architecture/java/archunit/rules/NETWORK_CONNECTION.txt

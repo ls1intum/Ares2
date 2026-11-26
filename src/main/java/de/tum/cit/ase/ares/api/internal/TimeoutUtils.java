@@ -21,6 +21,9 @@ public final class TimeoutUtils {
 	private static final Duration DEFAULT_TERMINATION_GRACE_PERIOD = Duration.ofMillis(50);
 	private static final int UNRESPONSIVE_TIMEOUT_EXIT_CODE = 124;
 
+	/** The first Java release whose {@code Thread.stop} always refuses. */
+	private static final int THREAD_STOP_REMOVED_IN = 20;
+
 	private TimeoutUtils() {
 	}
 
@@ -63,6 +66,19 @@ public final class TimeoutUtils {
 		}
 	}
 
+	/**
+	 * Runs an action on a fresh thread and fails it with the timeout failure once
+	 * it runs longer than the timeout, after stopping it as
+	 * {@link #terminateTimedOutExecution} describes.
+	 *
+	 * @param timeout                the time the action may take
+	 * @param action                 the action
+	 * @param context                the test the action belongs to
+	 * @param terminationGracePeriod how long to wait after each stop request
+	 * @param fatalProcessTerminator ends the JVM with the given exit code
+	 * @return what the action returned
+	 * @throws Throwable what the action threw, or the timeout failure
+	 */
 	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context,
 			Duration terminationGracePeriod, IntConsumer fatalProcessTerminator) throws Throwable { // NOSONAR
 		var threadFactory = new WhitelistedThreadFactory();
@@ -77,31 +93,56 @@ public final class TimeoutUtils {
 			}
 			throw ex.getCause();
 		} catch (@SuppressWarnings("unused") TimeoutException ex) {
-			terminateTimedOutExecution(future, executorService, terminationGracePeriod, fatalProcessTerminator);
+			terminateTimedOutExecution(future, executorService, threadFactory.lastThread(), terminationGracePeriod,
+					fatalProcessTerminator);
 			throw generateTimeoutFailure(timeout, context);
 		} finally {
 			executorService.shutdownNow();
 		}
 	}
 
-	static void terminateTimedOutExecution(Future<?> future, ExecutorService executorService,
+	/**
+	 * Stops a timed-out execution. One interruption asks it to stop; a second one
+	 * could race with code leaving its body. Code that ignores it is stopped where
+	 * the JVM still allows that, Java 19 and older. Code still running after that
+	 * would outlive its security and IO lifecycle, so the whole test JVM is then
+	 * terminated and the build tool reports a crashed fork.
+	 *
+	 * @param future                 the timed-out execution
+	 * @param executorService        the executor running it
+	 * @param worker                 the thread running it, or {@code null}
+	 * @param terminationGracePeriod how long to wait after each request
+	 * @param fatalProcessTerminator ends the JVM with the given exit code
+	 */
+	static void terminateTimedOutExecution(Future<?> future, ExecutorService executorService, Thread worker,
 			Duration terminationGracePeriod, IntConsumer fatalProcessTerminator) {
 		executorService.shutdown();
 		future.cancel(true);
-		/*
-		 * Future.cancel(true) delivers the single interruption that asks the timed-out
-		 * execution to stop. Calling shutdownNow() here would interrupt the worker a
-		 * second time; that interruption can race with interruption-aware code leaving
-		 * its body. Give it time to finish before the owning thread continues. If it
-		 * ignores interruption, the fork is already contaminated: returning would let
-		 * untrusted code outlive its security, IO and reporting lifecycle and affect
-		 * later tests in a reused JVM. Thread.stop() cannot repair that safely or
-		 * reliably, so fail closed by terminating the complete worker process and let
-		 * Maven, Gradle or the IDE report the crashed test fork.
-		 */
-		if (!awaitTermination(executorService, terminationGracePeriod.toMillis())) {
+		long gracePeriodMillis = terminationGracePeriod.toMillis();
+		if (!awaitTermination(executorService, gracePeriodMillis)
+				&& !(stopWorker(worker) && awaitTermination(executorService, gracePeriodMillis))) {
 			fatalProcessTerminator.accept(UNRESPONSIVE_TIMEOUT_EXIT_CODE);
 			throw new AssertionError("Fatal process terminator returned without terminating the test worker"); //$NON-NLS-1$
+		}
+	}
+
+	/**
+	 * Stops a thread that ignored its interruption, on Java 19 and older. Newer
+	 * JVMs refuse {@code Thread.stop}, and then nothing is attempted.
+	 *
+	 * @param worker the thread to stop, or {@code null}
+	 * @return {@code true} if the thread was asked to stop
+	 */
+	@SuppressWarnings({ "deprecation", "removal" })
+	static boolean stopWorker(Thread worker) {
+		if (worker == null || Runtime.version().feature() >= THREAD_STOP_REMOVED_IN) {
+			return false;
+		}
+		try {
+			worker.stop();
+			return true;
+		} catch (UnsupportedOperationException unsupported) {
+			return false;
 		}
 	}
 
@@ -173,6 +214,9 @@ public final class TimeoutUtils {
 	private static class WhitelistedThreadFactory implements ThreadFactory {
 		private static final AtomicInteger TIMEOUT_THREAD_ID = new AtomicInteger(1);
 
+		/** The thread this factory created last, so a timed-out one can be stopped. */
+		private volatile Thread lastThread;
+
 		@Override
 		public Thread newThread(Runnable r) {
 			var thread = new Thread(r, "ajts-to-" + TIMEOUT_THREAD_ID.getAndIncrement()); //$NON-NLS-1$
@@ -180,7 +224,17 @@ public final class TimeoutUtils {
 			if (thread.getPriority() != Thread.NORM_PRIORITY) {
 				thread.setPriority(Thread.NORM_PRIORITY);
 			}
+			lastThread = thread;
 			return thread;
+		}
+
+		/**
+		 * Returns the thread this factory created last.
+		 *
+		 * @return the thread, or {@code null} before the first one
+		 */
+		Thread lastThread() {
+			return lastThread;
 		}
 	}
 }

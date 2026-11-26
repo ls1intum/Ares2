@@ -44,8 +44,8 @@ Two parts of the migration do not depend on the mode and are documented today:
 
 Whether a one-step migration is worth documenting at all, or whether migrating to Postcompile and
 converting afterwards should stay the supported route. That decision belongs in the
-[Precompile setup pages](../../protect-a-java-project/precompile/maven.md), which are
-themselves still being written.
+[Precompile setup pages](../../protect-a-java-project/precompile/maven.md), which so far cover
+the `_INSTRUMENTATION` configurations only.
 
 ## Notes
 

@@ -337,15 +337,15 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 
 	/**
 	 * Turns the report of a broken architecture rule into the Ares refusal. A
-	 * forbidden import names the importing class and its forbidden packages; any
-	 * other rule names the caller and the target, with method parameters written as
-	 * source types split by {@code ", "}, the same for ArchUnit and WALA.
+	 * forbidden import names the importing class and its packages; any other rule
+	 * names the caller and the target, parameters written as source types, the same
+	 * for ArchUnit and WALA. WALA reports in the user's language, so both the
+	 * English and the German wording are read.
 	 *
 	 * @since 2.0.0
 	 * @author Sarp Sahinalp
-	 * @param e The assertion error produced by an architectural rule violation
-	 * @throws SecurityException with a formatted error message describing the
-	 *                           security violation
+	 * @param e the report of the broken rule
+	 * @throws SecurityException the refusal
 	 */
 	public static void parseErrorMessage(@Nonnull AssertionError e) {
 		Objects.requireNonNull(e, "error must not be null");
@@ -380,13 +380,14 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 		String target = null;
 
 		java.util.regex.Matcher callerMatcher = java.util.regex.Pattern
-				.compile("(?:Method|Constructor) <(.+?)>(?:\\s|$)").matcher(detailLine);
+				.compile("(?:Method|Constructor|Methode|Konstruktor) <(.+?)>(?:\\s|$)").matcher(detailLine);
 		if (callerMatcher.find()) {
 			caller = callerMatcher.group(1);
 		}
 
 		java.util.regex.Matcher targetMatcher = java.util.regex.Pattern
-				.compile("(?:accesses|calls method|calls constructor|calls|gets field|sets field) <(.+?)>(?:\\s|$)")
+				.compile("(?:accesses|calls method|calls constructor|calls|gets field|sets field|ruft Methode) "
+						+ "<(.+?)>(?:\\s|$)")
 				.matcher(detailLine);
 		if (targetMatcher.find()) {
 			target = targetMatcher.group(1);

@@ -340,7 +340,7 @@ This matches only classes under `de.tum.cit.aet.solution` and its subpackages, e
 
 ### 7.5 Main Class
 
-The `theMainClassInsideThisPackageIs` field identifies the main entry point class of the supervised student code. Ares 2 uses this value to configure aspect-oriented programming (AOP) advices (via `JavaAOPTestCaseSettings.mainClass`), to substitute placeholders in generated ArchUnit rule files and AOP configuration files, and to set runtime configuration parameters for test execution.
+The `theMainClassInsideThisPackageIs` field names the main class of the supervised student code. Ares 2 checks its shape and hands it on, but no check reads it. `JavaAOPTestCaseSettings.mainClass` stores it and no aspect-oriented programming (AOP) advice consults that field. No copied template has a placeholder for it, and the WALA call graph starts from every method of the analysed classes. A name that matches no class therefore changes nothing, and Ares 2 does not refuse it.
 
 **Field Properties:**
 - **Type:** String

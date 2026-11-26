@@ -27,6 +27,15 @@ like any other source.
    step; you install it by hand exactly as in Postcompile.
 6. **Verify with both controls**, below.
 
+:::warning[Supported configurations]
+This page sets up the two `JAVA_USING_GRADLE_*_AND_INSTRUMENTATION` configurations. It gives no
+build wiring for the `_ASPECTJ` ones: the aspects Precompile writes into `src/test/java` have to
+be compiled with the AspectJ compiler and woven into the student classes, and nothing below does
+that. An `_ASPECTJ` exercise built from this page does not run unprotected. Before the first test
+starts, Ares checks every compiled student class for the woven aspects and, finding none, runs no
+test at all.
+:::
+
 ## Define the policy file
 
 A security policy must be provided for the precompile phase. The policy file does not have to
@@ -82,7 +91,9 @@ regardingTheSupervisedCode:
     regardingNetworkConnections: [ ]
     regardingCommandExecutions: [ ]
     regardingThreadCreations: [ ]
-    regardingPackageImports: [ ]
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.nio.file"
+      - importTheFollowingPackage: "java.util"
     regardingTimeouts: [ ]
 ```
 
@@ -93,6 +104,11 @@ student code to read, create, overwrite or delete `secret.txt` is intercepted an
 Modify the sample code to operate on `something.txt` instead to see this from the other side;
 those operations succeed, whereas accesses to `secret.txt` correctly trigger a security
 exception.
+
+`regardingPackageImports` lists every package the student code imports beyond `java.lang` and
+`java.io`, which are always allowed. The sample reads files through `java.nio.file` and checks its
+arguments with `java.util.Objects`, so both are listed. Leave one out and the generated import
+check fails, which stops the whole test run, as the last section describes.
 
 Once the policy is defined, the precompile phase can be run in one of two ways, described
 below.
@@ -158,7 +174,7 @@ On Windows the classpath separator is `;` rather than `:`.
 
 The project root has to carry the descriptor of the build tool the policy names, so a
 `build.gradle` for any `JAVA_USING_GRADLE_*` configuration. Without it the run stops with
-`Gradle was selected but no Gradle descriptor is present in <path>` and writes nothing.
+`The selected GRADLE layout has no build descriptor in <path>` and writes nothing.
 
 Ares 2 then interprets the configuration, generates the corresponding enforcement rules and
 writes them into `<path-to-the-project-root>/src/test/java`, completing the precompile
@@ -167,8 +183,7 @@ integration.
 ## What ends up in the project
 
 After the precompile phase has run, whether via Ares2UI or the command-line runner, the
-project contains further generated files needed for enforcement during postcompile
-execution:
+project contains the files the build compiles and runs for enforcement:
 
 ```text
 example_project/
@@ -178,22 +193,32 @@ example_project/
 │   │       └── org/example/
 │   │           ├── Main.java
 │   │           └── Penguin.java
-│   ├── resources/
-│   ├── test/
-│   │   └── java/
-│   │       └── org/example/
-│   │           ├── PenguinTest.java
-│   │           ├── ares/api/
-│   │           └── META-INF/
+│   └── test/
+│       ├── java/
+│       │   └── org/example/
+│       │       ├── PenguinTest.java
+│       │       ├── ares/api/        ← copied Ares classes, generated checks and method lists
+│       │       └── META-INF/        ← the agent manifest, for _INSTRUMENTATION only
+│       └── resources/
+│           ├── META-INF/services/   ← registers the Ares guard with JUnit
+│           ├── archunit.properties  ← the ArchUnit settings the generated checks rely on
+│           └── org/example/ares/api/localization/   ← the Ares messages
 ├── build.gradle
-├── pom.xml
+├── PhobosCopyTool.sh                ← hands SpecificExercise.cfg to Phobos
+├── SpecificExercise.cfg             ← the policy, for Phobos
 ├── secret.txt
 ├── something.txt
 └── security-policy.yaml   ← example location
 ```
 
-The generated directory contains Ares 2 specific helper code, instrumentation logic and
-metadata required during test execution.
+`src/test/java/org/example/ares/api/` holds the Ares classes the exercise needs, rewritten into
+the exercise package, the generated architecture checks (`JavaArchunitTestCase` or
+`JavaWalaTestCase`), the generated settings the runtime checks read, and the `.txt` method lists
+those checks load. The file below `src/test/resources/META-INF/services/` makes JUnit call the
+copied `PrecompileGuard` before the first test; an existing file of the same name keeps its lines.
+`src/test/resources/archunit.properties` holds the ArchUnit settings the generated checks rely on.
+The build puts it at the root of the test class path, where ArchUnit looks for it. An existing file
+of that name keeps its lines and its values, and gains only the settings it does not name.
 
 :::danger[Do not edit the generated files]
 They are produced automatically by the precompile phase and must not be modified by hand.
@@ -203,7 +228,11 @@ They are produced automatically by the precompile phase and must not be modified
 
 The configuration below assumes the student project uses the Java package `org.example`, as in
 the example structure above. If a different base package is used, every occurrence of
-`org/example` must be adapted accordingly.
+`org/example` must be adapted accordingly. It needs no Ares dependency: the agent is built from
+the copied classes, and the Java Virtual Machine (JVM) arguments are the ones the
+[Postcompile page](../postcompile/gradle.md) uses. With a T. J. Watson Libraries for Analysis
+(WALA) configuration the same file
+works; the WALA lines in `dependencies` are then required rather than harmless.
 
 ```groovy
 plugins {
@@ -214,24 +243,18 @@ plugins {
 group = 'de.tum.cit.aet'
 version = '1.0-SNAPSHOT'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
-}
-
 ext {
     ver = [
-            junit                : '6.0.0',
-            junitPlatformLauncher: '6.0.0',
-            bytebuddy            : '1.17.7',
-            aspectj              : '1.9.24',
-            archunit             : '1.4.1',
-            wala                 : '1.6.12',
-            jacksonYaml          : '2.20.0',
-            guava                : '31.1-jre',
-            jsr305               : '3.0.2',
-            opencsv              : '5.12.0'
+            junit      : '6.1.3',
+            bytebuddy  : '1.18.17',
+            aspectj    : '1.9.27',
+            archunit   : '1.5.1',
+            wala       : '1.9.0',
+            jackson    : '2.23.0',
+            guava      : '33.8.0-jre',
+            jsr305     : '3.0.2',
+            opencsv    : '5.12.0',
+            apiguardian: '1.1.2'
     ]
 }
 
@@ -241,113 +264,83 @@ repositories {
 }
 
 dependencies {
-    testImplementation "net.bytebuddy:byte-buddy:${ver.bytebuddy}"
+    // What the copied Ares classes compile against.
     testImplementation "org.junit.jupiter:junit-jupiter:${ver.junit}"
-    testImplementation "org.junit.platform:junit-platform-launcher:${ver.junitPlatformLauncher}"
-    testImplementation "com.google.code.findbugs:jsr305:${ver.jsr305}"
+    testImplementation "org.junit.platform:junit-platform-launcher:${ver.junit}"
+    testImplementation "net.bytebuddy:byte-buddy:${ver.bytebuddy}"
+    testImplementation "com.tngtech.archunit:archunit:${ver.archunit}"
+    testImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${ver.jackson}"
     testImplementation "com.google.guava:guava:${ver.guava}"
+    testImplementation "com.google.code.findbugs:jsr305:${ver.jsr305}"
     testImplementation "com.opencsv:opencsv:${ver.opencsv}"
-    testImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${ver.jacksonYaml}"
-    testImplementation "com.tngtech.archunit:archunit-junit5:${ver.archunit}"
-    testImplementation "com.ibm.wala:com.ibm.wala.core:${ver.wala}"
+    testImplementation "org.apiguardian:apiguardian-api:${ver.apiguardian}"
     testImplementation "org.aspectj:aspectjrt:${ver.aspectj}"
-    testImplementation 'io.vavr:vavr:0.10.4'
+    // Needed only for a JAVA_USING_GRADLE_WALA_* configuration: the copied WALA
+    // classes name these libraries, so the test sources do not compile without them.
+    testImplementation "com.ibm.wala:com.ibm.wala.core:${ver.wala}"
+    testImplementation "org.assertj:assertj-core:3.27.7"
+    testImplementation "org.hamcrest:hamcrest:3.0"
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:${ver.junit}"
+    testImplementation "org.junit.platform:junit-platform-testkit:${ver.junit}"
+    testImplementation "org.mockito:mockito-core:5.24.0"
+    testImplementation "net.bytebuddy:byte-buddy-agent:${ver.bytebuddy}"
 }
 
 application {
     mainClass = 'org.example.Main'
 }
 
-test {
-    //maxParallelForks = 1
-    useJUnitPlatform()
-    dependsOn 'javaagentJar', 'xbootclasspathJar'
-    doFirst {
-        def agentFile = tasks.named('javaagentJar').get().archiveFile.get().asFile
-        def bootFile = tasks.named('xbootclasspathJar').get().archiveFile.get().asFile
-
-        // Collect full Byte Buddy (and agent) jars to put on bootstrap append path
-        def byteBuddyJars = configurations.testRuntimeClasspath.files.findAll { it.name.startsWith('byte-buddy') }*.absolutePath
-        // Collect opentest4j jars to place on bootstrap append path as requested
-        def opentest4jJars = configurations.testRuntimeClasspath.files.findAll { it.name.contains('opentest4j') }*.absolutePath
-        // Collect ArchUnit jars to also place on bootstrap append path
-        def archUnitJars = configurations.testRuntimeClasspath.files.findAll { it.name.startsWith('archunit') }*.absolutePath
-        // Collect JUnit (org.junit.*) jars to place on bootstrap append path
-        def junitJars = configurations.testRuntimeClasspath.files.findAll { it.name.startsWith('junit-') || it.name.startsWith('junit-platform-') }*.absolutePath
-        // Collect SLF4J (org.slf4j.*) jars to place on bootstrap append path
-        def slf4jJars = configurations.testRuntimeClasspath.files.findAll { it.name.contains('slf4j') }*.absolutePath
-        // Collect OpenCSV (com.opencsv.*) jars to place on bootstrap append path
-        def openCsvJars = configurations.testRuntimeClasspath.files.findAll { it.name.startsWith('opencsv-') || it.name.contains('opencsv') }*.absolutePath
-        // Avoid duplicates if already present
-        def bootAppendEntries = ([bootFile.absolutePath] + byteBuddyJars + opentest4jJars + archUnitJars + junitJars + slf4jJars + openCsvJars).unique()
-        def bootAppend = bootAppendEntries.join(File.pathSeparator)
-
-        // Clear any previous -Xbootclasspath/a we might have added on incremental runs
-        def filtered = (jvmArgs ?: []).findAll { !it.startsWith('-Xbootclasspath/a:') && !it.startsWith('-javaagent:') }
-        jvmArgs = filtered
-
-        jvmArgs "-javaagent:${agentFile.absolutePath}"
-        jvmArgs "-Xbootclasspath/a:${bootAppend}"
-        jvmArgs "-Dinstrboot.jar.path=${bootFile.absolutePath}"
-        jvmArgs '-Xshare:off'
-
-        // Required opens for deep reflection/instrumentation
-        jvmArgs '--add-opens', 'java.base/java.io=ALL-UNNAMED'
-        jvmArgs '--add-opens', 'java.base/java.nio.file=ALL-UNNAMED'
-        jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
-
-        // Lets the AspectJ aspect read the values this JVM started with; no agent needed
-        jvmArgs '--add-exports', 'java.base/jdk.internal.misc=ALL-UNNAMED'
-    }
-}
-
-tasks.register('copyTestTxtIntoClasses', Copy) {
+// The generated checks read their method lists from next to their own classes,
+// so the .txt files Precompile wrote beside the sources are copied there.
+tasks.register('copyAresTemplates', Copy) {
+    dependsOn 'compileTestJava'
     from('src/test/java') {
         include '**/*.txt'
     }
-    into layout.buildDirectory.dir('classes/java/test')
+    into sourceSets.test.java.destinationDirectory
 }
+tasks.named('testClasses') { dependsOn 'copyAresTemplates' }
 
-tasks.register('javaagentJar', Jar) {
-    archiveClassifier = 'agent'
-    dependsOn 'testClasses'
+// The agent is the copied Ares API itself, with the manifest Precompile wrote.
+tasks.register('aresAgentJar', Jar) {
+    archiveClassifier = 'ares-agent'
+    dependsOn 'copyAresTemplates'
     from(sourceSets.test.output) {
-        include 'org/example/ares/api/aop/java/instrumentation/**'
-        include '**/*$*.class'
+        include 'org/example/ares/api/**'
     }
     manifest {
         from(file('src/test/java/org/example/META-INF/MANIFEST.MF'))
     }
 }
 
-tasks.register('xbootclasspathJar', Jar) {
-    archiveClassifier = 'instrboot'
-    dependsOn 'testClasses'
-    from(sourceSets.test.output) {
-        // Include all instrumentation advice classes
-        include 'org/example/ares/api/aop/java/instrumentation/advice/**'
-        // Include all instrumentation pointcut classes
-        include 'org/example/ares/api/aop/java/instrumentation/pointcut/**'
-        // Include the main AOP settings class
-        include 'org/example/ares/api/aop/java/JavaAOPTestCaseSettings.class'
-        // Include the Messages localization class
-        include 'org/example/ares/api/localization/Messages.class'
-        // Include utility classes that might be referenced
-        include 'org/example/ares/api/util/FileTools.class'
-        include 'org/example/ares/api/util/FileTools$*.class'
-        include 'org/example/ares/api/util/LruCache.class'
-        include 'org/example/ares/api/util/LruCache$*.class'
-        include "org/example/ares/api/architecture/java/archunit/**"
-        include "org/example/ares/api/policy/policySubComponents/**"
-        include "org/example/ares/api/architecture/java/**"
-        include "org/example/ares/api/architecture/**"
-        // Include synthetic inner classes for any of the above
-        include '**/*$*.class'
-    }
+tasks.named('test') {
+    useJUnitPlatform()
+    def agentJar = tasks.named('aresAgentJar').flatMap { it.archiveFile }
+    inputs.file(agentJar)
+    jvmArgumentProviders.add({
+        [
+                "-javaagent:${agentJar.get().asFile.absolutePath}".toString(),
+                '--add-exports', 'java.base/java.lang=ALL-UNNAMED',
+                '--add-exports', 'java.base/jdk.internal.misc=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.io=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.net=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.nio=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.nio.channels=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util.concurrent=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util.concurrent.atomic=ALL-UNNAMED',
+                '--add-opens', 'java.base/java.util.concurrent.locks=ALL-UNNAMED',
+                '--add-opens', 'java.base/jdk.internal.misc=ALL-UNNAMED',
+                '--add-opens', 'java.base/sun.net.www.protocol.http=ALL-UNNAMED',
+                '--add-opens', 'java.base/sun.net.www.protocol.https=ALL-UNNAMED',
+                '--add-opens', 'java.base/sun.nio.ch=ALL-UNNAMED',
+                '--add-opens', 'jdk.unsupported/sun.misc=ALL-UNNAMED'
+        ]
+    } as CommandLineArgumentProvider)
 }
-
-tasks.named('build') { dependsOn 'javaagentJar', 'xbootclasspathJar' }
-tasks.named('testClasses') { dependsOn 'copyTestTxtIntoClasses' }
 ```
 
 ## Reject student classes in reserved packages
@@ -401,6 +394,10 @@ and complete working exercises are in
 ([Maven](https://github.com/ls1intum/Ares2/tree/main/examples/ares-exercise-maven),
 [Gradle](https://github.com/ls1intum/Ares2/tree/main/examples/ares-exercise-gradle)).
 
+In Precompile the copied Ares classes live in `org.example.ares.api`, inside the student's own
+package, so the shipped snippets do not cover that name. The guard covers it instead: a compiled
+student class there stops the run before the first test, with a message naming the class.
+
 ### What this boundary does not defend against
 
 The build descriptor and the command that invokes it are **trusted instructor configuration**. The failure message says "No bypass flag is supported", and that is a statement about the shipped snippets: they offer no opt-out of their own. It is not a claim that the check survives an adversary who controls the build. Anyone who can edit `build.gradle` or `pom.xml`, or pass `-x verifyAresReservedPackagesV2`, can remove the boundary outright.
@@ -413,44 +410,117 @@ The threat this addresses is student **code** that declares a reserved package, 
 
 A setup check is only worth running if it can fail for the right reason. The examples are therefore built around a **pair** of controls in the same domain:
 
-- **Positive control:** supervised code reads `allowed.txt`, which the policy permits. This must succeed. If it fails, enforcement is too strict, or the policy does not say what you think it says.
+- **Positive control:** supervised code reads `something.txt`, which the policy permits. This must succeed. If it fails, enforcement is too strict, or the policy does not say what you think it says.
 - **Negative control:** supervised code reads `secret.txt`, which the policy does not permit. The test asserts that Ares rejects it. If it succeeds, enforcement is not active at all.
 
 Two details make this a genuine test rather than a reassuring one:
 
 1. **The forbidden read must happen in supervised code, not in the test.** A test class named in `theFollowingClassesAreTestClasses` is exempt from enforcement, so a read performed by the test itself is *supposed* to succeed. Put the read in the student-facing class and let the test assert the exception.
-2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](/contributor/subsystems/policy/enforcement-model)). Under a fully restrictive file policy, ArchUnit or T. J. Watson Libraries for Analysis (WALA) rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control exercise the agent or the woven aspects.
+2. **The policy must permit one file in the domain, not zero.** This is the part that is easy to get wrong. Ares adds a static deny-all rule only while a domain has **no** allowance ([Enforcement Model](/contributor/subsystems/policy/enforcement-model)). Under a fully restrictive file policy, ArchUnit or WALA rejects the operation before any runtime mechanism is consulted, so the negative control passes even with `-javaagent` removed and the weaving switched off, and it proves nothing. Granting exactly one permitted file makes the runtime layer authoritative for that domain, and only then does the negative control exercise the agent or the woven aspects.
 
 A correct run is therefore **green**, and contains an asserted rejection. It is not a failed build.
 
+The sample exercise on this page holds both controls. `Penguin.java` is the supervised class:
+
+```java
+package org.example;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Objects;
+
+public final class Penguin {
+    private final String name;
+
+    public Penguin(String name) {
+        this.name = Objects.requireNonNull(name, "name must not be null");
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String readPermittedFile() throws Exception {
+        return Files.readString(Path.of("something.txt")).trim();
+    }
+
+    public String readForbiddenFile() throws Exception {
+        return Files.readString(Path.of("secret.txt")).trim();
+    }
+}
+```
+
+`PenguinTest.java` asserts both outcomes:
+
+```java
+package org.example;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
+
+class PenguinTest {
+
+    @Test
+    void name() {
+        assertEquals("Julian", new Penguin("Julian").getName());
+    }
+
+    @Test
+    void readsThePermittedFile() throws Exception {
+        assertEquals("something", new Penguin("Julian").readPermittedFile());
+    }
+
+    @Test
+    void rejectsTheForbiddenFile() {
+        SecurityException violation = assertThrows(SecurityException.class,
+                () -> new Penguin("Julian").readForbiddenFile());
+        assertTrue(violation.getMessage().contains("secret.txt"), violation.getMessage());
+    }
+}
+```
+
+`something.txt` holds the single word `something`.
+
 ### What a green run does and does not prove
 
-A minimal test with no `@Policy` annotation confirms only that the Ares classes are on the test classpath and that the Java Virtual Machine (JVM) started with the configured arguments. It does **not** prove that the agent instrumented anything, and it is not necessarily enforcement-free either: see [Further Options](../further-options.md) for what does and does not happen without a policy.
+A minimal test with no `@Policy` annotation confirms only that the Ares classes are on the test classpath and that the JVM started with the configured arguments. It does **not** prove that the agent instrumented anything, and it is not necessarily enforcement-free either: see [Further Options](../further-options.md) for what does and does not happen without a policy.
 
 Prove enforcement with the paired controls from the two controls above, then break the setup deliberately and confirm each break is detected:
 
-- Remove `-javaagent` from an exercise whose configuration ends in `_INSTRUMENTATION`. The negative control must now fail to reject.
-- Remove the `aspect` dependency (Gradle) or `<aspectLibraries>` (Maven) from an exercise whose configuration ends in `_ASPECTJ`. Same expectation.
+- Remove the `-javaagent` line from `build.gradle`. No test runs now: the run stops before the first test with `The policy asks for instrumentation, but the Ares instrumentation agent is not attached to this JVM.`
+- Add a class to `src/main/java/org/example/ares/api/`, the package of the copied Ares classes. No test runs: the run stops with a message naming that class and its reserved package.
 - Add a class in `de.tum.cit.ase.ares.api` to the student sources. The build must fail with the reserved-package diagnostic.
-
-Each break must be made in the mode that depends **only** on the removed component. Removing `-javaagent` from an AspectJ exercise changes nothing, because the aspects were woven at compile time and still enforce the policy.
-
-> **What happens without the agent?** Ares's **static analysis** (ArchUnit/WALA) still works, and **AspectJ enforcement** still works, because those aspects are woven at compile time. Only the **ByteBuddy instrumentation** path is inactive, since it relies on the agent to transform classes at load time. If you use an `INSTRUMENTATION` configuration, students could then bypass runtime restrictions, so always ensure the agent is loaded.
+- Call `Class.forName` from `Penguin`. No test runs: the generated reflection or class-loading check fails before the first test.
 
 ### Run the tests
 
-Run the test task as usual, for example `./gradlew test`. During test execution, any policy
-violation is intercepted and results in a `SecurityException`.
-
-For the negative control above, the forbidden read of `secret.txt` in the supervised class
-raises that exception, the test asserts it, and the run therefore stays **green**. The
-exception the assertion captures looks similar to this:
+Run the test task as usual, for example `./gradlew test`. Before the first test starts, the
+copied `PrecompileGuard` checks that the agent is attached and runs every generated architecture
+check once. If any of that fails, no test runs at all and the build stops with a message such as:
 
 ```text
-!security.advice.illegal.file.execution!
-java.lang.SecurityException: !security.advice.illegal.file.execution!
-    at org.example.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteractionForAction(JavaInstrumentationAdviceFileSystemToolbox.java:538)
-    at org.example.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(JavaInstrumentationAdviceFileSystemToolbox.java:597)
+Ares Security Error (Reason: Student-Code; Stage: Execution): Ares runs no test of this exercise,
+because the generated check reflectionShouldNotBeAccessed failed before the first test started: …
+```
+
+This is how Precompile matches Postcompile, where a failed architecture check fails every test
+before student code runs. Without it, a submission that breaks a static rule would fail one
+generated test and still pass all the others.
+
+During test execution, any runtime policy violation is intercepted and results in a
+`SecurityException`. For the negative control above, the forbidden read of `secret.txt` in the
+supervised class raises that exception, the test asserts it, and the run therefore stays
+**green**. The exception the assertion captures looks similar to this:
+
+```text
+java.lang.SecurityException: Ares Security Error (Reason: Student-Code; Stage: Execution): org.example.Penguin.readForbiddenFile tried to illegally read the file /…/example_project/secret.txt via java.nio.file.Files.readString(java.nio.file.Path) (called by …), but was blocked by Ares, because no rule in the policy allows this file.
+    at org.example.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteractionForAction(JavaInstrumentationAdviceFileSystemToolbox.java:…)
+    at org.example.ares.api.aop.java.instrumentation.advice.JavaInstrumentationAdviceFileSystemToolbox.checkFileSystemInteraction(JavaInstrumentationAdviceFileSystemToolbox.java:…)
+    at java.base/java.nio.file.Files.readString(Files.java:…)
+    at org.example.Penguin.readForbiddenFile(Penguin.java:…)
     ...
 ```
 

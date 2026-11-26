@@ -634,11 +634,12 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	/**
-	 * Builds a call graph with the class copied beside the generated WALA test.
+	 * Asks the generated WALA test for the call graph of the supervised package,
+	 * which it builds once from the compiled supervised classes and shares between
+	 * its checks.
 	 */
 	private String callGraphAsCode() {
-		String classPathExpr = "System.getProperty(\"java.class.path\")";
-		return "new CustomCallgraphBuilder(" + classPathExpr + ")" + ".buildCallGraph(" + classPathExpr + ")";
+		return "supervisedCallGraph(\"" + getSupervisedPackage() + "\")";
 	}
 
 	/**
@@ -757,23 +758,34 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	}
 
 	/**
+	 * Builds the call graph a rule needs, or returns {@code null} for the rules
+	 * that work on the classes alone or hand over to ArchUnit. It runs before any
+	 * outcome is captured, so a graph that cannot be built fails this run and is
+	 * never cached as a verdict on the submission.
+	 *
+	 * @param supported the rule
+	 * @return the call graph, or {@code null}
+	 */
+	@Nullable
+	private CallGraph callGraphFor(@Nonnull JavaArchitectureTestCaseSupported supported) {
+		boolean needsCallGraph = !(supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT
+				|| supported == JavaArchitectureTestCaseSupported.NATIVE_CODE
+				|| supported == JavaArchitectureTestCaseSupported.AGENT_ATTACH
+				|| supported == JavaArchitectureTestCaseSupported.ENVIRONMENT_ACCESS
+				|| supported == JavaArchitectureTestCaseSupported.MODULE_SYSTEM
+				|| supported == JavaArchitectureTestCaseSupported.JNDI_INJECTION);
+		return needsCallGraph ? callGraphSupplier.get() : null;
+	}
+
+	/**
 	 * Run the WALA rule for this case and translate the AssertionError outcome (if
 	 * any) into a {@link SecurityException} so it can be cached uniformly.
 	 */
 	@Nonnull
 	private Optional<SecurityException> runRuleAndCapture(@Nonnull String architectureMode, @Nonnull String aopMode) {
+		JavaArchitectureTestCaseSupported supported = (JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
+		CallGraph cg = callGraphFor(supported);
 		try {
-			JavaArchitectureTestCaseSupported supported = (JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
-			// Resolve the call graph lazily and only for rules that actually need it.
-			// PACKAGE_IMPORT and the JDK-delegated categories operate on javaClasses or
-			// delegate to ArchUnit and never touch the call graph.
-			boolean needsCallGraph = !(supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT
-					|| supported == JavaArchitectureTestCaseSupported.NATIVE_CODE
-					|| supported == JavaArchitectureTestCaseSupported.AGENT_ATTACH
-					|| supported == JavaArchitectureTestCaseSupported.ENVIRONMENT_ACCESS
-					|| supported == JavaArchitectureTestCaseSupported.MODULE_SYSTEM
-					|| supported == JavaArchitectureTestCaseSupported.JNDI_INJECTION);
-			CallGraph cg = needsCallGraph ? callGraphSupplier.get() : null;
 			Set<ClassPermission> exemptClasses = getAllowedClasses();
 			switch (supported) {
 			case FILESYSTEM_INTERACTION -> checkWalaRule(JavaWalaTestCaseCollection.NO_CLASS_MUST_ACCESS_FILE_SYSTEM,

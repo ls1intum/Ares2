@@ -349,6 +349,20 @@ public enum ArchitectureMode {
 		return getEditConfigurationEntries().stream().map(entry -> entry.get(2).split("/"))
 				.map(path -> FileTools.resolveFileOnTargetDirectory(targetPath, path)).toList().get(0);
 	}
+
+	/**
+	 * Returns where every other architecture engine writes its main test case file,
+	 * so that generating for this engine can remove one an earlier generation for
+	 * another engine left behind.
+	 *
+	 * @param targetPath the project path.
+	 * @return the main test case file of every other engine.
+	 */
+	@Nonnull
+	public List<Path> otherEnginesTargetsToCopyTo(@Nonnull Path targetPath) {
+		return Stream.of(values()).filter(engine -> engine != this).map(engine -> engine.targetToCopyTo(targetPath))
+				.toList();
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Reset methods">

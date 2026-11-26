@@ -57,8 +57,8 @@ lists every part and the rules for writing a new message.
 | `InaccessibleObjectException` at runtime | Missing `--add-opens` / `--add-exports` flags | Ensure the complete list from the agent step above / the agent step above is present. A partial list fails only once a policy exercises the corresponding advice |
 | Coverage reports nothing after adding Ares | A plain `<argLine>` overwrote the property JaCoCo sets | Prefix the Surefire `<argLine>` with `@{argLine}` and declare an empty `<argLine>` property |
 | `Could not resolve all files for configuration ':aresAgent'`, or "expected exactly one file" | The configuration is transitive, so it holds more than the agent JAR | Set `transitive = false` on the dedicated configurations, as in the agent-configuration step above |
-| `IllegalStateException: Ambiguous project: both Maven and Gradle descriptors are active` | The project has both a `pom.xml` and a `build.gradle`, and the no-policy path has no explicitly selected build tool, so it cannot tell which is authoritative. Discovery fails before any enforcement is configured | Remove the descriptor you do not use, or supply a policy that names the configuration explicitly |
-| `IllegalStateException: Unsupported project: no pom.xml, build.gradle or build.gradle.kts` | The directory the tests run from carries no supported build descriptor | Run from the project root that holds the build descriptor |
+| `IllegalStateException` saying the project root holds both a Maven and a Gradle build descriptor | The project has both a `pom.xml` and a `build.gradle`, and the no-policy path has no explicitly selected build tool, so it cannot tell which is authoritative. Discovery fails before any enforcement is configured | Remove the descriptor you do not use, or supply a policy that names the configuration explicitly |
+| `IllegalStateException` saying the project root holds no `pom.xml`, `build.gradle` or `build.gradle.kts` | The directory the tests run from carries no supported build descriptor | Run from the project root that holds the build descriptor |
 | `Ares refuses to run tests while JUnit parallel execution is enabled` on every test | `junit.jupiter.execution.parallel.enabled=true` is set in `junit-platform.properties`, the build file or a system property. Ares keeps one policy for the whole JVM, so a test that ends in parallel could lift it while another test still runs student code | Remove the setting or set it to `false`. Setting the execution mode to `same_thread` is not enough, because Ares refuses whenever this setting reads `true` |
 | `logback.xml occurs multiple times on the classpath` | The agent JAR and the ordinary Ares JAR each carry one | A warning only; enforcement is unaffected |
 | `[Xlint:adviceDidNotMatch]` warnings during compilation | An `_ASPECTJ` build reports each Ares advice that found no matching join point in the woven code | Expected and non-fatal when the exercise performs none of those operations. Their presence shows the weaver processed the Ares aspects, so do not suppress the category |
@@ -86,7 +86,7 @@ lists every part and the rules for writing a new message.
 | Coverage reports nothing after the migration | A plain `<argLine>` overwrote the property JaCoCo sets | Prefix Surefire's `<argLine>` with `@{argLine}` and declare an empty `<argLine>` property |
 | `[Xlint:adviceDidNotMatch]` warnings during compilation | An `_ASPECTJ` build reports each Ares advice that found no matching join point in the woven code | Expected and non-fatal when the exercise performs none of those operations. Their presence shows the weaver processed the Ares aspects, so do not suppress the category |
 | The reserved-package check never runs under `gradlew test` | The snippet hooks `check` alone | Use boundary version 2, which gates every `Test` task too (the step named in section 8.1 of this guide) |
-| `Ambiguous project: both Maven and Gradle descriptors are active` | The project has both a `pom.xml` and a `build.gradle`, and no policy names the build tool | Remove the descriptor you do not use, or supply a policy that names the configuration explicitly |
+| The project root holds both a Maven and a Gradle build descriptor | The project has both a `pom.xml` and a `build.gradle`, and no policy names the build tool | Remove the descriptor you do not use, or supply a policy that names the configuration explicitly |
 
 ## The build succeeds but nothing is enforced
 
@@ -120,6 +120,16 @@ Version gate, unknown fields, and values the enforcement layers cannot honour.
 
 Policy resource limits are generated but not dispatched in Postcompile. `@StrictTimeout` is the
 mechanism that applies there.
+
+## The build reports a crashed test JVM after a timeout
+
+`@StrictTimeout` first interrupts student code that runs too long. Some code ignores the
+interruption, such as a loop that never calls a blocking method. On Java 19 and older Ares then
+stops that code: the test fails with the timeout, and the other tests still run and report. Code that
+catches what the stop throws and keeps running still ends the JVM. Java 20 and newer cannot stop a
+thread. There Ares ends the whole test JVM, and Maven or Gradle reports a
+crashed fork without any test results. Run the tests on Java 17 if students are likely to write
+such loops.
 
 ## Notes
 

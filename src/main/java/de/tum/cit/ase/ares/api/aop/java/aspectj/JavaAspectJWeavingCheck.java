@@ -65,7 +65,7 @@ public final class JavaAspectJWeavingCheck {
 	 * @return the names of the classes built without the Ares aspects
 	 */
 	@Nonnull
-	static List<String> unwovenClassNames(@Nonnull JavaClasses supervisedClasses,
+	public static List<String> unwovenClassNames(@Nonnull JavaClasses supervisedClasses,
 			@Nonnull Collection<String> exemptedClassNames) {
 		return supervisedClasses.stream().filter(javaClass -> !DESCRIPTOR_NAMES.contains(javaClass.getSimpleName()))
 				.filter(javaClass -> !exemptedClassNames.contains(javaClass.getName()))

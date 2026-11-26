@@ -1,6 +1,5 @@
 package de.tum.cit.ase.ares.integration.precompile;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -58,9 +57,9 @@ class PrecompileFileSystemViewTest {
 				assertTrue(text.contains("javax.swing.filechooser.FileSystemView+." + method + "(..)"),
 						() -> "the copied pointcuts miss FileSystemView." + method);
 			}
-			assertFalse(
+			assertTrue(
 					Files.exists(generated.resolve("aspectj/adviceandpointcut/JavaAspectJWovenMarkerDefinitions.aj")),
-					"Precompile copied the weaving marker, which nothing in a Precompile run reads");
+					"Precompile left out the weaving marker, which its guard reads to refuse unwoven classes");
 		} else {
 			String text = Files.readString(
 					generated.resolve("instrumentation/pointcut/JavaInstrumentationPointcutDefinitions.java"));

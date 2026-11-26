@@ -1,15 +1,20 @@
 package de.tum.cit.ase.ares.api.securitytest.java.writer;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+
+import org.junit.platform.launcher.LauncherSessionListener;
 
 import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
@@ -24,6 +29,7 @@ import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
 import de.tum.cit.ase.ares.api.phobos.Phobos;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.PolicyValueValidator;
 import de.tum.cit.ase.ares.api.policy.policySubComponents.TestBehaviorConfiguration;
+import de.tum.cit.ase.ares.api.securitytest.java.PrecompileGuard;
 import de.tum.cit.ase.ares.api.util.FileTools;
 
 /**
@@ -43,6 +49,12 @@ import de.tum.cit.ase.ares.api.util.FileTools;
  * @version 2.0.0
  */
 public class JavaWriter implements Writer {
+	/** The settings file ArchUnit reads from the root of the class path. */
+	private static final String ARCHUNIT_PROPERTIES = "archunit.properties";
+
+	/** The ArchUnit settings Ares keeps for the checks it generates. */
+	private static final String ARCHUNIT_SETTINGS_RESOURCE = "/de/tum/cit/ase/ares/api/configuration/archunit.properties";
+
 	@Nonnull
 	private final Path projectRoot;
 	private final BuildToolConfiguration buildConfiguration;
@@ -119,6 +131,8 @@ public class JavaWriter implements Writer {
 	private List<Path> createJavaArchitectureFiles(@Nonnull ArchitectureMode architectureMode,
 			@Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases, @Nonnull Path testFolderPath) {
+		removeOtherEnginesTestClass(architectureMode,
+				FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")));
 		return Stream
 				.concat(Stream.concat(
 						FileTools
@@ -139,6 +153,29 @@ public class JavaWriter implements Writer {
 										FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
 								architectureMode.formatValues(packageName))))
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+	}
+
+	/**
+	 * Removes the test class an earlier generation wrote for the other architecture
+	 * engine, such as the ArchUnit one when WALA is now chosen. The guard copied
+	 * into the exercise refuses a run holding both, so an exercise generated again
+	 * for the other engine would otherwise run no test.
+	 *
+	 * @param architectureMode the engine this generation writes for
+	 * @param packageFolder    the folder of the exercise package in the test
+	 *                         sources
+	 * @throws SecurityException if that test class cannot be removed
+	 */
+	private void removeOtherEnginesTestClass(@Nonnull ArchitectureMode architectureMode, @Nonnull Path packageFolder) {
+		for (Path target : architectureMode.otherEnginesTargetsToCopyTo(packageFolder)) {
+			Path obsolete = confineToProject(target);
+			try {
+				Files.deleteIfExists(obsolete);
+			} catch (IOException failure) {
+				throw new SecurityException(
+						Messages.localized("security.writer.obsolete.test.class.removal.failed", obsolete), failure);
+			}
+		}
 	}
 
 	/**
@@ -293,6 +330,104 @@ public class JavaWriter implements Writer {
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 
+	/**
+	 * Registers the copied {@link PrecompileGuard} with JUnit in the resources
+	 * folder beside the test sources, so that it runs before every test run. Lines
+	 * an existing registration file already holds are kept.
+	 *
+	 * @param packageName    the exercise package the guard was copied into
+	 * @param testFolderPath the test source root
+	 * @return the registration file
+	 * @throws SecurityException if the file cannot be read or written
+	 */
+	@Nonnull
+	private List<Path> createPrecompileGuardRegistration(@Nonnull String packageName, @Nonnull Path testFolderPath) {
+		Path target = confineToProject(resolveResourcesFolderPath(testFolderPath)
+				.resolve(Path.of("META-INF", "services", LauncherSessionListener.class.getName())));
+		String guard = packageName + PrecompileGuard.class.getName().substring("de.tum.cit.ase".length());
+		try {
+			List<String> lines = new ArrayList<>(Files.isRegularFile(target) ? Files.readAllLines(target) : List.of());
+			if (lines.stream().map(String::trim).noneMatch(guard::equals)) {
+				lines.add(guard);
+				Files.createDirectories(Objects.requireNonNull(target.getParent(),
+						"guard registration target has no parent: " + target));
+				Files.write(target, lines);
+			}
+		} catch (IOException failure) {
+			throw new SecurityException(Messages.localized("security.writer.guard.registration.failed", target),
+					failure);
+		}
+		return List.of(target);
+	}
+
+	/**
+	 * Writes the ArchUnit settings the generated checks rely on into the resources
+	 * folder beside the test sources. The build puts that folder at the root of the
+	 * test class path, where ArchUnit looks for its settings file. A file already
+	 * there is kept as it is; only the settings it does not name are added.
+	 *
+	 * @param testFolderPath the test source root
+	 * @return the settings file
+	 * @throws SecurityException if the file cannot be read or written
+	 */
+	@Nonnull
+	private List<Path> createArchunitProperties(@Nonnull Path testFolderPath) {
+		Path target = confineToProject(resolveResourcesFolderPath(testFolderPath).resolve(ARCHUNIT_PROPERTIES));
+		try {
+			Properties required = aresArchunitSettings();
+			boolean present = Files.isRegularFile(target);
+			Properties existing = present ? readProperties(target) : new Properties();
+			List<String> missing = required.stringPropertyNames().stream().filter(key -> !existing.containsKey(key))
+					.sorted().map(key -> key + "=" + required.getProperty(key)).toList();
+			if (!missing.isEmpty()) {
+				List<String> lines = new ArrayList<>(
+						present ? Files.readAllLines(target, StandardCharsets.ISO_8859_1) : List.of());
+				lines.addAll(missing);
+				Files.createDirectories(Objects.requireNonNull(target.getParent(),
+						"ArchUnit settings target has no parent: " + target));
+				Files.write(target, lines, StandardCharsets.ISO_8859_1);
+			}
+		} catch (IOException | IllegalArgumentException failure) {
+			throw new SecurityException(Messages.localized("security.writer.archunit.settings.failed", target),
+					failure);
+		}
+		return List.of(target);
+	}
+
+	/**
+	 * Reads the ArchUnit settings Ares ships for its own checks.
+	 *
+	 * @return the settings
+	 * @throws IOException if they are missing or cannot be read
+	 */
+	@Nonnull
+	private static Properties aresArchunitSettings() throws IOException {
+		Properties settings = new Properties();
+		try (InputStream input = JavaWriter.class.getResourceAsStream(ARCHUNIT_SETTINGS_RESOURCE)) {
+			if (input == null) {
+				throw new IOException(ARCHUNIT_SETTINGS_RESOURCE);
+			}
+			settings.load(input);
+		}
+		return settings;
+	}
+
+	/**
+	 * Reads a settings file the way ArchUnit reads it.
+	 *
+	 * @param file the settings file
+	 * @return the settings it holds
+	 * @throws IOException if the file cannot be read
+	 */
+	@Nonnull
+	private static Properties readProperties(@Nonnull Path file) throws IOException {
+		Properties properties = new Properties();
+		try (InputStream input = Files.newInputStream(file)) {
+			properties.load(input);
+		}
+		return properties;
+	}
+
 	@Nonnull
 	private List<Path> confineTargets(@Nonnull List<Path> targets) {
 		return targets.stream().map(this::confineToProject).toList();
@@ -355,7 +490,9 @@ public class JavaWriter implements Writer {
 						createJavaAOPFiles(aopMode, essentialPackages, essentialClasses, testClasses, packageName,
 								mainClassInPackageName, javaAOPTestCases, validatedTestFolderPath).stream(),
 						createLocalisationFiles(packageName, validatedTestFolderPath).stream(),
-						createPhobosFiles(javaPhobosTestCases, validatedTestFolderPath).stream())
+						createPhobosFiles(javaPhobosTestCases, validatedTestFolderPath).stream(),
+						createPrecompileGuardRegistration(packageName, validatedTestFolderPath).stream(),
+						createArchunitProperties(validatedTestFolderPath).stream())
 				.flatMap(s -> s).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
 	}
 

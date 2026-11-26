@@ -50,7 +50,7 @@ class TimeoutUtilsTest {
 		ExecutorService executorService = mock(ExecutorService.class);
 		when(executorService.isTerminated()).thenReturn(true);
 
-		TimeoutUtils.terminateTimedOutExecution(future, executorService, Duration.ofSeconds(1),
+		TimeoutUtils.terminateTimedOutExecution(future, executorService, null, Duration.ofSeconds(1),
 				exitCode -> fail("Interruption-aware execution must not request fatal termination")); //$NON-NLS-1$
 
 		InOrder cancellationOrder = inOrder(executorService, future);
@@ -78,28 +78,94 @@ class TimeoutUtilsTest {
 		assertThat(workerFinished).isTrue();
 	}
 
+	/**
+	 * Code that ignores its interruption is stopped on Java 19 and older, so the
+	 * timeout is reported and the JVM lives on. Newer JVMs cannot stop it, so the
+	 * fork is terminated.
+	 */
 	@Test
-	void interruptionIgnoringExecutionInvalidatesTheCurrentFork() throws Exception {
+	void interruptionIgnoringExecutionIsStoppedOrInvalidatesTheFork() throws Exception {
 		AtomicBoolean releaseWorker = new AtomicBoolean();
 		AtomicInteger requestedExitCode = new AtomicInteger(-1);
 		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
 		try {
-			FatalTermination termination = assertThrows(FatalTermination.class,
-					() -> TimeoutUtils.performTimeoutExecution(() -> {
-						while (!releaseWorker.get()) {
-							Thread.onSpinWait();
-						}
-						return null;
-					}, context, java.time.Duration.ofMillis(10), exitCode -> {
-						requestedExitCode.set(exitCode);
-						throw new FatalTermination();
-					}));
-			assertThat(termination).isNotNull();
+			Throwable outcome = assertThrows(Throwable.class, () -> TimeoutUtils.performTimeoutExecution(() -> {
+				while (!releaseWorker.get()) {
+					Thread.onSpinWait();
+				}
+				return null;
+			}, context, java.time.Duration.ofMillis(200), exitCode -> {
+				requestedExitCode.set(exitCode);
+				throw new FatalTermination();
+			}));
+			if (threadStopWorks()) {
+				assertThat(outcome).isInstanceOf(SecurityException.class);
+				assertThat(requestedExitCode).hasValue(-1);
+			} else {
+				assertThat(outcome).isInstanceOf(FatalTermination.class);
+				assertThat(requestedExitCode).hasValue(124);
+			}
 		} finally {
 			releaseWorker.set(true);
 		}
+	}
 
+	/**
+	 * Code that survives being stopped, by catching what the stop throws, still
+	 * invalidates the fork on every Java version.
+	 */
+	@Test
+	void executionSurvivingTheStopInvalidatesTheFork() throws Exception {
+		AtomicBoolean releaseWorker = new AtomicBoolean();
+		AtomicInteger requestedExitCode = new AtomicInteger(-1);
+		TestContext context = contextFor("strictTimeoutTarget"); //$NON-NLS-1$
+		try {
+			assertThrows(FatalTermination.class,
+					() -> TimeoutUtils.performTimeoutExecution(() -> spinThroughStops(releaseWorker), context,
+							java.time.Duration.ofMillis(200), exitCode -> {
+								requestedExitCode.set(exitCode);
+								throw new FatalTermination();
+							}));
+		} finally {
+			releaseWorker.set(true);
+		}
 		assertThat(requestedExitCode).hasValue(124);
+	}
+
+	/**
+	 * Spins until released and keeps spinning after every stop.
+	 *
+	 * @param releaseWorker set to end the spinning
+	 * @return always {@code null}
+	 */
+	@SuppressWarnings("removal")
+	private static Object spinThroughStops(AtomicBoolean releaseWorker) {
+		try {
+			spinUntilReleased(releaseWorker);
+		} catch (ThreadDeath stopped) {
+			spinUntilReleased(releaseWorker);
+		}
+		return null;
+	}
+
+	/**
+	 * Spins until released, ignoring interruption.
+	 *
+	 * @param releaseWorker set to end the spinning
+	 */
+	private static void spinUntilReleased(AtomicBoolean releaseWorker) {
+		while (!releaseWorker.get()) {
+			Thread.onSpinWait();
+		}
+	}
+
+	/**
+	 * Whether this JVM can still stop a thread, as Java 19 and older can.
+	 *
+	 * @return {@code true} on such a JVM
+	 */
+	private static boolean threadStopWorks() {
+		return Runtime.version().feature() < 20;
 	}
 
 	/**
@@ -155,15 +221,25 @@ class TimeoutUtilsTest {
 				.hasMessage(Messages.localized("timeout.failure_message", "20 ms")); //$NON-NLS-1$ //$NON-NLS-2$
 	}
 
+	/**
+	 * In a child JVM running the production terminator, a loop that ignores its
+	 * interruption is stopped on Java 19 and older, so the timeout reaches the
+	 * caller, and ends the JVM with code 124 on newer Java.
+	 */
 	@Test
-	void productionTerminatorStopsAContaminatedChildJvm() throws Exception {
+	void productionTerminatorStopsTheLoopOrEndsTheChildJvm() throws Exception {
 		String javaExecutable = Path.of(System.getProperty("java.home"), "bin", "java").toString(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 		String classPath = System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")); //$NON-NLS-1$ //$NON-NLS-2$
 		Process process = new ProcessBuilder(javaExecutable, "-cp", classPath, TimeoutUtilsForkProbe.class.getName()) //$NON-NLS-1$
 				.redirectErrorStream(true).start();
 		try {
 			assertThat(process.waitFor(10, TimeUnit.SECONDS)).isTrue();
-			assertThat(process.exitValue()).isEqualTo(124);
+			String output = new String(process.getInputStream().readAllBytes(),
+					java.nio.charset.StandardCharsets.UTF_8);
+			assertThat(process.exitValue()).isEqualTo(threadStopWorks() ? 1 : 124);
+			if (threadStopWorks()) {
+				assertThat(output).contains("java.lang.SecurityException").contains("20 ms");
+			}
 		} finally {
 			process.destroyForcibly();
 		}

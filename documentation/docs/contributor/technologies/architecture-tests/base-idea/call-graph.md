@@ -38,7 +38,8 @@ target of the call is not fixed in the bytecode.
 
 The call graph is what makes indirect access detectable. The policy names forbidden
 operations as *sinks*; the analysis then asks whether any path leads from student code to a
-sink. `theMainClassInsideThisPackageIs` supplies the entry point the graph is built from.
+sink. The graph starts from every method the analysed student classes declare, so
+`theMainClassInsideThisPackageIs` plays no part in it.
 
 See [depth-first search (DFS) Path](./dfs-path.md) for how those paths are searched, and
 the [T. J. Watson Libraries for Analysis (WALA)](../wala.md) for the engine that builds the
