@@ -75,6 +75,13 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	private static final String SHELL_FOLDER_COM_INVOKER = "sun.awt.shell.Win32ShellFolderManager2$ComInvoker";
 
 	/**
+	 * The JDK class that builds the pipe of a selector and of {@code Pipe.open()};
+	 * on Windows it binds and connects a loopback socket of its own.
+	 */
+	@Nonnull
+	private static final String PIPE_IMPL = "sun.nio.ch.PipeImpl";
+
+	/**
 	 * The JDK class whose {@code invoke} methods pass a shell-folder task on to
 	 * {@link #SHELL_FOLDER_COM_INVOKER}.
 	 */
@@ -604,6 +611,45 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 			}
 			return Boolean.FALSE;
 		});
+	}
+
+	/**
+	 * Tells whether the JDK is building the pipe of a selector or of
+	 * {@code Pipe.open()} itself, with only JDK code between it and this check. On
+	 * Windows that pipe binds and connects a socket of its own on the loopback, so
+	 * the network check lets exactly that pass.
+	 *
+	 * @return {@code true} for such a pipe set-up
+	 */
+	static boolean isJdkPipeSetUpWithoutStudentCode() {
+		return STACK_WALKER_WITH_CLASS_REFERENCE.walk(frames -> Boolean.valueOf(isJdkPipeSetUp(frames.iterator())));
+	}
+
+	/**
+	 * Reads a call stack, newest frame first, as the JDK's pipe set-up: after Ares'
+	 * own frames, JDK frames only, up to a frame of {@code sun.nio.ch.PipeImpl} or
+	 * a class nested in it. Any other frame first means {@code false}.
+	 *
+	 * @param frames the stack, newest first
+	 * @return {@code true} for exactly that shape
+	 */
+	static boolean isJdkPipeSetUp(@Nonnull Iterator<StackWalker.StackFrame> frames) {
+		boolean jdkFrameSeen = false;
+		while (frames.hasNext()) {
+			StackWalker.StackFrame frame = frames.next();
+			String className = frame.getClassName();
+			if (!jdkFrameSeen && className.startsWith("de.tum.cit.ase.ares.api.")) {
+				continue;
+			}
+			if (jdkModuleName(frame.getDeclaringClass()) == null) {
+				return false;
+			}
+			if (PIPE_IMPL.equals(className) || className.startsWith(PIPE_IMPL + "$")) {
+				return true;
+			}
+			jdkFrameSeen = true;
+		}
+		return false;
 	}
 
 	/**
