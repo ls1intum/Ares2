@@ -75,7 +75,7 @@ There is no repository step for Maven: the super-POM already defines Central at 
 
 **Explanation:**
 
-- **Ares must be `provided`, not `test`.** This is the single most common way to get a Maven setup that compiles but never enforces anything. The `aspectj-maven-plugin` resolves its `<aspectLibraries>` against the **compile-visible** project dependencies, and it weaves the *main* classes during `process-classes`, where a test-scoped artefact does not exist. A `<scope>test</scope>` Ares therefore fails the build with `The artifact de.tum.cit.ase:ares referenced in aspectj plugin as an aspect library, is not found the project dependencies`. `provided` scope is visible at compile time **and** at test time, while still being absent from the packaged artefact and from anything that consumes the exercise transitively, which is exactly the scope an exercise wants.
+- **Ares must be `provided`, not `test`.** This is the single most common way to get a Maven setup that compiles but never enforces anything. The `aspectj-maven-plugin` resolves its `<aspectLibraries>` against the **compile-visible** project dependencies, and it weaves the *main* classes during `compile`, where a test-scoped artefact does not exist. A `<scope>test</scope>` Ares therefore fails the build with `The artifact de.tum.cit.ase:ares referenced in aspectj plugin as an aspect library, is not found the project dependencies`. `provided` scope is visible at compile time **and** at test time, while still being absent from the packaged artefact and from anything that consumes the exercise transitively, which is exactly the scope an exercise wants.
 - `aspectjrt` provides the classes woven bytecode references, and for the same reason it too has no `<scope>test</scope>`.
 
 > **Note:** If your `pom.xml` already contains a `<dependencies>` section, add these to it instead of creating a new one.
@@ -197,7 +197,7 @@ Your build must run the AspectJ compiler to weave the Ares security aspects into
     <executions>
         <execution>
             <id>weave-main-classes</id>
-            <phase>process-classes</phase>
+            <phase>compile</phase>
             <goals>
                 <goal>compile</goal>
             </goals>
@@ -211,7 +211,7 @@ Your build must run the AspectJ compiler to weave the Ares security aspects into
 - `aspectjtools` is the AspectJ compiler itself, declared as a plugin dependency so the plugin uses the version from `${aspectj.version}`.
 - `forceAjcCompile` forces `ajc` to run even though the student project contains no `.aj` source files. This is essential, because the aspects come from the Ares library rather than from the project.
 - `<aspectLibraries>` puts the Ares JAR on the **aspect path**. Without it the plugin runs but weaves nothing, since `ajc` does not pick up binary aspects from the ordinary compile classpath. The entry references the dependency from the dependency step above, so no version is repeated.
-- The execution binds `ajc` to `process-classes`. `ajc` compiles the main sources itself, so `maven.main.skip` in the properties stops `javac` from compiling them first. Otherwise a class only `javac` writes, such as the table behind a `switch` over an enum, stays in `target/classes` without the aspects. Only main classes are woven; test classes are left untouched.
+- The execution binds `ajc` to `compile`, so `mvn compile` already builds and weaves the main classes. `ajc` compiles the main sources itself, so `maven.main.skip` in the properties stops `javac` from compiling them first. Otherwise a class only `javac` writes, such as the table behind a `switch` over an enum, stays in `target/classes` without the aspects. Only main classes are woven; test classes are left untouched.
 
 ## Provide the policy file
 
@@ -443,7 +443,7 @@ The working version of this file is [`examples/ares-exercise-maven`](https://git
                 <executions>
                     <execution>
                         <id>weave-main-classes</id>
-                        <phase>process-classes</phase>
+                        <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>

@@ -21,7 +21,7 @@ Requires Java 17 and Maven 3.8 or newer.
 
 The three tests are `name()`, `readsThePermittedFile()` and `rejectsTheForbiddenFile()`. The last one asserts that Ares blocks the forbidden read, so a green run **is** the demonstration that enforcement works.
 
-The AspectJ compiler prints a number of `[Xlint:adviceDidNotMatch]` warnings during `process-classes`. These are expected: the Ares JAR carries advice for the file, network, command and thread domains, and this exercise only touches files.
+The AspectJ compiler prints a number of `[Xlint:adviceDidNotMatch]` warnings during `compile`. These are expected: the Ares JAR carries advice for the file, network, command and thread domains, and this exercise only touches files.
 
 ## What is where
 
@@ -35,7 +35,7 @@ The AspectJ compiler prints a number of `[Xlint:adviceDidNotMatch]` warnings dur
 
 ## Two details worth copying
 
-**Ares is `provided`, not `test`.** The `aspectj-maven-plugin` resolves `<aspectLibraries>` against the compile-visible dependencies and weaves the main classes during `process-classes`, where a test-scoped artefact is invisible. With `<scope>test</scope>` the build fails with `The artifact de.tum.cit.ase:ares referenced in aspectj plugin as an aspect library, is not found the project dependencies`. `provided` is compile- and test-visible while staying out of the packaged artefact.
+**Ares is `provided`, not `test`.** The `aspectj-maven-plugin` resolves `<aspectLibraries>` against the compile-visible dependencies and weaves the main classes during `compile`, where a test-scoped artefact is invisible. With `<scope>test</scope>` the build fails with `The artifact de.tum.cit.ase:ares referenced in aspectj plugin as an aspect library, is not found the project dependencies`. `provided` is compile- and test-visible while staying out of the packaged artefact.
 
 **The Surefire `argLine` starts with `@{argLine}`,** and an empty `<argLine></argLine>` property is declared. Without the first, adding JaCoCo later silently produces empty coverage; without the second, a run in which JaCoCo does not participate fails on an unresolved `@{argLine}`.
 

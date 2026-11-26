@@ -28,7 +28,7 @@
     <dependencies>
         <!-- provided, not test. The aspectj-maven-plugin resolves <aspectLibraries>
              against the compile-visible project dependencies, and it weaves the MAIN
-             classes during process-classes, where a test-scoped artifact is invisible:
+             classes during compile, where a test-scoped artifact is invisible:
              a test-scoped Ares fails the build with "is not found the project
              dependencies". provided scope is compile-visible and test-visible, yet
              still absent from the packaged artefact and from transitive consumers,
@@ -39,7 +39,7 @@
             <version>${ares.version}</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Not test-scoped: ajc weaves the main classes during process-classes,
+        <!-- Not test-scoped: ajc weaves the main classes during compile,
              when only the compile-scope classpath is visible. -->
         <dependency>
             <groupId>org.aspectj</groupId>
@@ -77,7 +77,7 @@
                 <executions>
                     <execution>
                         <id>weave-main-classes</id>
-                        <phase>process-classes</phase>
+                        <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
