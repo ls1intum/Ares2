@@ -1,5 +1,6 @@
 package de.tum.cit.ase.ares.integration.precompile;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -15,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -74,10 +76,15 @@ class PrecompileGuardTest {
 	/** A package the policy may name although no student class lies in it. */
 	private static final String FOREIGN = "de.tum.cit.aet.foreign";
 
+	/** What the launcher prints when every generated test ran and passed. */
+	private static final Pattern GENERATED_TESTS_PASSED = Pattern.compile("GENERATED_TESTS [1-9]\\d* passed, 0 failed");
+
 	/**
 	 * Opens a JUnit run, which calls every registered session listener, and prints
-	 * whether it opened or which security error refused it, then the two ArchUnit
-	 * settings the generated checks rely on, as ArchUnit read them.
+	 * whether it opened or which security error refused it. Once open, it runs the
+	 * generated test class named by the first argument and prints how many of its
+	 * tests passed and failed. Last come the two ArchUnit settings the generated
+	 * checks rely on, as ArchUnit read them.
 	 */
 	private static final String LAUNCHER = """
 			package launcher;
@@ -87,6 +94,15 @@ class PrecompileGuardTest {
 			        try (org.junit.platform.launcher.LauncherSession session =
 			                org.junit.platform.launcher.core.LauncherFactory.openSession()) {
 			            System.out.println("GUARD_PASSED");
+			            org.junit.platform.launcher.listeners.SummaryGeneratingListener summary =
+			                    new org.junit.platform.launcher.listeners.SummaryGeneratingListener();
+			            session.getLauncher().execute(org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder.request()
+			                    .selectors(org.junit.platform.engine.discovery.DiscoverySelectors.selectClass(arguments[0]))
+			                    .build(), summary);
+			            System.out.println("GENERATED_TESTS " + summary.getSummary().getTestsSucceededCount() + " passed, "
+			                    + summary.getSummary().getTestsFailedCount() + " failed");
+			            summary.getSummary().getFailures().forEach(failure ->
+			                    System.out.println("GENERATED_FAILURE " + failure.getException()));
 			        } catch (SecurityException refused) {
 			            System.out.println("GUARD_REFUSED " + refused.getMessage());
 			        }
@@ -113,6 +129,7 @@ class PrecompileGuardTest {
 				Map.of("Main", MAIN, "Reflective", REFLECTIVE), true, false);
 
 		assertTrue(clean.contains("GUARD_PASSED"), clean);
+		assertTrue(GENERATED_TESTS_PASSED.matcher(clean).find(), clean);
 		String prefix = Messages.localized("security.precompile.guard.check.failed", "classLoadingShouldNotBeAccessed",
 				"");
 		assertTrue(refused.contains("GUARD_REFUSED " + prefix), refused);
@@ -143,7 +160,8 @@ class PrecompileGuardTest {
 
 	/**
 	 * An exercise whose supervised package has no compiled class yet starts in both
-	 * engines: there is nothing the generated checks could judge.
+	 * engines, and its generated tests pass when JUnit runs them: there is nothing
+	 * they could judge.
 	 *
 	 * @param analysis the engine, {@code ARCHUNIT} or {@code WALA}
 	 * @param tempDir  the folder for the made-up exercise
@@ -155,6 +173,31 @@ class PrecompileGuardTest {
 		String output = run(analysis, "INSTRUMENTATION", tempDir, Map.of(), true, false);
 
 		assertTrue(output.contains("GUARD_PASSED"), output);
+		assertTrue(GENERATED_TESTS_PASSED.matcher(output).find(), output);
+	}
+
+	/**
+	 * An exercise generated for one engine, then generated again for the other and
+	 * rebuilt from scratch, starts and passes its generated tests: the test class
+	 * of the earlier engine is gone, so the guard finds exactly one.
+	 *
+	 * @param analysis the engine of the second generation
+	 * @param tempDir  the folder for the made-up exercise
+	 * @throws Exception if a step fails to start
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "ARCHUNIT", "WALA" })
+	void anExerciseRegeneratedForTheOtherEngineStarts(String analysis, @TempDir Path tempDir) throws Exception {
+		String previous = "WALA".equals(analysis) ? "ARCHUNIT" : "WALA";
+		String first = run(previous, "INSTRUMENTATION", tempDir, Map.of("Main", MAIN), true, false);
+		deleteRecursively(tempDir.resolve("compiled"));
+		String regenerated = run(analysis, "INSTRUMENTATION", tempDir, Map.of("Main", MAIN), true, false);
+
+		assertTrue(first.contains("GUARD_PASSED"), first);
+		assertTrue(regenerated.contains("GUARD_PASSED"), regenerated);
+		assertTrue(GENERATED_TESTS_PASSED.matcher(regenerated).find(), regenerated);
+		assertFalse(Files.exists(tempDir.resolve("project/src/test/java")
+				.resolve(generatedChecks(previous).replace('.', '/') + ".java")));
 	}
 
 	/**
@@ -296,13 +339,41 @@ class PrecompileGuardTest {
 		if (withAgent) {
 			command.add("-javaagent:" + agentJar(testSources, compiled, root.resolve("agent.jar"), policyPackage));
 		}
-		command.addAll(List
-				.of("--add-opens", "java.base/java.lang=ALL-UNNAMED", "--add-opens", "java.base/java.io=ALL-UNNAMED",
-						"--add-exports", "java.base/jdk.internal.misc=ALL-UNNAMED", "-cp",
-						String.join(File.pathSeparator, studentClasses.toString(), compiled.toString(),
-								project.resolve("src/test/resources").toString(), libraries()),
-						"launcher.OpenSession"));
+		command.addAll(List.of("--add-opens", "java.base/java.lang=ALL-UNNAMED", "--add-opens",
+				"java.base/java.io=ALL-UNNAMED", "--add-exports", "java.base/jdk.internal.misc=ALL-UNNAMED", "-cp",
+				String.join(File.pathSeparator, studentClasses.toString(), compiled.toString(),
+						project.resolve("src/test/resources").toString(), libraries()),
+				"launcher.OpenSession", generatedChecks(analysis)));
 		return start(command, project, root.resolve("run.log"));
+	}
+
+	/**
+	 * Returns the name of the test class Precompile generates for an engine.
+	 *
+	 * @param analysis the engine, {@code ARCHUNIT} or {@code WALA}
+	 * @return the fully qualified class name
+	 */
+	private static String generatedChecks(String analysis) {
+		String engine = "WALA".equals(analysis) ? "Wala" : "Archunit";
+		return EXERCISE + ".ares.api.architecture.java." + engine.toLowerCase(Locale.ROOT) + ".Java" + engine
+				+ "TestCase";
+	}
+
+	/**
+	 * Deletes a folder and everything below it, as a clean build does with its
+	 * output.
+	 *
+	 * @param folder the folder
+	 * @throws IOException if a file cannot be deleted
+	 */
+	private static void deleteRecursively(Path folder) throws IOException {
+		List<Path> contents;
+		try (Stream<Path> files = Files.walk(folder)) {
+			contents = files.sorted(java.util.Comparator.reverseOrder()).collect(Collectors.toList());
+		}
+		for (Path file : contents) {
+			Files.delete(file);
+		}
 	}
 
 	/**

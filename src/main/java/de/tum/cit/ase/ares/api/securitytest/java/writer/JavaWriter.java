@@ -131,6 +131,8 @@ public class JavaWriter implements Writer {
 	private List<Path> createJavaArchitectureFiles(@Nonnull ArchitectureMode architectureMode,
 			@Nonnull String packageName, @Nonnull String mainClassInPackageName,
 			@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases, @Nonnull Path testFolderPath) {
+		removeOtherEnginesTestClass(architectureMode,
+				FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")));
 		return Stream
 				.concat(Stream.concat(
 						FileTools
@@ -151,6 +153,29 @@ public class JavaWriter implements Writer {
 										FileTools.resolveOnPath(testFolderPath, packageName.split("\\.")))),
 								architectureMode.formatValues(packageName))))
 				.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+	}
+
+	/**
+	 * Removes the test class an earlier generation wrote for the other architecture
+	 * engine, such as the ArchUnit one when WALA is now chosen. The guard copied
+	 * into the exercise refuses a run holding both, so an exercise generated again
+	 * for the other engine would otherwise run no test.
+	 *
+	 * @param architectureMode the engine this generation writes for
+	 * @param packageFolder    the folder of the exercise package in the test
+	 *                         sources
+	 * @throws SecurityException if that test class cannot be removed
+	 */
+	private void removeOtherEnginesTestClass(@Nonnull ArchitectureMode architectureMode, @Nonnull Path packageFolder) {
+		for (Path target : architectureMode.otherEnginesTargetsToCopyTo(packageFolder)) {
+			Path obsolete = confineToProject(target);
+			try {
+				Files.deleteIfExists(obsolete);
+			} catch (IOException failure) {
+				throw new SecurityException(
+						Messages.localized("security.writer.obsolete.test.class.removal.failed", obsolete), failure);
+			}
+		}
 	}
 
 	/**

@@ -144,6 +144,29 @@ public class JavaWriterTest {
 	}
 
 	/**
+	 * Generating again for the other engine removes the test class the earlier
+	 * generation wrote, in both directions, and leaves the instructor's own test
+	 * class beside it alone.
+	 */
+	@Test
+	void removesTheTestClassOfTheOtherEngineWhenGeneratingAgain() throws IOException {
+		Path sourceRoot = Files.createDirectories(tempDir.resolve("src/test/java"));
+		Path generated = sourceRoot.resolve("exercise/security/ares/api/architecture/java");
+		Path archunit = generated.resolve("archunit/JavaArchunitTestCase.java");
+		Path wala = generated.resolve("wala/JavaWalaTestCase.java");
+		Path instructors = Files.createDirectories(sourceRoot.resolve("exercise/security")).resolve("MainTest.java");
+		Files.writeString(instructors, "package exercise.security; class MainTest { }");
+		for (ArchitectureMode engine : List.of(ArchitectureMode.ARCHUNIT, ArchitectureMode.WALA,
+				ArchitectureMode.ARCHUNIT)) {
+			javaWriter.writeTestCases(BuildMode.MAVEN, engine, AOPMode.INSTRUMENTATION, List.of(), List.of(), List.of(),
+					"exercise.security", "Main", List.of(), List.of(), List.of(), sourceRoot);
+			assertEquals(engine == ArchitectureMode.ARCHUNIT, Files.isRegularFile(archunit), engine.name());
+			assertEquals(engine == ArchitectureMode.WALA, Files.isRegularFile(wala), engine.name());
+		}
+		assertTrue(Files.isRegularFile(instructors));
+	}
+
+	/**
 	 * Requires the returned paths to name every localisation bundle written below
 	 * the resources folder, so the caller can list or clean them up.
 	 */

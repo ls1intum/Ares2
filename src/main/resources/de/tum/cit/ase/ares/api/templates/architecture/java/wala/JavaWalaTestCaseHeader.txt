@@ -35,6 +35,17 @@ public class JavaWalaTestCase {
     @Nonnull CallGraph callGraph;
 
     /**
+     * Tells whether the supervised package holds no compiled class yet. A check then has no code to judge and no
+     * folder to build a call graph from, so it passes, as an ArchUnit rule over no class does.
+     *
+     * @param supervisedClasses the compiled classes of the supervised package
+     * @return whether there are none
+     */
+    static boolean nothingToAnalyse(JavaClasses supervisedClasses) {
+        return !supervisedClasses.iterator().hasNext();
+    }
+
+    /**
      * Returns the call graph of the compiled classes of the supervised package, built on first use.
      *
      * @param supervisedPackage the supervised package
