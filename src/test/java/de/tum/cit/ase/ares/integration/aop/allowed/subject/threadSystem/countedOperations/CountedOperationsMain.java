@@ -230,4 +230,50 @@ public final class CountedOperationsMain {
 	public static int invokeAllFromAListOf() throws InterruptedException {
 		return invokeAll(List.of(new CountedCall()));
 	}
+
+	/**
+	 * Submits the given tasks to a pool of two threads, one call each, and waits
+	 * for them.
+	 *
+	 * @param tasks the tasks
+	 * @return how many tasks ran
+	 * @throws Exception if a task fails or the wait is interrupted
+	 */
+	public static int submitEach(Runnable... tasks) throws Exception {
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+			for (Runnable task : tasks) {
+				pool.submit(task).get();
+			}
+			return tasks.length;
+		} finally {
+			pool.shutdownNow();
+		}
+	}
+
+	/**
+	 * Submits the given number of list-backed tasks of the allowed class, one call
+	 * each.
+	 *
+	 * @param tasks how many tasks to submit
+	 * @return how many tasks ran
+	 * @throws Exception if a task fails or the wait is interrupted
+	 */
+	public static int submitListBackedTasks(int tasks) throws Exception {
+		Runnable[] submitted = new Runnable[tasks];
+		for (int i = 0; i < tasks; i++) {
+			submitted[i] = new ListBackedTask();
+		}
+		return submitEach(submitted);
+	}
+
+	/**
+	 * Submits one list-backed task of a class no allowance names.
+	 *
+	 * @return how many tasks ran
+	 * @throws Exception if the task fails or the wait is interrupted
+	 */
+	public static int submitUnlistedListTask() throws Exception {
+		return submitEach(new UnlistedListTask());
+	}
 }

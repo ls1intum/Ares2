@@ -852,4 +852,132 @@ class ThreadCountedOperationsTest {
 	void invokeAllRunsTasksFromAListOfMavenWalaInstrumentation() throws Exception {
 		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAListOf());
 	}
+
+	/**
+	 * A task that is also a list is counted as its own class in ArchunitAspectJ, so
+	 * one of the allowed class runs.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void listBackedTaskIsAllowedMavenArchunitAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitListBackedTasks(1));
+	}
+
+	/**
+	 * A second task that is also a list exceeds its allowance of one in
+	 * ArchunitAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void listBackedTaskBeyondItsAllowanceIsRefusedMavenArchunitAspectJ() {
+		assertRefused(() -> CountedOperationsMain.submitListBackedTasks(2));
+	}
+
+	/**
+	 * A task that is also a list, of a class no allowance names, is refused in
+	 * ArchunitAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void listBackedTaskWithoutAllowanceIsRefusedMavenArchunitAspectJ() {
+		assertRefusedNaming(CountedOperationsMain::submitUnlistedListTask, "UnlistedListTask");
+	}
+
+	/**
+	 * A task that is also a list is counted as its own class in
+	 * ArchunitInstrumentation, so one of the allowed class runs.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void listBackedTaskIsAllowedMavenArchunitInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitListBackedTasks(1));
+	}
+
+	/**
+	 * A second task that is also a list exceeds its allowance of one in
+	 * ArchunitInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void listBackedTaskBeyondItsAllowanceIsRefusedMavenArchunitInstrumentation() {
+		assertRefused(() -> CountedOperationsMain.submitListBackedTasks(2));
+	}
+
+	/**
+	 * A task that is also a list, of a class no allowance names, is refused in
+	 * ArchunitInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void listBackedTaskWithoutAllowanceIsRefusedMavenArchunitInstrumentation() {
+		assertRefusedNaming(CountedOperationsMain::submitUnlistedListTask, "UnlistedListTask");
+	}
+
+	/**
+	 * A task that is also a list is counted as its own class in WalaAspectJ, so one
+	 * of the allowed class runs.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void listBackedTaskIsAllowedMavenWalaAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitListBackedTasks(1));
+	}
+
+	/**
+	 * A second task that is also a list exceeds its allowance of one in
+	 * WalaAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void listBackedTaskBeyondItsAllowanceIsRefusedMavenWalaAspectJ() {
+		assertRefused(() -> CountedOperationsMain.submitListBackedTasks(2));
+	}
+
+	/**
+	 * A task that is also a list, of a class no allowance names, is refused in
+	 * WalaAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void listBackedTaskWithoutAllowanceIsRefusedMavenWalaAspectJ() {
+		assertRefusedNaming(CountedOperationsMain::submitUnlistedListTask, "UnlistedListTask");
+	}
+
+	/**
+	 * A task that is also a list is counted as its own class in
+	 * WalaInstrumentation, so one of the allowed class runs.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void listBackedTaskIsAllowedMavenWalaInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitListBackedTasks(1));
+	}
+
+	/**
+	 * A second task that is also a list exceeds its allowance of one in
+	 * WalaInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void listBackedTaskBeyondItsAllowanceIsRefusedMavenWalaInstrumentation() {
+		assertRefused(() -> CountedOperationsMain.submitListBackedTasks(2));
+	}
+
+	/**
+	 * A task that is also a list, of a class no allowance names, is refused in
+	 * WalaInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void listBackedTaskWithoutAllowanceIsRefusedMavenWalaInstrumentation() {
+		assertRefusedNaming(CountedOperationsMain::submitUnlistedListTask, "UnlistedListTask");
+	}
 }

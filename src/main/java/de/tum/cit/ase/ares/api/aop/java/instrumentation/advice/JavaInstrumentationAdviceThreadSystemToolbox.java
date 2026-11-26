@@ -868,10 +868,11 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Collects the thread-class names a value resolves to, looking into arrays and
-	 * plain JDK lists, so the quota is used once per distinct class per call. Any
-	 * other list is not searched; in the tasks of {@code invokeAll} or
-	 * {@code invokeAny} any collection other than a plain one is refused.
+	 * Collects the thread-class names a value resolves to, so the quota is used
+	 * once per distinct class per call. A value that is itself a task counts, a
+	 * list included; arrays and plain JDK lists are searched for further tasks, as
+	 * are plain JDK collections among the tasks of {@code invokeAll} or
+	 * {@code invokeAny}.
 	 *
 	 * @param observedVariable the value to resolve
 	 * @param out              the distinct class names found so far
@@ -882,27 +883,44 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			boolean anyCollection) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return;
-		} else if (observedVariable.getClass().isArray()) {
+		}
+		if (observedVariable.getClass().isArray()) {
 			for (int i = 0; i < Array.getLength(observedVariable); i++) {
 				collectThreadClassNames(Array.get(observedVariable, i), out, anyCollection);
 			}
-		} else if (observedVariable instanceof List<?>
-				|| (anyCollection && observedVariable instanceof Collection<?>)) {
-			if (!isPlainCollection(observedVariable)) {
-				if (anyCollection) {
-					throw new SecurityException(localize("security.advice.thread.collection.not.plain",
-							observedVariable.getClass().getName()));
-				}
-				return;
+			return;
+		}
+		String className = variableToClassname(observedVariable);
+		if (className != null) {
+			out.add(className);
+		}
+		if (observedVariable instanceof List<?> || (anyCollection && observedVariable instanceof Collection<?>)) {
+			collectCollectionElements((Collection<?>) observedVariable, out, anyCollection);
+		}
+	}
+
+	/**
+	 * Searches the elements of a collection for tasks, if it is a plain JDK
+	 * collection. Any other collection is not iterated, as that could run code of
+	 * the supervised code while the check is in progress: among the tasks of
+	 * {@code invokeAll} or {@code invokeAny} it is refused, elsewhere it is
+	 * skipped.
+	 *
+	 * @param collection    the collection
+	 * @param out           the distinct class names found so far
+	 * @param anyCollection whether the collection holds the tasks to run
+	 */
+	private static void collectCollectionElements(@Nonnull Collection<?> collection, @Nonnull Set<String> out,
+			boolean anyCollection) {
+		if (!isPlainCollection(collection)) {
+			if (anyCollection) {
+				throw new SecurityException(
+						localize("security.advice.thread.collection.not.plain", collection.getClass().getName()));
 			}
-			for (Object element : (Collection<?>) observedVariable) {
-				collectThreadClassNames(element, out, anyCollection);
-			}
-		} else {
-			String className = variableToClassname(observedVariable);
-			if (className != null) {
-				out.add(className);
-			}
+			return;
+		}
+		for (Object element : collection) {
+			collectThreadClassNames(element, out, anyCollection);
 		}
 	}
 	// </editor-fold>
