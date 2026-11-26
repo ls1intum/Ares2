@@ -495,7 +495,7 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.nio.file.Files",
 					List.of("copy", "find", "lines", "list", "mismatch", "newBufferedReader", "newByteChannel",
 							"newDirectoryStream", "newInputStream", "readAllBytes", "readAllLines", "readString",
-							"walk", "walkFileTree")),
+							"probeContentType", "walk", "walkFileTree")),
 			// Note: "transferTo" is also registered in METHODS_WHICH_CAN_OVERWRITE_FILES
 			// below:
 			// the receiver (the channel being read FROM) must be checked as READ - see
@@ -683,6 +683,30 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("org.apache.commons.io.FileUtils", List.of("forceDelete")));
 	// </editor-fold>
 
+	// <editor-fold desc="Inspect Path">
+	/**
+	 * Methods that answer a question about a file without opening it, such as
+	 * whether it exists or how large it is. A question is permitted below any path
+	 * a file rule names, whichever action that rule permits.
+	 */
+	public static final Map<String, List<String>> METHODS_WHICH_CAN_INSPECT_FILES = Map.ofEntries(
+			Map.entry("java.nio.file.Files",
+					List.of("exists", "notExists", "isDirectory", "isRegularFile", "isSymbolicLink", "isReadable",
+							"isWritable", "isExecutable", "isHidden", "isSameFile", "size", "getLastModifiedTime",
+							"getOwner", "getPosixFilePermissions", "readAttributes", "getAttribute",
+							"getFileAttributeView", "getFileStore", "readSymbolicLink")),
+			Map.entry("java.nio.file.spi.FileSystemProvider",
+					List.of("checkAccess", "exists", "readAttributes", "readAttributesIfExists", "getFileAttributeView",
+							"getFileStore", "isHidden", "isSameFile", "readSymbolicLink")),
+			Map.entry("java.io.File",
+					List.of("exists", "isFile", "isDirectory", "isHidden", "length", "lastModified", "canRead",
+							"canWrite", "canExecute", "getFreeSpace", "getTotalSpace", "getUsableSpace")),
+			Map.entry("javax.swing.filechooser.FileSystemView",
+					List.of("isRoot", "isTraversable", "getSystemDisplayName", "getSystemTypeDescription",
+							"getSystemIcon", "isFileSystem", "isHiddenFile", "isFileSystemRoot", "isDrive",
+							"isFloppyDrive", "isComputerNode", "getParentDirectory", "isLink", "getLinkLocation")));
+	// </editor-fold>
+
 	// <editor-fold desc="Create Path">
 	/**
 	 * Methods that can create new files or directories (including links). Note:
@@ -815,8 +839,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 			Map.entry("java.net.Socket", List.of("getOutputStream")),
 			Map.entry("java.net.DatagramSocket", List.of("send")),
 			Map.entry("java.net.NetMulticastSocket", List.of("send")),
-			Map.entry("java.nio.channels.DatagramChannel", List.of("send")),
-			Map.entry("sun.nio.ch.DatagramChannelImpl", List.of("send")),
+			Map.entry("java.nio.channels.DatagramChannel", List.of("send", "write")),
+			Map.entry("sun.nio.ch.DatagramChannelImpl", List.of("send", "write")),
 			Map.entry("java.net.http.HttpClient", List.of("send", "sendAsync")),
 			Map.entry("java.net.URLConnection", List.of("getOutputStream")),
 			Map.entry("java.net.HttpURLConnection", List.of("getOutputStream")));
@@ -829,8 +853,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 	public static final Map<String, List<String>> METHODS_WHICH_CAN_RECEIVE_FROM_NETWORK = Map.ofEntries(
 			Map.entry("java.net.DatagramSocket", List.of("receive")),
 			Map.entry("java.net.NetMulticastSocket", List.of("receive")),
-			Map.entry("java.nio.channels.DatagramChannel", List.of("receive")),
-			Map.entry("sun.nio.ch.DatagramChannelImpl", List.of("receive")),
+			Map.entry("java.nio.channels.DatagramChannel", List.of("receive", "read")),
+			Map.entry("sun.nio.ch.DatagramChannelImpl", List.of("receive", "read")),
 			Map.entry("java.net.Socket", List.of("getInputStream")),
 			Map.entry("java.net.URLConnection", List.of("getInputStream")),
 			Map.entry("java.net.HttpURLConnection", List.of("getInputStream")));

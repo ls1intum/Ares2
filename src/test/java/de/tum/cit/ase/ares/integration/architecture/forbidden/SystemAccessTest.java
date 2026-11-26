@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.platform.engine.TestExecutionResult;
 import org.junit.platform.testkit.engine.EngineTestKit;
 import org.junit.platform.testkit.engine.Events;
 
@@ -408,6 +409,30 @@ public abstract class SystemAccessTest {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Runs a probe once and expects the static analysis to refuse it for its file
+	 * access. A refusal that carries a message must name that category, so a
+	 * refusal for an import or another rule does not count.
+	 *
+	 * @param clazz      the class holding the probe
+	 * @param methodName the name of the probe method
+	 */
+	protected void assertRefusedStaticallyForFileAccess(Class<?> clazz, String methodName) {
+		Events testEvents = EngineTestKit.engine("junit-jupiter")
+				.configurationParameter("junit.jupiter.conditions.deactivate", "org.junit.*DisabledCondition")
+				.selectors(selectMethod(clazz, methodName)).execute().testEvents();
+		testEvents.assertStatistics(stats -> stats.failed(1).aborted(0).succeeded(0));
+		Throwable thrown = testEvents.failed().stream().findFirst()
+				.flatMap(failure -> failure.getPayload(TestExecutionResult.class))
+				.flatMap(TestExecutionResult::getThrowable).orElseThrow();
+		Assertions.assertTrue(isExpectedDenial(thrown), () -> "The probe did not fail with a refusal: " + thrown);
+		if (thrown instanceof SecurityException) {
+			Assertions.assertTrue(
+					thrown.getMessage().contains("file system") || thrown.getMessage().contains("Dateisystem"),
+					() -> "The refusal does not name the file system:\n" + thrown.getMessage());
+		}
 	}
 
 	/**

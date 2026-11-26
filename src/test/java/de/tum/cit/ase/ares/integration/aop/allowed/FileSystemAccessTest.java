@@ -18,6 +18,7 @@ import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.fil
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.filesDelete.FilesDeleteMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.delete.thirdPartyPackage.DeleteThirdPartyPackageMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.overwrite.bufferedWriter.WriteBufferedWriterMain;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.overwrite.charsetName.WriteCharsetNameMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.overwrite.fileOutputStream.WriteFileOutputStreamMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.overwrite.fileSystemProvider.WriteFileSystemProviderMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.overwrite.fileWrite.WriteFileWriteMain;
@@ -918,6 +919,67 @@ class FileSystemAccessTest {
 		void test_accessFileSystemViaThirdPartyPackageMavenWalaInstrumentation() {
 			assertNoAresSecurityException(
 					() -> WriteThirdPartyPackageMain.accessFileSystemViaThirdPartyPackage(TRUSTED_FILE_CONTENT));
+		}
+		// </editor-fold>
+
+		// <editor-fold desc="Character set names are not paths">
+		/**
+		 * Runs every call that names a character set as a String next to a permitted
+		 * file or an in-memory stream, and expects none of them to be refused.
+		 */
+		private void assertCharsetNamesAreNotPaths() {
+			Assertions.assertAll(
+					() -> assertNoAresSecurityException(
+							() -> WriteCharsetNameMain.formatterWithFileAndCharsetName(TRUSTED_FILE_CONTENT)),
+					() -> assertNoAresSecurityException(
+							() -> WriteCharsetNameMain.formatterWithFileNameAndCharsetName(TRUSTED_FILE_CONTENT)),
+					() -> assertNoAresSecurityException(
+							() -> WriteCharsetNameMain.formatterWithFileAndCharset(TRUSTED_FILE_CONTENT)),
+					() -> assertNoAresSecurityException(WriteCharsetNameMain::formatterWithStreamAndCharsetName),
+					() -> assertNoAresSecurityException(WriteCharsetNameMain::outputStreamWriterWithCharsetName),
+					() -> assertNoAresSecurityException(
+							() -> WriteCharsetNameMain.printWriterWithFileAndCharsetName(TRUSTED_FILE_CONTENT)),
+					() -> assertNoAresSecurityException(WriteCharsetNameMain::inputStreamReaderWithCharsetName),
+					() -> assertNoAresSecurityException(WriteCharsetNameMain::scannerWithCharsetName),
+					() -> assertNoAresSecurityException(WriteCharsetNameMain::formatterWithoutArguments),
+					() -> assertNoAresSecurityException(WriteCharsetNameMain::formatterWithStringBuilder));
+		}
+
+		/**
+		 * Character set names are not checked as paths with ArchUnit and AspectJ.
+		 */
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/charsetName")
+		void test_charsetNamesAreNotPathsMavenArchunitAspectJ() {
+			assertCharsetNamesAreNotPaths();
+		}
+
+		/**
+		 * Character set names are not checked as paths with ArchUnit and
+		 * instrumentation.
+		 */
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/charsetName")
+		void test_charsetNamesAreNotPathsMavenArchunitInstrumentation() {
+			assertCharsetNamesAreNotPaths();
+		}
+
+		/**
+		 * Character set names are not checked as paths with WALA and AspectJ.
+		 */
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/charsetName")
+		void test_charsetNamesAreNotPathsMavenWalaAspectJ() {
+			assertCharsetNamesAreNotPaths();
+		}
+
+		/**
+		 * Character set names are not checked as paths with WALA and instrumentation.
+		 */
+		@PublicTest
+		@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/instrumentation/PolicyOnePathAllowedOverwrite.yaml", withinPath = "test-classes/de/tum/cit/ase/ares/integration/aop/allowed/subject/fileSystem/overwrite/charsetName")
+		void test_charsetNamesAreNotPathsMavenWalaInstrumentation() {
+			assertCharsetNamesAreNotPaths();
 		}
 		// </editor-fold>
 	}

@@ -126,6 +126,67 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     // a delete and is checked against the delete allow-list, not overwrite.
                     call(* java.util.prefs.Preferences+.removeNode(..)));
 
+    // Questions about a file that do not open it. Ares's own AOP code is left out: the
+    // instrumentation classes run on the boot class loader, which cannot see this aspect.
+    pointcut fileInspectMethods():
+            (call(* java.nio.file.Files+.exists(..)) ||
+                    call(* java.nio.file.Files+.notExists(..)) ||
+                    call(* java.nio.file.Files+.isDirectory(..)) ||
+                    call(* java.nio.file.Files+.isRegularFile(..)) ||
+                    call(* java.nio.file.Files+.isSymbolicLink(..)) ||
+                    call(* java.nio.file.Files+.isReadable(..)) ||
+                    call(* java.nio.file.Files+.isWritable(..)) ||
+                    call(* java.nio.file.Files+.isExecutable(..)) ||
+                    call(* java.nio.file.Files+.isHidden(..)) ||
+                    call(* java.nio.file.Files+.isSameFile(..)) ||
+                    call(* java.nio.file.Files+.size(..)) ||
+                    call(* java.nio.file.Files+.getLastModifiedTime(..)) ||
+                    call(* java.nio.file.Files+.getOwner(..)) ||
+                    call(* java.nio.file.Files+.getPosixFilePermissions(..)) ||
+                    call(* java.nio.file.Files+.readAttributes(..)) ||
+                    call(* java.nio.file.Files+.getAttribute(..)) ||
+                    call(* java.nio.file.Files+.getFileAttributeView(..)) ||
+                    call(* java.nio.file.Files+.getFileStore(..)) ||
+                    call(* java.nio.file.Files+.readSymbolicLink(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.checkAccess(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.exists(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.readAttributes(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.readAttributesIfExists(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.getFileAttributeView(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.getFileStore(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.isHidden(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.isSameFile(..)) ||
+                    call(* java.nio.file.spi.FileSystemProvider+.readSymbolicLink(..)) ||
+                    call(* java.io.File+.exists(..)) ||
+                    call(* java.io.File+.isFile(..)) ||
+                    call(* java.io.File+.isDirectory(..)) ||
+                    call(* java.io.File+.isHidden(..)) ||
+                    call(* java.io.File+.length(..)) ||
+                    call(* java.io.File+.lastModified(..)) ||
+                    call(* java.io.File+.canRead(..)) ||
+                    call(* java.io.File+.canWrite(..)) ||
+                    call(* java.io.File+.canExecute(..)) ||
+                    call(* java.io.File+.getFreeSpace(..)) ||
+                    call(* java.io.File+.getTotalSpace(..)) ||
+                    call(* java.io.File+.getUsableSpace(..)) ||
+                    // FileSystemView asks these inside the JDK, which is not woven, so the
+                    // call itself is checked against the file it is given.
+                    call(* javax.swing.filechooser.FileSystemView+.isRoot(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.isTraversable(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.getSystemDisplayName(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.getSystemTypeDescription(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.getSystemIcon(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.isFileSystem(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.isHiddenFile(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.isFileSystemRoot(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.isDrive(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.isFloppyDrive(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.isComputerNode(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.getParentDirectory(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.isLink(..)) ||
+                    call(* javax.swing.filechooser.FileSystemView+.getLinkLocation(..)))
+            && !within(de.tum.cit.ase.ares.api.aop..*);
+
     pointcut fileInputStreamInitMethods(): call(java.io.FileInputStream+.new(..));
 
     pointcut fileOutputStreamInitMethods(): call(java.io.FileOutputStream+.new(..));
@@ -181,6 +242,7 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
                     call(* java.nio.file.Files+.newByteChannel(..)) ||
                     call(* java.nio.file.Files+.newDirectoryStream(..)) ||
                     call(* java.nio.file.Files+.newInputStream(..)) ||
+                    call(* java.nio.file.Files+.probeContentType(..)) ||
                     call(* java.nio.file.Files+.readAllBytes(..)) ||
                     call(* java.nio.file.Files+.readAllLines(..)) ||
                     call(* java.nio.file.Files+.readString(..)) ||

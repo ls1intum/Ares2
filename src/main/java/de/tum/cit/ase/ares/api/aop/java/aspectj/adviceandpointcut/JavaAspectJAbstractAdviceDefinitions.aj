@@ -438,7 +438,7 @@ public abstract aspect JavaAspectJAbstractAdviceDefinitions {
 	@Nonnull
 	static String localizeAction(@Nonnull String action) {
 		return switch (action) {
-		case "read", "overwrite", "create", "delete", "execute", "connect", "send", "receive", "manipulate" ->
+		case "read", "overwrite", "create", "delete", "execute", "inspect", "connect", "send", "receive", "manipulate" ->
 			localize("security.advice.action." + action);
 		default -> action;
 		};

@@ -55,7 +55,10 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	 * exempted from ignore rules during network system checks.
 	 */
 	@Nonnull
-	private static final Map<String, IgnoreValues> NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries();
+	private static final Map<String, IgnoreValues> NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT = Map.ofEntries(
+			// DatagramSocket(), (int), (int, InetAddress), (SocketAddress): every argument
+			// names where the socket binds locally, never a peer, and the policy names peers
+			Map.entry("java.net.DatagramSocket.<init>", IgnoreValues.ALL));
 
 	// </editor-fold>
 
@@ -759,25 +762,19 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 	// <editor-fold desc="Check methods">
 
 	/**
-	 * Performs the security validation for a single network action.
-	 * <p>
-	 * Description: Resolves the allowed hosts and ports for the given action, then
-	 * evaluates method parameters, the receiver instance, and instance attributes
-	 * against the whitelist. Throws {@link SecurityException} if a policy violation
-	 * is detected.
+	 * Checks one network action of a call against the hosts and ports the policy
+	 * permits, skipping local arguments such as a bind address.
 	 *
-	 * @param action              the concrete network action under inspection
-	 * @param fullMethodSignature human-readable method signature for diagnostics
-	 * @param declaringTypeName   fully qualified declaring type name
-	 * @param methodName          method being intercepted
-	 * @param parameters          intercepted method arguments
-	 * @param attributes          instance attributes (if any)
-	 * @param instance            instance on which the method is invoked
-	 * @param networkSystemMethodToCheck offending method discovered in the restricted call stack
-	 * @param studentCalledMethod external method initiating the restricted call (may be null)
-	 * @throws SecurityException if the interaction violates configured policies
-	 * @since 2.0.0
-	 * @author Kevin Fischer
+	 * @param action                     the action
+	 * @param thisJoinPoint              the join point
+	 * @param fullMethodSignature        the signature
+	 * @param declaringTypeName          the class
+	 * @param methodName                 the method
+	 * @param parameters                 the arguments
+	 * @param attributes                 receiver fields
+	 * @param instance                   the receiver
+	 * @param networkSystemMethodToCheck the student method
+	 * @param studentCalledMethod        its callee
 	 */
 	private static void checkNetworkSystemInteractionForAction(@Nonnull String action,
 			@Nonnull JoinPoint thisJoinPoint, @Nonnull String fullMethodSignature, @Nonnull String declaringTypeName,
@@ -807,11 +804,15 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 		boolean noAllowRuleConfigured = allowedHosts == null || allowedHosts.length == 0 || allowedPorts == null || allowedPorts.length == 0;
 		// </editor-fold>
 		// <editor-fold desc="Check parameters">
-		final boolean hasParameters = parameters != null && parameters.length > 0;
-		@Nonnull
-		final java.util.BitSet consumedParameterIndices = new java.util.BitSet(hasParameters ? parameters.length : 0);
 		@Nullable
-		NetworkTarget targetFromParameters = hasParameters ? parametersToTarget(parameters, consumedParameterIndices)
+		final Object[] peerParameters = parameters == null ? null
+				: filterVariables(parameters, NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT
+						.getOrDefault(declaringTypeName + "." + methodName, IgnoreValues.NONE));
+		final boolean hasParameters = peerParameters != null && peerParameters.length > 0;
+		@Nonnull
+		final java.util.BitSet consumedParameterIndices = new java.util.BitSet(hasParameters ? peerParameters.length : 0);
+		@Nullable
+		NetworkTarget targetFromParameters = hasParameters ? parametersToTarget(peerParameters, consumedParameterIndices)
 				: null;
 		if (targetFromParameters != null && checkIfNetworkIsForbidden(targetFromParameters, allowedHosts, allowedPorts)) {
 			throw new SecurityException(localize(
@@ -831,19 +832,18 @@ public aspect JavaAspectJNetworkSystemAdviceDefinitions extends JavaAspectJAbstr
 		@Nullable
 		final Object[] residualParameters;
 		if (!hasParameters || consumedParameterIndices.isEmpty()) {
-			residualParameters = parameters;
+			residualParameters = peerParameters;
 		} else {
-			residualParameters = new Object[parameters.length];
-			for (int i = 0; i < parameters.length; i++) {
-				residualParameters[i] = consumedParameterIndices.get(i) ? null : parameters[i];
+			residualParameters = new Object[peerParameters.length];
+			for (int i = 0; i < peerParameters.length; i++) {
+				residualParameters[i] = consumedParameterIndices.get(i) ? null : peerParameters[i];
 			}
 		}
 		@Nullable
 		String networkIllegallyInteractedThroughParameter = (residualParameters == null
 				|| residualParameters.length == 0) ? null
 						: checkIfVariableCriteriaIsViolated(residualParameters, allowedHosts, allowedPorts,
-								NETWORK_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(declaringTypeName + "." + methodName,
-										IgnoreValues.NONE));
+								IgnoreValues.NONE);
 		if (networkIllegallyInteractedThroughParameter != null) {
 			throw new SecurityException(localize(
 					"security.advice.illegal.network.execution",

@@ -119,25 +119,46 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			// PrintStream(OutputStream|File|String, [boolean], [String charset]) - keep
 			// only index 0 (the sink); a charset name like "UTF-8" is not a path.
 			Map.entry("java.io.PrintStream.<init>", IgnoreValues.allExcept(0)),
+			// Formatter, OutputStreamWriter, PrintWriter, InputStreamReader, Scanner: every
+			// public constructor takes the sink or source at index 0 and after it only a
+			// charset name, Charset, coder, Locale or boolean, so a name like "UTF-8" is
+			// never read as a path.
+			Map.entry("java.util.Formatter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.io.OutputStreamWriter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.io.PrintWriter.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.io.InputStreamReader.<init>", IgnoreValues.allExcept(0)),
+			Map.entry("java.util.Scanner.<init>", IgnoreValues.allExcept(0)),
 			// FileSystemView.getChild(File dir, String name) and isParent(File dir, File
 			// file) list dir; only dir is checked, the name is not a path and the file is
 			// not listed.
 			Map.entry("javax.swing.filechooser.FileSystemView.getChild", IgnoreValues.allExcept(0)),
-			Map.entry("javax.swing.filechooser.FileSystemView.isParent", IgnoreValues.allExcept(0)));
+			Map.entry("javax.swing.filechooser.FileSystemView.isParent", IgnoreValues.allExcept(0)),
+			// getSystemIcon(File, int, int): only the file, the two sizes are not paths
+			Map.entry("javax.swing.filechooser.FileSystemView.getSystemIcon", IgnoreValues.allExcept(0)),
+			// readAttributes, getAttribute, getFileAttributeView: the path first, then
+			// only an attribute name such as "basic:size", a class or link options
+			Map.entry("java.nio.file.Files.readAttributes", IgnoreValues.allExcept(0)),
+			Map.entry("java.nio.file.Files.getAttribute", IgnoreValues.allExcept(0)),
+			Map.entry("java.nio.file.Files.getFileAttributeView", IgnoreValues.allExcept(0)),
+			Map.entry("java.nio.file.spi.FileSystemProvider.readAttributes", IgnoreValues.allExcept(0)),
+			Map.entry("java.nio.file.spi.FileSystemProvider.readAttributesIfExists", IgnoreValues.allExcept(0)),
+			Map.entry("java.nio.file.spi.FileSystemProvider.getFileAttributeView", IgnoreValues.allExcept(0)));
 
 	/**
-	 * The JDK class whose subclasses share its argument rules. A call on a
-	 * subclass of it, a student's own included, that has no rule of its own is
-	 * read with the rule of the method it inherits, so a child name is never taken
-	 * for a path.
+	 * The JDK classes whose subclasses share their argument rules. A call on a
+	 * subclass of one, a student's own included, that has no rule of its own is
+	 * read with the rule of the method it inherits, so an attribute or child name
+	 * is never taken for a path.
 	 */
 	@Nonnull
-	private static final String FILE_SYSTEM_VIEW = "javax.swing.filechooser.FileSystemView";
+	private static final List<String> CLASSES_SHARING_ARGUMENT_RULES = List.of("javax.swing.filechooser.FileSystemView",
+			"java.nio.file.spi.FileSystemProvider");
 
 	/**
 	 * Returns which arguments of a call are checked as paths. The exact rule wins;
-	 * a receiver whose class extends FileSystemView falls back to that class's
-	 * rule, found by comparing class names, so no desktop class is loaded.
+	 * a receiver whose class extends one of
+	 * {@link #CLASSES_SHARING_ARGUMENT_RULES} falls back to that class's rule,
+	 * found by comparing class names, so no desktop class is loaded.
 	 *
 	 * @param methodKey  the called method as declaring type and name
 	 * @param methodName the called method's name
@@ -152,27 +173,29 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		if (exact != null) {
 			return exact;
 		}
-		if (instance == null || !extendsFileSystemView(instance.getClass())) {
+		@Nullable
+		String sharingClass = instance == null ? null : classSharingArgumentRules(instance.getClass());
+		if (sharingClass == null) {
 			return IgnoreValues.NONE;
 		}
-		return FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(FILE_SYSTEM_VIEW + "." + methodName,
-				IgnoreValues.NONE);
+		return FILE_SYSTEM_IGNORE_PARAMETERS_EXCEPT.getOrDefault(sharingClass + "." + methodName, IgnoreValues.NONE);
 	}
 
 	/**
-	 * Tells whether a class is FileSystemView or extends it, by name, walking up
-	 * the superclasses.
+	 * Names the class of {@link #CLASSES_SHARING_ARGUMENT_RULES} a class is or
+	 * extends, by name, walking up the superclasses.
 	 *
 	 * @param type the receiver's class
-	 * @return whether FileSystemView is among its classes
+	 * @return that class's name, or {@code null} if it extends none of them
 	 */
-	private static boolean extendsFileSystemView(@Nonnull Class<?> type) {
+	@Nullable
+	private static String classSharingArgumentRules(@Nonnull Class<?> type) {
 		for (Class<?> current = type; current != null; current = current.getSuperclass()) {
-			if (FILE_SYSTEM_VIEW.equals(current.getName())) {
-				return true;
+			if (CLASSES_SHARING_ARGUMENT_RULES.contains(current.getName())) {
+				return current.getName();
 			}
 		}
-		return false;
+		return null;
 	}
 
 	/**
@@ -1646,6 +1669,67 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
+	 * The settings holding the paths each file rule permits. A question about a
+	 * file is permitted below any of them, whichever action the rule permits.
+	 */
+	@Nonnull
+	private static final List<String> FILE_RULE_SETTINGS = List.of("pathsAllowedToBeRead",
+			"pathsAllowedToBeOverwritten", "pathsAllowedToBeCreated", "pathsAllowedToBeExecuted",
+			"pathsAllowedToBeDeleted");
+
+	/**
+	 * Collects every path any file rule of the policy names.
+	 *
+	 * @return the paths, empty when the policy has no file rule
+	 */
+	@Nonnull
+	private static String[] inspectablePaths() {
+		List<String> paths = new ArrayList<>();
+		for (String setting : FILE_RULE_SETTINGS) {
+			@Nullable
+			String[] permitted = getValueFromSettings(setting);
+			if (permitted != null) {
+				Collections.addAll(paths, permitted);
+			}
+		}
+		return paths.toArray(new String[0]);
+	}
+
+	/**
+	 * Checks a question about a file, such as whether it exists, against every
+	 * path a file rule names. Each argument and the receiver are checked on their
+	 * own. The JDK's own files and the Maven archives stay answerable.
+	 *
+	 * @param methodName          the method
+	 * @param parameters          the arguments
+	 * @param instance            the receiver
+	 * @param systemMethodToCheck the student method
+	 * @param studentCalledMethod the method it called
+	 * @param fullMethodSignature the full signature
+	 * @param thisJoinPoint       the join point
+	 */
+	private static void checkInspection(@Nonnull String methodName, @Nonnull Object[] parameters,
+			@Nullable Object instance, @Nonnull String systemMethodToCheck, @Nullable String studentCalledMethod,
+			@Nonnull String fullMethodSignature, @Nonnull JoinPoint thisJoinPoint) {
+		String[] inspectablePaths = inspectablePaths();
+		List<Object> observed = new ArrayList<>();
+		Collections.addAll(observed, filterVariables(parameters,
+				parameterIgnoreValues(extractMethodNameWithoutModifiers(fullMethodSignature), methodName, instance)));
+		if (instance != null) {
+			observed.add(instance);
+		}
+		for (Object variable : observed) {
+			@Nullable
+			String violation = extractViolationPath(variable, inspectablePaths, false);
+			if (violation != null && !isPathWithin(violation, TRUSTED_JAVA_HOME) && !isSystemJarReadExempt(violation)) {
+				throw new SecurityException(localize("security.advice.illegal.file.execution", systemMethodToCheck,
+						localizeAction("inspect"), violation, describeDeniedCall(thisJoinPoint, fullMethodSignature)
+								+ describeCaller(studentCalledMethod) + " | " + buildDenialReason(inspectablePaths.length == 0)));
+			}
+		}
+	}
+
+	/**
 	 * Performs the file check behind {@link #checkFileSystemInteraction}, which calls it
 	 * only for the outermost advice on a thread. Throws a {@link SecurityException}
 	 * naming the blocked file operation when the policy forbids it.
@@ -1722,6 +1806,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
+		if ("inspect".equals(action)) {
+			checkInspection(methodName, parameters, instance, systemMethodToCheck, studentCalledMethod,
+					fullMethodSignature, thisJoinPoint);
+			return;
+		}
 		if (checkCopyOrTransferSpecialCase(action, declaringTypeName, methodName, parameters, instance,
 				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint)) {
 			return;
@@ -1901,6 +1990,11 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.objectStreamClassMethods() ||
 					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileSystemProviderExecuteMethods() {
 		checkFileSystemInteraction("execute", thisJoinPoint);
+	}
+
+	before():
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJFileSystemPointcutDefinitions.fileInspectMethods() {
+		checkFileSystemInteraction("inspect", thisJoinPoint);
 	}
 
 	before():
