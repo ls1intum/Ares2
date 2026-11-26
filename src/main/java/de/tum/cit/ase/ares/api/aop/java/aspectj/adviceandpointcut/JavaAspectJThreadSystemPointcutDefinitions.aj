@@ -56,6 +56,29 @@ package de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut;
             call(* java.util.Arrays.parallelSetAll(..))
             ) && !within(de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite);
 
+    // The pool calls that hand over a batch of tasks: checked on a copy, which the pool then runs.
+    pointcut taskBatchCalls(): (
+            call(* java.util.concurrent.ExecutorService+.invokeAll(..)) ||
+            call(* java.util.concurrent.ExecutorService+.invokeAny(..))
+            ) && !within(de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite);
+
+    // The pool calls that hand over one task: the task stays validated for the call.
+    pointcut taskHandingCalls(): (
+            call(* java.util.concurrent.Executor+.execute(..)) ||
+            call(* java.util.concurrent.ExecutorService+.submit(..)) ||
+            call(* java.util.concurrent.ScheduledExecutorService+.schedule(..)) ||
+            call(* java.util.concurrent.ScheduledExecutorService+.scheduleAtFixedRate(..)) ||
+            call(* java.util.concurrent.ScheduledExecutorService+.scheduleWithFixedDelay(..)) ||
+            call(* java.util.concurrent.ExecutorCompletionService+.submit(..))
+            ) && !within(de.tum.cit.ase.ares.api.aop.java.instrumentation.advice.JavaInstrumentationThreadSystemCallSite);
+
+    // A pool of the supervised code that wraps the tasks it is given itself.
+    pointcut taskWrappingHooks(): execution(* java.util.concurrent.AbstractExecutorService+.newTaskFor(..));
+
+    // A scheduled pool of the supervised code that replaces the JDK's scheduled task.
+    pointcut scheduledTaskDecorationHooks(Object given):
+            execution(* java.util.concurrent.ScheduledThreadPoolExecutor+.decorateTask(..)) && args(*, given);
+
     pointcut threadCreateMethodsWithoutParameters(): (
             call(* java.lang.Thread+.start()) ||
             call(* java.util.Collection+.parallelStream()) ||
