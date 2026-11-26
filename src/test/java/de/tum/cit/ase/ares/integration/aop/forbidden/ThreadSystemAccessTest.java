@@ -10,6 +10,7 @@ import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.completableFuture.CreateCompletableFutureMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.executorService.CreateExecutorServiceMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.forkJoinPool.CreateForkJoinPoolMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.methodReference.CreateThreadThroughMethodReferenceMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.record.CreateThreadFromRecordMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.scheduledExecutorService.CreateScheduledExecutorServiceMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.thread.CreateThreadMain;
@@ -23,6 +24,9 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 
 	private static final String THREAD_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/thread";
 	private static final String RECORD_THREAD_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/record";
+
+	/** Folder of the student code starting a thread through a method reference. */
+	private static final String METHOD_REFERENCE_THREAD_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/methodReference";
 	private static final String THREAD_MANIPULATION_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/manipulate/thread";
 	private static final String EXECUTOR_SERVICE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/executorService";
 	private static final String SCHEDULED_EXECUTOR_SERVICE_WITHIN_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/scheduledExecutorService";
@@ -94,26 +98,28 @@ class ThreadSystemAccessTest extends SystemAccessTest {
 
 	/**
 	 * A thread started through a method reference, from a class the JDK generates,
-	 * is still refused. Instrumentation only: AspectJ cannot check a call inside a
-	 * class the JDK generates, so it has no counterpart here.
+	 * is still refused while the code runs. AspectJ cannot check that call, so
+	 * under AspectJ the static check refuses the reference instead; see
+	 * architecture.forbidden.ThreadSystemAccessTest.
 	 */
 	@PublicTest
-	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = RECORD_THREAD_WITHIN_PATH)
+	@Policy(value = ARCHUNIT_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = METHOD_REFERENCE_THREAD_WITHIN_PATH)
 	public void test_methodReferenceStartsThreadMavenArchunitInstrumentation() {
-		assertAresSecurityExceptionThread(CreateThreadFromRecordMain::startThreadThroughMethodReference,
-				CreateThreadFromRecordMain.class);
+		assertAresSecurityExceptionThread(CreateThreadThroughMethodReferenceMain::startThreadThroughMethodReference,
+				CreateThreadThroughMethodReferenceMain.class);
 	}
 
 	/**
 	 * A thread started through a method reference, from a class the JDK generates,
-	 * is still refused. Instrumentation only: AspectJ cannot check a call inside a
-	 * class the JDK generates, so it has no counterpart here.
+	 * is still refused while the code runs. AspectJ cannot check that call, so
+	 * under AspectJ the static check refuses the reference instead; see
+	 * architecture.forbidden.ThreadSystemAccessTest.
 	 */
 	@PublicTest
-	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = RECORD_THREAD_WITHIN_PATH)
+	@Policy(value = WALA_INSTRUMENTATION_POLICY_ONE_THREAD_ALLOWED_CREATION, withinPath = METHOD_REFERENCE_THREAD_WITHIN_PATH)
 	public void test_methodReferenceStartsThreadMavenWalaInstrumentation() {
-		assertAresSecurityExceptionThread(CreateThreadFromRecordMain::startThreadThroughMethodReference,
-				CreateThreadFromRecordMain.class);
+		assertAresSecurityExceptionThread(CreateThreadThroughMethodReferenceMain::startThreadThroughMethodReference,
+				CreateThreadThroughMethodReferenceMain.class);
 	}
 
 	// </editor-fold>

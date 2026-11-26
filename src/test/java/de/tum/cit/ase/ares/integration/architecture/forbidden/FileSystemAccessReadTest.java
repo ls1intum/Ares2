@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.archive.StudentJarFile;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.oldMethods.files.FilesReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.oldMethods.reader.fileReader.FileReaderReadMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.fileSystem.read.oldMethods.thirdPartyPackage.ReadThirdPartyPackageMain;
@@ -499,4 +500,44 @@ public class FileSystemAccessReadTest extends SystemAccessTest {
 	public void test_accessFileSystemViaFilesLinesCharsetMavenWalaInstrumentation() {
 		assertAresSecurityExceptionRead(FilesReadMain::accessFileSystemViaFilesLinesCharset, FilesReadMain.class);
 	}
+
+	// <editor-fold desc="archive subclass">
+	/** Folder of the student archive subclasses. */
+	private static final String ARCHIVE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/archive";
+
+	/**
+	 * Under AspectJ, a student class extending an archive is refused before the
+	 * test runs, even though the policy allows a read: the archive constructor it
+	 * reaches through super(...) is a call AspectJ could not check.
+	 */
+	@Test
+	void test_archiveSubclassMavenArchunitAspectJ_test() {
+		executeTestAndExpectSecurityException(FileSystemAccessReadTest.class,
+				"test_archiveSubclassMavenArchunitAspectJ");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = ARCHIVE_PATH)
+	void test_archiveSubclassMavenArchunitAspectJ() throws java.io.IOException {
+		new StudentJarFile(java.nio.file.Path.of("archive.jar")).close();
+	}
+
+	/**
+	 * Under AspectJ, a student class extending an archive is refused before the
+	 * test runs, even though the policy allows a read: the archive constructor it
+	 * reaches through super(...) is a call AspectJ could not check.
+	 */
+	@Test
+	void test_archiveSubclassMavenWalaAspectJ_test() {
+		executeTestAndExpectSecurityException(FileSystemAccessReadTest.class, "test_archiveSubclassMavenWalaAspectJ");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOnePathAllowedRead.yaml", withinPath = ARCHIVE_PATH)
+	void test_archiveSubclassMavenWalaAspectJ() throws java.io.IOException {
+		new StudentJarFile(java.nio.file.Path.of("archive.jar")).close();
+	}
+	// </editor-fold>
 }

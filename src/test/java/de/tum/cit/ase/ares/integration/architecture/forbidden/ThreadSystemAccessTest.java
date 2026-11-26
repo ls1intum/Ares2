@@ -11,6 +11,7 @@ import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.completableFuture.CreateCompletableFutureMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.executorService.CreateExecutorServiceMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.forkJoinPool.CreateForkJoinPoolMain;
+import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.methodReference.CreateThreadThroughMethodReferenceMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.parallelStream.CreateParallelStreamMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.scheduledExecutorService.CreateScheduledExecutorServiceMain;
 import de.tum.cit.ase.ares.integration.aop.forbidden.subject.threadSystem.create.thread.CreateThreadMain;
@@ -1544,6 +1545,47 @@ public class ThreadSystemAccessTest extends SystemAccessTest {
 	void test_notifyThreadMavenWalaInstrumentation_test() {
 		executeTestAndExpectSecurityException(ThreadSystemAccessTest.class,
 				"test_notifyThreadMavenWalaInstrumentation");
+	}
+
+	// </editor-fold>
+	// <editor-fold desc="startThreadThroughMethodReference()">
+	/** Folder of the student code starting a thread through a method reference. */
+	private static final String METHOD_REFERENCE_PATH = "test-classes/de/tum/cit/ase/ares/integration/aop/forbidden/subject/threadSystem/create/methodReference";
+
+	/**
+	 * Under AspectJ, a thread started through a method reference is refused before
+	 * the test runs, even though the policy allows one thread: AspectJ could not
+	 * check that start while the code runs.
+	 */
+	@Test
+	void test_startThreadThroughMethodReferenceMavenArchunitAspectJ_test() {
+		executeTestAndExpectSecurityException(ThreadSystemAccessTest.class,
+				"test_startThreadThroughMethodReferenceMavenArchunitAspectJ");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/archunit/aspectj/PolicyOneThreadAllowedCreate.yaml", withinPath = METHOD_REFERENCE_PATH)
+	void test_startThreadThroughMethodReferenceMavenArchunitAspectJ() {
+		CreateThreadThroughMethodReferenceMain.startThreadThroughMethodReference();
+	}
+
+	/**
+	 * Under AspectJ, a thread started through a method reference is refused before
+	 * the test runs, even though the policy allows one thread: AspectJ could not
+	 * check that start while the code runs.
+	 */
+	@Test
+	void test_startThreadThroughMethodReferenceMavenWalaAspectJ_test() {
+		executeTestAndExpectSecurityException(ThreadSystemAccessTest.class,
+				"test_startThreadThroughMethodReferenceMavenWalaAspectJ");
+	}
+
+	@Disabled(SUBJECT_PROBE_REASON)
+	@PublicTest
+	@Policy(value = "src/test/resources/de/tum/cit/ase/ares/integration/testuser/securitypolicies/java/maven/wala/aspectj/PolicyOneThreadAllowedCreate.yaml", withinPath = METHOD_REFERENCE_PATH)
+	void test_startThreadThroughMethodReferenceMavenWalaAspectJ() {
+		CreateThreadThroughMethodReferenceMain.startThreadThroughMethodReference();
 	}
 	// </editor-fold>
 }
