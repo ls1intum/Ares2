@@ -203,6 +203,7 @@ Read APIs listed below access file contents or metadata without modifying them.
 | java.nio.file.Files | newByteChannel | ✅ | ✅ |
 | java.nio.file.Files | newInputStream | ✅ | ✅ |
 | java.nio.file.Files | readAllBytes | ✅ | ✅ |
+| java.nio.file.spi.FileSystemProvider | copy (the source; the target counts as created, or as overwritten when replaced) | ✅ | ✅ |
 | java.lang.ClassLoader | getResourceAsStream | ✅ | ✅ |
 
 **Reads UTF-8 text/tokens fully**
