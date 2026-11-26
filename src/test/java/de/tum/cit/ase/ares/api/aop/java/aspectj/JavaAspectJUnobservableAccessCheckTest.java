@@ -522,6 +522,35 @@ class JavaAspectJUnobservableAccessCheckTest {
 				() -> JavaAspectJUnobservableAccessCheck.requireObservable(shifting, List.of(), FILES, List.of()));
 	}
 
+	/**
+	 * A FileHandler subclass calling super() is refused: that constructor opens the
+	 * configured log file, and the check of new sees no path to judge.
+	 */
+	@Test
+	void aFileHandlerSuperConstructorWithoutArgumentsIsRefused() throws IOException {
+		JavaClasses classes = compile("Log", """
+				public class Log extends java.util.logging.FileHandler {
+					public Log() throws java.io.IOException { super(); }
+				}
+				""");
+		assertTrue(refused(classes, FILES).getMessage().contains("java.util.logging.FileHandler.<init>()"));
+	}
+
+	/**
+	 * An exception subclass calling a listed exception constructor without
+	 * arguments through super() passes: an exception opens nothing.
+	 */
+	@Test
+	void anExceptionSuperConstructorWithoutArgumentsPasses() throws IOException {
+		JavaClasses classes = compile("Refused", """
+				public class Refused extends java.net.ConnectException {
+					public Refused() { super(); }
+				}
+				""");
+		assertDoesNotThrow(
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), NETWORK, NETWORK));
+	}
+
 	/** A constructor reference to a socket is refused with the network list. */
 	@Test
 	void aSocketConstructorReferenceIsRefused() throws IOException {

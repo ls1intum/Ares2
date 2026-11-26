@@ -56,6 +56,17 @@ public final class JavaAspectJUnobservableAccessCheck {
 	@Nonnull
 	private static final Set<String> DESCRIPTOR_NAMES = Set.of("package-info", "module-info");
 
+	/**
+	 * Listed classes whose constructor without arguments opens nothing: a reader or
+	 * writer without a source, and a socket not yet connected, whose connect is a
+	 * call AspectJ checks. Any other listed constructor without arguments, such as
+	 * the one of FileHandler that opens the configured log file, is refused through
+	 * super() too.
+	 */
+	@Nonnull
+	private static final Set<String> INERT_WITHOUT_ARGUMENTS = Set.of("java.io.Reader", "java.io.Writer",
+			"java.net.Socket");
+
 	/** Prevents creating instances of this utility class. */
 	private JavaAspectJUnobservableAccessCheck() {
 		throw new SecurityException(
@@ -159,8 +170,8 @@ public final class JavaAspectJUnobservableAccessCheck {
 
 	/**
 	 * Refuses a call of a class through {@code super} to a listed method, and a
-	 * {@code super(...)} constructor call with arguments to a listed constructor. A
-	 * constructor without arguments opens nothing it could be told to open.
+	 * {@code super(...)} call to a listed constructor, unless it is one without
+	 * arguments that opens nothing, see {@link #opensNothing}.
 	 *
 	 * @param javaClass   the class to look at
 	 * @param hierarchy   the type hierarchy of this run
@@ -173,7 +184,7 @@ public final class JavaAspectJUnobservableAccessCheck {
 			@Nonnull Set<String> referenced, @Nonnull Set<String> constructed) {
 		for (SuperCall call : hierarchy.callsOf(javaClass).superCalls()) {
 			boolean constructor = "<init>".equals(call.name());
-			if (constructor && call.parameterTypes().isEmpty()) {
+			if (constructor && call.parameterTypes().isEmpty() && opensNothing(call.owner(), hierarchy)) {
 				continue;
 			}
 			Optional<String> listed = firstListed(call.owner(), call.name(), call.parameterTypes(), hierarchy,
@@ -186,6 +197,20 @@ public final class JavaAspectJUnobservableAccessCheck {
 								javaClass.getName(), listed.get()));
 			}
 		}
+	}
+
+	/**
+	 * Whether the constructor without arguments of a class opens nothing: one of
+	 * {@link #INERT_WITHOUT_ARGUMENTS}, or an exception, which holds only a
+	 * message.
+	 *
+	 * @param ownerName the binary name of the class
+	 * @param hierarchy the type hierarchy of this run
+	 * @return {@code true} if a super() call to it needs no check
+	 */
+	private static boolean opensNothing(@Nonnull String ownerName, @Nonnull Hierarchy hierarchy) {
+		return INERT_WITHOUT_ARGUMENTS.contains(ownerName)
+				|| hierarchy.ownerAndSupertypes(ownerName).contains("java.lang.Throwable");
 	}
 
 	/**
