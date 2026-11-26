@@ -112,9 +112,10 @@ does. That holds for every way of writing, from `Files.writeString` and `FileWri
 file with its content, and `overwriteAllFiles` alone lets it replace an existing file but not
 make one. `CREATE_NEW` always needs `createAllFiles`, and writing without `CREATE` always needs
 `overwriteAllFiles`. A later write through a file that is already open, such as
-`FileChannel.write`, needs `overwriteAllFiles`. `createAllFiles` is enough only for a file the
-code created through an opening that Ares checked. A channel the test class opened on an existing
-file still needs `overwriteAllFiles`.
+`FileChannel.write`, needs `overwriteAllFiles`. `createAllFiles` is enough only where the code
+created the file through an opening that Ares checked, and only through what that opening
+returned. A channel the test class opened still needs `overwriteAllFiles`. Ares refuses a write
+through a link that points to a missing file.
 
 **A class-path resource is read from where the build put it.** Ares checks
 `Class.getResourceAsStream` and `ClassLoader.getResourceAsStream` as a read of the file that

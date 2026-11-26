@@ -19,12 +19,11 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -304,7 +303,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * Tells whether a path lies outside every allowed path. A missing or empty
 	 * allow-list allows nothing, so every path is forbidden; a {@code *} entry
 	 * allows everything. Links are resolved first, so a link cannot lead out of an
-	 * allowed folder.
+	 * allowed folder, and an entry that exists but cannot be resolved, such as a
+	 * link to a missing file, is forbidden.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -341,13 +341,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				// Do NOT use NOFOLLOW_LINKS here - we want to follow symlinks to see the real
 				// target
 				candidate = actualPath.toRealPath();
-			} catch (IOException e) {
-				// If we can't resolve the real path for an existing file, fail secure
-				if (!allowNonExistingPathsToBeConsidered) {
-					return true;
-				}
-				// Fall back to normalized absolute path if real path resolution fails
-				candidate = actualPath.normalize().toAbsolutePath();
+			} catch (IOException unresolved) {
+				return true;
 			}
 		} else {
 			// For non-existing targets, resolve symlinks in the deepest existing ancestor
@@ -923,61 +918,205 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
-	 * The files a checked and allowed opening of supervised code created, by their
-	 * real absolute path. A handle the code did not open this way, such as one the
-	 * test class opened on an existing file, gets no create allowance through it.
+	 * The new file whose opening Ares allowed on this thread, by its real absolute
+	 * path, until that opening returns or fails.
 	 */
 	@Nonnull
-	private static final Set<String> FILES_CREATED_UNDER_CHECK = Collections.synchronizedSet(new HashSet<>());
+	private static final ThreadLocal<String> ALLOWED_CREATION = new ThreadLocal<>();
 
 	/**
-	 * Remembers the files an opening creates, once Ares checked and allowed it:
-	 * each path argument that names no existing file yet.
+	 * The open files whose opening Ares allowed as the creation of a new file, held
+	 * weakly. Only such a handle gets the create allowance for a write through it,
+	 * so a handle the test class opened needs the overwrite rule.
+	 */
+	@Nonnull
+	private static final Map<Object, Boolean> HANDLES_CREATED_UNDER_CHECK = new WeakHashMap<>();
+
+	/**
+	 * The create rules the remembered handles belong to. Arming a policy or
+	 * resetting it sets new rules, and the handles are then forgotten.
+	 */
+	@Nullable
+	private static Object handlesPolicy;
+
+	/**
+	 * Notes the file an allowed opening is about to create: the first path argument
+	 * that names nothing yet, not even a link.
 	 *
 	 * @param parameters      the call arguments
 	 * @param ignoreVariables the arguments that name no file
 	 */
-	private static void rememberCreatedFiles(@Nullable Object[] parameters, @Nonnull IgnoreValues ignoreVariables) {
+	static void noteAllowedCreation(@Nullable Object[] parameters, @Nonnull IgnoreValues ignoreVariables) {
 		if (parameters == null || parameters.length == 0) {
 			return;
 		}
 		for (Object parameter : filterVariables(parameters, ignoreVariables)) {
 			FileTarget target = variableToTarget(parameter, true);
 			if (target != null && !Files.exists(target.path(), LinkOption.NOFOLLOW_LINKS)) {
-				FILES_CREATED_UNDER_CHECK
-						.add(resolveExistingAncestorRealPath(target.path().normalize().toAbsolutePath()).toString());
+				ALLOWED_CREATION
+						.set(resolveExistingAncestorRealPath(target.path().normalize().toAbsolutePath()).toString());
+				return;
 			}
 		}
 	}
 
 	/**
-	 * Returns the paths a write through an open file may reach: those the policy
-	 * lets be overwritten, and the files a checked opening created that a create
-	 * rule still covers.
+	 * Remembers the handle an opening returned, if Ares allowed that opening on
+	 * this thread to create the very file the handle has open. A failed opening
+	 * only drops the note, so it grants nothing.
 	 *
-	 * @return the paths, or the overwrite list as it is if no created file is
-	 *         covered
+	 * @param handle the returned handle or the new object, or {@code null}
+	 * @param failed whether the opening threw
+	 */
+	public static void rememberCreatedHandle(@Nullable Object handle, boolean failed) {
+		@Nullable
+		String created = ALLOWED_CREATION.get();
+		if (created == null) {
+			return;
+		}
+		if (!enterAdvice()) {
+			return;
+		}
+		try {
+			ALLOWED_CREATION.remove();
+			if (failed || !isFileHandle(handle)) {
+				return;
+			}
+			Path handlePath = openFilePath(handle);
+			if (handlePath == null || !created.equals(realPathOrNull(handlePath))) {
+				return;
+			}
+			synchronized (HANDLES_CREATED_UNDER_CHECK) {
+				forgetHandlesOfAnotherPolicy();
+				HANDLES_CREATED_UNDER_CHECK.put(handle, Boolean.TRUE);
+			}
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	/**
+	 * Tells whether an object is a handle a file can be written through: a file
+	 * channel, an asynchronous one, a {@code RandomAccessFile} or a
+	 * {@code FileOutputStream}, whose channel shares its file.
+	 *
+	 * @param handle the object
+	 * @return whether it is such a handle
+	 */
+	private static boolean isFileHandle(@Nullable Object handle) {
+		return handle instanceof FileChannel || handle instanceof java.nio.channels.AsynchronousFileChannel
+				|| handle instanceof java.io.RandomAccessFile || handle instanceof java.io.FileOutputStream;
+	}
+
+	/**
+	 * Returns the real path of an existing file, or {@code null} if it cannot be
+	 * resolved.
+	 *
+	 * @param path the path
+	 * @return the real path as text, or {@code null}
 	 */
 	@Nullable
-	private static String[] pathsAllowedForWriteThrough() {
+	private static String realPathOrNull(@Nonnull Path path) {
+		try {
+			return path.toRealPath().toString();
+		} catch (IOException | SecurityException unresolved) {
+			return null;
+		}
+	}
+
+	/**
+	 * Returns the file a handle has open, from its {@code path} field, or
+	 * {@code null} if the handle does not say.
+	 *
+	 * @param handle the handle
+	 * @return the file's absolute path, or {@code null}
+	 */
+	@Nullable
+	private static Path openFilePath(@Nonnull Object handle) {
+		Object path = declaredFieldValue(handle, "path");
+		return path instanceof String text ? Path.of(text).normalize().toAbsolutePath() : null;
+	}
+
+	/**
+	 * Reads a field of an object, looking in its class and the classes above it.
+	 *
+	 * @param instance the object
+	 * @param name     the field name
+	 * @return the value, or {@code null} if there is no such field or it cannot be
+	 *         read
+	 */
+	@Nullable
+	private static Object declaredFieldValue(@Nonnull Object instance, @Nonnull String name) {
+		Class<?> currentType = instance.getClass();
+		while (currentType != null) {
+			try {
+				java.lang.reflect.Field field = currentType.getDeclaredField(name);
+				field.setAccessible(true);
+				return field.get(instance);
+			} catch (NoSuchFieldException missing) {
+				currentType = currentType.getSuperclass();
+			} catch (IllegalAccessException | InaccessibleObjectException | SecurityException inaccessible) {
+				return null;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Forgets every remembered handle once the create rules differ from those the
+	 * handles were remembered under. The caller holds the lock on the handles.
+	 */
+	private static void forgetHandlesOfAnotherPolicy() {
+		Object current = getValueFromSettings("pathsAllowedToBeCreated");
+		if (current != handlesPolicy) {
+			HANDLES_CREATED_UNDER_CHECK.clear();
+			handlesPolicy = current;
+		}
+	}
+
+	/**
+	 * Tells whether a handle, or the stream a file channel belongs to, was
+	 * remembered by {@link #rememberCreatedHandle}.
+	 *
+	 * @param handle the handle written through
+	 * @return whether its opening created the file under a checked create rule
+	 */
+	static boolean isHandleCreatedUnderCheck(@Nullable Object handle) {
+		if (handle == null) {
+			return false;
+		}
+		Object parent = handle instanceof FileChannel ? declaredFieldValue(handle, "parent") : null;
+		synchronized (HANDLES_CREATED_UNDER_CHECK) {
+			forgetHandlesOfAnotherPolicy();
+			return HANDLES_CREATED_UNDER_CHECK.containsKey(handle)
+					|| parent != null && HANDLES_CREATED_UNDER_CHECK.containsKey(parent);
+		}
+	}
+
+	/**
+	 * Returns the paths a write through an open file may reach: those the policy
+	 * lets be overwritten, and those it lets be created when the handle's own
+	 * opening created the file under that rule.
+	 *
+	 * @param handle the handle written through
+	 * @return the paths, or {@code null} if no rule applies
+	 */
+	@Nullable
+	private static String[] pathsAllowedForWriteThrough(@Nullable Object handle) {
 		@Nullable
 		String[] overwrite = getValueFromSettings("pathsAllowedToBeOverwritten");
 		@Nullable
 		String[] create = getValueFromSettings("pathsAllowedToBeCreated");
-		if (create == null || create.length == 0) {
+		if (create == null || !isHandleCreatedUnderCheck(handle)) {
 			return overwrite;
 		}
-		String[] created;
-		synchronized (FILES_CREATED_UNDER_CHECK) {
-			created = FILES_CREATED_UNDER_CHECK.toArray(new String[0]);
+		if (overwrite == null) {
+			return create;
 		}
-		List<String> allowed = new ArrayList<>(overwrite == null ? List.of() : List.of(overwrite));
-		for (String file : created) {
-			if (!checkIfPathIsForbidden(new FileTarget(Path.of(file)), create, true)) {
-				allowed.add(file);
-			}
-		}
-		return allowed.isEmpty() ? overwrite : allowed.toArray(new String[0]);
+		String[] both = new String[overwrite.length + create.length];
+		System.arraycopy(overwrite, 0, both, 0, overwrite.length);
+		System.arraycopy(create, 0, both, overwrite.length, create.length);
+		return both;
 	}
 
 	/**
@@ -1309,11 +1448,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 			checkNetworkPeer("send", other, declaringTypeName, methodName, fullMethodSignature);
 		} else if (transferTo && "overwrite".equals(action)) {
-			checkSinglePathRole("overwrite", pathsAllowedForWriteThrough(), otherFile, false, fileSystemMethodToCheck,
-					studentCalledMethod, fullMethodSignature);
+			checkSinglePathRole("overwrite", pathsAllowedForWriteThrough(other), otherFile, false,
+					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 		} else if (!transferTo && "overwrite".equals(action)) {
-			checkSinglePathRole("overwrite", pathsAllowedForWriteThrough(), receiver, false, fileSystemMethodToCheck,
-					studentCalledMethod, fullMethodSignature);
+			checkSinglePathRole("overwrite", pathsAllowedForWriteThrough(instance), receiver, false,
+					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 			checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"), otherFile, false,
 					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 			checkNetworkPeer("receive", other, declaringTypeName, methodName, fullMethodSignature);
@@ -1873,7 +2012,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			@Nullable Object instance, @Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature) {
 		@Nullable
-		final String[] allowedPaths = isWriteThroughOpenFile(action, instance) ? pathsAllowedForWriteThrough()
+		final String[] allowedPaths = isWriteThroughOpenFile(action, instance) ? pathsAllowedForWriteThrough(instance)
 				: getValueFromSettings(switch (action) {
 				case "read" -> "pathsAllowedToBeRead";
 				case "overwrite" -> "pathsAllowedToBeOverwritten";
@@ -2066,6 +2205,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					: checkIfCallstackCriteriaIsViolated(restrictedPackage, allowedClasses, declaringTypeName,
 							methodName);
 			if (fileSystemMethodToCheck == null) {
+				ALLOWED_CREATION.remove();
 				return;
 			}
 			if (("java.util.jar.JarFile".equals(declaringTypeName) || "java.util.zip.ZipFile".equals(declaringTypeName))
@@ -2109,7 +2249,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				createsAFile |= "create".equals(actionToCheck);
 			}
 			if (createsAFile) {
-				rememberCreatedFiles(parameters, ignoredParameters);
+				noteAllowedCreation(parameters, ignoredParameters);
 			}
 		} finally {
 			exitAdvice();

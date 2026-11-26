@@ -308,8 +308,9 @@ class FileOpeningRolesTest {
 				"printWriterFileCharset", "formatterCharset", "formatterFileCharset", "formatterWithoutFile",
 				"providerSymbolicLink", "providerHardLink", "providerDeleteIfExists", "secureDirectoryReadAbsolute",
 				"secureDirectoryMove", "secureDirectoryList", "transferToFile", "transferFromFile",
-				"transferFromIntoOwnNewFile", "redirectToNew", "redirectAppendToExisting", "redirectFromReadable",
-				"processBuilderRedirectOutput", "processBuilderRedirectInput");
+				"transferFromIntoOwnNewFile", "fileOutputStreamNewWithReadCreate", "redirectToNew",
+				"redirectAppendToExisting", "redirectFromReadable", "processBuilderRedirectOutput",
+				"processBuilderRedirectInput");
 	}
 
 	/**
@@ -330,8 +331,10 @@ class FileOpeningRolesTest {
 				"secureDirectoryListUnreadable", "transferToUnreadableSource", "transferToReadOnlyTarget",
 				"transferToDatagram", "transferFromUnreadableSource", "transferFromDatagram",
 				"transferFromSuppliedExistingWithoutOverwrite", "transferToSuppliedExistingWithoutOverwrite",
-				"redirectToReadOnly", "redirectAppendToReadOnly", "redirectFromUnreadable",
-				"processBuilderRedirectOutputReadOnly", "processBuilderRedirectInputUnreadable");
+				"transferFromIntoReplacementOfCreatedFile", "transferFromAfterFailedCreation",
+				"fileOutputStreamThroughDanglingLink", "redirectToReadOnly", "redirectAppendToReadOnly",
+				"redirectFromUnreadable", "processBuilderRedirectOutputReadOnly",
+				"processBuilderRedirectInputUnreadable");
 	}
 
 	/**
@@ -396,6 +399,24 @@ class FileOpeningRolesTest {
 	 */
 	private static FileChannel openExistingForWriting(Path file) throws IOException {
 		return FileChannel.open(file, StandardOpenOption.WRITE);
+	}
+
+	/**
+	 * Makes a symbolic link to a file that does not exist, as the test class. Skips
+	 * the test where the system does not let it make links, as Windows without
+	 * developer mode does not.
+	 *
+	 * @param link   where the link goes
+	 * @param target the missing file it points to
+	 * @return the link
+	 */
+	private static Path danglingLink(Path link, Path target) {
+		try {
+			return Files.createSymbolicLink(link, target.toAbsolutePath());
+		} catch (UnsupportedOperationException | IOException | SecurityException unsupported) {
+			Assumptions.abort("This system does not let the test make a symbolic link: " + unsupported);
+			return link;
+		}
 	}
 
 	/**
@@ -599,6 +620,9 @@ class FileOpeningRolesTest {
 			});
 			assertEquals(OLD_CONTENT, content(READ_CREATE.resolve("new.txt")));
 		}
+		case "fileOutputStreamNewWithReadCreate" -> assertWritten(
+				() -> FileOpeningRolesMain.fileOutputStreamWrite(READ_CREATE.resolve("new.txt").toFile(), NEW_CONTENT),
+				READ_CREATE.resolve("new.txt"));
 		case "redirectToNew" -> assertDoesNotThrow(
 				() -> FileOpeningRolesMain.redirectTo(WRITE_NO_READ.resolve("new.txt").toFile()));
 		case "redirectAppendToExisting" -> assertDoesNotThrow(
@@ -757,6 +781,42 @@ class FileOpeningRolesTest {
 					FileOpeningRolesMain.transferTo(in, out);
 				}
 			}, target);
+		}
+		case "transferFromIntoReplacementOfCreatedFile" -> {
+			Path target = READ_CREATE.resolve("new.txt");
+			Path first = existing(READ_ONLY.resolve("in.txt"));
+			assertDoesNotThrow(() -> {
+				try (FileChannel in = openForReading(first)) {
+					FileOpeningRolesMain.transferFromIntoNewFile(target, in);
+				}
+			});
+			assertDoesNotThrow(() -> Files.delete(target));
+			existing(target);
+			Path source = newContent(READ_ONLY.resolve("in.txt"));
+			assertRefusedUnchanged(() -> {
+				try (FileChannel in = openForReading(source); FileChannel out = openExistingForWriting(target)) {
+					FileOpeningRolesMain.transferFrom(out, in);
+				}
+			}, target);
+		}
+		case "transferFromAfterFailedCreation" -> {
+			Path target = READ_CREATE.resolve("new.txt");
+			assertFalse(assertDoesNotThrow(
+					() -> FileOpeningRolesMain.printWriterWithCharset(target.toFile(), "not-a-charset")));
+			existing(target);
+			Path source = newContent(READ_ONLY.resolve("in.txt"));
+			assertRefusedUnchanged(() -> {
+				try (FileChannel in = openForReading(source); FileChannel out = openExistingForWriting(target)) {
+					FileOpeningRolesMain.transferFrom(out, in);
+				}
+			}, target);
+		}
+		case "fileOutputStreamThroughDanglingLink" -> {
+			Path outside = FOLDER.resolve("outside.txt");
+			Path link = danglingLink(READ_CREATE.resolve("link.txt"), outside);
+			assertThrows(SecurityException.class,
+					() -> FileOpeningRolesMain.fileOutputStreamWrite(link.toFile(), NEW_CONTENT));
+			assertFalse(Files.exists(outside), "the refused write still created the file the link points to");
 		}
 		case "writeToSuppliedExistingWithoutOverwrite" -> {
 			Path target = existing(READ_CREATE.resolve("old.txt"));

@@ -1,11 +1,13 @@
 package de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.openingRoles;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
@@ -407,6 +409,37 @@ public final class FileOpeningRolesMain {
 	public static long transferFromIntoNewFile(Path target, ReadableByteChannel source) throws IOException {
 		try (FileChannel channel = FileChannel.open(target, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
 			return channel.transferFrom(source, 0, Long.MAX_VALUE);
+		}
+	}
+
+	/**
+	 * Writes text into a file through a {@code FileOutputStream}.
+	 *
+	 * @param file the file
+	 * @param text the text
+	 * @throws IOException if writing fails
+	 */
+	public static void fileOutputStreamWrite(File file, String text) throws IOException {
+		try (FileOutputStream out = new FileOutputStream(file)) {
+			out.write(text.getBytes(StandardCharsets.UTF_8));
+		}
+	}
+
+	/**
+	 * Opens a file with a {@code PrintWriter} in a named charset, and reports a
+	 * charset the JDK does not know instead of throwing.
+	 *
+	 * @param file    the file
+	 * @param charset the charset name
+	 * @return whether the writer was opened
+	 * @throws IOException if opening fails for another reason
+	 */
+	public static boolean printWriterWithCharset(File file, String charset) throws IOException {
+		try (PrintWriter writer = new PrintWriter(file, charset)) {
+			writer.flush();
+			return true;
+		} catch (UnsupportedEncodingException unknownCharset) {
+			return false;
 		}
 	}
 

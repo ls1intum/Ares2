@@ -79,6 +79,75 @@ class JavaInstrumentationAdviceFileSystemToolboxTest extends JceFileSystemContra
 		JavaInstrumentationAdviceAbstractToolbox.localize("security.advice.illegal.file.execution");
 	}
 
+	/**
+	 * A handle the student's checked opening created keeps the create allowance for
+	 * a transfer into it only while the policy that allowed it stays armed.
+	 *
+	 * @param tempDir the folder the policy governs
+	 * @throws Exception if a file cannot be prepared
+	 */
+	@Test
+	void createdHandleLosesTheCreateAllowanceWhenAPolicyIsArmedAgain(@TempDir Path tempDir) throws Exception {
+		try {
+			resetSettings();
+			configureCreateOnlyFolder(tempDir);
+			Path source = Files.writeString(tempDir.resolve("source.txt"), "new");
+			try (FileChannel created = InstrumentationSecurityProbe.openNewFileChannel(tempDir.resolve("new.txt"));
+					FileChannel in = FileChannel.open(source, StandardOpenOption.READ)) {
+				assertDoesNotThrow(
+						() -> InstrumentationSecurityProbe.checkFileChannelTransferFromOverwriteLeg(created, in, 0, 3));
+				configureCreateOnlyFolder(tempDir);
+				assertThrows(SecurityException.class,
+						() -> InstrumentationSecurityProbe.checkFileChannelTransferFromOverwriteLeg(created, in, 0, 3));
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * An opening whose creation was allowed but which then failed grants nothing to
+	 * a handle opened on that path afterwards.
+	 *
+	 * @param tempDir the folder the policy governs
+	 * @throws Exception if a file cannot be prepared
+	 */
+	@Test
+	void failedCreationGrantsNothingToALaterHandle(@TempDir Path tempDir) throws Exception {
+		try {
+			resetSettings();
+			configureCreateOnlyFolder(tempDir);
+			Path target = tempDir.resolve("new.txt");
+			InstrumentationSecurityProbe.failNewFileChannel(target);
+			Files.writeString(target, "old");
+			Path source = Files.writeString(tempDir.resolve("source.txt"), "new");
+			try (FileChannel out = FileChannel.open(target, StandardOpenOption.WRITE);
+					FileChannel in = FileChannel.open(source, StandardOpenOption.READ)) {
+				InstrumentationSecurityProbe.reportOpenedHandle(out);
+				assertThrows(SecurityException.class,
+						() -> InstrumentationSecurityProbe.checkFileChannelTransferFromOverwriteLeg(out, in, 0, 3));
+			}
+		} finally {
+			resetSettings();
+		}
+	}
+
+	/**
+	 * Arms a policy that lets the student read and create files in one folder, but
+	 * not overwrite them. Each call arms it anew, with fresh lists.
+	 *
+	 * @param folder the folder
+	 */
+	private static void configureCreateOnlyFolder(Path folder) {
+		configureInstrumentationMode();
+		JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeRead", new String[] { folder.toString() }, "ARCH",
+				"INSTRUMENTATION");
+		JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeCreated", new String[] { folder.toString() }, "ARCH",
+				"INSTRUMENTATION");
+		JavaAOPTestCase.setJavaAdviceSettingValue("pathsAllowedToBeOverwritten", new String[0], "ARCH",
+				"INSTRUMENTATION");
+	}
+
 	private static void resetSettings() throws Exception {
 		Method reset = JavaAOPTestCaseSettings.class.getDeclaredMethod("reset");
 		reset.setAccessible(true);
