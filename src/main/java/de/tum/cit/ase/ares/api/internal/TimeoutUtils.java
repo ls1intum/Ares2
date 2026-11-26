@@ -66,6 +66,19 @@ public final class TimeoutUtils {
 		}
 	}
 
+	/**
+	 * Runs an action on a fresh thread and fails it with the timeout failure once
+	 * it runs longer than the timeout, after stopping it as
+	 * {@link #terminateTimedOutExecution} describes.
+	 *
+	 * @param timeout                the time the action may take
+	 * @param action                 the action
+	 * @param context                the test the action belongs to
+	 * @param terminationGracePeriod how long to wait after each stop request
+	 * @param fatalProcessTerminator ends the JVM with the given exit code
+	 * @return what the action returned
+	 * @throws Throwable what the action threw, or the timeout failure
+	 */
 	private static <T> T executeWithTimeout(Duration timeout, Callable<T> action, TestContext context,
 			Duration terminationGracePeriod, IntConsumer fatalProcessTerminator) throws Throwable { // NOSONAR
 		var threadFactory = new WhitelistedThreadFactory();
