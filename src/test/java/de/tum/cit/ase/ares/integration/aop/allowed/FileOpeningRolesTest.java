@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.DatagramChannel;
@@ -13,6 +14,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.SecureDirectoryStream;
@@ -125,6 +127,12 @@ class FileOpeningRolesTest {
 	private static final String WALAINSTRUMENTATION = POLICY_BASE + "wala/instrumentation/PolicyFileOpeningRoles.yaml";
 
 	/**
+	 * The full path of the program {@code cat}, looked up once on the search path,
+	 * or {@code null} where there is none, as on Windows without Git.
+	 */
+	private static final String CAT = findOnSearchPath("cat");
+
+	/**
 	 * Starts the JDK's image-stream clean-up thread as the test class. The JDK
 	 * starts it the first time any file image stream is made, which would otherwise
 	 * charge the subject with creating a thread.
@@ -156,6 +164,45 @@ class FileOpeningRolesTest {
 		for (Path folder : List.of(READ_ONLY, WRITE_NO_READ, READ_CREATE, READ_OVERWRITE, READ_DELETE, ALL)) {
 			Files.createDirectories(folder);
 		}
+	}
+
+	/**
+	 * Finds a program in the folders of the {@code PATH} variable, under its name
+	 * or with {@code .exe} added.
+	 *
+	 * @param program the program name
+	 * @return its full path, or {@code null} if no folder holds it
+	 */
+	private static String findOnSearchPath(String program) {
+		String searchPath = System.getenv("PATH");
+		if (searchPath == null) {
+			return null;
+		}
+		for (String folder : searchPath.split(File.pathSeparator)) {
+			for (String name : List.of(program, program + ".exe")) {
+				try {
+					Path candidate = Path.of(folder, name);
+					if (Files.isRegularFile(candidate) && Files.isExecutable(candidate)) {
+						return candidate.toAbsolutePath().toString();
+					}
+				} catch (InvalidPathException unusableFolder) {
+					break;
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Returns the full path of {@code cat}, skipping the test where it is missing.
+	 *
+	 * @return the full path
+	 */
+	private static String cat() {
+		if (CAT == null) {
+			Assumptions.abort("The program cat is not on the search path.");
+		}
+		return CAT;
 	}
 
 	/**
@@ -260,9 +307,9 @@ class FileOpeningRolesTest {
 				"filesMoveReplaceWithoutCreate", "providerMove", "providerCopy", "printWriterCharset",
 				"printWriterFileCharset", "formatterCharset", "formatterFileCharset", "formatterWithoutFile",
 				"providerSymbolicLink", "providerHardLink", "providerDeleteIfExists", "secureDirectoryReadAbsolute",
-				"secureDirectoryMove", "secureDirectoryList", "transferToFile", "transferFromFile", "redirectToNew",
-				"redirectAppendToExisting", "redirectFromReadable", "processBuilderRedirectOutput",
-				"processBuilderRedirectInput");
+				"secureDirectoryMove", "secureDirectoryList", "transferToFile", "transferFromFile",
+				"transferFromIntoOwnNewFile", "redirectToNew", "redirectAppendToExisting", "redirectFromReadable",
+				"processBuilderRedirectOutput", "processBuilderRedirectInput");
 	}
 
 	/**
@@ -281,9 +328,21 @@ class FileOpeningRolesTest {
 				"providerSymbolicLinkReadOnly", "providerHardLinkReadOnly", "providerDeleteIfExistsReadOnly",
 				"secureDirectoryReadUnreadable", "secureDirectoryReadRelative", "secureDirectoryMoveUnreadableSource",
 				"secureDirectoryListUnreadable", "transferToUnreadableSource", "transferToReadOnlyTarget",
-				"transferToDatagram", "transferFromUnreadableSource", "transferFromDatagram", "redirectToReadOnly",
-				"redirectAppendToReadOnly", "redirectFromUnreadable", "processBuilderRedirectOutputReadOnly",
-				"processBuilderRedirectInputUnreadable");
+				"transferToDatagram", "transferFromUnreadableSource", "transferFromDatagram",
+				"transferFromSuppliedExistingWithoutOverwrite", "transferToSuppliedExistingWithoutOverwrite",
+				"redirectToReadOnly", "redirectAppendToReadOnly", "redirectFromUnreadable",
+				"processBuilderRedirectOutputReadOnly", "processBuilderRedirectInputUnreadable");
+	}
+
+	/**
+	 * Lists the calls the policy forbids under AspectJ: all of the above, and a
+	 * write through a file channel the test class opened. Instrumentation does not
+	 * check a write through an open file channel; it checks the opening.
+	 *
+	 * @return their names
+	 */
+	static Stream<String> refusedAspectJScenarios() {
+		return Stream.concat(refusedScenarios(), Stream.of("writeToSuppliedExistingWithoutOverwrite"));
 	}
 
 	/**
@@ -325,6 +384,33 @@ class FileOpeningRolesTest {
 	 */
 	private static FileChannel openForWriting(Path file) throws IOException {
 		return FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+	}
+
+	/**
+	 * Opens an existing file for writing, as the test class, which Ares does not
+	 * check.
+	 *
+	 * @param file the file
+	 * @return the channel
+	 * @throws IOException if opening fails
+	 */
+	private static FileChannel openExistingForWriting(Path file) throws IOException {
+		return FileChannel.open(file, StandardOpenOption.WRITE);
+	}
+
+	/**
+	 * Gives a file the new content, so a copy of it would show in another file.
+	 *
+	 * @param file the file
+	 * @return the file
+	 */
+	private static Path newContent(Path file) {
+		try {
+			Files.writeString(file, NEW_CONTENT, StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			throw new IllegalStateException(e);
+		}
+		return file;
 	}
 
 	/**
@@ -504,6 +590,15 @@ class FileOpeningRolesTest {
 			assertDoesNotThrow(() -> transferFromFile(source, WRITE_NO_READ.resolve("new.txt")));
 			assertEquals(OLD_CONTENT, content(WRITE_NO_READ.resolve("new.txt")));
 		}
+		case "transferFromIntoOwnNewFile" -> {
+			Path source = existing(READ_ONLY.resolve("in.txt"));
+			assertDoesNotThrow(() -> {
+				try (FileChannel in = openForReading(source)) {
+					FileOpeningRolesMain.transferFromIntoNewFile(READ_CREATE.resolve("new.txt"), in);
+				}
+			});
+			assertEquals(OLD_CONTENT, content(READ_CREATE.resolve("new.txt")));
+		}
 		case "redirectToNew" -> assertDoesNotThrow(
 				() -> FileOpeningRolesMain.redirectTo(WRITE_NO_READ.resolve("new.txt").toFile()));
 		case "redirectAppendToExisting" -> assertDoesNotThrow(
@@ -513,7 +608,7 @@ class FileOpeningRolesTest {
 		case "processBuilderRedirectOutput" -> assertDoesNotThrow(() -> FileOpeningRolesMain
 				.redirectOutput(new ProcessBuilder("echo", "hello"), WRITE_NO_READ.resolve("new.txt").toFile()));
 		case "processBuilderRedirectInput" -> assertDoesNotThrow(() -> FileOpeningRolesMain
-				.redirectInput(new ProcessBuilder("cat"), existing(READ_ONLY.resolve("in.txt")).toFile()));
+				.redirectInput(new ProcessBuilder(cat()), existing(READ_ONLY.resolve("in.txt")).toFile()));
 		default -> throw new IllegalArgumentException(scenario);
 		}
 	}
@@ -645,6 +740,32 @@ class FileOpeningRolesTest {
 			assertThrows(SecurityException.class, () -> transferFromFile(source, ALL.resolve("new.txt")));
 			assertEquals("", content(ALL.resolve("new.txt")));
 		}
+		case "transferFromSuppliedExistingWithoutOverwrite" -> {
+			Path source = newContent(READ_ONLY.resolve("in.txt"));
+			Path target = existing(READ_CREATE.resolve("old.txt"));
+			assertRefusedUnchanged(() -> {
+				try (FileChannel in = openForReading(source); FileChannel out = openExistingForWriting(target)) {
+					FileOpeningRolesMain.transferFrom(out, in);
+				}
+			}, target);
+		}
+		case "transferToSuppliedExistingWithoutOverwrite" -> {
+			Path source = newContent(READ_ONLY.resolve("in.txt"));
+			Path target = existing(READ_CREATE.resolve("old.txt"));
+			assertRefusedUnchanged(() -> {
+				try (FileChannel in = openForReading(source); FileChannel out = openExistingForWriting(target)) {
+					FileOpeningRolesMain.transferTo(in, out);
+				}
+			}, target);
+		}
+		case "writeToSuppliedExistingWithoutOverwrite" -> {
+			Path target = existing(READ_CREATE.resolve("old.txt"));
+			assertRefusedUnchanged(() -> {
+				try (FileChannel out = openExistingForWriting(target)) {
+					FileOpeningRolesMain.writeTo(out, NEW_CONTENT);
+				}
+			}, target);
+		}
 		case "transferFromDatagram" -> assertThrows(SecurityException.class, () -> {
 			try (DatagramChannel in = connectedDatagram();
 					FileChannel out = openForWriting(WRITE_NO_READ.resolve("new.txt"))) {
@@ -660,7 +781,7 @@ class FileOpeningRolesTest {
 		case "processBuilderRedirectOutputReadOnly" -> assertThrows(SecurityException.class, () -> FileOpeningRolesMain
 				.redirectOutput(new ProcessBuilder("echo", "hello"), READ_ONLY.resolve("new.txt").toFile()));
 		case "processBuilderRedirectInputUnreadable" -> assertThrows(SecurityException.class, () -> FileOpeningRolesMain
-				.redirectInput(new ProcessBuilder("cat"), existing(WRITE_NO_READ.resolve("secret.txt")).toFile()));
+				.redirectInput(new ProcessBuilder(cat()), existing(WRITE_NO_READ.resolve("secret.txt")).toFile()));
 		case "newInputStreamDeleteOnCloseUnreadable" -> assertRefusedUnchanged(
 				() -> FileOpeningRolesMain.newInputStreamDeleteOnClose(existing(WRITE_NO_READ.resolve("secret.txt"))),
 				WRITE_NO_READ.resolve("secret.txt"));
@@ -688,7 +809,7 @@ class FileOpeningRolesTest {
 	 */
 	@Public
 	@ParameterizedTest
-	@MethodSource("refusedScenarios")
+	@MethodSource("refusedAspectJScenarios")
 	@Policy(value = ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
 	void refusedMavenArchunitAspectJ(String scenario) {
 		runRefused(scenario);
@@ -740,7 +861,7 @@ class FileOpeningRolesTest {
 	 */
 	@Public
 	@ParameterizedTest
-	@MethodSource("refusedScenarios")
+	@MethodSource("refusedAspectJScenarios")
 	@Policy(value = WALAASPECTJ, withinPath = WITHIN_PATH)
 	void refusedMavenWalaAspectJ(String scenario) {
 		runRefused(scenario);

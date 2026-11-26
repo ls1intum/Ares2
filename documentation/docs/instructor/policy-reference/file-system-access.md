@@ -111,8 +111,10 @@ does. That holds for every way of writing, from `Files.writeString` and `FileWri
 `FileChannel.open` with `CREATE` and `RandomAccessFile` in mode `"rw"`. `createAllFiles` alone therefore lets the code write a new
 file with its content, and `overwriteAllFiles` alone lets it replace an existing file but not
 make one. `CREATE_NEW` always needs `createAllFiles`, and writing without `CREATE` always needs
-`overwriteAllFiles`. A later write through a file the code already opened, such as
-`FileChannel.write`, is allowed where either flag covers the file.
+`overwriteAllFiles`. A later write through a file that is already open, such as
+`FileChannel.write`, needs `overwriteAllFiles`. `createAllFiles` is enough only for a file the
+code created through an opening that Ares checked. A channel the test class opened on an existing
+file still needs `overwriteAllFiles`.
 
 **A class-path resource is read from where the build put it.** Ares checks
 `Class.getResourceAsStream` and `ClassLoader.getResourceAsStream` as a read of the file that

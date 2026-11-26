@@ -19,7 +19,9 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -906,9 +908,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 
 	/**
 	 * Tells whether a call writes through a file the code already opened: a file
-	 * channel or a {@code RandomAccessFile}. Opening it for writing was checked, so
-	 * such a write is allowed where the policy lets the file be overwritten or
-	 * created.
+	 * channel or a {@code RandomAccessFile}. Such a write is allowed where the
+	 * policy lets the file be overwritten, or where a checked opening of the code
+	 * created the file under a create rule.
 	 *
 	 * @param action   the action being checked
 	 * @param instance the receiver of the call
@@ -921,24 +923,61 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
-	 * Returns the paths the policy lets be overwritten together with those it lets
-	 * be created, for a write through a file that is already open.
+	 * The files a checked and allowed opening of supervised code created, by their
+	 * real absolute path. A handle the code did not open this way, such as one the
+	 * test class opened on an existing file, gets no create allowance through it.
+	 */
+	@Nonnull
+	private static final Set<String> FILES_CREATED_UNDER_CHECK = Collections.synchronizedSet(new HashSet<>());
+
+	/**
+	 * Remembers the files an opening creates, once Ares checked and allowed it:
+	 * each path argument that names no existing file yet.
 	 *
-	 * @return both lists in one, or {@code null} if neither is set
+	 * @param parameters      the call arguments
+	 * @param ignoreVariables the arguments that name no file
+	 */
+	private static void rememberCreatedFiles(@Nullable Object[] parameters, @Nonnull IgnoreValues ignoreVariables) {
+		if (parameters == null || parameters.length == 0) {
+			return;
+		}
+		for (Object parameter : filterVariables(parameters, ignoreVariables)) {
+			FileTarget target = variableToTarget(parameter, true);
+			if (target != null && !Files.exists(target.path(), LinkOption.NOFOLLOW_LINKS)) {
+				FILES_CREATED_UNDER_CHECK
+						.add(resolveExistingAncestorRealPath(target.path().normalize().toAbsolutePath()).toString());
+			}
+		}
+	}
+
+	/**
+	 * Returns the paths a write through an open file may reach: those the policy
+	 * lets be overwritten, and the files a checked opening created that a create
+	 * rule still covers.
+	 *
+	 * @return the paths, or the overwrite list as it is if no created file is
+	 *         covered
 	 */
 	@Nullable
-	private static String[] pathsAllowedToBeOverwrittenOrCreated() {
+	private static String[] pathsAllowedForWriteThrough() {
 		@Nullable
 		String[] overwrite = getValueFromSettings("pathsAllowedToBeOverwritten");
 		@Nullable
 		String[] create = getValueFromSettings("pathsAllowedToBeCreated");
-		if (overwrite == null || create == null) {
-			return overwrite == null ? create : overwrite;
+		if (create == null || create.length == 0) {
+			return overwrite;
 		}
-		String[] both = new String[overwrite.length + create.length];
-		System.arraycopy(overwrite, 0, both, 0, overwrite.length);
-		System.arraycopy(create, 0, both, overwrite.length, create.length);
-		return both;
+		String[] created;
+		synchronized (FILES_CREATED_UNDER_CHECK) {
+			created = FILES_CREATED_UNDER_CHECK.toArray(new String[0]);
+		}
+		List<String> allowed = new ArrayList<>(overwrite == null ? List.of() : List.of(overwrite));
+		for (String file : created) {
+			if (!checkIfPathIsForbidden(new FileTarget(Path.of(file)), create, true)) {
+				allowed.add(file);
+			}
+		}
+		return allowed.isEmpty() ? overwrite : allowed.toArray(new String[0]);
 	}
 
 	/**
@@ -1270,11 +1309,11 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 			checkNetworkPeer("send", other, declaringTypeName, methodName, fullMethodSignature);
 		} else if (transferTo && "overwrite".equals(action)) {
-			checkSinglePathRole("overwrite", pathsAllowedToBeOverwrittenOrCreated(), otherFile, false,
-					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+			checkSinglePathRole("overwrite", pathsAllowedForWriteThrough(), otherFile, false, fileSystemMethodToCheck,
+					studentCalledMethod, fullMethodSignature);
 		} else if (!transferTo && "overwrite".equals(action)) {
-			checkSinglePathRole("overwrite", pathsAllowedToBeOverwrittenOrCreated(), receiver, false,
-					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+			checkSinglePathRole("overwrite", pathsAllowedForWriteThrough(), receiver, false, fileSystemMethodToCheck,
+					studentCalledMethod, fullMethodSignature);
 			checkSinglePathRole("read", getValueFromSettings("pathsAllowedToBeRead"), otherFile, false,
 					fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
 			checkNetworkPeer("receive", other, declaringTypeName, methodName, fullMethodSignature);
@@ -1834,7 +1873,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			@Nullable Object instance, @Nonnull String fileSystemMethodToCheck, @Nullable String studentCalledMethod,
 			@Nonnull String fullMethodSignature) {
 		@Nullable
-		final String[] allowedPaths = isWriteThroughOpenFile(action, instance) ? pathsAllowedToBeOverwrittenOrCreated()
+		final String[] allowedPaths = isWriteThroughOpenFile(action, instance) ? pathsAllowedForWriteThrough()
 				: getValueFromSettings(switch (action) {
 				case "read" -> "pathsAllowedToBeRead";
 				case "overwrite" -> "pathsAllowedToBeOverwritten";
@@ -2057,14 +2096,20 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			List<Map.Entry<String, Boolean>> actionsToValidate = deriveActionChecks(action, declaringTypeName,
 					methodName, parameters, instance);
+			IgnoreValues ignoredParameters = parameterIgnoreValues(declaringTypeName + "." + methodName, methodName,
+					instance);
+			boolean createsAFile = false;
 			for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
 				String actionToCheck = WRITE_ACTION.equals(actionCheck.getKey())
-						? resolveWriteAction(parameters,
-								parameterIgnoreValues(declaringTypeName + "." + methodName, methodName, instance))
+						? resolveWriteAction(parameters, ignoredParameters)
 						: actionCheck.getKey();
 				checkFileSystemInteractionForAction(actionToCheck, Boolean.TRUE.equals(actionCheck.getValue()),
 						declaringTypeName, methodName, methodSignature, attributes, parameters, instance,
 						fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+				createsAFile |= "create".equals(actionToCheck);
+			}
+			if (createsAFile) {
+				rememberCreatedFiles(parameters, ignoredParameters);
 			}
 		} finally {
 			exitAdvice();

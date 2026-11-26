@@ -396,6 +396,33 @@ public final class FileOpeningRolesMain {
 	}
 
 	/**
+	 * Opens a new file for writing and moves the bytes of a channel into it with
+	 * {@code transferFrom}.
+	 *
+	 * @param target the new file
+	 * @param source the channel read from
+	 * @return the number of bytes moved
+	 * @throws IOException if opening or moving fails
+	 */
+	public static long transferFromIntoNewFile(Path target, ReadableByteChannel source) throws IOException {
+		try (FileChannel channel = FileChannel.open(target, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
+			return channel.transferFrom(source, 0, Long.MAX_VALUE);
+		}
+	}
+
+	/**
+	 * Writes text through a file channel the caller opened.
+	 *
+	 * @param channel the channel
+	 * @param text    the text
+	 * @return the number of bytes written
+	 * @throws IOException if writing fails
+	 */
+	public static int writeTo(FileChannel channel, String text) throws IOException {
+		return channel.write(ByteBuffer.wrap(text.getBytes(StandardCharsets.UTF_8)));
+	}
+
+	/**
 	 * Builds a redirect that writes a process's output to a file.
 	 *
 	 * @param file the file
