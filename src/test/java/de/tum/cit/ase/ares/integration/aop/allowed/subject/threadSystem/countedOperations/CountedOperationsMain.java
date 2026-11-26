@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -133,5 +134,55 @@ public final class CountedOperationsMain {
 		cyclic[1] = cyclic;
 		Arrays.parallelSort(cyclic, (left, right) -> 0);
 		return cyclic.length;
+	}
+
+	/**
+	 * Submits one allowed task to a pool of two threads with a result value, and
+	 * waits for it.
+	 *
+	 * @param result the value the future returns
+	 * @return one, the number of tasks that ran
+	 * @throws Exception if the task fails or the wait is interrupted
+	 */
+	public static int submitWithResult(Object result) throws Exception {
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+			pool.submit(new CountedTask(), result).get();
+			return 1;
+		} finally {
+			pool.shutdownNow();
+		}
+	}
+
+	/**
+	 * Submits one allowed task whose result is a set class the student wrote.
+	 *
+	 * @return one, the number of tasks that ran
+	 * @throws Exception if the task fails or the wait is interrupted
+	 */
+	public static int submitWithAStudentSetResult() throws Exception {
+		return submitWithResult(new StudentResultSet());
+	}
+
+	/**
+	 * Submits one allowed task whose result is a JDK set that holds a task the
+	 * policy does not allow, which never runs.
+	 *
+	 * @return one, the number of tasks that ran
+	 * @throws Exception if the task fails or the wait is interrupted
+	 */
+	public static int submitWithAJdkSetOfTasksResult() throws Exception {
+		return submitWithResult(new HashSet<>(Set.<Callable<Integer>>of(() -> 1)));
+	}
+
+	/**
+	 * Hands a JDK set holding a task the policy does not allow to
+	 * {@code invokeAll}.
+	 *
+	 * @return how many tasks ran
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public static int invokeAllFromAJdkSetWithAnUnallowedTask() throws InterruptedException {
+		return invokeAll(new HashSet<>(Set.<Callable<Integer>>of(() -> 1)));
 	}
 }

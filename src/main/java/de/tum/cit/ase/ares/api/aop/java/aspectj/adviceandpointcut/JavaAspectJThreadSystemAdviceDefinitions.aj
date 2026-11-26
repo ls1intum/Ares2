@@ -215,6 +215,13 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	private static final String ARRAYS_CLASS = "java.util.Arrays";
 
 	/**
+	 * The pool methods that take a collection of tasks to run. Only their arguments
+	 * are searched as any JDK collection; in other calls only a list is, so a set
+	 * such as the result value of {@code submit} stays a plain value.
+	 */
+	private static final Set<String> TASK_COLLECTION_OPERATIONS = Set.of("invokeAll", "invokeAny");
+
+	/**
 	 * The {@code Arrays} methods that may run on several threads. They count as the
 	 * {@code <implicit-thread-op:parallel>} operation, like {@code Stream.parallel},
 	 * so a policy allows them with the same token.
@@ -935,9 +942,10 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				? getRecordedThreadClass((Thread) instance)
 				: null;
 		boolean parallelArrayOperation = ARRAYS_CLASS.equals(declaringTypeName);
+		boolean taskCollectionOperation = TASK_COLLECTION_OPERATIONS.contains(methodName);
 		if (parameters != null && !parallelArrayOperation) {
 			for (Object parameter : parameters) {
-				collectThreadClassNames(parameter, threadClassNames, true);
+				collectThreadClassNames(parameter, threadClassNames, taskCollectionOperation);
 			}
 		}
 		if (recordedThreadClass != null) {

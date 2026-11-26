@@ -513,4 +513,140 @@ class ThreadCountedOperationsTest {
 	void parallelSortOfACyclicArrayAllowedByTokenMavenWalaInstrumentation() {
 		Assertions.assertEquals(2, CountedOperationsMain.parallelSortCyclicArray());
 	}
+
+	/**
+	 * A set class the student wrote, handed to {@code submit} only as the result
+	 * value, is not searched for tasks in ArchunitAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void submitAcceptsAStudentSetAsResultMavenArchunitAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitWithAStudentSetResult());
+	}
+
+	/**
+	 * A JDK set of tasks handed to {@code submit} only as the result value counts
+	 * none of them in ArchunitAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void submitCountsNoTaskInASetResultMavenArchunitAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitWithAJdkSetOfTasksResult());
+	}
+
+	/**
+	 * A JDK set handed to {@code invokeAll} is still searched for its tasks in
+	 * ArchunitAspectJ, so a task the policy does not allow is refused.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAnUnallowedTaskInAJdkSetMavenArchunitAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllFromAJdkSetWithAnUnallowedTask);
+	}
+
+	/**
+	 * A set class the student wrote, handed to {@code submit} only as the result
+	 * value, is not searched for tasks in ArchunitInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void submitAcceptsAStudentSetAsResultMavenArchunitInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitWithAStudentSetResult());
+	}
+
+	/**
+	 * A JDK set of tasks handed to {@code submit} only as the result value counts
+	 * none of them in ArchunitInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void submitCountsNoTaskInASetResultMavenArchunitInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitWithAJdkSetOfTasksResult());
+	}
+
+	/**
+	 * A JDK set handed to {@code invokeAll} is still searched for its tasks in
+	 * ArchunitInstrumentation, so a task the policy does not allow is refused.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAnUnallowedTaskInAJdkSetMavenArchunitInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllFromAJdkSetWithAnUnallowedTask);
+	}
+
+	/**
+	 * A set class the student wrote, handed to {@code submit} only as the result
+	 * value, is not searched for tasks in WalaAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void submitAcceptsAStudentSetAsResultMavenWalaAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitWithAStudentSetResult());
+	}
+
+	/**
+	 * A JDK set of tasks handed to {@code submit} only as the result value counts
+	 * none of them in WalaAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void submitCountsNoTaskInASetResultMavenWalaAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitWithAJdkSetOfTasksResult());
+	}
+
+	/**
+	 * A JDK set handed to {@code invokeAll} is still searched for its tasks in
+	 * WalaAspectJ, so a task the policy does not allow is refused.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAnUnallowedTaskInAJdkSetMavenWalaAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllFromAJdkSetWithAnUnallowedTask);
+	}
+
+	/**
+	 * A set class the student wrote, handed to {@code submit} only as the result
+	 * value, is not searched for tasks in WalaInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void submitAcceptsAStudentSetAsResultMavenWalaInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitWithAStudentSetResult());
+	}
+
+	/**
+	 * A JDK set of tasks handed to {@code submit} only as the result value counts
+	 * none of them in WalaInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void submitCountsNoTaskInASetResultMavenWalaInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.submitWithAJdkSetOfTasksResult());
+	}
+
+	/**
+	 * A JDK set handed to {@code invokeAll} is still searched for its tasks in
+	 * WalaInstrumentation, so a task the policy does not allow is refused.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAnUnallowedTaskInAJdkSetMavenWalaInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllFromAJdkSetWithAnUnallowedTask);
+	}
 }
