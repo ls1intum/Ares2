@@ -1,45 +1,79 @@
-<!-- Ares reserved-package build boundary, version 2. Insert this plugin under build/plugins.
-     The Maven binding was already correct at boundary version 1: process-classes runs
-     under `mvn test`, so the validation was never skipped the way the Gradle version 1
-     snippet was. The version moves to 2 only so both build tools name the same boundary
-     contract. The build descriptor and the command used to invoke it are trusted
-     instructor configuration; this validates student code, not the build itself. -->
+<!-- Ares reserved-package build boundary, version 3. Insert this plugin under build/plugins.
+     Version 3 also rejects files that steer a test framework: every file under
+     META-INF/services/ or mockito-extensions/, and the JUnit, ArchUnit, Logback and
+     JaCoCo configuration files at the root of the output. Those frameworks read them
+     from the test class path before Ares is active, so a student file there could run
+     a student class unsupervised or hide ArchUnit findings. A module-info.class
+     anywhere in the output is rejected too: it puts the student code on the module
+     path, where its `provides` clauses make the JDK run a student class.
+     The output directory holds the processed resources too, and names are compared
+     ignoring case, as a case-insensitive file system would find them.
+     Ant's default excludes are switched off, since they would skip folders such as
+     CVS or SCCS, which are valid package names.
+     The same check runs twice. At process-resources it sees the copied resources before
+     the compiler runs: javac and ajc search the output for annotation processors and run
+     one that a service file there names. At process-classes it sees the compiled classes.
+     The check creates the output folder first, since a project without resources has
+     none yet at process-resources.
+     Both phases run under `mvn test`, so the validation is never skipped the way the
+     Gradle version 1 snippet was. The build descriptor and the command used to invoke
+     it are trusted instructor configuration; this validates student code, not the build
+     itself. -->
 <plugin>
   <groupId>org.apache.maven.plugins</groupId>
   <artifactId>maven-antrun-plugin</artifactId>
   <version>3.2.0</version>
+  <configuration>
+    <target>
+      <mkdir dir="${project.build.outputDirectory}"/>
+      <resourcecount property="ares.reserved.package.count">
+        <fileset dir="${project.build.outputDirectory}" defaultexcludes="no" casesensitive="false">
+          <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
+          <include name="jdk/**"/><include name="com/sun/**"/>
+          <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
+          <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
+          <include name="com/tngtech/archunit/**"/><include name="junit/**"/>
+          <include name="org/junit/**"/><include name="org/opentest4j/**"/>
+          <include name="org/assertj/**"/><include name="org/mockito/**"/>
+          <include name="ch/qos/logback/**"/><include name="org/slf4j/**"/>
+          <include name="com/github/javaparser/**"/><include name="com/fasterxml/jackson/**"/>
+          <include name="org/yaml/**"/><include name="org/json/**"/>
+          <include name="com/opencsv/**"/><include name="org/jgrapht/**"/>
+          <include name="org/apiguardian/**"/><include name="org/apache/**"/>
+          <include name="org/eclipse/**"/><include name="org/gradle/**"/>
+          <include name="org/jacoco/**"/><include name="com/intellij/**"/>
+          <include name="worker/org/gradle/**"/>
+          <include name="de/tum/in/test/api/**"/>
+        </fileset>
+      </resourcecount>
+      <resourcecount property="ares.reserved.resource.count">
+        <fileset dir="${project.build.outputDirectory}" defaultexcludes="no" casesensitive="false">
+          <include name="META-INF/services/**"/><include name="archunit.properties"/>
+          <include name="archunit_ignore_patterns.txt"/><include name="junit-platform.properties"/>
+          <include name="logback.xml"/><include name="logback-test.xml"/><include name="logback.groovy"/>
+          <include name="logback.scmo"/><include name="logback-test.scmo"/>
+          <include name="mockito-extensions/**"/><include name="jacoco-agent.properties"/>
+          <include name="**/module-info.class"/>
+        </fileset>
+      </resourcecount>
+      <fail message="Ares reserved-package validation 3 rejected student output. No bypass flag is supported.">
+        <condition><or>
+          <not><equals arg1="${ares.reserved.package.count}" arg2="0"/></not>
+          <not><equals arg1="${ares.reserved.resource.count}" arg2="0"/></not>
+        </or></condition>
+      </fail>
+    </target>
+  </configuration>
   <executions>
     <execution>
-      <id>verify-ares-reserved-packages-v2</id>
+      <id>verify-ares-reserved-resources-v3</id>
+      <phase>process-resources</phase>
+      <goals><goal>run</goal></goals>
+    </execution>
+    <execution>
+      <id>verify-ares-reserved-packages-v3</id>
       <phase>process-classes</phase>
       <goals><goal>run</goal></goals>
-      <configuration>
-        <target>
-          <resourcecount property="ares.reserved.package.count">
-            <fileset dir="${project.build.outputDirectory}">
-              <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
-              <include name="jdk/**"/><include name="com/sun/**"/>
-              <include name="de/tum/cit/ase/ares/api/**"/><include name="net/bytebuddy/**"/>
-              <include name="org/aspectj/**"/><include name="com/ibm/wala/**"/>
-              <include name="com/tngtech/archunit/**"/><include name="junit/**"/>
-              <include name="org/junit/**"/><include name="org/opentest4j/**"/>
-              <include name="org/assertj/**"/><include name="org/mockito/**"/>
-              <include name="ch/qos/logback/**"/><include name="org/slf4j/**"/>
-              <include name="com/github/javaparser/**"/><include name="com/fasterxml/jackson/**"/>
-              <include name="org/yaml/**"/><include name="org/json/**"/>
-              <include name="com/opencsv/**"/><include name="org/jgrapht/**"/>
-              <include name="org/apiguardian/**"/><include name="org/apache/**"/>
-              <include name="org/eclipse/**"/><include name="org/gradle/**"/>
-              <include name="org/jacoco/**"/><include name="com/intellij/**"/>
-              <include name="worker/org/gradle/**"/>
-              <include name="de/tum/in/test/api/**"/>
-            </fileset>
-          </resourcecount>
-          <fail message="Ares reserved-package validation 2 rejected student output. No bypass flag is supported.">
-            <condition><not><equals arg1="${ares.reserved.package.count}" arg2="0"/></not></condition>
-          </fail>
-        </target>
-      </configuration>
     </execution>
   </executions>
 </plugin>
