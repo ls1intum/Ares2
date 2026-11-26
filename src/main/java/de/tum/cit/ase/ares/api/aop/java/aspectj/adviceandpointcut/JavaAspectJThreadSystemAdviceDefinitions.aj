@@ -249,8 +249,9 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	/**
 	 * The pool methods that take a collection of tasks to run. Only their arguments
-	 * are searched as any JDK collection; in other calls only a list is, so a set
-	 * such as the result value of {@code submit} stays a plain value.
+	 * are read as a collection of tasks, each task counting once; in other calls
+	 * only a plain list is searched, so a set such as the result value of
+	 * {@code submit} stays a plain value.
 	 */
 	private static final Set<String> TASK_COLLECTION_OPERATIONS = Set.of("invokeAll", "invokeAny");
 
@@ -816,56 +817,55 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	/**
 	 * Collects the thread-class names a value resolves to. A value that is itself a
-	 * task counts, a list included; arrays and plain JDK lists are searched for
-	 * further tasks, as are plain JDK collections among the tasks of
-	 * {@code invokeAll} or {@code invokeAny}.
+	 * task counts as one and is not searched further, even if it is a list or set;
+	 * arrays and plain JDK lists are searched for tasks, any other list is skipped.
 	 *
 	 * @param observedVariable the value to resolve
 	 * @param out              the class names found so far, one per task in a batch
-	 * @param anyCollection    whether every collection is searched, as for the
-	 *                         tasks given to {@code invokeAll}, not only lists
 	 */
-	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Collection<String> out,
-			boolean anyCollection) {
+	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Collection<String> out) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return;
 		}
 		if (observedVariable.getClass().isArray()) {
 			for (int i = 0; i < Array.getLength(observedVariable); i++) {
-				collectThreadClassNames(Array.get(observedVariable, i), out, anyCollection);
+				collectThreadClassNames(Array.get(observedVariable, i), out);
 			}
 			return;
 		}
 		String className = variableToClassname(observedVariable);
 		if (className != null) {
 			out.add(className);
+			return;
 		}
-		if (observedVariable instanceof List<?> || (anyCollection && observedVariable instanceof Collection<?>)) {
-			collectCollectionElements((Collection<?>) observedVariable, out, anyCollection);
+		if (observedVariable instanceof List<?> list && isPlainCollection(list)) {
+			for (Object element : list) {
+				collectThreadClassNames(element, out);
+			}
 		}
 	}
 
 	/**
-	 * Searches the elements of a collection for tasks, if it is a plain JDK
-	 * collection. Any other collection is not iterated, as that could run code of
-	 * the supervised code while the check is in progress: among the tasks of
-	 * {@code invokeAll} or {@code invokeAny} it is refused, elsewhere it is skipped.
+	 * Collects the tasks of one argument of {@code invokeAll} or {@code invokeAny},
+	 * one entry per task. A collection of tasks is read only if it is a plain JDK
+	 * collection, and refused otherwise, since iterating it could run code of the
+	 * supervised code while the check is in progress; each task in it counts by its
+	 * own class.
 	 *
-	 * @param collection    the collection
-	 * @param out           the class names found so far, one per task in a batch
-	 * @param anyCollection whether the collection holds the tasks to run
+	 * @param argument the argument
+	 * @param out      the class of each task found so far
 	 */
-	private static void collectCollectionElements(@Nonnull Collection<?> collection, @Nonnull Collection<String> out,
-			boolean anyCollection) {
-		if (!isPlainCollection(collection)) {
-			if (anyCollection) {
-				throw new SecurityException(
-						localize("security.advice.thread.collection.not.plain", collection.getClass().getName()));
-			}
+	private static void collectTaskBatch(@Nullable Object argument, @Nonnull Collection<String> out) {
+		if (!(argument instanceof Collection<?> tasks)) {
+			collectThreadClassNames(argument, out);
 			return;
 		}
-		for (Object element : collection) {
-			collectThreadClassNames(element, out, anyCollection);
+		if (!isPlainCollection(tasks)) {
+			throw new SecurityException(
+					localize("security.advice.thread.collection.not.plain", tasks.getClass().getName()));
+		}
+		for (Object task : tasks) {
+			collectThreadClassNames(task, out);
 		}
 	}
 	// </editor-fold>
@@ -1023,19 +1023,22 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		List<String> taskOccurrences = new ArrayList<>();
 		if (parameters != null && !parallelArrayOperation) {
 			for (Object parameter : parameters) {
-				collectThreadClassNames(parameter, taskCollectionOperation ? taskOccurrences : threadClassNames,
-						taskCollectionOperation);
+				if (taskCollectionOperation) {
+					collectTaskBatch(parameter, taskOccurrences);
+				} else {
+					collectThreadClassNames(parameter, threadClassNames);
+				}
 			}
 		}
 		threadClassNames.addAll(taskOccurrences);
 		if (recordedThreadClass != null) {
 			threadClassNames.add(recordedThreadClass);
 		} else if (!parallelArrayOperation) {
-			collectThreadClassNames(instance, threadClassNames, false);
+			collectThreadClassNames(instance, threadClassNames);
 		}
 		if (attributes != null && !parallelArrayOperation) {
 			for (Object attribute : attributes) {
-				collectThreadClassNames(attribute, threadClassNames, false);
+				collectThreadClassNames(attribute, threadClassNames);
 			}
 		}
 		// An implicit thread operation (parallelStream/parallel/SubmissionPublisher.submit/

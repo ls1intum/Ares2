@@ -315,4 +315,20 @@ public final class CountedOperationsMain {
 		}
 		return invokeAll(List.copyOf(batch));
 	}
+
+	/**
+	 * Hands the given number of set-backed allowed tasks to {@code invokeAll} in a
+	 * {@code List.of} list.
+	 *
+	 * @param tasks how many tasks the batch holds
+	 * @return how many tasks ran
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public static int invokeAllSetBackedCalls(int tasks) throws InterruptedException {
+		List<Callable<Integer>> batch = new ArrayList<>();
+		for (int i = 0; i < tasks; i++) {
+			batch.add(new SetBackedCall());
+		}
+		return invokeAll(List.copyOf(batch));
+	}
 }

@@ -1117,4 +1117,96 @@ class ThreadCountedOperationsTest {
 	void invokeAllRefusesABatchBeyondItsAllowanceMavenWalaInstrumentation() {
 		assertRefusedNaming(() -> CountedOperationsMain.invokeAllBatch(4), "CountedCall");
 	}
+
+	/**
+	 * Two callable tasks that are also sets, of a class allowed twice, run through
+	 * {@code invokeAll} in ArchunitAspectJ: each counts as a task and is not read
+	 * as a collection.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsSetBackedTasksMavenArchunitAspectJ() throws Exception {
+		Assertions.assertEquals(2, CountedOperationsMain.invokeAllSetBackedCalls(2));
+	}
+
+	/**
+	 * A third callable task that is also a set exceeds its allowance of two in
+	 * ArchunitAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesSetBackedTasksBeyondTheirAllowanceMavenArchunitAspectJ() {
+		assertRefusedNaming(() -> CountedOperationsMain.invokeAllSetBackedCalls(3), "SetBackedCall");
+	}
+
+	/**
+	 * Two callable tasks that are also sets, of a class allowed twice, run through
+	 * {@code invokeAll} in ArchunitInstrumentation: each counts as a task and is
+	 * not read as a collection.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsSetBackedTasksMavenArchunitInstrumentation() throws Exception {
+		Assertions.assertEquals(2, CountedOperationsMain.invokeAllSetBackedCalls(2));
+	}
+
+	/**
+	 * A third callable task that is also a set exceeds its allowance of two in
+	 * ArchunitInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesSetBackedTasksBeyondTheirAllowanceMavenArchunitInstrumentation() {
+		assertRefusedNaming(() -> CountedOperationsMain.invokeAllSetBackedCalls(3), "SetBackedCall");
+	}
+
+	/**
+	 * Two callable tasks that are also sets, of a class allowed twice, run through
+	 * {@code invokeAll} in WalaAspectJ: each counts as a task and is not read as a
+	 * collection.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsSetBackedTasksMavenWalaAspectJ() throws Exception {
+		Assertions.assertEquals(2, CountedOperationsMain.invokeAllSetBackedCalls(2));
+	}
+
+	/**
+	 * A third callable task that is also a set exceeds its allowance of two in
+	 * WalaAspectJ.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesSetBackedTasksBeyondTheirAllowanceMavenWalaAspectJ() {
+		assertRefusedNaming(() -> CountedOperationsMain.invokeAllSetBackedCalls(3), "SetBackedCall");
+	}
+
+	/**
+	 * Two callable tasks that are also sets, of a class allowed twice, run through
+	 * {@code invokeAll} in WalaInstrumentation: each counts as a task and is not
+	 * read as a collection.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsSetBackedTasksMavenWalaInstrumentation() throws Exception {
+		Assertions.assertEquals(2, CountedOperationsMain.invokeAllSetBackedCalls(2));
+	}
+
+	/**
+	 * A third callable task that is also a set exceeds its allowance of two in
+	 * WalaInstrumentation.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesSetBackedTasksBeyondTheirAllowanceMavenWalaInstrumentation() {
+		assertRefusedNaming(() -> CountedOperationsMain.invokeAllSetBackedCalls(3), "SetBackedCall");
+	}
 }
