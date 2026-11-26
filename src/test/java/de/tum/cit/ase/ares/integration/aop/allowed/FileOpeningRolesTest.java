@@ -310,8 +310,9 @@ class FileOpeningRolesTest {
 				"providerSymbolicLink", "providerHardLink", "providerDeleteIfExists", "secureDirectoryReadAbsolute",
 				"secureDirectoryMove", "secureDirectoryList", "transferToFile", "transferFromFile",
 				"transferFromIntoOwnNewFile", "fileOutputStreamNewWithReadCreate", "transferToStudentChannelUnhashed",
-				"deleteDanglingLinkWithDelete", "redirectToNew", "redirectAppendToExisting", "redirectFromReadable",
-				"processBuilderRedirectOutput", "processBuilderRedirectInput");
+				"deleteDanglingLinkWithDelete", "filesCopyReplacingDanglingLink", "filesMoveReplacingDanglingLink",
+				"redirectToNew", "redirectAppendToExisting", "redirectFromReadable", "processBuilderRedirectOutput",
+				"processBuilderRedirectInput");
 	}
 
 	/**
@@ -333,7 +334,8 @@ class FileOpeningRolesTest {
 				"transferToDatagram", "transferFromUnreadableSource", "transferFromDatagram",
 				"transferFromSuppliedExistingWithoutOverwrite", "transferToSuppliedExistingWithoutOverwrite",
 				"transferFromIntoReplacementOfCreatedFile", "transferFromAfterFailedCreation",
-				"fileOutputStreamThroughDanglingLink", "redirectToReadOnly", "redirectAppendToReadOnly",
+				"fileOutputStreamThroughDanglingLink", "filesCopyReplacingDanglingLinkReadOnly",
+				"filesMoveReplacingDanglingLinkReadOnly", "redirectToReadOnly", "redirectAppendToReadOnly",
 				"redirectFromUnreadable", "processBuilderRedirectOutputReadOnly",
 				"processBuilderRedirectInputUnreadable");
 	}
@@ -400,6 +402,19 @@ class FileOpeningRolesTest {
 	 */
 	private static FileChannel openExistingForWriting(Path file) throws IOException {
 		return FileChannel.open(file, StandardOpenOption.WRITE);
+	}
+
+	/**
+	 * Asserts that a copy or move replaced a link itself: a plain file with the old
+	 * content stands where the link was, and the file it pointed to was not made.
+	 *
+	 * @param link    where the link was
+	 * @param outside the missing file it pointed to
+	 */
+	private static void assertReplacedLink(Path link, Path outside) {
+		assertFalse(Files.isSymbolicLink(link), "the link is still there");
+		assertEquals(OLD_CONTENT, content(link));
+		assertFalse(Files.exists(outside), "the file the link pointed to was made");
 	}
 
 	/**
@@ -636,6 +651,18 @@ class FileOpeningRolesTest {
 			assertTrue(assertDoesNotThrow(() -> FileOpeningRolesMain.providerDeleteIfExists(link)));
 			assertFalse(Files.exists(link, LinkOption.NOFOLLOW_LINKS), "the link is still there");
 		}
+		case "filesCopyReplacingDanglingLink" -> {
+			Path source = existing(READ_ONLY.resolve("in.txt"));
+			Path link = danglingLink(ALL.resolve("link.txt"), FOLDER.resolve("outside.txt"));
+			assertDoesNotThrow(() -> FileOpeningRolesMain.filesCopyReplace(source, link));
+			assertReplacedLink(link, FOLDER.resolve("outside.txt"));
+		}
+		case "filesMoveReplacingDanglingLink" -> {
+			Path source = existing(ALL.resolve("src.txt"));
+			Path link = danglingLink(ALL.resolve("link.txt"), FOLDER.resolve("outside.txt"));
+			assertDoesNotThrow(() -> FileOpeningRolesMain.filesMove(source, link, true));
+			assertReplacedLink(link, FOLDER.resolve("outside.txt"));
+		}
 		case "fileOutputStreamNewWithReadCreate" -> assertWritten(
 				() -> FileOpeningRolesMain.fileOutputStreamWrite(READ_CREATE.resolve("new.txt").toFile(), NEW_CONTENT),
 				READ_CREATE.resolve("new.txt"));
@@ -833,6 +860,18 @@ class FileOpeningRolesTest {
 			assertThrows(SecurityException.class,
 					() -> FileOpeningRolesMain.fileOutputStreamWrite(link.toFile(), NEW_CONTENT));
 			assertFalse(Files.exists(outside), "the refused write still created the file the link points to");
+		}
+		case "filesCopyReplacingDanglingLinkReadOnly" -> {
+			Path source = existing(READ_ONLY.resolve("in.txt"));
+			Path link = danglingLink(READ_ONLY.resolve("link.txt"), FOLDER.resolve("outside.txt"));
+			assertThrows(SecurityException.class, () -> FileOpeningRolesMain.filesCopyReplace(source, link));
+			assertTrue(Files.isSymbolicLink(link), "the refused copy still replaced the link");
+		}
+		case "filesMoveReplacingDanglingLinkReadOnly" -> {
+			Path source = existing(ALL.resolve("src.txt"));
+			Path link = danglingLink(READ_ONLY.resolve("link.txt"), FOLDER.resolve("outside.txt"));
+			assertRefusedKeepsBoth(() -> FileOpeningRolesMain.filesMove(source, link, true), source, link);
+			assertTrue(Files.isSymbolicLink(link), "the refused move still replaced the link");
 		}
 		case "writeToSuppliedExistingWithoutOverwrite" -> {
 			Path target = existing(READ_CREATE.resolve("old.txt"));

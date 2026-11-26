@@ -299,8 +299,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * allow-list allows nothing, so every path is forbidden; a {@code *} entry
 	 * allows everything. Links are resolved first, so a link cannot lead out of an
 	 * allowed folder. An entry that exists but cannot be resolved, such as a link
-	 * to a missing file, is forbidden, except that a deletion is checked at the
-	 * link's own place, since it removes the link and nothing else.
+	 * to a missing file, is forbidden, except where the check acts on the link
+	 * itself, as a deletion or a replacing copy or move does: then the link's own
+	 * place is checked.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -338,7 +339,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				// target
 				candidate = actualPath.toRealPath();
 			} catch (IOException unresolved) {
-				if (!Boolean.TRUE.equals(CHECKING_A_DELETION.get()) || !Files.isSymbolicLink(actualPath)) {
+				if (!Boolean.TRUE.equals(LINK_ITSELF_IS_CHECKED.get()) || !Files.isSymbolicLink(actualPath)) {
 					return true;
 				}
 				candidate = linkLocation(actualPath);
@@ -375,11 +376,28 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	}
 
 	/**
-	 * Whether the check running on this thread is for a deletion, which removes a
-	 * link itself rather than the file the link points to.
+	 * Whether the check running on this thread acts on a link itself rather than on
+	 * the file the link points to: a deletion, or a copy or move that replaces the
+	 * link.
 	 */
 	@Nonnull
-	private static final ThreadLocal<Boolean> CHECKING_A_DELETION = new ThreadLocal<>();
+	private static final ThreadLocal<Boolean> LINK_ITSELF_IS_CHECKED = new ThreadLocal<>();
+
+	/**
+	 * Tells whether a copy or move with {@code REPLACE_EXISTING} has a link as its
+	 * destination. The JDK then replaces the link itself and does not follow it.
+	 *
+	 * @param parameters  the call arguments
+	 * @param destination the destination, isolated from them
+	 * @return whether the call replaces a link
+	 */
+	private static boolean replacesALink(@Nullable Object[] parameters, @Nonnull Object[] destination) {
+		if (destination.length != 1 || !hasReplaceExisting(parameters)) {
+			return false;
+		}
+		FileTarget target = variableToTarget(destination[0], true);
+		return target != null && Files.isSymbolicLink(target.path());
+	}
 
 	/**
 	 * Returns where a link itself lies: its folder with links resolved, and its own
@@ -1232,11 +1250,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				// destination (index 1): an existing file is overwritten only with
 				// REPLACE_EXISTING; any other destination is created.
 				Object[] destination = isolateParameter(parameters, 1);
-				boolean overwritesExisting = hasReplaceExisting(parameters)
+				boolean replacesLink = replacesALink(parameters, destination);
+				boolean overwritesExisting = replacesLink || hasReplaceExisting(parameters)
 						&& "overwrite".equals(resolveWriteAction(destination, IgnoreValues.NONE));
 				String resolvedAction = overwritesExisting ? "overwrite" : "create";
 				String settingKey = overwritesExisting ? "pathsAllowedToBeOverwritten" : "pathsAllowedToBeCreated";
-				checkSinglePathRole(resolvedAction, getValueFromSettings(settingKey), destination, true,
+				checkSinglePathRole(resolvedAction, getValueFromSettings(settingKey), destination, true, replacesLink,
 						systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
 			} else {
 				throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
@@ -1283,11 +1302,12 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
 		case "overwrite" -> {
 			Object[] target = isolateParameter(parameters, targetIndex);
-			String targetAction = resolveWriteAction(target, IgnoreValues.NONE);
+			boolean replacesLink = replacesALink(parameters, target);
+			String targetAction = replacesLink ? "overwrite" : resolveWriteAction(target, IgnoreValues.NONE);
 			String settingKey = "overwrite".equals(targetAction) ? "pathsAllowedToBeOverwritten"
 					: "pathsAllowedToBeCreated";
-			checkSinglePathRole(targetAction, getValueFromSettings(settingKey), target, true, systemMethodToCheck,
-					studentCalledMethod, fullMethodSignature, thisJoinPoint);
+			checkSinglePathRole(targetAction, getValueFromSettings(settingKey), target, true, replacesLink,
+					systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
 		}
 		default -> throw new SecurityException(localize("security.advice.file.system.unknown.action", action));
 		}
@@ -1414,18 +1434,32 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			@Nonnull Object[] candidates, boolean allowNonExistingPaths, @Nonnull String systemMethodToCheck,
 			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature,
 			@Nonnull JoinPoint thisJoinPoint) {
+		checkSinglePathRole(actionLabel, allowedPaths, candidates, allowNonExistingPaths, "delete".equals(actionLabel),
+				systemMethodToCheck, studentCalledMethod, fullMethodSignature, thisJoinPoint);
+	}
+
+	/**
+	 * Checks one side of a call against the given allow-list, as the overload
+	 * without {@code linkItself} does, and says whether a link among the
+	 * candidates counts at its own place because the call acts on the link itself.
+	 */
+	private void checkSinglePathRole(@Nonnull String actionLabel, @Nullable String[] allowedPaths,
+			@Nonnull Object[] candidates, boolean allowNonExistingPaths, boolean linkItself,
+			@Nonnull String systemMethodToCheck,
+			@Nullable String studentCalledMethod, @Nonnull String fullMethodSignature,
+			@Nonnull JoinPoint thisJoinPoint) {
 		if (candidates.length == 0) {
 			return;
 		}
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		@Nullable
 		String violation;
-		CHECKING_A_DELETION.set(Boolean.valueOf("delete".equals(actionLabel)));
+		LINK_ITSELF_IS_CHECKED.set(Boolean.valueOf(linkItself));
 		try {
 			violation = checkIfVariableCriteriaIsViolated(candidates, allowedPaths, IgnoreValues.NONE,
 					allowNonExistingPaths);
 		} finally {
-			CHECKING_A_DELETION.remove();
+			LINK_ITSELF_IS_CHECKED.remove();
 		}
 		if (violation == null) {
 			return;
@@ -2240,7 +2274,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				String actionToCheck = WRITE_ACTION.equals(actionCheck.getKey())
 						? resolveWriteAction(parameters, ignoredParameters)
 						: actionCheck.getKey();
-				CHECKING_A_DELETION.set(Boolean.valueOf("delete".equals(actionToCheck)));
+				LINK_ITSELF_IS_CHECKED.set(Boolean.valueOf("delete".equals(actionToCheck)));
 				createsAFile |= "create".equals(actionToCheck);
 				boolean allowNonExistingPaths = Boolean.TRUE.equals(actionCheck.getValue());
 				String messageAction = actionToCheck;
@@ -2346,7 +2380,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				}
 			}
 		} finally {
-			CHECKING_A_DELETION.remove();
+			LINK_ITSELF_IS_CHECKED.remove();
 		}
 		if (createsAFile) {
 			noteAllowedCreation(parameters, ignoredParameters);

@@ -413,6 +413,18 @@ public final class FileOpeningRolesMain {
 	}
 
 	/**
+	 * Copies a file onto a destination with {@code Files.copy}, replacing what is
+	 * there.
+	 *
+	 * @param source the file copied
+	 * @param target the destination
+	 * @throws IOException if copying fails
+	 */
+	public static void filesCopyReplace(Path source, Path target) throws IOException {
+		Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+	}
+
+	/**
 	 * Writes text into a file through a {@code FileOutputStream}.
 	 *
 	 * @param file the file

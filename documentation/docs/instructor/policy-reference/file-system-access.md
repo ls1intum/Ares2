@@ -114,8 +114,10 @@ make one. `CREATE_NEW` always needs `createAllFiles`, and writing without `CREAT
 `overwriteAllFiles`. A later write through a file that is already open, such as
 `FileChannel.write`, needs `overwriteAllFiles`. `createAllFiles` is enough only where the code
 created the file through an opening that Ares checked, and only through what that opening
-returned. A channel the test class opened still needs `overwriteAllFiles`. Ares refuses a write
-through a link that points to a missing file.
+returned. A channel the test class opened still needs `overwriteAllFiles`. With instrumentation,
+Ares checks a write or truncate through an open channel only where the code opens the channel and in
+transfers, not at each call. Ares refuses a write through a link that points to a missing file,
+while a copy or move with `REPLACE_EXISTING` replaces such a link under `overwriteAllFiles`.
 
 **A class-path resource is read from where the build put it.** Ares checks
 `Class.getResourceAsStream` and `ClassLoader.getResourceAsStream` as a read of the file that
