@@ -152,8 +152,10 @@ public final class JavaInstrumentationAgent {
 	}
 
 	/**
-	 * Initialises Ares before supervised code and optionally installs
-	 * instrumentation.
+	 * Initialises Ares before supervised code. If an instrumentation policy is
+	 * compiled in, as Precompile does, it also installs instrumentation and
+	 * registers the compiled student package whose calls are rewritten. Unreadable
+	 * settings fail start-up.
 	 *
 	 * @param agentArgs The agent arguments.
 	 * @param inst      The instrumentation instance.
@@ -175,6 +177,7 @@ public final class JavaInstrumentationAgent {
 
 		if (isPolicyCompiledIn()) {
 			installTransformersOnce();
+			registerCompiledRestrictedPackage();
 		}
 	}
 
@@ -420,17 +423,76 @@ public final class JavaInstrumentationAgent {
 	/**
 	 * Reports whether compiled settings or unreadable settings require JDK
 	 * transformers at startup.
+	 *
+	 * @return false only if the settings are readable and name no mode or AspectJ
 	 */
 	private static boolean isPolicyCompiledIn() {
 		try {
-			Field aopMode = Class.forName(JavaAOPTestCaseSettings.class.getName(), true, null)
-					.getDeclaredField("aopMode");
-			aopMode.setAccessible(true);
-			Object mode = aopMode.get(null);
+			Object mode = compiledSetting("aopMode");
 			return mode != null && !"ASPECTJ".equals(mode);
 		} catch (ReflectiveOperationException | RuntimeException | LinkageError unreadable) {
 			return true;
 		}
+	}
+
+	/**
+	 * Reads one field of the settings copy on the boot class loader, which holds
+	 * the values Precompile compiled in, if any. Failures reach the caller, so an
+	 * unreadable field is never mistaken for an empty one.
+	 *
+	 * @param name The field name.
+	 * @return The value, possibly null.
+	 * @throws ReflectiveOperationException If the class or the field cannot be
+	 *                                      reached.
+	 */
+	private static Object compiledSetting(String name) throws ReflectiveOperationException {
+		Field field = Class.forName(JavaAOPTestCaseSettings.class.getName(), true, null).getDeclaredField(name);
+		field.setAccessible(true);
+		return field.get(null);
+	}
+
+	/**
+	 * Registers the student package of a compiled-in policy, so its monitor, thread
+	 * start and archive calls are rewritten; in Precompile nothing else does. If
+	 * the mode is unset or AspectJ, it registers nothing. Unreadable settings, or a
+	 * compiled mode without a package name, are a damaged policy and fail start-up.
+	 *
+	 * @throws SecurityException If the mode cannot be read, or a mode is compiled
+	 *                           in but the package is missing, blank or unreadable.
+	 */
+	private static void registerCompiledRestrictedPackage() {
+		Object mode;
+		try {
+			mode = compiledSetting("aopMode");
+		} catch (ReflectiveOperationException | RuntimeException | LinkageError unreadable) {
+			throw registrationFailure(unreadable);
+		}
+		if (mode == null || "ASPECTJ".equals(mode)) {
+			return;
+		}
+		Object restrictedPackage;
+		try {
+			restrictedPackage = compiledSetting("restrictedPackage");
+		} catch (ReflectiveOperationException | RuntimeException | LinkageError unreadable) {
+			throw registrationFailure(unreadable);
+		}
+		if (!(restrictedPackage instanceof String packageName) || packageName.isBlank()) {
+			throw registrationFailure(null);
+		}
+		registerThreadMonitorRestrictedPackage(packageName);
+	}
+
+	/**
+	 * The start-up failure for compiled-in settings whose student package cannot be
+	 * registered.
+	 *
+	 * @param cause Why the mode or the package could not be read, or null if the
+	 *              package is missing, blank or not text.
+	 * @return The exception to throw.
+	 */
+	private static SecurityException registrationFailure(Throwable cause) {
+		return new SecurityException(JavaInstrumentationAdviceAbstractToolbox
+				.localize("security.instrumentation.agent.installation.error", "Object monitor call sites"), cause);
 	}
 
 	/**

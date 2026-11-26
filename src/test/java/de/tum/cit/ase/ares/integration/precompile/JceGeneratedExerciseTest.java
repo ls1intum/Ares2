@@ -126,7 +126,8 @@ class JceGeneratedExerciseTest {
 		assertEquals(before, sourceContents(project.resolve("src")));
 		compile(sources, project.resolve("compiled"), project.resolve("regenerated-compile.log"));
 		if (!isAspectJ(configuration)) {
-			createAgent(sources, project.resolve("compiled"), project.resolve("agent.jar"));
+			createAgent(sources.resolve("example/jce/META-INF/MANIFEST.MF"), project.resolve("compiled"),
+					project.resolve("agent.jar"));
 		}
 		assertTrue(launch(configuration, project, "boundary").contains("JCE_BOUNDARY_PASSED"));
 	}
@@ -408,7 +409,7 @@ class JceGeneratedExerciseTest {
 		Path classes = Files.createDirectories(project.resolve("compiled"));
 		compile(testSources, classes, project.resolve("compile.log"));
 		if (!isAspectJ(configuration)) {
-			createAgent(testSources, classes, project.resolve("agent.jar"));
+			createAgent(testSources.resolve("example/jce/META-INF/MANIFEST.MF"), classes, project.resolve("agent.jar"));
 		}
 		Files.writeString(project.resolve("allowed.txt"), "permitted fixture");
 		return project;
@@ -434,8 +435,14 @@ class JceGeneratedExerciseTest {
 	/**
 	 * Compiles the emitted Java and AspectJ sources with the project's pinned
 	 * compiler.
+	 *
+	 * @param sources the source root
+	 * @param classes the output folder
+	 * @param log     the file receiving the compiler's output
+	 * @throws Exception if the compiler cannot be started; a failing compile fails
+	 *                   an assertion instead
 	 */
-	private static void compile(Path sources, Path classes, Path log) throws Exception {
+	static void compile(Path sources, Path classes, Path log) throws Exception {
 		List<String> command = new ArrayList<>();
 		command.add(javaExecutable());
 		command.add("-cp");
@@ -494,10 +501,18 @@ class JceGeneratedExerciseTest {
 		return output;
 	}
 
-	/** Packages compiled generated classes with the generated startup manifest. */
-	private static void createAgent(Path sources, Path classes, Path destination) throws Exception {
+	/**
+	 * Packages compiled generated classes as an agent jar with the given startup
+	 * manifest.
+	 *
+	 * @param manifestFile the generated manifest naming the agent
+	 * @param classes      the compiled classes
+	 * @param destination  the jar to write
+	 * @throws Exception if the manifest cannot be read or the jar written
+	 */
+	static void createAgent(Path manifestFile, Path classes, Path destination) throws Exception {
 		java.util.jar.Manifest manifest;
-		try (var input = Files.newInputStream(sources.resolve("example/jce/META-INF/MANIFEST.MF"))) {
+		try (var input = Files.newInputStream(manifestFile)) {
 			manifest = new java.util.jar.Manifest(input);
 		}
 		try (var output = new java.util.jar.JarOutputStream(Files.newOutputStream(destination), manifest);
@@ -510,8 +525,15 @@ class JceGeneratedExerciseTest {
 		}
 	}
 
-	/** Executes a compiler or fixture in a child, retaining logs for review. */
-	private static void requireSuccess(List<String> command, Path log) throws Exception {
+	/**
+	 * Executes a compiler or fixture in a child, retaining logs for review.
+	 *
+	 * @param command the command and its arguments
+	 * @param log     the file receiving the child's output
+	 * @throws Exception if the child cannot be started or the wait is interrupted;
+	 *                   a child that times out or fails fails an assertion instead
+	 */
+	static void requireSuccess(List<String> command, Path log) throws Exception {
 		Process child = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(log.toFile()).start();
 		try {
 			if (!child.waitFor(90, TimeUnit.SECONDS)) {
