@@ -3,6 +3,7 @@ package de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.counted
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -184,5 +185,49 @@ public final class CountedOperationsMain {
 	 */
 	public static int invokeAllFromAJdkSetWithAnUnallowedTask() throws InterruptedException {
 		return invokeAll(new HashSet<>(Set.<Callable<Integer>>of(() -> 1)));
+	}
+
+	/**
+	 * Hands the student's own task set to {@code invokeAll} inside a JDK wrapper
+	 * that only passes the iteration on.
+	 *
+	 * @return how many tasks ran
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public static int invokeAllFromAWrappedStudentSet() throws InterruptedException {
+		StudentTaskSet.reset();
+		return invokeAll(Collections.unmodifiableSet(new StudentTaskSet()));
+	}
+
+	/**
+	 * Hands one allowed task to {@code invokeAll} in an unmodifiable view of a JDK
+	 * list.
+	 *
+	 * @return how many tasks ran
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public static int invokeAllFromAWrappedList() throws InterruptedException {
+		return invokeAll(Collections.unmodifiableList(List.of(new CountedCall())));
+	}
+
+	/**
+	 * Hands one allowed task to {@code invokeAll} in an {@code ArrayList}.
+	 *
+	 * @return how many tasks ran
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public static int invokeAllFromAnArrayList() throws InterruptedException {
+		return invokeAll(new ArrayList<>(List.of(new CountedCall())));
+	}
+
+	/**
+	 * Hands one allowed task to {@code invokeAll} in a list built by
+	 * {@code List.of}.
+	 *
+	 * @return how many tasks ran
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public static int invokeAllFromAListOf() throws InterruptedException {
+		return invokeAll(List.of(new CountedCall()));
 	}
 }

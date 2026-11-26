@@ -215,6 +215,36 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	private static final String ARRAYS_CLASS = "java.util.Arrays";
 
 	/**
+	 * The JDK collections that hold their own elements, so iterating one runs no
+	 * other code. Ares searches only these for tasks: any other collection, a
+	 * wrapper or view such as {@code Collections.unmodifiableList} or
+	 * {@code subList} included, could hand the iteration to code of the
+	 * supervised code while the check is in progress.
+	 */
+	private static final Set<String> PLAIN_COLLECTION_CLASSES = Set.of("java.util.ArrayList", "java.util.LinkedList",
+			"java.util.ArrayDeque", "java.util.Vector", "java.util.PriorityQueue", "java.util.HashSet",
+			"java.util.LinkedHashSet", "java.util.TreeSet", "java.util.Arrays$ArrayList",
+			"java.util.ImmutableCollections$List12", "java.util.ImmutableCollections$ListN",
+			"java.util.ImmutableCollections$Set12", "java.util.ImmutableCollections$SetN",
+			"java.util.Collections$EmptyList", "java.util.Collections$EmptySet", "java.util.Collections$SingletonList",
+			"java.util.Collections$SingletonSet", "java.util.concurrent.CopyOnWriteArrayList",
+			"java.util.concurrent.CopyOnWriteArraySet", "java.util.concurrent.ConcurrentLinkedQueue",
+			"java.util.concurrent.ConcurrentLinkedDeque", "java.util.concurrent.ArrayBlockingQueue",
+			"java.util.concurrent.LinkedBlockingQueue", "java.util.concurrent.LinkedBlockingDeque");
+
+	/**
+	 * Tells whether a collection is one of {@link #PLAIN_COLLECTION_CLASSES}, by its
+	 * exact class, which the JVM's own class loader defined.
+	 *
+	 * @param collection the collection
+	 * @return whether iterating it runs only that JDK class
+	 */
+	private static boolean isPlainCollection(@Nonnull Object collection) {
+		Class<?> type = collection.getClass();
+		return type.getClassLoader() == null && PLAIN_COLLECTION_CLASSES.contains(type.getName());
+	}
+
+	/**
 	 * The pool methods that take a collection of tasks to run. Only their arguments
 	 * are searched as any JDK collection; in other calls only a list is, so a set
 	 * such as the result value of {@code submit} stays a plain value.
@@ -762,13 +792,13 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	/**
 	 * Collects the thread-class names a value resolves to, looking into arrays and
-	 * lists, so the quota is used once per distinct class per call. A collection
-	 * that is not a JDK class is refused, since iterating it would run student
-	 * code while the checks are paused.
+	 * plain JDK lists, so the quota is used once per distinct class per call. Any
+	 * other list is not searched; in the tasks of {@code invokeAll} or
+	 * {@code invokeAny} any collection other than a plain one is refused.
 	 *
 	 * @param observedVariable the value to resolve
 	 * @param out              the distinct class names found so far
-	 * @param anyCollection    whether every JDK collection is searched, as for the
+	 * @param anyCollection    whether every collection is searched, as for the
 	 *                         tasks given to {@code invokeAll}, not only lists
 	 */
 	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Set<String> out,
@@ -780,7 +810,13 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				collectThreadClassNames(Array.get(observedVariable, i), out, anyCollection);
 			}
 		} else if (observedVariable instanceof List<?> || (anyCollection && observedVariable instanceof Collection<?>)) {
-			requireTrustedRuntimeType(observedVariable);
+			if (!isPlainCollection(observedVariable)) {
+				if (anyCollection) {
+					throw new SecurityException(localize("security.advice.thread.collection.not.plain",
+							observedVariable.getClass().getName()));
+				}
+				return;
+			}
 			for (Object element : (Collection<?>) observedVariable) {
 				collectThreadClassNames(element, out, anyCollection);
 			}

@@ -79,6 +79,24 @@ class ThreadCountedOperationsTest {
 			+ "wala/instrumentation/PolicyCountedThreadOperationsWithoutParallel.yaml";
 
 	/**
+	 * Asserts that Ares refuses the call, directly or as the cause of the failure,
+	 * with a message naming the given text.
+	 *
+	 * @param executable the call
+	 * @param named      a part of the refusal message
+	 */
+	private static void assertRefusedNaming(Executable executable, String named) {
+		Throwable thrown = Assertions.assertThrows(Throwable.class, executable);
+		for (Throwable cause = thrown; cause != null; cause = cause.getCause()) {
+			if (cause instanceof SecurityException refusal) {
+				Assertions.assertTrue(String.valueOf(refusal.getMessage()).contains(named), refusal::getMessage);
+				return;
+			}
+		}
+		Assertions.fail("expected a SecurityException, got " + thrown);
+	}
+
+	/**
 	 * Asserts that Ares refuses the call, directly or as the cause of the failure.
 	 *
 	 * @param executable the call
@@ -648,5 +666,190 @@ class ThreadCountedOperationsTest {
 	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
 	void invokeAllRefusesAnUnallowedTaskInAJdkSetMavenWalaInstrumentation() {
 		assertRefused(CountedOperationsMain::invokeAllFromAJdkSetWithAnUnallowedTask);
+	}
+
+	/**
+	 * The student's task set inside a JDK wrapper is refused in ArchunitAspectJ
+	 * before Ares iterates it, so the thread its iterator starts is never started.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAWrappedStudentSetUnreadMavenArchunitAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllFromAWrappedStudentSet);
+		Assertions.assertFalse(StudentTaskSet.threadStarted());
+	}
+
+	/**
+	 * An unmodifiable view of a JDK list of allowed tasks is refused in
+	 * ArchunitAspectJ, with a message naming the view, since Ares iterates only
+	 * plain lists and sets.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAWrappedListMavenArchunitAspectJ() {
+		assertRefusedNaming(CountedOperationsMain::invokeAllFromAWrappedList, "java.util.Collections$Unmodifiable");
+	}
+
+	/**
+	 * An {@code ArrayList} of allowed tasks handed to {@code invokeAll} runs in
+	 * ArchunitAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAnArrayListMavenArchunitAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAnArrayList());
+	}
+
+	/**
+	 * A {@code List.of} list of allowed tasks handed to {@code invokeAll} runs in
+	 * ArchunitAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAListOfMavenArchunitAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAListOf());
+	}
+
+	/**
+	 * The student's task set inside a JDK wrapper is refused in
+	 * ArchunitInstrumentation before Ares iterates it, so the thread its iterator
+	 * starts is never started.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAWrappedStudentSetUnreadMavenArchunitInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllFromAWrappedStudentSet);
+		Assertions.assertFalse(StudentTaskSet.threadStarted());
+	}
+
+	/**
+	 * An unmodifiable view of a JDK list of allowed tasks is refused in
+	 * ArchunitInstrumentation, with a message naming the view, since Ares iterates
+	 * only plain lists and sets.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAWrappedListMavenArchunitInstrumentation() {
+		assertRefusedNaming(CountedOperationsMain::invokeAllFromAWrappedList, "java.util.Collections$Unmodifiable");
+	}
+
+	/**
+	 * An {@code ArrayList} of allowed tasks handed to {@code invokeAll} runs in
+	 * ArchunitInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAnArrayListMavenArchunitInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAnArrayList());
+	}
+
+	/**
+	 * A {@code List.of} list of allowed tasks handed to {@code invokeAll} runs in
+	 * ArchunitInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAListOfMavenArchunitInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAListOf());
+	}
+
+	/**
+	 * The student's task set inside a JDK wrapper is refused in WalaAspectJ before
+	 * Ares iterates it, so the thread its iterator starts is never started.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAWrappedStudentSetUnreadMavenWalaAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllFromAWrappedStudentSet);
+		Assertions.assertFalse(StudentTaskSet.threadStarted());
+	}
+
+	/**
+	 * An unmodifiable view of a JDK list of allowed tasks is refused in
+	 * WalaAspectJ, with a message naming the view, since Ares iterates only plain
+	 * lists and sets.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAWrappedListMavenWalaAspectJ() {
+		assertRefusedNaming(CountedOperationsMain::invokeAllFromAWrappedList, "java.util.Collections$Unmodifiable");
+	}
+
+	/**
+	 * An {@code ArrayList} of allowed tasks handed to {@code invokeAll} runs in
+	 * WalaAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAnArrayListMavenWalaAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAnArrayList());
+	}
+
+	/**
+	 * A {@code List.of} list of allowed tasks handed to {@code invokeAll} runs in
+	 * WalaAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAListOfMavenWalaAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAListOf());
+	}
+
+	/**
+	 * The student's task set inside a JDK wrapper is refused in WalaInstrumentation
+	 * before Ares iterates it, so the thread its iterator starts is never started.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAWrappedStudentSetUnreadMavenWalaInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllFromAWrappedStudentSet);
+		Assertions.assertFalse(StudentTaskSet.threadStarted());
+	}
+
+	/**
+	 * An unmodifiable view of a JDK list of allowed tasks is refused in
+	 * WalaInstrumentation, with a message naming the view, since Ares iterates only
+	 * plain lists and sets.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesAWrappedListMavenWalaInstrumentation() {
+		assertRefusedNaming(CountedOperationsMain::invokeAllFromAWrappedList, "java.util.Collections$Unmodifiable");
+	}
+
+	/**
+	 * An {@code ArrayList} of allowed tasks handed to {@code invokeAll} runs in
+	 * WalaInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAnArrayListMavenWalaInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAnArrayList());
+	}
+
+	/**
+	 * A {@code List.of} list of allowed tasks handed to {@code invokeAll} runs in
+	 * WalaInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsTasksFromAListOfMavenWalaInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAllFromAListOf());
 	}
 }
