@@ -19,6 +19,10 @@ regardingTheSupervisedCode:
       - createTheFollowingNumberOfThreads: 2
         ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.SetBackedCall"
       - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.ReplacingCall"
+      - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.LatchedTask"
+      - createTheFollowingNumberOfThreads: 1
         ofThisClass: "<implicit-thread-op:parallel>"
     regardingPackageImports:
       - importTheFollowingPackage: "java.util"

@@ -5,9 +5,12 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -199,17 +202,47 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 			"java.util.Arrays.parallelPrefix", "java.util.Arrays.parallelSetAll");
 
 	/**
-	 * Tells whether the JDK reached this thread operation while running another one
-	 * whose check already counted the code's task. Only JDK methods between this
-	 * operation and the first supervised or other non-JDK method count, so a thread
-	 * that supervised code starts itself, even from a callback, is still checked.
-	 *
-	 * @return whether an enclosing counted operation exists
+	 * The counted operations that hand over a whole batch of tasks. Inside one of
+	 * them, a task handed to the pool passes only if it is a task the check of that
+	 * batch validated.
 	 */
-	private static boolean isInsideCountedThreadOperation() {
+	private static final Set<String> BATCH_THREAD_OPERATIONS = Set.of(
+			"java.util.concurrent.AbstractExecutorService.invokeAll",
+			"java.util.concurrent.AbstractExecutorService.invokeAny",
+			"java.util.concurrent.Executors$DelegatedExecutorService.invokeAll",
+			"java.util.concurrent.Executors$DelegatedExecutorService.invokeAny");
+
+	/** No counted operation encloses this thread operation. */
+	private static final int NO_COUNTED_OPERATION = 0;
+
+	/** A counted operation encloses this thread operation, but no batch. */
+	private static final int INSIDE_COUNTED_OPERATION = 1;
+
+	/** A batch operation, {@code invokeAll} or {@code invokeAny}, encloses it. */
+	private static final int INSIDE_BATCH_OPERATION = 2;
+
+	/**
+	 * The tasks of the {@code invokeAll} or {@code invokeAny} calls this thread is
+	 * in, newest first, each set holding by identity the tasks its check validated.
+	 * A set is added when the check of its call passes and removed when that call
+	 * returns or throws.
+	 */
+	private static final ThreadLocal<Deque<Set<Object>>> VALIDATED_BATCHES = ThreadLocal.withInitial(ArrayDeque::new);
+
+	/**
+	 * Tells which counted operations enclose this thread operation, with only JDK
+	 * methods between them and it, up to the first supervised or other non-JDK
+	 * method. A thread that supervised code starts itself, even from a callback, is
+	 * therefore never inside one.
+	 *
+	 * @return {@link #NO_COUNTED_OPERATION}, {@link #INSIDE_COUNTED_OPERATION} or
+	 *         {@link #INSIDE_BATCH_OPERATION}
+	 */
+	private static int countedOperationContext() {
 		return java.lang.StackWalker.getInstance().walk(frames -> {
 			java.util.Iterator<java.lang.StackWalker.StackFrame> iterator = frames.iterator();
 			boolean operationFrameSeen = false;
+			int context = NO_COUNTED_OPERATION;
 			while (iterator.hasNext()) {
 				java.lang.StackWalker.StackFrame frame = iterator.next();
 				String className = frame.getClassName();
@@ -217,15 +250,128 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 					continue;
 				}
 				if (!isJdkClassName(className)) {
-					return Boolean.FALSE;
+					return context;
 				}
-				if (operationFrameSeen && COUNTED_THREAD_OPERATIONS.contains(className + "." + frame.getMethodName())) {
-					return Boolean.TRUE;
+				String operation = className + "." + frame.getMethodName();
+				if (operationFrameSeen && BATCH_THREAD_OPERATIONS.contains(operation)) {
+					return INSIDE_BATCH_OPERATION;
+				}
+				if (operationFrameSeen && COUNTED_THREAD_OPERATIONS.contains(operation)) {
+					context = INSIDE_COUNTED_OPERATION;
 				}
 				operationFrameSeen = true;
 			}
-			return Boolean.FALSE;
+			return context;
 		});
+	}
+
+	/**
+	 * Tells whether this thread operation is part of a counted operation whose own
+	 * check counted the task, so it is not counted again. Inside {@code invokeAll}
+	 * or {@code invokeAny}, a task handed to the pool passes only if it is one the
+	 * batch's check validated; any other task is checked like any other call.
+	 *
+	 * @param declaringTypeName the class of the operation
+	 * @param methodName        the operation
+	 * @param parameters        its arguments, or {@code null}
+	 * @return whether the operation needs no check of its own
+	 */
+	private static boolean isPartOfACountedOperation(@Nonnull String declaringTypeName, @Nonnull String methodName,
+			@Nullable Object[] parameters) {
+		int context = countedOperationContext();
+		if (context == NO_COUNTED_OPERATION) {
+			return false;
+		}
+		if (context == INSIDE_BATCH_OPERATION && isBatchHandOver(declaringTypeName, methodName)) {
+			return parameters != null && parameters.length > 0 && isValidatedBatchTask(parameters[0]);
+		}
+		return true;
+	}
+
+	/**
+	 * Tells whether an operation hands one task of a batch to the pool: an
+	 * {@code execute}, or the {@code submit} of the completion service that
+	 * {@code invokeAny} uses.
+	 *
+	 * @param declaringTypeName the class of the operation
+	 * @param methodName        the operation
+	 * @return whether it hands over one task
+	 */
+	private static boolean isBatchHandOver(@Nonnull String declaringTypeName, @Nonnull String methodName) {
+		return "execute".equals(methodName) || "submit".equals(methodName)
+				&& "java.util.concurrent.ExecutorCompletionService".equals(declaringTypeName);
+	}
+
+	/**
+	 * Tells whether a value handed to the pool is, after the JDK's own wrappers, a
+	 * task the check of the enclosing batch validated, compared by identity.
+	 *
+	 * @param handedOver the value handed to the pool
+	 * @return whether it wraps a validated task
+	 */
+	private static boolean isValidatedBatchTask(@Nullable Object handedOver) {
+		Set<Object> validated = VALIDATED_BATCHES.get().peek();
+		return validated != null && validated.contains(unwrapJdkTaskWrappers(handedOver));
+	}
+
+	/**
+	 * Removes the JDK's own wrappers around a task, in the order the JDK applies
+	 * them: the {@code QueueingFuture} of {@code invokeAny}, a {@code FutureTask}
+	 * and a {@code RunnableAdapter}. Each is matched by its exact class and read
+	 * without running any code of the value; anything else is returned as it is.
+	 *
+	 * @param value the value handed to the pool
+	 * @return the task inside the wrappers, or the value itself
+	 */
+	@Nullable
+	private static Object unwrapJdkTaskWrappers(@Nullable Object value) {
+		Object task = unwrapExact(value, "java.util.concurrent.ExecutorCompletionService$QueueingFuture", "task");
+		task = unwrapExact(task, "java.util.concurrent.FutureTask", "callable");
+		return unwrapExact(task, "java.util.concurrent.Executors$RunnableAdapter", "task");
+	}
+
+	/**
+	 * Reads the wrapped value of a JDK wrapper of exactly the given class, or
+	 * returns the value as it is when it is of another class.
+	 *
+	 * @param value     the value
+	 * @param className the exact class of the wrapper
+	 * @param fieldName the field that holds the wrapped value
+	 * @return the wrapped value, or the value itself
+	 */
+	@Nullable
+	private static Object unwrapExact(@Nullable Object value, @Nonnull String className, @Nonnull String fieldName) {
+		if (value == null || value.getClass().getClassLoader() != null
+				|| !className.equals(value.getClass().getName())) {
+			return value;
+		}
+		return readFieldOfExactJdkClass(value, className, fieldName);
+	}
+
+	/**
+	 * Records the tasks of a batch whose check passed, for the rest of that call.
+	 * Only a plain JDK collection reaches this, which was read safely just before.
+	 *
+	 * @param parameters the arguments of {@code invokeAll} or {@code invokeAny}
+	 * @param recorded   the tasks recorded so far, by identity
+	 */
+	private static void recordBatchTasks(@Nullable Object[] parameters, @Nonnull Collection<Object> recorded) {
+		if (parameters == null) {
+			return;
+		}
+		for (Object parameter : parameters) {
+			if (parameter instanceof Collection<?> tasks && isPlainCollection(tasks)) {
+				recorded.addAll(tasks);
+			}
+		}
+	}
+
+	/**
+	 * Ends the scope of the newest validated batch of this thread, when its
+	 * {@code invokeAll} or {@code invokeAny} call returns or throws.
+	 */
+	public static void closeValidatedBatch() {
+		VALIDATED_BATCHES.get().poll();
 	}
 
 	/**
@@ -982,7 +1128,42 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		}
 		try {
 			checkThreadSystemInteractionImpl(action, declaringTypeName, methodName, methodSignature, attributes,
-					parameters, instance);
+					parameters, instance, null);
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	/**
+	 * Runs {@link #checkThreadSystemInteraction} and, when the call is an
+	 * {@code invokeAll} or {@code invokeAny} whose tasks it validated, records
+	 * those tasks for that call, which {@link #closeValidatedBatch()} ends.
+	 *
+	 * @param action            the thread system action being performed
+	 * @param declaringTypeName the method's class
+	 * @param methodName        its name
+	 * @param methodSignature   its signature
+	 * @param attributes        receiver fields, or {@code null}
+	 * @param parameters        call arguments, or {@code null}
+	 * @param instance          the receiver, or {@code null}
+	 * @return whether a batch was recorded, so the call's end must close it
+	 * @throws SecurityException if the policy forbids the call
+	 */
+	public static boolean checkThreadSystemInteractionRecordingBatch(@Nonnull String action,
+			@Nonnull String declaringTypeName, @Nonnull String methodName, @Nonnull String methodSignature,
+			@Nullable Object[] attributes, @Nullable Object[] parameters, @Nullable Object instance) {
+		if (!enterAdvice()) {
+			return false;
+		}
+		try {
+			Set<Object> validated = Collections.newSetFromMap(new IdentityHashMap<>());
+			checkThreadSystemInteractionImpl(action, declaringTypeName, methodName, methodSignature, attributes,
+					parameters, instance, validated);
+			if (validated.isEmpty()) {
+				return false;
+			}
+			VALIDATED_BATCHES.get().push(validated);
+			return true;
 		} finally {
 			exitAdvice();
 		}
@@ -1000,10 +1181,12 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 	 * @param attributes        receiver fields, or {@code null}
 	 * @param parameters        call arguments, or {@code null}
 	 * @param instance          the receiver, or {@code null}
+	 * @param validatedBatch    receives the tasks of a batch whose check passed, or
+	 *                          {@code null} to record none
 	 */
 	private static void checkThreadSystemInteractionImpl(@Nonnull String action, @Nonnull String declaringTypeName,
 			@Nonnull String methodName, @Nonnull String methodSignature, @Nullable Object[] attributes,
-			@Nullable Object[] parameters, @Nullable Object instance) {
+			@Nullable Object[] parameters, @Nullable Object instance, @Nullable Collection<Object> validatedBatch) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
 		final String aopMode = getValueFromSettings("aopMode");
@@ -1044,7 +1227,8 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 		// subsystem
 		// because the Command/Execute subsystem will check these operations.
 		if (isThreadCreationFromCommandExecution() || isThreadCreationFromAresTimeout(restrictedPackage)
-				|| isJdkShellFolderHandOffWithoutStudentCode() || isInsideCountedThreadOperation()
+				|| isJdkShellFolderHandOffWithoutStudentCode()
+				|| isPartOfACountedOperation(declaringTypeName, methodName, parameters)
 				|| isHttpClientOwnThreadOperation() && !isHttpClientOwnThread(instance) || isJdkImageDisposerSetUp()) {
 			return;
 		}
@@ -1125,6 +1309,9 @@ public final class JavaInstrumentationAdviceThreadSystemToolbox extends JavaInst
 						describeSignature(fullMethodSignature) + describeCaller(studentCalledMethod),
 						buildDenialReason("thread", action, noAllowRuleConfigured)));
 			}
+		}
+		if (taskCollectionOperation && validatedBatch != null) {
+			recordBatchTasks(parameters, validatedBatch);
 		}
 		if (decrementQuota && instance instanceof Thread) {
 			JavaInstrumentationThreadSystemCallSite.recordAllowedThread((Thread) instance,

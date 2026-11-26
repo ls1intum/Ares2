@@ -1161,6 +1161,64 @@ public abstract class JavaInstrumentationAdviceAbstractToolbox {
 	}
 	// </editor-fold>
 
+	// <editor-fold desc="Read a field of a JDK object">
+
+	/**
+	 * Reads one field of a JDK object without running any of its code: by
+	 * reflection, or through {@code sun.misc.Unsafe} where the module system
+	 * refuses reflection. Only an object of exactly the named class, defined by the
+	 * JVM's own class loader, is read, so a subclass the supervised code wrote
+	 * never is.
+	 *
+	 * @param owner     the object
+	 * @param className the exact binary name of its class
+	 * @param fieldName a field that class declares
+	 * @return the value, or {@code null} for another class or an unreadable field
+	 */
+	@Nullable
+	static Object readFieldOfExactJdkClass(@Nullable Object owner, @Nonnull String className,
+			@Nonnull String fieldName) {
+		if (owner == null || owner.getClass().getClassLoader() != null
+				|| !className.equals(owner.getClass().getName())) {
+			return null;
+		}
+		Field field;
+		try {
+			field = owner.getClass().getDeclaredField(fieldName);
+		} catch (NoSuchFieldException e) {
+			return null;
+		}
+		try {
+			field.setAccessible(true);
+			return field.get(owner);
+		} catch (IllegalAccessException | InaccessibleObjectException | SecurityException e) {
+			return readFieldThroughUnsafe(owner, field);
+		}
+	}
+
+	/**
+	 * Reads a field through {@code sun.misc.Unsafe}, for a JDK field the module
+	 * system keeps closed to reflection.
+	 *
+	 * @param owner the object
+	 * @param field the field
+	 * @return the value, or {@code null} if {@code Unsafe} cannot read it either
+	 */
+	@Nullable
+	private static Object readFieldThroughUnsafe(@Nonnull Object owner, @Nonnull Field field) {
+		try {
+			Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+			Field theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
+			theUnsafe.setAccessible(true);
+			Object unsafe = theUnsafe.get(null);
+			Object offset = unsafeClass.getMethod("objectFieldOffset", Field.class).invoke(unsafe, field);
+			return unsafeClass.getMethod("getObject", Object.class, long.class).invoke(unsafe, owner, offset);
+		} catch (ReflectiveOperationException | InaccessibleObjectException | SecurityException e) {
+			return null;
+		}
+	}
+	// </editor-fold>
+
 	// <editor-fold desc="Filter variables">
 
 	/**

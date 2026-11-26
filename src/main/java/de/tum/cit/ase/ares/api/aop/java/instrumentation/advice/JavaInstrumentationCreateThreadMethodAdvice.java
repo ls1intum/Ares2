@@ -38,11 +38,12 @@ public final class JavaInstrumentationCreateThreadMethodAdvice {
 	 * @param instance          The instance of the class that declares the method
 	 *                          (if applicable).
 	 * @param parameters        The parameters passed to the method being executed.
+	 * @return whether the check recorded the tasks of a batch for this call
 	 * @throws SecurityException If the method execution is not allowed based on
 	 *                           security policies.
 	 */
 	@Advice.OnMethodEnter
-	public static void onEnter(@Advice.Origin("#t") String declaringTypeName, @Advice.Origin("#m") String methodName,
+	public static boolean onEnter(@Advice.Origin("#t") String declaringTypeName, @Advice.Origin("#m") String methodName,
 			@Advice.Origin("#s") String methodSignature, @Advice.This(optional = true) Object instance,
 			@Advice.AllArguments Object... parameters) {
 		// <editor-fold desc="Attributes">
@@ -70,8 +71,21 @@ public final class JavaInstrumentationCreateThreadMethodAdvice {
 		// </editor-fold>
 
 		// <editor-fold desc="Check">
-		JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteraction("create", declaringTypeName,
-				methodName, methodSignature, attributes, parameters, instance);
+		return JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteractionRecordingBatch("create",
+				declaringTypeName, methodName, methodSignature, attributes, parameters, instance);
 		// </editor-fold>
+	}
+
+	/**
+	 * Ends the scope of the tasks an {@code invokeAll} or {@code invokeAny} check
+	 * recorded, when that call returns or throws.
+	 *
+	 * @param batchRecorded whether the entry recorded a batch for this call
+	 */
+	@Advice.OnMethodExit(onThrowable = Throwable.class)
+	public static void onExit(@Advice.Enter boolean batchRecorded) {
+		if (batchRecorded) {
+			JavaInstrumentationAdviceThreadSystemToolbox.closeValidatedBatch();
+		}
 	}
 }

@@ -11,9 +11,13 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Supervised code that hands tasks to a thread pool or to
@@ -330,5 +334,79 @@ public final class CountedOperationsMain {
 			batch.add(new SetBackedCall());
 		}
 		return invokeAll(List.copyOf(batch));
+	}
+
+	/**
+	 * Hands two allowed tasks to the student's pool whose wrapping replaces the
+	 * second one with a task no allowance names.
+	 *
+	 * @return how many tasks ran
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public static int invokeAllWithASwappingPool() throws InterruptedException {
+		SwappingPool pool = new SwappingPool();
+		try {
+			List<Callable<Integer>> batch = Arrays.asList(new CountedCall(), new CountedCall());
+			pool.swapIn(batch);
+			return pool.invokeAll(batch).size();
+		} finally {
+			pool.shutdownNow();
+		}
+	}
+
+	/**
+	 * Hands a batch to a pool whose only thread is busy, so the pool runs each task
+	 * on the calling thread; the first task replaces the second one with a task no
+	 * allowance names before the pool reaches it.
+	 *
+	 * @return how many tasks ran
+	 * @throws InterruptedException if a wait is interrupted
+	 */
+	public static int invokeAllWithAReplacingTask() throws InterruptedException {
+		ThreadPoolExecutor pool = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new SynchronousQueue<>(),
+				new ThreadPoolExecutor.CallerRunsPolicy());
+		CountDownLatch started = new CountDownLatch(1);
+		CountDownLatch released = new CountDownLatch(1);
+		try {
+			pool.execute(new LatchedTask(started, released));
+			started.await();
+			List<Callable<Integer>> batch = Arrays.asList(new ReplacingCall(), new CountedCall());
+			ReplacingCall.belongTo(batch);
+			return pool.invokeAll(batch).size();
+		} finally {
+			released.countDown();
+			pool.shutdownNow();
+		}
+	}
+
+	/**
+	 * Hands two allowed tasks in an {@code ArrayList} to the student's pool that
+	 * wraps them as the JDK does.
+	 *
+	 * @return how many tasks ran
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public static int invokeAllWithAPlainSubclassPool() throws InterruptedException {
+		PlainSubclassPool pool = new PlainSubclassPool();
+		try {
+			return pool.invokeAll(new ArrayList<>(List.of(new CountedCall(), new CountedCall()))).size();
+		} finally {
+			pool.shutdownNow();
+		}
+	}
+
+	/**
+	 * Hands two allowed tasks to {@code invokeAny} on a pool of two threads.
+	 *
+	 * @return the result of the task that finished first
+	 * @throws Exception if no task finishes or the wait is interrupted
+	 */
+	public static int invokeAnyBatch() throws Exception {
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+			return pool.invokeAny(List.of(new CountedCall(), new CountedCall()));
+		} finally {
+			pool.shutdownNow();
+		}
 	}
 }

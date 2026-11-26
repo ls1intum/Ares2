@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.integration.aop.allowed;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.function.Executable;
 
 import de.tum.cit.ase.ares.api.Policy;
@@ -1208,5 +1209,185 @@ class ThreadCountedOperationsTest {
 	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
 	void invokeAllRefusesSetBackedTasksBeyondTheirAllowanceMavenWalaInstrumentation() {
 		assertRefusedNaming(() -> CountedOperationsMain.invokeAllSetBackedCalls(3), "SetBackedCall");
+	}
+
+	/**
+	 * A task the student's pool swaps into the batch while wrapping it is refused
+	 * in ArchunitAspectJ, as it is not one the batch's check validated.
+	 */
+	@Disabled("Not covered in this pull request: AspectJ does not see the calls the JDK pool makes inside invokeAll, so a task changed after the check runs unchecked there. This is the case on main already and is followed up separately.")
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskSwappedInByThePoolMavenArchunitAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllWithASwappingPool);
+	}
+
+	/**
+	 * A task a running task of the batch puts in place of a later one is refused in
+	 * ArchunitAspectJ when the pool reaches it.
+	 */
+	@Disabled("Not covered in this pull request: AspectJ does not see the calls the JDK pool makes inside invokeAll, so a task changed after the check runs unchecked there. This is the case on main already and is followed up separately.")
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskReplacedByARunningTaskMavenArchunitAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllWithAReplacingTask);
+	}
+
+	/**
+	 * Allowed tasks still run in ArchunitAspectJ through a pool the student wrote
+	 * that wraps tasks as the JDK does.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsThroughAPlainSubclassPoolMavenArchunitAspectJ() throws Exception {
+		Assertions.assertEquals(2, CountedOperationsMain.invokeAllWithAPlainSubclassPool());
+	}
+
+	/**
+	 * A batch of allowed tasks handed to {@code invokeAny} still runs in
+	 * ArchunitAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAnyRunsABatchMavenArchunitAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAnyBatch());
+	}
+
+	/**
+	 * A task the student's pool swaps into the batch while wrapping it is refused
+	 * in ArchunitInstrumentation, as it is not one the batch's check validated.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskSwappedInByThePoolMavenArchunitInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllWithASwappingPool);
+	}
+
+	/**
+	 * A task a running task of the batch puts in place of a later one is refused in
+	 * ArchunitInstrumentation when the pool reaches it.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskReplacedByARunningTaskMavenArchunitInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllWithAReplacingTask);
+	}
+
+	/**
+	 * Allowed tasks still run in ArchunitInstrumentation through a pool the student
+	 * wrote that wraps tasks as the JDK does.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsThroughAPlainSubclassPoolMavenArchunitInstrumentation() throws Exception {
+		Assertions.assertEquals(2, CountedOperationsMain.invokeAllWithAPlainSubclassPool());
+	}
+
+	/**
+	 * A batch of allowed tasks handed to {@code invokeAny} still runs in
+	 * ArchunitInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAnyRunsABatchMavenArchunitInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAnyBatch());
+	}
+
+	/**
+	 * A task the student's pool swaps into the batch while wrapping it is refused
+	 * in WalaAspectJ, as it is not one the batch's check validated.
+	 */
+	@Disabled("Not covered in this pull request: AspectJ does not see the calls the JDK pool makes inside invokeAll, so a task changed after the check runs unchecked there. This is the case on main already and is followed up separately.")
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskSwappedInByThePoolMavenWalaAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllWithASwappingPool);
+	}
+
+	/**
+	 * A task a running task of the batch puts in place of a later one is refused in
+	 * WalaAspectJ when the pool reaches it.
+	 */
+	@Disabled("Not covered in this pull request: AspectJ does not see the calls the JDK pool makes inside invokeAll, so a task changed after the check runs unchecked there. This is the case on main already and is followed up separately.")
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskReplacedByARunningTaskMavenWalaAspectJ() {
+		assertRefused(CountedOperationsMain::invokeAllWithAReplacingTask);
+	}
+
+	/**
+	 * Allowed tasks still run in WalaAspectJ through a pool the student wrote that
+	 * wraps tasks as the JDK does.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsThroughAPlainSubclassPoolMavenWalaAspectJ() throws Exception {
+		Assertions.assertEquals(2, CountedOperationsMain.invokeAllWithAPlainSubclassPool());
+	}
+
+	/**
+	 * A batch of allowed tasks handed to {@code invokeAny} still runs in
+	 * WalaAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAnyRunsABatchMavenWalaAspectJ() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAnyBatch());
+	}
+
+	/**
+	 * A task the student's pool swaps into the batch while wrapping it is refused
+	 * in WalaInstrumentation, as it is not one the batch's check validated.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskSwappedInByThePoolMavenWalaInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllWithASwappingPool);
+	}
+
+	/**
+	 * A task a running task of the batch puts in place of a later one is refused in
+	 * WalaInstrumentation when the pool reaches it.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATaskReplacedByARunningTaskMavenWalaInstrumentation() {
+		assertRefused(CountedOperationsMain::invokeAllWithAReplacingTask);
+	}
+
+	/**
+	 * Allowed tasks still run in WalaInstrumentation through a pool the student
+	 * wrote that wraps tasks as the JDK does.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsThroughAPlainSubclassPoolMavenWalaInstrumentation() throws Exception {
+		Assertions.assertEquals(2, CountedOperationsMain.invokeAllWithAPlainSubclassPool());
+	}
+
+	/**
+	 * A batch of allowed tasks handed to {@code invokeAny} still runs in
+	 * WalaInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAnyRunsABatchMavenWalaInstrumentation() throws Exception {
+		Assertions.assertEquals(1, CountedOperationsMain.invokeAnyBatch());
 	}
 }
