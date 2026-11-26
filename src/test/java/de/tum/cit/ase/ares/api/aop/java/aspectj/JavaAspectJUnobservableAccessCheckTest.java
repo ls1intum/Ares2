@@ -285,6 +285,114 @@ class JavaAspectJUnobservableAccessCheckTest {
 				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), FILES, List.of()));
 	}
 
+	/**
+	 * A reference to a student override that only hands on to the checked method
+	 * through super is refused: neither call would be checked while it runs.
+	 */
+	@Test
+	void aReferenceToAnOverrideHandingOnToSuperIsRefused() throws IOException {
+		JavaClasses classes = compile("HandingOn", """
+				public class HandingOn extends java.io.File {
+					public HandingOn(String p) { super(p); }
+					@Override public String[] list() { return super.list(); }
+					static Object go() {
+						java.util.function.Supplier<String[]> read = new HandingOn("secret")::list;
+						return read.get();
+					}
+				}
+				""");
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), FILES, List.of()));
+		assertTrue(refusal.getMessage().contains("java.io.File.list()"), refusal.getMessage());
+	}
+
+	/**
+	 * A reference to a student override with code of its own passes, since that
+	 * code is woven and checked.
+	 */
+	@Test
+	void aReferenceToAnOverrideWithOwnCodePasses() throws IOException {
+		JavaClasses classes = compile("OwnList", """
+				public class OwnList extends java.io.File {
+					public OwnList(String p) { super(p); }
+					@Override public String[] list() { return new String[0]; }
+					static Object go() {
+						java.util.function.Supplier<String[]> read = new OwnList("secret")::list;
+						return read.get();
+					}
+				}
+				""");
+		assertDoesNotThrow(
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), FILES, List.of()));
+	}
+
+	/**
+	 * A call through super that names a JDK class inheriting the checked method, as
+	 * javac writes super.parallelStream() in an ArrayList subclass for
+	 * Collection.parallelStream, is refused.
+	 */
+	@Test
+	void aSuperCallToAnInheritedJdkMethodIsRefused() throws IOException {
+		JavaClasses classes = compile("Parallel", """
+				public class Parallel extends java.util.ArrayList<String> {
+					Object go() { return super.parallelStream(); }
+				}
+				""");
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), THREADS, List.of()));
+		assertTrue(refusal.getMessage().contains("java.util.Collection.parallelStream()"), refusal.getMessage());
+	}
+
+	/**
+	 * A call through super to an inherited JDK method that no list names, such as
+	 * ArrayList.size, passes.
+	 */
+	@Test
+	void aSuperCallToAnUncheckedInheritedJdkMethodPasses() throws IOException {
+		JavaClasses classes = compile("Sizes", """
+				public class Sizes extends java.util.ArrayList<String> {
+					int count() { return super.size(); }
+				}
+				""");
+		assertDoesNotThrow(
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), THREADS, List.of()));
+	}
+
+	/**
+	 * A socket subclass calling super() without arguments and then creating another
+	 * socket with new passes: AspectJ checks that new.
+	 */
+	@Test
+	void aSuperConstructorWithoutArgumentsFollowedByNewPasses() throws IOException {
+		JavaClasses classes = compile("Plain", """
+				public class Plain extends java.net.Socket {
+					public Plain() throws java.io.IOException {
+						super();
+						new java.net.Socket("allowed-host", 80).close();
+					}
+				}
+				""");
+		assertDoesNotThrow(
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), NETWORK, NETWORK));
+	}
+
+	/**
+	 * A socket subclass reaching a connecting constructor through super(...) is
+	 * refused, also when it creates another socket with new beside it.
+	 */
+	@Test
+	void aConnectingSuperConstructorBesideNewIsRefused() throws IOException {
+		JavaClasses classes = compile("Connecting", """
+				public class Connecting extends java.net.Socket {
+					public Connecting(String host) throws java.io.IOException {
+						super(host, 80);
+						new java.net.Socket(host, 81).close();
+					}
+				}
+				""");
+		assertTrue(refused(classes, NETWORK).getMessage().contains("java.net.Socket.<init>(java.lang.String, int)"));
+	}
+
 	/** A constructor reference to a socket is refused with the network list. */
 	@Test
 	void aSocketConstructorReferenceIsRefused() throws IOException {

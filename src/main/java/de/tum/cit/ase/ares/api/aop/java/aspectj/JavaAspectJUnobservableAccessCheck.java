@@ -4,14 +4,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -73,13 +78,14 @@ public final class JavaAspectJUnobservableAccessCheck {
 		}
 		Set<String> referenced = methodsOf(referenceLists);
 		Set<String> constructed = methodsOf(constructorLists);
+		Hierarchy hierarchy = new Hierarchy(supervisedClasses);
 		for (JavaClass javaClass : supervisedClasses) {
 			if (DESCRIPTOR_NAMES.contains(javaClass.getSimpleName())
 					|| exemptedClassNames.contains(javaClass.getName())) {
 				continue;
 			}
-			refuseReferences(javaClass, supervisedClasses, referenced);
-			refuseSuperCalls(javaClass, supervisedClasses, referenced, constructed);
+			refuseReferences(javaClass, hierarchy, referenced);
+			refuseSuperCalls(javaClass, hierarchy, referenced, constructed);
 		}
 	}
 
@@ -99,16 +105,16 @@ public final class JavaAspectJUnobservableAccessCheck {
 	 * Refuses a method or constructor reference of a class to a listed method.
 	 *
 	 * @param javaClass  the class to look at
-	 * @param classes    all supervised classes, to follow the type hierarchy
+	 * @param hierarchy  the type hierarchy of this run
 	 * @param referenced the listed methods
 	 * @throws SecurityException for the first such reference
 	 */
-	private static void refuseReferences(@Nonnull JavaClass javaClass, @Nonnull JavaClasses classes,
+	private static void refuseReferences(@Nonnull JavaClass javaClass, @Nonnull Hierarchy hierarchy,
 			@Nonnull Set<String> referenced) {
 		for (JavaCodeUnitReference<?> reference : javaClass.getCodeUnitReferencesFromSelf()) {
 			AccessTarget.CodeUnitReferenceTarget target = reference.getTarget();
 			List<String> parameters = target.getRawParameterTypes().stream().map(JavaClass::getName).toList();
-			Optional<String> listed = firstListed(target.getOwner().getName(), target.getName(), parameters, classes,
+			Optional<String> listed = firstListed(target.getOwner().getName(), target.getName(), parameters, hierarchy,
 					referenced);
 			if (listed.isPresent()) {
 				throw new SecurityException(Messages.localized("security.aspectj.unobservable.reference",
@@ -123,20 +129,20 @@ public final class JavaAspectJUnobservableAccessCheck {
 	 * constructor without arguments opens nothing it could be told to open.
 	 *
 	 * @param javaClass   the class to look at
-	 * @param classes     all supervised classes, to follow the type hierarchy
+	 * @param hierarchy   the type hierarchy of this run
 	 * @param referenced  the methods that may not be called through {@code super}
 	 * @param constructed the constructors that may not be reached through
 	 *                    {@code super(...)}
 	 * @throws SecurityException for the first such call
 	 */
-	private static void refuseSuperCalls(@Nonnull JavaClass javaClass, @Nonnull JavaClasses classes,
+	private static void refuseSuperCalls(@Nonnull JavaClass javaClass, @Nonnull Hierarchy hierarchy,
 			@Nonnull Set<String> referenced, @Nonnull Set<String> constructed) {
-		for (SuperCall call : superCallsOf(javaClass)) {
+		for (SuperCall call : hierarchy.callsOf(javaClass).superCalls()) {
 			boolean constructor = "<init>".equals(call.name());
 			if (constructor && call.parameterTypes().isEmpty()) {
 				continue;
 			}
-			Optional<String> listed = firstListed(call.owner(), call.name(), call.parameterTypes(), classes,
+			Optional<String> listed = firstListed(call.owner(), call.name(), call.parameterTypes(), hierarchy,
 					constructor ? constructed : referenced);
 			if (listed.isPresent()) {
 				throw new SecurityException(
@@ -150,34 +156,49 @@ public final class JavaAspectJUnobservableAccessCheck {
 
 	/**
 	 * Returns the first listed method the named method is, looking at its own class
-	 * and then up the hierarchy. A supervised class declaring it on the way, such
-	 * as the method holding a lambda's body, ends the search: its code is woven and
-	 * checked like any other student code.
+	 * and then at every class and interface above it. A supervised class declaring
+	 * it on the way, such as the method holding a lambda's body, ends the search:
+	 * its code is woven and checked. A declaration that only hands on to the method
+	 * it overrides through {@code super} does not. A constructor is looked up in
+	 * its own class only.
 	 *
 	 * @param ownerName      the binary name of the class the code names
 	 * @param name           the method name
 	 * @param parameterTypes the binary names of the parameter types
-	 * @param classes        all supervised classes
+	 * @param hierarchy      the type hierarchy of this run
 	 * @param listed         the listed methods
 	 * @return the matching listed signature, if any
 	 */
 	@Nonnull
 	private static Optional<String> firstListed(@Nonnull String ownerName, @Nonnull String name,
-			@Nonnull List<String> parameterTypes, @Nonnull JavaClasses classes, @Nonnull Set<String> listed) {
+			@Nonnull List<String> parameterTypes, @Nonnull Hierarchy hierarchy, @Nonnull Set<String> listed) {
 		if (listed.isEmpty()) {
 			return Optional.empty();
 		}
-		String parameters = "(" + String.join(", ", parameterTypes) + ")";
-		for (String typeName : ownerAndSupertypes(ownerName, classes).toList()) {
-			if (classes.contain(typeName) && declares(classes.get(typeName), name, parameterTypes)) {
+		List<String> typeNames = "<init>".equals(name) ? List.of(ownerName) : hierarchy.ownerAndSupertypes(ownerName);
+		for (String typeName : typeNames) {
+			if (hierarchy.runsOwnCode(typeName, name, parameterTypes)) {
 				return Optional.empty();
 			}
-			String signature = ForbiddenMethodMatcher.canonicalise(typeName + "." + name + parameters);
+			String signature = ForbiddenMethodMatcher.canonicalise(typeName + "." + methodKey(name, parameterTypes));
 			if (isListed(signature, listed)) {
 				return Optional.of(signature);
 			}
 		}
 		return Optional.empty();
+	}
+
+	/**
+	 * Returns a method name followed by its parameter list, as the method lists
+	 * write it: {@code list(int, java.lang.String)}.
+	 *
+	 * @param name           the method name
+	 * @param parameterTypes the binary names of the parameter types
+	 * @return the name with its parameter list
+	 */
+	@Nonnull
+	private static String methodKey(@Nonnull String name, @Nonnull List<String> parameterTypes) {
+		return name + "(" + String.join(", ", parameterTypes) + ")";
 	}
 
 	/**
@@ -196,27 +217,6 @@ public final class JavaAspectJUnobservableAccessCheck {
 	}
 
 	/**
-	 * Returns a class name and, if the class is supervised, the names of every
-	 * class and interface above it.
-	 *
-	 * @param ownerName the binary name of the class
-	 * @param classes   all supervised classes
-	 * @return the names, the class itself first
-	 */
-	@Nonnull
-	private static Stream<String> ownerAndSupertypes(@Nonnull String ownerName, @Nonnull JavaClasses classes) {
-		if (!classes.contain(ownerName)) {
-			return Stream.of(ownerName);
-		}
-		JavaClass owner = classes.get(ownerName);
-		Set<String> names = new LinkedHashSet<>();
-		names.add(ownerName);
-		owner.getAllRawSuperclasses().forEach(type -> names.add(type.getName()));
-		owner.getAllRawInterfaces().forEach(type -> names.add(type.getName()));
-		return names.stream();
-	}
-
-	/**
 	 * Whether a canonical signature is listed, exactly or under an entry without a
 	 * parameter list, as the architecture rules read the lists.
 	 *
@@ -231,22 +231,22 @@ public final class JavaAspectJUnobservableAccessCheck {
 
 	/**
 	 * Reads from the class file the calls a class makes through {@code super}: an
-	 * invokespecial of another class's method, and a constructor of the superclass
-	 * called more often than objects of that class are created.
+	 * invokespecial of another class's method, and a superclass constructor called
+	 * on the object being built rather than on one created with {@code new}.
 	 *
 	 * @param javaClass the class to read
-	 * @return the calls, or every call an unreadable class file cannot rule out
+	 * @return the calls
 	 * @throws SecurityException if the class file cannot be read
 	 */
 	@Nonnull
-	static List<SuperCall> superCallsOf(@Nonnull JavaClass javaClass) {
+	static ClassCalls callsOf(@Nonnull JavaClass javaClass) {
 		Optional<URI> classFile = javaClass.getSource().map(Source::getUri);
 		if (classFile.isEmpty()) {
 			throw new SecurityException(
 					Messages.localized("security.architecture.class.file.missing", javaClass.getName()));
 		}
 		try (InputStream input = classFile.get().toURL().openStream()) {
-			return superCallsOf(input.readAllBytes());
+			return callsOf(input.readAllBytes());
 		} catch (IOException | RuntimeException unreadable) {
 			throw new SecurityException(
 					Messages.localized("security.architecture.class.file.missing", javaClass.getName()), unreadable);
@@ -260,10 +260,162 @@ public final class JavaAspectJUnobservableAccessCheck {
 	 * @return the calls
 	 */
 	@Nonnull
-	static List<SuperCall> superCallsOf(@Nonnull byte[] classFile) {
+	static ClassCalls callsOf(@Nonnull byte[] classFile) {
 		SuperCallCollector collector = new SuperCallCollector();
 		new ClassReader(classFile).accept(collector, ClassReader.SKIP_FRAMES);
-		return List.copyOf(collector.calls);
+		return new ClassCalls(List.copyOf(collector.calls), Set.copyOf(collector.handOns));
+	}
+
+	/**
+	 * What one class file does through {@code super}.
+	 *
+	 * @param superCalls the calls through {@code super} the check looks at
+	 * @param handOns    the methods, as {@link #methodKey}, whose override only
+	 *                   hands on to the overridden method through {@code super}
+	 */
+	record ClassCalls(@Nonnull List<SuperCall> superCalls, @Nonnull Set<String> handOns) {
+	}
+
+	/**
+	 * The direct supertypes of one class.
+	 *
+	 * @param superclass the binary name of its superclass, {@code null} for none
+	 * @param interfaces the binary names of the interfaces it names
+	 */
+	private record Supertypes(@Nullable String superclass, @Nonnull List<String> interfaces) {
+
+		/** What a class Ares cannot read is taken to have: nothing above it. */
+		@Nonnull
+		private static final Supertypes NONE = new Supertypes(null, List.of());
+	}
+
+	/**
+	 * The type hierarchy one check needs, read once per class: the supervised
+	 * classes from ArchUnit and their class files, every other class from the class
+	 * file the class path holds, such as a JDK class.
+	 */
+	private static final class Hierarchy {
+
+		/** The supervised classes. */
+		@Nonnull
+		private final JavaClasses classes;
+
+		/** What each supervised class read so far does through super, by name. */
+		@Nonnull
+		private final Map<String, ClassCalls> callsByClass = new HashMap<>();
+
+		/** The direct supertypes of each class read so far, by name. */
+		@Nonnull
+		private final Map<String, Supertypes> supertypesByClass = new HashMap<>();
+
+		/**
+		 * Creates the hierarchy of one check.
+		 *
+		 * @param classes the supervised classes
+		 */
+		Hierarchy(@Nonnull JavaClasses classes) {
+			this.classes = classes;
+		}
+
+		/**
+		 * Returns what a supervised class does through super.
+		 *
+		 * @param javaClass the class
+		 * @return its calls
+		 */
+		@Nonnull
+		ClassCalls callsOf(@Nonnull JavaClass javaClass) {
+			return callsByClass.computeIfAbsent(javaClass.getName(),
+					name -> JavaAspectJUnobservableAccessCheck.callsOf(javaClass));
+		}
+
+		/**
+		 * Whether a supervised class declares the method with code of its own, more
+		 * than a hand-on to the method it overrides.
+		 *
+		 * @param typeName       the binary name of the class
+		 * @param name           the method name
+		 * @param parameterTypes the binary names of the parameter types
+		 * @return {@code true} if calling it runs woven student code
+		 */
+		boolean runsOwnCode(@Nonnull String typeName, @Nonnull String name, @Nonnull List<String> parameterTypes) {
+			if (!classes.contain(typeName) || !declares(classes.get(typeName), name, parameterTypes)) {
+				return false;
+			}
+			return !callsOf(classes.get(typeName)).handOns().contains(methodKey(name, parameterTypes));
+		}
+
+		/**
+		 * Returns a class name, then its superclasses in order, then every interface
+		 * above them.
+		 *
+		 * @param ownerName the binary name of the class
+		 * @return the names, the class itself first
+		 */
+		@Nonnull
+		List<String> ownerAndSupertypes(@Nonnull String ownerName) {
+			Set<String> names = new LinkedHashSet<>();
+			String typeName = ownerName;
+			while (typeName != null && names.add(typeName)) {
+				typeName = supertypesOf(typeName).superclass();
+			}
+			Deque<String> pending = new ArrayDeque<>(names);
+			while (!pending.isEmpty()) {
+				for (String interfaceName : supertypesOf(pending.remove()).interfaces()) {
+					if (names.add(interfaceName)) {
+						pending.add(interfaceName);
+					}
+				}
+			}
+			return List.copyOf(names);
+		}
+
+		/**
+		 * Returns the direct supertypes of a class.
+		 *
+		 * @param typeName the binary name of the class
+		 * @return its supertypes, or none if Ares cannot read the class
+		 */
+		@Nonnull
+		private Supertypes supertypesOf(@Nonnull String typeName) {
+			return supertypesByClass.computeIfAbsent(typeName,
+					name -> classes.contain(name) ? supervisedSupertypes(classes.get(name))
+							: classPathSupertypes(name));
+		}
+
+		/**
+		 * Returns the direct supertypes of a supervised class, as ArchUnit read them.
+		 *
+		 * @param javaClass the class
+		 * @return its supertypes
+		 */
+		@Nonnull
+		private static Supertypes supervisedSupertypes(@Nonnull JavaClass javaClass) {
+			return new Supertypes(javaClass.getRawSuperclass().map(JavaClass::getName).orElse(null),
+					javaClass.getRawInterfaces().stream().map(JavaClass::getName).toList());
+		}
+
+		/**
+		 * Returns the direct supertypes of a class from its class file on the class
+		 * path, without loading the class.
+		 *
+		 * @param typeName the binary name of the class
+		 * @return its supertypes, or none if there is no readable class file
+		 */
+		@Nonnull
+		private static Supertypes classPathSupertypes(@Nonnull String typeName) {
+			try (InputStream input = ClassLoader.getSystemResourceAsStream(typeName.replace('.', '/') + ".class")) {
+				if (input == null) {
+					return Supertypes.NONE;
+				}
+				ClassReader reader = new ClassReader(input);
+				String superName = reader.getSuperName();
+				return new Supertypes(superName == null ? null : superName.replace('/', '.'),
+						Arrays.stream(reader.getInterfaces()).map(name -> name.replace('/', '.')).toList());
+			} catch (IOException | RuntimeException unreadable) {
+				return Supertypes.NONE;
+			}
+		}
 	}
 
 	/**
@@ -282,6 +434,10 @@ public final class JavaAspectJUnobservableAccessCheck {
 		/** The calls found so far. */
 		@Nonnull
 		private final List<SuperCall> calls = new ArrayList<>();
+
+		/** The overrides found so far that hand on through super, as method keys. */
+		@Nonnull
+		private final Set<String> handOns = new HashSet<>();
 
 		/** The internal name of the class being read. */
 		@Nullable
@@ -320,12 +476,13 @@ public final class JavaAspectJUnobservableAccessCheck {
 			@Nonnull
 			private final String methodDescriptor;
 
-			/** How many objects of the superclass the method creates with new. */
-			private int superclassObjectsCreated;
-
-			/** The superclass constructors the method calls, by descriptor. */
+			/**
+			 * The classes the method created with new whose constructor has not run yet,
+			 * the latest first. javac calls each such constructor before the one of an
+			 * enclosing new, so the latest is the one a constructor call builds.
+			 */
 			@Nonnull
-			private final List<String> superclassConstructors = new ArrayList<>();
+			private final Deque<String> pendingCreations = new ArrayDeque<>();
 
 			/**
 			 * Creates the visitor for one method.
@@ -353,30 +510,42 @@ public final class JavaAspectJUnobservableAccessCheck {
 
 			@Override
 			public void visitTypeInsn(int opcode, String type) {
-				if (opcode == Opcodes.NEW && type.equals(superName)) {
-					superclassObjectsCreated++;
+				if (opcode == Opcodes.NEW) {
+					pendingCreations.push(type);
 				}
 			}
 
 			@Override
 			public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-				if (opcode != Opcodes.INVOKESPECIAL || owner.equals(self)) {
+				if (opcode != Opcodes.INVOKESPECIAL) {
 					return;
 				}
-				if (!"<init>".equals(name)) {
-					if (!isOverrideHandingOn(name, descriptor)) {
-						calls.add(new SuperCall(owner.replace('/', '.'), name, parameterTypesOf(descriptor)));
-					}
-				} else if ("<init>".equals(methodName) && owner.equals(superName)) {
-					superclassConstructors.add(descriptor);
+				if ("<init>".equals(name)) {
+					recordConstructorCall(owner, descriptor);
+					return;
+				}
+				if (owner.equals(self)) {
+					return;
+				}
+				if (isOverrideHandingOn(name, descriptor)) {
+					handOns.add(methodKey(name, parameterTypesOf(descriptor)));
+				} else {
+					calls.add(new SuperCall(owner.replace('/', '.'), name, parameterTypesOf(descriptor)));
 				}
 			}
 
-			@Override
-			public void visitEnd() {
-				if (superclassConstructors.size() > superclassObjectsCreated) {
-					superclassConstructors.forEach(descriptor -> calls
-							.add(new SuperCall(superName.replace('/', '.'), "<init>", parameterTypesOf(descriptor))));
+			/**
+			 * Records a superclass constructor called on the object being built. A call
+			 * building the latest object created with new is not one.
+			 *
+			 * @param owner      the internal name of the constructor's class
+			 * @param descriptor the constructor's descriptor
+			 */
+			private void recordConstructorCall(@Nonnull String owner, @Nonnull String descriptor) {
+				if (owner.equals(pendingCreations.peek())) {
+					pendingCreations.pop();
+				} else if ("<init>".equals(methodName) && owner.equals(superName)) {
+					calls.add(new SuperCall(owner.replace('/', '.'), "<init>", parameterTypesOf(descriptor)));
 				}
 			}
 		}
