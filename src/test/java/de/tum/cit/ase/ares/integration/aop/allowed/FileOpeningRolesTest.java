@@ -33,6 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.openingRoles.FileOpeningRolesMain;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.openingRoles.HashRecordingChannel;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.openingRoles.imageOutput.ImageOutputMain;
 
 /**
@@ -308,9 +309,9 @@ class FileOpeningRolesTest {
 				"printWriterFileCharset", "formatterCharset", "formatterFileCharset", "formatterWithoutFile",
 				"providerSymbolicLink", "providerHardLink", "providerDeleteIfExists", "secureDirectoryReadAbsolute",
 				"secureDirectoryMove", "secureDirectoryList", "transferToFile", "transferFromFile",
-				"transferFromIntoOwnNewFile", "fileOutputStreamNewWithReadCreate", "redirectToNew",
-				"redirectAppendToExisting", "redirectFromReadable", "processBuilderRedirectOutput",
-				"processBuilderRedirectInput");
+				"transferFromIntoOwnNewFile", "fileOutputStreamNewWithReadCreate", "transferToStudentChannelUnhashed",
+				"deleteDanglingLinkWithDelete", "redirectToNew", "redirectAppendToExisting", "redirectFromReadable",
+				"processBuilderRedirectOutput", "processBuilderRedirectInput");
 	}
 
 	/**
@@ -619,6 +620,21 @@ class FileOpeningRolesTest {
 				}
 			});
 			assertEquals(OLD_CONTENT, content(READ_CREATE.resolve("new.txt")));
+		}
+		case "transferToStudentChannelUnhashed" -> {
+			Path source = existing(READ_ONLY.resolve("in.txt"));
+			HashRecordingChannel.forget();
+			assertDoesNotThrow(() -> {
+				try (FileChannel in = openForReading(source)) {
+					FileOpeningRolesMain.transferTo(in, new HashRecordingChannel());
+				}
+			});
+			assertFalse(HashRecordingChannel.wasHashed(), "Ares asked the student's channel for its hash code");
+		}
+		case "deleteDanglingLinkWithDelete" -> {
+			Path link = danglingLink(READ_DELETE.resolve("link.txt"), FOLDER.resolve("outside.txt"));
+			assertTrue(assertDoesNotThrow(() -> FileOpeningRolesMain.providerDeleteIfExists(link)));
+			assertFalse(Files.exists(link, LinkOption.NOFOLLOW_LINKS), "the link is still there");
 		}
 		case "fileOutputStreamNewWithReadCreate" -> assertWritten(
 				() -> FileOpeningRolesMain.fileOutputStreamWrite(READ_CREATE.resolve("new.txt").toFile(), NEW_CONTENT),

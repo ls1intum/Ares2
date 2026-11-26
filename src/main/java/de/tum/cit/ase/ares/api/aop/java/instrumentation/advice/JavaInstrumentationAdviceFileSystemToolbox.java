@@ -303,8 +303,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * Tells whether a path lies outside every allowed path. A missing or empty
 	 * allow-list allows nothing, so every path is forbidden; a {@code *} entry
 	 * allows everything. Links are resolved first, so a link cannot lead out of an
-	 * allowed folder, and an entry that exists but cannot be resolved, such as a
-	 * link to a missing file, is forbidden.
+	 * allowed folder. An entry that exists but cannot be resolved, such as a link
+	 * to a missing file, is forbidden, except that a deletion is checked at the
+	 * link's own place, since it removes the link and nothing else.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -342,7 +343,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				// target
 				candidate = actualPath.toRealPath();
 			} catch (IOException unresolved) {
-				return true;
+				if (!Boolean.TRUE.equals(CHECKING_A_DELETION.get()) || !Files.isSymbolicLink(actualPath)) {
+					return true;
+				}
+				candidate = linkLocation(actualPath);
 			}
 		} else {
 			// For non-existing targets, resolve symlinks in the deepest existing ancestor
@@ -373,6 +377,28 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		// bypass the allowlist: doing so would leak file existence and let a
 		// not-yet-created path slip through the rule (TOCTOU).
 		return !hasAllowedPrefix;
+	}
+
+	/**
+	 * Whether the check running on this thread is for a deletion, which removes a
+	 * link itself rather than the file the link points to.
+	 */
+	@Nonnull
+	private static final ThreadLocal<Boolean> CHECKING_A_DELETION = new ThreadLocal<>();
+
+	/**
+	 * Returns where a link itself lies: its folder with links resolved, and its own
+	 * name.
+	 *
+	 * @param link the link
+	 * @return the link's own absolute place
+	 */
+	@Nonnull
+	private static Path linkLocation(@Nonnull Path link) {
+		Path absolute = link.normalize().toAbsolutePath();
+		Path folder = absolute.getParent();
+		Path name = absolute.getFileName();
+		return folder == null || name == null ? absolute : resolveExistingAncestorRealPath(folder).resolve(name);
 	}
 
 	/**
@@ -927,7 +953,9 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	/**
 	 * The open files whose opening Ares allowed as the creation of a new file, held
 	 * weakly. Only such a handle gets the create allowance for a write through it,
-	 * so a handle the test class opened needs the overwrite rule.
+	 * so a handle the test class opened needs the overwrite rule. Only objects of
+	 * classes the JDK's boot loader defined go in or are looked up, so the map
+	 * never calls a {@code hashCode} the student wrote.
 	 */
 	@Nonnull
 	private static final Map<Object, Boolean> HANDLES_CREATED_UNDER_CHECK = new WeakHashMap<>();
@@ -979,7 +1007,7 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		}
 		try {
 			ALLOWED_CREATION.remove();
-			if (failed || !isFileHandle(handle)) {
+			if (failed || !isFileHandle(handle) || !isJdkObject(handle)) {
 				return;
 			}
 			Path handlePath = openFilePath(handle);
@@ -1082,15 +1110,26 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	 * @return whether its opening created the file under a checked create rule
 	 */
 	static boolean isHandleCreatedUnderCheck(@Nullable Object handle) {
-		if (handle == null) {
+		if (!isJdkObject(handle)) {
 			return false;
 		}
 		Object parent = handle instanceof FileChannel ? declaredFieldValue(handle, "parent") : null;
 		synchronized (HANDLES_CREATED_UNDER_CHECK) {
 			forgetHandlesOfAnotherPolicy();
 			return HANDLES_CREATED_UNDER_CHECK.containsKey(handle)
-					|| parent != null && HANDLES_CREATED_UNDER_CHECK.containsKey(parent);
+					|| isJdkObject(parent) && HANDLES_CREATED_UNDER_CHECK.containsKey(parent);
 		}
+	}
+
+	/**
+	 * Tells whether an object's class was defined by the JDK's boot loader, so its
+	 * {@code hashCode} and {@code equals} are the JDK's own.
+	 *
+	 * @param object the object, or {@code null}
+	 * @return whether it is such an object
+	 */
+	private static boolean isJdkObject(@Nullable Object object) {
+		return object != null && object.getClass().getClassLoader() == null;
 	}
 
 	/**
@@ -1543,8 +1582,14 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 		}
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		@Nullable
-		String violation = checkIfVariableCriteriaIsViolated(candidates, allowedPaths, IgnoreValues.NONE,
-				allowNonExistingPaths);
+		String violation;
+		CHECKING_A_DELETION.set(Boolean.valueOf("delete".equals(actionLabel)));
+		try {
+			violation = checkIfVariableCriteriaIsViolated(candidates, allowedPaths, IgnoreValues.NONE,
+					allowNonExistingPaths);
+		} finally {
+			CHECKING_A_DELETION.remove();
+		}
 		if (violation == null) {
 			return;
 		}
@@ -2243,9 +2288,14 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 				String actionToCheck = WRITE_ACTION.equals(actionCheck.getKey())
 						? resolveWriteAction(parameters, ignoredParameters)
 						: actionCheck.getKey();
-				checkFileSystemInteractionForAction(actionToCheck, Boolean.TRUE.equals(actionCheck.getValue()),
-						declaringTypeName, methodName, methodSignature, attributes, parameters, instance,
-						fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+				CHECKING_A_DELETION.set(Boolean.valueOf("delete".equals(actionToCheck)));
+				try {
+					checkFileSystemInteractionForAction(actionToCheck, Boolean.TRUE.equals(actionCheck.getValue()),
+							declaringTypeName, methodName, methodSignature, attributes, parameters, instance,
+							fileSystemMethodToCheck, studentCalledMethod, fullMethodSignature);
+				} finally {
+					CHECKING_A_DELETION.remove();
+				}
 				createsAFile |= "create".equals(actionToCheck);
 			}
 			if (createsAFile) {

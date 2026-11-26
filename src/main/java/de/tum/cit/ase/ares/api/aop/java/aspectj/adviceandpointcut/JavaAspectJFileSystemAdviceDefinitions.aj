@@ -298,8 +298,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * Tells whether a path lies outside every allowed path. A missing or empty
 	 * allow-list allows nothing, so every path is forbidden; a {@code *} entry
 	 * allows everything. Links are resolved first, so a link cannot lead out of an
-	 * allowed folder, and an entry that exists but cannot be resolved, such as a
-	 * link to a missing file, is forbidden.
+	 * allowed folder. An entry that exists but cannot be resolved, such as a link
+	 * to a missing file, is forbidden, except that a deletion is checked at the
+	 * link's own place, since it removes the link and nothing else.
 	 *
 	 * @since 2.0.0
 	 * @author Markus Paulsen
@@ -337,7 +338,10 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 				// target
 				candidate = actualPath.toRealPath();
 			} catch (IOException unresolved) {
-				return true;
+				if (!Boolean.TRUE.equals(CHECKING_A_DELETION.get()) || !Files.isSymbolicLink(actualPath)) {
+					return true;
+				}
+				candidate = linkLocation(actualPath);
 			}
 		} else {
 			// For non-existing targets, resolve symlinks in the deepest existing ancestor
@@ -368,6 +372,28 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		// bypass the allowlist: doing so would leak file existence and let a
 		// not-yet-created path slip through the rule (TOCTOU).
 		return !hasAllowedPrefix;
+	}
+
+	/**
+	 * Whether the check running on this thread is for a deletion, which removes a
+	 * link itself rather than the file the link points to.
+	 */
+	@Nonnull
+	private static final ThreadLocal<Boolean> CHECKING_A_DELETION = new ThreadLocal<>();
+
+	/**
+	 * Returns where a link itself lies: its folder with links resolved, and its own
+	 * name.
+	 *
+	 * @param link the link
+	 * @return the link's own absolute place
+	 */
+	@Nonnull
+	private static Path linkLocation(@Nonnull Path link) {
+		Path absolute = link.normalize().toAbsolutePath();
+		Path folder = absolute.getParent();
+		Path name = absolute.getFileName();
+		return folder == null || name == null ? absolute : resolveExistingAncestorRealPath(folder).resolve(name);
 	}
 
 	/**
@@ -919,7 +945,9 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	/**
 	 * The open files whose opening Ares allowed as the creation of a new file, held
 	 * weakly. Only such a handle gets the create allowance for a write through it,
-	 * so a handle the test class opened needs the overwrite rule.
+	 * so a handle the test class opened needs the overwrite rule. Only objects of
+	 * classes the JDK's boot loader defined go in or are looked up, so the map never
+	 * calls a {@code hashCode} the student wrote.
 	 */
 	@Nonnull
 	private static final Map<Object, Boolean> HANDLES_CREATED_UNDER_CHECK = new WeakHashMap<>();
@@ -967,7 +995,7 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 			return;
 		}
 		ALLOWED_CREATION.remove();
-		if (failed || !isFileHandle(handle)) {
+		if (failed || !isFileHandle(handle) || !isJdkObject(handle)) {
 			return;
 		}
 		Path handlePath = openFilePath(handle);
@@ -1067,15 +1095,26 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 	 * @return whether its opening created the file under a checked create rule
 	 */
 	static boolean isHandleCreatedUnderCheck(@Nullable Object handle) {
-		if (handle == null) {
+		if (!isJdkObject(handle)) {
 			return false;
 		}
 		Object parent = handle instanceof FileChannel ? declaredFieldValue(handle, "parent") : null;
 		synchronized (HANDLES_CREATED_UNDER_CHECK) {
 			forgetHandlesOfAnotherPolicy();
 			return HANDLES_CREATED_UNDER_CHECK.containsKey(handle)
-					|| parent != null && HANDLES_CREATED_UNDER_CHECK.containsKey(parent);
+					|| isJdkObject(parent) && HANDLES_CREATED_UNDER_CHECK.containsKey(parent);
 		}
+	}
+
+	/**
+	 * Tells whether an object's class was defined by the JDK's boot loader, so its
+	 * {@code hashCode} and {@code equals} are the JDK's own.
+	 *
+	 * @param object the object, or {@code null}
+	 * @return whether it is such an object
+	 */
+	private static boolean isJdkObject(@Nullable Object object) {
+		return object != null && object.getClass().getClassLoader() == null;
 	}
 
 	/**
@@ -1380,8 +1419,14 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 		boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
 		@Nullable
-		String violation = checkIfVariableCriteriaIsViolated(candidates, allowedPaths, IgnoreValues.NONE,
-				allowNonExistingPaths);
+		String violation;
+		CHECKING_A_DELETION.set(Boolean.valueOf("delete".equals(actionLabel)));
+		try {
+			violation = checkIfVariableCriteriaIsViolated(candidates, allowedPaths, IgnoreValues.NONE,
+					allowNonExistingPaths);
+		} finally {
+			CHECKING_A_DELETION.remove();
+		}
 		if (violation == null) {
 			return;
 		}
@@ -2190,113 +2235,118 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		IgnoreValues ignoredParameters = parameterIgnoreValues(extractMethodNameWithoutModifiers(fullMethodSignature),
 				methodName, instance);
 		boolean createsAFile = false;
-		for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
-			String actionToCheck = WRITE_ACTION.equals(actionCheck.getKey())
-					? resolveWriteAction(parameters, ignoredParameters)
-					: actionCheck.getKey();
-			createsAFile |= "create".equals(actionToCheck);
-			boolean allowNonExistingPaths = Boolean.TRUE.equals(actionCheck.getValue());
-			String messageAction = actionToCheck;
-			@Nullable
-			final String[] allowedPaths = isWriteThroughOpenFile(actionToCheck, instance)
-					? pathsAllowedForWriteThrough(instance)
-					: getValueFromSettings(switch (actionToCheck) {
-					case "read" -> "pathsAllowedToBeRead";
-					case "overwrite" -> "pathsAllowedToBeOverwritten";
-					case "create" -> "pathsAllowedToBeCreated";
-					case "execute" -> "pathsAllowedToBeExecuted";
-					case "delete" -> "pathsAllowedToBeDeleted";
-					default -> throw new SecurityException(
-							localize("security.advice.file.system.unknown.action", actionToCheck));
-					});
-			boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
-			if (instance instanceof java.nio.file.SecureDirectoryStream) {
-				refuseRelativeSecureDirectoryPaths(actionToCheck, parameters, systemMethodToCheck,
-						studentCalledMethod, fullMethodSignature, thisJoinPoint);
-			}
-			@Nullable
-			String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
-					: checkIfVariableCriteriaIsViolated(parameters, allowedPaths, ignoredParameters,
-							allowNonExistingPaths);
-			if (illegallyInteractedThroughParameter != null) {
-				boolean isClassLoaderAccess = illegallyInteractedThroughParameter.endsWith(".class")
-						&& (isClassLoadingInProgress()
-								|| (studentCalledMethod != null
-										&& (studentCalledMethod.startsWith("java.lang.Class.forName")
-												|| studentCalledMethod.startsWith("java.lang.ClassLoader")
-												|| studentCalledMethod.startsWith("jdk.internal.loader"))));
-				boolean isSystemJarRead = !isClassLoaderAccess && "read".equals(actionToCheck)
-						&& isSystemJarReadExempt(illegallyInteractedThroughParameter);
-				boolean isExemptSystemFileAccess = !isClassLoaderAccess && !isSystemJarRead
-						&& isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughParameter);
-				if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess) {
-					throw new SecurityException(localize(
-							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
-							illegallyInteractedThroughParameter,
-							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ describeCaller(studentCalledMethod),
-									buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
+		try {
+			for (Map.Entry<String, Boolean> actionCheck : actionsToValidate) {
+				String actionToCheck = WRITE_ACTION.equals(actionCheck.getKey())
+						? resolveWriteAction(parameters, ignoredParameters)
+						: actionCheck.getKey();
+				CHECKING_A_DELETION.set(Boolean.valueOf("delete".equals(actionToCheck)));
+				createsAFile |= "create".equals(actionToCheck);
+				boolean allowNonExistingPaths = Boolean.TRUE.equals(actionCheck.getValue());
+				String messageAction = actionToCheck;
+				@Nullable
+				final String[] allowedPaths = isWriteThroughOpenFile(actionToCheck, instance)
+						? pathsAllowedForWriteThrough(instance)
+						: getValueFromSettings(switch (actionToCheck) {
+						case "read" -> "pathsAllowedToBeRead";
+						case "overwrite" -> "pathsAllowedToBeOverwritten";
+						case "create" -> "pathsAllowedToBeCreated";
+						case "execute" -> "pathsAllowedToBeExecuted";
+						case "delete" -> "pathsAllowedToBeDeleted";
+						default -> throw new SecurityException(
+								localize("security.advice.file.system.unknown.action", actionToCheck));
+						});
+				boolean noAllowRuleConfigured = allowedPaths == null || allowedPaths.length == 0;
+				if (instance instanceof java.nio.file.SecureDirectoryStream) {
+					refuseRelativeSecureDirectoryPaths(actionToCheck, parameters, systemMethodToCheck,
+							studentCalledMethod, fullMethodSignature, thisJoinPoint);
 				}
-			}
-			@Nullable
-			String illegallyInteractedThroughReceiver = instance == null ? null
-					: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedPaths, IgnoreValues.NONE,
-							allowNonExistingPaths);
-			if (illegallyInteractedThroughReceiver != null) {
-				boolean isInternalAllowed = illegallyInteractedThroughReceiver.endsWith(".class")
-						&& isClassLoadingInProgress();
+				@Nullable
+				String illegallyInteractedThroughParameter = (parameters == null || parameters.length == 0) ? null
+						: checkIfVariableCriteriaIsViolated(parameters, allowedPaths, ignoredParameters,
+								allowNonExistingPaths);
+				if (illegallyInteractedThroughParameter != null) {
+					boolean isClassLoaderAccess = illegallyInteractedThroughParameter.endsWith(".class")
+							&& (isClassLoadingInProgress()
+									|| (studentCalledMethod != null
+											&& (studentCalledMethod.startsWith("java.lang.Class.forName")
+													|| studentCalledMethod.startsWith("java.lang.ClassLoader")
+													|| studentCalledMethod.startsWith("jdk.internal.loader"))));
+					boolean isSystemJarRead = !isClassLoaderAccess && "read".equals(actionToCheck)
+							&& isSystemJarReadExempt(illegallyInteractedThroughParameter);
+					boolean isExemptSystemFileAccess = !isClassLoaderAccess && !isSystemJarRead
+							&& isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughParameter);
+					if (!isClassLoaderAccess && !isSystemJarRead && !isExemptSystemFileAccess) {
+						throw new SecurityException(localize(
+								"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
+								illegallyInteractedThroughParameter,
+								describeDeniedCall(thisJoinPoint, fullMethodSignature)
+										+ describeCaller(studentCalledMethod),
+										buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
+					}
+				}
+				@Nullable
+				String illegallyInteractedThroughReceiver = instance == null ? null
+						: checkIfVariableCriteriaIsViolated(new Object[] { instance }, allowedPaths, IgnoreValues.NONE,
+								allowNonExistingPaths);
+				if (illegallyInteractedThroughReceiver != null) {
+					boolean isInternalAllowed = illegallyInteractedThroughReceiver.endsWith(".class")
+							&& isClassLoadingInProgress();
 
-				if (!isInternalAllowed && "read".equals(actionToCheck)
-						&& isSystemJarReadExempt(illegallyInteractedThroughReceiver)) {
-					isInternalAllowed = true;
-				}
-				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughReceiver)) {
-					isInternalAllowed = true;
-				}
+					if (!isInternalAllowed && "read".equals(actionToCheck)
+							&& isSystemJarReadExempt(illegallyInteractedThroughReceiver)) {
+						isInternalAllowed = true;
+					}
+					if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughReceiver)) {
+						isInternalAllowed = true;
+					}
 
-				if (!isInternalAllowed) {
-					throw new SecurityException(localize(
-							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
-							illegallyInteractedThroughReceiver,
-							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ describeCaller(studentCalledMethod),
-									buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
+					if (!isInternalAllowed) {
+						throw new SecurityException(localize(
+								"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
+								illegallyInteractedThroughReceiver,
+								describeDeniedCall(thisJoinPoint, fullMethodSignature)
+										+ describeCaller(studentCalledMethod),
+										buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
+					}
+				}
+				@Nullable
+				String illegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null
+						: checkIfVariableCriteriaIsViolated(attributes, allowedPaths,
+								FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(
+										extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE),
+								allowNonExistingPaths);
+				if (illegallyInteractedThroughAttribute != null) {
+					boolean isInternalAllowed = illegallyInteractedThroughAttribute.equals("/");
+					if (!isInternalAllowed && illegallyInteractedThroughAttribute.endsWith(".class")
+							&& (isClassLoadingInProgress()
+									|| (studentCalledMethod != null
+											&& (studentCalledMethod.startsWith("java.lang.Class.forName")
+													|| studentCalledMethod.startsWith("java.lang.ClassLoader")
+													|| studentCalledMethod.startsWith("jdk.internal.loader"))))) {
+						isInternalAllowed = true;
+					}
+
+					if (!isInternalAllowed && "read".equals(actionToCheck)
+							&& isSystemJarReadExempt(illegallyInteractedThroughAttribute)) {
+						isInternalAllowed = true;
+					}
+					if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughAttribute)) {
+						isInternalAllowed = true;
+					}
+
+					if (!isInternalAllowed) {
+						throw new SecurityException(localize(
+								"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
+								illegallyInteractedThroughAttribute,
+								describeDeniedCall(thisJoinPoint, fullMethodSignature)
+										+ describeCaller(studentCalledMethod),
+										buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
+					}
 				}
 			}
-			@Nullable
-			String illegallyInteractedThroughAttribute = (attributes == null || attributes.length == 0) ? null
-					: checkIfVariableCriteriaIsViolated(attributes, allowedPaths,
-							FILE_SYSTEM_IGNORE_ATTRIBUTES_EXCEPT.getOrDefault(
-									extractMethodNameWithoutModifiers(fullMethodSignature), IgnoreValues.NONE),
-							allowNonExistingPaths);
-			if (illegallyInteractedThroughAttribute != null) {
-				boolean isInternalAllowed = illegallyInteractedThroughAttribute.equals("/");
-				if (!isInternalAllowed && illegallyInteractedThroughAttribute.endsWith(".class")
-						&& (isClassLoadingInProgress()
-								|| (studentCalledMethod != null
-										&& (studentCalledMethod.startsWith("java.lang.Class.forName")
-												|| studentCalledMethod.startsWith("java.lang.ClassLoader")
-												|| studentCalledMethod.startsWith("jdk.internal.loader"))))) {
-					isInternalAllowed = true;
-				}
-
-				if (!isInternalAllowed && "read".equals(actionToCheck)
-						&& isSystemJarReadExempt(illegallyInteractedThroughAttribute)) {
-					isInternalAllowed = true;
-				}
-				if (!isInternalAllowed && isExemptSystemFileAccess(actionToCheck, illegallyInteractedThroughAttribute)) {
-					isInternalAllowed = true;
-				}
-
-				if (!isInternalAllowed) {
-					throw new SecurityException(localize(
-							"security.advice.illegal.file.execution", systemMethodToCheck, localizeAction(messageAction),
-							illegallyInteractedThroughAttribute,
-							describeDeniedCall(thisJoinPoint, fullMethodSignature)
-									+ describeCaller(studentCalledMethod),
-									buildDenialReason("file", actionToCheck, noAllowRuleConfigured)));
-				}
-			}
+		} finally {
+			CHECKING_A_DELETION.remove();
 		}
 		if (createsAFile) {
 			noteAllowedCreation(parameters, ignoredParameters);
