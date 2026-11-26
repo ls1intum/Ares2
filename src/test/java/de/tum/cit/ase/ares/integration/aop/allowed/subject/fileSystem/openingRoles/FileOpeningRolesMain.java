@@ -425,6 +425,17 @@ public final class FileOpeningRolesMain {
 	}
 
 	/**
+	 * Writes text into a file with {@code Files.writeString}.
+	 *
+	 * @param file the file
+	 * @param text the text
+	 * @throws IOException if writing fails
+	 */
+	public static void writeStringText(Path file, CharSequence text) throws IOException {
+		Files.writeString(file, text);
+	}
+
+	/**
 	 * Writes text into a file through a {@code FileOutputStream}.
 	 *
 	 * @param file the file

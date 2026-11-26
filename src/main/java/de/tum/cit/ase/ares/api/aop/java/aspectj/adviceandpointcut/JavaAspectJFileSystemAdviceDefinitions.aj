@@ -17,8 +17,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -2384,6 +2386,253 @@ public aspect JavaAspectJFileSystemAdviceDefinitions extends JavaAspectJAbstract
 		}
 		if (createsAFile) {
 			noteAllowedCreation(parameters, ignoredParameters);
+		}
+	}
+
+	/**
+	 * The names of the methods that always open their file for writing, whatever
+	 * class declares them.
+	 */
+	@Nonnull
+	private static final Set<String> WRITE_OPENING_METHOD_NAMES = Set.of("write", "writeString", "newOutputStream",
+			"newBufferedWriter");
+
+	/**
+	 * Returns the options an opening should run with so that it cannot replace a
+	 * file that appears after its check. {@code CREATE_NEW} is added where the call
+	 * would create a missing file that the policy lets the code create but not
+	 * overwrite; otherwise the options come back unchanged.
+	 *
+	 * @param writeMethod whether the method always opens for writing
+	 * @param path        the file the call opens
+	 * @param options     the options of the call
+	 * @return the options to run with
+	 */
+	@Nullable
+	static OpenOption[] atomicCreationOptions(boolean writeMethod, @Nullable Object path,
+			@Nullable OpenOption[] options) {
+		if (options == null || !createsAMissingFile(writeMethod, standardOptions(Arrays.asList(options)))
+				|| !onlyCreationIsAllowed(path)) {
+			return options;
+		}
+		OpenOption[] atomic = Arrays.copyOf(options, options.length + 1);
+		atomic[options.length] = StandardOpenOption.CREATE_NEW;
+		return atomic;
+	}
+
+	/**
+	 * Returns the option set an opening should run with, as
+	 * {@link #atomicCreationOptions(boolean, Object, OpenOption[])} does for an
+	 * array. Where it adds {@code CREATE_NEW} it hands the JDK a copy, so the JDK
+	 * does not read the code's own set after the check.
+	 *
+	 * @param path    the file the call opens
+	 * @param options the options of the call
+	 * @return the options to run with
+	 */
+	@Nullable
+	static Set<?> atomicCreationOptions(@Nullable Object path, @Nullable Set<?> options) {
+		if (options == null) {
+			return null;
+		}
+		Set<Object> copy = new HashSet<>(options);
+		if (!createsAMissingFile(false, standardOptions(copy)) || !onlyCreationIsAllowed(path)) {
+			return options;
+		}
+		copy.add(StandardOpenOption.CREATE_NEW);
+		return copy;
+	}
+
+	/**
+	 * Returns the options an opening should run with, for either shape of options
+	 * a call takes: an array, or a set.
+	 *
+	 * @param joinPoint the intercepted call
+	 * @param path      the file the call opens
+	 * @param options   the options of the call
+	 * @return the options to run with
+	 */
+	@Nullable
+	static Object atomicCreationOptions(@Nonnull JoinPoint joinPoint, @Nullable Object path,
+			@Nullable Object options) {
+		if (options instanceof OpenOption[] array) {
+			return atomicCreationOptions(WRITE_OPENING_METHOD_NAMES.contains(joinPoint.getSignature().getName()), path,
+					array);
+		}
+		if (options instanceof Set<?> set) {
+			return atomicCreationOptions(path, set);
+		}
+		return options;
+	}
+
+	/**
+	 * Turns what an opening with added {@code CREATE_NEW} threw into what the
+	 * code gets: a refusal where the JDK found the file already there, the thrown
+	 * exception itself otherwise.
+	 *
+	 * @param thrown    what the opening threw
+	 * @param path      the file
+	 * @param joinPoint the intercepted call
+	 * @param caller    the code that made the call
+	 * @return the refusal, if the file was already there
+	 */
+	@Nonnull
+	static RuntimeException replacementRefusal(@Nonnull Throwable thrown, @Nullable Object path,
+			@Nonnull JoinPoint joinPoint, @Nonnull JoinPoint.StaticPart caller) {
+		if (thrown instanceof java.nio.file.FileAlreadyExistsException) {
+			return refusedReplacement(path, joinPoint, caller);
+		}
+		throw JavaAspectJFileSystemAdviceDefinitions.<RuntimeException>rethrow(thrown);
+	}
+
+	/**
+	 * Throws an exception unchanged, checked or not, so the code sees what the
+	 * JDK threw.
+	 *
+	 * @param <T>    the type the compiler takes it for
+	 * @param thrown the exception
+	 * @return never
+	 * @throws T always
+	 */
+	@SuppressWarnings("unchecked")
+	private static <T extends Throwable> T rethrow(@Nonnull Throwable thrown) throws T {
+		throw (T) thrown;
+	}
+
+	/**
+	 * Picks the standard options out of the options of a call.
+	 *
+	 * @param options the options
+	 * @return the standard ones among them
+	 */
+	@Nonnull
+	private static Set<StandardOpenOption> standardOptions(@Nonnull Iterable<?> options) {
+		EnumSet<StandardOpenOption> standard = EnumSet.noneOf(StandardOpenOption.class);
+		for (Object option : options) {
+			if (option instanceof StandardOpenOption standardOption) {
+				standard.add(standardOption);
+			}
+		}
+		return standard;
+	}
+
+	/**
+	 * Tells whether options make the JDK create a missing file and write it,
+	 * without {@code CREATE_NEW} already making it refuse an existing one.
+	 *
+	 * @param writeMethod whether the method always opens for writing
+	 * @param options     the standard options of the call
+	 * @return whether the opening creates a missing file
+	 */
+	private static boolean createsAMissingFile(boolean writeMethod, @Nonnull Set<StandardOpenOption> options) {
+		if (options.contains(StandardOpenOption.CREATE_NEW)) {
+			return false;
+		}
+		if (writeMethod && options.isEmpty()) {
+			return true;
+		}
+		boolean writes = writeMethod || options.contains(StandardOpenOption.WRITE)
+				|| options.contains(StandardOpenOption.APPEND);
+		return writes && options.contains(StandardOpenOption.CREATE);
+	}
+
+	/**
+	 * Tells whether Ares supervises the run and the policy lets the code create the
+	 * missing file but not overwrite it.
+	 *
+	 * @param path the file
+	 * @return whether only its creation is allowed
+	 */
+	private static boolean onlyCreationIsAllowed(@Nullable Object path) {
+		@Nullable
+		String aopMode = getValueFromSettings("aopMode");
+		@Nullable
+		String restrictedPackage = getValueFromSettings("restrictedPackage");
+		if (!"ASPECTJ".equals(aopMode) || restrictedPackage == null || restrictedPackage.isEmpty()
+				|| !(path instanceof Path)) {
+			return false;
+		}
+		FileTarget target = variableToTarget(path, true);
+		if (target == null || Files.exists(target.path(), LinkOption.NOFOLLOW_LINKS)) {
+			return false;
+		}
+		return !checkIfPathIsForbidden(target, getValueFromSettings("pathsAllowedToBeCreated"), true)
+				&& checkIfPathIsForbidden(target, getValueFromSettings("pathsAllowedToBeOverwritten"), true);
+	}
+
+	/**
+	 * Builds the refusal of an opening that found a file where the check had found
+	 * none, which it would have replaced although the policy forbids that.
+	 *
+	 * @param path      the file
+	 * @param joinPoint the intercepted call
+	 * @param caller    the code that made the call
+	 * @return the refusal
+	 */
+	@Nonnull
+	static SecurityException refusedReplacement(@Nullable Object path, @Nonnull JoinPoint joinPoint,
+			@Nonnull JoinPoint.StaticPart caller) {
+		@Nullable
+		String[] overwrite = getValueFromSettings("pathsAllowedToBeOverwritten");
+		FileTarget target = variableToTarget(path, true);
+		String fullMethodSignature = formatSignature(joinPoint.getSignature());
+		return new SecurityException(localize("security.advice.illegal.file.execution",
+				caller.getSignature().getDeclaringTypeName() + "." + caller.getSignature().getName(),
+				localizeAction("overwrite"), target == null ? String.valueOf(path) : target.path().toString(),
+				describeDeniedCall(joinPoint, fullMethodSignature) + describeCaller(null),
+				buildDenialReason("file", "overwrite", overwrite == null || overwrite.length == 0)));
+	}
+
+	/**
+	 * Lets an opening with an option array that may only create its file run with
+	 * {@code CREATE_NEW}. The JDK then refuses a file that appears between the
+	 * check and the opening, as one can through a link the code makes while the
+	 * JDK reads the code's text. It runs before the check, which then sees the
+	 * options the JDK gets. Its body calls only helpers of this aspect, since it is
+	 * woven into the code's own class and must not name packages the policy does
+	 * not let that class use.
+	 */
+	Object around(Object path, Object options):
+			(call(* java.nio.file.Files.write(java.nio.file.Path, .., java.nio.file.OpenOption...)) ||
+					call(* java.nio.file.Files.writeString(java.nio.file.Path, .., java.nio.file.OpenOption...)) ||
+					call(* java.nio.file.Files.newOutputStream(java.nio.file.Path, java.nio.file.OpenOption...)) ||
+					call(* java.nio.file.Files.newBufferedWriter(java.nio.file.Path, .., java.nio.file.OpenOption...)) ||
+					call(* java.nio.file.Files.newByteChannel(java.nio.file.Path, java.nio.file.OpenOption...)) ||
+					call(* java.nio.channels.FileChannel.open(java.nio.file.Path, java.nio.file.OpenOption...)) ||
+					call(* java.nio.channels.AsynchronousFileChannel.open(java.nio.file.Path, java.nio.file.OpenOption...)) ||
+					call(* java.nio.file.spi.FileSystemProvider+.newOutputStream(java.nio.file.Path, java.nio.file.OpenOption...)))
+			&& args(path, .., options) {
+		Object atomic = atomicCreationOptions(thisJoinPoint, path, options);
+		if (atomic == options) {
+			return proceed(path, options);
+		}
+		try {
+			return proceed(path, atomic);
+		} catch (Throwable thrown) {
+			throw replacementRefusal(thrown, path, thisJoinPoint, thisEnclosingJoinPointStaticPart);
+		}
+	}
+
+	/**
+	 * Lets an opening with an option set that may only create its file run with
+	 * {@code CREATE_NEW}, as the advice above does for an option array.
+	 */
+	Object around(Object path, Object options):
+			(call(* java.nio.file.Files.newByteChannel(java.nio.file.Path, java.util.Set, ..)) ||
+					call(* java.nio.channels.FileChannel.open(java.nio.file.Path, java.util.Set, ..)) ||
+					call(* java.nio.channels.AsynchronousFileChannel.open(java.nio.file.Path, java.util.Set, ..)) ||
+					call(* java.nio.file.spi.FileSystemProvider+.newByteChannel(java.nio.file.Path, java.util.Set, ..)) ||
+					call(* java.nio.file.spi.FileSystemProvider+.newFileChannel(java.nio.file.Path, java.util.Set, ..)) ||
+					call(* java.nio.file.spi.FileSystemProvider+.newAsynchronousFileChannel(java.nio.file.Path, java.util.Set, ..)))
+			&& args(path, options, ..) {
+		Object atomic = atomicCreationOptions(thisJoinPoint, path, options);
+		if (atomic == options) {
+			return proceed(path, options);
+		}
+		try {
+			return proceed(path, atomic);
+		} catch (Throwable thrown) {
+			throw replacementRefusal(thrown, path, thisJoinPoint, thisEnclosingJoinPointStaticPart);
 		}
 	}
 

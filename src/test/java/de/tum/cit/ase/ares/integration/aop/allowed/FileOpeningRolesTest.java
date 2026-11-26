@@ -34,6 +34,7 @@ import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.Public;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.openingRoles.FileOpeningRolesMain;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.openingRoles.HashRecordingChannel;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.openingRoles.LinkSwappingText;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.fileSystem.openingRoles.imageOutput.ImageOutputMain;
 
 /**
@@ -311,8 +312,8 @@ class FileOpeningRolesTest {
 				"secureDirectoryMove", "secureDirectoryList", "transferToFile", "transferFromFile",
 				"transferFromIntoOwnNewFile", "fileOutputStreamNewWithReadCreate", "transferToStudentChannelUnhashed",
 				"deleteDanglingLinkWithDelete", "filesCopyReplacingDanglingLink", "filesMoveReplacingDanglingLink",
-				"redirectToNew", "redirectAppendToExisting", "redirectFromReadable", "processBuilderRedirectOutput",
-				"processBuilderRedirectInput");
+				"writeStringNewWithReadCreate", "redirectToNew", "redirectAppendToExisting", "redirectFromReadable",
+				"processBuilderRedirectOutput", "processBuilderRedirectInput");
 	}
 
 	/**
@@ -334,10 +335,10 @@ class FileOpeningRolesTest {
 				"transferToDatagram", "transferFromUnreadableSource", "transferFromDatagram",
 				"transferFromSuppliedExistingWithoutOverwrite", "transferToSuppliedExistingWithoutOverwrite",
 				"transferFromIntoReplacementOfCreatedFile", "transferFromAfterFailedCreation",
-				"fileOutputStreamThroughDanglingLink", "filesCopyReplacingDanglingLinkReadOnly",
-				"filesMoveReplacingDanglingLinkReadOnly", "redirectToReadOnly", "redirectAppendToReadOnly",
-				"redirectFromUnreadable", "processBuilderRedirectOutputReadOnly",
-				"processBuilderRedirectInputUnreadable");
+				"fileOutputStreamThroughDanglingLink", "writeStringSwappingInALink",
+				"filesCopyReplacingDanglingLinkReadOnly", "filesMoveReplacingDanglingLinkReadOnly",
+				"redirectToReadOnly", "redirectAppendToReadOnly", "redirectFromUnreadable",
+				"processBuilderRedirectOutputReadOnly", "processBuilderRedirectInputUnreadable");
 	}
 
 	/**
@@ -663,6 +664,9 @@ class FileOpeningRolesTest {
 			assertDoesNotThrow(() -> FileOpeningRolesMain.filesMove(source, link, true));
 			assertReplacedLink(link, FOLDER.resolve("outside.txt"));
 		}
+		case "writeStringNewWithReadCreate" -> assertWritten(
+				() -> FileOpeningRolesMain.writeStringText(READ_CREATE.resolve("new.txt"), NEW_CONTENT),
+				READ_CREATE.resolve("new.txt"));
 		case "fileOutputStreamNewWithReadCreate" -> assertWritten(
 				() -> FileOpeningRolesMain.fileOutputStreamWrite(READ_CREATE.resolve("new.txt").toFile(), NEW_CONTENT),
 				READ_CREATE.resolve("new.txt"));
@@ -860,6 +864,15 @@ class FileOpeningRolesTest {
 			assertThrows(SecurityException.class,
 					() -> FileOpeningRolesMain.fileOutputStreamWrite(link.toFile(), NEW_CONTENT));
 			assertFalse(Files.exists(outside), "the refused write still created the file the link points to");
+		}
+		case "writeStringSwappingInALink" -> {
+			Path probe = danglingLink(READ_CREATE.resolve("probe.lnk"), FOLDER.resolve("probe.txt"));
+			assertDoesNotThrow(() -> Files.delete(probe));
+			Path victim = existing(READ_CREATE.resolve("victim.txt"));
+			Path out = READ_CREATE.resolve("out.txt");
+			assertRefusedUnchanged(
+					() -> FileOpeningRolesMain.writeStringText(out, new LinkSwappingText(out, victim, NEW_CONTENT)),
+					victim);
 		}
 		case "filesCopyReplacingDanglingLinkReadOnly" -> {
 			Path source = existing(READ_ONLY.resolve("in.txt"));
