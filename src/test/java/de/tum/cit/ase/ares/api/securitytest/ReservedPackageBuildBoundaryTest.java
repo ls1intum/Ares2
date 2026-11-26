@@ -65,6 +65,14 @@ class ReservedPackageBuildBoundaryTest {
 	private static final Pattern MAVEN_EXECUTION = Pattern.compile(
 			"<execution>\\s*<id>([^<]*)</id>\\s*<phase>([^<]*)</phase>\\s*<goals><goal>run</goal></goals>\\s*</execution>");
 
+	/**
+	 * The start of the Maven check, which creates the output folder first: a
+	 * project without resources has none yet at process-resources, and a fileset on
+	 * a missing folder fails the build.
+	 */
+	private static final Pattern MAVEN_OUTPUT_CREATED = Pattern
+			.compile("<target>\\s*<mkdir dir=\"\\$\\{project\\.build\\.outputDirectory\\}\"/>\\s*<resourcecount ");
+
 	/** The executions element of the Maven snippet. */
 	private static final Pattern MAVEN_EXECUTIONS = Pattern.compile("<executions>(.*?)</executions>", Pattern.DOTALL);
 
@@ -231,6 +239,8 @@ class ReservedPackageBuildBoundaryTest {
 		assertTrue(maven.indexOf("<configuration>") < maven.indexOf("<executions>"),
 				"the check must be configured on the plugin, so that both executions run it");
 		assertEquals(1, occurrences(maven, "<target>"), "the Maven fixture must hold exactly one check");
+		assertTrue(MAVEN_OUTPUT_CREATED.matcher(maven).find(),
+				"the Maven check must create the output folder before counting, or a project without resources fails");
 	}
 
 	/**

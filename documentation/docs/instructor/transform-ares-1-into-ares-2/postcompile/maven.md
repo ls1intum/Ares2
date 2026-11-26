@@ -299,6 +299,7 @@ Delete the `maven-enforcer-plugin` execution with the `requireFilesDontExist` ru
   <version>3.2.0</version>
   <configuration>
     <target>
+      <mkdir dir="${project.build.outputDirectory}"/>
       <resourcecount property="ares.reserved.package.count">
         <fileset dir="${project.build.outputDirectory}" defaultexcludes="no" casesensitive="false">
           <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
@@ -496,6 +497,7 @@ A working version of this file is [`examples/ares-exercise-maven`](https://githu
                 <version>3.2.0</version>
                 <configuration>
                     <target>
+                        <mkdir dir="${project.build.outputDirectory}"/>
                         <resourcecount property="ares.reserved.package.count">
                             <fileset dir="${project.build.outputDirectory}" defaultexcludes="no" casesensitive="false">
                                 <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>

@@ -13,6 +13,8 @@
      The same check runs twice. At process-resources it sees the copied resources before
      the compiler runs: javac and ajc search the output for annotation processors and run
      one that a service file there names. At process-classes it sees the compiled classes.
+     The check creates the output folder first, since a project without resources has
+     none yet at process-resources.
      Both phases run under `mvn test`, so the validation is never skipped the way the
      Gradle version 1 snippet was. The build descriptor and the command used to invoke
      it are trusted instructor configuration; this validates student code, not the build
@@ -23,6 +25,7 @@
   <version>3.2.0</version>
   <configuration>
     <target>
+      <mkdir dir="${project.build.outputDirectory}"/>
       <resourcecount property="ares.reserved.package.count">
         <fileset dir="${project.build.outputDirectory}" defaultexcludes="no" casesensitive="false">
           <include name="java/**"/><include name="javax/**"/><include name="sun/**"/>
