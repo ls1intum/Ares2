@@ -6,6 +6,7 @@ import org.junit.jupiter.api.function.Executable;
 import de.tum.cit.ase.ares.api.Policy;
 import de.tum.cit.ase.ares.api.jupiter.PublicTest;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.CountedOperationsMain;
+import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.StudentTaskComparator;
 import de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.StudentTaskSet;
 
 /**
@@ -979,5 +980,141 @@ class ThreadCountedOperationsTest {
 	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
 	void listBackedTaskWithoutAllowanceIsRefusedMavenWalaInstrumentation() {
 		assertRefusedNaming(CountedOperationsMain::submitUnlistedListTask, "UnlistedListTask");
+	}
+
+	/**
+	 * A range view of a sorted set is refused in ArchunitAspectJ before Ares
+	 * iterates it, so the student's comparator, which the iteration would call,
+	 * starts no thread.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATreeSetRangeUnreadMavenArchunitAspectJ() {
+		assertRefusedNaming(CountedOperationsMain::invokeAllFromATreeSetRange, "java.util.TreeSet");
+		Assertions.assertFalse(StudentTaskComparator.threadStarted());
+	}
+
+	/**
+	 * A range view of a sorted set is refused in ArchunitInstrumentation before
+	 * Ares iterates it, so the student's comparator, which the iteration would
+	 * call, starts no thread.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATreeSetRangeUnreadMavenArchunitInstrumentation() {
+		assertRefusedNaming(CountedOperationsMain::invokeAllFromATreeSetRange, "java.util.TreeSet");
+		Assertions.assertFalse(StudentTaskComparator.threadStarted());
+	}
+
+	/**
+	 * A range view of a sorted set is refused in WalaAspectJ before Ares iterates
+	 * it, so the student's comparator, which the iteration would call, starts no
+	 * thread.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATreeSetRangeUnreadMavenWalaAspectJ() {
+		assertRefusedNaming(CountedOperationsMain::invokeAllFromATreeSetRange, "java.util.TreeSet");
+		Assertions.assertFalse(StudentTaskComparator.threadStarted());
+	}
+
+	/**
+	 * A range view of a sorted set is refused in WalaInstrumentation before Ares
+	 * iterates it, so the student's comparator, which the iteration would call,
+	 * starts no thread.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesATreeSetRangeUnreadMavenWalaInstrumentation() {
+		assertRefusedNaming(CountedOperationsMain::invokeAllFromATreeSetRange, "java.util.TreeSet");
+		Assertions.assertFalse(StudentTaskComparator.threadStarted());
+	}
+
+	/**
+	 * A batch of three tasks of a class allowed three times runs through
+	 * {@code invokeAll} in ArchunitAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsABatchWithinItsAllowanceMavenArchunitAspectJ() throws Exception {
+		Assertions.assertEquals(3, CountedOperationsMain.invokeAllBatch(3));
+	}
+
+	/**
+	 * A batch of four tasks of a class allowed three times is refused in
+	 * ArchunitAspectJ, as each task of a batch uses one allowance.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesABatchBeyondItsAllowanceMavenArchunitAspectJ() {
+		assertRefusedNaming(() -> CountedOperationsMain.invokeAllBatch(4), "CountedCall");
+	}
+
+	/**
+	 * A batch of three tasks of a class allowed three times runs through
+	 * {@code invokeAll} in ArchunitInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsABatchWithinItsAllowanceMavenArchunitInstrumentation() throws Exception {
+		Assertions.assertEquals(3, CountedOperationsMain.invokeAllBatch(3));
+	}
+
+	/**
+	 * A batch of four tasks of a class allowed three times is refused in
+	 * ArchunitInstrumentation, as each task of a batch uses one allowance.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_ARCHUNITINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesABatchBeyondItsAllowanceMavenArchunitInstrumentation() {
+		assertRefusedNaming(() -> CountedOperationsMain.invokeAllBatch(4), "CountedCall");
+	}
+
+	/**
+	 * A batch of three tasks of a class allowed three times runs through
+	 * {@code invokeAll} in WalaAspectJ.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRunsABatchWithinItsAllowanceMavenWalaAspectJ() throws Exception {
+		Assertions.assertEquals(3, CountedOperationsMain.invokeAllBatch(3));
+	}
+
+	/**
+	 * A batch of four tasks of a class allowed three times is refused in
+	 * WalaAspectJ, as each task of a batch uses one allowance.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAASPECTJ, withinPath = WITHIN_PATH)
+	void invokeAllRefusesABatchBeyondItsAllowanceMavenWalaAspectJ() {
+		assertRefusedNaming(() -> CountedOperationsMain.invokeAllBatch(4), "CountedCall");
+	}
+
+	/**
+	 * A batch of three tasks of a class allowed three times runs through
+	 * {@code invokeAll} in WalaInstrumentation.
+	 *
+	 * @throws Exception if the pool fails
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRunsABatchWithinItsAllowanceMavenWalaInstrumentation() throws Exception {
+		Assertions.assertEquals(3, CountedOperationsMain.invokeAllBatch(3));
+	}
+
+	/**
+	 * A batch of four tasks of a class allowed three times is refused in
+	 * WalaInstrumentation, as each task of a batch uses one allowance.
+	 */
+	@PublicTest
+	@Policy(value = POLICY_WALAINSTRUMENTATION, withinPath = WITHIN_PATH)
+	void invokeAllRefusesABatchBeyondItsAllowanceMavenWalaInstrumentation() {
+		assertRefusedNaming(() -> CountedOperationsMain.invokeAllBatch(4), "CountedCall");
 	}
 }

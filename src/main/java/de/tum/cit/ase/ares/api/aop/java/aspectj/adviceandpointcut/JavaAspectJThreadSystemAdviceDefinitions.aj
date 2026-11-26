@@ -10,7 +10,9 @@ import java.lang.reflect.Method;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -216,14 +218,15 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 
 	/**
 	 * The JDK collections that hold their own elements, so iterating one runs no
-	 * other code. Ares searches only these for tasks: any other collection, a
-	 * wrapper or view such as {@code Collections.unmodifiableList} or
-	 * {@code subList} included, could hand the iteration to code of the
-	 * supervised code while the check is in progress.
+	 * other code. Ares searches only these for tasks: any other collection, such as
+	 * a wrapper from {@code Collections.unmodifiableList}, a {@code subList} or a
+	 * {@code TreeSet}, whose range views compare with the comparator of the
+	 * supervised code, could hand the iteration to that code while the check is in
+	 * progress.
 	 */
 	private static final Set<String> PLAIN_COLLECTION_CLASSES = Set.of("java.util.ArrayList", "java.util.LinkedList",
 			"java.util.ArrayDeque", "java.util.Vector", "java.util.PriorityQueue", "java.util.HashSet",
-			"java.util.LinkedHashSet", "java.util.TreeSet", "java.util.Arrays$ArrayList",
+			"java.util.LinkedHashSet", "java.util.Arrays$ArrayList",
 			"java.util.ImmutableCollections$List12", "java.util.ImmutableCollections$ListN",
 			"java.util.ImmutableCollections$Set12", "java.util.ImmutableCollections$SetN",
 			"java.util.Collections$EmptyList", "java.util.Collections$EmptySet", "java.util.Collections$SingletonList",
@@ -791,17 +794,38 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Collects the thread-class names a value resolves to, so the quota is used once
-	 * per distinct class per call. A value that is itself a task counts, a list
-	 * included; arrays and plain JDK lists are searched for further tasks, as are
-	 * plain JDK collections among the tasks of {@code invokeAll} or {@code invokeAny}.
+	 * Lists each distinct thread class once, and a class among the tasks of
+	 * {@code invokeAll} or {@code invokeAny} once per such task, so every task of a
+	 * batch uses one allowance of its class.
+	 *
+	 * @param distinct        the distinct classes found
+	 * @param taskOccurrences the class of each task in the batch, repeats included
+	 * @return the classes to check, in order
+	 */
+	private static List<String> withEachTaskOccurrence(@Nonnull Set<String> distinct,
+			@Nonnull List<String> taskOccurrences) {
+		List<String> checked = new ArrayList<>();
+		for (String className : distinct) {
+			int occurrences = Math.max(1, Collections.frequency(taskOccurrences, className));
+			for (int i = 0; i < occurrences; i++) {
+				checked.add(className);
+			}
+		}
+		return checked;
+	}
+
+	/**
+	 * Collects the thread-class names a value resolves to. A value that is itself a
+	 * task counts, a list included; arrays and plain JDK lists are searched for
+	 * further tasks, as are plain JDK collections among the tasks of
+	 * {@code invokeAll} or {@code invokeAny}.
 	 *
 	 * @param observedVariable the value to resolve
-	 * @param out              the distinct class names found so far
+	 * @param out              the class names found so far, one per task in a batch
 	 * @param anyCollection    whether every collection is searched, as for the
 	 *                         tasks given to {@code invokeAll}, not only lists
 	 */
-	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Set<String> out,
+	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Collection<String> out,
 			boolean anyCollection) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return;
@@ -828,10 +852,10 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * {@code invokeAll} or {@code invokeAny} it is refused, elsewhere it is skipped.
 	 *
 	 * @param collection    the collection
-	 * @param out           the distinct class names found so far
+	 * @param out           the class names found so far, one per task in a batch
 	 * @param anyCollection whether the collection holds the tasks to run
 	 */
-	private static void collectCollectionElements(@Nonnull Collection<?> collection, @Nonnull Set<String> out,
+	private static void collectCollectionElements(@Nonnull Collection<?> collection, @Nonnull Collection<String> out,
 			boolean anyCollection) {
 		if (!isPlainCollection(collection)) {
 			if (anyCollection) {
@@ -981,7 +1005,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		boolean noAllowRuleConfigured = allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null || allowedThreadNumbers.length == 0;
-		// <editor-fold desc="Check thread targets (quota counted once per distinct class)">
+		// <editor-fold desc="Check thread targets (quota counted once per distinct class, and per task of a batch)">
 		// Resolve every thread-class candidate from the parameters, the receiver, and the
 		// receiver's attributes into a single de-duplicated set, then check each distinct
 		// class exactly once. De-duplication keeps the thread-number quota correct: the
@@ -996,11 +1020,14 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				: null;
 		boolean parallelArrayOperation = ARRAYS_CLASS.equals(declaringTypeName);
 		boolean taskCollectionOperation = TASK_COLLECTION_OPERATIONS.contains(methodName);
+		List<String> taskOccurrences = new ArrayList<>();
 		if (parameters != null && !parallelArrayOperation) {
 			for (Object parameter : parameters) {
-				collectThreadClassNames(parameter, threadClassNames, taskCollectionOperation);
+				collectThreadClassNames(parameter, taskCollectionOperation ? taskOccurrences : threadClassNames,
+						taskCollectionOperation);
 			}
 		}
+		threadClassNames.addAll(taskOccurrences);
 		if (recordedThreadClass != null) {
 			threadClassNames.add(recordedThreadClass);
 		} else if (!parallelArrayOperation) {
@@ -1032,7 +1059,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				threadClassNames.add(implicitOperationToken);
 			}
 		}
-		for (String threadClassName : threadClassNames) {
+		for (String threadClassName : withEachTaskOccurrence(threadClassNames, taskOccurrences)) {
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers, decrementQuota)) {
 				throw new SecurityException(localize(
 						"security.advice.illegal.thread.execution", systemMethodToCheck, localizeAction(action),

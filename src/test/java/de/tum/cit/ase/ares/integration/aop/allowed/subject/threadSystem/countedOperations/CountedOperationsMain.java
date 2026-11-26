@@ -6,7 +6,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -275,5 +277,42 @@ public final class CountedOperationsMain {
 	 */
 	public static int submitUnlistedListTask() throws Exception {
 		return submitEach(new UnlistedListTask());
+	}
+
+	/**
+	 * Hands a range view of a sorted set of two allowed tasks to {@code invokeAll},
+	 * with the student's comparator armed only after the view was built.
+	 *
+	 * @return how many tasks ran
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public static int invokeAllFromATreeSetRange() throws InterruptedException {
+		StudentTaskComparator.arm(false);
+		TreeSet<Callable<Integer>> tasks = new TreeSet<>(new StudentTaskComparator());
+		tasks.add(new CountedCall());
+		tasks.add(new CountedCall());
+		NavigableSet<Callable<Integer>> range = tasks.subSet(tasks.first(), true, tasks.last(), true);
+		StudentTaskComparator.arm(true);
+		try {
+			return invokeAll(range);
+		} finally {
+			StudentTaskComparator.arm(false);
+		}
+	}
+
+	/**
+	 * Hands a batch of allowed tasks to {@code invokeAll} in a {@code List.of}
+	 * list.
+	 *
+	 * @param tasks how many tasks the batch holds
+	 * @return how many tasks ran
+	 * @throws InterruptedException if the wait is interrupted
+	 */
+	public static int invokeAllBatch(int tasks) throws InterruptedException {
+		List<Callable<Integer>> batch = new ArrayList<>();
+		for (int i = 0; i < tasks; i++) {
+			batch.add(new CountedCall());
+		}
+		return invokeAll(List.copyOf(batch));
 	}
 }
