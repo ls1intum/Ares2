@@ -155,7 +155,7 @@ public final class JavaInstrumentationAgent {
 	 * Initialises Ares before supervised code. If an instrumentation policy is
 	 * compiled in, as Precompile does, it also installs instrumentation and
 	 * registers the compiled student package whose calls are rewritten. Unreadable
-	 * settings install instrumentation without registering a package.
+	 * settings fail start-up.
 	 *
 	 * @param agentArgs The agent arguments.
 	 * @param inst      The instrumentation instance.
@@ -454,18 +454,18 @@ public final class JavaInstrumentationAgent {
 	/**
 	 * Registers the student package of a compiled-in policy, so its monitor, thread
 	 * start and archive calls are rewritten; in Precompile nothing else does. If
-	 * the mode cannot be read, is unset or is AspectJ, it registers nothing. A
-	 * compiled mode without a package name is a damaged policy and fails start-up.
+	 * the mode is unset or AspectJ, it registers nothing. Unreadable settings, or a
+	 * compiled mode without a package name, are a damaged policy and fail start-up.
 	 *
-	 * @throws SecurityException If a mode is compiled in but the package is
-	 *                           missing, blank or unreadable.
+	 * @throws SecurityException If the mode cannot be read, or a mode is compiled
+	 *                           in but the package is missing, blank or unreadable.
 	 */
 	private static void registerCompiledRestrictedPackage() {
 		Object mode;
 		try {
 			mode = compiledSetting("aopMode");
 		} catch (ReflectiveOperationException | RuntimeException | LinkageError unreadable) {
-			return;
+			throw registrationFailure(unreadable);
 		}
 		if (mode == null || "ASPECTJ".equals(mode)) {
 			return;
@@ -474,23 +474,23 @@ public final class JavaInstrumentationAgent {
 		try {
 			restrictedPackage = compiledSetting("restrictedPackage");
 		} catch (ReflectiveOperationException | RuntimeException | LinkageError unreadable) {
-			throw missingRestrictedPackage(unreadable);
+			throw registrationFailure(unreadable);
 		}
 		if (!(restrictedPackage instanceof String packageName) || packageName.isBlank()) {
-			throw missingRestrictedPackage(null);
+			throw registrationFailure(null);
 		}
 		registerThreadMonitorRestrictedPackage(packageName);
 	}
 
 	/**
-	 * The start-up failure for a compiled-in policy whose student package cannot be
+	 * The start-up failure for compiled-in settings whose student package cannot be
 	 * registered.
 	 *
-	 * @param cause Why the package could not be read, or null if it is missing,
-	 *              blank or not text.
+	 * @param cause Why the mode or the package could not be read, or null if the
+	 *              package is missing, blank or not text.
 	 * @return The exception to throw.
 	 */
-	private static SecurityException missingRestrictedPackage(Throwable cause) {
+	private static SecurityException registrationFailure(Throwable cause) {
 		return new SecurityException(JavaInstrumentationAdviceAbstractToolbox
 				.localize("security.instrumentation.agent.installation.error", "Object monitor call sites"), cause);
 	}
