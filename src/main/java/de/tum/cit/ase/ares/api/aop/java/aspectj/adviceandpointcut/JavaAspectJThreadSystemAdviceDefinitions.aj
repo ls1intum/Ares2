@@ -10,11 +10,19 @@ import java.lang.reflect.Method;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
+import java.util.AbstractCollection;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -28,6 +36,7 @@ import javax.annotation.Nullable;
 import javax.annotation.Nonnull;
 
 import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.reflect.ConstructorSignature;
 //</editor-fold>
 
 @SuppressWarnings("AopLanguageInspection")
@@ -208,6 +217,102 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	private static final String IMPLICIT_THREAD_OPERATION_PREFIX = "<implicit-thread-op:";
 
 	/**
+	 * The class whose parallel array operations run on the common fork-join pool.
+	 */
+	private static final String ARRAYS_CLASS = "java.util.Arrays";
+
+	/**
+	 * The JDK collections that hold their own elements, so iterating one runs no
+	 * other code. Ares searches only these for tasks: any other collection, such as
+	 * a wrapper from {@code Collections.unmodifiableList}, a {@code subList} or a
+	 * {@code TreeSet}, whose range views compare with the comparator of the
+	 * supervised code, could hand the iteration to that code while the check is in
+	 * progress.
+	 */
+	private static final Set<String> PLAIN_COLLECTION_CLASSES = Set.of("java.util.ArrayList", "java.util.LinkedList",
+			"java.util.ArrayDeque", "java.util.Vector", "java.util.PriorityQueue", "java.util.HashSet",
+			"java.util.LinkedHashSet", "java.util.Arrays$ArrayList",
+			"java.util.ImmutableCollections$List12", "java.util.ImmutableCollections$ListN",
+			"java.util.ImmutableCollections$Set12", "java.util.ImmutableCollections$SetN",
+			"java.util.Collections$EmptyList", "java.util.Collections$EmptySet", "java.util.Collections$SingletonList",
+			"java.util.Collections$SingletonSet", "java.util.concurrent.CopyOnWriteArrayList",
+			"java.util.concurrent.CopyOnWriteArraySet", "java.util.concurrent.ConcurrentLinkedQueue",
+			"java.util.concurrent.ConcurrentLinkedDeque", "java.util.concurrent.ArrayBlockingQueue",
+			"java.util.concurrent.LinkedBlockingQueue", "java.util.concurrent.LinkedBlockingDeque");
+
+	/**
+	 * Tells whether a collection is one of {@link #PLAIN_COLLECTION_CLASSES}, by its
+	 * exact class, which the JVM's own class loader defined.
+	 *
+	 * @param collection the collection
+	 * @return whether iterating it runs only that JDK class
+	 */
+	private static boolean isPlainCollection(@Nonnull Object collection) {
+		Class<?> type = collection.getClass();
+		return type.getClassLoader() == null && PLAIN_COLLECTION_CLASSES.contains(type.getName());
+	}
+
+	/**
+	 * The pool methods that take a collection of tasks to run. Only their arguments
+	 * are read as a collection of tasks, each task counting once; in other calls
+	 * only a plain list is searched, so a set such as the result value of
+	 * {@code submit} stays a plain value.
+	 */
+	private static final Set<String> TASK_COLLECTION_OPERATIONS = Set.of("invokeAll", "invokeAny");
+
+	/**
+	 * The {@code Arrays} methods that may run on several threads. They count as the
+	 * {@code <implicit-thread-op:parallel>} operation, like {@code Stream.parallel},
+	 * so a policy allows them with the same token.
+	 */
+	private static final Set<String> PARALLEL_ARRAY_OPERATIONS = Set.of("parallelSort", "parallelPrefix",
+			"parallelSetAll");
+
+	/**
+	 * The class of the thread a {@code java.util.Timer} starts when it is built. A
+	 * new timer counts as one thread of this class, as instrumentation sees that
+	 * thread start; the tasks scheduled on it start no thread.
+	 */
+	private static final String TIMER_THREAD_CLASS = "java.util.TimerThread";
+
+	/**
+	 * The thread class a new {@code java.net.http.HttpClient} counts as. Each
+	 * client starts one selector thread when it is built, which instrumentation
+	 * sees under this name too.
+	 */
+	private static final String HTTP_CLIENT_CLASS = "java.net.http.HttpClient";
+
+	/**
+	 * Tells whether a join point builds a JDK {@code HttpClient}, through
+	 * {@code HttpClient.newHttpClient()} or the build of a JDK client builder.
+	 *
+	 * @param joinPoint the intercepted call
+	 * @return whether it builds such a client
+	 */
+	private static boolean isHttpClientCreation(@Nonnull JoinPoint joinPoint) {
+		String methodName = joinPoint.getSignature().getName();
+		if ("newHttpClient".equals(methodName)) {
+			return HTTP_CLIENT_CLASS.equals(joinPoint.getSignature().getDeclaringTypeName());
+		}
+		Object builder = joinPoint.getTarget();
+		return "build".equals(methodName) && builder != null
+				&& "java.net.http".equals(builder.getClass().getModule().getName());
+	}
+
+	/**
+	 * Tells whether a join point builds a {@code java.util.Timer} or a subclass,
+	 * which starts the timer's thread at once.
+	 *
+	 * @param joinPoint the intercepted call
+	 * @return whether it builds a timer
+	 */
+	private static boolean isTimerConstruction(@Nonnull JoinPoint joinPoint) {
+		return joinPoint.getSignature() instanceof ConstructorSignature constructor
+				&& java.util.Timer.class.isAssignableFrom(constructor.getDeclaringType());
+	}
+
+
+	/**
 	 * Returns the per-operation sentinel token for an implicit thread operation
 	 * intercepted with no resolvable thread-task class
 	 * ({@code Collection.parallelStream}, {@code BaseStream.parallel},
@@ -222,6 +327,10 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	private static String implicitThreadOperationToken(@Nullable String declaringTypeName, @Nullable String methodName) {
 		if (methodName == null) {
 			return null;
+		}
+		if (ARRAYS_CLASS.equals(declaringTypeName)) {
+			return PARALLEL_ARRAY_OPERATIONS.contains(methodName) ? IMPLICIT_THREAD_OPERATION_PREFIX + "parallel>"
+					: null;
 		}
 		switch (methodName) {
 		case "parallelStream":
@@ -691,34 +800,381 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	// <editor-fold desc="Violation analysis">
 
 	/**
-	 * Collects the resolved thread-class names from a variable, recursing into
-	 * arrays and Lists. Used to de-duplicate candidates across parameters, the
-	 * receiver, and attributes so the thread-number quota is consumed at most once
-	 * per distinct class per interception.
+	 * Lists each distinct thread class once, and a class among the tasks of
+	 * {@code invokeAll} or {@code invokeAny} once per such task, so every task of a
+	 * batch uses one allowance of its class.
 	 *
-	 * @param observedVariable the variable to resolve
-	 * @param out              the accumulator of distinct class names
+	 * @param distinct        the distinct classes found
+	 * @param taskOccurrences the class of each task in the batch, repeats included
+	 * @return the classes to check, in order
 	 */
-	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Set<String> out) {
+	private static List<String> withEachTaskOccurrence(@Nonnull Set<String> distinct,
+			@Nonnull List<String> taskOccurrences) {
+		List<String> checked = new ArrayList<>();
+		for (String className : distinct) {
+			int occurrences = Math.max(1, Collections.frequency(taskOccurrences, className));
+			for (int i = 0; i < occurrences; i++) {
+				checked.add(className);
+			}
+		}
+		return checked;
+	}
+
+	/**
+	 * Collects the thread-class names a value resolves to. A value that is itself a
+	 * task counts as one and is not searched further, even if it is a list or set;
+	 * arrays and plain JDK lists are searched for tasks, any other list is skipped.
+	 *
+	 * @param observedVariable the value to resolve
+	 * @param out              the class names found so far, one per task in a batch
+	 */
+	private static void collectThreadClassNames(@Nullable Object observedVariable, @Nonnull Collection<String> out) {
 		if (observedVariable == null || observedVariable instanceof byte[] || observedVariable instanceof Byte[]) {
 			return;
-		} else if (observedVariable.getClass().isArray()) {
+		}
+		if (observedVariable.getClass().isArray()) {
 			for (int i = 0; i < Array.getLength(observedVariable); i++) {
 				collectThreadClassNames(Array.get(observedVariable, i), out);
 			}
-		} else if (observedVariable instanceof List<?>) {
-			for (Object element : (List<?>) observedVariable) {
+			return;
+		}
+		String className = variableToClassname(observedVariable);
+		if (className != null) {
+			out.add(className);
+			return;
+		}
+		if (observedVariable instanceof List<?> list && isPlainCollection(list)) {
+			for (Object element : list) {
 				collectThreadClassNames(element, out);
 			}
-		} else {
-			String className = variableToClassname(observedVariable);
-			if (className != null) {
-				out.add(className);
-			}
+		}
+	}
+
+	/**
+	 * Collects the tasks of one argument of {@code invokeAll} or {@code invokeAny},
+	 * one entry per task. A collection of tasks is read only if it is a plain JDK
+	 * collection, and refused otherwise, since iterating it could run code of the
+	 * supervised code while the check is in progress; each task in it counts by its
+	 * own class.
+	 *
+	 * @param argument the argument
+	 * @param out      the class of each task found so far
+	 */
+	private static void collectTaskBatch(@Nullable Object argument, @Nonnull Collection<String> out) {
+		if (!(argument instanceof Collection<?> tasks)) {
+			collectThreadClassNames(argument, out);
+			return;
+		}
+		if (!isPlainCollection(tasks)) {
+			throw new SecurityException(
+					localize("security.advice.thread.collection.not.plain", tasks.getClass().getName()));
+		}
+		for (Object task : tasks) {
+			collectThreadClassNames(task, out);
 		}
 	}
 	// </editor-fold>
 
+	// </editor-fold>
+
+	// <editor-fold desc="Stable task hand-over">
+
+	/**
+	 * The tasks validated for the pool calls of the supervised code this thread is
+	 * in, newest first, by identity with how often each may still be handed on.
+	 */
+	private static final ThreadLocal<Deque<IdentityHashMap<Object, int[]>>> TASK_SCOPES = ThreadLocal
+			.withInitial(ArrayDeque::new);
+
+	/**
+	 * The tasks handed to the pool for an {@code invokeAll} or {@code invokeAny}
+	 * call: exactly the ones the check validated, read from its copy. Each time the
+	 * pool takes the next task, the given collection must still hold the same task
+	 * at that place; a collection changed after the check refuses the call.
+	 */
+	private static final class GuardedBatch extends AbstractCollection<Object> {
+
+		/** The collection the supervised code handed over, a plain JDK one. */
+		private final Collection<?> given;
+
+		/** The tasks the check validated, in the order it read them. */
+		private final Object[] validated;
+
+		/**
+		 * Builds the batch.
+		 *
+		 * @param given     the collection the supervised code handed over
+		 * @param validated the tasks the check validated
+		 */
+		private GuardedBatch(@Nonnull Collection<?> given, @Nonnull Object[] validated) {
+			this.given = given;
+			this.validated = validated;
+		}
+
+		/**
+		 * Hands out the validated tasks, each only while the given collection still
+		 * holds it at that place.
+		 *
+		 * @return an iterator over the validated tasks
+		 */
+		@Override
+		public Iterator<Object> iterator() {
+			return new Iterator<>() {
+
+				/** The place of the next task. */
+				private int next;
+
+				/**
+				 * Tells whether a task is left.
+				 *
+				 * @return whether a task is left
+				 */
+				@Override
+				public boolean hasNext() {
+					return next < validated.length;
+				}
+
+				/**
+				 * Hands out the next validated task.
+				 *
+				 * @return the task
+				 */
+				@Override
+				public Object next() {
+					if (!hasNext()) {
+						throw new NoSuchElementException();
+					}
+					requireUnchanged(next);
+					return validated[next++];
+				}
+			};
+		}
+
+		/**
+		 * Counts the validated tasks.
+		 *
+		 * @return how many there are
+		 */
+		@Override
+		public int size() {
+			return validated.length;
+		}
+
+		/**
+		 * Refuses the call when the given collection no longer holds the validated
+		 * task at a place, read through the JDK collection's own copy.
+		 *
+		 * @param index the place
+		 */
+		private void requireUnchanged(int index) {
+			Object[] now = given.toArray();
+			if (now.length != validated.length || now[index] != validated[index]) {
+				throw new SecurityException(localize("security.advice.thread.batch.changed"));
+			}
+		}
+	}
+
+	/**
+	 * Copies each plain JDK collection among the arguments once, so the check and
+	 * the pool see the same tasks. Any other argument is kept as it is.
+	 *
+	 * @param parameters the arguments
+	 * @return the arguments with each plain collection replaced by its copy
+	 */
+	@Nonnull
+	private static Object[] snapshotTaskCollections(@Nonnull Object[] parameters) {
+		Object[] snapshot = parameters.clone();
+		for (int i = 0; i < snapshot.length; i++) {
+			if (snapshot[i] instanceof Collection<?> tasks && isPlainCollection(tasks)) {
+				snapshot[i] = new ArrayList<Object>(tasks);
+			}
+		}
+		return snapshot;
+	}
+
+	/**
+	 * Counts the tasks a check validated, by identity: the entries of the copied
+	 * collections of {@code invokeAll} or {@code invokeAny}, or else each argument
+	 * that is itself a task.
+	 *
+	 * @param parameters              the arguments the check read
+	 * @param taskCollectionOperation whether the call is {@code invokeAll} or
+	 *                                {@code invokeAny}
+	 * @return each validated task with how often it was validated
+	 */
+	@Nonnull
+	private static IdentityHashMap<Object, int[]> validatedTasks(@Nonnull Object[] parameters,
+			boolean taskCollectionOperation) {
+		IdentityHashMap<Object, int[]> validated = new IdentityHashMap<>();
+		for (Object parameter : parameters) {
+			if (taskCollectionOperation && parameter instanceof Collection<?> tasks && isPlainCollection(tasks)) {
+				tasks.forEach(task -> countValidated(validated, task));
+			} else if (!taskCollectionOperation && variableToClassname(parameter) != null) {
+				countValidated(validated, parameter);
+			}
+		}
+		return validated;
+	}
+
+	/**
+	 * Adds one validated occurrence of a task.
+	 *
+	 * @param validated the validated tasks so far
+	 * @param task      the task
+	 */
+	private static void countValidated(@Nonnull IdentityHashMap<Object, int[]> validated, @Nullable Object task) {
+		if (task != null) {
+			validated.computeIfAbsent(task, ignored -> new int[1])[0]++;
+		}
+	}
+
+	/**
+	 * Uses up one hand-over of a task validated for the innermost pool call of this
+	 * thread.
+	 *
+	 * @param task the task the pool is given
+	 * @return whether it was validated and not yet handed on as often
+	 */
+	private static boolean consumeHandOver(@Nullable Object task) {
+		IdentityHashMap<Object, int[]> remaining = TASK_SCOPES.get().peek();
+		int[] count = remaining == null || task == null ? null : remaining.get(task);
+		if (count == null || count[0] == 0) {
+			return false;
+		}
+		count[0]--;
+		return true;
+	}
+
+	/**
+	 * Removes the JDK's own wrappers around a task, a {@code FutureTask} and a
+	 * {@code RunnableAdapter}, each matched by its exact class and read without
+	 * running any code of the value; anything else is returned as it is.
+	 *
+	 * @param value the value a pool hook returned
+	 * @return the task inside the wrappers, or the value itself
+	 */
+	@Nullable
+	private static Object unwrapJdkTaskWrappers(@Nullable Object value) {
+		Object task = unwrapExact(value, "java.util.concurrent.FutureTask", "callable");
+		return unwrapExact(task, "java.util.concurrent.Executors$RunnableAdapter", "task");
+	}
+
+	/**
+	 * Reads the wrapped value of a JDK wrapper of exactly the given class, or
+	 * returns the value as it is when it is of another class.
+	 *
+	 * @param value     the value
+	 * @param className the exact class of the wrapper
+	 * @param fieldName the field that holds the wrapped value
+	 * @return the wrapped value, the value itself, or {@code null} if unreadable
+	 */
+	@Nullable
+	private static Object unwrapExact(@Nullable Object value, @Nonnull String className, @Nonnull String fieldName) {
+		if (value == null || value.getClass().getClassLoader() != null || !className.equals(value.getClass().getName())) {
+			return value;
+		}
+		try {
+			return readField(value.getClass().getDeclaredField(fieldName), value);
+		} catch (NoSuchFieldException | SecurityException e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Checks the task a pool hook of the supervised code returned. It passes when it
+	 * is the JDK's own task, or wraps a task validated for the pool call this
+	 * thread is in, using up one hand-over of it; otherwise it is checked like any
+	 * other thread creation.
+	 *
+	 * @param thisJoinPoint the execution of the hook
+	 * @param returned      the task the hook returned
+	 * @param given         the JDK's own task the hook was given, or {@code null}
+	 */
+	public void checkHandedOverTask(@Nonnull JoinPoint thisJoinPoint, @Nullable Object returned,
+			@Nullable Object given) {
+		if (given != null && returned == given || consumeHandOver(unwrapJdkTaskWrappers(returned))) {
+			return;
+		}
+		if (!enterAdvice()) {
+			return;
+		}
+		try {
+			checkThreadSystemInteractionImpl("create", thisJoinPoint, true, new Object[] { returned }, false, null);
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	/**
+	 * Checks a pool call of the supervised code that hands over tasks, and returns
+	 * the tasks it validated, or {@code null} when the check did not run to the end.
+	 *
+	 * @param thisJoinPoint the call
+	 * @param parameters    the arguments the check reads
+	 * @return the validated tasks by identity, or {@code null}
+	 */
+	@Nullable
+	private IdentityHashMap<Object, int[]> checkTaskHandOver(@Nonnull JoinPoint thisJoinPoint,
+			@Nonnull Object[] parameters) {
+		if (!enterAdvice()) {
+			return null;
+		}
+		try {
+			Object[] outcome = new Object[1];
+			checkThreadSystemInteractionImpl("create", thisJoinPoint, true, parameters, true, outcome);
+			@SuppressWarnings("unchecked")
+			IdentityHashMap<Object, int[]> validated = (IdentityHashMap<Object, int[]>) outcome[0];
+			return validated;
+		} finally {
+			exitAdvice();
+		}
+	}
+
+	/**
+	 * Checks an {@code invokeAll} or {@code invokeAny} call of the supervised code
+	 * on a copy of its tasks. When the check passes, opens the call's task scope,
+	 * which {@link #closeTaskScope()} closes, and returns the tasks the pool is to
+	 * run; otherwise returns the given collection.
+	 *
+	 * @param thisJoinPoint the call
+	 * @param tasks         the collection the supervised code handed over
+	 * @return the validated tasks, guarded against changes, or {@code tasks}
+	 */
+	@Nonnull
+	public Collection<?> checkTaskBatch(@Nonnull JoinPoint thisJoinPoint, @Nonnull Collection<?> tasks) {
+		Object[] checked = snapshotTaskCollections(thisJoinPoint.getArgs());
+		IdentityHashMap<Object, int[]> validated = checkTaskHandOver(thisJoinPoint, checked);
+		if (validated == null || !(checked[0] instanceof List<?> copy) || checked[0] == tasks) {
+			return tasks;
+		}
+		TASK_SCOPES.get().push(validated);
+		return new GuardedBatch(tasks, copy.toArray());
+	}
+
+	/**
+	 * Checks a pool call of the supervised code that hands over one task. When the
+	 * check passes, opens the call's task scope, which {@link #closeTaskScope()}
+	 * closes.
+	 *
+	 * @param thisJoinPoint the call
+	 * @return whether a scope was opened
+	 */
+	public boolean checkSingleTaskHandOver(@Nonnull JoinPoint thisJoinPoint) {
+		IdentityHashMap<Object, int[]> validated = checkTaskHandOver(thisJoinPoint, thisJoinPoint.getArgs());
+		if (validated == null) {
+			return false;
+		}
+		TASK_SCOPES.get().push(validated);
+		return true;
+	}
+
+	/**
+	 * Closes the newest task scope of this thread, when its pool call returns or
+	 * throws.
+	 */
+	public static void closeTaskScope() {
+		TASK_SCOPES.get().pop();
+	}
 	// </editor-fold>
 
 	// <editor-fold desc="Check methods">
@@ -752,7 +1208,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 			return;
 		}
 		try {
-			checkThreadSystemInteractionImpl(action, thisJoinPoint, decrementQuota);
+			checkThreadSystemInteractionImpl(action, thisJoinPoint, decrementQuota, thisJoinPoint.getArgs(), true, null);
 		} finally {
 			exitAdvice();
 		}
@@ -766,11 +1222,17 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	 * @param action the raw action name, which drives every decision
 	 * @param thisJoinPoint the join point of the intercepted call
 	 * @param decrementQuota whether an allowed creation uses up one of the permitted threads
+	 * @param parameters the arguments to check
+	 * @param readReceiver whether the receiver and its fields are checked as well
+	 * @param outcome receives the validated tasks when the check passes, or {@code null}
 	 */
 	private void checkThreadSystemInteractionImpl(
 			@Nonnull String action,
 			@Nonnull JoinPoint thisJoinPoint,
-			boolean decrementQuota
+			boolean decrementQuota,
+			@Nonnull Object[] parameters,
+			boolean readReceiver,
+			@Nullable Object[] outcome
 	) {
 		// <editor-fold desc="Get information from settings">
 		@Nullable
@@ -793,10 +1255,8 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		}
 		// </editor-fold>
 		// <editor-fold desc="Get information from join point">
-		@Nonnull
-		Object[] parameters = thisJoinPoint.getArgs();
 		@Nullable
-		Object instance = thisJoinPoint.getTarget();
+		Object instance = readReceiver ? thisJoinPoint.getTarget() : null;
 		@Nonnull
 		final String fullMethodSignature = formatSignature(thisJoinPoint.getSignature());
 		@Nonnull
@@ -854,7 +1314,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		@Nullable
 		String studentCalledMethod = findFirstMethodOutsideOfRestrictedPackage(restrictedPackage);
 		boolean noAllowRuleConfigured = allowedThreadClasses == null || allowedThreadClasses.length == 0 || allowedThreadNumbers == null || allowedThreadNumbers.length == 0;
-		// <editor-fold desc="Check thread targets (quota counted once per distinct class)">
+		// <editor-fold desc="Check thread targets (quota counted once per distinct class, and per task of a batch)">
 		// Resolve every thread-class candidate from the parameters, the receiver, and the
 		// receiver's attributes into a single de-duplicated set, then check each distinct
 		// class exactly once. De-duplication keeps the thread-number quota correct: the
@@ -867,17 +1327,25 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		String recordedThreadClass = !decrementQuota && instance instanceof Thread
 				? getRecordedThreadClass((Thread) instance)
 				: null;
-		if (parameters != null) {
+		boolean parallelArrayOperation = ARRAYS_CLASS.equals(declaringTypeName);
+		boolean taskCollectionOperation = TASK_COLLECTION_OPERATIONS.contains(methodName);
+		List<String> taskOccurrences = new ArrayList<>();
+		if (parameters != null && !parallelArrayOperation) {
 			for (Object parameter : parameters) {
-				collectThreadClassNames(parameter, threadClassNames);
+				if (taskCollectionOperation) {
+					collectTaskBatch(parameter, taskOccurrences);
+				} else {
+					collectThreadClassNames(parameter, threadClassNames);
+				}
 			}
 		}
+		threadClassNames.addAll(taskOccurrences);
 		if (recordedThreadClass != null) {
 			threadClassNames.add(recordedThreadClass);
-		} else {
+		} else if (!parallelArrayOperation) {
 			collectThreadClassNames(instance, threadClassNames);
 		}
-		if (attributes != null) {
+		if (attributes != null && !parallelArrayOperation) {
 			for (Object attribute : attributes) {
 				collectThreadClassNames(attribute, threadClassNames);
 			}
@@ -888,6 +1356,14 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 		// student invoked it directly (the first non-infrastructure caller is restricted-package code), so
 		// a woven harness or JDK helper that performs the operation under student code is not blamed on the
 		// student.
+		if (isTimerConstruction(thisJoinPoint)) {
+			threadClassNames.clear();
+			threadClassNames.add(TIMER_THREAD_CLASS);
+		}
+		if (isHttpClientCreation(thisJoinPoint)) {
+			threadClassNames.clear();
+			threadClassNames.add(HTTP_CLIENT_CLASS);
+		}
 		if (threadClassNames.isEmpty()) {
 			@Nullable
 			String implicitOperationToken = implicitThreadOperationToken(declaringTypeName, methodName);
@@ -895,7 +1371,7 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 				threadClassNames.add(implicitOperationToken);
 			}
 		}
-		for (String threadClassName : threadClassNames) {
+		for (String threadClassName : withEachTaskOccurrence(threadClassNames, taskOccurrences)) {
 			if (checkIfThreadIsForbidden(new ThreadTarget(threadClassName), allowedThreadClasses, allowedThreadNumbers, decrementQuota)) {
 				throw new SecurityException(localize(
 						"security.advice.illegal.thread.execution", systemMethodToCheck, localizeAction(action),
@@ -903,6 +1379,9 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 						describeDeniedCall(thisJoinPoint, fullMethodSignature) + describeCaller(studentCalledMethod),
 						buildDenialReason("thread", action, noAllowRuleConfigured)));
 			}
+		}
+		if (outcome != null) {
+			outcome[0] = validatedTasks(parameters, taskCollectionOperation);
 		}
 		if (decrementQuota && instance instanceof Thread) {
 			String resolvedThreadClass = variableToClassname(instance);
@@ -915,9 +1394,48 @@ public aspect JavaAspectJThreadSystemAdviceDefinitions extends JavaAspectJAbstra
 	// </editor-fold>
 
 	before():
-			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithParameters() ||
-					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithoutParameters() {
+			(de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithParameters()
+					&& !de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.taskBatchCalls()
+					&& !de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.taskHandingCalls()) ||
+					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.threadCreateMethodsWithoutParameters() ||
+					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.timerCreateConstructors() ||
+					de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.httpClientCreateMethods() {
 		checkThreadSystemInteraction("create", thisJoinPoint, true);
+	}
+
+	Object around(Collection tasks):
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.taskBatchCalls() && args(tasks, ..) {
+		Collection<?> handedOver = checkTaskBatch(thisJoinPoint, tasks);
+		if (handedOver == tasks) {
+			return proceed(tasks);
+		}
+		try {
+			return proceed(handedOver);
+		} finally {
+			closeTaskScope();
+		}
+	}
+
+	Object around():
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.taskHandingCalls() {
+		if (!checkSingleTaskHandOver(thisJoinPoint)) {
+			return proceed();
+		}
+		try {
+			return proceed();
+		} finally {
+			closeTaskScope();
+		}
+	}
+
+	after() returning(Object returned):
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.taskWrappingHooks() {
+		checkHandedOverTask(thisJoinPoint, returned, null);
+	}
+
+	after(Object given) returning(Object returned):
+			de.tum.cit.ase.ares.api.aop.java.aspectj.adviceandpointcut.JavaAspectJThreadSystemPointcutDefinitions.scheduledTaskDecorationHooks(given) {
+		checkHandedOverTask(thisJoinPoint, returned, given);
 	}
 
 	// Thread manipulation (notify/notifyAll/wait on a Thread receiver): membership-only

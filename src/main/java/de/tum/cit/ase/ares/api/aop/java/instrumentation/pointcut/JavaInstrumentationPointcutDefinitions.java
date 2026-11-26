@@ -42,6 +42,14 @@ public final class JavaInstrumentationPointcutDefinitions {
 	// <editor-fold desc="Tools">
 
 	/**
+	 * The JDK class every {@code HttpClient} the JDK builds is, inside
+	 * {@code jdk.internal}. It is the one class there that is matched, so a request
+	 * is checked where the student sends it; the client may connect on a thread of
+	 * its own pool, with no student code left to check.
+	 */
+	public static final String HTTP_CLIENT_FACADE = "jdk.internal.net.http.HttpClientFacade";
+
+	/**
 	 * Creates a type matcher that selects exactly the classes (and their subtypes)
 	 * named in the given pointcut map.
 	 * <p>
@@ -100,7 +108,8 @@ public final class JavaInstrumentationPointcutDefinitions {
 		// so those impls must remain instrumentable to catch instance-method calls.
 		matcher = matcher.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun.nio.ch.FileChannelImpl"))
 				.and(ElementMatchers.not(ElementMatchers.nameStartsWith("sun.nio.ch.AsynchronousFileChannelImpl")))
-				.and(ElementMatchers.not(ElementMatchers.nameStartsWith("jdk.internal."))));
+				.and(ElementMatchers.not(ElementMatchers.nameStartsWith("jdk.internal."))
+						.or(ElementMatchers.named(HTTP_CLIENT_FACADE))));
 
 		return matcher;
 	}
@@ -759,7 +768,10 @@ public final class JavaInstrumentationPointcutDefinitions {
 					List.of("submit", "invokeAll", "invokeAny")),
 			Map.entry("java.util.concurrent.Executors$DefaultThreadFactory", List.of("newThread")),
 			Map.entry("java.util.concurrent.ExecutorCompletionService", List.of("submit")),
-			Map.entry("java.util.concurrent.SubmissionPublisher", List.of("submit", "offer")));
+			Map.entry("java.util.concurrent.SubmissionPublisher", List.of("submit", "offer")),
+			// The parallel array operations run on the common fork-join pool, so they
+			// count as the implicit parallel operation, as in the AspectJ backend.
+			Map.entry("java.util.Arrays", List.of("parallelSort", "parallelPrefix", "parallelSetAll")));
 	// </editor-fold>
 
 	// <editor-fold desc="Execute command">

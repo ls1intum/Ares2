@@ -1,0 +1,31 @@
+thisPolicyFileCompliesToThePolicyVersion: 1
+regardingTheSupervisedCode:
+  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_WALA_AND_ASPECTJ
+  theSupervisedCodeUsesTheFollowingPackage: "de.tum.cit.ase.ares"
+  theMainClassInsideThisPackageIs: "Main"
+  theFollowingClassesAreTestClasses:
+    - "de.tum.cit.ase.ares.integration.aop.allowed.ThreadCountedOperationsTest"
+  theFollowingResourceAccessesArePermitted:
+    regardingFileSystemInteractions: [ ]
+    regardingNetworkConnections: [ ]
+    regardingCommandExecutions: [ ]
+    regardingThreadCreations:
+      - createTheFollowingNumberOfThreads: 3
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.CountedTask"
+      - createTheFollowingNumberOfThreads: 3
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.CountedCall"
+      - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.ListBackedTask"
+      - createTheFollowingNumberOfThreads: 2
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.SetBackedCall"
+      - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.ReplacingCall"
+      - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.LatchedTask"
+      - createTheFollowingNumberOfThreads: 1
+        ofThisClass: "de.tum.cit.ase.ares.integration.aop.allowed.subject.threadSystem.countedOperations.RepeatingCall"
+    regardingPackageImports:
+      - importTheFollowingPackage: "java.util"
+      - importTheFollowingPackage: "java.util.concurrent"
+    regardingTimeouts:
+      - timeout: 3000

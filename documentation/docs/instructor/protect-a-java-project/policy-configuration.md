@@ -83,7 +83,7 @@ regardingTheSupervisedCode:
 | --- | --- |
 | `thisPolicyFileCompliesToThePolicyVersion` | The policy format the file is written against. A root field rather than a member of `regardingTheSupervisedCode`. Must be exactly `1`; a file that omits it is rejected on load. |
 | `theFollowingProgrammingLanguageConfigurationIsUsed` | Selects the processing pipeline (build system, static analysis tool and dynamic analysis backend). See the table below. |
-| `theSupervisedCodeUsesTheFollowingPackage` | The root package containing all student code to be supervised. |
+| `theSupervisedCodeUsesTheFollowingPackage` | The root package containing all student code to be supervised. It must hold every class below the `withinPath` of `@Policy`, and `withinPath` must hold every compiled student class of this package. Ares refuses a run where the two differ, since one of its two checks then sees nothing. |
 | `theMainClassInsideThisPackageIs` | The entrypoint class used to construct the call graph of the student program. |
 | `theFollowingClassesAreTestClasses` | Test classes that execute student code. These are trusted and not sandboxed. Ares sandboxes an unlisted test class, helper class or superclass inside the supervised package like student code, constructor and setup and teardown methods included. |
 | `regardingFileSystemInteractions` | Which paths the student code may interact with, and which operations (read, create, overwrite, execute, delete) are allowed. |
@@ -105,6 +105,20 @@ instance created for that method. A `@BeforeAll`, an `@AfterAll` and an instance
 whole class (`@TestInstance(PER_CLASS)`) run before any method policy is known, so Ares restricts
 them only when the test class itself carries `@Policy`. `@BeforeAll` and `@AfterAll` need
 `@Public` or `@Hidden` on the class as well.
+
+The argument source of a parameterised test, such as a `@MethodSource` method, runs under the
+policy of that test, even for arguments it builds between two invocations. The same holds for
+arguments JUnit closes after an invocation and for the tests a `@TestFactory` stream builds after
+the factory has returned. The argument source of a `@ParameterizedClass` and the static
+initialiser of a test class are class phases: Ares restricts them under the `@Policy` of the
+class when the class carries `@Public` or `@Hidden` as well. The static initialiser escapes this
+if something initialises the class before Ares sees it. JUnit does so for a class with a static
+`@RegisterExtension` or `@ExtendWith` field, and an extension registered before Ares can too.
+
+Once a test has ended, Ares refuses everything the policy restricts to code the test left running,
+such as a thread or a shutdown hook. Between two tests of a parameterised test, a parameterised
+class or a test factory with a policy, such code gets the allowances of that container instead,
+until the container ends.
 :::
 
 ## Supported programming language configurations

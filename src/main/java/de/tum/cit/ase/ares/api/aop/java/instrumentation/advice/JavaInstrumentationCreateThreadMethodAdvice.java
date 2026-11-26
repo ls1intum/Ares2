@@ -38,11 +38,12 @@ public final class JavaInstrumentationCreateThreadMethodAdvice {
 	 * @param instance          The instance of the class that declares the method
 	 *                          (if applicable).
 	 * @param parameters        The parameters passed to the method being executed.
+	 * @return whether the check opened a counted operation scope for this call
 	 * @throws SecurityException If the method execution is not allowed based on
 	 *                           security policies.
 	 */
 	@Advice.OnMethodEnter
-	public static void onEnter(@Advice.Origin("#t") String declaringTypeName, @Advice.Origin("#m") String methodName,
+	public static boolean onEnter(@Advice.Origin("#t") String declaringTypeName, @Advice.Origin("#m") String methodName,
 			@Advice.Origin("#s") String methodSignature, @Advice.This(optional = true) Object instance,
 			@Advice.AllArguments Object... parameters) {
 		// <editor-fold desc="Attributes">
@@ -70,8 +71,21 @@ public final class JavaInstrumentationCreateThreadMethodAdvice {
 		// </editor-fold>
 
 		// <editor-fold desc="Check">
-		JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteraction("create", declaringTypeName,
-				methodName, methodSignature, attributes, parameters, instance);
+		return JavaInstrumentationAdviceThreadSystemToolbox.checkThreadSystemInteractionOpeningScope("create",
+				declaringTypeName, methodName, methodSignature, attributes, parameters, instance);
 		// </editor-fold>
+	}
+
+	/**
+	 * Closes the counted operation scope the entry opened, when the call returns or
+	 * throws.
+	 *
+	 * @param scopeOpened whether the entry opened a scope for this call
+	 */
+	@Advice.OnMethodExit(onThrowable = Throwable.class)
+	public static void onExit(@Advice.Enter boolean scopeOpened) {
+		if (scopeOpened) {
+			JavaInstrumentationAdviceThreadSystemToolbox.closeCountedOperationScope();
+		}
 	}
 }

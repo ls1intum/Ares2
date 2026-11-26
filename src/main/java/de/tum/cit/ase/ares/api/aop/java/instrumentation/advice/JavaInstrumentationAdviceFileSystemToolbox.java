@@ -1783,6 +1783,18 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 	}
 
 	/**
+	 * Whether the JDK deletes the socket file of the pipe it builds for a selector
+	 * on Windows, with only JDK code between that pipe and this check. The file is
+	 * named by the JDK in the temp folder, so the student chooses nothing about it.
+	 *
+	 * @param action the file-system action
+	 * @return whether this is that clean-up
+	 */
+	private static boolean isJdkPipeSocketCleanUp(@Nonnull String action) {
+		return "delete".equals(action) && isJdkPipeSetUpWithoutStudentCode();
+	}
+
+	/**
 	 * Checks one file-system call against the policy. A call without a method or
 	 * class name is refused.
 	 *
@@ -1816,10 +1828,10 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			}
 			@Nullable
 			final String restrictedPackage = getValueFromSettings("restrictedPackage");
-			if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+			if (restrictedPackage == null || restrictedPackage.isEmpty() || isUncheckedOutsideASupervisedTest()) {
 				return;
 			}
-			if (isProjectSourcesFinderInProgress()) {
+			if (isProjectSourcesFinderInProgress() || isJdkPipeSocketCleanUp(action)) {
 				return;
 			}
 			if (methodName == null || methodName.isBlank() || declaringTypeName == null
@@ -2131,7 +2143,8 @@ public final class JavaInstrumentationAdviceFileSystemToolbox extends JavaInstru
 			@Nullable
 			String restrictedPackage = getValueFromSettings("restrictedPackage");
 			if (!"INSTRUMENTATION".equals(getValueFromSettings("aopMode")) || restrictedPackage == null
-					|| restrictedPackage.isEmpty() || isProjectSourcesFinderInProgress()) {
+					|| restrictedPackage.isEmpty() || isUncheckedOutsideASupervisedTest()
+					|| isProjectSourcesFinderInProgress()) {
 				return;
 			}
 			@Nullable

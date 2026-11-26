@@ -798,15 +798,18 @@ public final class JavaInstrumentationAgent {
 	 * advice class (resolving it while Mockito injects its dispatcher fails), the
 	 * deepest JDK internals, the stack walking the advice relies on (instrumenting
 	 * it causes a ClassCircularityError), and the agent's own classes. The
-	 * sun.nio.ch channel implementations stay watched on purpose: they implement
-	 * the guarded connect, send and receive methods.
+	 * sun.nio.ch channel implementations and the JDK's HTTP client class stay
+	 * watched on purpose: they implement the guarded connect, send and receive
+	 * methods.
 	 *
 	 * @return The matcher of the ignored classes.
 	 */
 	static ElementMatcher.Junction<TypeDescription> ignoredTypes() {
 		return ElementMatchers.nameStartsWith("net.bytebuddy.")
 				.or(ElementMatchers.nameStartsWith("org.mockito.internal.creation.bytebuddy.MockMethodAdvice"))
-				.or(ElementMatchers.nameStartsWith("jdk.internal."))
+				.or(ElementMatchers.nameStartsWith("jdk.internal.")
+						.and(ElementMatchers
+								.not(ElementMatchers.named(JavaInstrumentationPointcutDefinitions.HTTP_CLIENT_FACADE))))
 				.or(ElementMatchers.nameStartsWith("java.lang.invoke."))
 				.or(ElementMatchers.nameStartsWith("java.lang.reflect."))
 				.or(ElementMatchers.nameStartsWith("java.lang.StackWalker"))

@@ -1119,7 +1119,8 @@ public final class JavaInstrumentationAdviceNetworkSystemToolbox extends JavaIns
 		}
 		@Nullable
 		final String restrictedPackage = getValueFromSettings("restrictedPackage");
-		if (restrictedPackage == null || restrictedPackage.isEmpty()) {
+		if (restrictedPackage == null || restrictedPackage.isEmpty() || isUncheckedOutsideASupervisedTest()
+				|| isJdkPipeSetUpWithoutStudentCode()) {
 			return;
 		}
 		@Nullable
