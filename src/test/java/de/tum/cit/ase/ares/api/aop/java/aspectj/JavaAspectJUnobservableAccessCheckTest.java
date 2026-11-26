@@ -393,6 +393,135 @@ class JavaAspectJUnobservableAccessCheckTest {
 		assertTrue(refused(classes, NETWORK).getMessage().contains("java.net.Socket.<init>(java.lang.String, int)"));
 	}
 
+	/**
+	 * A thread subclass letting the inherited Thread.start stand for the start of a
+	 * student interface is refused, with or without a reference through that
+	 * interface: AspectJ checks a call by the type it names.
+	 */
+	@Test
+	void anInheritedStartStandingForAStudentInterfaceIsRefused() throws IOException {
+		JavaClasses classes = compile("Starters", """
+				public class Starters {
+					interface Starter { void start(); }
+					static class Worker extends Thread implements Starter { }
+					static void go() { Starter s = new Worker(); Runnable r = s::start; r.run(); }
+				}
+				""");
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), THREADS, List.of()));
+		assertTrue(refusal.getMessage().contains("java.lang.Thread.start()")
+				&& refusal.getMessage().contains("example.Starters$Starter"), refusal.getMessage());
+	}
+
+	/**
+	 * An override that only hands on to Thread.start is refused too when it stands
+	 * for the start of a student interface.
+	 */
+	@Test
+	void aHandOnStandingForAStudentInterfaceIsRefused() throws IOException {
+		JavaClasses classes = compile("HandOnStarter", """
+				public class HandOnStarter {
+					interface Starter { void start(); }
+					static class Worker extends Thread implements Starter {
+						@Override public synchronized void start() { super.start(); }
+					}
+				}
+				""");
+		assertThrows(SecurityException.class,
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), THREADS, List.of()));
+	}
+
+	/**
+	 * A student interface whose method the class implements with code of its own,
+	 * or whose inherited implementation no list names, passes.
+	 */
+	@Test
+	void aStudentInterfaceImplementedByOwnCodeOrAnUncheckedMethodPasses() throws IOException {
+		JavaClasses classes = compile("Implementations", """
+				public class Implementations {
+					interface Starter { void start(); }
+					static class Worker extends Thread implements Starter {
+						@Override public synchronized void start() { run(); }
+					}
+					interface Sized { int size(); }
+					static class Names extends java.util.ArrayList<String> implements Sized { }
+				}
+				""");
+		assertDoesNotThrow(
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(classes, List.of(), THREADS, List.of()));
+	}
+
+	/**
+	 * An executor override that passes a different task to the overridden execute
+	 * is refused, and so is one that calls it twice: the check while the code runs
+	 * saw only the task the caller passed, once.
+	 */
+	@Test
+	void anOverrideChangingOrRepeatingTheSuperCallIsRefused() throws IOException {
+		JavaClasses replacing = compile("Replacing",
+				"""
+						public class Replacing extends java.util.concurrent.ThreadPoolExecutor {
+							public Replacing() {
+								super(1, 1, 0, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.LinkedBlockingQueue<>());
+							}
+							@Override public void execute(Runnable r) { super.execute(() -> Math.sqrt(2)); }
+						}
+						""");
+		SecurityException refusal = assertThrows(SecurityException.class,
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(replacing, List.of(), THREADS, List.of()));
+		assertTrue(refusal.getMessage().contains("java.util.concurrent.ThreadPoolExecutor.execute(java.lang.Runnable)"),
+				refusal.getMessage());
+		JavaClasses repeating = compile("Repeating",
+				"""
+						public class Repeating extends java.util.concurrent.ThreadPoolExecutor {
+							public Repeating() {
+								super(1, 1, 0, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.LinkedBlockingQueue<>());
+							}
+							@Override public void execute(Runnable r) { super.execute(r); super.execute(r); }
+						}
+						""");
+		assertThrows(SecurityException.class,
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(repeating, List.of(), THREADS, List.of()));
+	}
+
+	/**
+	 * An override passing its parameters unchanged to the overridden method once
+	 * passes, also with several parameters, while one changing a parameter is
+	 * refused.
+	 */
+	@Test
+	void anOverridePassingItsParametersUnchangedPasses() throws IOException {
+		JavaClasses forwarding = compile("Forwarding",
+				"""
+						public class Forwarding extends java.util.concurrent.ThreadPoolExecutor {
+							public Forwarding() {
+								super(1, 1, 0, java.util.concurrent.TimeUnit.SECONDS, new java.util.concurrent.LinkedBlockingQueue<>());
+							}
+							@Override public void execute(Runnable r) { super.execute(r); }
+						}
+						""");
+		assertDoesNotThrow(
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(forwarding, List.of(), THREADS, List.of()));
+		JavaClasses wrapping = compile("Wrapping",
+				"""
+						public class Wrapping extends java.io.FilterInputStream {
+							public Wrapping(java.io.InputStream in) { super(in); }
+							@Override public int read(byte[] b, int o, int l) throws java.io.IOException { return super.read(b, o, l); }
+						}
+						""");
+		assertDoesNotThrow(
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(wrapping, List.of(), FILES, List.of()));
+		JavaClasses shifting = compile("Shifting",
+				"""
+						public class Shifting extends java.io.FilterInputStream {
+							public Shifting(java.io.InputStream in) { super(in); }
+							@Override public int read(byte[] b, int o, int l) throws java.io.IOException { return super.read(b, 0, l); }
+						}
+						""");
+		assertThrows(SecurityException.class,
+				() -> JavaAspectJUnobservableAccessCheck.requireObservable(shifting, List.of(), FILES, List.of()));
+	}
+
 	/** A constructor reference to a socket is refused with the network list. */
 	@Test
 	void aSocketConstructorReferenceIsRefused() throws IOException {
