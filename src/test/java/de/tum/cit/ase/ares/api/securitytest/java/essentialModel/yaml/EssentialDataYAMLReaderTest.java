@@ -334,4 +334,48 @@ public class EssentialDataYAMLReaderTest {
 			assertTrue(result.essentialJavaPackages().contains("java.package999"));
 		}
 	}
+
+	/**
+	 * An essential file rewritten between two reads is read afresh, every caller
+	 * gets lists of its own, and dropping the kept lists changes no result.
+	 *
+	 * @throws Exception if the file cannot be written or the cache not reached
+	 */
+	@Test
+	@DisplayName("Should read a rewritten essential file afresh and hand out copies")
+	void shouldReadARewrittenEssentialFileAfresh(@TempDir Path tempDir) throws Exception {
+		Path packagesFile = tempDir.resolve("EssentialPackages.yaml");
+		Files.writeString(packagesFile, essentialPackages("first.pkg"));
+		EssentialPackages first = reader.readEssentialPackagesFrom(packagesFile);
+		first.essentialJavaPackages().add("added.by.caller");
+		EssentialPackages unchanged = reader.readEssentialPackagesFrom(packagesFile);
+		Files.writeString(packagesFile, essentialPackages("second.pkg"));
+		EssentialPackages rewritten = reader.readEssentialPackagesFrom(packagesFile);
+
+		assertEquals(List.of("first.pkg"), unchanged.essentialJavaPackages());
+		assertEquals(List.of("second.pkg"), rewritten.essentialJavaPackages());
+
+		java.lang.reflect.Field cache = EssentialDataYAMLReader.class.getDeclaredField("READ_ESSENTIALS");
+		cache.setAccessible(true);
+		((java.util.Map<?, ?>) cache.get(null)).clear();
+		assertEquals(rewritten, reader.readEssentialPackagesFrom(packagesFile));
+	}
+
+	/**
+	 * Builds an essential packages file whose Java list holds one package.
+	 *
+	 * @param javaPackage the one Java package
+	 * @return the file's text
+	 */
+	private static String essentialPackages(String javaPackage) {
+		return """
+				essentialJavaPackages: ["%s"]
+				essentialArchunitPackages: []
+				essentialWalaPackages: []
+				essentialAspectJPackages: []
+				essentialInstrumentationPackages: []
+				essentialAresPackages: []
+				essentialJUnitPackages: []
+				""".formatted(javaPackage);
+	}
 }

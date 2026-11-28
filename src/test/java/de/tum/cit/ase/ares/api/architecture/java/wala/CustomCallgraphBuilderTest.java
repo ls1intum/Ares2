@@ -613,6 +613,128 @@ public class CustomCallgraphBuilderTest {
 	}
 
 	/**
+	 * A dependency class file rewritten behind the same address is imported afresh,
+	 * so the walk follows what the new bytes reference, while unchanged bytes reuse
+	 * the earlier import.
+	 *
+	 * @throws Exception if compiling or importing fails
+	 */
+	@Test
+	void testRewrittenDependencyClassFileIsImportedAfresh() throws Exception {
+		Path classFile = compileDependency("first", "return null;");
+		java.net.URL location = classFile.toUri().toURL();
+
+		JavaClass first = importDependency(location);
+		JavaClass unchanged = importDependency(location);
+		Files.copy(compileDependency("second", "return java.nio.file.Files.exists(null);"), classFile,
+				java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+		JavaClass rewritten = importDependency(location);
+
+		Assertions.assertSame(first, unchanged);
+		Assertions.assertNotSame(first, rewritten);
+		Assertions.assertFalse(dependencyTargets(first).contains("java.nio.file.Files"));
+		Assertions.assertTrue(dependencyTargets(rewritten).contains("java.nio.file.Files"));
+	}
+
+	/**
+	 * An import evicted from the cache is imported again with the same result, so
+	 * eviction only costs time.
+	 *
+	 * @throws Exception if compiling or importing fails
+	 */
+	@Test
+	void testEvictedDependencyImportGivesTheSameResult() throws Exception {
+		java.net.URL location = compileDependency("evicted", "return java.nio.file.Files.exists(null);").toUri()
+				.toURL();
+		JavaClass cached = importDependency(location);
+
+		importedClassFiles().clear();
+		JavaClass reimported = importDependency(location);
+
+		Assertions.assertNotSame(cached, reimported);
+		Assertions.assertEquals(dependencyTargets(cached), dependencyTargets(reimported));
+	}
+
+	/**
+	 * While ArchUnit resolves missing classes from the class path, an import also
+	 * depends on other class files, so no import is kept.
+	 *
+	 * @throws Exception if compiling or importing fails
+	 */
+	@Test
+	void testNoImportIsKeptWhileArchUnitResolvesFromTheClassPath() throws Exception {
+		java.net.URL location = compileDependency("resolving", "return null;").toUri().toURL();
+		com.tngtech.archunit.ArchConfiguration configuration = com.tngtech.archunit.ArchConfiguration.get();
+		boolean resolving = configuration.resolveMissingDependenciesFromClassPath();
+		try {
+			configuration.setResolveMissingDependenciesFromClassPath(true);
+			Assertions.assertNotSame(importDependency(location), importDependency(location));
+		} finally {
+			configuration.setResolveMissingDependenciesFromClassPath(resolving);
+		}
+		Assertions.assertSame(importDependency(location), importDependency(location));
+	}
+
+	/**
+	 * Compiles {@code example.dependency.Dependency} with the given method body
+	 * into its own folder below the temporary directory.
+	 *
+	 * @param folder the folder name below the temporary directory
+	 * @param body   the body of the method {@code Object make()}
+	 * @return the compiled class file
+	 * @throws IOException if the source cannot be written
+	 */
+	private Path compileDependency(String folder, String body) throws IOException {
+		Path sources = Files.createDirectories(temporaryDirectory.resolve(folder).resolve("sources"));
+		Path output = Files.createDirectories(temporaryDirectory.resolve(folder).resolve("classes"));
+		String source = writeSource(sources, "Dependency",
+				"package example.dependency; public final class Dependency { public static Object make() { " + body
+						+ " } }");
+		javax.tools.JavaCompiler compiler = javax.tools.ToolProvider.getSystemJavaCompiler();
+		Assertions.assertNotNull(compiler, "The import cache tests require a JDK");
+		Assertions.assertEquals(0, compiler.run(null, null, null, "-d", output.toString(), source));
+		return output.resolve(Path.of("example", "dependency", "Dependency.class"));
+	}
+
+	/**
+	 * Imports the dependency class through the walk's cached import.
+	 *
+	 * @param location the class file's address
+	 * @return the imported class
+	 * @throws ReflectiveOperationException if the import method cannot be called
+	 */
+	private static JavaClass importDependency(java.net.URL location) throws ReflectiveOperationException {
+		Method method = CustomCallgraphBuilder.class.getDeclaredMethod("importClassFile", ClassFileImporter.class,
+				java.net.URL.class, String.class);
+		method.setAccessible(true);
+		return (JavaClass) method.invoke(null, new ClassFileImporter(), location, "example.dependency.Dependency");
+	}
+
+	/**
+	 * Returns the walk's cache of imported dependency class files.
+	 *
+	 * @return the cache
+	 * @throws ReflectiveOperationException if the field cannot be read
+	 */
+	@SuppressWarnings("unchecked")
+	private static java.util.Map<String, JavaClass> importedClassFiles() throws ReflectiveOperationException {
+		Field field = CustomCallgraphBuilder.class.getDeclaredField("IMPORTED_CLASS_FILES");
+		field.setAccessible(true);
+		return (java.util.Map<String, JavaClass>) field.get(null);
+	}
+
+	/**
+	 * Returns the names of the classes a class depends on directly.
+	 *
+	 * @param javaClass the class
+	 * @return the names of its direct dependency targets
+	 */
+	private static Set<String> dependencyTargets(JavaClass javaClass) {
+		return javaClass.getDirectDependenciesFromSelf().stream()
+				.map(dependency -> dependency.getTargetClass().getName()).collect(java.util.stream.Collectors.toSet());
+	}
+
+	/**
 	 * An analysis entry that is neither a file nor a folder, such as a device file,
 	 * is refused with the Ares error template rather than fingerprinted.
 	 *

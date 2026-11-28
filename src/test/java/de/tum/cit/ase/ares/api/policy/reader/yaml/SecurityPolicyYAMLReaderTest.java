@@ -8,6 +8,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -63,6 +64,44 @@ public class SecurityPolicyYAMLReaderTest {
 	void setUp() {
 		yamlMapper = new YAMLMapper();
 		reader = new SecurityPolicyYAMLReader(yamlMapper);
+	}
+
+	/**
+	 * Reading from given bytes binds exactly those bytes, whatever the file named
+	 * beside them holds now, and a refusal still names that file.
+	 *
+	 * @param tempDir a folder for the policy file
+	 * @throws IOException if the file cannot be written
+	 */
+	@Test
+	@DisplayName("Should read a policy from the given bytes, not from the file")
+	void shouldReadAPolicyFromTheGivenBytes(@TempDir Path tempDir) throws IOException {
+		Path policyFile = tempDir.resolve("security-policy.yaml");
+		Files.writeString(policyFile, "not: a policy");
+		String policy = """
+				thisPolicyFileCompliesToThePolicyVersion: 1
+				regardingTheSupervisedCode:
+				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+				  theSupervisedCodeUsesTheFollowingPackage: "com.example"
+				  theMainClassInsideThisPackageIs: "Main"
+				  theFollowingClassesAreTestClasses: ["FromTheBytes"]
+				  theFollowingResourceAccessesArePermitted:
+				    regardingFileSystemInteractions: []
+				    regardingNetworkConnections: []
+				    regardingCommandExecutions: []
+				    regardingThreadCreations: []
+				    regardingPackageImports: []
+				    regardingTimeouts: []
+				""";
+
+		SecurityPolicy read = reader.readSecurityPolicyFrom(policyFile, policy.getBytes(StandardCharsets.UTF_8),
+				de.tum.cit.ase.ares.api.util.YamlPlaceholderResolver.currentPropertyValues());
+
+		assertEquals(List.of("FromTheBytes"), read.regardingTheSupervisedCode().theFollowingClassesAreTestClasses());
+		SecurityException refused = assertThrows(SecurityException.class,
+				() -> reader.readSecurityPolicyFrom(policyFile, "not: a policy".getBytes(StandardCharsets.UTF_8),
+						de.tum.cit.ase.ares.api.util.YamlPlaceholderResolver.currentPropertyValues()));
+		assertTrue(refused.getMessage().contains(policyFile.toString()), refused.getMessage());
 	}
 
 	@Nested

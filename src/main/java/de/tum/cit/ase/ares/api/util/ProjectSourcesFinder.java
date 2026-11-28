@@ -94,6 +94,21 @@ public final class ProjectSourcesFinder {
 	 * Where a source-directory operand ends: the statement or the collection does.
 	 */
 	private static final String OPERAND_TERMINATORS = ")]\n}";
+	/**
+	 * The largest number of masked Gradle descriptors kept. One test run reads one
+	 * build file, so 16 also covers a file edited during the run, and a dropped
+	 * entry is only masked again.
+	 */
+	private static final int MAX_MASKED_DESCRIPTORS = 16;
+
+	/**
+	 * Masked text and property assignments of Gradle descriptors already read in
+	 * this JVM, keyed by the descriptor's complete text. Both are functions of the
+	 * text alone; everything that looks at the file system still runs on every
+	 * read.
+	 */
+	private static final Map<DescriptorText, MaskedDescriptor> MASKED_DESCRIPTORS = LruCache
+			.synchronizedCache(MAX_MASKED_DESCRIPTORS);
 	private static String pomXmlPath = "pom.xml";
 	private static String buildGradlePath = "build.gradle";
 
@@ -275,6 +290,58 @@ public final class ProjectSourcesFinder {
 	}
 
 	/**
+	 * The complete text of a Gradle descriptor and whether it is Kotlin.
+	 *
+	 * @param content the descriptor's text
+	 * @param kotlin  whether nested block comments apply
+	 */
+	private record DescriptorText(String content, boolean kotlin) {
+	}
+
+	/**
+	 * A descriptor's text with comments and strings masked, and the property
+	 * assignments found in it, each as name and value, in order.
+	 *
+	 * @param code        the masked text
+	 * @param assignments the assignments, each a name with its value
+	 */
+	private record MaskedDescriptor(String code, List<Map.Entry<String, String>> assignments) {
+	}
+
+	/**
+	 * Masks a descriptor's comments and strings and finds its property assignments,
+	 * which depends on the text alone.
+	 *
+	 * @param text the descriptor's text
+	 * @return the masked text and the assignments in order
+	 */
+	private static MaskedDescriptor maskDescriptor(DescriptorText text) {
+		String code = maskInactiveRegions(text.content(), text.kotlin());
+		List<Map.Entry<String, String>> assignments = new ArrayList<>();
+		Matcher matcher = PROPERTY_ASSIGNMENT.matcher(code);
+		while (matcher.find()) {
+			assignments.add(Map.entry(matcher.group(1), text.content().substring(matcher.start(2), matcher.end(2))));
+		}
+		return new MaskedDescriptor(code, List.copyOf(assignments));
+	}
+
+	/**
+	 * Returns the masked form of a descriptor's text, masking it on first use.
+	 *
+	 * @param text the descriptor's text
+	 * @return the masked text and its property assignments
+	 */
+	private static MaskedDescriptor maskedDescriptor(DescriptorText text) {
+		MaskedDescriptor known = MASKED_DESCRIPTORS.get(text);
+		if (known != null) {
+			return known;
+		}
+		MaskedDescriptor masked = maskDescriptor(text);
+		MASKED_DESCRIPTORS.putIfAbsent(text, masked);
+		return masked;
+	}
+
+	/**
 	 * Reads the source roots a Gradle descriptor declares.
 	 * <p>
 	 * The descriptor is neither evaluated nor fully parsed. It is masked so that
@@ -317,11 +384,12 @@ public final class ProjectSourcesFinder {
 		} catch (IOException exception) {
 			throw new IllegalStateException("Cannot read Gradle descriptor " + descriptor, exception);
 		}
-		String code = maskInactiveRegions(content, Objects.toString(descriptor.getFileName(), "").endsWith(".kts"));
+		MaskedDescriptor masked = maskedDescriptor(
+				new DescriptorText(content, Objects.toString(descriptor.getFileName(), "").endsWith(".kts")));
+		String code = masked.code();
 		Map<String, String> properties = loadGradleProperties(root);
-		Matcher assignments = PROPERTY_ASSIGNMENT.matcher(code);
-		while (assignments.find()) {
-			properties.put(assignments.group(1), content.substring(assignments.start(2), assignments.end(2)));
+		for (Map.Entry<String, String> assignment : masked.assignments()) {
+			properties.put(assignment.getKey(), assignment.getValue());
 		}
 		Map<String, List<Path>> declared = new LinkedHashMap<>();
 		Map<String, Boolean> complete = new LinkedHashMap<>();

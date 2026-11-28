@@ -125,6 +125,116 @@ class ExemptedClassNestsTest {
 				ExemptedClassNests.expandFromTestOutput(List.of(ordinary, member), testOutput));
 	}
 
+	/**
+	 * A test class file rewritten between two reads yields the nest of its new
+	 * bytes, and dropping the kept nests changes no result.
+	 *
+	 * @throws Exception if the class file cannot be written or the cache not
+	 *                   reached
+	 */
+	@Test
+	void aRewrittenTestClassFileIsReadAfresh(@TempDir Path testOutput) throws Exception {
+		write(testOutput, HOST, classFile(HOST));
+		List<String> withMembers = ExemptedClassNests.expandFromTestOutput(List.of(HOST), testOutput);
+		write(testOutput, HOST, minimal(Variant.VALID, HOST.replace('.', '/')));
+		List<String> withoutMembers = ExemptedClassNests.expandFromTestOutput(List.of(HOST), testOutput);
+		assertTrue(withMembers.size() > 1, withMembers.toString());
+		assertEquals(List.of(HOST), withoutMembers);
+
+		java.lang.reflect.Field cache = ExemptedClassNests.class.getDeclaredField("NEST_MEMBERS");
+		cache.setAccessible(true);
+		((java.util.Map<?, ?>) cache.get(null)).clear();
+		write(testOutput, HOST, classFile(HOST));
+		assertEquals(withMembers, ExemptedClassNests.expandFromTestOutput(List.of(HOST), testOutput));
+	}
+
+	/**
+	 * Changing the caller's array after a read changes nothing a later read of the
+	 * original bytes returns, and the nest kept for a key is always the nest of the
+	 * key's own bytes, even while another thread keeps rewriting the caller's array
+	 * during reads.
+	 *
+	 * @throws Exception if the cache cannot be reached or the thread not stopped
+	 */
+	@Test
+	void aCallerChangingItsArrayCannotPutMembersUnderOtherBytes() throws Exception {
+		byte[] legitimate = minimal(Variant.VALID);
+		int memberByte = indexOfMemberSuffix(legitimate);
+		byte[] callers = legitimate.clone();
+		List<String> first = ExemptedClassNests.nestMembersOf("x.T", callers);
+		callers[memberByte] = 'B';
+		assertEquals(first, ExemptedClassNests.nestMembersOf("x.T", legitimate.clone()));
+		assertEquals(List.of("x.T$A"), first);
+
+		java.util.Map<?, ?> cache = nestCache();
+		byte[] shared = legitimate.clone();
+		java.util.concurrent.atomic.AtomicBoolean running = new java.util.concurrent.atomic.AtomicBoolean(true);
+		Thread rewriter = new Thread(() -> {
+			while (running.get()) {
+				shared[memberByte] = shared[memberByte] == 'A' ? (byte) 'B' : (byte) 'A';
+			}
+		});
+		rewriter.start();
+		try {
+			for (int round = 0; round < 2000; round++) {
+				cache.clear();
+				ExemptedClassNests.nestMembersOf("x.T", shared);
+				assertEveryKeptNestMatchesItsKey(cache);
+			}
+		} finally {
+			running.set(false);
+			rewriter.join();
+		}
+	}
+
+	/**
+	 * Checks that every kept nest is the one its key's bytes list.
+	 *
+	 * @param cache the kept nests
+	 * @throws ReflectiveOperationException if a key cannot be read
+	 */
+	private static void assertEveryKeptNestMatchesItsKey(java.util.Map<?, ?> cache)
+			throws ReflectiveOperationException {
+		for (java.util.Map.Entry<?, ?> entry : java.util.List.copyOf(cache.entrySet())) {
+			java.lang.reflect.Method bytes = entry.getKey().getClass().getDeclaredMethod("classFile");
+			bytes.setAccessible(true);
+			java.nio.ByteBuffer keyBytes = (java.nio.ByteBuffer) bytes.invoke(entry.getKey());
+			byte[] copy = new byte[keyBytes.remaining()];
+			keyBytes.duplicate().get(copy);
+			char member = copy[indexOfMemberSuffix(copy)] == 'A' ? 'A' : 'B';
+			assertEquals(List.of("x.T$" + member), entry.getValue());
+		}
+	}
+
+	/**
+	 * Returns the kept nests.
+	 *
+	 * @return the cache
+	 * @throws ReflectiveOperationException if the field cannot be read
+	 */
+	private static java.util.Map<?, ?> nestCache() throws ReflectiveOperationException {
+		java.lang.reflect.Field cache = ExemptedClassNests.class.getDeclaredField("NEST_MEMBERS");
+		cache.setAccessible(true);
+		return (java.util.Map<?, ?>) cache.get(null);
+	}
+
+	/**
+	 * Finds the last character of {@code x/T$A} in a minimal class file, the one
+	 * that names the nest member.
+	 *
+	 * @param classFile the class file bytes
+	 * @return the index of that character
+	 */
+	private static int indexOfMemberSuffix(byte[] classFile) {
+		byte[] prefix = "x/T$".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+		for (int index = 0; index + prefix.length < classFile.length; index++) {
+			if (Arrays.equals(Arrays.copyOfRange(classFile, index, index + prefix.length), prefix)) {
+				return index + prefix.length;
+			}
+		}
+		throw new AssertionError("the minimal class file names no member");
+	}
+
 	/** The refusal reads in both English and German. */
 	@Test
 	void theRefusalIsLocalised(@TempDir Path testOutput) {

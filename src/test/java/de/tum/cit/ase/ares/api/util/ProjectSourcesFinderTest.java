@@ -1,6 +1,7 @@
 package de.tum.cit.ase.ares.api.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -76,6 +77,35 @@ class ProjectSourcesFinderTest {
 		assertEquals(temporaryDirectory.resolve("assignment/src").toRealPath(),
 				configuration.productionSourceRoots().get(0));
 		assertEquals(temporaryDirectory.resolve("test").toRealPath(), configuration.testSourceRoots().get(0));
+	}
+
+	/**
+	 * A build file rewritten between two reads is read afresh, a folder created
+	 * after the first read is found by the second although the text is the same,
+	 * and dropping the kept masked text changes no result.
+	 *
+	 * @throws Exception if the project cannot be written or the cache not reached
+	 */
+	@Test
+	void readsARewrittenGradleBuildFileAfresh() throws Exception {
+		Files.createDirectories(temporaryDirectory.resolve("first"));
+		Path build = temporaryDirectory.resolve("build.gradle");
+		Files.writeString(build, "sourceSets { main { java { srcDirs = ['first'] } } }\n");
+		assertEquals(List.of(temporaryDirectory.resolve("first").toRealPath()),
+				ProjectSourcesFinder.discover(temporaryDirectory).productionSourceRoots());
+
+		Files.writeString(build, "sourceSets { main { java { srcDirs = ['second'] } } }\n");
+		var beforeTheFolderExists = ProjectSourcesFinder.discover(temporaryDirectory);
+		Files.createDirectories(temporaryDirectory.resolve("second"));
+		var afterTheFolderExists = ProjectSourcesFinder.discover(temporaryDirectory);
+		assertNotEquals(beforeTheFolderExists, afterTheFolderExists);
+		assertEquals(List.of(temporaryDirectory.resolve("second").toRealPath()),
+				afterTheFolderExists.productionSourceRoots());
+
+		java.lang.reflect.Field cache = ProjectSourcesFinder.class.getDeclaredField("MASKED_DESCRIPTORS");
+		cache.setAccessible(true);
+		((java.util.Map<?, ?>) cache.get(null)).clear();
+		assertEquals(afterTheFolderExists, ProjectSourcesFinder.discover(temporaryDirectory));
 	}
 
 	/**

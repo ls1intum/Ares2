@@ -300,11 +300,62 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 				getAllowedClasses().stream().map(ClassPermission::className));
 		String testClassesFingerprint = unambiguousSignature(getTestClassNames().stream());
 		String blocklistFingerprint = blocklistFingerprint(supported);
+		this.verdictInputs = environmentFingerprint + "|" + dependencyFingerprint + "|" + blocklistFingerprint;
 		return CACHE_SCHEMA_VERSION + "|" + environmentFingerprint + "|" + IMPLEMENTATION_FINGERPRINT + "|"
 				+ supported.name() + "|"
 				+ sha256Hex(structuralFingerprint + "||" + bytecodeFingerprint + "||" + allowedPackagesFingerprint
 						+ "||" + allowedClassesFingerprint + "||" + testClassesFingerprint + "||" + blocklistFingerprint
 						+ "||" + dependencyFingerprint);
+	}
+
+	/**
+	 * Tells whether the part of the key this case last looked its verdict up with
+	 * that comes neither from the policy nor from the analysed classes is still the
+	 * same: the runtime, the content of the dependencies the call graph follows and
+	 * the method lists. A case that delegates to ArchUnit never looks a verdict up
+	 * and depends on none of them.
+	 *
+	 * @param dependencyFingerprint the analysed classes' dependency fingerprint,
+	 *                              read afresh
+	 * @return whether the verdict still has the same inputs
+	 */
+	@Override
+	public boolean verdictInputsUnchanged(@Nonnull String dependencyFingerprint) {
+		String used = verdictInputs;
+		if (used == null) {
+			return !usesVerdictCache((JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported);
+		}
+		JavaArchitectureTestCaseSupported supported = (JavaArchitectureTestCaseSupported) this.architectureTestCaseSupported;
+		return used.equals(environmentFingerprint() + "|"
+				+ (supported == JavaArchitectureTestCaseSupported.PACKAGE_IMPORT ? "" : dependencyFingerprint) + "|"
+				+ blocklistFingerprint(supported));
+	}
+
+	/**
+	 * Returns the dependency fingerprint the key of a verdict about these classes
+	 * contains, read afresh.
+	 *
+	 * @param javaClasses the analysed classes
+	 * @return the fingerprint
+	 */
+	@Nonnull
+	public static String dependencyFingerprintOf(@Nonnull JavaClasses javaClasses) {
+		return CustomCallgraphBuilder.dependencyFingerprint(javaClasses);
+	}
+
+	/**
+	 * Tells whether a category looks its verdict up in the cache. The five
+	 * categories that delegate to ArchUnit do not.
+	 *
+	 * @param supported the category
+	 * @return whether its verdict is cached
+	 */
+	private static boolean usesVerdictCache(@Nonnull JavaArchitectureTestCaseSupported supported) {
+		return !(supported == JavaArchitectureTestCaseSupported.NATIVE_CODE
+				|| supported == JavaArchitectureTestCaseSupported.AGENT_ATTACH
+				|| supported == JavaArchitectureTestCaseSupported.ENVIRONMENT_ACCESS
+				|| supported == JavaArchitectureTestCaseSupported.MODULE_SYSTEM
+				|| supported == JavaArchitectureTestCaseSupported.JNDI_INJECTION);
 	}
 
 	@Nonnull
@@ -420,6 +471,13 @@ public class JavaWalaTestCase extends JavaArchitectureTestCase {
 	 */
 	@Nonnull
 	private final Supplier<CallGraph> callGraphSupplier;
+
+	/**
+	 * The runtime, dependency and method-list part of the key this case last looked
+	 * its verdict up with; {@code null} until it did.
+	 */
+	@Nullable
+	private volatile String verdictInputs;
 
 	public JavaWalaTestCase(@Nonnull JavaArchitectureTestCaseSupported javaArchitectureTestCaseSupported,
 			@Nonnull Set<PackagePermission> allowedPackages, @Nonnull JavaClasses javaClasses,

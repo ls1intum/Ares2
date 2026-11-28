@@ -13,6 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
@@ -355,6 +356,168 @@ public class SecurityPolicyReaderAndDirectorTest {
 			// Act & Assert
 			assertThrows(NullPointerException.class, () -> instance.executeTestCases());
 		}
+	}
+
+	/**
+	 * A policy file rewritten between two reads is read afresh, an unchanged one is
+	 * handed out again, and dropping the kept policy changes no result.
+	 *
+	 * @throws Exception if the policy cannot be written or the cache not reached
+	 */
+	@Test
+	@DisplayName("Should read a rewritten policy file afresh and reuse an unchanged one")
+	void shouldReadARewrittenPolicyFileAfresh() throws Exception {
+		try (MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
+			stubDirectorForAnyPolicy(directorMock);
+			Files.writeString(securityPolicyFilePath, policyNaming("TestClass1"));
+			SecurityPolicy first = readThroughTheDirector();
+			SecurityPolicy unchanged = readThroughTheDirector();
+			Files.writeString(securityPolicyFilePath, policyNaming("TestClass2"));
+			SecurityPolicy rewritten = readThroughTheDirector();
+
+			assertSame(first, unchanged);
+			assertEquals(List.of("TestClass2"),
+					rewritten.regardingTheSupervisedCode().theFollowingClassesAreTestClasses());
+
+			readPolicies().clear();
+			SecurityPolicy reread = readThroughTheDirector();
+			assertNotSame(rewritten, reread);
+			assertEquals(rewritten, reread);
+		}
+	}
+
+	/**
+	 * A system property a placeholder expands to is part of what a kept policy
+	 * depends on, so a changed value is read afresh.
+	 *
+	 * @throws Exception if the policy cannot be written
+	 */
+	@Test
+	@DisplayName("Should read a policy afresh when a placeholder's property changed")
+	void shouldReadAPolicyAfreshWhenAPlaceholderChanged() throws Exception {
+		String userHome = System.getProperty("user.home");
+		try (MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
+			stubDirectorForAnyPolicy(directorMock);
+			Files.writeString(securityPolicyFilePath, policyNaming("${user.home}"));
+			System.setProperty("user.home", "FirstHome");
+			SecurityPolicy first = readThroughTheDirector();
+			System.setProperty("user.home", "SecondHome");
+			SecurityPolicy second = readThroughTheDirector();
+
+			assertEquals(List.of("FirstHome"), first.regardingTheSupervisedCode().theFollowingClassesAreTestClasses());
+			assertEquals(List.of("SecondHome"),
+					second.regardingTheSupervisedCode().theFollowingClassesAreTestClasses());
+		} finally {
+			System.setProperty("user.home", userHome);
+		}
+	}
+
+	/**
+	 * Created test cases apply again only while the policy file holds the content
+	 * they were read from and the factory reports its own input unchanged; arming
+	 * again is left to the factory.
+	 *
+	 * @throws Exception if the policy cannot be written
+	 */
+	@Test
+	@DisplayName("Should reuse test cases only while the policy and the factory's input are unchanged")
+	void shouldReuseTestCasesOnlyWhileTheirInputIsUnchanged() throws Exception {
+		try (MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
+			stubDirectorForAnyPolicy(directorMock);
+			Files.writeString(securityPolicyFilePath, policyNaming("ReuseTest"));
+			SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(securityPolicyFilePath,
+					projectFolderPath).createTestCases();
+			when(mockFactoryAndBuilder.analysisStillApplies()).thenReturn(true);
+			assertTrue(instance.analysisStillApplies());
+
+			when(mockFactoryAndBuilder.analysisStillApplies()).thenReturn(false);
+			assertFalse(instance.analysisStillApplies());
+
+			when(mockFactoryAndBuilder.analysisStillApplies()).thenReturn(true);
+			Files.writeString(securityPolicyFilePath, policyNaming("ReuseTestChanged"));
+			assertFalse(instance.analysisStillApplies());
+
+			instance.rearmTestCases();
+			verify(mockFactoryAndBuilder).rearmTestCases();
+		}
+	}
+
+	/** Test cases created without a policy file are never reused. */
+	@Test
+	@DisplayName("Should never reuse test cases created without a policy file")
+	void shouldNeverReuseTestCasesWithoutAPolicyFile() {
+		try (MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
+			directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(null))
+					.thenReturn(mockSecurityPolicyDirector);
+			when(mockSecurityPolicyDirector.createTestCases(null, projectFolderPath, Path.of("")))
+					.thenReturn(mockFactoryAndBuilder);
+			when(mockFactoryAndBuilder.analysisStillApplies()).thenReturn(true);
+			assertFalse(new SecurityPolicyReaderAndDirector(null, projectFolderPath).createTestCases()
+					.analysisStillApplies());
+		}
+	}
+
+	/**
+	 * Lets the director accept any policy for the project folder set up before each
+	 * test.
+	 *
+	 * @param directorMock the static mock of the director selection
+	 */
+	private void stubDirectorForAnyPolicy(MockedStatic<SecurityPolicyDirector> directorMock) {
+		directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(any()))
+				.thenReturn(mockSecurityPolicyDirector);
+		when(mockSecurityPolicyDirector.createTestCases(any(), eq(projectFolderPath), eq(Path.of(""))))
+				.thenReturn(mockFactoryAndBuilder);
+	}
+
+	/**
+	 * Creates test cases from the policy file with the real reader and returns the
+	 * policy the director was given.
+	 *
+	 * @return the policy read
+	 */
+	private SecurityPolicy readThroughTheDirector() {
+		new SecurityPolicyReaderAndDirector(securityPolicyFilePath, projectFolderPath).createTestCases();
+		ArgumentCaptor<SecurityPolicy> policy = ArgumentCaptor.forClass(SecurityPolicy.class);
+		verify(mockSecurityPolicyDirector, atLeastOnce()).createTestCases(policy.capture(), eq(projectFolderPath),
+				eq(Path.of("")));
+		return policy.getValue();
+	}
+
+	/**
+	 * Returns the kept policies.
+	 *
+	 * @return the cache
+	 * @throws ReflectiveOperationException if the field cannot be read
+	 */
+	private static java.util.Map<?, ?> readPolicies() throws ReflectiveOperationException {
+		java.lang.reflect.Field cache = SecurityPolicyReaderAndDirector.class.getDeclaredField("READ_POLICIES");
+		cache.setAccessible(true);
+		return (java.util.Map<?, ?>) cache.get(null);
+	}
+
+	/**
+	 * Builds a minimal policy naming one test class.
+	 *
+	 * @param testClass the test class's name
+	 * @return the policy's text
+	 */
+	private static String policyNaming(String testClass) {
+		return """
+				thisPolicyFileCompliesToThePolicyVersion: 1
+				regardingTheSupervisedCode:
+				  theFollowingProgrammingLanguageConfigurationIsUsed: JAVA_USING_MAVEN_ARCHUNIT_AND_ASPECTJ
+				  theSupervisedCodeUsesTheFollowingPackage: "com.example"
+				  theMainClassInsideThisPackageIs: "Main"
+				  theFollowingClassesAreTestClasses: ["%s"]
+				  theFollowingResourceAccessesArePermitted:
+				    regardingFileSystemInteractions: []
+				    regardingNetworkConnections: []
+				    regardingCommandExecutions: []
+				    regardingThreadCreations: []
+				    regardingPackageImports: []
+				    regardingTimeouts: []
+				""".formatted(testClass);
 	}
 
 	/**

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -114,6 +115,55 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 	@Override
 	@Nonnull
 	public SecurityPolicy readSecurityPolicyFrom(@Nonnull Path securityPolicyPath) {
+		return readSecurityPolicy(securityPolicyPath, projectRoot -> FileTools
+				.readYamlTree(FileTools.readFile(securityPolicyPath), objectMapper, projectRoot));
+	}
+
+	/**
+	 * Reads a SecurityPolicy from given bytes of a YAML policy file and given
+	 * placeholder values, reading neither the file nor a system property again. The
+	 * path names the file in a refusal.
+	 *
+	 * @param securityPolicyPath the policy file the bytes were read from
+	 * @param content            the file's bytes
+	 * @param propertyValues     the property values placeholders expand to
+	 * @return the policy these inputs describe
+	 */
+	@Nonnull
+	public SecurityPolicy readSecurityPolicyFrom(@Nonnull Path securityPolicyPath, @Nonnull byte[] content,
+			@Nonnull Map<String, String> propertyValues) {
+		Objects.requireNonNull(content, "The security policy content must not be null");
+		return readSecurityPolicy(securityPolicyPath,
+				projectRoot -> FileTools.readYamlTree(content, objectMapper, projectRoot, propertyValues));
+	}
+
+	/**
+	 * Reads the YAML tree of a policy for a project root.
+	 */
+	@FunctionalInterface
+	private interface PolicyTreeSource {
+
+		/**
+		 * Reads the tree.
+		 *
+		 * @param projectRoot the project root for {@code ${PROJECT_ROOT}}
+		 * @return the tree, placeholders expanded
+		 * @throws IOException if the policy cannot be read or parsed
+		 */
+		@Nonnull
+		JsonNode read(@Nonnull Path projectRoot) throws IOException;
+	}
+
+	/**
+	 * Reads, validates and binds a policy, translating every failure into a refusal
+	 * that names the policy file.
+	 *
+	 * @param securityPolicyPath the policy file
+	 * @param source             where the YAML tree comes from
+	 * @return the policy
+	 */
+	@Nonnull
+	private SecurityPolicy readSecurityPolicy(@Nonnull Path securityPolicyPath, @Nonnull PolicyTreeSource source) {
 		@Nonnull
 		Path path = Objects.requireNonNull(securityPolicyPath, "The security policy path must not be null");
 		@Nonnull
@@ -125,7 +175,7 @@ public class SecurityPolicyYAMLReader extends SecurityPolicyReader {
 				Path absolutePolicyPath = path.toAbsolutePath().normalize();
 				effectiveProjectRoot = Objects.requireNonNullElse(absolutePolicyPath.getParent(), absolutePolicyPath);
 			}
-			JsonNode root = FileTools.readYamlTree(FileTools.readFile(path), objectMapper, effectiveProjectRoot);
+			JsonNode root = source.read(effectiveProjectRoot);
 			SecurityPolicySchemaValidator.validate(root);
 			SecurityPolicy policy = objectMapper.treeToValue(root, yamlClass);
 			if (policy == null) {

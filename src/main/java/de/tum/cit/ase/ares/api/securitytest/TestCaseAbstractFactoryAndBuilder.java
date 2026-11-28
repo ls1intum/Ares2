@@ -362,5 +362,24 @@ public abstract class TestCaseAbstractFactoryAndBuilder {
 	 * @author Markus Paulsen
 	 */
 	public abstract void executeTestCases();
+
+	/**
+	 * Tells, read afresh, whether the created test cases and the verdict of their
+	 * analysis still apply, because nothing they depend on besides the policy has
+	 * changed. This factory cannot tell, so it answers {@code false}.
+	 *
+	 * @return whether the test cases may be armed again without analysis
+	 */
+	public boolean analysisStillApplies() {
+		return false;
+	}
+
+	/**
+	 * Installs the security settings again for test cases whose analysis already
+	 * passed with unchanged inputs. This factory analyses again.
+	 */
+	public void rearmTestCases() {
+		executeTestCases();
+	}
 	// </editor-fold>
 }

@@ -108,6 +108,17 @@ public class JavaCreator implements Creator {
 	 */
 	@Nullable
 	private JavaClasses importedSupervisedClasses;
+
+	/**
+	 * The part of the project the supervised class path was resolved from;
+	 * {@code null} until test cases are created.
+	 */
+	@Nullable
+	private Path analysisScope;
+
+	/** The classes the architecture rules analyse; {@code null} until created. */
+	@Nullable
+	private JavaClasses analysedClasses;
 	private final BuildToolConfiguration buildConfiguration;
 
 	public JavaCreator() {
@@ -274,6 +285,49 @@ public class JavaCreator implements Creator {
 			return buildConfiguration.productionOutputRoot();
 		}
 		return Path.of(buildMode.getBuildDirectory()).toAbsolutePath();
+	}
+
+	/**
+	 * Tells, read afresh, whether the test cases still come from the same folder,
+	 * build configuration, supervised classes and exempted test classes. The
+	 * analysed classes compare by identity, which means that no class file in the
+	 * folder changed, as their import is shared only while none does.
+	 *
+	 * @param architectureMode the architecture mode of the test cases
+	 * @return whether the test cases still describe the project
+	 */
+	public boolean createdFromUnchangedInput(@Nonnull ArchitectureMode architectureMode) {
+		return buildConfiguration != null && analysedClasses != null && importedSupervisedClasses != null
+				&& analysisScope != null
+				&& supervisedClassPath.equals(buildConfiguration.classpath(analysisScope, supervisedPackage))
+				&& buildConfiguration.equals(de.tum.cit.ase.ares.api.util.ProjectSourcesFinder
+						.discover(buildConfiguration.projectRoot(), buildConfiguration.buildMode()))
+				&& architectureMode.getJavaClasses(supervisedClassPath) == analysedClasses
+				&& Set.copyOf(ExemptedClassNests.expandFromTestOutput(usableClassNames(List.copyOf(testClassNames)),
+						buildConfiguration.testOutputRoot())).equals(Set.copyOf(testExemptedClassNames));
+	}
+
+	/**
+	 * Imports the supervised classes again for a later phase that reuses these test
+	 * cases, and refuses any of them whose package Ares reserves, as a fresh
+	 * preparation does. The weaving check then reads these classes.
+	 *
+	 * @throws SecurityException if a supervised class lies in a reserved package
+	 */
+	public void requireNoReservedSupervisedClass() {
+		JavaClasses supervisedClasses = new ClassFileImporter().importPath(Path.of(supervisedClassPath));
+		ReservedPackageGuard.validateClassNames(supervisedClasses.stream().map(JavaClass::getName).toList());
+		this.importedSupervisedClasses = supervisedClasses;
+	}
+
+	/**
+	 * Returns the classes the architecture rules analyse.
+	 *
+	 * @return the analysed classes, or {@code null} before test cases are created
+	 */
+	@Nullable
+	public JavaClasses analysedClasses() {
+		return analysedClasses;
 	}
 
 	/**
@@ -687,6 +741,8 @@ public class JavaCreator implements Creator {
 		@Nonnull
 		JavaClasses javaClasses = cacheResult(projectPath + "_" + packageName + "_javaClasses",
 				() -> architectureMode.getJavaClasses(classPath)).get();
+		this.analysedClasses = javaClasses;
+		this.analysisScope = projectPath;
 		this.supervisedClassPath = classPath;
 		this.supervisedClassesFound = javaClasses.stream().findAny().isPresent();
 		// Keep the call graph as a Supplier (no eager .get()) so downstream test cases

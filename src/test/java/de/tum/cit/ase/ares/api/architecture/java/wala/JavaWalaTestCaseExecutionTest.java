@@ -769,4 +769,65 @@ class JavaWalaTestCaseExecutionTest {
 					written);
 		}
 	}
+
+	/**
+	 * A cached category's verdict has inputs to compare only once it was looked up,
+	 * and they then stay the same until the dependencies or the runtime change. The
+	 * mocked call graph has no entry point, so the verdict is a refusal; it is
+	 * looked up all the same.
+	 */
+	@Test
+	void aLookedUpVerdictKeepsItsInputsUntilOneChanges() {
+		JavaClasses classes = new ClassFileImporter().importClasses(CleanFixture.class);
+		JavaWalaTestCase testCase = testCase(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION, classes,
+				countingSupplier(new AtomicInteger()), new PackagePermission("java.lang"), uniquePermission());
+		String dependencies = JavaWalaTestCase.dependencyFingerprintOf(classes);
+		assertFalse(testCase.verdictInputsUnchanged(dependencies));
+
+		assertThrows(SecurityException.class, () -> testCase.executeArchitectureTestCase("WALA", ""));
+
+		assertTrue(testCase.verdictInputsUnchanged(JavaWalaTestCase.dependencyFingerprintOf(classes)));
+		assertFalse(testCase.verdictInputsUnchanged(dependencies + "changed"));
+		Locale original = Locale.getDefault();
+		try {
+			Locale.setDefault(original.equals(Locale.JAPANESE) ? Locale.GERMAN : Locale.JAPANESE);
+			assertFalse(testCase.verdictInputsUnchanged(dependencies));
+		} finally {
+			Locale.setDefault(original);
+		}
+	}
+
+	/**
+	 * A category that delegates to ArchUnit looks no verdict up and depends on none
+	 * of these inputs, so it never ends a reuse.
+	 */
+	@Test
+	void aDelegatedCategoryDependsOnNoVerdictInputs() {
+		JavaWalaTestCase testCase = testCase(JavaArchitectureTestCaseSupported.NATIVE_CODE,
+				new ClassFileImporter().importClasses(CleanFixture.class), countingSupplier(new AtomicInteger()),
+				new PackagePermission("java.lang"));
+		assertTrue(testCase.verdictInputsUnchanged("any dependencies"));
+	}
+
+	/**
+	 * The case the creator builds hands each WALA run to a fresh WALA test case. It
+	 * compares the inputs of the verdict its last such run looked up, and answers
+	 * {@code false} before any WALA run.
+	 */
+	@Test
+	void theCreatedCaseComparesTheInputsOfItsLastWalaRun() {
+		JavaClasses classes = new ClassFileImporter().importClasses(CleanFixture.class);
+		de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase createdCase = de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase
+				.builder().javaArchitectureTestCaseSupported(JavaArchitectureTestCaseSupported.FILESYSTEM_INTERACTION)
+				.javaClasses(classes).callGraphSupplier(countingSupplier(new AtomicInteger()))
+				.allowedPackages(Set.of(new PackagePermission("java.lang"), uniquePermission()))
+				.supervisedPackage(SCOPE).build();
+		String dependencies = JavaWalaTestCase.dependencyFingerprintOf(classes);
+		assertFalse(createdCase.verdictInputsUnchanged(dependencies));
+
+		assertThrows(SecurityException.class, () -> createdCase.executeArchitectureTestCase("WALA", ""));
+
+		assertTrue(createdCase.verdictInputsUnchanged(dependencies));
+		assertFalse(createdCase.verdictInputsUnchanged(dependencies + "changed"));
+	}
 }

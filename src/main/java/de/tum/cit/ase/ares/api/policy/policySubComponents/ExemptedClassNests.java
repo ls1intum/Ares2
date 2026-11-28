@@ -5,6 +5,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -24,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.tum.cit.ase.ares.api.localization.Messages;
+import de.tum.cit.ase.ares.api.util.LruCache;
 
 /**
  * Works out which classes an exempted class's exemption covers: the class
@@ -38,6 +41,28 @@ public final class ExemptedClassNests {
 
 	/** The largest class file read; a larger one counts as unreadable. */
 	static final int MAX_CLASS_FILE_BYTES = 16 * 1024 * 1024;
+
+	/**
+	 * The largest number of read nests kept. Ares' essential classes and the test
+	 * classes of all 62 policies of the SCORE Reproducibility Package make 70, so
+	 * 1024 leaves room; a dropped nest is only read again.
+	 */
+	private static final int MAX_NEST_MEMBERS = 1024;
+
+	/**
+	 * Nest members already read from class files in this JVM, keyed by the class
+	 * name and the complete bytes of its class file.
+	 */
+	private static final Map<NamedClassFile, List<String>> NEST_MEMBERS = LruCache.synchronizedCache(MAX_NEST_MEMBERS);
+
+	/**
+	 * A class name and the bytes of the class file read for it.
+	 *
+	 * @param className the binary name the file must declare
+	 * @param classFile the class file bytes
+	 */
+	private record NamedClassFile(String className, ByteBuffer classFile) {
+	}
 
 	/** Prevents instances of this utility. */
 	private ExemptedClassNests() {
@@ -85,10 +110,34 @@ public final class ExemptedClassNests {
 		byte[] classFile = readFromOutput(className, testOutputRoot)
 				.orElseThrow(() -> unverifiedTestClass(className, testOutputRoot, null));
 		try {
-			return new ClassFileNest(classFile).membersOf(className);
+			return membersOf(className, classFile);
 		} catch (IOException | MalformedClassFileException malformed) {
 			throw unverifiedTestClass(className, testOutputRoot, malformed);
 		}
+	}
+
+	/**
+	 * Reads the nest members a class file lists, reusing an earlier read of the
+	 * same bytes. One private copy of the bytes is both the key and what is read,
+	 * so a caller changing its array meanwhile cannot put members under bytes that
+	 * do not list them. Only successful reads are kept.
+	 *
+	 * @param className the binary name the file must declare
+	 * @param classFile the class file bytes
+	 * @return the listed nest members
+	 * @throws IOException if the file ends early
+	 */
+	@Nonnull
+	private static List<String> membersOf(@Nonnull String className, @Nonnull byte[] classFile) throws IOException {
+		byte[] snapshot = classFile.clone();
+		NamedClassFile key = new NamedClassFile(className, ByteBuffer.wrap(snapshot));
+		List<String> known = NEST_MEMBERS.get(key);
+		if (known != null) {
+			return known;
+		}
+		List<String> members = List.copyOf(new ClassFileNest(snapshot).membersOf(className));
+		NEST_MEMBERS.putIfAbsent(key, members);
+		return members;
 	}
 
 	/**
@@ -168,7 +217,7 @@ public final class ExemptedClassNests {
 	@Nonnull
 	public static List<String> nestMembersOf(@Nonnull String className, @Nonnull byte[] classFile) {
 		try {
-			return new ClassFileNest(classFile).membersOf(className);
+			return membersOf(className, classFile);
 		} catch (IOException | MalformedClassFileException malformed) {
 			LOG.warn("Ares ignores the nest of {} because its class file is not usable: {}", className,
 					malformed.getMessage());
