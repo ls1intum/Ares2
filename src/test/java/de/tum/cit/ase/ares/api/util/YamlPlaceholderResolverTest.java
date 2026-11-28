@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Path;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
@@ -92,5 +94,22 @@ class YamlPlaceholderResolverTest {
 				System.setProperty("user.home", original);
 			}
 		}
+	}
+
+	/**
+	 * Expanding with given property values uses those values, not the ones the
+	 * system properties hold now, and the current values are what the system
+	 * properties hold.
+	 */
+	@Test
+	void expandsWithTheGivenPropertyValues() {
+		Map<String, String> given = Map.of("java.home", "given-home", "user.home", "given-user", "java.io.tmpdir",
+				"given-tmp");
+
+		String expanded = YamlPlaceholderResolver.expand("${user.home}/${java.io.tmpdir}", Path.of("root"), given);
+
+		assertThat(expanded).isEqualTo("given-user/given-tmp");
+		assertThat(YamlPlaceholderResolver.currentPropertyValues().get("user.home"))
+				.isEqualTo(System.getProperty("user.home", ""));
 	}
 }

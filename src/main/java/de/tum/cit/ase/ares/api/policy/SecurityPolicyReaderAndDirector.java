@@ -1,15 +1,23 @@
 package de.tum.cit.ase.ares.api.policy;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import de.tum.cit.ase.ares.api.policy.director.SecurityPolicyDirector;
 import de.tum.cit.ase.ares.api.policy.reader.SecurityPolicyReader;
+import de.tum.cit.ase.ares.api.policy.reader.yaml.SecurityPolicyYAMLReader;
 import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
+import de.tum.cit.ase.ares.api.util.LruCache;
+import de.tum.cit.ase.ares.api.util.YamlPlaceholderResolver;
 
 /**
  * Security policy file reader and test case director.
@@ -36,6 +44,22 @@ import de.tum.cit.ase.ares.api.securitytest.TestCaseAbstractFactoryAndBuilder;
 public class SecurityPolicyReaderAndDirector {
 
 	// <editor-fold desc="Attributes">
+	/**
+	 * The largest number of read policies kept. All 62 policies of the SCORE
+	 * Reproducibility Package hold 52 distinct contents, so 256, the bound of the
+	 * imported classes, covers a whole run; a dropped policy is only read again.
+	 */
+	private static final int MAX_READ_POLICIES = 256;
+
+	/**
+	 * Policies already read in this JVM, keyed by everything the reading depends
+	 * on: the policy file, the project root, the file's bytes and the system
+	 * properties a placeholder expands to. A {@link SecurityPolicy} is immutable,
+	 * so one instance can be handed out again.
+	 */
+	private static final Map<PolicyFileContent, SecurityPolicy> READ_POLICIES = LruCache
+			.synchronizedCache(MAX_READ_POLICIES);
+
 	/**
 	 * The reader for the security policy file (first dependency injection).
 	 */
@@ -128,13 +152,73 @@ public class SecurityPolicyReaderAndDirector {
 		if (securityPolicyFilePath != null && !securityPolicyFilePath.toString().isEmpty()) {
 			@Nonnull
 			Path nonNullPolicyPath = securityPolicyFilePath;
-			securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(nonNullPolicyPath, projectRoot);
-			securityPolicy = securityPolicyReader.readSecurityPolicyFrom(nonNullPolicyPath);
+			securityPolicy = readSecurityPolicy(nonNullPolicyPath, projectRoot);
 		}
 		securityPolicyDirector = SecurityPolicyDirector.selectSecurityPolicyDirector(securityPolicy);
 		this.securityTestCaseFactoryAndBuilder = securityPolicyDirector.createTestCases(securityPolicy, projectRoot,
 				withinPath);
 		return this;
+	}
+
+	/**
+	 * Reads the policy, or hands out the one read from identical input before. A
+	 * YAML policy is parsed from exactly the bytes and property values its key
+	 * holds, so a policy is never remembered under input it was not read from; any
+	 * other is read without being kept.
+	 *
+	 * @param policyPath  the policy file
+	 * @param projectRoot the project root for {@code ${PROJECT_ROOT}}
+	 * @return the policy
+	 */
+	@Nonnull
+	private SecurityPolicy readSecurityPolicy(@Nonnull Path policyPath, @Nonnull Path projectRoot) {
+		Optional<PolicyFileContent> before = PolicyFileContent.of(policyPath, projectRoot);
+		SecurityPolicy known = before.map(READ_POLICIES::get).orElse(null);
+		if (known != null) {
+			return known;
+		}
+		securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(policyPath, projectRoot);
+		if (before.isEmpty() || !(securityPolicyReader instanceof SecurityPolicyYAMLReader yamlReader)) {
+			return securityPolicyReader.readSecurityPolicyFrom(policyPath);
+		}
+		SecurityPolicy policy = yamlReader.readSecurityPolicyFrom(policyPath, before.get().bytes().array(),
+				before.get().propertyValues());
+		READ_POLICIES.putIfAbsent(before.get(), policy);
+		return policy;
+	}
+
+	/**
+	 * Everything reading a policy file depends on.
+	 *
+	 * @param policyFile     the absolute policy file
+	 * @param projectRoot    the absolute project root
+	 * @param bytes          the file's content
+	 * @param propertyValues the system property values placeholders expand to
+	 */
+	private record PolicyFileContent(Path policyFile, Path projectRoot, ByteBuffer bytes,
+			Map<String, String> propertyValues) {
+
+		/**
+		 * Captures the input for a plain policy file; any other, or one that cannot be
+		 * read, yields empty and is read without reuse.
+		 *
+		 * @param policyPath  the policy file
+		 * @param projectRoot the project root
+		 * @return the input, or empty if it cannot be captured
+		 */
+		static Optional<PolicyFileContent> of(Path policyPath, Path projectRoot) {
+			Path policyFile = policyPath.toAbsolutePath().normalize();
+			if (!Files.isRegularFile(policyFile)) {
+				return Optional.empty();
+			}
+			try {
+				return Optional.of(new PolicyFileContent(policyFile, projectRoot.toAbsolutePath().normalize(),
+						ByteBuffer.wrap(Files.readAllBytes(policyFile)),
+						YamlPlaceholderResolver.currentPropertyValues()));
+			} catch (IOException unreadable) {
+				return Optional.empty();
+			}
+		}
 	}
 	// </editor-fold>
 

@@ -4,6 +4,7 @@ package de.tum.cit.ase.ares.api.util;
 
 import static de.tum.cit.ase.ares.api.localization.Messages.localized;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -337,11 +338,89 @@ public final class FileTools {
 				Objects.requireNonNull(projectRoot, "projectRoot must not be null"));
 	}
 
+	/**
+	 * Binds exactly one YAML document given as bytes, expanding placeholders after
+	 * parsing with the given values.
+	 *
+	 * @param content        the document's bytes
+	 * @param valueType      the target type
+	 * @param objectMapper   the mapper
+	 * @param projectRoot    the project root for placeholders
+	 * @param propertyValues the property values placeholders expand to
+	 * @param <T>            the target type
+	 * @return the bound value
+	 * @throws IOException if parsing or binding fails
+	 */
+	@Nonnull
+	public static <T> T readYamlFile(@Nonnull byte[] content, @Nonnull Class<T> valueType,
+			@Nonnull ObjectMapper objectMapper, @Nonnull Path projectRoot, @Nonnull Map<String, String> propertyValues)
+			throws IOException {
+		Class<T> protectedValueType = Objects.requireNonNull(valueType, "valueType must not be null");
+		ObjectMapper protectedMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
+		T result = protectedMapper.treeToValue(readYamlTree(content, protectedMapper, projectRoot, propertyValues),
+				protectedValueType);
+		if (result == null) {
+			throw JsonMappingException.fromUnexpectedIOE(
+					new IOException("YAML content deserialized to null for type " + protectedValueType.getName()));
+		}
+		return result;
+	}
+
+	/**
+	 * Reads exactly one YAML document, given as bytes, into a tree and safely
+	 * expands textual placeholders, as
+	 * {@link #readYamlTree(File, ObjectMapper, Path)} does for a file.
+	 *
+	 * @param content        the YAML document's bytes
+	 * @param objectMapper   the caller-supplied mapper
+	 * @param projectRoot    the explicit project root
+	 * @param propertyValues the system property values placeholders expand to
+	 * @return the expanded YAML tree
+	 * @throws IOException if parsing fails
+	 */
+	@Nonnull
+	public static JsonNode readYamlTree(@Nonnull byte[] content, @Nonnull ObjectMapper objectMapper,
+			@Nonnull Path projectRoot, @Nonnull Map<String, String> propertyValues) throws IOException {
+		ObjectMapper protectedMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
+		JsonNode root;
+		try (InputStream inputStream = new ByteArrayInputStream(
+				Objects.requireNonNull(content, "content must not be null"))) {
+			root = readSingleYamlTree(inputStream, protectedMapper);
+		}
+		return YamlPlaceholderResolver.expandScalars(root,
+				Objects.requireNonNull(projectRoot, "projectRoot must not be null"), propertyValues);
+	}
+
+	/**
+	 * Reads exactly one YAML document from a file, or from an entry of a JAR file,
+	 * into a tree.
+	 *
+	 * @param sourceFile   the YAML file
+	 * @param objectMapper the caller-supplied mapper
+	 * @return the tree
+	 * @throws IOException if the file cannot be read or parsed
+	 */
 	@Nonnull
 	private static JsonNode readSingleYamlTree(@Nonnull File sourceFile, @Nonnull ObjectMapper objectMapper)
 			throws IOException {
-		try (InputStream inputStream = createInputStream(sourceFile.toPath());
-				JsonParser parser = objectMapper.getFactory().createParser(inputStream)) {
+		try (InputStream inputStream = createInputStream(sourceFile.toPath())) {
+			return readSingleYamlTree(inputStream, objectMapper);
+		}
+	}
+
+	/**
+	 * Reads exactly one YAML document from a stream into a tree, refusing an empty
+	 * document and a second one.
+	 *
+	 * @param inputStream  the document, closed by the caller
+	 * @param objectMapper the caller-supplied mapper
+	 * @return the tree
+	 * @throws IOException if parsing fails or the document count is not one
+	 */
+	@Nonnull
+	private static JsonNode readSingleYamlTree(@Nonnull InputStream inputStream, @Nonnull ObjectMapper objectMapper)
+			throws IOException {
+		try (JsonParser parser = objectMapper.getFactory().createParser(inputStream)) {
 			JsonNode root = objectMapper.readTree(parser);
 			if (root == null || root.isNull()) {
 				throw JsonMappingException.from(parser, localized("security.file-tools.yaml.root.null"));

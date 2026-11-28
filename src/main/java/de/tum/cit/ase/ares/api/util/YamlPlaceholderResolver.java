@@ -67,6 +67,37 @@ public final class YamlPlaceholderResolver {
 	 */
 	@Nonnull
 	public static String expand(@Nonnull String content, @Nonnull Path projectRoot) {
+		return expand(content, projectRoot, currentPropertyValues());
+	}
+
+	/**
+	 * Returns the current values of the system properties the placeholders expand
+	 * to, keyed by property name, an unset property as the empty string.
+	 *
+	 * @return the values
+	 */
+	@Nonnull
+	public static Map<String, String> currentPropertyValues() {
+		Map<String, String> values = new java.util.HashMap<>();
+		PLACEHOLDER_PROPERTIES.values().forEach(property -> values.put(property, System.getProperty(property, "")));
+		return Map.copyOf(values);
+	}
+
+	/**
+	 * Expands placeholders in one already-parsed scalar value with the given
+	 * property values instead of the current ones, so that the result depends on
+	 * nothing read meanwhile.
+	 *
+	 * @param content        the scalar content
+	 * @param projectRoot    the explicit project root used for {@code PROJECT_ROOT}
+	 * @param propertyValues the values by property name, as
+	 *                       {@link #currentPropertyValues()} returns them
+	 * @return the expanded scalar content
+	 */
+	@Nonnull
+	public static String expand(@Nonnull String content, @Nonnull Path projectRoot,
+			@Nonnull Map<String, String> propertyValues) {
+		Objects.requireNonNull(propertyValues, "propertyValues must not be null");
 		String expanded = Objects.requireNonNull(content, "content must not be null");
 		expanded = expanded.replace("${PROJECT_ROOT}", Objects
 				.requireNonNull(projectRoot, "projectRoot must not be null").toAbsolutePath().normalize().toString());
@@ -75,8 +106,7 @@ public final class YamlPlaceholderResolver {
 			if (!expanded.contains(token)) {
 				continue;
 			}
-			String value = System.getProperty(entry.getValue(), "");
-			expanded = expanded.replace(token, value);
+			expanded = expanded.replace(token, propertyValues.getOrDefault(entry.getValue(), ""));
 		}
 		return expanded;
 	}
@@ -92,23 +122,39 @@ public final class YamlPlaceholderResolver {
 	 */
 	@Nonnull
 	public static JsonNode expandScalars(@Nonnull JsonNode node, @Nonnull Path projectRoot) {
+		return expandScalars(node, projectRoot, currentPropertyValues());
+	}
+
+	/**
+	 * Expands placeholders only inside textual nodes of a parsed YAML tree, with
+	 * the given property values instead of the current ones.
+	 *
+	 * @param node           the YAML tree to update
+	 * @param projectRoot    the explicit project root
+	 * @param propertyValues the values by property name, as
+	 *                       {@link #currentPropertyValues()} returns them
+	 * @return the same tree with textual scalar values expanded
+	 */
+	@Nonnull
+	public static JsonNode expandScalars(@Nonnull JsonNode node, @Nonnull Path projectRoot,
+			@Nonnull Map<String, String> propertyValues) {
 		Objects.requireNonNull(node, "node must not be null");
 		Objects.requireNonNull(projectRoot, "projectRoot must not be null");
 		if (node.isObject()) {
 			ObjectNode objectNode = (ObjectNode) node;
-			objectNode.properties()
-					.forEach(entry -> objectNode.set(entry.getKey(), expandScalars(entry.getValue(), projectRoot)));
+			objectNode.properties().forEach(entry -> objectNode.set(entry.getKey(),
+					expandScalars(entry.getValue(), projectRoot, propertyValues)));
 			return objectNode;
 		}
 		if (node.isArray()) {
 			ArrayNode arrayNode = (ArrayNode) node;
 			for (int index = 0; index < arrayNode.size(); index++) {
-				arrayNode.set(index, expandScalars(arrayNode.get(index), projectRoot));
+				arrayNode.set(index, expandScalars(arrayNode.get(index), projectRoot, propertyValues));
 			}
 			return arrayNode;
 		}
 		if (node.isTextual()) {
-			return TextNode.valueOf(expand(node.textValue(), projectRoot));
+			return TextNode.valueOf(expand(node.textValue(), projectRoot, propertyValues));
 		}
 		return node;
 	}
