@@ -6,7 +6,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Optional;
+
+import javax.annotation.Nullable;
 
 import org.apiguardian.api.API;
 import org.apiguardian.api.API.Status;
@@ -42,6 +45,33 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 	private static final String CLASS_POLICY_PREPARED_KEY = "class-policy-prepared";
 	/** JUnit setting that lets tests run in several threads at once. */
 	private static final String PARALLEL_EXECUTION_ENABLED_KEY = "junit.jupiter.execution.parallel.enabled";
+
+	/**
+	 * Store key of the test cases a test method's earlier phase created and whose
+	 * analysis passed, kept for its later phases.
+	 */
+	private static final String ANALYSED_POLICY_KEY = "analysed-policy";
+
+	/**
+	 * Test cases whose analysis passed in an earlier phase of a test method.
+	 *
+	 * @param policyPath the policy file, or {@code null}
+	 * @param withinPath the analysed part of the project
+	 * @param director   the created test cases
+	 */
+	private record AnalysedPolicy(Path policyPath, Path withinPath, SecurityPolicyReaderAndDirector director) {
+
+		/**
+		 * Tells whether these test cases were created for the given policy and part.
+		 *
+		 * @param otherPolicyPath the policy file, or {@code null}
+		 * @param otherWithinPath the analysed part of the project
+		 * @return whether both are the ones these test cases were created for
+		 */
+		boolean isFor(@Nullable Path otherPolicyPath, Path otherWithinPath) {
+			return Objects.equals(policyPath, otherPolicyPath) && withinPath.equals(otherWithinPath);
+		}
+	}
 
 	private enum LifecycleState {
 		PREPARING,
@@ -185,10 +215,47 @@ public class JupiterSecurityExtension implements UnifiedInvocationInterceptor, T
 					.map(JupiterSecurityExtension::testAndGetPolicyValue).orElse(null);
 			Path withinPath = policyOpt.filter(p -> !p.withinPath().isBlank())
 					.map(JupiterSecurityExtension::testAndGetPolicyWithinPath).orElse(Path.of(""));
-			SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath)
-					.projectFolderPath(Path.of("").toAbsolutePath()).withinPath(withinPath).build().createTestCases()
-					.executeTestCases();
+			if (isTestMethodPresent) {
+				armPhaseOfTestMethod(extensionContext.getStore(NAMESPACE), policyPath, withinPath);
+			} else {
+				createTestCases(policyPath, withinPath).executeTestCases();
+			}
 		}
+	}
+
+	/**
+	 * Arms the policy for one phase of a test method, such as its constructor, a
+	 * setup method or the test itself. Test cases whose analysis passed in an
+	 * earlier phase of the same test are armed again without analysing while
+	 * nothing they depend on has changed. Otherwise they are created and analysed
+	 * afresh, and kept only once that passed.
+	 *
+	 * @param store      the store of the test method's context
+	 * @param policyPath the policy file, or {@code null}
+	 * @param withinPath the analysed part of the project
+	 */
+	private void armPhaseOfTestMethod(ExtensionContext.Store store, @Nullable Path policyPath, Path withinPath) {
+		AnalysedPolicy analysed = store.get(ANALYSED_POLICY_KEY, AnalysedPolicy.class);
+		if (analysed != null && analysed.isFor(policyPath, withinPath) && analysed.director().analysisStillApplies()) {
+			analysed.director().rearmTestCases();
+			return;
+		}
+		store.remove(ANALYSED_POLICY_KEY);
+		SecurityPolicyReaderAndDirector director = createTestCases(policyPath, withinPath).executeTestCases();
+		store.put(ANALYSED_POLICY_KEY, new AnalysedPolicy(policyPath, withinPath, director));
+	}
+
+	/**
+	 * Reads the policy and creates its test cases for the project in the working
+	 * directory.
+	 *
+	 * @param policyPath the policy file, or {@code null}
+	 * @param withinPath the analysed part of the project
+	 * @return the created test cases, not yet analysed or armed
+	 */
+	SecurityPolicyReaderAndDirector createTestCases(@Nullable Path policyPath, Path withinPath) {
+		return SecurityPolicyReaderAndDirector.builder().securityPolicyFilePath(policyPath)
+				.projectFolderPath(Path.of("").toAbsolutePath()).withinPath(withinPath).build().createTestCases();
 	}
 
 	/**

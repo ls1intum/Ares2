@@ -118,6 +118,14 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 	private final boolean supervisedScopeWasDerived;
 
 	/**
+	 * The WALA test case the last run in WALA mode handed this case to, kept so a
+	 * later phase of the same test can compare the inputs of its verdict;
+	 * {@code null} until such a run.
+	 */
+	@Nullable
+	private volatile JavaWalaTestCase lastWalaRun;
+
+	/**
 	 * @return the supervised scope, or null when none was supplied
 	 */
 	@Nullable
@@ -803,11 +811,28 @@ public class JavaArchitectureTestCase extends ArchitectureTestCase {
 						.allowedPackages(protectedAllowedPackages).allowedClasses(allowedClasses)
 						.testClassNames(testClassNames).javaClasses(protectedJavaClasses).callGraph(callGraph).build();
 			}
+			lastWalaRun = tc;
 			tc.executeArchitectureTestCase(architectureMode, aopMode);
 		}
 		default -> throw new SecurityException(
 				Messages.localized("security.architecture.testcase.mode.not.supported", architectureMode));
 		}
+	}
+
+	/**
+	 * Tells whether the WALA verdict this case last relied on still has the inputs
+	 * it was looked up with, apart from the policy and the analysed classes: the
+	 * runtime, the content of the dependencies the call graph follows and the
+	 * method lists. A case never run in WALA mode has no such verdict and answers
+	 * {@code false}.
+	 *
+	 * @param dependencyFingerprint the analysed classes' dependency fingerprint,
+	 *                              read afresh
+	 * @return whether the verdict still has the same inputs
+	 */
+	public boolean verdictInputsUnchanged(@Nonnull String dependencyFingerprint) {
+		JavaWalaTestCase lastRun = lastWalaRun;
+		return lastRun != null && lastRun.verdictInputsUnchanged(dependencyFingerprint);
 	}
 	// </editor-fold>
 

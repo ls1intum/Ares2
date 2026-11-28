@@ -93,6 +93,10 @@ public class SecurityPolicyReaderAndDirector {
 	 */
 	@Nullable
 	private TestCaseAbstractFactoryAndBuilder securityTestCaseFactoryAndBuilder;
+
+	/** The content the policy was read from; {@code null} if not known. */
+	@Nullable
+	private PolicyFileContent readPolicyContent;
 	// </editor-fold>
 
 	// <editor-fold desc="Constructors">
@@ -175,6 +179,7 @@ public class SecurityPolicyReaderAndDirector {
 		Optional<PolicyFileContent> before = PolicyFileContent.of(policyPath, projectRoot);
 		SecurityPolicy known = before.map(READ_POLICIES::get).orElse(null);
 		if (known != null) {
+			readPolicyContent = before.get();
 			return known;
 		}
 		securityPolicyReader = SecurityPolicyReader.selectSecurityPolicyReader(policyPath, projectRoot);
@@ -184,6 +189,7 @@ public class SecurityPolicyReaderAndDirector {
 		SecurityPolicy policy = yamlReader.readSecurityPolicyFrom(policyPath, before.get().bytes().array(),
 				before.get().propertyValues());
 		READ_POLICIES.putIfAbsent(before.get(), policy);
+		readPolicyContent = before.get();
 		return policy;
 	}
 
@@ -278,6 +284,33 @@ public class SecurityPolicyReaderAndDirector {
 	public SecurityPolicyReaderAndDirector executeTestCases() {
 		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
 				"createTestCases() must be called before executeTestCases()").executeTestCases();
+		return this;
+	}
+
+	/**
+	 * Tells, read afresh, whether the created test cases and the verdict of their
+	 * analysis still apply, so that a later phase of the same test may arm them
+	 * again without analysing. The policy file must still hold the content it was
+	 * read from.
+	 *
+	 * @return whether the test cases may be armed again without analysis
+	 */
+	public boolean analysisStillApplies() {
+		return securityTestCaseFactoryAndBuilder != null && readPolicyContent != null && securityPolicyFilePath != null
+				&& PolicyFileContent.of(securityPolicyFilePath, readPolicyContent.projectRoot())
+						.equals(Optional.of(readPolicyContent))
+				&& securityTestCaseFactoryAndBuilder.analysisStillApplies();
+	}
+
+	/**
+	 * Installs the security settings again for test cases whose analysis already
+	 * passed and {@link #analysisStillApplies()} still holds.
+	 *
+	 * @return this instance.
+	 */
+	public SecurityPolicyReaderAndDirector rearmTestCases() {
+		Objects.requireNonNull(this.securityTestCaseFactoryAndBuilder,
+				"createTestCases() must be called before rearmTestCases()").rearmTestCases();
 		return this;
 	}
 	// </editor-fold>

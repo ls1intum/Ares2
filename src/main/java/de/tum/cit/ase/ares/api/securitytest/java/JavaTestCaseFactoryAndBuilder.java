@@ -13,6 +13,7 @@ import de.tum.cit.ase.ares.api.aop.AOPMode;
 import de.tum.cit.ase.ares.api.aop.java.JavaAOPTestCase;
 import de.tum.cit.ase.ares.api.architecture.ArchitectureMode;
 import de.tum.cit.ase.ares.api.architecture.java.JavaArchitectureTestCase;
+import de.tum.cit.ase.ares.api.architecture.java.wala.JavaWalaTestCase;
 import de.tum.cit.ase.ares.api.buildtoolconfiguration.BuildMode;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.phobos.JavaPhobosTestCase;
@@ -152,6 +153,56 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 	 */
 	@Override
 	public void executeTestCases() {
+		executeTestCases(this.architectureTestCases.stream()
+				.map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList());
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>
+	 * Answers only for test cases a policy scoped: the essential lists and the
+	 * creator's inputs must be the ones the test cases were created from, and every
+	 * WALA verdict must still have the inputs it was looked up with.
+	 */
+	@Override
+	public boolean analysisStillApplies() {
+		if (supervisedScopeWasDerived
+				|| !essentialDataReader.readEssentialPackagesFrom(essentialPackagesPath).getEssentialPackages()
+						.equals(essentialPackages)
+				|| !essentialDataReader.readEssentialClassesFrom(essentialClassesPath).getEssentialClasses()
+						.equals(essentialClasses)
+				|| !javaCreator.createdFromUnchangedInput(architectureMode)) {
+			return false;
+		}
+		if (architectureMode != ArchitectureMode.WALA) {
+			return true;
+		}
+		String dependencyFingerprint = JavaWalaTestCase
+				.dependencyFingerprintOf(Objects.requireNonNull(javaCreator.analysedClasses()));
+		return this.architectureTestCases.stream().map(JavaArchitectureTestCase.class::cast)
+				.allMatch(testCase -> testCase.verdictInputsUnchanged(dependencyFingerprint));
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>
+	 * The reserved-package check and every check that precedes arming still run on
+	 * the classes as they are now; only the architecture test cases are left out.
+	 */
+	@Override
+	public void rearmTestCases() {
+		javaCreator.requireNoReservedSupervisedClass();
+		executeTestCases(List.of());
+	}
+
+	/**
+	 * Runs every check that precedes arming, then analyses the given architecture
+	 * cases and arms the settings.
+	 *
+	 * @param javaArchitectureTestCases the architecture cases to analyse, possibly
+	 *                                  none
+	 */
+	private void executeTestCases(@Nonnull List<JavaArchitectureTestCase> javaArchitectureTestCases) {
 		javaCreator.requireSupervisedClasses(buildMode);
 		if (supervisedScopeWasDerived) {
 			javaProjectScanner.requireDerivedScopeToCoverTheProject(packageName);
@@ -159,9 +210,7 @@ public class JavaTestCaseFactoryAndBuilder extends TestCaseAbstractFactoryAndBui
 		javaCreator.requireNoProductionClassNamedLikeAnExemptedOne(buildMode);
 		javaCreator.requireWovenSupervisedClasses(aopMode);
 		executer.executeTestCases(buildMode, architectureMode, aopMode, essentialPackages, essentialClasses,
-				javaCreator.exemptedClassNames(), packageName, mainClassInPackageName,
-				this.architectureTestCases.stream()
-						.map(architectureTestCase -> (JavaArchitectureTestCase) architectureTestCase).toList(),
+				javaCreator.exemptedClassNames(), packageName, mainClassInPackageName, javaArchitectureTestCases,
 				this.aopTestCases.stream().map(aopTestCase -> (JavaAOPTestCase) aopTestCase).toList());
 	}
 	// </editor-fold>

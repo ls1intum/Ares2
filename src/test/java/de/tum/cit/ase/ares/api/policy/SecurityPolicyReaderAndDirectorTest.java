@@ -413,6 +413,51 @@ public class SecurityPolicyReaderAndDirectorTest {
 	}
 
 	/**
+	 * Created test cases apply again only while the policy file holds the content
+	 * they were read from and the factory reports its own input unchanged; arming
+	 * again is left to the factory.
+	 *
+	 * @throws Exception if the policy cannot be written
+	 */
+	@Test
+	@DisplayName("Should reuse test cases only while the policy and the factory's input are unchanged")
+	void shouldReuseTestCasesOnlyWhileTheirInputIsUnchanged() throws Exception {
+		try (MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
+			stubDirectorForAnyPolicy(directorMock);
+			Files.writeString(securityPolicyFilePath, policyNaming("ReuseTest"));
+			SecurityPolicyReaderAndDirector instance = new SecurityPolicyReaderAndDirector(securityPolicyFilePath,
+					projectFolderPath).createTestCases();
+			when(mockFactoryAndBuilder.analysisStillApplies()).thenReturn(true);
+			assertTrue(instance.analysisStillApplies());
+
+			when(mockFactoryAndBuilder.analysisStillApplies()).thenReturn(false);
+			assertFalse(instance.analysisStillApplies());
+
+			when(mockFactoryAndBuilder.analysisStillApplies()).thenReturn(true);
+			Files.writeString(securityPolicyFilePath, policyNaming("ReuseTestChanged"));
+			assertFalse(instance.analysisStillApplies());
+
+			instance.rearmTestCases();
+			verify(mockFactoryAndBuilder).rearmTestCases();
+		}
+	}
+
+	/** Test cases created without a policy file are never reused. */
+	@Test
+	@DisplayName("Should never reuse test cases created without a policy file")
+	void shouldNeverReuseTestCasesWithoutAPolicyFile() {
+		try (MockedStatic<SecurityPolicyDirector> directorMock = mockStatic(SecurityPolicyDirector.class)) {
+			directorMock.when(() -> SecurityPolicyDirector.selectSecurityPolicyDirector(null))
+					.thenReturn(mockSecurityPolicyDirector);
+			when(mockSecurityPolicyDirector.createTestCases(null, projectFolderPath, Path.of("")))
+					.thenReturn(mockFactoryAndBuilder);
+			when(mockFactoryAndBuilder.analysisStillApplies()).thenReturn(true);
+			assertFalse(new SecurityPolicyReaderAndDirector(null, projectFolderPath).createTestCases()
+					.analysisStillApplies());
+		}
+	}
+
+	/**
 	 * Lets the director accept any policy for the project folder set up before each
 	 * test.
 	 *
