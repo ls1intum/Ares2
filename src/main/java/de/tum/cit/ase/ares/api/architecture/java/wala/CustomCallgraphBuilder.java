@@ -47,6 +47,7 @@ import com.ibm.wala.ipa.summaries.SummarizedMethod;
 import com.ibm.wala.types.ClassLoaderReference;
 import com.ibm.wala.types.MethodReference;
 import com.ibm.wala.types.TypeReference;
+import com.tngtech.archunit.ArchConfiguration;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -55,6 +56,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import de.tum.cit.ase.ares.api.architecture.java.ForbiddenMethodMatcher;
 import de.tum.cit.ase.ares.api.localization.Messages;
 import de.tum.cit.ase.ares.api.util.FileTools;
+import de.tum.cit.ase.ares.api.util.LruCache;
 
 /**
  * Utility to build a call graph for Java binaries using WALA framework.
@@ -111,6 +113,23 @@ public class CustomCallgraphBuilder {
 	 * them lies inside the supervised project, and only ever as a complete set.
 	 */
 	private static final Set<Path> OPTIONAL_FRAMEWORK_CANDIDATE_CODE_SOURCES = optionalFrameworkCandidateCodeSources();
+
+	/**
+	 * The largest number of imported dependency class files kept. All 62 policies
+	 * of the SCORE Reproducibility Package reach 42 in one JVM; 1024 leaves room
+	 * for large exercises, and an evicted class is only imported again.
+	 */
+	private static final int MAX_IMPORTED_CLASS_FILES = 1024;
+
+	/**
+	 * Dependency class files already imported in this JVM, keyed by the class name,
+	 * the file's address and the SHA-256 of its bytes. A class file replaced behind
+	 * the same address therefore gets a new key and is imported afresh. Both
+	 * callers import with a plain {@link ClassFileImporter}, so the key needs no
+	 * importer options.
+	 */
+	private static final Map<String, JavaClass> IMPORTED_CLASS_FILES = LruCache
+			.synchronizedCache(MAX_IMPORTED_CLASS_FILES);
 
 	/**
 	 * Trusted framework origins effective for this analysis session, derived from
@@ -265,7 +284,7 @@ public class CustomCallgraphBuilder {
 								ignored -> importJar(importer, classpathEntry.get()));
 						resolved = jarClasses.get(targetName);
 					} else {
-						resolved = importer.importUrl(location).get(targetName);
+						resolved = importClassFile(importer, location, targetName);
 					}
 					pending.addLast(resolved);
 				} catch (RuntimeException exception) {
@@ -274,6 +293,97 @@ public class CustomCallgraphBuilder {
 							exception);
 				}
 			}
+		}
+	}
+
+	/**
+	 * Imports one dependency class file, reusing an earlier import of the same
+	 * bytes. The file is read once and a new import is made from a private copy of
+	 * exactly those bytes. Nothing is kept if ArchUnit's configuration lets it read
+	 * further class files, checked before and after the import.
+	 *
+	 * @param importer   the class importer
+	 * @param location   the class file's address, a {@code file:} URL
+	 * @param targetName the binary class name
+	 * @return the imported class
+	 */
+	private static JavaClass importClassFile(ClassFileImporter importer, URL location, String targetName) {
+		if (importReadsFurtherClassFiles()) {
+			return importer.importUrl(location).get(targetName);
+		}
+		byte[] classFile = readClassFile(location);
+		String key = targetName + "\0" + location + "\0" + sha256Hex(classFile); //$NON-NLS-1$ //$NON-NLS-2$
+		JavaClass known = IMPORTED_CLASS_FILES.get(key);
+		if (known != null) {
+			return known;
+		}
+		JavaClass imported = importCopy(importer, classFile, targetName);
+		if (!importReadsFurtherClassFiles()) {
+			IMPORTED_CLASS_FILES.putIfAbsent(key, imported);
+		}
+		return imported;
+	}
+
+	/**
+	 * Imports a class from given class file bytes through a private copy, which is
+	 * deleted again afterwards. The copy is read back after the import, so an
+	 * import of anything but these bytes is refused rather than kept.
+	 *
+	 * @param importer   the class importer
+	 * @param classFile  the class file bytes
+	 * @param targetName the binary class name
+	 * @return the imported class
+	 * @throws java.io.UncheckedIOException if the copy cannot be written or read
+	 * @throws IllegalStateException        if the copy changed during the import
+	 */
+	private static JavaClass importCopy(ClassFileImporter importer, byte[] classFile, String targetName) {
+		try {
+			Path folder = Files.createTempDirectory("ares-class-import"); //$NON-NLS-1$
+			Path copy = folder.resolve(targetName.substring(targetName.lastIndexOf('.') + 1) + ".class"); //$NON-NLS-1$
+			try {
+				Files.write(copy, classFile);
+				JavaClass imported = importer.importUrl(copy.toUri().toURL()).get(targetName);
+				if (!Arrays.equals(classFile, Files.readAllBytes(copy))) {
+					throw new IllegalStateException("The private copy of " + targetName + " changed during its import"); //$NON-NLS-1$ //$NON-NLS-2$
+				}
+				return imported;
+			} finally {
+				Files.deleteIfExists(copy);
+				Files.deleteIfExists(folder);
+			}
+		} catch (IOException unwritableCopy) {
+			throw new java.io.UncheckedIOException(unwritableCopy);
+		}
+	}
+
+	/**
+	 * Tells whether ArchUnit, as configured, reads further class files to complete
+	 * an import, from the class path or through a class resolver. An import then
+	 * depends on more than the bytes of its own file, for example on the default
+	 * values of an annotation type, so it is not kept.
+	 *
+	 * @return whether an import reads further class files
+	 */
+	private static boolean importReadsFurtherClassFiles() {
+		ArchConfiguration configuration = ArchConfiguration.get();
+		return configuration.resolveMissingDependenciesFromClassPath() || configuration.getClassResolver().isPresent();
+	}
+
+	/**
+	 * Reads the bytes of a class file.
+	 *
+	 * @param location the class file's address, a {@code file:} URL
+	 * @return its bytes
+	 * @throws java.io.UncheckedIOException if the file cannot be read
+	 * @throws IllegalArgumentException     if the address is no valid URI
+	 */
+	private static byte[] readClassFile(URL location) {
+		try {
+			return Files.readAllBytes(Path.of(location.toURI()));
+		} catch (IOException unreadableClassFile) {
+			throw new java.io.UncheckedIOException(unreadableClassFile);
+		} catch (java.net.URISyntaxException malformedAddress) {
+			throw new IllegalArgumentException(malformedAddress);
 		}
 	}
 
